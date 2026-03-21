@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atelier — Premium Modern Fashion</title>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap');
+  <style>@import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap');</style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Cormorant', 'serif'],
+            sans: ['Montserrat', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            stone: {
+              primary: '#1C1917',
+              secondary: '#44403C',
+            },
+            gold: {
+              DEFAULT: '#CA8A04',
+              light: '#EAB308',
+              dark: '#A16207',
+            },
+            surface: '#FAFAF9',
+            ink: '#0C0A09',
+          },
+          letterSpacing: {
+            'atelier': '0.3em',
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    body { font-family: 'Montserrat', system-ui, sans-serif; color: #0C0A09; background: #FAFAF9; }
+    .font-serif { font-family: 'Cormorant', serif; }
+    .nav-scrolled { background: rgba(255,255,255,0.97); backdrop-filter: blur(12px); box-shadow: 0 1px 0 rgba(0,0,0,0.06); }
+    .nav-scrolled .nav-link, .nav-scrolled .nav-icon { color: #1C1917 !important; }
+    .nav-scrolled .nav-logo { color: #1C1917 !important; }
+    .category-card:hover .category-overlay { opacity: 1; }
+    .category-card:hover img { transform: scale(1.05); }
+    .product-card:hover img { transform: scale(1.05); }
+    .product-card:hover .heart-btn { opacity: 1; }
+    .insta-item:hover .insta-overlay { opacity: 1; }
+    .insta-item:hover img { transform: scale(1.05); }
+    .mobile-menu { clip-path: circle(0% at calc(100% - 2.5rem) 2rem); transition: clip-path 0.5s ease-in-out; }
+    .mobile-menu.active { clip-path: circle(150% at calc(100% - 2.5rem) 2rem); }
+  </style>
+</head>
+<body class="antialiased">
+
+  <!-- ========== NAVIGATION ========== -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-500">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        <!-- Logo -->
+        <a href="store.html" class="nav-logo text-white transition-colors duration-500 font-serif text-2xl font-semibold tracking-atelier cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">
+          ATELIER
+        </a>
+
+        <!-- Center Links (Desktop) -->
+        <div class="hidden lg:flex items-center gap-8">
+          <a href="shop.html" class="nav-link text-white/90 hover:text-white text-xs font-medium uppercase tracking-widest transition-colors duration-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none px-1 py-1">New Arrivals</a>
+          <a href="shop.html" class="nav-link text-white/90 hover:text-white text-xs font-medium uppercase tracking-widest transition-colors duration-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none px-1 py-1">Women</a>
+          <a href="shop.html" class="nav-link text-white/90 hover:text-white text-xs font-medium uppercase tracking-widest transition-colors duration-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none px-1 py-1">Men</a>
+          <a href="shop.html" class="nav-link text-white/90 hover:text-white text-xs font-medium uppercase tracking-widest transition-colors duration-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none px-1 py-1">Accessories</a>
+          <a href="shop.html" class="nav-link text-white/90 hover:text-white text-xs font-medium uppercase tracking-widest transition-colors duration-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none px-1 py-1">Sale</a>
+        </div>
+
+        <!-- Right Icons -->
+        <div class="flex items-center gap-5">
+          <!-- Search -->
+          <button class="nav-icon text-white transition-colors duration-500 cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none rounded-full p-1" aria-label="Search">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+
+          <!-- Wishlist -->
+          <a href="wishlist.html" class="nav-icon text-white transition-colors duration-500 cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none rounded-full p-1 hidden sm:block" aria-label="Wishlist">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+            </svg>
+          </a>
+
+          <!-- Cart -->
+          <a href="cart.html" class="nav-icon text-white transition-colors duration-500 cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none rounded-full p-1 relative" aria-label="Cart">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <path d="M16 10a4 4 0 01-8 0"/>
+            </svg>
+            <span class="absolute -top-1 -right-1 w-4 h-4 bg-gold text-stone-primary text-[10px] font-bold rounded-full flex items-center justify-center">3</span>
+          </a>
+
+          <!-- Account -->
+          <a href="account.html" class="nav-icon text-white transition-colors duration-500 cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none rounded-full p-1 hidden sm:block" aria-label="Account">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </a>
+
+          <!-- Mobile Menu Toggle -->
+          <button id="menuToggle" class="lg:hidden nav-icon text-white transition-colors duration-500 cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none rounded-full p-1" aria-label="Menu">
+            <svg id="menuOpen" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+            <svg id="menuClose" class="hidden" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobileMenu" class="mobile-menu fixed inset-0 bg-stone-primary/98 z-40 flex flex-col items-center justify-center gap-8">
+      <a href="shop.html" class="text-white font-serif text-4xl font-medium hover:text-gold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">New Arrivals</a>
+      <a href="shop.html" class="text-white font-serif text-4xl font-medium hover:text-gold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">Women</a>
+      <a href="shop.html" class="text-white font-serif text-4xl font-medium hover:text-gold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">Men</a>
+      <a href="shop.html" class="text-white font-serif text-4xl font-medium hover:text-gold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">Accessories</a>
+      <a href="shop.html" class="text-white font-serif text-4xl font-medium hover:text-gold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">Sale</a>
+      <div class="flex items-center gap-6 mt-8">
+        <a href="wishlist.html" class="text-white/70 hover:text-white transition-colors cursor-pointer" aria-label="Wishlist">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+        </a>
+        <a href="account.html" class="text-white/70 hover:text-white transition-colors cursor-pointer" aria-label="Account">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ========== HERO ========== -->
+  <section class="relative min-h-screen flex items-end overflow-hidden">
+    <!-- Background Image -->
+    <img src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1600&h=900&fit=crop&q=80" alt="Fashion editorial - Spring/Summer 2026 collection" class="absolute inset-0 w-full h-full object-cover object-center">
+    <!-- Gradient Overlay -->
+    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10"></div>
+    <!-- Content -->
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 sm:pb-28 lg:pb-32 w-full">
+      <div class="max-w-2xl">
+        <p class="text-gold text-xs sm:text-sm font-sans font-medium uppercase tracking-widest mb-4 sm:mb-6">Spring / Summer 2026</p>
+        <h1 class="font-serif text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white font-semibold leading-[0.95] mb-5 sm:mb-6">
+          The New<br>Essential
+        </h1>
+        <p class="text-white/80 text-base sm:text-lg font-light leading-relaxed max-w-lg mb-8 sm:mb-10">
+          Redefining modern luxury through timeless silhouettes and conscious craft.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <a href="shop.html" class="inline-flex items-center justify-center px-8 py-4 bg-gold hover:bg-gold-dark text-stone-primary text-xs font-semibold uppercase tracking-widest transition-colors duration-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none">
+            Shop Collection
+          </a>
+          <a href="#lookbook" class="inline-flex items-center justify-center px-8 py-4 border border-white/50 hover:border-white text-white text-xs font-semibold uppercase tracking-widest transition-colors duration-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none">
+            <svg class="mr-2" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+            Watch Lookbook
+          </a>
+        </div>
+      </div>
+    </div>
+    <!-- Scroll Indicator -->
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 animate-bounce hidden sm:block">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+    </div>
+  </section>
+
+  <!-- ========== CATEGORY GRID ========== -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 auto-rows-[200px] sm:auto-rows-[260px] lg:auto-rows-[280px]">
+      <!-- Women — tall left top -->
+      <a href="shop.html" class="category-card relative overflow-hidden row-span-2 col-span-1 group cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">
+        <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600&h=800&fit=crop&q=80" alt="Women's collection" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700">
+        <div class="category-overlay absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-500"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+        <div class="absolute bottom-0 left-0 p-5 sm:p-6">
+          <h3 class="font-serif text-2xl sm:text-3xl text-white font-semibold mb-1">Women</h3>
+          <span class="text-white/80 text-xs font-medium uppercase tracking-widest group-hover:text-gold transition-colors">Explore
+            <svg class="inline ml-1 w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <!-- Men — tall left bottom -->
+      <a href="shop.html" class="category-card relative overflow-hidden row-span-2 col-span-1 group cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">
+        <img src="https://images.unsplash.com/photo-1507680434567-5739c80be1ac?w=600&h=800&fit=crop&q=80" alt="Men's collection" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700">
+        <div class="category-overlay absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-500"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+        <div class="absolute bottom-0 left-0 p-5 sm:p-6">
+          <h3 class="font-serif text-2xl sm:text-3xl text-white font-semibold mb-1">Men</h3>
+          <span class="text-white/80 text-xs font-medium uppercase tracking-widest group-hover:text-gold transition-colors">Explore
+            <svg class="inline ml-1 w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <!-- Accessories — large center-right -->
+      <a href="shop.html" class="category-card relative overflow-hidden col-span-2 row-span-3 group cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">
+        <img src="https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?w=800&h=600&fit=crop&q=80" alt="Accessories collection" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700">
+        <div class="category-overlay absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-500"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+        <div class="absolute bottom-0 left-0 p-5 sm:p-6">
+          <h3 class="font-serif text-2xl sm:text-3xl text-white font-semibold mb-1">Accessories</h3>
+          <span class="text-white/80 text-xs font-medium uppercase tracking-widest group-hover:text-gold transition-colors">Explore
+            <svg class="inline ml-1 w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </span>
+        </div>
+      </a>
+
+      <!-- New Arrivals — wide bottom -->
+      <a href="shop.html" class="category-card relative overflow-hidden col-span-2 row-span-1 group cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">
+        <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&h=400&fit=crop&q=80" alt="New arrivals" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700">
+        <div class="category-overlay absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-500"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+        <div class="absolute bottom-0 left-0 p-5 sm:p-6">
+          <h3 class="font-serif text-2xl sm:text-3xl text-white font-semibold mb-1">New Arrivals</h3>
+          <span class="text-white/80 text-xs font-medium uppercase tracking-widest group-hover:text-gold transition-colors">Explore
+            <svg class="inline ml-1 w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </span>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- ========== FEATURED PRODUCTS ========== -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
+    <div class="text-center mb-10 sm:mb-14">
+      <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl text-ink font-semibold">Curated for You</h2>
+      <p class="text-stone-secondary text-sm mt-3 max-w-md mx-auto">Handpicked pieces from our latest collections.</p>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <!-- Product 1: Wool Blend Overcoat -->
+      <a href="product.html" class="product-card group cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none rounded-sm">
+        <div class="relative overflow-hidden bg-stone-100 aspect-[5/6] mb-3 sm:mb-4">
+          <img src="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=500&h=600&fit=crop&q=80" alt="Wool Blend Overcoat" class="w-full h-full object-cover transition-transform duration-700">
+          <button class="heart-btn absolute top-3 right-3 w-9 h-9 bg-white/90 rounded-full flex items-center justify-center opacity-0 transition-opacity duration-300 hover:bg-white cursor-pointer focus-visible:ring-2 focus-visible:ring-gold" aria-label="Add to wishlist" onclick="event.preventDefault(); event.stopPropagation();">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1C1917" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          </button>
+        </div>
+        <div class="px-1">
+          <h3 class="text-ink text-sm font-medium leading-snug mb-1">Wool Blend Overcoat</h3>
+          <div class="flex items-center gap-1 mb-1.5">
+            <div class="flex items-center text-gold">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" opacity="0.4"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+            </div>
+            <span class="text-stone-secondary text-[10px]">4.8</span>
+          </div>
+          <p class="text-ink text-sm font-semibold tabular-nums">$485</p>
+        </div>
+      </a>
+
+      <!-- Product 2: Silk Midi Dress -->
+      <a href="product.html" class="product-card group cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none rounded-sm">
+        <div class="relative overflow-hidden bg-stone-100 aspect-[5/6] mb-3 sm:mb-4">
+          <img src="https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=500&h=600&fit=crop&q=80" alt="Silk Midi Dress" class="w-full h-full object-cover transition-transform duration-700">
+          <span class="absolute top-3 left-3 bg-stone-primary text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1">New</span>
+          <button class="heart-btn absolute top-3 right-3 w-9 h-9 bg-white/90 rounded-full flex items-center justify-center opacity-0 transition-opacity duration-300 hover:bg-white cursor-pointer focus-visible:ring-2 focus-visible:ring-gold" aria-label="Add to wishlist" onclick="event.preventDefault(); event.stopPropagation();">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1C1917" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          </button>
+        </div>
+        <div class="px-1">
+          <h3 class="text-ink text-sm font-medium leading-snug mb-1">Silk Midi Dress</h3>
+          <div class="flex items-center gap-1 mb-1.5">
+            <div class="flex items-center text-gold">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+            </div>
+            <span class="text-stone-secondary text-[10px]">4.9</span>
+          </div>
+          <p class="text-ink text-sm font-semibold tabular-nums">$320</p>
+        </div>
+      </a>
+
+      <!-- Product 3: Minimalist Watch -->
+      <a href="product.html" class="product-card group cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none rounded-sm">
+        <div class="relative overflow-hidden bg-stone-100 aspect-[5/6] mb-3 sm:mb-4">
+          <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&h=600&fit=crop&q=80" alt="Minimalist Watch" class="w-full h-full object-cover transition-transform duration-700">
+          <button class="heart-btn absolute top-3 right-3 w-9 h-9 bg-white/90 rounded-full flex items-center justify-center opacity-0 transition-opacity duration-300 hover:bg-white cursor-pointer focus-visible:ring-2 focus-visible:ring-gold" aria-label="Add to wishlist" onclick="event.preventDefault(); event.stopPropagation();">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1C1917" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          </button>
+        </div>
+        <div class="px-1">
+          <h3 class="text-ink text-sm font-medium leading-snug mb-1">Minimalist Watch</h3>
+          <div class="flex items-center gap-1 mb-1.5">
+            <div class="flex items-center text-gold">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" opacity="0.4"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+            </div>
+            <span class="text-stone-secondary text-[10px]">4.7</span>
+          </div>
+          <p class="text-ink text-sm font-semibold tabular-nums">$275</p>
+        </div>
+      </a>
+
+      <!-- Product 4: Italian Leather Bag -->
+      <a href="product.html" class="product-card group cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none rounded-sm">
+        <div class="relative overflow-hidden bg-stone-100 aspect-[5/6] mb-3 sm:mb-4">
+          <img src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=500&h=600&fit=crop&q=80" alt="Italian Leather Bag" class="w-full h-full object-cover transition-transform duration-700">
+          <span class="absolute top-3 left-3 bg-gold text-stone-primary text-[10px] font-bold uppercase tracking-wider px-2.5 py-1">Sale</span>
+          <button class="heart-btn absolute top-3 right-3 w-9 h-9 bg-white/90 rounded-full flex items-center justify-center opacity-0 transition-opacity duration-300 hover:bg-white cursor-pointer focus-visible:ring-2 focus-visible:ring-gold" aria-label="Add to wishlist" onclick="event.preventDefault(); event.stopPropagation();">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1C1917" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+          </button>
+        </div>
+        <div class="px-1">
+          <h3 class="text-ink text-sm font-medium leading-snug mb-1">Italian Leather Bag</h3>
+          <div class="flex items-center gap-1 mb-1.5">
+            <div class="flex items-center text-gold">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" opacity="0.4"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+            </div>
+            <span class="text-stone-secondary text-[10px]">4.6</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <p class="text-ink text-sm font-semibold tabular-nums">$520</p>
+            <p class="text-stone-secondary/60 text-xs line-through tabular-nums">$650</p>
+          </div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- ========== BRAND STORY ========== -->
+  <section class="bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+        <!-- Image -->
+        <div class="overflow-hidden">
+          <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=700&h=500&fit=crop&q=80" alt="Atelier workshop - crafting timeless fashion" class="w-full h-[400px] sm:h-[500px] object-cover">
+        </div>
+        <!-- Text -->
+        <div class="max-w-lg">
+          <p class="text-gold text-xs font-medium uppercase tracking-widest mb-4">Since 2018</p>
+          <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl text-ink font-semibold mb-6 leading-tight">Our Story</h2>
+          <p class="text-stone-secondary text-base leading-relaxed mb-5">
+            Atelier was born from a simple conviction: that luxury and responsibility are not at odds. We work with the world's finest ateliers, selecting fabrics that honor both craft and planet -- from Italian-woven organic cotton to traceable Mongolian cashmere.
+          </p>
+          <p class="text-stone-secondary text-base leading-relaxed mb-8">
+            Every piece in our collection is designed to transcend seasons. Timeless silhouettes, meticulous construction, and a restrained palette mean your Atelier wardrobe grows more versatile with every addition. This is fashion that endures.
+          </p>
+          <a href="#" class="inline-block text-ink text-xs font-semibold uppercase tracking-widest border-b-2 border-ink pb-1 hover:border-gold hover:text-gold transition-colors duration-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">
+            Learn More
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== INSTAGRAM / LOOKBOOK GRID ========== -->
+  <section id="lookbook" class="py-16 sm:py-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-10 sm:mb-14">
+      <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl text-ink font-semibold mb-3">Follow @atelier</h2>
+      <p class="text-stone-secondary text-sm">Join our community of conscious fashion lovers.</p>
+    </div>
+
+    <div class="grid grid-cols-3 lg:grid-cols-6 gap-0.5 sm:gap-1">
+      <!-- Insta 1 -->
+      <a href="#" class="insta-item relative aspect-square overflow-hidden group cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">
+        <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=400&fit=crop&q=80" alt="Instagram post" class="w-full h-full object-cover transition-transform duration-500">
+        <div class="insta-overlay absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 flex items-center justify-center">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5"/>
+            <circle cx="12" cy="12" r="5"/>
+            <circle cx="17.5" cy="6.5" r="1.5" fill="white" stroke="none"/>
+          </svg>
+        </div>
+      </a>
+      <!-- Insta 2 -->
+      <a href="#" class="insta-item relative aspect-square overflow-hidden group cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">
+        <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400&h=400&fit=crop&q=80" alt="Instagram post" class="w-full h-full object-cover transition-transform duration-500">
+        <div class="insta-overlay absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 flex items-center justify-center">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5"/>
+            <circle cx="12" cy="12" r="5"/>
+            <circle cx="17.5" cy="6.5" r="1.5" fill="white" stroke="none"/>
+          </svg>
+        </div>
+      </a>
+      <!-- Insta 3 -->
+      <a href="#" class="insta-item relative aspect-square overflow-hidden group cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">
+        <img src="https://images.unsplash.com/photo-1558171813-4c088753af8f?w=400&h=400&fit=crop&q=80" alt="Instagram post" class="w-full h-full object-cover transition-transform duration-500">
+        <div class="insta-overlay absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 flex items-center justify-center">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5"/>
+            <circle cx="12" cy="12" r="5"/>
+            <circle cx="17.5" cy="6.5" r="1.5" fill="white" stroke="none"/>
+          </svg>
+        </div>
+      </a>
+      <!-- Insta 4 -->
+      <a href="#" class="insta-item relative aspect-square overflow-hidden group cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">
+        <img src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=400&h=400&fit=crop&q=80" alt="Instagram post" class="w-full h-full object-cover transition-transform duration-500">
+        <div class="insta-overlay absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 flex items-center justify-center">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5"/>
+            <circle cx="12" cy="12" r="5"/>
+            <circle cx="17.5" cy="6.5" r="1.5" fill="white" stroke="none"/>
+          </svg>
+        </div>
+      </a>
+      <!-- Insta 5 -->
+      <a href="#" class="insta-item relative aspect-square overflow-hidden group cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">
+        <img src="https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?w=400&h=400&fit=crop&q=80" alt="Instagram post" class="w-full h-full object-cover transition-transform duration-500">
+        <div class="insta-overlay absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 flex items-center justify-center">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5"/>
+            <circle cx="12" cy="12" r="5"/>
+            <circle cx="17.5" cy="6.5" r="1.5" fill="white" stroke="none"/>
+          </svg>
+        </div>
+      </a>
+      <!-- Insta 6 -->
+      <a href="#" class="insta-item relative aspect-square overflow-hidden group cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">
+        <img src="https://images.unsplash.com/photo-1475180098004-ca77a66827be?w=400&h=400&fit=crop&q=80" alt="Instagram post" class="w-full h-full object-cover transition-transform duration-500">
+        <div class="insta-overlay absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 flex items-center justify-center">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="5"/>
+            <circle cx="12" cy="12" r="5"/>
+            <circle cx="17.5" cy="6.5" r="1.5" fill="white" stroke="none"/>
+          </svg>
+        </div>
+      </a>
+    </div>
+
+    <div class="text-center mt-8">
+      <a href="#" class="inline-block text-ink text-xs font-semibold uppercase tracking-widest border-b-2 border-ink pb-1 hover:border-gold hover:text-gold transition-colors duration-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">
+        Follow Us on Instagram
+      </a>
+    </div>
+  </section>
+
+  <!-- ========== NEWSLETTER ========== -->
+  <section class="bg-stone-100/60">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+      <div class="max-w-xl mx-auto text-center">
+        <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl text-ink font-semibold mb-4">Join the Inner Circle</h2>
+        <p class="text-stone-secondary text-sm sm:text-base leading-relaxed mb-8">
+          Early access to new collections, exclusive offers, and editorial content.
+        </p>
+        <form class="flex flex-col sm:flex-row gap-3 mb-4" onsubmit="event.preventDefault();">
+          <label for="newsletter-email" class="sr-only">Email address</label>
+          <input
+            id="newsletter-email"
+            type="email"
+            placeholder="Your email address"
+            required
+            class="flex-1 px-5 py-3.5 bg-white border border-stone-200 text-ink text-sm placeholder-stone-secondary/50 focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent transition-shadow"
+          >
+          <button type="submit" class="px-8 py-3.5 bg-gold hover:bg-gold-dark text-stone-primary text-xs font-semibold uppercase tracking-widest transition-colors duration-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none whitespace-nowrap">
+            Subscribe
+          </button>
+        </form>
+        <p class="text-stone-secondary/60 text-xs">
+          <svg class="inline w-3 h-3 mr-1 -mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          10,000+ members already inside
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="bg-stone-primary text-white/70">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-10 sm:gap-8">
+        <!-- Column 1: Brand -->
+        <div class="col-span-2 sm:col-span-1">
+          <a href="store.html" class="inline-block font-serif text-xl font-semibold tracking-atelier text-white mb-4 cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">ATELIER</a>
+          <p class="text-white/50 text-xs leading-relaxed mb-6 max-w-xs">Modern luxury fashion, crafted with intention. Timeless pieces for the conscious wardrobe.</p>
+          <div class="flex items-center gap-4">
+            <!-- Instagram -->
+            <a href="#" class="text-white/50 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none rounded-full" aria-label="Instagram">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="5"/>
+                <circle cx="12" cy="12" r="5"/>
+                <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/>
+              </svg>
+            </a>
+            <!-- Pinterest -->
+            <a href="#" class="text-white/50 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none rounded-full" aria-label="Pinterest">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.993 3.995-.282 1.193.599 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.084.345-.09.375-.293 1.199-.334 1.363-.053.225-.174.271-.402.163-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/>
+              </svg>
+            </a>
+            <!-- X / Twitter -->
+            <a href="#" class="text-white/50 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none rounded-full" aria-label="X">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Column 2: Shop -->
+        <div>
+          <h4 class="text-white text-[11px] font-semibold uppercase tracking-widest mb-5">Shop</h4>
+          <ul class="space-y-3">
+            <li><a href="shop.html" class="text-white/50 hover:text-white text-xs transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">Women</a></li>
+            <li><a href="shop.html" class="text-white/50 hover:text-white text-xs transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">Men</a></li>
+            <li><a href="shop.html" class="text-white/50 hover:text-white text-xs transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">Accessories</a></li>
+            <li><a href="shop.html" class="text-white/50 hover:text-white text-xs transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">New Arrivals</a></li>
+            <li><a href="shop.html" class="text-white/50 hover:text-white text-xs transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">Sale</a></li>
+          </ul>
+        </div>
+
+        <!-- Column 3: Help -->
+        <div>
+          <h4 class="text-white text-[11px] font-semibold uppercase tracking-widest mb-5">Help</h4>
+          <ul class="space-y-3">
+            <li><a href="#" class="text-white/50 hover:text-white text-xs transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">Contact Us</a></li>
+            <li><a href="#" class="text-white/50 hover:text-white text-xs transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">Shipping & Returns</a></li>
+            <li><a href="#" class="text-white/50 hover:text-white text-xs transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">Size Guide</a></li>
+            <li><a href="#" class="text-white/50 hover:text-white text-xs transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">FAQ</a></li>
+            <li><a href="#" class="text-white/50 hover:text-white text-xs transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">Track Order</a></li>
+          </ul>
+        </div>
+
+        <!-- Column 4: About -->
+        <div>
+          <h4 class="text-white text-[11px] font-semibold uppercase tracking-widest mb-5">About</h4>
+          <ul class="space-y-3">
+            <li><a href="#" class="text-white/50 hover:text-white text-xs transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">Our Story</a></li>
+            <li><a href="#" class="text-white/50 hover:text-white text-xs transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">Sustainability</a></li>
+            <li><a href="#" class="text-white/50 hover:text-white text-xs transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">Careers</a></li>
+            <li><a href="#" class="text-white/50 hover:text-white text-xs transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-gold focus-visible:outline-none">Press</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Footer Bottom -->
+      <div class="border-t border-white/10 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+        <p class="text-white/40 text-xs">&copy; 2026 Atelier. All rights reserved.</p>
+        <!-- Payment Icons -->
+        <div class="flex items-center gap-3">
+          <!-- Visa -->
+          <div class="w-10 h-6 bg-white/10 rounded-sm flex items-center justify-center">
+            <svg width="28" height="10" viewBox="0 0 28 10" fill="none">
+              <text x="1" y="8" font-family="Montserrat, sans-serif" font-size="7" font-weight="700" fill="white" opacity="0.6">VISA</text>
+            </svg>
+          </div>
+          <!-- Mastercard -->
+          <div class="w-10 h-6 bg-white/10 rounded-sm flex items-center justify-center">
+            <svg width="20" height="14" viewBox="0 0 20 14" fill="none">
+              <circle cx="7" cy="7" r="6" fill="#EB001B" opacity="0.5"/>
+              <circle cx="13" cy="7" r="6" fill="#F79E1B" opacity="0.5"/>
+            </svg>
+          </div>
+          <!-- Amex -->
+          <div class="w-10 h-6 bg-white/10 rounded-sm flex items-center justify-center">
+            <svg width="28" height="10" viewBox="0 0 28 10" fill="none">
+              <text x="1" y="8" font-family="Montserrat, sans-serif" font-size="6" font-weight="700" fill="white" opacity="0.6">AMEX</text>
+            </svg>
+          </div>
+          <!-- PayPal -->
+          <div class="w-10 h-6 bg-white/10 rounded-sm flex items-center justify-center">
+            <svg width="28" height="10" viewBox="0 0 28 10" fill="none">
+              <text x="0" y="8" font-family="Montserrat, sans-serif" font-size="5.5" font-weight="600" fill="white" opacity="0.6">PayPal</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========== JAVASCRIPT ========== -->
+  <script>
+    // Navbar scroll behavior
+    const navbar = document.getElementById('navbar');
+    let lastScroll = 0;
+
+    function updateNavbar() {
+      const scrollY = window.scrollY;
+      if (scrollY > 80) {
+        navbar.classList.add('nav-scrolled');
+      } else {
+        navbar.classList.remove('nav-scrolled');
+      }
+      lastScroll = scrollY;
+    }
+
+    window.addEventListener('scroll', updateNavbar, { passive: true });
+    updateNavbar();
+
+    // Mobile menu toggle
+    const menuToggle = document.getElementById('menuToggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const menuOpen = document.getElementById('menuOpen');
+    const menuClose = document.getElementById('menuClose');
+    let menuIsOpen = false;
+
+    menuToggle.addEventListener('click', () => {
+      menuIsOpen = !menuIsOpen;
+      mobileMenu.classList.toggle('active', menuIsOpen);
+      menuOpen.classList.toggle('hidden', menuIsOpen);
+      menuClose.classList.toggle('hidden', !menuIsOpen);
+      document.body.style.overflow = menuIsOpen ? 'hidden' : '';
+    });
+
+    // Close mobile menu on link click
+    mobileMenu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        menuIsOpen = false;
+        mobileMenu.classList.remove('active');
+        menuOpen.classList.remove('hidden');
+        menuClose.classList.add('hidden');
+        document.body.style.overflow = '';
+      });
+    });
+
+    // Close mobile menu on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && menuIsOpen) {
+        menuToggle.click();
+      }
+    });
+  </script>
+</body>
+</html>

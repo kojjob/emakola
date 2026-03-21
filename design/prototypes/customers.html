@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Commerce Hub — Customer management dashboard">
+  <meta name="theme-color" content="#1E40AF">
+  <title>Commerce Hub — Customers</title>
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='4' y='4' width='24' height='24' rx='6' fill='%231E40AF'/><path d='M10 20l4-6 4 3 4-7' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Fira Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"Fira Code"', 'monospace'],
+          },
+          colors: {
+            brand: { 50: '#EFF6FF', 100: '#DBEAFE', 200: '#BFDBFE', 300: '#93C5FD', 400: '#60A5FA', 500: '#3B82F6', 600: '#1E40AF', 700: '#1E3A8A', 800: '#1E3068', 900: '#172554' },
+            amber: { 50: '#FFFBEB', 400: '#FBBF24', 500: '#F59E0B', 600: '#D97706', 700: '#B45309' },
+            slate: { 50: '#F8FAFC', 100: '#F1F5F9', 200: '#E2E8F0', 300: '#CBD5E1', 400: '#94A3B8', 500: '#64748B', 600: '#475569', 700: '#334155', 800: '#1E293B', 900: '#0F172A' },
+            violet: { 50: '#F5F3FF', 600: '#7C3AED', 700: '#6D28D9' },
+            emerald: { 50: '#ECFDF5', 500: '#10B981', 600: '#059669', 700: '#047857' },
+          },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    body { overflow-x: hidden; }
+    .sidebar-link.active { background: rgba(59,130,246,0.1); color: #3B82F6; border-right: 3px solid #3B82F6; }
+    .sidebar-link:not(.active):hover { background: rgba(59,130,246,0.05); }
+
+    /* Table row hover */
+    .table-row { transition: background-color 0.15s ease; }
+    .table-row:hover { background-color: #F8FAFC; }
+
+    /* Smooth animations */
+    .fade-in { animation: fadeIn 0.5s ease forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in:nth-child(1) { animation-delay: 0ms; }
+    .fade-in:nth-child(2) { animation-delay: 80ms; }
+    .fade-in:nth-child(3) { animation-delay: 160ms; }
+    .fade-in:nth-child(4) { animation-delay: 240ms; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .fade-in { animation: none; opacity: 1; transform: none; }
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+    /* Sidebar scrollbar */
+    .sidebar::-webkit-scrollbar { width: 4px; }
+
+    /* Notification dot pulse */
+    .notif-dot { animation: pulse-dot 2s ease-in-out infinite; }
+    @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    @media (prefers-reduced-motion: reduce) { .notif-dot { animation: none; } }
+
+    /* Checkbox styling */
+    .custom-checkbox { accent-color: #1E40AF; }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+  <div class="flex h-screen">
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- SIDEBAR                                     -->
+    <!-- ═══════════════════════════════════════════ -->
+    <aside class="sidebar hidden lg:flex flex-col w-[260px] bg-white border-r border-slate-200 overflow-y-auto shrink-0">
+      <!-- Logo -->
+      <div class="flex items-center gap-3 px-6 h-[72px] border-b border-slate-100 shrink-0">
+        <svg class="w-9 h-9" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+          <rect x="2" y="2" width="32" height="32" rx="8" fill="#1E40AF"/>
+          <path d="M11 24l5-8 5 4 5-9" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="11" cy="24" r="2" fill="#FBBF24"/>
+          <circle cx="16" cy="16" r="2" fill="#FBBF24"/>
+          <circle cx="21" cy="20" r="2" fill="#FBBF24"/>
+          <circle cx="26" cy="11" r="2" fill="#FBBF24"/>
+        </svg>
+        <div>
+          <span class="text-base font-bold text-slate-900 tracking-tight">Commerce</span><span class="text-base font-bold text-brand-500 tracking-tight">Hub</span>
+          <p class="text-[10px] text-slate-400 font-medium -mt-0.5">Analytics Platform</p>
+        </div>
+      </div>
+
+      <!-- Nav -->
+      <nav class="flex-1 px-3 py-4" aria-label="Sidebar navigation">
+        <p class="px-3 text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Main</p>
+
+        <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-pointer mb-0.5">
+          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+          Dashboard
+        </a>
+
+        <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-pointer mb-0.5">
+          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+          Orders
+          <span class="ml-auto text-[11px] font-semibold bg-brand-100 text-brand-600 px-2 py-0.5 rounded-full">24</span>
+        </a>
+
+        <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-pointer mb-0.5">
+          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
+          Products
+        </a>
+
+        <a href="customers.html" class="sidebar-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer mb-0.5">
+          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+          Customers
+        </a>
+
+        <p class="px-3 text-[10px] font-semibold text-slate-400 uppercase tracking-widest mt-6 mb-2">Analytics</p>
+
+        <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-pointer mb-0.5">
+          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+          Reports
+        </a>
+
+        <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-pointer mb-0.5">
+          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/></svg>
+          Revenue
+        </a>
+
+        <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-pointer mb-0.5">
+          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z"/><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z"/></svg>
+          Marketing
+        </a>
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="px-3 py-4 border-t border-slate-100 shrink-0">
+        <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-pointer mb-0.5">
+          <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Settings
+        </a>
+        <div class="flex items-center gap-3 px-3 py-3 mt-2 bg-slate-50 rounded-xl">
+          <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=face&q=80" alt="User avatar" class="w-9 h-9 rounded-full object-cover ring-2 ring-white" width="36" height="36">
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-slate-800 truncate">Alex Morgan</p>
+            <p class="text-[11px] text-slate-400 truncate">alex@commercehub.io</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- MAIN CONTENT                                -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+
+      <!-- TOP BAR -->
+      <header class="bg-white border-b border-slate-200 h-[72px] flex items-center px-4 sm:px-8 shrink-0 gap-4">
+        <!-- Mobile menu -->
+        <button class="lg:hidden p-2 -ml-2 rounded-lg hover:bg-slate-100 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500" id="sidebar-toggle" aria-label="Open sidebar">
+          <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+        </button>
+
+        <!-- Search -->
+        <div class="flex-1 max-w-md relative">
+          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+          <input type="search" placeholder="Search orders, products, customers..." class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all" aria-label="Search">
+        </div>
+
+        <!-- Right actions -->
+        <div class="flex items-center gap-2">
+          <!-- Date selector -->
+          <div class="hidden sm:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-600">
+            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+            <span class="font-medium">Mar 1 – 21, 2026</span>
+          </div>
+
+          <!-- Notifications -->
+          <button class="relative p-2.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Notifications">
+            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+            <span class="notif-dot absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+          </button>
+
+          <!-- Profile (mobile) -->
+          <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=face&q=80" alt="User avatar" class="lg:hidden w-9 h-9 rounded-full object-cover ring-2 ring-slate-200 cursor-pointer" width="36" height="36">
+        </div>
+      </header>
+
+
+      <!-- SCROLLABLE CONTENT -->
+      <main class="flex-1 overflow-y-auto p-4 sm:p-8">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 class="text-2xl font-bold text-slate-900">Customers</h1>
+            <p class="text-sm text-slate-500 mt-1">Manage your customer base</p>
+          </div>
+          <div class="flex gap-2">
+            <button class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+              Export
+            </button>
+            <button class="inline-flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z"/></svg>
+              Add Customer
+            </button>
+          </div>
+        </div>
+
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- KPI CARDS                                -->
+        <!-- ═══════════════════════════════════════ -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+          <!-- Total Customers -->
+          <div class="fade-in bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300 cursor-default">
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Customers</span>
+              <div class="w-9 h-9 bg-brand-50 rounded-xl flex items-center justify-center">
+                <svg class="w-[18px] h-[18px] text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+              </div>
+            </div>
+            <p class="text-3xl font-bold text-slate-900 font-mono tracking-tight">8,421</p>
+            <div class="flex items-center gap-1.5 mt-2">
+              <span class="inline-flex items-center gap-0.5 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25"/></svg>
+                +18.7%
+              </span>
+              <span class="text-xs text-slate-400">vs last month</span>
+            </div>
+          </div>
+
+          <!-- Active -->
+          <div class="fade-in bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300 cursor-default">
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active</span>
+              <div class="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center">
+                <svg class="w-[18px] h-[18px] text-emerald-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+            </div>
+            <p class="text-3xl font-bold text-slate-900 font-mono tracking-tight">6,847</p>
+            <div class="flex items-center gap-1.5 mt-2">
+              <span class="inline-flex items-center gap-0.5 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25"/></svg>
+                +12.3%
+              </span>
+              <span class="text-xs text-slate-400">vs last month</span>
+            </div>
+          </div>
+
+          <!-- New This Month -->
+          <div class="fade-in bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300 cursor-default">
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">New This Month</span>
+              <div class="w-9 h-9 bg-violet-50 rounded-xl flex items-center justify-center">
+                <svg class="w-[18px] h-[18px] text-violet-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z"/></svg>
+              </div>
+            </div>
+            <p class="text-3xl font-bold text-slate-900 font-mono tracking-tight">342</p>
+            <div class="flex items-center gap-1.5 mt-2">
+              <span class="inline-flex items-center gap-0.5 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25"/></svg>
+                +24.1%
+              </span>
+              <span class="text-xs text-slate-400">vs last month</span>
+            </div>
+          </div>
+
+          <!-- Avg. Order Value -->
+          <div class="fade-in bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300 cursor-default">
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg. Order Value</span>
+              <div class="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center">
+                <svg class="w-[18px] h-[18px] text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+            </div>
+            <p class="text-3xl font-bold text-slate-900 font-mono tracking-tight">$128.40</p>
+            <div class="flex items-center gap-1.5 mt-2">
+              <span class="inline-flex items-center gap-0.5 text-xs font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 4.5l15 15m0 0V8.25m0 11.25H8.25"/></svg>
+                -2.1%
+              </span>
+              <span class="text-xs text-slate-400">vs last month</span>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- FILTER BAR                               -->
+        <!-- ═══════════════════════════════════════ -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 mb-4">
+          <div class="flex flex-col lg:flex-row gap-3">
+            <!-- Search -->
+            <div class="flex-1 relative">
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+              <input type="search" placeholder="Search customers by name or email..." class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all" aria-label="Search customers">
+            </div>
+
+            <!-- Segment dropdown -->
+            <div class="relative">
+              <select class="appearance-none pl-3 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 cursor-pointer" aria-label="Filter by segment">
+                <option>All Segments</option>
+                <option>VIP</option>
+                <option>Regular</option>
+                <option>New</option>
+                <option>At Risk</option>
+              </select>
+              <svg class="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+            </div>
+
+            <!-- Sort dropdown -->
+            <div class="relative">
+              <select class="appearance-none pl-3 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 cursor-pointer" aria-label="Sort by">
+                <option>Most Recent</option>
+                <option>Highest Spend</option>
+                <option>Most Orders</option>
+              </select>
+              <svg class="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+            </div>
+
+            <!-- Status toggle -->
+            <div class="flex bg-slate-100 rounded-xl p-0.5">
+              <button class="px-4 py-2 text-sm font-medium rounded-[10px] bg-white text-slate-800 shadow-sm cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 transition-all">All</button>
+              <button class="px-4 py-2 text-sm font-medium rounded-[10px] text-slate-500 hover:text-slate-700 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 transition-all">Active</button>
+              <button class="px-4 py-2 text-sm font-medium rounded-[10px] text-slate-500 hover:text-slate-700 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 transition-all">Inactive</button>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- CUSTOMERS TABLE                          -->
+        <!-- ═══════════════════════════════════════ -->
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[900px]">
+              <thead>
+                <tr class="border-b border-slate-200">
+                  <th class="w-12 px-4 py-4">
+                    <input type="checkbox" class="custom-checkbox w-4 h-4 rounded border-slate-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Select all customers">
+                  </th>
+                  <th class="text-left px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Customer</th>
+                  <th class="text-left px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Location</th>
+                  <th class="text-left px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Orders</th>
+                  <th class="text-left px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Spent</th>
+                  <th class="text-left px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Last Order</th>
+                  <th class="text-left px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Segment</th>
+                  <th class="text-left px-4 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                  <th class="w-16 px-4 py-4"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+
+                <!-- Row 1 — Sarah Johnson -->
+                <tr class="table-row">
+                  <td class="px-4 py-4">
+                    <input type="checkbox" class="custom-checkbox w-4 h-4 rounded border-slate-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Select Sarah Johnson">
+                  </td>
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-3">
+                      <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=64&h=64&fit=crop&crop=face&q=80" alt="Sarah Johnson" class="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200" width="36" height="36" loading="lazy">
+                      <div>
+                        <p class="text-sm font-semibold text-slate-800">Sarah Johnson</p>
+                        <p class="text-xs text-slate-400">sarah.johnson@email.com</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-4 text-sm text-slate-600">New York, US</td>
+                  <td class="px-4 py-4 text-sm text-slate-700 font-medium">12</td>
+                  <td class="px-4 py-4 text-sm font-mono font-semibold text-slate-800">$4,284</td>
+                  <td class="px-4 py-4 text-sm text-slate-500">Mar 19, 2026</td>
+                  <td class="px-4 py-4">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-50 text-violet-700">VIP</span>
+                  </td>
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <span class="text-sm text-slate-600">Active</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-4">
+                    <button class="p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors" aria-label="More actions for Sarah Johnson">
+                      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z"/></svg>
+                    </button>
+                  </td>
+                </tr>
+
+                <!-- Row 2 — James Chen -->
+                <tr class="table-row">
+                  <td class="px-4 py-4">
+                    <input type="checkbox" class="custom-checkbox w-4 h-4 rounded border-slate-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Select James Chen">
+                  </td>
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-3">
+                      <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=face&q=80" alt="James Chen" class="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200" width="36" height="36" loading="lazy">
+                      <div>
+                        <p class="text-sm font-semibold text-slate-800">James Chen</p>
+                        <p class="text-xs text-slate-400">james.chen@email.com</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-4 text-sm text-slate-600">London, UK</td>
+                  <td class="px-4 py-4 text-sm text-slate-700 font-medium">8</td>
+                  <td class="px-4 py-4 text-sm font-mono font-semibold text-slate-800">$2,840</td>
+                  <td class="px-4 py-4 text-sm text-slate-500">Mar 18, 2026</td>
+                  <td class="px-4 py-4">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-50 text-violet-700">VIP</span>
+                  </td>
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <span class="text-sm text-slate-600">Active</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-4">
+                    <button class="p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors" aria-label="More actions for James Chen">
+                      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z"/></svg>
+                    </button>
+                  </td>
+                </tr>
+
+                <!-- Row 3 — Elena Martinez -->
+                <tr class="table-row">
+                  <td class="px-4 py-4">
+                    <input type="checkbox" class="custom-checkbox w-4 h-4 rounded border-slate-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Select Elena Martinez">
+                  </td>
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-3">
+                      <img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=64&h=64&fit=crop&crop=face&q=80" alt="Elena Martinez" class="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200" width="36" height="36" loading="lazy">
+                      <div>
+                        <p class="text-sm font-semibold text-slate-800">Elena Martinez</p>
+                        <p class="text-xs text-slate-400">elena.martinez@email.com</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-4 text-sm text-slate-600">Madrid, ES</td>
+                  <td class="px-4 py-4 text-sm text-slate-700 font-medium">15</td>
+                  <td class="px-4 py-4 text-sm font-mono font-semibold text-slate-800">$5,120</td>
+                  <td class="px-4 py-4 text-sm text-slate-500">Mar 17, 2026</td>
+                  <td class="px-4 py-4">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-50 text-violet-700">VIP</span>
+                  </td>
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <span class="text-sm text-slate-600">Active</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-4">
+                    <button class="p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors" aria-label="More actions for Elena Martinez">
+                      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z"/></svg>
+                    </button>
+                  </td>
+                </tr>
+
+                <!-- Row 4 — Marcus Lee -->
+                <tr class="table-row">
+                  <td class="px-4 py-4">
+                    <input type="checkbox" class="custom-checkbox w-4 h-4 rounded border-slate-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Select Marcus Lee">
+                  </td>
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-3">
+                      <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=64&h=64&fit=crop&crop=face&q=80" alt="Marcus Lee" class="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200" width="36" height="36" loading="lazy">
+                      <div>
+                        <p class="text-sm font-semibold text-slate-800">Marcus Lee</p>
+                        <p class="text-xs text-slate-400">marcus.lee@email.com</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-4 text-sm text-slate-600">Toronto, CA</td>
+                  <td class="px-4 py-4 text-sm text-slate-700 font-medium">3</td>
+                  <td class="px-4 py-4 text-sm font-mono font-semibold text-slate-800">$847</td>
+                  <td class="px-4 py-4 text-sm text-slate-500">Mar 15, 2026</td>
+                  <td class="px-4 py-4">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700">Regular</span>
+                  </td>
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <span class="text-sm text-slate-600">Active</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-4">
+                    <button class="p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors" aria-label="More actions for Marcus Lee">
+                      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z"/></svg>
+                    </button>
+                  </td>
+                </tr>
+
+                <!-- Row 5 — Ava Thompson -->
+                <tr class="table-row">
+                  <td class="px-4 py-4">
+                    <input type="checkbox" class="custom-checkbox w-4 h-4 rounded border-slate-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Select Ava Thompson">
+                  </td>
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-3">
+                      <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=64&h=64&fit=crop&crop=face&q=80" alt="Ava Thompson" class="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200" width="36" height="36" loading="lazy">
+                      <div>
+                        <p class="text-sm font-semibold text-slate-800">Ava Thompson</p>
+                        <p class="text-xs text-slate-400">ava.thompson@email.com</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-4 text-sm text-slate-600">Sydney, AU</td>
+                  <td class="px-4 py-4 text-sm text-slate-700 font-medium">6</td>
+                  <td class="px-4 py-4 text-sm font-mono font-semibold text-slate-800">$1,290</td>
+                  <td class="px-4 py-4 text-sm text-slate-500">Mar 12, 2026</td>
+                  <td class="px-4 py-4">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700">Regular</span>
+                  </td>
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <span class="text-sm text-slate-600">Active</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-4">
+                    <button class="p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors" aria-label="More actions for Ava Thompson">
+                      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z"/></svg>
+                    </button>
+                  </td>
+                </tr>
+
+                <!-- Row 6 — David Kim -->
+                <tr class="table-row">
+                  <td class="px-4 py-4">
+                    <input type="checkbox" class="custom-checkbox w-4 h-4 rounded border-slate-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Select David Kim">
+                  </td>
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-3">
+                      <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=64&h=64&fit=crop&crop=face&q=80" alt="David Kim" class="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200" width="36" height="36" loading="lazy">
+                      <div>
+                        <p class="text-sm font-semibold text-slate-800">David Kim</p>
+                        <p class="text-xs text-slate-400">david.kim@email.com</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-4 text-sm text-slate-600">Seoul, KR</td>
+                  <td class="px-4 py-4 text-sm text-slate-700 font-medium">1</td>
+                  <td class="px-4 py-4 text-sm font-mono font-semibold text-slate-800">$349</td>
+                  <td class="px-4 py-4 text-sm text-slate-500">Mar 8, 2026</td>
+                  <td class="px-4 py-4">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">New</span>
+                  </td>
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <span class="text-sm text-slate-600">Active</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-4">
+                    <button class="p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors" aria-label="More actions for David Kim">
+                      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z"/></svg>
+                    </button>
+                  </td>
+                </tr>
+
+                <!-- Row 7 — Mia Anderson -->
+                <tr class="table-row">
+                  <td class="px-4 py-4">
+                    <input type="checkbox" class="custom-checkbox w-4 h-4 rounded border-slate-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Select Mia Anderson">
+                  </td>
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-3">
+                      <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=64&h=64&fit=crop&crop=face&q=80" alt="Mia Anderson" class="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200" width="36" height="36" loading="lazy">
+                      <div>
+                        <p class="text-sm font-semibold text-slate-800">Mia Anderson</p>
+                        <p class="text-xs text-slate-400">mia.anderson@email.com</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-4 text-sm text-slate-600">Berlin, DE</td>
+                  <td class="px-4 py-4 text-sm text-slate-700 font-medium">2</td>
+                  <td class="px-4 py-4 text-sm font-mono font-semibold text-slate-800">$478</td>
+                  <td class="px-4 py-4 text-sm text-slate-500">Feb 28, 2026</td>
+                  <td class="px-4 py-4">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">New</span>
+                  </td>
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <span class="text-sm text-slate-600">Active</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-4">
+                    <button class="p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors" aria-label="More actions for Mia Anderson">
+                      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z"/></svg>
+                    </button>
+                  </td>
+                </tr>
+
+                <!-- Row 8 — Ryan Cooper -->
+                <tr class="table-row">
+                  <td class="px-4 py-4">
+                    <input type="checkbox" class="custom-checkbox w-4 h-4 rounded border-slate-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Select Ryan Cooper">
+                  </td>
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-3">
+                      <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=64&h=64&fit=crop&crop=face&q=80" alt="Ryan Cooper" class="w-9 h-9 rounded-full object-cover ring-1 ring-slate-200" width="36" height="36" loading="lazy">
+                      <div>
+                        <p class="text-sm font-semibold text-slate-800">Ryan Cooper</p>
+                        <p class="text-xs text-slate-400">ryan.cooper@email.com</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-4 text-sm text-slate-600">Chicago, US</td>
+                  <td class="px-4 py-4 text-sm text-slate-700 font-medium">4</td>
+                  <td class="px-4 py-4 text-sm font-mono font-semibold text-slate-800">$920</td>
+                  <td class="px-4 py-4 text-sm text-slate-500">Jan 15, 2026</td>
+                  <td class="px-4 py-4">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700">At Risk</span>
+                  </td>
+                  <td class="px-4 py-4">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                      <span class="text-sm text-slate-400">Inactive</span>
+                    </div>
+                  </td>
+                  <td class="px-4 py-4">
+                    <button class="p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors" aria-label="More actions for Ryan Cooper">
+                      <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z"/></svg>
+                    </button>
+                  </td>
+                </tr>
+
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t border-slate-200 gap-4">
+            <p class="text-sm text-slate-500">Showing <span class="font-semibold text-slate-700">1-8</span> of <span class="font-semibold text-slate-700">8,421</span> customers</p>
+            <div class="flex items-center gap-1">
+              <button class="p-2 rounded-lg hover:bg-slate-100 text-slate-400 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors" aria-label="Previous page" disabled>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+              </button>
+              <button class="w-9 h-9 rounded-lg bg-brand-600 text-white text-sm font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 transition-colors">1</button>
+              <button class="w-9 h-9 rounded-lg hover:bg-slate-100 text-sm font-medium text-slate-600 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors">2</button>
+              <button class="w-9 h-9 rounded-lg hover:bg-slate-100 text-sm font-medium text-slate-600 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors">3</button>
+              <span class="w-9 h-9 flex items-center justify-center text-sm text-slate-400">...</span>
+              <button class="w-9 h-9 rounded-lg hover:bg-slate-100 text-sm font-medium text-slate-600 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors">1053</button>
+              <button class="p-2 rounded-lg hover:bg-slate-100 text-slate-600 cursor-pointer focus-visible:ring-2 focus-visible:ring-brand-500 transition-colors" aria-label="Next page">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- CUSTOMER SEGMENTS CARD                    -->
+        <!-- ═══════════════════════════════════════ -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+          <h2 class="text-base font-bold text-slate-900 mb-1">Customer Segments</h2>
+          <p class="text-xs text-slate-400 mb-5">Distribution across all customer segments</p>
+
+          <!-- Stacked bar chart -->
+          <div class="h-8 rounded-full overflow-hidden flex">
+            <div class="bg-violet-500 h-full" style="width: 18%" aria-label="VIP: 18%"></div>
+            <div class="bg-brand-500 h-full" style="width: 52%" aria-label="Regular: 52%"></div>
+            <div class="bg-emerald-500 h-full" style="width: 22%" aria-label="New: 22%"></div>
+            <div class="bg-amber-400 h-full" style="width: 8%" aria-label="At Risk: 8%"></div>
+          </div>
+
+          <!-- Legend -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5">
+            <div class="flex items-center gap-2.5">
+              <span class="w-3 h-3 rounded-full bg-violet-500 shrink-0"></span>
+              <div>
+                <p class="text-sm font-semibold text-slate-800">VIP</p>
+                <p class="text-xs text-slate-400">1,516 <span class="font-medium text-slate-500">(18%)</span></p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <span class="w-3 h-3 rounded-full bg-brand-500 shrink-0"></span>
+              <div>
+                <p class="text-sm font-semibold text-slate-800">Regular</p>
+                <p class="text-xs text-slate-400">4,379 <span class="font-medium text-slate-500">(52%)</span></p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <span class="w-3 h-3 rounded-full bg-emerald-500 shrink-0"></span>
+              <div>
+                <p class="text-sm font-semibold text-slate-800">New</p>
+                <p class="text-xs text-slate-400">1,853 <span class="font-medium text-slate-500">(22%)</span></p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <span class="w-3 h-3 rounded-full bg-amber-400 shrink-0"></span>
+              <div>
+                <p class="text-sm font-semibold text-slate-800">At Risk</p>
+                <p class="text-xs text-slate-400">673 <span class="font-medium text-slate-500">(8%)</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- MOBILE SIDEBAR OVERLAY                      -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
+  <aside class="fixed inset-y-0 left-0 w-[280px] bg-white z-50 transform -translate-x-full transition-transform duration-300 lg:hidden shadow-2xl overflow-y-auto" id="mobile-sidebar">
+    <div class="flex items-center justify-between px-6 h-[72px] border-b border-slate-100">
+      <div class="flex items-center gap-3">
+        <svg class="w-9 h-9" viewBox="0 0 36 36" fill="none" aria-hidden="true"><rect x="2" y="2" width="32" height="32" rx="8" fill="#1E40AF"/><path d="M11 24l5-8 5 4 5-9" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="11" cy="24" r="2" fill="#FBBF24"/><circle cx="16" cy="16" r="2" fill="#FBBF24"/><circle cx="21" cy="20" r="2" fill="#FBBF24"/><circle cx="26" cy="11" r="2" fill="#FBBF24"/></svg>
+        <span class="text-base font-bold text-slate-900 tracking-tight">Commerce<span class="text-brand-500">Hub</span></span>
+      </div>
+      <button class="p-2 rounded-lg hover:bg-slate-100 cursor-pointer" id="close-sidebar" aria-label="Close sidebar">
+        <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <nav class="px-3 py-4" aria-label="Mobile sidebar navigation">
+      <p class="px-3 text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Main</p>
+      <a href="dashboard.html" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-pointer mb-0.5">Dashboard</a>
+      <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-pointer mb-0.5">Orders</a>
+      <a href="#" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 cursor-pointer mb-0.5">Products</a>
+      <a href="customers.html" class="sidebar-link active flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer mb-0.5">Customers</a>
+    </nav>
+  </aside>
+
+
+  <script>
+    // Mobile sidebar
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const closeSidebar = document.getElementById('close-sidebar');
+    const mobileSidebar = document.getElementById('mobile-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    function openSidebar() { mobileSidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); }
+    function closeSidebarFn() { mobileSidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); }
+
+    sidebarToggle.addEventListener('click', openSidebar);
+    closeSidebar.addEventListener('click', closeSidebarFn);
+    overlay.addEventListener('click', closeSidebarFn);
+
+    // Status toggle buttons
+    document.querySelectorAll('.bg-slate-100 button').forEach(btn => {
+      btn.addEventListener('click', function() {
+        this.parentElement.querySelectorAll('button').forEach(b => {
+          b.classList.remove('bg-white', 'text-slate-800', 'shadow-sm');
+          b.classList.add('text-slate-500');
+        });
+        this.classList.add('bg-white', 'text-slate-800', 'shadow-sm');
+        this.classList.remove('text-slate-500');
+      });
+    });
+  </script>
+
+</body>
+</html>

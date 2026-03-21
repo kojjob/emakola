@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Account — Atelier</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap');
+  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Cormorant', 'serif'],
+            sans: ['Montserrat', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            primary: '#1C1917',
+            secondary: '#44403C',
+            cta: '#CA8A04',
+            surface: '#FAFAF9',
+            text: '#0C0A09',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .toggle-track { transition: background-color 0.2s ease; }
+    .toggle-thumb { transition: transform 0.2s ease; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+  </style>
+</head>
+<body class="bg-surface font-sans text-text antialiased">
+
+  <!-- NAVIGATION -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-white border-b border-stone-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 lg:h-20">
+        <button id="mobileMenuBtn" class="lg:hidden cursor-pointer p-2 -ml-2 text-primary hover:text-secondary focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Open menu">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg>
+        </button>
+        <a href="index.html" class="font-serif text-2xl lg:text-3xl font-semibold tracking-[0.3em] uppercase text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none">Atelier</a>
+        <div class="hidden lg:flex items-center gap-8">
+          <a href="shop.html" class="text-xs tracking-widest uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">New Arrivals</a>
+          <a href="shop.html" class="text-xs tracking-widest uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">Women</a>
+          <a href="shop.html" class="text-xs tracking-widest uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">Men</a>
+          <a href="shop.html" class="text-xs tracking-widest uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">Accessories</a>
+          <a href="shop.html" class="text-xs tracking-widest uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">Sale</a>
+        </div>
+        <div class="flex items-center gap-3 sm:gap-4">
+          <button class="cursor-pointer p-2 text-secondary hover:text-primary transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Search">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+          </button>
+          <a href="wishlist.html" class="relative cursor-pointer p-2 text-secondary hover:text-primary transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Wishlist">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
+          </a>
+          <a href="cart.html" class="relative cursor-pointer p-2 text-secondary hover:text-primary transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Cart">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+            <span class="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-cta text-white text-[10px] font-semibold rounded-full flex items-center justify-center leading-none">3</span>
+          </a>
+          <a href="account.html" class="cursor-pointer p-2 text-primary transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Account">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clip-rule="evenodd"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div id="mobileMenu" class="hidden lg:hidden bg-white border-t border-stone-200">
+      <div class="px-4 py-6 space-y-4">
+        <a href="shop.html" class="block text-sm tracking-widest uppercase text-secondary hover:text-primary cursor-pointer">New Arrivals</a>
+        <a href="shop.html" class="block text-sm tracking-widest uppercase text-secondary hover:text-primary cursor-pointer">Women</a>
+        <a href="shop.html" class="block text-sm tracking-widest uppercase text-secondary hover:text-primary cursor-pointer">Men</a>
+        <a href="shop.html" class="block text-sm tracking-widest uppercase text-secondary hover:text-primary cursor-pointer">Accessories</a>
+        <a href="shop.html" class="block text-sm tracking-widest uppercase text-secondary hover:text-primary cursor-pointer">Sale</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="pt-24 lg:pt-28 pb-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-primary mb-8">My Account</h1>
+
+      <div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
+
+        <!-- LEFT SIDEBAR -->
+        <aside class="lg:w-64 flex-shrink-0">
+          <!-- Mobile: horizontal scrollable tabs -->
+          <div class="lg:hidden flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+            <button data-tab="profile" class="account-tab active cursor-pointer whitespace-nowrap px-4 py-2 text-sm font-medium rounded-full border transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none bg-primary text-white border-primary">Profile</button>
+            <button data-tab="orders" class="account-tab cursor-pointer whitespace-nowrap px-4 py-2 text-sm font-medium rounded-full border transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none bg-white text-secondary border-stone-200 hover:border-stone-400">Orders</button>
+            <button data-tab="addresses" class="account-tab cursor-pointer whitespace-nowrap px-4 py-2 text-sm font-medium rounded-full border transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none bg-white text-secondary border-stone-200 hover:border-stone-400">Addresses</button>
+            <button data-tab="payment" class="account-tab cursor-pointer whitespace-nowrap px-4 py-2 text-sm font-medium rounded-full border transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none bg-white text-secondary border-stone-200 hover:border-stone-400">Payment</button>
+            <button data-tab="preferences" class="account-tab cursor-pointer whitespace-nowrap px-4 py-2 text-sm font-medium rounded-full border transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none bg-white text-secondary border-stone-200 hover:border-stone-400">Preferences</button>
+          </div>
+
+          <!-- Desktop: vertical tabs -->
+          <nav class="hidden lg:block space-y-1">
+            <button data-tab="profile" class="account-tab active cursor-pointer w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-primary border-l-2 border-cta bg-stone-50 rounded-r-lg transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none">
+              <svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+              Profile
+            </button>
+            <button data-tab="orders" class="account-tab cursor-pointer w-full flex items-center gap-3 px-4 py-3 text-sm text-secondary border-l-2 border-transparent hover:bg-stone-50 rounded-r-lg transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+              Orders
+            </button>
+            <button data-tab="addresses" class="account-tab cursor-pointer w-full flex items-center gap-3 px-4 py-3 text-sm text-secondary border-l-2 border-transparent hover:bg-stone-50 rounded-r-lg transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
+              Addresses
+            </button>
+            <button data-tab="payment" class="account-tab cursor-pointer w-full flex items-center gap-3 px-4 py-3 text-sm text-secondary border-l-2 border-transparent hover:bg-stone-50 rounded-r-lg transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
+              Payment Methods
+            </button>
+            <button data-tab="preferences" class="account-tab cursor-pointer w-full flex items-center gap-3 px-4 py-3 text-sm text-secondary border-l-2 border-transparent hover:bg-stone-50 rounded-r-lg transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              Preferences
+            </button>
+            <div class="pt-4 mt-4 border-t border-stone-200">
+              <button class="cursor-pointer w-full flex items-center gap-3 px-4 py-3 text-sm text-secondary hover:text-rose-600 hover:bg-rose-50 rounded-r-lg transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+                Sign Out
+              </button>
+            </div>
+          </nav>
+        </aside>
+
+        <!-- RIGHT CONTENT -->
+        <div class="flex-1 min-w-0">
+
+          <!-- PROFILE TAB -->
+          <div id="tab-profile" class="tab-content active space-y-10">
+
+            <!-- Profile Section -->
+            <section>
+              <h2 class="font-serif text-2xl font-semibold text-primary mb-6">My Profile</h2>
+              <div class="bg-white rounded-xl border border-stone-200 p-6 sm:p-8">
+                <!-- Avatar -->
+                <div class="flex items-center gap-6 mb-8">
+                  <div class="relative group cursor-pointer">
+                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face&q=80" alt="Alex Morgan" class="w-24 h-24 rounded-full object-cover">
+                    <div class="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span class="text-white text-xs font-medium">Change Photo</span>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold text-primary text-lg">Alex Morgan</h3>
+                    <p class="text-sm text-secondary">Member since March 2024</p>
+                  </div>
+                </div>
+                <!-- Form -->
+                <form class="space-y-6">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                      <label for="firstName" class="block text-xs font-medium uppercase tracking-wider text-secondary mb-2">First Name</label>
+                      <input type="text" id="firstName" value="Alex" class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-primary focus:ring-2 focus:ring-cta focus:border-cta focus:outline-none transition-colors">
+                    </div>
+                    <div>
+                      <label for="lastName" class="block text-xs font-medium uppercase tracking-wider text-secondary mb-2">Last Name</label>
+                      <input type="text" id="lastName" value="Morgan" class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-primary focus:ring-2 focus:ring-cta focus:border-cta focus:outline-none transition-colors">
+                    </div>
+                  </div>
+                  <div>
+                    <label for="email" class="block text-xs font-medium uppercase tracking-wider text-secondary mb-2">Email</label>
+                    <input type="email" id="email" value="alex@atelierstore.com" class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-primary focus:ring-2 focus:ring-cta focus:border-cta focus:outline-none transition-colors">
+                  </div>
+                  <div>
+                    <label for="phone" class="block text-xs font-medium uppercase tracking-wider text-secondary mb-2">Phone</label>
+                    <input type="tel" id="phone" value="+1 (555) 123-4567" class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-primary focus:ring-2 focus:ring-cta focus:border-cta focus:outline-none transition-colors">
+                  </div>
+                  <div>
+                    <label for="dob" class="block text-xs font-medium uppercase tracking-wider text-secondary mb-2">Date of Birth</label>
+                    <input type="date" id="dob" value="1990-06-15" class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-primary focus:ring-2 focus:ring-cta focus:border-cta focus:outline-none transition-colors">
+                  </div>
+                  <div class="pt-2">
+                    <button type="button" onclick="saveProfile(this)" class="cursor-pointer bg-cta text-white text-xs font-semibold uppercase tracking-wider px-8 py-3 rounded hover:bg-yellow-700 transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-2 focus-visible:outline-none">Save Changes</button>
+                  </div>
+                </form>
+              </div>
+            </section>
+
+            <!-- Recent Orders -->
+            <section>
+              <div class="flex items-center justify-between mb-6">
+                <h2 class="font-serif text-2xl font-semibold text-primary">Recent Orders</h2>
+                <button data-tab="orders" class="account-tab text-sm font-medium text-cta hover:text-yellow-700 cursor-pointer transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">View All</button>
+              </div>
+              <div class="space-y-4">
+                <!-- Order 1 -->
+                <div class="bg-white rounded-xl border border-stone-200 p-5 sm:p-6">
+                  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                      <div class="w-14 h-14 rounded-lg bg-stone-100 overflow-hidden flex-shrink-0">
+                        <img src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=100&h=100&fit=crop&q=80" alt="Order item" class="w-full h-full object-cover">
+                      </div>
+                      <div>
+                        <p class="text-sm font-semibold text-primary">Order #AT-4821</p>
+                        <p class="text-xs text-secondary mt-0.5">Mar 19, 2026 &middot; 1 item</p>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-4 sm:gap-6">
+                      <p class="text-sm font-semibold text-primary">$485.00</p>
+                      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">Delivered</span>
+                      <a href="#" class="text-xs font-medium text-cta hover:text-yellow-700 cursor-pointer transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">View Details</a>
+                    </div>
+                  </div>
+                </div>
+                <!-- Order 2 -->
+                <div class="bg-white rounded-xl border border-stone-200 p-5 sm:p-6">
+                  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                      <div class="flex -space-x-2">
+                        <div class="w-14 h-14 rounded-lg bg-stone-100 overflow-hidden flex-shrink-0 border-2 border-white">
+                          <img src="https://images.unsplash.com/photo-1434389677669-e08b4cda3a74?w=100&h=100&fit=crop&q=80" alt="Order item" class="w-full h-full object-cover">
+                        </div>
+                        <div class="w-14 h-14 rounded-lg bg-stone-100 overflow-hidden flex-shrink-0 border-2 border-white">
+                          <img src="https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=100&h=100&fit=crop&q=80" alt="Order item" class="w-full h-full object-cover">
+                        </div>
+                      </div>
+                      <div>
+                        <p class="text-sm font-semibold text-primary">Order #AT-4756</p>
+                        <p class="text-xs text-secondary mt-0.5">Mar 12, 2026 &middot; 2 items</p>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-4 sm:gap-6">
+                      <p class="text-sm font-semibold text-primary">$595.00</p>
+                      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">Shipped</span>
+                      <a href="#" class="text-xs font-medium text-cta hover:text-yellow-700 cursor-pointer transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">View Details</a>
+                    </div>
+                  </div>
+                </div>
+                <!-- Order 3 -->
+                <div class="bg-white rounded-xl border border-stone-200 p-5 sm:p-6">
+                  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                      <div class="w-14 h-14 rounded-lg bg-stone-100 overflow-hidden flex-shrink-0">
+                        <img src="https://images.unsplash.com/photo-1603252109303-2751441dd157?w=100&h=100&fit=crop&q=80" alt="Order item" class="w-full h-full object-cover">
+                      </div>
+                      <div>
+                        <p class="text-sm font-semibold text-primary">Order #AT-4690</p>
+                        <p class="text-xs text-secondary mt-0.5">Feb 28, 2026 &middot; 1 item</p>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-4 sm:gap-6">
+                      <p class="text-sm font-semibold text-primary">$275.00</p>
+                      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">Delivered</span>
+                      <a href="#" class="text-xs font-medium text-cta hover:text-yellow-700 cursor-pointer transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">View Details</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+          </div>
+
+          <!-- ORDERS TAB -->
+          <div id="tab-orders" class="tab-content space-y-6">
+            <h2 class="font-serif text-2xl font-semibold text-primary">Order History</h2>
+            <div class="space-y-4">
+              <div class="bg-white rounded-xl border border-stone-200 p-5 sm:p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-lg bg-stone-100 overflow-hidden flex-shrink-0">
+                      <img src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=100&h=100&fit=crop&q=80" alt="Order item" class="w-full h-full object-cover">
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-primary">Order #AT-4821</p>
+                      <p class="text-xs text-secondary mt-0.5">Mar 19, 2026 &middot; 1 item</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-4 sm:gap-6">
+                    <p class="text-sm font-semibold text-primary">$485.00</p>
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">Delivered</span>
+                    <a href="#" class="text-xs font-medium text-cta hover:text-yellow-700 cursor-pointer transition-colors">View Details</a>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-white rounded-xl border border-stone-200 p-5 sm:p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div class="flex items-center gap-4">
+                    <div class="flex -space-x-2">
+                      <div class="w-14 h-14 rounded-lg bg-stone-100 overflow-hidden flex-shrink-0 border-2 border-white">
+                        <img src="https://images.unsplash.com/photo-1434389677669-e08b4cda3a74?w=100&h=100&fit=crop&q=80" alt="Order item" class="w-full h-full object-cover">
+                      </div>
+                      <div class="w-14 h-14 rounded-lg bg-stone-100 overflow-hidden flex-shrink-0 border-2 border-white">
+                        <img src="https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=100&h=100&fit=crop&q=80" alt="Order item" class="w-full h-full object-cover">
+                      </div>
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-primary">Order #AT-4756</p>
+                      <p class="text-xs text-secondary mt-0.5">Mar 12, 2026 &middot; 2 items</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-4 sm:gap-6">
+                    <p class="text-sm font-semibold text-primary">$595.00</p>
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">Shipped</span>
+                    <a href="#" class="text-xs font-medium text-cta hover:text-yellow-700 cursor-pointer transition-colors">View Details</a>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-white rounded-xl border border-stone-200 p-5 sm:p-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-lg bg-stone-100 overflow-hidden flex-shrink-0">
+                      <img src="https://images.unsplash.com/photo-1603252109303-2751441dd157?w=100&h=100&fit=crop&q=80" alt="Order item" class="w-full h-full object-cover">
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-primary">Order #AT-4690</p>
+                      <p class="text-xs text-secondary mt-0.5">Feb 28, 2026 &middot; 1 item</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-4 sm:gap-6">
+                    <p class="text-sm font-semibold text-primary">$275.00</p>
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">Delivered</span>
+                    <a href="#" class="text-xs font-medium text-cta hover:text-yellow-700 cursor-pointer transition-colors">View Details</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ADDRESSES TAB -->
+          <div id="tab-addresses" class="tab-content space-y-6">
+            <div class="flex items-center justify-between">
+              <h2 class="font-serif text-2xl font-semibold text-primary">Addresses</h2>
+              <button class="cursor-pointer bg-cta text-white text-xs font-semibold uppercase tracking-wider px-5 py-2.5 rounded hover:bg-yellow-700 transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-2 focus-visible:outline-none flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                Add New
+              </button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <!-- Address 1 -->
+              <div class="bg-white rounded-xl border border-stone-200 p-6">
+                <div class="flex items-center gap-2 mb-3">
+                  <h3 class="text-sm font-semibold text-primary">Home</h3>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-cta/10 text-cta uppercase tracking-wider">Default</span>
+                </div>
+                <p class="text-sm text-secondary leading-relaxed">
+                  Alex Morgan<br>
+                  123 Fashion Ave<br>
+                  New York, NY 10001
+                </p>
+                <div class="flex items-center gap-4 mt-4 pt-4 border-t border-stone-100">
+                  <button class="cursor-pointer text-xs font-medium text-secondary hover:text-primary transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Edit</button>
+                  <button class="cursor-pointer text-xs font-medium text-secondary hover:text-rose-600 transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Delete</button>
+                </div>
+              </div>
+              <!-- Address 2 -->
+              <div class="bg-white rounded-xl border border-stone-200 p-6">
+                <div class="flex items-center gap-2 mb-3">
+                  <h3 class="text-sm font-semibold text-primary">Office</h3>
+                </div>
+                <p class="text-sm text-secondary leading-relaxed">
+                  Alex Morgan<br>
+                  456 Design Blvd, Suite 200<br>
+                  San Francisco, CA 94105
+                </p>
+                <div class="flex items-center gap-4 mt-4 pt-4 border-t border-stone-100">
+                  <button class="cursor-pointer text-xs font-medium text-secondary hover:text-primary transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Edit</button>
+                  <button class="cursor-pointer text-xs font-medium text-secondary hover:text-rose-600 transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Delete</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PAYMENT TAB -->
+          <div id="tab-payment" class="tab-content space-y-6">
+            <div class="flex items-center justify-between">
+              <h2 class="font-serif text-2xl font-semibold text-primary">Payment Methods</h2>
+              <button class="cursor-pointer bg-cta text-white text-xs font-semibold uppercase tracking-wider px-5 py-2.5 rounded hover:bg-yellow-700 transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-2 focus-visible:outline-none flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                Add New
+              </button>
+            </div>
+            <div class="space-y-4">
+              <!-- Card 1 -->
+              <div class="bg-white rounded-xl border border-stone-200 p-6">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-4">
+                    <div class="w-12 h-8 bg-blue-600 rounded flex items-center justify-center">
+                      <span class="text-white text-[10px] font-bold tracking-wider">VISA</span>
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <p class="text-sm font-semibold text-primary">Visa ending in 4242</p>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-cta/10 text-cta uppercase tracking-wider">Default</span>
+                      </div>
+                      <p class="text-xs text-secondary mt-0.5">Expires 08/28</p>
+                    </div>
+                  </div>
+                  <button class="cursor-pointer text-xs font-medium text-secondary hover:text-rose-600 transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Remove</button>
+                </div>
+              </div>
+              <!-- Card 2 -->
+              <div class="bg-white rounded-xl border border-stone-200 p-6">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-4">
+                    <div class="w-12 h-8 bg-stone-800 rounded flex items-center justify-center">
+                      <svg class="w-8 h-5" viewBox="0 0 32 20" fill="none"><circle cx="12" cy="10" r="6" fill="#EB001B" opacity="0.8"/><circle cx="20" cy="10" r="6" fill="#F79E1B" opacity="0.8"/></svg>
+                    </div>
+                    <div>
+                      <p class="text-sm font-semibold text-primary">Mastercard ending in 8888</p>
+                      <p class="text-xs text-secondary mt-0.5">Expires 12/27</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-4">
+                    <button class="cursor-pointer text-xs font-medium text-secondary hover:text-primary transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Set as Default</button>
+                    <button class="cursor-pointer text-xs font-medium text-secondary hover:text-rose-600 transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Remove</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PREFERENCES TAB -->
+          <div id="tab-preferences" class="tab-content space-y-6">
+            <h2 class="font-serif text-2xl font-semibold text-primary">Preferences</h2>
+            <div class="bg-white rounded-xl border border-stone-200 p-6 sm:p-8 space-y-6">
+              <!-- Email Notifications -->
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-primary">Email notifications</p>
+                  <p class="text-xs text-secondary mt-0.5">Receive order updates and promotions via email</p>
+                </div>
+                <button onclick="toggleSwitch(this)" data-enabled="true" class="toggle-btn cursor-pointer relative w-11 h-6 rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-2 focus-visible:outline-none bg-cta" aria-label="Toggle email notifications">
+                  <span class="toggle-thumb absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform translate-x-5"></span>
+                </button>
+              </div>
+              <!-- SMS Notifications -->
+              <div class="flex items-center justify-between border-t border-stone-100 pt-6">
+                <div>
+                  <p class="text-sm font-medium text-primary">SMS notifications</p>
+                  <p class="text-xs text-secondary mt-0.5">Receive order updates via text message</p>
+                </div>
+                <button onclick="toggleSwitch(this)" data-enabled="false" class="toggle-btn cursor-pointer relative w-11 h-6 rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-2 focus-visible:outline-none bg-stone-300" aria-label="Toggle SMS notifications">
+                  <span class="toggle-thumb absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform translate-x-0"></span>
+                </button>
+              </div>
+              <!-- New Arrivals -->
+              <div class="flex items-center justify-between border-t border-stone-100 pt-6">
+                <div>
+                  <p class="text-sm font-medium text-primary">New arrivals alerts</p>
+                  <p class="text-xs text-secondary mt-0.5">Be the first to know about new collections</p>
+                </div>
+                <button onclick="toggleSwitch(this)" data-enabled="true" class="toggle-btn cursor-pointer relative w-11 h-6 rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-2 focus-visible:outline-none bg-cta" aria-label="Toggle new arrivals alerts">
+                  <span class="toggle-thumb absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform translate-x-5"></span>
+                </button>
+              </div>
+              <!-- Sale Alerts -->
+              <div class="flex items-center justify-between border-t border-stone-100 pt-6">
+                <div>
+                  <p class="text-sm font-medium text-primary">Sale alerts</p>
+                  <p class="text-xs text-secondary mt-0.5">Get notified about sales and exclusive offers</p>
+                </div>
+                <button onclick="toggleSwitch(this)" data-enabled="true" class="toggle-btn cursor-pointer relative w-11 h-6 rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-2 focus-visible:outline-none bg-cta" aria-label="Toggle sale alerts">
+                  <span class="toggle-thumb absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform translate-x-5"></span>
+                </button>
+              </div>
+              <!-- Size Preference -->
+              <div class="flex items-center justify-between border-t border-stone-100 pt-6">
+                <div>
+                  <p class="text-sm font-medium text-primary">Preferred size</p>
+                  <p class="text-xs text-secondary mt-0.5">Used for personalized recommendations</p>
+                </div>
+                <select class="cursor-pointer bg-white border border-stone-200 rounded-lg px-4 py-2 text-sm text-primary focus:ring-2 focus:ring-cta focus:border-cta focus:outline-none transition-colors">
+                  <option value="XS">XS</option>
+                  <option value="S">S</option>
+                  <option value="M" selected>M</option>
+                  <option value="L">L</option>
+                  <option value="XL">XL</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-[#1C1917] text-stone-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+        <div>
+          <h4 class="font-sans text-xs font-semibold uppercase tracking-widest text-white mb-6">Shop</h4>
+          <ul class="space-y-3">
+            <li><a href="shop.html" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">New Arrivals</a></li>
+            <li><a href="shop.html" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Women</a></li>
+            <li><a href="shop.html" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Men</a></li>
+            <li><a href="shop.html" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Accessories</a></li>
+            <li><a href="shop.html" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Sale</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-sans text-xs font-semibold uppercase tracking-widest text-white mb-6">Help</h4>
+          <ul class="space-y-3">
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Customer Service</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Shipping &amp; Returns</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Size Guide</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">FAQ</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Contact Us</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-sans text-xs font-semibold uppercase tracking-widest text-white mb-6">About</h4>
+          <ul class="space-y-3">
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Our Story</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Sustainability</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Careers</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Press</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Privacy Policy</a></li>
+          </ul>
+        </div>
+        <div>
+          <a href="index.html" class="font-serif text-2xl font-semibold tracking-[0.3em] uppercase text-white cursor-pointer">Atelier</a>
+          <p class="text-sm text-stone-400 mt-4 leading-relaxed">Timeless elegance, modern craft. Curated luxury for the discerning individual.</p>
+          <div class="flex items-center gap-4 mt-6">
+            <a href="#" class="cursor-pointer text-stone-400 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Instagram">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+            </a>
+            <a href="#" class="cursor-pointer text-stone-400 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Facebook">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            </a>
+            <a href="#" class="cursor-pointer text-stone-400 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Pinterest">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 01.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12.017 24c6.624 0 11.99-5.367 11.99-11.988C24.007 5.367 18.641 0 12.017 0z"/></svg>
+            </a>
+            <a href="#" class="cursor-pointer text-stone-400 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Twitter">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="border-t border-stone-800 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p class="text-xs text-stone-500">&copy; 2026 Atelier. All rights reserved.</p>
+        <div class="flex items-center gap-3">
+          <svg class="h-6 w-auto text-stone-500" viewBox="0 0 48 32" fill="currentColor"><rect width="48" height="32" rx="4" fill="currentColor" opacity="0.15"/><text x="24" y="20" text-anchor="middle" fill="currentColor" font-size="10" font-family="sans-serif" font-weight="600">VISA</text></svg>
+          <svg class="h-6 w-auto text-stone-500" viewBox="0 0 48 32" fill="currentColor"><rect width="48" height="32" rx="4" fill="currentColor" opacity="0.15"/><circle cx="19" cy="16" r="7" fill="currentColor" opacity="0.3"/><circle cx="29" cy="16" r="7" fill="currentColor" opacity="0.3"/></svg>
+          <svg class="h-6 w-auto text-stone-500" viewBox="0 0 48 32" fill="currentColor"><rect width="48" height="32" rx="4" fill="currentColor" opacity="0.15"/><text x="24" y="20" text-anchor="middle" fill="currentColor" font-size="8" font-family="sans-serif" font-weight="600">AMEX</text></svg>
+          <svg class="h-6 w-auto text-stone-500" viewBox="0 0 48 32" fill="currentColor"><rect width="48" height="32" rx="4" fill="currentColor" opacity="0.15"/><text x="24" y="20" text-anchor="middle" fill="currentColor" font-size="7" font-family="sans-serif" font-weight="500">Pay</text></svg>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- JAVASCRIPT -->
+  <script>
+    // Mobile Menu
+    document.getElementById('mobileMenuBtn').addEventListener('click', function() {
+      document.getElementById('mobileMenu').classList.toggle('hidden');
+    });
+
+    // Tab Switching
+    var allTabs = document.querySelectorAll('.account-tab');
+    var allTabContents = document.querySelectorAll('.tab-content');
+
+    allTabs.forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        var targetTab = this.getAttribute('data-tab');
+        if (!targetTab) return;
+
+        // Deactivate all tabs
+        allTabs.forEach(function(t) {
+          t.classList.remove('active');
+          // Desktop tabs
+          if (t.classList.contains('lg:hidden') === false && t.closest('nav.hidden')) {
+            t.classList.remove('font-semibold', 'text-primary', 'border-cta', 'bg-stone-50');
+            t.classList.add('text-secondary', 'border-transparent');
+          }
+          // Mobile tabs
+          if (t.closest('.lg\\:hidden')) {
+            t.classList.remove('bg-primary', 'text-white', 'border-primary');
+            t.classList.add('bg-white', 'text-secondary', 'border-stone-200');
+          }
+        });
+
+        // Activate clicked tab (all instances with same data-tab)
+        document.querySelectorAll('[data-tab="' + targetTab + '"]').forEach(function(t) {
+          t.classList.add('active');
+          // Desktop
+          if (t.closest('nav.hidden') || t.closest('aside nav')) {
+            t.classList.add('font-semibold', 'text-primary', 'border-cta', 'bg-stone-50');
+            t.classList.remove('text-secondary', 'border-transparent');
+          }
+          // Mobile
+          if (t.closest('.lg\\:hidden') || t.parentElement.classList.contains('lg:hidden')) {
+            t.classList.add('bg-primary', 'text-white', 'border-primary');
+            t.classList.remove('bg-white', 'text-secondary', 'border-stone-200');
+          }
+        });
+
+        // Show correct content
+        allTabContents.forEach(function(content) {
+          content.classList.remove('active');
+        });
+        var targetContent = document.getElementById('tab-' + targetTab);
+        if (targetContent) {
+          targetContent.classList.add('active');
+        }
+      });
+    });
+
+    // Toggle switches
+    function toggleSwitch(btn) {
+      var enabled = btn.getAttribute('data-enabled') === 'true';
+      var thumb = btn.querySelector('.toggle-thumb');
+      if (enabled) {
+        btn.setAttribute('data-enabled', 'false');
+        btn.classList.remove('bg-cta');
+        btn.classList.add('bg-stone-300');
+        thumb.classList.remove('translate-x-5');
+        thumb.classList.add('translate-x-0');
+      } else {
+        btn.setAttribute('data-enabled', 'true');
+        btn.classList.remove('bg-stone-300');
+        btn.classList.add('bg-cta');
+        thumb.classList.remove('translate-x-0');
+        thumb.classList.add('translate-x-5');
+      }
+    }
+
+    // Save profile (visual feedback)
+    function saveProfile(btn) {
+      var original = btn.textContent;
+      btn.textContent = 'Saved!';
+      btn.classList.remove('bg-cta', 'hover:bg-yellow-700');
+      btn.classList.add('bg-green-700');
+      setTimeout(function() {
+        btn.textContent = original;
+        btn.classList.remove('bg-green-700');
+        btn.classList.add('bg-cta', 'hover:bg-yellow-700');
+      }, 1500);
+    }
+  </script>
+
+</body>
+</html>

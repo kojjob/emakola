@@ -1,0 +1,82 @@
+# =============================================================================
+# Emakola - Fly.io Configuration
+# West Africa ecommerce platform
+# =============================================================================
+
+app = "emakola"
+primary_region = "jnb"
+kill_signal = "SIGTERM"
+kill_timeout = "30s"
+swap_size_mb = 256
+
+# -----------------------------------------------------------------------------
+# Build configuration
+# -----------------------------------------------------------------------------
+[build]
+  dockerfile = "Dockerfile"
+
+# -----------------------------------------------------------------------------
+# Non-secret environment variables
+# -----------------------------------------------------------------------------
+[env]
+  PHX_HOST = "emakola.com"
+  PHX_SERVER = "true"
+  ECTO_IPV6 = "true"
+  POOL_SIZE = "10"
+  LANG = "en_US.UTF-8"
+  ERL_AFLAGS = "-proto_dist inet6_tcp"
+  RELEASE_DISTRIBUTION = "none"
+
+# -----------------------------------------------------------------------------
+# Deploy configuration
+# Run migrations before each deploy
+# -----------------------------------------------------------------------------
+[deploy]
+  release_command = "/app/bin/migrate"
+
+# -----------------------------------------------------------------------------
+# HTTP Service
+# -----------------------------------------------------------------------------
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 1000
+    soft_limit = 800
+
+  [http_service.checks]
+    [http_service.checks.health]
+      grace_period = "30s"
+      interval = "15s"
+      method = "GET"
+      path = "/health"
+      port = 4000
+      timeout = "5s"
+
+# -----------------------------------------------------------------------------
+# VM Resources
+# -----------------------------------------------------------------------------
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpus = 1
+
+# -----------------------------------------------------------------------------
+# Statics (served by Phoenix, cached by Cloudflare)
+# -----------------------------------------------------------------------------
+[[statics]]
+  guest_path = "/app/lib/emakola-0.1.0/priv/static"
+  url_prefix = "/assets"
+
+# -----------------------------------------------------------------------------
+# Metrics (Fly.io Prometheus integration)
+# -----------------------------------------------------------------------------
+[metrics]
+  port = 9091
+  path = "/metrics"

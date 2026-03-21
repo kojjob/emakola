@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Wishlist — Atelier</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap');
+  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Cormorant', 'serif'],
+            sans: ['Montserrat', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            primary: '#1C1917',
+            secondary: '#44403C',
+            cta: '#CA8A04',
+            surface: '#FAFAF9',
+            text: '#0C0A09',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .wishlist-item { transition: opacity 0.4s ease, transform 0.4s ease, max-height 0.4s ease; }
+    .wishlist-item.removing { opacity: 0; transform: scale(0.95) translateY(-8px); max-height: 0; overflow: hidden; margin: 0; padding: 0; }
+  </style>
+</head>
+<body class="bg-surface font-sans text-text antialiased">
+
+  <!-- NAVIGATION -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-white border-b border-stone-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 lg:h-20">
+        <!-- Mobile Hamburger -->
+        <button id="mobileMenuBtn" class="lg:hidden cursor-pointer p-2 -ml-2 text-primary hover:text-secondary focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Open menu">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg>
+        </button>
+
+        <!-- Logo -->
+        <a href="index.html" class="font-serif text-2xl lg:text-3xl font-semibold tracking-[0.3em] uppercase text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none">Atelier</a>
+
+        <!-- Center Links -->
+        <div class="hidden lg:flex items-center gap-8">
+          <a href="shop.html" class="text-xs tracking-widest uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">New Arrivals</a>
+          <a href="shop.html" class="text-xs tracking-widest uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">Women</a>
+          <a href="shop.html" class="text-xs tracking-widest uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">Men</a>
+          <a href="shop.html" class="text-xs tracking-widest uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">Accessories</a>
+          <a href="shop.html" class="text-xs tracking-widest uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">Sale</a>
+        </div>
+
+        <!-- Right Icons -->
+        <div class="flex items-center gap-3 sm:gap-4">
+          <button class="cursor-pointer p-2 text-secondary hover:text-primary transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Search">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+          </button>
+          <a href="wishlist.html" class="relative cursor-pointer p-2 text-primary transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Wishlist">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>
+          </a>
+          <a href="cart.html" class="relative cursor-pointer p-2 text-secondary hover:text-primary transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Cart">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+            <span class="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-cta text-white text-[10px] font-semibold rounded-full flex items-center justify-center leading-none">3</span>
+          </a>
+          <a href="account.html" class="cursor-pointer p-2 text-secondary hover:text-primary transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Account">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div id="mobileMenu" class="hidden lg:hidden bg-white border-t border-stone-200">
+      <div class="px-4 py-6 space-y-4">
+        <a href="shop.html" class="block text-sm tracking-widest uppercase text-secondary hover:text-primary cursor-pointer">New Arrivals</a>
+        <a href="shop.html" class="block text-sm tracking-widest uppercase text-secondary hover:text-primary cursor-pointer">Women</a>
+        <a href="shop.html" class="block text-sm tracking-widest uppercase text-secondary hover:text-primary cursor-pointer">Men</a>
+        <a href="shop.html" class="block text-sm tracking-widest uppercase text-secondary hover:text-primary cursor-pointer">Accessories</a>
+        <a href="shop.html" class="block text-sm tracking-widest uppercase text-secondary hover:text-primary cursor-pointer">Sale</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="pt-24 lg:pt-28 pb-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      <!-- Header -->
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-10">
+        <div>
+          <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-primary mb-2">My Wishlist</h1>
+          <p id="wishlistCount" class="text-sm text-secondary">4 saved items</p>
+        </div>
+        <div class="mt-4 sm:mt-0 flex items-center gap-6">
+          <button id="shareWishlistBtn" class="cursor-pointer flex items-center gap-2 text-sm text-secondary hover:text-primary transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"/></svg>
+            Share your wishlist
+          </button>
+          <a href="shop.html" class="text-sm font-medium text-cta hover:text-yellow-700 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5 flex items-center gap-1">
+            Continue Shopping
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Wishlist Grid -->
+      <div id="wishlistGrid" class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+
+        <!-- Product 1 -->
+        <div class="wishlist-item group" data-item="1">
+          <div class="relative overflow-hidden rounded-lg bg-stone-100 aspect-[3/4] mb-3">
+            <a href="product.html" class="cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none block h-full">
+              <img src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=500&h=667&fit=crop&q=80" alt="Tailored Blazer" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+            </a>
+            <button onclick="removeItem(this)" class="absolute top-3 right-3 cursor-pointer w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" aria-label="Remove from wishlist">
+              <svg class="w-5 h-5 text-rose-500" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>
+            </button>
+          </div>
+          <div class="px-1">
+            <a href="product.html" class="cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded block">
+              <h3 class="font-sans text-sm font-medium text-primary truncate">Tailored Blazer</h3>
+              <div class="flex items-center justify-between mt-1">
+                <p class="text-sm font-semibold text-primary">$550</p>
+                <p class="text-xs text-secondary">Navy</p>
+              </div>
+              <div class="flex items-center gap-1 mt-1.5">
+                <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                <span class="text-xs text-secondary">4.7</span>
+              </div>
+            </a>
+            <div class="mt-3 space-y-2">
+              <button onclick="addToBag(this)" class="cursor-pointer w-full bg-cta text-white text-xs font-semibold uppercase tracking-wider py-2.5 rounded hover:bg-yellow-700 transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-2 focus-visible:outline-none">Add to Bag</button>
+              <button onclick="removeItem(this)" class="cursor-pointer w-full text-xs text-secondary hover:text-rose-600 transition-colors py-1 focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product 2 -->
+        <div class="wishlist-item group" data-item="2">
+          <div class="relative overflow-hidden rounded-lg bg-stone-100 aspect-[3/4] mb-3">
+            <a href="product.html" class="cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none block h-full">
+              <img src="https://images.unsplash.com/photo-1434389677669-e08b4cda3a74?w=500&h=667&fit=crop&q=80" alt="Cashmere Scarf" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+            </a>
+            <button onclick="removeItem(this)" class="absolute top-3 right-3 cursor-pointer w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" aria-label="Remove from wishlist">
+              <svg class="w-5 h-5 text-rose-500" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>
+            </button>
+          </div>
+          <div class="px-1">
+            <a href="product.html" class="cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded block">
+              <h3 class="font-sans text-sm font-medium text-primary truncate">Cashmere Scarf</h3>
+              <div class="flex items-center justify-between mt-1">
+                <p class="text-sm font-semibold text-primary">$195</p>
+                <p class="text-xs text-secondary">Beige</p>
+              </div>
+              <div class="flex items-center gap-1 mt-1.5">
+                <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                <span class="text-xs text-secondary">4.8</span>
+              </div>
+            </a>
+            <div class="mt-3 space-y-2">
+              <button onclick="addToBag(this)" class="cursor-pointer w-full bg-cta text-white text-xs font-semibold uppercase tracking-wider py-2.5 rounded hover:bg-yellow-700 transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-2 focus-visible:outline-none">Add to Bag</button>
+              <button onclick="removeItem(this)" class="cursor-pointer w-full text-xs text-secondary hover:text-rose-600 transition-colors py-1 focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product 3 -->
+        <div class="wishlist-item group" data-item="3">
+          <div class="relative overflow-hidden rounded-lg bg-stone-100 aspect-[3/4] mb-3">
+            <a href="product.html" class="cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none block h-full">
+              <img src="https://images.unsplash.com/photo-1603252109303-2751441dd157?w=500&h=667&fit=crop&q=80" alt="Suede Chelsea Boots" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+            </a>
+            <button onclick="removeItem(this)" class="absolute top-3 right-3 cursor-pointer w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" aria-label="Remove from wishlist">
+              <svg class="w-5 h-5 text-rose-500" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>
+            </button>
+          </div>
+          <div class="px-1">
+            <a href="product.html" class="cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded block">
+              <h3 class="font-sans text-sm font-medium text-primary truncate">Suede Chelsea Boots</h3>
+              <div class="flex items-center justify-between mt-1">
+                <p class="text-sm font-semibold text-primary">$385</p>
+                <p class="text-xs text-secondary">Brown</p>
+              </div>
+              <div class="flex items-center gap-1 mt-1.5">
+                <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                <span class="text-xs text-secondary">4.7</span>
+              </div>
+            </a>
+            <div class="mt-3 space-y-2">
+              <button onclick="addToBag(this)" class="cursor-pointer w-full bg-cta text-white text-xs font-semibold uppercase tracking-wider py-2.5 rounded hover:bg-yellow-700 transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-2 focus-visible:outline-none">Add to Bag</button>
+              <button onclick="removeItem(this)" class="cursor-pointer w-full text-xs text-secondary hover:text-rose-600 transition-colors py-1 focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product 4 -->
+        <div class="wishlist-item group" data-item="4">
+          <div class="relative overflow-hidden rounded-lg bg-stone-100 aspect-[3/4] mb-3">
+            <a href="product.html" class="cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none block h-full">
+              <img src="https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=500&h=667&fit=crop&q=80" alt="Gold Pendant Necklace" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+            </a>
+            <button onclick="removeItem(this)" class="absolute top-3 right-3 cursor-pointer w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" aria-label="Remove from wishlist">
+              <svg class="w-5 h-5 text-rose-500" fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>
+            </button>
+          </div>
+          <div class="px-1">
+            <a href="product.html" class="cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded block">
+              <h3 class="font-sans text-sm font-medium text-primary truncate">Gold Pendant Necklace</h3>
+              <div class="flex items-center justify-between mt-1">
+                <p class="text-sm font-semibold text-primary">$180</p>
+                <p class="text-xs text-secondary">Gold</p>
+              </div>
+              <div class="flex items-center gap-1 mt-1.5">
+                <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                <span class="text-xs text-secondary">4.9</span>
+              </div>
+            </a>
+            <div class="mt-3 space-y-2">
+              <button onclick="addToBag(this)" class="cursor-pointer w-full bg-cta text-white text-xs font-semibold uppercase tracking-wider py-2.5 rounded hover:bg-yellow-700 transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-2 focus-visible:outline-none">Add to Bag</button>
+              <button onclick="removeItem(this)" class="cursor-pointer w-full text-xs text-secondary hover:text-rose-600 transition-colors py-1 focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Remove</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="hidden text-center py-24">
+        <svg class="w-20 h-20 mx-auto text-stone-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
+        <h2 class="font-serif text-2xl font-semibold text-primary mb-2">Your wishlist is empty</h2>
+        <p class="text-secondary text-sm mb-8">Start exploring our collection</p>
+        <a href="shop.html" class="inline-block cursor-pointer bg-cta text-white text-xs font-semibold uppercase tracking-wider px-8 py-3 rounded hover:bg-yellow-700 transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-2 focus-visible:outline-none">Shop Now</a>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-[#1C1917] text-stone-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+        <div>
+          <h4 class="font-sans text-xs font-semibold uppercase tracking-widest text-white mb-6">Shop</h4>
+          <ul class="space-y-3">
+            <li><a href="shop.html" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">New Arrivals</a></li>
+            <li><a href="shop.html" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Women</a></li>
+            <li><a href="shop.html" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Men</a></li>
+            <li><a href="shop.html" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Accessories</a></li>
+            <li><a href="shop.html" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Sale</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-sans text-xs font-semibold uppercase tracking-widest text-white mb-6">Help</h4>
+          <ul class="space-y-3">
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Customer Service</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Shipping &amp; Returns</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Size Guide</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">FAQ</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Contact Us</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="font-sans text-xs font-semibold uppercase tracking-widest text-white mb-6">About</h4>
+          <ul class="space-y-3">
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Our Story</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Sustainability</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Careers</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Press</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer">Privacy Policy</a></li>
+          </ul>
+        </div>
+        <div>
+          <a href="index.html" class="font-serif text-2xl font-semibold tracking-[0.3em] uppercase text-white cursor-pointer">Atelier</a>
+          <p class="text-sm text-stone-400 mt-4 leading-relaxed">Timeless elegance, modern craft. Curated luxury for the discerning individual.</p>
+          <div class="flex items-center gap-4 mt-6">
+            <a href="#" class="cursor-pointer text-stone-400 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Instagram">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+            </a>
+            <a href="#" class="cursor-pointer text-stone-400 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Facebook">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            </a>
+            <a href="#" class="cursor-pointer text-stone-400 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Pinterest">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 01.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12.017 24c6.624 0 11.99-5.367 11.99-11.988C24.007 5.367 18.641 0 12.017 0z"/></svg>
+            </a>
+            <a href="#" class="cursor-pointer text-stone-400 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Twitter">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="border-t border-stone-800 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p class="text-xs text-stone-500">&copy; 2026 Atelier. All rights reserved.</p>
+        <div class="flex items-center gap-3">
+          <svg class="h-6 w-auto text-stone-500" viewBox="0 0 48 32" fill="currentColor"><rect width="48" height="32" rx="4" fill="currentColor" opacity="0.15"/><text x="24" y="20" text-anchor="middle" fill="currentColor" font-size="10" font-family="sans-serif" font-weight="600">VISA</text></svg>
+          <svg class="h-6 w-auto text-stone-500" viewBox="0 0 48 32" fill="currentColor"><rect width="48" height="32" rx="4" fill="currentColor" opacity="0.15"/><circle cx="19" cy="16" r="7" fill="currentColor" opacity="0.3"/><circle cx="29" cy="16" r="7" fill="currentColor" opacity="0.3"/></svg>
+          <svg class="h-6 w-auto text-stone-500" viewBox="0 0 48 32" fill="currentColor"><rect width="48" height="32" rx="4" fill="currentColor" opacity="0.15"/><text x="24" y="20" text-anchor="middle" fill="currentColor" font-size="8" font-family="sans-serif" font-weight="600">AMEX</text></svg>
+          <svg class="h-6 w-auto text-stone-500" viewBox="0 0 48 32" fill="currentColor"><rect width="48" height="32" rx="4" fill="currentColor" opacity="0.15"/><text x="24" y="20" text-anchor="middle" fill="currentColor" font-size="7" font-family="sans-serif" font-weight="500">Pay</text></svg>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- JAVASCRIPT -->
+  <script>
+    // Mobile Menu
+    document.getElementById('mobileMenuBtn').addEventListener('click', function() {
+      document.getElementById('mobileMenu').classList.toggle('hidden');
+    });
+
+    // Remove item
+    function removeItem(btn) {
+      var item = btn.closest('.wishlist-item');
+      if (!item) return;
+      item.classList.add('removing');
+      setTimeout(function() {
+        item.remove();
+        updateCount();
+      }, 400);
+    }
+
+    // Update count
+    function updateCount() {
+      var remaining = document.querySelectorAll('.wishlist-item').length;
+      var countEl = document.getElementById('wishlistCount');
+      if (remaining === 0) {
+        document.getElementById('wishlistGrid').classList.add('hidden');
+        document.getElementById('emptyState').classList.remove('hidden');
+        countEl.textContent = '0 saved items';
+      } else {
+        countEl.textContent = remaining + ' saved item' + (remaining !== 1 ? 's' : '');
+      }
+    }
+
+    // Add to bag (visual feedback)
+    function addToBag(btn) {
+      var original = btn.textContent;
+      btn.textContent = 'Added!';
+      btn.classList.remove('bg-cta', 'hover:bg-yellow-700');
+      btn.classList.add('bg-green-700');
+      setTimeout(function() {
+        btn.textContent = original;
+        btn.classList.remove('bg-green-700');
+        btn.classList.add('bg-cta', 'hover:bg-yellow-700');
+      }, 1500);
+    }
+
+    // Share wishlist
+    document.getElementById('shareWishlistBtn').addEventListener('click', function() {
+      var btn = this;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(window.location.href).then(function() {
+          var icon = btn.querySelector('svg');
+          var textNode = btn.lastChild;
+          textNode.textContent = ' Link copied!';
+          setTimeout(function() {
+            textNode.textContent = ' Share your wishlist';
+          }, 2000);
+        });
+      }
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Track your delivery from Amara Collection — Emakola delivery tracking">
+  <meta name="theme-color" content="#059669">
+  <title>Delivery Tracking — Order #EM-4821</title>
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='4' y='4' width='24' height='24' rx='6' fill='%23059669'/><path d='M10 20l4-6 4 3 4-7' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            emerald: { 50: '#ECFDF5', 100: '#D1FAE5', 200: '#A7F3D0', 300: '#6EE7B7', 400: '#34D399', 500: '#10B981', 600: '#059669', 700: '#047857', 800: '#065F46', 900: '#064E3B', 950: '#022C22' },
+            slate: { 50: '#F8FAFC', 100: '#F1F5F9', 200: '#E2E8F0', 300: '#CBD5E1', 400: '#94A3B8', 500: '#64748B', 600: '#475569', 700: '#334155', 800: '#1E293B', 900: '#0F172A' },
+            coral: { 500: '#F43F5E' },
+            gold: { 500: '#CA8A04' },
+          },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    body { background: #F8FAFC; }
+
+    /* Pulse animation for active step */
+    .pulse-ring {
+      animation: pulseRing 2s ease-in-out infinite;
+    }
+    @keyframes pulseRing {
+      0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(5, 150, 105, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+    }
+
+    /* Rider dot animation on map */
+    .rider-dot {
+      animation: riderBlink 1.5s ease-in-out infinite;
+    }
+    @keyframes riderBlink {
+      0%, 100% { opacity: 1; r: 6; }
+      50% { opacity: 0.7; r: 8; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .pulse-ring { animation: none; box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.3); }
+      .rider-dot { animation: none; }
+    }
+
+    /* Details toggle */
+    .details-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+    .details-content.open { max-height: 300px; }
+  </style>
+</head>
+
+<body class="font-sans antialiased text-slate-800 min-h-screen">
+
+  <div class="max-w-lg mx-auto">
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- HEADER                                      -->
+    <!-- ═══════════════════════════════════════════ -->
+    <header class="bg-white border-b border-slate-200 px-4 py-4 sticky top-0 z-50">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-base font-bold text-slate-900">Amara Collection</h1>
+          <p class="text-xs text-slate-400 font-mono mt-0.5">Order #EM-4821</p>
+        </div>
+        <a href="#" class="text-xs font-semibold text-emerald-600 cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 rounded" aria-label="Go back">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </a>
+      </div>
+    </header>
+
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- MAIN CONTENT                                -->
+    <!-- ═══════════════════════════════════════════ -->
+    <main class="px-4 py-5 space-y-5">
+
+      <!-- ─────────────────────────────────────── -->
+      <!-- RIDER INFO CARD                          -->
+      <!-- ─────────────────────────────────────── -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5">
+        <div class="flex items-center gap-4">
+          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop&crop=face&q=80" alt="Rider Kofi Asante" class="w-14 h-14 rounded-full object-cover ring-2 ring-emerald-200" width="56" height="56">
+          <div class="flex-1 min-w-0">
+            <h2 class="text-base font-bold text-slate-900">Kofi Asante</h2>
+            <div class="flex items-center gap-2 mt-1">
+              <div class="flex items-center gap-0.5">
+                <svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z"/></svg>
+                <span class="text-xs font-semibold text-slate-700">4.8</span>
+              </div>
+              <span class="text-[10px] text-slate-400">(142 deliveries)</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">Honda CG 125 (Red)</p>
+          </div>
+        </div>
+
+        <!-- Contact buttons -->
+        <div class="flex gap-3 mt-4">
+          <a href="tel:+233240000000" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg>
+            Call Rider
+          </a>
+          <a href="https://wa.me/233240000000" target="_blank" rel="noopener noreferrer" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            WhatsApp
+          </a>
+        </div>
+      </div>
+
+
+      <!-- ─────────────────────────────────────── -->
+      <!-- STATUS TIMELINE                          -->
+      <!-- ─────────────────────────────────────── -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-5">
+        <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-5">Delivery Status</h2>
+
+        <div class="relative pl-8 space-y-6" role="list" aria-label="Delivery timeline">
+
+          <!-- Vertical line -->
+          <div class="absolute left-[11px] top-1 bottom-1 w-0.5" aria-hidden="true">
+            <!-- Green completed portion -->
+            <div class="w-full bg-emerald-500 h-[65%]"></div>
+            <!-- Gray remaining portion -->
+            <div class="w-full bg-slate-200 h-[35%]"></div>
+          </div>
+
+          <!-- Step 1: Order Confirmed ✓ -->
+          <div class="relative" role="listitem">
+            <div class="absolute -left-8 top-0 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center" aria-hidden="true">
+              <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-900">Order Confirmed</p>
+              <p class="text-xs text-slate-400 mt-0.5">2:10 PM</p>
+            </div>
+          </div>
+
+          <!-- Step 2: Picked Up ✓ -->
+          <div class="relative" role="listitem">
+            <div class="absolute -left-8 top-0 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center" aria-hidden="true">
+              <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-900">Picked Up</p>
+              <p class="text-xs text-slate-500 mt-0.5">Rider collected your package</p>
+              <p class="text-xs text-slate-400 mt-0.5">2:28 PM</p>
+            </div>
+          </div>
+
+          <!-- Step 3: On The Way ● (ACTIVE) -->
+          <div class="relative" role="listitem" aria-current="step">
+            <div class="absolute -left-8 top-0 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center pulse-ring" aria-hidden="true">
+              <div class="w-2.5 h-2.5 bg-white rounded-full"></div>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-emerald-700">On The Way</p>
+              <p class="text-xs text-emerald-600 font-medium mt-0.5">Estimated arrival: 3:10 PM</p>
+              <p class="text-xs text-slate-400 mt-0.5">2:45 PM</p>
+            </div>
+          </div>
+
+          <!-- Step 4: Delivered ○ (Pending) -->
+          <div class="relative" role="listitem">
+            <div class="absolute -left-8 top-0 w-6 h-6 bg-slate-200 rounded-full flex items-center justify-center" aria-hidden="true">
+              <div class="w-2.5 h-2.5 bg-slate-300 rounded-full"></div>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-slate-400">Delivered</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+
+      <!-- ─────────────────────────────────────── -->
+      <!-- MAP PLACEHOLDER                          -->
+      <!-- ─────────────────────────────────────── -->
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <!-- Map visual -->
+        <div class="relative bg-slate-100 h-48">
+          <svg class="w-full h-full" viewBox="0 0 400 200" aria-label="Map showing rider location approximately 1.2 km away">
+            <!-- Background grid (subtle map feel) -->
+            <defs>
+              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#E2E8F0" stroke-width="0.5"/>
+              </pattern>
+            </defs>
+            <rect width="400" height="200" fill="#F1F5F9"/>
+            <rect width="400" height="200" fill="url(#grid)"/>
+
+            <!-- Roads -->
+            <line x1="0" y1="100" x2="400" y2="100" stroke="#CBD5E1" stroke-width="6" stroke-linecap="round"/>
+            <line x1="200" y1="0" x2="200" y2="200" stroke="#CBD5E1" stroke-width="6" stroke-linecap="round"/>
+            <line x1="50" y1="40" x2="350" y2="160" stroke="#CBD5E1" stroke-width="4" stroke-linecap="round"/>
+
+            <!-- Route path (dashed) -->
+            <path d="M140 120 C180 110 220 90 300 80" fill="none" stroke="#059669" stroke-width="3" stroke-dasharray="6 4" stroke-linecap="round"/>
+
+            <!-- Destination marker -->
+            <g transform="translate(300, 80)">
+              <circle cx="0" cy="0" r="10" fill="#059669" opacity="0.15"/>
+              <circle cx="0" cy="0" r="5" fill="#059669" opacity="0.3"/>
+              <circle cx="0" cy="-12" r="8" fill="#F43F5E"/>
+              <circle cx="0" cy="-12" r="3" fill="white"/>
+              <path d="M0 -4 L0 0" stroke="#F43F5E" stroke-width="2"/>
+            </g>
+
+            <!-- Rider marker (animated) -->
+            <g transform="translate(140, 120)">
+              <circle cx="0" cy="0" r="12" fill="#059669" opacity="0.15" class="rider-dot"/>
+              <circle cx="0" cy="0" r="6" fill="#059669" class="rider-dot"/>
+              <circle cx="0" cy="0" r="2.5" fill="white"/>
+            </g>
+
+            <!-- Labels -->
+            <text x="140" y="145" fill="#059669" font-size="9" font-family="Inter, sans-serif" font-weight="600" text-anchor="middle">Kofi</text>
+            <text x="300" y="60" fill="#F43F5E" font-size="9" font-family="Inter, sans-serif" font-weight="600" text-anchor="middle">Drop-off</text>
+          </svg>
+
+          <!-- Overlay text -->
+          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white/90 to-transparent px-4 py-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full status-pulse" aria-hidden="true"></span>
+                <p class="text-sm font-semibold text-slate-900">Kofi is 1.2 km away</p>
+              </div>
+              <span class="text-sm font-bold text-emerald-600">ETA 8 min</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ─────────────────────────────────────── -->
+      <!-- ORDER SUMMARY (Collapsible)              -->
+      <!-- ─────────────────────────────────────── -->
+      <div class="bg-white rounded-2xl border border-slate-200">
+        <button onclick="toggleDetails()" class="w-full flex items-center justify-between px-5 py-4 cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-2xl" aria-expanded="false" id="details-toggle">
+          <span class="text-sm font-semibold text-slate-900">Order Details</span>
+          <svg id="details-chevron" class="w-4 h-4 text-slate-400 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+        </button>
+
+        <div id="details-content" class="details-content px-5">
+          <div class="border-t border-slate-100 py-4 space-y-3">
+            <!-- Item -->
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-slate-800">Kente Wrap Dress</p>
+                <p class="text-xs text-slate-400">Qty: 1</p>
+              </div>
+              <span class="text-sm font-semibold text-slate-900 font-mono">GH&#8373; 280</span>
+            </div>
+
+            <!-- Delivery -->
+            <div class="flex items-center justify-between">
+              <p class="text-sm text-slate-500">Delivery</p>
+              <span class="text-sm font-semibold text-slate-900 font-mono">GH&#8373; 15</span>
+            </div>
+
+            <!-- Divider -->
+            <div class="border-t border-slate-100 pt-3 flex items-center justify-between">
+              <p class="text-sm font-bold text-slate-900">Total</p>
+              <span class="text-base font-bold text-slate-900 font-mono">GH&#8373; 295</span>
+            </div>
+
+            <!-- Payment -->
+            <div class="flex items-center gap-2 pt-1 pb-2">
+              <span class="w-5 h-5 bg-[#FFC107] rounded-full flex items-center justify-center shrink-0">
+                <svg class="w-3 h-3 text-slate-900" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+              </span>
+              <span class="text-xs text-slate-500">MTN Mobile Money</span>
+              <svg class="w-3.5 h-3.5 text-emerald-500 ml-auto" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-label="Paid"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+              <span class="text-xs font-semibold text-emerald-600">Paid</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- FOOTER                                      -->
+    <!-- ═══════════════════════════════════════════ -->
+    <footer class="px-4 py-6 border-t border-slate-200 bg-white text-center space-y-2">
+      <div class="flex items-center justify-center gap-2">
+        <span class="text-xs text-slate-400">Powered by</span>
+        <svg class="w-4 h-4" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+          <rect x="2" y="2" width="32" height="32" rx="8" fill="#059669"/>
+          <path d="M11 24l5-8 5 4 5-9" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="text-xs font-bold text-slate-600">emakola</span>
+      </div>
+      <a href="#" class="text-xs text-emerald-600 font-semibold cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 rounded">Need help? Contact store</a>
+    </footer>
+
+  </div>
+
+  <script>
+    function toggleDetails() {
+      var content = document.getElementById('details-content');
+      var chevron = document.getElementById('details-chevron');
+      var toggle = document.getElementById('details-toggle');
+      var isOpen = content.classList.contains('open');
+
+      if (isOpen) {
+        content.classList.remove('open');
+        chevron.style.transform = 'rotate(0deg)';
+        toggle.setAttribute('aria-expanded', 'false');
+      } else {
+        content.classList.add('open');
+        chevron.style.transform = 'rotate(180deg)';
+        toggle.setAttribute('aria-expanded', 'true');
+      }
+    }
+  </script>
+
+</body>
+</html>

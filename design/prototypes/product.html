@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wool Blend Overcoat — Atelier Store</title>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap');
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1C1917',
+            secondary: '#44403C',
+            cta: '#CA8A04',
+            surface: '#FAFAF9',
+            ink: '#0C0A09',
+          },
+          fontFamily: {
+            serif: ['Cormorant', 'Georgia', 'serif'],
+            sans: ['Montserrat', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: 'Montserrat', sans-serif; color: #0C0A09; background: #FAFAF9; }
+    h1, h2, h3, h4, h5, h6 { font-family: 'Cormorant', serif; }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #FAFAF9; }
+    ::-webkit-scrollbar-thumb { background: #44403C; border-radius: 3px; }
+
+    /* Thumbnail strip */
+    .thumb-strip { display: flex; gap: 0.75rem; }
+    .thumb-strip img { transition: all 0.2s ease; }
+
+    /* Details/Summary accordion */
+    details summary { list-style: none; }
+    details summary::-webkit-details-marker { display: none; }
+    details summary .chevron-icon { transition: transform 0.25s ease; }
+    details[open] summary .chevron-icon { transform: rotate(180deg); }
+
+    /* Star rating bar fill */
+    .rating-bar-fill { transition: width 0.6s ease; }
+
+    /* Review cards */
+    .review-card { transition: box-shadow 0.2s ease; }
+    .review-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+
+    /* Product card hover */
+    .product-card img { transition: transform 0.4s ease; }
+    .product-card:hover img { transform: scale(1.05); }
+  </style>
+</head>
+<body class="bg-surface text-ink antialiased">
+
+  <!-- ============================== -->
+  <!-- NAVIGATION -->
+  <!-- ============================== -->
+  <header id="navbar" class="fixed top-0 left-0 right-0 z-50 bg-white border-b border-stone-200 transition-shadow duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 lg:h-20">
+
+        <!-- Mobile menu button -->
+        <button id="mobile-menu-btn" class="lg:hidden p-2 -ml-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-md" aria-label="Open menu">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg>
+        </button>
+
+        <!-- Logo -->
+        <a href="store.html" class="font-serif text-2xl lg:text-3xl font-bold tracking-[0.15em] text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">
+          ATELIER
+        </a>
+
+        <!-- Center Navigation -->
+        <nav class="hidden lg:flex items-center gap-8" aria-label="Main navigation">
+          <a href="store.html" class="text-sm font-medium tracking-wide text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">New Arrivals</a>
+          <a href="store.html" class="text-sm font-medium tracking-wide text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">Women</a>
+          <a href="store.html" class="text-sm font-medium tracking-wide text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">Men</a>
+          <a href="store.html" class="text-sm font-medium tracking-wide text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">Accessories</a>
+          <a href="store.html" class="text-sm font-medium tracking-wide text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">Sale</a>
+        </nav>
+
+        <!-- Right Icons -->
+        <div class="flex items-center gap-3 sm:gap-4">
+          <!-- Search -->
+          <button class="p-2 text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-md" aria-label="Search">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+          </button>
+          <!-- Wishlist -->
+          <a href="wishlist.html" class="p-2 text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-md" aria-label="Wishlist">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>
+          </a>
+          <!-- Cart -->
+          <a href="cart.html" class="relative p-2 text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-md" aria-label="Cart">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg>
+            <span class="absolute -top-0.5 -right-0.5 flex items-center justify-center w-4.5 h-4.5 min-w-[18px] min-h-[18px] text-[10px] font-bold text-white bg-cta rounded-full leading-none">3</span>
+          </a>
+          <!-- Account -->
+          <a href="account.html" class="hidden sm:block p-2 text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-md" aria-label="Account">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="hidden fixed inset-0 z-50 bg-white">
+      <div class="flex items-center justify-between px-4 h-16 border-b border-stone-200">
+        <span class="font-serif text-2xl font-bold tracking-[0.15em] text-primary">ATELIER</span>
+        <button id="mobile-menu-close" class="p-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-md" aria-label="Close menu">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <nav class="flex flex-col p-6 gap-5">
+        <a href="store.html" class="text-lg font-medium text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-2 py-1">New Arrivals</a>
+        <a href="store.html" class="text-lg font-medium text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-2 py-1">Women</a>
+        <a href="store.html" class="text-lg font-medium text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-2 py-1">Men</a>
+        <a href="store.html" class="text-lg font-medium text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-2 py-1">Accessories</a>
+        <a href="store.html" class="text-lg font-medium text-cta cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-2 py-1">Sale</a>
+        <hr class="border-stone-200 my-2">
+        <a href="account.html" class="text-lg font-medium text-secondary cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-2 py-1">Account</a>
+        <a href="wishlist.html" class="text-lg font-medium text-secondary cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-2 py-1">Wishlist</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Spacer for fixed nav -->
+  <div class="h-16 lg:h-20"></div>
+
+  <main>
+
+    <!-- ============================== -->
+    <!-- BREADCRUMB -->
+    <!-- ============================== -->
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4" aria-label="Breadcrumb">
+      <ol class="flex items-center gap-2 text-sm text-secondary font-sans">
+        <li><a href="store.html" class="hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5">Home</a></li>
+        <li>
+          <svg class="w-3.5 h-3.5 text-stone-400 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+        </li>
+        <li><a href="store.html" class="hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5">Women</a></li>
+        <li>
+          <svg class="w-3.5 h-3.5 text-stone-400 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+        </li>
+        <li><a href="store.html" class="hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5">Outerwear</a></li>
+        <li>
+          <svg class="w-3.5 h-3.5 text-stone-400 inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+        </li>
+        <li class="text-primary font-medium" aria-current="page">Wool Blend Overcoat</li>
+      </ol>
+    </nav>
+
+    <!-- ============================== -->
+    <!-- PRODUCT HERO — 2-Column Layout -->
+    <!-- ============================== -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+      <div class="grid grid-cols-1 lg:grid-cols-[55%_45%] gap-8 lg:gap-12">
+
+        <!-- Left Column: Image Gallery -->
+        <div class="space-y-4">
+          <!-- Main Image -->
+          <div class="overflow-hidden rounded-xl bg-stone-100 aspect-[4/5]">
+            <img
+              id="main-product-image"
+              src="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=800&h=1000&fit=crop&q=80"
+              alt="Wool Blend Overcoat - Front view"
+              class="w-full h-full object-cover"
+              loading="eager"
+            >
+          </div>
+
+          <!-- Thumbnail Strip -->
+          <div class="thumb-strip">
+            <button
+              class="thumbnail-btn w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden ring-2 ring-cta ring-offset-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none flex-shrink-0"
+              data-full="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=800&h=1000&fit=crop&q=80"
+              data-alt="Wool Blend Overcoat - Front view"
+              aria-label="View front image"
+            >
+              <img src="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=150&h=150&fit=crop&q=80" alt="Thumbnail 1" class="w-full h-full object-cover">
+            </button>
+            <button
+              class="thumbnail-btn w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden ring-1 ring-stone-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none flex-shrink-0 hover:ring-stone-400 transition-all"
+              data-full="https://images.unsplash.com/photo-1507680434567-5739c80be1ac?w=800&h=1000&fit=crop&q=80"
+              data-alt="Wool Blend Overcoat - Detail view"
+              aria-label="View detail image"
+            >
+              <img src="https://images.unsplash.com/photo-1507680434567-5739c80be1ac?w=150&h=150&fit=crop&q=80" alt="Thumbnail 2" class="w-full h-full object-cover">
+            </button>
+            <button
+              class="thumbnail-btn w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden ring-1 ring-stone-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none flex-shrink-0 hover:ring-stone-400 transition-all"
+              data-full="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&h=1000&fit=crop&q=80"
+              data-alt="Wool Blend Overcoat - Styled look"
+              aria-label="View styled look"
+            >
+              <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=150&h=150&fit=crop&q=80" alt="Thumbnail 3" class="w-full h-full object-cover">
+            </button>
+            <button
+              class="thumbnail-btn w-20 h-20 sm:w-24 sm:h-24 rounded-lg overflow-hidden ring-1 ring-stone-200 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none flex-shrink-0 hover:ring-stone-400 transition-all"
+              data-full="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&h=1000&fit=crop&q=80"
+              data-alt="Wool Blend Overcoat - Back view"
+              aria-label="View back image"
+            >
+              <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=150&h=150&fit=crop&q=80" alt="Thumbnail 4" class="w-full h-full object-cover">
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Column: Product Info -->
+        <div class="lg:pt-2">
+          <!-- Brand Tag -->
+          <p class="text-xs font-sans font-semibold tracking-[0.2em] uppercase text-secondary mb-2">Atelier Essentials</p>
+
+          <!-- Product Name -->
+          <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-primary leading-tight mb-3">Wool Blend Overcoat</h1>
+
+          <!-- Rating -->
+          <div class="flex items-center gap-2 mb-4">
+            <div class="flex items-center gap-0.5" aria-label="Rating: 4.8 out of 5">
+              <!-- 5 gold stars (4 full + 1 partial) -->
+              <svg class="w-4.5 h-4.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-4.5 h-4.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-4.5 h-4.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-4.5 h-4.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <!-- Partial star -->
+              <div class="relative w-4.5 h-4.5">
+                <svg class="absolute inset-0 w-4.5 h-4.5 text-stone-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                <div class="absolute inset-0 overflow-hidden" style="width:80%">
+                  <svg class="w-4.5 h-4.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                </div>
+              </div>
+            </div>
+            <span class="text-sm font-medium text-primary">4.8</span>
+            <a href="#reviews" class="text-sm text-secondary hover:text-cta transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5">(124 reviews)</a>
+          </div>
+
+          <!-- Price -->
+          <p class="font-sans text-2xl font-semibold text-primary mb-4">$485.00</p>
+
+          <!-- Short Description -->
+          <p class="text-sm text-secondary leading-relaxed mb-6">
+            An impeccably tailored overcoat crafted from a luxurious wool-cashmere blend. Designed with a relaxed silhouette, notched lapels, and a hidden button placket for a clean, modern aesthetic.
+          </p>
+
+          <!-- Divider -->
+          <hr class="border-stone-200 mb-6">
+
+          <!-- Color Selector -->
+          <div class="mb-6">
+            <p class="text-sm font-medium text-primary mb-3">Color: <span id="color-label" class="font-normal text-secondary">Black</span></p>
+            <div class="flex items-center gap-3">
+              <button
+                class="color-swatch w-8 h-8 rounded-full bg-[#1C1917] ring-2 ring-cta ring-offset-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none transition-all"
+                data-color="Black"
+                aria-label="Select Black"
+              ></button>
+              <button
+                class="color-swatch w-8 h-8 rounded-full bg-[#C4A882] ring-1 ring-stone-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none hover:ring-stone-400 transition-all"
+                data-color="Camel"
+                aria-label="Select Camel"
+              ></button>
+              <button
+                class="color-swatch w-8 h-8 rounded-full bg-[#57534E] ring-1 ring-stone-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none hover:ring-stone-400 transition-all"
+                data-color="Charcoal"
+                aria-label="Select Charcoal"
+              ></button>
+            </div>
+          </div>
+
+          <!-- Size Selector -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-sm font-medium text-primary">Size:</p>
+              <button class="text-xs font-medium text-cta hover:underline cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1">Size Guide</button>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="size-btn px-4 py-2.5 text-sm font-medium rounded-md border border-stone-300 text-secondary hover:border-primary hover:text-primary transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" data-size="XS">XS</button>
+              <button class="size-btn px-4 py-2.5 text-sm font-medium rounded-md border border-stone-300 text-secondary hover:border-primary hover:text-primary transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" data-size="S">S</button>
+              <button class="size-btn px-4 py-2.5 text-sm font-medium rounded-md border border-primary bg-primary text-white transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" data-size="M">M</button>
+              <button class="size-btn px-4 py-2.5 text-sm font-medium rounded-md border border-stone-300 text-secondary hover:border-primary hover:text-primary transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" data-size="L">L</button>
+              <button class="size-btn px-4 py-2.5 text-sm font-medium rounded-md border border-stone-300 text-secondary hover:border-primary hover:text-primary transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" data-size="XL">XL</button>
+            </div>
+          </div>
+
+          <!-- Quantity Stepper -->
+          <div class="mb-6">
+            <p class="text-sm font-medium text-primary mb-3">Quantity:</p>
+            <div class="inline-flex items-center border border-stone-300 rounded-md">
+              <button id="qty-minus" class="w-10 h-10 flex items-center justify-center text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-l-md" aria-label="Decrease quantity">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14"/></svg>
+              </button>
+              <span id="qty-value" class="w-12 h-10 flex items-center justify-center text-sm font-medium text-primary border-l border-r border-stone-300 select-none">1</span>
+              <button id="qty-plus" class="w-10 h-10 flex items-center justify-center text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-r-md" aria-label="Increase quantity">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Add to Bag -->
+          <a href="cart.html" class="flex items-center justify-center w-full py-3.5 bg-cta text-white font-sans font-semibold text-sm tracking-wide rounded-md hover:bg-[#B27D04] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-2 focus-visible:outline-none mb-3">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg>
+            Add to Bag
+          </a>
+
+          <!-- Add to Wishlist -->
+          <button class="flex items-center justify-center w-full py-3.5 border border-stone-300 text-primary font-sans font-medium text-sm tracking-wide rounded-md hover:border-primary hover:bg-stone-50 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:ring-offset-2 focus-visible:outline-none mb-6">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>
+            Add to Wishlist
+          </button>
+
+          <!-- Divider -->
+          <hr class="border-stone-200 mb-4">
+
+          <!-- Accordion Sections -->
+          <div class="space-y-0">
+            <!-- Description -->
+            <details class="group border-b border-stone-200" open>
+              <summary class="flex items-center justify-between py-4 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">
+                <span class="text-sm font-semibold text-primary">Description</span>
+                <svg class="chevron-icon w-4 h-4 text-secondary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+              </summary>
+              <div class="pb-5 text-sm text-secondary leading-relaxed space-y-3">
+                <p>The Wool Blend Overcoat is a testament to refined outerwear, blending timeless silhouette with contemporary tailoring. Crafted in Italy from a carefully sourced wool-cashmere blend, this piece delivers warmth without bulk, draping elegantly over any ensemble.</p>
+                <p>Features include a notched lapel collar, hidden button placket for a streamlined look, two front welt pockets, and an interior chest pocket. The half-canvas construction ensures the coat retains its shape beautifully over time.</p>
+                <p>Designed for a relaxed yet polished fit, this overcoat falls just below the knee and pairs effortlessly with tailored trousers, denim, or layered over knitwear for a complete cold-weather look.</p>
+              </div>
+            </details>
+
+            <!-- Materials & Care -->
+            <details class="group border-b border-stone-200">
+              <summary class="flex items-center justify-between py-4 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">
+                <span class="text-sm font-semibold text-primary">Materials & Care</span>
+                <svg class="chevron-icon w-4 h-4 text-secondary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+              </summary>
+              <div class="pb-5 text-sm text-secondary leading-relaxed">
+                <ul class="space-y-2">
+                  <li class="flex items-start gap-2">
+                    <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-cta" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                    70% Virgin Wool
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-cta" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                    25% Polyester
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-cta" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                    5% Cashmere
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-cta" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                    Lining: 100% Cupro
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-cta" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                    Dry clean only
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-cta" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                    Store on a padded hanger to preserve shape
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-cta" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                    Made in Italy
+                  </li>
+                </ul>
+              </div>
+            </details>
+
+            <!-- Shipping & Returns -->
+            <details class="group border-b border-stone-200">
+              <summary class="flex items-center justify-between py-4 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">
+                <span class="text-sm font-semibold text-primary">Shipping & Returns</span>
+                <svg class="chevron-icon w-4 h-4 text-secondary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/></svg>
+              </summary>
+              <div class="pb-5 text-sm text-secondary leading-relaxed space-y-3">
+                <p><strong class="text-primary">Free Standard Shipping</strong> on all orders over $200. Estimated delivery within 5-7 business days.</p>
+                <p><strong class="text-primary">Express Shipping</strong> available for $25. Delivered within 2-3 business days.</p>
+                <p><strong class="text-primary">30-Day Returns</strong> &mdash; We accept returns on unworn items in original condition within 30 days of delivery. Return shipping is free for US customers.</p>
+                <p><strong class="text-primary">International Shipping</strong> available to select countries. Duties and taxes calculated at checkout.</p>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== -->
+    <!-- PRODUCT FEATURES STRIP -->
+    <!-- ============================== -->
+    <section class="border-y border-stone-200 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+          <!-- Free Shipping -->
+          <div class="flex flex-col items-center text-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center">
+              <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/></svg>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-primary uppercase tracking-wide">Free Shipping</p>
+              <p class="text-xs text-secondary mt-0.5">On orders over $200</p>
+            </div>
+          </div>
+          <!-- 30-Day Returns -->
+          <div class="flex flex-col items-center text-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center">
+              <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3"/></svg>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-primary uppercase tracking-wide">30-Day Returns</p>
+              <p class="text-xs text-secondary mt-0.5">Hassle-free returns</p>
+            </div>
+          </div>
+          <!-- Sustainably Made -->
+          <div class="flex flex-col items-center text-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center">
+              <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z"/></svg>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-primary uppercase tracking-wide">Sustainably Made</p>
+              <p class="text-xs text-secondary mt-0.5">Ethically sourced materials</p>
+            </div>
+          </div>
+          <!-- Premium Quality -->
+          <div class="flex flex-col items-center text-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center">
+              <svg class="w-6 h-6 text-primary" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z"/></svg>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-primary uppercase tracking-wide">Premium Quality</p>
+              <p class="text-xs text-secondary mt-0.5">Crafted in Italy</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== -->
+    <!-- REVIEWS SECTION -->
+    <!-- ============================== -->
+    <section id="reviews" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <h2 class="font-serif text-3xl font-semibold text-primary mb-10">Customer Reviews</h2>
+
+      <div class="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-10 lg:gap-16">
+
+        <!-- Review Summary -->
+        <div class="bg-white rounded-xl border border-stone-200 p-6">
+          <div class="text-center mb-6">
+            <p class="font-serif text-5xl font-bold text-primary">4.8</p>
+            <div class="flex items-center justify-center gap-0.5 my-2">
+              <svg class="w-5 h-5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-5 h-5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-5 h-5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <svg class="w-5 h-5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <div class="relative w-5 h-5">
+                <svg class="absolute inset-0 w-5 h-5 text-stone-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                <div class="absolute inset-0 overflow-hidden" style="width:80%"><svg class="w-5 h-5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg></div>
+              </div>
+            </div>
+            <p class="text-sm text-secondary">Based on 124 reviews</p>
+          </div>
+
+          <!-- Star bars -->
+          <div class="space-y-2.5">
+            <!-- 5 Stars -->
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-medium text-secondary w-6 text-right">5</span>
+              <svg class="w-3.5 h-3.5 text-cta flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <div class="flex-1 h-2 bg-stone-200 rounded-full overflow-hidden">
+                <div class="rating-bar-fill h-full bg-cta rounded-full" style="width:78%"></div>
+              </div>
+              <span class="text-xs text-secondary w-8 text-right">78%</span>
+            </div>
+            <!-- 4 Stars -->
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-medium text-secondary w-6 text-right">4</span>
+              <svg class="w-3.5 h-3.5 text-cta flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <div class="flex-1 h-2 bg-stone-200 rounded-full overflow-hidden">
+                <div class="rating-bar-fill h-full bg-cta rounded-full" style="width:15%"></div>
+              </div>
+              <span class="text-xs text-secondary w-8 text-right">15%</span>
+            </div>
+            <!-- 3 Stars -->
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-medium text-secondary w-6 text-right">3</span>
+              <svg class="w-3.5 h-3.5 text-cta flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <div class="flex-1 h-2 bg-stone-200 rounded-full overflow-hidden">
+                <div class="rating-bar-fill h-full bg-cta rounded-full" style="width:5%"></div>
+              </div>
+              <span class="text-xs text-secondary w-8 text-right">5%</span>
+            </div>
+            <!-- 2 Stars -->
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-medium text-secondary w-6 text-right">2</span>
+              <svg class="w-3.5 h-3.5 text-cta flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <div class="flex-1 h-2 bg-stone-200 rounded-full overflow-hidden">
+                <div class="rating-bar-fill h-full bg-cta rounded-full" style="width:1%"></div>
+              </div>
+              <span class="text-xs text-secondary w-8 text-right">1%</span>
+            </div>
+            <!-- 1 Star -->
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-medium text-secondary w-6 text-right">1</span>
+              <svg class="w-3.5 h-3.5 text-cta flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <div class="flex-1 h-2 bg-stone-200 rounded-full overflow-hidden">
+                <div class="rating-bar-fill h-full bg-cta rounded-full" style="width:1%"></div>
+              </div>
+              <span class="text-xs text-secondary w-8 text-right">1%</span>
+            </div>
+          </div>
+
+          <!-- Write a Review -->
+          <button class="w-full mt-6 py-2.5 border border-stone-300 rounded-md text-sm font-medium text-primary hover:border-primary hover:bg-stone-50 transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none">
+            Write a Review
+          </button>
+        </div>
+
+        <!-- Individual Reviews -->
+        <div class="space-y-6">
+
+          <!-- Review 1 -->
+          <div class="review-card bg-white border border-stone-200 rounded-xl p-6">
+            <div class="flex items-start gap-4">
+              <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop&q=80" alt="Sarah M." class="w-10 h-10 rounded-full object-cover flex-shrink-0">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between flex-wrap gap-2 mb-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-semibold text-primary">Sarah M.</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-semibold uppercase tracking-wide rounded-full">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                      Verified Purchase
+                    </span>
+                  </div>
+                  <span class="text-xs text-secondary">March 12, 2026</span>
+                </div>
+                <div class="flex items-center gap-0.5 mb-2">
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                </div>
+                <p class="text-sm font-semibold text-primary mb-1">Absolutely stunning quality</p>
+                <p class="text-sm text-secondary leading-relaxed">This overcoat exceeded my expectations in every way. The wool blend is incredibly soft and warm without feeling heavy. The tailoring is impeccable, and the hidden button placket gives it such a refined look. I ordered my usual size M and it fits perfectly.</p>
+                <button class="mt-3 flex items-center gap-1.5 text-xs text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.633 10.25c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 0 1 2.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 0 0 .322-1.672V3a.75.75 0 0 1 .75-.75 2.25 2.25 0 0 1 2.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282m0 0h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 0 1-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 0 0-1.423-.23H5.904m7.72 2.52V21.75m-7.72-2.52a23.08 23.08 0 0 1-.953.064H4.5A2.25 2.25 0 0 1 2.25 17V6.75A2.25 2.25 0 0 1 4.5 4.5h.232a23.08 23.08 0 0 1 .953.064m-.953-.064V19.23"/></svg>
+                  Was this helpful? (12)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Review 2 -->
+          <div class="review-card bg-white border border-stone-200 rounded-xl p-6">
+            <div class="flex items-start gap-4">
+              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&q=80" alt="James K." class="w-10 h-10 rounded-full object-cover flex-shrink-0">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between flex-wrap gap-2 mb-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-semibold text-primary">James K.</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-semibold uppercase tracking-wide rounded-full">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                      Verified Purchase
+                    </span>
+                  </div>
+                  <span class="text-xs text-secondary">February 28, 2026</span>
+                </div>
+                <div class="flex items-center gap-0.5 mb-2">
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-stone-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                </div>
+                <p class="text-sm font-semibold text-primary mb-1">Great coat, runs slightly large</p>
+                <p class="text-sm text-secondary leading-relaxed">Beautiful construction and the fabric is luxurious. I'd recommend sizing down if you're between sizes. The camel color is gorgeous in person -- richer than the photos suggest. I've been wearing it almost daily since it arrived.</p>
+                <button class="mt-3 flex items-center gap-1.5 text-xs text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.633 10.25c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 0 1 2.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 0 0 .322-1.672V3a.75.75 0 0 1 .75-.75 2.25 2.25 0 0 1 2.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282m0 0h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 0 1-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 0 0-1.423-.23H5.904m7.72 2.52V21.75m-7.72-2.52a23.08 23.08 0 0 1-.953.064H4.5A2.25 2.25 0 0 1 2.25 17V6.75A2.25 2.25 0 0 1 4.5 4.5h.232a23.08 23.08 0 0 1 .953.064m-.953-.064V19.23"/></svg>
+                  Was this helpful? (8)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Review 3 -->
+          <div class="review-card bg-white border border-stone-200 rounded-xl p-6">
+            <div class="flex items-start gap-4">
+              <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop&q=80" alt="Elena R." class="w-10 h-10 rounded-full object-cover flex-shrink-0">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between flex-wrap gap-2 mb-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-semibold text-primary">Elena R.</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-semibold uppercase tracking-wide rounded-full">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                      Verified Purchase
+                    </span>
+                  </div>
+                  <span class="text-xs text-secondary">February 15, 2026</span>
+                </div>
+                <div class="flex items-center gap-0.5 mb-2">
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                </div>
+                <p class="text-sm font-semibold text-primary mb-1">Worth every penny</p>
+                <p class="text-sm text-secondary leading-relaxed">I've been searching for the perfect overcoat for years and this is it. The charcoal color is incredibly versatile and the cashmere blend makes it feel so much more expensive than it is. The half-canvas construction means it drapes beautifully. Highly recommend.</p>
+                <button class="mt-3 flex items-center gap-1.5 text-xs text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.633 10.25c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 0 1 2.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 0 0 .322-1.672V3a.75.75 0 0 1 .75-.75 2.25 2.25 0 0 1 2.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282m0 0h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 0 1-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 0 0-1.423-.23H5.904m7.72 2.52V21.75m-7.72-2.52a23.08 23.08 0 0 1-.953.064H4.5A2.25 2.25 0 0 1 2.25 17V6.75A2.25 2.25 0 0 1 4.5 4.5h.232a23.08 23.08 0 0 1 .953.064m-.953-.064V19.23"/></svg>
+                  Was this helpful? (19)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Review 4 -->
+          <div class="review-card bg-white border border-stone-200 rounded-xl p-6">
+            <div class="flex items-start gap-4">
+              <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&h=80&fit=crop&q=80" alt="David L." class="w-10 h-10 rounded-full object-cover flex-shrink-0">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between flex-wrap gap-2 mb-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-semibold text-primary">David L.</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-semibold uppercase tracking-wide rounded-full">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg>
+                      Verified Purchase
+                    </span>
+                  </div>
+                  <span class="text-xs text-secondary">January 30, 2026</span>
+                </div>
+                <div class="flex items-center gap-0.5 mb-2">
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <svg class="w-3.5 h-3.5 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                </div>
+                <p class="text-sm font-semibold text-primary mb-1">A timeless investment piece</p>
+                <p class="text-sm text-secondary leading-relaxed">I bought this as a birthday gift to myself and couldn't be happier. The black is deep and rich, and the coat looks just as sharp over a suit as it does with jeans and a sweater. Shipping was fast and the packaging was beautiful. This is a coat you'll have for decades.</p>
+                <button class="mt-3 flex items-center gap-1.5 text-xs text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.633 10.25c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 0 1 2.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 0 0 .322-1.672V3a.75.75 0 0 1 .75-.75 2.25 2.25 0 0 1 2.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282m0 0h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 0 1-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 0 0-1.423-.23H5.904m7.72 2.52V21.75m-7.72-2.52a23.08 23.08 0 0 1-.953.064H4.5A2.25 2.25 0 0 1 2.25 17V6.75A2.25 2.25 0 0 1 4.5 4.5h.232a23.08 23.08 0 0 1 .953.064m-.953-.064V19.23"/></svg>
+                  Was this helpful? (15)
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== -->
+    <!-- YOU MAY ALSO LIKE -->
+    <!-- ============================== -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <h2 class="font-serif text-3xl font-semibold text-primary mb-8">You May Also Like</h2>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+        <!-- Product Card 1 -->
+        <a href="product.html" class="product-card group block cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-xl">
+          <div class="aspect-[3/4] rounded-xl overflow-hidden bg-stone-100 mb-3">
+            <img src="https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&h=530&fit=crop&q=80" alt="Silk Midi Dress" class="w-full h-full object-cover" loading="lazy">
+          </div>
+          <p class="text-xs font-semibold tracking-[0.15em] uppercase text-secondary mb-1">Atelier Essentials</p>
+          <h3 class="font-serif text-lg font-medium text-primary group-hover:text-cta transition-colors mb-1">Silk Midi Dress</h3>
+          <p class="text-sm font-semibold text-primary">$320.00</p>
+        </a>
+
+        <!-- Product Card 2 -->
+        <a href="product.html" class="product-card group block cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-xl">
+          <div class="aspect-[3/4] rounded-xl overflow-hidden bg-stone-100 mb-3">
+            <img src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=530&fit=crop&q=80" alt="Tailored Blazer" class="w-full h-full object-cover" loading="lazy">
+          </div>
+          <p class="text-xs font-semibold tracking-[0.15em] uppercase text-secondary mb-1">Atelier Essentials</p>
+          <h3 class="font-serif text-lg font-medium text-primary group-hover:text-cta transition-colors mb-1">Tailored Blazer</h3>
+          <p class="text-sm font-semibold text-primary">$550.00</p>
+        </a>
+
+        <!-- Product Card 3 -->
+        <a href="product.html" class="product-card group block cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-xl">
+          <div class="aspect-[3/4] rounded-xl overflow-hidden bg-stone-100 mb-3">
+            <img src="https://images.unsplash.com/photo-1434389677669-e08b4cda3a74?w=400&h=530&fit=crop&q=80" alt="Cashmere Scarf" class="w-full h-full object-cover" loading="lazy">
+          </div>
+          <p class="text-xs font-semibold tracking-[0.15em] uppercase text-secondary mb-1">Atelier Essentials</p>
+          <h3 class="font-serif text-lg font-medium text-primary group-hover:text-cta transition-colors mb-1">Cashmere Scarf</h3>
+          <p class="text-sm font-semibold text-primary">$195.00</p>
+        </a>
+
+        <!-- Product Card 4 -->
+        <a href="product.html" class="product-card group block cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-xl">
+          <div class="aspect-[3/4] rounded-xl overflow-hidden bg-stone-100 mb-3">
+            <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=530&fit=crop&q=80" alt="Leather Sneakers" class="w-full h-full object-cover" loading="lazy">
+          </div>
+          <p class="text-xs font-semibold tracking-[0.15em] uppercase text-secondary mb-1">Atelier Essentials</p>
+          <h3 class="font-serif text-lg font-medium text-primary group-hover:text-cta transition-colors mb-1">Leather Sneakers</h3>
+          <p class="text-sm font-semibold text-primary">$245.00</p>
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================== -->
+  <!-- FOOTER -->
+  <!-- ============================== -->
+  <footer class="bg-primary text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+
+        <!-- Brand Column -->
+        <div>
+          <a href="store.html" class="font-serif text-2xl font-bold tracking-[0.15em] cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">ATELIER</a>
+          <p class="text-sm text-stone-400 leading-relaxed mt-4">Timeless elegance meets modern craftsmanship. Curated collections designed to elevate your everyday wardrobe.</p>
+          <div class="flex items-center gap-4 mt-6">
+            <!-- Instagram -->
+            <a href="#" class="text-stone-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Instagram">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+            </a>
+            <!-- Pinterest -->
+            <a href="#" class="text-stone-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Pinterest">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 01.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12.017 24c6.624 0 11.99-5.367 11.99-11.988C24.007 5.367 18.641 0 12.017 0z"/></svg>
+            </a>
+            <!-- Twitter/X -->
+            <a href="#" class="text-stone-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Twitter">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Shop Column -->
+        <div>
+          <h4 class="font-serif text-lg font-semibold mb-5">Shop</h4>
+          <ul class="space-y-3">
+            <li><a href="store.html" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5">New Arrivals</a></li>
+            <li><a href="store.html" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5">Women</a></li>
+            <li><a href="store.html" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5">Men</a></li>
+            <li><a href="store.html" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5">Accessories</a></li>
+            <li><a href="store.html" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5">Sale</a></li>
+          </ul>
+        </div>
+
+        <!-- Help Column -->
+        <div>
+          <h4 class="font-serif text-lg font-semibold mb-5">Help</h4>
+          <ul class="space-y-3">
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5">Customer Service</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5">Shipping & Returns</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5">Size Guide</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5">Track Order</a></li>
+            <li><a href="#" class="text-sm text-stone-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5">Contact Us</a></li>
+          </ul>
+        </div>
+
+        <!-- Newsletter Column -->
+        <div>
+          <h4 class="font-serif text-lg font-semibold mb-5">Stay in Touch</h4>
+          <p class="text-sm text-stone-400 leading-relaxed mb-4">Subscribe for exclusive access to new collections, private sales, and style inspiration.</p>
+          <form class="flex gap-2" onsubmit="event.preventDefault();">
+            <input type="email" placeholder="Your email" class="flex-1 px-3 py-2.5 text-sm bg-white/10 border border-white/20 rounded-md text-white placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-cta" aria-label="Email address">
+            <button type="submit" class="px-4 py-2.5 bg-cta text-white text-sm font-semibold rounded-md hover:bg-[#B27D04] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Bottom Bar -->
+      <div class="border-t border-white/10 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p class="text-xs text-stone-500">2026 Atelier Store. All rights reserved.</p>
+        <div class="flex items-center gap-6">
+          <a href="#" class="text-xs text-stone-500 hover:text-stone-300 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Privacy Policy</a>
+          <a href="#" class="text-xs text-stone-500 hover:text-stone-300 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Terms of Service</a>
+          <a href="#" class="text-xs text-stone-500 hover:text-stone-300 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Cookies</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================== -->
+  <!-- JAVASCRIPT -->
+  <!-- ============================== -->
+  <script>
+    // ---- Thumbnail Gallery Swap ----
+    const mainImage = document.getElementById('main-product-image');
+    const thumbnails = document.querySelectorAll('.thumbnail-btn');
+
+    thumbnails.forEach(thumb => {
+      thumb.addEventListener('click', () => {
+        // Update main image
+        mainImage.src = thumb.dataset.full;
+        mainImage.alt = thumb.dataset.alt;
+
+        // Update active thumbnail ring
+        thumbnails.forEach(t => {
+          t.classList.remove('ring-2', 'ring-cta', 'ring-offset-2');
+          t.classList.add('ring-1', 'ring-stone-200');
+        });
+        thumb.classList.remove('ring-1', 'ring-stone-200');
+        thumb.classList.add('ring-2', 'ring-cta', 'ring-offset-2');
+      });
+    });
+
+    // ---- Color Selector Toggle ----
+    const colorSwatches = document.querySelectorAll('.color-swatch');
+    const colorLabel = document.getElementById('color-label');
+
+    colorSwatches.forEach(swatch => {
+      swatch.addEventListener('click', () => {
+        // Update label
+        colorLabel.textContent = swatch.dataset.color;
+
+        // Update active state
+        colorSwatches.forEach(s => {
+          s.classList.remove('ring-2', 'ring-cta', 'ring-offset-2');
+          s.classList.add('ring-1', 'ring-stone-300');
+        });
+        swatch.classList.remove('ring-1', 'ring-stone-300');
+        swatch.classList.add('ring-2', 'ring-cta', 'ring-offset-2');
+      });
+    });
+
+    // ---- Size Selector Toggle ----
+    const sizeButtons = document.querySelectorAll('.size-btn');
+
+    sizeButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        sizeButtons.forEach(b => {
+          b.classList.remove('border-primary', 'bg-primary', 'text-white');
+          b.classList.add('border-stone-300', 'text-secondary');
+        });
+        btn.classList.remove('border-stone-300', 'text-secondary');
+        btn.classList.add('border-primary', 'bg-primary', 'text-white');
+      });
+    });
+
+    // ---- Quantity Stepper ----
+    const qtyValue = document.getElementById('qty-value');
+    const qtyMinus = document.getElementById('qty-minus');
+    const qtyPlus = document.getElementById('qty-plus');
+    let quantity = 1;
+
+    qtyMinus.addEventListener('click', () => {
+      if (quantity > 1) {
+        quantity--;
+        qtyValue.textContent = quantity;
+      }
+    });
+
+    qtyPlus.addEventListener('click', () => {
+      if (quantity < 10) {
+        quantity++;
+        qtyValue.textContent = quantity;
+      }
+    });
+
+    // ---- Mobile Menu ----
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const mobileMenuClose = document.getElementById('mobile-menu-close');
+
+    mobileMenuBtn.addEventListener('click', () => {
+      mobileMenu.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    });
+
+    mobileMenuClose.addEventListener('click', () => {
+      mobileMenu.classList.add('hidden');
+      document.body.style.overflow = '';
+    });
+
+    // ---- Navbar shadow on scroll ----
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 10) {
+        navbar.classList.add('shadow-sm');
+      } else {
+        navbar.classList.remove('shadow-sm');
+      }
+    });
+  </script>
+
+</body>
+</html>

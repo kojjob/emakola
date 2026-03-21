@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shop All | ATELIER</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap');
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1C1917',
+            secondary: '#44403C',
+            cta: '#CA8A04',
+            surface: '#FAFAF9',
+            ink: '#0C0A09',
+          },
+          fontFamily: {
+            serif: ['Cormorant', 'Georgia', 'serif'],
+            sans: ['Montserrat', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    * { font-family: 'Montserrat', sans-serif; }
+    .font-serif { font-family: 'Cormorant', Georgia, serif; }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #FAFAF9; }
+    ::-webkit-scrollbar-thumb { background: #44403C; border-radius: 3px; }
+
+    /* Product card image swap */
+    .product-card .img-hover { opacity: 0; transition: opacity 0.5s ease; }
+    .product-card:hover .img-hover { opacity: 1; }
+    .product-card .img-default { transition: transform 0.7s ease; }
+    .product-card:hover .img-default { transform: scale(1.05); }
+
+    /* Quick add slide up */
+    .product-card .quick-add { transform: translateY(100%); transition: transform 0.3s ease; }
+    .product-card:hover .quick-add { transform: translateY(0); }
+
+    /* Wishlist heart */
+    .heart-btn svg { transition: all 0.2s ease; }
+    .heart-btn:hover svg, .heart-btn.active svg { fill: #CA8A04; stroke: #CA8A04; }
+
+    /* Filter drawer */
+    .filter-drawer { transform: translateX(-100%); transition: transform 0.3s ease; }
+    .filter-drawer.open { transform: translateX(0); }
+
+    /* Color swatch selected */
+    .color-swatch.selected { ring: 2px; outline: 2px solid #CA8A04; outline-offset: 2px; }
+
+    /* Size pill selected */
+    .size-pill.selected { background: #1C1917; color: white; }
+
+    /* Checkbox custom */
+    .custom-check { appearance: none; width: 18px; height: 18px; border: 1.5px solid #44403C; border-radius: 3px; cursor: pointer; position: relative; flex-shrink: 0; }
+    .custom-check:checked { background: #1C1917; border-color: #1C1917; }
+    .custom-check:checked::after { content: ''; position: absolute; top: 2px; left: 5px; width: 5px; height: 9px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+    .custom-check:focus-visible { outline: 2px solid #CA8A04; outline-offset: 2px; }
+
+    /* Nav link underline */
+    .nav-link { position: relative; }
+    .nav-link::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 0; height: 1px; background: #1C1917; transition: width 0.3s ease; }
+    .nav-link:hover::after { width: 100%; }
+
+    /* Sort dropdown */
+    .sort-dropdown { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2344403C' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+  </style>
+</head>
+<body class="bg-surface text-ink font-sans antialiased">
+
+  <!-- ============================================================= -->
+  <!-- NAVIGATION -->
+  <!-- ============================================================= -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 lg:h-20">
+
+        <!-- Mobile hamburger -->
+        <button id="mobileMenuBtn" class="lg:hidden cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded p-1" aria-label="Open menu">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
+          </svg>
+        </button>
+
+        <!-- Logo -->
+        <a href="store.html" class="font-serif text-xl sm:text-2xl font-semibold tracking-[0.3em] uppercase text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded">
+          ATELIER
+        </a>
+
+        <!-- Center nav links (desktop) -->
+        <div class="hidden lg:flex items-center gap-8">
+          <a href="#" class="nav-link text-sm font-medium tracking-wide text-primary hover:text-cta transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded px-1">New Arrivals</a>
+          <a href="#" class="nav-link text-sm font-medium tracking-wide text-primary hover:text-cta transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded px-1">Women</a>
+          <a href="#" class="nav-link text-sm font-medium tracking-wide text-primary hover:text-cta transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded px-1">Men</a>
+          <a href="#" class="nav-link text-sm font-medium tracking-wide text-primary hover:text-cta transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded px-1">Accessories</a>
+          <a href="#" class="nav-link text-sm font-medium tracking-wide text-cta transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded px-1">Sale</a>
+        </div>
+
+        <!-- Right icons -->
+        <div class="flex items-center gap-3 sm:gap-4">
+          <!-- Search -->
+          <button class="cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded p-1 text-primary hover:text-cta transition-colors" aria-label="Search">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+            </svg>
+          </button>
+          <!-- Wishlist -->
+          <a href="wishlist.html" class="cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded p-1 text-primary hover:text-cta transition-colors hidden sm:block" aria-label="Wishlist">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/>
+            </svg>
+          </a>
+          <!-- Cart -->
+          <a href="cart.html" class="relative cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded p-1 text-primary hover:text-cta transition-colors" aria-label="Cart">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/>
+            </svg>
+            <span class="absolute -top-1 -right-1 w-4 h-4 bg-cta text-white text-[10px] font-bold rounded-full flex items-center justify-center">3</span>
+          </a>
+          <!-- Account -->
+          <a href="account.html" class="cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded p-1 text-primary hover:text-cta transition-colors hidden sm:block" aria-label="Account">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile menu -->
+    <div id="mobileMenu" class="hidden lg:hidden bg-white border-t border-gray-100">
+      <div class="px-4 py-4 space-y-3">
+        <a href="#" class="block text-sm font-medium text-primary hover:text-cta transition-colors cursor-pointer">New Arrivals</a>
+        <a href="#" class="block text-sm font-medium text-primary hover:text-cta transition-colors cursor-pointer">Women</a>
+        <a href="#" class="block text-sm font-medium text-primary hover:text-cta transition-colors cursor-pointer">Men</a>
+        <a href="#" class="block text-sm font-medium text-primary hover:text-cta transition-colors cursor-pointer">Accessories</a>
+        <a href="#" class="block text-sm font-medium text-cta cursor-pointer">Sale</a>
+        <div class="border-t border-gray-100 pt-3 flex gap-6">
+          <a href="wishlist.html" class="text-sm text-secondary hover:text-primary cursor-pointer">Wishlist</a>
+          <a href="account.html" class="text-sm text-secondary hover:text-primary cursor-pointer">Account</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Spacer for fixed nav -->
+  <div class="h-16 lg:h-20"></div>
+
+  <!-- ============================================================= -->
+  <!-- PAGE HEADER -->
+  <!-- ============================================================= -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="Breadcrumb" class="mb-4">
+      <ol class="flex items-center gap-2 text-xs text-secondary">
+        <li><a href="store.html" class="hover:text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded">Home</a></li>
+        <li>
+          <svg class="w-3 h-3 inline" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7"/></svg>
+        </li>
+        <li class="text-primary font-medium">Shop</li>
+      </ol>
+    </nav>
+
+    <div class="flex items-end justify-between gap-4">
+      <div>
+        <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-primary">Shop All</h1>
+        <p class="text-sm text-secondary mt-1">247 products</p>
+      </div>
+
+      <!-- View toggle -->
+      <div class="flex items-center gap-1 border border-gray-200 rounded-lg p-1">
+        <button id="gridViewBtn" class="p-2 rounded-md bg-primary text-white cursor-pointer focus-visible:ring-2 focus-visible:ring-cta transition-colors" aria-label="Grid view">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+        </button>
+        <button id="listViewBtn" class="p-2 rounded-md text-secondary hover:text-primary cursor-pointer focus-visible:ring-2 focus-visible:ring-cta transition-colors" aria-label="List view">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="3" rx="1"/><rect x="3" y="10.5" width="18" height="3" rx="1"/><rect x="3" y="17" width="18" height="3" rx="1"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================= -->
+  <!-- MAIN CONTENT: SIDEBAR + PRODUCTS -->
+  <!-- ============================================================= -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+    <div class="flex gap-8">
+
+      <!-- ========================================================= -->
+      <!-- FILTER SIDEBAR (desktop) -->
+      <!-- ========================================================= -->
+      <aside class="hidden lg:block w-64 flex-shrink-0">
+        <div class="sticky top-24 space-y-6">
+
+          <!-- Category -->
+          <div>
+            <h3 class="font-serif text-lg font-semibold text-primary mb-3">Category</h3>
+            <div class="space-y-2.5">
+              <label class="flex items-center gap-3 cursor-pointer group">
+                <input type="checkbox" class="custom-check" checked />
+                <span class="text-sm text-secondary group-hover:text-primary transition-colors">All</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer group">
+                <input type="checkbox" class="custom-check" />
+                <span class="text-sm text-secondary group-hover:text-primary transition-colors">Women</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer group">
+                <input type="checkbox" class="custom-check" />
+                <span class="text-sm text-secondary group-hover:text-primary transition-colors">Men</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer group">
+                <input type="checkbox" class="custom-check" />
+                <span class="text-sm text-secondary group-hover:text-primary transition-colors">Accessories</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer group">
+                <input type="checkbox" class="custom-check" />
+                <span class="text-sm text-secondary group-hover:text-primary transition-colors">Shoes</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="border-t border-gray-200"></div>
+
+          <!-- Price Range -->
+          <div>
+            <h3 class="font-serif text-lg font-semibold text-primary mb-3">Price Range</h3>
+            <!-- Slider visual -->
+            <div class="mb-3">
+              <div class="relative h-1.5 bg-gray-200 rounded-full">
+                <div class="absolute left-[5%] right-[50%] top-0 h-full bg-primary rounded-full"></div>
+                <div class="absolute left-[5%] top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-primary rounded-full cursor-pointer shadow-sm"></div>
+                <div class="absolute left-[50%] top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-primary rounded-full cursor-pointer shadow-sm"></div>
+              </div>
+              <div class="flex justify-between mt-2 text-xs text-secondary">
+                <span>$0</span>
+                <span>$1,000</span>
+              </div>
+            </div>
+            <!-- Preset buttons -->
+            <div class="flex flex-wrap gap-2">
+              <button class="px-3 py-1.5 text-xs border border-gray-300 rounded-full text-secondary hover:border-primary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">Under $100</button>
+              <button class="px-3 py-1.5 text-xs border border-primary bg-primary text-white rounded-full cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">$100-$300</button>
+              <button class="px-3 py-1.5 text-xs border border-gray-300 rounded-full text-secondary hover:border-primary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">$300-$500</button>
+              <button class="px-3 py-1.5 text-xs border border-gray-300 rounded-full text-secondary hover:border-primary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">$500+</button>
+            </div>
+          </div>
+
+          <div class="border-t border-gray-200"></div>
+
+          <!-- Size -->
+          <div>
+            <h3 class="font-serif text-lg font-semibold text-primary mb-3">Size</h3>
+            <div class="flex flex-wrap gap-2">
+              <button class="size-pill w-10 h-10 flex items-center justify-center text-xs border border-gray-300 rounded-lg text-secondary hover:border-primary hover:text-primary transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">XS</button>
+              <button class="size-pill w-10 h-10 flex items-center justify-center text-xs border border-gray-300 rounded-lg text-secondary hover:border-primary hover:text-primary transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">S</button>
+              <button class="size-pill selected w-10 h-10 flex items-center justify-center text-xs border border-primary rounded-lg transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">M</button>
+              <button class="size-pill w-10 h-10 flex items-center justify-center text-xs border border-gray-300 rounded-lg text-secondary hover:border-primary hover:text-primary transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">L</button>
+              <button class="size-pill w-10 h-10 flex items-center justify-center text-xs border border-gray-300 rounded-lg text-secondary hover:border-primary hover:text-primary transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">XL</button>
+            </div>
+          </div>
+
+          <div class="border-t border-gray-200"></div>
+
+          <!-- Color -->
+          <div>
+            <h3 class="font-serif text-lg font-semibold text-primary mb-3">Color</h3>
+            <div class="flex flex-wrap gap-3">
+              <button class="color-swatch selected w-7 h-7 rounded-full bg-black border border-gray-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta" aria-label="Black" title="Black"></button>
+              <button class="color-swatch w-7 h-7 rounded-full bg-white border border-gray-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta" aria-label="White" title="White"></button>
+              <button class="color-swatch w-7 h-7 rounded-full bg-[#1e3a5f] border border-gray-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta" aria-label="Navy" title="Navy"></button>
+              <button class="color-swatch w-7 h-7 rounded-full bg-[#d4c5a9] border border-gray-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta" aria-label="Beige" title="Beige"></button>
+              <button class="color-swatch w-7 h-7 rounded-full bg-[#6b4226] border border-gray-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta" aria-label="Brown" title="Brown"></button>
+              <button class="color-swatch w-7 h-7 rounded-full bg-gray-400 border border-gray-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta" aria-label="Gray" title="Gray"></button>
+              <button class="color-swatch w-7 h-7 rounded-full bg-red-600 border border-gray-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta" aria-label="Red" title="Red"></button>
+              <button class="color-swatch w-7 h-7 rounded-full bg-green-700 border border-gray-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta" aria-label="Green" title="Green"></button>
+            </div>
+          </div>
+
+          <div class="border-t border-gray-200"></div>
+
+          <!-- Brand -->
+          <div>
+            <h3 class="font-serif text-lg font-semibold text-primary mb-3">Brand</h3>
+            <div class="space-y-2.5">
+              <label class="flex items-center gap-3 cursor-pointer group">
+                <input type="checkbox" class="custom-check" checked />
+                <span class="text-sm text-secondary group-hover:text-primary transition-colors">Atelier</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer group">
+                <input type="checkbox" class="custom-check" />
+                <span class="text-sm text-secondary group-hover:text-primary transition-colors">Guest Brand</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer group">
+                <input type="checkbox" class="custom-check" />
+                <span class="text-sm text-secondary group-hover:text-primary transition-colors">Maison</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer group">
+                <input type="checkbox" class="custom-check" />
+                <span class="text-sm text-secondary group-hover:text-primary transition-colors">Luxe</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="border-t border-gray-200"></div>
+
+          <!-- Actions -->
+          <div class="flex items-center gap-4">
+            <button class="text-sm text-secondary hover:text-primary underline underline-offset-4 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded">Clear All</button>
+            <button class="flex-1 bg-cta text-white text-sm font-medium py-2.5 rounded-lg hover:bg-yellow-700 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">Apply</button>
+          </div>
+
+        </div>
+      </aside>
+
+      <!-- ========================================================= -->
+      <!-- RIGHT COLUMN: SORT BAR + PRODUCTS + PAGINATION -->
+      <!-- ========================================================= -->
+      <div class="flex-1 min-w-0">
+
+        <!-- Mobile filter button -->
+        <div class="lg:hidden mb-4">
+          <button id="mobileFilterBtn" class="flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-primary hover:border-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"/>
+            </svg>
+            Filters
+          </button>
+        </div>
+
+        <!-- SORT BAR -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <!-- Active filter pills -->
+          <div class="flex flex-wrap items-center gap-2">
+            <button class="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 text-xs text-primary rounded-full cursor-pointer hover:bg-gray-200 transition-colors focus-visible:ring-2 focus-visible:ring-cta">
+              Women
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+            </button>
+            <button class="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 text-xs text-primary rounded-full cursor-pointer hover:bg-gray-200 transition-colors focus-visible:ring-2 focus-visible:ring-cta">
+              $100-$300
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+            </button>
+            <button class="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-100 text-xs text-primary rounded-full cursor-pointer hover:bg-gray-200 transition-colors focus-visible:ring-2 focus-visible:ring-cta">
+              Black
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <!-- Sort dropdown -->
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <label for="sortSelect" class="text-xs text-secondary whitespace-nowrap">Sort by:</label>
+            <select id="sortSelect" class="sort-dropdown text-sm text-primary bg-transparent border border-gray-300 rounded-lg pl-3 pr-8 py-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus:outline-none">
+              <option>Featured</option>
+              <option>Newest</option>
+              <option>Price: Low to High</option>
+              <option>Price: High to Low</option>
+              <option>Best Selling</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- PRODUCT GRID -->
+        <!-- ======================================================= -->
+        <div id="productGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10">
+
+          <!-- PRODUCT 1: Wool Blend Overcoat -->
+          <a href="product.html" class="product-card group block cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded-lg">
+            <div class="relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-100 mb-3">
+              <img src="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=500&h=667&fit=crop&q=80" alt="Wool Blend Overcoat" class="img-default absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <img src="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=500&h=667&fit=crop&q=80&crop=edges" alt="" class="img-hover absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <!-- Wishlist -->
+              <button onclick="event.preventDefault(); this.classList.toggle('active')" class="heart-btn absolute top-3 right-3 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-white transition-all focus-visible:ring-2 focus-visible:ring-cta z-10" aria-label="Add to wishlist">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/>
+                </svg>
+              </button>
+              <!-- Quick Add -->
+              <div class="quick-add absolute bottom-0 left-0 right-0 p-3 z-10">
+                <button onclick="event.preventDefault()" class="w-full bg-primary text-white text-xs font-medium py-2.5 rounded-md hover:bg-primary/90 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">Add to Bag</button>
+              </div>
+            </div>
+            <h3 class="text-sm font-medium text-primary truncate">Wool Blend Overcoat</h3>
+            <p class="text-sm font-semibold text-primary mt-0.5">$485</p>
+            <div class="flex items-center gap-1.5 mt-1.5">
+              <span class="w-3.5 h-3.5 rounded-full bg-black border border-gray-200"></span>
+              <span class="w-3.5 h-3.5 rounded-full bg-[#c4a35a] border border-gray-200"></span>
+            </div>
+            <!-- Rating -->
+            <div class="flex items-center gap-1 mt-1.5">
+              <div class="flex">
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+              </div>
+              <span class="text-[10px] text-secondary">4.8</span>
+            </div>
+          </a>
+
+          <!-- PRODUCT 2: Silk Midi Dress — NEW -->
+          <a href="product.html" class="product-card group block cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded-lg">
+            <div class="relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-100 mb-3">
+              <img src="https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=500&h=667&fit=crop&q=80" alt="Silk Midi Dress" class="img-default absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <img src="https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=500&h=667&fit=crop&q=80&crop=top" alt="" class="img-hover absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <!-- NEW badge -->
+              <span class="absolute top-3 left-3 px-2.5 py-1 bg-primary text-white text-[10px] font-semibold tracking-wider uppercase rounded z-10">New</span>
+              <button onclick="event.preventDefault(); this.classList.toggle('active')" class="heart-btn absolute top-3 right-3 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-white transition-all focus-visible:ring-2 focus-visible:ring-cta z-10" aria-label="Add to wishlist">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>
+              </button>
+              <div class="quick-add absolute bottom-0 left-0 right-0 p-3 z-10">
+                <button onclick="event.preventDefault()" class="w-full bg-primary text-white text-xs font-medium py-2.5 rounded-md hover:bg-primary/90 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">Add to Bag</button>
+              </div>
+            </div>
+            <h3 class="text-sm font-medium text-primary truncate">Silk Midi Dress</h3>
+            <p class="text-sm font-semibold text-primary mt-0.5">$320</p>
+            <div class="flex items-center gap-1.5 mt-1.5">
+              <span class="w-3.5 h-3.5 rounded-full bg-[#FFFFF0] border border-gray-200"></span>
+              <span class="w-3.5 h-3.5 rounded-full bg-black border border-gray-200"></span>
+            </div>
+            <div class="flex items-center gap-1 mt-1.5">
+              <div class="flex">
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+              </div>
+              <span class="text-[10px] text-secondary">4.9</span>
+            </div>
+          </a>
+
+          <!-- PRODUCT 3: Minimalist Watch -->
+          <a href="product.html" class="product-card group block cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded-lg">
+            <div class="relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-100 mb-3">
+              <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&h=667&fit=crop&q=80" alt="Minimalist Watch" class="img-default absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&h=667&fit=crop&q=80&crop=center" alt="" class="img-hover absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <button onclick="event.preventDefault(); this.classList.toggle('active')" class="heart-btn absolute top-3 right-3 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-white transition-all focus-visible:ring-2 focus-visible:ring-cta z-10" aria-label="Add to wishlist">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>
+              </button>
+              <div class="quick-add absolute bottom-0 left-0 right-0 p-3 z-10">
+                <button onclick="event.preventDefault()" class="w-full bg-primary text-white text-xs font-medium py-2.5 rounded-md hover:bg-primary/90 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">Add to Bag</button>
+              </div>
+            </div>
+            <h3 class="text-sm font-medium text-primary truncate">Minimalist Watch</h3>
+            <p class="text-sm font-semibold text-primary mt-0.5">$275</p>
+            <div class="flex items-center gap-1.5 mt-1.5">
+              <span class="w-3.5 h-3.5 rounded-full bg-gray-300 border border-gray-200"></span>
+              <span class="w-3.5 h-3.5 rounded-full bg-[#c4a35a] border border-gray-200"></span>
+            </div>
+            <div class="flex items-center gap-1 mt-1.5">
+              <div class="flex">
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+              </div>
+              <span class="text-[10px] text-secondary">4.7</span>
+            </div>
+          </a>
+
+          <!-- PRODUCT 4: Italian Leather Bag — SALE -30% -->
+          <a href="product.html" class="product-card group block cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded-lg">
+            <div class="relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-100 mb-3">
+              <img src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=500&h=667&fit=crop&q=80" alt="Italian Leather Bag" class="img-default absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <img src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=500&h=667&fit=crop&q=80&crop=edges" alt="" class="img-hover absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <span class="absolute top-3 left-3 px-2.5 py-1 bg-red-600 text-white text-[10px] font-semibold tracking-wider uppercase rounded z-10">Sale -30%</span>
+              <button onclick="event.preventDefault(); this.classList.toggle('active')" class="heart-btn absolute top-3 right-3 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-white transition-all focus-visible:ring-2 focus-visible:ring-cta z-10" aria-label="Add to wishlist">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>
+              </button>
+              <div class="quick-add absolute bottom-0 left-0 right-0 p-3 z-10">
+                <button onclick="event.preventDefault()" class="w-full bg-primary text-white text-xs font-medium py-2.5 rounded-md hover:bg-primary/90 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">Add to Bag</button>
+              </div>
+            </div>
+            <h3 class="text-sm font-medium text-primary truncate">Italian Leather Bag</h3>
+            <div class="flex items-center gap-2 mt-0.5">
+              <p class="text-sm font-semibold text-red-600">$364</p>
+              <p class="text-xs text-secondary line-through">$520</p>
+            </div>
+            <div class="flex items-center gap-1.5 mt-1.5">
+              <span class="w-3.5 h-3.5 rounded-full bg-[#6b4226] border border-gray-200"></span>
+              <span class="w-3.5 h-3.5 rounded-full bg-black border border-gray-200"></span>
+            </div>
+            <div class="flex items-center gap-1 mt-1.5">
+              <div class="flex">
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+              </div>
+              <span class="text-[10px] text-secondary">4.6</span>
+            </div>
+          </a>
+
+          <!-- PRODUCT 5: Leather Sneakers -->
+          <a href="product.html" class="product-card group block cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded-lg">
+            <div class="relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-100 mb-3">
+              <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&h=667&fit=crop&q=80" alt="Leather Sneakers" class="img-default absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&h=667&fit=crop&q=80&crop=top" alt="" class="img-hover absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <button onclick="event.preventDefault(); this.classList.toggle('active')" class="heart-btn absolute top-3 right-3 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-white transition-all focus-visible:ring-2 focus-visible:ring-cta z-10" aria-label="Add to wishlist">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>
+              </button>
+              <div class="quick-add absolute bottom-0 left-0 right-0 p-3 z-10">
+                <button onclick="event.preventDefault()" class="w-full bg-primary text-white text-xs font-medium py-2.5 rounded-md hover:bg-primary/90 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">Add to Bag</button>
+              </div>
+            </div>
+            <h3 class="text-sm font-medium text-primary truncate">Leather Sneakers</h3>
+            <p class="text-sm font-semibold text-primary mt-0.5">$245</p>
+            <div class="flex items-center gap-1.5 mt-1.5">
+              <span class="w-3.5 h-3.5 rounded-full bg-white border border-gray-300"></span>
+              <span class="w-3.5 h-3.5 rounded-full bg-black border border-gray-200"></span>
+            </div>
+            <div class="flex items-center gap-1 mt-1.5">
+              <div class="flex">
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+              </div>
+              <span class="text-[10px] text-secondary">4.5</span>
+            </div>
+          </a>
+
+          <!-- PRODUCT 6: Cashmere Scarf — NEW -->
+          <a href="product.html" class="product-card group block cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded-lg">
+            <div class="relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-100 mb-3">
+              <img src="https://images.unsplash.com/photo-1434389677669-e08b4cda3a74?w=500&h=667&fit=crop&q=80" alt="Cashmere Scarf" class="img-default absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <img src="https://images.unsplash.com/photo-1434389677669-e08b4cda3a74?w=500&h=667&fit=crop&q=80&crop=edges" alt="" class="img-hover absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <span class="absolute top-3 left-3 px-2.5 py-1 bg-primary text-white text-[10px] font-semibold tracking-wider uppercase rounded z-10">New</span>
+              <button onclick="event.preventDefault(); this.classList.toggle('active')" class="heart-btn absolute top-3 right-3 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-white transition-all focus-visible:ring-2 focus-visible:ring-cta z-10" aria-label="Add to wishlist">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>
+              </button>
+              <div class="quick-add absolute bottom-0 left-0 right-0 p-3 z-10">
+                <button onclick="event.preventDefault()" class="w-full bg-primary text-white text-xs font-medium py-2.5 rounded-md hover:bg-primary/90 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">Add to Bag</button>
+              </div>
+            </div>
+            <h3 class="text-sm font-medium text-primary truncate">Cashmere Scarf</h3>
+            <p class="text-sm font-semibold text-primary mt-0.5">$195</p>
+            <div class="flex items-center gap-1.5 mt-1.5">
+              <span class="w-3.5 h-3.5 rounded-full bg-[#d4c5a9] border border-gray-200"></span>
+              <span class="w-3.5 h-3.5 rounded-full bg-gray-400 border border-gray-200"></span>
+            </div>
+            <div class="flex items-center gap-1 mt-1.5">
+              <div class="flex">
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+              </div>
+              <span class="text-[10px] text-secondary">4.8</span>
+            </div>
+          </a>
+
+          <!-- PRODUCT 7: Tailored Blazer -->
+          <a href="product.html" class="product-card group block cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded-lg">
+            <div class="relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-100 mb-3">
+              <img src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=500&h=667&fit=crop&q=80" alt="Tailored Blazer" class="img-default absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <img src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=500&h=667&fit=crop&q=80&crop=top" alt="" class="img-hover absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <button onclick="event.preventDefault(); this.classList.toggle('active')" class="heart-btn absolute top-3 right-3 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-white transition-all focus-visible:ring-2 focus-visible:ring-cta z-10" aria-label="Add to wishlist">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>
+              </button>
+              <div class="quick-add absolute bottom-0 left-0 right-0 p-3 z-10">
+                <button onclick="event.preventDefault()" class="w-full bg-primary text-white text-xs font-medium py-2.5 rounded-md hover:bg-primary/90 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">Add to Bag</button>
+              </div>
+            </div>
+            <h3 class="text-sm font-medium text-primary truncate">Tailored Blazer</h3>
+            <p class="text-sm font-semibold text-primary mt-0.5">$550</p>
+            <div class="flex items-center gap-1.5 mt-1.5">
+              <span class="w-3.5 h-3.5 rounded-full bg-[#1e3a5f] border border-gray-200"></span>
+              <span class="w-3.5 h-3.5 rounded-full bg-[#36454F] border border-gray-200"></span>
+            </div>
+            <div class="flex items-center gap-1 mt-1.5">
+              <div class="flex">
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+              </div>
+              <span class="text-[10px] text-secondary">4.7</span>
+            </div>
+          </a>
+
+          <!-- PRODUCT 8: Cotton T-Shirt -->
+          <a href="product.html" class="product-card group block cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded-lg">
+            <div class="relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-100 mb-3">
+              <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=667&fit=crop&q=80" alt="Cotton T-Shirt" class="img-default absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=667&fit=crop&q=80&crop=center" alt="" class="img-hover absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <button onclick="event.preventDefault(); this.classList.toggle('active')" class="heart-btn absolute top-3 right-3 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-white transition-all focus-visible:ring-2 focus-visible:ring-cta z-10" aria-label="Add to wishlist">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>
+              </button>
+              <div class="quick-add absolute bottom-0 left-0 right-0 p-3 z-10">
+                <button onclick="event.preventDefault()" class="w-full bg-primary text-white text-xs font-medium py-2.5 rounded-md hover:bg-primary/90 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">Add to Bag</button>
+              </div>
+            </div>
+            <h3 class="text-sm font-medium text-primary truncate">Cotton T-Shirt</h3>
+            <p class="text-sm font-semibold text-primary mt-0.5">$85</p>
+            <div class="flex items-center gap-1.5 mt-1.5">
+              <span class="w-3.5 h-3.5 rounded-full bg-white border border-gray-300"></span>
+              <span class="w-3.5 h-3.5 rounded-full bg-black border border-gray-200"></span>
+              <span class="w-3.5 h-3.5 rounded-full bg-gray-400 border border-gray-200"></span>
+            </div>
+            <div class="flex items-center gap-1 mt-1.5">
+              <div class="flex">
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+              </div>
+              <span class="text-[10px] text-secondary">4.4</span>
+            </div>
+          </a>
+
+          <!-- PRODUCT 9: Linen Trousers -->
+          <a href="product.html" class="product-card group block cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded-lg">
+            <div class="relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-100 mb-3">
+              <img src="https://images.unsplash.com/photo-1560243563-062bfc001d68?w=500&h=667&fit=crop&q=80" alt="Linen Trousers" class="img-default absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <img src="https://images.unsplash.com/photo-1560243563-062bfc001d68?w=500&h=667&fit=crop&q=80&crop=edges" alt="" class="img-hover absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <button onclick="event.preventDefault(); this.classList.toggle('active')" class="heart-btn absolute top-3 right-3 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-white transition-all focus-visible:ring-2 focus-visible:ring-cta z-10" aria-label="Add to wishlist">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>
+              </button>
+              <div class="quick-add absolute bottom-0 left-0 right-0 p-3 z-10">
+                <button onclick="event.preventDefault()" class="w-full bg-primary text-white text-xs font-medium py-2.5 rounded-md hover:bg-primary/90 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">Add to Bag</button>
+              </div>
+            </div>
+            <h3 class="text-sm font-medium text-primary truncate">Linen Trousers</h3>
+            <p class="text-sm font-semibold text-primary mt-0.5">$210</p>
+            <div class="flex items-center gap-1.5 mt-1.5">
+              <span class="w-3.5 h-3.5 rounded-full bg-[#d4c5a9] border border-gray-200"></span>
+              <span class="w-3.5 h-3.5 rounded-full bg-[#1e3a5f] border border-gray-200"></span>
+            </div>
+            <div class="flex items-center gap-1 mt-1.5">
+              <div class="flex">
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+              </div>
+              <span class="text-[10px] text-secondary">4.6</span>
+            </div>
+          </a>
+
+          <!-- PRODUCT 10: Gold Pendant Necklace -->
+          <a href="product.html" class="product-card group block cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded-lg">
+            <div class="relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-100 mb-3">
+              <img src="https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=500&h=667&fit=crop&q=80" alt="Gold Pendant Necklace" class="img-default absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <img src="https://images.unsplash.com/photo-1611652022419-a9419f74343d?w=500&h=667&fit=crop&q=80&crop=top" alt="" class="img-hover absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <button onclick="event.preventDefault(); this.classList.toggle('active')" class="heart-btn absolute top-3 right-3 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-white transition-all focus-visible:ring-2 focus-visible:ring-cta z-10" aria-label="Add to wishlist">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>
+              </button>
+              <div class="quick-add absolute bottom-0 left-0 right-0 p-3 z-10">
+                <button onclick="event.preventDefault()" class="w-full bg-primary text-white text-xs font-medium py-2.5 rounded-md hover:bg-primary/90 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">Add to Bag</button>
+              </div>
+            </div>
+            <h3 class="text-sm font-medium text-primary truncate">Gold Pendant Necklace</h3>
+            <p class="text-sm font-semibold text-primary mt-0.5">$180</p>
+            <div class="flex items-center gap-1.5 mt-1.5">
+              <span class="w-3.5 h-3.5 rounded-full bg-[#c4a35a] border border-gray-200"></span>
+            </div>
+            <div class="flex items-center gap-1 mt-1.5">
+              <div class="flex">
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+              </div>
+              <span class="text-[10px] text-secondary">4.9</span>
+            </div>
+          </a>
+
+          <!-- PRODUCT 11: Suede Chelsea Boots — SOLD OUT -->
+          <a href="product.html" class="product-card group block cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded-lg">
+            <div class="relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-100 mb-3">
+              <img src="https://images.unsplash.com/photo-1603252109303-2751441dd157?w=500&h=667&fit=crop&q=80" alt="Suede Chelsea Boots" class="img-default absolute inset-0 w-full h-full object-cover opacity-60" loading="lazy" />
+              <span class="absolute top-3 left-3 px-2.5 py-1 bg-secondary text-white text-[10px] font-semibold tracking-wider uppercase rounded z-10">Sold Out</span>
+              <button onclick="event.preventDefault(); this.classList.toggle('active')" class="heart-btn absolute top-3 right-3 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-white transition-all focus-visible:ring-2 focus-visible:ring-cta z-10" aria-label="Add to wishlist">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>
+              </button>
+              <!-- Sold out overlay -->
+              <div class="absolute inset-0 bg-white/30 z-[5]"></div>
+            </div>
+            <h3 class="text-sm font-medium text-secondary truncate">Suede Chelsea Boots</h3>
+            <p class="text-sm font-semibold text-secondary mt-0.5">$385</p>
+            <div class="flex items-center gap-1.5 mt-1.5">
+              <span class="w-3.5 h-3.5 rounded-full bg-[#6b4226] border border-gray-200"></span>
+              <span class="w-3.5 h-3.5 rounded-full bg-black border border-gray-200"></span>
+            </div>
+            <div class="flex items-center gap-1 mt-1.5">
+              <div class="flex">
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+              </div>
+              <span class="text-[10px] text-secondary">4.7</span>
+            </div>
+          </a>
+
+          <!-- PRODUCT 12: Oversized Sunglasses -->
+          <a href="product.html" class="product-card group block cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded-lg">
+            <div class="relative aspect-[3/4] overflow-hidden rounded-lg bg-gray-100 mb-3">
+              <img src="https://images.unsplash.com/photo-1556306535-0f09a537f0a3?w=500&h=667&fit=crop&q=80" alt="Oversized Sunglasses" class="img-default absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <img src="https://images.unsplash.com/photo-1556306535-0f09a537f0a3?w=500&h=667&fit=crop&q=80&crop=center" alt="" class="img-hover absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <button onclick="event.preventDefault(); this.classList.toggle('active')" class="heart-btn absolute top-3 right-3 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center cursor-pointer hover:bg-white transition-all focus-visible:ring-2 focus-visible:ring-cta z-10" aria-label="Add to wishlist">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"/></svg>
+              </button>
+              <div class="quick-add absolute bottom-0 left-0 right-0 p-3 z-10">
+                <button onclick="event.preventDefault()" class="w-full bg-primary text-white text-xs font-medium py-2.5 rounded-md hover:bg-primary/90 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">Add to Bag</button>
+              </div>
+            </div>
+            <h3 class="text-sm font-medium text-primary truncate">Oversized Sunglasses</h3>
+            <p class="text-sm font-semibold text-primary mt-0.5">$165</p>
+            <div class="flex items-center gap-1.5 mt-1.5">
+              <span class="w-3.5 h-3.5 rounded-full bg-black border border-gray-200"></span>
+              <span class="w-3.5 h-3.5 rounded-full bg-[#8B4513] border border-gray-200"></span>
+            </div>
+            <div class="flex items-center gap-1 mt-1.5">
+              <div class="flex">
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-cta" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+                <svg class="w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.287 3.957c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.287-3.957a1 1 0 00-.364-1.118L2.05 9.384c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.95-.69l1.3-3.957z"/></svg>
+              </div>
+              <span class="text-[10px] text-secondary">4.5</span>
+            </div>
+          </a>
+
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- PAGINATION -->
+        <!-- ======================================================= -->
+        <div class="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p class="text-sm text-secondary">Showing <span class="font-medium text-primary">1-12</span> of <span class="font-medium text-primary">247</span></p>
+          <div class="flex items-center gap-1">
+            <!-- Prev -->
+            <button class="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-secondary cursor-not-allowed opacity-50" disabled aria-label="Previous page">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+            </button>
+            <button class="w-9 h-9 flex items-center justify-center rounded-lg bg-primary text-white text-sm font-medium cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">1</button>
+            <button class="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-secondary text-sm hover:border-primary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">2</button>
+            <button class="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-secondary text-sm hover:border-primary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">3</button>
+            <span class="w-9 h-9 flex items-center justify-center text-secondary text-sm">...</span>
+            <button class="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-secondary text-sm hover:border-primary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta">21</button>
+            <!-- Next -->
+            <button class="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 text-primary hover:border-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta" aria-label="Next page">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================= -->
+  <!-- MOBILE FILTER DRAWER -->
+  <!-- ============================================================= -->
+  <div id="filterOverlay" class="fixed inset-0 bg-black/40 z-[60] hidden lg:hidden"></div>
+  <div id="filterDrawer" class="filter-drawer fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] bg-white z-[70] overflow-y-auto lg:hidden">
+    <div class="p-6">
+      <!-- Drawer header -->
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="font-serif text-xl font-semibold text-primary">Filters</h2>
+        <button id="closeFilterBtn" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta" aria-label="Close filters">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Same filter content as sidebar -->
+      <div class="space-y-6">
+        <!-- Category -->
+        <div>
+          <h3 class="font-serif text-lg font-semibold text-primary mb-3">Category</h3>
+          <div class="space-y-2.5">
+            <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" class="custom-check" checked /><span class="text-sm text-secondary">All</span></label>
+            <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" class="custom-check" /><span class="text-sm text-secondary">Women</span></label>
+            <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" class="custom-check" /><span class="text-sm text-secondary">Men</span></label>
+            <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" class="custom-check" /><span class="text-sm text-secondary">Accessories</span></label>
+            <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" class="custom-check" /><span class="text-sm text-secondary">Shoes</span></label>
+          </div>
+        </div>
+        <div class="border-t border-gray-200"></div>
+        <!-- Price -->
+        <div>
+          <h3 class="font-serif text-lg font-semibold text-primary mb-3">Price Range</h3>
+          <div class="flex flex-wrap gap-2">
+            <button class="px-3 py-1.5 text-xs border border-gray-300 rounded-full text-secondary cursor-pointer">Under $100</button>
+            <button class="px-3 py-1.5 text-xs border border-primary bg-primary text-white rounded-full cursor-pointer">$100-$300</button>
+            <button class="px-3 py-1.5 text-xs border border-gray-300 rounded-full text-secondary cursor-pointer">$300-$500</button>
+            <button class="px-3 py-1.5 text-xs border border-gray-300 rounded-full text-secondary cursor-pointer">$500+</button>
+          </div>
+        </div>
+        <div class="border-t border-gray-200"></div>
+        <!-- Size -->
+        <div>
+          <h3 class="font-serif text-lg font-semibold text-primary mb-3">Size</h3>
+          <div class="flex flex-wrap gap-2">
+            <button class="size-pill w-10 h-10 flex items-center justify-center text-xs border border-gray-300 rounded-lg text-secondary cursor-pointer">XS</button>
+            <button class="size-pill w-10 h-10 flex items-center justify-center text-xs border border-gray-300 rounded-lg text-secondary cursor-pointer">S</button>
+            <button class="size-pill selected w-10 h-10 flex items-center justify-center text-xs border border-primary rounded-lg cursor-pointer">M</button>
+            <button class="size-pill w-10 h-10 flex items-center justify-center text-xs border border-gray-300 rounded-lg text-secondary cursor-pointer">L</button>
+            <button class="size-pill w-10 h-10 flex items-center justify-center text-xs border border-gray-300 rounded-lg text-secondary cursor-pointer">XL</button>
+          </div>
+        </div>
+        <div class="border-t border-gray-200"></div>
+        <!-- Color -->
+        <div>
+          <h3 class="font-serif text-lg font-semibold text-primary mb-3">Color</h3>
+          <div class="flex flex-wrap gap-3">
+            <button class="w-7 h-7 rounded-full bg-black border border-gray-300 cursor-pointer" aria-label="Black"></button>
+            <button class="w-7 h-7 rounded-full bg-white border border-gray-300 cursor-pointer" aria-label="White"></button>
+            <button class="w-7 h-7 rounded-full bg-[#1e3a5f] border border-gray-300 cursor-pointer" aria-label="Navy"></button>
+            <button class="w-7 h-7 rounded-full bg-[#d4c5a9] border border-gray-300 cursor-pointer" aria-label="Beige"></button>
+            <button class="w-7 h-7 rounded-full bg-[#6b4226] border border-gray-300 cursor-pointer" aria-label="Brown"></button>
+            <button class="w-7 h-7 rounded-full bg-gray-400 border border-gray-300 cursor-pointer" aria-label="Gray"></button>
+            <button class="w-7 h-7 rounded-full bg-red-600 border border-gray-300 cursor-pointer" aria-label="Red"></button>
+            <button class="w-7 h-7 rounded-full bg-green-700 border border-gray-300 cursor-pointer" aria-label="Green"></button>
+          </div>
+        </div>
+        <div class="border-t border-gray-200"></div>
+        <!-- Brand -->
+        <div>
+          <h3 class="font-serif text-lg font-semibold text-primary mb-3">Brand</h3>
+          <div class="space-y-2.5">
+            <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" class="custom-check" checked /><span class="text-sm text-secondary">Atelier</span></label>
+            <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" class="custom-check" /><span class="text-sm text-secondary">Guest Brand</span></label>
+            <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" class="custom-check" /><span class="text-sm text-secondary">Maison</span></label>
+            <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" class="custom-check" /><span class="text-sm text-secondary">Luxe</span></label>
+          </div>
+        </div>
+        <div class="border-t border-gray-200"></div>
+        <!-- Actions -->
+        <div class="flex items-center gap-4 pt-2 pb-4">
+          <button class="text-sm text-secondary hover:text-primary underline underline-offset-4 cursor-pointer">Clear All</button>
+          <button id="applyFilterBtn" class="flex-1 bg-cta text-white text-sm font-medium py-3 rounded-lg hover:bg-yellow-700 transition-colors cursor-pointer">Apply Filters</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- FOOTER -->
+  <!-- ============================================================= -->
+  <footer class="bg-primary text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
+        <!-- Column 1 -->
+        <div>
+          <a href="store.html" class="font-serif text-xl font-semibold tracking-[0.3em] uppercase cursor-pointer">ATELIER</a>
+          <p class="mt-4 text-sm text-gray-400 leading-relaxed">Curated luxury fashion for the modern individual. Timeless elegance, exceptional craftsmanship.</p>
+          <!-- Social icons -->
+          <div class="flex items-center gap-4 mt-6">
+            <a href="#" class="text-gray-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded" aria-label="Instagram">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+            </a>
+            <a href="#" class="text-gray-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded" aria-label="Facebook">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            </a>
+            <a href="#" class="text-gray-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded" aria-label="Twitter">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+            <a href="#" class="text-gray-400 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta rounded" aria-label="Pinterest">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.372 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 01.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Column 2 -->
+        <div>
+          <h4 class="font-serif text-base font-semibold mb-4">Shop</h4>
+          <ul class="space-y-2.5">
+            <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">New Arrivals</a></li>
+            <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">Women</a></li>
+            <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">Men</a></li>
+            <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">Accessories</a></li>
+            <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">Sale</a></li>
+          </ul>
+        </div>
+
+        <!-- Column 3 -->
+        <div>
+          <h4 class="font-serif text-base font-semibold mb-4">Company</h4>
+          <ul class="space-y-2.5">
+            <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">About Us</a></li>
+            <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">Careers</a></li>
+            <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">Press</a></li>
+            <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">Sustainability</a></li>
+            <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">Contact</a></li>
+          </ul>
+        </div>
+
+        <!-- Column 4 -->
+        <div>
+          <h4 class="font-serif text-base font-semibold mb-4">Customer Care</h4>
+          <ul class="space-y-2.5">
+            <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">Shipping & Returns</a></li>
+            <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">Size Guide</a></li>
+            <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">FAQ</a></li>
+            <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">Privacy Policy</a></li>
+            <li><a href="#" class="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Bottom bar -->
+      <div class="mt-12 pt-8 border-t border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p class="text-xs text-gray-500">&copy; 2026 Atelier. All rights reserved.</p>
+        <!-- Payment icons -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-6 bg-gray-700 rounded flex items-center justify-center">
+            <svg class="w-6 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 16"><rect x="0" y="0" width="24" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1"/><text x="5" y="11" font-size="7" fill="currentColor" font-family="sans-serif">VISA</text></svg>
+          </div>
+          <div class="w-10 h-6 bg-gray-700 rounded flex items-center justify-center">
+            <svg class="w-6 h-4 text-gray-400" viewBox="0 0 24 16"><circle cx="9" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="1" opacity="0.7"/><circle cx="15" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="1" opacity="0.7"/></svg>
+          </div>
+          <div class="w-10 h-6 bg-gray-700 rounded flex items-center justify-center">
+            <svg class="w-6 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 16"><rect x="0" y="0" width="24" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1"/><text x="3" y="11" font-size="6" fill="currentColor" font-family="sans-serif">AMEX</text></svg>
+          </div>
+          <div class="w-10 h-6 bg-gray-700 rounded flex items-center justify-center">
+            <svg class="w-6 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 16"><rect x="0" y="0" width="24" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1"/><path d="M8 5 L12 11 L16 5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================================================= -->
+  <!-- JAVASCRIPT -->
+  <!-- ============================================================= -->
+  <script>
+    // Mobile menu toggle
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    mobileMenuBtn.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+    });
+
+    // Mobile filter drawer
+    const mobileFilterBtn = document.getElementById('mobileFilterBtn');
+    const filterDrawer = document.getElementById('filterDrawer');
+    const filterOverlay = document.getElementById('filterOverlay');
+    const closeFilterBtn = document.getElementById('closeFilterBtn');
+    const applyFilterBtn = document.getElementById('applyFilterBtn');
+
+    function openFilterDrawer() {
+      filterDrawer.classList.add('open');
+      filterOverlay.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeFilterDrawer() {
+      filterDrawer.classList.remove('open');
+      filterOverlay.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    mobileFilterBtn.addEventListener('click', openFilterDrawer);
+    closeFilterBtn.addEventListener('click', closeFilterDrawer);
+    filterOverlay.addEventListener('click', closeFilterDrawer);
+    applyFilterBtn.addEventListener('click', closeFilterDrawer);
+
+    // View toggle
+    const gridViewBtn = document.getElementById('gridViewBtn');
+    const listViewBtn = document.getElementById('listViewBtn');
+    const productGrid = document.getElementById('productGrid');
+
+    gridViewBtn.addEventListener('click', () => {
+      productGrid.classList.remove('grid-cols-1');
+      productGrid.classList.add('grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4');
+      gridViewBtn.classList.add('bg-primary', 'text-white');
+      gridViewBtn.classList.remove('text-secondary');
+      listViewBtn.classList.remove('bg-primary', 'text-white');
+      listViewBtn.classList.add('text-secondary');
+    });
+
+    listViewBtn.addEventListener('click', () => {
+      productGrid.classList.add('grid-cols-1');
+      productGrid.classList.remove('grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4');
+      listViewBtn.classList.add('bg-primary', 'text-white');
+      listViewBtn.classList.remove('text-secondary');
+      gridViewBtn.classList.remove('bg-primary', 'text-white');
+      gridViewBtn.classList.add('text-secondary');
+    });
+
+    // Size pill toggle
+    document.querySelectorAll('.size-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        pill.classList.toggle('selected');
+        if (pill.classList.contains('selected')) {
+          pill.classList.add('bg-primary', 'text-white', 'border-primary');
+          pill.classList.remove('text-secondary', 'border-gray-300');
+        } else {
+          pill.classList.remove('bg-primary', 'text-white', 'border-primary');
+          pill.classList.add('text-secondary', 'border-gray-300');
+        }
+      });
+    });
+
+    // Color swatch toggle
+    document.querySelectorAll('.color-swatch').forEach(swatch => {
+      swatch.addEventListener('click', () => {
+        swatch.classList.toggle('selected');
+      });
+    });
+
+    // Navbar scroll effect
+    let lastScroll = 0;
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      const currentScroll = window.pageYOffset;
+      if (currentScroll > 50) {
+        navbar.classList.add('shadow-sm');
+      } else {
+        navbar.classList.remove('shadow-sm');
+      }
+      lastScroll = currentScroll;
+    });
+  </script>
+
+</body>
+</html>

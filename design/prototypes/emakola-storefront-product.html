@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kente Wrap Dress — Amara Collection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #FAFAF9;
+      --surface: #FFFFFF;
+      --border: #E2E8F0;
+      --text-primary: #0F172A;
+      --text-secondary: #475569;
+      --text-muted: #94A3B8;
+      --store-brand: #B45309;
+      --store-brand-light: #FEF3C7;
+      --cta: #1C1917;
+      --cta-hover: #292524;
+      --gold: #F59E0B;
+      --whatsapp: #25D366;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --radius-full: 9999px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    a { text-decoration: none; color: inherit; }
+    button { font-family: inherit; border: none; background: none; cursor: pointer; }
+    img { display: block; max-width: 100%; }
+
+    /* Focus styles */
+    *:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--store-brand);
+      border-radius: 4px;
+    }
+
+    /* ======================== TOP BAR ======================== */
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .top-bar-back {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      transition: background 0.15s ease;
+    }
+    .top-bar-back:hover { background: #F1F5F9; }
+
+    .top-bar-title {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .top-bar-cart {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      transition: background 0.15s ease;
+    }
+    .top-bar-cart:hover { background: #F1F5F9; }
+
+    .cart-badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: var(--store-brand);
+      color: #FFFFFF;
+      font-size: 0.625rem;
+      font-weight: 700;
+      width: 16px;
+      height: 16px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    /* ======================== IMAGE GALLERY ======================== */
+    .gallery {
+      background: var(--surface);
+    }
+
+    .gallery-main {
+      width: 100%;
+      aspect-ratio: 4/5;
+      overflow: hidden;
+    }
+
+    .gallery-main img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: opacity 0.3s ease;
+    }
+
+    .gallery-dots {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+    }
+
+    .gallery-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-full);
+      background: var(--border);
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .gallery-dot:hover { background: var(--text-muted); }
+    .gallery-dot.active {
+      background: var(--store-brand);
+      width: 24px;
+    }
+
+    /* ======================== PRODUCT INFO ======================== */
+    .product-info {
+      padding: 20px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .badge-new {
+      display: inline-block;
+      background: var(--store-brand-light);
+      color: var(--store-brand);
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .product-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+
+    .product-price {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+
+    .rating-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .stars {
+      display: flex;
+      gap: 2px;
+    }
+    .stars svg { color: var(--gold); }
+
+    .rating-text {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .rating-reviews {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .product-desc {
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    /* ======================== VARIANTS ======================== */
+    .variants {
+      padding: 20px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .variant-group-label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .size-guide-link {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--store-brand);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .size-options {
+      display: flex;
+      gap: 8px;
+    }
+
+    .size-btn {
+      min-width: 48px;
+      height: 44px;
+      padding: 0 16px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-full);
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      background: var(--surface);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .size-btn:hover { border-color: var(--text-muted); }
+    .size-btn.active {
+      background: var(--cta);
+      color: #FFFFFF;
+      border-color: var(--cta);
+    }
+
+    .color-options {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .color-swatch {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-full);
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      padding: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .color-swatch .swatch-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: var(--radius-full);
+    }
+    .color-swatch.active {
+      border-color: var(--cta);
+    }
+
+    .color-label {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      margin-left: 4px;
+    }
+
+    /* ======================== QUANTITY + CTA ======================== */
+    .actions {
+      padding: 20px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .qty-stepper {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      width: fit-content;
+      overflow: hidden;
+    }
+
+    .qty-btn {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-primary);
+      background: var(--surface);
+      cursor: pointer;
+      transition: background 0.15s ease;
+      border: none;
+    }
+    .qty-btn:hover { background: #F1F5F9; }
+    .qty-btn:disabled {
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+    .qty-btn:disabled:hover { background: var(--surface); }
+
+    .qty-value {
+      width: 48px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      border-left: 1.5px solid var(--border);
+      border-right: 1.5px solid var(--border);
+      user-select: none;
+    }
+
+    .btn-add-to-bag {
+      width: 100%;
+      height: 52px;
+      background: var(--cta);
+      color: #FFFFFF;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: var(--radius-xl);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s ease;
+    }
+    .btn-add-to-bag:hover { background: var(--cta-hover); }
+
+    .btn-whatsapp-ask {
+      width: 100%;
+      height: 48px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-xl);
+      color: var(--text-primary);
+      font-size: 0.9375rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+    .btn-whatsapp-ask:hover { border-color: var(--text-muted); background: #F8FAFC; }
+    .btn-whatsapp-ask svg { color: var(--whatsapp); }
+
+    .share-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding-top: 4px;
+    }
+
+    .share-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      transition: all 0.15s ease;
+    }
+    .share-btn:hover { border-color: var(--text-muted); background: #F8FAFC; }
+
+    .copy-feedback {
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--cta);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .copy-feedback.show { opacity: 1; }
+
+    /* ======================== ACCORDION ======================== */
+    .accordion-section {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .accordion-section details {
+      border-bottom: 1px solid var(--border);
+    }
+    .accordion-section details:last-child {
+      border-bottom: none;
+    }
+
+    .accordion-section summary {
+      padding: 16px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+      transition: background 0.15s ease;
+    }
+    .accordion-section summary:hover { background: #FAFAF9; }
+    .accordion-section summary::-webkit-details-marker { display: none; }
+
+    .accordion-section summary .chevron {
+      transition: transform 0.2s ease;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .accordion-section details[open] summary .chevron {
+      transform: rotate(180deg);
+    }
+
+    .accordion-content {
+      padding: 0 16px 16px;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+    .accordion-content p + p { margin-top: 12px; }
+    .accordion-content ul {
+      list-style: none;
+      padding: 0;
+    }
+    .accordion-content li {
+      padding: 4px 0;
+      padding-left: 20px;
+      position: relative;
+    }
+    .accordion-content li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 12px;
+      width: 6px;
+      height: 6px;
+      border-radius: var(--radius-full);
+      background: var(--text-muted);
+    }
+
+    /* ======================== REVIEWS ======================== */
+    .reviews-section {
+      padding: 24px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .reviews-heading {
+      font-size: 1.0625rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+
+    .review-card {
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .review-card:last-of-type { border-bottom: none; }
+
+    .review-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .review-author {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .review-stars {
+      display: flex;
+      gap: 2px;
+    }
+    .review-stars svg { color: var(--gold); }
+
+    .review-text {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .view-all-reviews {
+      display: block;
+      text-align: center;
+      margin-top: 16px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--store-brand);
+    }
+
+    /* ======================== RELATED PRODUCTS ======================== */
+    .related-section {
+      padding: 24px 0;
+      background: var(--bg);
+    }
+
+    .related-heading {
+      font-size: 1.0625rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      padding: 0 16px;
+      margin-bottom: 14px;
+    }
+
+    .related-scroll {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding: 0 16px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .related-scroll::-webkit-scrollbar { display: none; }
+
+    .related-card {
+      flex: 0 0 140px;
+      scroll-snap-align: start;
+      background: var(--surface);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: box-shadow 0.15s ease;
+    }
+    .related-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+
+    .related-card-img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+    }
+
+    .related-card-body {
+      padding: 10px 12px;
+    }
+
+    .related-card-name {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+
+    .related-card-price {
+      font-size: 0.8125rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* ======================== WHATSAPP FAB ======================== */
+    .whatsapp-fab {
+      position: fixed;
+      bottom: 24px;
+      right: 16px;
+      z-index: 40;
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-full);
+      background: var(--whatsapp);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(37, 211, 102, 0.35);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .whatsapp-fab:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(37, 211, 102, 0.45);
+    }
+
+    /* ======================== FOOTER ======================== */
+    .footer {
+      padding: 24px 16px 100px;
+      text-align: center;
+      background: var(--bg);
+    }
+
+    .footer-powered {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .footer-powered span {
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    /* ======================== DESKTOP ======================== */
+    @media (min-width: 640px) {
+      .page-wrap {
+        max-width: 480px;
+        margin: 0 auto;
+        box-shadow: 0 0 40px rgba(0,0,0,0.06);
+        min-height: 100vh;
+        background: var(--bg);
+      }
+
+      .whatsapp-fab {
+        right: calc(50% - 240px + 16px);
+      }
+    }
+
+    @media (min-width: 768px) {
+      .page-wrap {
+        max-width: 520px;
+      }
+
+      .whatsapp-fab {
+        right: calc(50% - 260px + 16px);
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .page-wrap {
+        max-width: 560px;
+      }
+
+      .whatsapp-fab {
+        right: calc(50% - 280px + 16px);
+        bottom: 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <!-- ======================== TOP BAR ======================== -->
+  <header class="top-bar">
+    <a href="emakola-storefront-home.html" class="top-bar-back" aria-label="Back to store">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M13 4l-6 6 6 6"/>
+      </svg>
+    </a>
+    <span class="top-bar-title">Amara Collection</span>
+    <a href="cart.html" class="top-bar-cart" aria-label="Cart, 2 items">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 7h14l-1.5 7H6.5L5 7z"/>
+        <path d="M5 7L4 3H2"/>
+        <circle cx="8" cy="17" r="1"/>
+        <circle cx="15" cy="17" r="1"/>
+      </svg>
+      <span class="cart-badge">2</span>
+    </a>
+  </header>
+
+  <!-- ======================== PRODUCT IMAGES ======================== -->
+  <section class="gallery" aria-label="Product images">
+    <div class="gallery-main">
+      <img
+        id="mainImage"
+        src="https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=800&h=1000&fit=crop&q=80"
+        alt="Kente Wrap Dress — main view"
+        width="800"
+        height="1000"
+      >
+    </div>
+    <div class="gallery-dots" role="tablist" aria-label="Product image thumbnails">
+      <button class="gallery-dot active" role="tab" aria-selected="true" aria-label="Image 1" data-src="https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=800&h=1000&fit=crop&q=80"></button>
+      <button class="gallery-dot" role="tab" aria-selected="false" aria-label="Image 2" data-src="https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800&h=1000&fit=crop&q=80"></button>
+      <button class="gallery-dot" role="tab" aria-selected="false" aria-label="Image 3" data-src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=800&h=1000&fit=crop&q=80"></button>
+      <button class="gallery-dot" role="tab" aria-selected="false" aria-label="Image 4" data-src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800&h=1000&fit=crop&q=80"></button>
+    </div>
+  </section>
+
+  <!-- ======================== PRODUCT INFO ======================== -->
+  <section class="product-info">
+    <span class="badge-new">New Arrival</span>
+    <h1 class="product-title">Kente Wrap Dress</h1>
+    <p class="product-price">GH&#8373; 280.00</p>
+    <div class="rating-row">
+      <div class="stars" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z" opacity="0.3"/></svg>
+      </div>
+      <span class="rating-text">4.8</span>
+      <span class="rating-reviews">(24 reviews)</span>
+    </div>
+    <p class="product-desc">Handwoven by master artisans in Bonwire, Ashanti Region. This wrap dress features authentic kente patterns with a modern silhouette that transitions seamlessly from day to evening.</p>
+  </section>
+
+  <!-- ======================== VARIANT SELECTORS ======================== -->
+  <section class="variants" aria-label="Product options">
+    <!-- Size -->
+    <div>
+      <div class="variant-group-label">
+        <span>Size</span>
+        <a href="#" class="size-guide-link" role="button">Size Guide</a>
+      </div>
+      <div class="size-options" role="radiogroup" aria-label="Select size">
+        <button class="size-btn" role="radio" aria-checked="false" data-size="S">S</button>
+        <button class="size-btn active" role="radio" aria-checked="true" data-size="M">M</button>
+        <button class="size-btn" role="radio" aria-checked="false" data-size="L">L</button>
+        <button class="size-btn" role="radio" aria-checked="false" data-size="XL">XL</button>
+      </div>
+    </div>
+    <!-- Color -->
+    <div>
+      <div class="variant-group-label">
+        <span>Color: <span class="color-label" id="selectedColorLabel">Multicolor</span></span>
+      </div>
+      <div class="color-options" role="radiogroup" aria-label="Select color">
+        <button class="color-swatch active" role="radio" aria-checked="true" aria-label="Multicolor" data-color="Multicolor">
+          <span class="swatch-inner" style="background: conic-gradient(#B45309, #DC2626, #2563EB, #059669, #B45309);"></span>
+        </button>
+        <button class="color-swatch" role="radio" aria-checked="false" aria-label="Earth Tone" data-color="Earth Tone">
+          <span class="swatch-inner" style="background: linear-gradient(135deg, #92400E, #78350F);"></span>
+        </button>
+        <button class="color-swatch" role="radio" aria-checked="false" aria-label="Royal Blue" data-color="Royal Blue">
+          <span class="swatch-inner" style="background: linear-gradient(135deg, #1D4ED8, #1E3A8A);"></span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== QUANTITY + ADD TO BAG ======================== -->
+  <section class="actions" aria-label="Add to bag">
+    <!-- Quantity -->
+    <div class="qty-stepper">
+      <button class="qty-btn" id="qtyMinus" aria-label="Decrease quantity" disabled>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9h10"/></svg>
+      </button>
+      <span class="qty-value" id="qtyValue" aria-live="polite">1</span>
+      <button class="qty-btn" id="qtyPlus" aria-label="Increase quantity">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 4v10M4 9h10"/></svg>
+      </button>
+    </div>
+
+    <!-- Add to Bag -->
+    <button class="btn-add-to-bag" id="addToBag">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 7h14l-1.5 7H6.5L5 7z"/>
+        <path d="M5 7L4 3H2"/>
+      </svg>
+      <span>Add to Bag &mdash; GH&#8373; <span id="totalPrice">280</span></span>
+    </button>
+
+    <!-- WhatsApp Ask -->
+    <a href="https://wa.me/233241234567?text=Hi%20I'm%20interested%20in%20the%20Kente%20Wrap%20Dress" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-ask">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M10 1.667A8.333 8.333 0 003.36 15.15L1.667 18.333l3.305-1.63A8.333 8.333 0 1010 1.667zm0 15A6.667 6.667 0 015.83 14.4l-.33-.213-2.175 1.073.567-2.1-.234-.35A6.667 6.667 0 1110 16.667zm3.86-4.99c-.212-.106-1.253-.618-1.447-.688-.194-.071-.335-.106-.476.106-.141.212-.547.688-.67.83-.124.14-.247.159-.459.053-.212-.106-.895-.33-1.704-1.05-.63-.563-1.055-1.257-1.178-1.47-.124-.211-.013-.326.093-.431.095-.095.212-.247.318-.37.106-.124.141-.213.212-.354.07-.142.035-.265-.018-.371-.053-.106-.476-1.147-.653-1.571-.17-.412-.347-.356-.476-.362-.124-.006-.265-.008-.406-.008a.776.776 0 00-.564.265c-.194.212-.741.724-.741 1.765 0 1.04.759 2.046.865 2.187.106.141 1.494 2.282 3.62 3.2.506.219.901.35 1.21.447.508.162.97.14 1.336.084.407-.06 1.253-.512 1.43-1.006.177-.494.177-.918.124-.006-.053-.089-.194-.141z"/>
+      </svg>
+      Ask on WhatsApp
+    </a>
+
+    <!-- Share -->
+    <div class="share-row">
+      <a href="https://wa.me/?text=Check%20out%20this%20Kente%20Wrap%20Dress%20from%20Amara%20Collection" target="_blank" rel="noopener noreferrer" class="share-btn" aria-label="Share on WhatsApp">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="#25D366">
+          <path d="M10 1.667A8.333 8.333 0 003.36 15.15L1.667 18.333l3.305-1.63A8.333 8.333 0 1010 1.667zm3.86 11.343c-.212-.106-1.253-.618-1.447-.688-.194-.071-.335-.106-.476.106-.141.212-.547.688-.67.83-.124.14-.247.159-.459.053-.212-.106-.895-.33-1.704-1.05-.63-.563-1.055-1.257-1.178-1.47-.124-.211-.013-.326.093-.431.095-.095.212-.247.318-.37.106-.124.141-.213.212-.354.07-.142.035-.265-.018-.371-.053-.106-.476-1.147-.653-1.571-.17-.412-.347-.356-.476-.362-.124-.006-.265-.008-.406-.008a.776.776 0 00-.564.265c-.194.212-.741.724-.741 1.765 0 1.04.759 2.046.865 2.187.106.141 1.494 2.282 3.62 3.2.506.219.901.35 1.21.447.508.162.97.14 1.336.084.407-.06 1.253-.512 1.43-1.006.177-.494.177-.918.124-.006z"/>
+        </svg>
+      </a>
+      <a href="https://twitter.com/intent/tweet?text=Check%20out%20this%20Kente%20Wrap%20Dress%20from%20Amara%20Collection&url=" target="_blank" rel="noopener noreferrer" class="share-btn" aria-label="Share on X">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+        </svg>
+      </a>
+      <button class="share-btn" id="copyLinkBtn" aria-label="Copy link" style="position: relative;">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8.5 11.5a3.5 3.5 0 005 0l2-2a3.5 3.5 0 00-5-5l-1 1"/>
+          <path d="M11.5 8.5a3.5 3.5 0 00-5 0l-2 2a3.5 3.5 0 005 5l1-1"/>
+        </svg>
+        <span class="copy-feedback" id="copyFeedback">Copied!</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ======================== ACCORDION DETAILS ======================== -->
+  <section class="accordion-section" aria-label="Product details">
+    <details>
+      <summary>
+        Description
+        <svg class="chevron" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7l4 4 4-4"/></svg>
+      </summary>
+      <div class="accordion-content">
+        <p>The Kente Wrap Dress is a celebration of Ghanaian heritage reimagined for the modern woman. Each piece is handwoven on traditional wooden looms by master artisans in Bonwire, the ancestral home of kente weaving in the Ashanti Region. The intricate patterns tell stories of royalty, wisdom, and cultural pride, passed down through generations of weavers.</p>
+        <p>Designed with a flattering wrap silhouette, the dress cinches at the waist with a self-tie belt, creating a universally flattering shape. The structured shoulders and midi length make it appropriate for formal occasions, while the lightweight cotton fabric keeps you comfortable in Ghana's warm climate. Pair it with gold accessories for a traditional look, or dress it down with sandals for a casual weekend outing.</p>
+      </div>
+    </details>
+    <details>
+      <summary>
+        Materials &amp; Care
+        <svg class="chevron" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7l4 4 4-4"/></svg>
+      </summary>
+      <div class="accordion-content">
+        <ul>
+          <li>100% handwoven kente cotton</li>
+          <li>Hand wash cold with mild detergent</li>
+          <li>Do not bleach</li>
+          <li>Lay flat to dry in shade</li>
+          <li>Iron on low heat, inside out</li>
+          <li>Store folded, not hung, to preserve fabric integrity</li>
+        </ul>
+      </div>
+    </details>
+    <details>
+      <summary>
+        Shipping
+        <svg class="chevron" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7l4 4 4-4"/></svg>
+      </summary>
+      <div class="accordion-content">
+        <ul>
+          <li>Accra (Greater Accra Region): 1&ndash;2 business days &mdash; GH&#8373; 15&ndash;20</li>
+          <li>Nationwide delivery: 3&ndash;5 business days &mdash; GH&#8373; 25&ndash;35</li>
+          <li>Free delivery on orders over GH&#8373; 500</li>
+          <li>Track your order via WhatsApp or SMS updates</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <!-- ======================== REVIEWS ======================== -->
+  <section class="reviews-section" aria-label="Customer reviews">
+    <h2 class="reviews-heading">Reviews (24)</h2>
+
+    <div class="review-card">
+      <div class="review-header">
+        <span class="review-author">Ama K.</span>
+        <div class="review-stars" aria-label="5 out of 5 stars">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" color="#F59E0B"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" color="#F59E0B"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" color="#F59E0B"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" color="#F59E0B"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" color="#F59E0B"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+        </div>
+      </div>
+      <p class="review-text">Absolutely stunning! The quality is amazing and it fits perfectly. I wore it to a wedding and got so many compliments.</p>
+    </div>
+
+    <div class="review-card">
+      <div class="review-header">
+        <span class="review-author">Kofi M.</span>
+        <div class="review-stars" aria-label="4 out of 5 stars">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" color="#F59E0B"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" color="#F59E0B"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" color="#F59E0B"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" color="#F59E0B"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" color="#E2E8F0"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+        </div>
+      </div>
+      <p class="review-text">Beautiful fabric and craftsmanship. Delivery was quick too. Would love more color options.</p>
+    </div>
+
+    <div class="review-card">
+      <div class="review-header">
+        <span class="review-author">Efua A.</span>
+        <div class="review-stars" aria-label="5 out of 5 stars">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" color="#F59E0B"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" color="#F59E0B"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" color="#F59E0B"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" color="#F59E0B"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" color="#F59E0B"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9L4.4 12.3l.7-4L2.2 5.5l4-.6L8 1.3z"/></svg>
+        </div>
+      </div>
+      <p class="review-text">This is my third order from Amara. Never disappoints. The kente patterns are authentic and gorgeous.</p>
+    </div>
+
+    <a href="#" class="view-all-reviews">View all 24 reviews</a>
+  </section>
+
+  <!-- ======================== RELATED PRODUCTS ======================== -->
+  <section class="related-section" aria-label="Related products">
+    <h2 class="related-heading">You May Also Like</h2>
+    <div class="related-scroll">
+      <a href="#" class="related-card">
+        <img class="related-card-img" src="https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=300&h=300&fit=crop&q=75" alt="Ankara Tote Bag" loading="lazy" width="300" height="300">
+        <div class="related-card-body">
+          <div class="related-card-name">Ankara Tote Bag</div>
+          <div class="related-card-price">GH&#8373; 120</div>
+        </div>
+      </a>
+      <a href="#" class="related-card">
+        <img class="related-card-img" src="https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=300&h=300&fit=crop&q=75" alt="Beaded Choker" loading="lazy" width="300" height="300">
+        <div class="related-card-body">
+          <div class="related-card-name">Beaded Choker</div>
+          <div class="related-card-price">GH&#8373; 85</div>
+        </div>
+      </a>
+      <a href="#" class="related-card">
+        <img class="related-card-img" src="https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=300&h=300&fit=crop&q=75" alt="Gold Ear Cuffs" loading="lazy" width="300" height="300">
+        <div class="related-card-body">
+          <div class="related-card-name">Gold Ear Cuffs</div>
+          <div class="related-card-price">GH&#8373; 45</div>
+        </div>
+      </a>
+      <a href="#" class="related-card">
+        <img class="related-card-img" src="https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=300&h=300&fit=crop&q=75" alt="Shea Butter Set" loading="lazy" width="300" height="300">
+        <div class="related-card-body">
+          <div class="related-card-name">Shea Butter Set</div>
+          <div class="related-card-price">GH&#8373; 65</div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- ======================== FOOTER ======================== -->
+  <footer class="footer">
+    <p class="footer-powered">Powered by <span>emakola</span></p>
+  </footer>
+</div>
+
+<!-- ======================== WHATSAPP FAB ======================== -->
+<a href="https://wa.me/233241234567?text=Hi%20I'm%20browsing%20your%20store" target="_blank" rel="noopener noreferrer" class="whatsapp-fab" aria-label="Chat on WhatsApp">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2C6.477 2 2 6.477 2 12c0 1.82.487 3.53 1.338 5.002L2 22l5.233-1.236A9.953 9.953 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a7.953 7.953 0 01-4.262-1.23l-.306-.183-3.176.833.848-3.1-.2-.318A7.95 7.95 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8zm4.39-5.99c-.24-.12-1.425-.703-1.646-.783-.22-.08-.38-.12-.541.12-.16.24-.622.783-.763.944-.14.16-.28.18-.52.06-.24-.12-1.015-.374-1.934-1.193-.715-.637-1.198-1.424-1.338-1.664-.14-.24-.015-.37.106-.49.108-.107.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42s-.54-1.302-.74-1.784c-.195-.468-.394-.404-.54-.412l-.46-.008a.884.884 0 00-.64.3c-.22.24-.84.822-.84 2.004 0 1.183.86 2.326.98 2.486.12.16 1.695 2.59 4.108 3.63.574.248 1.022.396 1.37.507.576.183 1.1.157 1.514.095.462-.068 1.425-.583 1.626-1.145.2-.562.2-1.044.14-1.145-.06-.1-.22-.16-.46-.28z"/>
+  </svg>
+</a>
+
+<!-- ======================== JAVASCRIPT ======================== -->
+<script>
+(function() {
+  'use strict';
+
+  // --- Image Gallery ---
+  var mainImage = document.getElementById('mainImage');
+  var dots = document.querySelectorAll('.gallery-dot');
+
+  dots.forEach(function(dot) {
+    dot.addEventListener('click', function() {
+      dots.forEach(function(d) {
+        d.classList.remove('active');
+        d.setAttribute('aria-selected', 'false');
+      });
+      dot.classList.add('active');
+      dot.setAttribute('aria-selected', 'true');
+      mainImage.src = dot.getAttribute('data-src');
+    });
+  });
+
+  // --- Size Selector ---
+  var sizeBtns = document.querySelectorAll('.size-btn');
+  sizeBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      sizeBtns.forEach(function(b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-checked', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-checked', 'true');
+    });
+  });
+
+  // --- Color Selector ---
+  var colorSwatches = document.querySelectorAll('.color-swatch');
+  var colorLabel = document.getElementById('selectedColorLabel');
+
+  colorSwatches.forEach(function(swatch) {
+    swatch.addEventListener('click', function() {
+      colorSwatches.forEach(function(s) {
+        s.classList.remove('active');
+        s.setAttribute('aria-checked', 'false');
+      });
+      swatch.classList.add('active');
+      swatch.setAttribute('aria-checked', 'true');
+      colorLabel.textContent = swatch.getAttribute('data-color');
+    });
+  });
+
+  // --- Quantity Stepper ---
+  var UNIT_PRICE = 280;
+  var qty = 1;
+  var qtyValue = document.getElementById('qtyValue');
+  var qtyMinus = document.getElementById('qtyMinus');
+  var qtyPlus = document.getElementById('qtyPlus');
+  var totalPrice = document.getElementById('totalPrice');
+
+  function updateQty() {
+    qtyValue.textContent = qty;
+    qtyMinus.disabled = qty <= 1;
+    qtyPlus.disabled = qty >= 10;
+    totalPrice.textContent = (qty * UNIT_PRICE).toLocaleString();
+  }
+
+  qtyMinus.addEventListener('click', function() {
+    if (qty > 1) { qty--; updateQty(); }
+  });
+
+  qtyPlus.addEventListener('click', function() {
+    if (qty < 10) { qty++; updateQty(); }
+  });
+
+  // --- Copy Link ---
+  var copyBtn = document.getElementById('copyLinkBtn');
+  var copyFeedback = document.getElementById('copyFeedback');
+
+  copyBtn.addEventListener('click', function() {
+    var url = window.location.href;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function() {
+        showCopyFeedback();
+      });
+    } else {
+      // Fallback
+      var textarea = document.createElement('textarea');
+      textarea.value = url;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      showCopyFeedback();
+    }
+  });
+
+  function showCopyFeedback() {
+    copyFeedback.classList.add('show');
+    setTimeout(function() {
+      copyFeedback.classList.remove('show');
+    }, 1500);
+  }
+})();
+</script>
+</body>
+</html>

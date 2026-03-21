@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Bag | ATELIER</title>
+    <meta name="description" content="Review your shopping bag at Atelier Store. Premium fashion curated for the modern individual.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1C1917',
+                        secondary: '#44403C',
+                        cta: '#CA8A04',
+                        'cta-hover': '#A16207',
+                        surface: '#FAFAF9',
+                        text: '#0C0A09',
+                        muted: '#78716C',
+                        border: '#E7E5E4',
+                        'border-dark': '#D6D3D1',
+                        success: '#16A34A',
+                        danger: '#DC2626',
+                    },
+                    fontFamily: {
+                        serif: ['Cormorant', 'Georgia', 'serif'],
+                        sans: ['Montserrat', 'system-ui', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: #0C0A09;
+            background-color: #FAFAF9;
+        }
+        .font-serif {
+            font-family: 'Cormorant', Georgia, serif;
+        }
+        .qty-input::-webkit-outer-spin-button,
+        .qty-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .qty-input {
+            -moz-appearance: textfield;
+        }
+        .cart-item {
+            transition: opacity 0.4s ease, max-height 0.5s ease, padding 0.4s ease, margin 0.4s ease;
+            max-height: 500px;
+            overflow: hidden;
+        }
+        .cart-item.removing {
+            opacity: 0;
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+            border: none;
+        }
+        .promo-success {
+            animation: slideDown 0.3s ease forwards;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .mobile-menu {
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+        }
+        .mobile-menu.hidden {
+            transform: translateX(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .mobile-menu.open {
+            transform: translateX(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .overlay {
+            transition: opacity 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-surface text-text antialiased">
+
+    <!-- ============================================ -->
+    <!-- NAVIGATION -->
+    <!-- ============================================ -->
+    <header id="navbar" class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-border">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 lg:h-20">
+                <a href="store.html" class="flex-shrink-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Atelier Home">
+                    <span class="font-serif text-2xl lg:text-3xl font-bold tracking-[0.2em] text-primary">ATELIER</span>
+                </a>
+                <nav class="hidden lg:flex items-center space-x-10" aria-label="Main navigation">
+                    <a href="store.html" class="text-sm font-medium tracking-wider uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">New In</a>
+                    <a href="store.html" class="text-sm font-medium tracking-wider uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">Women</a>
+                    <a href="store.html" class="text-sm font-medium tracking-wider uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">Men</a>
+                    <a href="store.html" class="text-sm font-medium tracking-wider uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">Accessories</a>
+                    <a href="store.html" class="text-sm font-medium tracking-wider uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5">Sale</a>
+                </nav>
+                <div class="flex items-center space-x-4 lg:space-x-6">
+                    <button class="text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded p-1" aria-label="Search">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" stroke-linecap="round"/></svg>
+                    </button>
+                    <a href="#" class="hidden sm:block text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded p-1" aria-label="Account">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </a>
+                    <a href="#" class="hidden sm:block text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded p-1" aria-label="Wishlist">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </a>
+                    <a href="cart.html" class="relative text-primary hover:text-cta transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded p-1" aria-label="Shopping bag">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <span id="cart-badge" class="absolute -top-1 -right-1 w-4 h-4 bg-cta text-white text-[10px] font-semibold rounded-full flex items-center justify-center">3</span>
+                    </a>
+                    <button id="mobile-menu-btn" class="lg:hidden text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded p-1" aria-label="Open menu" aria-expanded="false">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-overlay" class="overlay fixed inset-0 z-50 bg-black/40 opacity-0 pointer-events-none hidden"></div>
+
+    <!-- Mobile Menu Panel -->
+    <div id="mobile-menu" class="mobile-menu hidden fixed top-0 right-0 bottom-0 z-50 w-80 max-w-[85vw] bg-white shadow-2xl">
+        <div class="flex items-center justify-between p-6 border-b border-border">
+            <span class="font-serif text-xl font-bold tracking-[0.15em] text-primary">ATELIER</span>
+            <button id="mobile-menu-close" class="text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded p-1" aria-label="Close menu">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+        </div>
+        <nav class="p-6 space-y-5" aria-label="Mobile navigation">
+            <a href="store.html" class="block text-base font-medium tracking-wider uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-1">New In</a>
+            <a href="store.html" class="block text-base font-medium tracking-wider uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-1">Women</a>
+            <a href="store.html" class="block text-base font-medium tracking-wider uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-1">Men</a>
+            <a href="store.html" class="block text-base font-medium tracking-wider uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-1">Accessories</a>
+            <a href="store.html" class="block text-base font-medium tracking-wider uppercase text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-1">Sale</a>
+            <div class="pt-4 border-t border-border space-y-5">
+                <a href="#" class="flex items-center gap-3 text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span class="text-sm font-medium tracking-wider uppercase">Account</span>
+                </a>
+                <a href="#" class="flex items-center gap-3 text-secondary hover:text-primary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span class="text-sm font-medium tracking-wider uppercase">Wishlist</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Spacer for fixed nav -->
+    <div class="h-16 lg:h-20"></div>
+
+    <!-- ============================================ -->
+    <!-- PAGE HEADER -->
+    <!-- ============================================ -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6 sm:pt-14 sm:pb-8">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+            <div>
+                <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-primary">Shopping Bag</h1>
+                <p id="item-count-text" class="mt-1 text-sm text-muted font-light tracking-wide">3 items</p>
+            </div>
+            <a href="store.html" class="inline-flex items-center gap-2 text-sm font-medium text-secondary hover:text-cta transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-1 py-0.5 group">
+                <svg class="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Continue Shopping
+            </a>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- CART LAYOUT -->
+    <!-- ============================================ -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-20">
+        <div class="lg:grid lg:grid-cols-[1fr_380px] lg:gap-12 xl:gap-16">
+
+            <!-- ======= LEFT: Cart Items ======= -->
+            <div id="cart-items">
+
+                <!-- Cart Item 1 -->
+                <div class="cart-item py-6 border-b border-border group" data-item="1" data-price="485.00" data-name="Wool Blend Overcoat">
+                    <div class="flex gap-4 sm:gap-6">
+                        <a href="product.html" class="flex-shrink-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-xl overflow-hidden" aria-label="View Wool Blend Overcoat">
+                            <img src="https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=200&h=250&fit=crop&q=80"
+                                 alt="Wool Blend Overcoat in Black"
+                                 class="w-24 h-30 sm:w-32 sm:h-40 object-cover rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
+                                 loading="lazy" width="200" height="250">
+                        </a>
+                        <div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:justify-between gap-4">
+                            <div class="flex-1 min-w-0">
+                                <a href="product.html" class="font-serif text-lg sm:text-xl font-semibold text-primary hover:text-cta transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded leading-tight">
+                                    Wool Blend Overcoat
+                                </a>
+                                <div class="mt-2 space-y-0.5">
+                                    <p class="text-xs sm:text-sm text-muted">Color: <span class="text-secondary font-medium">Black</span></p>
+                                    <p class="text-xs sm:text-sm text-muted">Size: <span class="text-secondary font-medium">M</span></p>
+                                </div>
+                                <p class="mt-2 text-base font-semibold text-primary sm:hidden">$485.00</p>
+                                <div class="mt-3 flex items-center gap-4 sm:hidden">
+                                    <div class="qty-stepper inline-flex items-center border border-border rounded-lg overflow-hidden">
+                                        <button class="qty-minus w-8 h-8 flex items-center justify-center text-secondary hover:text-primary hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" aria-label="Decrease quantity">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round"/></svg>
+                                        </button>
+                                        <input type="number" class="qty-input w-10 h-8 text-center text-sm font-medium text-primary border-x border-border bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-cta" value="1" min="1" max="10" aria-label="Quantity">
+                                        <button class="qty-plus w-8 h-8 flex items-center justify-center text-secondary hover:text-primary hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" aria-label="Increase quantity">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+                                        </button>
+                                    </div>
+                                    <button class="remove-btn text-muted hover:text-danger transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded p-1" aria-label="Remove Wool Blend Overcoat">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </button>
+                                </div>
+                                <button class="wishlist-btn mt-3 inline-flex items-center gap-1.5 text-xs text-muted hover:text-cta transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5 py-0.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Move to Wishlist
+                                </button>
+                            </div>
+                            <div class="hidden sm:flex flex-col items-end justify-between flex-shrink-0 sm:min-w-[160px]">
+                                <p class="text-base font-semibold text-primary">$485.00</p>
+                                <div class="qty-stepper inline-flex items-center border border-border rounded-lg overflow-hidden">
+                                    <button class="qty-minus w-9 h-9 flex items-center justify-center text-secondary hover:text-primary hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" aria-label="Decrease quantity">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round"/></svg>
+                                    </button>
+                                    <input type="number" class="qty-input w-12 h-9 text-center text-sm font-medium text-primary border-x border-border bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-cta" value="1" min="1" max="10" aria-label="Quantity">
+                                    <button class="qty-plus w-9 h-9 flex items-center justify-center text-secondary hover:text-primary hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" aria-label="Increase quantity">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+                                    </button>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-muted">Subtotal:</span>
+                                    <span class="item-subtotal text-sm font-semibold text-primary">$485.00</span>
+                                </div>
+                                <button class="remove-btn inline-flex items-center gap-1.5 text-xs text-muted hover:text-danger transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5 py-0.5" aria-label="Remove Wool Blend Overcoat">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cart Item 2 -->
+                <div class="cart-item py-6 border-b border-border group" data-item="2" data-price="320.00" data-name="Silk Midi Dress">
+                    <div class="flex gap-4 sm:gap-6">
+                        <a href="product.html" class="flex-shrink-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-xl overflow-hidden" aria-label="View Silk Midi Dress">
+                            <img src="https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=200&h=250&fit=crop&q=80"
+                                 alt="Silk Midi Dress in Ivory"
+                                 class="w-24 h-30 sm:w-32 sm:h-40 object-cover rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
+                                 loading="lazy" width="200" height="250">
+                        </a>
+                        <div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:justify-between gap-4">
+                            <div class="flex-1 min-w-0">
+                                <a href="product.html" class="font-serif text-lg sm:text-xl font-semibold text-primary hover:text-cta transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded leading-tight">
+                                    Silk Midi Dress
+                                </a>
+                                <div class="mt-2 space-y-0.5">
+                                    <p class="text-xs sm:text-sm text-muted">Color: <span class="text-secondary font-medium">Ivory</span></p>
+                                    <p class="text-xs sm:text-sm text-muted">Size: <span class="text-secondary font-medium">S</span></p>
+                                </div>
+                                <p class="mt-2 text-base font-semibold text-primary sm:hidden">$320.00</p>
+                                <div class="mt-3 flex items-center gap-4 sm:hidden">
+                                    <div class="qty-stepper inline-flex items-center border border-border rounded-lg overflow-hidden">
+                                        <button class="qty-minus w-8 h-8 flex items-center justify-center text-secondary hover:text-primary hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" aria-label="Decrease quantity"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round"/></svg></button>
+                                        <input type="number" class="qty-input w-10 h-8 text-center text-sm font-medium text-primary border-x border-border bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-cta" value="1" min="1" max="10" aria-label="Quantity">
+                                        <button class="qty-plus w-8 h-8 flex items-center justify-center text-secondary hover:text-primary hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" aria-label="Increase quantity"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></button>
+                                    </div>
+                                    <button class="remove-btn text-muted hover:text-danger transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded p-1" aria-label="Remove Silk Midi Dress">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </button>
+                                </div>
+                                <button class="wishlist-btn mt-3 inline-flex items-center gap-1.5 text-xs text-muted hover:text-cta transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5 py-0.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Move to Wishlist
+                                </button>
+                            </div>
+                            <div class="hidden sm:flex flex-col items-end justify-between flex-shrink-0 sm:min-w-[160px]">
+                                <p class="text-base font-semibold text-primary">$320.00</p>
+                                <div class="qty-stepper inline-flex items-center border border-border rounded-lg overflow-hidden">
+                                    <button class="qty-minus w-9 h-9 flex items-center justify-center text-secondary hover:text-primary hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" aria-label="Decrease quantity"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round"/></svg></button>
+                                    <input type="number" class="qty-input w-12 h-9 text-center text-sm font-medium text-primary border-x border-border bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-cta" value="1" min="1" max="10" aria-label="Quantity">
+                                    <button class="qty-plus w-9 h-9 flex items-center justify-center text-secondary hover:text-primary hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" aria-label="Increase quantity"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></button>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-muted">Subtotal:</span>
+                                    <span class="item-subtotal text-sm font-semibold text-primary">$320.00</span>
+                                </div>
+                                <button class="remove-btn inline-flex items-center gap-1.5 text-xs text-muted hover:text-danger transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5 py-0.5" aria-label="Remove Silk Midi Dress">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cart Item 3 -->
+                <div class="cart-item py-6 border-b border-border group" data-item="3" data-price="275.00" data-name="Minimalist Watch">
+                    <div class="flex gap-4 sm:gap-6">
+                        <a href="product.html" class="flex-shrink-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-xl overflow-hidden" aria-label="View Minimalist Watch">
+                            <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&h=250&fit=crop&q=80"
+                                 alt="Minimalist Watch in Silver"
+                                 class="w-24 h-30 sm:w-32 sm:h-40 object-cover rounded-xl transition-transform duration-300 group-hover:scale-[1.02]"
+                                 loading="lazy" width="200" height="250">
+                        </a>
+                        <div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:justify-between gap-4">
+                            <div class="flex-1 min-w-0">
+                                <a href="product.html" class="font-serif text-lg sm:text-xl font-semibold text-primary hover:text-cta transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded leading-tight">
+                                    Minimalist Watch
+                                </a>
+                                <div class="mt-2 space-y-0.5">
+                                    <p class="text-xs sm:text-sm text-muted">Color: <span class="text-secondary font-medium">Silver</span></p>
+                                    <p class="text-xs sm:text-sm text-muted">Size: <span class="text-secondary font-medium">One Size</span></p>
+                                </div>
+                                <p class="mt-2 text-base font-semibold text-primary sm:hidden">$275.00</p>
+                                <div class="mt-3 flex items-center gap-4 sm:hidden">
+                                    <div class="qty-stepper inline-flex items-center border border-border rounded-lg overflow-hidden">
+                                        <button class="qty-minus w-8 h-8 flex items-center justify-center text-secondary hover:text-primary hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" aria-label="Decrease quantity"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round"/></svg></button>
+                                        <input type="number" class="qty-input w-10 h-8 text-center text-sm font-medium text-primary border-x border-border bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-cta" value="1" min="1" max="10" aria-label="Quantity">
+                                        <button class="qty-plus w-8 h-8 flex items-center justify-center text-secondary hover:text-primary hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" aria-label="Increase quantity"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></button>
+                                    </div>
+                                    <button class="remove-btn text-muted hover:text-danger transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded p-1" aria-label="Remove Minimalist Watch">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </button>
+                                </div>
+                                <button class="wishlist-btn mt-3 inline-flex items-center gap-1.5 text-xs text-muted hover:text-cta transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5 py-0.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Move to Wishlist
+                                </button>
+                            </div>
+                            <div class="hidden sm:flex flex-col items-end justify-between flex-shrink-0 sm:min-w-[160px]">
+                                <p class="text-base font-semibold text-primary">$275.00</p>
+                                <div class="qty-stepper inline-flex items-center border border-border rounded-lg overflow-hidden">
+                                    <button class="qty-minus w-9 h-9 flex items-center justify-center text-secondary hover:text-primary hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" aria-label="Decrease quantity"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14" stroke-linecap="round"/></svg></button>
+                                    <input type="number" class="qty-input w-12 h-9 text-center text-sm font-medium text-primary border-x border-border bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-cta" value="1" min="1" max="10" aria-label="Quantity">
+                                    <button class="qty-plus w-9 h-9 flex items-center justify-center text-secondary hover:text-primary hover:bg-gray-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none" aria-label="Increase quantity"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></button>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-muted">Subtotal:</span>
+                                    <span class="item-subtotal text-sm font-semibold text-primary">$275.00</span>
+                                </div>
+                                <button class="remove-btn inline-flex items-center gap-1.5 text-xs text-muted hover:text-danger transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded px-0.5 py-0.5" aria-label="Remove Minimalist Watch">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty Cart State (hidden by default) -->
+                <div id="empty-cart" class="hidden py-20 text-center">
+                    <svg class="w-16 h-16 mx-auto text-border-dark mb-6" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><path d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <h2 class="font-serif text-2xl font-semibold text-primary mb-2">Your bag is empty</h2>
+                    <p class="text-sm text-muted mb-8">Discover our curated collection and find something you love.</p>
+                    <a href="store.html" class="inline-flex items-center gap-2 px-8 py-3 bg-primary text-white text-sm font-semibold tracking-wider uppercase rounded-lg hover:bg-secondary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none">
+                        Start Shopping
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- ======= RIGHT: Order Summary ======= -->
+            <div id="order-summary-wrapper" class="mt-8 lg:mt-0">
+                <div class="lg:sticky lg:top-28">
+                    <div class="bg-white rounded-2xl border border-border p-6 sm:p-8 shadow-sm">
+                        <h2 class="font-serif text-2xl font-semibold text-primary mb-6">Order Summary</h2>
+
+                        <div class="space-y-3 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-muted">Subtotal</span>
+                                <span id="summary-subtotal" class="font-medium text-primary">$1,080.00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-muted">Shipping</span>
+                                <span class="font-medium text-success">Free</span>
+                            </div>
+                            <p class="text-xs text-muted">Free shipping on orders over $200</p>
+                            <div class="flex justify-between">
+                                <span class="text-muted">Estimated Tax</span>
+                                <span id="summary-tax" class="font-medium text-primary">$86.40</span>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-border my-5"></div>
+
+                        <!-- Promo Code -->
+                        <div id="promo-section">
+                            <label for="promo-input" class="block text-xs font-semibold tracking-wider uppercase text-secondary mb-2">Promo Code</label>
+                            <div class="flex gap-2">
+                                <input id="promo-input" type="text" placeholder="Enter code" class="flex-1 h-10 px-3 text-sm border border-border rounded-lg bg-transparent text-primary placeholder:text-muted/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-cta transition-shadow" autocomplete="off">
+                                <button id="promo-apply-btn" class="h-10 px-5 text-xs font-semibold tracking-wider uppercase bg-primary text-white rounded-lg hover:bg-secondary transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none">
+                                    Apply
+                                </button>
+                            </div>
+                            <div id="promo-success" class="hidden mt-3 promo-success">
+                                <div class="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+                                    <svg class="w-4 h-4 text-success flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    <span class="text-xs font-medium text-green-800">WELCOME10 applied -- 10% off</span>
+                                    <button id="promo-remove" class="ml-auto text-green-600 hover:text-green-800 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Remove promo code">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="promo-error" class="hidden mt-2">
+                                <p class="text-xs text-danger">Invalid promo code. Please try again.</p>
+                            </div>
+                        </div>
+
+                        <!-- Discount line (hidden by default) -->
+                        <div id="discount-line" class="hidden mt-4">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-success font-medium">Discount (10%)</span>
+                                <span id="summary-discount" class="font-medium text-success">-$108.00</span>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-border my-5"></div>
+
+                        <!-- Total -->
+                        <div class="flex justify-between items-center mb-6">
+                            <span class="text-base font-semibold text-primary">Total</span>
+                            <span id="summary-total" class="text-2xl font-bold text-primary font-sans">$1,166.40</span>
+                        </div>
+
+                        <!-- Checkout Button -->
+                        <a href="checkout.html" id="checkout-btn" class="flex items-center justify-center gap-2 w-full h-14 bg-cta text-white text-sm font-semibold tracking-widest uppercase rounded-xl hover:bg-cta-hover transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-cta focus-visible:outline-none shadow-lg shadow-cta/20">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Proceed to Checkout
+                        </a>
+
+                        <!-- Payment Icons -->
+                        <div class="mt-5 flex items-center justify-center gap-3">
+                            <svg class="h-6 w-auto text-muted/50" viewBox="0 0 48 32" fill="currentColor"><rect width="48" height="32" rx="4" fill="#F5F5F4" stroke="#D6D3D1"/><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-size="10" font-weight="700" fill="#1A1F71" font-family="sans-serif">VISA</text></svg>
+                            <svg class="h-6 w-auto" viewBox="0 0 48 32"><rect width="48" height="32" rx="4" fill="#F5F5F4" stroke="#D6D3D1"/><circle cx="20" cy="16" r="7" fill="#EB001B" opacity="0.8"/><circle cx="28" cy="16" r="7" fill="#F79E1B" opacity="0.8"/></svg>
+                            <svg class="h-6 w-auto" viewBox="0 0 48 32"><rect width="48" height="32" rx="4" fill="#006FCF"/><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-size="7" font-weight="700" fill="white" font-family="sans-serif">AMEX</text></svg>
+                            <svg class="h-6 w-auto" viewBox="0 0 48 32"><rect width="48" height="32" rx="4" fill="#F5F5F4" stroke="#D6D3D1"/><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-size="7" font-weight="700" fill="#003087" font-family="sans-serif">PayPal</text></svg>
+                        </div>
+
+                        <!-- Trust Badges -->
+                        <div class="mt-5 flex items-center justify-center gap-6 text-muted">
+                            <div class="flex items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                <span class="text-xs font-medium">Secure Checkout</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                <span class="text-xs font-medium">Free Returns</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- YOU MAY ALSO LIKE -->
+    <!-- ============================================ -->
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 sm:pb-28">
+        <div class="text-center mb-10">
+            <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-primary">You May Also Like</h2>
+            <p class="mt-2 text-sm text-muted">Curated selections to complement your style</p>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <a href="product.html" class="group cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-xl">
+                <div class="relative overflow-hidden rounded-xl bg-white border border-border aspect-[3/4]">
+                    <img src="https://images.unsplash.com/photo-1601924994987-69e26d50dc64?w=400&h=500&fit=crop&q=80" alt="Cashmere Scarf" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" width="400" height="500">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                <div class="mt-3 px-0.5">
+                    <h3 class="font-serif text-base sm:text-lg font-semibold text-primary group-hover:text-cta transition-colors">Cashmere Scarf</h3>
+                    <p class="mt-0.5 text-sm font-medium text-secondary">$195</p>
+                </div>
+            </a>
+
+            <a href="product.html" class="group cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-xl">
+                <div class="relative overflow-hidden rounded-xl bg-white border border-border aspect-[3/4]">
+                    <img src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&h=500&fit=crop&q=80" alt="Tailored Blazer" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" width="400" height="500">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                <div class="mt-3 px-0.5">
+                    <h3 class="font-serif text-base sm:text-lg font-semibold text-primary group-hover:text-cta transition-colors">Tailored Blazer</h3>
+                    <p class="mt-0.5 text-sm font-medium text-secondary">$550</p>
+                </div>
+            </a>
+
+            <a href="product.html" class="group cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-xl">
+                <div class="relative overflow-hidden rounded-xl bg-white border border-border aspect-[3/4]">
+                    <img src="https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=500&fit=crop&q=80" alt="Leather Sneakers" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" width="400" height="500">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                <div class="mt-3 px-0.5">
+                    <h3 class="font-serif text-base sm:text-lg font-semibold text-primary group-hover:text-cta transition-colors">Leather Sneakers</h3>
+                    <p class="mt-0.5 text-sm font-medium text-secondary">$245</p>
+                </div>
+            </a>
+
+            <a href="product.html" class="group cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded-xl">
+                <div class="relative overflow-hidden rounded-xl bg-white border border-border aspect-[3/4]">
+                    <img src="https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400&h=500&fit=crop&q=80" alt="Gold Pendant" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" width="400" height="500">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                <div class="mt-3 px-0.5">
+                    <h3 class="font-serif text-base sm:text-lg font-semibold text-primary group-hover:text-cta transition-colors">Gold Pendant</h3>
+                    <p class="mt-0.5 text-sm font-medium text-secondary">$180</p>
+                </div>
+            </a>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- FOOTER -->
+    <!-- ============================================ -->
+    <footer class="bg-primary text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
+                <div class="col-span-2 md:col-span-1">
+                    <span class="font-serif text-2xl font-bold tracking-[0.2em]">ATELIER</span>
+                    <p class="mt-4 text-sm text-white/60 leading-relaxed max-w-xs">Curating timeless elegance for the modern individual. Crafted with intention, worn with confidence.</p>
+                    <div class="mt-6 flex items-center gap-4">
+                        <a href="#" class="text-white/50 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Instagram">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                        </a>
+                        <a href="#" class="text-white/50 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Pinterest">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.372 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 01.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/></svg>
+                        </a>
+                        <a href="#" class="text-white/50 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded" aria-label="Twitter">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-xs font-semibold tracking-widest uppercase text-white/40 mb-4">Shop</h3>
+                    <ul class="space-y-3">
+                        <li><a href="store.html" class="text-sm text-white/70 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">New Arrivals</a></li>
+                        <li><a href="store.html" class="text-sm text-white/70 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Women</a></li>
+                        <li><a href="store.html" class="text-sm text-white/70 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Men</a></li>
+                        <li><a href="store.html" class="text-sm text-white/70 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Accessories</a></li>
+                        <li><a href="store.html" class="text-sm text-white/70 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Sale</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-xs font-semibold tracking-widest uppercase text-white/40 mb-4">Company</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-sm text-white/70 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">About Us</a></li>
+                        <li><a href="#" class="text-sm text-white/70 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Sustainability</a></li>
+                        <li><a href="#" class="text-sm text-white/70 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Careers</a></li>
+                        <li><a href="#" class="text-sm text-white/70 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Press</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-xs font-semibold tracking-widest uppercase text-white/40 mb-4">Help</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-sm text-white/70 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Contact Us</a></li>
+                        <li><a href="#" class="text-sm text-white/70 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Shipping & Returns</a></li>
+                        <li><a href="#" class="text-sm text-white/70 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Size Guide</a></li>
+                        <li><a href="#" class="text-sm text-white/70 hover:text-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">FAQ</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p class="text-xs text-white/40">2026 Atelier. All rights reserved.</p>
+                <div class="flex items-center gap-6">
+                    <a href="#" class="text-xs text-white/40 hover:text-white/70 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Privacy Policy</a>
+                    <a href="#" class="text-xs text-white/40 hover:text-white/70 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Terms of Service</a>
+                    <a href="#" class="text-xs text-white/40 hover:text-white/70 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-cta focus-visible:outline-none rounded">Cookies</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================ -->
+    <script>
+    (function() {
+        'use strict';
+
+        var TAX_RATE = 0.08;
+        var promoApplied = false;
+        var PROMO_CODE = 'WELCOME10';
+        var PROMO_DISCOUNT = 0.10;
+
+        var cartItemsContainer = document.getElementById('cart-items');
+        var emptyCart = document.getElementById('empty-cart');
+        var orderSummaryWrapper = document.getElementById('order-summary-wrapper');
+        var summarySubtotal = document.getElementById('summary-subtotal');
+        var summaryTax = document.getElementById('summary-tax');
+        var summaryTotal = document.getElementById('summary-total');
+        var summaryDiscount = document.getElementById('summary-discount');
+        var discountLine = document.getElementById('discount-line');
+        var itemCountText = document.getElementById('item-count-text');
+        var cartBadge = document.getElementById('cart-badge');
+        var promoInput = document.getElementById('promo-input');
+        var promoApplyBtn = document.getElementById('promo-apply-btn');
+        var promoSuccess = document.getElementById('promo-success');
+        var promoError = document.getElementById('promo-error');
+        var promoRemove = document.getElementById('promo-remove');
+
+        function formatCurrency(amount) {
+            return '$' + amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+
+        function getActiveItems() {
+            return cartItemsContainer.querySelectorAll('.cart-item:not(.removing)');
+        }
+
+        function recalculate() {
+            var items = getActiveItems();
+            var subtotal = 0;
+            var totalQty = 0;
+
+            items.forEach(function(item) {
+                var price = parseFloat(item.dataset.price);
+                var inputs = item.querySelectorAll('.qty-input');
+                var qty = parseInt(inputs[0].value) || 1;
+                var itemSubtotal = price * qty;
+                totalQty += qty;
+
+                item.querySelectorAll('.item-subtotal').forEach(function(el) {
+                    el.textContent = formatCurrency(itemSubtotal);
+                });
+
+                subtotal += itemSubtotal;
+            });
+
+            var discount = 0;
+            if (promoApplied) {
+                discount = subtotal * PROMO_DISCOUNT;
+            }
+
+            var taxable = subtotal - discount;
+            var tax = taxable * TAX_RATE;
+            var total = taxable + tax;
+
+            summarySubtotal.textContent = formatCurrency(subtotal);
+            summaryTax.textContent = formatCurrency(tax);
+            summaryTotal.textContent = formatCurrency(total);
+
+            if (promoApplied) {
+                summaryDiscount.textContent = '-' + formatCurrency(discount);
+                discountLine.classList.remove('hidden');
+            } else {
+                discountLine.classList.add('hidden');
+            }
+
+            itemCountText.textContent = totalQty + (totalQty === 1 ? ' item' : ' items');
+            cartBadge.textContent = totalQty;
+
+            if (items.length === 0) {
+                emptyCart.classList.remove('hidden');
+                orderSummaryWrapper.classList.add('hidden');
+            }
+        }
+
+        // Quantity steppers
+        cartItemsContainer.addEventListener('click', function(e) {
+            var minusBtn = e.target.closest('.qty-minus');
+            var plusBtn = e.target.closest('.qty-plus');
+
+            if (minusBtn || plusBtn) {
+                var item = e.target.closest('.cart-item');
+                var inputs = item.querySelectorAll('.qty-input');
+                var val = parseInt(inputs[0].value) || 1;
+
+                if (minusBtn && val > 1) val--;
+                if (plusBtn && val < 10) val++;
+
+                inputs.forEach(function(input) {
+                    input.value = val;
+                });
+
+                recalculate();
+            }
+        });
+
+        cartItemsContainer.addEventListener('change', function(e) {
+            if (e.target.classList.contains('qty-input')) {
+                var item = e.target.closest('.cart-item');
+                var val = parseInt(e.target.value) || 1;
+                if (val < 1) val = 1;
+                if (val > 10) val = 10;
+
+                var inputs = item.querySelectorAll('.qty-input');
+                inputs.forEach(function(input) {
+                    input.value = val;
+                });
+
+                recalculate();
+            }
+        });
+
+        // Remove item
+        cartItemsContainer.addEventListener('click', function(e) {
+            var removeBtn = e.target.closest('.remove-btn');
+            if (!removeBtn) return;
+
+            var item = removeBtn.closest('.cart-item');
+            item.classList.add('removing');
+
+            setTimeout(function() {
+                item.remove();
+                recalculate();
+            }, 500);
+        });
+
+        // Move to wishlist
+        cartItemsContainer.addEventListener('click', function(e) {
+            var wishBtn = e.target.closest('.wishlist-btn');
+            if (!wishBtn) return;
+
+            // Create new content safely using DOM methods
+            wishBtn.textContent = '';
+            var heartSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            heartSvg.setAttribute('class', 'w-3.5 h-3.5');
+            heartSvg.setAttribute('fill', 'currentColor');
+            heartSvg.setAttribute('stroke', 'currentColor');
+            heartSvg.setAttribute('stroke-width', '1.5');
+            heartSvg.setAttribute('viewBox', '0 0 24 24');
+            var heartPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            heartPath.setAttribute('d', 'M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z');
+            heartPath.setAttribute('stroke-linecap', 'round');
+            heartPath.setAttribute('stroke-linejoin', 'round');
+            heartSvg.appendChild(heartPath);
+            wishBtn.appendChild(heartSvg);
+            wishBtn.appendChild(document.createTextNode(' Added to Wishlist'));
+
+            wishBtn.classList.remove('text-muted', 'hover:text-cta');
+            wishBtn.classList.add('text-cta');
+            wishBtn.disabled = true;
+        });
+
+        // Promo code
+        function applyPromo() {
+            var code = promoInput.value.trim().toUpperCase();
+            promoError.classList.add('hidden');
+
+            if (code === PROMO_CODE) {
+                promoApplied = true;
+                promoSuccess.classList.remove('hidden');
+                promoInput.disabled = true;
+                promoApplyBtn.disabled = true;
+                promoApplyBtn.classList.add('opacity-50');
+                promoApplyBtn.classList.remove('cursor-pointer');
+                promoApplyBtn.classList.add('cursor-not-allowed');
+                recalculate();
+            } else if (code.length > 0) {
+                promoError.classList.remove('hidden');
+            }
+        }
+
+        promoApplyBtn.addEventListener('click', applyPromo);
+        promoInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                applyPromo();
+            }
+        });
+
+        promoRemove.addEventListener('click', function() {
+            promoApplied = false;
+            promoSuccess.classList.add('hidden');
+            promoInput.disabled = false;
+            promoInput.value = '';
+            promoApplyBtn.disabled = false;
+            promoApplyBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            promoApplyBtn.classList.add('cursor-pointer');
+            recalculate();
+        });
+
+        // Mobile menu
+        var mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        var mobileMenu = document.getElementById('mobile-menu');
+        var mobileMenuClose = document.getElementById('mobile-menu-close');
+        var mobileOverlay = document.getElementById('mobile-overlay');
+
+        function openMobileMenu() {
+            mobileOverlay.classList.remove('hidden');
+            requestAnimationFrame(function() {
+                mobileOverlay.classList.add('pointer-events-auto');
+                mobileOverlay.style.opacity = '1';
+                mobileMenu.classList.remove('hidden');
+                requestAnimationFrame(function() {
+                    mobileMenu.classList.add('open');
+                });
+            });
+            mobileMenuBtn.setAttribute('aria-expanded', 'true');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeMobileMenu() {
+            mobileMenu.classList.remove('open');
+            mobileOverlay.style.opacity = '0';
+            mobileOverlay.classList.remove('pointer-events-auto');
+            mobileMenuBtn.setAttribute('aria-expanded', 'false');
+            document.body.style.overflow = '';
+            setTimeout(function() {
+                mobileMenu.classList.add('hidden');
+                mobileOverlay.classList.add('hidden');
+            }, 350);
+        }
+
+        mobileMenuBtn.addEventListener('click', openMobileMenu);
+        mobileMenuClose.addEventListener('click', closeMobileMenu);
+        mobileOverlay.addEventListener('click', closeMobileMenu);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeMobileMenu();
+        });
+
+        // Initial calculation
+        recalculate();
+
+    })();
+    </script>
+
+</body>
+</html>
