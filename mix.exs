@@ -83,6 +83,11 @@ defmodule Emakola.MixProject do
       # HTTP client (used by webhook delivery, payment gateways)
       {:req, "~> 0.5"},
 
+      # S3-compatible file storage
+      {:ex_aws, "~> 2.5"},
+      {:ex_aws_s3, "~> 2.5"},
+      {:sweet_xml, "~> 0.7"},
+
       # Testing & Quality
       {:mox, "~> 1.0", only: :test},
       {:ex_machina, "~> 2.8", only: :test},

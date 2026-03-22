@@ -97,7 +97,8 @@ defmodule Emakola.Repo.Migrations.CreateCategories do
             name: "categories_store_id_fkey",
             type: :uuid,
             prefix: "public"
-          ), null: false
+          ),
+          null: false
 
       add :name, :text, null: false
       add :slug, :text, null: false

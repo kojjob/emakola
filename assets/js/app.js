@@ -22,14 +22,18 @@ import "phoenix_html"
 // Establish Phoenix Socket and LiveView configuration.
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
-import {hooks as colocatedHooks} from "phoenix-colocated/emakola"
 import topbar from "../vendor/topbar"
+import ThemeToggle from "./hooks/theme_toggle"
+import Analytics from "./hooks/analytics"
+import ScrollReveal from "./hooks/scroll_reveal"
+import AutoDismiss from "./hooks/auto_dismiss"
+import ThemeSettings from "./hooks/theme_settings"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: {ThemeToggle, Analytics, ScrollReveal, AutoDismiss, ThemeSettings},
 })
 
 // Show progress bar on live navigation and form submits

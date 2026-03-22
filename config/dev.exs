@@ -1,6 +1,6 @@
 import Config
 
-# Configure your database
+# Database
 config :emakola, Emakola.Repo,
   username: "postgres",
   password: "postgres",
@@ -23,7 +23,7 @@ config :emakola, EmakolaWeb.Endpoint,
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
-  secret_key_base: "68lIsxe7vuEzsWuwbfRNA/n/nVWiMT4XE5V3apSiO+F3yuXU68uBou0ZFM3e9dZy",
+  secret_key_base: "BTgCVIeHS6oYm8sR2iE60Ok0MSsYhlE80chog5RPe82cm5V2NRD6i6mbY4pjMgtX",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:emakola, ~w(--sourcemap=inline --watch)]},
     tailwind: {Tailwind, :install_and_run, [:emakola, ~w(--watch)]}
@@ -87,3 +87,6 @@ config :phoenix_live_view,
   debug_attributes: true,
   # Enable helpful, but potentially expensive runtime checks
   enable_expensive_runtime_checks: true
+
+# Disable swoosh api client as it is only required for production adapters.
+config :swoosh, :api_client, false
