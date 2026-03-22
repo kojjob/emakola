@@ -1,0 +1,11 @@
+defmodule Emakola.Payments.Gateway do
+  @moduledoc """
+  Behaviour for payment gateway integrations (Paystack, Hubtel, etc.)
+  All amounts are in minor units (pesewas for GHS, kobo for NGN).
+  """
+
+  @callback initiate_payment(map()) :: {:ok, map()} | {:error, term()}
+  @callback verify_payment(String.t()) :: {:ok, map()} | {:error, term()}
+  @callback process_refund(String.t(), integer()) :: {:ok, map()} | {:error, term()}
+  @callback verify_webhook(binary(), map()) :: :ok | {:error, :invalid_signature}
+end

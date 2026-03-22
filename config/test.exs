@@ -1,10 +1,6 @@
 import Config
 
-# Configure your database
-#
-# The MIX_TEST_PARTITION environment variable can be used
-# to provide built-in test partitioning in CI environment.
-# Run `mix help test` for more information.
+# Database
 config :emakola, Emakola.Repo,
   username: "postgres",
   password: "postgres",
@@ -13,12 +9,21 @@ config :emakola, Emakola.Repo,
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2
 
+# Oban: manual mode for assert_enqueued/refute_enqueued in tests
+config :emakola, Oban, testing: :manual
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :emakola, EmakolaWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
-  secret_key_base: "1FDhG5Zg179Nyrb92wwWJJI+TUNg00vO8dA6QfuMws6B5kXNQLtKi9z1ggJdV6IS",
+  secret_key_base: "/SfRLXTZcRbLKBro322kKvAkTKdW9hYWqe0hC3q4S0fj7P+6ziaajSPq5dq1I/hu",
   server: false
+
+# In test we don't send emails
+config :emakola, Emakola.Mailer, adapter: Swoosh.Adapters.Test
+
+# Disable swoosh api client as it is only required for production adapters
+config :swoosh, :api_client, false
 
 # Print only warnings and errors during test
 config :logger, level: :warning

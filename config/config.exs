@@ -8,7 +8,7 @@
 import Config
 
 config :emakola,
-  ecto_repos: [Emakola.Repo],
+  env: config_env(),
   generators: [timestamp_type: :utc_datetime]
 
 # Configure the endpoint
@@ -20,7 +20,16 @@ config :emakola, EmakolaWeb.Endpoint,
     layout: false
   ],
   pubsub_server: Emakola.PubSub,
-  live_view: [signing_salt: "e8wpn8Nz"]
+  live_view: [signing_salt: "MnhgwL4O"]
+
+# Configure the mailer
+#
+# By default it uses the "Local" adapter which stores the emails
+# locally. You can see the emails in your browser, at "/dev/mailbox".
+#
+# For production it's recommended to configure a different adapter
+# at the `config/runtime.exs`.
+config :emakola, Emakola.Mailer, adapter: Swoosh.Adapters.Local
 
 # Configure esbuild (the version is required)
 config :esbuild,
@@ -50,6 +59,58 @@ config :logger, :default_formatter,
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
+
+# Ash Framework
+config :emakola,
+  ash_domains: [
+    Emakola.Accounts,
+    Emakola.Billing,
+    Emakola.Notifications,
+    Emakola.Audit,
+    Emakola.FeatureFlags,
+    Emakola.Webhooks,
+    Emakola.Analytics,
+    Emakola.Catalog,
+    Emakola.Orders,
+    Emakola.Customers,
+    Emakola.Payments
+  ]
+
+# Token signing secret — loaded from env var; fallback only for dev/test
+config :emakola,
+  token_signing_secret:
+    System.get_env("TOKEN_SIGNING_SECRET", "dev-only-not-for-production-at-least-32-bytes!!")
+
+# Database
+config :emakola, Emakola.Repo, migration_primary_key: [name: :id, type: :binary_id]
+
+config :emakola,
+  ecto_repos: [Emakola.Repo]
+
+# Oban
+config :emakola, Oban,
+  engine: Oban.Engines.Basic,
+  queues: [
+    default: 10,
+    mailers: 20,
+    billing: 5,
+    notifications: 5,
+    webhooks: 5,
+    images: 3,
+    orders: 5
+  ],
+  repo: Emakola.Repo
+
+# Demo mode
+config :emakola, :demo_mode, System.get_env("DEMO_MODE") == "true"
+
+# Hammer rate limiting (ETS backend)
+config :hammer,
+  backend: {Hammer.Backend.ETS, [expiry_ms: 60_000 * 60 * 4, cleanup_interval_ms: 60_000 * 10]}
+
+# Import branding and plans config
+import_config "branding.exs"
+import_config "plans.exs"
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

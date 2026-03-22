@@ -1,8 +1,13 @@
-defmodule EmakolaWeb.PageControllerTest do
+defmodule EmakolaWeb.LandingPageTest do
   use EmakolaWeb.ConnCase
 
-  test "GET /", %{conn: conn} do
+  test "GET / renders landing page", %{conn: conn} do
     conn = get(conn, ~p"/")
-    assert html_response(conn, 200) =~ "Peace of mind from prototype to production"
+    assert html_response(conn, 200) =~ "Emakola"
+  end
+
+  test "GET /api/health returns ok", %{conn: conn} do
+    conn = get(conn, ~p"/api/health")
+    assert json_response(conn, 200) == %{"status" => "ok"}
   end
 end
