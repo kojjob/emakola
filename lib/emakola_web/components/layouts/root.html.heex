@@ -18,6 +18,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
+    <!-- PWA Support -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0C1F17" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="/images/icons/icon-192.png" />
     <meta
       name="description"
       content={assigns[:meta_description] || "Your online store powered by Emakola"}
@@ -70,6 +76,20 @@
     />
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
+    </script>
+    <script>
+      // Register service worker for PWA support
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function() {
+          navigator.serviceWorker.register("/sw.js", { scope: "/" })
+            .then(function(reg) {
+              console.log("Service worker registered:", reg.scope);
+            })
+            .catch(function(err) {
+              console.warn("Service worker registration failed:", err);
+            });
+        });
+      }
     </script>
   </head>
   <body>
