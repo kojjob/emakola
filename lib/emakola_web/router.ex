@@ -77,6 +77,10 @@ defmodule EmakolaWeb.Router do
       live "/admin/products/new", Admin.ProductLive.Form, :new
       live "/admin/products/:id/edit", Admin.ProductLive.Form, :edit
       live "/admin/categories", Admin.CategoryLive.Index
+
+      # Merchant admin — order management
+      live "/admin/orders", Admin.OrderLive.Index
+      live "/admin/orders/:id", Admin.OrderLive.Show
     end
 
     live "/onboarding", OnboardingLive
