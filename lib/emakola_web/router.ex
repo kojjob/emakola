@@ -90,6 +90,14 @@ defmodule EmakolaWeb.Router do
       # Store settings & delivery zones
       live "/admin/settings", Admin.SettingsLive
       live "/admin/settings/delivery", Admin.DeliveryLive.Index
+
+      # Marketing
+      live "/admin/campaigns", Admin.CampaignLive.Index
+      live "/admin/discounts", Admin.DiscountLive.Index
+
+      # Analytics
+      live "/admin/reports", Admin.ReportLive.Index
+      live "/admin/revenue", Admin.RevenueLive.Index
     end
 
     live "/onboarding", OnboardingLive
