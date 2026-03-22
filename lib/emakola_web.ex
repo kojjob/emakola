@@ -86,6 +86,7 @@ defmodule EmakolaWeb do
       import Phoenix.HTML
       # Core UI components
       import EmakolaWeb.CoreComponents
+      import EmakolaWeb.SidebarComponents
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS
