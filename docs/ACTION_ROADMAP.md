@@ -1,7 +1,7 @@
 # Emakola — Action Roadmap
 
 > Prioritized implementation plan based on codebase evaluation (March 2026).
-> Last updated: 2026-03-22 — Phases 0 through 1.7 complete.
+> Last updated: 2026-03-22 — Phases 0 through 1.8 complete. 618 tests, 0 failures.
 
 ---
 
@@ -163,7 +163,39 @@
 
 ---
 
-## 📱 Phase 1.8: PWA (MVP Sprint 8)
+## ✅ Phase 1.8: Prototype-Matched UI + Modals (MVP Sprint 8) — COMPLETE
+
+> All admin and storefront pages pixel-matched to design prototypes.
+
+- [x] Dashboard: SVG revenue chart, donut chart, activity feed, KPI cards
+- [x] Products: card grid layout, filter bar, status/stock badges, quick view modal
+- [x] Orders: stat cards, bulk selection, payment method badges, status confirmation modals
+- [x] Customers: KPI cards, segment badges, detail slide-over, add/edit modals
+- [x] Settings: 7-tab layout (General, Profile, Payments, Delivery, Notifications, Team, Billing)
+- [x] Delivery: tracking timeline, rider selection, zone management
+- [x] Categories: tree view with modal add/edit/delete
+- [x] Storefront home: story-style categories, featured hero card, product grid with hover
+- [x] Product detail: image gallery, pill variant selectors, quantity stepper, WhatsApp CTA
+- [x] Product list: sidebar categories, quick-view overlay, search + filters
+- [x] Cart: shopping bag layout, order summary sidebar, trust badges
+- [x] Checkout: 3-step flow (Payment → Details → Confirm), MTN MoMo/Vodafone/Card selection
+- [x] Reusable modal + confirm_modal components (centered, slide-over, destructive)
+- [ ] Campaigns page (matching `emakola-admin-campaigns.html`)
+- [ ] Discounts page (matching `emakola-admin-discounts.html`)
+- [ ] Reports page (matching `emakola-admin-reports.html`)
+- [ ] Revenue page (matching `emakola-admin-revenue.html`)
+- [ ] Customer account page (matching `account.html`)
+- [ ] Wishlist page (matching `wishlist.html`)
+- [ ] Delivery tracking page (matching `emakola-delivery-tracking.html`)
+- [ ] Mobile admin shell (matching `emakola-admin-mobile.html`)
+
+**Design tokens:** Admin: emerald-900 sidebar, slate-50 bg, rounded-2xl cards, font-mono numbers | Storefront: #FAFAF9 bg, #B45309 accent, stone-900 CTAs, WhatsApp #25D366
+
+**Tests:** 618 total passing | **PR:** #17, #19
+
+---
+
+## 📱 Phase 1.9: PWA (MVP Sprint 9)
 
 > App-like experience without Play Store.
 
@@ -204,7 +236,8 @@
 | Phase 1.5 | ✅ Complete | +65 | Paystack, Hubtel, Payment, webhooks |
 | Phase 1.6 | ✅ Complete | +106 | Order admin, notifications, customers |
 | Phase 1.7 | ✅ Complete | +48 | Dashboard, settings, delivery zones |
-| **Total** | **7/8 phases** | **612** | **17 Ash resources, 13 LiveViews** |
+| Phase 1.8 | ✅ Complete | +6 | All pages prototype-matched, modals, checkout |
+| **Total** | **8/9 phases** | **618** | **17 Ash resources, 21 LiveViews** |
 
 ---
 
@@ -219,7 +252,8 @@
                           └─→ ✅ Phase 1.5 (payments)
                                 └─→ ✅ Phase 1.6 (orders)
                                       └─→ ✅ Phase 1.7 (dashboard)
-                                            └─→ ⬜ Phase 1.8 (PWA)
+                                            └─→ ✅ Phase 1.8 (prototype UI + modals)
+                                                  └─→ ⬜ Phase 1.9 (PWA)
 ```
 
 Each phase is a deployable increment. Production hardening runs in parallel throughout.

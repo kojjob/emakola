@@ -1,10 +1,10 @@
 # Emakola — Product Roadmap
 
-> Last updated: 2026-03-22 | Phase 1 MVP: 7 of 8 milestones complete
+> Last updated: 2026-03-22 | Phase 1 MVP: 8 of 9 milestones complete | 618 tests | Phase 2 in progress
 
 ## Phase 1: MVP (Ghana Launch)
 **Goal**: Merchants can create a store, add products, and accept payments from Ghanaian customers.
-**Status**: 🟢 7/8 milestones complete | 618 tests passing | 17 Ash resources | 13 LiveViews
+**Status**: 🟢 8/9 milestones complete | 618 tests passing | 17 Ash resources | 21 LiveViews
 
 ### ✅ Milestone 1.1 — Foundation
 - [x] Phoenix app scaffold with Ash multitenancy
@@ -87,7 +87,32 @@
 - [ ] Revenue time-series with real data (chart currently uses placeholder data)
 - [ ] Percentage change indicators (currently placeholder)
 
-### ⬜ Milestone 1.8 — PWA (Progressive Web App)
+### ✅ Milestone 1.8 — All Pages Prototype-Matched + Modals
+- [x] Dashboard pixel-matched to prototype with SVG charts
+- [x] Products page: card grid, filter bar, status badges, quick view/archive/activate modals
+- [x] Orders page: stat cards, bulk selection, payment badges, status confirmation modals
+- [x] Customers page: KPI cards, segments, detail slide-over, add/edit customer modals
+- [x] Settings page: tabbed layout (7 tabs), delete store confirmation modal
+- [x] Delivery page: tracking timeline, rider selection, zone management modals
+- [x] Categories: tree view with modal add/edit/delete
+- [x] Storefront home: story-style categories, hero card, product grid with hover
+- [x] Product detail: image gallery, pill variant selectors, quantity stepper, WhatsApp CTA
+- [x] Product list: sidebar categories, quick-view overlay, search + filters
+- [x] Cart: shopping bag layout, order summary sidebar, trust badges
+- [x] Checkout: 3-step flow (Payment → Details → Confirm), MTN MoMo/Vodafone/Card
+- [x] Reusable modal component (centered + slide-over), confirm_modal for destructive actions
+
+### 🔄 Milestone 1.9 — Remaining Prototype Pages + Marketing
+- [ ] Campaigns page (matching `emakola-admin-campaigns.html`)
+- [ ] Discounts page (matching `emakola-admin-discounts.html`)
+- [ ] Reports page (matching `emakola-admin-reports.html`)
+- [ ] Revenue page (matching `emakola-admin-revenue.html`)
+- [ ] Customer account page (matching `account.html`)
+- [ ] Wishlist page (matching `wishlist.html`)
+- [ ] Delivery tracking page (matching `emakola-delivery-tracking.html`)
+- [ ] Mobile admin shell (matching `emakola-admin-mobile.html`)
+
+### ⬜ Milestone 1.10 — PWA (Progressive Web App)
 - [ ] Web app manifest (name, icons, theme color)
 - [ ] Service worker for offline storefront caching
 - [ ] "Add to Home Screen" prompt for merchants and customers
@@ -107,10 +132,10 @@
 - [ ] Abandoned cart recovery messages
 - [ ] Customer support chat
 
-### Milestone 2.2 — Marketing Tools
-- [ ] Discount codes & coupons
+### 🔄 Milestone 2.2 — Marketing Tools
+- [ ] Discount codes & coupons (admin UI in progress)
 - [ ] Automatic discounts (buy X get Y, % off)
-- [ ] Campaign management
+- [ ] Campaign management (admin UI in progress)
 - [ ] Abandoned cart recovery (WhatsApp + SMS)
 
 ### Milestone 2.3 — Shipping & Logistics
@@ -121,9 +146,9 @@
 - [ ] Order tracking with live updates
 - [ ] Pickup option (for local merchants)
 
-### Milestone 2.4 — Customer Experience
+### 🔄 Milestone 2.4 — Customer Experience
 - [x] Customer accounts & order history (CustomerLive.Show)
-- [ ] Wishlist / saved items
+- [ ] Wishlist / saved items (storefront UI in progress)
 - [ ] Product reviews & ratings
 - [ ] Recently viewed products
 - [ ] Personalized recommendations (basic)
@@ -204,7 +229,9 @@
 |-------|-------|---------|
 | **Ash Resources** | 17 | Store, Product, Variant, Order, Payment, Customer, DeliveryZone... |
 | **Ash Domains** | 8 | Accounts, Catalog, Orders, Payments, Customers, Shipping, Notifications, Billing |
-| **LiveView Pages** | 13 | Dashboard, Products, Orders, Customers, Settings, Storefront (5 pages) |
+| **LiveView Pages** | 21 | Dashboard, Products (2), Orders (2), Customers (2), Settings, Delivery, Categories, Storefront (6), Checkout, Auth (2), Onboarding, Landing |
 | **Oban Workers** | 5 | ImageProcessor, PaystackWebhook, HubtelWebhook, OrderNotification, WebhookDelivery |
-| **Payment Gateways** | 2 | Paystack, Hubtel |
-| **Tests** | 618 | Unit, integration, edge cases, concurrent, multi-tenant |
+| **Payment Gateways** | 2 | Paystack (card + mobile money), Hubtel (mobile money) |
+| **Design Prototypes** | 27 | All admin + storefront pages designed in HTML |
+| **Modal Components** | 2 | Reusable `modal/1` (centered + slide-over) and `confirm_modal/1` |
+| **Tests** | 618 | Unit, integration, edge cases, concurrent, multi-tenant isolation |
