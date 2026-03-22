@@ -185,25 +185,11 @@ defmodule Emakola.Catalog.Variant do
     end
 
     update :adjust_stock do
-      require_atomic?(false)
       accept([])
 
       argument(:delta, :integer, allow_nil?: false)
 
-      change(fn changeset, _context ->
-        delta = Ash.Changeset.get_argument(changeset, :delta)
-        current = Ash.Changeset.get_data(changeset, :stock_quantity)
-        new_qty = current + delta
-
-        if new_qty < 0 do
-          Ash.Changeset.add_error(changeset,
-            field: :stock_quantity,
-            message: "cannot go below 0 (current: #{current}, delta: #{delta})"
-          )
-        else
-          Ash.Changeset.force_change_attribute(changeset, :stock_quantity, new_qty)
-        end
-      end)
+      change(atomic_update(:stock_quantity, expr(stock_quantity + ^arg(:delta))))
     end
 
     read :low_stock do
