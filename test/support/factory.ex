@@ -101,6 +101,48 @@ defmodule Emakola.Factory do
     |> Ash.create!()
   end
 
+  def create_option_type!(product, store, attrs \\ %{}) do
+    default = %{
+      name: "Option #{System.unique_integer([:positive])}",
+      product_id: product.id,
+      store_id: store.id
+    }
+
+    params = Map.merge(default, Map.new(attrs))
+
+    Emakola.Catalog.OptionType
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!()
+  end
+
+  def create_option_value!(option_type, store, attrs \\ %{}) do
+    default = %{
+      value: "Value #{System.unique_integer([:positive])}",
+      option_type_id: option_type.id,
+      store_id: store.id
+    }
+
+    params = Map.merge(default, Map.new(attrs))
+
+    Emakola.Catalog.OptionValue
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!()
+  end
+
+  def create_variant!(product, store, attrs \\ %{}) do
+    default = %{
+      price: 5000,
+      product_id: product.id,
+      store_id: store.id
+    }
+
+    params = Map.merge(default, Map.new(attrs))
+
+    Emakola.Catalog.Variant
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!()
+  end
+
   # ── Billing (legacy from FounderPad) ──────────────────────────
 
   def create_plan!(attrs \\ %{}) do
