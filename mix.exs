@@ -77,6 +77,9 @@ defmodule Emakola.MixProject do
       # Background jobs
       {:oban, "~> 2.18"},
 
+      # URL-safe slug generation (Unicode-aware)
+      {:slugify, "~> 1.3"},
+
       # Testing & Quality
       {:mox, "~> 1.0", only: :test},
       {:ex_machina, "~> 2.8", only: :test},
