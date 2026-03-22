@@ -12,9 +12,10 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
   - Load more pagination
   """
   use EmakolaWeb, :live_view
+  import EmakolaWeb.StorefrontComponents
 
   alias Emakola.Cart.CartStore
-  alias EmakolaWeb.Helpers.{Currency, StoreResolver}
+  alias EmakolaWeb.Helpers.StoreResolver
 
   require Ash.Query
 
@@ -123,7 +124,7 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-0">
       <%!-- Breadcrumb --%>
       <nav aria-label="Breadcrumb" class="pt-6 pb-4">
         <ol class="flex items-center gap-2 text-xs text-[#475569]">
@@ -299,56 +300,8 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
         </div>
       </div>
     </div>
-    """
-  end
 
-  # -- Components --
-
-  defp product_card(assigns) do
-    ~H"""
-    <a
-      href={"/s/#{@store.slug}/products/#{@product.slug}"}
-      class="group block"
-    >
-      <div class="relative rounded-[16px] overflow-hidden mb-2 bg-[#F1F5F9]">
-        <%= if first_image(@product) do %>
-          <img
-            src={first_image(@product)}
-            alt={@product.title}
-            loading="lazy"
-            class="w-full aspect-[3/4] object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        <% else %>
-          <div class="w-full aspect-[3/4] flex items-center justify-center">
-            <svg
-              class="w-12 h-12 text-[#94A3B8]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1"
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-          </div>
-        <% end %>
-        <%!-- Quick add overlay --%>
-        <div class="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-          <span class="flex items-center justify-center w-full py-2.5 bg-white/95 backdrop-blur-sm rounded-lg text-xs font-semibold text-[#0F172A] tracking-wide shadow-sm">
-            Quick View
-          </span>
-        </div>
-      </div>
-      <p class="text-sm font-medium text-[#0F172A] leading-tight mb-1 truncate group-hover:text-[#B45309] transition-colors">
-        {@product.title}
-      </p>
-      <p class="text-sm font-bold text-[#0F172A]">
-        {Currency.format_price_range(@product.min_price, @product.max_price, @store.currency)}
-      </p>
-    </a>
+    <.bottom_nav store_slug={@store.slug} active_tab={:search} cart_count={@cart_count} />
     """
   end
 
@@ -379,13 +332,5 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
     |> Enum.filter(&(&1.status == :active))
     |> Ash.load!([:min_price, :max_price, :images])
     |> Enum.take(@products_per_page)
-  end
-
-  defp first_image(product) do
-    case product.images do
-      [%{thumbnail_url: url} | _] when is_binary(url) -> url
-      [%{url: url} | _] when is_binary(url) -> url
-      _ -> nil
-    end
   end
 end
