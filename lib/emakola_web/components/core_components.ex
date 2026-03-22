@@ -454,7 +454,251 @@ defmodule EmakolaWeb.CoreComponents do
     """
   end
 
+  @doc """
+  Renders a modal dialog.
+
+  Supports centered modals (default) and slide-over panels from the right.
+
+  ## Examples
+
+      <.modal id="add-category-modal" title="Add Category">
+        <form>...</form>
+      </.modal>
+
+      <.modal id="edit-customer" title="Edit Customer" kind={:slide_over}>
+        <form>...</form>
+      </.modal>
+
+  Trigger with:
+
+      <button phx-click={show_modal("add-category-modal")}>Open</button>
+  """
+  attr :id, :string, required: true
+  attr :title, :string, required: true
+  attr :kind, :atom, default: :centered, values: [:centered, :slide_over]
+  attr :size, :atom, default: :md, values: [:sm, :md, :lg, :xl]
+  attr :on_cancel, JS, default: %JS{}
+  attr :icon, :string, default: nil
+  attr :icon_class, :string, default: "text-on-surface-variant"
+
+  slot :inner_block, required: true
+  slot :footer
+
+  def modal(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      phx-mounted={@kind == :centered && JS.hide(to: "##{@id}")}
+      phx-remove={hide_modal(@id)}
+      class="hidden relative z-50"
+      data-cancel={JS.exec(@on_cancel, "phx-remove")}
+    >
+      <%!-- Backdrop --%>
+      <div
+        id={"#{@id}-bg"}
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+        aria-hidden="true"
+      />
+
+      <div
+        class={[
+          "fixed inset-0 overflow-y-auto",
+          @kind == :slide_over && "flex justify-end"
+        ]}
+        aria-labelledby={"#{@id}-title"}
+        role="dialog"
+        aria-modal="true"
+        phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")}
+        phx-key="escape"
+        phx-click-away={JS.exec("data-cancel", to: "##{@id}")}
+      >
+        <%= if @kind == :slide_over do %>
+          <%!-- Slide-over panel --%>
+          <div
+            id={"#{@id}-container"}
+            class="w-full max-w-[480px] h-full bg-white shadow-xl flex flex-col
+                   sm:max-w-[480px] max-sm:max-w-full"
+          >
+            <%!-- Header --%>
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <div class="flex items-center gap-3">
+                <span :if={@icon} class={["material-symbols-outlined text-xl", @icon_class]}>
+                  {@icon}
+                </span>
+                <h2 id={"#{@id}-title"} class="text-lg font-semibold text-slate-900">{@title}</h2>
+              </div>
+              <button
+                phx-click={JS.exec("data-cancel", to: "##{@id}")}
+                type="button"
+                class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                aria-label={gettext("close")}
+              >
+                <.icon name="hero-x-mark" class="size-5" />
+              </button>
+            </div>
+            <%!-- Body --%>
+            <div class="flex-1 overflow-y-auto px-6 py-5">
+              {render_slot(@inner_block)}
+            </div>
+            <%!-- Footer --%>
+            <div :if={@footer != []} class="px-6 py-4 border-t border-slate-200 bg-slate-50">
+              {render_slot(@footer)}
+            </div>
+          </div>
+        <% else %>
+          <%!-- Centered modal --%>
+          <div class="flex min-h-full items-center justify-center p-4 sm:p-6">
+            <div
+              id={"#{@id}-container"}
+              class={[
+                "w-full bg-white rounded-2xl shadow-xl max-sm:max-w-full",
+                modal_size_class(@size)
+              ]}
+            >
+              <%!-- Header --%>
+              <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                <div class="flex items-center gap-3">
+                  <span :if={@icon} class={["material-symbols-outlined text-xl", @icon_class]}>
+                    {@icon}
+                  </span>
+                  <h2 id={"#{@id}-title"} class="text-lg font-semibold text-slate-900">{@title}</h2>
+                </div>
+                <button
+                  phx-click={JS.exec("data-cancel", to: "##{@id}")}
+                  type="button"
+                  class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                  aria-label={gettext("close")}
+                >
+                  <.icon name="hero-x-mark" class="size-5" />
+                </button>
+              </div>
+              <%!-- Body --%>
+              <div class="px-6 py-5">
+                {render_slot(@inner_block)}
+              </div>
+              <%!-- Footer --%>
+              <div
+                :if={@footer != []}
+                class="px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl"
+              >
+                {render_slot(@footer)}
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a reusable confirmation modal for destructive or important actions.
+
+  ## Examples
+
+      <.confirm_modal
+        id="delete-zone-123"
+        title="Delete Delivery Zone"
+        message="This will remove the delivery zone. This action cannot be undone."
+        confirm_text="Delete"
+        confirm_class="bg-red-600 hover:bg-red-700 text-white"
+        on_confirm="delete_zone"
+        value={zone.id}
+      />
+
+  Trigger with:
+
+      <button phx-click={show_modal("delete-zone-123")}>Delete</button>
+  """
+  attr :id, :string, required: true
+  attr :title, :string, required: true
+  attr :message, :string, required: true
+  attr :confirm_text, :string, default: "Confirm"
+  attr :cancel_text, :string, default: "Cancel"
+  attr :confirm_class, :string, default: "bg-emerald-600 hover:bg-emerald-700 text-white"
+  attr :on_confirm, :string, required: true
+  attr :value, :any, default: nil
+  attr :icon, :string, default: nil
+  attr :icon_class, :string, default: "text-amber-500"
+
+  def confirm_modal(assigns) do
+    ~H"""
+    <.modal id={@id} title={@title} size={:sm} icon={@icon} icon_class={@icon_class}>
+      <p class="text-sm text-slate-600">{@message}</p>
+      <:footer>
+        <div class="flex items-center justify-end gap-3">
+          <button
+            type="button"
+            phx-click={hide_modal(@id)}
+            class="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300
+                   rounded-xl hover:bg-slate-50 transition-colors"
+          >
+            {@cancel_text}
+          </button>
+          <button
+            type="button"
+            phx-click={JS.push(@on_confirm, value: %{id: @value}) |> hide_modal(@id)}
+            class={["px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors", @confirm_class]}
+          >
+            {@confirm_text}
+          </button>
+        </div>
+      </:footer>
+    </.modal>
+    """
+  end
+
+  defp modal_size_class(:sm), do: "max-w-md"
+  defp modal_size_class(:md), do: "max-w-lg"
+  defp modal_size_class(:lg), do: "max-w-2xl"
+  defp modal_size_class(:xl), do: "max-w-4xl"
+
   ## JS Commands
+
+  @doc """
+  Shows a modal by id using JS commands.
+  """
+  def show_modal(js \\ %JS{}, id) when is_binary(id) do
+    js
+    |> JS.show(to: "##{id}")
+    |> JS.show(
+      to: "##{id}-bg",
+      time: 300,
+      transition: {"transition-all ease-out duration-300", "opacity-0", "opacity-100"}
+    )
+    |> JS.show(
+      to: "##{id}-container",
+      time: 300,
+      transition:
+        {"transition-all ease-out duration-300",
+         "opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95",
+         "opacity-100 translate-y-0 sm:scale-100"}
+    )
+    |> JS.add_class("overflow-hidden", to: "body")
+    |> JS.focus_first(to: "##{id}-container")
+  end
+
+  @doc """
+  Hides a modal by id using JS commands.
+  """
+  def hide_modal(js \\ %JS{}, id) when is_binary(id) do
+    js
+    |> JS.hide(
+      to: "##{id}-bg",
+      time: 200,
+      transition: {"transition-all ease-in duration-200", "opacity-100", "opacity-0"}
+    )
+    |> JS.hide(
+      to: "##{id}-container",
+      time: 200,
+      transition:
+        {"transition-all ease-in duration-200", "opacity-100 translate-y-0 sm:scale-100",
+         "opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"}
+    )
+    |> JS.hide(to: "##{id}", transition: {"block", "block", "hidden"}, time: 200)
+    |> JS.remove_class("overflow-hidden", to: "body")
+    |> JS.pop_focus()
+  end
 
   def show(js \\ %JS{}, selector) do
     JS.show(js,

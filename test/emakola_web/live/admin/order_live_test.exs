@@ -173,69 +173,89 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       assert html =~ "Mark as Delivered"
     end
 
-    test "confirms order via button click", %{conn: conn, store: store, customer: customer} do
+    test "confirms order via modal confirmation", %{conn: conn, store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :pending)
 
       {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
 
-      html = view |> element("button", "Confirm Order") |> render_click()
+      # Push the confirm_order event directly (simulates clicking modal confirm button)
+      html = render_click(view, "confirm_order")
 
       assert html =~ "Confirmed"
       assert html =~ "Order confirmed"
     end
 
-    test "starts processing via button click", %{conn: conn, store: store, customer: customer} do
+    test "starts processing via modal confirmation", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
       order = create_order!(store.id, customer.id, :confirmed)
 
       {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
 
-      html = view |> element("button", "Start Processing") |> render_click()
+      html = render_click(view, "start_processing")
 
       assert html =~ "Processing"
       assert html =~ "Order is now processing"
     end
 
-    test "marks shipped via button click", %{conn: conn, store: store, customer: customer} do
+    test "marks shipped via modal form submission", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
       order = create_order!(store.id, customer.id, :processing)
 
       {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
 
-      html = view |> element("button", "Mark as Shipped") |> render_click()
+      html = render_submit(view, "submit_shipped", %{"tracking_number" => "GH123"})
 
       assert html =~ "Shipped"
     end
 
-    test "marks delivered via button click", %{conn: conn, store: store, customer: customer} do
+    test "marks delivered via modal confirmation", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
       order = create_order!(store.id, customer.id, :shipped)
 
       {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
 
-      html = view |> element("button", "Mark as Delivered") |> render_click()
+      html = render_click(view, "mark_delivered")
 
       assert html =~ "Delivered"
     end
 
-    test "cancels order with confirmation", %{conn: conn, store: store, customer: customer} do
+    test "cancels order via modal confirmation", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
       order = create_order!(store.id, customer.id, :pending)
 
       {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
 
-      html = view |> element("button", "Cancel Order") |> render_click()
+      html = render_click(view, "cancel_order")
 
       assert html =~ "Cancelled"
       assert html =~ "Order cancelled"
     end
 
-    test "does not show cancel button for delivered order", %{
+    test "does not show cancel action button for delivered order", %{
       conn: conn,
       store: store,
       customer: customer
     } do
       order = create_order!(store.id, customer.id, :delivered)
 
-      {:ok, _view, html} = live(conn, ~p"/admin/orders/#{order.id}")
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
 
-      refute html =~ "Cancel Order"
+      # The Order Actions section should not contain the cancel trigger button
+      # The cancel button has text "Cancel Order" inside the actions area
+      # For a delivered order, the :if guard prevents it from rendering
+      refute has_element?(view, "div.flex.flex-wrap.gap-3 button", "Cancel Order")
     end
 
     test "displays shipping address when present", %{

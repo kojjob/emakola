@@ -2,7 +2,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   @moduledoc """
   Order detail page for the merchant admin dashboard.
   Displays order info, line items, customer details, addresses,
-  and contextual status transition buttons.
+  and modal-based status transition confirmations.
 
   Design matches the Emakola delivery tracking prototype layout.
   """
@@ -24,7 +24,8 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
         store_id: store_id,
         order_id: id,
         order: nil,
-        payment: nil
+        payment: nil,
+        tracking_number: ""
       )
       |> load_order()
       |> load_payment()
@@ -55,6 +56,16 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   @impl true
   def handle_event("cancel_order", _params, socket) do
     transition_order(socket, :cancel, "Order cancelled")
+  end
+
+  @impl true
+  def handle_event("update_tracking", %{"tracking_number" => tracking}, socket) do
+    {:noreply, assign(socket, tracking_number: tracking)}
+  end
+
+  @impl true
+  def handle_event("submit_shipped", %{"tracking_number" => _tracking}, socket) do
+    transition_order(socket, :mark_shipped, "Order marked as shipped")
   end
 
   @impl true
@@ -119,34 +130,41 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                 Order Actions
               </h2>
               <div class="flex flex-wrap gap-3">
-                <.status_action_button
+                <button
                   :if={@order.status == :pending}
-                  action="confirm_order"
-                  label="Confirm Order"
-                  color="blue"
-                />
-                <.status_action_button
+                  phx-click={show_modal("confirm-order-modal")}
+                  class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
+                         bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                >
+                  Confirm Order
+                </button>
+                <button
                   :if={@order.status == :confirmed}
-                  action="start_processing"
-                  label="Start Processing"
-                  color="indigo"
-                />
-                <.status_action_button
+                  phx-click={show_modal("processing-order-modal")}
+                  class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
+                         bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                >
+                  Start Processing
+                </button>
+                <button
                   :if={@order.status == :processing}
-                  action="mark_shipped"
-                  label="Mark as Shipped"
-                  color="purple"
-                />
-                <.status_action_button
+                  phx-click={show_modal("shipped-order-modal")}
+                  class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
+                         bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+                >
+                  Mark as Shipped
+                </button>
+                <button
                   :if={@order.status == :shipped}
-                  action="mark_delivered"
-                  label="Mark as Delivered"
-                  color="emerald"
-                />
+                  phx-click={show_modal("delivered-order-modal")}
+                  class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
+                         bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+                >
+                  Mark as Delivered
+                </button>
                 <button
                   :if={@order.status not in [:cancelled, :delivered]}
-                  phx-click="cancel_order"
-                  data-confirm="Are you sure you want to cancel this order? This cannot be undone."
+                  phx-click={show_modal("cancel-order-modal")}
                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-red-200
                          rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                 >
@@ -341,30 +359,94 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
             </div>
           </div>
         </div>
+
+        <%!-- Confirmation Modals --%>
+        <.confirm_modal
+          id="confirm-order-modal"
+          title="Confirm Order"
+          message={"Are you sure you want to confirm order #{@order.order_number}? The customer will be notified."}
+          confirm_text="Confirm Order"
+          confirm_class="bg-blue-600 hover:bg-blue-700 text-white"
+          on_confirm="confirm_order"
+        />
+
+        <.confirm_modal
+          id="processing-order-modal"
+          title="Start Processing"
+          message={"Begin processing order #{@order.order_number}? This indicates the order is being prepared."}
+          confirm_text="Start Processing"
+          confirm_class="bg-indigo-600 hover:bg-indigo-700 text-white"
+          on_confirm="start_processing"
+        />
+
+        <%!-- Mark as Shipped Modal (with tracking number input) --%>
+        <.modal id="shipped-order-modal" title="Mark as Shipped" size={:md}>
+          <form phx-submit="submit_shipped" class="space-y-4">
+            <p class="text-sm text-slate-600">
+              Mark order <span class="font-semibold">{@order.order_number}</span> as shipped.
+              You can optionally add a tracking number.
+            </p>
+            <div>
+              <label for="tracking-number" class="block text-sm font-medium text-slate-700 mb-1.5">
+                Tracking Number (optional)
+              </label>
+              <input
+                type="text"
+                id="tracking-number"
+                name="tracking_number"
+                value={@tracking_number}
+                phx-change="update_tracking"
+                placeholder="e.g., GH12345678"
+                class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
+                       focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                autocomplete="off"
+              />
+            </div>
+            <div class="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                phx-click={hide_modal("shipped-order-modal")}
+                class="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300
+                       rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="px-4 py-2.5 text-sm font-semibold bg-purple-600 text-white
+                       rounded-xl hover:bg-purple-700 transition-colors"
+              >
+                Mark as Shipped
+              </button>
+            </div>
+          </form>
+        </.modal>
+
+        <.confirm_modal
+          id="delivered-order-modal"
+          title="Mark as Delivered"
+          message={"Confirm that order #{@order.order_number} has been delivered to the customer?"}
+          confirm_text="Mark as Delivered"
+          confirm_class="bg-emerald-600 hover:bg-emerald-700 text-white"
+          on_confirm="mark_delivered"
+        />
+
+        <.confirm_modal
+          id="cancel-order-modal"
+          title="Cancel Order"
+          message={"This action cannot be undone. Cancel order #{@order.order_number}? The customer will be notified."}
+          confirm_text="Cancel Order"
+          confirm_class="bg-red-600 hover:bg-red-700 text-white"
+          on_confirm="cancel_order"
+          icon="warning"
+          icon_class="text-red-500"
+        />
       <% end %>
     </div>
     """
   end
 
   # ── Components ──
-
-  attr :action, :string, required: true
-  attr :label, :string, required: true
-  attr :color, :string, required: true
-
-  defp status_action_button(assigns) do
-    ~H"""
-    <button
-      phx-click={@action}
-      class={[
-        "inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors",
-        action_button_class(@color)
-      ]}
-    >
-      {@label}
-    </button>
-    """
-  end
 
   attr :status, :atom, required: true
 
@@ -509,21 +591,6 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   defp payment_badge_class(:failed), do: "bg-red-50 text-red-700"
   defp payment_badge_class(:refunded), do: "bg-purple-50 text-purple-700"
   defp payment_badge_class(_), do: "bg-slate-50 text-slate-700"
-
-  defp action_button_class("blue"),
-    do: "bg-blue-600 text-white hover:bg-blue-700"
-
-  defp action_button_class("indigo"),
-    do: "bg-indigo-600 text-white hover:bg-indigo-700"
-
-  defp action_button_class("purple"),
-    do: "bg-purple-600 text-white hover:bg-purple-700"
-
-  defp action_button_class("emerald"),
-    do: "bg-emerald-600 text-white hover:bg-emerald-700"
-
-  defp action_button_class(_),
-    do: "bg-slate-600 text-white hover:bg-slate-700"
 
   defp format_datetime(nil), do: ""
 
