@@ -269,4 +269,34 @@ defmodule Emakola.Factory do
     |> Ash.Changeset.for_create(:create, params)
     |> Ash.create!()
   end
+
+  # ── Customers ────────────────────────────────────────────────────
+
+  def create_customer!(store, attrs \\ %{}) do
+    default = %{
+      email: unique_email(),
+      name: "Test Customer #{System.unique_integer([:positive])}",
+      store_id: store.id
+    }
+
+    params = Map.merge(default, Map.new(attrs))
+
+    Emakola.Customers.Customer
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!()
+  end
+
+  # ── Orders ───────────────────────────────────────────────────────
+
+  def create_order!(store, attrs \\ %{}) do
+    default = %{
+      store_id: store.id
+    }
+
+    params = Map.merge(default, Map.new(attrs))
+
+    Emakola.Orders.Order
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!()
+  end
 end
