@@ -363,19 +363,38 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                       id="region"
                       name="region"
                       class="w-full border border-[#E2E8F0] rounded-lg px-3 py-2.5 text-sm bg-white"
-                    ><option value="greater_accra" selected={@region == "greater_accra"}>Greater Accra</option><option
-                      value="ashanti"
-                      selected={@region == "ashanti"}
-                    >Ashanti</option><option value="central" selected={@region == "central"}>Central</option><option
-                      value="western"
-                      selected={@region == "western"}
-                    >Western</option><option value="eastern" selected={@region == "eastern"}>Eastern</option><option
-                      value="northern"
-                      selected={@region == "northern"}
-                    >Northern</option><option value="volta" selected={@region == "volta"}>Volta</option><option
-                      value="other"
-                      selected={@region == "other"}
-                    >Other</option></select>
+                    >
+                      <option value="greater_accra" selected={@region == "greater_accra"}>
+                        Greater Accra
+                      </option>
+                      <option
+                        value="ashanti"
+                        selected={@region == "ashanti"}
+                      >
+                        Ashanti
+                      </option>
+                      <option value="central" selected={@region == "central"}>Central</option>
+                      <option
+                        value="western"
+                        selected={@region == "western"}
+                      >
+                        Western
+                      </option>
+                      <option value="eastern" selected={@region == "eastern"}>Eastern</option>
+                      <option
+                        value="northern"
+                        selected={@region == "northern"}
+                      >
+                        Northern
+                      </option>
+                      <option value="volta" selected={@region == "volta"}>Volta</option>
+                      <option
+                        value="other"
+                        selected={@region == "other"}
+                      >
+                        Other
+                      </option>
+                    </select>
                   </div>
                   <div>
                     <label for="notes" class="block text-sm font-medium text-[#0F172A] mb-1.5">
@@ -401,7 +420,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                     <button
                       type="submit"
                       class="flex-1 bg-[#1C1917] text-white py-3 rounded-xl text-sm font-semibold"
-                    >Continue to Review</button>
+                    >
+                      Continue to Review
+                    </button>
                   </div>
                 </form>
               </div>
@@ -474,7 +495,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                     phx-click="place_order"
                     disabled={@processing}
                     class="flex-1 bg-[#1C1917] text-white py-3.5 rounded-xl text-sm font-semibold disabled:bg-[#E2E8F0] disabled:text-[#94A3B8]"
-                  ><%= if @processing do %>Processing...<% else %>Place Order<% end %></button>
+                  >
+                    <%= if @processing do %>
+                      Processing...
+                    <% else %>
+                      Place Order
+                    <% end %>
+                  </button>
                 </div>
               </div>
             </div>
