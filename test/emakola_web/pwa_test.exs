@@ -7,7 +7,6 @@ defmodule EmakolaWeb.PWATest do
 
   @moduletag :pending
 
-  @tag :pending
   describe "manifest.json" do
     test "is accessible and returns valid JSON", %{conn: conn} do
       conn = get(conn, "/manifest.json")
@@ -48,7 +47,6 @@ defmodule EmakolaWeb.PWATest do
     end
   end
 
-  @tag :pending
   describe "service worker (sw.js)" do
     test "is accessible and returns JavaScript", %{conn: conn} do
       conn = get(conn, "/sw.js")
@@ -74,7 +72,6 @@ defmodule EmakolaWeb.PWATest do
     end
   end
 
-  @tag :pending
   describe "offline.html" do
     test "is accessible and contains offline messaging", %{conn: conn} do
       conn = get(conn, "/offline.html")
@@ -103,7 +100,6 @@ defmodule EmakolaWeb.PWATest do
     end
   end
 
-  @tag :pending
   describe "PWA meta tags in root layout" do
     test "root layout includes manifest link", %{conn: conn} do
       conn = get(conn, "/")
@@ -135,7 +131,6 @@ defmodule EmakolaWeb.PWATest do
     end
   end
 
-  @tag :pending
   describe "PWA headers plug" do
     test "manifest.json has appropriate cache headers", %{conn: conn} do
       conn = get(conn, "/manifest.json")

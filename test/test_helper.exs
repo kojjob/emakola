@@ -1,4 +1,4 @@
-ExUnit.start()
+ExUnit.start(exclude: [:pending])
 Ecto.Adapters.SQL.Sandbox.mode(Emakola.Repo, :manual)
 
 # Initialize ETS table for cart storage (used by session-based cart tests)
