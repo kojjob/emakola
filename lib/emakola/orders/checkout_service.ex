@@ -108,12 +108,14 @@ defmodule Emakola.Orders.CheckoutService do
           line_item
         end)
 
-      # 3. Calculate totals
+      # 3. Calculate totals (include delivery fee if provided)
       subtotal = Enum.reduce(line_items, 0, fn li, acc -> acc + li.line_total end)
+      delivery_fee = Keyword.get(opts, :delivery_fee, 0)
+      total = subtotal + delivery_fee
 
       order =
         order
-        |> Ash.Changeset.for_update(:update, %{subtotal: subtotal, total: subtotal})
+        |> Ash.Changeset.for_update(:update, %{subtotal: subtotal, total: total})
         |> Ash.update!()
 
       order

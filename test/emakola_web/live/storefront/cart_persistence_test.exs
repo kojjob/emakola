@@ -136,7 +136,11 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
       assert [%{quantity: 2}] = cart
     end
 
-    test "checkout clears the CartStore", %{conn: conn, store: store, variant: variant} do
+    test "checkout navigates to checkout page (cart preserved until payment confirms)", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
       session_id = Ecto.UUID.generate()
 
       CartStore.add_item(session_id, %{
@@ -152,10 +156,10 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
 
       {:ok, view, _html} = live(conn, "/s/#{store.slug}/cart")
 
-      render_click(view, "checkout")
+      assert {:error, {:live_redirect, %{to: "/s/" <> _}}} = render_click(view, "checkout")
 
-      # Cart should be cleared in store
-      assert CartStore.get_cart(session_id) == []
+      # Cart is NOT cleared yet — preserved until payment confirms
+      assert CartStore.get_cart(session_id) != []
     end
   end
 

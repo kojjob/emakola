@@ -88,30 +88,10 @@ defmodule EmakolaWeb.Storefront.CartLive do
 
   @impl true
   def handle_event("checkout", _params, socket) do
-    cart = socket.assigns.cart
-
-    if cart == [] do
+    if socket.assigns.cart == [] do
       {:noreply, put_flash(socket, :error, "Your cart is empty")}
     else
-      items =
-        Enum.map(cart, fn item ->
-          %{variant_id: item.variant_id, quantity: item.quantity}
-        end)
-
-      case Emakola.Orders.CheckoutService.checkout!(socket.assigns.store.id, items, []) do
-        {:ok, order} ->
-          CartStore.clear_cart(socket.assigns.cart_session_id)
-
-          {:noreply,
-           socket
-           |> assign(:cart, [])
-           |> assign(:cart_count, 0)
-           |> assign(:cart_total, 0)
-           |> put_flash(:info, "Order #{order.order_number} placed successfully!")}
-
-        {:error, reason} ->
-          {:noreply, put_flash(socket, :error, checkout_error_message(reason))}
-      end
+      {:noreply, push_navigate(socket, to: "/s/#{socket.assigns.store.slug}/checkout")}
     end
   end
 
@@ -325,13 +305,12 @@ defmodule EmakolaWeb.Storefront.CartLive do
                     <span>{Currency.format_price(@cart_total, @store.currency)}</span>
                   </div>
 
-                  <button
-                    phx-click="checkout"
-                    disabled={@checking_out || @cart == []}
-                    class="w-full py-3.5 bg-[#1C1917] text-white text-sm font-semibold tracking-wider uppercase rounded-lg hover:bg-[#44403C] transition-colors disabled:bg-[#E2E8F0] disabled:text-[#94A3B8] disabled:cursor-not-allowed"
+                  <a
+                    href={if @cart != [], do: "/s/#{@store.slug}/checkout", else: "#"}
+                    class={"w-full py-3.5 text-sm font-semibold tracking-wider uppercase rounded-lg text-center block transition-colors" <> if(@cart == [], do: " bg-[#E2E8F0] text-[#94A3B8] cursor-not-allowed pointer-events-none", else: " bg-[#1C1917] text-white hover:bg-[#44403C]")}
                   >
                     Proceed to Checkout
-                  </button>
+                  </a>
 
                   <%!-- Trust badges --%>
                   <div class="mt-5 flex items-center justify-center gap-4 text-xs text-[#94A3B8]">
@@ -451,16 +430,5 @@ defmodule EmakolaWeb.Storefront.CartLive do
 
   defp cart_total(cart) do
     Enum.reduce(cart, 0, fn item, acc -> acc + item.unit_price * item.quantity end)
-  end
-
-  defp checkout_error_message(reason) do
-    messages = %{
-      empty_cart: "Your cart is empty",
-      variant_not_found: "Some items are no longer available",
-      variant_not_in_store: "Some items are not from this store",
-      insufficient_stock: "Some items are out of stock"
-    }
-
-    Map.get(messages, reason, "Something went wrong. Please try again.")
   end
 end

@@ -104,9 +104,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     else
       case create_order(socket) do
         {:ok, order} ->
-          if socket.assigns.cart_session_id,
-            do: CartStore.clear_cart(socket.assigns.cart_session_id)
-
+          # Don't clear cart yet — wait until payment is confirmed
           socket = assign(socket, :order, order)
           handle_payment(socket, order)
 
@@ -142,6 +140,10 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     else
       case verify_payment_status(socket) do
         :success ->
+          # Payment confirmed — now safe to clear the cart
+          if socket.assigns[:cart_session_id],
+            do: CartStore.clear_cart(socket.assigns.cart_session_id)
+
           {:noreply,
            socket
            |> assign(:processing, false)
@@ -673,12 +675,22 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       "region" => region
     }
 
-    CheckoutService.checkout!(store.id, items, notes: notes, shipping_address: shipping_address)
+    delivery_fee = socket.assigns[:delivery_fee] || 0
+
+    CheckoutService.checkout!(store.id, items,
+      notes: notes,
+      shipping_address: shipping_address,
+      delivery_fee: delivery_fee
+    )
   end
 
   defp handle_payment(socket, order) do
     case socket.assigns.payment_method do
       "cod" ->
+        # COD — no payment needed, clear cart immediately
+        if socket.assigns[:cart_session_id],
+          do: CartStore.clear_cart(socket.assigns.cart_session_id)
+
         {:noreply,
          socket
          |> assign(:processing, false)
@@ -764,9 +776,14 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         Application.get_env(:emakola, :payment_gateway, Emakola.Payments.Gateways.Paystack)
 
       case gateway.verify_payment(ref) do
-        {:ok, %{status: :success}} -> :success
-        {:ok, %{status: :failed}} -> :failed
-        _ -> :pending
+        {:ok, %{status: status}} when status in [:success, "success", "Paid", "Success"] ->
+          :success
+
+        {:ok, %{status: status}} when status in [:failed, "failed", "Failed", "Expired"] ->
+          :failed
+
+        _ ->
+          :pending
       end
     else
       :pending
