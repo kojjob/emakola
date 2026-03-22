@@ -101,6 +101,16 @@ defmodule Emakola.Catalog.Category do
       change(Emakola.Catalog.Changes.GenerateSlug)
     end
 
+    read :list_by_store do
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      filter(expr(store_id == ^arg(:store_id)))
+
+      prepare(fn query, _context ->
+        Ash.Query.sort(query, position: :asc)
+      end)
+    end
+
     read :list_roots do
       argument(:store_id, :uuid, allow_nil?: false)
 

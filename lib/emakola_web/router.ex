@@ -50,6 +50,12 @@ defmodule EmakolaWeb.Router do
         {EmakolaWeb.Hooks.NotificationHandler, :default}
       ] do
       live "/dashboard", DashboardLive
+
+      # Merchant admin — catalog management
+      live "/admin/products", Admin.ProductLive.Index
+      live "/admin/products/new", Admin.ProductLive.Form, :new
+      live "/admin/products/:id/edit", Admin.ProductLive.Form, :edit
+      live "/admin/categories", Admin.CategoryLive.Index
     end
 
     live "/onboarding", OnboardingLive

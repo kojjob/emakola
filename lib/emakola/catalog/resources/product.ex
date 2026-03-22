@@ -140,6 +140,31 @@ defmodule Emakola.Catalog.Product do
       )
     end
 
+    read :list_by_store do
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      filter(expr(store_id == ^arg(:store_id)))
+
+      prepare(fn query, _context ->
+        Ash.Query.sort(query, inserted_at: :desc)
+      end)
+    end
+
+    read :list_by_store_and_status do
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      argument(:status, :atom,
+        allow_nil?: false,
+        constraints: [one_of: [:draft, :active, :archived]]
+      )
+
+      filter(expr(store_id == ^arg(:store_id) and status == ^arg(:status)))
+
+      prepare(fn query, _context ->
+        Ash.Query.sort(query, inserted_at: :desc)
+      end)
+    end
+
     read :list_by_category do
       argument(:category_id, :uuid, allow_nil?: false)
       argument(:store_id, :uuid, allow_nil?: false)
