@@ -5,7 +5,7 @@ defmodule Emakola.MixProject do
     [
       app: :emakola,
       version: "0.1.0",
-      elixir: "~> 1.15",
+      elixir: "~> 1.18",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
@@ -63,6 +63,9 @@ defmodule Emakola.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
+      {:swoosh, "~> 1.17"},
+      {:phoenix_live_dashboard, "~> 0.8"},
+      {:hammer, "~> 6.2"},
 
       # Ash Framework — domain modeling, auth, multitenancy
       {:ash, "~> 3.0"},
@@ -78,7 +81,10 @@ defmodule Emakola.MixProject do
       {:mox, "~> 1.0", only: :test},
       {:ex_machina, "~> 2.8", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false}
+      {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
+
+      # SAT solver for Ash policy checks
+      {:simple_sat, "~> 0.1"}
     ]
   end
 
