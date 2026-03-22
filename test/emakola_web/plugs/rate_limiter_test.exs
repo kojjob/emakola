@@ -193,8 +193,11 @@ defmodule EmakolaWeb.Plugs.RateLimiterTest do
   end
 
   describe "edge cases" do
+    # Use high limit to avoid rate limit exhaustion from other tests sharing the IP
+    @edge_opts RateLimiter.init(limit: 1000, window_ms: 60_000)
+
     test "handles missing authorization header" do
-      conn = build_conn() |> RateLimiter.call(@opts)
+      conn = build_conn() |> RateLimiter.call(@edge_opts)
       refute conn.halted
     end
 
@@ -202,7 +205,7 @@ defmodule EmakolaWeb.Plugs.RateLimiterTest do
       conn =
         build_conn()
         |> put_req_header("authorization", "InvalidFormat")
-        |> RateLimiter.call(@opts)
+        |> RateLimiter.call(@edge_opts)
 
       refute conn.halted
     end
@@ -211,7 +214,7 @@ defmodule EmakolaWeb.Plugs.RateLimiterTest do
       conn =
         build_conn()
         |> put_req_header("authorization", "Basic dXNlcjpwYXNz")
-        |> RateLimiter.call(@opts)
+        |> RateLimiter.call(@edge_opts)
 
       # Should fall through to IP-based limiting
       refute conn.halted
