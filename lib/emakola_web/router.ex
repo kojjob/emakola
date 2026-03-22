@@ -21,6 +21,13 @@ defmodule EmakolaWeb.Router do
     get "/health", HealthController, :show
   end
 
+  # Payment gateway webhooks — no CSRF, raw JSON bodies
+  scope "/webhooks", EmakolaWeb do
+    pipe_through :api
+    post "/hubtel", WebhookController, :hubtel
+    post "/paystack", WebhookController, :paystack
+  end
+
   # Auth session controller (sets/clears session cookie)
   scope "/auth", EmakolaWeb do
     pipe_through :browser
