@@ -95,6 +95,27 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
     end
   end
 
+  @impl true
+  def handle_event("delete_category", %{"id" => id}, socket) do
+    case Ash.get(Emakola.Catalog.Category, id) do
+      {:ok, category} ->
+        case Ash.destroy(category) do
+          :ok ->
+            {:noreply,
+             socket
+             |> assign(delete_category: nil)
+             |> load_category_tree()
+             |> put_flash(:info, "Category deleted")}
+
+          {:error, error} ->
+            {:noreply, put_flash(socket, :error, format_error(error))}
+        end
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Category not found")}
+    end
+  end
+
   defp build_category_attrs(params, name, socket) do
     parent_id = if params["parent_id"] in ["", nil], do: nil, else: params["parent_id"]
 
@@ -139,27 +160,6 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
              )
              |> load_category_tree()
              |> put_flash(:info, "Category updated")}
-
-          {:error, error} ->
-            {:noreply, put_flash(socket, :error, format_error(error))}
-        end
-
-      _ ->
-        {:noreply, put_flash(socket, :error, "Category not found")}
-    end
-  end
-
-  @impl true
-  def handle_event("delete_category", %{"id" => id}, socket) do
-    case Ash.get(Emakola.Catalog.Category, id) do
-      {:ok, category} ->
-        case Ash.destroy(category) do
-          :ok ->
-            {:noreply,
-             socket
-             |> assign(delete_category: nil)
-             |> load_category_tree()
-             |> put_flash(:info, "Category deleted")}
 
           {:error, error} ->
             {:noreply, put_flash(socket, :error, format_error(error))}
