@@ -86,69 +86,66 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
     if name == "" do
       {:noreply, assign(socket, form_errors: %{name: "Name is required"})}
     else
-      parent_id =
-        case params["parent_id"] do
-          "" -> nil
-          nil -> nil
-          id -> id
-        end
-
-      description = params["description"] || ""
-
-      attrs = %{
-        name: name,
-        description: description,
-        parent_id: parent_id,
-        store_id: socket.assigns.store_id,
-        position: next_position(socket.assigns.all_categories, parent_id)
-      }
+      attrs = build_category_attrs(params, name, socket)
 
       case socket.assigns.edit_category_id do
-        nil ->
-          case Emakola.Catalog.create_category(attrs) do
-            {:ok, _category} ->
-              {:noreply,
-               socket
-               |> assign(
-                 form_name: "",
-                 form_description: "",
-                 form_parent_id: nil,
-                 form_errors: %{}
-               )
-               |> load_category_tree()
-               |> put_flash(:info, "Category created")}
-
-            {:error, error} ->
-              {:noreply, put_flash(socket, :error, format_error(error))}
-          end
-
-        id ->
-          case Ash.get(Emakola.Catalog.Category, id) do
-            {:ok, category} ->
-              update_attrs = %{name: name, description: description, parent_id: parent_id}
-
-              case category |> Ash.Changeset.for_update(:update, update_attrs) |> Ash.update() do
-                {:ok, _updated} ->
-                  {:noreply,
-                   socket
-                   |> assign(
-                     edit_category_id: nil,
-                     form_name: "",
-                     form_description: "",
-                     form_parent_id: nil,
-                     form_errors: %{}
-                   )
-                   |> load_category_tree()
-                   |> put_flash(:info, "Category updated")}
-
-                {:error, error} ->
-                  {:noreply, put_flash(socket, :error, format_error(error))}
-              end
-
-            _ ->
-              {:noreply, put_flash(socket, :error, "Category not found")}
-          end
+        nil -> do_create_category(socket, attrs)
+        id -> do_update_category(socket, id, attrs)
       end
+    end
+  end
+
+  defp build_category_attrs(params, name, socket) do
+    parent_id = if params["parent_id"] in ["", nil], do: nil, else: params["parent_id"]
+
+    %{
+      name: name,
+      description: params["description"] || "",
+      parent_id: parent_id,
+      store_id: socket.assigns.store_id,
+      position: next_position(socket.assigns.all_categories, parent_id)
+    }
+  end
+
+  defp do_create_category(socket, attrs) do
+    case Emakola.Catalog.create_category(attrs) do
+      {:ok, _category} ->
+        {:noreply,
+         socket
+         |> assign(form_name: "", form_description: "", form_parent_id: nil, form_errors: %{})
+         |> load_category_tree()
+         |> put_flash(:info, "Category created")}
+
+      {:error, error} ->
+        {:noreply, put_flash(socket, :error, format_error(error))}
+    end
+  end
+
+  defp do_update_category(socket, id, attrs) do
+    case Ash.get(Emakola.Catalog.Category, id) do
+      {:ok, category} ->
+        update_attrs = Map.take(attrs, [:name, :description, :parent_id])
+
+        case category |> Ash.Changeset.for_update(:update, update_attrs) |> Ash.update() do
+          {:ok, _updated} ->
+            {:noreply,
+             socket
+             |> assign(
+               edit_category_id: nil,
+               form_name: "",
+               form_description: "",
+               form_parent_id: nil,
+               form_errors: %{}
+             )
+             |> load_category_tree()
+             |> put_flash(:info, "Category updated")}
+
+          {:error, error} ->
+            {:noreply, put_flash(socket, :error, format_error(error))}
+        end
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Category not found")}
     end
   end
 
