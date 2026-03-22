@@ -224,4 +224,22 @@ defmodule Emakola.Factory do
 
     {org, user, agent, conversation}
   end
+
+  # ── Images ──────────────────────────────────────────────────
+
+  def create_image!(product, store, attrs \\ %{}) do
+    default = %{
+      url: "https://s3.example.com/test/#{System.unique_integer([:positive])}.jpg",
+      content_type: "image/jpeg",
+      file_size_bytes: 500_000,
+      product_id: product.id,
+      store_id: store.id
+    }
+
+    params = Map.merge(default, Map.new(attrs))
+
+    Emakola.Catalog.Image
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!()
+  end
 end
