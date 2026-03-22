@@ -120,11 +120,9 @@ defmodule Emakola.Catalog.EdgeCasesTest do
       # All 10 should succeed (increments never go negative)
       assert successes == 10
 
-      # NOTE: Because adjust_stock is not atomic at DB level (read-then-write),
-      # some updates may be lost under concurrency. The final stock should be
-      # between 105 (maximum lost updates) and 150 (no lost updates).
-      assert final.stock_quantity >= 105
-      assert final.stock_quantity <= 150
+      # With atomic SQL updates (stock_quantity = stock_quantity + delta),
+      # no updates are lost under concurrency. Final stock must be exactly 150.
+      assert final.stock_quantity == 150
     end
 
     test "parallel decrements that would go below 0 are rejected by application validation" do
@@ -151,17 +149,18 @@ defmodule Emakola.Catalog.EdgeCasesTest do
       successes = Enum.count(results, &match?({:ok, _}, &1))
       failures = Enum.count(results, &match?({:error, _}, &1))
 
-      # Final stock must be >= 0 (DB CHECK constraint enforces this)
+      # With atomic updates, exactly 5 succeed (stock goes 5->4->3->2->1->0)
+      # and exactly 5 fail (DB CHECK constraint prevents negative stock)
+      assert successes == 5
+      assert failures == 5
+
+      # Final stock must be exactly 0
       final =
         Emakola.Catalog.Variant
         |> Ash.Query.filter(id == ^variant.id)
         |> Ash.read_one!()
 
-      assert final.stock_quantity >= 0
-
-      # At least some decrements should have been rejected
-      # (either by the app-level check or by the DB constraint)
-      assert successes + failures == 10
+      assert final.stock_quantity == 0
     end
 
     test "single decrement below 0 is rejected with error" do
