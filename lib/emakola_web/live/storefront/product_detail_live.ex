@@ -12,6 +12,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   - Related products horizontal scroll
   """
   use EmakolaWeb, :live_view
+  import EmakolaWeb.StorefrontComponents
 
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.{Currency, StoreResolver}
@@ -123,7 +124,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="max-w-[560px] mx-auto bg-[#FAFAF9] sm:shadow-[0_0_40px_rgba(0,0,0,0.06)] min-h-screen">
+    <div class="max-w-[560px] mx-auto bg-[#FAFAF9] sm:shadow-[0_0_40px_rgba(0,0,0,0.06)] min-h-screen pb-16 sm:pb-0">
       <%!-- Product images gallery --%>
       <section class="bg-white" aria-label="Product images">
         <div class="w-full aspect-[4/5] overflow-hidden bg-[#F1F5F9]">
@@ -135,19 +136,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
             />
           <% else %>
             <div class="w-full h-full flex items-center justify-center">
-              <svg
-                class="w-20 h-20 text-[#94A3B8]"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1"
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
+              <.image_placeholder size="lg" />
             </div>
           <% end %>
         </div>
@@ -398,19 +387,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
                 />
               <% else %>
                 <div class="w-full h-full flex items-center justify-center">
-                  <svg
-                    class="w-8 h-8 text-[#94A3B8]"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="1"
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
+                  <.image_placeholder />
                 </div>
               <% end %>
             </div>
@@ -426,6 +403,8 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
         </div>
       </section>
     </div>
+
+    <.bottom_nav store_slug={@store.slug} active_tab={:home} cart_count={@cart_count} />
     """
   end
 
@@ -524,14 +503,6 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
 
       Enum.map(vovs, fn vov -> vov.option_value.value end)
       |> Enum.join(" / ")
-    end
-  end
-
-  defp first_image(product) do
-    case product.images do
-      [%{medium_url: url} | _] when is_binary(url) -> url
-      [%{url: url} | _] when is_binary(url) -> url
-      _ -> nil
     end
   end
 

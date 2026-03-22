@@ -25,7 +25,25 @@ defmodule EmakolaWeb.LandingLive do
       <%!-- ═══════════════════════════════════════════════════════
            NAVIGATION — Sticky glass nav bar
            ═══════════════════════════════════════════════════════ --%>
-      <nav class="fixed top-0 inset-x-0 z-50 bg-background/60 backdrop-blur-md">
+      <style>
+        #main-nav.scrolled {
+          background: rgba(255,255,255,0.95);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(0,0,0,0.06);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        :root[data-theme="dark"] #main-nav.scrolled,
+        .dark #main-nav.scrolled {
+          background: rgba(30,30,30,0.95);
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+      </style>
+      <nav
+        id="main-nav"
+        phx-hook="ScrollGlass"
+        class="fixed top-0 inset-x-0 z-50 bg-background/60 backdrop-blur-md transition-all duration-300"
+      >
         <div class="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
           <%!-- Logo --%>
           <a href="/" class="flex items-center gap-2.5">

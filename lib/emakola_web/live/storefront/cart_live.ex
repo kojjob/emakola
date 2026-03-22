@@ -10,6 +10,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
   - Responsive layout: stacked mobile, side-by-side desktop
   """
   use EmakolaWeb, :live_view
+  import EmakolaWeb.StorefrontComponents
 
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.{Currency, StoreResolver}
@@ -98,7 +99,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-0">
       <%!-- Page header --%>
       <section class="pt-10 pb-6 sm:pt-14 sm:pb-8">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
@@ -184,19 +185,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
                   <%!-- Product image placeholder --%>
                   <div class="flex-shrink-0 w-24 h-30 sm:w-32 sm:h-40 bg-[#F1F5F9] rounded-xl overflow-hidden">
                     <div class="w-full h-full flex items-center justify-center">
-                      <svg
-                        class="w-8 h-8 text-[#94A3B8]"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="1"
-                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
+                      <.image_placeholder />
                     </div>
                   </div>
 
@@ -354,6 +343,8 @@ defmodule EmakolaWeb.Storefront.CartLive do
         <% end %>
       </section>
     </div>
+
+    <.bottom_nav store_slug={@store.slug} active_tab={:cart} cart_count={@cart_count} />
     """
   end
 
