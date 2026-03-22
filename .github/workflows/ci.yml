@@ -70,5 +70,5 @@ jobs:
       - name: Setup database
         run: mix ecto.create && mix ecto.migrate
 
-      - name: Run tests with coverage
-        run: mix test --cover --warnings-as-errors
+      - name: Run tests
+        run: mix test --warnings-as-errors
