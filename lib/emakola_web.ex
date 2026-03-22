@@ -87,6 +87,8 @@ defmodule EmakolaWeb do
       # Core UI components
       import EmakolaWeb.CoreComponents
       import EmakolaWeb.SidebarComponents
+      # Storefront components — use explicit import in storefront LiveViews
+      # import EmakolaWeb.StorefrontComponents
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS
