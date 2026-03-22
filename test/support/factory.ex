@@ -299,4 +299,23 @@ defmodule Emakola.Factory do
     |> Ash.Changeset.for_create(:create, params)
     |> Ash.create!()
   end
+
+  # ── Payments ──────────────────────────────────────────────────────
+
+  def create_payment!(store, attrs \\ %{}) do
+    default = %{
+      store_id: store.id,
+      amount: 500_000,
+      currency: "GHS",
+      gateway: :paystack,
+      gateway_reference: "PAY-test-#{System.unique_integer([:positive])}-ref",
+      customer_email: "customer@example.com"
+    }
+
+    params = Map.merge(default, Map.new(attrs))
+
+    Emakola.Payments.Payment
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!()
+  end
 end

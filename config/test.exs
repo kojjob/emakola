@@ -49,3 +49,7 @@ config :emakola, :http_client, Emakola.HTTPClientMock
 config :emakola, :hubtel_client_id, "test_client_id"
 config :emakola, :hubtel_client_secret, "test_client_secret"
 config :emakola, :hubtel_base_url, "https://api.hubtel.com"
+
+# Paystack test credentials
+config :emakola, :paystack_secret_key, "sk_test_default_secret"
+config :emakola, :paystack_public_key, "pk_test_default_public"

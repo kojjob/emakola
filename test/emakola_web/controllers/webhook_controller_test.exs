@@ -4,14 +4,11 @@ defmodule EmakolaWeb.WebhookControllerTest do
 
   alias Emakola.Payments.Workers.PaystackWebhookHandler
 
-  setup do
-    Application.put_env(:emakola, :paystack_secret_key, "sk_test_webhook_secret")
+  @secret "sk_test_default_secret"
 
-    on_exit(fn ->
-      Application.delete_env(:emakola, :paystack_secret_key)
-    end)
-
-    :ok
+  defp sign_body(body) do
+    :crypto.mac(:hmac, :sha512, @secret, body)
+    |> Base.encode16(case: :lower)
   end
 
   describe "POST /webhooks/paystack" do
@@ -26,9 +23,7 @@ defmodule EmakolaWeb.WebhookControllerTest do
           }
         })
 
-      signature =
-        :crypto.mac(:hmac, :sha512, "sk_test_webhook_secret", body)
-        |> Base.encode16(case: :lower)
+      signature = sign_body(body)
 
       conn =
         conn
