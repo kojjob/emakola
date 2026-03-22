@@ -11,20 +11,25 @@ defmodule EmakolaWeb.Storefront.CartLive do
   """
   use EmakolaWeb, :live_view
 
+  alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.{Currency, StoreResolver}
 
   require Ash.Query
 
   @impl true
-  def mount(%{"store_slug" => slug}, _session, socket) do
+  def mount(%{"store_slug" => slug}, session, socket) do
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
+        cart_session_id = session["cart_session_id"]
+        cart = if cart_session_id, do: CartStore.get_cart(cart_session_id), else: []
+
         {:ok,
          socket
          |> assign(:store, store)
-         |> assign(:cart, [])
-         |> assign(:cart_count, 0)
-         |> assign(:cart_total, 0)
+         |> assign(:cart_session_id, cart_session_id)
+         |> assign(:cart, cart)
+         |> assign(:cart_count, cart_count(cart))
+         |> assign(:cart_total, cart_total(cart))
          |> assign(:checking_out, false)
          |> assign(:page_title, "Shopping Bag - #{store.name}")}
 
@@ -43,41 +48,42 @@ defmodule EmakolaWeb.Storefront.CartLive do
     item = Enum.at(socket.assigns.cart, index)
     new_qty = item.quantity + delta
 
-    cart =
-      if new_qty <= 0 do
-        List.delete_at(socket.assigns.cart, index)
-      else
-        List.update_at(socket.assigns.cart, index, fn i ->
-          %{i | quantity: min(new_qty, 10)}
-        end)
-      end
+    if new_qty <= 0 do
+      CartStore.remove_item(socket.assigns.cart_session_id, item.variant_id)
+    else
+      CartStore.update_quantity(socket.assigns.cart_session_id, item.variant_id, min(new_qty, 10))
+    end
 
-    {:noreply, recalculate_cart(socket, cart)}
+    {:noreply, reload_cart(socket)}
   end
 
   @impl true
   def handle_event("update_quantity", %{"index" => index_str, "quantity" => qty_str}, socket) do
     index = String.to_integer(index_str)
     quantity = String.to_integer(qty_str)
+    item = Enum.at(socket.assigns.cart, index)
 
-    cart =
+    if item do
       if quantity <= 0 do
-        List.delete_at(socket.assigns.cart, index)
+        CartStore.remove_item(socket.assigns.cart_session_id, item.variant_id)
       else
-        List.update_at(socket.assigns.cart, index, fn item ->
-          %{item | quantity: quantity}
-        end)
+        CartStore.update_quantity(socket.assigns.cart_session_id, item.variant_id, quantity)
       end
+    end
 
-    {:noreply, recalculate_cart(socket, cart)}
+    {:noreply, reload_cart(socket)}
   end
 
   @impl true
   def handle_event("remove_item", %{"index" => index_str}, socket) do
     index = String.to_integer(index_str)
-    cart = List.delete_at(socket.assigns.cart, index)
+    item = Enum.at(socket.assigns.cart, index)
 
-    {:noreply, recalculate_cart(socket, cart)}
+    if item do
+      CartStore.remove_item(socket.assigns.cart_session_id, item.variant_id)
+    end
+
+    {:noreply, reload_cart(socket)}
   end
 
   @impl true
@@ -94,6 +100,8 @@ defmodule EmakolaWeb.Storefront.CartLive do
 
       case Emakola.Orders.CheckoutService.checkout!(socket.assigns.store.id, items, []) do
         {:ok, order} ->
+          CartStore.clear_cart(socket.assigns.cart_session_id)
+
           {:noreply,
            socket
            |> assign(:cart, [])
@@ -428,14 +436,21 @@ defmodule EmakolaWeb.Storefront.CartLive do
 
   # -- Helpers --
 
-  defp recalculate_cart(socket, cart) do
-    cart_count = Enum.reduce(cart, 0, fn item, acc -> acc + item.quantity end)
-    cart_total = Enum.reduce(cart, 0, fn item, acc -> acc + item.unit_price * item.quantity end)
+  defp reload_cart(socket) do
+    cart = CartStore.get_cart(socket.assigns.cart_session_id)
 
     socket
     |> assign(:cart, cart)
-    |> assign(:cart_count, cart_count)
-    |> assign(:cart_total, cart_total)
+    |> assign(:cart_count, cart_count(cart))
+    |> assign(:cart_total, cart_total(cart))
+  end
+
+  defp cart_count(cart) do
+    Enum.reduce(cart, 0, fn item, acc -> acc + item.quantity end)
+  end
+
+  defp cart_total(cart) do
+    Enum.reduce(cart, 0, fn item, acc -> acc + item.unit_price * item.quantity end)
   end
 
   defp checkout_error_message(reason) do

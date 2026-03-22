@@ -10,24 +10,27 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   """
   use EmakolaWeb, :live_view
 
+  alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.{Currency, StoreResolver}
 
   require Ash.Query
 
   @impl true
-  def mount(%{"store_slug" => slug}, _session, socket) do
+  def mount(%{"store_slug" => slug}, session, socket) do
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         products = load_featured_products(store)
         categories = load_root_categories(store)
+        cart_session_id = session["cart_session_id"]
+        cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
 
         {:ok,
          socket
          |> assign(:store, store)
          |> assign(:products, products)
          |> assign(:categories, categories)
-         |> assign(:cart, [])
-         |> assign(:cart_count, 0)
+         |> assign(:cart_session_id, cart_session_id)
+         |> assign(:cart_count, cart_count)
          |> assign(:page_title, store.name)}
 
       {:error, :not_found} ->

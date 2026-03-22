@@ -13,6 +13,7 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
   """
   use EmakolaWeb, :live_view
 
+  alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.{Currency, StoreResolver}
 
   require Ash.Query
@@ -20,11 +21,13 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
   @products_per_page 12
 
   @impl true
-  def mount(%{"store_slug" => slug}, _session, socket) do
+  def mount(%{"store_slug" => slug}, session, socket) do
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         categories = Emakola.Catalog.list_root_categories!(store.id)
         products = load_active_products(store.id, nil, nil)
+        cart_session_id = session["cart_session_id"]
+        cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
 
         {:ok,
          socket
@@ -35,8 +38,8 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
          |> assign(:search_query, "")
          |> assign(:page, 1)
          |> assign(:has_more, length(products) >= @products_per_page)
-         |> assign(:cart, [])
-         |> assign(:cart_count, 0)
+         |> assign(:cart_session_id, cart_session_id)
+         |> assign(:cart_count, cart_count)
          |> assign(:page_title, "Shop - #{store.name}")}
 
       {:error, :not_found} ->

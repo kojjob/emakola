@@ -4,12 +4,13 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   """
   use EmakolaWeb, :live_view
 
+  alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.{Currency, StoreResolver}
 
   require Ash.Query
 
   @impl true
-  def mount(%{"store_slug" => slug, "category_slug" => category_slug}, _session, socket) do
+  def mount(%{"store_slug" => slug, "category_slug" => category_slug}, session, socket) do
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         case load_category(store.id, category_slug) do
@@ -22,14 +23,16 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
 
           category ->
             products = load_category_products(store.id, category.id)
+            cart_session_id = session["cart_session_id"]
+            cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
 
             {:ok,
              socket
              |> assign(:store, store)
              |> assign(:category, category)
              |> assign(:products, products)
-             |> assign(:cart, [])
-             |> assign(:cart_count, 0)
+             |> assign(:cart_session_id, cart_session_id)
+             |> assign(:cart_count, cart_count)
              |> assign(:page_title, "#{category.name} - #{store.name}")}
         end
 

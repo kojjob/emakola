@@ -13,12 +13,13 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   """
   use EmakolaWeb, :live_view
 
+  alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.{Currency, StoreResolver}
 
   require Ash.Query
 
   @impl true
-  def mount(%{"store_slug" => slug, "product_slug" => product_slug}, _session, socket) do
+  def mount(%{"store_slug" => slug, "product_slug" => product_slug}, session, socket) do
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         case load_product(store.id, product_slug) do
@@ -33,6 +34,8 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
             option_types = load_option_types(product)
             selected_variant = List.first(product.variants)
             related = load_related_products(store, product)
+            cart_session_id = session["cart_session_id"]
+            cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
 
             {:ok,
              socket
@@ -44,8 +47,8 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
              |> assign(:quantity, 1)
              |> assign(:current_image_index, 0)
              |> assign(:related_products, related)
-             |> assign(:cart, [])
-             |> assign(:cart_count, 0)
+             |> assign(:cart_session_id, cart_session_id)
+             |> assign(:cart_count, cart_count)
              |> assign(:page_title, "#{product.title} - #{store.name}")}
         end
 
@@ -96,34 +99,22 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
     if is_nil(variant) || variant.stock_quantity <= 0 do
       {:noreply, put_flash(socket, :error, "This variant is out of stock")}
     else
-      cart = socket.assigns.cart
+      cart_session_id = socket.assigns.cart_session_id
       quantity = socket.assigns.quantity
-      existing = Enum.find_index(cart, &(&1.variant_id == variant.id))
 
-      new_cart =
-        if existing do
-          List.update_at(cart, existing, fn item ->
-            %{item | quantity: item.quantity + quantity}
-          end)
-        else
-          cart ++
-            [
-              %{
-                variant_id: variant.id,
-                quantity: quantity,
-                product_title: socket.assigns.product.title,
-                variant_info: variant_label(variant, socket.assigns.option_types),
-                unit_price: variant.price,
-                sku: variant.sku
-              }
-            ]
-        end
+      CartStore.add_item(cart_session_id, %{
+        variant_id: variant.id,
+        quantity: quantity,
+        product_title: socket.assigns.product.title,
+        variant_info: variant_label(variant, socket.assigns.option_types),
+        unit_price: variant.price,
+        sku: variant.sku
+      })
 
-      cart_count = Enum.reduce(new_cart, 0, fn item, acc -> acc + item.quantity end)
+      cart_count = CartStore.cart_count(cart_session_id)
 
       {:noreply,
        socket
-       |> assign(:cart, new_cart)
        |> assign(:cart_count, cart_count)
        |> put_flash(:info, "Added to cart")}
     end
