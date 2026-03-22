@@ -52,6 +52,7 @@ defmodule EmakolaWeb.Router do
       live "/products", ProductListLive
       live "/products/:product_slug", ProductDetailLive
       live "/cart", CartLive
+      live "/checkout", CheckoutLive
       live "/category/:category_slug", CategoryLive
     end
   end
