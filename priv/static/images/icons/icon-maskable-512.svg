@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Maskable icon: safe zone is inner 80% (51.2px padding each side) -->
+  <rect width="512" height="512" fill="#0C1F17"/>
+  <g transform="translate(156, 120)" stroke="#FAFAF9" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M32 10L16 32v75a10 10 0 0 0 10 10h75a10 10 0 0 0 10-10V32L95 10z"/>
+    <line x1="16" y1="32" x2="111" y2="32"/>
+    <path d="M85 53a22 22 0 0 1-44 0"/>
+  </g>
+  <text x="256" y="360" text-anchor="middle" fill="#FAFAF9" font-family="sans-serif" font-weight="700" font-size="50">Emakola</text>
+</svg>

@@ -53,7 +53,10 @@ defmodule EmakolaWeb.Admin.RevenueLive.Index do
             phx-value-period={p}
             class={[
               "px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 transition-all",
-              if(@period == p, do: "bg-emerald-600 text-white", else: "text-slate-500 hover:text-slate-700")
+              if(@period == p,
+                do: "bg-emerald-600 text-white",
+                else: "text-slate-500 hover:text-slate-700"
+              )
             ]}
           >
             {period_label(p)}
@@ -223,8 +226,7 @@ defmodule EmakolaWeb.Admin.RevenueLive.Index do
         </div>
         <div class="flex items-center gap-2">
           <span class="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-            <span class="w-3 h-1.5 rounded-full bg-emerald-500"></span>
-            Revenue
+            <span class="w-3 h-1.5 rounded-full bg-emerald-500"></span> Revenue
           </span>
         </div>
       </div>

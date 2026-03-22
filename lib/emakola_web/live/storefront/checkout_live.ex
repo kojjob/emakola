@@ -358,7 +358,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                   <div>
                     <label for="region" class="block text-sm font-medium text-[#0F172A] mb-1.5">
                       Region
-                    </label><select
+                    </label>
+                    <select
                       id="region"
                       name="region"
                       class="w-full border border-[#E2E8F0] rounded-lg px-3 py-2.5 text-sm bg-white"
@@ -379,7 +380,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                   <div>
                     <label for="notes" class="block text-sm font-medium text-[#0F172A] mb-1.5">
                       Order notes <span class="text-[#94A3B8] font-normal">(optional)</span>
-                    </label><textarea
+                    </label>
+                    <textarea
                       id="notes"
                       name="notes"
                       rows="3"
@@ -395,7 +397,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                       class="px-6 py-3 border border-[#E2E8F0] rounded-xl text-sm font-medium text-[#475569]"
                     >
                       Back
-                    </button><button
+                    </button>
+                    <button
                       type="submit"
                       class="flex-1 bg-[#1C1917] text-white py-3 rounded-xl text-sm font-semibold"
                     >Continue to Review</button>
@@ -466,7 +469,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                     class="px-6 py-3 border border-[#E2E8F0] rounded-xl text-sm font-medium text-[#475569] disabled:opacity-50"
                   >
                     Back
-                  </button><button
+                  </button>
+                  <button
                     phx-click="place_order"
                     disabled={@processing}
                     class="flex-1 bg-[#1C1917] text-white py-3.5 rounded-xl text-sm font-semibold disabled:bg-[#E2E8F0] disabled:text-[#94A3B8]"

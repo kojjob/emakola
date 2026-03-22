@@ -95,7 +95,13 @@ defmodule EmakolaWeb.Admin.CampaignLiveTest do
       html =
         view
         |> element("form[phx-submit='save_campaign']")
-        |> render_submit(%{"campaign" => %{"name" => "Test Campaign", "channel" => "whatsapp", "description" => "Test"}})
+        |> render_submit(%{
+          "campaign" => %{
+            "name" => "Test Campaign",
+            "channel" => "whatsapp",
+            "description" => "Test"
+          }
+        })
 
       assert html =~ "Campaign created successfully!"
     end

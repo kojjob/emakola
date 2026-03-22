@@ -72,7 +72,13 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
         </div>
         <%!-- Export buttons --%>
         <button class="inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <svg
+            class="w-3.5 h-3.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -82,7 +88,13 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
           Export PDF
         </button>
         <button class="inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <svg
+            class="w-3.5 h-3.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -120,7 +132,13 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
           trend={:up}
           sparkline="0,12 5,10 10,8 15,9 20,5 25,3 30,1"
         />
-        <.kpi_item label="Orders" value="284" change="+8.2%" trend={:up} sparkline="0,11 5,10 10,9 15,10 20,7 25,4 30,2" />
+        <.kpi_item
+          label="Orders"
+          value="284"
+          change="+8.2%"
+          trend={:up}
+          sparkline="0,11 5,10 10,9 15,10 20,7 25,4 30,2"
+        />
         <.kpi_item label="Avg. Order Value" value="GH₵ 135.46" change="+6.1%" trend={:up} />
         <.kpi_item label="Conversion Rate" value="4.12%" change="-0.3%" trend={:down} />
         <.kpi_item label="Returning Customers" value="34.2%" change="+2.8%" trend={:up} />
@@ -605,9 +623,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
           </thead>
           <tbody>
             <.region_row
-              :for={
-                {row, idx} <- Enum.with_index(regions(), 1)
-              }
+              :for={{row, idx} <- Enum.with_index(regions(), 1)}
               rank={idx}
               name={row.name}
               orders={row.orders}
@@ -906,7 +922,13 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     ~H"""
     <div class={["p-4 rounded-xl bg-slate-50 border-l-[3px]", @border_color]}>
       <div class="flex items-center gap-1.5 mb-2">
-        <svg class={["w-3.5 h-3.5", @icon_color]} fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <svg
+          class={["w-3.5 h-3.5", @icon_color]}
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
           <path stroke-linecap="round" stroke-linejoin="round" d={@icon_path} />
         </svg>
         <span class={["text-[10px] font-semibold uppercase tracking-wider", @label_color]}>
