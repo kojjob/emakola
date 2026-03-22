@@ -287,6 +287,67 @@ defmodule Emakola.Catalog.ProductTest do
     end
   end
 
+  # ── Aggregates ────────────────────────────────────────────────
+
+  describe "aggregates" do
+    test "variant_count returns 0 for product with no variants", %{store: store} do
+      product = create_product!(store, title: "Empty Product")
+
+      loaded =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(id == ^product.id)
+        |> Ash.Query.load([:variant_count])
+        |> Ash.read_one!()
+
+      assert loaded.variant_count == 0
+    end
+
+    test "variant_count returns correct count", %{store: store} do
+      product = create_product!(store, title: "Multi-variant")
+      create_variant!(product, store, price: 5000, sku: "V1")
+      create_variant!(product, store, price: 7000, sku: "V2")
+      create_variant!(product, store, price: 3000, sku: "V3")
+
+      loaded =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(id == ^product.id)
+        |> Ash.Query.load([:variant_count, :min_price, :max_price])
+        |> Ash.read_one!()
+
+      assert loaded.variant_count == 3
+      assert loaded.min_price == 3000
+      assert loaded.max_price == 7000
+    end
+
+    test "min_price and max_price are nil for product with no variants", %{store: store} do
+      product = create_product!(store, title: "No Variants")
+
+      loaded =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(id == ^product.id)
+        |> Ash.Query.load([:min_price, :max_price])
+        |> Ash.read_one!()
+
+      assert is_nil(loaded.min_price)
+      assert is_nil(loaded.max_price)
+    end
+
+    test "min_price equals max_price for single variant", %{store: store} do
+      product = create_product!(store, title: "Single Variant")
+      create_variant!(product, store, price: 4500, sku: "ONLY")
+
+      loaded =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(id == ^product.id)
+        |> Ash.Query.load([:variant_count, :min_price, :max_price])
+        |> Ash.read_one!()
+
+      assert loaded.variant_count == 1
+      assert loaded.min_price == 4500
+      assert loaded.max_price == 4500
+    end
+  end
+
   # ── Edge cases ────────────────────────────────────────────────
 
   describe "edge cases" do

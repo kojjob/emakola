@@ -82,6 +82,15 @@ defmodule Emakola.Catalog.Product do
       define_attribute?(false)
       public?(true)
     end
+
+    has_many :variants, Emakola.Catalog.Variant
+    has_many :images, Emakola.Catalog.Image
+  end
+
+  aggregates do
+    count(:variant_count, :variants)
+    min(:min_price, :variants, :price)
+    max(:max_price, :variants, :price)
   end
 
   identities do

@@ -7,9 +7,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
   require Ash.Query
 
-  # TODO: Get store_id from authenticated merchant's session
-  @test_store_id "00000000-0000-0000-0000-000000000001"
-
   @impl true
   def mount(_params, _session, socket) do
     store_id = get_store_id(socket)
@@ -260,16 +257,19 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
     products =
       try do
-        cond do
-          query != "" ->
-            Emakola.Catalog.search_products!(query, store_id)
+        results =
+          cond do
+            query != "" ->
+              Emakola.Catalog.search_products!(query, store_id)
 
-          status != :all ->
-            Emakola.Catalog.list_products_by_store_and_status!(store_id, status)
+            status != :all ->
+              Emakola.Catalog.list_products_by_store_and_status!(store_id, status)
 
-          true ->
-            Emakola.Catalog.list_products_by_store!(store_id)
-        end
+            true ->
+              Emakola.Catalog.list_products_by_store!(store_id)
+          end
+
+        Ash.load!(results, [:variant_count, :min_price, :max_price])
       rescue
         _ -> []
       end
@@ -292,9 +292,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
   # ── Helpers ──
 
-  defp get_store_id(_socket) do
-    # TODO: Get store_id from authenticated merchant's session
-    @test_store_id
+  defp get_store_id(socket) do
+    case socket.assigns[:current_store] do
+      %{id: id} -> id
+      _ -> nil
+    end
   end
 
   defp status_badge_class(:draft), do: "bg-gray-100 text-gray-700"
@@ -305,13 +307,31 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   defp category_name(nil, _categories), do: "Uncategorized"
   defp category_name(id, categories), do: Map.get(categories, id, "Uncategorized")
 
-  defp variant_count(_product) do
-    # TODO: Load variant count via relationship or aggregation
-    0
+  defp variant_count(product) do
+    Map.get(product, :variant_count, 0)
   end
 
-  defp price_range(_product) do
-    # TODO: Load price range from variants
-    "GH\u20B5 0.00"
+  defp price_range(product) do
+    min = Map.get(product, :min_price, 0) || 0
+    max = Map.get(product, :max_price, 0) || 0
+
+    cond do
+      min == 0 and max == 0 ->
+        "GH\u20B5 0.00"
+
+      min == max ->
+        "GH\u20B5 #{format_price(min)}"
+
+      true ->
+        "GH\u20B5 #{format_price(min)} – #{format_price(max)}"
+    end
   end
+
+  defp format_price(amount) when is_integer(amount) do
+    whole = div(amount, 100)
+    cents = rem(amount, 100)
+    "#{whole}.#{String.pad_leading(Integer.to_string(cents), 2, "0")}"
+  end
+
+  defp format_price(_), do: "0.00"
 end
