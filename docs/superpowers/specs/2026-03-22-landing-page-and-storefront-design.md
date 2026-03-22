@@ -281,6 +281,15 @@ All hooks registered in `assets/js/hooks/index.js` and passed to `LiveSocket`.
 - `lib/emakola_web/live/storefront/checkout_live.ex` — render/1 rewrite
 - `lib/emakola_web/live/storefront/category_live.ex` — render/1 rewrite
 
+### Additional files from enhancements
+- `assets/js/hooks/cart_storage.js` — new (Enhancement 2)
+- `lib/emakola_web/controllers/manifest_controller.ex` — new (Enhancement 5)
+- `priv/static/sw.js` — new service worker (Enhancement 5)
+- `lib/emakola_web/components/layouts/root.html.heex` — add OG meta block (Enhancement 1)
+- `lib/emakola_web/components/layouts/storefront_layout.html.heex` — manifest link + SW script (Enhancement 5)
+- `lib/emakola_web/router.ex` — add manifest route (Enhancement 5)
+- `assets/css/app.css` — add `.skeleton` keyframe (Enhancement 4)
+
 ### Fonts (already in app.css or app.html.heex)
 Add Google Fonts: `Inter` (300–900) and `Cormorant Garamond` (500, 600, italic 400)
 
@@ -299,8 +308,231 @@ New/updated tests required per TDD workflow (write assertions before implementat
 | `test/emakola_web/live/storefront/product_detail_live_test.exs` | Product name renders, size variant buttons render, `select_variant` event updates selected state, `add_to_cart` event triggers, WhatsApp button has correct href |
 | `test/emakola_web/live/storefront/product_list_live_test.exs` | Products grid renders, search input present, `search` event filters products, category pill click filters results |
 | `test/emakola_web/live/storefront/cart_live_test.exs` | Cart items render, empty state renders when cart empty, total calculation correct, checkout button present |
-| `test/emakola_web/live/storefront/checkout_live_test.exs` | Step 2 (delivery) renders form fields, `next_step` advances to payment, payment method options all present, `select_payment` updates selected method |
+| `test/emakola_web/live/storefront/checkout_live_test.exs` | Step 2 (delivery) renders form fields, `next_step` advances to payment, payment method options all present, `select_payment` updates selected method, `place_order` advances to `:confirmation`, confirmation renders order reference, WhatsApp tracking link contains order reference |
 | `test/emakola_web/live/storefront/category_live_test.exs` | Category name renders in header, products scoped to category, load-more button present when `has_more: true` |
+| `test/emakola_web/live/storefront/cart_live_test.exs` (additional) | `restore_cart` event with valid payload populates cart items; cart empty state renders when `restore_cart` sends empty items |
+| `test/emakola_web/controllers/manifest_controller_test.exs` | GET `/s/:slug/manifest.json` returns 200, `name` matches store name, `theme_color` is `#B45309` |
+
+---
+
+---
+
+## Enhancement 1: WhatsApp Link Preview (Dynamic OG Tags)
+
+When a merchant shares their store URL on WhatsApp, the preview card shows the store name, description, and logo rather than a blank link. Critical for West African market where WhatsApp is the primary distribution channel.
+
+### Implementation
+Each storefront LiveView sets dynamic meta tags in `mount/3` using `assign/3` and the existing `page_title` pattern extended to support OG meta. The root layout `root.html.heex` reads from assigns.
+
+```elixir
+# In store_live.ex mount/3 — extend existing assigns:
+|> assign(:og_title, store.name)
+|> assign(:og_description, store.description || "Shop #{store.name} — quality products from #{store.location}")
+|> assign(:og_image, store.logo_url || "/images/og-emakola-default.png")
+|> assign(:og_url, "https://#{store.slug}.emakola.com")
+```
+
+Root layout renders:
+```heex
+<meta property="og:title" content={assigns[:og_title] || "Emakola"} />
+<meta property="og:description" content={assigns[:og_description] || ""} />
+<meta property="og:image" content={assigns[:og_image] || "/images/og-emakola-default.png"} />
+<meta property="og:url" content={assigns[:og_url] || ""} />
+<meta name="twitter:card" content="summary_large_image" />
+```
+
+### Files affected
+- `lib/emakola_web/components/layouts/root.html.heex` — add OG meta block
+- `lib/emakola_web/live/storefront/store_live.ex` — add OG assigns in mount
+- `lib/emakola_web/live/storefront/product_detail_live.ex` — add product-specific OG assigns (product image, name, price)
+
+### New assigns (store_live + product_detail_live)
+| Assign | Value |
+|---|---|
+| `og_title` | `store.name` / `"#{product.title} — #{store.name}"` |
+| `og_description` | `store.description` / `product.description` (first 160 chars) |
+| `og_image` | `store.logo_url` / `first_image(product)` |
+| `og_url` | Constructed from `store.slug` + optional product slug |
+
+---
+
+## Enhancement 2: Cart Persistence (localStorage via JS Hook)
+
+Cart contents must survive page navigation and browser refreshes without requiring a server-side cart session. Uses a `CartStorage` JS hook that syncs cart state to `localStorage` and restores it on LiveView mount.
+
+### Implementation
+
+**JS Hook** (`assets/js/hooks/cart_storage.js`):
+- On mount: reads `localStorage.getItem("emakola_cart_#{storeSlug}")`, pushes to LiveView via `pushEvent("restore_cart", cartData)`
+- On `update`: listens for `"cart_updated"` server event, writes new cart state to localStorage
+
+**LiveView** (`cart_live.ex` and `store_live.ex`):
+```elixir
+# Handle cart restoration from localStorage
+def handle_event("restore_cart", %{"items" => items}, socket) do
+  {:noreply, assign(socket, :cart_items, deserialize_cart(items))}
+end
+
+# Broadcast cart update back to hook after any mutation
+def handle_event("add_to_cart", params, socket) do
+  # ... update cart_items
+  {:noreply, push_event(socket, "cart_updated", %{items: serialize_cart(cart_items)})}
+end
+```
+
+Cart is scoped to `storeSlug` so customers can have independent carts across multiple stores.
+
+### Files affected
+- `assets/js/hooks/cart_storage.js` — new hook
+- `lib/emakola_web/live/storefront/cart_live.ex` — add `restore_cart` handler, push `cart_updated` events
+- `lib/emakola_web/live/storefront/store_live.ex` — add `add_to_cart` handler with `push_event`
+- `lib/emakola_web/live/storefront/product_detail_live.ex` — same `add_to_cart` + `push_event`
+- `assets/js/app.js` — register `CartStorage` hook
+
+### New test assertions
+- `cart_live_test.exs`: `restore_cart` event with valid payload populates cart items
+- `cart_live_test.exs`: cart empty state renders when `restore_cart` sends empty items
+
+---
+
+## Enhancement 3: Order Confirmation Page
+
+After a successful order placement, customers see a branded confirmation screen with order reference, estimated delivery, and a WhatsApp "track my order" link. Without this, customers have no proof of purchase and merchants get repeat enquiries.
+
+### Implementation
+Add `:confirmation` as the final `checkout_step`. Triggered by `handle_event("place_order", ...)` which validates the form, creates the order (via existing `Emakola.Orders` domain), and advances the step.
+
+### Confirmation page layout
+1. Dark stone header — "Order Confirmed"
+2. Large amber checkmark circle (SVG, animated scale-in on mount)
+3. Order reference in Cormorant serif (e.g. `#EMK-20250322-8472`)
+4. Summary card: items ordered, total paid, payment method used
+5. Delivery estimate ("Expected: 1–3 business days in Accra")
+6. WhatsApp CTA: "Track your order on WhatsApp" → deep-links to merchant's WhatsApp with pre-filled order reference
+7. "Continue Shopping" link back to store home
+
+### New assigns for confirmation step
+| Assign | Type | Set when |
+|---|---|---|
+| `order_reference` | `string` | After successful order creation |
+| `order_total` | `integer` | From cart total |
+| `payment_method` | `atom` | From `selected_payment` |
+| `estimated_delivery` | `string` | Based on store location + customer region |
+
+### Files affected
+- `lib/emakola_web/live/storefront/checkout_live.ex` — add `:confirmation` step render, `place_order` handler, `order_reference` assign
+- No new files required
+
+### New test assertions
+- `checkout_live_test.exs`: `place_order` event with valid params advances to `:confirmation`
+- `checkout_live_test.exs`: confirmation renders order reference
+- `checkout_live_test.exs`: WhatsApp tracking link contains order reference
+
+---
+
+## Enhancement 4: Skeleton Loading States
+
+On slow 3G connections, product grids render blank while Ash queries complete. Skeleton shimmer cards maintain layout integrity and communicate "loading" rather than "broken".
+
+### Implementation
+A CSS-only skeleton system. Each product card has a skeleton variant rendered when `@products == []` and `@loading == true`.
+
+**CSS** (add to `app.css` or storefront-specific CSS):
+```css
+@keyframes skeleton-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+```
+
+**Component** in `storefront_components.ex`:
+```elixir
+def product_card_skeleton(assigns) do
+  ~H"""
+  <div class="block">
+    <div class="skeleton rounded-[14px] w-full aspect-[3/4] mb-2"></div>
+    <div class="skeleton h-3 w-3/4 mb-1.5"></div>
+    <div class="skeleton h-3 w-1/2"></div>
+  </div>
+  """
+end
+```
+
+**Usage** — in `store_live.ex` and `product_list_live.ex`:
+```heex
+<%= if @loading do %>
+  <.product_card_skeleton :for={_ <- 1..4} />
+<% else %>
+  <.product_card :for={product <- @products} product={product} store={@store} />
+<% end %>
+```
+
+### New assign
+| Assign | Type | Initial value | Set to false |
+|---|---|---|---|
+| `loading` | `boolean` | `true` in mount | After `handle_info` receives products or in same-process load |
+
+### Files affected
+- `lib/emakola_web/components/storefront_components.ex` — add `product_card_skeleton/1`
+- `lib/emakola_web/live/storefront/store_live.ex` — add `loading: true` assign, set `false` after load
+- `lib/emakola_web/live/storefront/product_list_live.ex` — same pattern
+- `assets/css/app.css` — add skeleton keyframe + `.skeleton` class
+
+---
+
+## Enhancement 5: PWA Manifest + Service Worker
+
+Allows repeat customers to add the storefront to their phone's home screen — creating a native app feel with no App Store required. Critical for West African mobile users who primarily browse on Android.
+
+### Implementation
+
+**Web App Manifest** (`priv/static/manifest.json`):
+```json
+{
+  "name": "Amara Collection",
+  "short_name": "Amara",
+  "start_url": "/s/amara-collection",
+  "display": "standalone",
+  "background_color": "#1C1917",
+  "theme_color": "#B45309",
+  "icons": [
+    { "src": "/images/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/images/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
+```
+
+The manifest is **dynamic per store** — generated by a controller endpoint `GET /s/:store_slug/manifest.json` that builds the JSON from the store's name, slug, and brand colour.
+
+**Service Worker** (`priv/static/sw.js`):
+- Cache strategy: **Network first, cache fallback** for product pages
+- Cache: store home, product images, CSS/JS assets
+- Offline fallback: show cached store home with "You appear to be offline" banner
+
+**Registration** (in `storefront_layout.html.heex` only — not the admin layout):
+```html
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+</script>
+```
+
+### Files affected
+- `lib/emakola_web/controllers/manifest_controller.ex` — new controller, `GET /s/:store_slug/manifest.json`
+- `lib/emakola_web/router.ex` — add manifest route
+- `priv/static/sw.js` — new service worker
+- `lib/emakola_web/components/layouts/storefront_layout.html.heex` — add manifest link tag + SW registration script
+- `priv/static/images/` — add `icon-192.png`, `icon-512.png` (Emakola branded icons)
+
+### Note
+The manifest `name` and `theme_color` are store-specific, so the manifest controller renders JSON dynamically rather than serving a static file.
 
 ---
 
@@ -311,3 +543,4 @@ New/updated tests required per TDD workflow (write assertions before implementat
 - Payment processing integration (UI only, no gateway calls)
 - Real WhatsApp API calls from storefront
 - Category management LiveView (will use same component system but separate task)
+- Push notifications (future enhancement on top of PWA)
