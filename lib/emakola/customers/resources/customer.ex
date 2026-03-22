@@ -47,6 +47,12 @@ defmodule Emakola.Customers.Customer do
       define_attribute?(false)
       public?(true)
     end
+
+    has_many :orders, Emakola.Orders.Order
+  end
+
+  aggregates do
+    count(:order_count, :orders)
   end
 
   identities do
@@ -68,6 +74,30 @@ defmodule Emakola.Customers.Customer do
 
     update :update do
       accept([:name, :phone])
+    end
+
+    read :list_by_store do
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      filter(expr(store_id == ^arg(:store_id)))
+
+      prepare(fn query, _context ->
+        Ash.Query.sort(query, inserted_at: :desc)
+      end)
+    end
+
+    read :search do
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:query, :string, allow_nil?: false)
+
+      prepare(Emakola.Customers.Preparations.SearchCustomers)
+    end
+
+    read :get_by_id do
+      get?(true)
+      argument(:id, :uuid, allow_nil?: false)
+
+      filter(expr(id == ^arg(:id)))
     end
   end
 end
