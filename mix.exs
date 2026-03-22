@@ -80,6 +80,9 @@ defmodule Emakola.MixProject do
       # URL-safe slug generation (Unicode-aware)
       {:slugify, "~> 1.3"},
 
+      # HTTP client (used by webhook delivery, payment gateways)
+      {:req, "~> 0.5"},
+
       # Testing & Quality
       {:mox, "~> 1.0", only: :test},
       {:ex_machina, "~> 2.8", only: :test},
