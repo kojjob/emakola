@@ -1,0 +1,121 @@
+defmodule Emakola.Orders.LineItem do
+  @moduledoc """
+  Line item resource — individual items within an order.
+
+  Snapshots the variant's price, product title, and SKU at order time so the
+  order record remains accurate even if the product/variant changes later.
+
+  All monetary amounts are integers in minor currency units (pesewas/kobo).
+  """
+
+  use Ash.Resource,
+    domain: Emakola.Orders,
+    data_layer: AshPostgres.DataLayer,
+    authorizers: [Ash.Policy.Authorizer]
+
+  require Ash.Query
+
+  postgres do
+    table("line_items")
+    repo(Emakola.Repo)
+  end
+
+  attributes do
+    uuid_primary_key(:id)
+
+    attribute :order_id, :uuid do
+      allow_nil?(false)
+      public?(true)
+    end
+
+    attribute :store_id, :uuid do
+      allow_nil?(false)
+      public?(true)
+    end
+
+    attribute :variant_id, :uuid do
+      allow_nil?(false)
+      public?(true)
+    end
+
+    attribute :product_title, :string do
+      allow_nil?(false)
+      public?(true)
+    end
+
+    attribute :variant_sku, :string do
+      public?(true)
+    end
+
+    attribute :unit_price, :integer do
+      allow_nil?(false)
+      public?(true)
+    end
+
+    attribute :quantity, :integer do
+      allow_nil?(false)
+      public?(true)
+    end
+
+    attribute :line_total, :integer do
+      allow_nil?(false)
+      public?(true)
+    end
+
+    timestamps()
+  end
+
+  relationships do
+    belongs_to :order, Emakola.Orders.Order do
+      define_attribute?(false)
+      public?(true)
+    end
+
+    belongs_to :variant, Emakola.Catalog.Variant do
+      define_attribute?(false)
+      public?(true)
+    end
+  end
+
+  policies do
+    policy always() do
+      authorize_if(always())
+    end
+  end
+
+  validations do
+    validate(compare(:quantity, greater_than: 0),
+      message: "must be greater than 0"
+    )
+  end
+
+  actions do
+    defaults([:read])
+
+    create :create do
+      accept([:order_id, :store_id, :variant_id, :quantity])
+
+      change(fn changeset, _context ->
+        variant_id = Ash.Changeset.get_attribute(changeset, :variant_id)
+
+        case Ash.get(Emakola.Catalog.Variant, variant_id, load: [:product]) do
+          {:ok, variant} ->
+            quantity = Ash.Changeset.get_attribute(changeset, :quantity)
+            line_total = variant.price * (quantity || 0)
+
+            changeset
+            |> Ash.Changeset.force_change_attribute(:product_title, variant.product.title)
+            |> Ash.Changeset.force_change_attribute(:variant_sku, variant.sku)
+            |> Ash.Changeset.force_change_attribute(:unit_price, variant.price)
+            |> Ash.Changeset.force_change_attribute(:line_total, line_total)
+
+          {:error, _} ->
+            Ash.Changeset.add_error(changeset,
+              field: :variant_id,
+              message: "variant not found"
+            )
+        end
+      end)
+    end
+  end
+end
