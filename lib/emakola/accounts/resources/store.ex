@@ -4,10 +4,6 @@ defmodule Emakola.Accounts.Store do
 
   Every merchant can own/manage one or more stores. All ecommerce resources
   (products, orders, payments) are scoped to a store via store_id.
-
-  This is a minimal stub created during Phase 0 cleanup. It will be expanded
-  in Step 1.5 with full attributes (domain, timezone, etc.), actions, and
-  validations.
   """
 
   use Ash.Resource,
@@ -39,6 +35,43 @@ defmodule Emakola.Accounts.Store do
       public?(true)
     end
 
+    attribute :description, :string do
+      public?(true)
+    end
+
+    attribute :logo_url, :string do
+      public?(true)
+    end
+
+    attribute :contact_email, :string do
+      public?(true)
+    end
+
+    attribute :contact_phone, :string do
+      public?(true)
+    end
+
+    attribute :address, :string do
+      public?(true)
+    end
+
+    attribute :city, :string do
+      public?(true)
+    end
+
+    attribute :region, :string do
+      public?(true)
+    end
+
+    attribute :whatsapp_number, :string do
+      public?(true)
+    end
+
+    attribute :active, :boolean do
+      default(true)
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -65,6 +98,21 @@ defmodule Emakola.Accounts.Store do
 
     update :update do
       accept([:name, :currency])
+    end
+
+    update :update_settings do
+      accept([
+        :name,
+        :description,
+        :logo_url,
+        :contact_email,
+        :contact_phone,
+        :address,
+        :city,
+        :region,
+        :whatsapp_number,
+        :active
+      ])
     end
   end
 end
