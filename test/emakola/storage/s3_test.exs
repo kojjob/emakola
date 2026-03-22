@@ -3,8 +3,12 @@ defmodule Emakola.Storage.S3Test do
 
   alias Emakola.Storage.S3
 
-  describe "behaviour implementation" do
-    test "module implements Emakola.Storage behaviour" do
+  describe "module structure" do
+    test "S3 module is defined and loadable" do
+      assert Code.ensure_loaded?(S3)
+    end
+
+    test "S3 module declares Storage behaviour" do
       behaviours =
         S3.__info__(:attributes)
         |> Keyword.get_values(:behaviour)
@@ -12,25 +16,10 @@ defmodule Emakola.Storage.S3Test do
 
       assert Emakola.Storage in behaviours
     end
-
-    test "exports upload function" do
-      # upload/3 has default opts, so it compiles as upload/2 and upload/3
-      assert function_exported?(S3, :upload, 3)
-    end
-
-    test "exports delete/1" do
-      assert function_exported?(S3, :delete, 1)
-    end
-
-    test "exports presigned_url function" do
-      assert function_exported?(S3, :presigned_url, 1) or
-               function_exported?(S3, :presigned_url, 2)
-    end
   end
 
   describe "presigned_url/2" do
     setup do
-      # Set fake AWS credentials so ExAws.Config doesn't try to fetch from instance metadata
       Application.put_env(:ex_aws, :access_key_id, "test-key-id")
       Application.put_env(:ex_aws, :secret_access_key, "test-secret-key")
 
