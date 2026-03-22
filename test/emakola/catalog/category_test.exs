@@ -123,7 +123,7 @@ defmodule Emakola.Catalog.CategoryTest do
 
     test "list_roots returns only root categories", %{store: store} do
       root1 = create_category!(store, name: "Electronics", position: 1)
-      root2 = create_category!(store, name: "Clothing", position: 0)
+      _root2 = create_category!(store, name: "Clothing", position: 0)
       _child = create_category!(store, name: "Phones", parent_id: root1.id)
 
       roots = Emakola.Catalog.list_root_categories!(store.id)
@@ -135,7 +135,7 @@ defmodule Emakola.Catalog.CategoryTest do
 
     test "list_children returns children of a category", %{store: store} do
       parent = create_category!(store, name: "Electronics")
-      child1 = create_category!(store, name: "Phones", parent_id: parent.id, position: 1)
+      _child1 = create_category!(store, name: "Phones", parent_id: parent.id, position: 1)
       child2 = create_category!(store, name: "Laptops", parent_id: parent.id, position: 0)
       _other = create_category!(store, name: "Clothing")
 

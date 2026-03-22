@@ -213,7 +213,7 @@ defmodule Emakola.Catalog.ProductTest do
       assert updated.tags == ["promo", "featured"]
     end
 
-    test "updates category", %{store: store, category: category} do
+    test "updates category", %{store: store, category: _category} do
       product = create_product!(store, title: "Test")
       new_category = create_category!(store, name: "Clothing")
 

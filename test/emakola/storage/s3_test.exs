@@ -15,7 +15,7 @@ defmodule Emakola.Storage.S3Test do
 
     test "exports upload function" do
       # upload/3 has default opts, so it compiles as upload/2 and upload/3
-      assert function_exported?(S3, :upload, 2) or function_exported?(S3, :upload, 3)
+      assert function_exported?(S3, :upload, 3)
     end
 
     test "exports delete/1" do

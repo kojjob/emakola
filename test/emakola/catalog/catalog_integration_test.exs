@@ -99,7 +99,7 @@ defmodule Emakola.Catalog.IntegrationTest do
       # Create full catalog in Store B
       cat_b = create_category!(store_b, name: "Food")
       prod_b = create_product!(store_b, title: "Jollof Rice", category_id: cat_b.id)
-      var_b = create_variant!(prod_b, store_b, price: 3500)
+      _var_b = create_variant!(prod_b, store_b, price: 3500)
 
       # Store A queries should only see Store A data
       a_categories =
