@@ -28,6 +28,9 @@ config :swoosh, :api_client, false
 # Print only warnings and errors during test
 config :logger, level: :warning
 
+# Suppress Ash missed notification warnings in test (expected inside Repo.transaction)
+config :ash, :missed_notifications, :ignore
+
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
 
@@ -38,3 +41,15 @@ config :phoenix_live_view,
 # Sort query params output of verified routes for robust url comparisons
 config :phoenix,
   sort_verified_routes_query_params: true
+
+# HTTP client: use mock in tests
+config :emakola, :http_client, Emakola.HTTPClientMock
+
+# Hubtel test credentials
+config :emakola, :hubtel_client_id, "test_client_id"
+config :emakola, :hubtel_client_secret, "test_client_secret"
+config :emakola, :hubtel_base_url, "https://api.hubtel.com"
+
+# Paystack test credentials
+config :emakola, :paystack_secret_key, "sk_test_default_secret"
+config :emakola, :paystack_public_key, "pk_test_default_public"
