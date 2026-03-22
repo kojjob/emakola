@@ -88,38 +88,38 @@ defmodule Emakola.Catalog.Category do
     create :create do
       accept([:name, :description, :parent_id, :position, :store_id])
 
-      validate {Emakola.Catalog.Validations.NotBlank, attribute: :name}
-      change Emakola.Catalog.Changes.GenerateSlug
+      validate({Emakola.Catalog.Validations.NotBlank, attribute: :name})
+      change(Emakola.Catalog.Changes.GenerateSlug)
     end
 
     update :update do
       require_atomic?(false)
       accept([:name, :description, :parent_id, :position])
 
-      validate {Emakola.Catalog.Validations.NotBlank, attribute: :name}
-      validate Emakola.Catalog.Validations.NoSelfParent
-      change Emakola.Catalog.Changes.GenerateSlug
+      validate({Emakola.Catalog.Validations.NotBlank, attribute: :name})
+      validate(Emakola.Catalog.Validations.NoSelfParent)
+      change(Emakola.Catalog.Changes.GenerateSlug)
     end
 
     read :list_roots do
-      argument :store_id, :uuid, allow_nil?: false
+      argument(:store_id, :uuid, allow_nil?: false)
 
-      filter expr(store_id == ^arg(:store_id) and is_nil(parent_id))
+      filter(expr(store_id == ^arg(:store_id) and is_nil(parent_id)))
 
-      prepare fn query, _context ->
+      prepare(fn query, _context ->
         Ash.Query.sort(query, position: :asc)
-      end
+      end)
     end
 
     read :list_children do
-      argument :parent_id, :uuid, allow_nil?: false
-      argument :store_id, :uuid, allow_nil?: false
+      argument(:parent_id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
 
-      filter expr(parent_id == ^arg(:parent_id) and store_id == ^arg(:store_id))
+      filter(expr(parent_id == ^arg(:parent_id) and store_id == ^arg(:store_id)))
 
-      prepare fn query, _context ->
+      prepare(fn query, _context ->
         Ash.Query.sort(query, position: :asc)
-      end
+      end)
     end
   end
 end
