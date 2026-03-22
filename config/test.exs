@@ -54,6 +54,9 @@ config :emakola, :hubtel_base_url, "https://api.hubtel.com"
 config :emakola, :paystack_secret_key, "sk_test_default_secret"
 config :emakola, :paystack_public_key, "pk_test_default_public"
 
+# Payment gateway: use mock in tests (always returns success)
+config :emakola, :payment_gateway, Emakola.Payments.Gateways.Mock
+
 # Notification providers: use Mox mocks in tests
 config :emakola, :sms_provider, Emakola.SMSProviderMock
 config :emakola, :whatsapp_provider, Emakola.WhatsAppProviderMock
