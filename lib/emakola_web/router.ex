@@ -35,6 +35,20 @@ defmodule EmakolaWeb.Router do
     live "/register", RegisterLive
   end
 
+  # Customer storefront (public — no auth required)
+  # In production, store is resolved from subdomain. For now, use store slug in URL.
+  scope "/s/:store_slug", EmakolaWeb.Storefront do
+    pipe_through :browser
+
+    live_session :storefront, layout: {EmakolaWeb.Layouts, :storefront} do
+      live "/", StoreLive
+      live "/products", ProductListLive
+      live "/products/:product_slug", ProductDetailLive
+      live "/cart", CartLive
+      live "/category/:category_slug", CategoryLive
+    end
+  end
+
   scope "/", EmakolaWeb do
     pipe_through :browser
 
