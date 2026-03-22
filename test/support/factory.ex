@@ -73,6 +73,16 @@ defmodule Emakola.Factory do
     |> Ash.create!()
   end
 
+  def create_store_membership!(merchant, store, role \\ :staff) do
+    Emakola.Accounts.StoreMembership
+    |> Ash.Changeset.for_create(:create, %{
+      role: role,
+      merchant_id: merchant.id,
+      store_id: store.id
+    })
+    |> Ash.create!()
+  end
+
   # ── Catalog ───────────────────────────────────────────────────
 
   def create_category!(store, attrs \\ %{}) do
@@ -223,6 +233,23 @@ defmodule Emakola.Factory do
       |> Ash.create()
 
     {org, user, agent, conversation}
+  end
+
+  # ── Merchant + Store (convenience) ─────────────────────────
+
+  def create_merchant_with_store!(store_attrs \\ %{}) do
+    merchant = create_merchant!()
+    store = create_store!(store_attrs)
+
+    Emakola.Accounts.StoreMembership
+    |> Ash.Changeset.for_create(:create, %{
+      merchant_id: merchant.id,
+      store_id: store.id,
+      role: :owner
+    })
+    |> Ash.create!()
+
+    {merchant, store}
   end
 
   # ── Images ──────────────────────────────────────────────────

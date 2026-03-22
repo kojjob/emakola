@@ -32,4 +32,17 @@ defmodule Emakola.LiveViewHelpers do
 
     {conn, user, org}
   end
+
+  @doc "Create a merchant, store, and membership, returning {conn, merchant, store}."
+  def setup_authenticated_merchant(conn, store_attrs \\ %{}) do
+    {merchant, store} = Factory.create_merchant_with_store!(store_attrs)
+    token = AshAuthentication.user_to_subject(merchant)
+
+    conn =
+      conn
+      |> Phoenix.ConnTest.init_test_session(%{})
+      |> Plug.Conn.put_session(:user_token, token)
+
+    {conn, merchant, store}
+  end
 end

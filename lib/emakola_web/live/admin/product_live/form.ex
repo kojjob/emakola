@@ -7,9 +7,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
 
   require Ash.Query
 
-  # TODO: Get store_id from authenticated merchant's session
-  @test_store_id "00000000-0000-0000-0000-000000000001"
-
   @impl true
   def mount(params, _session, socket) do
     store_id = get_store_id(socket)
@@ -380,9 +377,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
     }
   end
 
-  defp get_store_id(_socket) do
-    # TODO: Get store_id from authenticated merchant's session
-    @test_store_id
+  defp get_store_id(socket) do
+    case socket.assigns[:current_store] do
+      %{id: id} -> id
+      _ -> nil
+    end
   end
 
   defp format_error(%Ash.Error.Invalid{errors: errors}) do
