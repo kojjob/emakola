@@ -318,4 +318,21 @@ defmodule Emakola.Factory do
     |> Ash.Changeset.for_create(:create, params)
     |> Ash.create!()
   end
+
+  # ── Delivery Zones ────────────────────────────────────────────────
+
+  def create_delivery_zone!(store, attrs \\ %{}) do
+    default = %{
+      name: "Zone #{System.unique_integer([:positive])}",
+      fee: 1500,
+      estimated_days: 1,
+      store_id: store.id
+    }
+
+    params = Map.merge(default, Map.new(attrs))
+
+    Emakola.Shipping.DeliveryZone
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!()
+  end
 end

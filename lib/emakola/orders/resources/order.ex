@@ -153,6 +153,69 @@ defmodule Emakola.Orders.Order do
       change(set_attribute(:status, :confirmed))
     end
 
+    update :start_processing do
+      require_atomic?(false)
+      accept([])
+
+      validate(fn changeset, _context ->
+        status = Ash.Changeset.get_attribute(changeset, :status)
+
+        if status == :confirmed do
+          :ok
+        else
+          {:error,
+           Ash.Error.Changes.InvalidAttribute.exception(
+             field: :status,
+             message: "can only start processing from confirmed"
+           )}
+        end
+      end)
+
+      change(set_attribute(:status, :processing))
+    end
+
+    update :mark_shipped do
+      require_atomic?(false)
+      accept([])
+
+      validate(fn changeset, _context ->
+        status = Ash.Changeset.get_attribute(changeset, :status)
+
+        if status == :processing do
+          :ok
+        else
+          {:error,
+           Ash.Error.Changes.InvalidAttribute.exception(
+             field: :status,
+             message: "can only mark as shipped from processing"
+           )}
+        end
+      end)
+
+      change(set_attribute(:status, :shipped))
+    end
+
+    update :mark_delivered do
+      require_atomic?(false)
+      accept([])
+
+      validate(fn changeset, _context ->
+        status = Ash.Changeset.get_attribute(changeset, :status)
+
+        if status == :shipped do
+          :ok
+        else
+          {:error,
+           Ash.Error.Changes.InvalidAttribute.exception(
+             field: :status,
+             message: "can only mark as delivered from shipped"
+           )}
+        end
+      end)
+
+      change(set_attribute(:status, :delivered))
+    end
+
     update :cancel do
       require_atomic?(false)
       accept([])
@@ -160,18 +223,33 @@ defmodule Emakola.Orders.Order do
       validate(fn changeset, _context ->
         status = Ash.Changeset.get_attribute(changeset, :status)
 
-        if status in [:pending, :confirmed] do
+        if status in [:pending, :confirmed, :processing, :shipped] do
           :ok
         else
           {:error,
            Ash.Error.Changes.InvalidAttribute.exception(
              field: :status,
-             message: "can only cancel a pending or confirmed order"
+             message: "can only cancel an active order (not delivered or already cancelled)"
            )}
         end
       end)
 
       change(set_attribute(:status, :cancelled))
+    end
+
+    update :update_notes do
+      require_atomic?(false)
+      accept([:notes])
+    end
+
+    read :get_by_id do
+      argument(:id, :uuid, allow_nil?: false)
+
+      filter(expr(id == ^arg(:id)))
+
+      prepare(fn query, _context ->
+        Ash.Query.load(query, [:line_items, :customer])
+      end)
     end
 
     read :list_by_store do
