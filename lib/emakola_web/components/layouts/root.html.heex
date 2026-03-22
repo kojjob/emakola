@@ -18,12 +18,44 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <EmakolaWeb.SEO.meta_tags
-      title={assigns[:page_title] || "Emakola"}
-      description={assigns[:meta_description] || "Production-ready Phoenix SaaS boilerplate"}
-      url={assigns[:canonical_url] || "https://founderpad.io"}
+    <meta
+      name="description"
+      content={assigns[:meta_description] || "Your online store powered by Emakola"}
     />
-    <.live_title default="Emakola" suffix=" · Phoenix Framework">
+    <meta name="robots" content={assigns[:robots] || "index, follow"} />
+    <%= if assigns[:canonical_url] do %>
+      <link rel="canonical" href={assigns[:canonical_url]} />
+    <% end %>
+    <!-- Open Graph -->
+    <meta property="og:title" content={assigns[:page_title] || "Emakola"} />
+    <meta
+      property="og:description"
+      content={assigns[:meta_description] || "Your online store powered by Emakola"}
+    />
+    <meta property="og:type" content="website" />
+    <%= if assigns[:og_image] do %>
+      <meta property="og:image" content={assigns[:og_image]} />
+    <% end %>
+    <%= if assigns[:canonical_url] do %>
+      <meta property="og:url" content={assigns[:canonical_url]} />
+    <% end %>
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={assigns[:page_title] || "Emakola"} />
+    <meta
+      name="twitter:description"
+      content={assigns[:meta_description] || "Your online store powered by Emakola"}
+    />
+    <%= if assigns[:og_image] do %>
+      <meta name="twitter:image" content={assigns[:og_image]} />
+    <% end %>
+    <!-- JSON-LD Structured Data -->
+    <%= if assigns[:json_ld] do %>
+      <script type="application/ld+json">
+        {raw(assigns[:json_ld])}
+      </script>
+    <% end %>
+    <.live_title default="Emakola" suffix=" · Emakola">
       {assigns[:page_title]}
     </.live_title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />

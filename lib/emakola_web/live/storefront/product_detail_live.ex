@@ -5,7 +5,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   """
   use EmakolaWeb, :live_view
 
-  alias EmakolaWeb.Helpers.{Currency, StoreResolver}
+  alias EmakolaWeb.Helpers.{Currency, SEO, StoreResolver}
 
   require Ash.Query
 
@@ -25,6 +25,15 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
             option_types = load_option_types(product)
             selected_variant = List.first(product.variants)
 
+            product_description =
+              product.seo_description || product.description || product.title
+
+            og_image = first_image(product)
+
+            json_ld =
+              SEO.json_ld_product(product, product.variants, store)
+              |> SEO.json_ld_to_script()
+
             {:ok,
              socket
              |> assign(:store, store)
@@ -35,7 +44,10 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
              |> assign(:quantity, 1)
              |> assign(:cart, [])
              |> assign(:cart_count, 0)
-             |> assign(:page_title, "#{product.title} - #{store.name}")}
+             |> assign(:page_title, "#{product.title} - #{store.name}")
+             |> assign(:meta_description, product_description)
+             |> assign(:og_image, og_image)
+             |> assign(:json_ld, json_ld)}
         end
 
       {:error, :not_found} ->

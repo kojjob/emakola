@@ -29,7 +29,8 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
          |> assign(:has_more, length(products) >= @products_per_page)
          |> assign(:cart, [])
          |> assign(:cart_count, 0)
-         |> assign(:page_title, "Products - #{store.name}")}
+         |> assign(:page_title, "Products - #{store.name}")
+         |> assign(:meta_description, "Browse products from #{store.name}")}
 
       {:error, :not_found} ->
         {:ok,

@@ -5,7 +5,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
   """
   use EmakolaWeb, :live_view
 
-  alias EmakolaWeb.Helpers.{Currency, StoreResolver}
+  alias EmakolaWeb.Helpers.{Currency, SEO, StoreResolver}
 
   require Ash.Query
 
@@ -20,7 +20,8 @@ defmodule EmakolaWeb.Storefront.CartLive do
          |> assign(:cart_count, 0)
          |> assign(:cart_total, 0)
          |> assign(:checking_out, false)
-         |> assign(:page_title, "Cart - #{store.name}")}
+         |> assign(:page_title, "Cart - #{store.name}")
+         |> assign(:robots, SEO.robots_tag(false))}
 
       {:error, :not_found} ->
         {:ok,

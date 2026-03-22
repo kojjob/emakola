@@ -42,10 +42,14 @@ defmodule EmakolaWeb.Router do
     live "/register", RegisterLive
   end
 
+  pipeline :storefront_seo do
+    plug EmakolaWeb.Plugs.SEODefaults
+  end
+
   # Customer storefront (public — no auth required)
   # In production, store is resolved from subdomain. For now, use store slug in URL.
   scope "/s/:store_slug", EmakolaWeb.Storefront do
-    pipe_through :browser
+    pipe_through [:browser, :storefront_seo]
 
     live_session :storefront, layout: {EmakolaWeb.Layouts, :storefront} do
       live "/", StoreLive
@@ -53,6 +57,9 @@ defmodule EmakolaWeb.Router do
       live "/products/:product_slug", ProductDetailLive
       live "/cart", CartLive
       live "/category/:category_slug", CategoryLive
+      live "/account", AccountLive
+      live "/wishlist", WishlistLive
+      live "/track/:order_number", TrackingLive
     end
   end
 
@@ -81,6 +88,22 @@ defmodule EmakolaWeb.Router do
       # Merchant admin — order management
       live "/admin/orders", Admin.OrderLive.Index
       live "/admin/orders/:id", Admin.OrderLive.Show
+      live "/admin/orders/:order_id/delivery", Admin.DeliveryLive.Index
+
+      # Merchant admin — customer management
+      live "/admin/customers", Admin.CustomerLive.Index
+      live "/admin/customers/:id", Admin.CustomerLive.Show
+
+      # Merchant admin — marketing
+      live "/admin/discounts", Admin.DiscountLive.Index
+      live "/admin/campaigns", Admin.CampaignLive.Index
+
+      # Merchant admin — analytics
+      live "/admin/revenue", Admin.RevenueLive.Index
+      live "/admin/reports", Admin.ReportLive.Index
+
+      # Merchant admin — settings
+      live "/admin/settings", Admin.SettingsLive
     end
 
     live "/onboarding", OnboardingLive
