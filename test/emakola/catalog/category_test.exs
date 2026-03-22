@@ -238,20 +238,4 @@ defmodule Emakola.Catalog.CategoryTest do
       assert category.name == long_name
     end
   end
-
-  # ── Helpers ───────────────────────────────────────────────────
-
-  defp changeset_has_error?(error, field) when is_atom(field) do
-    case error do
-      %Ash.Error.Invalid{errors: errors} ->
-        Enum.any?(errors, fn
-          %{field: ^field} -> true
-          %{fields: fields} when is_list(fields) -> field in fields
-          _ -> false
-        end)
-
-      _ ->
-        false
-    end
-  end
 end

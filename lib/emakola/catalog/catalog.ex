@@ -29,5 +29,7 @@ defmodule Emakola.Catalog do
     resource Emakola.Catalog.Variant do
       define(:list_low_stock, action: :low_stock, args: [:threshold, :store_id])
     end
+
+    resource(Emakola.Catalog.VariantOptionValue)
   end
 end

@@ -123,7 +123,7 @@ defmodule Emakola.Catalog.Product do
       require_atomic?(false)
       accept([])
 
-      # TODO: Add HasVariants validation when Variant resource exists
+      validate(Emakola.Catalog.Validations.HasVariants)
       change(set_attribute(:status, :active))
       change(set_attribute(:published_at, &DateTime.utc_now/0))
     end

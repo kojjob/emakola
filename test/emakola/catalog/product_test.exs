@@ -134,13 +134,41 @@ defmodule Emakola.Catalog.ProductTest do
       assert archived.status == :archived
     end
 
-    test "archive transitions active to archived", %{store: store} do
-      # Create product, add a variant (needed for activation), then activate
-      product = create_product!(store, title: "Active Product")
+    test "activate fails without variants", %{store: store} do
+      product = create_product!(store, title: "Empty Product")
 
-      # For now just test draft → archived since we don't have Variant yet
-      archived =
+      assert {:error, _} =
+               product
+               |> Ash.Changeset.for_update(:activate, %{})
+               |> Ash.update()
+    end
+
+    test "activate succeeds with at least one variant", %{store: store} do
+      product = create_product!(store, title: "Ready Product")
+      create_variant!(product, store, price: 5000)
+
+      activated =
         product
+        |> Ash.Changeset.for_update(:activate, %{})
+        |> Ash.update!()
+
+      assert activated.status == :active
+      assert activated.published_at != nil
+    end
+
+    test "activate then archive", %{store: store} do
+      product = create_product!(store, title: "Full Lifecycle")
+      create_variant!(product, store, price: 5000)
+
+      activated =
+        product
+        |> Ash.Changeset.for_update(:activate, %{})
+        |> Ash.update!()
+
+      assert activated.status == :active
+
+      archived =
+        activated
         |> Ash.Changeset.for_update(:archive, %{})
         |> Ash.update!()
 

@@ -143,6 +143,16 @@ defmodule Emakola.Factory do
     |> Ash.create!()
   end
 
+  def create_variant_option_value!(variant, option_value, store) do
+    Emakola.Catalog.VariantOptionValue
+    |> Ash.Changeset.for_create(:create, %{
+      variant_id: variant.id,
+      option_value_id: option_value.id,
+      store_id: store.id
+    })
+    |> Ash.create!()
+  end
+
   # ── Billing (legacy from FounderPad) ──────────────────────────
 
   def create_plan!(attrs \\ %{}) do
