@@ -1,7 +1,8 @@
 defmodule EmakolaWeb.Admin.ProductLive.Index do
   @moduledoc """
   Lists all products for the current store with search, status filtering,
-  and mobile-responsive layout optimized for West African merchants.
+  quick view modal, and archive/activate confirmation modals.
+  Mobile-responsive layout optimized for West African merchants.
   """
   use EmakolaWeb, :live_view
 
@@ -20,7 +21,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         search_query: "",
         status_filter: :all,
         products: [],
-        categories: %{}
+        categories: %{},
+        quick_view_product: nil,
+        action_product: nil,
+        action_type: nil
       )
       |> load_products()
       |> load_categories()
@@ -55,6 +59,71 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       |> load_products()
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("quick_view", %{"id" => id}, socket) do
+    product = Enum.find(socket.assigns.products, &(&1.id == id))
+    {:noreply, assign(socket, quick_view_product: product)}
+  end
+
+  @impl true
+  def handle_event("open_archive", %{"id" => id}, socket) do
+    product = Enum.find(socket.assigns.products, &(&1.id == id))
+    {:noreply, assign(socket, action_product: product, action_type: :archive)}
+  end
+
+  @impl true
+  def handle_event("open_activate", %{"id" => id}, socket) do
+    product = Enum.find(socket.assigns.products, &(&1.id == id))
+    {:noreply, assign(socket, action_product: product, action_type: :activate)}
+  end
+
+  @impl true
+  def handle_event("archive_product", _params, socket) do
+    product = socket.assigns.action_product
+
+    if product do
+      case product |> Ash.Changeset.for_update(:archive) |> Ash.update() do
+        {:ok, _} ->
+          {:noreply,
+           socket
+           |> assign(action_product: nil, action_type: nil)
+           |> load_products()
+           |> put_flash(:info, "Product archived")}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to archive product")}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("activate_product", _params, socket) do
+    product = socket.assigns.action_product
+
+    if product do
+      case product |> Ash.Changeset.for_update(:activate) |> Ash.update() do
+        {:ok, _} ->
+          {:noreply,
+           socket
+           |> assign(action_product: nil, action_type: nil)
+           |> load_products()
+           |> put_flash(:info, "Product activated")}
+
+        {:error, _} ->
+          {:noreply,
+           put_flash(
+             socket,
+             :error,
+             "Failed to activate product. Ensure it has at least one variant."
+           )}
+      end
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
@@ -161,12 +230,46 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                   {price_range(product)}
                 </td>
                 <td class="px-4 py-3 text-right">
-                  <.link
-                    navigate={~p"/admin/products/#{product.id}/edit"}
-                    class="text-emerald-600 hover:text-emerald-700 text-sm font-medium"
-                  >
-                    Edit
-                  </.link>
+                  <div class="flex items-center justify-end gap-2">
+                    <button
+                      phx-click={
+                        JS.push("quick_view", value: %{id: product.id})
+                        |> show_modal("quick-view-modal")
+                      }
+                      class="text-slate-500 hover:text-slate-700 text-xs font-medium px-2 py-1 rounded hover:bg-slate-100"
+                      title="Quick View"
+                    >
+                      <.icon name="hero-eye" class="size-4" />
+                    </button>
+                    <.link
+                      navigate={~p"/admin/products/#{product.id}/edit"}
+                      class="text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+                    >
+                      Edit
+                    </.link>
+                    <button
+                      :if={product.status != :archived}
+                      phx-click={
+                        JS.push("open_archive", value: %{id: product.id})
+                        |> show_modal("product-action-modal")
+                      }
+                      class="text-red-500 hover:text-red-700 text-xs font-medium px-2 py-1 rounded hover:bg-red-50"
+                      title="Archive"
+                    >
+                      Archive
+                    </button>
+                    <button
+                      :if={product.status == :archived}
+                      phx-click={
+                        JS.push("open_activate", value: %{id: product.id})
+                        |> show_modal("product-action-modal")
+                      }
+                      class="text-emerald-500 hover:text-emerald-700 text-xs font-medium px-2 py-1 rounded hover:bg-emerald-50"
+                      title="Activate"
+                    >
+                      Activate
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -199,15 +302,122 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
               </span>
               <span class="font-mono font-medium">{price_range(product)}</span>
             </div>
+            <div class="flex gap-2">
+              <button
+                phx-click={
+                  JS.push("quick_view", value: %{id: product.id})
+                  |> show_modal("quick-view-modal")
+                }
+                class="flex-1 text-center py-2 rounded-lg border border-slate-200 text-slate-600
+                       text-sm font-medium hover:bg-slate-50 transition-colors"
+              >
+                Quick View
+              </button>
+              <.link
+                navigate={~p"/admin/products/#{product.id}/edit"}
+                class="flex-1 text-center py-2 rounded-lg border border-emerald-200 text-emerald-700
+                       text-sm font-medium hover:bg-emerald-50 transition-colors"
+              >
+                Edit
+              </.link>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%!-- Quick View Modal --%>
+      <.modal id="quick-view-modal" title="Product Summary" size={:md}>
+        <%= if @quick_view_product do %>
+          <div class="space-y-4">
+            <div class="flex items-start gap-4">
+              <div class="w-16 h-16 rounded-xl bg-surface-container flex items-center justify-center flex-shrink-0">
+                <.icon name="hero-photo" class="size-8 text-on-surface-variant/40" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <h3 class="text-lg font-semibold text-slate-900">
+                  {@quick_view_product.title}
+                </h3>
+                <div class="flex items-center gap-2 mt-1">
+                  <.status_badge status={@quick_view_product.status} />
+                  <span class="text-xs text-slate-500">
+                    {category_name(@quick_view_product.category_id, @categories)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 py-3 border-t border-slate-100">
+              <div>
+                <p class="text-xs text-slate-500 uppercase tracking-wide font-medium">Variants</p>
+                <p class="text-lg font-mono font-semibold text-slate-900 mt-1">
+                  {variant_count(@quick_view_product)}
+                </p>
+              </div>
+              <div>
+                <p class="text-xs text-slate-500 uppercase tracking-wide font-medium">Price Range</p>
+                <p class="text-lg font-mono font-semibold text-slate-900 mt-1">
+                  {price_range(@quick_view_product)}
+                </p>
+              </div>
+            </div>
+
+            <div :if={@quick_view_product.description} class="border-t border-slate-100 pt-3">
+              <p class="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1">
+                Description
+              </p>
+              <p class="text-sm text-slate-600 line-clamp-3">
+                {@quick_view_product.description}
+              </p>
+            </div>
+          </div>
+        <% else %>
+          <p class="text-sm text-slate-400">No product selected</p>
+        <% end %>
+        <:footer>
+          <div class="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              phx-click={hide_modal("quick-view-modal")}
+              class="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300
+                     rounded-xl hover:bg-slate-50 transition-colors"
+            >
+              Close
+            </button>
             <.link
-              navigate={~p"/admin/products/#{product.id}/edit"}
-              class="block text-center py-2 rounded-lg border border-emerald-200 text-emerald-700
-                     text-sm font-medium hover:bg-emerald-50 transition-colors"
+              :if={@quick_view_product}
+              navigate={~p"/admin/products/#{@quick_view_product.id}/edit"}
+              class="px-4 py-2.5 text-sm font-semibold bg-emerald-600 text-white
+                     rounded-xl hover:bg-emerald-700 transition-colors"
             >
               Edit Product
             </.link>
           </div>
-        </div>
+        </:footer>
+      </.modal>
+
+      <%!-- Archive/Activate Confirmation Modal --%>
+      <%= if @action_product && @action_type == :archive do %>
+        <.confirm_modal
+          id="product-action-modal"
+          title="Archive Product"
+          message={"Are you sure you want to archive \"#{@action_product.title}\"? It will no longer be visible in your storefront."}
+          confirm_text="Archive"
+          confirm_class="bg-red-600 hover:bg-red-700 text-white"
+          on_confirm="archive_product"
+          icon="warning"
+          icon_class="text-red-500"
+        />
+      <% end %>
+
+      <%= if @action_product && @action_type == :activate do %>
+        <.confirm_modal
+          id="product-action-modal"
+          title="Activate Product"
+          message={"Activate \"#{@action_product.title}\"? It must have at least one variant to be published. It will become visible in your storefront."}
+          confirm_text="Activate"
+          confirm_class="bg-emerald-600 hover:bg-emerald-700 text-white"
+          on_confirm="activate_product"
+        />
       <% end %>
     </div>
     """

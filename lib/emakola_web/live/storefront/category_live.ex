@@ -3,13 +3,15 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   Category page — shows all active products in a specific category.
   """
   use EmakolaWeb, :live_view
+  import EmakolaWeb.StorefrontComponents
 
-  alias EmakolaWeb.Helpers.{Currency, StoreResolver}
+  alias Emakola.Cart.CartStore
+  alias EmakolaWeb.Helpers.StoreResolver
 
   require Ash.Query
 
   @impl true
-  def mount(%{"store_slug" => slug, "category_slug" => category_slug}, _session, socket) do
+  def mount(%{"store_slug" => slug, "category_slug" => category_slug}, session, socket) do
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         case load_category(store.id, category_slug) do
@@ -22,14 +24,16 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
 
           category ->
             products = load_category_products(store.id, category.id)
+            cart_session_id = session["cart_session_id"]
+            cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
 
             {:ok,
              socket
              |> assign(:store, store)
              |> assign(:category, category)
              |> assign(:products, products)
-             |> assign(:cart, [])
-             |> assign(:cart_count, 0)
+             |> assign(:cart_session_id, cart_session_id)
+             |> assign(:cart_count, cart_count)
              |> assign(:page_title, "#{category.name} - #{store.name}")}
         end
 
@@ -44,7 +48,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 pb-16 sm:pb-0">
       <!-- Breadcrumb -->
       <nav class="text-sm text-gray-500 mb-6">
         <a href={"/s/#{@store.slug}"} class="hover:text-gray-700">Home</a>
@@ -63,50 +67,8 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
         </div>
       <% end %>
     </div>
-    """
-  end
 
-  # -- Components --
-
-  defp product_card(assigns) do
-    ~H"""
-    <a
-      href={"/s/#{@store.slug}/products/#{@product.slug}"}
-      class="group block bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
-    >
-      <div class="aspect-square bg-gray-100 flex items-center justify-center">
-        <%= if first_image(@product) do %>
-          <img
-            src={first_image(@product)}
-            alt={@product.title}
-            loading="lazy"
-            class="w-full h-full object-cover"
-          />
-        <% else %>
-          <svg
-            class="w-12 h-12 text-gray-300"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1"
-              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-        <% end %>
-      </div>
-      <div class="p-3">
-        <h3 class="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-600">
-          {@product.title}
-        </h3>
-        <p class="mt-1 text-sm font-semibold text-gray-700">
-          {Currency.format_price_range(@product.min_price, @product.max_price, @store.currency)}
-        </p>
-      </div>
-    </a>
+    <.bottom_nav store_slug={@store.slug} active_tab={:search} cart_count={@cart_count} />
     """
   end
 
@@ -122,13 +84,5 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
     Emakola.Catalog.list_products_by_category!(category_id, store_id)
     |> Enum.filter(&(&1.status == :active))
     |> Ash.load!([:min_price, :max_price, :images])
-  end
-
-  defp first_image(product) do
-    case product.images do
-      [%{thumbnail_url: url} | _] when is_binary(url) -> url
-      [%{url: url} | _] when is_binary(url) -> url
-      _ -> nil
-    end
   end
 end

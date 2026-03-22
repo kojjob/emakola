@@ -1,591 +1,587 @@
-<div class="min-h-screen flex bg-background text-on-surface font-body selection:bg-primary/30 selection:text-primary">
-  <!-- SideNavBar -->
-  <aside class="h-screen w-[240px] hidden md:flex flex-col sticky top-0 left-0 bg-surface-container p-4 gap-y-4 z-30">
-    <!-- Logo -->
-    <div class="flex items-center gap-3 px-2 mb-6">
-      <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-        <span class="material-symbols-outlined text-on-primary text-xl">architecture</span>
-      </div>
-      <div class="flex flex-col">
-        <span class="text-xl font-bold tracking-tight text-on-surface font-headline">
-          Emakola
-        </span>
-        <span class="text-[10px] uppercase tracking-widest text-primary font-bold">
-          {Application.get_env(:emakola, :branding)[:tagline] || "Ship faster"}
-        </span>
+<div
+  id="admin-shell"
+  class="admin-shell flex h-screen bg-slate-50 text-slate-800 font-[Inter,system-ui,sans-serif] antialiased"
+>
+  <%!-- ═══════════════════════════════════════════ --%>
+  <%!-- MOBILE OVERLAY                              --%>
+  <%!-- ═══════════════════════════════════════════ --%>
+  <div
+    id="sidebar-overlay"
+    class="sidebar-overlay fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+    phx-click={JS.remove_class("mobile-open", to: "#admin-shell")}
+    aria-hidden="true"
+  >
+  </div>
+
+  <%!-- ═══════════════════════════════════════════ --%>
+  <%!-- SIDEBAR                                     --%>
+  <%!-- ═══════════════════════════════════════════ --%>
+  <aside
+    id="sidebar"
+    class="sidebar fixed lg:relative z-50 flex flex-col h-full bg-[#0C1F17] overflow-hidden shrink-0 -translate-x-full lg:translate-x-0"
+  >
+    <%!-- ── LOGO + COLLAPSE TOGGLE ── --%>
+    <div class="sidebar-header flex items-center h-[72px] border-b border-white/[0.06] shrink-0 px-5">
+      <a href="/dashboard" class="flex items-center gap-3 min-w-0">
+        <div class="sidebar-icon-box w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20">
+          <svg
+            class="w-5 h-5 text-white"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M4 20l5-8 5 4 6-11" />
+          </svg>
+        </div>
+        <div class="nav-label min-w-0">
+          <span class="text-[15px] font-bold text-white tracking-tight leading-tight block">
+            emakola
+          </span>
+          <span class="text-[10px] text-emerald-400/60 font-medium leading-tight block">
+            Merchant Portal
+          </span>
+        </div>
+      </a>
+      <%!-- Collapse toggle (desktop only) --%>
+      <button
+        id="collapse-btn"
+        class="collapse-btn hidden lg:flex ml-auto w-7 h-7 items-center justify-center rounded-lg hover:bg-white/[0.06] transition-colors cursor-pointer"
+        onclick="toggleSidebar()"
+        aria-label="Toggle sidebar"
+      >
+        <svg
+          class="collapse-icon w-4 h-4 text-white/40 transition-transform duration-300"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+        </svg>
+      </button>
+      <%!-- Close button (mobile) --%>
+      <button
+        class="lg:hidden ml-auto p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors cursor-pointer"
+        phx-click={JS.remove_class("mobile-open", to: "#admin-shell")}
+        aria-label="Close sidebar"
+      >
+        <svg
+          class="w-5 h-5 text-white/50"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <%!-- ── STORE SELECTOR ── --%>
+    <div class="store-selector mx-3 mt-4 mb-2 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] cursor-pointer hover:bg-white/[0.07] transition-colors group">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
+          <span class="text-xs font-bold text-emerald-400">
+            {if assigns[:current_store],
+              do: assigns[:current_store].name |> String.first() |> String.upcase(),
+              else: "E"}
+          </span>
+        </div>
+        <div class="nav-label min-w-0 flex-1">
+          <p class="text-[13px] font-semibold text-white truncate leading-tight">
+            {if assigns[:current_store], do: assigns[:current_store].name, else: "My Store"}
+          </p>
+          <p class="text-[10px] text-white/30 truncate leading-tight">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1 align-middle"></span>Live
+          </p>
+        </div>
+        <svg
+          class="nav-label w-4 h-4 text-white/20 group-hover:text-white/40 transition-colors shrink-0"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9"
+          />
+        </svg>
       </div>
     </div>
-    
-<!-- Navigation -->
-    <nav class="flex flex-col gap-1 flex-1">
-      <.nav_link
+
+    <%!-- ── NAVIGATION ── --%>
+    <nav class="sidebar-nav flex-1 px-3 py-3 overflow-y-auto" aria-label="Admin navigation">
+      <%!-- Main --%>
+      <p class="nav-section-label px-3 text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em] mb-1.5">
+        Main
+      </p>
+
+      <.sidebar_link
         href="/dashboard"
-        icon="dashboard"
-        label="Dashboard"
+        title="Dashboard"
+        icon="grid"
         active={@active_nav == :dashboard}
       />
-      <.nav_link href="/agents" icon="smart_toy" label="Agents" active={@active_nav == :agents} />
-      <.nav_link
-        href="/workspaces"
-        icon="grid_view"
-        label="Workspaces"
-        active={@active_nav == :workspaces}
+      <.sidebar_link
+        href="/admin/products"
+        title="Products"
+        icon="package"
+        active={@active_nav == :products}
       />
-      <.nav_link
-        href="/activity"
-        icon="timeline"
-        label="Activity"
-        active={@active_nav == :activity}
+      <.sidebar_link
+        href="/admin/orders"
+        title="Orders"
+        icon="bag"
+        active={@active_nav == :orders}
+        badge="12"
+      />
+      <.sidebar_link
+        href="/admin/customers"
+        title="Customers"
+        icon="users"
+        active={@active_nav == :customers}
+      />
+      <.sidebar_link
+        href="/admin/categories"
+        title="Categories"
+        icon="folder"
+        active={@active_nav == :categories}
       />
 
-      <div class="h-px bg-outline-variant/10 my-2"></div>
+      <%!-- Marketing --%>
+      <p class="nav-section-label px-3 text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em] mt-6 mb-1.5">
+        Marketing
+      </p>
 
-      <.nav_link href="/billing" icon="payments" label="Billing" active={@active_nav == :billing} />
-      <.nav_link href="/team" icon="group" label="Team" active={@active_nav == :team} />
-      <.nav_link
-        href="/settings"
-        icon="settings"
-        label="Settings"
-        active={@active_nav == :settings}
+      <.sidebar_link
+        href="/admin/discounts"
+        title="Discounts"
+        icon="tag"
+        active={@active_nav == :discounts}
+      />
+      <.sidebar_link
+        href="/admin/campaigns"
+        title="Campaigns"
+        icon="megaphone"
+        active={@active_nav == :campaigns}
+        badge="3"
+        badge_color="amber"
+      />
+
+      <%!-- Analytics --%>
+      <p class="nav-section-label px-3 text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em] mt-6 mb-1.5">
+        Analytics
+      </p>
+
+      <.sidebar_link
+        href="/admin/reports"
+        title="Reports"
+        icon="chart"
+        active={@active_nav == :reports}
+      />
+      <.sidebar_link
+        href="/admin/revenue"
+        title="Revenue"
+        icon="currency"
+        active={@active_nav == :revenue}
       />
     </nav>
-    
-<!-- Help + Docs -->
-    <div class="space-y-1">
-      <a
-        href="/docs"
-        class="flex items-center gap-3 px-3 py-2 text-on-surface/40 text-sm hover:text-on-surface hover:bg-surface-container-high rounded-md transition-colors"
-      >
-        <span class="material-symbols-outlined text-lg">menu_book</span>
-        <span>Documentation</span>
-      </a>
-      <a
-        href="/docs/changelog"
-        class="flex items-center gap-3 px-3 py-2 text-on-surface/40 text-sm hover:text-on-surface hover:bg-surface-container-high rounded-md transition-colors"
-      >
-        <span class="material-symbols-outlined text-lg">new_releases</span>
-        <span>Changelog</span>
-      </a>
-    </div>
-    
-<!-- Workspace Switcher -->
-    <div class="mt-auto pt-2">
-      <button class="w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-surface-container-high text-on-surface/70 text-sm font-medium transition-colors">
-        <span>Switch Workspace</span>
-        <span class="material-symbols-outlined text-sm">unfold_more</span>
-      </button>
+
+    <%!-- ── FOOTER ── --%>
+    <div class="sidebar-footer px-3 py-3 border-t border-white/[0.06] shrink-0 space-y-2">
+      <.sidebar_link
+        href="/admin/settings"
+        title="Settings"
+        icon="gear"
+        active={@active_nav == :settings}
+      />
+
+      <%!-- User card --%>
+      <div class="sidebar-user flex items-center gap-3 px-3 py-2.5 bg-white/[0.04] rounded-xl cursor-pointer hover:bg-white/[0.07] transition-colors">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-[11px] font-bold text-white ring-2 ring-emerald-500/20 shrink-0 overflow-hidden">
+          <%= if @current_user && @current_user.avatar_url do %>
+            <img src={@current_user.avatar_url} alt="" class="w-full h-full object-cover" />
+          <% else %>
+            {Layouts.user_initials(@current_user)}
+          <% end %>
+        </div>
+        <div class="nav-label min-w-0 flex-1">
+          <p class="text-[13px] font-semibold text-white truncate leading-tight">
+            {if @current_user && @current_user.name, do: @current_user.name, else: "Merchant"}
+          </p>
+          <p class="text-[10px] text-white/30 truncate leading-tight">
+            {if @current_user, do: @current_user.email, else: "merchant@emakola.com"}
+          </p>
+        </div>
+        <svg
+          class="nav-label w-4 h-4 text-white/20 shrink-0"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+      </div>
     </div>
   </aside>
 
-  <%!-- Mobile drawer overlay --%>
-  <div
-    id="mobile-nav"
-    class="fixed inset-0 z-50 hidden md:hidden"
-    role="dialog"
-    aria-modal="true"
-    aria-label="Navigation menu"
-  >
-    <div
-      class="absolute inset-0 bg-background/80 backdrop-blur-sm"
-      phx-click={JS.hide(to: "#mobile-nav")}
-    >
-    </div>
-    <aside class="absolute left-0 top-0 h-full w-[280px] bg-surface-container p-4 space-y-4 animate-slide-in-left overflow-y-auto">
-      <%!-- Logo --%>
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-3 px-2">
-          <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <span class="material-symbols-outlined text-on-primary text-xl">architecture</span>
-          </div>
-          <div class="flex flex-col">
-            <span class="text-xl font-bold tracking-tight text-on-surface font-headline">
-              Emakola
-            </span>
-            <span class="text-[10px] uppercase tracking-widest text-primary font-bold">
-              {Application.get_env(:emakola, :branding)[:tagline] || "Ship faster"}
-            </span>
-          </div>
-        </div>
+  <%!-- ═══════════════════════════════════════════ --%>
+  <%!-- MAIN CONTENT                                --%>
+  <%!-- ═══════════════════════════════════════════ --%>
+  <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+    <%!-- TOP BAR --%>
+    <header class="topbar bg-white/80 backdrop-blur-xl border-b border-slate-200/80 h-[72px] flex items-center px-4 sm:px-8 shrink-0 gap-4 sticky top-0 z-30">
+      <%!-- Mobile menu toggle --%>
+      <button
+        class="lg:hidden p-2 -ml-2 rounded-xl hover:bg-slate-100 cursor-pointer transition-colors"
+        phx-click={JS.add_class("mobile-open", to: "#admin-shell")}
+        aria-label="Open sidebar"
+      >
+        <svg
+          class="w-5 h-5 text-slate-500"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+          />
+        </svg>
+      </button>
+
+      <%!-- Search --%>
+      <div class="flex-1 max-w-lg relative">
+        <svg
+          class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+          />
+        </svg>
+        <input
+          type="search"
+          placeholder="Search anything..."
+          class="w-full pl-10 pr-4 py-2.5 bg-slate-50/80 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 focus:bg-white transition-all"
+          aria-label="Search"
+        />
+        <kbd class="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 items-center gap-0.5 text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200 font-mono">
+          ⌘K
+        </kbd>
+      </div>
+
+      <div class="flex-1"></div>
+
+      <%!-- Right actions --%>
+      <div class="flex items-center gap-2">
+        <%!-- Quick add --%>
+        <button class="hidden md:flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-3.5 py-2 rounded-xl transition-colors shadow-sm shadow-emerald-600/20 cursor-pointer">
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          <span>New</span>
+        </button>
+
+        <div class="hidden md:block w-px h-8 bg-slate-200/60"></div>
+
+        <%!-- Notifications --%>
         <button
-          phx-click={JS.hide(to: "#mobile-nav")}
-          class="p-2 text-on-surface-variant hover:text-on-surface transition-colors rounded-lg hover:bg-surface-container-high min-w-[44px] min-h-[44px] flex items-center justify-center"
-          aria-label="Close navigation menu"
+          class="relative p-2.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+          aria-label="Notifications"
         >
-          <span class="material-symbols-outlined text-xl">close</span>
-        </button>
-      </div>
-
-      <%!-- Navigation --%>
-      <nav class="flex flex-col gap-1">
-        <.nav_link
-          href="/dashboard"
-          icon="dashboard"
-          label="Dashboard"
-          active={@active_nav == :dashboard}
-        />
-        <.nav_link href="/agents" icon="smart_toy" label="Agents" active={@active_nav == :agents} />
-        <.nav_link
-          href="/workspaces"
-          icon="grid_view"
-          label="Workspaces"
-          active={@active_nav == :workspaces}
-        />
-        <.nav_link
-          href="/activity"
-          icon="timeline"
-          label="Activity"
-          active={@active_nav == :activity}
-        />
-
-        <div class="h-px bg-outline-variant/10 my-2"></div>
-
-        <.nav_link
-          href="/billing"
-          icon="payments"
-          label="Billing"
-          active={@active_nav == :billing}
-        />
-        <.nav_link href="/team" icon="group" label="Team" active={@active_nav == :team} />
-        <.nav_link
-          href="/settings"
-          icon="settings"
-          label="Settings"
-          active={@active_nav == :settings}
-        />
-      </nav>
-
-      <%!-- Help + Docs --%>
-      <div class="space-y-1">
-        <a
-          href="/docs"
-          class="flex items-center gap-3 px-3 py-2 text-on-surface/40 text-sm hover:text-on-surface hover:bg-surface-container-high rounded-md transition-colors"
-        >
-          <span class="material-symbols-outlined text-lg">menu_book</span>
-          <span>Documentation</span>
-        </a>
-        <a
-          href="/docs/changelog"
-          class="flex items-center gap-3 px-3 py-2 text-on-surface/40 text-sm hover:text-on-surface hover:bg-surface-container-high rounded-md transition-colors"
-        >
-          <span class="material-symbols-outlined text-lg">new_releases</span>
-          <span>Changelog</span>
-        </a>
-      </div>
-
-      <%!-- Workspace Switcher --%>
-      <div class="mt-auto pt-2">
-        <button class="w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-surface-container-high text-on-surface/70 text-sm font-medium transition-colors">
-          <span>Switch Workspace</span>
-          <span class="material-symbols-outlined text-sm">unfold_more</span>
-        </button>
-      </div>
-    </aside>
-  </div>
-  
-<!-- Main Content -->
-  <div class="flex-1 flex flex-col min-w-0">
-    <!-- TopNavBar -->
-    <header class="sticky top-0 z-40 bg-background/60 backdrop-blur-md">
-      <div class="flex justify-between items-center w-full px-6 py-3 max-w-[1280px] mx-auto">
-        <div class="flex items-center gap-8 flex-1">
-          <%!-- Mobile menu button --%>
-          <button
-            class="md:hidden p-2 text-on-surface-variant hover:text-on-surface transition-colors rounded-lg hover:bg-surface-container-high min-w-[44px] min-h-[44px] flex items-center justify-center"
-            phx-click={JS.toggle(to: "#mobile-nav", in: "fade-in", out: "fade-out")}
-            aria-label="Open navigation menu"
+          <svg
+            class="w-5 h-5 text-slate-500"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            viewBox="0 0 24 24"
           >
-            <span class="material-symbols-outlined text-xl">menu</span>
-          </button>
-          <span class="text-lg font-black font-headline md:hidden text-on-surface">
-            Emakola
-          </span>
-          <form
-            id="global-search-form"
-            phx-submit="global_search"
-            class="relative max-w-md w-full hidden md:block"
-          >
-            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">
-              search
-            </span>
-            <input
-              type="text"
-              name="q"
-              placeholder="Search agents, settings..."
-              autocomplete="off"
-              aria-label="Global search"
-              class="w-full bg-surface-container-highest rounded-sm pl-10 pr-4 py-1.5 text-sm focus:ring-1 focus:ring-primary text-on-surface placeholder:text-on-surface-variant/50"
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
             />
-          </form>
-        </div>
-        <div class="flex items-center gap-3">
-          <%!-- Notifications Dropdown --%>
-          <div class="relative group/notif">
-            <span class="sr-only" aria-live="polite">
-              <%= if assigns[:notification_count] && @notification_count > 0 do %>
-                {@notification_count} unread notifications
-              <% else %>
-                No unread notifications
-              <% end %>
-            </span>
-            <button
-              class="relative p-2 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer rounded-lg hover:bg-surface-container-high"
-              aria-label="Notifications"
-            >
-              <span class="material-symbols-outlined text-xl">notifications</span>
-              <%= if assigns[:notification_count] && @notification_count > 0 do %>
-                <span
-                  data-notification-count={@notification_count}
-                  class="absolute top-1 right-1 w-5 h-5 rounded-full bg-error text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-background"
-                >
-                  {@notification_count}
-                </span>
-              <% end %>
-            </button>
-            <%!-- Notification Panel --%>
-            <div class="absolute right-0 top-full mt-2 w-96 bg-surface-container-lowest rounded-2xl editorial-shadow glass-effect opacity-0 invisible group-hover/notif:opacity-100 group-hover/notif:visible transition-all z-[60] border border-outline-variant/10 overflow-hidden">
-              <%!-- Header --%>
-              <div class="px-5 pt-4 pb-3">
-                <div class="flex items-center justify-between mb-3">
-                  <div class="flex items-center gap-2">
-                    <h4 class="text-sm font-bold text-on-surface font-headline">Notifications</h4>
-                    <%= if assigns[:notification_count] && @notification_count > 0 do %>
-                      <span class="px-2 py-0.5 rounded-full bg-error/10 text-error text-[10px] font-bold">
-                        {@notification_count} new
-                      </span>
-                    <% end %>
-                  </div>
-                  <%= if assigns[:notification_count] && @notification_count > 0 do %>
-                    <button
-                      phx-click="mark_all_read"
-                      data-action="mark-all-read"
-                      class="text-[10px] font-semibold uppercase tracking-wider text-on-surface-variant/50 hover:text-primary transition-colors cursor-pointer"
-                    >
-                      Clear all
-                    </button>
-                  <% end %>
-                </div>
-                <%!-- Tab bar --%>
-                <div class="flex gap-1 p-0.5 bg-surface-container rounded-lg">
-                  <button class="flex-1 px-3 py-1.5 rounded-md text-xs font-semibold bg-primary text-on-primary transition-all">
-                    All
-                  </button>
-                  <button class="flex-1 px-3 py-1.5 rounded-md text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all">
-                    Unread
-                  </button>
-                  <button class="flex-1 px-3 py-1.5 rounded-md text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all">
-                    Mentions
-                  </button>
-                </div>
-              </div>
-              <%!-- Notification Items --%>
-              <div class="max-h-80 overflow-y-auto">
-                <%= if assigns[:notifications] && @notifications != [] do %>
-                  <%= for notif <- @notifications do %>
-                    <button
-                      phx-click="mark_notification_read"
-                      phx-value-id={notif.id}
-                      data-action="mark-read"
-                      data-notification-id={notif.id}
-                      class={"flex gap-3 px-5 py-3.5 hover:bg-surface-container-high/40 transition-colors border-l-2 relative w-full text-left cursor-pointer " <> notification_border_class(notif.type)}
-                    >
-                      <div class={"absolute top-3.5 left-3 w-1.5 h-1.5 rounded-full " <> notification_dot_class(notif.type)}>
-                      </div>
-                      <div class={"w-9 h-9 rounded-xl bg-gradient-to-br flex items-center justify-center shrink-0 " <> notification_icon_bg_class(notif.type)}>
-                        <span class={"material-symbols-outlined text-base " <> notification_icon_color_class(notif.type)}>
-                          {notification_icon(notif.type)}
-                        </span>
-                      </div>
-                      <div class="min-w-0 flex-1">
-                        <div class="flex items-start justify-between gap-2">
-                          <p class="text-sm text-on-surface font-medium leading-snug">
-                            {notif.title}
-                          </p>
-                          <span class="text-[10px] text-on-surface-variant/40 whitespace-nowrap mt-0.5">
-                            {relative_time(notif.inserted_at)}
-                          </span>
-                        </div>
-                        <%= if notif.body do %>
-                          <p class="text-xs text-on-surface-variant/60 mt-1">
-                            {notif.body}
-                          </p>
-                        <% end %>
-                      </div>
-                    </button>
-                  <% end %>
-                <% else %>
-                  <div class="px-5 py-8 text-center">
-                    <span class="material-symbols-outlined text-3xl text-on-surface-variant/30 mb-2">
-                      notifications_off
-                    </span>
-                    <p class="text-sm text-on-surface-variant/50">No new notifications</p>
-                  </div>
-                <% end %>
-              </div>
-              <%!-- Footer --%>
-              <div class="border-t border-outline-variant/10 px-5 py-3 flex items-center justify-between">
-                <a
-                  href="/activity"
-                  class="text-xs font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
-                >
-                  View all activity
-                  <span class="material-symbols-outlined text-xs">arrow_forward</span>
-                </a>
-                <button class="text-[10px] text-on-surface-variant/40 hover:text-on-surface-variant transition-colors flex items-center gap-1">
-                  <span class="material-symbols-outlined text-xs">settings</span> Preferences
-                </button>
-              </div>
-            </div>
+          </svg>
+          <span class="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white">
+          </span>
+        </button>
+
+        <%!-- User avatar --%>
+        <button class="flex items-center gap-2 p-1.5 pr-2 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-xs font-bold text-white ring-2 ring-emerald-500/20 overflow-hidden">
+            <%= if @current_user && @current_user.avatar_url do %>
+              <img src={@current_user.avatar_url} alt="" class="w-full h-full object-cover" />
+            <% else %>
+              {Layouts.user_initials(@current_user)}
+            <% end %>
           </div>
-
-          <div class="w-px h-6 bg-outline-variant/30"></div>
-
-          <%!-- User Dropdown --%>
-          <div class="relative group/user">
-            <button class="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-surface-container-high/60 transition-all cursor-pointer">
-              <div class="relative">
-                <div class="w-9 h-9 rounded-full bg-primary-fixed flex items-center justify-center text-xs font-bold text-primary font-headline overflow-hidden ring-2 ring-primary/20">
-                  <%= if @current_user && @current_user.avatar_url do %>
-                    <img
-                      src={@current_user.avatar_url}
-                      alt="Avatar"
-                      class="w-full h-full object-cover"
-                    />
-                  <% else %>
-                    {user_initials(@current_user)}
-                  <% end %>
-                </div>
-                <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-background">
-                </span>
-              </div>
-              <div class="hidden md:block text-left">
-                <p class="text-sm font-semibold text-on-surface leading-none">
-                  {if @current_user && @current_user.name,
-                    do: @current_user.name |> String.split() |> List.first(),
-                    else: "User"}
-                </p>
-                <p class="text-[10px] text-on-surface-variant/60 leading-none mt-1 font-medium">
-                  Pro Plan
-                </p>
-              </div>
-              <span class="material-symbols-outlined text-on-surface-variant/40 text-sm hidden md:block">
-                unfold_more
-              </span>
-            </button>
-            <%!-- User Menu --%>
-            <div class="absolute right-0 top-full mt-2 w-72 bg-surface-container-lowest rounded-2xl editorial-shadow glass-effect opacity-0 invisible group-hover/user:opacity-100 group-hover/user:visible transition-all z-[60] border border-outline-variant/10 overflow-hidden">
-              <%!-- Profile Card --%>
-              <div class="p-4 bg-gradient-to-br from-primary/[0.04] to-transparent">
-                <div class="flex items-center gap-3">
-                  <div class="relative group/avatar">
-                    <div class="w-12 h-12 rounded-xl bg-primary-fixed flex items-center justify-center text-sm font-bold text-primary font-headline overflow-hidden ring-2 ring-primary/20">
-                      <%= if @current_user && @current_user.avatar_url do %>
-                        <img
-                          src={@current_user.avatar_url}
-                          alt="Avatar"
-                          class="w-full h-full object-cover"
-                        />
-                      <% else %>
-                        {user_initials(@current_user)}
-                      <% end %>
-                    </div>
-                    <label class="absolute inset-0 rounded-xl bg-on-surface/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer">
-                      <span class="material-symbols-outlined text-white text-sm">
-                        photo_camera
-                      </span>
-                      <input type="file" accept="image/*" class="hidden" />
-                    </label>
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <p class="text-sm font-bold text-on-surface truncate font-headline">
-                      {if @current_user && @current_user.name,
-                        do: @current_user.name,
-                        else: "User"}
-                    </p>
-                    <p class="text-xs text-on-surface-variant/60 truncate">
-                      {if @current_user, do: @current_user.email, else: "user@founderpad.io"}
-                    </p>
-                    <div class="flex items-center gap-1.5 mt-1.5">
-                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/10 text-[10px] font-bold text-primary uppercase tracking-wider">
-                        <span class="material-symbols-outlined text-[10px]">diamond</span> Pro
-                      </span>
-                      <span class="inline-flex items-center gap-1 text-[10px] text-emerald-500 font-medium">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Online
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <%!-- Usage meter --%>
-                <div class="mt-3 p-2.5 bg-surface-container/60 rounded-lg">
-                  <div class="flex items-center justify-between mb-1.5">
-                    <span class="text-[10px] font-semibold text-on-surface-variant/60 uppercase tracking-wider">
-                      API Usage
-                    </span>
-                    <span class="text-[10px] font-mono text-on-surface-variant">8.2k / 10k</span>
-                  </div>
-                  <div class="h-1.5 rounded-full bg-surface-container-highest overflow-hidden">
-                    <div class="h-full w-[82%] rounded-full bg-gradient-to-r from-primary to-primary-container transition-all">
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <%!-- Navigation --%>
-              <div class="py-1.5">
-                <a
-                  href="/settings"
-                  class="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/40 transition-colors group/item"
-                >
-                  <span class="material-symbols-outlined text-lg opacity-60 group-hover/item:opacity-100 transition-opacity">
-                    person
-                  </span>
-                  <span class="flex-1">Profile</span>
-                  <kbd class="hidden sm:inline-flex text-[10px] font-mono text-on-surface-variant/30 bg-surface-container-highest/50 px-1.5 py-0.5 rounded">
-                    ⇧P
-                  </kbd>
-                </a>
-                <a
-                  href="/settings"
-                  class="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/40 transition-colors group/item"
-                >
-                  <span class="material-symbols-outlined text-lg opacity-60 group-hover/item:opacity-100 transition-opacity">
-                    settings
-                  </span>
-                  <span class="flex-1">Settings</span>
-                  <kbd class="hidden sm:inline-flex text-[10px] font-mono text-on-surface-variant/30 bg-surface-container-highest/50 px-1.5 py-0.5 rounded">
-                    ⌘,
-                  </kbd>
-                </a>
-                <a
-                  href="/billing"
-                  class="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/40 transition-colors group/item"
-                >
-                  <span class="material-symbols-outlined text-lg opacity-60 group-hover/item:opacity-100 transition-opacity">
-                    payments
-                  </span>
-                  <span class="flex-1">Billing</span>
-                  <kbd class="hidden sm:inline-flex text-[10px] font-mono text-on-surface-variant/30 bg-surface-container-highest/50 px-1.5 py-0.5 rounded">
-                    ⌘B
-                  </kbd>
-                </a>
-                <a
-                  href="/team"
-                  class="flex items-center gap-3 px-4 py-2.5 text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/40 transition-colors group/item"
-                >
-                  <span class="material-symbols-outlined text-lg opacity-60 group-hover/item:opacity-100 transition-opacity">
-                    group
-                  </span>
-                  <span class="flex-1">Team</span>
-                  <kbd class="hidden sm:inline-flex text-[10px] font-mono text-on-surface-variant/30 bg-surface-container-highest/50 px-1.5 py-0.5 rounded">
-                    ⌘T
-                  </kbd>
-                </a>
-              </div>
-
-              <div class="h-px bg-outline-variant/10 mx-3"></div>
-
-              <%!-- Resources --%>
-              <div class="py-1.5">
-                <a
-                  href="/docs"
-                  class="flex items-center gap-3 px-4 py-2 text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/40 transition-colors group/item"
-                >
-                  <span class="material-symbols-outlined text-lg opacity-60 group-hover/item:opacity-100 transition-opacity">
-                    menu_book
-                  </span>
-                  <span class="flex-1">Documentation</span>
-                  <span class="material-symbols-outlined text-xs opacity-30">open_in_new</span>
-                </a>
-                <a
-                  href="mailto:support@founderpad.io"
-                  class="flex items-center gap-3 px-4 py-2 text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/40 transition-colors group/item"
-                >
-                  <span class="material-symbols-outlined text-lg opacity-60 group-hover/item:opacity-100 transition-opacity">
-                    help
-                  </span>
-                  <span class="flex-1">Help &amp; Support</span>
-                </a>
-                <a
-                  href="/docs/changelog"
-                  class="flex items-center gap-3 px-4 py-2 text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/40 transition-colors group/item"
-                >
-                  <span class="material-symbols-outlined text-lg opacity-60 group-hover/item:opacity-100 transition-opacity">
-                    new_releases
-                  </span>
-                  <span class="flex-1">What's new</span>
-                  <span class="px-1.5 py-0.5 rounded-md bg-primary/10 text-[10px] font-bold text-primary">
-                    v2.4
-                  </span>
-                </a>
-              </div>
-
-              <div class="h-px bg-outline-variant/10 mx-3"></div>
-
-              <%!-- Sign Out --%>
-              <div class="py-1.5">
-                <.link
-                  href="/auth/session"
-                  method="delete"
-                  class="flex items-center gap-3 px-4 py-2.5 text-sm text-error/70 hover:text-error hover:bg-error/5 transition-colors group/item"
-                >
-                  <span class="material-symbols-outlined text-lg opacity-60 group-hover/item:opacity-100 transition-opacity">
-                    logout
-                  </span>
-                  <span class="flex-1">Sign out</span>
-                  <kbd class="hidden sm:inline-flex text-[10px] font-mono text-on-surface-variant/30 bg-surface-container-highest/50 px-1.5 py-0.5 rounded">
-                    ⇧⌘Q
-                  </kbd>
-                </.link>
-              </div>
-            </div>
-          </div>
-
-          <div class="w-px h-6 bg-outline-variant/30"></div>
-          
-<!-- Theme Toggle (rightmost) -->
-          <button
-            id="theme-toggle"
-            phx-hook="ThemeToggle"
-            class="p-2 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer rounded-lg hover:bg-surface-container-high"
-            aria-label="Toggle theme"
+          <svg
+            class="hidden sm:block w-4 h-4 text-slate-400"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
           >
-            <span class="material-symbols-outlined text-xl">dark_mode</span>
-          </button>
-        </div>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
       </div>
     </header>
-    
-<!-- Page Content -->
-    <main class="flex-1 p-6 md:p-8 max-w-[1280px] mx-auto w-full space-y-8">
+
+    <%!-- SCROLLABLE CONTENT --%>
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
       <.flash_group flash={@flash} />
       {@inner_content}
     </main>
-    
-<!-- Footer -->
-    <footer class="mt-auto p-8">
-      <div class="max-w-[1280px] mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-        <div class="flex items-center gap-4">
-          <span class="text-xs font-mono text-on-surface-variant">© 2026 FOUNDERPAD</span>
-          <div class="h-3 w-px bg-outline-variant/30"></div>
-          <a
-            class="text-xs text-on-surface-variant hover:text-primary transition-colors"
-            href="/docs"
-          >
-            Documentation
-          </a>
-          <a
-            class="text-xs text-on-surface-variant hover:text-primary transition-colors"
-            href="/docs/api"
-          >
-            API Specs
-          </a>
-          <a
-            class="text-xs text-on-surface-variant hover:text-primary transition-colors"
-            href="/docs/changelog"
-          >
-            Changelog
-          </a>
-        </div>
-      </div>
-    </footer>
   </div>
 </div>
+
+<style>
+  /* ═══════════════════════════════════════════
+     SIDEBAR CORE
+     ═══════════════════════════════════════════ */
+
+  /* Expanded state (default on desktop) */
+  .admin-shell .sidebar {
+    width: 260px;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Custom scrollbar */
+  .sidebar-nav::-webkit-scrollbar { width: 3px; }
+  .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+  .sidebar-nav::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+  /* ═══════════════════════════════════════════
+     NAV LINKS
+     ═══════════════════════════════════════════ */
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.50);
+    transition: all 0.2s ease;
+    margin-bottom: 2px;
+    position: relative;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .sidebar-link:hover {
+    color: rgba(255,255,255,0.85);
+    background: rgba(255,255,255,0.05);
+  }
+  .sidebar-link.active {
+    color: #FFFFFF;
+    background: rgba(16, 185, 129, 0.12);
+  }
+  .sidebar-link.active::before {
+    content: '';
+    position: absolute;
+    left: -12px;
+    top: 6px;
+    bottom: 6px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: #10B981;
+  }
+  .sidebar-link .link-icon {
+    width: 20px;
+    height: 20px;
+    shrink: 0;
+    transition: transform 0.2s ease;
+  }
+  .sidebar-link:hover .link-icon { transform: scale(1.08); }
+  .sidebar-link .nav-label { transition: opacity 0.2s ease 0.05s; }
+
+  /* Badge */
+  .sidebar-badge {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 999px;
+    line-height: 1.6;
+    letter-spacing: 0.02em;
+  }
+  .sidebar-badge-emerald { background: #059669; color: white; }
+  .sidebar-badge-amber { background: #D97706; color: white; }
+
+  /* ═══════════════════════════════════════════
+     COLLAPSED STATE (desktop toggle)
+     ═══════════════════════════════════════════ */
+  .admin-shell.collapsed .sidebar {
+    width: 72px;
+  }
+  .admin-shell.collapsed .nav-label,
+  .admin-shell.collapsed .nav-section-label,
+  .admin-shell.collapsed .sidebar-badge,
+  .admin-shell.collapsed .store-selector .nav-label,
+  .admin-shell.collapsed .store-selector svg:last-child { opacity: 0; width: 0; overflow: hidden; white-space: nowrap; }
+
+  .admin-shell.collapsed .sidebar-header { padding: 0 16px; justify-content: center; }
+  .admin-shell.collapsed .sidebar-header a { justify-content: center; }
+  .admin-shell.collapsed .collapse-btn { margin-left: 0; position: absolute; right: 8px; }
+  .admin-shell.collapsed .collapse-icon { transform: rotate(180deg); }
+
+  .admin-shell.collapsed .sidebar-link {
+    justify-content: center;
+    padding: 11px;
+    gap: 0;
+  }
+  .admin-shell.collapsed .sidebar-link::before { left: 0; }
+
+  .admin-shell.collapsed .store-selector { padding: 8px; justify-content: center; }
+  .admin-shell.collapsed .store-selector > div { justify-content: center; }
+  .admin-shell.collapsed .sidebar-user { justify-content: center; padding: 8px; }
+  .admin-shell.collapsed .sidebar-user .nav-label { display: none; }
+  .admin-shell.collapsed .sidebar-user svg { display: none; }
+  .admin-shell.collapsed .sidebar-nav { padding: 8px 10px; }
+  .admin-shell.collapsed .sidebar-footer { padding: 8px 10px; }
+
+  /* Tooltip on hover (collapsed) */
+  .admin-shell.collapsed .sidebar-link::after {
+    content: attr(title);
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%) scale(0.95);
+    background: #0F172A;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.15s ease;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .admin-shell.collapsed .sidebar-link:hover::after {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+
+  /* ═══════════════════════════════════════════
+     MOBILE
+     ═══════════════════════════════════════════ */
+  .sidebar-overlay {
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+  }
+  .admin-shell.mobile-open .sidebar-overlay {
+    opacity: 1;
+    visibility: visible;
+  }
+  .admin-shell.mobile-open .sidebar {
+    transform: translateX(0) !important;
+    width: 280px;
+  }
+
+  /* ═══════════════════════════════════════════
+     TABLET (auto-collapse between 1024-1279px)
+     ═══════════════════════════════════════════ */
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    .admin-shell:not(.expanded) .sidebar { width: 72px; }
+    .admin-shell:not(.expanded) .nav-label,
+    .admin-shell:not(.expanded) .nav-section-label,
+    .admin-shell:not(.expanded) .sidebar-badge,
+    .admin-shell:not(.expanded) .store-selector .nav-label,
+    .admin-shell:not(.expanded) .store-selector svg:last-child { opacity: 0; width: 0; overflow: hidden; white-space: nowrap; }
+    .admin-shell:not(.expanded) .sidebar-header { padding: 0 16px; justify-content: center; }
+    .admin-shell:not(.expanded) .sidebar-header a { justify-content: center; }
+    .admin-shell:not(.expanded) .collapse-icon { transform: rotate(180deg); }
+    .admin-shell:not(.expanded) .sidebar-link { justify-content: center; padding: 11px; gap: 0; }
+    .admin-shell:not(.expanded) .sidebar-link::before { left: 0; }
+    .admin-shell:not(.expanded) .store-selector { padding: 8px; justify-content: center; }
+    .admin-shell:not(.expanded) .store-selector > div { justify-content: center; }
+    .admin-shell:not(.expanded) .sidebar-user { justify-content: center; padding: 8px; }
+    .admin-shell:not(.expanded) .sidebar-user .nav-label { display: none; }
+    .admin-shell:not(.expanded) .sidebar-user svg { display: none; }
+    .admin-shell:not(.expanded) .sidebar-nav { padding: 8px 10px; }
+    .admin-shell:not(.expanded) .sidebar-footer { padding: 8px 10px; }
+
+    .admin-shell:not(.expanded) .sidebar-link::after {
+      content: attr(title);
+      position: absolute; left: calc(100% + 12px); top: 50%;
+      transform: translateY(-50%) scale(0.95);
+      background: #0F172A; color: white; padding: 6px 12px;
+      border-radius: 8px; font-size: 12.5px; font-weight: 500;
+      white-space: nowrap; opacity: 0; pointer-events: none;
+      transition: all 0.15s ease; z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .admin-shell:not(.expanded) .sidebar-link:hover::after { opacity: 1; transform: translateY(-50%) scale(1); }
+  }
+
+  /* ═══════════════════════════════════════════
+     ANIMATIONS & POLISH
+     ═══════════════════════════════════════════ */
+  .topbar { transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+  .fade-in { animation: fadeIn 0.4s ease forwards; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in:nth-child(1) { animation-delay: 0ms; }
+  .fade-in:nth-child(2) { animation-delay: 60ms; }
+  .fade-in:nth-child(3) { animation-delay: 120ms; }
+  .fade-in:nth-child(4) { animation-delay: 180ms; }
+
+  .progress-fill { transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
+  .chart-dot { transition: r 0.2s ease; }
+  .chart-dot:hover { r: 6; }
+  .table-row { transition: background-color 0.15s ease; }
+  .table-row:hover { background-color: #F8FAFC; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fade-in { animation: none; opacity: 1; transform: none; }
+    .sidebar, .sidebar-link, .nav-label, .collapse-icon { transition: none !important; }
+  }
+</style>
+
+<script>
+  // Sidebar collapse toggle with localStorage persistence
+  function toggleSidebar() {
+    const shell = document.getElementById('admin-shell');
+    shell.classList.toggle('collapsed');
+    localStorage.setItem('sidebar-collapsed', shell.classList.contains('collapsed'));
+  }
+
+  // Restore state on load
+  (function() {
+    if (localStorage.getItem('sidebar-collapsed') === 'true') {
+      const shell = document.getElementById('admin-shell');
+      if (shell) shell.classList.add('collapsed');
+    }
+  })();
+</script>

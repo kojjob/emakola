@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#0C1F17"/>
+  <g transform="translate(128, 100)" stroke="#FAFAF9" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M40 12L20 40v93a13 13 0 0 0 13 13h93a13 13 0 0 0 13-13V40L120 12z"/>
+    <line x1="20" y1="40" x2="140" y2="40"/>
+    <path d="M107 66a27 27 0 0 1-54 0"/>
+  </g>
+  <text x="256" y="390" text-anchor="middle" fill="#FAFAF9" font-family="sans-serif" font-weight="700" font-size="58">Emakola</text>
+</svg>

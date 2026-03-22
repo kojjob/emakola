@@ -7,6 +7,9 @@ defmodule Emakola.Application do
 
   @impl true
   def start(_type, _args) do
+    # Initialize ETS table for cart storage
+    Emakola.Cart.CartStore.init()
+
     children = [
       EmakolaWeb.Telemetry,
       Emakola.Repo,

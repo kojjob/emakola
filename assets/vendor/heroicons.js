@@ -2,7 +2,7 @@ const plugin = require("tailwindcss/plugin")
 const fs = require("fs")
 const path = require("path")
 
-module.exports = plugin(function({matchComponents, theme}) {
+module.exports = plugin(function({matchComponents}) {
   let iconsDir = path.join(__dirname, "../../deps/heroicons/optimized")
   let values = {}
   let icons = [
@@ -21,11 +21,11 @@ module.exports = plugin(function({matchComponents, theme}) {
     "hero": ({name, fullPath}) => {
       let content = fs.readFileSync(fullPath).toString().replace(/\r?\n|\r/g, "")
       content = encodeURIComponent(content)
-      let size = theme("spacing.6")
+      let size = "1.5rem"
       if (name.endsWith("-mini")) {
-        size = theme("spacing.5")
+        size = "1.25rem"
       } else if (name.endsWith("-micro")) {
-        size = theme("spacing.4")
+        size = "1rem"
       }
       return {
         [`--hero-${name}`]: `url('data:image/svg+xml;utf8,${content}')`,

@@ -8,6 +8,7 @@ defmodule EmakolaWeb.Router do
     plug :put_root_layout, html: {EmakolaWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug EmakolaWeb.Plugs.CartSession
   end
 
   pipeline :api do
@@ -47,12 +48,19 @@ defmodule EmakolaWeb.Router do
   scope "/s/:store_slug", EmakolaWeb.Storefront do
     pipe_through :browser
 
-    live_session :storefront, layout: {EmakolaWeb.Layouts, :storefront} do
+    live_session :storefront,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
       live "/", StoreLive
       live "/products", ProductListLive
       live "/products/:product_slug", ProductDetailLive
       live "/cart", CartLive
+      live "/checkout", CheckoutLive
+      live "/orders/:order_number/confirmation", OrderConfirmationLive
       live "/category/:category_slug", CategoryLive
+      live "/account", AccountLive
+      live "/wishlist", WishlistLive
+      live "/track/:order_number", TrackingLive
     end
   end
 
@@ -89,6 +97,14 @@ defmodule EmakolaWeb.Router do
       # Store settings & delivery zones
       live "/admin/settings", Admin.SettingsLive
       live "/admin/settings/delivery", Admin.DeliveryLive.Index
+
+      # Marketing
+      live "/admin/campaigns", Admin.CampaignLive.Index
+      live "/admin/discounts", Admin.DiscountLive.Index
+
+      # Analytics
+      live "/admin/reports", Admin.ReportLive.Index
+      live "/admin/revenue", Admin.RevenueLive.Index
     end
 
     live "/onboarding", OnboardingLive
