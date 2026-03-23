@@ -162,4 +162,109 @@ defmodule Emakola.Orders.CheckoutServiceTest do
       assert refreshed.stock_quantity == 0
     end
   end
+
+  # -- Customer find-or-create integration ------------------------------
+
+  describe "customer_email checkout" do
+    test "creates new customer when email not found", %{store: store, variant: variant} do
+      items = [%{variant_id: variant.id, quantity: 1}]
+
+      assert {:ok, order} =
+               Emakola.Orders.CheckoutService.checkout!(store.id, items,
+                 customer_email: "new-checkout@example.com",
+                 customer_name: "New Buyer",
+                 customer_phone: "+233240001111"
+               )
+
+      assert order.customer_id
+      customer = Ash.get!(Emakola.Customers.Customer, order.customer_id)
+      assert to_string(customer.email) == "new-checkout@example.com"
+      assert customer.name == "New Buyer"
+    end
+
+    test "links to existing customer when email matches", %{
+      store: store,
+      variant: variant,
+      customer: customer
+    } do
+      items = [%{variant_id: variant.id, quantity: 1}]
+
+      assert {:ok, order} =
+               Emakola.Orders.CheckoutService.checkout!(store.id, items,
+                 customer_email: to_string(customer.email)
+               )
+
+      assert order.customer_id == customer.id
+    end
+
+    test "customer_id fallback still works (backward compat)", %{
+      store: store,
+      variant: variant,
+      customer: customer
+    } do
+      items = [%{variant_id: variant.id, quantity: 1}]
+      opts = [customer_id: customer.id]
+
+      assert {:ok, order} = Emakola.Orders.CheckoutService.checkout!(store.id, items, opts)
+      assert order.customer_id == customer.id
+    end
+
+    test "uses default address when no shipping_address provided", %{
+      store: store,
+      variant: variant,
+      customer: customer
+    } do
+      create_address!(customer, store,
+        line_1: "42 Independence Ave",
+        city: "Accra",
+        region: "Greater Accra",
+        is_default: true
+      )
+
+      items = [%{variant_id: variant.id, quantity: 1}]
+
+      assert {:ok, order} =
+               Emakola.Orders.CheckoutService.checkout!(store.id, items,
+                 customer_email: to_string(customer.email)
+               )
+
+      assert order.shipping_address["line_1"] == "42 Independence Ave"
+      assert order.shipping_address["city"] == "Accra"
+    end
+
+    test "explicit shipping_address overrides default address", %{
+      store: store,
+      variant: variant,
+      customer: customer
+    } do
+      create_address!(customer, store,
+        line_1: "Default Street",
+        city: "Accra",
+        is_default: true
+      )
+
+      explicit = %{"line_1" => "Explicit Street", "city" => "Kumasi"}
+      items = [%{variant_id: variant.id, quantity: 1}]
+
+      assert {:ok, order} =
+               Emakola.Orders.CheckoutService.checkout!(store.id, items,
+                 customer_email: to_string(customer.email),
+                 shipping_address: explicit
+               )
+
+      assert order.shipping_address["line_1"] == "Explicit Street"
+    end
+
+    test "updates last_order_at after checkout", %{store: store, variant: variant} do
+      items = [%{variant_id: variant.id, quantity: 1}]
+
+      assert {:ok, order} =
+               Emakola.Orders.CheckoutService.checkout!(store.id, items,
+                 customer_email: "lastorder@example.com"
+               )
+
+      customer = Ash.get!(Emakola.Customers.Customer, order.customer_id)
+      assert %DateTime{} = customer.last_order_at
+    end
+  end
 end

@@ -1,8 +1,8 @@
 defmodule Emakola.Customers.Preparations.SearchCustomers do
   @moduledoc """
-  Ash preparation for searching customers by name or email within a store.
+  Ash preparation for searching customers by name, email, or phone within a store.
 
-  Uses ILIKE for case-insensitive partial matching. Extracted into a module
+  Uses case-insensitive partial matching. Extracted into a module
   because `Ash.Query.filter` is a macro and cannot be used inside anonymous
   functions within the Ash DSL `actions do...end` blocks.
   """
@@ -19,7 +19,8 @@ defmodule Emakola.Customers.Preparations.SearchCustomers do
     |> Ash.Query.filter(
       store_id == ^store_id and
         (contains(name, ^search_term) or
-           contains(string_downcase(email), ^String.downcase(search_term)))
+           contains(string_downcase(email), ^String.downcase(search_term)) or
+           contains(phone, ^search_term))
     )
     |> Ash.Query.sort(inserted_at: :desc)
   end
