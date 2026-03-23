@@ -214,12 +214,16 @@ defmodule Emakola.Orders.CheckoutServiceTest do
       variant: variant,
       customer: customer
     } do
-      create_address!(customer, store,
-        line_1: "42 Independence Ave",
-        city: "Accra",
-        region: "Greater Accra",
-        is_default: true
-      )
+      addr =
+        create_address!(customer, store,
+          line_1: "42 Independence Ave",
+          city: "Accra",
+          region: "Greater Accra"
+        )
+
+      Emakola.Customers.Address
+      |> Ash.ActionInput.for_action(:set_as_default, %{address_id: addr.id})
+      |> Ash.run_action!()
 
       items = [%{variant_id: variant.id, quantity: 1}]
 
@@ -237,11 +241,15 @@ defmodule Emakola.Orders.CheckoutServiceTest do
       variant: variant,
       customer: customer
     } do
-      create_address!(customer, store,
-        line_1: "Default Street",
-        city: "Accra",
-        is_default: true
-      )
+      addr =
+        create_address!(customer, store,
+          line_1: "Default Street",
+          city: "Accra"
+        )
+
+      Emakola.Customers.Address
+      |> Ash.ActionInput.for_action(:set_as_default, %{address_id: addr.id})
+      |> Ash.run_action!()
 
       explicit = %{"line_1" => "Explicit Street", "city" => "Kumasi"}
       items = [%{variant_id: variant.id, quantity: 1}]

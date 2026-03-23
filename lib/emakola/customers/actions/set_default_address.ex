@@ -3,10 +3,8 @@ defmodule Emakola.Customers.Actions.SetDefaultAddress do
   Implementation for the Address set_as_default generic action.
 
   Clears is_default on all other addresses for the same customer,
-  then sets the target address as default.
-
-  Extracted to a separate module because it needs to query and update
-  sibling records, which cannot be done from a regular update action.
+  then sets the target address as default. Uses the internal
+  `toggle_default` action which is the only way to modify is_default.
   """
 
   use Ash.Resource.Actions.Implementation
@@ -27,13 +25,13 @@ defmodule Emakola.Customers.Actions.SetDefaultAddress do
     |> Ash.read!()
     |> Enum.each(fn addr ->
       addr
-      |> Ash.Changeset.for_update(:update, %{is_default: false})
+      |> Ash.Changeset.for_update(:toggle_default, %{is_default: false})
       |> Ash.update!()
     end)
 
     # Set the target as default
     address
-    |> Ash.Changeset.for_update(:update, %{is_default: true})
+    |> Ash.Changeset.for_update(:toggle_default, %{is_default: true})
     |> Ash.update()
   end
 end

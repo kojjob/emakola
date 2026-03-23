@@ -119,8 +119,7 @@ defmodule Emakola.Customers.Address do
         :region,
         :country,
         :postal_code,
-        :phone,
-        :is_default
+        :phone
       ])
     end
 
@@ -137,9 +136,14 @@ defmodule Emakola.Customers.Address do
         :region,
         :country,
         :postal_code,
-        :phone,
-        :is_default
+        :phone
       ])
+    end
+
+    # Internal action used only by SetDefaultAddress — not exposed via domain API
+    update :toggle_default do
+      require_atomic?(false)
+      accept([:is_default])
     end
 
     action :list_by_customer, {:array, :struct} do

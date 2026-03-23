@@ -140,7 +140,13 @@ defmodule Emakola.Customers.AddressTest do
       store: store,
       customer: customer
     } do
-      a1 = create_address!(customer, store, line_1: "First", city: "Accra", is_default: true)
+      a1 = create_address!(customer, store, line_1: "First", city: "Accra")
+
+      # Set a1 as default first
+      Emakola.Customers.Address
+      |> Ash.ActionInput.for_action(:set_as_default, %{address_id: a1.id})
+      |> Ash.run_action!()
+
       a2 = create_address!(customer, store, line_1: "Second", city: "Kumasi")
 
       # Set a2 as default
