@@ -43,11 +43,13 @@ defmodule Emakola.Audit.AuditLog do
     attribute :resource_type, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :resource_id, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :actor_id, :uuid do
@@ -73,11 +75,13 @@ defmodule Emakola.Audit.AuditLog do
     attribute :ip_address, :string do
       allow_nil?(true)
       public?(true)
+      constraints(max_length: 45)
     end
 
     attribute :user_agent, :string do
       allow_nil?(true)
       public?(true)
+      constraints(max_length: 1_000)
     end
 
     create_timestamp(:inserted_at)

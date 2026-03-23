@@ -14,11 +14,13 @@ defmodule Emakola.Billing.Subscription do
     attribute :stripe_subscription_id, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :stripe_customer_id, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :status, :atom do

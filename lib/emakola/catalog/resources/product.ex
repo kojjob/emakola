@@ -34,15 +34,18 @@ defmodule Emakola.Catalog.Product do
     attribute :title, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :slug, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :description, :string do
       public?(true)
+      constraints(max_length: 5_000)
     end
 
     attribute :status, :atom do
@@ -54,15 +57,18 @@ defmodule Emakola.Catalog.Product do
 
     attribute :seo_title, :string do
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :seo_description, :string do
       public?(true)
+      constraints(max_length: 1_000)
     end
 
     attribute :tags, {:array, :string} do
       default([])
       public?(true)
+      constraints(items: [max_length: 100])
     end
 
     attribute :published_at, :utc_datetime_usec do

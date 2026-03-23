@@ -46,6 +46,7 @@ defmodule Emakola.Catalog.Variant do
 
     attribute :sku, :string do
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :price, :integer do
@@ -75,6 +76,7 @@ defmodule Emakola.Catalog.Variant do
 
     attribute :barcode, :string do
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :position, :integer do

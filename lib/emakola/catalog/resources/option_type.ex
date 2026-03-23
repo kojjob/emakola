@@ -35,6 +35,7 @@ defmodule Emakola.Catalog.OptionType do
     attribute :name, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :position, :integer do

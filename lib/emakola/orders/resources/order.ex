@@ -35,6 +35,7 @@ defmodule Emakola.Orders.Order do
     attribute :order_number, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 50)
     end
 
     attribute :status, :atom do
@@ -60,10 +61,12 @@ defmodule Emakola.Orders.Order do
       default("GHS")
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 3)
     end
 
     attribute :notes, :string do
       public?(true)
+      constraints(max_length: 5_000)
     end
 
     attribute :shipping_address, :map do

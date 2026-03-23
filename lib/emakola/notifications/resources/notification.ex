@@ -31,13 +31,14 @@ defmodule Emakola.Notifications.Notification do
     attribute :title, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
-    attribute(:body, :string, public?: true)
+    attribute(:body, :string, public?: true, constraints: [max_length: 5_000])
 
     attribute(:read_at, :utc_datetime, public?: true)
 
-    attribute(:action_url, :string, public?: true)
+    attribute(:action_url, :string, public?: true, constraints: [max_length: 2_048])
 
     attribute(:metadata, :map, default: %{}, public?: true)
 

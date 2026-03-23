@@ -14,9 +14,10 @@ defmodule Emakola.Analytics.SearchConsoleData do
     attribute :keyword, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 500)
     end
 
-    attribute(:page, :string, public?: true)
+    attribute(:page, :string, public?: true, constraints: [max_length: 2_048])
     attribute(:clicks, :integer, default: 0, public?: true)
     attribute(:impressions, :integer, default: 0, public?: true)
 

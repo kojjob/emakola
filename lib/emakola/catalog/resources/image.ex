@@ -41,18 +41,22 @@ defmodule Emakola.Catalog.Image do
     attribute :url, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 2_048)
     end
 
     attribute :thumbnail_url, :string do
       public?(true)
+      constraints(max_length: 2_048)
     end
 
     attribute :medium_url, :string do
       public?(true)
+      constraints(max_length: 2_048)
     end
 
     attribute :alt_text, :string do
       public?(true)
+      constraints(max_length: 500)
     end
 
     attribute :position, :integer do
@@ -63,6 +67,7 @@ defmodule Emakola.Catalog.Image do
     attribute :content_type, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :file_size_bytes, :integer do

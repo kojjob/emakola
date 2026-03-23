@@ -14,6 +14,7 @@ defmodule Emakola.Billing.Invoice do
     attribute :invoice_number, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :amount_cents, :integer do
@@ -32,6 +33,7 @@ defmodule Emakola.Billing.Invoice do
     attribute :stripe_invoice_id, :string do
       allow_nil?(true)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :period_start, :date do

@@ -41,10 +41,12 @@ defmodule Emakola.Orders.LineItem do
     attribute :product_title, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :variant_sku, :string do
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :unit_price, :integer do

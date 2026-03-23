@@ -40,6 +40,7 @@ defmodule Emakola.Payments.Payment do
       default("GHS")
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 3)
     end
 
     attribute :status, :atom do
@@ -57,6 +58,7 @@ defmodule Emakola.Payments.Payment do
 
     attribute :gateway_reference, :string do
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :gateway_response, :map do
@@ -65,6 +67,7 @@ defmodule Emakola.Payments.Payment do
 
     attribute :customer_email, :string do
       public?(true)
+      constraints(max_length: 320)
     end
 
     attribute :metadata, :map do
