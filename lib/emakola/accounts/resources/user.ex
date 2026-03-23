@@ -73,16 +73,19 @@ defmodule Emakola.Accounts.User do
   end
 
   policies do
+    # Authentication interactions (login, register, etc.) always allowed
     bypass AshAuthentication.Checks.AshAuthenticationInteraction do
       authorize_if(always())
     end
 
-    # TODO: Tighten update/destroy policies once all call sites pass actor:
-    # policy action_type([:update, :destroy]) do
-    #   authorize_if expr(id == ^actor(:id))
-    # end
-    policy always() do
+    # Reads are open (needed for internal lookups, auth flows)
+    bypass action_type(:read) do
       authorize_if(always())
+    end
+
+    # Users can update/destroy only their own records
+    policy action_type([:update, :destroy]) do
+      authorize_if(expr(id == ^actor(:id)))
     end
   end
 

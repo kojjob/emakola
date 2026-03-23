@@ -39,9 +39,19 @@ defmodule Emakola.Accounts.Membership do
   end
 
   policies do
-    # TODO: Restrict update/destroy to org owners once all call sites pass actor:
-    policy always() do
+    # Reads are open (needed for auth flow, internal lookups)
+    bypass action_type(:read) do
       authorize_if(always())
+    end
+
+    # Creates are open (onboarding creates memberships)
+    bypass action_type(:create) do
+      authorize_if(always())
+    end
+
+    # Role changes and deletes require an authenticated actor
+    policy action_type([:update, :destroy]) do
+      authorize_if(actor_present())
     end
   end
 
