@@ -1,7 +1,11 @@
 defmodule Emakola.Orders.CheckoutService do
   @moduledoc """
-  Orchestrates the checkout process: validates cart items, creates the order
-  and line items, decrements stock, and calculates totals.
+  Orchestrates the checkout process: resolves customer, validates cart items,
+  creates the order and line items, decrements stock, and calculates totals.
+
+  Customer resolution: accepts either `customer_id` (backward compatible)
+  or `customer_email` (find-or-create). When using customer_email, the
+  customer's default address is used as shipping address if none provided.
 
   All operations run inside an Ecto transaction so a failure at any step
   rolls everything back (including stock adjustments).
@@ -15,7 +19,14 @@ defmodule Emakola.Orders.CheckoutService do
   ## Parameters
     - `store_id` — UUID of the store
     - `items` — list of `%{variant_id: uuid, quantity: integer}`
-    - `opts` — keyword list with optional :customer_id, :notes, :shipping_address, :billing_address
+    - `opts` — keyword list with:
+      - `:customer_id` — UUID (backward compatible, used directly)
+      - `:customer_email` — string (triggers find-or-create)
+      - `:customer_name` — string (optional, used with customer_email)
+      - `:customer_phone` — string (optional, used with customer_email)
+      - `:notes` — string
+      - `:shipping_address` — map
+      - `:billing_address` — map
 
   ## Returns
     - `{:ok, order}` on success
@@ -24,9 +35,67 @@ defmodule Emakola.Orders.CheckoutService do
   def checkout!(store_id, items, opts) do
     with :ok <- validate_cart(items),
          {:ok, variants} <- load_and_validate_variants(store_id, items),
-         :ok <- validate_stock(variants, items) do
-      run_checkout(store_id, items, variants, opts)
+         :ok <- validate_stock(variants, items),
+         {:ok, customer_id, resolved_address} <- resolve_customer(store_id, opts) do
+      run_checkout(store_id, items, variants, customer_id, resolved_address, opts)
     end
+  end
+
+  # -- Customer resolution --------------------------------------------
+
+  defp resolve_customer(store_id, opts) do
+    cond do
+      Keyword.has_key?(opts, :customer_id) ->
+        {:ok, Keyword.get(opts, :customer_id), nil}
+
+      Keyword.has_key?(opts, :customer_email) ->
+        email = Keyword.get(opts, :customer_email)
+        name = Keyword.get(opts, :customer_name)
+        phone = Keyword.get(opts, :customer_phone)
+
+        customer =
+          Emakola.Customers.Customer
+          |> Ash.ActionInput.for_action(:find_or_create, %{
+            email: email,
+            store_id: store_id,
+            name: name,
+            phone: phone
+          })
+          |> Ash.run_action!()
+
+        # Resolve default address if customer has one
+        default_address = resolve_default_address(customer)
+
+        {:ok, customer.id, default_address}
+
+      true ->
+        {:ok, nil, nil}
+    end
+  end
+
+  defp resolve_default_address(customer) do
+    Emakola.Customers.Address
+    |> Ash.Query.filter(customer_id == ^customer.id and is_default == true)
+    |> Ash.read!()
+    |> List.first()
+    |> case do
+      nil -> nil
+      address -> address_to_map(address)
+    end
+  end
+
+  defp address_to_map(address) do
+    %{
+      "first_name" => address.first_name,
+      "last_name" => address.last_name,
+      "line_1" => address.line_1,
+      "line_2" => address.line_2,
+      "city" => address.city,
+      "region" => address.region,
+      "country" => address.country,
+      "postal_code" => address.postal_code,
+      "phone" => address.phone
+    }
   end
 
   # -- Validations -----------------------------------------------------
@@ -70,16 +139,20 @@ defmodule Emakola.Orders.CheckoutService do
 
   # -- Transaction -----------------------------------------------------
 
-  defp run_checkout(store_id, items, variants, opts) do
+  defp run_checkout(store_id, items, variants, customer_id, resolved_address, opts) do
+    # Determine shipping address: explicit opts > resolved default > nil
+    shipping_address =
+      Keyword.get(opts, :shipping_address) || resolved_address
+
     Emakola.Repo.transaction(fn ->
       # 1. Create order
       order =
         Emakola.Orders.Order
         |> Ash.Changeset.for_create(:create, %{
           store_id: store_id,
-          customer_id: Keyword.get(opts, :customer_id),
+          customer_id: customer_id,
           notes: Keyword.get(opts, :notes),
-          shipping_address: Keyword.get(opts, :shipping_address),
+          shipping_address: shipping_address,
           billing_address: Keyword.get(opts, :billing_address)
         })
         |> Ash.create!()
@@ -117,6 +190,15 @@ defmodule Emakola.Orders.CheckoutService do
         order
         |> Ash.Changeset.for_update(:update, %{subtotal: subtotal, total: total})
         |> Ash.update!()
+
+      # 4. Touch customer's last_order_at
+      if customer_id do
+        customer = Ash.get!(Emakola.Customers.Customer, customer_id)
+
+        customer
+        |> Ash.Changeset.for_update(:touch_last_order)
+        |> Ash.update!()
+      end
 
       order
     end)
