@@ -14,6 +14,7 @@ defmodule Emakola.Billing.UsageRecord do
     attribute :event_type, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :quantity, :integer do

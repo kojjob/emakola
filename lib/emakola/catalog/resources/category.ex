@@ -30,15 +30,18 @@ defmodule Emakola.Catalog.Category do
     attribute :name, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :slug, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :description, :string do
       public?(true)
+      constraints(max_length: 5_000)
     end
 
     attribute :parent_id, :uuid do

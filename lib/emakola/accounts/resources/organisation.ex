@@ -15,16 +15,18 @@ defmodule Emakola.Accounts.Organisation do
     attribute :name, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :slug, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
-    attribute(:logo_url, :string, public?: true)
+    attribute(:logo_url, :string, public?: true, constraints: [max_length: 2_048])
 
-    attribute(:billing_email, :string, public?: true)
+    attribute(:billing_email, :string, public?: true, constraints: [max_length: 320])
 
     timestamps()
   end

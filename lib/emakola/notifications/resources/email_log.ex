@@ -14,16 +14,19 @@ defmodule Emakola.Notifications.EmailLog do
     attribute :to, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 320)
     end
 
     attribute :subject, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 500)
     end
 
     attribute :template, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :status, :atom do
@@ -33,7 +36,7 @@ defmodule Emakola.Notifications.EmailLog do
       public?(true)
     end
 
-    attribute(:error, :string, public?: true)
+    attribute(:error, :string, public?: true, constraints: [max_length: 5_000])
     attribute(:metadata, :map, default: %{}, public?: true)
     attribute(:sent_at, :utc_datetime, public?: true)
 

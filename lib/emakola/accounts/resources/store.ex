@@ -22,17 +22,20 @@ defmodule Emakola.Accounts.Store do
     attribute :name, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :slug, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :currency, :string do
       allow_nil?(false)
       default("GHS")
       public?(true)
+      constraints(max_length: 3)
     end
 
     attribute :description, :string do

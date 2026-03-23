@@ -29,14 +29,17 @@ defmodule Emakola.Customers.Customer do
     attribute :email, :ci_string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 320)
     end
 
     attribute :name, :string do
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :phone, :string do
       public?(true)
+      constraints(max_length: 20)
     end
 
     timestamps()

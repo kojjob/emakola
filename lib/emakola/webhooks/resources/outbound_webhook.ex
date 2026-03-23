@@ -14,22 +14,25 @@ defmodule Emakola.Webhooks.OutboundWebhook do
     attribute :url, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 2_048)
     end
 
     attribute :secret, :string do
       allow_nil?(false)
       sensitive?(true)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :events, {:array, :string} do
       default([])
       allow_nil?(false)
       public?(true)
+      constraints(items: [max_length: 255])
     end
 
     attribute(:active, :boolean, default: true, public?: true)
-    attribute(:description, :string, public?: true)
+    attribute(:description, :string, public?: true, constraints: [max_length: 1_000])
     attribute(:metadata, :map, default: %{}, public?: true)
 
     timestamps()

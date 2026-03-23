@@ -11,11 +11,16 @@ defmodule Emakola.Webhooks.WebhookDelivery do
   attributes do
     uuid_primary_key(:id)
 
-    attribute(:event_type, :string, allow_nil?: false, public?: true)
+    attribute(:event_type, :string,
+      allow_nil?: false,
+      public?: true,
+      constraints: [max_length: 255]
+    )
+
     attribute(:payload, :map, default: %{}, public?: true)
     attribute(:response_status, :integer, public?: true)
-    attribute(:response_body, :string, public?: true)
-    attribute(:error, :string, public?: true)
+    attribute(:response_body, :string, public?: true, constraints: [max_length: 50_000])
+    attribute(:error, :string, public?: true, constraints: [max_length: 5_000])
     attribute(:attempts, :integer, default: 0, public?: true)
 
     attribute :status, :atom do
