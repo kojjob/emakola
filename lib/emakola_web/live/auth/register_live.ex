@@ -1,6 +1,11 @@
 defmodule EmakolaWeb.Auth.RegisterLive do
   use EmakolaWeb, :live_view
 
+  require Logger
+
+  @register_limit 5
+  @register_window_ms 60_000
+
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket, form: to_form(%{"email" => "", "password" => "", "name" => ""}, as: :user)),
@@ -116,6 +121,30 @@ defmodule EmakolaWeb.Auth.RegisterLive do
   end
 
   def handle_event("register", %{"user" => params}, socket) do
+    ip = get_client_ip(socket)
+    rate_key = "auth_register:#{ip}"
+
+    case Emakola.RateLimit.check_rate(rate_key, @register_limit, @register_window_ms) do
+      {:deny, _retry_after} ->
+        Logger.warning("Registration rate limit exceeded for #{ip}")
+
+        {:noreply,
+         socket
+         |> put_flash(:error, "Too many registration attempts. Please try again in a minute.")
+         |> assign(
+           form:
+             to_form(
+               %{"email" => params["email"], "password" => "", "name" => params["name"]},
+               as: :user
+             )
+         )}
+
+      {:allow, _count} ->
+        do_register(params, socket)
+    end
+  end
+
+  defp do_register(params, socket) do
     strategy = AshAuthentication.Info.strategy!(Emakola.Accounts.User, :password)
 
     case AshAuthentication.Strategy.action(strategy, :register, %{
@@ -177,4 +206,16 @@ defmodule EmakolaWeb.Auth.RegisterLive do
   end
 
   defp extract_errors(_), do: "Registration failed. Please try again."
+
+  defp get_client_ip(socket) do
+    case Phoenix.LiveView.get_connect_info(socket, :peer_data) do
+      %{address: ip} -> format_ip(ip)
+      _ -> "unknown"
+    end
+  rescue
+    _ -> "unknown"
+  end
+
+  defp format_ip({a, b, c, d}), do: "#{a}.#{b}.#{c}.#{d}"
+  defp format_ip(ip), do: to_string(:inet.ntoa(ip))
 end

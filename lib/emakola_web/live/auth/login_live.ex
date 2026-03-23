@@ -1,6 +1,11 @@
 defmodule EmakolaWeb.Auth.LoginLive do
   use EmakolaWeb, :live_view
 
+  require Logger
+
+  @login_limit 10
+  @login_window_ms 60_000
+
   def mount(_params, _session, socket) do
     {:ok, assign(socket, form: to_form(%{"email" => "", "password" => ""}, as: :user)),
      layout: false}
@@ -114,6 +119,24 @@ defmodule EmakolaWeb.Auth.LoginLive do
   end
 
   def handle_event("login", %{"user" => params}, socket) do
+    ip = get_client_ip(socket)
+    rate_key = "auth_login:#{ip}"
+
+    case Emakola.RateLimit.check_rate(rate_key, @login_limit, @login_window_ms) do
+      {:deny, _retry_after} ->
+        Logger.warning("Login rate limit exceeded for #{ip}")
+
+        {:noreply,
+         socket
+         |> put_flash(:error, "Too many login attempts. Please try again in a minute.")
+         |> assign(form: to_form(%{"email" => params["email"], "password" => ""}, as: :user))}
+
+      {:allow, _count} ->
+        do_login(params, socket, ip)
+    end
+  end
+
+  defp do_login(params, socket, ip) do
     strategy = AshAuthentication.Info.strategy!(Emakola.Accounts.User, :password)
 
     case AshAuthentication.Strategy.action(strategy, :sign_in, %{
@@ -129,7 +152,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
 
           Emakola.Audit.log(:login, "User", to_string(user.id), user.id, nil,
             user_agent: ua,
-            ip_address: "unknown"
+            ip_address: ip
           )
         rescue
           _ -> :ok
@@ -147,4 +170,16 @@ defmodule EmakolaWeb.Auth.LoginLive do
          |> assign(form: to_form(%{"email" => params["email"], "password" => ""}, as: :user))}
     end
   end
+
+  defp get_client_ip(socket) do
+    case Phoenix.LiveView.get_connect_info(socket, :peer_data) do
+      %{address: ip} -> format_ip(ip)
+      _ -> "unknown"
+    end
+  rescue
+    _ -> "unknown"
+  end
+
+  defp format_ip({a, b, c, d}), do: "#{a}.#{b}.#{c}.#{d}"
+  defp format_ip(ip), do: to_string(:inet.ntoa(ip))
 end
