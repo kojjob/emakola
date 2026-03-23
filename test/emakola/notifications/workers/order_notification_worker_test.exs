@@ -5,8 +5,6 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerEmailTest do
   """
   use Emakola.DataCase, async: true
 
-  @moduletag :pending
-
   import Swoosh.TestAssertions
   import Emakola.Factory
 

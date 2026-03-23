@@ -20,6 +20,8 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
   require Logger
 
   alias Emakola.Notifications.Templates
+  alias Emakola.Notifications.Emails.OrderEmail
+  alias Emakola.Notifications.Emails.ShippingEmail
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"order_id" => order_id, "event" => event_string}}) do
@@ -36,6 +38,11 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
         Logger.info(
           "[OrderNotificationWorker] No customer phone for order #{order_id}, skipping customer notification"
         )
+      end
+
+      # Send customer email if they have an email address
+      if customer && customer.email do
+        send_customer_email(order, store, customer, event)
       end
 
       # Send merchant notification for relevant events
@@ -98,6 +105,33 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
     template = Templates.whatsapp_template_for(event)
     params = Templates.whatsapp_params(order, store)
     whatsapp_provider().send_message(customer.phone, template, params, store_id: order.store_id)
+  end
+
+  defp send_customer_email(order, store, customer, :order_placed) do
+    OrderEmail.order_confirmation(order, customer, store)
+    |> Emakola.Mailer.deliver()
+  end
+
+  defp send_customer_email(order, store, customer, :order_confirmed) do
+    OrderEmail.order_confirmation(order, customer, store)
+    |> Emakola.Mailer.deliver()
+  end
+
+  defp send_customer_email(order, store, customer, :order_shipped) do
+    tracking_info = %{
+      carrier: Map.get(order, :shipping_carrier, nil),
+      tracking_number: Map.get(order, :tracking_number, nil),
+      tracking_url: Map.get(order, :tracking_url, nil),
+      estimated_delivery: Map.get(order, :estimated_delivery, nil)
+    }
+
+    ShippingEmail.order_shipped(order, customer, store, tracking_info)
+    |> Emakola.Mailer.deliver()
+  end
+
+  defp send_customer_email(_order, _store, _customer, _event) do
+    Logger.info("[OrderNotificationWorker] No email template for event, skipping email")
+    :ok
   end
 
   defp send_merchant_sms(order, store, :order_placed) do

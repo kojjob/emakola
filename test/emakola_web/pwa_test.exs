@@ -5,8 +5,6 @@ defmodule EmakolaWeb.PWATest do
   """
   use EmakolaWeb.ConnCase, async: true
 
-  @moduletag :pending
-
   describe "manifest.json" do
     test "is accessible and returns valid JSON", %{conn: conn} do
       conn = get(conn, "/manifest.json")
