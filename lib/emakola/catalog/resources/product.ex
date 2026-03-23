@@ -104,18 +104,19 @@ defmodule Emakola.Catalog.Product do
   end
 
   policies do
-    # System/internal operations (nil actor) bypass authorization
+    # Reads are always allowed (storefront + internal)
     bypass action_type(:read) do
       authorize_if(always())
     end
 
-    bypass actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
-      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
+    # Internal/system calls (nil actor) are allowed
+    bypass always() do
+      authorize_unless(actor_present())
     end
 
-    # Fallback: deny if actor is present but not a merchant
-    policy always() do
-      forbid_unless(actor_present())
+    # Merchant actors: verify store membership for writes
+    policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
+      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
   end
 

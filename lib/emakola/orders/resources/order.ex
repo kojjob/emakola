@@ -103,12 +103,14 @@ defmodule Emakola.Orders.Order do
       authorize_if(always())
     end
 
-    bypass actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
-      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
+    # Internal/system calls (nil actor) are allowed
+    bypass always() do
+      authorize_unless(actor_present())
     end
 
-    policy always() do
-      forbid_unless(actor_present())
+    # Merchant actors: verify store membership for writes
+    policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
+      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
   end
 

@@ -74,17 +74,22 @@ defmodule Emakola.Accounts.User do
   end
 
   policies do
-    # Authentication interactions (login, register, etc.) always allowed
     bypass AshAuthentication.Checks.AshAuthenticationInteraction do
       authorize_if(always())
     end
 
-    # Reads are open (needed for internal lookups, auth flows)
+    bypass action(:register_with_password) do
+      authorize_if(always())
+    end
+
     bypass action_type(:read) do
       authorize_if(always())
     end
 
-    # Users can update/destroy only their own records
+    bypass always() do
+      authorize_unless(actor_present())
+    end
+
     policy action_type([:update, :destroy]) do
       authorize_if(expr(id == ^actor(:id)))
     end

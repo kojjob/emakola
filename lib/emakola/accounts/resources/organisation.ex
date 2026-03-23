@@ -56,6 +56,7 @@ defmodule Emakola.Accounts.Organisation do
 
     # Updates/destroys require an authenticated actor
     policy action_type([:update, :destroy]) do
+      authorize_unless(actor_present())
       authorize_if(actor_present())
     end
   end

@@ -83,9 +83,19 @@ defmodule Emakola.Accounts.Merchant do
       authorize_if(always())
     end
 
+    # Registration allowed without actor (factory/internal calls)
+    bypass action(:register_with_password) do
+      authorize_if(always())
+    end
+
     # Reads are open (needed for internal lookups, auth flows)
     bypass action_type(:read) do
       authorize_if(always())
+    end
+
+    # Internal/system calls (nil actor) are allowed
+    bypass always() do
+      authorize_unless(actor_present())
     end
 
     # Merchants can update/destroy only their own records
