@@ -65,8 +65,16 @@ defmodule Emakola.Catalog.OptionType do
   end
 
   policies do
-    policy always() do
+    bypass action_type(:read) do
       authorize_if(always())
+    end
+
+    bypass actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
+      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
+    end
+
+    policy always() do
+      forbid_unless(actor_present())
     end
   end
 

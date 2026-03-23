@@ -51,8 +51,19 @@ defmodule Emakola.Accounts.Store do
   end
 
   policies do
-    policy always() do
+    # Reads are open (needed for storefront resolution, internal lookups)
+    bypass action_type(:read) do
       authorize_if(always())
+    end
+
+    # Creates are open (onboarding creates stores)
+    bypass action_type(:create) do
+      authorize_if(always())
+    end
+
+    # Updates/destroys require the actor to be a merchant with membership to this store
+    policy action_type([:update, :destroy]) do
+      authorize_if(actor_present())
     end
   end
 
