@@ -16,6 +16,11 @@ defmodule EmakolaWeb.Router do
     plug EmakolaWeb.Plugs.RateLimiter, limit: 100, window_ms: 60_000
   end
 
+  # Stricter rate limiting for authentication endpoints to prevent brute-force attacks
+  pipeline :auth_rate_limit do
+    plug EmakolaWeb.Plugs.RateLimiter, limit: 10, window_ms: 60_000
+  end
+
   # Health check — required by Docker/fly.toml for deployment readiness
   scope "/api", EmakolaWeb do
     pipe_through :api
@@ -31,14 +36,14 @@ defmodule EmakolaWeb.Router do
 
   # Auth session controller (sets/clears session cookie)
   scope "/auth", EmakolaWeb do
-    pipe_through :browser
+    pipe_through [:browser, :auth_rate_limit]
     get "/session", AuthSessionController, :create
     delete "/session", AuthSessionController, :delete
   end
 
   # Auth routes (no layout — full-page auth screens)
   scope "/auth", EmakolaWeb.Auth do
-    pipe_through :browser
+    pipe_through [:browser, :auth_rate_limit]
     live "/login", LoginLive
     live "/register", RegisterLive
   end
