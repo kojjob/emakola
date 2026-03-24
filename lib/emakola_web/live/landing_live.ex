@@ -149,14 +149,14 @@ defmodule EmakolaWeb.LandingLive do
       <!-- ============================================ -->
       <section class="min-h-screen flex flex-col lg:flex-row pt-16">
         <!-- Merchant Side (Dark) -->
-        <div class="relative flex-1 flex items-center justify-center overflow-hidden">
+        <div class="relative flex-1 flex items-center overflow-hidden">
           <img
             src={~p"/images/landing/hero-merchant.jpg"}
             alt="Ghanaian merchant at market"
-            class="absolute inset-0 w-full h-full object-cover"
+            class="absolute inset-0 w-full h-full object-cover opacity-20"
           />
-          <div class="absolute inset-0 bg-gradient-to-r from-[#0c1526]/90 to-[#0c1526]/70"></div>
-          <div class="relative z-10 max-w-xl px-6 py-16 lg:py-0 lg:px-12">
+          <div class="absolute inset-0 bg-[#0c1526]/85"></div>
+          <div class="relative z-10 max-w-lg px-8 py-20 lg:py-24 lg:px-16">
             <span class="inline-block text-xs font-semibold tracking-[0.15em] uppercase text-[#d4a843] mb-4">
               FOR MERCHANTS
             </span>
@@ -200,14 +200,14 @@ defmodule EmakolaWeb.LandingLive do
           </div>
         </div>
         <!-- Shopper Side (Light) -->
-        <div class="relative flex-1 flex items-center justify-center overflow-hidden bg-[#f7f8fa]">
+        <div class="relative flex-1 flex items-center overflow-hidden bg-[#f7f8fa]">
           <img
             src={~p"/images/landing/hero-shopper.jpg"}
             alt="Person shopping on mobile phone"
-            class="absolute inset-0 w-full h-full object-cover"
+            class="absolute inset-0 w-full h-full object-cover opacity-15"
           />
-          <div class="absolute inset-0 bg-gradient-to-l from-[#f7f8fa]/90 to-[#f7f8fa]/70"></div>
-          <div class="relative z-10 max-w-xl px-6 py-16 lg:py-0 lg:px-12">
+          <div class="absolute inset-0 bg-[#f7f8fa]/85"></div>
+          <div class="relative z-10 max-w-lg px-8 py-20 lg:py-24 lg:px-16">
             <span class="inline-block text-xs font-semibold tracking-[0.15em] uppercase text-[#2563eb] mb-4">
               FOR SHOPPERS
             </span>
@@ -224,33 +224,33 @@ defmodule EmakolaWeb.LandingLive do
               Browse Stores
             </a>
             <!-- Mini Product Cards -->
-            <div class="flex gap-3 mt-8">
-              <div class="bg-white rounded-lg p-2 shadow-sm flex-1 max-w-[140px]">
+            <div class="flex gap-2.5 mt-6">
+              <div class="bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-md flex-1 max-w-[120px]">
                 <img
                   src={~p"/images/landing/product-kente.jpg"}
                   alt="Kente cloth"
-                  class="rounded-md h-20 w-full object-cover mb-2"
+                  class="rounded h-16 w-full object-cover mb-1.5"
                 />
-                <p class="text-xs font-semibold text-[#0c1526]">Kente Cloth</p>
-                <p class="text-xs text-[#5f6b7a]">GHS 150</p>
+                <p class="text-[11px] font-semibold text-[#0c1526]">Kente Cloth</p>
+                <p class="text-[11px] text-[#5f6b7a]">GHS 150</p>
               </div>
-              <div class="bg-white rounded-lg p-2 shadow-sm flex-1 max-w-[140px]">
+              <div class="bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-md flex-1 max-w-[120px]">
                 <img
                   src={~p"/images/landing/product-shea.jpg"}
                   alt="Shea butter"
-                  class="rounded-md h-20 w-full object-cover mb-2"
+                  class="rounded h-16 w-full object-cover mb-1.5"
                 />
-                <p class="text-xs font-semibold text-[#0c1526]">Shea Butter</p>
-                <p class="text-xs text-[#5f6b7a]">GHS 45</p>
+                <p class="text-[11px] font-semibold text-[#0c1526]">Shea Butter</p>
+                <p class="text-[11px] text-[#5f6b7a]">GHS 45</p>
               </div>
-              <div class="bg-white rounded-lg p-2 shadow-sm flex-1 max-w-[140px] hidden sm:block">
+              <div class="bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-md flex-1 max-w-[120px] hidden sm:block">
                 <img
                   src={~p"/images/landing/product-ankara.jpg"}
                   alt="Ankara dress"
-                  class="rounded-md h-20 w-full object-cover mb-2"
+                  class="rounded h-16 w-full object-cover mb-1.5"
                 />
-                <p class="text-xs font-semibold text-[#0c1526]">Ankara Dress</p>
-                <p class="text-xs text-[#5f6b7a]">GHS 85</p>
+                <p class="text-[11px] font-semibold text-[#0c1526]">Ankara Dress</p>
+                <p class="text-[11px] text-[#5f6b7a]">GHS 85</p>
               </div>
             </div>
           </div>
@@ -404,7 +404,7 @@ defmodule EmakolaWeb.LandingLive do
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- Row 1: Mobile Money (2-col) + WhatsApp (1-col) -->
             <div
-              class="md:col-span-2 bg-[#f7f8fa] rounded-xl border border-[#1a2744] overflow-hidden hover:-translate-y-1 transition-transform"
+              class="md:col-span-2 bg-[#f7f8fa] rounded-xl shadow-sm hover:shadow-md overflow-hidden hover:-translate-y-1 transition-all"
               data-reveal
             >
               <img
@@ -423,7 +423,7 @@ defmodule EmakolaWeb.LandingLive do
               </div>
             </div>
             <div
-              class="bg-[#f7f8fa] rounded-xl border border-[#1a2744] p-6 hover:-translate-y-1 transition-transform"
+              class="bg-[#f7f8fa] rounded-xl shadow-sm hover:shadow-md p-6 hover:-translate-y-1 transition-all"
               data-reveal
             >
               <span class="material-symbols-outlined text-3xl text-[#2563eb] mb-4 block">
@@ -437,7 +437,7 @@ defmodule EmakolaWeb.LandingLive do
             
     <!-- Row 2: Dashboard (1-col) + Multi-Store (2-col) -->
             <div
-              class="bg-[#f7f8fa] rounded-xl border border-[#1a2744] p-6 hover:-translate-y-1 transition-transform"
+              class="bg-[#f7f8fa] rounded-xl shadow-sm hover:shadow-md p-6 hover:-translate-y-1 transition-all"
               data-reveal
             >
               <span class="material-symbols-outlined text-3xl text-[#2563eb] mb-4 block">
@@ -449,7 +449,7 @@ defmodule EmakolaWeb.LandingLive do
               </p>
             </div>
             <div
-              class="md:col-span-2 bg-[#f7f8fa] rounded-xl border border-[#1a2744] overflow-hidden hover:-translate-y-1 transition-transform"
+              class="md:col-span-2 bg-[#f7f8fa] rounded-xl shadow-sm hover:shadow-md overflow-hidden hover:-translate-y-1 transition-all"
               data-reveal
             >
               <img
@@ -470,7 +470,7 @@ defmodule EmakolaWeb.LandingLive do
             
     <!-- Row 3: Inventory (1-col) + Shipping (1-col) -->
             <div
-              class="bg-[#f7f8fa] rounded-xl border border-[#1a2744] p-6 hover:-translate-y-1 transition-transform"
+              class="bg-[#f7f8fa] rounded-xl shadow-sm hover:shadow-md p-6 hover:-translate-y-1 transition-all"
               data-reveal
             >
               <span class="material-symbols-outlined text-3xl text-[#2563eb] mb-4 block">
@@ -482,7 +482,7 @@ defmodule EmakolaWeb.LandingLive do
               </p>
             </div>
             <div
-              class="bg-[#f7f8fa] rounded-xl border border-[#1a2744] p-6 hover:-translate-y-1 transition-transform"
+              class="bg-[#f7f8fa] rounded-xl shadow-sm hover:shadow-md p-6 hover:-translate-y-1 transition-all"
               data-reveal
             >
               <span class="material-symbols-outlined text-3xl text-[#2563eb] mb-4 block">
@@ -511,7 +511,7 @@ defmodule EmakolaWeb.LandingLive do
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Starter -->
-            <div class="bg-[#f7f8fa] rounded-xl border border-[#e8eaed] p-6 flex flex-col" data-reveal>
+            <div class="bg-[#f7f8fa] rounded-xl shadow-sm p-6 flex flex-col" data-reveal>
               <h3 class="text-lg font-semibold text-[#0c1526] mb-1">Starter</h3>
               <div class="flex items-baseline gap-1 mb-1">
                 <span class="text-3xl font-bold text-[#0c1526]">Free</span>
@@ -537,14 +537,14 @@ defmodule EmakolaWeb.LandingLive do
               </ul>
               <a
                 href="/auth/register"
-                class="block text-center px-4 py-2.5 text-sm font-semibold text-[#0c1526] border border-[#e8eaed] rounded-lg hover:border-[#0c1526] transition-colors"
+                class="block text-center px-4 py-2.5 text-sm font-semibold text-[#0c1526] bg-[#f0f1f4] rounded-lg hover:bg-[#e8eaed] transition-colors"
               >
                 Get Started
               </a>
             </div>
             
     <!-- Growth -->
-            <div class="bg-[#f7f8fa] rounded-xl border border-[#e8eaed] p-6 flex flex-col" data-reveal>
+            <div class="bg-[#f7f8fa] rounded-xl shadow-sm p-6 flex flex-col" data-reveal>
               <h3 class="text-lg font-semibold text-[#0c1526] mb-1">Growth</h3>
               <div class="flex items-baseline gap-1 mb-1">
                 <span class="text-3xl font-bold text-[#0c1526]">GHS 29</span>
@@ -571,7 +571,7 @@ defmodule EmakolaWeb.LandingLive do
               </ul>
               <a
                 href="/auth/register"
-                class="block text-center px-4 py-2.5 text-sm font-semibold text-[#0c1526] border border-[#e8eaed] rounded-lg hover:border-[#0c1526] transition-colors"
+                class="block text-center px-4 py-2.5 text-sm font-semibold text-[#0c1526] bg-[#f0f1f4] rounded-lg hover:bg-[#e8eaed] transition-colors"
               >
                 Get Started
               </a>
@@ -579,7 +579,7 @@ defmodule EmakolaWeb.LandingLive do
             
     <!-- Pro (Highlighted) -->
             <div
-              class="bg-[#0c1526] rounded-xl border-2 border-[#d4a843] p-6 flex flex-col relative"
+              class="bg-[#0c1526] rounded-xl shadow-lg shadow-[#d4a843]/20 ring-1 ring-[#d4a843]/40 p-6 flex flex-col relative"
               data-reveal
             >
               <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#d4a843] text-[#0c1526] text-xs font-bold px-3 py-0.5 rounded-full">
@@ -622,7 +622,7 @@ defmodule EmakolaWeb.LandingLive do
             </div>
             
     <!-- Enterprise -->
-            <div class="bg-[#f7f8fa] rounded-xl border border-[#e8eaed] p-6 flex flex-col" data-reveal>
+            <div class="bg-[#f7f8fa] rounded-xl shadow-sm p-6 flex flex-col" data-reveal>
               <h3 class="text-lg font-semibold text-[#0c1526] mb-1">Enterprise</h3>
               <div class="flex items-baseline gap-1 mb-1">
                 <span class="text-3xl font-bold text-[#0c1526]">Custom</span>
@@ -648,7 +648,7 @@ defmodule EmakolaWeb.LandingLive do
               </ul>
               <a
                 href="mailto:sales@emakola.com"
-                class="block text-center px-4 py-2.5 text-sm font-semibold text-[#0c1526] border border-[#e8eaed] rounded-lg hover:border-[#0c1526] transition-colors"
+                class="block text-center px-4 py-2.5 text-sm font-semibold text-[#0c1526] bg-[#f0f1f4] rounded-lg hover:bg-[#e8eaed] transition-colors"
               >
                 Contact Sales
               </a>
@@ -667,7 +667,7 @@ defmodule EmakolaWeb.LandingLive do
           </h2>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Testimonial 1 -->
-            <div class="bg-white rounded-xl border border-[#e8eaed] p-6" data-reveal>
+            <div class="bg-white rounded-xl shadow-sm p-6" data-reveal>
               <div class="flex gap-0.5 mb-4">
                 <svg :for={_i <- 1..5} class="w-4 h-4 text-[#d4a843] fill-current" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -690,7 +690,7 @@ defmodule EmakolaWeb.LandingLive do
             </div>
             
     <!-- Testimonial 2 -->
-            <div class="bg-white rounded-xl border border-[#e8eaed] p-6" data-reveal>
+            <div class="bg-white rounded-xl shadow-sm p-6" data-reveal>
               <div class="flex gap-0.5 mb-4">
                 <svg :for={_i <- 1..5} class="w-4 h-4 text-[#d4a843] fill-current" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -713,7 +713,7 @@ defmodule EmakolaWeb.LandingLive do
             </div>
             
     <!-- Testimonial 3 -->
-            <div class="bg-white rounded-xl border border-[#e8eaed] p-6" data-reveal>
+            <div class="bg-white rounded-xl shadow-sm p-6" data-reveal>
               <div class="flex gap-0.5 mb-4">
                 <svg :for={_i <- 1..5} class="w-4 h-4 text-[#d4a843] fill-current" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
