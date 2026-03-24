@@ -174,7 +174,7 @@ defmodule EmakolaWeb.LandingLive do
                 href="#features"
                 class="inline-flex items-center px-6 py-3 text-sm font-semibold text-[#8896ab] border border-[#2a3a5c] rounded-lg hover:text-[#f1f5f9] hover:border-[#f1f5f9] transition-colors"
               >
-                Watch Demo
+                See Features
               </a>
             </div>
 
@@ -336,7 +336,7 @@ defmodule EmakolaWeb.LandingLive do
       <section class="bg-[#f0f1f4] py-6 px-4">
         <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
           <span class="text-sm text-[#5f6b7a] font-medium whitespace-nowrap">
-            Trusted by 500+ merchants across Ghana
+            Trusted by 500+ merchants across Ghana — and growing
           </span>
           <div class="flex flex-wrap items-center justify-center gap-3 sm:gap-5">
             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#ffcb05]/10 border border-[#ffcb05]/30">
@@ -390,6 +390,7 @@ defmodule EmakolaWeb.LandingLive do
                     <img
                       src={~p"/images/landing/step-sell-1.jpg"}
                       alt="Sign up on your phone"
+                      loading="lazy"
                       class="w-full object-cover" style="height:144px;max-height:144px"
                     />
                   </div>
@@ -410,6 +411,7 @@ defmodule EmakolaWeb.LandingLive do
                     <img
                       src={~p"/images/landing/step-sell-2.jpg"}
                       alt="Add your products"
+                      loading="lazy"
                       class="w-full object-cover" style="height:144px;max-height:144px"
                     />
                   </div>
@@ -428,6 +430,7 @@ defmodule EmakolaWeb.LandingLive do
                     <img
                       src={~p"/images/landing/step-sell-3.jpg"}
                       alt="Receive mobile money payment"
+                      loading="lazy"
                       class="w-full object-cover" style="height:144px;max-height:144px"
                     />
                   </div>
@@ -463,6 +466,7 @@ defmodule EmakolaWeb.LandingLive do
                     <img
                       src={~p"/images/landing/step-buy-1.jpg"}
                       alt="Browse stores on your phone"
+                      loading="lazy"
                       class="w-full object-cover" style="height:144px;max-height:144px"
                     />
                   </div>
@@ -481,6 +485,7 @@ defmodule EmakolaWeb.LandingLive do
                     <img
                       src={~p"/images/landing/step-buy-2.jpg"}
                       alt="Pay with mobile money"
+                      loading="lazy"
                       class="w-full object-cover" style="height:144px;max-height:144px"
                     />
                   </div>
@@ -499,6 +504,7 @@ defmodule EmakolaWeb.LandingLive do
                     <img
                       src={~p"/images/landing/step-buy-3.jpg"}
                       alt="Receive your delivery"
+                      loading="lazy"
                       class="w-full object-cover" style="height:144px;max-height:144px"
                     />
                   </div>
@@ -533,6 +539,7 @@ defmodule EmakolaWeb.LandingLive do
                 <img
                   src={~p"/images/landing/feature-mobile-money.jpg"}
                   alt="Mobile money payment"
+                  loading="lazy"
                   class="w-full object-cover" style="height:144px;max-height:144px"
                 />
               </div>
@@ -551,6 +558,7 @@ defmodule EmakolaWeb.LandingLive do
                 <img
                   src={~p"/images/landing/feature-whatsapp.jpg"}
                   alt="WhatsApp notifications"
+                  loading="lazy"
                   class="w-full object-cover" style="height:144px;max-height:144px"
                 />
               </div>
@@ -569,6 +577,7 @@ defmodule EmakolaWeb.LandingLive do
                 <img
                   src={~p"/images/landing/feature-dashboard.jpg"}
                   alt="Merchant dashboard"
+                  loading="lazy"
                   class="w-full object-cover" style="height:144px;max-height:144px"
                 />
               </div>
@@ -587,6 +596,7 @@ defmodule EmakolaWeb.LandingLive do
                 <img
                   src={~p"/images/landing/feature-multi-store.jpg"}
                   alt="Multiple stores"
+                  loading="lazy"
                   class="w-full object-cover" style="height:144px;max-height:144px"
                 />
               </div>
@@ -605,6 +615,7 @@ defmodule EmakolaWeb.LandingLive do
                 <img
                   src={~p"/images/landing/feature-inventory.jpg"}
                   alt="Inventory tracking"
+                  loading="lazy"
                   class="w-full object-cover" style="height:144px;max-height:144px"
                 />
               </div>
@@ -623,6 +634,7 @@ defmodule EmakolaWeb.LandingLive do
                 <img
                   src={~p"/images/landing/feature-shipping.jpg"}
                   alt="Shipping and delivery"
+                  loading="lazy"
                   class="w-full object-cover" style="height:144px;max-height:144px"
                 />
               </div>
@@ -658,6 +670,7 @@ defmodule EmakolaWeb.LandingLive do
                 <span class="text-3xl font-bold text-[#0c1526]">Free</span>
               </div>
               <p class="text-sm text-[#d4a843] font-medium mb-6">3.5% per sale</p>
+              <span class="inline-block text-[10px] font-semibold text-[#2563eb] bg-[#2563eb]/10 px-2 py-0.5 rounded-full mt-1">No credit card needed</span>
               <ul class="space-y-2 mb-8 flex-1">
                 <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
                   <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">check</span>
@@ -825,7 +838,7 @@ defmodule EmakolaWeb.LandingLive do
                 "Emakola made it so easy to start selling online. My customers love paying with MoMo and I get instant notifications on every order. My sales have doubled since I moved online. I never thought ecommerce would be this simple."
               </p>
               <div class="flex items-center gap-3">
-                <img src={~p"/images/landing/testimonial-1.jpg"} alt="Ama Mensah" class="w-12 h-12 rounded-full object-cover ring-2 ring-[#d4a843]" />
+                <img src={~p"/images/landing/testimonial-1.jpg"} alt="Ama Mensah" loading="lazy" class="w-12 h-12 rounded-full object-cover ring-2 ring-[#d4a843]" />
                 <div>
                   <p class="text-sm font-bold text-[#f1f5f9]">Ama Mensah</p>
                   <p class="text-xs text-[#8896ab]">Ama's Fashion, Accra</p>
@@ -844,7 +857,7 @@ defmodule EmakolaWeb.LandingLive do
                 "I run three stores on Emakola. Managing all of them from one dashboard saves me hours every week."
               </p>
               <div class="flex items-center gap-3">
-                <img src={~p"/images/landing/testimonial-2.jpg"} alt="Kwame Asante" class="w-10 h-10 rounded-full object-cover" />
+                <img src={~p"/images/landing/testimonial-2.jpg"} alt="Kwame Asante" loading="lazy" class="w-10 h-10 rounded-full object-cover" />
                 <div>
                   <p class="text-sm font-semibold text-[#0c1526]">Kwame Asante</p>
                   <p class="text-xs text-[#8896ab]">TechHub GH, Kumasi</p>
@@ -863,7 +876,7 @@ defmodule EmakolaWeb.LandingLive do
                 "As a food vendor, I needed something simple. My customers in Takoradi can now order from home."
               </p>
               <div class="flex items-center gap-3">
-                <img src={~p"/images/landing/testimonial-3.jpg"} alt="Efua Owusu" class="w-10 h-10 rounded-full object-cover" />
+                <img src={~p"/images/landing/testimonial-3.jpg"} alt="Efua Owusu" loading="lazy" class="w-10 h-10 rounded-full object-cover" />
                 <div>
                   <p class="text-sm font-semibold text-[#0c1526]">Efua Owusu</p>
                   <p class="text-xs text-[#8896ab]">Efua's Kitchen, Takoradi</p>
@@ -882,7 +895,7 @@ defmodule EmakolaWeb.LandingLive do
                 "The WhatsApp notifications changed everything. My customers feel confident because they know exactly when their order ships."
               </p>
               <div class="flex items-center gap-3">
-                <img src={~p"/images/landing/testimonial-4.jpg"} alt="Kofi Mensah" class="w-10 h-10 rounded-full object-cover" />
+                <img src={~p"/images/landing/testimonial-4.jpg"} alt="Kofi Mensah" loading="lazy" class="w-10 h-10 rounded-full object-cover" />
                 <div>
                   <p class="text-sm font-semibold text-[#0c1526]">Kofi Mensah</p>
                   <p class="text-xs text-[#8896ab]">Kofi Electronics, Cape Coast</p>
@@ -901,7 +914,7 @@ defmodule EmakolaWeb.LandingLive do
                 "I was scared of technology. But Emakola is so simple even I can use it. Now I sell my beads and jewelry to people all over Ghana."
               </p>
               <div class="flex items-center gap-3">
-                <img src={~p"/images/landing/testimonial-5.jpg"} alt="Abena Darko" class="w-10 h-10 rounded-full object-cover" />
+                <img src={~p"/images/landing/testimonial-5.jpg"} alt="Abena Darko" loading="lazy" class="w-10 h-10 rounded-full object-cover" />
                 <div>
                   <p class="text-sm font-semibold text-[#0c1526]">Abena Darko</p>
                   <p class="text-xs text-[#8896ab]">Abena Beads, Koforidua</p>
@@ -920,7 +933,7 @@ defmodule EmakolaWeb.LandingLive do
                 "Mobile money integration is seamless. My customers pay with MoMo and I see it instantly on my dashboard. No more chasing payments."
               </p>
               <div class="flex items-center gap-3">
-                <img src={~p"/images/landing/testimonial-6.jpg"} alt="Yaw Boateng" class="w-10 h-10 rounded-full object-cover ring-2 ring-[#d4a843]" />
+                <img src={~p"/images/landing/testimonial-6.jpg"} alt="Yaw Boateng" loading="lazy" class="w-10 h-10 rounded-full object-cover ring-2 ring-[#d4a843]" />
                 <div>
                   <p class="text-sm font-bold text-[#f1f5f9]">Yaw Boateng</p>
                   <p class="text-xs text-[#8896ab]">YB Auto Parts, Tamale</p>
@@ -955,6 +968,7 @@ defmodule EmakolaWeb.LandingLive do
             >
               Browse Stores
             </a>
+            <p class="text-xs text-[#8896ab] mt-4 w-full text-center">No credit card required. Start free today.</p>
           </div>
         </div>
       </section>

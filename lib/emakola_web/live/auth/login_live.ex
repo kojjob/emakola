@@ -1,8 +1,18 @@
 defmodule EmakolaWeb.Auth.LoginLive do
   use EmakolaWeb, :live_view
 
+  require Logger
+
+  @login_limit 10
+  @login_window_ms 60_000
+
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, form: to_form(%{"email" => "", "password" => ""}, as: :user)),
+    ip = get_client_ip(socket)
+
+    {:ok,
+     socket
+     |> assign(client_ip: ip)
+     |> assign(form: to_form(%{"email" => "", "password" => ""}, as: :user)),
      layout: false}
   end
 
@@ -76,9 +86,10 @@ defmodule EmakolaWeb.Auth.LoginLive do
           <!-- WhatsApp Button -->
           <button
             type="button"
-            class="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm mb-6"
+            disabled
+            class="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm mb-6 opacity-50 cursor-not-allowed"
           >
-            <span class="material-symbols-outlined text-xl">chat</span> Continue with WhatsApp
+            <span class="material-symbols-outlined text-xl">chat</span> Continue with WhatsApp (Coming Soon)
           </button>
           <!-- OR EMAIL Divider -->
           <div class="relative mb-6">
@@ -87,7 +98,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
             </div>
             <div class="relative flex justify-center text-xs">
               <span class="bg-[#f7f8fa] px-4 text-[#8896ab] font-medium uppercase tracking-wider">
-                or email
+                or sign in with email
               </span>
             </div>
           </div>
@@ -130,7 +141,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
                 />
                 <button
                   type="button"
-                  onclick="const input = document.getElementById('login-password'); const icon = this.querySelector('.material-symbols-outlined'); if (input.type === 'password') { input.type = 'text'; icon.textContent = 'visibility_off'; } else { input.type = 'password'; icon.textContent = 'visibility'; }"
+                  phx-click={JS.dispatch("toggle-password", to: "#login-password")}
                   class="absolute right-3 top-1/2 -translate-y-1/2 text-[#8896ab] hover:text-[#5f6b7a] transition-colors"
                 >
                   <span class="material-symbols-outlined text-xl">visibility</span>
@@ -176,12 +187,32 @@ defmodule EmakolaWeb.Auth.LoginLive do
   end
 
   def handle_event("login", %{"user" => params}, socket) do
-    strategy = AshAuthentication.Info.strategy!(Emakola.Accounts.User, :password)
+    ip = socket.assigns.client_ip
+    rate_key = "auth_login:#{ip}"
 
-    case AshAuthentication.Strategy.action(strategy, :sign_in, %{
-           "email" => params["email"],
-           "password" => params["password"]
-         }) do
+    case Emakola.RateLimit.check_rate(rate_key, @login_limit, @login_window_ms) do
+      {:deny, _retry_after} ->
+        Logger.warning("Login rate limit exceeded for #{ip}")
+
+        {:noreply,
+         socket
+         |> put_flash(:error, "Too many login attempts. Please try again in a minute.")
+         |> assign(form: to_form(%{"email" => params["email"], "password" => ""}, as: :user))}
+
+      {:allow, _count} ->
+        do_login(params, socket, ip)
+    end
+  end
+
+  defp do_login(params, socket, ip) do
+    # Try Merchant auth first (ecommerce merchants), fall back to User (legacy)
+    {auth_result, _resource} =
+      case try_merchant_login(params) do
+        {:ok, merchant} -> {{:ok, merchant}, :merchant}
+        _ -> {try_user_login(params), :user}
+      end
+
+    case auth_result do
       {:ok, user} ->
         token = AshAuthentication.user_to_subject(user)
 
@@ -191,7 +222,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
 
           Emakola.Audit.log(:login, "User", to_string(user.id), user.id, nil,
             user_agent: ua,
-            ip_address: "unknown"
+            ip_address: ip
           )
         rescue
           _ -> :ok
@@ -208,5 +239,36 @@ defmodule EmakolaWeb.Auth.LoginLive do
          |> put_flash(:error, "Invalid email or password")
          |> assign(form: to_form(%{"email" => params["email"], "password" => ""}, as: :user))}
     end
+  end
+
+  defp try_merchant_login(params) do
+    strategy = AshAuthentication.Info.strategy!(Emakola.Accounts.Merchant, :password)
+
+    AshAuthentication.Strategy.action(strategy, :sign_in, %{
+      "email" => params["email"],
+      "password" => params["password"]
+    })
+  rescue
+    _ -> {:error, :not_found}
+  end
+
+  defp try_user_login(params) do
+    strategy = AshAuthentication.Info.strategy!(Emakola.Accounts.User, :password)
+
+    AshAuthentication.Strategy.action(strategy, :sign_in, %{
+      "email" => params["email"],
+      "password" => params["password"]
+    })
+  end
+
+  # Must be called during mount — get_connect_info is only available then
+  defp get_client_ip(socket) do
+    case Phoenix.LiveView.get_connect_info(socket, :peer_data) do
+      %{address: {a, b, c, d}} -> "#{a}.#{b}.#{c}.#{d}"
+      %{address: ip} -> to_string(:inet.ntoa(ip))
+      _ -> "unknown"
+    end
+  rescue
+    _ -> "unknown"
   end
 end

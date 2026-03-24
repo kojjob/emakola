@@ -1,9 +1,18 @@
 defmodule EmakolaWeb.Auth.RegisterLive do
   use EmakolaWeb, :live_view
 
+  require Logger
+
+  @register_limit 5
+  @register_window_ms 60_000
+
   def mount(_params, _session, socket) do
+    ip = get_client_ip(socket)
+
     {:ok,
-     assign(socket, form: to_form(%{"email" => "", "password" => "", "name" => ""}, as: :user)),
+     socket
+     |> assign(client_ip: ip)
+     |> assign(form: to_form(%{"email" => "", "password" => "", "name" => ""}, as: :user)),
      layout: false}
   end
 
@@ -78,9 +87,10 @@ defmodule EmakolaWeb.Auth.RegisterLive do
           <!-- WhatsApp Button -->
           <button
             type="button"
-            class="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm mb-6"
+            disabled
+            class="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm mb-6 opacity-50 cursor-not-allowed"
           >
-            <span class="material-symbols-outlined text-xl">chat</span> Continue with WhatsApp
+            <span class="material-symbols-outlined text-xl">chat</span> Continue with WhatsApp (Coming Soon)
           </button>
           <!-- OR EMAIL Divider -->
           <div class="relative mb-6">
@@ -89,7 +99,7 @@ defmodule EmakolaWeb.Auth.RegisterLive do
             </div>
             <div class="relative flex justify-center text-xs">
               <span class="bg-[#f7f8fa] px-4 text-[#8896ab] font-medium uppercase tracking-wider">
-                or email
+                or sign up with email
               </span>
             </div>
           </div>
@@ -146,7 +156,7 @@ defmodule EmakolaWeb.Auth.RegisterLive do
                 />
                 <button
                   type="button"
-                  onclick="const input = document.getElementById('register-password'); const icon = this.querySelector('.material-symbols-outlined'); if (input.type === 'password') { input.type = 'text'; icon.textContent = 'visibility_off'; } else { input.type = 'password'; icon.textContent = 'visibility'; }"
+                  phx-click={JS.dispatch("toggle-password", to: "#register-password")}
                   class="absolute right-3 top-1/2 -translate-y-1/2 text-[#8896ab] hover:text-[#5f6b7a] transition-colors"
                 >
                   <span class="material-symbols-outlined text-xl">visibility</span>
@@ -184,6 +194,30 @@ defmodule EmakolaWeb.Auth.RegisterLive do
   end
 
   def handle_event("register", %{"user" => params}, socket) do
+    ip = socket.assigns.client_ip
+    rate_key = "auth_register:#{ip}"
+
+    case Emakola.RateLimit.check_rate(rate_key, @register_limit, @register_window_ms) do
+      {:deny, _retry_after} ->
+        Logger.warning("Registration rate limit exceeded for #{ip}")
+
+        {:noreply,
+         socket
+         |> put_flash(:error, "Too many registration attempts. Please try again in a minute.")
+         |> assign(
+           form:
+             to_form(
+               %{"email" => params["email"], "password" => "", "name" => params["name"]},
+               as: :user
+             )
+         )}
+
+      {:allow, _count} ->
+        do_register(params, socket)
+    end
+  end
+
+  defp do_register(params, socket) do
     strategy = AshAuthentication.Info.strategy!(Emakola.Accounts.User, :password)
 
     case AshAuthentication.Strategy.action(strategy, :register, %{
@@ -245,4 +279,15 @@ defmodule EmakolaWeb.Auth.RegisterLive do
   end
 
   defp extract_errors(_), do: "Registration failed. Please try again."
+
+  # Must be called during mount — get_connect_info is only available then
+  defp get_client_ip(socket) do
+    case Phoenix.LiveView.get_connect_info(socket, :peer_data) do
+      %{address: {a, b, c, d}} -> "#{a}.#{b}.#{c}.#{d}"
+      %{address: ip} -> to_string(:inet.ntoa(ip))
+      _ -> "unknown"
+    end
+  rescue
+    _ -> "unknown"
+  end
 end
