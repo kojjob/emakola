@@ -200,6 +200,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
 
   defp category_icon(name) do
     key = name |> String.downcase()
+
     Enum.find_value(@category_icons, "category", fn {k, v} ->
       if String.contains?(key, k), do: v
     end)
@@ -400,7 +401,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
       |> assign(:child_count, child_count)
 
     ~H"""
-    <div class={"group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5"}>
+    <div class="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5">
       <%!-- Top: Icon + Actions --%>
       <div class="flex items-start justify-between mb-4">
         <div class={"w-12 h-12 rounded-xl #{@icon_bg} flex items-center justify-center"}>
@@ -425,14 +426,19 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
             class="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center transition-colors"
             title="Delete"
           >
-            <span class="material-symbols-outlined text-base text-slate-400 hover:text-red-500">delete</span>
+            <span class="material-symbols-outlined text-base text-slate-400 hover:text-red-500">
+              delete
+            </span>
           </button>
         </div>
       </div>
 
       <%!-- Name --%>
       <h3 class="text-base font-bold text-slate-900 mb-1">{@node.category.name}</h3>
-      <p :if={@node.category.description && @node.category.description != ""} class="text-xs text-slate-400 line-clamp-2 mb-3">
+      <p
+        :if={@node.category.description && @node.category.description != ""}
+        class="text-xs text-slate-400 line-clamp-2 mb-3"
+      >
         {@node.category.description}
       </p>
 
@@ -447,7 +453,9 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
               :for={child <- @node.children}
               class={"inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium #{@card_bg} #{@text_color}"}
             >
-              <span class="material-symbols-outlined text-xs">{category_icon(child.category.name)}</span>
+              <span class="material-symbols-outlined text-xs">
+                {category_icon(child.category.name)}
+              </span>
               {child.category.name}
             </span>
           </div>
