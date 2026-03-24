@@ -338,9 +338,16 @@
             <% end %>
           </button>
 
-          <div id="notif-panel" class="hidden absolute right-0 top-full mt-2 w-96 max-h-[480px] bg-white rounded-2xl shadow-2xl shadow-slate-200/80 border border-slate-200/80 overflow-hidden z-50">
+          <div id="notif-panel" class="hidden absolute right-0 top-full mt-2 w-[28rem] max-h-[520px] bg-white rounded-2xl shadow-2xl shadow-slate-200/80 border border-slate-200/80 overflow-hidden z-50">
             <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-              <h3 class="text-sm font-bold text-slate-900">Notifications</h3>
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-bold text-slate-900">Notifications</h3>
+                <%= if unread_count > 0 do %>
+                  <span class="min-w-[20px] h-5 flex items-center justify-center bg-rose-500 text-white text-[10px] font-bold rounded-full px-1.5">
+                    {unread_count}
+                  </span>
+                <% end %>
+              </div>
               <%= if unread_count > 0 do %>
                 <button phx-click="mark_all_notifications_read" class="text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors cursor-pointer">Mark all read</button>
               <% end %>
@@ -401,70 +408,153 @@
             </svg>
           </button>
 
-          <div id="user-panel" class="hidden absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-2xl shadow-slate-200/80 border border-slate-200/80 overflow-hidden z-50">
-            <div class="px-5 py-4 bg-gradient-to-br from-slate-50 to-white border-b border-slate-100">
-              <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-sm font-bold text-white ring-2 ring-emerald-500/20 overflow-hidden shrink-0">
+          <div id="user-panel" class="hidden absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl shadow-slate-200/80 border border-slate-200/80 overflow-hidden z-50">
+            <%!-- Profile header --%>
+            <div class="px-5 pt-5 pb-4 bg-gradient-to-br from-slate-50 to-white border-b border-slate-100">
+              <div class="flex items-start gap-3">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-sm font-bold text-white ring-2 ring-emerald-500/20 overflow-hidden shrink-0">
                   <%= if active_user && Map.get(active_user, :avatar_url) do %>
                     <img src={active_user.avatar_url} alt="" class="w-full h-full object-cover" />
                   <% else %>
                     {Layouts.user_initials(active_user)}
                   <% end %>
                 </div>
-                <div class="min-w-0">
+                <div class="min-w-0 flex-1">
                   <p class="text-sm font-bold text-slate-900 truncate">
                     {if active_user && Map.get(active_user, :name), do: active_user.name, else: "Merchant"}
                   </p>
                   <p class="text-xs text-slate-500 truncate">{if active_user, do: active_user.email, else: ""}</p>
-                  <%= if @current_store do %>
-                    <div class="flex items-center gap-1 mt-1">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                      <span class="text-[10px] font-medium text-emerald-700">{@current_store.name}</span>
-                    </div>
+                  <%= if active_user && Map.get(active_user, :phone) do %>
+                    <p class="text-xs text-slate-400 truncate mt-0.5">{active_user.phone}</p>
                   <% end %>
+                </div>
+                <a href="/admin/settings" class="shrink-0 p-1.5 rounded-lg hover:bg-slate-100 transition-colors" title="Edit profile">
+                  <span class="material-symbols-outlined text-base text-slate-400">edit</span>
+                </a>
+              </div>
+
+              <%!-- Store + Plan badges --%>
+              <div class="flex items-center gap-2 mt-3">
+                <%= if @current_store do %>
+                  <div class="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-[11px] font-semibold px-2.5 py-1 rounded-lg">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    {@current_store.name}
+                  </div>
+                <% end %>
+                <div class="flex items-center gap-1 bg-amber-50 text-amber-700 text-[11px] font-semibold px-2.5 py-1 rounded-lg">
+                  <span class="material-symbols-outlined text-xs">workspace_premium</span>
+                  {if assigns[:current_plan], do: @current_plan.name, else: "Growth"}
                 </div>
               </div>
             </div>
+
+            <%!-- Quick stats --%>
+            <div class="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100">
+              <div class="px-3 py-3 text-center">
+                <p class="text-base font-bold text-slate-900">{if assigns[:product_count], do: @product_count, else: "-"}</p>
+                <p class="text-[10px] text-slate-400 font-medium">Products</p>
+              </div>
+              <div class="px-3 py-3 text-center">
+                <p class="text-base font-bold text-slate-900">{if assigns[:order_count], do: @order_count, else: "-"}</p>
+                <p class="text-[10px] text-slate-400 font-medium">Orders</p>
+              </div>
+              <div class="px-3 py-3 text-center">
+                <p class="text-base font-bold text-slate-900">{if assigns[:customer_count], do: @customer_count, else: "-"}</p>
+                <p class="text-[10px] text-slate-400 font-medium">Customers</p>
+              </div>
+            </div>
+
+            <%!-- Navigation --%>
             <div class="py-1.5">
-              <a href="/dashboard" class="flex items-center gap-3 px-5 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+              <p class="px-5 pt-2 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Manage</p>
+              <a href="/dashboard" class="flex items-center gap-3 px-5 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                 <span class="material-symbols-outlined text-lg text-slate-400">dashboard</span>
                 Dashboard
               </a>
-              <a href="/admin/orders" class="flex items-center gap-3 px-5 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+              <a href="/admin/products" class="flex items-center gap-3 px-5 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                <span class="material-symbols-outlined text-lg text-slate-400">inventory_2</span>
+                Products
+              </a>
+              <a href="/admin/orders" class="flex items-center gap-3 px-5 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                 <span class="material-symbols-outlined text-lg text-slate-400">receipt_long</span>
                 Orders
               </a>
-              <a href="/admin/customers" class="flex items-center gap-3 px-5 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+              <a href="/admin/customers" class="flex items-center gap-3 px-5 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                 <span class="material-symbols-outlined text-lg text-slate-400">group</span>
                 Customers
               </a>
-              <div class="my-1.5 mx-4 border-t border-slate-100"></div>
-              <a href="/admin/settings" class="flex items-center gap-3 px-5 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+              <a href="/admin/revenue" class="flex items-center gap-3 px-5 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                <span class="material-symbols-outlined text-lg text-slate-400">payments</span>
+                Revenue
+              </a>
+            </div>
+
+            <div class="mx-4 border-t border-slate-100"></div>
+
+            <%!-- Settings & Tools --%>
+            <div class="py-1.5">
+              <p class="px-5 pt-2 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Settings</p>
+              <a href="/admin/settings" class="flex items-center gap-3 px-5 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                 <span class="material-symbols-outlined text-lg text-slate-400">settings</span>
                 Store Settings
               </a>
+              <a href="/admin/settings" class="flex items-center gap-3 px-5 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                <span class="material-symbols-outlined text-lg text-slate-400">person</span>
+                Profile & Account
+              </a>
+              <a href="/admin/settings" class="flex items-center gap-3 px-5 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                <span class="material-symbols-outlined text-lg text-slate-400">notifications</span>
+                Notification Preferences
+              </a>
               <%= if @current_store do %>
-                <a href={"/s/#{@current_store.slug}"} target="_blank" class="flex items-center gap-3 px-5 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                <a href={"/s/#{@current_store.slug}"} target="_blank" class="flex items-center gap-3 px-5 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
                   <span class="material-symbols-outlined text-lg text-slate-400">storefront</span>
                   View Storefront
                   <span class="material-symbols-outlined text-sm text-slate-300 ml-auto">open_in_new</span>
                 </a>
               <% end %>
-              <div class="my-1.5 mx-4 border-t border-slate-100"></div>
-              <a href="/auth/session" data-method="delete" class="flex items-center gap-3 px-5 py-2.5 text-sm text-rose-600 hover:bg-rose-50 transition-colors">
-                <span class="material-symbols-outlined text-lg">logout</span>
-                Sign out
+            </div>
+
+            <div class="mx-4 border-t border-slate-100"></div>
+
+            <%!-- Help & Support --%>
+            <div class="py-1.5">
+              <a href="#" class="flex items-center gap-3 px-5 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                <span class="material-symbols-outlined text-lg text-slate-400">help</span>
+                Help & Support
+              </a>
+              <a href="#" class="flex items-center gap-3 px-5 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                <span class="material-symbols-outlined text-lg text-slate-400">keyboard</span>
+                Keyboard Shortcuts
+                <kbd class="ml-auto text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 font-mono">?</kbd>
               </a>
             </div>
+
+            <div class="mx-4 border-t border-slate-100"></div>
+
+            <%!-- Sign out --%>
+            <div class="py-1.5">
+              <.link href="/auth/session" method="delete" class="flex items-center gap-3 px-5 py-2.5 text-sm text-rose-600 hover:bg-rose-50 transition-colors">
+                <span class="material-symbols-outlined text-lg">logout</span>
+                Sign out
+              </.link>
+            </div>
+
+            <%!-- Store footer --%>
             <%= if @current_store do %>
               <div class="px-5 py-3 bg-slate-50/80 border-t border-slate-100">
                 <div class="flex items-center gap-2">
-                  <div class="w-6 h-6 rounded-lg bg-emerald-600 flex items-center justify-center">
-                    <span class="text-[10px] font-bold text-white">{@current_store.name |> String.first() |> String.upcase()}</span>
+                  <div class="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center">
+                    <span class="text-[11px] font-bold text-white">{@current_store.name |> String.first() |> String.upcase()}</span>
                   </div>
                   <div class="min-w-0 flex-1">
                     <p class="text-xs font-semibold text-slate-700 truncate">{@current_store.name}</p>
-                    <p class="text-[10px] text-slate-400">{@current_store.currency} store</p>
+                    <p class="text-[10px] text-slate-400">
+                      {@current_store.currency} store
+                      <%= if @current_store.city do %>
+                        <span class="mx-1">-</span> {@current_store.city}
+                      <% end %>
+                    </p>
                   </div>
                 </div>
               </div>

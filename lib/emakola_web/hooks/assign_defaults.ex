@@ -51,6 +51,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
           {:ok, merchant} ->
             store = load_merchant_store(merchant.id)
             {notifs, unread} = load_notifications(nil)
+            stats = load_store_stats(store)
 
             assign(socket,
               current_merchant: merchant,
@@ -58,7 +59,10 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
               current_user: nil,
               onboarding_complete: true,
               notifications: notifs,
-              unread_notification_count: unread
+              unread_notification_count: unread,
+              product_count: stats.products,
+              order_count: stats.orders,
+              customer_count: stats.customers
             )
 
           _ ->
@@ -72,6 +76,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       {:ok, merchant} ->
         store = load_merchant_store(merchant.id)
         {notifs, unread} = load_notifications(nil)
+        stats = load_store_stats(store)
 
         assign(socket,
           current_merchant: merchant,
@@ -79,7 +84,10 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
           current_user: nil,
           onboarding_complete: true,
           notifications: notifs,
-          unread_notification_count: unread
+          unread_notification_count: unread,
+          product_count: stats.products,
+          order_count: stats.orders,
+          customer_count: stats.customers
         )
 
       _ ->
@@ -157,6 +165,32 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   end
 
   defp handle_notification_event(_event, _params, socket), do: {:cont, socket}
+
+  defp load_store_stats(nil), do: %{products: 0, orders: 0, customers: 0}
+
+  defp load_store_stats(store) do
+    product_count =
+      Emakola.Catalog.Product
+      |> Ash.Query.filter(store_id: store.id)
+      |> Ash.read!()
+      |> length()
+
+    order_count =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(store_id: store.id)
+      |> Ash.read!()
+      |> length()
+
+    customer_count =
+      Emakola.Customers.Customer
+      |> Ash.Query.filter(store_id: store.id)
+      |> Ash.read!()
+      |> length()
+
+    %{products: product_count, orders: order_count, customers: customer_count}
+  rescue
+    _ -> %{products: 0, orders: 0, customers: 0}
+  end
 
   defp load_notifications(user_id) do
     case user_id do
