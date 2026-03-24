@@ -43,6 +43,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         max_entries: 1,
         max_file_size: 2_000_000
       )
+      |> allow_upload(:product_images,
+        accept: ~w(.jpg .jpeg .png .webp),
+        max_entries: 5,
+        max_file_size: 10_000_000
+      )
       |> load_products()
       |> load_categories()
 
@@ -203,7 +208,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         end
 
       case result do
-        {:ok, _product} ->
+        {:ok, product} ->
+          # Upload images for the product
+          save_uploaded_images(socket, product)
+
           {:noreply,
            socket
            |> assign(
@@ -233,6 +241,33 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
        form_data: empty_form_data(),
        form_errors: %{}
      )}
+  end
+
+  @impl true
+  def handle_event("cancel_image_upload", %{"ref" => ref}, socket) do
+    {:noreply, cancel_upload(socket, :product_images, ref)}
+  end
+
+  @impl true
+  def handle_event("delete_image", %{"id" => image_id}, socket) do
+    case Ash.get(Emakola.Catalog.Image, image_id) do
+      {:ok, image} ->
+        Ash.destroy!(image)
+
+        # Reload the editing product with fresh images
+        updated =
+          if socket.assigns.editing_product do
+            Ash.load!(socket.assigns.editing_product, [:images], lazy?: false)
+          end
+
+        {:noreply,
+         socket
+         |> assign(editing_product: updated)
+         |> load_products()}
+
+      _ ->
+        {:noreply, socket}
+    end
   end
 
   # ── Bulk Upload Slide-Over Events ──
@@ -337,28 +372,28 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
             Manage your store catalog
           </p>
         </div>
-        <div class="flex items-center gap-2 w-full sm:w-auto">
+        <div class="flex items-center gap-2">
           <button
             phx-click={
               JS.push("open_bulk_upload")
               |> show_modal("bulk-upload-modal")
             }
-            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold
-                   border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50
-                   active:scale-95 transition-all flex-1 sm:flex-initial justify-center"
+            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold
+                   border border-slate-300 text-slate-600 hover:bg-slate-50
+                   active:scale-95 transition-all"
           >
-            <.icon name="hero-arrow-up-tray" class="size-4" /> Bulk Upload
+            <.icon name="hero-arrow-up-tray" class="size-3.5" /> Bulk
           </button>
           <button
             phx-click={
               JS.push("open_new_product")
               |> show_modal("product-form-modal")
             }
-            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold
+            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold
                    bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all
-                   shadow-sm flex-1 sm:flex-initial justify-center"
+                   shadow-sm"
           >
-            <.icon name="hero-plus" class="size-4" /> New Product
+            <.icon name="hero-plus" class="size-3.5" /> New Product
           </button>
         </div>
       </div>
@@ -426,8 +461,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
               >
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0">
-                      <.icon name="hero-photo" class="size-5 text-on-surface-variant/40" />
+                    <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <%= if first_image_url(product) do %>
+                        <img src={first_image_url(product)} alt={product.title} class="w-full h-full object-cover" />
+                      <% else %>
+                        <.icon name="hero-photo" class="size-5 text-on-surface-variant/40" />
+                      <% end %>
                     </div>
                     <span class="font-medium text-sm truncate max-w-[200px]">{product.title}</span>
                   </div>
@@ -502,8 +541,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
           >
             <div class="flex items-start justify-between gap-3">
               <div class="flex items-center gap-3 min-w-0">
-                <div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0">
-                  <.icon name="hero-photo" class="size-6 text-on-surface-variant/40" />
+                <div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <%= if first_image_url(product) do %>
+                    <img src={first_image_url(product)} alt={product.title} class="w-full h-full object-cover" />
+                  <% else %>
+                    <.icon name="hero-photo" class="size-6 text-on-surface-variant/40" />
+                  <% end %>
                 </div>
                 <div class="min-w-0">
                   <p class="font-medium text-sm truncate">{product.title}</p>
@@ -551,8 +594,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         <%= if @quick_view_product do %>
           <div class="space-y-4">
             <div class="flex items-start gap-4">
-              <div class="w-16 h-16 rounded-xl bg-surface-container flex items-center justify-center flex-shrink-0">
-                <.icon name="hero-photo" class="size-8 text-on-surface-variant/40" />
+              <div class="w-16 h-16 rounded-xl bg-surface-container flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <%= if first_image_url(@quick_view_product) do %>
+                  <img src={first_image_url(@quick_view_product)} alt={@quick_view_product.title} class="w-full h-full object-cover" />
+                <% else %>
+                  <.icon name="hero-photo" class="size-8 text-on-surface-variant/40" />
+                <% end %>
               </div>
               <div class="min-w-0 flex-1">
                 <h3 class="text-lg font-semibold text-slate-900">
@@ -743,6 +790,80 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
               />
               <p class="mt-1 text-xs text-slate-500">Separate tags with commas</p>
             </div>
+          </div>
+
+          <%!-- Images --%>
+          <div class="space-y-4 border-t border-slate-200 pt-5">
+            <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wide">
+              Images
+            </h3>
+            <p class="text-xs text-slate-400 -mt-2">
+              Upload up to 5 images (JPG, PNG, WebP, max 10MB each)
+            </p>
+
+            <%!-- Existing images (edit mode) --%>
+            <%= if @editing_product && Map.get(@editing_product, :images, []) != [] do %>
+              <div class="grid grid-cols-3 gap-2">
+                <%= for img <- @editing_product.images do %>
+                  <div class="relative group rounded-lg overflow-hidden bg-slate-100 aspect-square">
+                    <img src={img.thumbnail_url || img.url} alt={img.alt_text || ""} class="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      phx-click="delete_image"
+                      phx-value-id={img.id}
+                      class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                    >
+                      <.icon name="hero-x-mark" class="size-3.5" />
+                    </button>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <%!-- Upload area --%>
+            <div
+              class="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-emerald-400 transition-colors"
+              phx-drop-target={@uploads.product_images.ref}
+            >
+              <.icon name="hero-cloud-arrow-up" class="size-8 mx-auto text-slate-400 mb-2" />
+              <p class="text-sm text-slate-600 font-medium">
+                Drag & drop images here
+              </p>
+              <p class="text-xs text-slate-400 mt-1">or</p>
+              <label class="inline-block mt-2 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer transition-colors">
+                Browse files
+                <.live_file_input upload={@uploads.product_images} class="sr-only" />
+              </label>
+            </div>
+
+            <%!-- Upload previews --%>
+            <%= if @uploads.product_images.entries != [] do %>
+              <div class="grid grid-cols-3 gap-2">
+                <%= for entry <- @uploads.product_images.entries do %>
+                  <div class="relative rounded-lg overflow-hidden bg-slate-100 aspect-square">
+                    <.live_img_preview entry={entry} class="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      phx-click="cancel_image_upload"
+                      phx-value-ref={entry.ref}
+                      class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs"
+                    >
+                      <.icon name="hero-x-mark" class="size-3.5" />
+                    </button>
+                    <%!-- Progress bar --%>
+                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-slate-200">
+                      <div class="h-full bg-emerald-500 transition-all" style={"width: #{entry.progress}%"}></div>
+                    </div>
+                    <%!-- Errors --%>
+                    <%= for err <- upload_errors(@uploads.product_images, entry) do %>
+                      <p class="absolute bottom-1 left-1 right-1 text-[9px] text-red-500 bg-white/90 px-1 rounded">
+                        {upload_error_to_string(err)}
+                      </p>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
           </div>
 
           <%!-- SEO --%>
@@ -1042,7 +1163,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
               Emakola.Catalog.list_products_by_store!(store_id)
           end
 
-        Ash.load!(results, [:variant_count, :min_price, :max_price])
+        Ash.load!(results, [:variant_count, :min_price, :max_price, :images])
       rescue
         _ -> []
       end
@@ -1366,11 +1487,50 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   defp upload_error_to_string(:too_large), do: "File is too large (max 2MB)"
   defp upload_error_to_string(:not_accepted), do: "Only .csv files are accepted"
   defp upload_error_to_string(:too_many_files), do: "Only one file at a time"
+  defp upload_error_to_string(:too_large), do: "File too large (max 10MB)"
   defp upload_error_to_string(err), do: "Upload error: #{inspect(err)}"
 
   defp cancel_uploads(socket, upload_name) do
     Enum.reduce(socket.assigns.uploads[upload_name].entries, socket, fn entry, sock ->
       Phoenix.LiveView.cancel_upload(sock, upload_name, entry.ref)
+    end)
+  end
+
+  # ── Image Helpers ──
+
+  defp first_image_url(product) do
+    case Map.get(product, :images) do
+      [%{thumbnail_url: url} | _] when is_binary(url) and url != "" -> url
+      [%{url: url} | _] when is_binary(url) and url != "" -> url
+      _ -> nil
+    end
+  end
+
+  defp save_uploaded_images(socket, product) do
+    store_id = socket.assigns.store_id
+    upload_dir = Path.join(["priv/static/uploads", store_id])
+    File.mkdir_p!(upload_dir)
+
+    consume_uploaded_entries(socket, :product_images, fn %{path: tmp_path}, entry ->
+      ext = Path.extname(entry.client_name)
+      filename = "#{Ecto.UUID.generate()}#{ext}"
+      dest = Path.join(upload_dir, filename)
+      File.cp!(tmp_path, dest)
+
+      url = "/uploads/#{store_id}/#{filename}"
+
+      Emakola.Catalog.Image
+      |> Ash.Changeset.for_create(:create, %{
+        url: url,
+        product_id: product.id,
+        store_id: store_id,
+        content_type: entry.client_type,
+        file_size_bytes: entry.client_size,
+        alt_text: Path.rootname(entry.client_name)
+      })
+      |> Ash.create()
+
+      {:ok, url}
     end)
   end
 end
