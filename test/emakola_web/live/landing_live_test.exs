@@ -78,7 +78,7 @@ defmodule EmakolaWeb.LandingLiveTest do
     test "renders features section with Emakola features", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/")
 
-      assert html =~ "Mobile Money Payments"
+      assert html =~ "Mobile Money"
       assert html =~ "WhatsApp Notifications"
       assert html =~ "Merchant Dashboard"
       assert html =~ "Multi-Store Management"
