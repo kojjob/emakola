@@ -65,9 +65,14 @@ defmodule EmakolaWeb.LandingLiveTest do
       {:ok, _view, html} = live(conn, "/")
 
       assert html =~ "How It Works"
-      assert html =~ "Create Your Store"
+      assert html =~ "Sign Up"
       assert html =~ "Add Products"
+      assert html =~ "Get Paid"
+      assert html =~ "Browse"
       assert html =~ "Pay with MoMo"
+      assert html =~ "Receive"
+      assert html =~ "Sell on Emakola"
+      assert html =~ "Buy on Emakola"
     end
 
     test "renders features section with Emakola features", %{conn: conn} do
@@ -150,8 +155,12 @@ defmodule EmakolaWeb.LandingLiveTest do
 
       assert html =~ "feature-mobile-money.jpg"
       assert html =~ "feature-multi-store.jpg"
-      assert html =~ "how-merchant.jpg"
-      assert html =~ "how-shopper.jpg"
+      assert html =~ "step-sell-1.jpg"
+      assert html =~ "step-sell-2.jpg"
+      assert html =~ "step-sell-3.jpg"
+      assert html =~ "step-buy-1.jpg"
+      assert html =~ "step-buy-2.jpg"
+      assert html =~ "step-buy-3.jpg"
     end
   end
 end
