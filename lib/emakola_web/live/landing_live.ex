@@ -282,95 +282,147 @@ defmodule EmakolaWeb.LandingLive do
       <!-- SECTION 4: HOW IT WORKS                      -->
       <!-- ============================================ -->
       <section id="how-it-works" class="bg-white py-20 px-4" data-reveal>
-        <div class="max-w-5xl mx-auto">
-          <h2 class="text-3xl lg:text-4xl font-headline font-bold text-[#0c1526] text-center mb-16">
+        <div class="max-w-6xl mx-auto">
+          <h2 class="text-3xl lg:text-4xl font-headline font-bold text-[#0c1526] text-center mb-4">
             How It Works
           </h2>
-          
-    <!-- For Merchants -->
-          <div class="mb-16" data-reveal>
-            <div class="mb-8 mx-auto max-w-md overflow-hidden rounded-xl">
-              <img
-                src={~p"/images/landing/how-merchant.jpg"}
-                alt="Merchant setting up their online store"
-                class="w-full h-48 object-cover"
-              />
+          <p class="text-base text-[#5f6b7a] text-center mb-16">
+            3 simple steps
+          </p>
+
+          <!-- === SELL ON EMAKOLA === -->
+          <div class="mb-20" data-reveal>
+            <div class="flex items-center justify-center gap-3 mb-12">
+              <span class="material-symbols-outlined text-2xl text-[#d4a843]">storefront</span>
+              <h3 class="text-xl font-bold text-[#0c1526]">Sell on Emakola</h3>
             </div>
-            <h3 class="text-sm font-semibold tracking-[0.15em] uppercase text-[#d4a843] text-center mb-10">
-              FOR MERCHANTS
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div class="text-center">
-                <div class="w-12 h-12 rounded-full bg-[#0c1526] text-white flex items-center justify-center mx-auto mb-4 text-lg font-bold">
-                  1
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-10">
+              <!-- Step 1: Sign Up -->
+              <div class="group text-center" data-reveal>
+                <div class="relative mb-5">
+                  <div class="overflow-hidden rounded-2xl shadow-md">
+                    <img
+                      src={~p"/images/landing/step-sell-1.jpg"}
+                      alt="Sign up on your phone"
+                      class="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#d4a843] text-[#0c1526] flex items-center justify-center text-xl font-black shadow-lg">
+                    1
+                  </div>
                 </div>
-                <h4 class="text-lg font-semibold text-[#0c1526] mb-2">Create Your Store</h4>
-                <p class="text-sm text-[#5f6b7a]">
-                  Sign up and customize your storefront in minutes
-                </p>
+                <h4 class="text-lg font-bold text-[#0c1526] mb-1">Sign Up</h4>
+                <p class="text-sm text-[#5f6b7a]">Create your free store</p>
               </div>
-              <div class="text-center">
-                <div class="w-12 h-12 rounded-full bg-[#0c1526] text-white flex items-center justify-center mx-auto mb-4 text-lg font-bold">
-                  2
+
+              <!-- Arrow connector (desktop only) -->
+
+              <!-- Step 2: Add Products -->
+              <div class="group text-center" data-reveal>
+                <div class="relative mb-5">
+                  <div class="overflow-hidden rounded-2xl shadow-md">
+                    <img
+                      src={~p"/images/landing/step-sell-2.jpg"}
+                      alt="Add your products"
+                      class="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#d4a843] text-[#0c1526] flex items-center justify-center text-xl font-black shadow-lg">
+                    2
+                  </div>
                 </div>
-                <h4 class="text-lg font-semibold text-[#0c1526] mb-2">Add Products</h4>
-                <p class="text-sm text-[#5f6b7a]">
-                  Upload products, set prices in GHS, manage inventory
-                </p>
+                <h4 class="text-lg font-bold text-[#0c1526] mb-1">Add Products</h4>
+                <p class="text-sm text-[#5f6b7a]">Upload photos, set prices</p>
               </div>
-              <div class="text-center">
-                <div class="w-12 h-12 rounded-full bg-[#0c1526] text-white flex items-center justify-center mx-auto mb-4 text-lg font-bold">
-                  3
+
+              <!-- Step 3: Get Paid -->
+              <div class="group text-center" data-reveal>
+                <div class="relative mb-5">
+                  <div class="overflow-hidden rounded-2xl shadow-md">
+                    <img
+                      src={~p"/images/landing/step-sell-3.jpg"}
+                      alt="Receive mobile money payment"
+                      class="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#d4a843] text-[#0c1526] flex items-center justify-center text-xl font-black shadow-lg">
+                    3
+                  </div>
                 </div>
-                <h4 class="text-lg font-semibold text-[#0c1526] mb-2">Start Selling</h4>
-                <p class="text-sm text-[#5f6b7a]">
-                  Share your store link. Accept mobile money. Grow your business.
-                </p>
+                <h4 class="text-lg font-bold text-[#0c1526] mb-1">Get Paid</h4>
+                <p class="text-sm text-[#5f6b7a]">Receive money via MoMo</p>
               </div>
             </div>
           </div>
 
-          <hr class="border-[#e8eaed] mb-16" />
-          
-    <!-- For Shoppers -->
+          <!-- Divider -->
+          <div class="flex items-center gap-4 mb-20">
+            <div class="flex-1 h-px bg-[#e8eaed]"></div>
+            <span class="text-xs font-semibold tracking-widest uppercase text-[#8896ab]">or</span>
+            <div class="flex-1 h-px bg-[#e8eaed]"></div>
+          </div>
+
+          <!-- === BUY ON EMAKOLA === -->
           <div data-reveal>
-            <div class="mb-8 mx-auto max-w-md overflow-hidden rounded-xl">
-              <img
-                src={~p"/images/landing/how-shopper.jpg"}
-                alt="Customer receiving their delivery"
-                class="w-full h-48 object-cover"
-              />
+            <div class="flex items-center justify-center gap-3 mb-12">
+              <span class="material-symbols-outlined text-2xl text-[#2563eb]">shopping_bag</span>
+              <h3 class="text-xl font-bold text-[#0c1526]">Buy on Emakola</h3>
             </div>
-            <h3 class="text-sm font-semibold tracking-[0.15em] uppercase text-[#2563eb] text-center mb-10">
-              FOR SHOPPERS
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div class="text-center">
-                <div class="w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center mx-auto mb-4 text-lg font-bold">
-                  1
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-10">
+              <!-- Step 1: Browse -->
+              <div class="group text-center" data-reveal>
+                <div class="relative mb-5">
+                  <div class="overflow-hidden rounded-2xl shadow-md">
+                    <img
+                      src={~p"/images/landing/step-buy-1.jpg"}
+                      alt="Browse stores on your phone"
+                      class="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xl font-black shadow-lg">
+                    1
+                  </div>
                 </div>
-                <h4 class="text-lg font-semibold text-[#0c1526] mb-2">Browse Stores</h4>
-                <p class="text-sm text-[#5f6b7a]">
-                  Discover local businesses and products
-                </p>
+                <h4 class="text-lg font-bold text-[#0c1526] mb-1">Browse</h4>
+                <p class="text-sm text-[#5f6b7a]">Find what you need</p>
               </div>
-              <div class="text-center">
-                <div class="w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center mx-auto mb-4 text-lg font-bold">
-                  2
+
+              <!-- Step 2: Pay with MoMo -->
+              <div class="group text-center" data-reveal>
+                <div class="relative mb-5">
+                  <div class="overflow-hidden rounded-2xl shadow-md">
+                    <img
+                      src={~p"/images/landing/step-buy-2.jpg"}
+                      alt="Pay with mobile money"
+                      class="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xl font-black shadow-lg">
+                    2
+                  </div>
                 </div>
-                <h4 class="text-lg font-semibold text-[#0c1526] mb-2">Pay with MoMo</h4>
-                <p class="text-sm text-[#5f6b7a]">
-                  Checkout securely with MTN MoMo, Vodafone Cash, or card
-                </p>
+                <h4 class="text-lg font-bold text-[#0c1526] mb-1">Pay with MoMo</h4>
+                <p class="text-sm text-[#5f6b7a]">MTN MoMo, Vodafone Cash</p>
               </div>
-              <div class="text-center">
-                <div class="w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center mx-auto mb-4 text-lg font-bold">
-                  3
+
+              <!-- Step 3: Receive -->
+              <div class="group text-center" data-reveal>
+                <div class="relative mb-5">
+                  <div class="overflow-hidden rounded-2xl shadow-md">
+                    <img
+                      src={~p"/images/landing/step-buy-3.jpg"}
+                      alt="Receive your delivery"
+                      class="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xl font-black shadow-lg">
+                    3
+                  </div>
                 </div>
-                <h4 class="text-lg font-semibold text-[#0c1526] mb-2">Track Your Order</h4>
-                <p class="text-sm text-[#5f6b7a]">
-                  Get real-time updates on WhatsApp
-                </p>
+                <h4 class="text-lg font-bold text-[#0c1526] mb-1">Receive</h4>
+                <p class="text-sm text-[#5f6b7a]">Get it delivered to you</p>
               </div>
             </div>
           </div>
