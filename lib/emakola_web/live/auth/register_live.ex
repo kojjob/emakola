@@ -20,8 +20,7 @@ defmodule EmakolaWeb.Auth.RegisterLive do
     ~H"""
     <div class="min-h-screen flex flex-col lg:flex-row">
       <!-- Left Panel: Branded -->
-      <div class="hidden lg:flex lg:w-1/2 bg-gradient-to-t from-[#0c1526] via-[#0c1526] to-[#1a2744] overflow-hidden flex-col justify-between p-12"
-      >
+      <div class="hidden lg:flex lg:w-1/2 bg-gradient-to-t from-[#0c1526] via-[#0c1526] to-[#1a2744] overflow-hidden flex-col justify-between p-12">
         <!-- Top: Brand -->
         <div class="relative z-10">
           <div class="flex items-center gap-2">
@@ -90,7 +89,8 @@ defmodule EmakolaWeb.Auth.RegisterLive do
             disabled
             class="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm mb-6 opacity-50 cursor-not-allowed"
           >
-            <span class="material-symbols-outlined text-xl">chat</span> Continue with WhatsApp (Coming Soon)
+            <span class="material-symbols-outlined text-xl">chat</span>
+            Continue with WhatsApp (Coming Soon)
           </button>
           <!-- OR EMAIL Divider -->
           <div class="relative mb-6">

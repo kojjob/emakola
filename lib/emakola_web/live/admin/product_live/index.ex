@@ -463,7 +463,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                   <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0 overflow-hidden">
                       <%= if first_image_url(product) do %>
-                        <img src={first_image_url(product)} alt={product.title} class="w-full h-full object-cover" />
+                        <img
+                          src={first_image_url(product)}
+                          alt={product.title}
+                          class="w-full h-full object-cover"
+                        />
                       <% else %>
                         <.icon name="hero-photo" class="size-5 text-on-surface-variant/40" />
                       <% end %>
@@ -543,7 +547,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
               <div class="flex items-center gap-3 min-w-0">
                 <div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0 overflow-hidden">
                   <%= if first_image_url(product) do %>
-                    <img src={first_image_url(product)} alt={product.title} class="w-full h-full object-cover" />
+                    <img
+                      src={first_image_url(product)}
+                      alt={product.title}
+                      class="w-full h-full object-cover"
+                    />
                   <% else %>
                     <.icon name="hero-photo" class="size-6 text-on-surface-variant/40" />
                   <% end %>
@@ -596,7 +604,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
             <div class="flex items-start gap-4">
               <div class="w-16 h-16 rounded-xl bg-surface-container flex items-center justify-center flex-shrink-0 overflow-hidden">
                 <%= if first_image_url(@quick_view_product) do %>
-                  <img src={first_image_url(@quick_view_product)} alt={@quick_view_product.title} class="w-full h-full object-cover" />
+                  <img
+                    src={first_image_url(@quick_view_product)}
+                    alt={@quick_view_product.title}
+                    class="w-full h-full object-cover"
+                  />
                 <% else %>
                   <.icon name="hero-photo" class="size-8 text-on-surface-variant/40" />
                 <% end %>
@@ -806,7 +818,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
               <div class="grid grid-cols-3 gap-2">
                 <%= for img <- @editing_product.images do %>
                   <div class="relative group rounded-lg overflow-hidden bg-slate-100 aspect-square">
-                    <img src={img.thumbnail_url || img.url} alt={img.alt_text || ""} class="w-full h-full object-cover" />
+                    <img
+                      src={img.thumbnail_url || img.url}
+                      alt={img.alt_text || ""}
+                      class="w-full h-full object-cover"
+                    />
                     <button
                       type="button"
                       phx-click="delete_image"
@@ -831,8 +847,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
               </p>
               <p class="text-xs text-slate-400 mt-1">or</p>
               <label class="inline-block mt-2 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer transition-colors">
-                Browse files
-                <.live_file_input upload={@uploads.product_images} class="sr-only" />
+                Browse files <.live_file_input upload={@uploads.product_images} class="sr-only" />
               </label>
             </div>
 
@@ -852,7 +867,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                     </button>
                     <%!-- Progress bar --%>
                     <div class="absolute bottom-0 left-0 right-0 h-1 bg-slate-200">
-                      <div class="h-full bg-emerald-500 transition-all" style={"width: #{entry.progress}%"}></div>
+                      <div
+                        class="h-full bg-emerald-500 transition-all"
+                        style={"width: #{entry.progress}%"}
+                      >
+                      </div>
                     </div>
                     <%!-- Errors --%>
                     <%= for err <- upload_errors(@uploads.product_images, entry) do %>
@@ -964,8 +983,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
               class="inline-flex items-center gap-2 text-sm font-medium text-emerald-600
                      hover:text-emerald-700 transition-colors"
             >
-              <.icon name="hero-arrow-down-tray" class="size-4" />
-              Download Template (.csv)
+              <.icon name="hero-arrow-down-tray" class="size-4" /> Download Template (.csv)
             </a>
             <p class="text-xs text-slate-400 font-mono mt-1">
               {csv_template_header()}
