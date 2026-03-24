@@ -225,18 +225,30 @@ defmodule EmakolaWeb.LandingLive do
             </a>
             <!-- Mini Product Cards -->
             <div class="flex gap-3 mt-8">
-              <div class="bg-white rounded-lg p-3 shadow-sm flex-1 max-w-[140px]">
-                <div class="bg-[#e2e8f0] rounded-md h-20 mb-2"></div>
+              <div class="bg-white rounded-lg p-2 shadow-sm flex-1 max-w-[140px]">
+                <img
+                  src={~p"/images/landing/product-kente.jpg"}
+                  alt="Kente cloth"
+                  class="rounded-md h-20 w-full object-cover mb-2"
+                />
                 <p class="text-xs font-semibold text-[#0c1526]">Kente Cloth</p>
                 <p class="text-xs text-[#5f6b7a]">GHS 150</p>
               </div>
-              <div class="bg-white rounded-lg p-3 shadow-sm flex-1 max-w-[140px]">
-                <div class="bg-[#e2e8f0] rounded-md h-20 mb-2"></div>
+              <div class="bg-white rounded-lg p-2 shadow-sm flex-1 max-w-[140px]">
+                <img
+                  src={~p"/images/landing/product-shea.jpg"}
+                  alt="Shea butter"
+                  class="rounded-md h-20 w-full object-cover mb-2"
+                />
                 <p class="text-xs font-semibold text-[#0c1526]">Shea Butter</p>
                 <p class="text-xs text-[#5f6b7a]">GHS 45</p>
               </div>
-              <div class="bg-white rounded-lg p-3 shadow-sm flex-1 max-w-[140px] hidden sm:block">
-                <div class="bg-[#e2e8f0] rounded-md h-20 mb-2"></div>
+              <div class="bg-white rounded-lg p-2 shadow-sm flex-1 max-w-[140px] hidden sm:block">
+                <img
+                  src={~p"/images/landing/product-ankara.jpg"}
+                  alt="Ankara dress"
+                  class="rounded-md h-20 w-full object-cover mb-2"
+                />
                 <p class="text-xs font-semibold text-[#0c1526]">Ankara Dress</p>
                 <p class="text-xs text-[#5f6b7a]">GHS 85</p>
               </div>
@@ -253,12 +265,27 @@ defmodule EmakolaWeb.LandingLive do
           <span class="text-sm text-[#5f6b7a] font-medium whitespace-nowrap">
             Trusted by 500+ merchants across Ghana
           </span>
-          <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-            <span class="text-sm font-semibold text-[#3f3f46]">MTN MoMo</span>
-            <span class="text-sm font-semibold text-[#3f3f46]">Vodafone Cash</span>
-            <span class="text-sm font-semibold text-[#3f3f46]">AirtelTigo</span>
-            <span class="text-sm font-semibold text-[#3f3f46]">Paystack</span>
-            <span class="text-sm font-semibold text-[#3f3f46]">Hubtel</span>
+          <div class="flex flex-wrap items-center justify-center gap-3 sm:gap-5">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#ffcb05]/10 border border-[#ffcb05]/30">
+              <span class="w-2 h-2 rounded-full bg-[#ffcb05]"></span>
+              <span class="text-xs font-bold text-[#3f3f46]">MTN MoMo</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#e60000]/10 border border-[#e60000]/30">
+              <span class="w-2 h-2 rounded-full bg-[#e60000]"></span>
+              <span class="text-xs font-bold text-[#3f3f46]">Vodafone Cash</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0033a1]/10 border border-[#0033a1]/30">
+              <span class="w-2 h-2 rounded-full bg-[#0033a1]"></span>
+              <span class="text-xs font-bold text-[#3f3f46]">AirtelTigo</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#00c3f7]/10 border border-[#00c3f7]/30">
+              <span class="w-2 h-2 rounded-full bg-[#00c3f7]"></span>
+              <span class="text-xs font-bold text-[#3f3f46]">Paystack</span>
+            </span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#00a651]/10 border border-[#00a651]/30">
+              <span class="w-2 h-2 rounded-full bg-[#00a651]"></span>
+              <span class="text-xs font-bold text-[#3f3f46]">Hubtel</span>
+            </span>
           </div>
         </div>
       </section>
@@ -274,6 +301,13 @@ defmodule EmakolaWeb.LandingLive do
           
     <!-- For Merchants -->
           <div class="mb-16" data-reveal>
+            <div class="mb-8 mx-auto max-w-md overflow-hidden rounded-xl">
+              <img
+                src={~p"/images/landing/how-merchant.jpg"}
+                alt="Merchant setting up their online store"
+                class="w-full h-48 object-cover"
+              />
+            </div>
             <h3 class="text-sm font-semibold tracking-[0.15em] uppercase text-[#d4a843] text-center mb-10">
               FOR MERCHANTS
             </h3>
@@ -312,6 +346,13 @@ defmodule EmakolaWeb.LandingLive do
           
     <!-- For Shoppers -->
           <div data-reveal>
+            <div class="mb-8 mx-auto max-w-md overflow-hidden rounded-xl">
+              <img
+                src={~p"/images/landing/how-shopper.jpg"}
+                alt="Customer receiving their delivery"
+                class="w-full h-48 object-cover"
+              />
+            </div>
             <h3 class="text-sm font-semibold tracking-[0.15em] uppercase text-[#2563eb] text-center mb-10">
               FOR SHOPPERS
             </h3>
@@ -363,16 +404,23 @@ defmodule EmakolaWeb.LandingLive do
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- Row 1: Mobile Money (2-col) + WhatsApp (1-col) -->
             <div
-              class="md:col-span-2 bg-[#f7f8fa] rounded-xl border border-[#1a2744] p-6 hover:-translate-y-1 transition-transform"
+              class="md:col-span-2 bg-[#f7f8fa] rounded-xl border border-[#1a2744] overflow-hidden hover:-translate-y-1 transition-transform"
               data-reveal
             >
-              <span class="material-symbols-outlined text-3xl text-[#2563eb] mb-4 block">
-                account_balance_wallet
-              </span>
-              <h3 class="text-lg font-semibold text-[#0c1526] mb-2">Mobile Money Payments</h3>
-              <p class="text-sm text-[#5f6b7a]">
-                Accept MTN MoMo, Vodafone Cash, and AirtelTigo Money. Automatic payment confirmation and reconciliation.
-              </p>
+              <img
+                src={~p"/images/landing/feature-mobile-money.jpg"}
+                alt="Mobile money payment on phone"
+                class="w-full h-40 object-cover"
+              />
+              <div class="p-6">
+                <span class="material-symbols-outlined text-3xl text-[#2563eb] mb-4 block">
+                  account_balance_wallet
+                </span>
+                <h3 class="text-lg font-semibold text-[#0c1526] mb-2">Mobile Money Payments</h3>
+                <p class="text-sm text-[#5f6b7a]">
+                  Accept MTN MoMo, Vodafone Cash, and AirtelTigo Money. Automatic payment confirmation and reconciliation.
+                </p>
+              </div>
             </div>
             <div
               class="bg-[#f7f8fa] rounded-xl border border-[#1a2744] p-6 hover:-translate-y-1 transition-transform"
@@ -401,16 +449,23 @@ defmodule EmakolaWeb.LandingLive do
               </p>
             </div>
             <div
-              class="md:col-span-2 bg-[#f7f8fa] rounded-xl border border-[#1a2744] p-6 hover:-translate-y-1 transition-transform"
+              class="md:col-span-2 bg-[#f7f8fa] rounded-xl border border-[#1a2744] overflow-hidden hover:-translate-y-1 transition-transform"
               data-reveal
             >
-              <span class="material-symbols-outlined text-3xl text-[#2563eb] mb-4 block">
-                store
-              </span>
-              <h3 class="text-lg font-semibold text-[#0c1526] mb-2">Multi-Store Management</h3>
-              <p class="text-sm text-[#5f6b7a]">
-                Run multiple stores from one account. Each store gets its own storefront, products, and settings.
-              </p>
+              <img
+                src={~p"/images/landing/feature-multi-store.jpg"}
+                alt="Multiple market storefronts"
+                class="w-full h-40 object-cover"
+              />
+              <div class="p-6">
+                <span class="material-symbols-outlined text-3xl text-[#2563eb] mb-4 block">
+                  store
+                </span>
+                <h3 class="text-lg font-semibold text-[#0c1526] mb-2">Multi-Store Management</h3>
+                <p class="text-sm text-[#5f6b7a]">
+                  Run multiple stores from one account. Each store gets its own storefront, products, and settings.
+                </p>
+              </div>
             </div>
             
     <!-- Row 3: Inventory (1-col) + Shipping (1-col) -->
