@@ -17,7 +17,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen flex flex-col lg:flex-row">
+    <div class="min-h-screen flex flex-col lg:flex-row bg-[#0c1526]">
       <!-- Left Panel: Branded -->
       <div class="hidden lg:flex lg:w-1/2 bg-gradient-to-t from-[#0c1526] via-[#0c1526] to-[#1a2744] overflow-hidden flex-col justify-between p-12">
         <!-- Top: Brand -->
