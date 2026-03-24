@@ -16,17 +16,10 @@ defmodule EmakolaWeb.Auth.RegisterLive do
     ~H"""
     <div class="min-h-screen flex flex-col lg:flex-row">
       <!-- Left Panel: Branded -->
-      <div class="hidden lg:flex lg:w-1/2 relative bg-[#0c1526] overflow-hidden flex-col justify-between p-12">
-        <!-- Background hero image -->
-        <div class="absolute inset-0">
-          <img
-            src={~p"/images/landing/hero-merchant.jpg"}
-            alt=""
-            class="w-full h-full object-cover"
-          />
-          <div class="absolute inset-0 bg-gradient-to-t from-[#0c1526]/95 via-[#0c1526]/80 to-[#0c1526]/65">
-          </div>
-        </div>
+      <div
+        class="hidden lg:flex lg:w-1/2 bg-[#0c1526] overflow-hidden flex-col justify-between p-12 bg-cover bg-center"
+        style={"background-image: linear-gradient(to top, rgba(12,21,38,0.95), rgba(12,21,38,0.80), rgba(12,21,38,0.65)), url('#{~p"/images/landing/hero-merchant.jpg"}')"}
+      >
         <!-- Top: Brand -->
         <div class="relative z-10">
           <div class="flex items-center gap-2">
