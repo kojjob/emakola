@@ -716,7 +716,11 @@ order1 =
     store1.id,
     [
       %{variant_id: v1a.id, quantity: 1}
-    ], customer_id: cust1.id, notes: "Please wrap in gift paper", delivery_fee: 4_500)
+    ],
+    customer_id: cust1.id,
+    notes: "Please wrap in gift paper",
+    delivery_fee: 4_500
+  )
 
 {:ok, order1} = order1
 
@@ -750,7 +754,10 @@ order2 =
     [
       %{variant_id: v2.id, quantity: 2},
       %{variant_id: fugu_indigo.id, quantity: 1}
-    ], customer_id: cust2.id, delivery_fee: 3_000)
+    ],
+    customer_id: cust2.id,
+    delivery_fee: 3_000
+  )
 
 {:ok, order2} = order2
 
@@ -786,7 +793,10 @@ order3 =
     [
       %{variant_id: fusion_m.id, quantity: 1},
       %{variant_id: v4.id, quantity: 1}
-    ], customer_id: cust3.id, delivery_fee: 4_500)
+    ],
+    customer_id: cust3.id,
+    delivery_fee: 4_500
+  )
 
 {:ok, order3} = order3
 
@@ -819,7 +829,11 @@ order4 =
     store1.id,
     [
       %{variant_id: v1b.id, quantity: 1}
-    ], customer_id: cust4.id, notes: "For my wedding ceremony", delivery_fee: 1_500)
+    ],
+    customer_id: cust4.id,
+    notes: "For my wedding ceremony",
+    delivery_fee: 1_500
+  )
 
 {:ok, order4} = order4
 
@@ -842,7 +856,10 @@ order5 =
     store1.id,
     [
       %{variant_id: v2.id, quantity: 3}
-    ], customer_id: cust5.id, delivery_fee: 6_000)
+    ],
+    customer_id: cust5.id,
+    delivery_fee: 6_000
+  )
 
 {:ok, order5} = order5
 
@@ -1278,7 +1295,10 @@ ord_a1 =
       %{variant_id: shito_500.id, quantity: 2},
       %{variant_id: rice_5kg.id, quantity: 1},
       %{variant_id: vs2.id, quantity: 3}
-    ], customer_id: cust_a1.id, delivery_fee: 1_000)
+    ],
+    customer_id: cust_a1.id,
+    delivery_fee: 1_000
+  )
 
 {:ok, ord_a1} = ord_a1
 
@@ -1313,7 +1333,10 @@ ord_a2 =
       %{variant_id: vs4.id, quantity: 4},
       %{variant_id: vs6.id, quantity: 2},
       %{variant_id: shito_250.id, quantity: 1}
-    ], customer_id: cust_a2.id, delivery_fee: 2_000)
+    ],
+    customer_id: cust_a2.id,
+    delivery_fee: 2_000
+  )
 
 {:ok, ord_a2} = ord_a2
 
@@ -1345,7 +1368,10 @@ ord_a3 =
     [
       %{variant_id: vs5.id, quantity: 2},
       %{variant_id: vs2.id, quantity: 5}
-    ], customer_id: cust_a3.id, delivery_fee: 1_000)
+    ],
+    customer_id: cust_a3.id,
+    delivery_fee: 1_000
+  )
 
 {:ok, _ord_a3} = ord_a3
 
