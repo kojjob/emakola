@@ -36,9 +36,15 @@ defmodule EmakolaWeb.Router do
   end
 
   # Auth session controller (sets/clears session cookie)
+  # GET /session creates a session from a token — rate limited (brute-force vector)
   scope "/auth", EmakolaWeb do
     pipe_through [:browser, :auth_rate_limit]
     get "/session", AuthSessionController, :create
+  end
+
+  # DELETE /session is logout — no rate limiting needed (not a brute-force vector)
+  scope "/auth", EmakolaWeb do
+    pipe_through :browser
     delete "/session", AuthSessionController, :delete
   end
 
