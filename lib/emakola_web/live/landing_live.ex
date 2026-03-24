@@ -305,7 +305,7 @@ defmodule EmakolaWeb.LandingLive do
                     <img
                       src={~p"/images/landing/step-sell-1.jpg"}
                       alt="Sign up on your phone"
-                      class="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
+                      class="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                   <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#d4a843] text-[#0c1526] flex items-center justify-center text-xl font-black shadow-lg">
@@ -325,7 +325,7 @@ defmodule EmakolaWeb.LandingLive do
                     <img
                       src={~p"/images/landing/step-sell-2.jpg"}
                       alt="Add your products"
-                      class="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
+                      class="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                   <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#d4a843] text-[#0c1526] flex items-center justify-center text-xl font-black shadow-lg">
@@ -343,7 +343,7 @@ defmodule EmakolaWeb.LandingLive do
                     <img
                       src={~p"/images/landing/step-sell-3.jpg"}
                       alt="Receive mobile money payment"
-                      class="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
+                      class="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                   <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#d4a843] text-[#0c1526] flex items-center justify-center text-xl font-black shadow-lg">
@@ -378,7 +378,7 @@ defmodule EmakolaWeb.LandingLive do
                     <img
                       src={~p"/images/landing/step-buy-1.jpg"}
                       alt="Browse stores on your phone"
-                      class="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
+                      class="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                   <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xl font-black shadow-lg">
@@ -396,7 +396,7 @@ defmodule EmakolaWeb.LandingLive do
                     <img
                       src={~p"/images/landing/step-buy-2.jpg"}
                       alt="Pay with mobile money"
-                      class="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
+                      class="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                   <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xl font-black shadow-lg">
@@ -414,7 +414,7 @@ defmodule EmakolaWeb.LandingLive do
                     <img
                       src={~p"/images/landing/step-buy-3.jpg"}
                       alt="Receive your delivery"
-                      class="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
+                      class="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                   <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xl font-black shadow-lg">
@@ -448,7 +448,7 @@ defmodule EmakolaWeb.LandingLive do
                 <img
                   src={~p"/images/landing/feature-mobile-money.jpg"}
                   alt="Mobile money payment"
-                  class="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+                  class="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               </div>
               <div class="p-5">
@@ -466,7 +466,7 @@ defmodule EmakolaWeb.LandingLive do
                 <img
                   src={~p"/images/landing/feature-whatsapp.jpg"}
                   alt="WhatsApp notifications"
-                  class="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+                  class="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               </div>
               <div class="p-5">
@@ -484,7 +484,7 @@ defmodule EmakolaWeb.LandingLive do
                 <img
                   src={~p"/images/landing/feature-dashboard.jpg"}
                   alt="Merchant dashboard"
-                  class="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+                  class="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               </div>
               <div class="p-5">
@@ -502,7 +502,7 @@ defmodule EmakolaWeb.LandingLive do
                 <img
                   src={~p"/images/landing/feature-multi-store.jpg"}
                   alt="Multiple stores"
-                  class="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+                  class="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               </div>
               <div class="p-5">
@@ -520,7 +520,7 @@ defmodule EmakolaWeb.LandingLive do
                 <img
                   src={~p"/images/landing/feature-inventory.jpg"}
                   alt="Inventory tracking"
-                  class="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+                  class="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               </div>
               <div class="p-5">
@@ -538,7 +538,7 @@ defmodule EmakolaWeb.LandingLive do
                 <img
                   src={~p"/images/landing/feature-shipping.jpg"}
                   alt="Shipping and delivery"
-                  class="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+                  class="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               </div>
               <div class="p-5">
