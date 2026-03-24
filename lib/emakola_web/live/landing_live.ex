@@ -195,50 +195,99 @@ defmodule EmakolaWeb.LandingLive do
         </div>
         <!-- Shopper Side (Light) -->
         <div class="flex-1 flex items-center overflow-hidden bg-gradient-to-bl from-[#f7f8fa] to-[#e8eaed]">
-          <div class="max-w-lg px-8 py-20 lg:py-24 lg:px-16">
-            <span class="inline-block text-xs font-semibold tracking-[0.15em] uppercase text-[#2563eb] mb-4">
+          <div class="max-w-xl px-8 py-16 lg:py-20 lg:px-16">
+            <span class="inline-block text-xs font-semibold tracking-[0.15em] uppercase text-[#2563eb] mb-3">
               FOR SHOPPERS
             </span>
-            <h1 class="text-4xl lg:text-5xl font-headline font-bold text-[#0c1526] leading-tight mb-4">
+            <h1 class="text-3xl lg:text-4xl font-headline font-bold text-[#0c1526] leading-tight mb-3">
               Shop Trusted Local Businesses
             </h1>
-            <p class="text-base text-[#5f6b7a] mb-8 max-w-md">
+            <p class="text-sm text-[#5f6b7a] mb-5 max-w-md">
               Pay with mobile money. Get order updates on WhatsApp. Support local merchants.
             </p>
-            <a
-              href="/auth/register?role=shopper"
-              class="inline-flex items-center px-6 py-3 text-sm font-semibold text-white bg-[#0c1526] rounded-lg hover:bg-[#1a2744] transition-colors focus-visible:ring-2 focus-visible:ring-[#0c1526] focus-visible:ring-offset-2"
-            >
-              Browse Stores
-            </a>
-            <!-- Mini Product Cards -->
-            <div class="flex gap-2.5 mt-6">
-              <div class="bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-md flex-1 max-w-[120px]">
+
+            <!-- Search Bar Mockup -->
+            <div class="flex items-center bg-white rounded-xl shadow-md px-4 py-3 mb-5 max-w-sm">
+              <span class="material-symbols-outlined text-[#8896ab] text-xl mr-3">search</span>
+              <span class="text-sm text-[#8896ab]">Search products, stores...</span>
+              <a
+                href="/auth/register?role=shopper"
+                class="ml-auto bg-[#2563eb] text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-[#1d4ed8] transition-colors"
+              >
+                Browse Stores
+              </a>
+            </div>
+
+            <!-- Popular Categories -->
+            <div class="flex flex-wrap gap-2 mb-5">
+              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white shadow-sm text-xs font-medium text-[#0c1526]">
+                <span class="material-symbols-outlined text-sm text-[#d4a843]">checkroom</span>
+                Fashion
+              </span>
+              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white shadow-sm text-xs font-medium text-[#0c1526]">
+                <span class="material-symbols-outlined text-sm text-[#d4a843]">spa</span>
+                Beauty
+              </span>
+              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white shadow-sm text-xs font-medium text-[#0c1526]">
+                <span class="material-symbols-outlined text-sm text-[#d4a843]">devices</span>
+                Electronics
+              </span>
+              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white shadow-sm text-xs font-medium text-[#0c1526]">
+                <span class="material-symbols-outlined text-sm text-[#d4a843]">restaurant</span>
+                Food
+              </span>
+            </div>
+
+            <!-- Product Cards -->
+            <div class="grid grid-cols-3 gap-2.5 max-w-sm">
+              <div class="bg-white rounded-xl shadow-md overflow-hidden">
                 <img
                   src={~p"/images/landing/product-kente.jpg"}
                   alt="Kente cloth"
-                  class="rounded h-16 w-full object-cover mb-1.5"
+                  class="w-full h-20 object-cover"
                 />
-                <p class="text-[11px] font-semibold text-[#0c1526]">Kente Cloth</p>
-                <p class="text-[11px] text-[#5f6b7a]">GHS 150</p>
+                <div class="p-2">
+                  <p class="text-[11px] font-semibold text-[#0c1526] truncate">Kente Cloth</p>
+                  <p class="text-xs font-bold text-[#d4a843]">GHS 150</p>
+                </div>
               </div>
-              <div class="bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-md flex-1 max-w-[120px]">
+              <div class="bg-white rounded-xl shadow-md overflow-hidden">
                 <img
                   src={~p"/images/landing/product-shea.jpg"}
                   alt="Shea butter"
-                  class="rounded h-16 w-full object-cover mb-1.5"
+                  class="w-full h-20 object-cover"
                 />
-                <p class="text-[11px] font-semibold text-[#0c1526]">Shea Butter</p>
-                <p class="text-[11px] text-[#5f6b7a]">GHS 45</p>
+                <div class="p-2">
+                  <p class="text-[11px] font-semibold text-[#0c1526] truncate">Shea Butter</p>
+                  <p class="text-xs font-bold text-[#d4a843]">GHS 45</p>
+                </div>
               </div>
-              <div class="bg-white/90 backdrop-blur-sm rounded-lg p-2 shadow-md flex-1 max-w-[120px] hidden sm:block">
+              <div class="bg-white rounded-xl shadow-md overflow-hidden">
                 <img
                   src={~p"/images/landing/product-ankara.jpg"}
                   alt="Ankara dress"
-                  class="rounded h-16 w-full object-cover mb-1.5"
+                  class="w-full h-20 object-cover"
                 />
-                <p class="text-[11px] font-semibold text-[#0c1526]">Ankara Dress</p>
-                <p class="text-[11px] text-[#5f6b7a]">GHS 85</p>
+                <div class="p-2">
+                  <p class="text-[11px] font-semibold text-[#0c1526] truncate">Ankara Dress</p>
+                  <p class="text-xs font-bold text-[#d4a843]">GHS 85</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Trust signals -->
+            <div class="flex items-center gap-4 mt-5">
+              <div class="flex items-center gap-1.5 text-xs text-[#5f6b7a]">
+                <span class="material-symbols-outlined text-sm text-[#2563eb]">verified_user</span>
+                Secure Payment
+              </div>
+              <div class="flex items-center gap-1.5 text-xs text-[#5f6b7a]">
+                <span class="material-symbols-outlined text-sm text-[#2563eb]">local_shipping</span>
+                Local Delivery
+              </div>
+              <div class="flex items-center gap-1.5 text-xs text-[#5f6b7a]">
+                <span class="material-symbols-outlined text-sm text-[#2563eb]">chat</span>
+                WhatsApp Updates
               </div>
             </div>
           </div>
