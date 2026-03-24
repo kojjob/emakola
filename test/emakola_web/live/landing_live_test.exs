@@ -58,6 +58,7 @@ defmodule EmakolaWeb.LandingLiveTest do
       assert html =~ "Vodafone Cash"
       assert html =~ "Paystack"
       assert html =~ "Hubtel"
+      assert html =~ "AirtelTigo"
     end
 
     test "renders how it works section", %{conn: conn} do
