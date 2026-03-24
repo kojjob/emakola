@@ -1,101 +1,64 @@
 defmodule Emakola.Themes.Vibrant do
   @moduledoc """
-  Vibrant theme — bold, red-accented, expressive.
+  Vibrant theme — bold, energetic, West African commerce-inspired.
 
-  Designed for fashion-forward and lifestyle brands.
+  Design tokens:
+  - Primary: #DC2626 (red)
+  - Accent: #7C2D12 (burnt orange)
+  - Background: #FFFBEB (warm ivory)
+  - Heading font: Playfair Display
+  - Body font: DM Sans
+
+  Render modules:
+  - `Emakola.Themes.Vibrant.Home` — store landing page
+  - `Emakola.Themes.Vibrant.ProductList` — shop / product listing
+  - `Emakola.Themes.Vibrant.ProductDetail` — product detail page
+  - `Emakola.Themes.Vibrant.Shared` — shared components (nav, card, circle)
   """
 
-  @behaviour Emakola.Themes.ThemeBehaviour
-
-  @impl true
-  def id, do: "vibrant"
-
-  @impl true
-  def name, do: "Vibrant"
-
-  @impl true
+  @doc """
+  Returns the default theme configuration for the Vibrant theme.
+  """
   def defaults do
     %{
+      id: :vibrant,
+      name: "Vibrant",
       colors: %{
         primary: "#DC2626",
-        secondary: "#FEF2F2",
-        accent: "#EA580C",
-        background: "#FAFAFA",
-        text: "#18181B"
+        accent: "#7C2D12",
+        background: "#FFFBEB",
+        text: "#1C1917",
+        text_secondary: "#78350F",
+        border: "#FDE68A"
       },
-      hero: %{
-        title: "Bold & Beautiful",
-        subtitle: "Express yourself with our collection"
+      fonts: %{
+        heading: "Playfair Display",
+        body: "DM Sans"
       },
       sections: %{
-        show_featured: true,
-        show_categories: true,
-        show_about: true
+        hero: true,
+        categories: true,
+        featured: true,
+        products: true,
+        promo: true,
+        about: true,
+        newsletter: true
+      },
+      css_variables: %{
+        "--theme-primary" => "#DC2626",
+        "--theme-accent" => "#7C2D12",
+        "--theme-bg" => "#FFFBEB",
+        "--theme-font-heading" => "'Playfair Display', serif",
+        "--theme-font-body" => "'DM Sans', sans-serif"
       }
     }
   end
 
-  @impl true
-  def fonts do
-    %{
-      heading: "Playfair Display",
-      body: "DM Sans",
-      url:
-        "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap"
-    }
-  end
-
-  @impl true
-  def render_home(assigns) do
-    Emakola.Themes.Vibrant.Home.render(assigns)
-  end
-
-  @impl true
-  def render_product_list(assigns) do
-    Emakola.Themes.Vibrant.ProductList.render(assigns)
-  end
-
-  @impl true
-  def render_product_detail(assigns) do
-    Emakola.Themes.Vibrant.ProductDetail.render(assigns)
-  end
-end
-
-defmodule Emakola.Themes.Vibrant.Home do
-  use Phoenix.Component
-
-  def render(assigns) do
-    ~H"""
-    <div class="max-w-[1280px] mx-auto px-4 py-8">
-      <h1 class="text-2xl font-bold">Welcome</h1>
-      <p class="text-gray-500 mt-2">Vibrant theme — rendering coming soon</p>
-    </div>
-    """
-  end
-end
-
-defmodule Emakola.Themes.Vibrant.ProductList do
-  use Phoenix.Component
-
-  def render(assigns) do
-    ~H"""
-    <div class="max-w-[1280px] mx-auto px-4 py-8">
-      <h1 class="text-2xl font-bold">Shop All</h1>
-      <p class="text-gray-500 mt-2">Vibrant product list — rendering coming soon</p>
-    </div>
-    """
-  end
-end
-
-defmodule Emakola.Themes.Vibrant.ProductDetail do
-  use Phoenix.Component
-
-  def render(assigns) do
-    ~H"""
-    <div class="max-w-[1280px] mx-auto px-4 py-8">
-      <h1 class="text-2xl font-bold">Product Detail</h1>
-      <p class="text-gray-500 mt-2">Vibrant product detail — rendering coming soon</p>
-    </div>
-    """
-  end
+  @doc """
+  Returns the module responsible for rendering the given page type.
+  """
+  def renderer(:home), do: Emakola.Themes.Vibrant.Home
+  def renderer(:product_list), do: Emakola.Themes.Vibrant.ProductList
+  def renderer(:product_detail), do: Emakola.Themes.Vibrant.ProductDetail
+  def renderer(:shared), do: Emakola.Themes.Vibrant.Shared
 end
