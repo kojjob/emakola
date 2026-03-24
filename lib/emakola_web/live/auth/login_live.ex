@@ -12,8 +12,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
     {:ok,
      socket
      |> assign(client_ip: ip)
-     |> assign(form: to_form(%{"email" => "", "password" => ""}, as: :user)),
-     layout: false}
+     |> assign(form: to_form(%{"email" => "", "password" => ""}, as: :user)), layout: false}
   end
 
   def render(assigns) do
@@ -89,7 +88,8 @@ defmodule EmakolaWeb.Auth.LoginLive do
             disabled
             class="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm mb-6 opacity-50 cursor-not-allowed"
           >
-            <span class="material-symbols-outlined text-xl">chat</span> Continue with WhatsApp (Coming Soon)
+            <span class="material-symbols-outlined text-xl">chat</span>
+            Continue with WhatsApp (Coming Soon)
           </button>
           <!-- OR EMAIL Divider -->
           <div class="relative mb-6">
