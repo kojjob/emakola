@@ -20,6 +20,12 @@ defmodule EmakolaWeb.AuthSessionController do
     |> redirect(to: "/dashboard")
   end
 
+  # Fallback: GET /auth/session with no token — redirect to login
+  def create(conn, _params) do
+    conn
+    |> redirect(to: "/auth/login")
+  end
+
   def delete(conn, _params) do
     conn
     |> configure_session(drop: true)
