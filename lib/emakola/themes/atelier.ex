@@ -1,101 +1,82 @@
 defmodule Emakola.Themes.Atelier do
   @moduledoc """
-  Atelier theme — luxury, gold-accented, serif headings.
+  Atelier - Premium fashion theme for Emakola storefronts.
 
-  Designed for high-end boutiques and premium brands.
+  Design language:
+  - Fonts: Cormorant (serif headings), Montserrat (sans body)
+  - Colors: Gold (#CA8A04), Stone (#1C1917), Surface (#FAFAF9)
+  - Clean, minimal, editorial feel
+  - Full-screen editorial hero
+  - Asymmetric masonry category grid
+  - 5:6 aspect ratio product cards with hover hearts and star ratings
+
+  All colors are exposed as CSS custom properties so merchants
+  can override them via store settings.
   """
 
-  @behaviour Emakola.Themes.ThemeBehaviour
+  @default_config %{
+    primary_color: "#CA8A04",
+    primary_light: "#EAB308",
+    primary_dark: "#A16207",
+    accent_color: "#1C1917",
+    accent_secondary: "#44403C",
+    surface_color: "#FAFAF9",
+    ink_color: "#0C0A09",
+    serif_font: "Cormorant",
+    sans_font: "Montserrat",
+    sections: %{
+      hero: true,
+      categories: true,
+      products: true,
+      brand_story: true,
+      newsletter: true
+    },
+    hero: %{
+      image_url: "",
+      subtitle: "Curated Collection",
+      title: "The New\nEssential",
+      description: "Redefining modern luxury through timeless silhouettes and conscious craft."
+    },
+    brand_story: %{
+      image_url: "",
+      since: "",
+      title: "Our Story",
+      text: ""
+    }
+  }
 
-  @impl true
-  def id, do: "atelier"
+  @doc "Returns the default theme configuration for Atelier."
+  def default_config, do: @default_config
 
-  @impl true
-  def name, do: "Atelier"
+  @doc """
+  Merges merchant overrides into the default config.
+  Accepts a map of overrides and deep-merges them.
+  """
+  def build_config(overrides \\ %{}) do
+    deep_merge(@default_config, overrides)
+  end
 
-  @impl true
-  def defaults do
+  @doc "Returns the Google Fonts import URL for Atelier's typefaces."
+  def font_url do
+    "https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap"
+  end
+
+  @doc "Returns the list of render modules for this theme."
+  def renderers do
     %{
-      colors: %{
-        primary: "#CA8A04",
-        secondary: "#F5F5DC",
-        accent: "#D4AF37",
-        background: "#FAFAF9",
-        text: "#1C1917"
-      },
-      hero: %{
-        title: "Curated for you",
-        subtitle: "Discover our exclusive collection"
-      },
-      sections: %{
-        show_featured: true,
-        show_categories: true,
-        show_about: true
-      }
+      home: Emakola.Themes.Atelier.Home,
+      product_list: Emakola.Themes.Atelier.ProductList,
+      product_detail: Emakola.Themes.Atelier.ProductDetail
     }
   end
 
-  @impl true
-  def fonts do
-    %{
-      heading: "Cormorant Garamond",
-      body: "Montserrat",
-      url:
-        "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap"
-    }
+  # Deep merge two maps, recursing into nested maps
+  defp deep_merge(base, overrides) when is_map(base) and is_map(overrides) do
+    Map.merge(base, overrides, fn
+      _key, v1, v2 when is_map(v1) and is_map(v2) -> deep_merge(v1, v2)
+      _key, _v1, v2 -> v2
+    end)
   end
 
-  @impl true
-  def render_home(assigns) do
-    Emakola.Themes.Atelier.Home.render(assigns)
-  end
-
-  @impl true
-  def render_product_list(assigns) do
-    Emakola.Themes.Atelier.ProductList.render(assigns)
-  end
-
-  @impl true
-  def render_product_detail(assigns) do
-    Emakola.Themes.Atelier.ProductDetail.render(assigns)
-  end
-end
-
-defmodule Emakola.Themes.Atelier.Home do
-  use Phoenix.Component
-
-  def render(assigns) do
-    ~H"""
-    <div class="max-w-[1280px] mx-auto px-4 py-8">
-      <h1 class="text-2xl font-bold">Welcome to the atelier</h1>
-      <p class="text-gray-500 mt-2">Atelier theme — rendering coming soon</p>
-    </div>
-    """
-  end
-end
-
-defmodule Emakola.Themes.Atelier.ProductList do
-  use Phoenix.Component
-
-  def render(assigns) do
-    ~H"""
-    <div class="max-w-[1280px] mx-auto px-4 py-8">
-      <h1 class="text-2xl font-bold">Shop All</h1>
-      <p class="text-gray-500 mt-2">Atelier product list — rendering coming soon</p>
-    </div>
-    """
-  end
-end
-
-defmodule Emakola.Themes.Atelier.ProductDetail do
-  use Phoenix.Component
-
-  def render(assigns) do
-    ~H"""
-    <div class="max-w-[1280px] mx-auto px-4 py-8">
-      <h1 class="text-2xl font-bold">Product Detail</h1>
-      <p class="text-gray-500 mt-2">Atelier product detail — rendering coming soon</p>
-    </div>
-    """
-  end
+  defp deep_merge(_base, overrides), do: overrides
 end
