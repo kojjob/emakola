@@ -2,38 +2,20 @@ defmodule Emakola.Themes.ThemeBehaviour do
   @moduledoc """
   Behaviour that all storefront themes must implement.
 
-  Each theme provides its identity, default styling configuration,
-  font declarations, and render callbacks for the three core pages.
+  Each callback receives a map of assigns and must return a HEEx template.
   """
 
-  @doc "Unique theme identifier string (e.g. \"market\", \"atelier\")"
-  @callback id() :: String.t()
+  @callback render_home(map()) :: Phoenix.LiveView.Rendered.t()
+  @callback render_product_list(map()) :: Phoenix.LiveView.Rendered.t()
+  @callback render_product_detail(map()) :: Phoenix.LiveView.Rendered.t()
 
-  @doc "Human-readable theme name"
+  @doc """
+  Returns the theme name as a human-readable string.
+  """
   @callback name() :: String.t()
 
   @doc """
-  Default theme configuration map with atom keys:
-    %{
-      colors: %{primary: "#hex", secondary: "#hex", accent: "#hex", background: "#hex", text: "#hex"},
-      hero: %{title: string, subtitle: string},
-      sections: %{show_featured: boolean, show_categories: boolean, show_about: boolean}
-    }
+  Returns the default CSS variables for this theme.
   """
-  @callback defaults() :: map()
-
-  @doc """
-  Font declarations for the theme. Returns a map:
-    %{heading: "Font Name", body: "Font Name", url: "Google Fonts URL"}
-  """
-  @callback fonts() :: map()
-
-  @doc "Renders the store home page. Receives assigns map."
-  @callback render_home(assigns :: map()) :: Phoenix.LiveView.Rendered.t()
-
-  @doc "Renders the product listing page. Receives assigns map."
-  @callback render_product_list(assigns :: map()) :: Phoenix.LiveView.Rendered.t()
-
-  @doc "Renders the product detail page. Receives assigns map."
-  @callback render_product_detail(assigns :: map()) :: Phoenix.LiveView.Rendered.t()
+  @callback css_variables() :: map()
 end
