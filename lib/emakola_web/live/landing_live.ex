@@ -154,7 +154,7 @@ defmodule EmakolaWeb.LandingLive do
             <span class="inline-block text-xs font-semibold tracking-[0.15em] uppercase text-[#d4a843] mb-3">
               FOR MERCHANTS
             </span>
-            <h1 class="text-3xl lg:text-4xl font-headline font-bold text-[#f1f5f9] leading-tight mb-3">
+            <h1 class="text-4xl lg:text-5xl font-headline font-extrabold text-[#f1f5f9] leading-[1.1] mb-4">
               Launch Your Online Store in Ghana
             </h1>
             <p class="text-sm text-[#8896ab] mb-5 max-w-md">
