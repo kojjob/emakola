@@ -7,8 +7,12 @@ defmodule EmakolaWeb.Auth.RegisterLive do
   @register_window_ms 60_000
 
   def mount(_params, _session, socket) do
+    ip = get_client_ip(socket)
+
     {:ok,
-     assign(socket, form: to_form(%{"email" => "", "password" => "", "name" => ""}, as: :user)),
+     socket
+     |> assign(client_ip: ip)
+     |> assign(form: to_form(%{"email" => "", "password" => "", "name" => ""}, as: :user)),
      layout: false}
   end
 
@@ -155,7 +159,7 @@ defmodule EmakolaWeb.Auth.RegisterLive do
                 />
                 <button
                   type="button"
-                  onclick="const input = document.getElementById('register-password'); const icon = this.querySelector('.material-symbols-outlined'); if (input.type === 'password') { input.type = 'text'; icon.textContent = 'visibility_off'; } else { input.type = 'password'; icon.textContent = 'visibility'; }"
+                  phx-click={JS.dispatch("toggle-password", to: "#register-password")}
                   class="absolute right-3 top-1/2 -translate-y-1/2 text-[#8896ab] hover:text-[#5f6b7a] transition-colors"
                 >
                   <span class="material-symbols-outlined text-xl">visibility</span>
@@ -193,7 +197,7 @@ defmodule EmakolaWeb.Auth.RegisterLive do
   end
 
   def handle_event("register", %{"user" => params}, socket) do
-    ip = get_client_ip(socket)
+    ip = socket.assigns.client_ip
     rate_key = "auth_register:#{ip}"
 
     case Emakola.RateLimit.check_rate(rate_key, @register_limit, @register_window_ms) do
@@ -279,15 +283,14 @@ defmodule EmakolaWeb.Auth.RegisterLive do
 
   defp extract_errors(_), do: "Registration failed. Please try again."
 
+  # Must be called during mount — get_connect_info is only available then
   defp get_client_ip(socket) do
     case Phoenix.LiveView.get_connect_info(socket, :peer_data) do
-      %{address: ip} -> format_ip(ip)
+      %{address: {a, b, c, d}} -> "#{a}.#{b}.#{c}.#{d}"
+      %{address: ip} -> to_string(:inet.ntoa(ip))
       _ -> "unknown"
     end
   rescue
     _ -> "unknown"
   end
-
-  defp format_ip({a, b, c, d}), do: "#{a}.#{b}.#{c}.#{d}"
-  defp format_ip(ip), do: to_string(:inet.ntoa(ip))
 end

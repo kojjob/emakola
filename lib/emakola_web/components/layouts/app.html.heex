@@ -49,7 +49,7 @@
       <button
         id="collapse-btn"
         class="collapse-btn hidden lg:flex ml-auto w-7 h-7 items-center justify-center rounded-lg hover:bg-white/[0.06] transition-colors cursor-pointer"
-        onclick="toggleSidebar()"
+        phx-click={Phoenix.LiveView.JS.dispatch("toggle-sidebar")}
         aria-label="Toggle sidebar"
       >
         <svg
@@ -569,19 +569,3 @@
   }
 </style>
 
-<script>
-  // Sidebar collapse toggle with localStorage persistence
-  function toggleSidebar() {
-    const shell = document.getElementById('admin-shell');
-    shell.classList.toggle('collapsed');
-    localStorage.setItem('sidebar-collapsed', shell.classList.contains('collapsed'));
-  }
-
-  // Restore state on load
-  (function() {
-    if (localStorage.getItem('sidebar-collapsed') === 'true') {
-      const shell = document.getElementById('admin-shell');
-      if (shell) shell.classList.add('collapsed');
-    }
-  })();
-</script>

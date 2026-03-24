@@ -35,10 +35,5 @@
   </head>
   <body class="bg-[#0c1526]">
     {@inner_content}
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').catch(function() {});
-      }
-    </script>
   </body>
 </html>

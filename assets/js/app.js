@@ -43,6 +43,34 @@ topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
+// Sidebar collapse toggle with localStorage persistence
+window.addEventListener("toggle-sidebar", () => {
+  const shell = document.getElementById("admin-shell")
+  if (shell) {
+    shell.classList.toggle("collapsed")
+    localStorage.setItem("sidebar-collapsed", shell.classList.contains("collapsed"))
+  }
+})
+
+// Restore sidebar state on page load
+if (localStorage.getItem("sidebar-collapsed") === "true") {
+  const shell = document.getElementById("admin-shell")
+  if (shell) shell.classList.add("collapsed")
+}
+
+// Password visibility toggle (used by auth forms via JS.dispatch)
+window.addEventListener("toggle-password", (e) => {
+  const input = e.target
+  const icon = e.target.closest(".relative")?.querySelector("button .material-symbols-outlined")
+  if (input && input.type === "password") {
+    input.type = "text"
+    if (icon) icon.textContent = "visibility_off"
+  } else if (input) {
+    input.type = "password"
+    if (icon) icon.textContent = "visibility"
+  }
+})
+
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 
@@ -51,6 +79,11 @@ liveSocket.connect()
 // >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
+
+// Register service worker for PWA
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js").catch(() => {})
+}
 
 // The lines below enable quality of life phoenix_live_reload
 // development features:

@@ -7,7 +7,12 @@ defmodule EmakolaWeb.Auth.LoginLive do
   @login_window_ms 60_000
 
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, form: to_form(%{"email" => "", "password" => ""}, as: :user)),
+    ip = get_client_ip(socket)
+
+    {:ok,
+     socket
+     |> assign(client_ip: ip)
+     |> assign(form: to_form(%{"email" => "", "password" => ""}, as: :user)),
      layout: false}
   end
 
@@ -139,7 +144,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
                 />
                 <button
                   type="button"
-                  onclick="const input = document.getElementById('login-password'); const icon = this.querySelector('.material-symbols-outlined'); if (input.type === 'password') { input.type = 'text'; icon.textContent = 'visibility_off'; } else { input.type = 'password'; icon.textContent = 'visibility'; }"
+                  phx-click={JS.dispatch("toggle-password", to: "#login-password")}
                   class="absolute right-3 top-1/2 -translate-y-1/2 text-[#8896ab] hover:text-[#5f6b7a] transition-colors"
                 >
                   <span class="material-symbols-outlined text-xl">visibility</span>
@@ -185,7 +190,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
   end
 
   def handle_event("login", %{"user" => params}, socket) do
-    ip = get_client_ip(socket)
+    ip = socket.assigns.client_ip
     rate_key = "auth_login:#{ip}"
 
     case Emakola.RateLimit.check_rate(rate_key, @login_limit, @login_window_ms) do
@@ -237,15 +242,14 @@ defmodule EmakolaWeb.Auth.LoginLive do
     end
   end
 
+  # Must be called during mount — get_connect_info is only available then
   defp get_client_ip(socket) do
     case Phoenix.LiveView.get_connect_info(socket, :peer_data) do
-      %{address: ip} -> format_ip(ip)
+      %{address: {a, b, c, d}} -> "#{a}.#{b}.#{c}.#{d}"
+      %{address: ip} -> to_string(:inet.ntoa(ip))
       _ -> "unknown"
     end
   rescue
     _ -> "unknown"
   end
-
-  defp format_ip({a, b, c, d}), do: "#{a}.#{b}.#{c}.#{d}"
-  defp format_ip(ip), do: to_string(:inet.ntoa(ip))
 end

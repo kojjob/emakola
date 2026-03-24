@@ -33,7 +33,8 @@ defmodule EmakolaWeb.Plugs.ContentSecurityPolicy do
 
     conn
     |> assign(:csp_nonce, nonce)
-    |> put_resp_header("content-security-policy", build_policy(nonce))
+    # Report-only until all inline scripts/handlers are migrated to bundled JS
+    |> put_resp_header("content-security-policy-report-only", build_policy(nonce))
   end
 
   defp generate_nonce do
@@ -45,7 +46,7 @@ defmodule EmakolaWeb.Plugs.ContentSecurityPolicy do
   defp build_policy(nonce) do
     directives = [
       "default-src 'self'",
-      "script-src 'self' 'nonce-#{nonce}'",
+      "script-src 'self' 'unsafe-inline' 'nonce-#{nonce}'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: https:",
       "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
