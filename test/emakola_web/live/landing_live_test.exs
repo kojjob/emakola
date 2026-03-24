@@ -134,5 +134,22 @@ defmodule EmakolaWeb.LandingLiveTest do
       assert html =~ "testimonial-2.jpg"
       assert html =~ "testimonial-3.jpg"
     end
+
+    test "product card images are referenced", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+
+      assert html =~ "product-kente.jpg"
+      assert html =~ "product-shea.jpg"
+      assert html =~ "product-ankara.jpg"
+    end
+
+    test "feature and how-it-works images are referenced", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+
+      assert html =~ "feature-mobile-money.jpg"
+      assert html =~ "feature-multi-store.jpg"
+      assert html =~ "how-merchant.jpg"
+      assert html =~ "how-shopper.jpg"
+    end
   end
 end
