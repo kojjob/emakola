@@ -16,6 +16,14 @@ defmodule Emakola.Themes.Vibrant do
   - `Emakola.Themes.Vibrant.Shared` — shared components (nav, card, circle)
   """
 
+  def id, do: "vibrant"
+  def name, do: "Vibrant"
+
+  def fonts,
+    do: [
+      "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap"
+    ]
+
   @doc """
   Returns the default theme configuration for the Vibrant theme.
   """
@@ -34,6 +42,13 @@ defmodule Emakola.Themes.Vibrant do
       fonts: %{
         heading: "Playfair Display",
         body: "DM Sans"
+      },
+      hero: %{
+        image_url: "",
+        title: "Discover Unique Finds",
+        subtitle: "Handcrafted with Love",
+        cta_text: "Explore Now",
+        cta_url: "/products"
       },
       sections: %{
         hero: true,

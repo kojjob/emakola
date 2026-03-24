@@ -46,13 +46,22 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
     ~H"""
     <div class="atelier-body">
       <Shared.theme_styles theme={@theme} />
-      <Shared.navbar store={@store} categories={@categories} cart_count={@cart_count} transparent={false} />
+      <Shared.navbar
+        store={@store}
+        categories={@categories}
+        cart_count={@cart_count}
+        transparent={false}
+      />
 
       <%!-- Product Detail --%>
       <div class="pt-24 sm:pt-28">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
           <%!-- Breadcrumb --%>
-          <nav class="mb-8 text-xs" style="color: var(--theme-accent-secondary, #44403C);" aria-label="Breadcrumb">
+          <nav
+            class="mb-8 text-xs"
+            style="color: var(--theme-accent-secondary, #44403C);"
+            aria-label="Breadcrumb"
+          >
             <a href={"/s/#{@store.slug}"} class="hover:underline">{@store.name}</a>
             <span class="mx-2">/</span>
             <a href={"/s/#{@store.slug}/products"} class="hover:underline">Shop</a>
@@ -88,7 +97,12 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                   phx-value-index={idx}
                   aria-label={"View image #{idx + 1}"}
                 >
-                  <img src={img} alt={"#{@product.title} - image #{idx + 1}"} class="w-full h-full object-cover" loading="lazy" />
+                  <img
+                    src={img}
+                    alt={"#{@product.title} - image #{idx + 1}"}
+                    class="w-full h-full object-cover"
+                    loading="lazy"
+                  />
                 </button>
               </div>
             </div>
@@ -143,7 +157,14 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                   class="w-full py-4 text-xs font-semibold uppercase tracking-widest border transition-colors duration-300 flex items-center justify-center gap-2"
                   style="border-color: var(--theme-ink); color: var(--theme-ink);"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  >
                     <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
                   </svg>
                   Add to Wishlist
@@ -152,7 +173,10 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
 
               <%!-- Product Details Accordion --%>
               <div class="mt-10 border-t" style="border-color: var(--theme-surface);">
-                <.detail_row title="Shipping" text="Free delivery on orders over GHS 500. Standard delivery 3-5 business days." />
+                <.detail_row
+                  title="Shipping"
+                  text="Free delivery on orders over GHS 500. Standard delivery 3-5 business days."
+                />
                 <.detail_row title="Returns" text="Free returns within 30 days of purchase." />
               </div>
             </div>
@@ -195,7 +219,10 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
     ~H"""
     <div class="space-y-6">
       <div :for={{option_name, values} <- @option_groups}>
-        <h3 class="text-xs font-semibold uppercase tracking-widest mb-3" style="color: var(--theme-ink);">
+        <h3
+          class="text-xs font-semibold uppercase tracking-widest mb-3"
+          style="color: var(--theme-ink);"
+        >
           {option_name}
         </h3>
         <div class="flex flex-wrap gap-2">
@@ -227,7 +254,10 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
   defp detail_row(assigns) do
     ~H"""
     <div class="py-4 border-b" style="border-color: var(--theme-surface);">
-      <h4 class="text-xs font-semibold uppercase tracking-widest mb-2" style="color: var(--theme-ink);">
+      <h4
+        class="text-xs font-semibold uppercase tracking-widest mb-2"
+        style="color: var(--theme-ink);"
+      >
         {@title}
       </h4>
       <p class="text-sm leading-relaxed" style="color: var(--theme-accent-secondary, #44403C);">

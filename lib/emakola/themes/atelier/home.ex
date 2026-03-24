@@ -36,7 +36,12 @@ defmodule Emakola.Themes.Atelier.Home do
     ~H"""
     <div class="atelier-body">
       <Shared.theme_styles theme={@theme} />
-      <Shared.navbar store={@store} categories={@categories} cart_count={@cart_count} transparent={true} />
+      <Shared.navbar
+        store={@store}
+        categories={@categories}
+        cart_count={@cart_count}
+        transparent={true}
+      />
 
       <%!-- Hero Section --%>
       <.hero_section :if={section_enabled?(@theme, :hero)} store={@store} theme={@theme} />
@@ -56,7 +61,11 @@ defmodule Emakola.Themes.Atelier.Home do
       />
 
       <%!-- Brand Story --%>
-      <.brand_story_section :if={section_enabled?(@theme, :brand_story)} store={@store} theme={@theme} />
+      <.brand_story_section
+        :if={section_enabled?(@theme, :brand_story)}
+        store={@store}
+        theme={@theme}
+      />
 
       <%!-- Newsletter --%>
       <.newsletter_section :if={section_enabled?(@theme, :newsletter)} store={@store} />
@@ -76,7 +85,10 @@ defmodule Emakola.Themes.Atelier.Home do
     hero_image = get_in(assigns.theme, [:hero, :image_url]) || ""
     hero_subtitle = get_in(assigns.theme, [:hero, :subtitle]) || "Curated Collection"
     hero_title = get_in(assigns.theme, [:hero, :title]) || "The New\nEssential"
-    hero_description = get_in(assigns.theme, [:hero, :description]) || "Redefining modern luxury through timeless silhouettes and conscious craft."
+
+    hero_description =
+      get_in(assigns.theme, [:hero, :description]) ||
+        "Redefining modern luxury through timeless silhouettes and conscious craft."
 
     assigns =
       assigns
@@ -128,7 +140,15 @@ defmodule Emakola.Themes.Atelier.Home do
 
       <%!-- Scroll Indicator --%>
       <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 animate-bounce hidden sm:block">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="white"
+          stroke-width="1.5"
+          stroke-linecap="round"
+        >
           <path d="M12 5v14M5 12l7 7 7-7" />
         </svg>
       </div>
@@ -195,10 +215,16 @@ defmodule Emakola.Themes.Atelier.Home do
     ~H"""
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
       <div class="text-center mb-10 sm:mb-14">
-        <h2 class="atelier-serif text-3xl sm:text-4xl lg:text-5xl font-semibold" style="color: var(--theme-ink);">
+        <h2
+          class="atelier-serif text-3xl sm:text-4xl lg:text-5xl font-semibold"
+          style="color: var(--theme-ink);"
+        >
           Curated for You
         </h2>
-        <p class="text-sm mt-3 max-w-md mx-auto" style="color: var(--theme-accent-secondary, #44403C);">
+        <p
+          class="text-sm mt-3 max-w-md mx-auto"
+          style="color: var(--theme-accent-secondary, #44403C);"
+        >
           Handpicked pieces from our latest collections.
         </p>
       </div>
@@ -314,7 +340,10 @@ defmodule Emakola.Themes.Atelier.Home do
           >
             Join the Inner Circle
           </h2>
-          <p class="text-sm sm:text-base leading-relaxed mb-8" style="color: var(--theme-accent-secondary, #44403C);">
+          <p
+            class="text-sm sm:text-base leading-relaxed mb-8"
+            style="color: var(--theme-accent-secondary, #44403C);"
+          >
             Early access to new collections, exclusive offers, and editorial content.
           </p>
           <form class="flex flex-col sm:flex-row gap-3 mb-4" phx-submit="subscribe_newsletter">

@@ -13,6 +13,33 @@ defmodule Emakola.Themes.Market do
   @impl true
   def name, do: "Market"
 
+  def id, do: "market"
+
+  def fonts,
+    do: ["https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"]
+
+  def defaults do
+    %{
+      colors: %{primary: "#2563EB", accent: "#0F172A", background: "#FFFFFF"},
+      fonts: %{heading: "Inter", body: "Inter"},
+      hero: %{
+        image_url: "",
+        title: "Welcome to Our Store",
+        subtitle: "Shop the latest",
+        cta_text: "Shop Now",
+        cta_url: "/products"
+      },
+      sections: %{
+        hero: true,
+        categories: true,
+        featured_products: true,
+        brand_story: true,
+        instagram: false,
+        newsletter: true
+      }
+    }
+  end
+
   @impl true
   def css_variables do
     %{

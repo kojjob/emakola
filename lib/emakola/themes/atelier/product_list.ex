@@ -36,12 +36,20 @@ defmodule Emakola.Themes.Atelier.ProductList do
     ~H"""
     <div class="atelier-body">
       <Shared.theme_styles theme={@theme} />
-      <Shared.navbar store={@store} categories={@categories} cart_count={@cart_count} transparent={false} />
+      <Shared.navbar
+        store={@store}
+        categories={@categories}
+        cart_count={@cart_count}
+        transparent={false}
+      />
 
       <%!-- Page Header --%>
       <div class="pt-24 pb-8 sm:pt-28 sm:pb-12" style="background: var(--theme-surface);">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 class="atelier-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-center" style="color: var(--theme-ink);">
+          <h1
+            class="atelier-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-center"
+            style="color: var(--theme-ink);"
+          >
             {if @active_category, do: category_title(@categories, @active_category), else: "Shop All"}
           </h1>
           <p
@@ -81,13 +89,19 @@ defmodule Emakola.Themes.Atelier.ProductList do
 
             <%!-- Product Count --%>
             <div class="flex items-center justify-between mb-6">
-              <p class="text-xs uppercase tracking-widest" style="color: var(--theme-accent-secondary, #44403C);">
+              <p
+                class="text-xs uppercase tracking-widest"
+                style="color: var(--theme-accent-secondary, #44403C);"
+              >
                 {length(@products)} {if length(@products) == 1, do: "product", else: "products"}
               </p>
             </div>
 
             <%!-- Product Grid --%>
-            <div :if={@products != []} class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div
+              :if={@products != []}
+              class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6"
+            >
               <Shared.product_card
                 :for={product <- @products}
                 product={product}
@@ -135,7 +149,10 @@ defmodule Emakola.Themes.Atelier.ProductList do
 
       <%!-- Categories --%>
       <div class="mt-8">
-        <h3 class="text-[11px] font-semibold uppercase tracking-widest mb-4" style="color: var(--theme-ink);">
+        <h3
+          class="text-[11px] font-semibold uppercase tracking-widest mb-4"
+          style="color: var(--theme-ink);"
+        >
           Categories
         </h3>
         <ul class="space-y-2">

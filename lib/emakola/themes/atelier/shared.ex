@@ -96,7 +96,16 @@ defmodule Emakola.Themes.Atelier.Shared do
               class="atelier-nav-icon text-white transition-colors duration-500"
               aria-label="Search"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
             </a>
@@ -107,7 +116,16 @@ defmodule Emakola.Themes.Atelier.Shared do
               class="atelier-nav-icon text-white transition-colors duration-500 hidden sm:block"
               aria-label="Wishlist"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
               </svg>
             </a>
@@ -118,7 +136,16 @@ defmodule Emakola.Themes.Atelier.Shared do
               class="atelier-nav-icon text-white transition-colors duration-500 relative"
               aria-label={"Shopping cart, #{@cart_count} items"}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
                 <line x1="3" y1="6" x2="21" y2="6" />
                 <path d="M16 10a4 4 0 01-8 0" />
@@ -138,7 +165,16 @@ defmodule Emakola.Themes.Atelier.Shared do
               class="atelier-nav-icon text-white transition-colors duration-500 hidden sm:block"
               aria-label="Account"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
               </svg>
             </a>
@@ -204,7 +240,14 @@ defmodule Emakola.Themes.Atelier.Shared do
           phx-click="toggle_wishlist"
           phx-value-product-id={@product.id}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="1.5" style="stroke: var(--theme-accent);">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke-width="1.5"
+            style="stroke: var(--theme-accent);"
+          >
             <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
           </svg>
         </button>
@@ -256,9 +299,18 @@ defmodule Emakola.Themes.Atelier.Shared do
         <h3 class="atelier-serif text-2xl sm:text-3xl text-white font-semibold mb-1">
           {@category.name}
         </h3>
-        <span class="text-white/80 text-xs font-medium uppercase tracking-widest transition-colors" style="group-hover:color: var(--theme-primary);">
+        <span
+          class="text-white/80 text-xs font-medium uppercase tracking-widest transition-colors"
+          style="group-hover:color: var(--theme-primary);"
+        >
           Explore
-          <svg class="inline ml-1 w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg
+            class="inline ml-1 w-3 h-3"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </span>
@@ -288,10 +340,24 @@ defmodule Emakola.Themes.Atelier.Shared do
         <svg :for={_ <- 1..@full_stars} width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
           <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
         </svg>
-        <svg :if={@has_half} width="12" height="12" viewBox="0 0 24 24" fill="currentColor" opacity="0.6">
+        <svg
+          :if={@has_half}
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          opacity="0.6"
+        >
           <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
         </svg>
-        <svg :for={_ <- 1..max(@empty_stars, 0)} width="12" height="12" viewBox="0 0 24 24" fill="currentColor" opacity="0.25">
+        <svg
+          :for={_ <- 1..max(@empty_stars, 0)}
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          opacity="0.25"
+        >
           <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
         </svg>
       </div>
@@ -317,7 +383,7 @@ defmodule Emakola.Themes.Atelier.Shared do
     ~H"""
     <div class="flex items-center gap-2">
       <p class="text-sm font-semibold tabular-nums" style="color: var(--theme-ink);">
-        {Currency.format_price((@product.min_price || 0), @store.currency)}
+        {Currency.format_price(@product.min_price || 0, @store.currency)}
       </p>
       <p
         :if={@has_sale}
@@ -349,7 +415,9 @@ defmodule Emakola.Themes.Atelier.Shared do
               {String.upcase(@store.name)}
             </a>
             <p class="text-white/50 text-xs leading-relaxed mb-6 max-w-xs">
-              {if @store.description, do: @store.description, else: "Modern luxury fashion, crafted with intention."}
+              {if @store.description,
+                do: @store.description,
+                else: "Modern luxury fashion, crafted with intention."}
             </p>
           </div>
 

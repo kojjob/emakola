@@ -48,6 +48,33 @@ defmodule Emakola.Themes.Atelier do
   @doc "Returns the default theme configuration for Atelier."
   def default_config, do: @default_config
 
+  def id, do: "atelier"
+  def name, do: "Atelier"
+
+  def fonts, do: [font_url()]
+
+  def defaults do
+    %{
+      colors: %{primary: "#CA8A04", accent: "#1C1917", background: "#FAFAF9"},
+      fonts: %{heading: "Cormorant", body: "Montserrat"},
+      hero: %{
+        image_url: "",
+        title: "The New Essential",
+        subtitle: "New Collection",
+        cta_text: "Shop Collection",
+        cta_url: "/products"
+      },
+      sections: %{
+        hero: true,
+        categories: true,
+        featured_products: true,
+        brand_story: true,
+        instagram: true,
+        newsletter: true
+      }
+    }
+  end
+
   @doc """
   Merges merchant overrides into the default config.
   Accepts a map of overrides and deep-merges them.
