@@ -716,77 +716,129 @@ defmodule EmakolaWeb.LandingLive do
     <!-- ============================================ -->
       <!-- SECTION 7: TESTIMONIALS                      -->
       <!-- ============================================ -->
-      <section class="bg-[#f7f8fa] py-20 px-4" data-reveal>
-        <div class="max-w-5xl mx-auto">
-          <h2 class="text-3xl lg:text-4xl font-headline font-bold text-[#0c1526] text-center mb-12">
-            Trusted by Merchants Across Ghana
-          </h2>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Testimonial 1 -->
-            <div class="bg-white rounded-xl shadow-sm p-6" data-reveal>
+      <section class="bg-[#0c1526] py-20 px-4" data-reveal>
+        <div class="max-w-6xl mx-auto">
+          <div class="text-center mb-14">
+            <span class="inline-block text-xs font-semibold tracking-[0.15em] uppercase text-[#d4a843] mb-3">
+              Testimonials
+            </span>
+            <h2 class="text-3xl lg:text-4xl font-headline font-bold text-[#f1f5f9] mb-3">
+              Trusted by Merchants Across Ghana
+            </h2>
+            <p class="text-base text-[#8896ab]">Real stories from real merchants</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <!-- Testimonial 1 - Featured (larger) -->
+            <div class="md:row-span-2 bg-gradient-to-br from-[#1a2744] to-[#0c1526] rounded-2xl p-6 flex flex-col" data-reveal>
               <div class="flex gap-0.5 mb-4">
                 <svg :for={_i <- 1..5} class="w-4 h-4 text-[#d4a843] fill-current" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
               </div>
-              <p class="text-sm text-[#5f6b7a] mb-6 leading-relaxed">
-                "Emakola made it so easy to start selling online. My customers love paying with MoMo and I get instant notifications on every order. My sales have doubled since I moved online."
+              <p class="text-base text-[#e2e8f0] leading-relaxed flex-1 mb-6">
+                "Emakola made it so easy to start selling online. My customers love paying with MoMo and I get instant notifications on every order. My sales have doubled since I moved online. I never thought ecommerce would be this simple."
               </p>
               <div class="flex items-center gap-3">
-                <img
-                  src={~p"/images/landing/testimonial-1.jpg"}
-                  alt="Ama Mensah"
-                  class="w-10 h-10 rounded-full object-cover"
-                />
+                <img src={~p"/images/landing/testimonial-1.jpg"} alt="Ama Mensah" class="w-12 h-12 rounded-full object-cover ring-2 ring-[#d4a843]" />
                 <div>
-                  <p class="text-sm font-semibold text-[#0c1526]">Ama Mensah</p>
-                  <p class="text-xs text-[#5f6b7a]">Ama's Fashion, Accra</p>
+                  <p class="text-sm font-bold text-[#f1f5f9]">Ama Mensah</p>
+                  <p class="text-xs text-[#8896ab]">Ama's Fashion, Accra</p>
                 </div>
               </div>
             </div>
-            
-    <!-- Testimonial 2 -->
-            <div class="bg-white rounded-xl shadow-sm p-6" data-reveal>
-              <div class="flex gap-0.5 mb-4">
-                <svg :for={_i <- 1..5} class="w-4 h-4 text-[#d4a843] fill-current" viewBox="0 0 20 20">
+
+            <!-- Testimonial 2 -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm" data-reveal>
+              <div class="flex gap-0.5 mb-3">
+                <svg :for={_i <- 1..5} class="w-3.5 h-3.5 text-[#d4a843] fill-current" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
               </div>
-              <p class="text-sm text-[#5f6b7a] mb-6 leading-relaxed">
-                "I run three stores on Emakola — electronics, accessories, and phone repairs. Managing all of them from one dashboard saves me hours every week. The WhatsApp notifications keep my customers happy."
+              <p class="text-sm text-[#5f6b7a] leading-relaxed mb-4">
+                "I run three stores on Emakola. Managing all of them from one dashboard saves me hours every week."
               </p>
               <div class="flex items-center gap-3">
-                <img
-                  src={~p"/images/landing/testimonial-2.jpg"}
-                  alt="Kwame Asante"
-                  class="w-10 h-10 rounded-full object-cover"
-                />
+                <img src={~p"/images/landing/testimonial-2.jpg"} alt="Kwame Asante" class="w-10 h-10 rounded-full object-cover" />
                 <div>
                   <p class="text-sm font-semibold text-[#0c1526]">Kwame Asante</p>
-                  <p class="text-xs text-[#5f6b7a]">TechHub GH, Kumasi</p>
+                  <p class="text-xs text-[#8896ab]">TechHub GH, Kumasi</p>
                 </div>
               </div>
             </div>
-            
-    <!-- Testimonial 3 -->
-            <div class="bg-white rounded-xl shadow-sm p-6" data-reveal>
-              <div class="flex gap-0.5 mb-4">
-                <svg :for={_i <- 1..5} class="w-4 h-4 text-[#d4a843] fill-current" viewBox="0 0 20 20">
+
+            <!-- Testimonial 3 -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm" data-reveal>
+              <div class="flex gap-0.5 mb-3">
+                <svg :for={_i <- 1..5} class="w-3.5 h-3.5 text-[#d4a843] fill-current" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
               </div>
-              <p class="text-sm text-[#5f6b7a] mb-6 leading-relaxed">
-                "As a food vendor, I needed something simple. Emakola lets me take orders on WhatsApp and collect payment through mobile money. My customers in Takoradi can now order from home."
+              <p class="text-sm text-[#5f6b7a] leading-relaxed mb-4">
+                "As a food vendor, I needed something simple. My customers in Takoradi can now order from home."
               </p>
               <div class="flex items-center gap-3">
-                <img
-                  src={~p"/images/landing/testimonial-3.jpg"}
-                  alt="Efua Owusu"
-                  class="w-10 h-10 rounded-full object-cover"
-                />
+                <img src={~p"/images/landing/testimonial-3.jpg"} alt="Efua Owusu" class="w-10 h-10 rounded-full object-cover" />
                 <div>
                   <p class="text-sm font-semibold text-[#0c1526]">Efua Owusu</p>
-                  <p class="text-xs text-[#5f6b7a]">Efua's Kitchen, Takoradi</p>
+                  <p class="text-xs text-[#8896ab]">Efua's Kitchen, Takoradi</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Testimonial 4 -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm" data-reveal>
+              <div class="flex gap-0.5 mb-3">
+                <svg :for={_i <- 1..5} class="w-3.5 h-3.5 text-[#d4a843] fill-current" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              </div>
+              <p class="text-sm text-[#5f6b7a] leading-relaxed mb-4">
+                "The WhatsApp notifications changed everything. My customers feel confident because they know exactly when their order ships."
+              </p>
+              <div class="flex items-center gap-3">
+                <img src={~p"/images/landing/testimonial-4.jpg"} alt="Kofi Mensah" class="w-10 h-10 rounded-full object-cover" />
+                <div>
+                  <p class="text-sm font-semibold text-[#0c1526]">Kofi Mensah</p>
+                  <p class="text-xs text-[#8896ab]">Kofi Electronics, Cape Coast</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Testimonial 5 -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm" data-reveal>
+              <div class="flex gap-0.5 mb-3">
+                <svg :for={_i <- 1..5} class="w-3.5 h-3.5 text-[#d4a843] fill-current" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              </div>
+              <p class="text-sm text-[#5f6b7a] leading-relaxed mb-4">
+                "I was scared of technology. But Emakola is so simple even I can use it. Now I sell my beads and jewelry to people all over Ghana."
+              </p>
+              <div class="flex items-center gap-3">
+                <img src={~p"/images/landing/testimonial-5.jpg"} alt="Abena Darko" class="w-10 h-10 rounded-full object-cover" />
+                <div>
+                  <p class="text-sm font-semibold text-[#0c1526]">Abena Darko</p>
+                  <p class="text-xs text-[#8896ab]">Abena Beads, Koforidua</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Testimonial 6 -->
+            <div class="bg-gradient-to-br from-[#1a2744] to-[#0c1526] rounded-2xl p-5" data-reveal>
+              <div class="flex gap-0.5 mb-3">
+                <svg :for={_i <- 1..5} class="w-3.5 h-3.5 text-[#d4a843] fill-current" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              </div>
+              <p class="text-sm text-[#e2e8f0] leading-relaxed mb-4">
+                "Mobile money integration is seamless. My customers pay with MoMo and I see it instantly on my dashboard. No more chasing payments."
+              </p>
+              <div class="flex items-center gap-3">
+                <img src={~p"/images/landing/testimonial-6.jpg"} alt="Yaw Boateng" class="w-10 h-10 rounded-full object-cover ring-2 ring-[#d4a843]" />
+                <div>
+                  <p class="text-sm font-bold text-[#f1f5f9]">Yaw Boateng</p>
+                  <p class="text-xs text-[#8896ab]">YB Auto Parts, Tamale</p>
                 </div>
               </div>
             </div>

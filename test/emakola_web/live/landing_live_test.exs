@@ -99,15 +99,20 @@ defmodule EmakolaWeb.LandingLiveTest do
       assert html =~ "Most Popular"
     end
 
-    test "renders testimonials section with merchant stories", %{conn: conn} do
+    test "renders testimonials section with 6 merchant stories", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/")
 
       assert html =~ "Ama Mensah"
       assert html =~ "Kwame Asante"
       assert html =~ "Efua Owusu"
+      assert html =~ "Kofi Mensah"
+      assert html =~ "Abena Darko"
+      assert html =~ "Yaw Boateng"
       assert html =~ "Accra"
       assert html =~ "Kumasi"
       assert html =~ "Takoradi"
+      assert html =~ "Cape Coast"
+      assert html =~ "Tamale"
     end
 
     test "renders footer with Emakola links", %{conn: conn} do
@@ -140,6 +145,9 @@ defmodule EmakolaWeb.LandingLiveTest do
       assert html =~ "testimonial-1.jpg"
       assert html =~ "testimonial-2.jpg"
       assert html =~ "testimonial-3.jpg"
+      assert html =~ "testimonial-4.jpg"
+      assert html =~ "testimonial-5.jpg"
+      assert html =~ "testimonial-6.jpg"
     end
 
     test "product card images are referenced", %{conn: conn} do
