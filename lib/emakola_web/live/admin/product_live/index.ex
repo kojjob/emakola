@@ -1502,10 +1502,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
   defp csv_template_header, do: "title,description,category,sku,price,stock_quantity,tags"
 
-  defp upload_error_to_string(:too_large), do: "File is too large (max 2MB)"
+  defp upload_error_to_string(:too_large), do: "File is too large"
   defp upload_error_to_string(:not_accepted), do: "Only .csv files are accepted"
   defp upload_error_to_string(:too_many_files), do: "Only one file at a time"
-  defp upload_error_to_string(:too_large), do: "File too large (max 10MB)"
   defp upload_error_to_string(err), do: "Upload error: #{inspect(err)}"
 
   defp cancel_uploads(socket, upload_name) do
