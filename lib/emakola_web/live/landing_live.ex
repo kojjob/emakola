@@ -161,8 +161,8 @@ defmodule EmakolaWeb.LandingLive do
               Accept MTN MoMo, Vodafone Cash, and card payments. Notify customers on WhatsApp.
               Manage everything from one dashboard.
             </p>
-
-            <!-- CTA Buttons -->
+            
+    <!-- CTA Buttons -->
             <div class="flex flex-wrap gap-3 mb-5">
               <a
                 href="/auth/register"
@@ -177,8 +177,8 @@ defmodule EmakolaWeb.LandingLive do
                 See Features
               </a>
             </div>
-
-            <!-- Mini Dashboard Preview -->
+            
+    <!-- Mini Dashboard Preview -->
             <div class="bg-[#0c1526]/60 backdrop-blur-sm rounded-xl p-4 max-w-sm mb-5">
               <div class="flex items-center justify-between mb-3">
                 <span class="text-xs text-[#8896ab]">Your Dashboard</span>
@@ -207,24 +207,20 @@ defmodule EmakolaWeb.LandingLive do
                 <span class="text-xs font-bold text-[#d4a843]">GHS 85</span>
               </div>
             </div>
-
-            <!-- Payment Provider Badges -->
+            
+    <!-- Payment Provider Badges -->
             <div class="flex flex-wrap gap-2">
               <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1a2744]/60 text-[10px] text-[#8896ab]">
-                <span class="material-symbols-outlined text-sm">account_balance_wallet</span>
-                MTN MoMo
+                <span class="material-symbols-outlined text-sm">account_balance_wallet</span> MTN MoMo
               </div>
               <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1a2744]/60 text-[10px] text-[#8896ab]">
-                <span class="material-symbols-outlined text-sm">payments</span>
-                Vodafone Cash
+                <span class="material-symbols-outlined text-sm">payments</span> Vodafone Cash
               </div>
               <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1a2744]/60 text-[10px] text-[#8896ab]">
-                <span class="material-symbols-outlined text-sm">credit_card</span>
-                Paystack
+                <span class="material-symbols-outlined text-sm">credit_card</span> Paystack
               </div>
               <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1a2744]/60 text-[10px] text-[#8896ab]">
-                <span class="material-symbols-outlined text-sm">storefront</span>
-                Hubtel
+                <span class="material-symbols-outlined text-sm">storefront</span> Hubtel
               </div>
             </div>
           </div>
@@ -241,8 +237,8 @@ defmodule EmakolaWeb.LandingLive do
             <p class="text-sm text-[#5f6b7a] mb-5 max-w-md">
               Pay with mobile money. Get order updates on WhatsApp. Support local merchants.
             </p>
-
-            <!-- Search Bar Mockup -->
+            
+    <!-- Search Bar Mockup -->
             <div class="flex items-center bg-white rounded-xl shadow-md px-4 py-3 mb-5 max-w-sm">
               <span class="material-symbols-outlined text-[#8896ab] text-xl mr-3">search</span>
               <span class="text-sm text-[#8896ab]">Search products, stores...</span>
@@ -253,28 +249,26 @@ defmodule EmakolaWeb.LandingLive do
                 Browse Stores
               </a>
             </div>
-
-            <!-- Popular Categories -->
+            
+    <!-- Popular Categories -->
             <div class="flex flex-wrap gap-2 mb-5">
               <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white shadow-sm text-xs font-medium text-[#0c1526]">
                 <span class="material-symbols-outlined text-sm text-[#d4a843]">checkroom</span>
                 Fashion
               </span>
               <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white shadow-sm text-xs font-medium text-[#0c1526]">
-                <span class="material-symbols-outlined text-sm text-[#d4a843]">spa</span>
-                Beauty
+                <span class="material-symbols-outlined text-sm text-[#d4a843]">spa</span> Beauty
               </span>
               <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white shadow-sm text-xs font-medium text-[#0c1526]">
                 <span class="material-symbols-outlined text-sm text-[#d4a843]">devices</span>
                 Electronics
               </span>
               <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white shadow-sm text-xs font-medium text-[#0c1526]">
-                <span class="material-symbols-outlined text-sm text-[#d4a843]">restaurant</span>
-                Food
+                <span class="material-symbols-outlined text-sm text-[#d4a843]">restaurant</span> Food
               </span>
             </div>
-
-            <!-- Product Cards -->
+            
+    <!-- Product Cards -->
             <div class="grid grid-cols-3 gap-2.5 max-w-sm">
               <div class="bg-white rounded-xl shadow-md overflow-hidden">
                 <img
@@ -310,8 +304,8 @@ defmodule EmakolaWeb.LandingLive do
                 </div>
               </div>
             </div>
-
-            <!-- Trust signals -->
+            
+    <!-- Trust signals -->
             <div class="flex items-center gap-4 mt-5">
               <div class="flex items-center gap-1.5 text-xs text-[#5f6b7a]">
                 <span class="material-symbols-outlined text-sm text-[#2563eb]">verified_user</span>
@@ -374,8 +368,8 @@ defmodule EmakolaWeb.LandingLive do
           <p class="text-base text-[#5f6b7a] text-center mb-16">
             3 simple steps
           </p>
-
-          <!-- === SELL ON EMAKOLA === -->
+          
+    <!-- === SELL ON EMAKOLA === -->
           <div class="mb-20" data-reveal>
             <div class="flex items-center justify-center gap-3 mb-12">
               <span class="material-symbols-outlined text-2xl text-[#d4a843]">storefront</span>
@@ -391,7 +385,8 @@ defmodule EmakolaWeb.LandingLive do
                       src={~p"/images/landing/step-sell-1.jpg"}
                       alt="Sign up on your phone"
                       loading="lazy"
-                      class="w-full object-cover" style="height:144px;max-height:144px"
+                      class="w-full object-cover"
+                      style="height:144px;max-height:144px"
                     />
                   </div>
                   <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#d4a843] text-[#0c1526] flex items-center justify-center text-xl font-black shadow-lg">
@@ -401,8 +396,8 @@ defmodule EmakolaWeb.LandingLive do
                 <h4 class="text-lg font-bold text-[#0c1526] mb-1">Sign Up</h4>
                 <p class="text-sm text-[#5f6b7a]">Create your free store</p>
               </div>
-
-              <!-- Arrow connector (desktop only) -->
+              
+    <!-- Arrow connector (desktop only) -->
 
               <!-- Step 2: Add Products -->
               <div class="group text-center" data-reveal>
@@ -412,7 +407,8 @@ defmodule EmakolaWeb.LandingLive do
                       src={~p"/images/landing/step-sell-2.jpg"}
                       alt="Add your products"
                       loading="lazy"
-                      class="w-full object-cover" style="height:144px;max-height:144px"
+                      class="w-full object-cover"
+                      style="height:144px;max-height:144px"
                     />
                   </div>
                   <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#d4a843] text-[#0c1526] flex items-center justify-center text-xl font-black shadow-lg">
@@ -422,8 +418,8 @@ defmodule EmakolaWeb.LandingLive do
                 <h4 class="text-lg font-bold text-[#0c1526] mb-1">Add Products</h4>
                 <p class="text-sm text-[#5f6b7a]">Upload photos, set prices</p>
               </div>
-
-              <!-- Step 3: Get Paid -->
+              
+    <!-- Step 3: Get Paid -->
               <div class="group text-center" data-reveal>
                 <div class="relative mb-5">
                   <div class="overflow-hidden rounded-2xl shadow-md">
@@ -431,7 +427,8 @@ defmodule EmakolaWeb.LandingLive do
                       src={~p"/images/landing/step-sell-3.jpg"}
                       alt="Receive mobile money payment"
                       loading="lazy"
-                      class="w-full object-cover" style="height:144px;max-height:144px"
+                      class="w-full object-cover"
+                      style="height:144px;max-height:144px"
                     />
                   </div>
                   <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#d4a843] text-[#0c1526] flex items-center justify-center text-xl font-black shadow-lg">
@@ -443,15 +440,15 @@ defmodule EmakolaWeb.LandingLive do
               </div>
             </div>
           </div>
-
-          <!-- Divider -->
+          
+    <!-- Divider -->
           <div class="flex items-center gap-4 mb-20">
             <div class="flex-1 h-px bg-[#e8eaed]"></div>
             <span class="text-xs font-semibold tracking-widest uppercase text-[#8896ab]">or</span>
             <div class="flex-1 h-px bg-[#e8eaed]"></div>
           </div>
-
-          <!-- === BUY ON EMAKOLA === -->
+          
+    <!-- === BUY ON EMAKOLA === -->
           <div data-reveal>
             <div class="flex items-center justify-center gap-3 mb-12">
               <span class="material-symbols-outlined text-2xl text-[#2563eb]">shopping_bag</span>
@@ -467,7 +464,8 @@ defmodule EmakolaWeb.LandingLive do
                       src={~p"/images/landing/step-buy-1.jpg"}
                       alt="Browse stores on your phone"
                       loading="lazy"
-                      class="w-full object-cover" style="height:144px;max-height:144px"
+                      class="w-full object-cover"
+                      style="height:144px;max-height:144px"
                     />
                   </div>
                   <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xl font-black shadow-lg">
@@ -477,8 +475,8 @@ defmodule EmakolaWeb.LandingLive do
                 <h4 class="text-lg font-bold text-[#0c1526] mb-1">Browse</h4>
                 <p class="text-sm text-[#5f6b7a]">Find what you need</p>
               </div>
-
-              <!-- Step 2: Pay with MoMo -->
+              
+    <!-- Step 2: Pay with MoMo -->
               <div class="group text-center" data-reveal>
                 <div class="relative mb-5">
                   <div class="overflow-hidden rounded-2xl shadow-md">
@@ -486,7 +484,8 @@ defmodule EmakolaWeb.LandingLive do
                       src={~p"/images/landing/step-buy-2.jpg"}
                       alt="Pay with mobile money"
                       loading="lazy"
-                      class="w-full object-cover" style="height:144px;max-height:144px"
+                      class="w-full object-cover"
+                      style="height:144px;max-height:144px"
                     />
                   </div>
                   <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xl font-black shadow-lg">
@@ -496,8 +495,8 @@ defmodule EmakolaWeb.LandingLive do
                 <h4 class="text-lg font-bold text-[#0c1526] mb-1">Pay with MoMo</h4>
                 <p class="text-sm text-[#5f6b7a]">MTN MoMo, Vodafone Cash</p>
               </div>
-
-              <!-- Step 3: Receive -->
+              
+    <!-- Step 3: Receive -->
               <div class="group text-center" data-reveal>
                 <div class="relative mb-5">
                   <div class="overflow-hidden rounded-2xl shadow-md">
@@ -505,7 +504,8 @@ defmodule EmakolaWeb.LandingLive do
                       src={~p"/images/landing/step-buy-3.jpg"}
                       alt="Receive your delivery"
                       loading="lazy"
-                      class="w-full object-cover" style="height:144px;max-height:144px"
+                      class="w-full object-cover"
+                      style="height:144px;max-height:144px"
                     />
                   </div>
                   <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xl font-black shadow-lg">
@@ -534,32 +534,42 @@ defmodule EmakolaWeb.LandingLive do
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Mobile Money -->
-            <div class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all" data-reveal>
+            <div
+              class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all"
+              data-reveal
+            >
               <div class="overflow-hidden">
                 <img
                   src={~p"/images/landing/feature-mobile-money.jpg"}
                   alt="Mobile money payment"
                   loading="lazy"
-                  class="w-full object-cover" style="height:144px;max-height:144px"
+                  class="w-full object-cover"
+                  style="height:144px;max-height:144px"
                 />
               </div>
               <div class="p-5">
                 <div class="flex items-center gap-2 mb-2">
-                  <span class="material-symbols-outlined text-xl text-[#d4a843]">account_balance_wallet</span>
+                  <span class="material-symbols-outlined text-xl text-[#d4a843]">
+                    account_balance_wallet
+                  </span>
                   <h3 class="text-base font-bold text-[#0c1526]">Mobile Money</h3>
                 </div>
                 <p class="text-sm text-[#5f6b7a]">Accept MTN MoMo, Vodafone Cash, AirtelTigo</p>
               </div>
             </div>
-
-            <!-- WhatsApp -->
-            <div class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all" data-reveal>
+            
+    <!-- WhatsApp -->
+            <div
+              class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all"
+              data-reveal
+            >
               <div class="overflow-hidden">
                 <img
                   src={~p"/images/landing/feature-whatsapp.jpg"}
                   alt="WhatsApp notifications"
                   loading="lazy"
-                  class="w-full object-cover" style="height:144px;max-height:144px"
+                  class="w-full object-cover"
+                  style="height:144px;max-height:144px"
                 />
               </div>
               <div class="p-5">
@@ -570,15 +580,19 @@ defmodule EmakolaWeb.LandingLive do
                 <p class="text-sm text-[#5f6b7a]">Order updates sent to customers</p>
               </div>
             </div>
-
-            <!-- Dashboard -->
-            <div class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all" data-reveal>
+            
+    <!-- Dashboard -->
+            <div
+              class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all"
+              data-reveal
+            >
               <div class="overflow-hidden">
                 <img
                   src={~p"/images/landing/feature-dashboard.jpg"}
                   alt="Merchant dashboard"
                   loading="lazy"
-                  class="w-full object-cover" style="height:144px;max-height:144px"
+                  class="w-full object-cover"
+                  style="height:144px;max-height:144px"
                 />
               </div>
               <div class="p-5">
@@ -589,15 +603,19 @@ defmodule EmakolaWeb.LandingLive do
                 <p class="text-sm text-[#5f6b7a]">See your sales, orders, customers</p>
               </div>
             </div>
-
-            <!-- Multi-Store -->
-            <div class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all" data-reveal>
+            
+    <!-- Multi-Store -->
+            <div
+              class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all"
+              data-reveal
+            >
               <div class="overflow-hidden">
                 <img
                   src={~p"/images/landing/feature-multi-store.jpg"}
                   alt="Multiple stores"
                   loading="lazy"
-                  class="w-full object-cover" style="height:144px;max-height:144px"
+                  class="w-full object-cover"
+                  style="height:144px;max-height:144px"
                 />
               </div>
               <div class="p-5">
@@ -608,15 +626,19 @@ defmodule EmakolaWeb.LandingLive do
                 <p class="text-sm text-[#5f6b7a]">Run many stores from one account</p>
               </div>
             </div>
-
-            <!-- Inventory -->
-            <div class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all" data-reveal>
+            
+    <!-- Inventory -->
+            <div
+              class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all"
+              data-reveal
+            >
               <div class="overflow-hidden">
                 <img
                   src={~p"/images/landing/feature-inventory.jpg"}
                   alt="Inventory tracking"
                   loading="lazy"
-                  class="w-full object-cover" style="height:144px;max-height:144px"
+                  class="w-full object-cover"
+                  style="height:144px;max-height:144px"
                 />
               </div>
               <div class="p-5">
@@ -627,15 +649,19 @@ defmodule EmakolaWeb.LandingLive do
                 <p class="text-sm text-[#5f6b7a]">Know your stock levels always</p>
               </div>
             </div>
-
-            <!-- Shipping -->
-            <div class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all" data-reveal>
+            
+    <!-- Shipping -->
+            <div
+              class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all"
+              data-reveal
+            >
               <div class="overflow-hidden">
                 <img
                   src={~p"/images/landing/feature-shipping.jpg"}
                   alt="Shipping and delivery"
                   loading="lazy"
-                  class="w-full object-cover" style="height:144px;max-height:144px"
+                  class="w-full object-cover"
+                  style="height:144px;max-height:144px"
                 />
               </div>
               <div class="p-5">
@@ -670,7 +696,9 @@ defmodule EmakolaWeb.LandingLive do
                 <span class="text-3xl font-bold text-[#0c1526]">Free</span>
               </div>
               <p class="text-sm text-[#d4a843] font-medium mb-6">3.5% per sale</p>
-              <span class="inline-block text-[10px] font-semibold text-[#2563eb] bg-[#2563eb]/10 px-2 py-0.5 rounded-full mt-1">No credit card needed</span>
+              <span class="inline-block text-[10px] font-semibold text-[#2563eb] bg-[#2563eb]/10 px-2 py-0.5 rounded-full mt-1">
+                No credit card needed
+              </span>
               <ul class="space-y-2 mb-8 flex-1">
                 <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
                   <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">check</span>
@@ -828,7 +856,10 @@ defmodule EmakolaWeb.LandingLive do
 
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             <!-- Testimonial 1 - Featured (larger) -->
-            <div class="md:row-span-2 bg-gradient-to-br from-[#1a2744] to-[#0c1526] rounded-2xl p-6 flex flex-col" data-reveal>
+            <div
+              class="md:row-span-2 bg-gradient-to-br from-[#1a2744] to-[#0c1526] rounded-2xl p-6 flex flex-col"
+              data-reveal
+            >
               <div class="flex gap-0.5 mb-4">
                 <svg :for={_i <- 1..5} class="w-4 h-4 text-[#d4a843] fill-current" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -838,18 +869,27 @@ defmodule EmakolaWeb.LandingLive do
                 "Emakola made it so easy to start selling online. My customers love paying with MoMo and I get instant notifications on every order. My sales have doubled since I moved online. I never thought ecommerce would be this simple."
               </p>
               <div class="flex items-center gap-3">
-                <img src={~p"/images/landing/testimonial-1.jpg"} alt="Ama Mensah" loading="lazy" class="w-12 h-12 rounded-full object-cover ring-2 ring-[#d4a843]" />
+                <img
+                  src={~p"/images/landing/testimonial-1.jpg"}
+                  alt="Ama Mensah"
+                  loading="lazy"
+                  class="w-12 h-12 rounded-full object-cover ring-2 ring-[#d4a843]"
+                />
                 <div>
                   <p class="text-sm font-bold text-[#f1f5f9]">Ama Mensah</p>
                   <p class="text-xs text-[#8896ab]">Ama's Fashion, Accra</p>
                 </div>
               </div>
             </div>
-
-            <!-- Testimonial 2 -->
+            
+    <!-- Testimonial 2 -->
             <div class="bg-white rounded-2xl p-5 shadow-sm" data-reveal>
               <div class="flex gap-0.5 mb-3">
-                <svg :for={_i <- 1..5} class="w-3.5 h-3.5 text-[#d4a843] fill-current" viewBox="0 0 20 20">
+                <svg
+                  :for={_i <- 1..5}
+                  class="w-3.5 h-3.5 text-[#d4a843] fill-current"
+                  viewBox="0 0 20 20"
+                >
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
               </div>
@@ -857,18 +897,27 @@ defmodule EmakolaWeb.LandingLive do
                 "I run three stores on Emakola. Managing all of them from one dashboard saves me hours every week."
               </p>
               <div class="flex items-center gap-3">
-                <img src={~p"/images/landing/testimonial-2.jpg"} alt="Kwame Asante" loading="lazy" class="w-10 h-10 rounded-full object-cover" />
+                <img
+                  src={~p"/images/landing/testimonial-2.jpg"}
+                  alt="Kwame Asante"
+                  loading="lazy"
+                  class="w-10 h-10 rounded-full object-cover"
+                />
                 <div>
                   <p class="text-sm font-semibold text-[#0c1526]">Kwame Asante</p>
                   <p class="text-xs text-[#8896ab]">TechHub GH, Kumasi</p>
                 </div>
               </div>
             </div>
-
-            <!-- Testimonial 3 -->
+            
+    <!-- Testimonial 3 -->
             <div class="bg-white rounded-2xl p-5 shadow-sm" data-reveal>
               <div class="flex gap-0.5 mb-3">
-                <svg :for={_i <- 1..5} class="w-3.5 h-3.5 text-[#d4a843] fill-current" viewBox="0 0 20 20">
+                <svg
+                  :for={_i <- 1..5}
+                  class="w-3.5 h-3.5 text-[#d4a843] fill-current"
+                  viewBox="0 0 20 20"
+                >
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
               </div>
@@ -876,18 +925,27 @@ defmodule EmakolaWeb.LandingLive do
                 "As a food vendor, I needed something simple. My customers in Takoradi can now order from home."
               </p>
               <div class="flex items-center gap-3">
-                <img src={~p"/images/landing/testimonial-3.jpg"} alt="Efua Owusu" loading="lazy" class="w-10 h-10 rounded-full object-cover" />
+                <img
+                  src={~p"/images/landing/testimonial-3.jpg"}
+                  alt="Efua Owusu"
+                  loading="lazy"
+                  class="w-10 h-10 rounded-full object-cover"
+                />
                 <div>
                   <p class="text-sm font-semibold text-[#0c1526]">Efua Owusu</p>
                   <p class="text-xs text-[#8896ab]">Efua's Kitchen, Takoradi</p>
                 </div>
               </div>
             </div>
-
-            <!-- Testimonial 4 -->
+            
+    <!-- Testimonial 4 -->
             <div class="bg-white rounded-2xl p-5 shadow-sm" data-reveal>
               <div class="flex gap-0.5 mb-3">
-                <svg :for={_i <- 1..5} class="w-3.5 h-3.5 text-[#d4a843] fill-current" viewBox="0 0 20 20">
+                <svg
+                  :for={_i <- 1..5}
+                  class="w-3.5 h-3.5 text-[#d4a843] fill-current"
+                  viewBox="0 0 20 20"
+                >
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
               </div>
@@ -895,18 +953,27 @@ defmodule EmakolaWeb.LandingLive do
                 "The WhatsApp notifications changed everything. My customers feel confident because they know exactly when their order ships."
               </p>
               <div class="flex items-center gap-3">
-                <img src={~p"/images/landing/testimonial-4.jpg"} alt="Kofi Mensah" loading="lazy" class="w-10 h-10 rounded-full object-cover" />
+                <img
+                  src={~p"/images/landing/testimonial-4.jpg"}
+                  alt="Kofi Mensah"
+                  loading="lazy"
+                  class="w-10 h-10 rounded-full object-cover"
+                />
                 <div>
                   <p class="text-sm font-semibold text-[#0c1526]">Kofi Mensah</p>
                   <p class="text-xs text-[#8896ab]">Kofi Electronics, Cape Coast</p>
                 </div>
               </div>
             </div>
-
-            <!-- Testimonial 5 -->
+            
+    <!-- Testimonial 5 -->
             <div class="bg-white rounded-2xl p-5 shadow-sm" data-reveal>
               <div class="flex gap-0.5 mb-3">
-                <svg :for={_i <- 1..5} class="w-3.5 h-3.5 text-[#d4a843] fill-current" viewBox="0 0 20 20">
+                <svg
+                  :for={_i <- 1..5}
+                  class="w-3.5 h-3.5 text-[#d4a843] fill-current"
+                  viewBox="0 0 20 20"
+                >
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
               </div>
@@ -914,18 +981,27 @@ defmodule EmakolaWeb.LandingLive do
                 "I was scared of technology. But Emakola is so simple even I can use it. Now I sell my beads and jewelry to people all over Ghana."
               </p>
               <div class="flex items-center gap-3">
-                <img src={~p"/images/landing/testimonial-5.jpg"} alt="Abena Darko" loading="lazy" class="w-10 h-10 rounded-full object-cover" />
+                <img
+                  src={~p"/images/landing/testimonial-5.jpg"}
+                  alt="Abena Darko"
+                  loading="lazy"
+                  class="w-10 h-10 rounded-full object-cover"
+                />
                 <div>
                   <p class="text-sm font-semibold text-[#0c1526]">Abena Darko</p>
                   <p class="text-xs text-[#8896ab]">Abena Beads, Koforidua</p>
                 </div>
               </div>
             </div>
-
-            <!-- Testimonial 6 -->
+            
+    <!-- Testimonial 6 -->
             <div class="bg-gradient-to-br from-[#1a2744] to-[#0c1526] rounded-2xl p-5" data-reveal>
               <div class="flex gap-0.5 mb-3">
-                <svg :for={_i <- 1..5} class="w-3.5 h-3.5 text-[#d4a843] fill-current" viewBox="0 0 20 20">
+                <svg
+                  :for={_i <- 1..5}
+                  class="w-3.5 h-3.5 text-[#d4a843] fill-current"
+                  viewBox="0 0 20 20"
+                >
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
               </div>
@@ -933,7 +1009,12 @@ defmodule EmakolaWeb.LandingLive do
                 "Mobile money integration is seamless. My customers pay with MoMo and I see it instantly on my dashboard. No more chasing payments."
               </p>
               <div class="flex items-center gap-3">
-                <img src={~p"/images/landing/testimonial-6.jpg"} alt="Yaw Boateng" loading="lazy" class="w-10 h-10 rounded-full object-cover ring-2 ring-[#d4a843]" />
+                <img
+                  src={~p"/images/landing/testimonial-6.jpg"}
+                  alt="Yaw Boateng"
+                  loading="lazy"
+                  class="w-10 h-10 rounded-full object-cover ring-2 ring-[#d4a843]"
+                />
                 <div>
                   <p class="text-sm font-bold text-[#f1f5f9]">Yaw Boateng</p>
                   <p class="text-xs text-[#8896ab]">YB Auto Parts, Tamale</p>
@@ -968,7 +1049,9 @@ defmodule EmakolaWeb.LandingLive do
             >
               Browse Stores
             </a>
-            <p class="text-xs text-[#8896ab] mt-4 w-full text-center">No credit card required. Start free today.</p>
+            <p class="text-xs text-[#8896ab] mt-4 w-full text-center">
+              No credit card required. Start free today.
+            </p>
           </div>
         </div>
       </section>

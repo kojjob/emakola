@@ -170,6 +170,46 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
     end
   end
 
+  @category_icons %{
+    "fashion" => "checkroom",
+    "clothing" => "checkroom",
+    "beauty" => "spa",
+    "food" => "restaurant",
+    "electronics" => "devices",
+    "home" => "home",
+    "accessories" => "watch",
+    "shoes" => "steps",
+    "bags" => "shopping_bag",
+    "jewelry" => "diamond",
+    "health" => "favorite",
+    "sports" => "sports_soccer",
+    "kids" => "child_care",
+    "books" => "menu_book"
+  }
+
+  @category_colors [
+    {"bg-emerald-500", "bg-emerald-50", "text-emerald-700"},
+    {"bg-blue-500", "bg-blue-50", "text-blue-700"},
+    {"bg-amber-500", "bg-amber-50", "text-amber-700"},
+    {"bg-purple-500", "bg-purple-50", "text-purple-700"},
+    {"bg-rose-500", "bg-rose-50", "text-rose-700"},
+    {"bg-teal-500", "bg-teal-50", "text-teal-700"},
+    {"bg-orange-500", "bg-orange-50", "text-orange-700"},
+    {"bg-indigo-500", "bg-indigo-50", "text-indigo-700"}
+  ]
+
+  defp category_icon(name) do
+    key = name |> String.downcase()
+
+    Enum.find_value(@category_icons, "category", fn {k, v} ->
+      if String.contains?(key, k), do: v
+    end)
+  end
+
+  defp category_color(index) do
+    Enum.at(@category_colors, rem(index, length(@category_colors)))
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -177,37 +217,68 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
       <%!-- Header --%>
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 class="text-2xl sm:text-3xl font-bold font-headline tracking-tight">Categories</h1>
-          <p class="text-sm text-on-surface-variant mt-1">
-            Organize your product catalog
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Categories</h1>
+          <p class="text-sm text-slate-500 mt-1">
+            Organize your products into groups
           </p>
         </div>
         <button
           phx-click={show_modal("category-modal")}
           phx-value-action="add"
-          class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold
+          class="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold
                  bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all
                  shadow-sm w-full sm:w-auto justify-center"
         >
-          <.icon name="hero-plus" class="size-4" /> Add Category
+          <span class="material-symbols-outlined text-lg">add</span> Add Category
         </button>
       </div>
 
-      <%!-- Category Tree --%>
+      <%!-- Stats Bar --%>
+      <div class="flex items-center gap-6 px-1">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+            <span class="material-symbols-outlined text-sm text-emerald-600">folder</span>
+          </div>
+          <div>
+            <p class="text-lg font-bold text-slate-900">{length(@all_categories)}</p>
+            <p class="text-[11px] text-slate-400 -mt-0.5">Total</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+            <span class="material-symbols-outlined text-sm text-blue-600">account_tree</span>
+          </div>
+          <div>
+            <p class="text-lg font-bold text-slate-900">{length(@category_tree)}</p>
+            <p class="text-[11px] text-slate-400 -mt-0.5">Main</p>
+          </div>
+        </div>
+      </div>
+
+      <%!-- Category Grid --%>
       <%= if @category_tree == [] do %>
-        <div class="text-center py-16 bg-surface-container-lowest rounded-lg">
-          <.icon name="hero-folder" class="size-12 mx-auto text-on-surface-variant/30 mb-3" />
-          <p class="text-on-surface-variant font-medium">No categories yet</p>
-          <p class="text-sm text-on-surface-variant/60 mt-1">
+        <div class="text-center py-20 bg-white rounded-2xl shadow-sm">
+          <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+            <span class="material-symbols-outlined text-3xl text-slate-300">folder_open</span>
+          </div>
+          <p class="text-slate-700 font-semibold text-lg">No categories yet</p>
+          <p class="text-sm text-slate-400 mt-1 mb-6">
             Add categories to organize your products
           </p>
+          <button
+            phx-click={show_modal("category-modal")}
+            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold
+                   bg-emerald-600 text-white hover:bg-emerald-700 transition-all"
+          >
+            <span class="material-symbols-outlined text-lg">add</span> Create First Category
+          </button>
         </div>
       <% else %>
-        <div class="bg-surface-container-lowest rounded-lg overflow-hidden divide-y divide-surface-container/50">
-          <.category_row
-            :for={node <- @category_tree}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <.category_card
+            :for={{node, index} <- Enum.with_index(@category_tree)}
             node={node}
-            depth={0}
+            index={index}
           />
         </div>
       <% end %>
@@ -314,59 +385,86 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
   # ── Components ──
 
   attr :node, :map, required: true
-  attr :depth, :integer, required: true
+  attr :index, :integer, required: true
 
-  defp category_row(assigns) do
+  defp category_card(assigns) do
+    {icon_bg, card_bg, text_color} = category_color(assigns.index)
+    icon = category_icon(assigns.node.category.name)
+    child_count = length(assigns.node.children)
+
+    assigns =
+      assigns
+      |> assign(:icon_bg, icon_bg)
+      |> assign(:card_bg, card_bg)
+      |> assign(:text_color, text_color)
+      |> assign(:icon, icon)
+      |> assign(:child_count, child_count)
+
     ~H"""
-    <div>
-      <div
-        class="flex items-center justify-between px-4 py-3 hover:bg-surface-container-high/30 transition-colors group"
-        style={"padding-left: #{@depth * 24 + 16}px"}
-      >
-        <div class="flex items-center gap-3 min-w-0">
-          <span class="text-xs font-mono text-on-surface-variant/50 w-6 text-center flex-shrink-0">
-            {@node.category.position}
-          </span>
-          <.icon
-            name={if @node.children != [], do: "hero-folder-open", else: "hero-folder"}
-            class="size-4 text-on-surface-variant/60 flex-shrink-0"
-          />
-          <span class="text-sm font-medium truncate">{@node.category.name}</span>
-          <span
-            :if={@depth > 0}
-            class="text-xs text-on-surface-variant/40 hidden sm:inline"
-          >
-            (sub-category)
-          </span>
+    <div class="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5">
+      <%!-- Top: Icon + Actions --%>
+      <div class="flex items-start justify-between mb-4">
+        <div class={"w-12 h-12 rounded-xl #{@icon_bg} flex items-center justify-center"}>
+          <span class="material-symbols-outlined text-2xl text-white">{@icon}</span>
         </div>
-        <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity focus-within:opacity-100">
+        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             phx-click={
               JS.push("open_edit_modal", value: %{id: @node.category.id})
               |> show_modal("category-modal")
             }
-            class="text-xs text-emerald-600 hover:text-emerald-700 font-medium px-2 py-1 rounded hover:bg-emerald-50"
+            class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors"
+            title="Edit"
           >
-            Edit
+            <span class="material-symbols-outlined text-base text-slate-400">edit</span>
           </button>
           <button
             phx-click={
               JS.push("open_delete_modal", value: %{id: @node.category.id})
               |> show_modal("delete-category-modal")
             }
-            class="text-xs text-red-600 hover:text-red-700 font-medium px-2 py-1 rounded hover:bg-red-50"
+            class="w-8 h-8 rounded-lg hover:bg-red-50 flex items-center justify-center transition-colors"
+            title="Delete"
           >
-            Delete
+            <span class="material-symbols-outlined text-base text-slate-400 hover:text-red-500">
+              delete
+            </span>
           </button>
         </div>
       </div>
 
-      <%!-- Children --%>
-      <.category_row
-        :for={child <- @node.children}
-        node={child}
-        depth={@depth + 1}
-      />
+      <%!-- Name --%>
+      <h3 class="text-base font-bold text-slate-900 mb-1">{@node.category.name}</h3>
+      <p
+        :if={@node.category.description && @node.category.description != ""}
+        class="text-xs text-slate-400 line-clamp-2 mb-3"
+      >
+        {@node.category.description}
+      </p>
+
+      <%!-- Sub-categories --%>
+      <%= if @child_count > 0 do %>
+        <div class="mt-3 pt-3 border-t border-slate-100">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+            {@child_count} sub-categories
+          </p>
+          <div class="flex flex-wrap gap-1.5">
+            <span
+              :for={child <- @node.children}
+              class={"inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium #{@card_bg} #{@text_color}"}
+            >
+              <span class="material-symbols-outlined text-xs">
+                {category_icon(child.category.name)}
+              </span>
+              {child.category.name}
+            </span>
+          </div>
+        </div>
+      <% else %>
+        <div class="mt-3 pt-3 border-t border-slate-100">
+          <p class="text-[11px] text-slate-300">No sub-categories</p>
+        </div>
+      <% end %>
     </div>
     """
   end

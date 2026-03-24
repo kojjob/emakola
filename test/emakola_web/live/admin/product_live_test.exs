@@ -21,7 +21,7 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
       {:ok, view, html} = live(conn, ~p"/admin/products")
 
       assert html =~ "Products"
-      assert has_element?(view, "a", "New Product")
+      assert has_element?(view, "button", "New Product")
     end
 
     test "renders status filter tabs", %{conn: conn} do
