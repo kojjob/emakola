@@ -11,6 +11,7 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   use EmakolaWeb, :live_view
 
   alias Emakola.Cart.CartStore
+  alias Emakola.Themes.ThemeResolver
   alias EmakolaWeb.Helpers.{Currency, StoreResolver}
 
   require Ash.Query
@@ -24,6 +25,10 @@ defmodule EmakolaWeb.Storefront.StoreLive do
         cart_session_id = session["cart_session_id"]
         cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
 
+        theme = ThemeResolver.resolve(store.theme_config || %{})
+        theme_module = ThemeResolver.theme_module(theme.theme_id)
+        theme_fonts = theme_module.fonts()
+
         {:ok,
          socket
          |> assign(:store, store)
@@ -31,6 +36,9 @@ defmodule EmakolaWeb.Storefront.StoreLive do
          |> assign(:categories, categories)
          |> assign(:cart_session_id, cart_session_id)
          |> assign(:cart_count, cart_count)
+         |> assign(:theme, theme)
+         |> assign(:theme_module, theme_module)
+         |> assign(:theme_fonts, theme_fonts)
          |> assign(:page_title, store.name)}
 
       {:error, :not_found} ->
