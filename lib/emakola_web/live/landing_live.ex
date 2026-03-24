@@ -433,105 +433,121 @@ defmodule EmakolaWeb.LandingLive do
       <!-- SECTION 5: FEATURES GRID (BENTO)             -->
       <!-- ============================================ -->
       <section id="features" class="bg-[#f7f8fa] py-20 px-4" data-reveal>
-        <div class="max-w-5xl mx-auto">
+        <div class="max-w-6xl mx-auto">
           <h2 class="text-3xl lg:text-4xl font-headline font-bold text-[#0c1526] text-center mb-4">
-            Everything You Need to Sell Online
+            Everything You Need
           </h2>
-          <p class="text-base text-[#5f6b7a] text-center mb-12 max-w-2xl mx-auto">
-            Built for West African merchants. Mobile money, WhatsApp, local delivery — all in one platform.
+          <p class="text-base text-[#5f6b7a] text-center mb-14">
+            All the tools to sell online in Ghana
           </p>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <!-- Row 1: Mobile Money (2-col) + WhatsApp (1-col) -->
-            <div
-              class="md:col-span-2 bg-[#f7f8fa] rounded-xl shadow-sm hover:shadow-md overflow-hidden hover:-translate-y-1 transition-all"
-              data-reveal
-            >
-              <img
-                src={~p"/images/landing/feature-mobile-money.jpg"}
-                alt="Mobile money payment on phone"
-                class="w-full h-40 object-cover"
-              />
-              <div class="p-6">
-                <span class="material-symbols-outlined text-3xl text-[#2563eb] mb-4 block">
-                  account_balance_wallet
-                </span>
-                <h3 class="text-lg font-semibold text-[#0c1526] mb-2">Mobile Money Payments</h3>
-                <p class="text-sm text-[#5f6b7a]">
-                  Accept MTN MoMo, Vodafone Cash, and AirtelTigo Money. Automatic payment confirmation and reconciliation.
-                </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Mobile Money -->
+            <div class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all" data-reveal>
+              <div class="overflow-hidden">
+                <img
+                  src={~p"/images/landing/feature-mobile-money.jpg"}
+                  alt="Mobile money payment"
+                  class="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <div class="p-5">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="material-symbols-outlined text-xl text-[#d4a843]">account_balance_wallet</span>
+                  <h3 class="text-base font-bold text-[#0c1526]">Mobile Money</h3>
+                </div>
+                <p class="text-sm text-[#5f6b7a]">Accept MTN MoMo, Vodafone Cash, AirtelTigo</p>
               </div>
             </div>
-            <div
-              class="bg-[#f7f8fa] rounded-xl shadow-sm hover:shadow-md p-6 hover:-translate-y-1 transition-all"
-              data-reveal
-            >
-              <span class="material-symbols-outlined text-3xl text-[#2563eb] mb-4 block">
-                chat
-              </span>
-              <h3 class="text-lg font-semibold text-[#0c1526] mb-2">WhatsApp Notifications</h3>
-              <p class="text-sm text-[#5f6b7a]">
-                Order confirmations, shipping updates, and delivery alerts sent directly to your customers on WhatsApp.
-              </p>
-            </div>
-            
-    <!-- Row 2: Dashboard (1-col) + Multi-Store (2-col) -->
-            <div
-              class="bg-[#f7f8fa] rounded-xl shadow-sm hover:shadow-md p-6 hover:-translate-y-1 transition-all"
-              data-reveal
-            >
-              <span class="material-symbols-outlined text-3xl text-[#2563eb] mb-4 block">
-                dashboard
-              </span>
-              <h3 class="text-lg font-semibold text-[#0c1526] mb-2">Merchant Dashboard</h3>
-              <p class="text-sm text-[#5f6b7a]">
-                Track sales, orders, inventory, and customer analytics from a single dashboard.
-              </p>
-            </div>
-            <div
-              class="md:col-span-2 bg-[#f7f8fa] rounded-xl shadow-sm hover:shadow-md overflow-hidden hover:-translate-y-1 transition-all"
-              data-reveal
-            >
-              <img
-                src={~p"/images/landing/feature-multi-store.jpg"}
-                alt="Multiple market storefronts"
-                class="w-full h-40 object-cover"
-              />
-              <div class="p-6">
-                <span class="material-symbols-outlined text-3xl text-[#2563eb] mb-4 block">
-                  store
-                </span>
-                <h3 class="text-lg font-semibold text-[#0c1526] mb-2">Multi-Store Management</h3>
-                <p class="text-sm text-[#5f6b7a]">
-                  Run multiple stores from one account. Each store gets its own storefront, products, and settings.
-                </p>
+
+            <!-- WhatsApp -->
+            <div class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all" data-reveal>
+              <div class="overflow-hidden">
+                <img
+                  src={~p"/images/landing/feature-whatsapp.jpg"}
+                  alt="WhatsApp notifications"
+                  class="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <div class="p-5">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="material-symbols-outlined text-xl text-[#25D366]">chat</span>
+                  <h3 class="text-base font-bold text-[#0c1526]">WhatsApp Notifications</h3>
+                </div>
+                <p class="text-sm text-[#5f6b7a]">Order updates sent to customers</p>
               </div>
             </div>
-            
-    <!-- Row 3: Inventory (1-col) + Shipping (1-col) -->
-            <div
-              class="bg-[#f7f8fa] rounded-xl shadow-sm hover:shadow-md p-6 hover:-translate-y-1 transition-all"
-              data-reveal
-            >
-              <span class="material-symbols-outlined text-3xl text-[#2563eb] mb-4 block">
-                inventory_2
-              </span>
-              <h3 class="text-lg font-semibold text-[#0c1526] mb-2">Inventory Tracking</h3>
-              <p class="text-sm text-[#5f6b7a]">
-                Real-time stock levels. Low-stock alerts. Never oversell again.
-              </p>
+
+            <!-- Dashboard -->
+            <div class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all" data-reveal>
+              <div class="overflow-hidden">
+                <img
+                  src={~p"/images/landing/feature-dashboard.jpg"}
+                  alt="Merchant dashboard"
+                  class="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <div class="p-5">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="material-symbols-outlined text-xl text-[#2563eb]">dashboard</span>
+                  <h3 class="text-base font-bold text-[#0c1526]">Merchant Dashboard</h3>
+                </div>
+                <p class="text-sm text-[#5f6b7a]">See your sales, orders, customers</p>
+              </div>
             </div>
-            <div
-              class="bg-[#f7f8fa] rounded-xl shadow-sm hover:shadow-md p-6 hover:-translate-y-1 transition-all"
-              data-reveal
-            >
-              <span class="material-symbols-outlined text-3xl text-[#2563eb] mb-4 block">
-                local_shipping
-              </span>
-              <h3 class="text-lg font-semibold text-[#0c1526] mb-2">Shipping & Delivery</h3>
-              <p class="text-sm text-[#5f6b7a]">
-                Set delivery zones, shipping rates, and fulfillment methods for local and nationwide delivery.
-              </p>
+
+            <!-- Multi-Store -->
+            <div class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all" data-reveal>
+              <div class="overflow-hidden">
+                <img
+                  src={~p"/images/landing/feature-multi-store.jpg"}
+                  alt="Multiple stores"
+                  class="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <div class="p-5">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="material-symbols-outlined text-xl text-[#2563eb]">store</span>
+                  <h3 class="text-base font-bold text-[#0c1526]">Multi-Store Management</h3>
+                </div>
+                <p class="text-sm text-[#5f6b7a]">Run many stores from one account</p>
+              </div>
+            </div>
+
+            <!-- Inventory -->
+            <div class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all" data-reveal>
+              <div class="overflow-hidden">
+                <img
+                  src={~p"/images/landing/feature-inventory.jpg"}
+                  alt="Inventory tracking"
+                  class="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <div class="p-5">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="material-symbols-outlined text-xl text-[#2563eb]">inventory_2</span>
+                  <h3 class="text-base font-bold text-[#0c1526]">Inventory Tracking</h3>
+                </div>
+                <p class="text-sm text-[#5f6b7a]">Know your stock levels always</p>
+              </div>
+            </div>
+
+            <!-- Shipping -->
+            <div class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all" data-reveal>
+              <div class="overflow-hidden">
+                <img
+                  src={~p"/images/landing/feature-shipping.jpg"}
+                  alt="Shipping and delivery"
+                  class="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <div class="p-5">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="material-symbols-outlined text-xl text-[#2563eb]">local_shipping</span>
+                  <h3 class="text-base font-bold text-[#0c1526]">Shipping & Delivery</h3>
+                </div>
+                <p class="text-sm text-[#5f6b7a]">Deliver across Ghana</p>
+              </div>
             </div>
           </div>
         </div>
