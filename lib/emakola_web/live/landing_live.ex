@@ -149,10 +149,7 @@ defmodule EmakolaWeb.LandingLive do
       <!-- ============================================ -->
       <section class="min-h-screen flex flex-col lg:flex-row pt-16">
         <!-- Merchant Side (Dark) -->
-        <div
-          class="flex-1 flex items-center overflow-hidden bg-[#0c1526] bg-cover bg-center"
-          style={"background-image: linear-gradient(to bottom right, rgba(12,21,38,0.90), rgba(12,21,38,0.80), rgba(26,39,68,0.70)), url('#{~p"/images/landing/hero-merchant.jpg"}')"}
-        >
+        <div class="flex-1 flex items-center overflow-hidden bg-gradient-to-br from-[#0c1526] to-[#1a2744]">
           <div class="max-w-lg px-8 py-20 lg:py-24 lg:px-16">
             <span class="inline-block text-xs font-semibold tracking-[0.15em] uppercase text-[#d4a843] mb-4">
               FOR MERCHANTS
@@ -197,10 +194,7 @@ defmodule EmakolaWeb.LandingLive do
           </div>
         </div>
         <!-- Shopper Side (Light) -->
-        <div
-          class="flex-1 flex items-center overflow-hidden bg-[#f7f8fa] bg-cover bg-center"
-          style={"background-image: linear-gradient(to bottom left, rgba(247,248,250,0.90), rgba(247,248,250,0.80), rgba(247,248,250,0.75)), url('#{~p"/images/landing/hero-shopper.jpg"}')"}
-        >
+        <div class="flex-1 flex items-center overflow-hidden bg-gradient-to-bl from-[#f7f8fa] to-[#e8eaed]">
           <div class="max-w-lg px-8 py-20 lg:py-24 lg:px-16">
             <span class="inline-block text-xs font-semibold tracking-[0.15em] uppercase text-[#2563eb] mb-4">
               FOR SHOPPERS
