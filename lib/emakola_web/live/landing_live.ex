@@ -56,7 +56,7 @@ defmodule EmakolaWeb.LandingLive do
           <div class="flex items-center justify-between h-16">
             <!-- Logo -->
             <a href="/" class="flex items-center gap-2">
-              <img src={~p"/images/logo.svg"} alt="Emakola" class="h-8 w-auto" />
+              <img src={~p"/images/emakola-logo.svg"} alt="Emakola" class="h-8 w-auto" />
               <span class="text-xl font-headline font-bold text-[#f1f5f9]">Emakola</span>
             </a>
             <!-- Desktop Nav Links -->

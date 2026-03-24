@@ -25,9 +25,7 @@ defmodule EmakolaWeb.Auth.RegisterLive do
         <!-- Top: Brand -->
         <div class="relative z-10">
           <div class="flex items-center gap-2">
-            <div class="w-9 h-9 rounded-lg bg-[#d4a843] flex items-center justify-center">
-              <span class="material-symbols-outlined text-[#0c1526] text-xl">storefront</span>
-            </div>
+            <img src={~p"/images/emakola-logo.svg"} alt="Emakola" class="h-9 w-auto" />
             <span class="text-[#f1f5f9] text-xl font-bold tracking-tight">Emakola</span>
           </div>
         </div>
@@ -66,9 +64,7 @@ defmodule EmakolaWeb.Auth.RegisterLive do
         <div class="w-full max-w-md">
           <!-- Mobile brand (visible on small screens) -->
           <div class="lg:hidden flex items-center justify-center gap-2 mb-8">
-            <div class="w-8 h-8 rounded-lg bg-[#d4a843] flex items-center justify-center">
-              <span class="material-symbols-outlined text-[#0c1526] text-lg">storefront</span>
-            </div>
+            <img src={~p"/images/emakola-logo.svg"} alt="Emakola" class="h-8 w-auto" />
             <span class="text-[#0c1526] text-lg font-bold tracking-tight">Emakola</span>
           </div>
           <!-- Heading -->
