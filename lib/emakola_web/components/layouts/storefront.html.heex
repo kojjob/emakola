@@ -1,4 +1,32 @@
-<div class="min-h-screen flex flex-col bg-[#FAFAF9] text-[#0F172A] font-[Inter,system-ui,-apple-system,sans-serif] antialiased">
+<%!-- Theme font loading --%>
+<link :if={assigns[:theme_fonts]} rel="preconnect" href="https://fonts.googleapis.com" />
+<link
+  :if={assigns[:theme_fonts]}
+  rel="preconnect"
+  href="https://fonts.gstatic.com"
+  crossorigin=""
+/>
+<link :if={assigns[:theme_fonts]} rel="stylesheet" href={@theme_fonts.url} />
+
+<%!-- Theme CSS variables injection --%>
+<style :if={assigns[:theme]}>
+  :root {
+    --theme-primary: <%= @theme.colors.primary %>;
+    --theme-secondary: <%= @theme.colors.secondary %>;
+    --theme-accent: <%= @theme.colors.accent %>;
+    --theme-background: <%= @theme.colors.background %>;
+    --theme-text: <%= @theme.colors.text %>;
+  }
+</style>
+
+<div
+  class="min-h-screen flex flex-col bg-[#FAFAF9] text-[#0F172A] font-[Inter,system-ui,-apple-system,sans-serif] antialiased"
+  style={
+    if assigns[:theme_fonts],
+      do: "font-family: #{@theme_fonts.body}, system-ui, -apple-system, sans-serif",
+      else: nil
+  }
+>
   <!-- Top Bar -->
   <header class="sticky top-0 z-50 bg-white border-b border-[#E2E8F0]">
     <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">

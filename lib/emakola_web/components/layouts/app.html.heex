@@ -211,7 +211,9 @@
         id="sidebar-user-menu"
       >
         <button
-          phx-click={JS.toggle(to: "#sidebar-user-popover")}
+          phx-click={
+            JS.toggle(to: "#sidebar-user-popover") |> JS.toggle(to: "#sidebar-user-backdrop")
+          }
           class="w-full flex items-center gap-3 px-3 py-2.5 bg-white/[0.04] rounded-xl cursor-pointer hover:bg-white/[0.07] transition-colors"
         >
           <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-[11px] font-bold text-white ring-2 ring-emerald-500/20 shrink-0 overflow-hidden">
@@ -249,10 +251,17 @@
     </div>
   </aside>
 
+  <%!-- Backdrop to close user popover on outside click --%>
+  <div
+    id="sidebar-user-backdrop"
+    phx-click={JS.hide(to: "#sidebar-user-popover") |> JS.hide(to: "#sidebar-user-backdrop")}
+    class="hidden fixed inset-0 z-[199]"
+  >
+  </div>
+
   <%!-- User popover menu — OUTSIDE sidebar to avoid overflow-hidden + transform clipping --%>
   <div
     id="sidebar-user-popover"
-    phx-click-away={JS.hide(to: "#sidebar-user-popover")}
     class="hidden fixed bottom-20 left-3 w-56 bg-[#1a2e22] rounded-xl border border-white/[0.08] shadow-2xl overflow-hidden z-[200]"
   >
     <%!-- Store info --%>
