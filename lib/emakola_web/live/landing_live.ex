@@ -150,23 +150,25 @@ defmodule EmakolaWeb.LandingLive do
       <section class="min-h-screen flex flex-col lg:flex-row pt-16">
         <!-- Merchant Side (Dark) -->
         <div class="flex-1 flex items-center overflow-hidden bg-gradient-to-br from-[#0c1526] to-[#1a2744]">
-          <div class="max-w-lg px-8 py-20 lg:py-24 lg:px-16">
-            <span class="inline-block text-xs font-semibold tracking-[0.15em] uppercase text-[#d4a843] mb-4">
+          <div class="max-w-xl px-8 py-16 lg:py-20 lg:px-16">
+            <span class="inline-block text-xs font-semibold tracking-[0.15em] uppercase text-[#d4a843] mb-3">
               FOR MERCHANTS
             </span>
-            <h1 class="text-4xl lg:text-5xl font-headline font-bold text-[#f1f5f9] leading-tight mb-4">
+            <h1 class="text-3xl lg:text-4xl font-headline font-bold text-[#f1f5f9] leading-tight mb-3">
               Launch Your Online Store in Ghana
             </h1>
-            <p class="text-base text-[#8896ab] mb-8 max-w-md">
+            <p class="text-sm text-[#8896ab] mb-5 max-w-md">
               Accept MTN MoMo, Vodafone Cash, and card payments. Notify customers on WhatsApp.
               Manage everything from one dashboard.
             </p>
-            <div class="flex flex-wrap gap-3 mb-8">
+
+            <!-- CTA Buttons -->
+            <div class="flex flex-wrap gap-3 mb-5">
               <a
                 href="/auth/register"
-                class="inline-flex items-center px-6 py-3 text-sm font-semibold text-white bg-[#2563eb] rounded-lg hover:bg-[#1d4ed8] transition-colors focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1526]"
+                class="inline-flex items-center px-6 py-3 text-sm font-semibold text-[#0c1526] bg-[#d4a843] rounded-lg hover:bg-[#c49a3a] transition-colors focus-visible:ring-2 focus-visible:ring-[#d4a843] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1526]"
               >
-                Start Selling
+                Start Selling — Free
               </a>
               <a
                 href="#features"
@@ -175,20 +177,54 @@ defmodule EmakolaWeb.LandingLive do
                 Watch Demo
               </a>
             </div>
+
+            <!-- Mini Dashboard Preview -->
+            <div class="bg-[#0c1526]/60 backdrop-blur-sm rounded-xl p-4 max-w-sm mb-5">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs text-[#8896ab]">Your Dashboard</span>
+                <span class="text-[10px] text-[#d4a843] font-medium">Live Preview</span>
+              </div>
+              <div class="grid grid-cols-3 gap-2 mb-3">
+                <div class="bg-[#1a2744] rounded-lg p-2.5 text-center">
+                  <p class="text-lg font-bold text-[#d4a843]">GHS 2,450</p>
+                  <p class="text-[10px] text-[#8896ab]">Today's Sales</p>
+                </div>
+                <div class="bg-[#1a2744] rounded-lg p-2.5 text-center">
+                  <p class="text-lg font-bold text-[#f1f5f9]">24</p>
+                  <p class="text-[10px] text-[#8896ab]">Orders</p>
+                </div>
+                <div class="bg-[#1a2744] rounded-lg p-2.5 text-center">
+                  <p class="text-lg font-bold text-[#f1f5f9]">156</p>
+                  <p class="text-[10px] text-[#8896ab]">Customers</p>
+                </div>
+              </div>
+              <!-- Recent order row -->
+              <div class="flex items-center justify-between bg-[#1a2744] rounded-lg px-3 py-2">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-sm text-[#25D366]">check_circle</span>
+                  <span class="text-xs text-[#f1f5f9]">New order from Accra</span>
+                </div>
+                <span class="text-xs font-bold text-[#d4a843]">GHS 85</span>
+              </div>
+            </div>
+
             <!-- Payment Provider Badges -->
-            <div class="flex flex-wrap gap-3">
-              <div class="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[#1a2744] bg-[#0c1526]/50 text-xs text-[#8896ab]">
-                <span class="material-symbols-outlined text-base">account_balance_wallet</span>
+            <div class="flex flex-wrap gap-2">
+              <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1a2744]/60 text-[10px] text-[#8896ab]">
+                <span class="material-symbols-outlined text-sm">account_balance_wallet</span>
                 MTN MoMo
               </div>
-              <div class="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[#1a2744] bg-[#0c1526]/50 text-xs text-[#8896ab]">
-                <span class="material-symbols-outlined text-base">payments</span> Vodafone Cash
+              <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1a2744]/60 text-[10px] text-[#8896ab]">
+                <span class="material-symbols-outlined text-sm">payments</span>
+                Vodafone Cash
               </div>
-              <div class="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[#1a2744] bg-[#0c1526]/50 text-xs text-[#8896ab]">
-                <span class="material-symbols-outlined text-base">credit_card</span> Paystack
+              <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1a2744]/60 text-[10px] text-[#8896ab]">
+                <span class="material-symbols-outlined text-sm">credit_card</span>
+                Paystack
               </div>
-              <div class="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[#1a2744] bg-[#0c1526]/50 text-xs text-[#8896ab]">
-                <span class="material-symbols-outlined text-base">storefront</span> Hubtel
+              <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1a2744]/60 text-[10px] text-[#8896ab]">
+                <span class="material-symbols-outlined text-sm">storefront</span>
+                Hubtel
               </div>
             </div>
           </div>
