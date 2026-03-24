@@ -21,9 +21,9 @@ defmodule EmakolaWeb.Auth.LoginLive do
           <img
             src={~p"/images/landing/hero-merchant.jpg"}
             alt=""
-            class="w-full h-full object-cover opacity-20"
+            class="w-full h-full object-cover"
           />
-          <div class="absolute inset-0 bg-gradient-to-t from-[#0c1526] via-[#0c1526]/80 to-[#0c1526]/60">
+          <div class="absolute inset-0 bg-gradient-to-t from-[#0c1526]/95 via-[#0c1526]/80 to-[#0c1526]/65">
           </div>
         </div>
         <!-- Top: Brand -->
