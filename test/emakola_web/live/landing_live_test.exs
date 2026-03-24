@@ -120,11 +120,13 @@ defmodule EmakolaWeb.LandingLiveTest do
       assert html =~ "Online Stores for Ghana"
     end
 
-    test "hero images are referenced", %{conn: conn} do
+    test "hero sections have solid gradient backgrounds", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/")
 
-      assert html =~ "hero-merchant.jpg"
-      assert html =~ "hero-shopper.jpg"
+      assert html =~ "FOR MERCHANTS"
+      assert html =~ "FOR SHOPPERS"
+      assert html =~ "bg-gradient-to-br"
+      assert html =~ "bg-gradient-to-bl"
     end
 
     test "testimonial images are referenced", %{conn: conn} do
