@@ -26,6 +26,10 @@ defmodule EmakolaWeb.Plugs.RateLimiter do
   end
 
   def call(conn, %{limit: limit, window_ms: window_ms}) do
+    do_rate_limit(conn, limit, window_ms)
+  end
+
+  defp do_rate_limit(conn, limit, window_ms) do
     key = rate_limit_key(conn)
 
     case check_rate(key, limit, window_ms) do
@@ -44,16 +48,47 @@ defmodule EmakolaWeb.Plugs.RateLimiter do
         |> put_resp_header("retry-after", to_string(retry_after))
         |> put_resp_header("x-ratelimit-limit", to_string(limit))
         |> put_resp_header("x-ratelimit-remaining", "0")
-        |> put_resp_header("content-type", "application/json")
-        |> send_resp(
-          429,
-          Jason.encode!(%{
-            error: "rate_limit_exceeded",
-            message: "Too many requests. Please retry after #{retry_after} seconds.",
-            retry_after: retry_after
-          })
-        )
+        |> send_rate_limit_response(retry_after)
         |> halt()
+    end
+  end
+
+  defp send_rate_limit_response(conn, retry_after) do
+    if accepts_html?(conn) do
+      conn
+      |> put_resp_header("content-type", "text/html; charset=utf-8")
+      |> send_resp(
+        429,
+        """
+        <!DOCTYPE html>
+        <html>
+        <head><title>Too Many Requests</title></head>
+        <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+          <h1>Too Many Requests</h1>
+          <p>You have made too many requests. Please try again in #{retry_after} seconds.</p>
+          <p><a href="javascript:history.back()">Go back</a></p>
+        </body>
+        </html>
+        """
+      )
+    else
+      conn
+      |> put_resp_header("content-type", "application/json")
+      |> send_resp(
+        429,
+        Jason.encode!(%{
+          error: "rate_limit_exceeded",
+          message: "Too many requests. Please retry after #{retry_after} seconds.",
+          retry_after: retry_after
+        })
+      )
+    end
+  end
+
+  defp accepts_html?(conn) do
+    case get_req_header(conn, "accept") do
+      [accept | _] -> String.contains?(accept, "text/html")
+      _ -> false
     end
   end
 

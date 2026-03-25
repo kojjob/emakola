@@ -14,14 +14,16 @@ defmodule Emakola.FeatureFlags.FeatureFlag do
     attribute :key, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :name, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
-    attribute(:description, :string, public?: true)
+    attribute(:description, :string, public?: true, constraints: [max_length: 1_000])
 
     attribute :enabled, :boolean do
       default(true)
@@ -29,7 +31,7 @@ defmodule Emakola.FeatureFlags.FeatureFlag do
       public?(true)
     end
 
-    attribute(:required_plan, :string, public?: true)
+    attribute(:required_plan, :string, public?: true, constraints: [max_length: 255])
 
     attribute(:metadata, :map, default: %{}, public?: true)
 

@@ -14,6 +14,7 @@ defmodule Emakola.Analytics.AppEvent do
     attribute :event_name, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute(:actor_id, :uuid, public?: true)

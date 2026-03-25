@@ -30,14 +30,17 @@ defmodule Emakola.Customers.Customer do
     attribute :email, :ci_string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 320)
     end
 
     attribute :name, :string do
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :phone, :string do
       public?(true)
+      constraints(max_length: 20)
     end
 
     attribute :tags, {:array, :string} do
@@ -74,8 +77,18 @@ defmodule Emakola.Customers.Customer do
   end
 
   policies do
-    policy always() do
+    bypass action_type(:read) do
       authorize_if(always())
+    end
+
+    # Internal/system calls (nil actor) are allowed
+    bypass always() do
+      authorize_unless(actor_present())
+    end
+
+    # Merchant actors: verify store membership for writes
+    policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
+      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
   end
 

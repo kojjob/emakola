@@ -42,6 +42,7 @@ defmodule Emakola.Accounts.User do
     attribute :email, :ci_string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 320)
     end
 
     attribute :hashed_password, :string do
@@ -49,9 +50,9 @@ defmodule Emakola.Accounts.User do
       sensitive?(true)
     end
 
-    attribute(:name, :string, public?: true)
+    attribute(:name, :string, public?: true, constraints: [max_length: 255])
 
-    attribute(:avatar_url, :string, public?: true)
+    attribute(:avatar_url, :string, public?: true, constraints: [max_length: 2_048])
 
     attribute(:preferences, :map, default: %{}, public?: true)
 
@@ -77,12 +78,20 @@ defmodule Emakola.Accounts.User do
       authorize_if(always())
     end
 
-    # TODO: Tighten update/destroy policies once all call sites pass actor:
-    # policy action_type([:update, :destroy]) do
-    #   authorize_if expr(id == ^actor(:id))
-    # end
-    policy always() do
+    bypass action(:register_with_password) do
       authorize_if(always())
+    end
+
+    bypass action_type(:read) do
+      authorize_if(always())
+    end
+
+    bypass always() do
+      authorize_unless(actor_present())
+    end
+
+    policy action_type([:update, :destroy]) do
+      authorize_if(expr(id == ^actor(:id)))
     end
   end
 

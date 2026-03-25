@@ -5,8 +5,6 @@ defmodule EmakolaWeb.PWATest do
   """
   use EmakolaWeb.ConnCase, async: true
 
-  @moduletag :pending
-
   describe "manifest.json" do
     test "is accessible and returns valid JSON", %{conn: conn} do
       conn = get(conn, "/manifest.json")
@@ -122,12 +120,12 @@ defmodule EmakolaWeb.PWATest do
       assert body =~ "apple-mobile-web-app-capable"
     end
 
-    test "root layout includes service worker registration script", %{conn: conn} do
+    test "root layout includes app.js which handles service worker registration", %{conn: conn} do
       conn = get(conn, "/")
       body = html_response(conn, 200)
 
-      assert body =~ "serviceWorker"
-      assert body =~ "sw.js"
+      # Service worker registration moved from inline script to bundled app.js
+      assert body =~ "app.js"
     end
   end
 

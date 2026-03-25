@@ -27,12 +27,21 @@ defmodule Emakola.Notifications.Emails.OrderEmail do
     A `%Swoosh.Email{}` ready for `Emakola.Mailer.deliver/1`.
   """
   def order_confirmation(order, customer, store) do
-    new()
-    |> to({customer.name || "", to_string(customer.email)})
-    |> from(EmailHelpers.from_address(store))
-    |> subject("Order Confirmed — #{order.order_number}")
-    |> html_body(confirmation_html(order, customer, store))
-    |> text_body(confirmation_text(order, customer, store))
+    email_address = to_string(customer.email)
+
+    base =
+      new()
+      |> from(EmailHelpers.from_address(store))
+      |> subject("Order Confirmed — #{order.order_number}")
+      |> html_body(confirmation_html(order, customer, store))
+      |> text_body(confirmation_text(order, customer, store))
+
+    if email_address != "" do
+      to(base, {customer.name || "", email_address})
+    else
+      # Caller must validate before sending — set to as raw list so struct builds
+      %{base | to: [{customer.name || "", nil}]}
+    end
   end
 
   # ── HTML template ────────────────────────────────────────────────

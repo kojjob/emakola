@@ -14,21 +14,25 @@ defmodule Emakola.Billing.Plan do
     attribute :name, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :slug, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :stripe_product_id, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :stripe_price_id, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :price_cents, :integer do
@@ -47,6 +51,7 @@ defmodule Emakola.Billing.Plan do
     attribute :features, {:array, :string} do
       default([])
       public?(true)
+      constraints(items: [max_length: 255])
     end
 
     attribute(:max_seats, :integer, default: 5, public?: true)

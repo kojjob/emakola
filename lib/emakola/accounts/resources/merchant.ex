@@ -42,6 +42,7 @@ defmodule Emakola.Accounts.Merchant do
     attribute :email, :ci_string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 320)
     end
 
     attribute :hashed_password, :string do
@@ -49,13 +50,13 @@ defmodule Emakola.Accounts.Merchant do
       sensitive?(true)
     end
 
-    attribute(:name, :string, public?: true)
+    attribute(:name, :string, public?: true, constraints: [max_length: 255])
 
-    attribute(:phone, :string, public?: true)
+    attribute(:phone, :string, public?: true, constraints: [max_length: 20])
 
-    attribute(:business_name, :string, public?: true)
+    attribute(:business_name, :string, public?: true, constraints: [max_length: 255])
 
-    attribute(:avatar_url, :string, public?: true)
+    attribute(:avatar_url, :string, public?: true, constraints: [max_length: 2_048])
 
     attribute(:preferences, :map, default: %{}, public?: true)
 
@@ -77,16 +78,29 @@ defmodule Emakola.Accounts.Merchant do
   end
 
   policies do
+    # Authentication interactions (login, register, etc.) always allowed
     bypass AshAuthentication.Checks.AshAuthenticationInteraction do
       authorize_if(always())
     end
 
-    # TODO: Tighten update/destroy policies once all call sites pass actor:
-    # policy action_type([:update, :destroy]) do
-    #   authorize_if expr(id == ^actor(:id))
-    # end
-    policy always() do
+    # Registration allowed without actor (factory/internal calls)
+    bypass action(:register_with_password) do
       authorize_if(always())
+    end
+
+    # Reads are open (needed for internal lookups, auth flows)
+    bypass action_type(:read) do
+      authorize_if(always())
+    end
+
+    # Internal/system calls (nil actor) are allowed
+    bypass always() do
+      authorize_unless(actor_present())
+    end
+
+    # Merchants can update/destroy only their own records
+    policy action_type([:update, :destroy]) do
+      authorize_if(expr(id == ^actor(:id)))
     end
   end
 

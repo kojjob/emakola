@@ -8,12 +8,18 @@ defmodule EmakolaWeb.Router do
     plug :put_root_layout, html: {EmakolaWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug EmakolaWeb.Plugs.ContentSecurityPolicy
     plug EmakolaWeb.Plugs.CartSession
   end
 
   pipeline :api do
     plug :accepts, ["json"]
     plug EmakolaWeb.Plugs.RateLimiter, limit: 100, window_ms: 60_000
+  end
+
+  # Stricter rate limiting for authentication endpoints to prevent brute-force attacks
+  pipeline :auth_rate_limit do
+    plug EmakolaWeb.Plugs.RateLimiter, limit: 10, window_ms: 60_000
   end
 
   # Health check — required by Docker/fly.toml for deployment readiness
@@ -30,15 +36,21 @@ defmodule EmakolaWeb.Router do
   end
 
   # Auth session controller (sets/clears session cookie)
+  # GET /session creates a session from a token — rate limited (brute-force vector)
+  scope "/auth", EmakolaWeb do
+    pipe_through [:browser, :auth_rate_limit]
+    get "/session", AuthSessionController, :create
+  end
+
+  # DELETE /session is logout — no rate limiting needed (not a brute-force vector)
   scope "/auth", EmakolaWeb do
     pipe_through :browser
-    get "/session", AuthSessionController, :create
     delete "/session", AuthSessionController, :delete
   end
 
   # Auth routes (no layout — full-page auth screens)
   scope "/auth", EmakolaWeb.Auth do
-    pipe_through :browser
+    pipe_through [:browser, :auth_rate_limit]
     live "/login", LoginLive
     live "/register", RegisterLive
   end

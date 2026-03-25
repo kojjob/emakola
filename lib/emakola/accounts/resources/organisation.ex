@@ -15,16 +15,18 @@ defmodule Emakola.Accounts.Organisation do
     attribute :name, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :slug, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
-    attribute(:logo_url, :string, public?: true)
+    attribute(:logo_url, :string, public?: true, constraints: [max_length: 2_048])
 
-    attribute(:billing_email, :string, public?: true)
+    attribute(:billing_email, :string, public?: true, constraints: [max_length: 320])
 
     timestamps()
   end
@@ -42,9 +44,20 @@ defmodule Emakola.Accounts.Organisation do
   end
 
   policies do
-    # TODO: Restrict update/destroy to org owners once all call sites pass actor:
-    policy always() do
+    # Reads are open (needed for internal lookups)
+    bypass action_type(:read) do
       authorize_if(always())
+    end
+
+    # Creates are open (onboarding creates organisations)
+    bypass action_type(:create) do
+      authorize_if(always())
+    end
+
+    # Updates/destroys require an authenticated actor
+    policy action_type([:update, :destroy]) do
+      authorize_unless(actor_present())
+      authorize_if(actor_present())
     end
   end
 

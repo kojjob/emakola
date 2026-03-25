@@ -35,6 +35,7 @@ defmodule Emakola.Orders.Order do
     attribute :order_number, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 50)
     end
 
     attribute :status, :atom do
@@ -60,10 +61,12 @@ defmodule Emakola.Orders.Order do
       default("GHS")
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 3)
     end
 
     attribute :notes, :string do
       public?(true)
+      constraints(max_length: 5_000)
     end
 
     attribute :shipping_address, :map do
@@ -96,8 +99,18 @@ defmodule Emakola.Orders.Order do
   end
 
   policies do
-    policy always() do
+    bypass action_type(:read) do
       authorize_if(always())
+    end
+
+    # Internal/system calls (nil actor) are allowed
+    bypass always() do
+      authorize_unless(actor_present())
+    end
+
+    # Merchant actors: verify store membership for writes
+    policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
+      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
   end
 

@@ -30,15 +30,18 @@ defmodule Emakola.Catalog.Category do
     attribute :name, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :slug, :string do
       allow_nil?(false)
       public?(true)
+      constraints(max_length: 255)
     end
 
     attribute :description, :string do
       public?(true)
+      constraints(max_length: 5_000)
     end
 
     attribute :parent_id, :uuid do
@@ -77,8 +80,18 @@ defmodule Emakola.Catalog.Category do
   end
 
   policies do
-    policy always() do
+    bypass action_type(:read) do
       authorize_if(always())
+    end
+
+    # Internal/system calls (nil actor) are allowed
+    bypass always() do
+      authorize_unless(actor_present())
+    end
+
+    # Merchant actors: verify store membership for writes
+    policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
+      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
   end
 

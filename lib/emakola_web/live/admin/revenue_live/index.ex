@@ -678,7 +678,7 @@ defmodule EmakolaWeb.Admin.RevenueLive.Index do
       <div class="min-w-0">
         <p class="text-sm font-medium text-slate-700 truncate">{@name}</p>
         <p class="text-xs text-slate-400 font-mono">
-          {@pct} &middot; {raw(@amount)}
+          {@pct} &middot; {@amount}
         </p>
       </div>
     </div>
@@ -700,7 +700,7 @@ defmodule EmakolaWeb.Admin.RevenueLive.Index do
           <span class="text-sm font-medium text-slate-700">{@name}</span>
         </div>
         <div class="text-right">
-          <span class="text-sm font-mono font-semibold text-slate-800">{raw(@amount)}</span>
+          <span class="text-sm font-mono font-semibold text-slate-800">{@amount}</span>
           <span class="text-xs text-slate-400 ml-2">{@pct}</span>
         </div>
       </div>
