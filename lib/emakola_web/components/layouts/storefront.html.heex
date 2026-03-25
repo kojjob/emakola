@@ -1,29 +1,28 @@
 <%!-- Theme font loading --%>
-<link :if={assigns[:theme_fonts]} rel="preconnect" href="https://fonts.googleapis.com" />
-<link
-  :if={assigns[:theme_fonts]}
-  rel="preconnect"
-  href="https://fonts.gstatic.com"
-  crossorigin=""
-/>
-<link :if={assigns[:theme_fonts]} rel="stylesheet" href={@theme_fonts.url} />
+<%= if assigns[:theme_fonts] && is_list(assigns[:theme_fonts]) do %>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+  <%= for font_url <- @theme_fonts do %>
+    <link rel="stylesheet" href={font_url} />
+  <% end %>
+<% end %>
 
 <%!-- Theme CSS variables injection --%>
-<style :if={assigns[:theme]}>
-  :root {
-    --theme-primary: <%= @theme.colors.primary %>;
-    --theme-secondary: <%= @theme.colors.secondary %>;
-    --theme-accent: <%= @theme.colors.accent %>;
-    --theme-background: <%= @theme.colors.background %>;
-    --theme-text: <%= @theme.colors.text %>;
-  }
-</style>
+<%= if assigns[:theme] do %>
+  <style>
+    :root {
+      --theme-primary: <%= @theme.colors[:primary] || "#2563EB" %>;
+      --theme-accent: <%= @theme.colors[:accent] || "#0F172A" %>;
+      --theme-bg: <%= @theme.colors[:background] || "#FFFFFF" %>;
+    }
+  </style>
+<% end %>
 
 <div
   class="min-h-screen flex flex-col bg-[#FAFAF9] text-[#0F172A] font-[Inter,system-ui,-apple-system,sans-serif] antialiased"
   style={
-    if assigns[:theme_fonts],
-      do: "font-family: #{@theme_fonts.body}, system-ui, -apple-system, sans-serif",
+    if assigns[:theme] && assigns[:theme][:fonts],
+      do: "font-family: '#{assigns[:theme][:fonts][:body]}', system-ui, -apple-system, sans-serif",
       else: nil
   }
 >
