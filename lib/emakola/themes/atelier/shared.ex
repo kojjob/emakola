@@ -65,7 +65,7 @@ defmodule Emakola.Themes.Atelier.Shared do
     <nav
       id="atelier-navbar"
       class={"fixed top-0 left-0 right-0 z-50 transition-all duration-500" <> unless(@transparent, do: " atelier-nav-scrolled", else: "")}
-      phx-hook="AtelierNavScroll"
+      phx-hook="ScrollGlass"
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-20">
