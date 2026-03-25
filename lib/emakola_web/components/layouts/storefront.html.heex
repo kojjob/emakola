@@ -26,8 +26,8 @@
       else: nil
   }
 >
-  <!-- Top Bar -->
-  <header class="sticky top-0 z-50 bg-white border-b border-[#E2E8F0]">
+  <!-- Top Bar (hidden when theme provides its own nav) -->
+  <header :if={!assigns[:theme_module] || assigns[:theme_module] == Emakola.Themes.Market} class="sticky top-0 z-50 bg-white border-b border-[#E2E8F0]">
     <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-14 sm:h-16">
         <!-- Store info -->
@@ -118,9 +118,9 @@
     {@inner_content}
   </main>
   
-<!-- WhatsApp FAB -->
+<!-- WhatsApp FAB (hidden when theme provides its own) -->
   <a
-    :if={assigns[:store]}
+    :if={assigns[:store] && (!assigns[:theme_module] || assigns[:theme_module] == Emakola.Themes.Market)}
     href={"https://wa.me/?text=Hi%20#{URI.encode(@store.name)}"}
     target="_blank"
     rel="noopener noreferrer"
@@ -132,8 +132,8 @@
     </svg>
   </a>
   
-<!-- Footer -->
-  <footer class="bg-white border-t border-[#E2E8F0] mt-auto">
+<!-- Footer (hidden when theme provides its own footer) -->
+  <footer :if={!assigns[:theme_module] || assigns[:theme_module] == Emakola.Themes.Market} class="bg-white border-t border-[#E2E8F0] mt-auto">
     <div class="max-w-[1280px] mx-auto px-4 sm:px-6 py-8 pb-24 text-center">
       <p :if={assigns[:store]} class="text-[0.9375rem] font-semibold text-[#0F172A] mb-1">
         {@store.name}
