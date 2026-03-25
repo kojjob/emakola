@@ -26,6 +26,10 @@ defmodule EmakolaWeb.Plugs.RateLimiter do
   end
 
   def call(conn, %{limit: limit, window_ms: window_ms}) do
+    do_rate_limit(conn, limit, window_ms)
+  end
+
+  defp do_rate_limit(conn, limit, window_ms) do
     key = rate_limit_key(conn)
 
     case check_rate(key, limit, window_ms) do

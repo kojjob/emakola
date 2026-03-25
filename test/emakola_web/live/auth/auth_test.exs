@@ -1,7 +1,13 @@
 defmodule EmakolaWeb.Auth.AuthTest do
-  use EmakolaWeb.ConnCase, async: true
+  use EmakolaWeb.ConnCase, async: false
   import Phoenix.LiveViewTest
   import Emakola.Factory
+
+  setup %{conn: conn} do
+    # Use a unique remote_ip per test run to avoid Hammer rate limit collisions
+    unique_ip = {10, 99, :rand.uniform(255), :rand.uniform(255)}
+    {:ok, conn: %{conn | remote_ip: unique_ip}}
+  end
 
   describe "Login page" do
     test "renders login form", %{conn: conn} do

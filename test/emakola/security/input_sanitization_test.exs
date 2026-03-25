@@ -166,7 +166,7 @@ defmodule Emakola.InputSanitizationTest do
         |> Ash.create()
 
       assert {:ok, customer} = result
-      assert customer.email == "first.last@example.co.gh"
+      assert to_string(customer.email) == "first.last@example.co.gh"
     end
 
     test "email with SQL injection attempt is handled safely", %{store: store} do
@@ -189,7 +189,7 @@ defmodule Emakola.InputSanitizationTest do
 
         {:ok, customer} ->
           # If stored, it's safely parameterized
-          assert customer.email == malicious_email
+          assert to_string(customer.email) == malicious_email
       end
     end
 
@@ -212,7 +212,7 @@ defmodule Emakola.InputSanitizationTest do
 
         {:ok, customer} ->
           # If stored, it's safely escaped on render
-          assert customer.email == xss_email
+          assert to_string(customer.email) == xss_email
       end
     end
   end

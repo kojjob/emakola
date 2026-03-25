@@ -59,6 +59,8 @@ defmodule Emakola.Factory do
 
   # ── Store ─────────────────────────────────────────────────────
 
+  @store_create_fields ~w(name slug currency)a
+
   def create_store!(attrs \\ %{}) do
     default = %{
       name: "Test Store #{System.unique_integer([:positive])}",
@@ -67,10 +69,20 @@ defmodule Emakola.Factory do
     }
 
     params = Map.merge(default, Map.new(attrs))
+    {create_params, settings_params} = Map.split(params, @store_create_fields)
 
-    Emakola.Accounts.Store
-    |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    store =
+      Emakola.Accounts.Store
+      |> Ash.Changeset.for_create(:create, create_params)
+      |> Ash.create!()
+
+    if settings_params == %{} do
+      store
+    else
+      store
+      |> Ash.Changeset.for_update(:update_settings, settings_params)
+      |> Ash.update!()
+    end
   end
 
   def create_store_membership!(merchant, store, role \\ :staff) do
@@ -99,16 +111,29 @@ defmodule Emakola.Factory do
   end
 
   def create_product!(store, attrs \\ %{}) do
+    attrs = Map.new(attrs)
+    {status, attrs} = Map.pop(attrs, :status)
+
     default = %{
       title: "Test Product #{System.unique_integer([:positive])}",
       store_id: store.id
     }
 
-    params = Map.merge(default, Map.new(attrs))
+    params = Map.merge(default, attrs)
 
-    Emakola.Catalog.Product
-    |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    product =
+      Emakola.Catalog.Product
+      |> Ash.Changeset.for_create(:create, params)
+      |> Ash.create!()
+
+    if status do
+      product
+      |> Ash.Changeset.for_update(:update, %{})
+      |> Ash.Changeset.force_change_attribute(:status, status)
+      |> Ash.update!()
+    else
+      product
+    end
   end
 
   def create_option_type!(product, store, attrs \\ %{}) do
@@ -255,6 +280,9 @@ defmodule Emakola.Factory do
   # ── Images ──────────────────────────────────────────────────
 
   def create_image!(product, store, attrs \\ %{}) do
+    attrs = Map.new(attrs)
+    {position, attrs} = Map.pop(attrs, :position)
+
     default = %{
       url: "https://s3.example.com/test/#{System.unique_integer([:positive])}.jpg",
       content_type: "image/jpeg",
@@ -263,11 +291,20 @@ defmodule Emakola.Factory do
       store_id: store.id
     }
 
-    params = Map.merge(default, Map.new(attrs))
+    params = Map.merge(default, attrs)
 
-    Emakola.Catalog.Image
-    |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    image =
+      Emakola.Catalog.Image
+      |> Ash.Changeset.for_create(:create, params)
+      |> Ash.create!()
+
+    if position do
+      image
+      |> Ash.Changeset.for_update(:update, %{position: position})
+      |> Ash.update!()
+    else
+      image
+    end
   end
 
   # ── Customers ────────────────────────────────────────────────────
@@ -289,15 +326,28 @@ defmodule Emakola.Factory do
   # ── Orders ───────────────────────────────────────────────────────
 
   def create_order!(store, attrs \\ %{}) do
+    attrs = Map.new(attrs)
+    {status, attrs} = Map.pop(attrs, :status)
+
     default = %{
       store_id: store.id
     }
 
-    params = Map.merge(default, Map.new(attrs))
+    params = Map.merge(default, attrs)
 
-    Emakola.Orders.Order
-    |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    order =
+      Emakola.Orders.Order
+      |> Ash.Changeset.for_create(:create, params)
+      |> Ash.create!()
+
+    if status do
+      order
+      |> Ash.Changeset.for_update(:update, %{})
+      |> Ash.Changeset.force_change_attribute(:status, status)
+      |> Ash.update!()
+    else
+      order
+    end
   end
 
   # ── Payments ──────────────────────────────────────────────────────

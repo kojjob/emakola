@@ -10,6 +10,14 @@ defmodule Emakola.Performance.NPlusOneTest do
 
   @moduletag :performance
 
+  # Convert string UUIDs to binary for raw Postgrex queries
+  defp dump_uuid(uuid) when is_binary(uuid) and byte_size(uuid) == 36 do
+    {:ok, bin} = Ecto.UUID.dump(uuid)
+    bin
+  end
+
+  defp dump_uuid(val), do: val
+
   # ── Query Counter via Ecto Telemetry ─────────────────────────────
 
   defp start_query_counter do
@@ -135,7 +143,7 @@ defmodule Emakola.Performance.NPlusOneTest do
               WHERE p.store_id = $1
               ORDER BY p.title, v.position
               """,
-              [store.id]
+              [dump_uuid(store.id)]
             )
 
           result
@@ -161,7 +169,7 @@ defmodule Emakola.Performance.NPlusOneTest do
           WHERE p.store_id = $1
           ORDER BY p.title, v.position
           """,
-          [store.id]
+          [dump_uuid(store.id)]
         )
 
       elapsed = System.monotonic_time(:millisecond) - start
@@ -191,7 +199,15 @@ defmodule Emakola.Performance.NPlusOneTest do
               INSERT INTO line_items (id, order_id, store_id, variant_id, product_title, unit_price, quantity, line_total, inserted_at, updated_at)
               VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
               """,
-              [order.id, store.id, variant.id, "Product #{j}", 5000, 1, 5000]
+              [
+                dump_uuid(order.id),
+                dump_uuid(store.id),
+                dump_uuid(variant.id),
+                "Product #{j}",
+                5000,
+                1,
+                5000
+              ]
             )
           end
 
@@ -218,7 +234,7 @@ defmodule Emakola.Performance.NPlusOneTest do
               WHERE o.store_id = $1
               ORDER BY o.inserted_at DESC
               """,
-              [store.id]
+              [dump_uuid(store.id)]
             )
 
           result
@@ -254,7 +270,7 @@ defmodule Emakola.Performance.NPlusOneTest do
               WHERE p.store_id = $1
               ORDER BY p.title, i.position
               """,
-              [store.id]
+              [dump_uuid(store.id)]
             )
 
           result
@@ -292,7 +308,7 @@ defmodule Emakola.Performance.NPlusOneTest do
               GROUP BY c.id, c.name, c.parent_id
               ORDER BY c.position
               """,
-              [store.id]
+              [dump_uuid(store.id)]
             )
 
           result
@@ -325,7 +341,7 @@ defmodule Emakola.Performance.NPlusOneTest do
               )
               SELECT * FROM category_tree ORDER BY depth, position
               """,
-              [store.id]
+              [dump_uuid(store.id)]
             )
 
           result
@@ -378,7 +394,7 @@ defmodule Emakola.Performance.NPlusOneTest do
               FROM products
               WHERE store_id = $1
               """,
-              [store.id]
+              [dump_uuid(store.id)]
             )
 
           # Order stats
@@ -392,7 +408,7 @@ defmodule Emakola.Performance.NPlusOneTest do
               FROM orders
               WHERE store_id = $1
               """,
-              [store.id]
+              [dump_uuid(store.id)]
             )
 
           # Low stock alert
@@ -405,7 +421,7 @@ defmodule Emakola.Performance.NPlusOneTest do
                 AND track_inventory = true
                 AND stock_quantity < $2
               """,
-              [store.id, 10]
+              [dump_uuid(store.id), 10]
             )
 
           {product_stats, order_stats, low_stock}
@@ -435,7 +451,7 @@ defmodule Emakola.Performance.NPlusOneTest do
                 (SELECT COALESCE(SUM(total), 0) FROM orders WHERE store_id = $1) as total_revenue,
                 (SELECT COUNT(*) FROM variants WHERE store_id = $1 AND track_inventory = true AND stock_quantity < 10) as low_stock_count
               """,
-              [store.id]
+              [dump_uuid(store.id)]
             )
 
           result
@@ -487,7 +503,7 @@ defmodule Emakola.Performance.NPlusOneTest do
           {:ok, result} =
             Emakola.Repo.query(
               "SELECT * FROM variants WHERE product_id IN (#{placeholders})",
-              product_ids
+              Enum.map(product_ids, &dump_uuid/1)
             )
 
           result

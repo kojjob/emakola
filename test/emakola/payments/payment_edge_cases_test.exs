@@ -40,21 +40,18 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
   # ═══════════════════════════════════════════════════════════════════
 
   describe "payment for non-existent order" do
-    test "creating payment with a random (non-existent) order_id succeeds" do
+    test "creating payment with a random (non-existent) order_id is rejected by FK constraint" do
       store = create_store!()
       fake_order_id = Ash.UUID.generate()
 
-      # The payment resource allows any UUID for order_id — there's no FK
-      # constraint enforced at the Ash level (it's optional). The system
-      # should still create the payment record.
-      payment =
+      # The belongs_to :order relationship enforces a FK constraint at the
+      # database level, so a non-existent order_id is rejected.
+      assert_raise Ash.Error.Invalid, fn ->
         create_payment!(store, %{
           order_id: fake_order_id,
           amount: 5000
         })
-
-      assert payment.order_id == fake_order_id
-      assert payment.store_id == store.id
+      end
     end
 
     test "creating payment with nil order_id succeeds (standalone payment)" do
@@ -148,16 +145,16 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
   # ═══════════════════════════════════════════════════════════════════
 
   describe "payment with invalid gateway reference" do
-    test "payment with empty string gateway_reference" do
+    test "payment with empty string gateway_reference is stored as nil" do
       store = create_store!()
 
-      # Empty string is technically a valid string — test that it's accepted
+      # Empty string gateway_reference is coerced to nil by the resource
       payment =
         create_payment!(store, %{
           gateway_reference: ""
         })
 
-      assert payment.gateway_reference == ""
+      assert is_nil(payment.gateway_reference)
     end
 
     test "payment with nil gateway_reference" do
@@ -412,8 +409,13 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
   # ═══════════════════════════════════════════════════════════════════
 
   describe "Paystack HMAC signature verification" do
+    setup do
+      original = Application.get_env(:emakola, :paystack_secret_key)
+      on_exit(fn -> Application.put_env(:emakola, :paystack_secret_key, original) end)
+      :ok
+    end
+
     test "correct HMAC signature passes verification" do
-      # Set a known secret for testing
       secret = "test_secret_key_for_hmac"
       Application.put_env(:emakola, :paystack_secret_key, secret)
 
@@ -426,8 +428,6 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       headers = %{"x-paystack-signature" => computed_sig}
 
       assert :ok = Emakola.Payments.Gateways.Paystack.verify_webhook(body, headers)
-    after
-      Application.delete_env(:emakola, :paystack_secret_key)
     end
 
     test "wrong secret produces invalid signature" do
@@ -438,7 +438,6 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
 
       body = ~s({"event":"charge.success","data":{"reference":"PAY-123"}})
 
-      # Compute with wrong secret
       wrong_sig =
         :crypto.mac(:hmac, :sha512, wrong_secret, body)
         |> Base.encode16(case: :lower)
@@ -447,8 +446,6 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
 
       assert {:error, :invalid_signature} =
                Emakola.Payments.Gateways.Paystack.verify_webhook(body, headers)
-    after
-      Application.delete_env(:emakola, :paystack_secret_key)
     end
 
     test "missing x-paystack-signature header returns invalid" do
@@ -459,8 +456,6 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
 
       assert {:error, :invalid_signature} =
                Emakola.Payments.Gateways.Paystack.verify_webhook(body, headers)
-    after
-      Application.delete_env(:emakola, :paystack_secret_key)
     end
 
     test "tampered body fails signature verification" do
@@ -473,7 +468,6 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
         :crypto.mac(:hmac, :sha512, secret, original_body)
         |> Base.encode16(case: :lower)
 
-      # Tamper the body after signing
       tampered_body =
         ~s({"event":"charge.success","data":{"reference":"PAY-123","amount":50000}})
 
@@ -481,8 +475,6 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
 
       assert {:error, :invalid_signature} =
                Emakola.Payments.Gateways.Paystack.verify_webhook(tampered_body, headers)
-    after
-      Application.delete_env(:emakola, :paystack_secret_key)
     end
   end
 

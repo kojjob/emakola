@@ -11,10 +11,13 @@ defmodule Emakola.Notifications.NotificationEdgeCasesTest do
 
   import Emakola.Factory
   import ExUnit.CaptureLog
+  import Mox
 
   alias Emakola.Notifications.Dispatcher
   alias Emakola.Notifications.Templates
   alias Emakola.Notifications.Workers.OrderNotificationWorker
+
+  setup :verify_on_exit!
 
   # ── Helpers ─────────────────────────────────────────────────────
 
@@ -162,21 +165,20 @@ defmodule Emakola.Notifications.NotificationEdgeCasesTest do
     end
 
     test "completes without error for order_placed", %{order: order} do
-      # The LogSMS and LogWhatsApp providers always return {:ok, _}
-      # This verifies the worker pipeline runs end-to-end without crashing
-      log =
-        capture_log(fn ->
-          result =
-            perform_job(OrderNotificationWorker, %{
-              "order_id" => order.id,
-              "event" => "order_placed"
-            })
+      # Stub SMS and WhatsApp mocks so worker pipeline runs end-to-end
+      Emakola.SMSProviderMock
+      |> stub(:send_sms, fn _to, _message, _opts -> {:ok, %{message_id: "test"}} end)
 
-          assert :ok = result
-        end)
+      Emakola.WhatsAppProviderMock
+      |> stub(:send_message, fn _to, _template, _params, _opts -> {:ok, %{message_id: "test"}} end)
 
-      # Verify SMS and WhatsApp logs were generated
-      assert log =~ "[LogSMS]" or log =~ "[LogWhatsApp]" or log =~ "Merchant SMS"
+      result =
+        perform_job(OrderNotificationWorker, %{
+          "order_id" => order.id,
+          "event" => "order_placed"
+        })
+
+      assert :ok = result
     end
   end
 
@@ -216,18 +218,17 @@ defmodule Emakola.Notifications.NotificationEdgeCasesTest do
     end
 
     test "skips customer notification gracefully", %{order: order} do
-      log =
-        capture_log(fn ->
-          result =
-            perform_job(OrderNotificationWorker, %{
-              "order_id" => order.id,
-              "event" => "order_placed"
-            })
+      # Stub merchant SMS mock (order_placed triggers merchant notification)
+      Emakola.SMSProviderMock
+      |> stub(:send_sms, fn _to, _message, _opts -> {:ok, %{message_id: "test"}} end)
 
-          assert :ok = result
-        end)
+      result =
+        perform_job(OrderNotificationWorker, %{
+          "order_id" => order.id,
+          "event" => "order_placed"
+        })
 
-      assert log =~ "No customer phone" or log =~ "skipping customer notification"
+      assert :ok = result
     end
   end
 
@@ -239,19 +240,15 @@ defmodule Emakola.Notifications.NotificationEdgeCasesTest do
     end
 
     test "skips customer notification when customer_id is nil", %{order: order} do
-      log =
-        capture_log(fn ->
-          result =
-            perform_job(OrderNotificationWorker, %{
-              "order_id" => order.id,
-              "event" => "order_confirmed"
-            })
+      # order_confirmed does not trigger merchant SMS, and customer is nil
+      # so no SMS/WhatsApp calls should be made at all
+      result =
+        perform_job(OrderNotificationWorker, %{
+          "order_id" => order.id,
+          "event" => "order_confirmed"
+        })
 
-          assert :ok = result
-        end)
-
-      # Worker should handle nil customer gracefully
-      assert log =~ "No customer phone" or log =~ "skipping"
+      assert :ok = result
     end
   end
 
@@ -357,42 +354,53 @@ defmodule Emakola.Notifications.NotificationEdgeCasesTest do
     end
 
     test "order_placed triggers merchant SMS", %{order: order} do
-      log =
-        capture_log(fn ->
-          assert :ok =
-                   perform_job(OrderNotificationWorker, %{
-                     "order_id" => order.id,
-                     "event" => "order_placed"
-                   })
-        end)
+      # Stub all provider mocks — customer has phone so customer SMS/WhatsApp + merchant SMS fire
+      Emakola.SMSProviderMock
+      |> expect(:send_sms, 2, fn _to, _message, _opts -> {:ok, %{message_id: "test"}} end)
 
-      assert log =~ "Merchant SMS"
+      Emakola.WhatsAppProviderMock
+      |> expect(:send_message, fn _to, _template, _params, _opts ->
+        {:ok, %{message_id: "test"}}
+      end)
+
+      assert :ok =
+               perform_job(OrderNotificationWorker, %{
+                 "order_id" => order.id,
+                 "event" => "order_placed"
+               })
     end
 
     test "order_cancelled triggers merchant SMS", %{order: order} do
-      log =
-        capture_log(fn ->
-          assert :ok =
-                   perform_job(OrderNotificationWorker, %{
-                     "order_id" => order.id,
-                     "event" => "order_cancelled"
-                   })
-        end)
+      Emakola.SMSProviderMock
+      |> expect(:send_sms, 2, fn _to, _message, _opts -> {:ok, %{message_id: "test"}} end)
 
-      assert log =~ "Merchant SMS"
+      Emakola.WhatsAppProviderMock
+      |> expect(:send_message, fn _to, _template, _params, _opts ->
+        {:ok, %{message_id: "test"}}
+      end)
+
+      assert :ok =
+               perform_job(OrderNotificationWorker, %{
+                 "order_id" => order.id,
+                 "event" => "order_cancelled"
+               })
     end
 
     test "order_confirmed does NOT trigger merchant SMS", %{order: order} do
-      log =
-        capture_log(fn ->
-          assert :ok =
-                   perform_job(OrderNotificationWorker, %{
-                     "order_id" => order.id,
-                     "event" => "order_confirmed"
-                   })
-        end)
+      # order_confirmed: customer SMS + customer WhatsApp, but NO merchant SMS
+      Emakola.SMSProviderMock
+      |> expect(:send_sms, 1, fn _to, _message, _opts -> {:ok, %{message_id: "test"}} end)
 
-      refute log =~ "Merchant SMS"
+      Emakola.WhatsAppProviderMock
+      |> expect(:send_message, fn _to, _template, _params, _opts ->
+        {:ok, %{message_id: "test"}}
+      end)
+
+      assert :ok =
+               perform_job(OrderNotificationWorker, %{
+                 "order_id" => order.id,
+                 "event" => "order_confirmed"
+               })
     end
   end
 end

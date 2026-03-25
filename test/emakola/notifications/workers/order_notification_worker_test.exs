@@ -3,16 +3,29 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerEmailTest do
   Tests for email delivery integration in OrderNotificationWorker.
   Tagged :pending — requires updated notification worker with email integration.
   """
-  use Emakola.DataCase, async: true
+  use Emakola.DataCase, async: false
 
   import Swoosh.TestAssertions
   import Emakola.Factory
+  import Mox
 
   alias Emakola.Notifications.Workers.OrderNotificationWorker
+
+  setup :verify_on_exit!
+
+  defp drain_mailbox do
+    receive do
+      {:email, _email} -> drain_mailbox()
+    after
+      0 -> :ok
+    end
+  end
 
   describe "email integration in perform/1" do
     setup do
       {_merchant, store} = create_merchant_with_store!()
+      # Drain any emails sent during setup (e.g., welcome email from merchant creation)
+      drain_mailbox()
       %{store: store}
     end
 
@@ -31,6 +44,10 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerEmailTest do
           subtotal: 48_000,
           currency: "GHS"
         })
+
+      # Stub merchant SMS mock (order_placed triggers merchant notification)
+      Emakola.SMSProviderMock
+      |> stub(:send_sms, fn _to, _message, _opts -> {:ok, %{message_id: "test"}} end)
 
       assert :ok =
                OrderNotificationWorker.perform(%Oban.Job{
@@ -77,6 +94,10 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerEmailTest do
           subtotal: 18_000,
           currency: "GHS"
         })
+
+      # Stub merchant SMS mock (order_placed triggers merchant notification)
+      Emakola.SMSProviderMock
+      |> stub(:send_sms, fn _to, _message, _opts -> {:ok, %{message_id: "test"}} end)
 
       assert :ok =
                OrderNotificationWorker.perform(%Oban.Job{

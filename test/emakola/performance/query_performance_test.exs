@@ -14,7 +14,24 @@ defmodule Emakola.Performance.QueryPerformanceTest do
   # ── Helpers ──────────────────────────────────────────────────────
 
   defp explain_query(sql, params \\ []) do
+    # Convert string UUIDs to binary for Postgrex
+    params =
+      Enum.map(params, fn
+        p when is_binary(p) and byte_size(p) == 36 ->
+          case Ecto.UUID.dump(p) do
+            {:ok, bin} -> bin
+            :error -> p
+          end
+
+        p ->
+          p
+      end)
+
+    # Disable seq scan to force index usage — small test tables cause
+    # Postgres to prefer seq scan even when indexes exist
+    Emakola.Repo.query!("SET enable_seqscan = off")
     {:ok, result} = Emakola.Repo.query("EXPLAIN (FORMAT JSON) #{sql}", params)
+    Emakola.Repo.query!("SET enable_seqscan = on")
     plan = result.rows |> List.first() |> List.first() |> List.first()
     plan["Plan"]
   end
@@ -324,7 +341,15 @@ defmodule Emakola.Performance.QueryPerformanceTest do
           INSERT INTO line_items (id, order_id, store_id, variant_id, product_title, unit_price, quantity, line_total, inserted_at, updated_at)
           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
           """,
-          [order.id, store.id, variant.id, "Product #{i}", 5000, 1, 5000]
+          [
+            Ecto.UUID.dump!(order.id),
+            Ecto.UUID.dump!(store.id),
+            Ecto.UUID.dump!(variant.id),
+            "Product #{i}",
+            5000,
+            1,
+            5000
+          ]
         )
       end
 
@@ -361,7 +386,7 @@ defmodule Emakola.Performance.QueryPerformanceTest do
             {:ok, result} =
               Emakola.Repo.query(
                 "SELECT * FROM products WHERE store_id = $1 AND status = $2 LIMIT 20",
-                [store.id, "active"]
+                [Ecto.UUID.dump!(store.id), "active"]
               )
 
             elapsed = System.monotonic_time(:millisecond) - start
