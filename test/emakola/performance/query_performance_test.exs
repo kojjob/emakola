@@ -13,7 +13,7 @@ defmodule Emakola.Performance.QueryPerformanceTest do
 
   # ── Helpers ──────────────────────────────────────────────────────
 
-  defp explain_query(sql, params \\ []) do
+  defp explain_query(sql, params) do
     # Convert string UUIDs to binary for Postgrex
     params =
       Enum.map(params, fn
@@ -34,22 +34,6 @@ defmodule Emakola.Performance.QueryPerformanceTest do
     Emakola.Repo.query!("SET enable_seqscan = on")
     plan = result.rows |> List.first() |> List.first() |> List.first()
     plan["Plan"]
-  end
-
-  defp uses_index_scan?(plan) do
-    node_type = plan["Node Type"]
-
-    cond do
-      node_type in ["Index Scan", "Index Only Scan", "Bitmap Index Scan", "Bitmap Heap Scan"] ->
-        true
-
-      # Check children (e.g., Bitmap Heap Scan wraps Bitmap Index Scan)
-      is_list(plan["Plans"]) ->
-        Enum.any?(plan["Plans"], &uses_index_scan?/1)
-
-      true ->
-        false
-    end
   end
 
   defp uses_seq_scan?(plan) do

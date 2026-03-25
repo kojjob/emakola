@@ -105,7 +105,7 @@ defmodule Emakola.Notifications.NotificationEdgeCasesTest do
 
   describe "SMS template with very long customer name" do
     test "renders without crashing (name appears in WhatsApp params, not directly in SMS)" do
-      long_name = String.duplicate("Kofi ", 200) |> String.trim()
+      _long_name = String.duplicate("Kofi ", 200) |> String.trim()
       order = fake_order(%{order_number: "ORD-LONG-NAME"})
       store = fake_store(%{name: "Long Name Store"})
 

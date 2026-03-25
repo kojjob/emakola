@@ -184,7 +184,7 @@ defmodule Emakola.SecurityTest do
       # Verify the router pipeline includes :protect_from_forgery
       conn = build_conn()
 
-      conn =
+      _conn =
         conn
         |> Plug.Conn.put_private(:phoenix_endpoint, EmakolaWeb.Endpoint)
         |> Plug.Conn.put_private(:plug_session, %{})
