@@ -81,8 +81,11 @@ defmodule Emakola.Themes.Atelier.Home do
   attr :store, :map, required: true
   attr :theme, :map, required: true
 
+  @default_hero_image "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1600&h=900&fit=crop&q=80"
+
   defp hero_section(assigns) do
-    hero_image = get_in(assigns.theme, [:hero, :image_url]) || ""
+    hero_image = get_in(assigns.theme, [:hero, :image_url])
+    hero_image = if hero_image in [nil, ""], do: @default_hero_image, else: hero_image
     hero_subtitle = get_in(assigns.theme, [:hero, :subtitle]) || "Curated Collection"
     hero_title = get_in(assigns.theme, [:hero, :title]) || "The New\nEssential"
 

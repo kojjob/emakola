@@ -72,6 +72,8 @@ defmodule EmakolaWeb.Admin.ThemeLive do
             color_presets: @color_presets,
             theme_id: resolved.theme_id,
             primary_color: resolved.colors.primary,
+            hero_image: get_in(resolved, [:hero, :image_url]) || "",
+            hero_title: get_in(resolved, [:hero, :title]) || "",
             sections: %{
               hero: Map.get(resolved.sections, :hero, true),
               categories: Map.get(resolved.sections, :categories, true),
@@ -234,11 +236,80 @@ defmodule EmakolaWeb.Admin.ThemeLive do
         </div>
       </div>
 
-      <%!-- STEP 3: Show/Hide Sections — Visual toggles with icons --%>
+      <%!-- STEP 3: Hero Image + Title --%>
       <div>
         <div class="flex items-center gap-2 mb-4">
           <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
             <span class="text-sm font-bold text-emerald-700">3</span>
+          </div>
+          <h2 class="text-lg font-bold text-slate-800">Your Hero Banner</h2>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 shadow-sm space-y-4">
+          <%!-- Hero preview --%>
+          <div class="relative rounded-xl overflow-hidden h-40 bg-slate-200">
+            <img
+              :if={@hero_image != ""}
+              src={@hero_image}
+              alt="Hero preview"
+              class="w-full h-full object-cover"
+            />
+            <div
+              :if={@hero_image == ""}
+              class="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center"
+            >
+              <span class="material-symbols-outlined text-4xl text-white/30">image</span>
+            </div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+            <div class="absolute bottom-3 left-4">
+              <p class="text-white font-bold text-lg">
+                {if @hero_title != "", do: @hero_title, else: "Your Store Title"}
+              </p>
+            </div>
+          </div>
+
+          <%!-- Hero image URL --%>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1.5">
+              <span class="material-symbols-outlined text-sm align-middle mr-1">image</span>
+              Hero Image URL
+            </label>
+            <input
+              type="url"
+              value={@hero_image}
+              phx-change="update_hero_image"
+              phx-debounce="500"
+              name="hero_image"
+              placeholder="https://images.unsplash.com/..."
+              class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
+            <p class="text-[11px] text-slate-400 mt-1">Paste a link to your banner image</p>
+          </div>
+
+          <%!-- Hero title --%>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1.5">
+              <span class="material-symbols-outlined text-sm align-middle mr-1">title</span>
+              Hero Title
+            </label>
+            <input
+              type="text"
+              value={@hero_title}
+              phx-change="update_hero_title"
+              phx-debounce="300"
+              name="hero_title"
+              placeholder="The New Essential"
+              class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
+          </div>
+        </div>
+      </div>
+
+      <%!-- STEP 4: Show/Hide Sections — Visual toggles with icons --%>
+      <div>
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+            <span class="text-sm font-bold text-emerald-700">4</span>
           </div>
           <h2 class="text-lg font-bold text-slate-800">Show or Hide</h2>
         </div>
@@ -383,6 +454,16 @@ defmodule EmakolaWeb.Admin.ThemeLive do
   end
 
   @impl true
+  def handle_event("update_hero_image", %{"hero_image" => url}, socket) do
+    {:noreply, assign(socket, hero_image: url, saved: false)}
+  end
+
+  @impl true
+  def handle_event("update_hero_title", %{"hero_title" => title}, socket) do
+    {:noreply, assign(socket, hero_title: title, saved: false)}
+  end
+
+  @impl true
   def handle_event("save_theme", _params, socket) do
     socket = assign(socket, saving: true)
 
@@ -390,6 +471,10 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       "theme" => socket.assigns.theme_id,
       "colors" => %{
         "primary" => socket.assigns.primary_color
+      },
+      "hero" => %{
+        "image_url" => socket.assigns.hero_image,
+        "title" => socket.assigns.hero_title
       },
       "sections" => %{
         "hero" => socket.assigns.sections.hero,
