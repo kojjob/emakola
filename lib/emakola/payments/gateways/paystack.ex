@@ -9,11 +9,12 @@ defmodule Emakola.Payments.Gateways.Paystack do
   - Webhook signature verification (HMAC SHA512)
 
   All amounts are in minor units (pesewas for GHS, kobo for NGN).
+
+  The HTTP calls are delegated to PaystackClient (or a Mox mock in tests)
+  so this module only handles parameter mapping and response normalisation.
   """
 
   @behaviour Emakola.Payments.Gateway
-
-  @base_url "https://api.paystack.co"
 
   @impl true
   def initiate_payment(params) do
@@ -31,10 +32,7 @@ defmodule Emakola.Payments.Gateways.Paystack do
       }
     }
 
-    case http_client().post("#{@base_url}/transaction/initialize",
-           json: body,
-           headers: auth_headers()
-         ) do
+    case paystack_client().initialize_transaction(body) do
       {:ok, %{"status" => true, "data" => data}} ->
         {:ok,
          %{
@@ -53,9 +51,7 @@ defmodule Emakola.Payments.Gateways.Paystack do
 
   @impl true
   def verify_payment(reference) do
-    case http_client().get("#{@base_url}/transaction/verify/#{reference}",
-           headers: auth_headers()
-         ) do
+    case paystack_client().verify_transaction(reference) do
       {:ok, %{"status" => true, "data" => data}} ->
         {:ok,
          %{
@@ -84,10 +80,7 @@ defmodule Emakola.Payments.Gateways.Paystack do
       amount: amount
     }
 
-    case http_client().post("#{@base_url}/refund",
-           json: body,
-           headers: auth_headers()
-         ) do
+    case paystack_client().create_refund(body) do
       {:ok, %{"status" => true, "data" => data}} ->
         {:ok,
          %{
@@ -145,16 +138,12 @@ defmodule Emakola.Payments.Gateways.Paystack do
   defp map_refund_status("failed"), do: :failed
   defp map_refund_status(other), do: String.to_atom(other)
 
-  defp auth_headers do
-    [{"Authorization", "Bearer #{secret_key()}"}, {"Content-Type", "application/json"}]
-  end
-
   defp secret_key do
     Application.get_env(:emakola, :paystack_secret_key) ||
       raise "Paystack secret key not configured. Set :paystack_secret_key in config."
   end
 
-  defp http_client do
-    Application.get_env(:emakola, :http_client, Emakola.HTTPClient.Req)
+  defp paystack_client do
+    Application.get_env(:emakola, :paystack_client, Emakola.Payments.PaystackClient)
   end
 end
