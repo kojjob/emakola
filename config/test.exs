@@ -57,6 +57,14 @@ config :emakola, :paystack_public_key, "pk_test_default_public"
 # Payment gateway: use mock in tests (always returns success)
 config :emakola, :payment_gateway, Emakola.Payments.Gateways.Mock
 
+# Paystack client: use Mox mock in tests
+config :emakola, :paystack_client, Emakola.Payments.PaystackClientMock
+
+# PaystackClient module config (used by the real client, overridden by mock)
+config :emakola, Emakola.Payments.PaystackClient,
+  secret_key: "sk_test_default_secret",
+  base_url: "https://api.paystack.co"
+
 # Notification providers: use Mox mocks in tests
 config :emakola, :sms_provider, Emakola.SMSProviderMock
 config :emakola, :whatsapp_provider, Emakola.WhatsAppProviderMock
