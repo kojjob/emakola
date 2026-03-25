@@ -48,7 +48,14 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
              |> assign(:related_products, related)
              |> assign(:cart_session_id, cart_session_id)
              |> assign(:cart_count, cart_count)
-             |> assign(:page_title, "#{product.title} - #{store.name}")}
+             |> assign(:page_title, "#{product.title} - #{store.name}")
+             |> assign(:theme, Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{}))
+             |> assign(
+               :theme_module,
+               Emakola.Themes.ThemeResolver.theme_module(
+                 (store.theme_config || %{})["theme"] || "market"
+               )
+             )}
         end
 
       {:error, :not_found} ->
@@ -119,11 +126,9 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
     end
   end
 
-  @theme_module Emakola.Themes.Market
-
   @impl true
   def render(assigns) do
-    @theme_module.render_product_detail(assigns)
+    assigns.theme_module.render_product_detail(assigns)
   end
 
   # -- Helpers --

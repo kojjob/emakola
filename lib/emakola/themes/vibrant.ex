@@ -76,4 +76,11 @@ defmodule Emakola.Themes.Vibrant do
   def renderer(:product_list), do: Emakola.Themes.Vibrant.ProductList
   def renderer(:product_detail), do: Emakola.Themes.Vibrant.ProductDetail
   def renderer(:shared), do: Emakola.Themes.Vibrant.Shared
+
+  defdelegate render_home(assigns), to: Emakola.Themes.Vibrant.Home, as: :render
+  defdelegate render_product_list(assigns), to: Emakola.Themes.Vibrant.ProductList, as: :render
+
+  defdelegate render_product_detail(assigns),
+    to: Emakola.Themes.Vibrant.ProductDetail,
+    as: :render
 end

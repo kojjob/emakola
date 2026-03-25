@@ -40,7 +40,14 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
          |> assign(:has_more, length(products) >= @products_per_page)
          |> assign(:cart_session_id, cart_session_id)
          |> assign(:cart_count, cart_count)
-         |> assign(:page_title, "Shop - #{store.name}")}
+         |> assign(:page_title, "Shop - #{store.name}")
+         |> assign(:theme, Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{}))
+         |> assign(
+           :theme_module,
+           Emakola.Themes.ThemeResolver.theme_module(
+             (store.theme_config || %{})["theme"] || "market"
+           )
+         )}
 
       {:error, :not_found} ->
         {:ok,
@@ -120,11 +127,9 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
     handle_event("filter_category", %{"category_id" => category_id}, socket)
   end
 
-  @theme_module Emakola.Themes.Market
-
   @impl true
   def render(assigns) do
-    @theme_module.render_product_list(assigns)
+    assigns.theme_module.render_product_list(assigns)
   end
 
   # -- Helpers --

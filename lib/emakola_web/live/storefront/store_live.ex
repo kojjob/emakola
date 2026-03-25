@@ -24,6 +24,9 @@ defmodule EmakolaWeb.Storefront.StoreLive do
         cart_session_id = session["cart_session_id"]
         cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
 
+        theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{})
+        theme_module = Emakola.Themes.ThemeResolver.theme_module(theme.theme_id)
+
         {:ok,
          socket
          |> assign(:store, store)
@@ -31,7 +34,10 @@ defmodule EmakolaWeb.Storefront.StoreLive do
          |> assign(:categories, categories)
          |> assign(:cart_session_id, cart_session_id)
          |> assign(:cart_count, cart_count)
-         |> assign(:page_title, store.name)}
+         |> assign(:page_title, store.name)
+         |> assign(:theme, theme)
+         |> assign(:theme_module, theme_module)
+         |> assign(:theme_fonts, theme_module.fonts())}
 
       {:error, :not_found} ->
         {:ok,
@@ -41,11 +47,9 @@ defmodule EmakolaWeb.Storefront.StoreLive do
     end
   end
 
-  @theme_module Emakola.Themes.Market
-
   @impl true
   def render(assigns) do
-    @theme_module.render_home(assigns)
+    assigns.theme_module.render_home(assigns)
   end
 
   # -- Helpers --
