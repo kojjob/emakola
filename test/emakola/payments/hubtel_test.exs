@@ -1,5 +1,5 @@
 defmodule Emakola.Payments.Gateways.HubtelTest do
-  use Emakola.DataCase, async: true
+  use ExUnit.Case, async: true
 
   import Mox
 
@@ -7,24 +7,23 @@ defmodule Emakola.Payments.Gateways.HubtelTest do
 
   setup :verify_on_exit!
 
-  describe "initiate_payment/1" do
-    test "converts pesewas to cedis correctly (500000 pesewas -> 5000.00 cedis)" do
-      Emakola.HTTPClientMock
-      |> expect(:post, fn url, opts ->
-        # Verify the URL
-        assert url =~ "/v2/receive/mobile-money"
+  # -- initiate_payment/1 ---------------------------------------------------
 
-        # Extract body from opts and verify amount conversion
-        body = Keyword.get(opts, :json)
-        assert body["Amount"] == 5000.00
+  describe "initiate_payment/1" do
+    test "returns authorization_url on success" do
+      Emakola.Payments.HubtelClientMock
+      |> expect(:create_invoice, fn params ->
+        assert params["totalAmount"] == 5000.0
+        assert params["description"] == "Order ORD-001"
+        assert is_binary(params["clientReference"])
+        assert String.starts_with?(params["clientReference"], "HUB-")
 
         {:ok,
          %{
-           "ResponseCode" => "0000",
-           "Data" => %{
-             "CheckoutUrl" => "https://pay.hubtel.com/checkout/abc123",
-             "CheckoutId" => "abc123",
-             "ClientReference" => body["ClientReference"]
+           "responseCode" => "0000",
+           "data" => %{
+             "checkoutUrl" => "https://pay.hubtel.com/checkout/abc123",
+             "clientReference" => params["clientReference"]
            }
          }}
       end)
@@ -33,97 +32,54 @@ defmodule Emakola.Payments.Gateways.HubtelTest do
         amount: 500_000,
         store_id: "store-abc-123",
         order_reference: "ORD-001",
-        description: "Payment for order",
+        description: "Order ORD-001",
         callback_url: "https://example.com/webhooks/hubtel",
-        return_url: "https://example.com/orders/ORD-001",
-        channel: "mtn-gh"
+        return_url: "https://example.com/orders/ORD-001"
       }
 
       assert {:ok, result} = Hubtel.initiate_payment(params)
-      assert result.checkout_url == "https://pay.hubtel.com/checkout/abc123"
-      assert result.checkout_id == "abc123"
-      assert is_binary(result.reference)
+      assert result.authorization_url == "https://pay.hubtel.com/checkout/abc123"
+      assert String.starts_with?(result.reference, "HUB-")
     end
 
-    test "returns checkout URL on success" do
-      Emakola.HTTPClientMock
-      |> expect(:post, fn _url, _opts ->
+    test "converts pesewas to cedis correctly (500000 pesewas -> 5000.0 cedis)" do
+      Emakola.Payments.HubtelClientMock
+      |> expect(:create_invoice, fn params ->
+        assert params["totalAmount"] == 5000.0
+
         {:ok,
          %{
-           "ResponseCode" => "0000",
-           "Data" => %{
-             "CheckoutUrl" => "https://pay.hubtel.com/checkout/xyz789",
-             "CheckoutId" => "xyz789",
-             "ClientReference" => "HUB-store-1234567890-abcdef"
+           "responseCode" => "0000",
+           "data" => %{
+             "checkoutUrl" => "https://pay.hubtel.com/checkout/test",
+             "clientReference" => params["clientReference"]
            }
          }}
       end)
 
       params = %{
-        amount: 10_000,
+        amount: 500_000,
         store_id: "store-def-456",
         order_reference: "ORD-002",
-        description: "Payment for order",
         callback_url: "https://example.com/webhooks/hubtel",
-        return_url: "https://example.com/orders/ORD-002",
-        channel: "vodafone-gh"
-      }
-
-      assert {:ok, result} = Hubtel.initiate_payment(params)
-      assert result.checkout_url == "https://pay.hubtel.com/checkout/xyz789"
-      assert result.checkout_id == "xyz789"
-    end
-
-    test "sends correct Basic Auth header" do
-      Emakola.HTTPClientMock
-      |> expect(:post, fn _url, opts ->
-        headers = Keyword.get(opts, :headers, [])
-        auth_header = Enum.find(headers, fn {k, _v} -> k == "authorization" end)
-        assert auth_header != nil
-
-        {_, auth_value} = auth_header
-        expected = "Basic " <> Base.encode64("test_client_id:test_client_secret")
-        assert auth_value == expected
-
-        {:ok,
-         %{
-           "ResponseCode" => "0000",
-           "Data" => %{
-             "CheckoutUrl" => "https://pay.hubtel.com/checkout/test",
-             "CheckoutId" => "test",
-             "ClientReference" => "ref"
-           }
-         }}
-      end)
-
-      params = %{
-        amount: 1000,
-        store_id: "store-test",
-        order_reference: "ORD-003",
-        description: "Test",
-        callback_url: "https://example.com/webhooks/hubtel",
-        return_url: "https://example.com/return",
-        channel: "mtn-gh"
+        return_url: "https://example.com/orders/ORD-002"
       }
 
       assert {:ok, _result} = Hubtel.initiate_payment(params)
     end
 
     test "generates reference with HUB prefix and store_id" do
-      Emakola.HTTPClientMock
-      |> expect(:post, fn _url, opts ->
-        body = Keyword.get(opts, :json)
-        ref = body["ClientReference"]
-
+      Emakola.Payments.HubtelClientMock
+      |> expect(:create_invoice, fn params ->
+        ref = params["clientReference"]
         assert String.starts_with?(ref, "HUB-store1-")
 
         {:ok,
          %{
-           "ResponseCode" => "0000",
-           "Data" => %{
-             "CheckoutUrl" => "https://pay.hubtel.com/checkout/test",
-             "CheckoutId" => "test",
-             "ClientReference" => ref
+           "responseCode" => "0000",
+           "data" => %{
+             "checkoutUrl" => "https://pay.hubtel.com/checkout/test",
+             "clientReference" => ref
            }
          }}
       end)
@@ -132,22 +88,20 @@ defmodule Emakola.Payments.Gateways.HubtelTest do
         amount: 1000,
         store_id: "store123-def-456",
         order_reference: "ORD-004",
-        description: "Test",
         callback_url: "https://example.com/webhooks/hubtel",
-        return_url: "https://example.com/return",
-        channel: "mtn-gh"
+        return_url: "https://example.com/return"
       }
 
       assert {:ok, _result} = Hubtel.initiate_payment(params)
     end
 
-    test "handles Hubtel error response codes" do
-      Emakola.HTTPClientMock
-      |> expect(:post, fn _url, _opts ->
+    test "returns error when Hubtel returns non-0000 response code" do
+      Emakola.Payments.HubtelClientMock
+      |> expect(:create_invoice, fn _params ->
         {:ok,
          %{
-           "ResponseCode" => "4001",
-           "Message" => "Invalid mobile number"
+           "responseCode" => "4001",
+           "message" => "Invalid request parameters"
          }}
       end)
 
@@ -155,151 +109,179 @@ defmodule Emakola.Payments.Gateways.HubtelTest do
         amount: 1000,
         store_id: "store-test",
         order_reference: "ORD-005",
-        description: "Test",
         callback_url: "https://example.com/webhooks/hubtel",
-        return_url: "https://example.com/return",
-        channel: "mtn-gh"
+        return_url: "https://example.com/return"
       }
 
-      assert {:error, error} = Hubtel.initiate_payment(params)
-      assert error.code == "4001"
-      assert error.message == "Invalid mobile number"
+      assert {:error, {:hubtel_error, _message}} = Hubtel.initiate_payment(params)
     end
 
-    test "handles HTTP error" do
-      Emakola.HTTPClientMock
-      |> expect(:post, fn _url, _opts ->
-        {:error, %{status: 500, body: "Internal Server Error"}}
+    test "returns gateway_error on network failure" do
+      Emakola.Payments.HubtelClientMock
+      |> expect(:create_invoice, fn _params ->
+        {:error, :timeout}
       end)
 
       params = %{
         amount: 1000,
         store_id: "store-test",
         order_reference: "ORD-006",
-        description: "Test",
         callback_url: "https://example.com/webhooks/hubtel",
-        return_url: "https://example.com/return",
-        channel: "mtn-gh"
+        return_url: "https://example.com/return"
       }
 
-      assert {:error, _reason} = Hubtel.initiate_payment(params)
+      assert {:error, {:gateway_error, :timeout}} = Hubtel.initiate_payment(params)
     end
-  end
 
-  describe "verify_payment/1" do
-    test "returns payment status on success" do
-      Emakola.HTTPClientMock
-      |> expect(:get, fn url, _opts ->
-        assert url =~ "/v2/payment/HUB-test-ref/status"
-
+    test "generates unique references for each call" do
+      Emakola.Payments.HubtelClientMock
+      |> expect(:create_invoice, 2, fn params ->
         {:ok,
          %{
-           "ResponseCode" => "0000",
-           "Data" => %{
-             "Status" => "Paid",
-             "Amount" => 50.00,
-             "ClientReference" => "HUB-test-ref"
+           "responseCode" => "0000",
+           "data" => %{
+             "checkoutUrl" => "https://pay.hubtel.com/checkout/test",
+             "clientReference" => params["clientReference"]
            }
          }}
       end)
 
-      assert {:ok, result} = Hubtel.verify_payment("HUB-test-ref")
-      assert result.status == "Paid"
-      # 50.00 cedis -> 5000 pesewas
+      params = %{
+        amount: 1000,
+        store_id: "store-unique-test",
+        order_reference: "ORD-007",
+        callback_url: "https://example.com/webhooks/hubtel",
+        return_url: "https://example.com/return"
+      }
+
+      {:ok, result1} = Hubtel.initiate_payment(params)
+      {:ok, result2} = Hubtel.initiate_payment(params)
+
+      assert result1.reference != result2.reference
+      assert result1.reference =~ ~r/^HUB-[a-z0-9-]+-\d+-[a-z0-9]+$/
+    end
+  end
+
+  # -- verify_payment/1 ----------------------------------------------------
+
+  describe "verify_payment/1" do
+    test "returns payment details on successful verification" do
+      reference = "HUB-test-ref-123"
+
+      Emakola.Payments.HubtelClientMock
+      |> expect(:check_invoice_status, fn ref ->
+        assert ref == reference
+
+        {:ok,
+         %{
+           "responseCode" => "0000",
+           "data" => %{
+             "invoiceStatus" => "paid",
+             "totalAmount" => 50.0,
+             "clientReference" => reference,
+             "paymentChannel" => "mtn-gh"
+           }
+         }}
+      end)
+
+      assert {:ok, result} = Hubtel.verify_payment(reference)
+      assert result.status == :paid
       assert result.amount == 5000
-      assert result.reference == "HUB-test-ref"
+      assert result.reference == reference
+      assert result.channel == "mtn-gh"
     end
 
     test "converts cedis back to pesewas in response" do
-      Emakola.HTTPClientMock
-      |> expect(:get, fn _url, _opts ->
+      Emakola.Payments.HubtelClientMock
+      |> expect(:check_invoice_status, fn _ref ->
         {:ok,
          %{
-           "ResponseCode" => "0000",
-           "Data" => %{
-             "Status" => "Paid",
-             "Amount" => 123.45,
-             "ClientReference" => "HUB-ref-123"
+           "responseCode" => "0000",
+           "data" => %{
+             "invoiceStatus" => "paid",
+             "totalAmount" => 123.45,
+             "clientReference" => "HUB-ref-123"
            }
          }}
       end)
 
       assert {:ok, result} = Hubtel.verify_payment("HUB-ref-123")
-      # 123.45 cedis -> 12345 pesewas
       assert result.amount == 12345
     end
 
-    test "handles failed verification" do
-      Emakola.HTTPClientMock
-      |> expect(:get, fn _url, _opts ->
+    test "maps Hubtel status strings to atoms" do
+      for {hubtel_status, expected_atom} <- [
+            {"paid", :paid},
+            {"Paid", :paid},
+            {"completed", :completed},
+            {"failed", :failed},
+            {"pending", :pending},
+            {"cancelled", :cancelled}
+          ] do
+        Emakola.Payments.HubtelClientMock
+        |> expect(:check_invoice_status, fn _ref ->
+          {:ok,
+           %{
+             "responseCode" => "0000",
+             "data" => %{
+               "invoiceStatus" => hubtel_status,
+               "totalAmount" => 10.0,
+               "clientReference" => "HUB-status-test"
+             }
+           }}
+        end)
+
+        assert {:ok, result} = Hubtel.verify_payment("HUB-status-test")
+        assert result.status == expected_atom
+      end
+    end
+
+    test "returns error on Hubtel API error response" do
+      Emakola.Payments.HubtelClientMock
+      |> expect(:check_invoice_status, fn _ref ->
         {:ok,
          %{
-           "ResponseCode" => "4010",
-           "Message" => "Transaction not found"
+           "responseCode" => "4010",
+           "message" => "Transaction not found"
          }}
       end)
 
-      assert {:error, error} = Hubtel.verify_payment("HUB-nonexistent")
-      assert error.code == "4010"
+      assert {:error, {:hubtel_error, _}} = Hubtel.verify_payment("HUB-nonexistent")
+    end
+
+    test "returns gateway_error on network failure" do
+      Emakola.Payments.HubtelClientMock
+      |> expect(:check_invoice_status, fn _ref ->
+        {:error, %{reason: :timeout}}
+      end)
+
+      assert {:error, {:gateway_error, _}} = Hubtel.verify_payment("some-ref")
     end
   end
+
+  # -- process_refund/2 ----------------------------------------------------
 
   describe "process_refund/2" do
-    test "converts amount from pesewas to cedis correctly" do
-      Emakola.HTTPClientMock
-      |> expect(:post, fn url, opts ->
-        assert url =~ "/v2/refund"
-        body = Keyword.get(opts, :json)
-
-        # 250000 pesewas -> 2500.00 cedis
-        assert body["Amount"] == 2500.00
-        assert body["ClientReference"] == "HUB-original-ref"
-
-        {:ok,
-         %{
-           "ResponseCode" => "0000",
-           "Data" => %{
-             "RefundId" => "refund-abc-123",
-             "Amount" => 2500.00
-           }
-         }}
-      end)
-
-      assert {:ok, result} = Hubtel.process_refund("HUB-original-ref", 250_000)
-      assert result.refund_id == "refund-abc-123"
-      # 2500.00 cedis -> 250000 pesewas
-      assert result.amount == 250_000
-    end
-
-    test "handles refund error" do
-      Emakola.HTTPClientMock
-      |> expect(:post, fn _url, _opts ->
-        {:ok,
-         %{
-           "ResponseCode" => "4020",
-           "Message" => "Insufficient funds for refund"
-         }}
-      end)
-
-      assert {:error, error} = Hubtel.process_refund("HUB-ref", 100_000)
-      assert error.code == "4020"
+    test "returns :not_supported error (Hubtel refunds are manual)" do
+      assert {:error, :not_supported} = Hubtel.process_refund("HUB-ref", 100_000)
     end
   end
+
+  # -- verify_webhook/2 ----------------------------------------------------
 
   describe "verify_webhook/2" do
     test "verifies webhook by calling status check API" do
-      # Hubtel doesn't sign webhooks; we verify by checking payment status via API
-      Emakola.HTTPClientMock
-      |> expect(:get, fn url, _opts ->
-        assert url =~ "/v2/payment/HUB-webhook-ref/status"
+      Emakola.Payments.HubtelClientMock
+      |> expect(:check_invoice_status, fn ref ->
+        assert ref == "HUB-webhook-ref"
 
         {:ok,
          %{
-           "ResponseCode" => "0000",
-           "Data" => %{
-             "Status" => "Paid",
-             "Amount" => 100.00,
-             "ClientReference" => "HUB-webhook-ref"
+           "responseCode" => "0000",
+           "data" => %{
+             "invoiceStatus" => "paid",
+             "totalAmount" => 100.0,
+             "clientReference" => "HUB-webhook-ref"
            }
          }}
       end)
@@ -308,13 +290,31 @@ defmodule Emakola.Payments.Gateways.HubtelTest do
       assert :ok = Hubtel.verify_webhook(body, %{})
     end
 
-    test "rejects webhook when status check fails" do
-      Emakola.HTTPClientMock
-      |> expect(:get, fn _url, _opts ->
+    test "rejects webhook when status check returns non-paid status" do
+      Emakola.Payments.HubtelClientMock
+      |> expect(:check_invoice_status, fn _ref ->
         {:ok,
          %{
-           "ResponseCode" => "4010",
-           "Message" => "Transaction not found"
+           "responseCode" => "0000",
+           "data" => %{
+             "invoiceStatus" => "failed",
+             "totalAmount" => 100.0,
+             "clientReference" => "HUB-failed-ref"
+           }
+         }}
+      end)
+
+      body = Jason.encode!(%{"ClientReference" => "HUB-failed-ref"})
+      assert {:error, :invalid_signature} = Hubtel.verify_webhook(body, %{})
+    end
+
+    test "rejects webhook when status check API fails" do
+      Emakola.Payments.HubtelClientMock
+      |> expect(:check_invoice_status, fn _ref ->
+        {:ok,
+         %{
+           "responseCode" => "4010",
+           "message" => "Transaction not found"
          }}
       end)
 
@@ -323,12 +323,21 @@ defmodule Emakola.Payments.Gateways.HubtelTest do
     end
 
     test "rejects webhook when HTTP call fails" do
-      Emakola.HTTPClientMock
-      |> expect(:get, fn _url, _opts ->
+      Emakola.Payments.HubtelClientMock
+      |> expect(:check_invoice_status, fn _ref ->
         {:error, %{status: 500, body: "Server error"}}
       end)
 
       body = Jason.encode!(%{"ClientReference" => "HUB-error-ref"})
+      assert {:error, :invalid_signature} = Hubtel.verify_webhook(body, %{})
+    end
+
+    test "rejects webhook with invalid JSON body" do
+      assert {:error, :invalid_signature} = Hubtel.verify_webhook("not json", %{})
+    end
+
+    test "rejects webhook without ClientReference" do
+      body = Jason.encode!(%{"other" => "data"})
       assert {:error, :invalid_signature} = Hubtel.verify_webhook(body, %{})
     end
   end

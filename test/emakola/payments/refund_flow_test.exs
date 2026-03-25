@@ -89,12 +89,10 @@ defmodule Emakola.Payments.RefundFlowTest do
       reference = "PAY-refund-test-ref"
       refund_amount = 300_000
 
-      Emakola.HTTPClientMock
-      |> expect(:post, fn url, opts ->
-        assert url == "https://api.paystack.co/refund"
-        body = opts[:json]
-        assert body.transaction == reference
-        assert body.amount == refund_amount
+      Emakola.Payments.PaystackClientMock
+      |> expect(:create_refund, fn params ->
+        assert params.transaction == reference
+        assert params.amount == refund_amount
 
         {:ok,
          %{
@@ -118,8 +116,8 @@ defmodule Emakola.Payments.RefundFlowTest do
     end
 
     test "returns pending status for refund awaiting processing" do
-      Emakola.HTTPClientMock
-      |> expect(:post, fn _url, _opts ->
+      Emakola.Payments.PaystackClientMock
+      |> expect(:create_refund, fn _params ->
         {:ok,
          %{
            "status" => true,
@@ -139,8 +137,8 @@ defmodule Emakola.Payments.RefundFlowTest do
     end
 
     test "returns error when Paystack rejects the refund" do
-      Emakola.HTTPClientMock
-      |> expect(:post, fn _url, _opts ->
+      Emakola.Payments.PaystackClientMock
+      |> expect(:create_refund, fn _params ->
         {:ok,
          %{
            "status" => false,
@@ -156,47 +154,9 @@ defmodule Emakola.Payments.RefundFlowTest do
   # ── Refund via Hubtel Gateway ──────────────────────────────────────
 
   describe "Hubtel process_refund/2" do
-    test "converts pesewas to cedis and returns refund confirmation" do
-      Emakola.HTTPClientMock
-      |> expect(:post, fn url, opts ->
-        assert url =~ "/v2/refund"
-        body = opts[:json]
-
-        # 500_000 pesewas = 5000.00 cedis
-        assert body["Amount"] == 5000.00
-        assert body["ClientReference"] == "HUB-refund-ref"
-
-        {:ok,
-         %{
-           "ResponseCode" => "0000",
-           "Data" => %{
-             "RefundId" => "hubtel-refund-001",
-             "Amount" => 5000.00
-           }
-         }}
-      end)
-
-      assert {:ok, result} =
+    test "returns :not_supported error (Hubtel refunds are manual)" do
+      assert {:error, :not_supported} =
                Emakola.Payments.Gateways.Hubtel.process_refund("HUB-refund-ref", 500_000)
-
-      assert result.refund_id == "hubtel-refund-001"
-      assert result.amount == 500_000
-    end
-
-    test "handles Hubtel refund rejection" do
-      Emakola.HTTPClientMock
-      |> expect(:post, fn _url, _opts ->
-        {:ok,
-         %{
-           "ResponseCode" => "4020",
-           "Message" => "Insufficient balance for refund"
-         }}
-      end)
-
-      assert {:error, error} =
-               Emakola.Payments.Gateways.Hubtel.process_refund("HUB-fail-ref", 100_000)
-
-      assert error.code == "4020"
     end
   end
 
