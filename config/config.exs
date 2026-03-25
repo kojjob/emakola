@@ -115,6 +115,16 @@ config :emakola, Emakola.Payments.PaystackClient,
   public_key: System.get_env("PAYSTACK_PUBLIC_KEY", "pk_test_placeholder"),
   base_url: "https://api.paystack.co"
 
+# WhatsApp Business API (Cloud API)
+config :emakola, Emakola.Notifications.Channels.WhatsApp,
+  api_token: System.get_env("WHATSAPP_API_TOKEN"),
+  phone_number_id: System.get_env("WHATSAPP_PHONE_NUMBER_ID")
+
+# SMS Gateway
+config :emakola, Emakola.Notifications.Channels.SMS,
+  api_key: System.get_env("SMS_API_KEY"),
+  sender_id: System.get_env("SMS_SENDER_ID") || "Emakola"
+
 # Import branding and plans config
 import_config "branding.exs"
 import_config "plans.exs"

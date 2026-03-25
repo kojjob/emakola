@@ -20,6 +20,7 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
   require Logger
 
   alias Emakola.Notifications.Templates
+  alias Emakola.Notifications.Emails.DeliveryEmail
   alias Emakola.Notifications.Emails.OrderEmail
   alias Emakola.Notifications.Emails.ShippingEmail
 
@@ -126,6 +127,11 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
     }
 
     ShippingEmail.order_shipped(order, customer, store, tracking_info)
+    |> Emakola.Mailer.deliver()
+  end
+
+  defp send_customer_email(order, store, customer, :order_delivered) do
+    DeliveryEmail.order_delivered(order, customer, store)
     |> Emakola.Mailer.deliver()
   end
 
