@@ -1,41 +1,40 @@
 defmodule Emakola.Themes.Atelier do
   @moduledoc """
-  Atelier - Premium fashion theme for Emakola storefronts.
+  Atelier - Artisan craft theme for Emakola storefronts.
 
-  Design language:
-  - Fonts: Cormorant (serif headings), Montserrat (sans body)
-  - Colors: Gold (#CA8A04), Stone (#1C1917), Surface (#FAFAF9)
-  - Clean, minimal, editorial feel
-  - Full-screen editorial hero
-  - Asymmetric masonry category grid
-  - 5:6 aspect ratio product cards with hover hearts and star ratings
+  Design language (Stitch reference):
+  - Fonts: System sans-serif (bold/black headings, regular body)
+  - Colors: Green (#16A34A primary, #166534 accent), White (#FFFFFF surface)
+  - Clean, trust-forward, artisan aesthetic
+  - Full-screen hero with bold sans-serif heading
+  - Horizontal scrolling category circles
+  - Featured hero card + smaller product cards
+  - Trust/payment section with mobile money partners
 
   All colors are exposed as CSS custom properties so merchants
   can override them via store settings.
   """
 
   @default_config %{
-    primary_color: "#CA8A04",
-    primary_light: "#EAB308",
-    primary_dark: "#A16207",
-    accent_color: "#1C1917",
-    accent_secondary: "#44403C",
-    surface_color: "#FAFAF9",
-    ink_color: "#0C0A09",
-    serif_font: "Cormorant",
-    sans_font: "Montserrat",
+    primary_color: "#16A34A",
+    primary_light: "#22C55E",
+    primary_dark: "#166534",
+    accent_color: "#166534",
+    accent_secondary: "#4B5563",
+    surface_color: "#FFFFFF",
+    ink_color: "#1a1a1a",
     sections: %{
       hero: true,
       categories: true,
       products: true,
-      brand_story: true,
+      trust: true,
       newsletter: true
     },
     hero: %{
       image_url: "",
-      subtitle: "Curated Collection",
-      title: "The New\nEssential",
-      description: "Redefining modern luxury through timeless silhouettes and conscious craft."
+      subtitle: "The 2024 Collection",
+      title: "Crafting Trust,\nCurating Excellence.",
+      description: "Discover handcrafted masterpieces from West Africa's finest artisans."
     },
     brand_story: %{
       image_url: "",
@@ -51,19 +50,19 @@ defmodule Emakola.Themes.Atelier do
   def id, do: "atelier"
   def name, do: "Atelier"
 
-  def fonts, do: [font_url()]
+  def fonts, do: []
 
   def defaults do
     %{
-      colors: %{primary: "#CA8A04", accent: "#1C1917", background: "#FAFAF9"},
-      fonts: %{heading: "Cormorant", body: "Montserrat"},
+      colors: %{primary: "#16A34A", accent: "#166534", background: "#FFFFFF"},
+      fonts: %{heading: "system-ui", body: "system-ui"},
       hero: %{
         image_url: "",
         images: [],
         carousel: false,
-        title: "The New Essential",
-        subtitle: "New Collection",
-        cta_text: "Shop Collection",
+        title: "Crafting Trust,\nCurating Excellence.",
+        subtitle: "The 2024 Collection",
+        cta_text: "Explore Masterpieces",
         cta_url: "/products"
       },
       sections: %{
@@ -71,7 +70,8 @@ defmodule Emakola.Themes.Atelier do
         categories: true,
         featured_products: true,
         brand_story: true,
-        instagram: true,
+        trust: true,
+        instagram: false,
         newsletter: true
       }
     }
@@ -85,10 +85,8 @@ defmodule Emakola.Themes.Atelier do
     deep_merge(@default_config, overrides)
   end
 
-  @doc "Returns the Google Fonts import URL for Atelier's typefaces."
-  def font_url do
-    "https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap"
-  end
+  @doc "No external fonts needed — uses system sans-serif stack."
+  def font_url, do: nil
 
   @doc "Returns the list of render modules for this theme."
   def renderers do

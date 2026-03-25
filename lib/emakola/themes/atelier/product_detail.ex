@@ -1,13 +1,20 @@
 defmodule Emakola.Themes.Atelier.ProductDetail do
   @moduledoc """
-  Atelier theme product detail page (PDP) renderer.
+  Atelier theme product detail page (PDP) renderer — Stitch design reference.
 
   Features:
-  - Image gallery with thumbnail navigation
-  - Variant selectors (size, color, etc.)
-  - Add to cart button with gold accent
-  - Related products section
-  - Editorial typography and clean layout
+  - Breadcrumb navigation
+  - Image gallery with main image + thumbnails
+  - Verified Artisan / Limited Edition badges
+  - Bold title with italic green accent
+  - Star ratings with review count
+  - Price with strikethrough for sale items
+  - Free delivery callout
+  - Description card with specs
+  - Add to Cart + WhatsApp purchase buttons
+  - Accordion for care instructions + secure payment
+  - Artisan story section
+  - "Complete the Look" related products
   """
   use Phoenix.Component
 
@@ -25,6 +32,10 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
   - `@categories` - List of categories for nav
   - `@cart_count` - Integer cart count
   - `@selected_variant` - Currently selected variant (or nil)
+  - `@option_types` - List of option types for variant selection
+  - `@selected_options` - Map of selected option values
+  - `@quantity` - Current quantity
+  - `@current_image_index` - Index of currently shown image
   """
   attr :store, :map, required: true
   attr :theme, :map, required: true
@@ -33,15 +44,21 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
   attr :categories, :list, default: []
   attr :cart_count, :integer, default: 0
   attr :selected_variant, :map, default: nil
+  attr :option_types, :list, default: []
+  attr :selected_options, :map, default: %{}
+  attr :quantity, :integer, default: 1
+  attr :current_image_index, :integer, default: 0
 
   def render(assigns) do
     images = product_images(assigns.product)
-    primary_image = List.first(images)
+    current_idx = min(assigns.current_image_index, max(length(images) - 1, 0))
+    primary_image = Enum.at(images, current_idx)
 
     assigns =
       assigns
       |> assign(:images, images)
       |> assign(:primary_image, primary_image)
+      |> assign(:current_idx, current_idx)
 
     ~H"""
     <div class="atelier-body">
@@ -50,30 +67,27 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
         store={@store}
         categories={@categories}
         cart_count={@cart_count}
-        transparent={false}
       />
 
       <%!-- Product Detail --%>
-      <div class="pt-24 sm:pt-28">
+      <div class="pt-4 sm:pt-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
           <%!-- Breadcrumb --%>
-          <nav
-            class="mb-8 text-xs"
-            style="color: var(--theme-accent-secondary, #44403C);"
-            aria-label="Breadcrumb"
-          >
-            <a href={"/s/#{@store.slug}"} class="hover:underline">{@store.name}</a>
-            <span class="mx-2">/</span>
-            <a href={"/s/#{@store.slug}/products"} class="hover:underline">Shop</a>
-            <span class="mx-2">/</span>
-            <span style="color: var(--theme-ink);">{@product.title}</span>
+          <nav class="mb-6 sm:mb-8 text-sm text-gray-500" aria-label="Breadcrumb">
+            <a href={"/s/#{@store.slug}"} class="hover:text-gray-900 transition-colors">Home</a>
+            <span class="mx-2 text-gray-300">/</span>
+            <a href={"/s/#{@store.slug}/products"} class="hover:text-gray-900 transition-colors">
+              Shop
+            </a>
+            <span class="mx-2 text-gray-300">/</span>
+            <span class="text-gray-900 font-medium">{@product.title}</span>
           </nav>
 
-          <div class="lg:grid lg:grid-cols-2 lg:gap-16">
-            <%!-- Image Gallery --%>
-            <div>
-              <%!-- Primary Image --%>
-              <div class="aspect-[5/6] bg-stone-100 overflow-hidden mb-4">
+          <div class="lg:grid lg:grid-cols-5 lg:gap-12">
+            <%!-- Image Gallery (left ~60%) --%>
+            <div class="lg:col-span-3">
+              <%!-- Main Image --%>
+              <div class="aspect-square sm:aspect-[4/5] bg-gray-100 rounded-xl overflow-hidden mb-4">
                 <img
                   :if={@primary_image}
                   src={@primary_image}
@@ -87,12 +101,11 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
               </div>
 
               <%!-- Thumbnail Strip --%>
-              <div :if={length(@images) > 1} class="grid grid-cols-4 gap-2">
+              <div :if={length(@images) > 1} class="grid grid-cols-4 sm:grid-cols-5 gap-2 sm:gap-3">
                 <button
                   :for={{img, idx} <- Enum.with_index(@images)}
-                  class={"aspect-square bg-stone-100 overflow-hidden border-2 transition-colors " <>
-                    if(idx == 0, do: "border-current", else: "border-transparent hover:border-stone-300")}
-                  style={if(idx == 0, do: "border-color: var(--theme-primary);", else: "")}
+                  class={"aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 transition-all " <>
+                    if(idx == @current_idx, do: "border-green-600 ring-1 ring-green-600", else: "border-transparent hover:border-gray-300")}
                   phx-click="select_image"
                   phx-value-index={idx}
                   aria-label={"View image #{idx + 1}"}
@@ -107,90 +120,180 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
               </div>
             </div>
 
-            <%!-- Product Info --%>
-            <div class="mt-8 lg:mt-0">
-              <%!-- Title & Price --%>
-              <h1
-                class="atelier-serif text-3xl sm:text-4xl font-semibold mb-3 leading-tight"
-                style="color: var(--theme-ink);"
-              >
-                {@product.title}
+            <%!-- Product Info (right ~40%) --%>
+            <div class="lg:col-span-2 mt-8 lg:mt-0">
+              <%!-- Badges --%>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span
+                  class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white"
+                  style="background: var(--theme-accent);"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                  </svg>
+                  Verified Artisan
+                </span>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                  Limited Edition
+                </span>
+              </div>
+
+              <%!-- Title --%>
+              <h1 class="text-2xl sm:text-3xl font-black text-gray-900 leading-tight mb-3">
+                {product_title_with_accent(@product.title)}
               </h1>
 
-              <Shared.star_rating rating={4.5} />
+              <%!-- Rating --%>
+              <div class="mb-4">
+                <Shared.star_rating rating={4.5} review_count={24} />
+              </div>
 
-              <p class="text-xl font-semibold mb-6 tabular-nums" style="color: var(--theme-ink);">
-                {Currency.format_price_range(@product.min_price, @product.max_price, @store.currency)}
-              </p>
+              <%!-- Price --%>
+              <div class="mb-4">
+                <Shared.price_display product={@product} store={@store} size="lg" />
+              </div>
 
-              <%!-- Description --%>
+              <%!-- Free Delivery callout --%>
               <p
-                :if={@product.description}
-                class="text-sm leading-relaxed mb-8"
-                style="color: var(--theme-accent-secondary, #44403C);"
+                class="text-sm font-medium mb-6 flex items-center gap-2"
+                style="color: var(--theme-accent);"
               >
-                {@product.description}
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                >
+                  <path d="M1 3h15v13H1z" /><path d="M16 8h4l3 3v5h-7V8z" /><circle
+                    cx="5.5"
+                    cy="18.5"
+                    r="2.5"
+                  /><circle cx="18.5" cy="18.5" r="2.5" />
+                </svg>
+                Free Delivery within Accra &amp; Kumasi
               </p>
+
+              <%!-- Description Card --%>
+              <div :if={@product.description} class="bg-gray-50 rounded-xl p-5 mb-6">
+                <p class="text-sm text-gray-700 leading-relaxed">
+                  {@product.description}
+                </p>
+              </div>
 
               <%!-- Variant Selectors --%>
               <.variant_selectors
-                :if={has_variants?(@product)}
-                product={@product}
-                selected_variant={@selected_variant}
+                :if={@option_types != []}
+                option_types={@option_types}
+                selected_options={@selected_options}
               />
 
+              <%!-- Quantity Stepper --%>
+              <div class="mb-6">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
+                  Quantity
+                </label>
+                <div class="inline-flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                  <button
+                    phx-click="decrement_quantity"
+                    class="w-11 h-11 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors"
+                    aria-label="Decrease quantity"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  </button>
+                  <span class="w-12 text-center text-sm font-semibold text-gray-900 tabular-nums">
+                    {@quantity}
+                  </span>
+                  <button
+                    phx-click="increment_quantity"
+                    class="w-11 h-11 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors"
+                    aria-label="Increase quantity"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
               <%!-- Add to Cart --%>
-              <div class="mt-8 space-y-3">
+              <div class="space-y-3 mb-8">
                 <button
                   phx-click="add_to_cart"
                   phx-value-product-id={@product.id}
                   phx-value-variant-id={if @selected_variant, do: @selected_variant.id, else: ""}
-                  class="w-full py-4 text-xs font-semibold uppercase tracking-widest transition-colors duration-300"
-                  style="background: var(--theme-primary); color: var(--theme-accent);"
+                  class="w-full py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-300 hover:opacity-90 min-h-[48px]"
+                  style="background: var(--theme-primary);"
                 >
-                  Add to Cart
+                  ADD TO CART
                 </button>
 
-                <button
-                  phx-click="toggle_wishlist"
-                  phx-value-product-id={@product.id}
-                  class="w-full py-4 text-xs font-semibold uppercase tracking-widest border transition-colors duration-300 flex items-center justify-center gap-2"
-                  style="border-color: var(--theme-ink); color: var(--theme-ink);"
+                <%!-- WhatsApp Purchase --%>
+                <a
+                  :if={Map.get(@store, :whatsapp_number)}
+                  href={"https://wa.me/#{@store.whatsapp_number}?text=#{URI.encode("Hi! I'm interested in #{@product.title} (#{Currency.format_price(@product.min_price || 0, @store.currency)}). Is it available?")}"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="w-full py-4 text-sm font-bold uppercase tracking-wider rounded-lg border-2 border-green-600 text-green-700 hover:bg-green-50 transition-colors flex items-center justify-center gap-2 min-h-[48px]"
                 >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                  >
-                    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.613.613l4.458-1.495A11.952 11.952 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.24 0-4.31-.726-5.99-1.956l-.418-.312-2.65.888.888-2.65-.312-.418A9.935 9.935 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
                   </svg>
-                  Add to Wishlist
-                </button>
+                  Purchase via WhatsApp
+                </a>
               </div>
 
-              <%!-- Product Details Accordion --%>
-              <div class="mt-10 border-t" style="border-color: var(--theme-surface);">
-                <.detail_row
-                  title="Shipping"
-                  text="Free delivery on orders over GHS 500. Standard delivery 3-5 business days."
-                />
-                <.detail_row title="Returns" text="Free returns within 30 days of purchase." />
+              <%!-- Accordion Sections --%>
+              <div class="border-t border-gray-200">
+                <.accordion_section title="CARE INSTRUCTIONS">
+                  <p class="text-sm text-gray-600 leading-relaxed">
+                    Handle with care. Clean with a soft dry cloth. Store in a cool, dry place away from direct sunlight. Avoid contact with water and chemicals.
+                  </p>
+                </.accordion_section>
+
+                <.accordion_section title="SECURE PAYMENT">
+                  <p class="text-sm text-gray-600 leading-relaxed">
+                    All transactions are encrypted and secure. We accept MTN Mobile Money, Telecel Cash, Visa, and Mastercard. Your payment information is never stored on our servers.
+                  </p>
+                </.accordion_section>
+
+                <.accordion_section title="SHIPPING &amp; RETURNS">
+                  <p class="text-sm text-gray-600 leading-relaxed">
+                    Free delivery within Accra and Kumasi. Standard delivery 3-5 business days. Free returns within 7 days of purchase for unused items.
+                  </p>
+                </.accordion_section>
               </div>
             </div>
           </div>
 
-          <%!-- Related Products --%>
-          <section :if={@related_products != []} class="mt-20 sm:mt-28">
-            <h2
-              class="atelier-serif text-2xl sm:text-3xl font-semibold text-center mb-10"
-              style="color: var(--theme-ink);"
-            >
-              You May Also Like
+          <%!-- Artisan Story Section --%>
+          <.artisan_story_section store={@store} />
+
+          <%!-- Related Products: "Complete the Look" --%>
+          <section :if={@related_products != []} class="mt-16 sm:mt-24">
+            <h2 class="text-2xl sm:text-3xl font-black text-gray-900 mb-8">
+              Complete the Look
             </h2>
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
               <Shared.product_card
                 :for={product <- Enum.take(@related_products, 4)}
                 product={product}
@@ -208,37 +311,29 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
 
   # ── Variant Selectors ──
 
-  attr :product, :map, required: true
-  attr :selected_variant, :map, default: nil
+  attr :option_types, :list, required: true
+  attr :selected_options, :map, default: %{}
 
   defp variant_selectors(assigns) do
-    # Group variants by option type (e.g., size, color)
-    option_groups = group_variant_options(assigns.product.variants)
-    assigns = assign(assigns, :option_groups, option_groups)
-
     ~H"""
-    <div class="space-y-6">
-      <div :for={{option_name, values} <- @option_groups}>
-        <h3
-          class="text-xs font-semibold uppercase tracking-widest mb-3"
-          style="color: var(--theme-ink);"
-        >
-          {option_name}
-        </h3>
+    <div class="space-y-5 mb-6">
+      <div :for={option_type <- @option_types}>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
+          {option_type.name}
+        </label>
         <div class="flex flex-wrap gap-2">
           <button
-            :for={value <- values}
-            phx-click="select_variant_option"
-            phx-value-option={option_name}
-            phx-value-value={value}
-            class={"min-w-[48px] px-4 py-2.5 text-xs font-medium border transition-colors duration-200 " <>
-              if(variant_selected?(value, option_name, @selected_variant),
-                do: "border-current font-semibold",
-                else: "border-stone-200 hover:border-stone-400"
+            :for={option_value <- option_type.option_values || []}
+            phx-click="select_option"
+            phx-value-option_type_id={option_type.id}
+            phx-value-value={option_value.id}
+            class={"min-w-[48px] min-h-[44px] px-4 py-2.5 text-sm font-medium rounded-lg border-2 transition-all duration-200 " <>
+              if(Map.get(@selected_options, option_type.id) == option_value.id,
+                do: "border-green-600 bg-green-50 text-green-800 font-semibold",
+                else: "border-gray-200 text-gray-700 hover:border-gray-400"
               )}
-            style={"color: " <> if(variant_selected?(value, option_name, @selected_variant), do: "var(--theme-ink)", else: "var(--theme-accent-secondary, #44403C)") <> ";"}
           >
-            {value}
+            {option_value.value}
           </button>
         </div>
       </div>
@@ -246,24 +341,109 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
     """
   end
 
-  # ── Detail Row ──
+  # ── Accordion Section ──
 
   attr :title, :string, required: true
-  attr :text, :string, required: true
+  slot :inner_block, required: true
 
-  defp detail_row(assigns) do
+  defp accordion_section(assigns) do
+    accordion_id =
+      "accordion-#{String.downcase(String.replace(assigns.title, ~r/[^a-zA-Z0-9]/, "-"))}"
+
+    assigns = assign(assigns, :accordion_id, accordion_id)
+
     ~H"""
-    <div class="py-4 border-b" style="border-color: var(--theme-surface);">
-      <h4
-        class="text-xs font-semibold uppercase tracking-widest mb-2"
-        style="color: var(--theme-ink);"
+    <div class="border-b border-gray-200">
+      <input type="checkbox" id={@accordion_id} class="atelier-accordion-toggle sr-only peer" />
+      <label
+        for={@accordion_id}
+        class="atelier-accordion-header flex items-center justify-between py-4 cursor-pointer group"
       >
-        {@title}
-      </h4>
-      <p class="text-sm leading-relaxed" style="color: var(--theme-accent-secondary, #44403C);">
-        {@text}
-      </p>
+        <span class="text-xs font-bold uppercase tracking-widest text-gray-900">
+          {@title}
+        </span>
+        <span class="atelier-accordion-icon text-gray-400 transition-transform duration-300">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </span>
+      </label>
+      <div class="atelier-accordion-content pb-4">
+        {render_slot(@inner_block)}
+      </div>
     </div>
+    """
+  end
+
+  # ── Artisan Story Section ──
+
+  attr :store, :map, required: true
+
+  defp artisan_story_section(assigns) do
+    ~H"""
+    <section class="mt-16 sm:mt-24 py-12 sm:py-16 bg-gray-50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 rounded-2xl">
+      <div class="max-w-6xl mx-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+          <%!-- Text side --%>
+          <div>
+            <span
+              class="text-xs font-semibold uppercase tracking-widest mb-3 block"
+              style="color: var(--theme-primary);"
+            >
+              The Artisan's Signature
+            </span>
+            <h2 class="text-2xl sm:text-3xl font-black text-gray-900 mb-4">
+              {@store.name}
+            </h2>
+            <blockquote
+              class="text-gray-600 italic text-base leading-relaxed mb-4 border-l-4 pl-4"
+              style="border-color: var(--theme-primary);"
+            >
+              "Every piece tells a story of heritage, craftsmanship, and the human hands that shaped it."
+            </blockquote>
+            <p class="text-gray-600 text-sm leading-relaxed mb-6">
+              {if @store.description,
+                do: @store.description,
+                else:
+                  "Dedicated to preserving West African craft traditions while creating contemporary pieces for the modern world."}
+            </p>
+            <a
+              href={"/s/#{@store.slug}/about"}
+              class="inline-flex items-center gap-2 text-sm font-bold transition-colors hover:opacity-80 min-h-[44px]"
+              style="color: var(--theme-primary);"
+            >
+              Read Their Story
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              >
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </a>
+          </div>
+
+          <%!-- Image side --%>
+          <div class="rounded-xl overflow-hidden bg-gray-200 aspect-[4/5]">
+            <div class="w-full h-full flex items-center justify-center">
+              <span class="text-6xl font-black text-gray-300">{String.first(@store.name)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
     """
   end
 
@@ -286,33 +466,23 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
     end
   end
 
-  defp has_variants?(product) do
-    case product.variants do
-      variants when is_list(variants) and variants != [] -> true
-      _ -> false
+  defp product_title_with_accent(title) when is_binary(title) do
+    words = String.split(title)
+
+    if length(words) > 1 do
+      {main_words, accent_words} = Enum.split(words, length(words) - 1)
+      main = Enum.join(main_words, " ")
+      accent = Enum.join(accent_words, " ")
+
+      Phoenix.HTML.raw(
+        "#{Phoenix.HTML.html_escape(main) |> Phoenix.HTML.safe_to_string()} " <>
+          "<span class=\"italic\" style=\"color: var(--theme-accent);\">" <>
+          "#{Phoenix.HTML.html_escape(accent) |> Phoenix.HTML.safe_to_string()}</span>"
+      )
+    else
+      title
     end
   end
 
-  defp group_variant_options(variants) when is_list(variants) do
-    variants
-    |> Enum.flat_map(fn variant ->
-      case Map.get(variant, :options) do
-        options when is_map(options) -> Map.to_list(options)
-        _ -> []
-      end
-    end)
-    |> Enum.group_by(fn {k, _v} -> k end, fn {_k, v} -> v end)
-    |> Enum.map(fn {k, vs} -> {k, Enum.uniq(vs)} end)
-  end
-
-  defp group_variant_options(_), do: []
-
-  defp variant_selected?(_value, _option_name, nil), do: false
-
-  defp variant_selected?(value, option_name, selected_variant) do
-    case Map.get(selected_variant, :options) do
-      options when is_map(options) -> Map.get(options, option_name) == value
-      _ -> false
-    end
-  end
+  defp product_title_with_accent(title), do: title
 end

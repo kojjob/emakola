@@ -1,14 +1,14 @@
 defmodule Emakola.Themes.Atelier.Home do
   @moduledoc """
-  Atelier theme home page renderer.
+  Atelier theme home page renderer — Stitch design reference.
 
   Sections (gated by `@theme.sections`):
-  - Hero: Full-screen editorial with gradient overlay, serif typography, gold accents
-  - Categories: Asymmetric masonry grid
-  - Products: 4-column featured grid with 5:6 cards
-  - Brand Story: Split image + text section
-  - Newsletter: Email signup CTA
-  - Footer: Multi-column with store info
+  - Hero: Full-screen image bg, bold sans-serif heading, green CTAs
+  - Categories: Horizontal scrolling circles
+  - Products: Featured hero card + 2 smaller cards
+  - Trust: Secure commerce section with payment partners
+  - Newsletter: Email signup "Join the Artisan Circle"
+  - Footer: Dark bg with store info and links
   """
   use Phoenix.Component
 
@@ -40,13 +40,12 @@ defmodule Emakola.Themes.Atelier.Home do
         store={@store}
         categories={@categories}
         cart_count={@cart_count}
-        transparent={true}
       />
 
       <%!-- Hero Section --%>
       <.hero_section :if={section_enabled?(@theme, :hero)} store={@store} theme={@theme} />
 
-      <%!-- Category Grid --%>
+      <%!-- Category Circles --%>
       <.categories_section
         :if={section_enabled?(@theme, :categories) && @categories != []}
         store={@store}
@@ -55,17 +54,13 @@ defmodule Emakola.Themes.Atelier.Home do
 
       <%!-- Featured Products --%>
       <.products_section
-        :if={section_enabled?(@theme, :products) && @products != []}
+        :if={section_enabled?(@theme, :featured_products) && @products != []}
         store={@store}
         products={@products}
       />
 
-      <%!-- Brand Story --%>
-      <.brand_story_section
-        :if={section_enabled?(@theme, :brand_story)}
-        store={@store}
-        theme={@theme}
-      />
+      <%!-- Trust / Payment Section --%>
+      <.trust_section :if={section_enabled?(@theme, :trust)} store={@store} />
 
       <%!-- Newsletter --%>
       <.newsletter_section :if={section_enabled?(@theme, :newsletter)} store={@store} />
@@ -81,14 +76,13 @@ defmodule Emakola.Themes.Atelier.Home do
   attr :store, :map, required: true
   attr :theme, :map, required: true
 
-  @default_hero_image "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1600&h=900&fit=crop&q=80"
+  @default_hero_image "https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=1600&h=900&fit=crop&q=80"
 
   defp hero_section(assigns) do
     hero_images = get_in(assigns.theme, [:hero, :images]) || []
     hero_image = get_in(assigns.theme, [:hero, :image_url])
     hero_carousel = get_in(assigns.theme, [:hero, :carousel]) || false
 
-    # Build the effective images list: prefer images list, fall back to single image_url
     effective_images =
       case hero_images do
         [_ | _] -> hero_images
@@ -98,15 +92,10 @@ defmodule Emakola.Themes.Atelier.Home do
 
     use_carousel = hero_carousel && length(effective_images) > 1
     image_count = length(effective_images)
-    # Total animation duration: 5s per image
     total_duration = image_count * 5
 
-    hero_subtitle = get_in(assigns.theme, [:hero, :subtitle]) || "Curated Collection"
-    hero_title = get_in(assigns.theme, [:hero, :title]) || "The New\nEssential"
-
-    hero_description =
-      get_in(assigns.theme, [:hero, :description]) ||
-        "Redefining modern luxury through timeless silhouettes and conscious craft."
+    hero_subtitle = get_in(assigns.theme, [:hero, :subtitle]) || "The 2024 Collection"
+    hero_title = get_in(assigns.theme, [:hero, :title]) || "Crafting Trust,\nCurating Excellence."
 
     assigns =
       assigns
@@ -116,10 +105,9 @@ defmodule Emakola.Themes.Atelier.Home do
       |> assign(:total_duration, total_duration)
       |> assign(:hero_subtitle, hero_subtitle)
       |> assign(:hero_title, hero_title)
-      |> assign(:hero_description, hero_description)
 
     ~H"""
-    <section class="relative min-h-screen flex items-end overflow-hidden">
+    <section class="relative min-h-[85vh] sm:min-h-screen flex items-center overflow-hidden">
       <%!-- Carousel CSS Animation --%>
       <style :if={@use_carousel}>
         @keyframes atelier-carousel {
@@ -146,59 +134,49 @@ defmodule Emakola.Themes.Atelier.Home do
         />
       <% end %>
 
-      <%!-- Gradient Overlay --%>
-      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10"></div>
+      <%!-- Dark Overlay --%>
+      <div class="absolute inset-0 bg-black/50"></div>
 
       <%!-- Content --%>
-      <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 sm:pb-28 lg:pb-32 w-full">
-        <div class="max-w-2xl">
-          <p
-            class="text-xs sm:text-sm atelier-sans font-medium uppercase tracking-widest mb-4 sm:mb-6"
-            style="color: var(--theme-primary);"
-          >
+      <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-20">
+        <div class="max-w-3xl">
+          <%!-- Badge --%>
+          <span class="inline-block px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase mb-6 bg-white/20 backdrop-blur-sm text-white">
             {@hero_subtitle}
-          </p>
-          <h1 class="atelier-serif text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-white font-semibold leading-[0.95] mb-5 sm:mb-6">
+          </span>
+
+          <%!-- Heading --%>
+          <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white leading-[1.05] mb-6">
             {raw(String.replace(@hero_title, "\n", "<br>"))}
           </h1>
-          <p class="text-white/80 text-base sm:text-lg font-light leading-relaxed max-w-lg mb-8 sm:mb-10 atelier-sans">
-            {@hero_description}
-          </p>
-          <div class="flex flex-col sm:flex-row gap-4">
+
+          <%!-- CTA Buttons --%>
+          <div class="flex flex-col sm:flex-row gap-4 mt-8">
             <a
               href={"/s/#{@store.slug}/products"}
-              class="inline-flex items-center justify-center px-8 py-4 text-xs font-semibold uppercase tracking-widest transition-colors duration-300"
-              style="background: var(--theme-primary); color: var(--theme-accent);"
+              class="inline-flex items-center justify-center px-8 py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-300 hover:opacity-90 min-h-[48px]"
+              style="background: var(--theme-primary);"
             >
-              Shop Collection
+              Explore Masterpieces
+            </a>
+            <a
+              href={"/s/#{@store.slug}/about"}
+              class="inline-flex items-center justify-center px-8 py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white border-2 border-white/40 hover:bg-white/10 transition-all duration-300 min-h-[48px]"
+            >
+              Meet the Artisans
             </a>
           </div>
         </div>
 
         <%!-- Carousel Dot Indicators --%>
-        <div :if={@use_carousel} class="flex justify-center gap-2 mt-8">
+        <div :if={@use_carousel} class="flex gap-2 mt-10">
           <span
             :for={idx <- 0..(@image_count - 1)}
-            class="w-2 h-2 rounded-full bg-white/50"
+            class="w-2.5 h-2.5 rounded-full bg-white/50"
             style={"animation: atelier-carousel #{@total_duration}s infinite #{idx * 5}s;"}
           >
           </span>
         </div>
-      </div>
-
-      <%!-- Scroll Indicator --%>
-      <div class="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 animate-bounce hidden sm:block">
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="white"
-          stroke-width="1.5"
-          stroke-linecap="round"
-        >
-          <path d="M12 5v14M5 12l7 7 7-7" />
-        </svg>
       </div>
     </section>
     """
@@ -210,45 +188,17 @@ defmodule Emakola.Themes.Atelier.Home do
   attr :categories, :list, required: true
 
   defp categories_section(assigns) do
-    # Build asymmetric layout: first 2 are tall left columns, 3rd is large center-right, 4th is wide bottom
-    padded = assigns.categories ++ List.duplicate(nil, max(0, 4 - length(assigns.categories)))
-    [cat1, cat2, cat3, cat4 | _] = padded
-    assigns = assign(assigns, cat1: cat1, cat2: cat2, cat3: cat3, cat4: cat4)
-
     ~H"""
-    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 auto-rows-[200px] sm:auto-rows-[260px] lg:auto-rows-[280px]">
-        <%!-- Left tall column 1 --%>
-        <Shared.category_card
-          :if={@cat1}
-          category={@cat1}
-          store={@store}
-          class="row-span-2 col-span-1"
-        />
-
-        <%!-- Left tall column 2 --%>
-        <Shared.category_card
-          :if={@cat2}
-          category={@cat2}
-          store={@store}
-          class="row-span-2 col-span-1"
-        />
-
-        <%!-- Large center-right --%>
-        <Shared.category_card
-          :if={@cat3}
-          category={@cat3}
-          store={@store}
-          class="col-span-2 row-span-3"
-        />
-
-        <%!-- Wide bottom --%>
-        <Shared.category_card
-          :if={@cat4}
-          category={@cat4}
-          store={@store}
-          class="col-span-2 row-span-1"
-        />
+    <section class="py-12 sm:py-16">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <%!-- Horizontal scrolling category circles --%>
+        <div class="flex gap-6 sm:gap-8 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:justify-center sm:flex-wrap">
+          <Shared.category_circle
+            :for={category <- @categories}
+            category={category}
+            store={@store}
+          />
+        </div>
       </div>
     </section>
     """
@@ -260,112 +210,173 @@ defmodule Emakola.Themes.Atelier.Home do
   attr :products, :list, required: true
 
   defp products_section(assigns) do
+    hero_product = List.first(assigns.products)
+    smaller_products = assigns.products |> Enum.drop(1) |> Enum.take(2)
+
+    assigns =
+      assigns
+      |> assign(:hero_product, hero_product)
+      |> assign(:smaller_products, smaller_products)
+
     ~H"""
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
-      <div class="text-center mb-10 sm:mb-14">
-        <h2
-          class="atelier-serif text-3xl sm:text-4xl lg:text-5xl font-semibold"
-          style="color: var(--theme-ink);"
-        >
-          Curated for You
+      <%!-- Section Header --%>
+      <div class="flex items-center justify-between mb-8 sm:mb-12">
+        <h2 class="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900">
+          Featured Masterpieces
         </h2>
-        <p
-          class="text-sm mt-3 max-w-md mx-auto"
-          style="color: var(--theme-accent-secondary, #44403C);"
+        <a
+          href={"/s/#{@store.slug}/products"}
+          class="text-sm font-semibold transition-colors hover:opacity-80"
+          style="color: var(--theme-primary);"
         >
-          Handpicked pieces from our latest collections.
-        </p>
+          View all &rarr;
+        </a>
       </div>
 
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <%!-- Grid: Hero card on left, 2 smaller on right --%>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <%!-- Hero Product Card --%>
+        <div :if={@hero_product}>
+          <Shared.hero_product_card product={@hero_product} store={@store} />
+        </div>
+
+        <%!-- Two smaller cards stacked --%>
+        <div class="grid grid-cols-2 gap-4 sm:gap-6">
+          <Shared.product_card
+            :for={product <- @smaller_products}
+            product={product}
+            store={@store}
+          />
+        </div>
+      </div>
+
+      <%!-- Extra products row --%>
+      <div
+        :if={length(@products) > 3}
+        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mt-8"
+      >
         <Shared.product_card
-          :for={product <- Enum.take(@products, 8)}
+          :for={product <- Enum.drop(@products, 3) |> Enum.take(4)}
           product={product}
           store={@store}
         />
-      </div>
-
-      <div :if={length(@products) > 8} class="text-center mt-10">
-        <a
-          href={"/s/#{@store.slug}/products"}
-          class="inline-block text-xs font-semibold uppercase tracking-widest border-b-2 pb-1 transition-colors duration-300"
-          style="color: var(--theme-ink); border-color: var(--theme-ink);"
-        >
-          View All Products
-        </a>
       </div>
     </section>
     """
   end
 
-  # ── Brand Story Section ──
+  # ── Trust / Payment Section ──
 
   attr :store, :map, required: true
-  attr :theme, :map, required: true
 
-  defp brand_story_section(assigns) do
-    story_image = get_in(assigns.theme, [:brand_story, :image_url]) || ""
-    story_since = get_in(assigns.theme, [:brand_story, :since]) || ""
-    story_title = get_in(assigns.theme, [:brand_story, :title]) || "Our Story"
-    story_text = get_in(assigns.theme, [:brand_story, :text]) || assigns.store.description || ""
-
-    assigns =
-      assigns
-      |> assign(:story_image, story_image)
-      |> assign(:story_since, story_since)
-      |> assign(:story_title, story_title)
-      |> assign(:story_text, story_text)
-
+  defp trust_section(assigns) do
     ~H"""
-    <section class="bg-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          <%!-- Image --%>
-          <div class="overflow-hidden">
-            <img
-              :if={@story_image != ""}
-              src={@story_image}
-              alt={"#{@store.name} story"}
-              class="w-full h-[400px] sm:h-[500px] object-cover"
-              loading="lazy"
-            />
+    <section class="py-16 sm:py-24" style="background: var(--theme-bg, #F0FDF4);">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <%!-- Heading --%>
+        <div class="text-center mb-12 sm:mb-16">
+          <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
+            Seamless Trust. Secure Commerce.
+          </h2>
+          <p class="text-gray-600 text-base sm:text-lg max-w-2xl mx-auto">
+            Shop with confidence using your preferred payment method.
+          </p>
+        </div>
+
+        <%!-- Feature Cards --%>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          <%!-- Encrypted Security --%>
+          <div class="bg-white rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100">
             <div
-              :if={@story_image == ""}
-              class="w-full h-[400px] sm:h-[500px] bg-stone-200 flex items-center justify-center"
+              class="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
+              style="background: #F0FDF4;"
             >
-              <span class="atelier-serif text-4xl text-stone-400">{String.first(@store.name)}</span>
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke-width="2"
+                style="stroke: var(--theme-primary);"
+              >
+                <path
+                  d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke="currentColor"
+                />
+              </svg>
             </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Encrypted Security</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">
+              Every transaction is protected with bank-level encryption. Your payment details are never stored on our servers.
+            </p>
           </div>
 
-          <%!-- Text --%>
-          <div class="max-w-lg">
-            <p
-              :if={@story_since != ""}
-              class="text-xs font-medium uppercase tracking-widest mb-4"
-              style="color: var(--theme-primary);"
+          <%!-- Instant Settlement --%>
+          <div class="bg-white rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100">
+            <div
+              class="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
+              style="background: #F0FDF4;"
             >
-              {@story_since}
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke-width="2"
+                style="stroke: var(--theme-primary);"
+              >
+                <path
+                  d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke="currentColor"
+                />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Instant Settlement</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">
+              Payments are confirmed in real-time. No waiting, no uncertainty. Get instant order confirmation.
             </p>
-            <h2
-              class="atelier-serif text-3xl sm:text-4xl lg:text-5xl font-semibold mb-6 leading-tight"
-              style="color: var(--theme-ink);"
+          </div>
+
+          <%!-- Mobile Money --%>
+          <div class="bg-white rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100 md:col-span-2 lg:col-span-1">
+            <div
+              class="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
+              style="background: #F0FDF4;"
             >
-              {@story_title}
-            </h2>
-            <p
-              :if={@story_text != ""}
-              class="text-base leading-relaxed mb-8"
-              style="color: var(--theme-accent-secondary, #44403C);"
-            >
-              {@story_text}
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke-width="2"
+                style="stroke: var(--theme-primary);"
+              >
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2" stroke="currentColor" />
+                <line x1="12" y1="18" x2="12.01" y2="18" stroke="currentColor" stroke-linecap="round" />
+              </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Mobile Money Ready</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">
+              Pay with MTN Mobile Money, Telecel Cash, or your debit/credit card. Your choice, your convenience.
             </p>
-            <a
-              href={"/s/#{@store.slug}/about"}
-              class="inline-block text-xs font-semibold uppercase tracking-widest border-b-2 pb-1 transition-colors duration-300"
-              style="color: var(--theme-ink); border-color: var(--theme-ink);"
-            >
-              Learn More
-            </a>
+          </div>
+        </div>
+
+        <%!-- Payment Partners --%>
+        <div class="text-center">
+          <p class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-6">
+            Trusted Payment Partners
+          </p>
+          <div class="flex items-center justify-center gap-8 sm:gap-12 flex-wrap">
+            <span class="text-gray-400 font-bold text-sm sm:text-base">MTN MoMo</span>
+            <span class="text-gray-400 font-bold text-sm sm:text-base">Telecel Cash</span>
+            <span class="text-gray-400 font-bold text-sm sm:text-base">Visa</span>
+            <span class="text-gray-400 font-bold text-sm sm:text-base">Mastercard</span>
           </div>
         </div>
       </div>
@@ -379,20 +390,14 @@ defmodule Emakola.Themes.Atelier.Home do
 
   defp newsletter_section(assigns) do
     ~H"""
-    <section class="bg-stone-100/60">
+    <section class="bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <div class="max-w-xl mx-auto text-center">
-          <h2
-            class="atelier-serif text-3xl sm:text-4xl lg:text-5xl font-semibold mb-4"
-            style="color: var(--theme-ink);"
-          >
-            Join the Inner Circle
+          <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
+            Join the Artisan Circle.
           </h2>
-          <p
-            class="text-sm sm:text-base leading-relaxed mb-8"
-            style="color: var(--theme-accent-secondary, #44403C);"
-          >
-            Early access to new collections, exclusive offers, and editorial content.
+          <p class="text-gray-600 text-base sm:text-lg leading-relaxed mb-8">
+            Be the first to discover new artisan collections, exclusive offers, and stories from the makers.
           </p>
           <form class="flex flex-col sm:flex-row gap-3 mb-4" phx-submit="subscribe_newsletter">
             <label for="newsletter-email" class="sr-only">Email address</label>
@@ -400,19 +405,22 @@ defmodule Emakola.Themes.Atelier.Home do
               id="newsletter-email"
               type="email"
               name="email"
-              placeholder="Your email address"
+              placeholder="Enter your email"
               required
-              class="flex-1 px-5 py-3.5 bg-white border border-stone-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-shadow"
-              style="color: var(--theme-ink); focus:ring-color: var(--theme-primary);"
+              class="flex-1 px-5 py-3.5 bg-gray-100 rounded-lg text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 transition-shadow border-0"
+              style="focus:ring-color: var(--theme-primary);"
             />
             <button
               type="submit"
-              class="px-8 py-3.5 text-xs font-semibold uppercase tracking-widest transition-colors duration-300 whitespace-nowrap"
-              style="background: var(--theme-primary); color: var(--theme-accent);"
+              class="px-8 py-3.5 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-colors duration-300 whitespace-nowrap min-h-[48px]"
+              style="background: var(--theme-primary);"
             >
-              Subscribe
+              Join Now
             </button>
           </form>
+          <p class="text-xs text-gray-400">
+            No spam. Unsubscribe anytime.
+          </p>
         </div>
       </div>
     </section>
