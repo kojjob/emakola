@@ -98,6 +98,9 @@ defmodule EmakolaWeb.Router do
       live "/admin/settings", Admin.SettingsLive
       live "/admin/settings/delivery", Admin.DeliveryLive.Index
 
+      # Theme customizer
+      live "/admin/theme", Admin.ThemeLive
+
       # Marketing
       live "/admin/campaigns", Admin.CampaignLive.Index
       live "/admin/discounts", Admin.DiscountLive.Index
