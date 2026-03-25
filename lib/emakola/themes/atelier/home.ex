@@ -84,8 +84,23 @@ defmodule Emakola.Themes.Atelier.Home do
   @default_hero_image "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1600&h=900&fit=crop&q=80"
 
   defp hero_section(assigns) do
+    hero_images = get_in(assigns.theme, [:hero, :images]) || []
     hero_image = get_in(assigns.theme, [:hero, :image_url])
-    hero_image = if hero_image in [nil, ""], do: @default_hero_image, else: hero_image
+    hero_carousel = get_in(assigns.theme, [:hero, :carousel]) || false
+
+    # Build the effective images list: prefer images list, fall back to single image_url
+    effective_images =
+      case hero_images do
+        [_ | _] -> hero_images
+        _ when hero_image not in [nil, ""] -> [hero_image]
+        _ -> [@default_hero_image]
+      end
+
+    use_carousel = hero_carousel && length(effective_images) > 1
+    image_count = length(effective_images)
+    # Total animation duration: 5s per image
+    total_duration = image_count * 5
+
     hero_subtitle = get_in(assigns.theme, [:hero, :subtitle]) || "Curated Collection"
     hero_title = get_in(assigns.theme, [:hero, :title]) || "The New\nEssential"
 
@@ -95,21 +110,41 @@ defmodule Emakola.Themes.Atelier.Home do
 
     assigns =
       assigns
-      |> assign(:hero_image, hero_image)
+      |> assign(:effective_images, effective_images)
+      |> assign(:use_carousel, use_carousel)
+      |> assign(:image_count, image_count)
+      |> assign(:total_duration, total_duration)
       |> assign(:hero_subtitle, hero_subtitle)
       |> assign(:hero_title, hero_title)
       |> assign(:hero_description, hero_description)
 
     ~H"""
     <section class="relative min-h-screen flex items-end overflow-hidden">
-      <%!-- Background Image --%>
-      <img
-        :if={@hero_image != ""}
-        src={@hero_image}
-        alt={"#{@store.name} collection"}
-        class="absolute inset-0 w-full h-full object-cover object-center"
-      />
-      <div :if={@hero_image == ""} class="absolute inset-0 w-full h-full bg-stone-800"></div>
+      <%!-- Carousel CSS Animation --%>
+      <style :if={@use_carousel}>
+        @keyframes atelier-carousel {
+          0%, 30% { opacity: 1; }
+          33.33%, 97% { opacity: 0; }
+          100% { opacity: 1; }
+        }
+      </style>
+
+      <%!-- Background Images --%>
+      <%= if @use_carousel do %>
+        <img
+          :for={{url, idx} <- Enum.with_index(@effective_images)}
+          src={url}
+          alt={"#{@store.name} collection #{idx + 1}"}
+          class="absolute inset-0 w-full h-full object-cover object-center"
+          style={"animation: atelier-carousel #{@total_duration}s infinite #{idx * 5}s; opacity: #{if idx == 0, do: 1, else: 0};"}
+        />
+      <% else %>
+        <img
+          src={List.first(@effective_images)}
+          alt={"#{@store.name} collection"}
+          class="absolute inset-0 w-full h-full object-cover object-center"
+        />
+      <% end %>
 
       <%!-- Gradient Overlay --%>
       <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10"></div>
@@ -138,6 +173,16 @@ defmodule Emakola.Themes.Atelier.Home do
               Shop Collection
             </a>
           </div>
+        </div>
+
+        <%!-- Carousel Dot Indicators --%>
+        <div :if={@use_carousel} class="flex justify-center gap-2 mt-8">
+          <span
+            :for={idx <- 0..(@image_count - 1)}
+            class="w-2 h-2 rounded-full bg-white/50"
+            style={"animation: atelier-carousel #{@total_duration}s infinite #{idx * 5}s;"}
+          >
+          </span>
         </div>
       </div>
 

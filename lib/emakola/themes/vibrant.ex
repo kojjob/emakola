@@ -45,6 +45,8 @@ defmodule Emakola.Themes.Vibrant do
       },
       hero: %{
         image_url: "",
+        images: [],
+        carousel: false,
         title: "Discover Unique Finds",
         subtitle: "Handcrafted with Love",
         cta_text: "Explore Now",

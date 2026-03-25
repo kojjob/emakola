@@ -59,6 +59,8 @@ defmodule Emakola.Themes.Atelier do
       fonts: %{heading: "Cormorant", body: "Montserrat"},
       hero: %{
         image_url: "",
+        images: [],
+        carousel: false,
         title: "The New Essential",
         subtitle: "New Collection",
         cta_text: "Shop Collection",

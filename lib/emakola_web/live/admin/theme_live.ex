@@ -2,6 +2,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
   @moduledoc """
   Theme customizer — visual, low-literacy friendly.
   Large theme preview cards, tap-to-select colors, visual toggles.
+  Supports hero image uploads (up to 5) and carousel toggle.
   """
 
   use EmakolaWeb, :live_view
@@ -62,6 +63,9 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       store ->
         resolved = ThemeResolver.resolve(store.theme_config || %{})
 
+        hero_images = get_in(resolved, [:hero, :images]) || []
+        hero_carousel = get_in(resolved, [:hero, :carousel]) || false
+
         socket =
           socket
           |> assign(
@@ -73,6 +77,8 @@ defmodule EmakolaWeb.Admin.ThemeLive do
             theme_id: resolved.theme_id,
             primary_color: resolved.colors.primary,
             hero_image: get_in(resolved, [:hero, :image_url]) || "",
+            hero_images: hero_images,
+            hero_carousel: hero_carousel,
             hero_title: get_in(resolved, [:hero, :title]) || "",
             sections: %{
               hero: Map.get(resolved.sections, :hero, true),
@@ -83,6 +89,11 @@ defmodule EmakolaWeb.Admin.ThemeLive do
             },
             saving: false,
             saved: false
+          )
+          |> allow_upload(:hero_images,
+            accept: ~w(.jpg .jpeg .png .webp),
+            max_entries: 5,
+            max_file_size: 5_000_000
           )
 
         {:ok, socket}
@@ -248,31 +259,158 @@ defmodule EmakolaWeb.Admin.ThemeLive do
         <div class="bg-white rounded-2xl p-5 shadow-sm space-y-4">
           <%!-- Hero preview --%>
           <div class="relative rounded-xl overflow-hidden h-40 bg-slate-200">
-            <img
-              :if={@hero_image != ""}
-              src={@hero_image}
-              alt="Hero preview"
-              class="w-full h-full object-cover"
-            />
-            <div
-              :if={@hero_image == ""}
-              class="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center"
-            >
-              <span class="material-symbols-outlined text-4xl text-white/30">image</span>
-            </div>
+            <%= if first_hero_image(@hero_images, @hero_image) != "" do %>
+              <img
+                src={first_hero_image(@hero_images, @hero_image)}
+                alt="Hero preview"
+                class="w-full h-full object-cover"
+              />
+            <% else %>
+              <div class="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
+                <span class="material-symbols-outlined text-4xl text-white/30">image</span>
+              </div>
+            <% end %>
             <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
             <div class="absolute bottom-3 left-4">
               <p class="text-white font-bold text-lg">
                 {if @hero_title != "", do: @hero_title, else: "Your Store Title"}
               </p>
             </div>
+            <%!-- Carousel badge --%>
+            <div :if={@hero_carousel && length(@hero_images) > 1} class="absolute top-3 right-3">
+              <span class="bg-black/50 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">
+                Carousel
+              </span>
+            </div>
           </div>
 
-          <%!-- Hero image URL --%>
+          <%!-- Uploaded hero images thumbnails --%>
+          <div :if={@hero_images != []} class="space-y-2">
+            <label class="block text-xs font-medium text-slate-500">
+              <span class="material-symbols-outlined text-sm align-middle mr-1">collections</span>
+              Hero Images ({length(@hero_images)}/5)
+            </label>
+            <div class="flex flex-wrap gap-3">
+              <div :for={{url, idx} <- Enum.with_index(@hero_images)} class="relative group">
+                <img
+                  src={url}
+                  alt={"Hero image #{idx + 1}"}
+                  class="w-20 h-20 rounded-lg object-cover ring-1 ring-slate-200"
+                />
+                <button
+                  type="button"
+                  phx-click="remove_hero_image"
+                  phx-value-index={idx}
+                  class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <span class="material-symbols-outlined text-xs">close</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <%!-- File Upload --%>
+          <div :if={length(@hero_images) < 5}>
+            <label class="block text-xs font-medium text-slate-500 mb-1.5">
+              <span class="material-symbols-outlined text-sm align-middle mr-1">upload</span>
+              Upload Hero Images
+            </label>
+            <form id="hero-upload-form" phx-change="validate_upload" phx-submit="save_hero_image">
+              <div
+                class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-emerald-400 transition-colors cursor-pointer"
+                phx-drop-target={@uploads.hero_images.ref}
+              >
+                <.live_file_input upload={@uploads.hero_images} class="sr-only" />
+                <span class="material-symbols-outlined text-3xl text-slate-400">
+                  add_photo_alternate
+                </span>
+                <p class="text-sm text-slate-500 mt-2">
+                  Drag images here or
+                  <label
+                    for={@uploads.hero_images.ref}
+                    class="text-emerald-600 font-medium cursor-pointer hover:underline"
+                  >
+                    browse
+                  </label>
+                </p>
+                <p class="text-[11px] text-slate-400 mt-1">
+                  JPG, PNG, WebP up to 5MB each (max 5 images)
+                </p>
+              </div>
+
+              <%!-- Upload previews --%>
+              <div :if={@uploads.hero_images.entries != []} class="mt-3 space-y-2">
+                <div :for={entry <- @uploads.hero_images.entries} class="flex items-center gap-3">
+                  <.live_img_preview entry={entry} class="w-12 h-12 rounded-lg object-cover" />
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs text-slate-600 truncate">{entry.client_name}</p>
+                    <div class="w-full bg-slate-200 rounded-full h-1.5 mt-1">
+                      <div
+                        class="bg-emerald-500 h-1.5 rounded-full"
+                        style={"width: #{entry.progress}%"}
+                      >
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    phx-click="cancel_upload"
+                    phx-value-ref={entry.ref}
+                    class="text-slate-400 hover:text-red-500"
+                  >
+                    <span class="material-symbols-outlined text-sm">close</span>
+                  </button>
+                </div>
+                <%!-- Upload errors --%>
+                <p :for={err <- upload_errors(@uploads.hero_images)} class="text-xs text-red-500">
+                  {upload_error_message(err)}
+                </p>
+              </div>
+
+              <button
+                :if={@uploads.hero_images.entries != []}
+                type="submit"
+                class="mt-3 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+              >
+                <span class="material-symbols-outlined text-sm align-middle mr-1">cloud_upload</span>
+                Upload
+              </button>
+            </form>
+          </div>
+
+          <%!-- Carousel Toggle --%>
+          <div
+            :if={length(@hero_images) > 1}
+            class="flex items-center justify-between p-3 bg-slate-50 rounded-xl"
+          >
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-lg text-slate-600">view_carousel</span>
+              <div>
+                <p class="text-sm font-medium text-slate-700">Carousel</p>
+                <p class="text-[11px] text-slate-400">Auto-rotate hero images</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              phx-click="toggle_carousel"
+              class={[
+                "relative w-12 h-7 rounded-full transition-colors",
+                if(@hero_carousel, do: "bg-emerald-500", else: "bg-slate-300")
+              ]}
+            >
+              <span class={[
+                "absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform",
+                if(@hero_carousel, do: "translate-x-5", else: "translate-x-0.5")
+              ]}>
+              </span>
+            </button>
+          </div>
+
+          <%!-- Hero image URL fallback --%>
           <div>
             <label class="block text-xs font-medium text-slate-500 mb-1.5">
-              <span class="material-symbols-outlined text-sm align-middle mr-1">image</span>
-              Hero Image URL
+              <span class="material-symbols-outlined text-sm align-middle mr-1">link</span>
+              Or paste an image URL
             </label>
             <input
               type="url"
@@ -283,7 +421,9 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               placeholder="https://images.unsplash.com/..."
               class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
-            <p class="text-[11px] text-slate-400 mt-1">Paste a link to your banner image</p>
+            <p class="text-[11px] text-slate-400 mt-1">
+              Paste a link to your banner image (used when no uploaded images)
+            </p>
           </div>
 
           <%!-- Hero title --%>
@@ -426,6 +566,20 @@ defmodule EmakolaWeb.Admin.ThemeLive do
     """
   end
 
+  # ── Helpers ──
+
+  defp first_hero_image(hero_images, fallback_url) do
+    case hero_images do
+      [first | _] -> first
+      _ -> fallback_url || ""
+    end
+  end
+
+  defp upload_error_message(:too_large), do: "File is too large (max 5MB)"
+  defp upload_error_message(:not_accepted), do: "Invalid file type (use JPG, PNG, or WebP)"
+  defp upload_error_message(:too_many_files), do: "Too many files (max 5)"
+  defp upload_error_message(_), do: "Upload error"
+
   # ── Events ──
 
   @impl true
@@ -464,6 +618,55 @@ defmodule EmakolaWeb.Admin.ThemeLive do
   end
 
   @impl true
+  def handle_event("toggle_carousel", _params, socket) do
+    {:noreply, assign(socket, hero_carousel: !socket.assigns.hero_carousel, saved: false)}
+  end
+
+  @impl true
+  def handle_event("validate_upload", _params, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("cancel_upload", %{"ref" => ref}, socket) do
+    {:noreply, cancel_upload(socket, :hero_images, ref)}
+  end
+
+  @impl true
+  def handle_event("save_hero_image", _params, socket) do
+    store_id = socket.assigns.store.id
+
+    uploaded_urls =
+      consume_uploaded_entries(socket, :hero_images, fn %{path: path}, entry ->
+        filename = "#{store_id}_#{System.os_time(:millisecond)}_#{entry.client_name}"
+        # Sanitize filename
+        filename = String.replace(filename, ~r/[^a-zA-Z0-9._-]/, "_")
+        dest = Path.join(heroes_upload_dir(), filename)
+        File.cp!(path, dest)
+        {:ok, "/uploads/heroes/#{filename}"}
+      end)
+
+    existing = socket.assigns.hero_images
+    # Cap at 5 total
+    new_images = Enum.take(existing ++ uploaded_urls, 5)
+
+    {:noreply, assign(socket, hero_images: new_images, saved: false)}
+  end
+
+  @impl true
+  def handle_event("remove_hero_image", %{"index" => index_str}, socket) do
+    index = String.to_integer(index_str)
+    new_images = List.delete_at(socket.assigns.hero_images, index)
+
+    # Turn off carousel if less than 2 images remain
+    hero_carousel =
+      if length(new_images) < 2, do: false, else: socket.assigns.hero_carousel
+
+    {:noreply,
+     assign(socket, hero_images: new_images, hero_carousel: hero_carousel, saved: false)}
+  end
+
+  @impl true
   def handle_event("save_theme", _params, socket) do
     socket = assign(socket, saving: true)
 
@@ -474,6 +677,8 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       },
       "hero" => %{
         "image_url" => socket.assigns.hero_image,
+        "images" => socket.assigns.hero_images,
+        "carousel" => socket.assigns.hero_carousel,
         "title" => socket.assigns.hero_title
       },
       "sections" => %{
@@ -519,5 +724,11 @@ defmodule EmakolaWeb.Admin.ThemeLive do
   @impl true
   def handle_event("reset_defaults", _params, socket) do
     {:noreply, socket}
+  end
+
+  defp heroes_upload_dir do
+    dir = Path.join([:code.priv_dir(:emakola), "static", "uploads", "heroes"])
+    File.mkdir_p!(dir)
+    dir
   end
 end

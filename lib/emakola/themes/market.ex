@@ -24,6 +24,8 @@ defmodule Emakola.Themes.Market do
       fonts: %{heading: "Inter", body: "Inter"},
       hero: %{
         image_url: "",
+        images: [],
+        carousel: false,
         title: "Welcome to Our Store",
         subtitle: "Shop the latest",
         cta_text: "Shop Now",
