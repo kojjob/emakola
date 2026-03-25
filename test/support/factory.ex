@@ -335,4 +335,37 @@ defmodule Emakola.Factory do
     |> Ash.Changeset.for_create(:create, params)
     |> Ash.create!()
   end
+
+  # ── Addresses ──────────────────────────────────────────────────────
+
+  def create_address!(customer, store, attrs \\ %{}) do
+    default = %{
+      line_1: "#{System.unique_integer([:positive])} Test Street",
+      city: "Accra",
+      customer_id: customer.id,
+      store_id: store.id
+    }
+
+    params = Map.merge(default, Map.new(attrs))
+
+    Emakola.Customers.Address
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!()
+  end
+
+  # ── Customer Notes ─────────────────────────────────────────────────
+
+  def create_customer_note!(customer, store, attrs \\ %{}) do
+    default = %{
+      content: "Test note #{System.unique_integer([:positive])}",
+      customer_id: customer.id,
+      store_id: store.id
+    }
+
+    params = Map.merge(default, Map.new(attrs))
+
+    Emakola.Customers.CustomerNote
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!()
+  end
 end

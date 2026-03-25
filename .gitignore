@@ -116,3 +116,5 @@ erl_crash.dump
 node_modules/
 npm-debug.log
 Thumbs.db
+.claude/
+priv/static/assets/

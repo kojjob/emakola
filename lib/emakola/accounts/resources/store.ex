@@ -75,6 +75,11 @@ defmodule Emakola.Accounts.Store do
       public?(true)
     end
 
+    attribute :theme_config, :map do
+      default(%{})
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -126,7 +131,8 @@ defmodule Emakola.Accounts.Store do
         :city,
         :region,
         :whatsapp_number,
-        :active
+        :active,
+        :theme_config
       ])
     end
   end

@@ -6,6 +6,7 @@ defmodule Emakola.Customers.Customer do
   different stores but must be unique within a single store.
 
   Used for order attribution, repeat-purchase tracking, and customer communications.
+  Supports find-or-create for automatic customer resolution at checkout.
   """
 
   use Ash.Resource,
@@ -42,6 +43,15 @@ defmodule Emakola.Customers.Customer do
       constraints(max_length: 20)
     end
 
+    attribute :tags, {:array, :string} do
+      default([])
+      public?(true)
+    end
+
+    attribute :last_order_at, :utc_datetime_usec do
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -51,11 +61,15 @@ defmodule Emakola.Customers.Customer do
       public?(true)
     end
 
+    has_many :addresses, Emakola.Customers.Address
+    has_many :notes, Emakola.Customers.CustomerNote
     has_many :orders, Emakola.Orders.Order
   end
 
   aggregates do
     count(:order_count, :orders)
+    count(:total_orders, :orders)
+    sum(:total_spent, :orders, :total)
   end
 
   identities do
@@ -79,14 +93,39 @@ defmodule Emakola.Customers.Customer do
   end
 
   actions do
-    defaults([:read])
+    defaults([:read, :destroy])
 
     create :create do
-      accept([:email, :name, :phone, :store_id])
+      accept([:email, :name, :phone, :store_id, :tags])
     end
 
     update :update do
-      accept([:name, :phone])
+      require_atomic?(false)
+      accept([:name, :phone, :tags])
+    end
+
+    update :touch_last_order do
+      require_atomic?(false)
+      accept([])
+
+      change(set_attribute(:last_order_at, &DateTime.utc_now/0))
+    end
+
+    action :find_or_create, :struct do
+      constraints(instance_of: __MODULE__)
+
+      argument :email, :ci_string do
+        allow_nil?(false)
+      end
+
+      argument :store_id, :uuid do
+        allow_nil?(false)
+      end
+
+      argument(:name, :string)
+      argument(:phone, :string)
+
+      run(Emakola.Customers.Actions.FindOrCreateCustomer)
     end
 
     read :list_by_store do

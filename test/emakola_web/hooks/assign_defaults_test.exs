@@ -15,7 +15,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaultsTest do
 
       {:ok, view, html} = live(conn, ~p"/admin/products")
       assert html =~ "Products"
-      assert has_element?(view, "a", "New Product")
+      assert has_element?(view, "button", "New Product")
     end
 
     test "merchant without store gets nil current_store", %{conn: conn} do

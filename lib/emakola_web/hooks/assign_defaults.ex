@@ -31,7 +31,11 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
         socket =
           socket
           |> resolve_auth(token)
-          |> Phoenix.LiveView.attach_hook(:notification_actions, :handle_event, &handle_notification_event/3)
+          |> Phoenix.LiveView.attach_hook(
+            :notification_actions,
+            :handle_event,
+            &handle_notification_event/3
+          )
 
         {:cont, socket}
     end
