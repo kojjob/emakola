@@ -16,11 +16,13 @@ defmodule EmakolaWeb.WebhookController do
   Receives Hubtel payment webhooks.
 
   Hubtel does not sign webhooks (uses IP allowlisting instead).
-  We verify by calling the payment status API in the background worker.
+  We enqueue an Oban worker that verifies the transaction by calling
+  Hubtel's status check API before updating payment/order records.
   """
   def hubtel(conn, params) do
     %{
       "client_reference" => params["ClientReference"] || params["client_reference"],
+      "response_code" => params["ResponseCode"] || params["response_code"],
       "amount" => params["Amount"] || params["amount"],
       "status" => params["Status"] || params["status"]
     }

@@ -159,18 +159,18 @@ defmodule Emakola.Payments.WebhookSecurityTest do
   # ── Hubtel Webhook Verification ────────────────────────────────────
 
   describe "Hubtel verify_webhook/2 — valid webhooks" do
-    test "accepts webhook when status check confirms Paid" do
-      Emakola.HTTPClientMock
-      |> expect(:get, fn url, _opts ->
-        assert url =~ "/v2/payment/HUB-valid-ref/status"
+    test "accepts webhook when status check confirms paid" do
+      Emakola.Payments.HubtelClientMock
+      |> expect(:check_invoice_status, fn ref ->
+        assert ref == "HUB-valid-ref"
 
         {:ok,
          %{
-           "ResponseCode" => "0000",
-           "Data" => %{
-             "Status" => "Paid",
-             "Amount" => 100.00,
-             "ClientReference" => "HUB-valid-ref"
+           "responseCode" => "0000",
+           "data" => %{
+             "invoiceStatus" => "paid",
+             "totalAmount" => 100.00,
+             "clientReference" => "HUB-valid-ref"
            }
          }}
       end)
@@ -179,16 +179,16 @@ defmodule Emakola.Payments.WebhookSecurityTest do
       assert :ok = Hubtel.verify_webhook(body, %{})
     end
 
-    test "accepts webhook when status check confirms Success" do
-      Emakola.HTTPClientMock
-      |> expect(:get, fn _url, _opts ->
+    test "accepts webhook when status check confirms completed" do
+      Emakola.Payments.HubtelClientMock
+      |> expect(:check_invoice_status, fn _ref ->
         {:ok,
          %{
-           "ResponseCode" => "0000",
-           "Data" => %{
-             "Status" => "Success",
-             "Amount" => 50.00,
-             "ClientReference" => "HUB-success-ref"
+           "responseCode" => "0000",
+           "data" => %{
+             "invoiceStatus" => "completed",
+             "totalAmount" => 50.00,
+             "clientReference" => "HUB-success-ref"
            }
          }}
       end)
@@ -200,15 +200,15 @@ defmodule Emakola.Payments.WebhookSecurityTest do
 
   describe "Hubtel verify_webhook/2 — invalid webhooks" do
     test "rejects webhook when status check returns non-paid status" do
-      Emakola.HTTPClientMock
-      |> expect(:get, fn _url, _opts ->
+      Emakola.Payments.HubtelClientMock
+      |> expect(:check_invoice_status, fn _ref ->
         {:ok,
          %{
-           "ResponseCode" => "0000",
-           "Data" => %{
-             "Status" => "Pending",
-             "Amount" => 100.00,
-             "ClientReference" => "HUB-pending-ref"
+           "responseCode" => "0000",
+           "data" => %{
+             "invoiceStatus" => "pending",
+             "totalAmount" => 100.00,
+             "clientReference" => "HUB-pending-ref"
            }
          }}
       end)
@@ -218,12 +218,12 @@ defmodule Emakola.Payments.WebhookSecurityTest do
     end
 
     test "rejects webhook when status check API returns error response code" do
-      Emakola.HTTPClientMock
-      |> expect(:get, fn _url, _opts ->
+      Emakola.Payments.HubtelClientMock
+      |> expect(:check_invoice_status, fn _ref ->
         {:ok,
          %{
-           "ResponseCode" => "4010",
-           "Message" => "Transaction not found"
+           "responseCode" => "4010",
+           "message" => "Transaction not found"
          }}
       end)
 
@@ -232,8 +232,8 @@ defmodule Emakola.Payments.WebhookSecurityTest do
     end
 
     test "rejects webhook when HTTP call to status API fails" do
-      Emakola.HTTPClientMock
-      |> expect(:get, fn _url, _opts ->
+      Emakola.Payments.HubtelClientMock
+      |> expect(:check_invoice_status, fn _ref ->
         {:error, %{status: 500, body: "Internal server error"}}
       end)
 
