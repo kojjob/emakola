@@ -60,13 +60,13 @@ defmodule Emakola.Themes.Atelier.Home do
       />
 
       <%!-- Trust / Payment Section --%>
-      <.trust_section :if={section_enabled?(@theme, :trust)} store={@store} />
+      <.trust_section :if={section_enabled?(@theme, :trust)} store={@store} theme={@theme} />
 
       <%!-- Newsletter --%>
-      <.newsletter_section :if={section_enabled?(@theme, :newsletter)} store={@store} />
+      <.newsletter_section :if={section_enabled?(@theme, :newsletter)} store={@store} theme={@theme} />
 
       <%!-- Footer --%>
-      <Shared.footer store={@store} categories={@categories} />
+      <Shared.footer store={@store} categories={@categories} theme={@theme} />
     </div>
     """
   end
@@ -97,6 +97,13 @@ defmodule Emakola.Themes.Atelier.Home do
     hero_subtitle = get_in(assigns.theme, [:hero, :subtitle]) || "The 2024 Collection"
     hero_title = get_in(assigns.theme, [:hero, :title]) || "Crafting Trust,\nCurating Excellence."
 
+    hero_description =
+      get_in(assigns.theme, [:hero, :description]) ||
+        "Experience the soul of West African craftsmanship. Every piece tells a story of heritage, precision, and modern elegance."
+
+    cta_text = get_in(assigns.theme, [:hero, :cta_text]) || "Explore Masterpieces"
+    cta_secondary_text = get_in(assigns.theme, [:hero, :cta_secondary_text]) || "Meet the Artisans"
+
     assigns =
       assigns
       |> assign(:effective_images, effective_images)
@@ -105,9 +112,12 @@ defmodule Emakola.Themes.Atelier.Home do
       |> assign(:total_duration, total_duration)
       |> assign(:hero_subtitle, hero_subtitle)
       |> assign(:hero_title, hero_title)
+      |> assign(:hero_description, hero_description)
+      |> assign(:cta_text, cta_text)
+      |> assign(:cta_secondary_text, cta_secondary_text)
 
     ~H"""
-    <section class="relative min-h-[85vh] sm:min-h-screen flex items-center overflow-hidden">
+    <section class="relative min-h-screen flex items-end overflow-hidden">
       <%!-- Carousel CSS Animation --%>
       <style :if={@use_carousel}>
         @keyframes atelier-carousel {
@@ -134,36 +144,47 @@ defmodule Emakola.Themes.Atelier.Home do
         />
       <% end %>
 
-      <%!-- Dark Overlay --%>
-      <div class="absolute inset-0 bg-black/50"></div>
+      <%!-- Gradient Overlay — strong at bottom for text legibility --%>
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/5"></div>
 
       <%!-- Content --%>
-      <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-20">
+      <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pb-16 sm:pb-24 pt-32" style="text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
         <div class="max-w-3xl">
           <%!-- Badge --%>
-          <span class="inline-block px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase mb-6 bg-white/20 backdrop-blur-sm text-white">
+          <span
+            class="inline-block px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase mb-6 text-white"
+            style="background: var(--theme-primary); text-shadow: none;"
+          >
             {@hero_subtitle}
           </span>
 
           <%!-- Heading --%>
-          <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white leading-[1.05] mb-6">
+          <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white leading-[1.02] mb-6 tracking-tight" style="text-shadow: 0 2px 8px rgba(0,0,0,0.5);">
             {raw(String.replace(@hero_title, "\n", "<br>"))}
           </h1>
 
+          <%!-- Description --%>
+          <p class="text-base sm:text-lg text-white max-w-xl leading-relaxed mb-8" style="text-shadow: 0 1px 4px rgba(0,0,0,0.6);">
+            {@hero_description}
+          </p>
+
           <%!-- CTA Buttons --%>
-          <div class="flex flex-col sm:flex-row gap-4 mt-8">
+          <div class="flex flex-col sm:flex-row gap-4">
             <a
               href={"/s/#{@store.slug}/products"}
-              class="inline-flex items-center justify-center px-8 py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-300 hover:opacity-90 min-h-[48px]"
+              class="inline-flex items-center justify-center gap-2 px-8 py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-300 hover:opacity-90 min-h-[48px]"
               style="background: var(--theme-primary);"
             >
-              Explore Masterpieces
+              {@cta_text}
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
             </a>
             <a
               href={"/s/#{@store.slug}/about"}
               class="inline-flex items-center justify-center px-8 py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white border-2 border-white/40 hover:bg-white/10 transition-all duration-300 min-h-[48px]"
             >
-              Meet the Artisans
+              {@cta_secondary_text}
             </a>
           </div>
         </div>
@@ -269,100 +290,83 @@ defmodule Emakola.Themes.Atelier.Home do
   # ── Trust / Payment Section ──
 
   attr :store, :map, required: true
+  attr :theme, :map, required: true
 
   defp trust_section(assigns) do
+    trust_config = get_in(assigns.theme, [:trust]) || %{}
+
+    trust_heading =
+      Map.get(trust_config, :heading, "Seamless Trust. Secure Commerce.")
+
+    trust_subtitle =
+      Map.get(trust_config, :subtitle, "Shop with confidence using your preferred payment method.")
+
+    cards = Map.get(trust_config, :cards, nil)
+
+    default_cards = [
+      %{
+        title: "Encrypted Security",
+        description:
+          "Every transaction is protected with bank-level encryption. Your payment details are never stored on our servers.",
+        icon: :shield
+      },
+      %{
+        title: "Instant Settlement",
+        description:
+          "Payments are confirmed in real-time. No waiting, no uncertainty. Get instant order confirmation.",
+        icon: :bolt
+      },
+      %{
+        title: "Mobile Money Ready",
+        description:
+          "Pay with MTN Mobile Money, Telecel Cash, or your debit/credit card. Your choice, your convenience.",
+        icon: :phone
+      }
+    ]
+
+    trust_cards = cards || default_cards
+
+    partners =
+      Map.get(trust_config, :partners, ["MTN MoMo", "Telecel Cash", "Visa", "Mastercard"])
+
+    assigns =
+      assigns
+      |> assign(:trust_heading, trust_heading)
+      |> assign(:trust_subtitle, trust_subtitle)
+      |> assign(:trust_cards, trust_cards)
+      |> assign(:partners, partners)
+
     ~H"""
     <section class="py-16 sm:py-24" style="background: var(--theme-bg, #F0FDF4);">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <%!-- Heading --%>
         <div class="text-center mb-12 sm:mb-16">
           <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-            Seamless Trust. Secure Commerce.
+            {@trust_heading}
           </h2>
           <p class="text-gray-600 text-base sm:text-lg max-w-2xl mx-auto">
-            Shop with confidence using your preferred payment method.
+            {@trust_subtitle}
           </p>
         </div>
 
         <%!-- Feature Cards --%>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          <%!-- Encrypted Security --%>
-          <div class="bg-white rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100">
+          <div
+            :for={{card, idx} <- Enum.with_index(@trust_cards)}
+            class={[
+              "bg-white rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100 transition-shadow duration-200 hover:shadow-md",
+              if(idx == 2, do: "md:col-span-2 lg:col-span-1", else: "")
+            ]}
+          >
             <div
               class="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
-              style="background: #F0FDF4;"
+              style="background: color-mix(in srgb, var(--theme-primary) 12%, white);"
             >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke-width="2"
-                style="stroke: var(--theme-primary);"
-              >
-                <path
-                  d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke="currentColor"
-                />
-              </svg>
+              <.trust_icon name={Map.get(card, :icon, :shield)} />
             </div>
-            <h3 class="text-lg font-bold text-gray-900 mb-2">Encrypted Security</h3>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">{Map.get(card, :title)}</h3>
             <p class="text-gray-600 text-sm leading-relaxed">
-              Every transaction is protected with bank-level encryption. Your payment details are never stored on our servers.
-            </p>
-          </div>
-
-          <%!-- Instant Settlement --%>
-          <div class="bg-white rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100">
-            <div
-              class="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
-              style="background: #F0FDF4;"
-            >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke-width="2"
-                style="stroke: var(--theme-primary);"
-              >
-                <path
-                  d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke="currentColor"
-                />
-              </svg>
-            </div>
-            <h3 class="text-lg font-bold text-gray-900 mb-2">Instant Settlement</h3>
-            <p class="text-gray-600 text-sm leading-relaxed">
-              Payments are confirmed in real-time. No waiting, no uncertainty. Get instant order confirmation.
-            </p>
-          </div>
-
-          <%!-- Mobile Money --%>
-          <div class="bg-white rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100 md:col-span-2 lg:col-span-1">
-            <div
-              class="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
-              style="background: #F0FDF4;"
-            >
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke-width="2"
-                style="stroke: var(--theme-primary);"
-              >
-                <rect x="5" y="2" width="14" height="20" rx="2" ry="2" stroke="currentColor" />
-                <line x1="12" y1="18" x2="12.01" y2="18" stroke="currentColor" stroke-linecap="round" />
-              </svg>
-            </div>
-            <h3 class="text-lg font-bold text-gray-900 mb-2">Mobile Money Ready</h3>
-            <p class="text-gray-600 text-sm leading-relaxed">
-              Pay with MTN Mobile Money, Telecel Cash, or your debit/credit card. Your choice, your convenience.
+              {Map.get(card, :description)}
             </p>
           </div>
         </div>
@@ -373,10 +377,12 @@ defmodule Emakola.Themes.Atelier.Home do
             Trusted Payment Partners
           </p>
           <div class="flex items-center justify-center gap-8 sm:gap-12 flex-wrap">
-            <span class="text-gray-400 font-bold text-sm sm:text-base">MTN MoMo</span>
-            <span class="text-gray-400 font-bold text-sm sm:text-base">Telecel Cash</span>
-            <span class="text-gray-400 font-bold text-sm sm:text-base">Visa</span>
-            <span class="text-gray-400 font-bold text-sm sm:text-base">Mastercard</span>
+            <span
+              :for={partner <- @partners}
+              class="text-gray-400 font-bold text-sm sm:text-base"
+            >
+              {partner}
+            </span>
           </div>
         </div>
       </div>
@@ -384,20 +390,126 @@ defmodule Emakola.Themes.Atelier.Home do
     """
   end
 
+  defp trust_icon(%{name: :shield} = assigns) do
+    ~H"""
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke-width="2"
+      style="stroke: var(--theme-primary);"
+    >
+      <path
+        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke="currentColor"
+      />
+    </svg>
+    """
+  end
+
+  defp trust_icon(%{name: :bolt} = assigns) do
+    ~H"""
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke-width="2"
+      style="stroke: var(--theme-primary);"
+    >
+      <path
+        d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke="currentColor"
+      />
+    </svg>
+    """
+  end
+
+  defp trust_icon(%{name: :phone} = assigns) do
+    ~H"""
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke-width="2"
+      style="stroke: var(--theme-primary);"
+    >
+      <rect x="5" y="2" width="14" height="20" rx="2" ry="2" stroke="currentColor" />
+      <line x1="12" y1="18" x2="12.01" y2="18" stroke="currentColor" stroke-linecap="round" />
+    </svg>
+    """
+  end
+
+  defp trust_icon(assigns) do
+    ~H"""
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke-width="2"
+      style="stroke: var(--theme-primary);"
+    >
+      <path
+        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke="currentColor"
+      />
+    </svg>
+    """
+  end
+
   # ── Newsletter Section ──
 
   attr :store, :map, required: true
+  attr :theme, :map, required: true
 
   defp newsletter_section(assigns) do
+    newsletter_config = get_in(assigns.theme, [:newsletter]) || %{}
+
+    nl_heading =
+      Map.get(newsletter_config, :heading, "Join the Artisan Circle.")
+
+    nl_description =
+      Map.get(
+        newsletter_config,
+        :description,
+        "Be the first to discover new artisan collections, exclusive offers, and stories from the makers."
+      )
+
+    nl_button_text =
+      Map.get(newsletter_config, :button_text, "Join Now")
+
+    nl_placeholder =
+      Map.get(newsletter_config, :placeholder, "Enter your email")
+
+    nl_disclaimer =
+      Map.get(newsletter_config, :disclaimer, "No spam. Unsubscribe anytime.")
+
+    assigns =
+      assigns
+      |> assign(:nl_heading, nl_heading)
+      |> assign(:nl_description, nl_description)
+      |> assign(:nl_button_text, nl_button_text)
+      |> assign(:nl_placeholder, nl_placeholder)
+      |> assign(:nl_disclaimer, nl_disclaimer)
+
     ~H"""
     <section class="bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <div class="max-w-xl mx-auto text-center">
           <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-            Join the Artisan Circle.
+            {@nl_heading}
           </h2>
           <p class="text-gray-600 text-base sm:text-lg leading-relaxed mb-8">
-            Be the first to discover new artisan collections, exclusive offers, and stories from the makers.
+            {@nl_description}
           </p>
           <form class="flex flex-col sm:flex-row gap-3 mb-4" phx-submit="subscribe_newsletter">
             <label for="newsletter-email" class="sr-only">Email address</label>
@@ -405,21 +517,21 @@ defmodule Emakola.Themes.Atelier.Home do
               id="newsletter-email"
               type="email"
               name="email"
-              placeholder="Enter your email"
+              placeholder={@nl_placeholder}
               required
-              class="flex-1 px-5 py-3.5 bg-gray-100 rounded-lg text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 transition-shadow border-0"
-              style="focus:ring-color: var(--theme-primary);"
+              class="flex-1 px-5 py-3.5 bg-gray-100 rounded-lg text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 transition-shadow duration-200 border-0 min-h-[48px]"
+              style="--tw-ring-color: var(--theme-primary);"
             />
             <button
               type="submit"
-              class="px-8 py-3.5 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-colors duration-300 whitespace-nowrap min-h-[48px]"
+              class="cursor-pointer px-8 py-3.5 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-200 hover:opacity-90 whitespace-nowrap min-h-[48px]"
               style="background: var(--theme-primary);"
             >
-              Join Now
+              {@nl_button_text}
             </button>
           </form>
           <p class="text-xs text-gray-400">
-            No spam. Unsubscribe anytime.
+            {@nl_disclaimer}
           </p>
         </div>
       </div>

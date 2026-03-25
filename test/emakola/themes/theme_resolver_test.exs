@@ -27,9 +27,9 @@ defmodule Emakola.Themes.ThemeResolverTest do
 
       assert result.theme_id == "atelier"
       assert result.theme_name == "Atelier"
-      assert result.colors.primary == "#CA8A04"
-      assert result.colors.accent == "#1C1917"
-      assert result.colors.background == "#FAFAF9"
+      assert result.colors.primary == "#16A34A"
+      assert result.colors.accent == "#166534"
+      assert result.colors.background == "#FFFFFF"
     end
 
     test "vibrant theme returns correct defaults" do

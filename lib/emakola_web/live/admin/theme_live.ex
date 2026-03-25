@@ -84,6 +84,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               hero: Map.get(resolved.sections, :hero, true),
               categories: Map.get(resolved.sections, :categories, true),
               featured_products: Map.get(resolved.sections, :featured_products, true),
+              trust: Map.get(resolved.sections, :trust, true),
               brand_story: Map.get(resolved.sections, :brand_story, true),
               newsletter: Map.get(resolved.sections, :newsletter, true)
             },
@@ -476,6 +477,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               field="featured_products"
             />
             <.visual_toggle
+              icon="verified_user"
+              label="Trust"
+              enabled={@sections.trust}
+              field="trust"
+            />
+            <.visual_toggle
               icon="auto_stories"
               label="Our Story"
               enabled={@sections.brand_story}
@@ -670,25 +677,34 @@ defmodule EmakolaWeb.Admin.ThemeLive do
   def handle_event("save_theme", _params, socket) do
     socket = assign(socket, saving: true)
 
-    theme_config = %{
-      "theme" => socket.assigns.theme_id,
-      "colors" => %{
-        "primary" => socket.assigns.primary_color
-      },
-      "hero" => %{
-        "image_url" => socket.assigns.hero_image,
-        "images" => socket.assigns.hero_images,
-        "carousel" => socket.assigns.hero_carousel,
-        "title" => socket.assigns.hero_title
-      },
-      "sections" => %{
-        "hero" => socket.assigns.sections.hero,
-        "categories" => socket.assigns.sections.categories,
-        "featured_products" => socket.assigns.sections.featured_products,
-        "brand_story" => socket.assigns.sections.brand_story,
-        "newsletter" => socket.assigns.sections.newsletter
-      }
-    }
+    # Merge admin changes into existing config to preserve keys
+    # not managed by this UI (trust, newsletter, nav, footer, etc.)
+    existing = socket.assigns.store.theme_config || %{}
+
+    existing_hero = Map.get(existing, "hero", %{})
+    existing_sections = Map.get(existing, "sections", %{})
+
+    theme_config =
+      Map.merge(existing, %{
+        "theme" => socket.assigns.theme_id,
+        "colors" => Map.merge(Map.get(existing, "colors", %{}), %{
+          "primary" => socket.assigns.primary_color
+        }),
+        "hero" => Map.merge(existing_hero, %{
+          "image_url" => socket.assigns.hero_image,
+          "images" => socket.assigns.hero_images,
+          "carousel" => socket.assigns.hero_carousel,
+          "title" => socket.assigns.hero_title
+        }),
+        "sections" => Map.merge(existing_sections, %{
+          "hero" => socket.assigns.sections.hero,
+          "categories" => socket.assigns.sections.categories,
+          "featured_products" => socket.assigns.sections.featured_products,
+          "trust" => socket.assigns.sections.trust,
+          "brand_story" => socket.assigns.sections.brand_story,
+          "newsletter" => socket.assigns.sections.newsletter
+        })
+      })
 
     actor = socket.assigns[:current_user] || socket.assigns[:current_merchant]
 

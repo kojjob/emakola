@@ -62,9 +62,13 @@ defmodule Emakola.Themes.Atelier do
         carousel: false,
         title: "Crafting Trust,\nCurating Excellence.",
         subtitle: "The 2024 Collection",
+        description:
+          "Experience the soul of West African craftsmanship. Every piece tells a story of heritage, precision, and modern elegance.",
         cta_text: "Explore Masterpieces",
+        cta_secondary_text: "Meet the Artisans",
         cta_url: "/products"
       },
+      nav: %{search_placeholder: "Search products...", transparent: false},
       sections: %{
         hero: true,
         categories: true,
@@ -73,7 +77,18 @@ defmodule Emakola.Themes.Atelier do
         trust: true,
         instagram: false,
         newsletter: true
-      }
+      },
+      trust: %{
+        title: "Seamless Trust. Secure Commerce.",
+        subtitle: "Shop with confidence using your preferred payment method."
+      },
+      newsletter: %{
+        title: "Join the Artisan Circle.",
+        subtitle:
+          "Be the first to discover new artisan collections, exclusive offers, and stories from the makers.",
+        button_text: "Join Now"
+      },
+      footer: %{social_links: %{instagram: "", twitter: "", facebook: ""}}
     }
   end
 

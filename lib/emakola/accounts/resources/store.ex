@@ -117,7 +117,7 @@ defmodule Emakola.Accounts.Store do
     end
 
     update :update do
-      accept([:name, :currency])
+      accept([:name, :currency, :theme_config])
     end
 
     update :update_settings do

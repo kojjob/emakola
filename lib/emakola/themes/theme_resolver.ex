@@ -35,8 +35,13 @@ defmodule Emakola.Themes.ThemeResolver do
       theme_id: theme_id,
       theme_name: theme_mod.name(),
       colors: deep_merge_atomize(defaults.colors, Map.get(config, "colors", %{})),
+      fonts: deep_merge_atomize(defaults.fonts, Map.get(config, "fonts", %{})),
       hero: deep_merge_atomize(defaults.hero, Map.get(config, "hero", %{})),
-      sections: deep_merge_atomize(defaults.sections, Map.get(config, "sections", %{}))
+      nav: deep_merge_atomize(defaults.nav, Map.get(config, "nav", %{})),
+      sections: deep_merge_atomize(defaults.sections, Map.get(config, "sections", %{})),
+      trust: deep_merge_atomize(defaults.trust, Map.get(config, "trust", %{})),
+      newsletter: deep_merge_atomize(defaults.newsletter, Map.get(config, "newsletter", %{})),
+      footer: deep_merge_atomize(defaults.footer, Map.get(config, "footer", %{}))
     }
   end
 

@@ -52,6 +52,7 @@ defmodule Emakola.Themes.Vibrant do
         cta_text: "Explore Now",
         cta_url: "/products"
       },
+      nav: %{search_placeholder: "Search products...", transparent: false},
       sections: %{
         hero: true,
         categories: true,
@@ -61,6 +62,16 @@ defmodule Emakola.Themes.Vibrant do
         about: true,
         newsletter: true
       },
+      trust: %{
+        title: "Trusted by Thousands",
+        subtitle: "Shop with confidence — secure payments and fast delivery."
+      },
+      newsletter: %{
+        title: "Join Our Community",
+        subtitle: "Stay updated with the latest collections, offers, and artisan stories.",
+        button_text: "Sign Up"
+      },
+      footer: %{social_links: %{instagram: "", twitter: "", facebook: ""}},
       css_variables: %{
         "--theme-primary" => "#DC2626",
         "--theme-accent" => "#7C2D12",

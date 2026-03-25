@@ -31,6 +31,7 @@ defmodule Emakola.Themes.Market do
         cta_text: "Shop Now",
         cta_url: "/products"
       },
+      nav: %{search_placeholder: "Search products...", transparent: false},
       sections: %{
         hero: true,
         categories: true,
@@ -38,7 +39,17 @@ defmodule Emakola.Themes.Market do
         brand_story: true,
         instagram: false,
         newsletter: true
-      }
+      },
+      trust: %{
+        title: "Shop with Confidence",
+        subtitle: "Secure payments, fast delivery, and easy returns."
+      },
+      newsletter: %{
+        title: "Stay in the Loop",
+        subtitle: "Get the latest products, deals, and updates delivered to your inbox.",
+        button_text: "Subscribe"
+      },
+      footer: %{social_links: %{instagram: "", twitter: "", facebook: ""}}
     }
   end
 
