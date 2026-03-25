@@ -268,43 +268,79 @@ defmodule Emakola.Repo.Migrations.AddMissingIndexes do
     drop_if_exists index(:products, [:status], name: "products_status_index")
     drop_if_exists index(:products, [:store_id, :status], name: "products_store_id_status_index")
     drop_if_exists index(:variants, [:product_id], name: "variants_product_id_index")
-    drop_if_exists index(:variants, [:track_inventory, :stock_quantity], name: "variants_inventory_tracking_index")
+
+    drop_if_exists index(:variants, [:track_inventory, :stock_quantity],
+                     name: "variants_inventory_tracking_index"
+                   )
+
     drop_if_exists index(:option_types, [:store_id], name: "option_types_store_id_index")
     drop_if_exists index(:option_values, [:store_id], name: "option_values_store_id_index")
     drop_if_exists index(:images, [:product_id], name: "images_product_id_index")
     drop_if_exists index(:images, [:store_id], name: "images_store_id_index")
-    drop_if_exists index(:images, [:product_id, :position], name: "images_product_id_position_index")
+
+    drop_if_exists index(:images, [:product_id, :position],
+                     name: "images_product_id_position_index"
+                   )
+
     drop_if_exists index(:categories, [:parent_id], name: "categories_parent_id_index")
     drop_if_exists index(:orders, [:customer_id], name: "orders_customer_id_index")
     drop_if_exists index(:orders, [:status], name: "orders_status_index")
     drop_if_exists index(:orders, [:store_id, :status], name: "orders_store_id_status_index")
-    drop_if_exists index(:orders, [:store_id, :inserted_at], name: "orders_store_id_inserted_at_index")
+
+    drop_if_exists index(:orders, [:store_id, :inserted_at],
+                     name: "orders_store_id_inserted_at_index"
+                   )
+
     drop_if_exists index(:line_items, [:order_id], name: "line_items_order_id_index")
     drop_if_exists index(:line_items, [:store_id], name: "line_items_store_id_index")
     drop_if_exists index(:line_items, [:variant_id], name: "line_items_variant_id_index")
     drop_if_exists index(:payments, [:order_id], name: "payments_order_id_index")
     drop_if_exists index(:payments, [:store_id], name: "payments_store_id_index")
     drop_if_exists index(:payments, [:status], name: "payments_status_index")
-    drop_if_exists index(:variant_option_values, [:store_id], name: "variant_option_values_store_id_index")
-    drop_if_exists index(:variant_option_values, [:option_value_id], name: "variant_option_values_option_value_id_index")
-    drop_if_exists index(:store_memberships, [:store_id], name: "store_memberships_store_id_index")
+
+    drop_if_exists index(:variant_option_values, [:store_id],
+                     name: "variant_option_values_store_id_index"
+                   )
+
+    drop_if_exists index(:variant_option_values, [:option_value_id],
+                     name: "variant_option_values_option_value_id_index"
+                   )
+
+    drop_if_exists index(:store_memberships, [:store_id],
+                     name: "store_memberships_store_id_index"
+                   )
 
     # Notifications
     drop_if_exists index(:notifications, [:user_id], name: "notifications_user_id_index")
     drop_if_exists index(:email_logs, [:user_id], name: "email_logs_user_id_index")
 
     # Billing
-    drop_if_exists index(:subscriptions, [:organisation_id], name: "subscriptions_organisation_id_index")
+    drop_if_exists index(:subscriptions, [:organisation_id],
+                     name: "subscriptions_organisation_id_index"
+                   )
+
     drop_if_exists index(:subscriptions, [:plan_id], name: "subscriptions_plan_id_index")
-    drop_if_exists index(:usage_records, [:organisation_id], name: "usage_records_organisation_id_index")
+
+    drop_if_exists index(:usage_records, [:organisation_id],
+                     name: "usage_records_organisation_id_index"
+                   )
+
     drop_if_exists index(:invoices, [:organisation_id], name: "invoices_organisation_id_index")
 
     # Webhooks
-    drop_if_exists index(:webhook_deliveries, [:webhook_id], name: "webhook_deliveries_webhook_id_index")
-    drop_if_exists index(:outbound_webhooks, [:organisation_id], name: "outbound_webhooks_organisation_id_index")
+    drop_if_exists index(:webhook_deliveries, [:webhook_id],
+                     name: "webhook_deliveries_webhook_id_index"
+                   )
+
+    drop_if_exists index(:outbound_webhooks, [:organisation_id],
+                     name: "outbound_webhooks_organisation_id_index"
+                   )
 
     # AI
-    drop_if_exists index(:conversations, [:organisation_id], name: "conversations_organisation_id_index")
+    drop_if_exists index(:conversations, [:organisation_id],
+                     name: "conversations_organisation_id_index"
+                   )
+
     drop_if_exists index(:conversations, [:user_id], name: "conversations_user_id_index")
     drop_if_exists index(:conversations, [:agent_id], name: "conversations_agent_id_index")
     drop_if_exists index(:messages, [:conversation_id], name: "messages_conversation_id_index")

@@ -49,8 +49,17 @@ defmodule Emakola.Orders.CheckoutEdgeCasesTest do
 
   describe "checkout with variant from different store" do
     test "attempting to checkout store B's variant under store A fails" do
-      ctx_a = setup_store_with_variant(%{name: "Store Alpha", slug: "store-alpha-#{System.unique_integer([:positive])}"})
-      ctx_b = setup_store_with_variant(%{name: "Store Beta", slug: "store-beta-#{System.unique_integer([:positive])}"})
+      ctx_a =
+        setup_store_with_variant(%{
+          name: "Store Alpha",
+          slug: "store-alpha-#{System.unique_integer([:positive])}"
+        })
+
+      ctx_b =
+        setup_store_with_variant(%{
+          name: "Store Beta",
+          slug: "store-beta-#{System.unique_integer([:positive])}"
+        })
 
       result =
         CheckoutService.checkout!(
@@ -66,8 +75,17 @@ defmodule Emakola.Orders.CheckoutEdgeCasesTest do
     end
 
     test "mixing variants from two different stores fails" do
-      ctx_a = setup_store_with_variant(%{name: "Mix Store A", slug: "mix-a-#{System.unique_integer([:positive])}"})
-      ctx_b = setup_store_with_variant(%{name: "Mix Store B", slug: "mix-b-#{System.unique_integer([:positive])}"})
+      ctx_a =
+        setup_store_with_variant(%{
+          name: "Mix Store A",
+          slug: "mix-a-#{System.unique_integer([:positive])}"
+        })
+
+      ctx_b =
+        setup_store_with_variant(%{
+          name: "Mix Store B",
+          slug: "mix-b-#{System.unique_integer([:positive])}"
+        })
 
       result =
         CheckoutService.checkout!(
@@ -442,7 +460,9 @@ defmodule Emakola.Orders.CheckoutEdgeCasesTest do
     test "variant SKU is snapshotted at checkout time" do
       store = create_store!()
       product = create_product!(store)
-      variant = create_variant!(product, store, %{price: 3000, stock_quantity: 10, sku: "KNT-001"})
+
+      variant =
+        create_variant!(product, store, %{price: 3000, stock_quantity: 10, sku: "KNT-001"})
 
       {:ok, order} =
         CheckoutService.checkout!(

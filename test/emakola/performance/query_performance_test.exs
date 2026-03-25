@@ -84,25 +84,27 @@ defmodule Emakola.Performance.QueryPerformanceTest do
     end
 
     test "uses index for store_id filter", %{store: store} do
-      plan = explain_query(
-        "SELECT * FROM products WHERE store_id = $1",
-        [store.id]
-      )
+      plan =
+        explain_query(
+          "SELECT * FROM products WHERE store_id = $1",
+          [store.id]
+        )
 
       # With data in the table, Postgres should prefer an index scan
       # The composite unique index (store_id, slug) covers store_id lookups
       refute uses_seq_scan?(plan),
-        "Expected index scan for products.store_id filter, got: #{plan["Node Type"]}"
+             "Expected index scan for products.store_id filter, got: #{plan["Node Type"]}"
     end
 
     test "uses index for store_id + status filter", %{store: store} do
-      plan = explain_query(
-        "SELECT * FROM products WHERE store_id = $1 AND status = $2",
-        [store.id, "active"]
-      )
+      plan =
+        explain_query(
+          "SELECT * FROM products WHERE store_id = $1 AND status = $2",
+          [store.id, "active"]
+        )
 
       refute uses_seq_scan?(plan),
-        "Expected index scan for products store_id+status filter, got: #{plan["Node Type"]}"
+             "Expected index scan for products store_id+status filter, got: #{plan["Node Type"]}"
     end
   end
 
@@ -124,13 +126,14 @@ defmodule Emakola.Performance.QueryPerformanceTest do
     end
 
     test "uses index for parent_id lookup", %{parent: parent} do
-      plan = explain_query(
-        "SELECT * FROM categories WHERE parent_id = $1",
-        [parent.id]
-      )
+      plan =
+        explain_query(
+          "SELECT * FROM categories WHERE parent_id = $1",
+          [parent.id]
+        )
 
       refute uses_seq_scan?(plan),
-        "Expected index scan for categories.parent_id filter, got: #{plan["Node Type"]}"
+             "Expected index scan for categories.parent_id filter, got: #{plan["Node Type"]}"
     end
   end
 
@@ -145,23 +148,25 @@ defmodule Emakola.Performance.QueryPerformanceTest do
     end
 
     test "uses index for store_id + status filter", %{store: store} do
-      plan = explain_query(
-        "SELECT * FROM orders WHERE store_id = $1 AND status = $2 ORDER BY inserted_at DESC",
-        [store.id, "pending"]
-      )
+      plan =
+        explain_query(
+          "SELECT * FROM orders WHERE store_id = $1 AND status = $2 ORDER BY inserted_at DESC",
+          [store.id, "pending"]
+        )
 
       refute uses_seq_scan?(plan),
-        "Expected index scan for orders store_id+status filter, got: #{plan["Node Type"]}"
+             "Expected index scan for orders store_id+status filter, got: #{plan["Node Type"]}"
     end
 
     test "uses index for date range query", %{store: store} do
-      plan = explain_query(
-        "SELECT * FROM orders WHERE store_id = $1 AND inserted_at >= $2 ORDER BY inserted_at DESC",
-        [store.id, DateTime.utc_now() |> DateTime.add(-7, :day)]
-      )
+      plan =
+        explain_query(
+          "SELECT * FROM orders WHERE store_id = $1 AND inserted_at >= $2 ORDER BY inserted_at DESC",
+          [store.id, DateTime.utc_now() |> DateTime.add(-7, :day)]
+        )
 
       refute uses_seq_scan?(plan),
-        "Expected index scan for orders store_id+date filter, got: #{plan["Node Type"]}"
+             "Expected index scan for orders store_id+date filter, got: #{plan["Node Type"]}"
     end
   end
 
@@ -176,13 +181,14 @@ defmodule Emakola.Performance.QueryPerformanceTest do
     end
 
     test "uses index for customer_id filter", %{customer: customer} do
-      plan = explain_query(
-        "SELECT * FROM orders WHERE customer_id = $1 ORDER BY inserted_at DESC",
-        [customer.id]
-      )
+      plan =
+        explain_query(
+          "SELECT * FROM orders WHERE customer_id = $1 ORDER BY inserted_at DESC",
+          [customer.id]
+        )
 
       refute uses_seq_scan?(plan),
-        "Expected index scan for orders.customer_id filter, got: #{plan["Node Type"]}"
+             "Expected index scan for orders.customer_id filter, got: #{plan["Node Type"]}"
     end
   end
 
@@ -204,13 +210,14 @@ defmodule Emakola.Performance.QueryPerformanceTest do
     end
 
     test "uses index for product_id filter", %{product: product} do
-      plan = explain_query(
-        "SELECT * FROM variants WHERE product_id = $1",
-        [product.id]
-      )
+      plan =
+        explain_query(
+          "SELECT * FROM variants WHERE product_id = $1",
+          [product.id]
+        )
 
       refute uses_seq_scan?(plan),
-        "Expected index scan for variants.product_id filter, got: #{plan["Node Type"]}"
+             "Expected index scan for variants.product_id filter, got: #{plan["Node Type"]}"
     end
   end
 
@@ -229,13 +236,14 @@ defmodule Emakola.Performance.QueryPerformanceTest do
     end
 
     test "uses index for product_id filter", %{product: product} do
-      plan = explain_query(
-        "SELECT * FROM images WHERE product_id = $1 ORDER BY position ASC",
-        [product.id]
-      )
+      plan =
+        explain_query(
+          "SELECT * FROM images WHERE product_id = $1 ORDER BY position ASC",
+          [product.id]
+        )
 
       refute uses_seq_scan?(plan),
-        "Expected index scan for images.product_id filter, got: #{plan["Node Type"]}"
+             "Expected index scan for images.product_id filter, got: #{plan["Node Type"]}"
     end
   end
 
@@ -260,15 +268,16 @@ defmodule Emakola.Performance.QueryPerformanceTest do
     end
 
     test "uses index for low stock filter", %{store: store} do
-      plan = explain_query(
-        "SELECT * FROM variants WHERE store_id = $1 AND track_inventory = true AND stock_quantity < $2",
-        [store.id, 10]
-      )
+      plan =
+        explain_query(
+          "SELECT * FROM variants WHERE store_id = $1 AND track_inventory = true AND stock_quantity < $2",
+          [store.id, 10]
+        )
 
       # May use either the composite (store_id, sku) or (track_inventory, stock_quantity) index
       # The key assertion is that it doesn't do a full seq scan on large data
       assert plan["Node Type"] != nil,
-        "Expected a valid query plan for low stock query"
+             "Expected a valid query plan for low stock query"
     end
   end
 
@@ -287,13 +296,14 @@ defmodule Emakola.Performance.QueryPerformanceTest do
     end
 
     test "uses index for order_id filter", %{order: order} do
-      plan = explain_query(
-        "SELECT * FROM payments WHERE order_id = $1",
-        [order.id]
-      )
+      plan =
+        explain_query(
+          "SELECT * FROM payments WHERE order_id = $1",
+          [order.id]
+        )
 
       refute uses_seq_scan?(plan),
-        "Expected index scan for payments.order_id filter, got: #{plan["Node Type"]}"
+             "Expected index scan for payments.order_id filter, got: #{plan["Node Type"]}"
     end
   end
 
@@ -322,13 +332,14 @@ defmodule Emakola.Performance.QueryPerformanceTest do
     end
 
     test "uses index for order_id filter", %{order: order} do
-      plan = explain_query(
-        "SELECT * FROM line_items WHERE order_id = $1",
-        [order.id]
-      )
+      plan =
+        explain_query(
+          "SELECT * FROM line_items WHERE order_id = $1",
+          [order.id]
+        )
 
       refute uses_seq_scan?(plan),
-        "Expected index scan for line_items.order_id filter, got: #{plan["Node Type"]}"
+             "Expected index scan for line_items.order_id filter, got: #{plan["Node Type"]}"
     end
   end
 
@@ -366,7 +377,7 @@ defmodule Emakola.Performance.QueryPerformanceTest do
       # Each query should complete in under 500ms
       for {_rows, elapsed} <- results do
         assert elapsed < 500,
-          "Parallel query took #{elapsed}ms, expected < 500ms"
+               "Parallel query took #{elapsed}ms, expected < 500ms"
       end
     end
   end
@@ -435,7 +446,7 @@ defmodule Emakola.Performance.QueryPerformanceTest do
           )
 
         assert result.num_rows > 0,
-          "Expected index #{index_name} on table #{table} to exist, but it was not found"
+               "Expected index #{index_name} on table #{table} to exist, but it was not found"
       end
     end
   end

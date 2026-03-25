@@ -76,10 +76,12 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
     end
 
     test "delivered -> pending (not possible, no such action)" do
-      %{order: order} = setup_store_with_variant() |> then(fn ctx ->
-        o = create_pending_order!(ctx.store, ctx.variant)
-        %{order: advance_order_to!(o, :delivered)}
-      end)
+      %{order: order} =
+        setup_store_with_variant()
+        |> then(fn ctx ->
+          o = create_pending_order!(ctx.store, ctx.variant)
+          %{order: advance_order_to!(o, :delivered)}
+        end)
 
       # There is no action to move back to pending. The only way to test
       # is to try :confirm (which expects :pending) — it must fail.
@@ -90,10 +92,12 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
     end
 
     test "cancelled -> shipped (cancel is terminal for forward transitions)" do
-      %{order: order} = setup_store_with_variant() |> then(fn ctx ->
-        o = create_pending_order!(ctx.store, ctx.variant)
-        %{order: advance_order_to!(o, :cancelled)}
-      end)
+      %{order: order} =
+        setup_store_with_variant()
+        |> then(fn ctx ->
+          o = create_pending_order!(ctx.store, ctx.variant)
+          %{order: advance_order_to!(o, :cancelled)}
+        end)
 
       assert {:error, _} =
                order
@@ -102,9 +106,11 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
     end
 
     test "pending -> shipped (must go through confirmed and processing first)" do
-      %{order: order} = setup_store_with_variant() |> then(fn ctx ->
-        %{order: create_pending_order!(ctx.store, ctx.variant)}
-      end)
+      %{order: order} =
+        setup_store_with_variant()
+        |> then(fn ctx ->
+          %{order: create_pending_order!(ctx.store, ctx.variant)}
+        end)
 
       assert {:error, _} =
                order
@@ -113,9 +119,11 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
     end
 
     test "pending -> delivered (must go through confirmed, processing, shipped)" do
-      %{order: order} = setup_store_with_variant() |> then(fn ctx ->
-        %{order: create_pending_order!(ctx.store, ctx.variant)}
-      end)
+      %{order: order} =
+        setup_store_with_variant()
+        |> then(fn ctx ->
+          %{order: create_pending_order!(ctx.store, ctx.variant)}
+        end)
 
       assert {:error, _} =
                order
@@ -124,10 +132,12 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
     end
 
     test "confirmed -> delivered (must go through processing and shipped)" do
-      %{order: order} = setup_store_with_variant() |> then(fn ctx ->
-        o = create_pending_order!(ctx.store, ctx.variant)
-        %{order: advance_order_to!(o, :confirmed)}
-      end)
+      %{order: order} =
+        setup_store_with_variant()
+        |> then(fn ctx ->
+          o = create_pending_order!(ctx.store, ctx.variant)
+          %{order: advance_order_to!(o, :confirmed)}
+        end)
 
       assert {:error, _} =
                order
@@ -136,10 +146,12 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
     end
 
     test "processing -> pending (no reverse transitions)" do
-      %{order: order} = setup_store_with_variant() |> then(fn ctx ->
-        o = create_pending_order!(ctx.store, ctx.variant)
-        %{order: advance_order_to!(o, :processing)}
-      end)
+      %{order: order} =
+        setup_store_with_variant()
+        |> then(fn ctx ->
+          o = create_pending_order!(ctx.store, ctx.variant)
+          %{order: advance_order_to!(o, :processing)}
+        end)
 
       # Try confirm (expects pending)
       assert {:error, _} =
@@ -149,10 +161,12 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
     end
 
     test "shipped -> confirmed (no reverse transitions)" do
-      %{order: order} = setup_store_with_variant() |> then(fn ctx ->
-        o = create_pending_order!(ctx.store, ctx.variant)
-        %{order: advance_order_to!(o, :shipped)}
-      end)
+      %{order: order} =
+        setup_store_with_variant()
+        |> then(fn ctx ->
+          o = create_pending_order!(ctx.store, ctx.variant)
+          %{order: advance_order_to!(o, :shipped)}
+        end)
 
       assert {:error, _} =
                order
@@ -327,6 +341,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
 
     test "order total is always non-negative after checkout" do
       ctx = setup_store_with_variant(%{price: 1})
+
       {:ok, order} =
         CheckoutService.checkout!(ctx.store.id, [%{variant_id: ctx.variant.id, quantity: 1}], [])
 

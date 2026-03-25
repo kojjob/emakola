@@ -146,7 +146,7 @@ defmodule Emakola.Performance.NPlusOneTest do
       # A proper eager load should use at most 2 queries (products + variants)
       # N+1 would result in 1 + 5 = 6 queries
       assert query_count <= 2,
-        "Expected at most 2 queries for products+variants, got #{query_count} (N+1 detected)"
+             "Expected at most 2 queries for products+variants, got #{query_count} (N+1 detected)"
     end
 
     test "single JOIN query loads products with variants efficiently", %{store: store} do
@@ -227,7 +227,7 @@ defmodule Emakola.Performance.NPlusOneTest do
       stop_query_counter(counter)
 
       assert query_count <= 1,
-        "Expected 1 query for orders+customer+line_items JOIN, got #{query_count}"
+             "Expected 1 query for orders+customer+line_items JOIN, got #{query_count}"
     end
   end
 
@@ -263,7 +263,7 @@ defmodule Emakola.Performance.NPlusOneTest do
       stop_query_counter(counter)
 
       assert query_count <= 1,
-        "Expected 1 query for products+images JOIN, got #{query_count}"
+             "Expected 1 query for products+images JOIN, got #{query_count}"
     end
   end
 
@@ -301,7 +301,7 @@ defmodule Emakola.Performance.NPlusOneTest do
       stop_query_counter(counter)
 
       assert query_count <= 1,
-        "Expected 1 query for categories+children count, got #{query_count}"
+             "Expected 1 query for categories+children count, got #{query_count}"
     end
 
     test "recursive CTE loads full category tree efficiently", %{store: store} do
@@ -334,7 +334,7 @@ defmodule Emakola.Performance.NPlusOneTest do
       stop_query_counter(counter)
 
       assert query_count <= 1,
-        "Expected 1 query for recursive category tree, got #{query_count}"
+             "Expected 1 query for recursive category tree, got #{query_count}"
     end
   end
 
@@ -416,7 +416,7 @@ defmodule Emakola.Performance.NPlusOneTest do
       # Dashboard should use exactly 3 aggregation queries
       # NOT 10 (products) + 15 (orders) + N (variants) individual lookups
       assert query_count <= 3,
-        "Expected 3 aggregation queries for dashboard stats, got #{query_count} (N+1 detected)"
+             "Expected 3 aggregation queries for dashboard stats, got #{query_count} (N+1 detected)"
     end
 
     test "combined dashboard stats in single query", %{store: store} do
@@ -444,7 +444,7 @@ defmodule Emakola.Performance.NPlusOneTest do
       stop_query_counter(counter)
 
       assert query_count <= 1,
-        "Expected 1 combined query for dashboard stats, got #{query_count}"
+             "Expected 1 combined query for dashboard stats, got #{query_count}"
     end
   end
 
@@ -496,7 +496,7 @@ defmodule Emakola.Performance.NPlusOneTest do
       stop_query_counter(counter)
 
       assert query_count <= 1,
-        "Expected 1 query for batch variant loading via IN clause, got #{query_count}"
+             "Expected 1 query for batch variant loading via IN clause, got #{query_count}"
     end
   end
 end
