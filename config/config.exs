@@ -100,7 +100,10 @@ config :emakola, Oban,
     images: 3,
     orders: 5
   ],
-  repo: Emakola.Repo
+  repo: Emakola.Repo,
+  crontab: [
+    {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker}
+  ]
 
 # Demo mode
 config :emakola, :demo_mode, System.get_env("DEMO_MODE") == "true"
