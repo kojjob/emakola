@@ -115,6 +115,12 @@ config :emakola, Emakola.Payments.PaystackClient,
   public_key: System.get_env("PAYSTACK_PUBLIC_KEY", "pk_test_placeholder"),
   base_url: "https://api.paystack.co"
 
+# Hubtel client defaults (overridden in runtime.exs for prod)
+config :emakola, Emakola.Payments.HubtelClient,
+  client_id: System.get_env("HUBTEL_CLIENT_ID"),
+  client_secret: System.get_env("HUBTEL_CLIENT_SECRET"),
+  base_url: "https://api.hubtel.com"
+
 # Import branding and plans config
 import_config "branding.exs"
 import_config "plans.exs"

@@ -3,7 +3,8 @@ defmodule Emakola.Payments.Workers.HubtelWebhookHandler do
   Oban worker for processing Hubtel payment webhooks.
 
   Receives webhook data, verifies the transaction by calling Hubtel's
-  status check API, and updates payment/order records accordingly.
+  status check API via the Gateway, and delegates to HubtelWebhook
+  for payment/order record updates.
 
   Idempotent: safe to process the same webhook multiple times.
   """
@@ -14,17 +15,32 @@ defmodule Emakola.Payments.Workers.HubtelWebhookHandler do
     unique: [period: 300, keys: [:client_reference]]
 
   alias Emakola.Payments.Gateways.Hubtel
+  alias Emakola.Payments.HubtelWebhook
 
   @impl Oban.Worker
-  def perform(%Oban.Job{args: %{"client_reference" => reference} = _args}) do
+  def perform(%Oban.Job{args: %{"client_reference" => reference} = args}) do
     case Hubtel.verify_payment(reference) do
-      {:ok, %{status: status}} when status in ["Paid", "Success"] ->
-        # TODO: In Phase 1.5, update Payment resource to :success and Order to :confirmed
-        # For now, we just verify the payment status is valid
-        :ok
+      {:ok, %{status: status}} when status in [:paid, :completed] ->
+        event = %{
+          "ResponseCode" => "0000",
+          "Data" => %{
+            "ClientReference" => reference,
+            "Amount" => args["amount"]
+          }
+        }
+
+        HubtelWebhook.handle_event(event)
 
       {:ok, %{status: _other_status}} ->
-        {:error, :verification_failed}
+        event = %{
+          "ResponseCode" => "4001",
+          "Data" => %{
+            "ClientReference" => reference,
+            "Message" => "Payment not completed"
+          }
+        }
+
+        HubtelWebhook.handle_event(event)
 
       {:error, _reason} ->
         {:error, :verification_failed}

@@ -60,6 +60,9 @@ config :emakola, :payment_gateway, Emakola.Payments.Gateways.Mock
 # Paystack client: use Mox mock in tests
 config :emakola, :paystack_client, Emakola.Payments.PaystackClientMock
 
+# Hubtel client: use Mox mock in tests
+config :emakola, :hubtel_client, Emakola.Payments.HubtelClientMock
+
 # PaystackClient module config (used by the real client, overridden by mock)
 config :emakola, Emakola.Payments.PaystackClient,
   secret_key: "sk_test_default_secret",
