@@ -393,13 +393,16 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       }
     }
 
+    actor = socket.assigns[:current_user] || socket.assigns[:current_merchant]
+
     case socket.assigns.store
          |> Ash.Changeset.for_update(:update_settings, %{theme_config: theme_config})
-         |> Ash.update() do
+         |> Ash.update(actor: actor) do
       {:ok, updated_store} ->
         {:noreply,
          socket
-         |> assign(store: updated_store, saved: true, iframe_key: socket.assigns.iframe_key + 1)}
+         |> assign(store: updated_store, saved: true, iframe_key: socket.assigns.iframe_key + 1)
+         |> put_flash(:info, "Theme updated successfully!")}
 
       {:error, _error} ->
         {:noreply, put_flash(socket, :error, "Failed to save theme changes.")}
