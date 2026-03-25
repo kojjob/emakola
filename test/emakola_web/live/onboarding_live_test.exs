@@ -82,11 +82,40 @@ defmodule EmakolaWeb.OnboardingLiveTest do
 
       render_change(view, "update_store_name", %{"store_name" => "My Store"})
       html = render_click(view, "next_step")
-      assert html =~ "Add Your First Product"
+      assert html =~ "Choose Your Theme"
     end
   end
 
-  describe "step 2 (add product)" do
+  describe "step 2 (theme selection)" do
+    test "shows theme selection with three themes", %{conn: conn} do
+      user = create_user!()
+      conn = auth_conn(conn, user)
+
+      {:ok, view, _html} = live(conn, "/onboarding")
+
+      render_change(view, "update_store_name", %{"store_name" => "Theme Store"})
+      html = render_click(view, "next_step")
+
+      assert html =~ "Market"
+      assert html =~ "Atelier"
+      assert html =~ "Vibrant"
+    end
+
+    test "can select a theme", %{conn: conn} do
+      user = create_user!()
+      conn = auth_conn(conn, user)
+
+      {:ok, view, _html} = live(conn, "/onboarding")
+
+      render_change(view, "update_store_name", %{"store_name" => "Theme Store"})
+      render_click(view, "next_step")
+
+      html = render_click(view, "select_theme", %{"theme-id" => "atelier"})
+      assert html =~ "border-emerald-500"
+    end
+  end
+
+  describe "step 3 (add product)" do
     test "can skip adding a product", %{conn: conn} do
       user = create_user!()
       conn = auth_conn(conn, user)
@@ -97,7 +126,10 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       render_change(view, "update_store_name", %{"store_name" => "Skip Store"})
       render_click(view, "next_step")
 
-      # Step 2: Skip
+      # Step 2: Theme (continue with default)
+      render_click(view, "next_step")
+
+      # Step 3: Skip
       html = render_click(view, "skip_step")
       assert html =~ "Ready" or html =~ "ready"
     end
@@ -112,7 +144,10 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       render_change(view, "update_store_name", %{"store_name" => "Product Store"})
       render_click(view, "next_step")
 
-      # Step 2: Enter product info
+      # Step 2: Theme (continue with default)
+      render_click(view, "next_step")
+
+      # Step 3: Enter product info
       render_change(view, "update_product", %{
         "product_name" => "Test Product",
         "product_price" => "50"
@@ -134,10 +169,13 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       render_change(view, "update_store_name", %{"store_name" => "Kojo Shop"})
       render_click(view, "next_step")
 
-      # Step 2: Skip product
+      # Step 2: Theme (continue with default)
+      render_click(view, "next_step")
+
+      # Step 3: Skip product
       render_click(view, "skip_step")
 
-      # Step 3: Complete — should redirect to dashboard
+      # Step 4: Complete — should redirect to dashboard
       render_click(view, "complete")
       assert_redirect(view, "/dashboard")
 
@@ -170,10 +208,13 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       render_change(view, "update_store_name", %{"store_name" => "Merchant Store"})
       render_click(view, "next_step")
 
-      # Step 2: Skip
+      # Step 2: Theme (continue with default)
+      render_click(view, "next_step")
+
+      # Step 3: Skip
       render_click(view, "skip_step")
 
-      # Step 3: Complete
+      # Step 4: Complete
       render_click(view, "complete")
       assert_redirect(view, "/dashboard")
 
@@ -201,6 +242,7 @@ defmodule EmakolaWeb.OnboardingLiveTest do
 
       render_change(view, "update_store_name", %{"store_name" => "Naija Store"})
       render_change(view, "update_currency", %{"currency" => "NGN"})
+      render_click(view, "next_step")
       render_click(view, "next_step")
       render_click(view, "skip_step")
 

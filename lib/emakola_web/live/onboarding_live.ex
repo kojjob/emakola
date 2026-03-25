@@ -18,6 +18,27 @@ defmodule EmakolaWeb.OnboardingLive do
     %{code: "USD", label: "USD — US Dollar", flag: "\u{1F1FA}\u{1F1F8}"}
   ]
 
+  @themes [
+    %{
+      id: "market",
+      name: "Market",
+      description: "Clean, modern commerce for everyday stores",
+      colors: ["#2563EB", "#0F172A", "#FFFFFF"]
+    },
+    %{
+      id: "atelier",
+      name: "Atelier",
+      description: "Premium editorial fashion aesthetic",
+      colors: ["#CA8A04", "#1C1917", "#FAFAF9"]
+    },
+    %{
+      id: "vibrant",
+      name: "Vibrant",
+      description: "Bold, energetic West African style",
+      colors: ["#DC2626", "#7C2D12", "#FFFBEB"]
+    }
+  ]
+
   def mount(_params, session, socket) do
     current_user = resolve_user(session)
 
@@ -32,13 +53,15 @@ defmodule EmakolaWeb.OnboardingLive do
        assign(socket,
          page_title: "Set Up Your Store",
          step: 1,
-         total_steps: 3,
+         total_steps: 4,
          current_user: current_user,
          user_type: user_type(current_user),
          store_name: "",
          store_slug: "",
          currency: "GHS",
          currencies: @currencies,
+         themes: @themes,
+         selected_theme: "market",
          product_name: "",
          product_price: "",
          error: nil,
@@ -155,8 +178,70 @@ defmodule EmakolaWeb.OnboardingLive do
           </div>
         </div>
 
-        <%!-- Step 2: Add Your First Product --%>
+        <%!-- Step 2: Choose Your Theme --%>
         <div :if={@step == 2} class="space-y-6 text-center">
+          <div class="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto">
+            <svg
+              class="w-8 h-8 text-emerald-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.88 2.88M6.75 17.25h.008v.008H6.75v-.008z"
+              />
+            </svg>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">
+            Choose Your Theme
+          </h1>
+          <p class="text-gray-500">
+            Pick a look for your storefront. You can customize it later.
+          </p>
+
+          <div class="space-y-3 text-left">
+            <button
+              :for={theme <- @themes}
+              phx-click="select_theme"
+              phx-value-theme-id={theme.id}
+              class={[
+                "w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left",
+                if(theme.id == @selected_theme,
+                  do: "border-emerald-500 bg-emerald-50/50",
+                  else: "border-gray-200 hover:border-gray-300 bg-white"
+                )
+              ]}
+            >
+              <div class="flex gap-1 shrink-0">
+                <div
+                  :for={color <- theme.colors}
+                  class="w-6 h-6 rounded-full border border-gray-200"
+                  style={"background: #{color}"}
+                >
+                </div>
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-gray-900">{theme.name}</p>
+                <p class="text-xs text-gray-500">{theme.description}</p>
+              </div>
+              <div :if={theme.id == @selected_theme} class="shrink-0">
+                <svg class="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <%!-- Step 3: Add Your First Product --%>
+        <div :if={@step == 3} class="space-y-6 text-center">
           <div class="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto">
             <svg
               class="w-8 h-8 text-emerald-600"
@@ -220,8 +305,8 @@ defmodule EmakolaWeb.OnboardingLive do
           </p>
         </div>
 
-        <%!-- Step 3: You're Ready! --%>
-        <div :if={@step == 3} class="space-y-6 text-center">
+        <%!-- Step 4: You're Ready! --%>
+        <div :if={@step == 4} class="space-y-6 text-center">
           <div class="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mx-auto">
             <svg
               class="w-10 h-10 text-emerald-600"
@@ -316,7 +401,7 @@ defmodule EmakolaWeb.OnboardingLive do
 
           <div class="flex items-center gap-3">
             <button
-              :if={@step == 2}
+              :if={@step == 3}
               phx-click="skip_step"
               class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
             >
@@ -360,6 +445,10 @@ defmodule EmakolaWeb.OnboardingLive do
 
   def handle_event("update_currency", %{"currency" => currency}, socket) do
     {:noreply, assign(socket, currency: currency)}
+  end
+
+  def handle_event("select_theme", %{"theme-id" => theme_id}, socket) do
+    {:noreply, assign(socket, selected_theme: theme_id)}
   end
 
   def handle_event("update_product", params, socket) do
@@ -509,6 +598,7 @@ defmodule EmakolaWeb.OnboardingLive do
              |> Ash.create(),
            {:ok, _membership} <- create_membership_for_user(user, store) do
         maybe_create_product(assigns, store)
+        store = maybe_save_theme(assigns, store)
         {:ok, store}
       else
         {:error, %Ash.Error.Invalid{} = error} ->
@@ -578,6 +668,19 @@ defmodule EmakolaWeb.OnboardingLive do
         _ ->
           :ok
       end
+    end
+  end
+
+  defp maybe_save_theme(assigns, store) do
+    selected_theme = Map.get(assigns, :selected_theme, "market")
+
+    case store
+         |> Ash.Changeset.for_update(:update_settings, %{
+           theme_config: %{"theme" => selected_theme}
+         })
+         |> Ash.update() do
+      {:ok, updated_store} -> updated_store
+      {:error, _} -> store
     end
   end
 
