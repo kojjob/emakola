@@ -10,3 +10,5 @@ Mox.defmock(Emakola.Payments.PaystackClientMock, for: Emakola.Payments.PaystackC
 Mox.defmock(Emakola.Payments.HubtelClientMock, for: Emakola.Payments.HubtelClientBehaviour)
 Mox.defmock(Emakola.SMSProviderMock, for: Emakola.Notifications.SMSProvider)
 Mox.defmock(Emakola.WhatsAppProviderMock, for: Emakola.Notifications.WhatsAppProvider)
+Mox.defmock(Emakola.WhatsAppChannelMock, for: Emakola.Notifications.Channels.WhatsAppBehaviour)
+Mox.defmock(Emakola.SMSChannelMock, for: Emakola.Notifications.Channels.SMSBehaviour)

@@ -115,6 +115,16 @@ config :emakola, Emakola.Payments.PaystackClient,
   public_key: System.get_env("PAYSTACK_PUBLIC_KEY", "pk_test_placeholder"),
   base_url: "https://api.paystack.co"
 
+# WhatsApp Business API (Cloud API)
+config :emakola, Emakola.Notifications.Channels.WhatsApp,
+  api_token: System.get_env("WHATSAPP_API_TOKEN"),
+  phone_number_id: System.get_env("WHATSAPP_PHONE_NUMBER_ID")
+
+# SMS Gateway
+config :emakola, Emakola.Notifications.Channels.SMS,
+  api_key: System.get_env("SMS_API_KEY"),
+  sender_id: System.get_env("SMS_SENDER_ID") || "Emakola"
+
 # Hubtel client defaults (overridden in runtime.exs for prod)
 config :emakola, Emakola.Payments.HubtelClient,
   client_id: System.get_env("HUBTEL_CLIENT_ID"),
