@@ -1,12 +1,12 @@
 # Emakola — Project TODO
 
-**Last updated:** 2026-03-24
+**Last updated:** 2026-03-25
 
 ---
 
 ## COMPLETED
 
-### Landing Page Redesign
+### Landing Page Redesign (PR #31 — merged)
 - [x] Replace generic SaaS boilerplate with Emakola ecommerce landing page
 - [x] Split-screen hero: merchants (dark) + shoppers (light)
 - [x] Deep Navy & Gold color palette across landing + auth pages
@@ -15,29 +15,36 @@
 - [x] Features grid — 6 cards with images (Mobile Money, WhatsApp, Dashboard, Multi-Store, Inventory, Shipping)
 - [x] Pricing — 4-tier hybrid model in GHS (Starter free/3.5%, Growth GHS 29/2%, Pro GHS 79/1.2%, Enterprise custom)
 - [x] Testimonials — 6 merchants across Ghana (Accra, Kumasi, Takoradi, Cape Coast, Koforidua, Tamale)
-- [x] Footer with Product, Resources, Company, Legal columns
 - [x] Merchant hero: dashboard preview mockup, gold CTA, payment badges
 - [x] Shopper hero: search bar, category pills, product cards, trust signals
+- [x] Production polish: image compression, lazy loading, trust signals
 
-### Auth Pages Redesign
+### Auth Pages Redesign (PR #31 — merged)
 - [x] Split-screen login page (Stitch design reference)
 - [x] Split-screen register page
 - [x] WhatsApp button disabled with "Coming Soon" label
 - [x] Trust badges (SSL Secured, MoMo Integrated)
-- [x] Ghana-focused copy (Accra / Kumasi / Takoradi)
 
-### Production Polish
-- [x] Compress all landing page images (quality 60)
-- [x] Lazy loading on below-fold images
-- [x] Replace Phoenix logo with Emakola brand logo
-- [x] Dark body background to prevent white flash on navigation
-- [x] Solid gradient backgrounds (no image overlay issues)
-- [x] Force image heights with inline styles
-- [x] "No credit card needed" badge on Starter pricing
-- [x] "No credit card required" on final CTA
-- [x] Rename "Watch Demo" to "See Features"
+### Admin Features (PR #33 — merged)
+- [x] Notification dropdown with live data in admin sidebar
+- [x] User dropdown with interactive popover menu (fixed overflow clipping)
+- [x] Product slide-over panels for add/edit and bulk CSV upload
+- [x] Product image upload and rendering
+- [x] Category page redesign — visual cards with auto-detected icons and colors
+- [x] Seed data with sample stores, products, and images
+- [x] Build artifacts removed from git tracking
 
-### Security & Infrastructure (prior work)
+### Storefront Theme Engine (PR #34 — CI passed, pending merge)
+- [x] Task 1: Migration — `theme_config` jsonb column on stores
+- [x] Task 2: ThemeConfig validation module (12 tests)
+- [x] Task 3: ThemeBehaviour + ThemeResolver + 3 theme stubs (12 tests)
+- [x] Task 4: Storefront layout CSS variable injection + LiveView dispatch
+- [x] Task 5: Market theme — refactored from existing storefront
+- [x] Task 6: Atelier theme — premium editorial fashion (from store.html prototype)
+- [x] Task 7: Vibrant theme — bold colorful West African design
+- [x] 892 tests, 0 failures
+
+### Security & Infrastructure
 - [x] Content-Security-Policy headers with nonce support
 - [x] Rate limiting on auth endpoints
 - [x] Tenant-scoped Ash authorization policies
@@ -45,46 +52,17 @@
 - [x] Webhook HMAC verification
 - [x] Input length constraints on Ash resources
 - [x] Dashboard refactored into focused components
+- [x] Logout route moved out of rate-limited pipeline
+- [x] Dark body background fix for admin pages
 
 ---
 
 ## IN PROGRESS
 
-### PR #31: Landing Page + Auth Redesign
-- [x] All code implemented and pushed
-- [x] 32 tests passing (17 landing + 15 auth)
-- [ ] Visual QA on mobile devices
+### PR #34: Storefront Theme Engine
+- [x] CI passed
 - [ ] Merge to main
-
----
-
-## TODO — Storefront Theme Engine (Sub-project 1 of 3)
-
-**Spec:** `docs/superpowers/specs/2026-03-24-storefront-theme-engine-design.md`
-**Plan:** `docs/superpowers/plans/2026-03-24-storefront-theme-engine.md`
-
-### Foundation (sequential)
-- [ ] Task 1: Migration — add `theme_config` jsonb column to stores table
-- [ ] Task 2: ThemeConfig validation module with tests
-- [ ] Task 3: ThemeBehaviour + ThemeResolver + 3 theme stubs with tests
-- [ ] Task 4: Storefront layout CSS variable injection + LiveView dispatch integration
-
-### Themes (parallel)
-- [ ] Task 5: Market theme — refactor existing storefront into theme system
-- [ ] Task 6: Atelier theme — premium editorial from store.html prototype
-- [ ] Task 7: Vibrant theme — bold colorful West African design
-
-### Verification
-- [ ] Task 8: Full integration testing + manual verification of all 3 themes
-
----
-
-## TODO — Theme Templates (Sub-project 2 of 3)
-
-- [ ] Additional theme designs beyond the initial 3
-- [ ] Theme preview screenshots for selection UI
-- [ ] Theme-specific product card variations
-- [ ] Theme-specific checkout styling (shared but themed)
+- [ ] Task 8: Manual verification — test all 3 themes visually
 
 ---
 
@@ -107,6 +85,8 @@
 - [ ] Store search / marketplace browsing page
 - [ ] Customer reviews and ratings on products
 - [ ] Wishlist persistence (currently session-only)
+- [ ] Theme preview screenshots for selection UI
+- [ ] Additional theme designs beyond initial 3
 
 ### Payments
 - [ ] Paystack payment gateway integration
@@ -133,8 +113,6 @@
 - [ ] Staff accounts and permissions
 
 ### Infrastructure
-- [ ] Fix pre-existing test failures (42 failures in payments, security, performance tests)
-- [ ] Rate limiter: reset counters in test config to prevent flaky tests
-- [ ] Move logout route out of rate-limited pipeline (done locally, needs merge)
 - [ ] OG image generation for stores and products
-- [ ] Seed data with sample stores, products, and images
+- [ ] Mobile responsiveness QA pass
+- [ ] Performance profiling and optimization
