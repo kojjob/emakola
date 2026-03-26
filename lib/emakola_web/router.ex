@@ -70,6 +70,7 @@ defmodule EmakolaWeb.Router do
       live "/checkout", CheckoutLive
       live "/orders/:order_number/confirmation", OrderConfirmationLive
       live "/category/:category_slug", CategoryLive
+      live "/about", AboutLive
       live "/account", AccountLive
       live "/wishlist", WishlistLive
       live "/track/:order_number", TrackingLive

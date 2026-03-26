@@ -96,4 +96,6 @@ defmodule Emakola.Themes.Vibrant do
   defdelegate render_product_detail(assigns),
     to: Emakola.Themes.Vibrant.ProductDetail,
     as: :render
+
+  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
 end

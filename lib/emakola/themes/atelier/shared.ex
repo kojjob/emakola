@@ -48,9 +48,35 @@ defmodule Emakola.Themes.Atelier.Shared do
       .atelier-category-circle { cursor: pointer; }
       .atelier-category-circle:hover img { transform: scale(1.1); }
       .atelier-category-circle:hover .atelier-cat-ring { border-color: var(--theme-primary); }
-      .atelier-accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
-      .atelier-accordion-toggle:checked ~ .atelier-accordion-content { max-height: 200px; }
-      .atelier-accordion-toggle:checked ~ .atelier-accordion-header .atelier-accordion-icon { transform: rotate(180deg); }
+      @media (prefers-reduced-motion: reduce) {
+        .atelier-hero-img { animation: none !important; opacity: 1 !important; }
+        .atelier-hero-img ~ .atelier-hero-img { opacity: 0 !important; }
+      }
+      .atelier-accordion-content { max-height: 0 !important; overflow: hidden !important; opacity: 0; transition: max-height 0.3s ease, opacity 0.2s ease; }
+      .atelier-accordion-toggle:checked ~ .atelier-accordion-content { max-height: 300px !important; opacity: 1; }
+      .atelier-accordion-toggle:checked ~ label .atelier-accordion-icon { transform: rotate(180deg); }
+
+      /* About page layouts */
+      .atelier-about-2col { display: grid; gap: 3rem; }
+      .atelier-about-3col { display: grid; gap: 2rem; }
+      .atelier-about-4col { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+      @media (min-width: 768px) {
+        .atelier-about-2col { grid-template-columns: 1fr 1fr; align-items: center; }
+        .atelier-about-3col { grid-template-columns: repeat(3, 1fr); gap: 3rem; }
+        .atelier-about-4col { grid-template-columns: repeat(4, 1fr); gap: 2rem; }
+      }
+
+      /* PDP two-column layout */
+      @media (min-width: 1024px) {
+        .atelier-pdp-grid {
+          display: grid;
+          grid-template-columns: 7fr 5fr;
+          gap: 3rem;
+        }
+        .atelier-pdp-grid > :nth-child(2) {
+          margin-top: 0 !important;
+        }
+      }
     </style>
     """
   end
@@ -77,7 +103,7 @@ defmodule Emakola.Themes.Atelier.Shared do
     search_text =
       assigns[:search_placeholder] ||
         get_in(assigns.store, [Access.key(:theme), Access.key(:search_placeholder)]) ||
-        "Search products..."
+        "Search artisans..."
 
     assigns = assign(assigns, :search_text, search_text)
 
@@ -114,12 +140,18 @@ defmodule Emakola.Themes.Atelier.Shared do
               />
             </a>
             <a
-              :for={category <- Enum.take(@categories, 3)}
+              href={"/s/#{@store.slug}/collections"}
+              class="relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center text-gray-600"
+            >
+              Collections
+            </a>
+            <a
+              :for={category <- Enum.take(@categories, 2)}
               href={"/s/#{@store.slug}/category/#{category.slug}"}
               class={[
                 "relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center",
                 if(@active_path == "/category/#{category.slug}",
-                  do: "text-gray-900",
+                  do: "text-gray-900 font-semibold",
                   else: "text-gray-600"
                 )
               ]}
@@ -130,6 +162,12 @@ defmodule Emakola.Themes.Atelier.Shared do
                 class="absolute bottom-0 left-0 right-0 h-0.5"
                 style="background: var(--theme-primary);"
               />
+            </a>
+            <a
+              href={"/s/#{@store.slug}/journal"}
+              class="relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center text-gray-600"
+            >
+              Journal
             </a>
           </div>
 

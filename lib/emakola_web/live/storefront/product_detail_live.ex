@@ -99,6 +99,24 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   end
 
   @impl true
+  def handle_event("prev_image", _params, socket) do
+    images = socket.assigns.product.images || []
+    count = length(images)
+    current = socket.assigns.current_image_index
+    new_index = if count > 0, do: rem(current - 1 + count, count), else: 0
+    {:noreply, assign(socket, :current_image_index, new_index)}
+  end
+
+  @impl true
+  def handle_event("next_image", _params, socket) do
+    images = socket.assigns.product.images || []
+    count = length(images)
+    current = socket.assigns.current_image_index
+    new_index = if count > 0, do: rem(current + 1, count), else: 0
+    {:noreply, assign(socket, :current_image_index, new_index)}
+  end
+
+  @impl true
   def handle_event("add_to_cart", _params, socket) do
     variant = socket.assigns.selected_variant
 

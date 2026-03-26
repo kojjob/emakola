@@ -119,6 +119,10 @@ defmodule Emakola.Themes.Atelier do
     to: Emakola.Themes.Atelier.ProductDetail,
     as: :render
 
+  defdelegate render_about(assigns),
+    to: Emakola.Themes.Atelier.About,
+    as: :render
+
   # Deep merge two maps, recursing into nested maps
   defp deep_merge(base, overrides) when is_map(base) and is_map(overrides) do
     Map.merge(base, overrides, fn

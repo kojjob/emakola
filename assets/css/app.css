@@ -5,6 +5,7 @@
 @source "../css";
 @source "../js";
 @source "../../lib/emakola_web";
+@source "../../lib/emakola/themes";
 
 /* A Tailwind plugin that makes "hero-#{ICON}" classes available.
    The heroicons installation itself is managed by your mix.exs */
@@ -413,3 +414,4 @@ html.high-contrast:not(.dark) {
   --fp-surface-container-high: #d0d0d8;
   --fp-primary: #3030c0;
 }
+

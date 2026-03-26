@@ -73,30 +73,64 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
       <div class="pt-4 sm:pt-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
           <%!-- Breadcrumb --%>
-          <nav class="mb-6 sm:mb-8 text-sm text-gray-500" aria-label="Breadcrumb">
+          <nav class="mb-6 sm:mb-8 text-xs uppercase tracking-wider text-gray-400" aria-label="Breadcrumb">
             <a href={"/s/#{@store.slug}"} class="hover:text-gray-900 transition-colors">Home</a>
-            <span class="mx-2 text-gray-300">/</span>
+            <span class="mx-2 text-gray-300">&rsaquo;</span>
             <a href={"/s/#{@store.slug}/products"} class="hover:text-gray-900 transition-colors">
               Shop
             </a>
-            <span class="mx-2 text-gray-300">/</span>
-            <span class="text-gray-900 font-medium">{@product.title}</span>
+            <span class="mx-2 text-gray-300">&rsaquo;</span>
+            <span class="text-gray-900 font-semibold">{@product.title}</span>
           </nav>
 
-          <div class="lg:grid lg:grid-cols-5 lg:gap-12">
-            <%!-- Image Gallery (left ~60%) --%>
-            <div class="lg:col-span-3">
-              <%!-- Main Image --%>
-              <div class="aspect-square sm:aspect-[4/5] bg-gray-100 rounded-xl overflow-hidden mb-4">
+          <div class="atelier-pdp-grid">
+            <%!-- Image Gallery (left ~58%) --%>
+            <div>
+              <%!-- Main Image with navigation --%>
+              <div class="relative aspect-[3/4] bg-gray-100 rounded-xl overflow-hidden mb-4 group">
                 <img
                   :if={@primary_image}
                   src={@primary_image}
-                  alt={@product.title}
-                  class="w-full h-full object-cover"
+                  alt={"#{@product.title} - image #{@current_idx + 1} of #{length(@images)}"}
+                  class="w-full h-full object-cover transition-opacity duration-300"
                   id="atelier-primary-image"
                 />
                 <div :if={!@primary_image} class="w-full h-full flex items-center justify-center">
                   <Shared.image_placeholder />
+                </div>
+
+                <%!-- Prev/Next arrows (visible on hover, always on mobile) --%>
+                <div :if={length(@images) > 1} class="absolute inset-0 flex items-center justify-between px-3 pointer-events-none">
+                  <button
+                    phx-click="prev_image"
+                    class="pointer-events-auto w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/80 hover:bg-white shadow-lg flex items-center justify-center text-gray-800 transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer min-h-[44px]"
+                    aria-label="Previous image"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                      <polyline points="15 18 9 12 15 6" />
+                    </svg>
+                  </button>
+                  <button
+                    phx-click="next_image"
+                    class="pointer-events-auto w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/80 hover:bg-white shadow-lg flex items-center justify-center text-gray-800 transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer min-h-[44px]"
+                    aria-label="Next image"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </button>
+                </div>
+
+                <%!-- Image counter dots --%>
+                <div :if={length(@images) > 1} class="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-2">
+                  <button
+                    :for={{_img, idx} <- Enum.with_index(@images)}
+                    phx-click="select_image"
+                    phx-value-index={idx}
+                    class={"w-2.5 h-2.5 rounded-full transition-all duration-200 cursor-pointer " <>
+                      if(idx == @current_idx, do: "bg-white scale-110 shadow", else: "bg-white/50 hover:bg-white/75")}
+                    aria-label={"View image #{idx + 1}"}
+                  />
                 </div>
               </div>
 
@@ -120,8 +154,8 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
               </div>
             </div>
 
-            <%!-- Product Info (right ~40%) --%>
-            <div class="lg:col-span-2 mt-8 lg:mt-0">
+            <%!-- Product Info (right ~42%) --%>
+            <div class="mt-8">
               <%!-- Badges --%>
               <div class="flex flex-wrap gap-2 mb-4">
                 <span
@@ -133,7 +167,7 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                   </svg>
                   Verified Artisan
                 </span>
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 uppercase tracking-wide">
                   Limited Edition
                 </span>
               </div>
@@ -177,10 +211,29 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
               </p>
 
               <%!-- Description Card --%>
-              <div :if={@product.description} class="bg-gray-50 rounded-xl p-5 mb-6">
-                <p class="text-sm text-gray-700 leading-relaxed">
+              <div :if={@product.description} class="bg-gray-50 rounded-xl p-5 sm:p-6 mb-6">
+                <p class="text-sm text-gray-700 leading-relaxed mb-4">
                   {@product.description}
                 </p>
+                <%!-- Spec boxes --%>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="bg-white rounded-lg p-3 border border-gray-100">
+                    <span class="block text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">
+                      Dimensions
+                    </span>
+                    <span class="text-sm font-mono text-gray-800">
+                      {product_spec(@product, :dimensions, "One Size")}
+                    </span>
+                  </div>
+                  <div class="bg-white rounded-lg p-3 border border-gray-100">
+                    <span class="block text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">
+                      Material
+                    </span>
+                    <span class="text-sm font-mono text-gray-800">
+                      {product_spec(@product, :material, "Handcrafted")}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <%!-- Variant Selectors --%>
@@ -463,6 +516,16 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
 
       _ ->
         []
+    end
+  end
+
+  defp product_spec(product, key, fallback) do
+    metadata = Map.get(product, :metadata) || %{}
+
+    cond do
+      is_map(metadata) && Map.has_key?(metadata, key) -> Map.get(metadata, key)
+      is_map(metadata) && Map.has_key?(metadata, Atom.to_string(key)) -> Map.get(metadata, Atom.to_string(key))
+      true -> fallback
     end
   end
 

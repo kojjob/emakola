@@ -70,4 +70,6 @@ defmodule Emakola.Themes.Market do
 
   @impl true
   defdelegate render_product_detail(assigns), to: Emakola.Themes.Market.ProductDetail, as: :render
+
+  defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
 end
