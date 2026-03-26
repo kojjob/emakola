@@ -944,7 +944,10 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       </div>
 
       <%!-- Active step: full form --%>
-      <div :if={@current_step == @number} class="bg-white border-2 border-[#0F172A] rounded-xl p-5">
+      <div
+        :if={@current_step == @number}
+        class="bg-white border border-[#CBD5E1] rounded-xl p-5 shadow-sm"
+      >
         <div class="flex items-center gap-3 mb-5">
           <div class="w-7 h-7 rounded-full bg-[#0F172A] flex items-center justify-center flex-shrink-0">
             <span class="text-white text-xs font-semibold">{@number}</span>
