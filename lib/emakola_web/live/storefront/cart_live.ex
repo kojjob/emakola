@@ -486,6 +486,25 @@ defmodule EmakolaWeb.Storefront.CartLive do
       </section>
     </div>
 
+    <%!-- Sticky mobile checkout bar --%>
+    <div
+      :if={@cart != []}
+      class="lg:hidden fixed bottom-16 left-0 right-0 z-40 bg-white border-t border-[#E2E8F0] px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]"
+    >
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm text-[#475569]">Total</span>
+        <span class="text-lg font-bold text-[#0F172A]">
+          {Currency.format_price(@cart_total, @store.currency)}
+        </span>
+      </div>
+      <a
+        href={"/s/#{@store.slug}/checkout"}
+        class="block w-full py-3.5 text-sm font-semibold tracking-wider uppercase rounded-lg text-center bg-[#1C1917] text-white hover:bg-[#44403C] transition-colors"
+      >
+        Proceed to Checkout
+      </a>
+    </div>
+
     <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
     <.bottom_nav store_slug={@store.slug} active_tab={:cart} cart_count={@cart_count} />
     """
