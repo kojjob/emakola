@@ -79,6 +79,11 @@ defmodule Emakola.Orders.Order do
       constraints(max_length: 5_000)
     end
 
+    attribute :tracking_number, :string do
+      public?(true)
+      constraints(max_length: 100)
+    end
+
     attribute :shipping_address, :map do
       public?(true)
     end
@@ -229,7 +234,7 @@ defmodule Emakola.Orders.Order do
 
     update :mark_shipped do
       require_atomic?(false)
-      accept([])
+      accept([:tracking_number])
 
       validate(fn changeset, _context ->
         status = Ash.Changeset.get_attribute(changeset, :status)

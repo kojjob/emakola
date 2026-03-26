@@ -102,10 +102,14 @@ defmodule Emakola.Accounts.Store do
       authorize_if(always())
     end
 
-    # Updates/destroys require the actor to be a merchant with membership to this store
-    policy action_type([:update, :destroy]) do
+    # Internal/system calls (nil actor) are allowed
+    bypass always() do
       authorize_unless(actor_present())
-      authorize_if(actor_present())
+    end
+
+    # Merchant actors: verify store membership for writes
+    policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
+      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
   end
 

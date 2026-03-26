@@ -131,12 +131,13 @@ defmodule Emakola.Payments.Gateways.Paystack do
   defp map_status("success"), do: :success
   defp map_status("failed"), do: :failed
   defp map_status("abandoned"), do: :failed
-  defp map_status(other), do: String.to_atom(other)
+  defp map_status("reversed"), do: :failed
+  defp map_status(_other), do: :unknown
 
   defp map_refund_status("processed"), do: :processed
   defp map_refund_status("pending"), do: :pending
   defp map_refund_status("failed"), do: :failed
-  defp map_refund_status(other), do: String.to_atom(other)
+  defp map_refund_status(_other), do: :unknown
 
   defp secret_key do
     Application.get_env(:emakola, :paystack_secret_key) ||

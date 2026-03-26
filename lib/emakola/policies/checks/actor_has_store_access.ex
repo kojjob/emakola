@@ -23,22 +23,27 @@ defmodule Emakola.Policies.Checks.ActorHasStoreAccess do
   @impl true
   def match?(nil, _context, _opts), do: false
 
-  def match?(actor, %{query: _query}, _opts) do
-    # For reads, we allow — the query-level store_id filters handle tenant scoping
-    is_struct(actor)
-  end
-
-  def match?(actor, %{changeset: changeset}, _opts) do
+  def match?(actor, %{changeset: %Ash.Changeset{} = changeset}, _opts) do
     store_id = get_store_id(changeset)
     actor_has_store?(actor, store_id)
+  end
+
+  def match?(actor, %{subject: %Ash.Query{}}, _opts) do
+    # For reads, we allow — the query-level store_id filters handle tenant scoping
+    is_struct(actor)
   end
 
   def match?(_actor, _context, _opts), do: false
 
   defp get_store_id(%Ash.Changeset{} = changeset) do
-    # Try the changeset data first (for updates), then arguments/attributes (for creates)
-    Ash.Changeset.get_attribute(changeset, :store_id) ||
-      Map.get(changeset.data || %{}, :store_id)
+    # For the Store resource itself, the resource's id IS the store_id
+    if changeset.resource == Emakola.Accounts.Store do
+      Map.get(changeset.data || %{}, :id)
+    else
+      # Try the changeset data first (for updates), then arguments/attributes (for creates)
+      Ash.Changeset.get_attribute(changeset, :store_id) ||
+        Map.get(changeset.data || %{}, :store_id)
+    end
   end
 
   defp get_store_id(_), do: nil

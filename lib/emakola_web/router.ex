@@ -62,6 +62,7 @@ defmodule EmakolaWeb.Router do
 
     live_session :storefront,
       layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [{EmakolaWeb.Hooks.ResolveStore, :default}],
       session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
       live "/", StoreLive
       live "/products", ProductListLive

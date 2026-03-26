@@ -13,7 +13,8 @@ defmodule Emakola.Orders.Coupon do
 
   use Ash.Resource,
     domain: Emakola.Orders,
-    data_layer: AshPostgres.DataLayer
+    data_layer: AshPostgres.DataLayer,
+    authorizers: [Ash.Policy.Authorizer]
 
   postgres do
     table("coupons")
@@ -87,6 +88,22 @@ defmodule Emakola.Orders.Coupon do
 
   identities do
     identity(:unique_code_per_store, [:store_id, :code])
+  end
+
+  policies do
+    bypass action_type(:read) do
+      authorize_if(always())
+    end
+
+    # Internal/system calls (nil actor) are allowed
+    bypass always() do
+      authorize_unless(actor_present())
+    end
+
+    # Merchant actors: verify store membership for writes
+    policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
+      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
+    end
   end
 
   actions do
