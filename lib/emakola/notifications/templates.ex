@@ -66,6 +66,20 @@ defmodule Emakola.Notifications.Templates do
     }
   end
 
+  # ── Low-stock alert templates ────────────────────────────────
+
+  def low_stock_realtime_sms(product_title, sku, stock_quantity, store_name) do
+    sku_display = sku || "N/A"
+
+    "Low stock alert: #{product_title} (#{sku_display}) has only #{stock_quantity} units left. " <>
+      "Restock soon! - #{store_name}"
+  end
+
+  def low_stock_digest_sms(count, store_name) do
+    "#{count} items are running low on stock at #{store_name}. " <>
+      "Check your dashboard for details."
+  end
+
   # ── Formatting helpers ─────────────────────────────────────────
 
   @doc """
