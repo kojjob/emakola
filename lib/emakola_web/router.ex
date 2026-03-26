@@ -120,6 +120,7 @@ defmodule EmakolaWeb.Router do
       # Marketing
       live "/admin/campaigns", Admin.CampaignLive.Index
       live "/admin/discounts", Admin.DiscountLive.Index
+      live "/admin/coupons", Admin.CouponLive
 
       # Analytics
       live "/admin/reports", Admin.ReportLive.Index

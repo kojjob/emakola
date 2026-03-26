@@ -128,13 +128,24 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
       cart_session_id = socket.assigns.cart_session_id
       quantity = socket.assigns.quantity
 
+      image_url =
+        case socket.assigns.product.images do
+          images when is_list(images) and images != [] ->
+            primary = images |> Enum.sort_by(& &1.position) |> List.first()
+            primary.thumbnail_url || primary.url
+
+          _ ->
+            nil
+        end
+
       CartStore.add_item(cart_session_id, %{
         variant_id: variant.id,
         quantity: quantity,
         product_title: socket.assigns.product.title,
         variant_info: variant_label(variant, socket.assigns.option_types),
         unit_price: variant.price,
-        sku: variant.sku
+        sku: variant.sku,
+        image_url: image_url
       })
 
       cart_count = CartStore.cart_count(cart_session_id)

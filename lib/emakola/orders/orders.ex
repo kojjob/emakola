@@ -21,5 +21,13 @@ defmodule Emakola.Orders do
     resource Emakola.Orders.LineItem do
       define(:create_line_item, action: :create)
     end
+
+    resource Emakola.Orders.Coupon do
+      define(:create_coupon, action: :create)
+      define(:list_coupons_by_store, action: :list_by_store, args: [:store_id])
+      define(:find_coupon_by_code, action: :find_by_code, args: [:store_id, :code])
+      define(:deactivate_coupon, action: :deactivate)
+      define(:increment_coupon_usage, action: :increment_usage)
+    end
   end
 end

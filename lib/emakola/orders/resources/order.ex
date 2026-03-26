@@ -57,6 +57,16 @@ defmodule Emakola.Orders.Order do
       public?(true)
     end
 
+    attribute :delivery_fee, :integer do
+      default(0)
+      public?(true)
+    end
+
+    attribute :discount_amount, :integer do
+      default(0)
+      public?(true)
+    end
+
     attribute :currency, :string do
       default("GHS")
       allow_nil?(false)
@@ -92,6 +102,11 @@ defmodule Emakola.Orders.Order do
     end
 
     has_many :line_items, Emakola.Orders.LineItem
+
+    belongs_to :coupon, Emakola.Orders.Coupon do
+      attribute_writable?(true)
+      public?(true)
+    end
   end
 
   identities do
@@ -126,7 +141,10 @@ defmodule Emakola.Orders.Order do
         :billing_address,
         :subtotal,
         :total,
-        :currency
+        :currency,
+        :delivery_fee,
+        :discount_amount,
+        :coupon_id
       ])
 
       change(fn changeset, _context ->
@@ -142,7 +160,17 @@ defmodule Emakola.Orders.Order do
 
     update :update do
       require_atomic?(false)
-      accept([:subtotal, :total, :notes, :shipping_address, :billing_address])
+
+      accept([
+        :subtotal,
+        :total,
+        :notes,
+        :shipping_address,
+        :billing_address,
+        :delivery_fee,
+        :discount_amount,
+        :coupon_id
+      ])
     end
 
     update :confirm do

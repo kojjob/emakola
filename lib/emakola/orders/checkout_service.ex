@@ -41,6 +41,43 @@ defmodule Emakola.Orders.CheckoutService do
     end
   end
 
+  @doc """
+  Validates a coupon code for a given store and subtotal.
+
+  Returns `{:ok, coupon}` if the coupon is valid, or `{:error, reason}` with
+  a descriptive atom if validation fails.
+  """
+  def validate_coupon(store_id, code, subtotal) do
+    case Emakola.Orders.Coupon
+         |> Ash.Query.filter(store_id == ^store_id and code == ^String.upcase(code))
+         |> Ash.read() do
+      {:ok, [coupon]} -> check_coupon_validity(coupon, subtotal)
+      {:ok, []} -> {:error, :coupon_not_found}
+      _ -> {:error, :coupon_not_found}
+    end
+  end
+
+  @doc """
+  Calculates discount amount in pesewas.
+
+  - `:percentage` -- discount_value is basis points (1000 = 10%). Integer
+    division truncates (rounds down) in the merchant's favor.
+  - `:fixed_amount` -- discount_value is pesewas, capped at subtotal.
+  - `:free_shipping` -- returns the delivery fee amount.
+  """
+  def calculate_discount(%{discount_type: :percentage} = coupon, subtotal, _delivery_fee) do
+    raw = div(subtotal * coupon.discount_value, 10_000)
+    if coupon.max_discount_amount, do: min(raw, coupon.max_discount_amount), else: raw
+  end
+
+  def calculate_discount(%{discount_type: :fixed_amount} = coupon, subtotal, _delivery_fee) do
+    min(coupon.discount_value, subtotal)
+  end
+
+  def calculate_discount(%{discount_type: :free_shipping}, _subtotal, delivery_fee) do
+    delivery_fee
+  end
+
   # -- Validations -----------------------------------------------------
 
   defp validate_cart([]), do: {:error, :empty_cart}
@@ -80,6 +117,30 @@ defmodule Emakola.Orders.CheckoutService do
     if insufficient, do: {:error, :insufficient_stock}, else: :ok
   end
 
+  defp check_coupon_validity(coupon, subtotal) do
+    now = DateTime.utc_now()
+
+    cond do
+      not coupon.active ->
+        {:error, :coupon_inactive}
+
+      coupon.expires_at && DateTime.compare(now, coupon.expires_at) == :gt ->
+        {:error, :coupon_expired}
+
+      coupon.starts_at && DateTime.compare(now, coupon.starts_at) == :lt ->
+        {:error, :coupon_not_started}
+
+      coupon.max_uses && coupon.uses_count >= coupon.max_uses ->
+        {:error, :coupon_max_uses_reached}
+
+      coupon.minimum_order_amount && subtotal < coupon.minimum_order_amount ->
+        {:error, :coupon_minimum_not_met}
+
+      true ->
+        {:ok, coupon}
+    end
+  end
+
   # -- Transaction -----------------------------------------------------
 
   defp run_checkout(store_id, items, variants, opts) do
@@ -91,7 +152,9 @@ defmodule Emakola.Orders.CheckoutService do
       shipping_address =
         Keyword.get(opts, :shipping_address) || resolved_address
 
-      # 3. Create order
+      # 3. Create line items first to compute subtotal before order creation
+      #    (we need subtotal for coupon validation)
+      #    Create a temporary order to hold line items
       order =
         Emakola.Orders.Order
         |> Ash.Changeset.for_create(:create, %{
@@ -125,17 +188,48 @@ defmodule Emakola.Orders.CheckoutService do
           line_item
         end)
 
-      # 5. Calculate totals (include delivery fee if provided)
+      # 5. Calculate totals (include delivery fee and coupon discount)
       subtotal = Enum.reduce(line_items, 0, fn li, acc -> acc + li.line_total end)
       delivery_fee = Keyword.get(opts, :delivery_fee, 0)
-      total = subtotal + delivery_fee
+
+      # 6. Re-validate and apply coupon inside the transaction
+      {coupon_id, discount_amount} =
+        case Keyword.get(opts, :coupon_id) do
+          nil ->
+            {nil, 0}
+
+          cid ->
+            coupon = Ash.get!(Emakola.Orders.Coupon, cid)
+
+            case check_coupon_validity(coupon, subtotal) do
+              {:ok, valid_coupon} ->
+                discount = calculate_discount(valid_coupon, subtotal, delivery_fee)
+
+                valid_coupon
+                |> Ash.Changeset.for_update(:increment_usage, %{})
+                |> Ash.update!()
+
+                {valid_coupon.id, discount}
+
+              {:error, reason} ->
+                Emakola.Repo.rollback(reason)
+            end
+        end
+
+      total = subtotal + delivery_fee - discount_amount
 
       order =
         order
-        |> Ash.Changeset.for_update(:update, %{subtotal: subtotal, total: total})
+        |> Ash.Changeset.for_update(:update, %{
+          subtotal: subtotal,
+          total: total,
+          delivery_fee: delivery_fee,
+          discount_amount: discount_amount,
+          coupon_id: coupon_id
+        })
         |> Ash.update!()
 
-      # 6. Touch customer's last_order_at
+      # 7. Touch customer's last_order_at
       if customer_id do
         customer = Ash.get!(Emakola.Customers.Customer, customer_id)
 
