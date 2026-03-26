@@ -85,6 +85,12 @@ defmodule Emakola.Catalog.Variant do
       public?(true)
     end
 
+    attribute :low_stock_alerted, :boolean do
+      default(false)
+      allow_nil?(false)
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -202,6 +208,18 @@ defmodule Emakola.Catalog.Variant do
       argument(:delta, :integer, allow_nil?: false)
 
       change(atomic_update(:stock_quantity, expr(stock_quantity + ^arg(:delta))))
+    end
+
+    update :set_low_stock_alerted do
+      require_atomic?(false)
+      accept([])
+      change(set_attribute(:low_stock_alerted, true))
+    end
+
+    update :clear_low_stock_alerted do
+      require_atomic?(false)
+      accept([])
+      change(set_attribute(:low_stock_alerted, false))
     end
 
     read :low_stock do
