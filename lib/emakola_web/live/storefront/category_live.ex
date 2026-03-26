@@ -34,6 +34,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
           category ->
             products = load_category_products(store.id, category.id)
             parent = if category.parent_id, do: load_category_by_id(category.parent_id), else: nil
+            categories = Emakola.Catalog.list_root_categories!(store.id)
             cart_session_id = session["cart_session_id"]
             cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
 
@@ -43,6 +44,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
                store: store,
                category: category,
                parent_category: parent,
+               categories: categories,
                products: products,
                filtered_products: products,
                sort_by: :newest,

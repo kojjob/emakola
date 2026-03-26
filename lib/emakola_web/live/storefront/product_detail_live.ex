@@ -33,6 +33,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
             option_types = load_option_types(product)
             selected_variant = List.first(product.variants)
             related = load_related_products(store, product)
+            categories = load_root_categories(store)
             cart_session_id = session["cart_session_id"]
             cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
 
@@ -46,6 +47,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
              |> assign(:quantity, 1)
              |> assign(:current_image_index, 0)
              |> assign(:related_products, related)
+             |> assign(:categories, categories)
              |> assign(:cart_session_id, cart_session_id)
              |> assign(:cart_count, cart_count)
              |> assign(:page_title, "#{product.title} - #{store.name}")
@@ -222,5 +224,9 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
       Enum.map(vovs, fn vov -> vov.option_value.value end)
       |> Enum.join(" / ")
     end
+  end
+
+  defp load_root_categories(store) do
+    Emakola.Catalog.list_root_categories!(store.id)
   end
 end
