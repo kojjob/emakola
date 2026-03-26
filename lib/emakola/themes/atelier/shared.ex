@@ -711,6 +711,7 @@ defmodule Emakola.Themes.Atelier.Shared do
   attr :store, :map, required: true
   attr :categories, :list, default: []
   attr :theme, :map, default: %{}
+  attr :hide_newsletter, :boolean, default: false
 
   def footer(assigns) do
     theme = assigns[:theme] || %{}
@@ -746,7 +747,7 @@ defmodule Emakola.Themes.Atelier.Shared do
 
     # Newsletter config
     newsletter = get_in(theme, [:newsletter]) || %{}
-    show_newsletter = Map.get(newsletter, :enabled, true)
+    show_newsletter = Map.get(newsletter, :enabled, true) and not assigns.hide_newsletter
 
     assigns =
       assigns

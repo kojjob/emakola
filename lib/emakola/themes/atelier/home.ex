@@ -67,7 +67,12 @@ defmodule Emakola.Themes.Atelier.Home do
       <.newsletter_section :if={section_enabled?(@theme, :newsletter)} store={@store} theme={@theme} />
 
       <%!-- Footer --%>
-      <Shared.footer store={@store} categories={@categories} theme={@theme} />
+      <Shared.footer
+        store={@store}
+        categories={@categories}
+        theme={@theme}
+        hide_newsletter={section_enabled?(@theme, :newsletter)}
+      />
     </div>
     """
   end
