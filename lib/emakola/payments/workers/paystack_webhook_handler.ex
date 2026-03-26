@@ -100,9 +100,24 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
          |> Ash.Query.filter(id == ^order_id)
          |> Ash.read_one() do
       {:ok, %{status: :pending} = order} ->
-        order
-        |> Ash.Changeset.for_update(:confirm, %{})
-        |> Ash.update()
+        result =
+          order
+          |> Ash.Changeset.for_update(:confirm, %{})
+          |> Ash.update()
+
+        case result do
+          {:ok, confirmed_order} ->
+            try do
+              Emakola.Notifications.Dispatcher.dispatch(confirmed_order, :order_confirmed)
+            rescue
+              _ -> :ok
+            end
+
+            {:ok, confirmed_order}
+
+          error ->
+            error
+        end
 
       _ ->
         :ok

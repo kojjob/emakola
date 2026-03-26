@@ -10,8 +10,15 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerTest do
 
   # ── Helpers ────────────────────────────────────────────────────
 
+  @merchant_phone "+233301234567"
+
   defp create_order_with_customer(phone \\ "+233201234567") do
     {_merchant, store} = Factory.create_merchant_with_store!()
+
+    store =
+      store
+      |> Ash.Changeset.for_update(:update_settings, %{contact_phone: @merchant_phone})
+      |> Ash.update!()
 
     customer =
       Factory.create_customer!(store, %{
@@ -31,6 +38,12 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerTest do
 
   defp create_order_without_customer do
     {_merchant, store} = Factory.create_merchant_with_store!()
+
+    store =
+      store
+      |> Ash.Changeset.for_update(:update_settings, %{contact_phone: @merchant_phone})
+      |> Ash.update!()
+
     order = Factory.create_order!(store, %{total: 10_000, currency: "GHS"})
     {order, store}
   end
@@ -92,7 +105,7 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerTest do
       # Merchant SMS
       Emakola.SMSProviderMock
       |> expect(:send_sms, fn to, message, _opts ->
-        assert to == "merchant"
+        assert to == @merchant_phone
         assert message =~ "New order"
         assert message =~ order.order_number
         {:ok, %{provider: :mock, to: to, message: message}}
@@ -136,7 +149,7 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerTest do
       # But merchant SMS is still sent for order_placed
       Emakola.SMSProviderMock
       |> expect(:send_sms, fn to, _message, _opts ->
-        assert to == "merchant"
+        assert to == @merchant_phone
         {:ok, %{provider: :mock, to: to}}
       end)
 
@@ -149,7 +162,7 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerTest do
       # Merchant SMS is still sent for order_placed
       Emakola.SMSProviderMock
       |> expect(:send_sms, fn to, _message, _opts ->
-        assert to == "merchant"
+        assert to == @merchant_phone
         {:ok, %{provider: :mock, to: to}}
       end)
 

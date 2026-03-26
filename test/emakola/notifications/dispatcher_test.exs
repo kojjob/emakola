@@ -8,7 +8,7 @@ defmodule Emakola.Notifications.DispatcherTest do
   # ── Helpers ────────────────────────────────────────────────────
 
   defp fake_order do
-    %{id: Ash.UUID.generate()}
+    %{id: Ash.UUID.generate(), store_id: Ash.UUID.generate()}
   end
 
   # ── Valid events ───────────────────────────────────────────────
@@ -67,6 +67,28 @@ defmodule Emakola.Notifications.DispatcherTest do
         args: %{order_id: order.id, event: "order_cancelled"},
         queue: :notifications
       )
+    end
+  end
+
+  # ── PubSub broadcast ──────────────────────────────────────────
+
+  describe "dispatch/2 PubSub broadcast" do
+    test "broadcasts order event to store topic" do
+      order = fake_order()
+      Phoenix.PubSub.subscribe(Emakola.PubSub, "store:#{order.store_id}:orders")
+
+      Dispatcher.dispatch(order, :order_placed)
+
+      assert_receive {:order_event, :order_placed, ^order}
+    end
+
+    test "broadcasts different event types" do
+      order = fake_order()
+      Phoenix.PubSub.subscribe(Emakola.PubSub, "store:#{order.store_id}:orders")
+
+      Dispatcher.dispatch(order, :order_shipped)
+
+      assert_receive {:order_event, :order_shipped, ^order}
     end
   end
 

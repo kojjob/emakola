@@ -25,10 +25,39 @@ defmodule Emakola.Notifications.Dispatcher do
     - `{:ok, %Oban.Job{}}` on successful enqueue
     - `{:error, :unknown_event}` for unrecognized events
   """
-  def dispatch(%{id: order_id}, event) when event in @valid_events do
-    %{order_id: order_id, event: Atom.to_string(event)}
-    |> OrderNotificationWorker.new(queue: :notifications)
-    |> Oban.insert()
+  def dispatch(%{id: order_id, store_id: store_id} = order, event)
+      when event in @valid_events do
+    result =
+      %{order_id: order_id, event: Atom.to_string(event)}
+      |> OrderNotificationWorker.new(queue: :notifications)
+      |> Oban.insert()
+
+    # Broadcast for real-time merchant dashboard updates
+    Phoenix.PubSub.broadcast(
+      Emakola.PubSub,
+      "store:#{store_id}:orders",
+      {:order_event, event, order}
+    )
+
+    result
+  end
+
+  def dispatch(%{id: order_id} = order, event) when event in @valid_events do
+    result =
+      %{order_id: order_id, event: Atom.to_string(event)}
+      |> OrderNotificationWorker.new(queue: :notifications)
+      |> Oban.insert()
+
+    # Broadcast if store_id is available
+    if store_id = Map.get(order, :store_id) do
+      Phoenix.PubSub.broadcast(
+        Emakola.PubSub,
+        "store:#{store_id}:orders",
+        {:order_event, event, order}
+      )
+    end
+
+    result
   end
 
   def dispatch(_order, _event) do
