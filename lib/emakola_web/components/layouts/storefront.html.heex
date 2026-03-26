@@ -29,7 +29,7 @@
 >
   <!-- Top Bar (hidden when theme provides its own nav) -->
   <header
-    :if={!assigns[:theme_module] || assigns[:theme_module] == Emakola.Themes.Market}
+    :if={!assigns[:theme_module]}
     class="sticky top-0 z-50 bg-white border-b border-[#E2E8F0]"
   >
     <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -124,10 +124,7 @@
   
 <!-- WhatsApp FAB (hidden when theme provides its own) -->
   <a
-    :if={
-      assigns[:store] &&
-        (!assigns[:theme_module] || assigns[:theme_module] == Emakola.Themes.Market)
-    }
+    :if={assigns[:store] && !assigns[:theme_module]}
     href={"https://wa.me/?text=Hi%20#{URI.encode(@store.name)}"}
     target="_blank"
     rel="noopener noreferrer"
@@ -141,7 +138,7 @@
   
 <!-- Footer (hidden when theme provides its own footer) -->
   <footer
-    :if={!assigns[:theme_module] || assigns[:theme_module] == Emakola.Themes.Market}
+    :if={!assigns[:theme_module]}
     class="bg-white border-t border-[#E2E8F0] mt-auto"
   >
     <div class="max-w-[1280px] mx-auto px-4 sm:px-6 py-8 pb-24 text-center">

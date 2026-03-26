@@ -355,6 +355,8 @@ defmodule Emakola.Themes.Vibrant.Home do
           </div>
         </div>
       </section>
+
+      <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
     </div>
     """
   end

@@ -188,6 +188,8 @@ defmodule Emakola.Themes.Market.ProductList do
       </div>
     </div>
 
+    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+
     <.bottom_nav store_slug={@store.slug} active_tab={:search} cart_count={@cart_count} />
     """
   end

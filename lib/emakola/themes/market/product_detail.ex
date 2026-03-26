@@ -702,6 +702,8 @@ defmodule Emakola.Themes.Market.ProductDetail do
       <div class="h-16 sm:hidden"></div>
     </div>
 
+    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+
     <.bottom_nav store_slug={@store.slug} active_tab={:home} cart_count={@cart_count} />
     """
   end
