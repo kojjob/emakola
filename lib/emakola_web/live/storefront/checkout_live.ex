@@ -31,9 +31,21 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
         cart_count = Enum.reduce(cart, 0, fn item, acc -> acc + item.quantity end)
 
+        categories =
+          try do
+            Emakola.Catalog.list_root_categories!(store.id)
+          rescue
+            _ -> []
+          end
+
+        theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{})
+        theme_module = Emakola.Themes.ThemeResolver.theme_module(theme.theme_id)
+
         {:ok,
          socket
          |> assign(:store, store)
+         |> assign(:categories, categories)
+         |> assign(:theme_module, theme_module)
          |> assign(:cart_session_id, cart_session_id)
          |> assign(:cart, cart)
          |> assign(:cart_count, cart_count)
@@ -823,6 +835,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
           </div>
         </div>
       </main>
+      <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
     </div>
     """
   end

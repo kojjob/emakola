@@ -19,11 +19,19 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLive do
   def mount(%{"store_slug" => slug, "order_number" => order_number}, _session, socket) do
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
+        categories =
+          try do
+            Emakola.Catalog.list_root_categories!(store.id)
+          rescue
+            _ -> []
+          end
+
         case load_order(store, order_number) do
           {:ok, order} ->
             {:ok,
              socket
              |> assign(:store, store)
+             |> assign(:categories, categories)
              |> assign(:order, order)
              |> assign(:cart, [])
              |> assign(:cart_count, 0)
@@ -325,6 +333,8 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLive do
         </p>
       </div>
     </div>
+
+    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
 
     <style>
       @keyframes checkmark-pop {

@@ -24,9 +24,21 @@ defmodule EmakolaWeb.Storefront.CartLive do
         cart_session_id = session["cart_session_id"]
         cart = if cart_session_id, do: CartStore.get_cart(cart_session_id), else: []
 
+        categories =
+          try do
+            Emakola.Catalog.list_root_categories!(store.id)
+          rescue
+            _ -> []
+          end
+
+        theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{})
+        theme_module = Emakola.Themes.ThemeResolver.theme_module(theme.theme_id)
+
         {:ok,
          socket
          |> assign(:store, store)
+         |> assign(:categories, categories)
+         |> assign(:theme_module, theme_module)
          |> assign(:cart_session_id, cart_session_id)
          |> assign(:cart, cart)
          |> assign(:cart_count, cart_count(cart))
@@ -474,6 +486,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
       </section>
     </div>
 
+    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
     <.bottom_nav store_slug={@store.slug} active_tab={:cart} cart_count={@cart_count} />
     """
   end
