@@ -111,7 +111,7 @@ defmodule Emakola.Payments.Gateways.Hubtel do
   defp map_status("cancelled"), do: :cancelled
   defp map_status("Cancelled"), do: :cancelled
   defp map_status(nil), do: :unknown
-  defp map_status(other) when is_binary(other), do: String.to_atom(String.downcase(other))
+  defp map_status(_other), do: :unknown
 
   defp generate_reference(store_id) do
     prefix = store_id |> to_string() |> String.slice(0, 6)

@@ -266,7 +266,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       order =
         create_order!(store.id, customer.id, :pending,
           shipping_address: %{
-            "line1" => "123 Test St",
+            "line_1" => "123 Test St",
             "city" => "Accra",
             "region" => "Greater Accra"
           }
