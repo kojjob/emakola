@@ -210,6 +210,28 @@ defmodule Emakola.Catalog.Variant do
       change(atomic_update(:stock_quantity, expr(stock_quantity + ^arg(:delta))))
     end
 
+    update :restock do
+      require_atomic?(false)
+      accept([])
+
+      argument(:delta, :integer, allow_nil?: false)
+
+      change(fn changeset, _context ->
+        delta = Ash.Changeset.get_argument(changeset, :delta)
+        current_stock = Ash.Changeset.get_attribute(changeset, :stock_quantity)
+        new_stock = current_stock + delta
+
+        changeset = Ash.Changeset.force_change_attribute(changeset, :stock_quantity, new_stock)
+
+        # Reset alert flag when restocked above threshold
+        if new_stock >= 10 do
+          Ash.Changeset.force_change_attribute(changeset, :low_stock_alerted, false)
+        else
+          changeset
+        end
+      end)
+    end
+
     update :set_low_stock_alerted do
       require_atomic?(false)
       accept([])

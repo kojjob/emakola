@@ -201,6 +201,9 @@ defmodule Emakola.Orders.CheckoutService do
           line_item
         end)
 
+      # 4b. Check for low-stock threshold crossings and enqueue alerts
+      check_low_stock_alerts(store_id, items, variants)
+
       # 5. Calculate totals (include delivery fee and coupon discount)
       subtotal = Enum.reduce(line_items, 0, fn li, acc -> acc + li.line_total end)
       delivery_fee = Keyword.get(opts, :delivery_fee, 0)
@@ -312,5 +315,28 @@ defmodule Emakola.Orders.CheckoutService do
       "postal_code" => address.postal_code,
       "phone" => address.phone
     }
+  end
+
+  # -- Low-stock alert detection ------------------------------------------
+
+  @low_stock_threshold 10
+
+  defp check_low_stock_alerts(store_id, items, variants) do
+    Enum.each(items, fn %{variant_id: vid, quantity: qty} ->
+      variant = Map.fetch!(variants, vid)
+      new_stock = variant.stock_quantity - qty
+
+      if new_stock < @low_stock_threshold and not variant.low_stock_alerted do
+        # Flag the variant so we don't alert again
+        variant
+        |> Ash.Changeset.for_update(:set_low_stock_alerted, %{})
+        |> Ash.update!()
+
+        # Enqueue real-time SMS/WhatsApp alert
+        %{"variant_id" => vid, "store_id" => store_id}
+        |> Emakola.Inventory.Workers.LowStockSmsWorker.new()
+        |> Oban.insert!()
+      end
+    end)
   end
 end
