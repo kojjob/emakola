@@ -204,6 +204,8 @@ defmodule Emakola.Themes.Vibrant.ProductList do
           </div>
         <% end %>
       </div>
+
+      <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
     </div>
     """
   end

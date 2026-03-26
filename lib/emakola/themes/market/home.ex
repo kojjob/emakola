@@ -77,6 +77,8 @@ defmodule Emakola.Themes.Market.Home do
         <.about_section store={@store} />
       </div>
     </div>
+
+    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
     """
   end
 end

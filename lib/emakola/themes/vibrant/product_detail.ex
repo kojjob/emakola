@@ -37,6 +37,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
   attr :quantity, :integer, default: 1
   attr :current_image_index, :integer, default: 0
   attr :related_products, :list, default: []
+  attr :categories, :list, default: []
   attr :theme, :map, required: true
 
   def render(assigns) do
@@ -414,6 +415,8 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
           </div>
         </div>
       </section>
+
+      <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
     </div>
     """
   end

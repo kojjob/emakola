@@ -95,11 +95,6 @@ defmodule Emakola.Themes.Atelier.Shared do
       .atelier-accordion-toggle:checked ~ .atelier-accordion-content { max-height: 300px !important; opacity: 1; }
       .atelier-accordion-toggle:checked ~ label .atelier-accordion-icon { transform: rotate(180deg); }
 
-      /* Footer grid */
-      .atelier-footer-grid { display: grid; gap: 2.5rem; }
-      @media (min-width: 640px) { .atelier-footer-grid { grid-template-columns: repeat(2, 1fr); } }
-      @media (min-width: 1024px) { .atelier-footer-grid { grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 2rem; } }
-
       /* About page layouts */
       .atelier-about-2col { display: grid; gap: 3rem; }
       .atelier-about-3col { display: grid; gap: 2rem; }
@@ -711,6 +706,7 @@ defmodule Emakola.Themes.Atelier.Shared do
   attr :store, :map, required: true
   attr :categories, :list, default: []
   attr :theme, :map, default: %{}
+  attr :hide_newsletter, :boolean, default: false
 
   def footer(assigns) do
     theme = assigns[:theme] || %{}
@@ -746,7 +742,7 @@ defmodule Emakola.Themes.Atelier.Shared do
 
     # Newsletter config
     newsletter = get_in(theme, [:newsletter]) || %{}
-    show_newsletter = Map.get(newsletter, :enabled, true)
+    show_newsletter = Map.get(newsletter, :enabled, true) and not assigns.hide_newsletter
 
     assigns =
       assigns
@@ -796,10 +792,10 @@ defmodule Emakola.Themes.Atelier.Shared do
       </div>
     </section>
 
-    <footer class="bg-[#111111] text-white">
+    <footer class="text-white" style="background-color: #111111;">
       <%!-- Main Footer Content --%>
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
-        <div class="atelier-footer-grid">
+        <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:gap-8">
           <%!-- Brand / Description --%>
           <div>
             <a

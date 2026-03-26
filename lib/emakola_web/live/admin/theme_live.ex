@@ -76,6 +76,8 @@ defmodule EmakolaWeb.Admin.ThemeLive do
             color_presets: @color_presets,
             theme_id: resolved.theme_id,
             primary_color: resolved.colors.primary,
+            accent_color: resolved.colors.accent,
+            bg_color: resolved.colors.background,
             hero_image: get_in(resolved, [:hero, :image_url]) || "",
             hero_images: hero_images,
             hero_carousel: hero_carousel,
@@ -199,50 +201,150 @@ defmodule EmakolaWeb.Admin.ThemeLive do
         </div>
       </div>
 
-      <%!-- STEP 2: Pick Your Color — Tap to select from presets --%>
+      <%!-- STEP 2: Customize Colors --%>
       <div>
         <div class="flex items-center gap-2 mb-4">
           <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
             <span class="text-sm font-bold text-emerald-700">2</span>
           </div>
-          <h2 class="text-lg font-bold text-slate-800">Pick Your Color</h2>
+          <h2 class="text-lg font-bold text-slate-800">Customize Colors</h2>
         </div>
 
-        <div class="bg-white rounded-2xl p-5 shadow-sm">
-          <p class="text-sm text-slate-500 mb-4">Tap a color to change your store's look</p>
-          <div class="flex flex-wrap gap-3">
-            <button
-              :for={preset <- @color_presets}
-              phx-click="select_color"
-              phx-value-hex={preset.hex}
-              class={[
-                "w-14 h-14 rounded-xl transition-all flex items-center justify-center",
-                preset.class,
-                if(preset.hex == @primary_color,
-                  do: "ring-4 ring-offset-2 ring-emerald-500 scale-110",
-                  else: "hover:scale-105 ring-1 ring-black/10"
-                )
-              ]}
-            >
-              <span
-                :if={preset.hex == @primary_color}
-                class="material-symbols-outlined text-white text-xl"
+        <div class="bg-white rounded-2xl p-5 shadow-sm space-y-6">
+          <%!-- Quick presets --%>
+          <div>
+            <p class="text-sm text-slate-500 mb-3">Quick presets</p>
+            <div class="flex flex-wrap gap-3">
+              <button
+                :for={preset <- @color_presets}
+                phx-click="select_color"
+                phx-value-hex={preset.hex}
+                class={[
+                  "w-12 h-12 rounded-xl transition-all flex items-center justify-center",
+                  preset.class,
+                  if(preset.hex == @primary_color,
+                    do: "ring-4 ring-offset-2 ring-emerald-500 scale-110",
+                    else: "hover:scale-105 ring-1 ring-black/10"
+                  )
+                ]}
               >
-                check
-              </span>
-            </button>
+                <span
+                  :if={preset.hex == @primary_color}
+                  class="material-symbols-outlined text-white text-lg"
+                >
+                  check
+                </span>
+              </button>
+            </div>
           </div>
 
-          <%!-- Current color preview --%>
-          <div class="flex items-center gap-3 mt-4 pt-4 border-t border-slate-100">
-            <div
-              class="w-10 h-10 rounded-xl ring-1 ring-black/10"
-              style={"background: #{@primary_color}"}
-            >
-            </div>
+          <%!-- Custom color inputs --%>
+          <div class="space-y-4">
             <div>
-              <p class="text-xs text-slate-400">Your store color</p>
-              <p class="text-sm font-mono font-semibold text-slate-700">{@primary_color}</p>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Primary Color</label>
+              <p class="text-xs text-slate-400 mb-2">Used for buttons, CTAs, and links</p>
+              <div class="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={@primary_color}
+                  name="value"
+                  phx-change="update_color"
+                  phx-value-field="primary"
+                  class="w-10 h-10 rounded cursor-pointer border border-slate-200 p-0.5"
+                />
+                <input
+                  type="text"
+                  value={@primary_color}
+                  name="value"
+                  phx-change="update_color"
+                  phx-debounce="500"
+                  phx-value-field="primary"
+                  placeholder="#2563EB"
+                  class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Accent Color</label>
+              <p class="text-xs text-slate-400 mb-2">Used for highlights, badges, and text</p>
+              <div class="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={@accent_color}
+                  name="value"
+                  phx-change="update_color"
+                  phx-value-field="accent"
+                  class="w-10 h-10 rounded cursor-pointer border border-slate-200 p-0.5"
+                />
+                <input
+                  type="text"
+                  value={@accent_color}
+                  name="value"
+                  phx-change="update_color"
+                  phx-debounce="500"
+                  phx-value-field="accent"
+                  placeholder="#0F172A"
+                  class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Background Color</label>
+              <p class="text-xs text-slate-400 mb-2">Page background color</p>
+              <div class="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={@bg_color}
+                  name="value"
+                  phx-change="update_color"
+                  phx-value-field="background"
+                  class="w-10 h-10 rounded cursor-pointer border border-slate-200 p-0.5"
+                />
+                <input
+                  type="text"
+                  value={@bg_color}
+                  name="value"
+                  phx-change="update_color"
+                  phx-debounce="500"
+                  phx-value-field="background"
+                  placeholder="#FFFFFF"
+                  class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          <%!-- Live preview swatch --%>
+          <div
+            class="rounded-xl p-4 border border-slate-200"
+            style={"background-color: #{@bg_color};"}
+          >
+            <p class="text-xs text-slate-400 mb-2">Preview</p>
+            <div class="flex items-center gap-3">
+              <div
+                class="w-8 h-8 rounded-full ring-1 ring-black/10"
+                style={"background-color: #{@primary_color};"}
+              >
+              </div>
+              <div
+                class="w-8 h-8 rounded-full ring-1 ring-black/10"
+                style={"background-color: #{@accent_color};"}
+              >
+              </div>
+              <div class="flex-1">
+                <span class="text-sm font-semibold" style={"color: #{@accent_color};"}>
+                  Store Name
+                </span>
+              </div>
+              <button
+                type="button"
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
+                style={"background-color: #{@primary_color};"}
+              >
+                Shop Now
+              </button>
             </div>
           </div>
         </div>
@@ -582,6 +684,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
     end
   end
 
+  defp valid_hex_color?(value) when is_binary(value) do
+    Regex.match?(~r/^#[0-9a-fA-F]{6}$/, value)
+  end
+
+  defp valid_hex_color?(_), do: false
+
   defp upload_error_message(:too_large), do: "File is too large (max 5MB)"
   defp upload_error_message(:not_accepted), do: "Invalid file type (use JPG, PNG, or WebP)"
   defp upload_error_message(:too_many_files), do: "Too many files (max 5)"
@@ -598,6 +706,8 @@ defmodule EmakolaWeb.Admin.ThemeLive do
      assign(socket,
        theme_id: theme_id,
        primary_color: defaults.colors.primary,
+       accent_color: defaults.colors.accent,
+       bg_color: defaults.colors.background,
        saved: false
      )}
   end
@@ -605,6 +715,20 @@ defmodule EmakolaWeb.Admin.ThemeLive do
   @impl true
   def handle_event("select_color", %{"hex" => hex}, socket) do
     {:noreply, assign(socket, primary_color: hex, saved: false)}
+  end
+
+  @impl true
+  def handle_event("update_color", %{"field" => field, "value" => value}, socket) do
+    if valid_hex_color?(value) do
+      case field do
+        "primary" -> {:noreply, assign(socket, primary_color: value, saved: false)}
+        "accent" -> {:noreply, assign(socket, accent_color: value, saved: false)}
+        "background" -> {:noreply, assign(socket, bg_color: value, saved: false)}
+        _ -> {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
@@ -689,7 +813,9 @@ defmodule EmakolaWeb.Admin.ThemeLive do
         "theme" => socket.assigns.theme_id,
         "colors" =>
           Map.merge(Map.get(existing, "colors", %{}), %{
-            "primary" => socket.assigns.primary_color
+            "primary" => socket.assigns.primary_color,
+            "accent" => socket.assigns.accent_color,
+            "background" => socket.assigns.bg_color
           }),
         "hero" =>
           Map.merge(existing_hero, %{

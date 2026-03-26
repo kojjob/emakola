@@ -88,7 +88,7 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
 
       {:ok, view, _html} = live(conn, "/s/#{store.slug}/products")
 
-      html = view |> element("form") |> render_change(%{query: "Blue"})
+      html = view |> element("form[phx-change]") |> render_change(%{query: "Blue"})
 
       assert html =~ "Blue Shirt"
       refute html =~ "Red Hat"
