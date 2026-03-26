@@ -1,193 +1,237 @@
 defmodule EmakolaWeb.DashboardComponents do
   @moduledoc """
-  Layout and general UI components for the admin dashboard:
-  onboarding banner, editorial header, quick insights sidebar,
-  and recent activity table.
+  Layout and general UI components for the merchant admin dashboard:
+  header with period selector, alerts panel, and recent orders table.
   """
 
   use Phoenix.Component
 
-  attr :onboarding_complete, :boolean, required: true
-  attr :setup_banner_dismissed, :boolean, required: true
+  attr :period, :string, required: true
+  attr :periods, :list, required: true
 
-  def onboarding_banner(assigns) do
+  def dashboard_header(assigns) do
     ~H"""
-    <div
-      :if={not @onboarding_complete and not @setup_banner_dismissed}
-      class="flex items-center justify-between gap-4 p-4 rounded-xl bg-primary/10 border border-primary/20"
-    >
-      <div class="flex items-center gap-3">
-        <span class="material-symbols-outlined text-primary text-xl">rocket_launch</span>
-        <p class="text-sm font-medium text-on-surface">
-          Complete your workspace setup to get the most out of Emakola
-        </p>
+    <header class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900">Dashboard</h1>
+        <p class="text-sm text-slate-500 mt-1">Your store at a glance</p>
       </div>
+
       <div class="flex items-center gap-2">
-        <.link
-          navigate="/onboarding"
-          class="primary-gradient px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap"
-        >
-          Complete Setup
-        </.link>
-        <button
-          phx-click="dismiss_setup_banner"
-          class="p-1 text-on-surface-variant hover:text-on-surface transition-colors"
-          aria-label="Dismiss"
-        >
-          <span class="material-symbols-outlined text-lg">close</span>
-        </button>
-      </div>
-    </div>
-    """
-  end
+        <div class="flex items-center rounded-lg border border-slate-200 bg-white p-1">
+          <button
+            :for={p <- @periods}
+            phx-click="change_period"
+            phx-value-period={p}
+            class={[
+              "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+              if(p == @period,
+                do: "bg-blue-600 text-white",
+                else: "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+              )
+            ]}
+          >
+            {period_label(p)}
+          </button>
+        </div>
 
-  attr :system_status, :atom, required: true
-  attr :avg_latency, :string, required: true
-  attr :current_plan_name, :string, required: true
-  attr :last_sync, :string, required: true
-
-  def editorial_header(assigns) do
-    ~H"""
-    <section class="flex flex-col md:flex-row md:items-end justify-between gap-4">
-      <div class="space-y-1">
-        <h1 class="text-4xl font-extrabold font-headline tracking-tight">Command Center</h1>
-        <p class="text-on-surface-variant font-medium">
-          System Health:
-          <span class={if(@system_status == :nominal, do: "text-primary", else: "text-secondary")}>
-            {if @system_status == :nominal, do: "Nominal", else: "Warning"}
-          </span>
-          • Latency: <span class="font-mono text-xs">{@avg_latency}</span>
-          • Plan: <span class="font-mono text-xs text-primary">{@current_plan_name}</span>
-        </p>
-      </div>
-      <div class="flex items-center gap-3">
         <button
           phx-click="refresh_data"
-          class="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-lg hover:bg-surface-container-high"
-          title="Refresh"
+          class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+          title="Refresh dashboard"
         >
-          <span class="material-symbols-outlined text-lg">refresh</span>
+          <span class="material-symbols-outlined text-xl">refresh</span>
         </button>
-        <div class="flex items-center gap-2 text-sm font-mono text-on-surface-variant bg-surface-container-low px-3 py-1.5 rounded-sm">
-          <span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
-          LAST_SYNC: {@last_sync}
-        </div>
       </div>
-    </section>
+    </header>
     """
   end
 
-  attr :cost_grade, :string, required: true
-  attr :members_count, :integer, required: true
-  attr :api_uptime, :string, required: true
-  attr :flags_enabled, :integer, required: true
-  attr :notifications_count, :integer, required: true
-  attr :token_quota_pct, :integer, required: true
+  defp period_label("today"), do: "Today"
+  defp period_label("week"), do: "7 Days"
+  defp period_label("month"), do: "30 Days"
+  defp period_label("all"), do: "All Time"
+  defp period_label(other), do: other
 
-  def quick_insights_sidebar(assigns) do
+  attr :pending_orders, :integer, required: true
+  attr :low_stock_count, :integer, required: true
+  attr :failed_payments, :integer, required: true
+
+  def alerts_panel(assigns) do
     ~H"""
-    <div class="md:col-span-4 space-y-6">
-      <div class="bg-surface-container-highest/30 p-6 rounded-lg">
-        <h4 class="text-sm font-bold uppercase tracking-wider text-on-surface-variant mb-4">
-          Quick Insights
-        </h4>
-        <div class="space-y-4">
-          <div class="flex items-center justify-between">
-            <span class="text-sm">Cost Efficiency</span>
-            <span class="font-mono text-secondary">{@cost_grade}</span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-sm">Team Size</span>
-            <span class="font-mono text-on-surface">{@members_count} members</span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-sm">API Uptime</span>
-            <span class="font-mono text-primary">{@api_uptime}</span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-sm">Feature Flags</span>
-            <span class="font-mono text-on-surface">{@flags_enabled} active</span>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-sm">Notifications</span>
-            <span class={[
-              "font-mono",
-              if(@notifications_count > 0, do: "text-secondary", else: "text-on-surface-variant")
-            ]}>
-              {if @notifications_count > 0,
-                do: "#{@notifications_count} unread",
-                else: "All clear"}
-            </span>
-          </div>
-        </div>
-      </div>
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+      <h3 class="text-sm font-semibold text-slate-900 mb-4">Needs Attention</h3>
 
-      <%!-- System Status --%>
-      <div class="bg-gradient-to-br from-surface-container to-surface-container-high p-6 rounded-lg">
-        <p class="text-xs font-mono text-primary mb-2">// SYSTEM_STATUS</p>
-        <p class="text-sm leading-relaxed text-on-surface-variant">
-          {if @token_quota_pct >= 80,
-            do:
-              "API usage approaching limit. Consider upgrading your plan for uninterrupted service.",
-            else: "All systems operational. Your platform is running within normal parameters."}
-        </p>
-        <a
-          href="/billing"
-          class="mt-4 text-primary font-semibold text-sm hover:underline flex items-center gap-1"
-        >
-          {if @token_quota_pct >= 80, do: "Upgrade Plan", else: "View Billing"}
-          <span class="material-symbols-outlined text-sm">arrow_forward</span>
-        </a>
+      <div class="space-y-1">
+        <.alert_row
+          icon="pending_actions"
+          label="Pending Orders"
+          count={@pending_orders}
+          href="/admin/orders?status=pending"
+          color="amber"
+        />
+        <.alert_row
+          icon="inventory_2"
+          label="Low Stock Items"
+          count={@low_stock_count}
+          href="/admin/products"
+          color="red"
+        />
+        <.alert_row
+          icon="error_outline"
+          label="Failed Payments"
+          count={@failed_payments}
+          href="/admin/payments?status=failed"
+          color="rose"
+        />
       </div>
     </div>
     """
   end
 
-  attr :recent_activity, :list, required: true
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
+  attr :count, :integer, required: true
+  attr :href, :string, required: true
+  attr :color, :string, required: true
 
-  def recent_activity_table(assigns) do
+  defp alert_row(assigns) do
     ~H"""
-    <section class="space-y-4">
-      <div class="flex items-center justify-between">
-        <h2 class="text-2xl font-bold font-headline">Recent Activity</h2>
-        <a href="/activity" class="text-sm font-medium text-primary hover:underline">View All</a>
+    <.link
+      navigate={@href}
+      class="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors group"
+    >
+      <div class="flex items-center gap-3">
+        <span class={[
+          "material-symbols-outlined text-lg",
+          alert_icon_color(@color)
+        ]}>
+          {@icon}
+        </span>
+        <span class="text-sm text-slate-600 group-hover:text-slate-900">{@label}</span>
       </div>
-      <div class="bg-surface-container-lowest rounded-lg overflow-hidden">
-        <%= if @recent_activity == [] do %>
-          <div class="px-6 py-12 text-center text-on-surface-variant">
-            <span class="material-symbols-outlined text-4xl mb-2 block opacity-30">analytics</span>
-            <p class="text-sm">No activity yet</p>
-            <p class="text-xs mt-1 opacity-60">Activity will appear here as you use the platform</p>
-          </div>
-        <% else %>
-          <div class="grid grid-cols-12 gap-4 px-6 py-4 bg-surface-container/30 text-xs font-mono uppercase tracking-widest text-on-surface-variant">
-            <div class="col-span-5">Event</div>
-            <div class="col-span-4">Time</div>
-            <div class="col-span-3">Status</div>
-          </div>
-          <div
-            :for={row <- @recent_activity}
-            class="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-surface-container-high/50 transition-colors"
-          >
-            <div class="col-span-5 flex items-center gap-3">
-              <div class="w-8 h-8 rounded bg-surface-container-highest flex items-center justify-center">
-                <span class="material-symbols-outlined text-lg text-primary">bolt</span>
-              </div>
-              <div>
-                <p class="text-sm font-semibold">{row.event_name}</p>
-                <p class="text-xs font-mono text-on-surface-variant">{row.source}</p>
-              </div>
-            </div>
-            <div class="col-span-4 text-sm text-on-surface-variant font-mono">{row.timestamp}</div>
-            <div class="col-span-3">
-              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-primary/10 text-primary text-[10px] font-bold">
-                <span class="w-1.5 h-1.5 rounded-full bg-primary"></span> OK
-              </span>
-            </div>
-          </div>
-        <% end %>
+      <span class={[
+        "text-sm font-semibold tabular-nums",
+        alert_count_color(@color, @count)
+      ]}>
+        {@count}
+      </span>
+    </.link>
+    """
+  end
+
+  defp alert_icon_color("amber"), do: "text-amber-500"
+  defp alert_icon_color("red"), do: "text-red-500"
+  defp alert_icon_color("rose"), do: "text-rose-500"
+  defp alert_icon_color(_), do: "text-slate-400"
+
+  defp alert_count_color(_color, 0), do: "text-slate-300"
+  defp alert_count_color("amber", _), do: "text-amber-600"
+  defp alert_count_color("red", _), do: "text-red-600"
+  defp alert_count_color("rose", _), do: "text-rose-600"
+  defp alert_count_color(_, _), do: "text-slate-600"
+
+  attr :recent_orders, :list, required: true
+
+  def recent_orders_table(assigns) do
+    ~H"""
+    <section class="bg-white rounded-xl border border-slate-200">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        <h2 class="text-base font-semibold text-slate-900">Recent Orders</h2>
+        <.link navigate="/admin/orders" class="text-sm font-medium text-blue-600 hover:text-blue-700">
+          View All
+        </.link>
       </div>
+
+      <%= if @recent_orders == [] do %>
+        <div class="px-6 py-16 text-center">
+          <span class="material-symbols-outlined text-4xl text-slate-200 mb-3 block">
+            receipt_long
+          </span>
+          <p class="text-sm font-medium text-slate-500">No orders yet</p>
+          <p class="text-xs text-slate-400 mt-1">Orders will appear here as customers place them</p>
+        </div>
+      <% else %>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-slate-100">
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Order
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Customer
+                </th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Total
+                </th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              <tr :for={order <- @recent_orders} class="hover:bg-slate-50 transition-colors">
+                <td class="px-6 py-3">
+                  <.link
+                    navigate={"/admin/orders/#{order.id}"}
+                    class="text-sm font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    {order.order_number}
+                  </.link>
+                </td>
+                <td class="px-6 py-3 text-sm text-slate-600">
+                  {customer_display_name(order)}
+                </td>
+                <td class="px-6 py-3 text-sm text-slate-900 font-medium text-right tabular-nums">
+                  {format_money(order.total)}
+                </td>
+                <td class="px-6 py-3 text-right">
+                  <span class={[
+                    "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+                    status_badge_classes(order.status)
+                  ]}>
+                    {Phoenix.Naming.humanize(order.status)}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
     </section>
     """
+  end
+
+  defp customer_display_name(order) do
+    case order do
+      %{customer: %{name: name}} when is_binary(name) and name != "" -> name
+      %{customer: %{email: email}} when is_binary(email) and email != "" -> email
+      _ -> "Guest"
+    end
+  end
+
+  defp status_badge_classes(:pending), do: "bg-amber-50 text-amber-700"
+  defp status_badge_classes(:confirmed), do: "bg-blue-50 text-blue-700"
+  defp status_badge_classes(:processing), do: "bg-indigo-50 text-indigo-700"
+  defp status_badge_classes(:shipped), do: "bg-purple-50 text-purple-700"
+  defp status_badge_classes(:delivered), do: "bg-green-50 text-green-700"
+  defp status_badge_classes(:cancelled), do: "bg-red-50 text-red-700"
+  defp status_badge_classes(_), do: "bg-slate-50 text-slate-700"
+
+  defp format_money(amount_pesewas, currency \\ "GHS") do
+    major = div(amount_pesewas, 100)
+    minor = rem(abs(amount_pesewas), 100)
+
+    formatted =
+      major
+      |> abs()
+      |> Integer.to_string()
+      |> String.reverse()
+      |> String.replace(~r/.{3}(?=.)/, "\\0,")
+      |> String.reverse()
+
+    sign = if amount_pesewas < 0, do: "-", else: ""
+    "#{sign}#{currency} #{formatted}.#{String.pad_leading(to_string(minor), 2, "0")}"
   end
 end
