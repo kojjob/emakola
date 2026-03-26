@@ -32,6 +32,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
          |> assign(:cart_count, cart_count(cart))
          |> assign(:cart_total, cart_total(cart))
          |> assign(:checking_out, false)
+         |> assign(:show_mobile_summary, false)
          |> assign(:page_title, "Shopping Bag - #{store.name}")}
 
       {:error, :not_found} ->
@@ -94,6 +95,11 @@ defmodule EmakolaWeb.Storefront.CartLive do
     else
       {:noreply, push_navigate(socket, to: "/s/#{socket.assigns.store.slug}/checkout")}
     end
+  end
+
+  @impl true
+  def handle_event("toggle_mobile_summary", _params, socket) do
+    {:noreply, assign(socket, :show_mobile_summary, !socket.assigns.show_mobile_summary)}
   end
 
   @impl true
@@ -174,6 +180,109 @@ defmodule EmakolaWeb.Storefront.CartLive do
             </a>
           </div>
         <% else %>
+          <%!-- Mobile order summary (collapsible) --%>
+          <div class="lg:hidden mb-6">
+            <button
+              phx-click="toggle_mobile_summary"
+              class="w-full flex items-center justify-between bg-white rounded-xl border border-[#E2E8F0] px-4 py-3.5 shadow-sm"
+            >
+              <div class="flex items-center gap-2">
+                <svg
+                  class="w-5 h-5 text-[#475569]"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
+                  />
+                </svg>
+                <span class="text-sm font-semibold text-[#0F172A]">
+                  Order Summary ({@cart_count} {if @cart_count == 1, do: "item", else: "items"})
+                </span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-bold text-[#0F172A]">
+                  {Currency.format_price(@cart_total, @store.currency)}
+                </span>
+                <svg
+                  class={"w-4 h-4 text-[#475569] transition-transform duration-200" <> if(@show_mobile_summary, do: " rotate-180", else: "")}
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </div>
+            </button>
+
+            <div
+              :if={@show_mobile_summary}
+              class="mt-2 bg-white rounded-xl border border-[#E2E8F0] p-4 shadow-sm"
+            >
+              <%!-- Item list --%>
+              <div class="space-y-3 mb-4">
+                <div :for={item <- @cart} class="flex items-center gap-3">
+                  <div class="flex-shrink-0 w-10 h-10 bg-[#F1F5F9] rounded-lg overflow-hidden">
+                    <%= if item[:image_url] do %>
+                      <img
+                        src={item[:image_url]}
+                        alt={item.product_title}
+                        class="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    <% else %>
+                      <div class="w-full h-full flex items-center justify-center">
+                        <svg
+                          class="w-4 h-4 text-[#CBD5E1]"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
+                          />
+                        </svg>
+                      </div>
+                    <% end %>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-[#0F172A] truncate">{item.product_title}</p>
+                    <p class="text-xs text-[#94A3B8]">Qty: {item.quantity}</p>
+                  </div>
+                  <span class="text-sm font-medium text-[#0F172A] flex-shrink-0">
+                    {Currency.format_price(item.unit_price * item.quantity, @store.currency)}
+                  </span>
+                </div>
+              </div>
+
+              <%!-- Totals --%>
+              <div class="border-t border-[#E2E8F0] pt-3 space-y-2 text-sm">
+                <div class="flex justify-between">
+                  <span class="text-[#94A3B8]">Subtotal</span>
+                  <span class="font-medium text-[#0F172A]">
+                    {Currency.format_price(@cart_total, @store.currency)}
+                  </span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-[#94A3B8]">Shipping</span>
+                  <span class="font-medium text-[#059669]">Calculated at checkout</span>
+                </div>
+                <div class="border-t border-[#E2E8F0] pt-2 flex justify-between font-bold text-[#0F172A]">
+                  <span>Total</span>
+                  <span>{Currency.format_price(@cart_total, @store.currency)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="lg:grid lg:grid-cols-[1fr_380px] lg:gap-12 xl:gap-16">
             <%!-- Cart items --%>
             <div>
@@ -182,11 +291,32 @@ defmodule EmakolaWeb.Storefront.CartLive do
                 class="py-6 border-b border-[#E2E8F0] group"
               >
                 <div class="flex gap-4 sm:gap-6">
-                  <%!-- Product image placeholder --%>
+                  <%!-- Product image --%>
                   <div class="flex-shrink-0 w-24 h-30 sm:w-32 sm:h-40 bg-[#F1F5F9] rounded-xl overflow-hidden">
-                    <div class="w-full h-full flex items-center justify-center">
-                      <.image_placeholder />
-                    </div>
+                    <%= if item[:image_url] do %>
+                      <img
+                        src={item[:image_url]}
+                        alt={item.product_title}
+                        class="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    <% else %>
+                      <div class="w-full h-full flex items-center justify-center">
+                        <svg
+                          class="w-8 h-8 text-[#CBD5E1]"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
+                          />
+                        </svg>
+                      </div>
+                    <% end %>
                   </div>
 
                   <div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:justify-between gap-4">
@@ -268,8 +398,8 @@ defmodule EmakolaWeb.Storefront.CartLive do
               </div>
             </div>
 
-            <%!-- Order summary --%>
-            <div class="mt-8 lg:mt-0">
+            <%!-- Order summary (desktop only — mobile uses collapsible above) --%>
+            <div class="hidden lg:block mt-8 lg:mt-0">
               <div class="lg:sticky lg:top-28">
                 <div class="bg-white rounded-2xl border border-[#E2E8F0] p-6 sm:p-8 shadow-sm">
                   <h2 class="text-2xl font-bold text-[#0F172A] mb-6">Order Summary</h2>
