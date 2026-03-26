@@ -160,7 +160,17 @@ defmodule Emakola.Orders.Order do
 
     update :update do
       require_atomic?(false)
-      accept([:subtotal, :total, :notes, :shipping_address, :billing_address])
+
+      accept([
+        :subtotal,
+        :total,
+        :notes,
+        :shipping_address,
+        :billing_address,
+        :delivery_fee,
+        :discount_amount,
+        :coupon_id
+      ])
     end
 
     update :confirm do
