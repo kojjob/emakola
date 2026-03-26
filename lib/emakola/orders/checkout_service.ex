@@ -37,7 +37,20 @@ defmodule Emakola.Orders.CheckoutService do
     with :ok <- validate_cart(items),
          {:ok, variants} <- load_and_validate_variants(store_id, items),
          :ok <- validate_stock(variants, items) do
-      run_checkout(store_id, items, variants, opts)
+      case run_checkout(store_id, items, variants, opts) do
+        {:ok, order} ->
+          # Dispatch notification outside the transaction (fire and forget)
+          try do
+            Emakola.Notifications.Dispatcher.dispatch(order, :order_placed)
+          rescue
+            _ -> :ok
+          end
+
+          {:ok, order}
+
+        error ->
+          error
+      end
     end
   end
 

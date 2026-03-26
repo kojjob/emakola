@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emakola Business Plan — Section 02: The Africa Ecommerce Opportunity</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Page-specific styles */
+    .tam-diagram {
+      display: flex;
+      justify-content: center;
+      margin: 2rem 0;
+      page-break-inside: avoid;
+    }
+    .payment-breakdown {
+      margin: 1.5rem 0;
+      page-break-inside: avoid;
+    }
+    .payment-row {
+      display: grid;
+      grid-template-columns: 180px 80px 1fr 120px;
+      align-items: center;
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 0.9rem;
+    }
+    .payment-row:first-child {
+      background: var(--emerald-900);
+      color: white;
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-radius: 8px 8px 0 0;
+    }
+    .payment-row:nth-child(even) { background: var(--navy-50); }
+    .payment-row .share-bar {
+      background: var(--navy-100);
+      border-radius: 100px;
+      height: 18px;
+      overflow: hidden;
+    }
+    .payment-row .share-fill {
+      height: 100%;
+      border-radius: 100px;
+      background: linear-gradient(90deg, var(--emerald-700), var(--emerald-500));
+    }
+    .payment-row .share-fill.gold {
+      background: linear-gradient(90deg, var(--gold-600), var(--gold-400));
+    }
+    .convergence-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .convergence-card {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.25rem;
+      page-break-inside: avoid;
+      border-left: 4px solid var(--emerald-500);
+    }
+    .convergence-card .convergence-number {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--emerald-600);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.25rem;
+    }
+    .convergence-card h4 {
+      margin-top: 0;
+      font-size: 1rem;
+      color: var(--navy-800);
+    }
+    .convergence-card p {
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      margin-bottom: 0;
+    }
+    .convergence-card.active {
+      border-left-color: var(--gold-500);
+      background: var(--gold-50);
+    }
+    .convergence-card.active .convergence-number { color: var(--gold-600); }
+    .note-overlap {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-top: 0.5rem;
+    }
+    .dual-currency {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="nav-bar">
+    <a href="#">Cover</a>
+    <a href="#">01 Executive Summary</a>
+    <a href="#" class="active">02 Market Opportunity</a>
+    <a href="03-competitive-landscape.html">03 Competitive Landscape</a>
+    <a href="04-product-and-technology.html">04 Product</a>
+    <a href="05-business-model-unit-economics.html">05 Business Model</a>
+    <a href="06-marketing-growth-strategy.html">06 Go-to-Market</a>
+    <a href="#">07 Team</a>
+    <a href="#">08 Financials</a>
+    <a href="09-risk-analysis.html">09 Risk Analysis</a>
+    <a href="10-social-impact-esg.html">10 Social Impact</a>
+  </nav>
+
+  <!-- ============================================ -->
+  <!-- SECTION HEADER                               -->
+  <!-- ============================================ -->
+  <div class="section-header">
+    <div class="section-number">Section 02</div>
+    <h1>The Africa Ecommerce Opportunity</h1>
+    <div class="section-subtitle">A $40B+ market with less than 5% online penetration</div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- OPENING STAT CARDS                           -->
+  <!-- ============================================ -->
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-value">$40B+</div>
+      <div class="stat-label">Africa Ecommerce Market</div>
+      <div class="stat-sub">2025 estimate (Statista)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value gold">&lt;5%</div>
+      <div class="stat-label">Online Penetration</div>
+      <div class="stat-sub">vs 20% global average</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">1.1B</div>
+      <div class="stat-label">Mobile Money Accounts</div>
+      <div class="stat-sub">Sub-Saharan Africa (GSMA 2024)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value navy">460M+</div>
+      <div class="stat-label">Smartphone Users</div>
+      <div class="stat-sub">Africa, growing 13% YoY</div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- THE MACRO OPPORTUNITY                        -->
+  <!-- ============================================ -->
+  <h2>The Macro Opportunity</h2>
+
+  <h3>Africa's Digital Economy Inflection Point</h3>
+
+  <p>Africa stands at a pivotal moment in its digital transformation. The convergence of mobile infrastructure, youth demographics, and post-pandemic behavioral shifts has created an environment where ecommerce adoption is no longer a matter of <em>if</em> but <em>when</em> &mdash; and the answer is <strong>now</strong>.</p>
+
+  <ul>
+    <li><strong>Africa's internet economy</strong> was projected to reach $180B by 2025 (IFC/Google report, "e-Conomy Africa 2020"), driven by ecommerce, fintech, and digital services.</li>
+    <li><strong>Youngest population globally</strong> &mdash; median age of 19.7 years. This is a digital-native generation that expects to transact online.</li>
+    <li><strong>Mobile-first continent</strong> &mdash; 80%+ of internet access occurs via mobile devices. Desktop is the exception, not the norm.</li>
+    <li><strong>COVID-19 permanently accelerated digital adoption</strong> &mdash; online spending grew 40%+ across Africa in 2020-2021, and many merchants who moved online during lockdowns never returned to offline-only.</li>
+    <li><strong>Africa shipped 84.4 million smartphones in 2025</strong> &mdash; a 13% year-on-year increase, outpacing global trends (Omdia/Canalys, 2025).</li>
+  </ul>
+
+  <div class="insight">
+    Africa is the last major frontier for ecommerce. With 1.4 billion people, less than 5% online retail penetration, and the fastest-growing mobile money ecosystem on the planet, the question isn't whether African ecommerce will explode &mdash; it's who will build the infrastructure.
+    <span class="source">Emakola founding thesis</span>
+  </div>
+
+  <!-- Mobile Money Section -->
+  <h3>Mobile Money: The Payment Revolution</h3>
+
+  <p>Unlike other regions where credit cards drove online payments, Africa leapfrogged directly to mobile money. This is not a transitional technology &mdash; mobile money <strong>is</strong> the dominant digital payment layer in West Africa, and its scale is staggering.</p>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-value">1.1B</div>
+      <div class="stat-label">Registered Accounts</div>
+      <div class="stat-sub">Sub-Saharan Africa, 2024</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value gold">$1.1T</div>
+      <div class="stat-label">Transaction Value</div>
+      <div class="stat-sub">Africa, 2024 (GSMA)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">81.8B</div>
+      <div class="stat-label">Transactions</div>
+      <div class="stat-sub">74% of global mobile money</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value navy">$190B</div>
+      <div class="stat-label">GDP Contribution</div>
+      <div class="stat-sub">SSA mobile money to GDP, 2023</div>
+    </div>
+  </div>
+
+  <p>The growth trajectory is unmistakable. GSMA's State of the Industry Report 2025 confirms that Sub-Saharan Africa accounts for <strong>53% of all mobile money accounts globally</strong> (1.1B out of 2.1B worldwide). Africa processed 74% of all global mobile money transactions in 2024.</p>
+
+  <!-- Mobile Money Growth Bar Chart -->
+  <h4>Mobile Money Transaction Value &mdash; Africa (2019-2024)</h4>
+  <div class="bar-chart">
+    <div class="bar-row">
+      <div class="bar-label">2019</div>
+      <div class="bar-track">
+        <div class="bar-fill bar-fill-emerald" style="width: 29%;">$490B</div>
+      </div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">2020</div>
+      <div class="bar-track">
+        <div class="bar-fill bar-fill-emerald" style="width: 36%;">$600B</div>
+      </div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">2021</div>
+      <div class="bar-track">
+        <div class="bar-fill bar-fill-emerald" style="width: 47%;">$790B</div>
+      </div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">2022</div>
+      <div class="bar-track">
+        <div class="bar-fill bar-fill-emerald" style="width: 53%;">$890B</div>
+      </div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">2023</div>
+      <div class="bar-track">
+        <div class="bar-fill bar-fill-emerald" style="width: 58%;">$960B</div>
+      </div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">2024</div>
+      <div class="bar-track">
+        <div class="bar-fill bar-fill-gold" style="width: 67%;">$1.1T</div>
+      </div>
+    </div>
+  </div>
+  <p class="text-small text-muted">Source: GSMA State of the Industry Reports (2020&ndash;2025). Africa transaction values.</p>
+
+  <div class="callout callout-emerald">
+    <div class="callout-title">Why this matters for Emakola</div>
+    <p>Every ecommerce platform needs a payment layer. In West Africa, that layer is mobile money. Emakola integrates MTN MoMo, Vodafone Cash, and AirtelTigo Money natively &mdash; not as an afterthought, but as the primary checkout method. This is the single biggest differentiator against platforms designed for card-based economies.</p>
+  </div>
+
+  <hr class="divider-thick page-break">
+
+  <!-- ============================================ -->
+  <!-- GHANA DEEP-DIVE                             -->
+  <!-- ============================================ -->
+  <h2>Ghana Deep-Dive &mdash; The Launch Market</h2>
+
+  <p>Ghana is the ideal beachhead for Emakola. It combines strong mobile money infrastructure, a growing ecommerce market, a large and digitally active SME base, and a regulatory environment that is maturing without being restrictive.</p>
+
+  <h3>Demographics</h3>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-value">35.1M</div>
+      <div class="stat-label">Population</div>
+      <div class="stat-sub">2025 (Worldometer)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value gold">59%</div>
+      <div class="stat-label">Urban Population</div>
+      <div class="stat-sub">Concentrated in Accra, Kumasi</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">21.3</div>
+      <div class="stat-label">Median Age</div>
+      <div class="stat-sub">Years (DataReportal 2025)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value navy">$83B</div>
+      <div class="stat-label">GDP (Nominal)</div>
+      <div class="stat-sub">2024 (World Bank)</div>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-value">~$2,360</div>
+      <div class="stat-label">GDP Per Capita</div>
+      <div class="stat-sub">2024 (World Bank)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value gold">70%</div>
+      <div class="stat-label">Internet Penetration</div>
+      <div class="stat-sub">24.3M users (DataReportal 2025)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">~140%</div>
+      <div class="stat-label">Mobile Penetration</div>
+      <div class="stat-sub">Multiple SIMs per user</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value navy">55%+</div>
+      <div class="stat-label">Smartphone Penetration</div>
+      <div class="stat-sub">Tecno, Infinix driving adoption</div>
+    </div>
+  </div>
+
+  <h3>Ghana Ecommerce Market</h3>
+
+  <div class="two-col">
+    <div>
+      <div class="stat-card" style="margin-bottom: 1rem;">
+        <div class="stat-value">~$1B</div>
+        <div class="stat-label">Market Size (2025)</div>
+        <div class="stat-sub">GHS 15.5B (Statista)</div>
+      </div>
+      <ul>
+        <li><strong>Growth rate:</strong> 20-25% CAGR</li>
+        <li><strong>Online retail penetration:</strong> ~3%</li>
+        <li><strong>Key categories:</strong> Fashion, electronics, beauty, food/grocery</li>
+        <li><strong>Mobile commerce:</strong> 70%+ of online purchases via mobile</li>
+        <li><strong>User penetration:</strong> 30.1% in 2025, projected to reach 35% by 2030 (Statista)</li>
+      </ul>
+    </div>
+    <div>
+      <div class="callout callout-gold">
+        <div class="callout-title">Market Timing Parallel</div>
+        <p>Ghana's ecommerce market is at the same stage as India's was in 2015 or Southeast Asia's in 2016 &mdash; early, fast-growing, and about to explode. India's ecommerce went from $12B in 2015 to $100B+ by 2024. The platform that enables merchants <em>now</em> captures the wave.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Payment Landscape</h3>
+
+  <div class="payment-breakdown">
+    <div class="payment-row">
+      <div>Payment Method</div>
+      <div>Share</div>
+      <div>Market Position</div>
+      <div>Provider</div>
+    </div>
+    <div class="payment-row">
+      <div><strong>MTN Mobile Money</strong></div>
+      <div class="text-mono">~45%</div>
+      <div>
+        <div class="share-bar"><div class="share-fill" style="width: 90%;"></div></div>
+      </div>
+      <div class="text-muted text-small">MTN Ghana</div>
+    </div>
+    <div class="payment-row">
+      <div><strong>Cash on Delivery</strong></div>
+      <div class="text-mono">~30%</div>
+      <div>
+        <div class="share-bar"><div class="share-fill gold" style="width: 60%;"></div></div>
+      </div>
+      <div class="text-muted text-small">&mdash;</div>
+    </div>
+    <div class="payment-row">
+      <div><strong>Vodafone Cash</strong></div>
+      <div class="text-mono">~20%</div>
+      <div>
+        <div class="share-bar"><div class="share-fill" style="width: 40%;"></div></div>
+      </div>
+      <div class="text-muted text-small">Vodafone Ghana</div>
+    </div>
+    <div class="payment-row">
+      <div><strong>Debit/Credit Cards</strong></div>
+      <div class="text-mono">~15%</div>
+      <div>
+        <div class="share-bar"><div class="share-fill" style="width: 30%;"></div></div>
+      </div>
+      <div class="text-muted text-small">Visa / Mastercard</div>
+    </div>
+    <div class="payment-row">
+      <div><strong>AirtelTigo Money</strong></div>
+      <div class="text-mono">~10%</div>
+      <div>
+        <div class="share-bar"><div class="share-fill" style="width: 20%;"></div></div>
+      </div>
+      <div class="text-muted text-small">AirtelTigo</div>
+    </div>
+    <div class="payment-row">
+      <div><strong>Bank Transfer</strong></div>
+      <div class="text-mono">~5%</div>
+      <div>
+        <div class="share-bar"><div class="share-fill" style="width: 10%;"></div></div>
+      </div>
+      <div class="text-muted text-small">Various banks</div>
+    </div>
+  </div>
+  <p class="note-overlap">Note: Percentages total more than 100% as some transactions use multiple methods (e.g., partial mobile money + cash on delivery).</p>
+
+  <h3>SME Landscape</h3>
+
+  <div class="two-col">
+    <div>
+      <div class="stat-row" style="grid-template-columns: 1fr 1fr;">
+        <div class="stat-card">
+          <div class="stat-value">~1.7M</div>
+          <div class="stat-label">Registered SMEs</div>
+          <div class="stat-sub">92% of all businesses</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value gold">70%</div>
+          <div class="stat-label">GDP Contribution</div>
+          <div class="stat-sub">SMEs to Ghana GDP</div>
+        </div>
+      </div>
+      <ul>
+        <li><strong>~44% of SMEs are women-owned</strong> &mdash; a significant, underserved segment</li>
+        <li><strong>Growing trend of Instagram/WhatsApp-based commerce</strong> &mdash; merchants sell via social media but lack proper storefronts, payment integration, and order management</li>
+        <li><strong>85% of manufacturing employment</strong> comes from SMEs (GCB Bank SME Sector Report, 2023)</li>
+      </ul>
+    </div>
+    <div>
+      <div class="callout callout-navy">
+        <div class="callout-title">The Instagram Merchant Problem</div>
+        <p>Thousands of Ghanaian merchants run their entire business from Instagram DMs and WhatsApp. They photograph products, post them, negotiate prices in chat, collect mobile money manually, and track orders in notebooks or spreadsheets. It works &mdash; until they try to scale past 20 orders a week. Emakola gives these merchants a professional storefront, automated payments, and order management in under 10 minutes.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Regulatory Environment</h3>
+
+  <div class="card card-accent">
+    <div class="card-header">Ghana Regulatory Snapshot</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Regulation</th>
+          <th>Status</th>
+          <th>Implication for Emakola</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Data Protection Act (2012)</strong></td>
+          <td><span class="badge badge-emerald">Active</span></td>
+          <td>Requires registration with Data Protection Commission; Emakola compliant by design</td>
+        </tr>
+        <tr>
+          <td><strong>Bank of Ghana Payment Systems</strong></td>
+          <td><span class="badge badge-emerald">Active</span></td>
+          <td>Payment gateway partners (Paystack, Hubtel) hold required licenses</td>
+        </tr>
+        <tr>
+          <td><strong>E-Levy (Electronic Transfer Levy)</strong></td>
+          <td><span class="badge badge-gold">Adjusted</span></td>
+          <td>Introduced 2022 at 1.5%, reduced to 1% in 2023; adds friction to mobile money but adoption continues</td>
+        </tr>
+        <tr>
+          <td><strong>E-Commerce Legislation</strong></td>
+          <td><span class="badge badge-navy">None specific</span></td>
+          <td>Opportunity to establish first-mover standards and influence policy</td>
+        </tr>
+        <tr>
+          <td><strong>Tax: VAT + NHIL + GETFund</strong></td>
+          <td><span class="badge badge-emerald">Active</span></td>
+          <td>VAT (15%) + NHIL (2.5%) + GETFund (2.5%) = 20% composite; built into merchant pricing tools</td>
+        </tr>
+        <tr>
+          <td><strong>Mobile Money Interoperability</strong></td>
+          <td><span class="badge badge-emerald">Live (2021)</span></td>
+          <td>Cross-network transfers remove friction; customers pay from any wallet</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr class="divider-thick page-break">
+
+  <!-- ============================================ -->
+  <!-- NIGERIA PREVIEW                              -->
+  <!-- ============================================ -->
+  <h2>Nigeria Preview &mdash; The Expansion Market</h2>
+
+  <p>Nigeria is Emakola's second market. It is the most populous nation in Africa, the continent's largest ecommerce market, and home to the strongest fintech ecosystem on the continent. It demands a dedicated localization effort, but the addressable opportunity is massive.</p>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-value">227M</div>
+      <div class="stat-label">Population</div>
+      <div class="stat-sub">Most populous in Africa</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value gold">~$9.5B</div>
+      <div class="stat-label">Ecommerce Market</div>
+      <div class="stat-sub">2025 (Mordor Intelligence)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">107M+</div>
+      <div class="stat-label">Internet Users</div>
+      <div class="stat-sub">45% penetration (DataReportal)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value navy">$243B</div>
+      <div class="stat-label">GDP (Nominal)</div>
+      <div class="stat-sub">2024 rebased (NBS)</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h4>Nigeria Opportunity</h4>
+      <ul>
+        <li><strong>Largest economy in Africa</strong> (by rebased GDP) with a rapidly growing digital economy accounting for nearly 20% of GDP</li>
+        <li><strong>More competitive but massive</strong> &mdash; Jumia, Konga, and hundreds of smaller platforms compete, yet most SMEs still lack proper online stores</li>
+        <li><strong>Paystack and Flutterwave are Nigerian</strong> &mdash; payment infrastructure is strong and well-understood</li>
+        <li><strong>Higher digital literacy in urban centers</strong> (Lagos, Abuja, Port Harcourt) with a vibrant tech ecosystem</li>
+        <li><strong>210M+ active mobile subscribers</strong> with broadband penetration exceeding 40%</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Key Differences from Ghana</h4>
+      <div class="callout callout-gold">
+        <p><strong>Bank transfers are more common than mobile money</strong> in Nigeria, though OPay and PalmPay are rapidly changing this. Verve cards (local debit) are popular alongside Visa/Mastercard. USSD banking is widely used. Emakola's Nigeria expansion will add these payment methods natively.</p>
+      </div>
+      <ul>
+        <li>Currency: Nigerian Naira (NGN); 1 USD &asymp; 1,600 NGN</li>
+        <li>Mobile money: Growing rapidly via OPay, PalmPay, MTN MoMo (PSB license)</li>
+        <li>Logistics challenges are more severe than Ghana</li>
+        <li>Multiple languages and ethnic groups require careful localization</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr class="divider-thick page-break">
+
+  <!-- ============================================ -->
+  <!-- TAM / SAM / SOM                             -->
+  <!-- ============================================ -->
+  <h2>West Africa Total Addressable Market</h2>
+
+  <h3>TAM / SAM / SOM</h3>
+
+  <!-- SVG Concentric Circles Diagram -->
+  <div class="tam-diagram">
+    <svg class="svg-chart" viewBox="0 0 600 520" width="600" height="520" xmlns="http://www.w3.org/2000/svg">
+      <!-- TAM - Outer circle -->
+      <circle cx="300" cy="260" r="240" fill="#ECFDF5" stroke="#10B981" stroke-width="2"/>
+      <text x="300" y="50" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#064E3B">TAM</text>
+      <text x="300" y="68" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#065F46">West Africa Ecommerce Enablement</text>
+      <text x="300" y="86" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="700" fill="#047857">$20B+</text>
+      <text x="300" y="102" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#059669">(GHS 310B+)</text>
+      <text x="300" y="122" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" fill="#065F46">All merchants across West Africa</text>
+      <text x="300" y="136" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" fill="#065F46">who could benefit from an online store</text>
+
+      <!-- SAM - Middle circle -->
+      <circle cx="300" cy="280" r="155" fill="#D1FAE5" stroke="#059669" stroke-width="2"/>
+      <text x="300" y="170" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="#064E3B">SAM</text>
+      <text x="300" y="188" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#065F46">Ghana + Nigeria SME Merchants</text>
+      <text x="300" y="206" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="700" fill="#047857">~500K businesses</text>
+      <text x="300" y="222" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="#059669">$2B+ revenue opportunity</text>
+      <text x="300" y="242" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" fill="#065F46">SMEs with 10-5,000 products</text>
+      <text x="300" y="256" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" fill="#065F46">GHS 5K-500K monthly revenue</text>
+
+      <!-- SOM - Inner circle -->
+      <circle cx="300" cy="320" r="75" fill="#064E3B" stroke="#FACC15" stroke-width="3"/>
+      <text x="300" y="298" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#FACC15">SOM &mdash; Year 1</text>
+      <text x="300" y="318" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="16" font-weight="700" fill="white">1,000</text>
+      <text x="300" y="335" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#A7F3D0">merchants (0.2% of Ghana SAM)</text>
+      <text x="300" y="352" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#6EE7B7">Instagram/WhatsApp sellers</text>
+      <text x="300" y="365" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#6EE7B7">Accra, Kumasi, Takoradi</text>
+
+      <!-- Values annotation -->
+      <rect x="20" y="460" width="560" height="40" rx="8" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+      <text x="140" y="484" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#475569">
+        <tspan font-weight="600">TAM:</tspan> $20B+ / GHS 310B+
+      </text>
+      <text x="300" y="484" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#475569">
+        <tspan font-weight="600">SAM:</tspan> $2B+ / GHS 31B+
+      </text>
+      <text x="470" y="484" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#475569">
+        <tspan font-weight="600">SOM Y1:</tspan> $317K / GHS 4.9M
+      </text>
+    </svg>
+  </div>
+
+  <h3>Bottom-Up Market Sizing &mdash; Year 1</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Segment</th>
+        <th>Merchants</th>
+        <th>ARPU / Month</th>
+        <th style="text-align: right;">Annual Revenue</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="badge badge-emerald">Free</span> Transaction fees only</td>
+        <td class="text-mono">400</td>
+        <td class="text-mono">GHS 70 <span class="dual-currency">($4.50)</span></td>
+        <td class="table-money">GHS 336,000 <span class="dual-currency">($21.7K)</span></td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-blue">Growth</span> Subscription + fees</td>
+        <td class="text-mono">350</td>
+        <td class="text-mono">GHS 449 <span class="dual-currency">($29.0)</span></td>
+        <td class="table-money">GHS 1,885,800 <span class="dual-currency">($121.7K)</span></td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-gold">Pro</span> Full-feature plan</td>
+        <td class="text-mono">200</td>
+        <td class="text-mono">GHS 749 <span class="dual-currency">($48.3)</span></td>
+        <td class="table-money">GHS 1,797,600 <span class="dual-currency">($116.0K)</span></td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-navy">Enterprise</span> Custom</td>
+        <td class="text-mono">50</td>
+        <td class="text-mono">GHS 1,500 <span class="dual-currency">($96.8)</span></td>
+        <td class="table-money">GHS 900,000 <span class="dual-currency">($58.1K)</span></td>
+      </tr>
+      <tr class="table-highlight">
+        <td><strong>Total Year 1</strong></td>
+        <td class="text-mono"><strong>1,000</strong></td>
+        <td></td>
+        <td class="table-money"><strong>GHS 4,919,400</strong> <span class="dual-currency">($317K)</span></td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="text-small text-muted">Exchange rate: 1 USD = 15.5 GHS. ARPU = Average Revenue Per User. Free tier revenue comes from transaction fees (2.5% per sale).</p>
+
+  <hr class="divider-thick page-break">
+
+  <!-- ============================================ -->
+  <!-- WHY NOW                                      -->
+  <!-- ============================================ -->
+  <h2>Why Now? &mdash; Convergence of Forces</h2>
+
+  <p>Seven forces are converging simultaneously to create a window of opportunity for ecommerce infrastructure in West Africa. Individually, each would be significant. Together, they create an inflection point.</p>
+
+  <div class="convergence-grid">
+    <div class="convergence-card">
+      <div class="convergence-number">Force 01</div>
+      <h4>Post-COVID Digital Adoption</h4>
+      <p>Lockdowns in 2020-2021 forced merchants online. Many stayed. Digital payment volume in Ghana grew 60%+ during COVID. The behavioral shift is permanent &mdash; consumers now expect to browse and buy online.</p>
+    </div>
+    <div class="convergence-card">
+      <div class="convergence-number">Force 02</div>
+      <h4>Mobile Money Interoperability</h4>
+      <p>Ghana became one of the first African countries with full mobile money interoperability in 2021. Customers can pay from any network (MTN, Vodafone, AirtelTigo) to any merchant &mdash; removing the biggest friction point in digital payments.</p>
+    </div>
+    <div class="convergence-card">
+      <div class="convergence-number">Force 03</div>
+      <h4>Smartphone Price Decline</h4>
+      <p>Chinese brands (Tecno, Infinix, Itel) brought smartphones under $50. Africa shipped 84.4M smartphones in 2025, up 13% YoY. Accessibility is no longer the barrier &mdash; content and commerce infrastructure are.</p>
+    </div>
+    <div class="convergence-card active">
+      <div class="convergence-number">Force 04</div>
+      <h4>Infrastructure Investment</h4>
+      <p>4G coverage is expanding rapidly. New undersea cables (2Africa, Equiano) are reducing latency. Starlink is available in Ghana as of 2023. The connectivity gap that held back ecommerce is closing fast.</p>
+    </div>
+    <div class="convergence-card">
+      <div class="convergence-number">Force 05</div>
+      <h4>Regulatory Maturity</h4>
+      <p>Data protection laws, payment regulations, and business registration processes are maturing across West Africa. Ghana's Data Protection Act and Bank of Ghana payment frameworks provide a stable foundation for digital commerce.</p>
+    </div>
+    <div class="convergence-card">
+      <div class="convergence-number">Force 06</div>
+      <h4>Investor Interest Recovery</h4>
+      <p>African tech funding rebounded after the 2023 correction. Ecommerce infrastructure is a focus area for investors who have seen the Shopify model validated globally. The market is ready for Africa's version.</p>
+    </div>
+    <div class="convergence-card active">
+      <div class="convergence-number">Force 07</div>
+      <h4>Cultural Shift</h4>
+      <p>Young Ghanaians and Nigerians increasingly expect to shop online. Social commerce on Instagram and TikTok is creating demand that outstrips the supply of proper ecommerce infrastructure. Merchants need tools to convert followers into customers.</p>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- KEY INSIGHT                                  -->
+  <!-- ============================================ -->
+  <div class="insight">
+    The typical narrative about African ecommerce focuses on consumer marketplaces &mdash; the Jumias and Kongos trying to be "Amazon for Africa." But the real opportunity isn't selling to consumers; it's enabling the millions of merchants who already sell. Just as Shopify is worth more than most retailers it hosts, the platform play in Africa will outperform the marketplace play.
+    <span class="source">Emakola investment thesis</span>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SOURCES                                      -->
+  <!-- ============================================ -->
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li>GSMA. "The State of the Industry Report on Mobile Money 2025." April 2025. Mobile money accounts, transaction volumes, and GDP contribution data.</li>
+      <li>Statista. "eCommerce &mdash; Africa." Market Forecast, 2025. Africa ecommerce market size ($40.49B, 2025).</li>
+      <li>Statista. "eCommerce &mdash; Ghana." Market Forecast, 2025. Ghana ecommerce revenue ($1.007B, 2025) and user penetration (30.1%).</li>
+      <li>DataReportal. "Digital 2025: Ghana." January 2025. Internet users (24.3M), penetration (69.9%), median age (21.3).</li>
+      <li>Worldometer. "Ghana Population 2025." Population estimate (35.06M) and urban percentage (59.23%).</li>
+      <li>World Bank. "GDP (current US$) &mdash; Ghana." 2024. GDP figure ($82.83B).</li>
+      <li>Omdia / Canalys. "Africa Smartphone Market Q1 2025." Smartphone shipments (84.4M, +13% YoY) and market growth data.</li>
+      <li>GCB Bank. "Ghana SME Sector Report 2023." SME count (~1.7M), GDP contribution (70%), employment share (85%).</li>
+      <li>Mordor Intelligence. "Nigeria E-commerce Market Size &amp; Share Analysis, 2025-2030." Market size ($9.54B, 2025).</li>
+      <li>Nigeria National Bureau of Statistics. GDP rebasing data, 2025. Nominal GDP ($243.3B, 2024 rebased).</li>
+      <li>IFC / Google. "e-Conomy Africa 2020." Africa internet economy projection ($180B by 2025).</li>
+      <li>Ecofin Agency. "Mobile Money Transactions in Africa Surge 15% in 2024." April 2025. Africa transaction value ($1.105T).</li>
+      <li>Asetenapa. "Mobile Money in Ghana: 50+ Key Statistics and Facts." 2025. Ghana mobile money registered accounts (74.1M) and MTN MoMo active users (17.7M).</li>
+      <li>TechAfrica News. "GSMA Report: Mobile Money Hits $1.68 Trillion in Transactions in 2024." April 2025. Global mobile money transaction value.</li>
+      <li>Ghana Ministry of Finance. "SMEs Crucial to Achieving Growth and Development Ambitions." July 2024. SME policy and growth program.</li>
+      <li>Ghana Revenue Authority. Tax rates: VAT (15%), NHIL (2.5%), GETFund (2.5%). Current as of 2025.</li>
+      <li>MTN Ghana. "Annual Financial Results 2024." MoMo revenue (GHS 4.4B), subscriber growth data.</li>
+    </ol>
+  </div>
+
+  <!-- Page Footer -->
+  <div class="page-footer">
+    <span>Emakola Business Plan | Confidential | March 2026</span>
+    <span>Section 02 &mdash; The Africa Ecommerce Opportunity</span>
+  </div>
+
+</body>
+</html>

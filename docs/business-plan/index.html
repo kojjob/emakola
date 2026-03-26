@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emakola Business Plan</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .toc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    .toc-card {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      text-decoration: none;
+      color: var(--text-primary);
+      transition: all 0.2s;
+      display: block;
+      position: relative;
+      overflow: hidden;
+    }
+    .toc-card:hover {
+      border-color: var(--emerald-400);
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.1);
+      text-decoration: none;
+      transform: translateY(-2px);
+    }
+    .toc-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+    }
+    .toc-card:nth-child(1)::before { background: var(--emerald-600); }
+    .toc-card:nth-child(2)::before { background: var(--emerald-500); }
+    .toc-card:nth-child(3)::before { background: var(--gold-500); }
+    .toc-card:nth-child(4)::before { background: var(--emerald-700); }
+    .toc-card:nth-child(5)::before { background: var(--gold-600); }
+    .toc-card:nth-child(6)::before { background: var(--emerald-400); }
+    .toc-card:nth-child(7)::before { background: var(--navy-600); }
+    .toc-card:nth-child(8)::before { background: var(--emerald-800); }
+    .toc-card:nth-child(9)::before { background: var(--gold-500); }
+    .toc-card:nth-child(10)::before { background: var(--emerald-600); }
+    .toc-number {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--emerald-600);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .toc-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--navy-800);
+      margin: 0.25rem 0;
+    }
+    .toc-desc {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .toc-full {
+      display: block;
+      text-align: center;
+      margin: 2rem 0;
+      padding: 1rem 2rem;
+      background: var(--emerald-900);
+      color: white;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .toc-full:hover {
+      background: var(--emerald-800);
+      text-decoration: none;
+    }
+    .appendix-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.75rem;
+      margin: 1rem 0;
+    }
+    .appendix-link {
+      display: block;
+      padding: 0.75rem 1rem;
+      background: var(--navy-50);
+      border-radius: 6px;
+      text-decoration: none;
+      color: var(--navy-700);
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-align: center;
+      transition: background 0.2s;
+    }
+    .appendix-link:hover {
+      background: var(--emerald-50);
+      color: var(--emerald-800);
+      text-decoration: none;
+    }
+    @media (max-width: 768px) {
+      .toc-grid { grid-template-columns: 1fr; }
+      .appendix-list { grid-template-columns: 1fr; }
+    }
+    @media print {
+      .toc-card { border: 1px solid #ccc; }
+      .toc-card:hover { transform: none; box-shadow: none; }
+      .toc-full {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cover -->
+  <div class="cover-page">
+    <div class="logo"><span>E</span></div>
+    <h1>Emakola</h1>
+    <p class="subtitle">Comprehensive Business Plan</p>
+    <div style="width: 80px; height: 4px; background: linear-gradient(90deg, var(--emerald-500), var(--gold-500)); border-radius: 4px; margin: 1.5rem auto;"></div>
+    <p class="subtitle" style="font-size: 1.1rem; color: var(--navy-600);">
+      The Ecommerce Platform Built for West Africa
+    </p>
+    <div class="meta">
+      <span>March 2026</span>
+      <span>|</span>
+      <span>Confidential</span>
+    </div>
+    <div class="tagline">
+      Enabling West African merchants to create professional online stores with mobile money payments, WhatsApp communication, and local delivery infrastructure.
+    </div>
+  </div>
+
+  <!-- Table of Contents -->
+  <h2 style="text-align: center; border-bottom: none; margin-top: 0;">Table of Contents</h2>
+
+  <div class="toc-grid">
+    <a href="01-executive-summary.html" class="toc-card">
+      <div class="toc-number">Section 01</div>
+      <div class="toc-title">Executive Summary</div>
+      <div class="toc-desc">The opportunity, solution, business model, growth trajectory, and funding ask</div>
+    </a>
+    <a href="02-africa-ecommerce-opportunity.html" class="toc-card">
+      <div class="toc-number">Section 02</div>
+      <div class="toc-title">The Africa Ecommerce Opportunity</div>
+      <div class="toc-desc">Market sizing, Ghana deep-dive, Nigeria preview, mobile money, TAM/SAM/SOM</div>
+    </a>
+    <a href="03-competitive-landscape.html" class="toc-card">
+      <div class="toc-number">Section 03</div>
+      <div class="toc-title">Competitive Landscape</div>
+      <div class="toc-desc">Competitor analysis, feature matrix, Porter's Five Forces, Blue Ocean canvas</div>
+    </a>
+    <a href="04-product-and-technology.html" class="toc-card">
+      <div class="toc-number">Section 04</div>
+      <div class="toc-title">Product & Technology</div>
+      <div class="toc-desc">Platform overview, tech stack, architecture, roadmap, technical moat</div>
+    </a>
+    <a href="05-business-model-unit-economics.html" class="toc-card">
+      <div class="toc-number">Section 05</div>
+      <div class="toc-title">Business Model & Unit Economics</div>
+      <div class="toc-desc">Revenue streams, pricing tiers, unit economics, SaaS benchmarks</div>
+    </a>
+    <a href="06-marketing-growth-strategy.html" class="toc-card">
+      <div class="toc-number">Section 06</div>
+      <div class="toc-title">Marketing & Growth Strategy</div>
+      <div class="toc-desc">Customer personas, GTM playbook, CAC analysis, retention, brand positioning</div>
+    </a>
+    <a href="07-operations-and-team.html" class="toc-card">
+      <div class="toc-number">Section 07</div>
+      <div class="toc-title">Operations & Team</div>
+      <div class="toc-desc">Team structure, hiring roadmap, salary benchmarks, infrastructure costs</div>
+    </a>
+    <a href="08-financial-projections.html" class="toc-card">
+      <div class="toc-number">Section 08</div>
+      <div class="toc-title">Financial Projections</div>
+      <div class="toc-desc">3-year detailed + 5-year high-level projections, P&L, sensitivity analysis</div>
+    </a>
+    <a href="09-risk-analysis.html" class="toc-card">
+      <div class="toc-number">Section 09</div>
+      <div class="toc-title">Risk Analysis & Mitigation</div>
+      <div class="toc-desc">SWOT, PESTLE, risk register, heat map, top risk deep dives</div>
+    </a>
+    <a href="10-social-impact-esg.html" class="toc-card">
+      <div class="toc-number">Section 10</div>
+      <div class="toc-title">Social Impact & ESG</div>
+      <div class="toc-desc">Financial inclusion, gender impact, SDG alignment, impact measurement</div>
+    </a>
+  </div>
+
+  <a href="full-plan.html" class="toc-full no-print">View Full Plan (All Sections Combined)</a>
+
+  <!-- Appendices -->
+  <h3 style="text-align: center; margin-top: 2rem;">Appendices</h3>
+  <div class="appendix-list">
+    <a href="appendices/A-financial-model-tables.html" class="appendix-link">A. Financial Model Tables</a>
+    <a href="appendices/B-market-research-sources.html" class="appendix-link">B. Market Research Sources</a>
+    <a href="appendices/C-glossary.html" class="appendix-link">C. Glossary</a>
+  </div>
+
+  <!-- Footer -->
+  <div class="page-footer" style="margin-top: 4rem;">
+    <span>Emakola Business Plan</span>
+    <span>Confidential | March 2026</span>
+  </div>
+
+</body>
+</html>

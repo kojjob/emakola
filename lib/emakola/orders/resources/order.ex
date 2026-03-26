@@ -192,6 +192,18 @@ defmodule Emakola.Orders.Order do
       end)
 
       change(set_attribute(:status, :confirmed))
+
+      change(
+        after_action(fn _changeset, order, _context ->
+          try do
+            Emakola.Notifications.Dispatcher.dispatch(order, :order_confirmed)
+          rescue
+            _ -> :ok
+          end
+
+          {:ok, order}
+        end)
+      )
     end
 
     update :start_processing do
@@ -234,6 +246,18 @@ defmodule Emakola.Orders.Order do
       end)
 
       change(set_attribute(:status, :shipped))
+
+      change(
+        after_action(fn _changeset, order, _context ->
+          try do
+            Emakola.Notifications.Dispatcher.dispatch(order, :order_shipped)
+          rescue
+            _ -> :ok
+          end
+
+          {:ok, order}
+        end)
+      )
     end
 
     update :mark_delivered do
@@ -255,6 +279,18 @@ defmodule Emakola.Orders.Order do
       end)
 
       change(set_attribute(:status, :delivered))
+
+      change(
+        after_action(fn _changeset, order, _context ->
+          try do
+            Emakola.Notifications.Dispatcher.dispatch(order, :order_delivered)
+          rescue
+            _ -> :ok
+          end
+
+          {:ok, order}
+        end)
+      )
     end
 
     update :cancel do
@@ -276,6 +312,18 @@ defmodule Emakola.Orders.Order do
       end)
 
       change(set_attribute(:status, :cancelled))
+
+      change(
+        after_action(fn _changeset, order, _context ->
+          try do
+            Emakola.Notifications.Dispatcher.dispatch(order, :order_cancelled)
+          rescue
+            _ -> :ok
+          end
+
+          {:ok, order}
+        end)
+      )
     end
 
     update :update_notes do

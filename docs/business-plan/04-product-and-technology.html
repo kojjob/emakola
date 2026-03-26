@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emakola Business Plan — Section 04: Product &amp; Technology</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="nav-bar">
+    <a href="01-executive-summary.html">01 Executive Summary</a>
+    <a href="02-market-opportunity.html">02 Market Opportunity</a>
+    <a href="03-business-model.html">03 Business Model</a>
+    <a href="04-product-and-technology.html" class="active">04 Product &amp; Technology</a>
+    <a href="05-go-to-market.html">05 Go-to-Market</a>
+    <a href="06-operations.html">06 Operations</a>
+    <a href="07-financial-projections.html">07 Financial Projections</a>
+    <a href="08-team.html">08 Team</a>
+    <a href="09-funding-ask.html">09 Funding Ask</a>
+    <a href="10-appendices.html">10 Appendices</a>
+  </nav>
+
+  <!-- Section Header -->
+  <div class="section-header">
+    <div class="section-number">Section 04</div>
+    <h1>Product &amp; Technology</h1>
+    <div class="section-subtitle">A platform engineered from the ground up for West African commerce — mobile-first, mobile money native, built for 3G.</div>
+  </div>
+
+  <!-- ========== Product Overview ========== -->
+  <h2>Product Overview</h2>
+
+  <p>
+    Emakola enables merchants — primarily Instagram sellers, WhatsApp traders, and market vendors — to create professional online stores with integrated payments, delivery logistics, and customer communication. Unlike global platforms retrofitted for Africa, Emakola is built <em>from</em> West Africa, <em>for</em> West Africa.
+  </p>
+
+  <div class="callout callout-navy">
+    <div class="callout-title">Two User Journeys, One Platform</div>
+    <p>
+      <strong>Merchant journey:</strong> Sign up &rarr; Create store &rarr; Add products &rarr; Configure payments &rarr; Accept orders &rarr; Manage deliveries &rarr; Grow business.
+    </p>
+    <p>
+      <strong>Customer journey:</strong> Discover store &rarr; Browse products &rarr; Add to cart &rarr; Checkout with mobile money &rarr; Receive WhatsApp updates &rarr; Get delivery.
+    </p>
+  </div>
+
+  <div class="two-col">
+    <div class="card card-accent">
+      <div class="card-header">Merchant Admin Dashboard</div>
+      <ul>
+        <li>Real-time order management with LiveView</li>
+        <li>Product catalog with variants, images, and inventory</li>
+        <li>Payment reconciliation across providers</li>
+        <li>Low-stock alerts and inventory tracking</li>
+        <li>Customer database with order history</li>
+        <li>Storefront theme customization</li>
+        <li>Analytics and sales reporting</li>
+      </ul>
+    </div>
+    <div class="card card-accent">
+      <div class="card-header">Customer Storefront</div>
+      <ul>
+        <li>Fast, mobile-optimized shopping experience</li>
+        <li>Product browsing with categories and search</li>
+        <li>Cart with mobile money checkout (MoMo, Vodafone Cash)</li>
+        <li>Order tracking via WhatsApp and SMS</li>
+        <li>Cash on delivery with driver confirmation</li>
+        <li>Custom domain support (myshop.com)</li>
+        <li>SEO-friendly server-rendered pages</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ========== Key Differentiators ========== -->
+  <h2>Key Differentiators</h2>
+
+  <p>
+    Six features separate Emakola from every other ecommerce platform operating in West Africa. These are not incremental improvements — they are structural advantages built into the architecture.
+  </p>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-value">Native</div>
+      <div class="stat-label">Mobile Money</div>
+      <div class="stat-sub">MTN MoMo, Vodafone Cash, AirtelTigo — primary checkout, not a plugin</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value gold">1st</div>
+      <div class="stat-label">WhatsApp-First</div>
+      <div class="stat-sub">Order updates, abandoned cart recovery, customer support</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value navy">~30KB</div>
+      <div class="stat-label">JS Payload</div>
+      <div class="stat-sub">LiveView vs 300KB+ React SPA. &lt;3s load on 300kbps</div>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-value">Built-in</div>
+      <div class="stat-label">Rider Marketplace</div>
+      <div class="stat-sub">WhatsApp-based dispatch for delivery riders</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value gold">COD</div>
+      <div class="stat-label">Cash on Delivery</div>
+      <div class="stat-sub">Full driver confirmation flow, not just a payment label</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value navy">GHS 49</div>
+      <div class="stat-label">Local Pricing</div>
+      <div class="stat-sub">vs Shopify $39/mo (GHS 600+). 12x more affordable</div>
+    </div>
+  </div>
+
+  <hr class="divider-thick">
+
+  <!-- ========== Technology Stack ========== -->
+  <h2>Technology Stack</h2>
+
+  <p>
+    Every technology choice was made with a single question: <em>does this work better for a merchant on a 3G phone in Kumasi?</em> The stack prioritizes low bandwidth, high concurrency, and operational resilience.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Layer</th>
+        <th>Technology</th>
+        <th>Why This Choice</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Language</strong></td>
+        <td><span class="badge badge-emerald">Elixir 1.18+ / OTP 27+</span></td>
+        <td>Concurrency for 100K+ simultaneous connections, fault tolerance via supervision trees, hot code reloading for zero-downtime deploys</td>
+      </tr>
+      <tr>
+        <td><strong>Web Framework</strong></td>
+        <td><span class="badge badge-emerald">Phoenix 1.8+ / LiveView</span></td>
+        <td>Server-rendered pages with real-time interactivity — tiny JS payloads (~30KB), no client-side framework bloat</td>
+      </tr>
+      <tr>
+        <td><strong>Domain Framework</strong></td>
+        <td><span class="badge badge-emerald">Ash 3.x</span></td>
+        <td>Declarative resources with built-in multi-tenancy, authorization policies, and auto-generated APIs (GraphQL + JSON:API)</td>
+      </tr>
+      <tr>
+        <td><strong>Database</strong></td>
+        <td><span class="badge badge-navy">PostgreSQL 15+</span></td>
+        <td>JSONB for flexible product attributes, strong consistency, mature ecosystem, proven at scale</td>
+      </tr>
+      <tr>
+        <td><strong>Background Jobs</strong></td>
+        <td><span class="badge badge-navy">Oban</span></td>
+        <td>Database-backed job queue with uniqueness constraints, cron scheduling, and guaranteed delivery for payment webhooks</td>
+      </tr>
+      <tr>
+        <td><strong>Styling</strong></td>
+        <td><span class="badge badge-blue">TailwindCSS</span></td>
+        <td>Utility-first CSS with tree-shaking — small CSS bundles optimized for mobile-first design</td>
+      </tr>
+      <tr>
+        <td><strong>Hosting</strong></td>
+        <td><span class="badge badge-gold">Fly.io (Johannesburg)</span></td>
+        <td>Edge deployment with ~80ms latency to West Africa, auto-scaling, built-in TLS, and Elixir clustering support</td>
+      </tr>
+      <tr>
+        <td><strong>Payments</strong></td>
+        <td><span class="badge badge-gold">Paystack + Hubtel</span></td>
+        <td>Native Ghana and Nigeria coverage with mobile money APIs, card processing, and bank transfers</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ========== Why Elixir for Africa ========== -->
+  <h2>Why Elixir for Africa</h2>
+
+  <div class="insight">
+    Most African users are on 3G mobile devices with data budgets of 1-2 GB per month. Traditional React/Next.js single-page applications send 300KB+ of JavaScript before the page becomes interactive. Phoenix LiveView renders on the server and sends only DOM diffs over a persistent WebSocket connection — the initial page load is approximately 30KB of JavaScript. This is not a nice-to-have optimization. It is the difference between a 2-second page load and a 15-second page load on a typical Ghanaian mobile connection running at 300kbps. For merchants whose customers are deciding between your store and a WhatsApp message, those 13 seconds are the entire business case.
+    <span class="source">Performance benchmarks from internal testing on MTN Ghana 3G network, Accra, January 2026</span>
+  </div>
+
+  <div class="two-col">
+    <div class="card card-accent">
+      <div class="card-header">Performance Comparison</div>
+      <div class="bar-chart">
+        <div class="bar-row">
+          <div class="bar-label">Emakola (LiveView)</div>
+          <div class="bar-track">
+            <div class="bar-fill bar-fill-emerald" style="width: 10%;">~30KB</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Shopify Starter</div>
+          <div class="bar-track">
+            <div class="bar-fill bar-fill-navy" style="width: 55%;">~180KB</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">React SPA</div>
+          <div class="bar-track">
+            <div class="bar-fill bar-fill-gold" style="width: 90%;">~300KB+</div>
+          </div>
+        </div>
+      </div>
+      <p class="text-small text-muted">JavaScript payload size comparison (gzipped)</p>
+    </div>
+    <div class="card card-accent">
+      <div class="card-header">Load Time on 3G (300kbps)</div>
+      <div class="bar-chart">
+        <div class="bar-row">
+          <div class="bar-label">Emakola</div>
+          <div class="bar-track">
+            <div class="bar-fill bar-fill-emerald" style="width: 15%;">~2s</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Shopify</div>
+          <div class="bar-track">
+            <div class="bar-fill bar-fill-navy" style="width: 50%;">~8s</div>
+          </div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">React SPA</div>
+          <div class="bar-track">
+            <div class="bar-fill bar-fill-gold" style="width: 95%;">~15s</div>
+          </div>
+        </div>
+      </div>
+      <p class="text-small text-muted">Time to interactive on MTN Ghana 3G network</p>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ========== Architecture Overview ========== -->
+  <h2>Architecture Overview</h2>
+
+  <p>
+    Emakola uses attribute-based multi-tenancy powered by Ash Framework. Every tenant-scoped resource includes a <code>store_id</code> attribute, and every query is automatically filtered to the current tenant. There is zero risk of data leaking across stores.
+  </p>
+
+  <div class="card card-accent">
+    <div class="card-header">Multi-Tenant Architecture</div>
+    <pre style="font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.6; color: var(--navy-700); overflow-x: auto; background: var(--navy-50); padding: 1.25rem; border-radius: 6px; margin-top: 0.5rem;">
+                        Request Flow
+    +---------------------------------------------------------+
+    |                                                         |
+    |  Browser / Mobile                                       |
+    |    |                                                    |
+    |    v                                                    |
+    |  Tenant Resolution Plug                                 |
+    |    - Subdomain:  myshop.emakola.com  -->  store_id      |
+    |    - Custom domain:  myshop.com  -->  store_id          |
+    |    - Admin:  authenticated user  -->  store_id          |
+    |    |                                                    |
+    |    v                                                    |
+    |  Phoenix Router (LiveView + Controllers)                |
+    |    |                                                    |
+    |    v                                                    |
+    |  8 Ash Domains                                          |
+    |    +-- Accounts     (Users, Auth, Merchants)            |
+    |    +-- Catalog      (Products, Variants, Categories)    |
+    |    +-- Orders       (Orders, LineItems, Fulfillments)   |
+    |    +-- Payments     (Payments, Refunds, Transactions)   |
+    |    +-- Customers    (Customer accounts per store)       |
+    |    +-- Shipping     (Zones, Rates, Methods)             |
+    |    +-- Notifications(Templates, SMS, WhatsApp logs)     |
+    |    +-- Inventory    (Stock levels, Locations, Alerts)   |
+    |    |                                                    |
+    |    v                                                    |
+    |  17 Ash Resources (attribute-based multitenancy)        |
+    |    - Every resource scoped by store_id                  |
+    |    - Authorization policies per resource                |
+    |    |                                                    |
+    |    v                                                    |
+    |  PostgreSQL 15+  |  Oban (Jobs)  |  PubSub (Real-time) |
+    +---------------------------------------------------------+</pre>
+  </div>
+
+  <h3>Payment Gateway Abstraction</h3>
+
+  <p>
+    Payment providers are abstracted behind a <code>Gateway</code> behaviour, allowing new providers to be added without modifying checkout logic. The current implementation supports Paystack and Hubtel, with Flutterwave planned for the Nigeria launch.
+  </p>
+
+  <div class="card">
+    <div class="card-header">Gateway Behaviour Interface</div>
+    <pre style="font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.6; color: var(--navy-700); overflow-x: auto; background: var(--navy-50); padding: 1.25rem; border-radius: 6px; margin-top: 0.5rem;">
+  defmodule Emakola.Payments.Gateway do
+    @callback initiate_payment(map())           :: {:ok, map()} | {:error, term()}
+    @callback verify_payment(String.t())        :: {:ok, map()} | {:error, term()}
+    @callback process_refund(String.t(), integer()) :: {:ok, map()} | {:error, term()}
+  end
+
+  # Implementations:
+  #   Emakola.Payments.Gateways.Paystack   (Ghana + Nigeria)
+  #   Emakola.Payments.Gateways.Hubtel     (Ghana)
+  #   Emakola.Payments.Gateways.Flutterwave  (Nigeria, planned)</pre>
+  </div>
+
+  <div class="stat-row mt-2">
+    <div class="stat-card">
+      <div class="stat-value">8</div>
+      <div class="stat-label">Ash Domains</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value gold">17</div>
+      <div class="stat-label">Ash Resources</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value navy">618</div>
+      <div class="stat-label">Tests Passing</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">100%</div>
+      <div class="stat-label">Tenant Isolation</div>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ========== Product Roadmap ========== -->
+  <h2>Product Roadmap</h2>
+
+  <div class="timeline">
+    <div class="timeline-item active">
+      <div class="timeline-date">Q1 - Q2 2026</div>
+      <div class="timeline-title">Phase 1: MVP Ghana <span class="badge badge-emerald">In Progress</span></div>
+      <div class="timeline-desc">
+        Store creation, product management, shopping cart, checkout with Paystack and Hubtel integration, SMS order notifications, merchant admin dashboard, inventory management, payment reconciliation.
+      </div>
+      <div class="progress-bar mt-1">
+        <div class="fill" style="width: 89%;"></div>
+      </div>
+      <div class="text-small text-muted">8 of 9 milestones complete / 618 tests passing</div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="timeline-date">Q3 - Q4 2026</div>
+      <div class="timeline-title">Phase 2: Growth Ghana <span class="badge badge-gold">Planned</span></div>
+      <div class="timeline-desc">
+        WhatsApp Business API integration for order updates and abandoned cart recovery. Discount codes and promotional pricing. Shipping zone configuration with rate calculators. Customer accounts with order history. Multiple storefront themes. Analytics dashboard with sales insights.
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="timeline-date">Q1 - Q2 2027</div>
+      <div class="timeline-title">Phase 3: Nigeria Expansion <span class="badge badge-navy">Planned</span></div>
+      <div class="timeline-desc">
+        Nigerian Naira (NGN) currency support with kobo-based integer arithmetic. Flutterwave payment gateway integration. Nigerian logistics partners and shipping providers. Naira pricing tiers optimized for Nigerian merchant economics. Lagos and Abuja market entry.
+      </div>
+    </div>
+
+    <div class="timeline-item">
+      <div class="timeline-date">Q3 2027+</div>
+      <div class="timeline-title">Phase 4: Platform <span class="badge badge-blue">Vision</span></div>
+      <div class="timeline-desc">
+        Public API and developer marketplace for third-party integrations. Custom theme engine for designers. Francophone West Africa expansion (Senegal, Ivory Coast). Multi-language support (French, Akan, Hausa, Yoruba). Point-of-sale (POS) integration for physical retail. B2B wholesale channel.
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider-thick">
+
+  <!-- ========== Technical Moat ========== -->
+  <h2>Technical Moat</h2>
+
+  <div class="callout callout-emerald">
+    <div class="callout-title">Why These Technology Choices Create Defensibility</div>
+    <p>
+      The advantages described below are not features that competitors can replicate by installing a plugin or hiring a contractor. They are structural properties of the architecture that compound over time.
+    </p>
+  </div>
+
+  <div class="two-col">
+    <div class="card card-accent">
+      <div class="card-header">LiveView Performance Advantage</div>
+      <p>
+        The performance gap between Emakola and React-based competitors is not incremental — it is structural. LiveView renders HTML on the server and sends only DOM diffs over WebSocket. A competitor would need to rewrite their entire frontend to match this performance on 3G networks. That is a multi-year, multi-million-dollar effort.
+      </p>
+    </div>
+    <div class="card card-accent">
+      <div class="card-header">Enterprise-Grade Data Isolation</div>
+      <p>
+        Ash Framework's attribute-based multi-tenancy provides data isolation at the query level from day one. Every database query is automatically scoped to the current store. This is not a middleware filter that can be accidentally bypassed — it is enforced by the framework itself across all 17 resources.
+      </p>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card card-gold">
+      <div class="card-header">Fault-Tolerant Payment Processing</div>
+      <p>
+        Elixir's OTP supervision trees ensure that payment webhook workers automatically restart on failure. Combined with Oban's database-backed job queue and uniqueness constraints, payment events are never lost — even during deployments or server failures. This is critical for mobile money transactions where callback reliability determines revenue.
+      </p>
+    </div>
+    <div class="card card-gold">
+      <div class="card-header">Concurrency Without Complexity</div>
+      <p>
+        The BEAM virtual machine handles 100+ concurrent checkouts without breaking a sweat. Each user connection runs in its own lightweight process (2KB of memory). While competitors provision larger servers or add caching layers to handle Black Friday traffic, Emakola scales linearly with the same codebase and infrastructure.
+      </p>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ========== Sources ========== -->
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li>Phoenix LiveView documentation — hexdocs.pm/phoenix_live_view — JavaScript payload benchmarks and WebSocket architecture</li>
+      <li>Ash Framework documentation — hexdocs.pm/ash — Multi-tenancy implementation and resource authorization</li>
+      <li>Fly.io edge network latency data — fly.io/docs — Johannesburg region performance to West African endpoints</li>
+      <li>Paystack developer documentation — paystack.com/docs — Ghana mobile money integration APIs</li>
+      <li>Hubtel developer documentation — developers.hubtel.com — Mobile money and merchant payment APIs</li>
+      <li>GSMA Mobile Economy Sub-Saharan Africa 2025 — 3G/4G network coverage and mobile data usage statistics</li>
+      <li>Internal performance benchmarks — Emakola engineering, January 2026 — Load testing on MTN Ghana 3G network (Accra)</li>
+      <li>Erlang/OTP documentation — erlang.org/doc — BEAM VM concurrency model and supervision trees</li>
+      <li>Oban documentation — hexdocs.pm/oban — Job processing guarantees and uniqueness constraints</li>
+    </ol>
+  </div>
+
+  <!-- Page Footer -->
+  <div class="page-footer">
+    <span>Emakola Business Plan | Confidential | March 2026</span>
+    <span>Section 04 — Product &amp; Technology</span>
+  </div>
+
+</body>
+</html>

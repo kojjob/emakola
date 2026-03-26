@@ -220,28 +220,30 @@ defmodule EmakolaWeb.StorefrontComponents do
 
     ~H"""
     <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
-      <div class="relative rounded-[16px] overflow-hidden mb-2 bg-[#F1F5F9]">
+      <div class="relative rounded-[16px] overflow-hidden mb-3.5 bg-[#F1F5F9]">
         <img
           :if={@image}
           src={@image}
           alt={@product.title}
           loading="lazy"
-          class="w-full aspect-[3/4] object-cover group-hover:scale-[1.04] transition-transform duration-300"
+          class="w-full aspect-[3/4] object-cover group-hover:scale-[1.04] transition-transform duration-500 ease-out"
         />
         <div :if={!@image} class="w-full aspect-[3/4] flex items-center justify-center">
           <.image_placeholder />
         </div>
         <div
           :if={@show_hover_overlay}
-          class="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex justify-center"
+          class="absolute bottom-3 left-3 right-3 translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 ease-out flex justify-center"
         >
-          <span class="text-xs font-semibold text-white tracking-wide">Add to Bag</span>
+          <span class="w-full py-2.5 bg-white/95 backdrop-blur-md text-[#0F172A] text-xs font-bold tracking-wide uppercase rounded-xl shadow-[0_8px_16px_rgba(0,0,0,0.08)] flex items-center justify-center">
+            Quick Add
+          </span>
         </div>
       </div>
-      <p class="text-[0.8125rem] font-medium text-[#0F172A] leading-tight mb-0.5 truncate">
+      <h3 class="text-[0.875rem] font-semibold text-[#0F172A] leading-snug mb-1 truncate group-hover:text-[#B45309] transition-colors">
         {@product.title}
-      </p>
-      <p class="text-[0.8125rem] font-bold text-[#0F172A]">
+      </h3>
+      <p class="text-[0.8125rem] font-medium text-[#64748B]">
         {Currency.format_price_range(@product.min_price, @product.max_price, @store.currency)}
       </p>
     </a>

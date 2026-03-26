@@ -142,16 +142,26 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
 
   defp send_merchant_sms(order, store, :order_placed) do
     message = Templates.new_order_merchant_sms(order, store)
-    # In production, this would look up the merchant's phone from store membership
-    # For now, log the intent
-    Logger.info("[OrderNotificationWorker] Merchant SMS for store #{store.id}: #{message}")
-    sms_provider().send_sms("merchant", message, store_id: order.store_id)
+
+    if store.contact_phone do
+      sms_provider().send_sms(store.contact_phone, message, store_id: order.store_id)
+    else
+      Logger.info(
+        "[OrderNotificationWorker] No contact_phone for store #{store.id}, skipping merchant SMS"
+      )
+    end
   end
 
   defp send_merchant_sms(order, store, :order_cancelled) do
     message = Templates.order_cancelled_merchant_sms(order, store)
-    Logger.info("[OrderNotificationWorker] Merchant SMS for store #{store.id}: #{message}")
-    sms_provider().send_sms("merchant", message, store_id: order.store_id)
+
+    if store.contact_phone do
+      sms_provider().send_sms(store.contact_phone, message, store_id: order.store_id)
+    else
+      Logger.info(
+        "[OrderNotificationWorker] No contact_phone for store #{store.id}, skipping merchant SMS"
+      )
+    end
   end
 
   defp send_merchant_sms(_order, _store, _event), do: :ok

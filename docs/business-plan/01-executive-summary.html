@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emakola Business Plan — Executive Summary</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .cover-divider {
+      width: 80px;
+      height: 4px;
+      background: linear-gradient(90deg, var(--emerald-500), var(--gold-500));
+      border-radius: 4px;
+      margin: 1.5rem auto;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin: 1.5rem 0;
+    }
+    .summary-card {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.5rem;
+      page-break-inside: avoid;
+    }
+    .summary-card h3 {
+      margin-top: 0;
+      font-size: 1rem;
+      color: var(--emerald-800);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .summary-card h3 .icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .icon-emerald { background: var(--emerald-100); color: var(--emerald-700); }
+    .icon-gold { background: var(--gold-100); color: var(--gold-600); }
+    .icon-navy { background: var(--navy-200); color: var(--navy-700); }
+    .icon-red { background: var(--red-100); color: var(--red-500); }
+    .milestone-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.75rem;
+      margin: 1.5rem 0;
+    }
+    .milestone {
+      text-align: center;
+      padding: 1rem 0.5rem;
+      border-radius: 8px;
+      page-break-inside: avoid;
+    }
+    .milestone .year {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .milestone .metric {
+      font-family: var(--font-mono);
+      font-size: 1.3rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .milestone .label {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      margin-top: 0.15rem;
+    }
+    .m-emerald { background: var(--emerald-50); }
+    .m-emerald .year { color: var(--emerald-600); }
+    .m-emerald .metric { color: var(--emerald-700); }
+    .m-gold { background: var(--gold-50); }
+    .m-gold .year { color: var(--gold-600); }
+    .m-gold .metric { color: var(--gold-600); }
+    .ask-box {
+      background: linear-gradient(135deg, var(--emerald-900), var(--emerald-700));
+      color: white;
+      border-radius: 12px;
+      padding: 2rem;
+      margin: 2rem 0;
+      page-break-inside: avoid;
+    }
+    .ask-box h3 {
+      color: var(--gold-400);
+      margin-top: 0;
+      font-size: 1.1rem;
+    }
+    .ask-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .ask-item {
+      text-align: center;
+    }
+    .ask-item .pct {
+      font-family: var(--font-mono);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--gold-400);
+    }
+    .ask-item .desc {
+      font-size: 0.8rem;
+      color: var(--emerald-200, #A7F3D0);
+      margin-top: 0.25rem;
+    }
+    @media print {
+      .ask-box {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        color-adjust: exact;
+      }
+      .milestone {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+    @media (max-width: 768px) {
+      .summary-grid { grid-template-columns: 1fr; }
+      .milestone-row { grid-template-columns: repeat(3, 1fr); }
+      .ask-row { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cover Page -->
+  <div class="cover-page">
+    <div class="logo"><span>E</span></div>
+    <h1>Emakola</h1>
+    <p class="subtitle">Comprehensive Business Plan</p>
+    <div class="cover-divider"></div>
+    <p class="subtitle" style="font-size: 1.1rem; color: var(--navy-600);">
+      The Ecommerce Platform Built for West Africa
+    </p>
+    <div class="meta">
+      <span>March 2026</span>
+      <span>|</span>
+      <span>Confidential</span>
+    </div>
+    <div class="tagline">
+      Enabling 500,000+ West African merchants to create professional online stores with mobile money payments, WhatsApp communication, and local delivery infrastructure.
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav-bar no-print">
+    <a href="01-executive-summary.html" class="active">01 Executive Summary</a>
+    <a href="02-africa-ecommerce-opportunity.html">02 Market Opportunity</a>
+    <a href="03-competitive-landscape.html">03 Competitive Landscape</a>
+    <a href="04-product-and-technology.html">04 Product & Technology</a>
+    <a href="05-business-model-unit-economics.html">05 Business Model</a>
+    <a href="06-marketing-growth-strategy.html">06 Marketing & Growth</a>
+    <a href="07-operations-and-team.html">07 Operations & Team</a>
+    <a href="08-financial-projections.html">08 Financial Projections</a>
+    <a href="09-risk-analysis.html">09 Risk Analysis</a>
+    <a href="10-social-impact-esg.html">10 Social Impact</a>
+  </nav>
+
+  <!-- Section Header -->
+  <div class="section-header">
+    <div class="section-number">Section 01</div>
+    <h1>Executive Summary</h1>
+    <p class="section-subtitle">The case for building ecommerce infrastructure for West Africa</p>
+  </div>
+
+  <!-- The Opportunity -->
+  <h2>The Opportunity</h2>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-value">$40B+</div>
+      <div class="stat-label">Africa Ecommerce</div>
+      <div class="stat-sub">Growing 20-25% annually</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">&lt;5%</div>
+      <div class="stat-label">Online Penetration</div>
+      <div class="stat-sub">vs 20%+ globally</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value gold">1.1B</div>
+      <div class="stat-label">Mobile Money Accounts</div>
+      <div class="stat-sub">Africa, GSMA 2024</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value navy">500K+</div>
+      <div class="stat-label">Ghana SMEs</div>
+      <div class="stat-sub">92% of all businesses</div>
+    </div>
+  </div>
+
+  <p>
+    West Africa's ecommerce market exceeds <strong>$40 billion</strong> with less than 5% online retail penetration — the largest untapped ecommerce opportunity on the planet. Over <strong>1.1 billion mobile money accounts</strong> across Africa have created a payment infrastructure that bypasses traditional banking entirely. Ghana alone has <strong>24.5 million active mobile money wallets</strong> in a population of 34.7 million.
+  </p>
+
+  <p>
+    Yet the platforms available to West African merchants are either <strong>too basic</strong> (Paystack Commerce, Flutterwave Store — essentially payment links with a product page) or <strong>too expensive and culturally misaligned</strong> (Shopify at $39/mo = GHS 430+ with no native mobile money, no WhatsApp, and pages optimized for broadband, not 3G).
+  </p>
+
+  <!-- The Problem -->
+  <h2>The Problem</h2>
+
+  <div class="two-col">
+    <div class="card card-accent">
+      <div class="card-header">What Merchants Need</div>
+      <ul>
+        <li>Accept MTN MoMo, Vodafone Cash as primary checkout</li>
+        <li>WhatsApp order notifications (93% penetration in Ghana)</li>
+        <li>Stores that load in &lt;3 seconds on 3G mobile</li>
+        <li>Affordable pricing in local currency (GHS, not USD)</li>
+        <li>Built-in delivery coordination</li>
+        <li>Cash on delivery with proper workflow</li>
+      </ul>
+    </div>
+    <div class="card card-gold">
+      <div class="card-header">What They Get Today</div>
+      <ul>
+        <li>Shopify: $39/mo, no mobile money, 15-second loads on 3G</li>
+        <li>Paystack Commerce: Free but no themes, no inventory, no delivery</li>
+        <li>Jumia: 10-25% commission, no customer ownership</li>
+        <li>WhatsApp: Manual order tracking, missed orders, no analytics</li>
+        <li>WooCommerce: Requires developer, hosting, and plugin management</li>
+        <li>Nothing purpose-built for West African realities</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- The Solution -->
+  <div class="page-break"></div>
+  <h2>The Solution: Emakola</h2>
+
+  <div class="callout callout-emerald">
+    <div class="callout-title">Shopify Built for West Africa</div>
+    <p>
+      Emakola is a multi-tenant ecommerce platform that enables merchants to create professional online stores with <strong>native mobile money payments</strong> (MTN MoMo, Vodafone Cash, AirtelTigo), <strong>WhatsApp-first communication</strong>, a <strong>built-in rider delivery marketplace</strong>, and storefronts <strong>optimized for 3G mobile devices</strong> — starting at <strong>GHS 49/mo (~$4.50)</strong>.
+    </p>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <h3><span class="icon icon-emerald">$</span> Mobile Money Native</h3>
+      <p>MTN MoMo, Vodafone Cash, and AirtelTigo are the primary checkout methods — not afterthought plugins. Paystack + Hubtel gateway integration handles cards, bank transfers, and USSD too.</p>
+    </div>
+    <div class="summary-card">
+      <h3><span class="icon icon-emerald">W</span> WhatsApp-First</h3>
+      <p>Order confirmations, shipping updates, abandoned cart recovery, and customer support — all via WhatsApp. Because 91.8% of Ghanaian internet users are on WhatsApp, not checking email.</p>
+    </div>
+    <div class="summary-card">
+      <h3><span class="icon icon-gold">3G</span> 3G-Optimized</h3>
+      <p>Built with Elixir/Phoenix LiveView — server-rendered with ~30KB JS payload vs 300KB+ React SPAs. Pages load in &lt;3 seconds on typical Ghanaian mobile connections.</p>
+    </div>
+    <div class="summary-card">
+      <h3><span class="icon icon-navy">D</span> Built-in Delivery</h3>
+      <p>WhatsApp-based rider marketplace connects merchants with local delivery riders. Zone-based pricing, GPS tracking, COD with driver confirmation. No separate logistics app needed.</p>
+    </div>
+  </div>
+
+  <!-- Current Status -->
+  <h2>Current Status</h2>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-value">618</div>
+      <div class="stat-label">Tests Passing</div>
+      <div class="stat-sub">TDD from day one</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">17</div>
+      <div class="stat-label">Ash Resources</div>
+      <div class="stat-sub">Domain model complete</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">21</div>
+      <div class="stat-label">LiveView Pages</div>
+      <div class="stat-sub">Admin + storefront</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value gold">8/9</div>
+      <div class="stat-label">MVP Milestones</div>
+      <div class="stat-sub">Phase 1 nearly complete</div>
+    </div>
+  </div>
+
+  <p>
+    Emakola is in advanced MVP stage with <strong>8 of 9 Phase 1 milestones complete</strong>. The platform includes merchant authentication, product management with variants, a mobile-first storefront, shopping cart and checkout, Paystack and Hubtel payment integrations with webhook processing, order management with status workflows, SMS and WhatsApp notification infrastructure, a merchant dashboard with analytics, and inventory tracking with low-stock alerts.
+  </p>
+
+  <!-- Business Model -->
+  <h2>Business Model</h2>
+
+  <p>Three revenue streams that scale with merchant success:</p>
+
+  <div class="three-col">
+    <div class="card card-accent">
+      <div class="card-header">Subscriptions</div>
+      <p class="text-mono" style="font-size: 1.1rem; color: var(--emerald-700); margin-bottom: 0.5rem;">GHS 0 — 149/mo</p>
+      <p class="text-small">Free, Growth (GHS 49), Pro (GHS 149), Enterprise tiers. Predictable MRR.</p>
+    </div>
+    <div class="card card-gold">
+      <div class="card-header">Transaction Fees</div>
+      <p class="text-mono" style="font-size: 1.1rem; color: var(--gold-600); margin-bottom: 0.5rem;">1.5% — 3.5%</p>
+      <p class="text-small">Per-transaction fee on all sales. Scales with merchant growth. Aligned incentives.</p>
+    </div>
+    <div class="card">
+      <div class="card-header">Delivery Commission</div>
+      <p class="text-mono" style="font-size: 1.1rem; color: var(--navy-700); margin-bottom: 0.5rem;">10% of fees</p>
+      <p class="text-small">Commission on rider marketplace deliveries. Grows with order volume.</p>
+    </div>
+  </div>
+
+  <div class="callout callout-gold">
+    <div class="callout-title">Unit Economics (Growth Merchant)</div>
+    <p>
+      Monthly revenue per merchant: <strong>GHS 449 (~$29)</strong> | Cost: <strong>GHS 65 (~$4.20)</strong> | <strong>Gross margin: 85%</strong><br>
+      CAC target: &lt;GHS 200 | LTV target: &gt;GHS 5,000 | LTV:CAC ratio: &gt;3:1
+    </p>
+  </div>
+
+  <!-- Growth Trajectory -->
+  <div class="page-break"></div>
+  <h2>Growth Trajectory</h2>
+
+  <div class="milestone-row">
+    <div class="milestone m-emerald">
+      <div class="year">Year 1</div>
+      <div class="metric">1,000</div>
+      <div class="label">Merchants</div>
+      <div class="label" style="margin-top: 0.5rem; font-family: var(--font-mono);">GHS 1.9M</div>
+      <div class="label">~$125K rev</div>
+    </div>
+    <div class="milestone m-emerald">
+      <div class="year">Year 2</div>
+      <div class="metric">4,000</div>
+      <div class="label">Merchants</div>
+      <div class="label" style="margin-top: 0.5rem; font-family: var(--font-mono);">GHS 12M</div>
+      <div class="label">~$774K rev</div>
+    </div>
+    <div class="milestone m-gold">
+      <div class="year">Year 3</div>
+      <div class="metric">12,000</div>
+      <div class="label">Merchants</div>
+      <div class="label" style="margin-top: 0.5rem; font-family: var(--font-mono);">GHS 48M</div>
+      <div class="label">~$3.1M rev</div>
+    </div>
+    <div class="milestone m-gold">
+      <div class="year">Year 4</div>
+      <div class="metric">25,000</div>
+      <div class="label">Merchants</div>
+      <div class="label" style="margin-top: 0.5rem; font-family: var(--font-mono);">GHS 120M</div>
+      <div class="label">~$7.7M rev</div>
+    </div>
+    <div class="milestone m-emerald">
+      <div class="year">Year 5</div>
+      <div class="metric">50,000</div>
+      <div class="label">Merchants</div>
+      <div class="label" style="margin-top: 0.5rem; font-family: var(--font-mono);">GHS 237M</div>
+      <div class="label">~$15.3M rev</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Milestone</th>
+        <th>Timeline</th>
+        <th>Key Metric</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Ghana MVP Launch</strong></td>
+        <td>Q2 2026</td>
+        <td>First 50 merchants, Paystack + Hubtel live</td>
+      </tr>
+      <tr>
+        <td><strong>Product-Market Fit</strong></td>
+        <td>Q4 2026</td>
+        <td>1,000 merchants, &lt;5% monthly churn, NPS &gt;50</td>
+      </tr>
+      <tr>
+        <td><strong>Break-Even</strong></td>
+        <td>Q2 2027</td>
+        <td>Month 16, ~2,500 paid merchants, GHS 250K MRR</td>
+      </tr>
+      <tr>
+        <td><strong>Nigeria Launch</strong></td>
+        <td>Q4 2027</td>
+        <td>NGN pricing, Flutterwave integration, Nigerian logistics</td>
+      </tr>
+      <tr>
+        <td><strong>Series A Ready</strong></td>
+        <td>Q1 2028</td>
+        <td>12,000+ merchants, GHS 48M ARR, EBITDA positive</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Funding -->
+  <h2>The Ask</h2>
+
+  <div class="ask-box">
+    <h3>Seed Round: GHS 775,000 (~$50,000 USD)</h3>
+    <p style="margin-bottom: 0.5rem;">18-month runway to break-even. Funds the team, GTM execution, and infrastructure through product-market fit.</p>
+    <div class="ask-row">
+      <div class="ask-item">
+        <div class="pct">50%</div>
+        <div class="desc">Engineering<br>GHS 387.5K</div>
+      </div>
+      <div class="ask-item">
+        <div class="pct">25%</div>
+        <div class="desc">Marketing<br>GHS 193.75K</div>
+      </div>
+      <div class="ask-item">
+        <div class="pct">15%</div>
+        <div class="desc">Operations<br>GHS 116.25K</div>
+      </div>
+      <div class="ask-item">
+        <div class="pct">10%</div>
+        <div class="desc">Reserve<br>GHS 77.5K</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Why Now -->
+  <h2>Why Now</h2>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <h3><span class="icon icon-emerald">1</span> Mobile Money Interoperability</h3>
+      <p>Ghana launched full cross-network mobile money interoperability in 2021 — customers can pay from any network. Transaction values doubled to GHS 3+ trillion in 2024.</p>
+    </div>
+    <div class="summary-card">
+      <h3><span class="icon icon-gold">2</span> Post-COVID Digital Adoption</h3>
+      <p>COVID permanently accelerated digital adoption. Online spending grew 40%+ during 2020-2021, and the behavior stuck. Merchants who went digital aren't going back.</p>
+    </div>
+    <div class="summary-card">
+      <h3><span class="icon icon-navy">3</span> No Dominant Platform</h3>
+      <p>There is no Shopify for West Africa. Paystack Commerce is too basic. Shopify is too expensive. The market leader position is open — and first-mover advantage compounds.</p>
+    </div>
+    <div class="summary-card">
+      <h3><span class="icon icon-emerald">4</span> Smartphone Price Collapse</h3>
+      <p>Chinese brands (Tecno, Infinix, Itel) brought smartphones under $50. With 38M+ mobile connections and 4G expanding, the infrastructure is ready.</p>
+    </div>
+  </div>
+
+  <!-- Social Impact -->
+  <h2>Impact</h2>
+
+  <div class="callout callout-emerald">
+    <p>
+      Emakola isn't just commercially viable — it's structurally impactful. Every merchant onboarded is a small business formalized. Every transaction is financial inclusion. Every rider connected is a job created. With <strong>44% of Ghana's SMEs women-owned</strong>, and our primary persona being women Instagram sellers, we target <strong>60%+ women-led businesses</strong> on the platform. Aligned with SDGs 1, 5, 8, 9, and 10.
+    </p>
+  </div>
+
+  <!-- Closing -->
+  <div class="insight">
+    West Africa doesn't need another marketplace taking 20% from merchants. It doesn't need a Silicon Valley platform priced in dollars. It needs infrastructure — built locally, priced locally, designed for mobile money and WhatsApp and 3G. Emakola is that infrastructure.
+    <span class="source">The Emakola Team</span>
+  </div>
+
+  <!-- Footer -->
+  <div class="page-footer">
+    <span>Emakola Business Plan</span>
+    <span>Confidential | March 2026</span>
+  </div>
+
+</body>
+</html>

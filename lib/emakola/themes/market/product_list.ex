@@ -11,71 +11,76 @@ defmodule Emakola.Themes.Market.ProductList do
 
   def render(assigns) do
     ~H"""
-    <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-0">
-      <%!-- Breadcrumb --%>
-      <nav aria-label="Breadcrumb" class="pt-6 pb-4">
-        <ol class="flex items-center gap-2 text-xs text-[#475569]">
-          <li>
-            <a href={"/s/#{@store.slug}"} class="hover:text-[#0F172A] transition-colors">Home</a>
-          </li>
-          <li>
-            <svg
-              class="w-3 h-3 inline"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7" />
-            </svg>
-          </li>
-          <li class="text-[#0F172A] font-medium">Shop</li>
-        </ol>
-      </nav>
+    <%!-- Hero Header Section --%>
+    <div class="bg-[#F8FAFC] border-b border-[#E2E8F0] mb-8 lg:mb-12">
+      <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+        <%!-- Breadcrumb --%>
+        <nav aria-label="Breadcrumb" class="py-5">
+          <ol class="flex items-center gap-2 text-xs text-[#64748B] font-medium tracking-wide">
+            <li>
+              <a href={"/s/#{@store.slug}"} class="hover:text-[#0F172A] transition-colors">Home</a>
+            </li>
+            <li>
+              <svg
+                class="w-3.5 h-3.5 inline text-[#CBD5E1]"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7" />
+              </svg>
+            </li>
+            <li class="text-[#0F172A]">Shop</li>
+          </ol>
+        </nav>
 
-      <%!-- Page header --%>
-      <div class="flex items-end justify-between gap-4 pb-6">
-        <div>
-          <h1 class="text-3xl sm:text-4xl font-bold text-[#0F172A]">Shop All</h1>
-          <p class="text-sm text-[#475569] mt-1">{length(@products)} products</p>
+        <%!-- Page header --%>
+        <div class="py-8 sm:py-12 flex flex-col items-center text-center lg:items-start lg:text-left">
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#0F172A] tracking-[-0.02em] mb-4">
+            Shop All
+          </h1>
+          <p class="text-base sm:text-lg text-[#64748B] max-w-2xl leading-relaxed">
+            Browse our full collection of premium products and accessories.
+            <span class="inline-flex items-center justify-center px-2.5 py-0.5 ml-1.5 text-[0.6875rem] font-bold uppercase tracking-wider bg-white border border-[#E2E8F0] shadow-sm rounded-full text-[#475569] align-middle">
+              {length(@products)} items
+            </span>
+          </p>
         </div>
       </div>
+    </div>
 
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-0">
       <%!-- Main content: sidebar + products --%>
       <div class="flex gap-8 pb-16">
         <%!-- Filter sidebar (desktop) --%>
-        <aside class="hidden lg:block w-64 flex-shrink-0">
-          <div class="sticky top-24 space-y-6">
+        <aside class="hidden lg:block w-[240px] flex-shrink-0">
+          <div class="sticky top-28 space-y-8">
             <%!-- Category filter --%>
             <div>
-              <h3 class="text-lg font-semibold text-[#0F172A] mb-3">Category</h3>
-              <div class="space-y-2.5">
-                <label class="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="category"
-                    checked={is_nil(@selected_category)}
-                    phx-click="filter_category"
-                    phx-value-category_id="all"
-                    class="w-[18px] h-[18px] accent-[#1C1917] cursor-pointer"
-                  />
-                  <span class={"text-sm group-hover:text-[#0F172A] transition-colors #{if is_nil(@selected_category), do: "text-[#0F172A] font-medium", else: "text-[#475569]"}"}>
-                    All
+              <h3 class="text-xs font-bold text-[#0F172A] uppercase tracking-widest mb-4 border-b border-[#E2E8F0] pb-3">
+                Categories
+              </h3>
+              <div class="space-y-1">
+                <button
+                  phx-click="filter_category"
+                  phx-value-category_id="all"
+                  class={"w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-all " <> (if is_nil(@selected_category), do: "bg-[#0F172A] text-white font-semibold shadow-sm", else: "text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]")}
+                >
+                  <span>All Products</span>
+                  <span :if={is_nil(@selected_category)} class="w-1.5 h-1.5 rounded-full bg-white">
                   </span>
-                </label>
-                <label :for={cat <- @categories} class="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="radio"
-                    name="category"
-                    checked={@selected_category == cat.id}
-                    phx-click="filter_category"
-                    phx-value-category_id={cat.id}
-                    class="w-[18px] h-[18px] accent-[#1C1917] cursor-pointer"
-                  />
-                  <span class={"text-sm group-hover:text-[#0F172A] transition-colors #{if @selected_category == cat.id, do: "text-[#0F172A] font-medium", else: "text-[#475569]"}"}>
-                    {cat.name}
+                </button>
+                <button
+                  :for={cat <- @categories}
+                  phx-click="filter_category"
+                  phx-value-category_id={cat.id}
+                  class={"w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-all " <> (if @selected_category == cat.id, do: "bg-[#0F172A] text-white font-semibold shadow-sm", else: "text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]")}
+                >
+                  <span>{cat.name}</span>
+                  <span :if={@selected_category == cat.id} class="w-1.5 h-1.5 rounded-full bg-white">
                   </span>
-                </label>
+                </button>
               </div>
             </div>
           </div>
@@ -83,31 +88,13 @@ defmodule Emakola.Themes.Market.ProductList do
 
         <%!-- Product grid area --%>
         <div class="flex-1 min-w-0">
-          <%!-- Mobile filter + Sort bar --%>
-          <div class="flex items-center gap-3 mb-6 lg:mb-6">
-            <%!-- Mobile category filter --%>
-            <div class="lg:hidden flex-1">
-              <select
-                phx-change="filter_category_select"
-                name="category_id"
-                class="w-full px-3 py-2.5 border border-[#E2E8F0] rounded-lg text-sm text-[#0F172A] bg-white focus:outline-none focus:ring-2 focus:ring-[#B45309] appearance-none bg-[url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2344403C%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M6%209l6%206%206-6%22/%3E%3C/svg%3E')] bg-no-repeat bg-[right_12px_center]"
-              >
-                <option value="all" selected={is_nil(@selected_category)}>All Categories</option>
-                <option
-                  :for={cat <- @categories}
-                  value={cat.id}
-                  selected={@selected_category == cat.id}
-                >
-                  {cat.name}
-                </option>
-              </select>
-            </div>
-
+          <%!-- Top Bar: Search & Mobile Categories --%>
+          <div class="mb-8 space-y-4 lg:space-y-0 lg:flex lg:items-center lg:justify-end lg:mb-10">
             <%!-- Search --%>
-            <form phx-change="search" class="flex-1 lg:max-w-sm">
-              <div class="relative">
+            <form phx-change="search" class="w-full lg:max-w-xs xl:max-w-sm">
+              <div class="relative group">
                 <svg
-                  class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]"
+                  class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-[#94A3B8] group-focus-within:text-[#B45309] transition-colors"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="2"
@@ -125,40 +112,64 @@ defmodule Emakola.Themes.Market.ProductList do
                   value={@search_query}
                   placeholder="Search products..."
                   phx-debounce="300"
-                  class="w-full pl-9 pr-4 py-2.5 border border-[#E2E8F0] rounded-lg text-sm text-[#0F172A] bg-white placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#B45309] focus:border-transparent"
+                  class="w-full pl-10 pr-4 py-2.5 border border-[#E2E8F0] rounded-xl text-sm text-[#0F172A] bg-white hover:border-[#CBD5E1] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#B45309]/20 focus:border-[#B45309] transition-all shadow-sm"
                 />
               </div>
             </form>
+
+            <%!-- Mobile category pills (horizontal scroll) --%>
+            <div class="lg:hidden flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <button
+                phx-click="filter_category"
+                phx-value-category_id="all"
+                class={"flex-shrink-0 px-4 py-2 rounded-full text-[0.8125rem] font-semibold transition-all border " <> (if is_nil(@selected_category), do: "bg-[#0F172A] text-white border-[#0F172A] shadow-md", else: "bg-white text-[#475569] border-[#E2E8F0] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]")}
+              >
+                All
+              </button>
+              <button
+                :for={cat <- @categories}
+                phx-click="filter_category"
+                phx-value-category_id={cat.id}
+                class={"flex-shrink-0 px-4 py-2 rounded-full text-[0.8125rem] font-semibold transition-all border " <> (if @selected_category == cat.id, do: "bg-[#0F172A] text-white border-[#0F172A] shadow-md", else: "bg-white text-[#475569] border-[#E2E8F0] hover:border-[#CBD5E1] hover:bg-[#F8FAFC]")}
+              >
+                {cat.name}
+              </button>
+            </div>
           </div>
 
           <%!-- Products --%>
           <%= if @products == [] do %>
-            <div class="py-20 text-center">
-              <svg
-                class="w-16 h-16 mx-auto text-[#E2E8F0] mb-4"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
-                />
-              </svg>
-              <p class="text-[#475569]">No products found.</p>
+            <div class="py-24 text-center border-2 border-dashed border-[#E2E8F0] rounded-[24px] bg-[#F8FAFC]">
+              <div class="w-16 h-16 mx-auto bg-white rounded-full flex items-center justify-center shadow-sm border border-[#F1F5F9] mb-4">
+                <svg
+                  class="w-8 h-8 text-[#94A3B8]"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6"
+                  />
+                </svg>
+              </div>
+              <h3 class="text-xl font-bold text-[#0F172A] mb-1.5">No products found</h3>
+              <p class="text-[#64748B] text-[0.9375rem] max-w-sm mx-auto mb-6">
+                We couldn't find anything matching your search. Try exploring other categories.
+              </p>
               <button
                 :if={@search_query != "" || @selected_category}
                 phx-click="filter_category"
                 phx-value-category_id="all"
-                class="mt-4 text-sm font-medium text-[#B45309] hover:text-[#92400E] transition-colors"
+                class="inline-flex items-center gap-2 px-6 py-2.5 bg-white border border-[#E2E8F0] shadow-sm rounded-full text-sm font-semibold text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:ring-offset-2"
               >
-                Clear filters
+                Clear all filters
               </button>
             </div>
           <% else %>
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+            <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
               <.product_card :for={product <- @products} product={product} store={@store} />
             </div>
 

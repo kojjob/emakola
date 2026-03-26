@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emakola Business Plan — Section 10: Social Impact & ESG</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Page-specific styles */
+    .sdg-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin: 1.5rem 0;
+    }
+
+    .sdg-card {
+      border-radius: 10px;
+      padding: 1.5rem;
+      page-break-inside: avoid;
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sdg-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 80px;
+      height: 80px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+      transform: translate(20px, -20px);
+    }
+
+    .sdg-card .sdg-number {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      opacity: 0.85;
+      margin-bottom: 0.35rem;
+    }
+
+    .sdg-card .sdg-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .sdg-card .sdg-desc {
+      font-size: 0.88rem;
+      opacity: 0.9;
+      line-height: 1.5;
+    }
+
+    .highlight-section {
+      background: linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%);
+      border: 1px solid #F9A8D4;
+      border-left: 4px solid #EC4899;
+      border-radius: 10px;
+      padding: 1.5rem 1.75rem;
+      margin: 1.5rem 0;
+      page-break-inside: avoid;
+    }
+
+    .highlight-section h3 {
+      color: #9D174D;
+      margin-top: 0;
+      margin-bottom: 0.75rem;
+    }
+
+    .highlight-section ul li::marker {
+      color: #EC4899;
+    }
+
+    .highlight-section .highlight-target {
+      display: inline-block;
+      background: #EC4899;
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 100px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+
+    .esg-card .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .esg-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    .esg-env { background: #D1FAE5; }
+    .esg-soc { background: #DBEAFE; }
+    .esg-gov { background: #FEF9C3; }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="nav-bar">
+    <a href="#">Cover</a>
+    <a href="#">01 Executive Summary</a>
+    <a href="#">02 Market Opportunity</a>
+    <a href="#">03 Competitive Landscape</a>
+    <a href="#">04 Product</a>
+    <a href="#">05 Business Model</a>
+    <a href="#">06 Go-to-Market</a>
+    <a href="#">07 Team</a>
+    <a href="#">08 Financials</a>
+    <a href="#">09 Appendix</a>
+    <a href="#" class="active">10 Social Impact &amp; ESG</a>
+  </nav>
+
+  <!-- Section Header -->
+  <div class="section-header">
+    <div class="section-number">Section 10</div>
+    <h1>Social Impact &amp; ESG</h1>
+    <div class="section-subtitle">How Emakola creates economic opportunity, financial inclusion, and measurable social impact across West Africa</div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- IMPACT THESIS                                -->
+  <!-- ============================================ -->
+
+  <div class="callout callout-emerald">
+    <div class="callout-title">Impact Thesis</div>
+    <p>Emakola doesn't just build ecommerce infrastructure &mdash; it creates economic opportunity. Every merchant onboarded is a small business formalized, every transaction processed is financial inclusion in action, every rider connected is a job created.</p>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SME EMPOWERMENT METRICS                      -->
+  <!-- ============================================ -->
+  <h2>SME Empowerment Metrics</h2>
+  <p>Emakola's growth directly translates to measurable economic empowerment for small and micro enterprises across West Africa.</p>
+
+  <h3>Year 1 Targets</h3>
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-value">1,000</div>
+      <div class="stat-label">Merchants Enabled</div>
+      <div class="stat-sub">Small businesses formalized</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value gold">GHS 240M</div>
+      <div class="stat-label">GMV Facilitated</div>
+      <div class="stat-sub">~$15.5M USD</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">3,000+</div>
+      <div class="stat-label">Products Listed</div>
+      <div class="stat-sub">Across all merchants</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value navy">50+</div>
+      <div class="stat-label">Delivery Riders</div>
+      <div class="stat-sub">Connected via marketplace</div>
+    </div>
+  </div>
+
+  <h3>Year 3 Targets</h3>
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-value">10,000+</div>
+      <div class="stat-label">Merchants</div>
+      <div class="stat-sub">Across Ghana &amp; Nigeria</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value gold">GHS 4.8B</div>
+      <div class="stat-label">GMV Facilitated</div>
+      <div class="stat-sub">~$310M USD</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">200+</div>
+      <div class="stat-label">Delivery Riders</div>
+      <div class="stat-sub">Full-time employment</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value navy">500+</div>
+      <div class="stat-label">Jobs Created</div>
+      <div class="stat-sub">Direct + indirect</div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- FINANCIAL INCLUSION                          -->
+  <!-- ============================================ -->
+  <h2>Financial Inclusion</h2>
+  <p>Across West Africa, millions of small merchants operate entirely in cash with no digital footprint. Emakola bridges this gap by making digital commerce accessible without traditional banking infrastructure.</p>
+
+  <div class="two-col">
+    <div class="card card-accent">
+      <div class="card-header">Mobile Money Access</div>
+      <p>Enabling merchants who are unbanked or underbanked to accept digital payments through mobile money &mdash; no bank account required. MTN MoMo, Vodafone Cash, and AirtelTigo Money are supported natively.</p>
+    </div>
+    <div class="card card-accent">
+      <div class="card-header">Formalization</div>
+      <p>Merchants on Emakola get sales records, tax-ready transaction logs, and business analytics &mdash; formalizing informal businesses and creating a documented trading history.</p>
+    </div>
+    <div class="card card-accent">
+      <div class="card-header">Credit Readiness</div>
+      <p>Transaction history on the platform can serve as alternative credit data for merchant financing. Consistent sales records unlock future access to microloans and working capital products.</p>
+    </div>
+    <div class="card card-accent">
+      <div class="card-header">Cross-border Payments</div>
+      <p>Enabling merchants to sell beyond their immediate geography. As Emakola expands to Nigeria, merchants gain access to a 220M-person market without payment friction.</p>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- GENDER IMPACT                                -->
+  <!-- ============================================ -->
+  <h2>Gender Impact</h2>
+
+  <div class="highlight-section">
+    <h3>Designing for Women Entrepreneurs</h3>
+    <ul>
+      <li>Women own approximately <strong>44% of SMEs in Ghana</strong>, one of the highest rates globally</li>
+      <li>Fashion, beauty, and food &mdash; dominant categories on Instagram commerce &mdash; are predominantly women-led businesses</li>
+      <li>Emakola's primary target persona (<strong>Ama &mdash; The Instagram Seller</strong>) is a woman entrepreneur running her business from her phone</li>
+      <li>By designing for mobile-first, WhatsApp-native workflows, Emakola is inherently designing for women entrepreneurs who disproportionately use these tools</li>
+    </ul>
+    <span class="highlight-target">Target: 60%+ of Emakola merchants will be women-led businesses</span>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- YOUTH EMPLOYMENT                             -->
+  <!-- ============================================ -->
+  <h2>Youth Employment</h2>
+
+  <div class="callout callout-navy">
+    <div class="callout-title">Ghana's Youth Opportunity</div>
+    <ul>
+      <li><strong>Ghana median age: 21 years</strong> &mdash; one of the youngest populations in the world</li>
+      <li><strong>Youth unemployment: ~12%</strong> (higher in urban areas informally), with significant underemployment</li>
+      <li>Emakola creates multiple employment pathways for young Ghanaians:</li>
+    </ul>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-value">Direct</div>
+      <div class="stat-label">Tech Jobs in Accra</div>
+      <div class="stat-sub">Engineers, marketers, support</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value gold">Merchant</div>
+      <div class="stat-label">Young Entrepreneurs</div>
+      <div class="stat-sub">Launching online stores</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value navy">Riders</div>
+      <div class="stat-label">Delivery Marketplace</div>
+      <div class="stat-sub">Youth employment in logistics</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">Skills</div>
+      <div class="stat-label">Digital Literacy</div>
+      <div class="stat-sub">Through onboarding &amp; content</div>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================ -->
+  <!-- SDG ALIGNMENT                                -->
+  <!-- ============================================ -->
+  <h2>SDG Alignment</h2>
+  <p>Emakola's mission aligns directly with six United Nations Sustainable Development Goals. Impact is not a side effect &mdash; it is the business model.</p>
+
+  <div class="sdg-grid">
+    <div class="sdg-card" style="background: #E5243B;">
+      <div class="sdg-number">SDG 1</div>
+      <div class="sdg-title">No Poverty</div>
+      <div class="sdg-desc">Enabling income generation for micro and small businesses. Every merchant on Emakola gains access to digital tools that expand their customer base and revenue potential.</div>
+    </div>
+
+    <div class="sdg-card" style="background: #FF3A21;">
+      <div class="sdg-number">SDG 5</div>
+      <div class="sdg-title">Gender Equality</div>
+      <div class="sdg-desc">Empowering women entrepreneurs who represent 44% of Ghana's SMEs. Mobile-first design and WhatsApp-native workflows are built for how women merchants already operate.</div>
+    </div>
+
+    <div class="sdg-card" style="background: #A21942;">
+      <div class="sdg-number">SDG 8</div>
+      <div class="sdg-title">Decent Work &amp; Economic Growth</div>
+      <div class="sdg-desc">Creating direct employment and enabling entrepreneurship. From tech jobs in Accra to rider employment in the delivery marketplace, Emakola is a job creation engine.</div>
+    </div>
+
+    <div class="sdg-card" style="background: #FD6925;">
+      <div class="sdg-number">SDG 9</div>
+      <div class="sdg-title">Industry, Innovation &amp; Infrastructure</div>
+      <div class="sdg-desc">Building digital commerce infrastructure for West Africa. Emakola provides the rails for ecommerce in a region where Shopify and similar platforms fail to serve.</div>
+    </div>
+
+    <div class="sdg-card" style="background: #DD1367;">
+      <div class="sdg-number">SDG 10</div>
+      <div class="sdg-title">Reduced Inequalities</div>
+      <div class="sdg-desc">Bridging the digital divide with affordable, accessible ecommerce tools. Pricing starts at GHS 0/month, ensuring no merchant is priced out of digital commerce.</div>
+    </div>
+
+    <div class="sdg-card" style="background: #19486A;">
+      <div class="sdg-number">SDG 17</div>
+      <div class="sdg-title">Partnerships for the Goals</div>
+      <div class="sdg-desc">Partnering with payment providers (Paystack, Hubtel), logistics companies, mobile money operators, and business associations to build a complete ecosystem.</div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- IMPACT MEASUREMENT FRAMEWORK                 -->
+  <!-- ============================================ -->
+  <h2>Impact Measurement Framework</h2>
+  <p>Emakola tracks social impact with the same rigor as financial metrics. Every KPI below is measurable through platform data, surveys, or HR records.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Metric</th>
+        <th>Measurement</th>
+        <th>Frequency</th>
+        <th>Target Y1</th>
+        <th>Target Y3</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Merchants Onboarded</strong></td>
+        <td>Platform data</td>
+        <td>Monthly</td>
+        <td class="table-money">1,000</td>
+        <td class="table-money">10,000</td>
+      </tr>
+      <tr>
+        <td><strong>GMV Facilitated</strong></td>
+        <td>Transaction sum</td>
+        <td>Monthly</td>
+        <td class="table-money">GHS 240M</td>
+        <td class="table-money">GHS 4.8B</td>
+      </tr>
+      <tr>
+        <td><strong>Women-led Businesses</strong></td>
+        <td>Self-reported</td>
+        <td>Quarterly</td>
+        <td class="table-money">600+</td>
+        <td class="table-money">6,000+</td>
+      </tr>
+      <tr>
+        <td><strong>Jobs Created (direct)</strong></td>
+        <td>HR records</td>
+        <td>Quarterly</td>
+        <td class="table-money">5</td>
+        <td class="table-money">20</td>
+      </tr>
+      <tr>
+        <td><strong>Jobs Created (indirect)</strong></td>
+        <td>Estimate</td>
+        <td>Annually</td>
+        <td class="table-money">100</td>
+        <td class="table-money">1,000</td>
+      </tr>
+      <tr>
+        <td><strong>Rider Employment</strong></td>
+        <td>Platform data</td>
+        <td>Monthly</td>
+        <td class="table-money">50</td>
+        <td class="table-money">200</td>
+      </tr>
+      <tr>
+        <td><strong>Digital Payments Enabled</strong></td>
+        <td>Transaction count</td>
+        <td>Monthly</td>
+        <td class="table-money">50,000</td>
+        <td class="table-money">2M</td>
+      </tr>
+      <tr>
+        <td><strong>Merchant Revenue Growth</strong></td>
+        <td>Before/after surveys</td>
+        <td>Bi-annually</td>
+        <td class="table-money">30% increase</td>
+        <td class="table-money">50% increase</td>
+      </tr>
+      <tr>
+        <td><strong>NPS (Merchant Satisfaction)</strong></td>
+        <td>Surveys</td>
+        <td>Quarterly</td>
+        <td class="table-money">&gt;50</td>
+        <td class="table-money">&gt;60</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================ -->
+  <!-- ESG CONSIDERATIONS FOR INVESTORS             -->
+  <!-- ============================================ -->
+  <h2>ESG Considerations for Investors</h2>
+  <p>Emakola meets the Environmental, Social, and Governance criteria that impact-focused and institutional investors increasingly require.</p>
+
+  <div class="three-col">
+    <div class="card esg-card" style="border-top: 4px solid #10B981;">
+      <div class="card-header">
+        <span class="esg-icon esg-env">E</span>
+        Environmental
+      </div>
+      <ul>
+        <li>SaaS model &mdash; minimal physical footprint</li>
+        <li>Digital receipts reduce paper waste across thousands of transactions</li>
+        <li>Consolidating delivery routes reduces emissions vs. individual merchant logistics</li>
+        <li>Fly.io uses green energy data centers for hosting</li>
+      </ul>
+    </div>
+
+    <div class="card esg-card" style="border-top: 4px solid #3B82F6;">
+      <div class="card-header">
+        <span class="esg-icon esg-soc">S</span>
+        Social
+      </div>
+      <ul>
+        <li>Merchant empowerment and business formalization</li>
+        <li>Financial inclusion via mobile money integration</li>
+        <li>Gender equity in entrepreneurship (60%+ target)</li>
+        <li>Youth employment pipeline through multiple pathways</li>
+        <li>Digital literacy programs through merchant onboarding</li>
+      </ul>
+    </div>
+
+    <div class="card esg-card" style="border-top: 4px solid #EAB308;">
+      <div class="card-header">
+        <span class="esg-icon esg-gov">G</span>
+        Governance
+      </div>
+      <ul>
+        <li>Data Protection Act compliance (Ghana)</li>
+        <li>Transparent pricing &mdash; no hidden fees</li>
+        <li>Merchant data ownership &mdash; merchants can export all data</li>
+        <li>Regular security audits and penetration testing</li>
+        <li>Anti-fraud systems for payment protection</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- KEY INSIGHT                                  -->
+  <!-- ============================================ -->
+  <div class="insight">
+    Impact investors increasingly seek "commercially sustainable" impact &mdash; businesses where financial returns and social impact are inseparable. Emakola is one such business: every dollar of revenue requires a merchant succeeding, every merchant succeeding means a small business growing, and every small business growing means jobs and economic participation in West Africa.
+    <span class="source">Emakola Impact Thesis</span>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SOURCES                                      -->
+  <!-- ============================================ -->
+  <div class="sources">
+    <h4>Sources &amp; References</h4>
+    <ol>
+      <li>Ghana Statistical Service &mdash; Labour Force Survey 2023: Youth unemployment and median age data</li>
+      <li>World Bank &mdash; Ghana Economic Update 2024: SME landscape and women's entrepreneurship statistics</li>
+      <li>Mastercard Index of Women Entrepreneurs (MIWE) 2023: Women SME ownership rates in Sub-Saharan Africa</li>
+      <li>United Nations Sustainable Development Goals Framework &mdash; sdgs.un.org</li>
+      <li>Bank of Ghana &mdash; Mobile Money Statistics 2024: Financial inclusion and mobile money adoption rates</li>
+      <li>Ghana Data Protection Commission &mdash; Data Protection Act, 2012 (Act 843)</li>
+      <li>GSMA &mdash; State of Mobile Money in West Africa 2024</li>
+      <li>IFC &mdash; MSME Finance Gap Report: Alternative credit data and merchant financing in emerging markets</li>
+    </ol>
+  </div>
+
+  <!-- Page Footer -->
+  <div class="page-footer">
+    <span>Emakola Business Plan | Confidential | March 2026</span>
+    <span>Section 10 &mdash; Social Impact &amp; ESG</span>
+  </div>
+
+</body>
+</html>
