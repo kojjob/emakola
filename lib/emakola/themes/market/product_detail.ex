@@ -119,7 +119,13 @@ defmodule Emakola.Themes.Market.ProductDetail do
             </a>
           </li>
           <li>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              viewBox="0 0 24 24"
+            >
               <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
           </li>
@@ -129,7 +135,13 @@ defmodule Emakola.Themes.Market.ProductDetail do
             </a>
           </li>
           <li>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              viewBox="0 0 24 24"
+            >
               <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
             </svg>
           </li>
@@ -140,7 +152,6 @@ defmodule Emakola.Themes.Market.ProductDetail do
       <%!-- Main Product Section --%>
       <main class="max-w-7xl mx-auto lg:px-8">
         <div class="lg:grid lg:grid-cols-2 lg:gap-12 xl:gap-16">
-
           <%!-- ═══════════ Image Gallery Column ═══════════ --%>
           <div class="lg:sticky lg:top-20 lg:self-start">
             <%!-- Primary Image --%>
@@ -213,7 +224,6 @@ defmodule Emakola.Themes.Market.ProductDetail do
 
           <%!-- ═══════════ Product Info Column ═══════════ --%>
           <div class="bg-white lg:bg-transparent">
-
             <%!-- Product Header --%>
             <section class="px-4 sm:px-6 lg:px-0 pt-5 lg:pt-2 pb-5 border-b border-[#E2E8F0] lg:border-none">
               <%!-- Badge --%>
@@ -232,7 +242,12 @@ defmodule Emakola.Themes.Market.ProductDetail do
               <%!-- Rating --%>
               <div class="flex items-center gap-2 mb-3">
                 <div class="flex items-center gap-0.5">
-                  <svg :for={_ <- 1..4} class="w-4 h-4 text-[#F59E0B]" fill="currentColor" viewBox="0 0 20 20">
+                  <svg
+                    :for={_ <- 1..4}
+                    class="w-4 h-4 text-[#F59E0B]"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
                   <svg class="w-4 h-4 text-[#F59E0B]/40" fill="currentColor" viewBox="0 0 20 20">
@@ -248,7 +263,11 @@ defmodule Emakola.Themes.Market.ProductDetail do
                   <%= if @selected_variant do %>
                     {Currency.format_price(@selected_variant.price, @store.currency)}
                   <% else %>
-                    {Currency.format_price_range(@product.min_price, @product.max_price, @store.currency)}
+                    {Currency.format_price_range(
+                      @product.min_price,
+                      @product.max_price,
+                      @store.currency
+                    )}
                   <% end %>
                 </p>
                 <%= if @selected_variant && @selected_variant.compare_at_price && @selected_variant.compare_at_price > @selected_variant.price do %>
@@ -256,7 +275,10 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     {Currency.format_price(@selected_variant.compare_at_price, @store.currency)}
                   </p>
                   <span class="text-xs font-bold text-[#059669] bg-[#ECFDF5] px-2 py-0.5 rounded-full">
-                    Save {Currency.format_price(@selected_variant.compare_at_price - @selected_variant.price, @store.currency)}
+                    Save {Currency.format_price(
+                      @selected_variant.compare_at_price - @selected_variant.price,
+                      @store.currency
+                    )}
                   </span>
                 <% end %>
               </div>
@@ -282,7 +304,10 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 <div class="text-sm font-semibold text-[#0F172A] mb-3 flex items-center gap-2">
                   <span>{ot.name}</span>
                   <%= if Map.get(@selected_options, ot.id) do %>
-                    <% selected_ov = Enum.find(ot.option_values, fn ov -> ov.id == Map.get(@selected_options, ot.id) end) %>
+                    <% selected_ov =
+                      Enum.find(ot.option_values, fn ov ->
+                        ov.id == Map.get(@selected_options, ot.id)
+                      end) %>
                     <span :if={selected_ov} class="text-[#94A3B8] font-normal">
                       — {selected_ov.value}
                     </span>
@@ -312,7 +337,10 @@ defmodule Emakola.Themes.Market.ProductDetail do
             </section>
 
             <%!-- Quantity + Add to Bag --%>
-            <section class="px-4 sm:px-6 lg:px-0 py-5 border-b border-[#E2E8F0] lg:border-b lg:border-[#E2E8F0]/60 space-y-4" aria-label="Add to bag">
+            <section
+              class="px-4 sm:px-6 lg:px-0 py-5 border-b border-[#E2E8F0] lg:border-b lg:border-[#E2E8F0]/60 space-y-4"
+              aria-label="Add to bag"
+            >
               <%!-- Quantity stepper --%>
               <div class="flex items-center gap-3">
                 <span class="text-sm font-semibold text-[#0F172A]">Quantity</span>
@@ -323,7 +351,13 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     class="w-10 h-10 flex items-center justify-center text-[#0F172A] hover:bg-[#F8FAFC] transition-colors disabled:text-[#CBD5E1] disabled:cursor-not-allowed"
                     aria-label="Decrease quantity"
                   >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <svg
+                      class="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                    >
                       <path d="M4 8h8" />
                     </svg>
                   </button>
@@ -336,7 +370,13 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     class="w-10 h-10 flex items-center justify-center text-[#0F172A] hover:bg-[#F8FAFC] transition-colors disabled:text-[#CBD5E1] disabled:cursor-not-allowed"
                     aria-label="Increase quantity"
                   >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <svg
+                      class="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                    >
                       <path d="M8 4v8M4 8h8" />
                     </svg>
                   </button>
@@ -352,11 +392,18 @@ defmodule Emakola.Themes.Market.ProductDetail do
                   "w-full h-[54px] rounded-full text-base font-semibold flex items-center justify-center gap-2.5 transition-all duration-300 group",
                   if(is_nil(@selected_variant) || @selected_variant.stock_quantity <= 0,
                     do: "bg-[#E2E8F0] text-[#94A3B8] cursor-not-allowed",
-                    else: "bg-[#0F172A] text-white hover:bg-[#1E293B] hover:shadow-[0_4px_16px_rgba(15,23,42,0.3)] active:scale-[0.98] cursor-pointer"
+                    else:
+                      "bg-[#0F172A] text-white hover:bg-[#1E293B] hover:shadow-[0_4px_16px_rgba(15,23,42,0.3)] active:scale-[0.98] cursor-pointer"
                   )
                 ]}
               >
-                <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <svg
+                  class="w-5 h-5 group-hover:scale-110 transition-transform"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="2"
+                  stroke="currentColor"
+                >
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -377,7 +424,11 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 rel="noopener noreferrer"
                 class="flex items-center justify-center gap-2.5 w-full h-12 border-[1.5px] border-[#E2E8F0] rounded-full text-[0.9375rem] font-medium text-[#0F172A] hover:border-[#25D366] hover:text-[#25D366] hover:bg-[#25D366]/5 transition-all duration-200 group"
               >
-                <svg class="w-5 h-5 text-[#25D366] group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
+                <svg
+                  class="w-5 h-5 text-[#25D366] group-hover:scale-110 transition-transform"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                 </svg>
                 Ask on WhatsApp
@@ -418,8 +469,18 @@ defmodule Emakola.Themes.Market.ProductDetail do
               <details class="group border-b border-[#E2E8F0] lg:border-[#E2E8F0]/60">
                 <summary class="px-4 sm:px-6 lg:px-0 py-4 text-[0.9375rem] font-semibold text-[#0F172A] cursor-pointer flex items-center justify-between hover:text-[#B45309] transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
                   <div class="flex items-center gap-2.5">
-                    <svg class="w-5 h-5 text-[#94A3B8]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                    <svg
+                      class="w-5 h-5 text-[#94A3B8]"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+                      />
                     </svg>
                     Product Details
                   </div>
@@ -430,7 +491,11 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     stroke-width="2"
                     stroke="currentColor"
                   >
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                    />
                   </svg>
                 </summary>
                 <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-[#475569] leading-relaxed">
@@ -441,8 +506,18 @@ defmodule Emakola.Themes.Market.ProductDetail do
               <details class="group border-b border-[#E2E8F0] lg:border-[#E2E8F0]/60">
                 <summary class="px-4 sm:px-6 lg:px-0 py-4 text-[0.9375rem] font-semibold text-[#0F172A] cursor-pointer flex items-center justify-between hover:text-[#B45309] transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
                   <div class="flex items-center gap-2.5">
-                    <svg class="w-5 h-5 text-[#94A3B8]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+                    <svg
+                      class="w-5 h-5 text-[#94A3B8]"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"
+                      />
                     </svg>
                     Shipping & Delivery
                   </div>
@@ -453,7 +528,11 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     stroke-width="2"
                     stroke="currentColor"
                   >
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                    />
                   </svg>
                 </summary>
                 <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-[#475569] leading-relaxed space-y-2">
@@ -474,8 +553,18 @@ defmodule Emakola.Themes.Market.ProductDetail do
               <details class="group border-b border-[#E2E8F0] lg:border-[#E2E8F0]/60">
                 <summary class="px-4 sm:px-6 lg:px-0 py-4 text-[0.9375rem] font-semibold text-[#0F172A] cursor-pointer flex items-center justify-between hover:text-[#B45309] transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
                   <div class="flex items-center gap-2.5">
-                    <svg class="w-5 h-5 text-[#94A3B8]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M21.015 4.356v4.992" />
+                    <svg
+                      class="w-5 h-5 text-[#94A3B8]"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M21.015 4.356v4.992"
+                      />
                     </svg>
                     Returns & Exchange
                   </div>
@@ -486,7 +575,11 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     stroke-width="2"
                     stroke="currentColor"
                   >
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                    />
                   </svg>
                 </summary>
                 <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-[#475569] leading-relaxed">
@@ -510,7 +603,13 @@ defmodule Emakola.Themes.Market.ProductDetail do
               class="text-sm font-medium text-[#B45309] hover:text-[#92400E] transition-colors flex items-center gap-1"
             >
               View All
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
               </svg>
             </a>
@@ -616,15 +715,24 @@ defmodule Emakola.Themes.Market.ProductDetail do
     <%= cond do %>
       <% is_nil(@variant) -> %>
         <span class="inline-flex items-center gap-1.5 text-sm text-[#94A3B8]">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9"
+            />
           </svg>
           Select options
         </span>
       <% @variant.stock_quantity <= 0 -> %>
         <span class="inline-flex items-center gap-1.5 text-sm font-medium text-red-600">
-          <span class="w-2 h-2 rounded-full bg-red-500"></span>
-          Out of Stock
+          <span class="w-2 h-2 rounded-full bg-red-500"></span> Out of Stock
         </span>
       <% @variant.stock_quantity < 5 -> %>
         <span class="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600">
@@ -633,8 +741,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
         </span>
       <% true -> %>
         <span class="inline-flex items-center gap-1.5 text-sm font-medium text-[#059669]">
-          <span class="w-2 h-2 rounded-full bg-[#059669] animate-pulse"></span>
-          In Stock
+          <span class="w-2 h-2 rounded-full bg-[#059669] animate-pulse"></span> In Stock
         </span>
     <% end %>
     """
@@ -656,24 +763,54 @@ defmodule Emakola.Themes.Market.ProductDetail do
 
   defp trust_icon(%{name: "truck"} = assigns) do
     ~H"""
-    <svg class="w-5 h-5 text-[#B45309]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+    <svg
+      class="w-5 h-5 text-[#B45309]"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      viewBox="0 0 24 24"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"
+      />
     </svg>
     """
   end
 
   defp trust_icon(%{name: "shield"} = assigns) do
     ~H"""
-    <svg class="w-5 h-5 text-[#B45309]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+    <svg
+      class="w-5 h-5 text-[#B45309]"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      viewBox="0 0 24 24"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+      />
     </svg>
     """
   end
 
   defp trust_icon(%{name: "refresh"} = assigns) do
     ~H"""
-    <svg class="w-5 h-5 text-[#B45309]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M21.015 4.356v4.992" />
+    <svg
+      class="w-5 h-5 text-[#B45309]"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      viewBox="0 0 24 24"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M21.015 4.356v4.992"
+      />
     </svg>
     """
   end

@@ -73,7 +73,10 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
       <div class="pt-4 sm:pt-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
           <%!-- Breadcrumb --%>
-          <nav class="mb-6 sm:mb-8 text-xs uppercase tracking-wider text-gray-400" aria-label="Breadcrumb">
+          <nav
+            class="mb-6 sm:mb-8 text-xs uppercase tracking-wider text-gray-400"
+            aria-label="Breadcrumb"
+          >
             <a href={"/s/#{@store.slug}"} class="hover:text-gray-900 transition-colors">Home</a>
             <span class="mx-2 text-gray-300">&rsaquo;</span>
             <a href={"/s/#{@store.slug}/products"} class="hover:text-gray-900 transition-colors">
@@ -100,13 +103,24 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                 </div>
 
                 <%!-- Prev/Next arrows (visible on hover, always on mobile) --%>
-                <div :if={length(@images) > 1} class="absolute inset-0 flex items-center justify-between px-3 pointer-events-none">
+                <div
+                  :if={length(@images) > 1}
+                  class="absolute inset-0 flex items-center justify-between px-3 pointer-events-none"
+                >
                   <button
                     phx-click="prev_image"
                     class="pointer-events-auto w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/80 hover:bg-white shadow-lg flex items-center justify-center text-gray-800 transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer min-h-[44px]"
                     aria-label="Previous image"
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    >
                       <polyline points="15 18 9 12 15 6" />
                     </svg>
                   </button>
@@ -115,14 +129,25 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                     class="pointer-events-auto w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/80 hover:bg-white shadow-lg flex items-center justify-center text-gray-800 transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer min-h-[44px]"
                     aria-label="Next image"
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    >
                       <polyline points="9 18 15 12 9 6" />
                     </svg>
                   </button>
                 </div>
 
                 <%!-- Image counter dots --%>
-                <div :if={length(@images) > 1} class="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-2">
+                <div
+                  :if={length(@images) > 1}
+                  class="absolute bottom-4 left-0 right-0 flex items-center justify-center gap-2"
+                >
                   <button
                     :for={{_img, idx} <- Enum.with_index(@images)}
                     phx-click="select_image"
@@ -523,9 +548,14 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
     metadata = Map.get(product, :metadata) || %{}
 
     cond do
-      is_map(metadata) && Map.has_key?(metadata, key) -> Map.get(metadata, key)
-      is_map(metadata) && Map.has_key?(metadata, Atom.to_string(key)) -> Map.get(metadata, Atom.to_string(key))
-      true -> fallback
+      is_map(metadata) && Map.has_key?(metadata, key) ->
+        Map.get(metadata, key)
+
+      is_map(metadata) && Map.has_key?(metadata, Atom.to_string(key)) ->
+        Map.get(metadata, Atom.to_string(key))
+
+      true ->
+        fallback
     end
   end
 

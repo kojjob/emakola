@@ -52,6 +52,39 @@ defmodule Emakola.Themes.Atelier.Shared do
         .atelier-hero-img { animation: none !important; opacity: 1 !important; }
         .atelier-hero-img ~ .atelier-hero-img { opacity: 0 !important; }
       }
+      /* Transparent navbar (blends into hero) */
+      .atelier-nav-transparent {
+        background: transparent !important;
+        border-bottom-color: transparent !important;
+        position: absolute !important;
+        transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      }
+      .atelier-nav-transparent .atelier-nav-brand { color: #fff !important; }
+      .atelier-nav-transparent .atelier-nav-link { color: rgba(255,255,255,0.85) !important; }
+      .atelier-nav-transparent .atelier-nav-link:hover { color: #fff !important; }
+      .atelier-nav-transparent .atelier-nav-icon { color: #fff !important; }
+      .atelier-nav-transparent .atelier-nav-search {
+        background: rgba(255,255,255,0.15) !important;
+        color: rgba(255,255,255,0.8) !important;
+      }
+      .atelier-nav-transparent .atelier-nav-search:hover { background: rgba(255,255,255,0.25) !important; }
+
+      /* Scrolled state: back to solid */
+      .atelier-nav-transparent.scrolled {
+        position: sticky !important;
+        background: #fff !important;
+        border-bottom-color: rgb(243 244 246) !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      }
+      .atelier-nav-transparent.scrolled .atelier-nav-brand { color: var(--theme-accent) !important; }
+      .atelier-nav-transparent.scrolled .atelier-nav-link { color: rgb(75 85 99) !important; }
+      .atelier-nav-transparent.scrolled .atelier-nav-link:hover { color: rgb(17 24 39) !important; }
+      .atelier-nav-transparent.scrolled .atelier-nav-icon { color: rgb(55 65 81) !important; }
+      .atelier-nav-transparent.scrolled .atelier-nav-search {
+        background: rgb(243 244 246) !important;
+        color: rgb(107 114 128) !important;
+      }
+
       /* Mobile menu drawer */
       .atelier-mobile-backdrop { display: none; }
       .atelier-mobile-drawer { transform: translateX(100%); transition: transform 0.3s ease; }
@@ -119,7 +152,13 @@ defmodule Emakola.Themes.Atelier.Shared do
     assigns = assign(assigns, :search_text, search_text)
 
     ~H"""
-    <nav class="sticky top-0 left-0 right-0 z-50 bg-white border-b border-gray-100">
+    <nav
+      id="atelier-navbar"
+      class={"sticky top-0 left-0 right-0 z-50 bg-white border-b border-gray-100" <>
+        if(@transparent, do: " atelier-nav-transparent", else: "")}
+      phx-hook={if(@transparent, do: "ScrollGlass", else: nil)}
+      data-scroll-threshold="60"
+    >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16 sm:h-20">
           <%!-- Left: Store logo or name --%>
@@ -134,7 +173,7 @@ defmodule Emakola.Themes.Atelier.Shared do
               class="h-8 sm:h-10 w-auto object-contain"
             />
             <span
-              class="text-xl sm:text-2xl font-black tracking-tight"
+              class="atelier-nav-brand text-xl sm:text-2xl font-black tracking-tight"
               style="color: var(--theme-accent);"
             >
               {@store.name}
@@ -146,7 +185,7 @@ defmodule Emakola.Themes.Atelier.Shared do
             <a
               href={"/s/#{@store.slug}/products"}
               class={[
-                "relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center",
+                "atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center",
                 if(@active_path in ["/", "/products", nil] and @active_path != nil,
                   do: "text-gray-900",
                   else: "text-gray-600"
@@ -162,7 +201,7 @@ defmodule Emakola.Themes.Atelier.Shared do
             </a>
             <a
               href={"/s/#{@store.slug}/collections"}
-              class="relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center text-gray-600"
+              class="atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center text-gray-600"
             >
               Collections
             </a>
@@ -170,7 +209,7 @@ defmodule Emakola.Themes.Atelier.Shared do
               :for={category <- Enum.take(@categories, 2)}
               href={"/s/#{@store.slug}/category/#{category.slug}"}
               class={[
-                "relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center",
+                "atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center",
                 if(@active_path == "/category/#{category.slug}",
                   do: "text-gray-900 font-semibold",
                   else: "text-gray-600"
@@ -186,7 +225,7 @@ defmodule Emakola.Themes.Atelier.Shared do
             </a>
             <a
               href={"/s/#{@store.slug}/journal"}
-              class="relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center text-gray-600"
+              class="atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center text-gray-600"
             >
               Journal
             </a>
@@ -197,9 +236,19 @@ defmodule Emakola.Themes.Atelier.Shared do
             <%!-- Search Bar (Desktop pill) --%>
             <a
               href={"/s/#{@store.slug}/products"}
-              class="hidden md:flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2.5 text-sm text-gray-500 cursor-pointer transition-colors duration-200 hover:bg-gray-200 min-w-[220px] min-h-[44px]"
+              class="atelier-nav-search hidden md:flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2.5 text-sm text-gray-500 cursor-pointer transition-colors duration-200 hover:bg-gray-200 min-w-[220px] min-h-[44px]"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="flex-shrink-0"
+              >
                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
               <span class="truncate">{@search_text}</span>
@@ -208,10 +257,19 @@ defmodule Emakola.Themes.Atelier.Shared do
             <%!-- Search Icon (Mobile) --%>
             <a
               href={"/s/#{@store.slug}/products"}
-              class="md:hidden flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
+              class="atelier-nav-icon md:hidden flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
               aria-label="Search"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
             </a>
@@ -219,10 +277,19 @@ defmodule Emakola.Themes.Atelier.Shared do
             <%!-- Cart --%>
             <a
               href={"/s/#{@store.slug}/cart"}
-              class="relative flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
+              class="atelier-nav-icon relative flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
               aria-label={"Shopping cart, #{@cart_count} items"}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
                 <line x1="3" y1="6" x2="21" y2="6" />
                 <path d="M16 10a4 4 0 01-8 0" />
@@ -239,10 +306,19 @@ defmodule Emakola.Themes.Atelier.Shared do
             <%!-- Account (Desktop) --%>
             <a
               href={"/s/#{@store.slug}/account"}
-              class="hidden sm:flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
+              class="atelier-nav-icon hidden sm:flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
               aria-label="Account"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
               </svg>
             </a>
@@ -250,11 +326,24 @@ defmodule Emakola.Themes.Atelier.Shared do
             <%!-- Hamburger Menu (Mobile) --%>
             <label
               for="atelier-mobile-menu"
-              class="lg:hidden flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
+              class="atelier-nav-icon lg:hidden flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
               aria-label="Menu"
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              >
+                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line
+                  x1="3"
+                  y1="18"
+                  x2="21"
+                  y2="18"
+                />
               </svg>
             </label>
           </div>
@@ -264,7 +353,11 @@ defmodule Emakola.Themes.Atelier.Shared do
       <%!-- Mobile Drawer (CSS-only via checkbox) --%>
       <input type="checkbox" id="atelier-mobile-menu" class="atelier-mobile-toggle sr-only" />
       <%!-- Backdrop --%>
-      <label for="atelier-mobile-menu" class="atelier-mobile-backdrop fixed inset-0 bg-black/40 z-40" aria-hidden="true" />
+      <label
+        for="atelier-mobile-menu"
+        class="atelier-mobile-backdrop fixed inset-0 bg-black/40 z-40"
+        aria-hidden="true"
+      />
       <%!-- Drawer panel --%>
       <div class="atelier-mobile-drawer fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white z-50 shadow-2xl overflow-y-auto">
         <div class="p-6">
@@ -282,7 +375,15 @@ defmodule Emakola.Themes.Atelier.Shared do
               class="flex items-center justify-center w-10 h-10 text-gray-500 cursor-pointer hover:text-gray-900 rounded-full hover:bg-gray-100"
               aria-label="Close menu"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </label>
@@ -293,7 +394,16 @@ defmodule Emakola.Themes.Atelier.Shared do
             href={"/s/#{@store.slug}/products"}
             class="flex items-center gap-3 bg-gray-100 rounded-lg px-4 py-3 text-sm text-gray-500 mb-8 min-h-[48px]"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             {@search_text}
@@ -301,10 +411,16 @@ defmodule Emakola.Themes.Atelier.Shared do
 
           <%!-- Nav Links --%>
           <nav class="space-y-1 mb-8">
-            <a href={"/s/#{@store.slug}/products"} class="block px-3 py-3 text-sm font-medium text-gray-900 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center">
+            <a
+              href={"/s/#{@store.slug}/products"}
+              class="block px-3 py-3 text-sm font-medium text-gray-900 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center"
+            >
               Shop All
             </a>
-            <a href={"/s/#{@store.slug}/collections"} class="block px-3 py-3 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center">
+            <a
+              href={"/s/#{@store.slug}/collections"}
+              class="block px-3 py-3 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center"
+            >
               Collections
             </a>
             <a
@@ -317,11 +433,26 @@ defmodule Emakola.Themes.Atelier.Shared do
           </nav>
 
           <div class="border-t border-gray-100 pt-6 space-y-1">
-            <a href={"/s/#{@store.slug}/about"} class="block px-3 py-3 text-sm text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center">
+            <a
+              href={"/s/#{@store.slug}/about"}
+              class="block px-3 py-3 text-sm text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center"
+            >
               About Us
             </a>
-            <a href={"/s/#{@store.slug}/account"} class="block px-3 py-3 text-sm text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center gap-2">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <a
+              href={"/s/#{@store.slug}/account"}
+              class="block px-3 py-3 text-sm text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center gap-2"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
               </svg>
               Account
@@ -333,7 +464,13 @@ defmodule Emakola.Themes.Atelier.Shared do
               rel="noopener noreferrer"
               class="block px-3 py-3 text-sm text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center gap-2"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color: #25D366;">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                style="color: #25D366;"
+              >
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
                 <path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.613.613l4.458-1.495A11.952 11.952 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.24 0-4.31-.726-5.99-1.956l-.418-.312-2.65.888.888-2.65-.312-.418A9.935 9.935 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
               </svg>
@@ -628,9 +765,16 @@ defmodule Emakola.Themes.Atelier.Shared do
             {Map.get(@newsletter, :title, "Stay in the Loop")}
           </h3>
           <p class="text-gray-500 text-sm sm:text-base mb-6">
-            {Map.get(@newsletter, :subtitle, "Be the first to know about new collections, exclusive offers, and artisan stories.")}
+            {Map.get(
+              @newsletter,
+              :subtitle,
+              "Be the first to know about new collections, exclusive offers, and artisan stories."
+            )}
           </p>
-          <form class="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto" phx-submit="subscribe_newsletter">
+          <form
+            class="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto"
+            phx-submit="subscribe_newsletter"
+          >
             <input
               type="email"
               name="email"
@@ -742,14 +886,22 @@ defmodule Emakola.Themes.Atelier.Shared do
 
           <%!-- Contact --%>
           <div>
-            <h4 class="text-white text-xs font-semibold uppercase tracking-widest mb-5">Get in Touch</h4>
+            <h4 class="text-white text-xs font-semibold uppercase tracking-widest mb-5">
+              Get in Touch
+            </h4>
             <ul class="space-y-3">
               <li :if={Map.get(@store, :whatsapp_number)}>
                 <a
                   href={"https://wa.me/#{@store.whatsapp_number}"}
                   class="text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer inline-flex items-center gap-2 min-h-[44px]"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
                     <path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.613.613l4.458-1.495A11.952 11.952 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.24 0-4.31-.726-5.99-1.956l-.418-.312-2.65.888.888-2.65-.312-.418A9.935 9.935 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
                   </svg>
@@ -761,7 +913,16 @@ defmodule Emakola.Themes.Atelier.Shared do
                   href={"mailto:#{@store.contact_email}"}
                   class="text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer inline-flex items-center gap-2 min-h-[44px]"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    aria-hidden="true"
+                  >
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" />
                   </svg>
                   {@store.contact_email}
@@ -772,7 +933,16 @@ defmodule Emakola.Themes.Atelier.Shared do
                   href={"tel:#{@store.contact_phone}"}
                   class="text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer inline-flex items-center gap-2 min-h-[44px]"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    aria-hidden="true"
+                  >
                     <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
                   </svg>
                   {@store.contact_phone}
@@ -801,7 +971,15 @@ defmodule Emakola.Themes.Atelier.Shared do
               <.payment_badge label="Mastercard" color="#FF5F00" text_color="#fff" />
             </div>
             <div class="flex items-center gap-1.5 text-gray-500">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              >
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" />
               </svg>
               <span class="text-[10px] uppercase tracking-widest">Secure Checkout</span>

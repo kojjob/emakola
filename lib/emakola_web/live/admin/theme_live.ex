@@ -687,23 +687,26 @@ defmodule EmakolaWeb.Admin.ThemeLive do
     theme_config =
       Map.merge(existing, %{
         "theme" => socket.assigns.theme_id,
-        "colors" => Map.merge(Map.get(existing, "colors", %{}), %{
-          "primary" => socket.assigns.primary_color
-        }),
-        "hero" => Map.merge(existing_hero, %{
-          "image_url" => socket.assigns.hero_image,
-          "images" => socket.assigns.hero_images,
-          "carousel" => socket.assigns.hero_carousel,
-          "title" => socket.assigns.hero_title
-        }),
-        "sections" => Map.merge(existing_sections, %{
-          "hero" => socket.assigns.sections.hero,
-          "categories" => socket.assigns.sections.categories,
-          "featured_products" => socket.assigns.sections.featured_products,
-          "trust" => socket.assigns.sections.trust,
-          "brand_story" => socket.assigns.sections.brand_story,
-          "newsletter" => socket.assigns.sections.newsletter
-        })
+        "colors" =>
+          Map.merge(Map.get(existing, "colors", %{}), %{
+            "primary" => socket.assigns.primary_color
+          }),
+        "hero" =>
+          Map.merge(existing_hero, %{
+            "image_url" => socket.assigns.hero_image,
+            "images" => socket.assigns.hero_images,
+            "carousel" => socket.assigns.hero_carousel,
+            "title" => socket.assigns.hero_title
+          }),
+        "sections" =>
+          Map.merge(existing_sections, %{
+            "hero" => socket.assigns.sections.hero,
+            "categories" => socket.assigns.sections.categories,
+            "featured_products" => socket.assigns.sections.featured_products,
+            "trust" => socket.assigns.sections.trust,
+            "brand_story" => socket.assigns.sections.brand_story,
+            "newsletter" => socket.assigns.sections.newsletter
+          })
       })
 
     actor = socket.assigns[:current_user] || socket.assigns[:current_merchant]

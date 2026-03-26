@@ -40,9 +40,10 @@ defmodule Emakola.Themes.Atelier.Home do
         store={@store}
         categories={@categories}
         cart_count={@cart_count}
+        transparent={true}
       />
 
-      <%!-- Hero Section --%>
+      <%!-- Hero Section (negative margin to pull under transparent navbar) --%>
       <.hero_section :if={section_enabled?(@theme, :hero)} store={@store} theme={@theme} />
 
       <%!-- Category Circles --%>
@@ -92,7 +93,7 @@ defmodule Emakola.Themes.Atelier.Home do
 
     use_carousel = hero_carousel && length(effective_images) > 1
     image_count = length(effective_images)
-    total_duration = image_count * 5
+    total_duration = image_count * 7
 
     hero_subtitle = get_in(assigns.theme, [:hero, :subtitle]) || "The 2024 Collection"
     hero_title = get_in(assigns.theme, [:hero, :title]) || "Crafting Trust,\nCurating Excellence."
@@ -102,7 +103,9 @@ defmodule Emakola.Themes.Atelier.Home do
         "Experience the soul of West African craftsmanship. Every piece tells a story of heritage, precision, and modern elegance."
 
     cta_text = get_in(assigns.theme, [:hero, :cta_text]) || "Explore Masterpieces"
-    cta_secondary_text = get_in(assigns.theme, [:hero, :cta_secondary_text]) || "Meet the Artisans"
+
+    cta_secondary_text =
+      get_in(assigns.theme, [:hero, :cta_secondary_text]) || "Meet the Artisans"
 
     assigns =
       assigns
@@ -117,38 +120,73 @@ defmodule Emakola.Themes.Atelier.Home do
       |> assign(:cta_secondary_text, cta_secondary_text)
 
     ~H"""
-    <section class="relative min-h-screen flex items-end overflow-hidden">
-      <%!-- Carousel CSS Animation --%>
-      <style :if={@use_carousel}>
-        @keyframes atelier-carousel {
-          0%, 30% { opacity: 1; }
-          33.33%, 97% { opacity: 0; }
-          100% { opacity: 1; }
-        }
-      </style>
+    <section class="relative min-h-screen flex items-end overflow-hidden -mt-16 sm:-mt-20">
+      <%!-- Image container: clip-path prevents Ken Burns zoom from overflowing --%>
+      <div class="absolute inset-0 overflow-hidden" style="clip-path: inset(0);">
+        <%!-- Carousel — smooth crossfade with subtle Ken Burns zoom --%>
+        <%= if @use_carousel do %>
+          <% # Each slide owns (100 / N)% of the timeline.
+          # Fade overlap = 4% so there is NEVER a blank frame.
+          pct = Float.round(100.0 / @image_count, 2)
+          overlap = 4.0 %>
+          <style>
+            @keyframes atelier-slide {
+              0%                                 { opacity: 0; transform: scale(1); }
+              <%= overlap %>%                    { opacity: 1; transform: scale(1.005); }
+              <%= Float.round(pct - overlap, 1) %>% { opacity: 1; transform: scale(1.04); }
+              <%= pct %>%                        { opacity: 0; transform: scale(1.04); }
+              100%                               { opacity: 0; transform: scale(1); }
+            }
+            .atelier-hero-img {
+              will-change: opacity, transform;
+              animation: atelier-slide <%= @total_duration %>s ease-in-out infinite;
+            }
+            @keyframes atelier-progress {
+              0%   { transform: scaleX(0); transform-origin: left; }
+              92%  { transform: scaleX(1); transform-origin: left; }
+              100% { transform: scaleX(1); transform-origin: left; }
+            }
+          </style>
+          <%!--
+          Stagger each image by (total / N) seconds, but start the NEXT
+          image's fade-in slightly BEFORE the current one fades out.
+          This creates the overlap that prevents blank frames.
+        --%>
+          <img
+            :for={{url, idx} <- Enum.with_index(@effective_images)}
+            src={url}
+            alt={"#{@store.name} collection #{idx + 1}"}
+            class="atelier-hero-img absolute inset-0 w-full h-full object-cover object-center"
+            style={"animation-delay: #{Float.round(idx * @total_duration / @image_count - (if idx > 0, do: @total_duration * overlap / 100, else: 0), 1)}s; opacity: #{if idx == 0, do: 1, else: 0};"}
+          />
+        <% else %>
+          <%!-- Single image: gentle Ken Burns drift --%>
+          <img
+            src={List.first(@effective_images)}
+            alt={"#{@store.name} collection"}
+            class="absolute inset-0 w-full h-full object-cover object-center"
+            style="animation: kb-single 20s ease-in-out infinite alternate;"
+          />
+          <style>
+            @keyframes kb-single {
+              0%   { transform: scale(1)    translate(0, 0); }
+              100% { transform: scale(1.06) translate(-1%, -0.5%); }
+            }
+          </style>
+        <% end %>
 
-      <%!-- Background Images --%>
-      <%= if @use_carousel do %>
-        <img
-          :for={{url, idx} <- Enum.with_index(@effective_images)}
-          src={url}
-          alt={"#{@store.name} collection #{idx + 1}"}
-          class="absolute inset-0 w-full h-full object-cover object-center"
-          style={"animation: atelier-carousel #{@total_duration}s infinite #{idx * 5}s; opacity: #{if idx == 0, do: 1, else: 0};"}
-        />
-      <% else %>
-        <img
-          src={List.first(@effective_images)}
-          alt={"#{@store.name} collection"}
-          class="absolute inset-0 w-full h-full object-cover object-center"
-        />
-      <% end %>
-
-      <%!-- Gradient Overlay — strong at bottom for text legibility --%>
-      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/5"></div>
+        <%!-- Scrim: two-layer overlay guarantees text contrast on ANY image (dark or light) --%>
+        <div class="absolute inset-0 bg-black/30"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent">
+        </div>
+      </div>
+      <%!-- /Image container --%>
 
       <%!-- Content --%>
-      <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pb-16 sm:pb-24 pt-32" style="text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+      <div
+        class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pb-16 sm:pb-24 pt-32"
+        style="text-shadow: 0 1px 3px rgba(0,0,0,0.4);"
+      >
         <div class="max-w-3xl">
           <%!-- Badge --%>
           <span
@@ -159,12 +197,18 @@ defmodule Emakola.Themes.Atelier.Home do
           </span>
 
           <%!-- Heading --%>
-          <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white leading-[1.02] mb-6 tracking-tight" style="text-shadow: 0 2px 8px rgba(0,0,0,0.5);">
+          <h1
+            class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white leading-[1.02] mb-6 tracking-tight"
+            style="text-shadow: 0 2px 8px rgba(0,0,0,0.5);"
+          >
             {raw(String.replace(@hero_title, "\n", "<br>"))}
           </h1>
 
           <%!-- Description --%>
-          <p class="text-base sm:text-lg text-white max-w-xl leading-relaxed mb-8" style="text-shadow: 0 1px 4px rgba(0,0,0,0.6);">
+          <p
+            class="text-base sm:text-lg text-white max-w-xl leading-relaxed mb-8"
+            style="text-shadow: 0 1px 4px rgba(0,0,0,0.6);"
+          >
             {@hero_description}
           </p>
 
@@ -176,8 +220,18 @@ defmodule Emakola.Themes.Atelier.Home do
               style="background: var(--theme-primary);"
             >
               {@cta_text}
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                />
               </svg>
             </a>
             <a
@@ -189,13 +243,18 @@ defmodule Emakola.Themes.Atelier.Home do
           </div>
         </div>
 
-        <%!-- Carousel Dot Indicators --%>
-        <div :if={@use_carousel} class="flex gap-2 mt-10">
+        <%!-- Carousel Progress Indicators --%>
+        <div :if={@use_carousel} class="flex gap-3 mt-10">
           <span
             :for={idx <- 0..(@image_count - 1)}
-            class="w-2.5 h-2.5 rounded-full bg-white/50"
-            style={"animation: atelier-carousel #{@total_duration}s infinite #{idx * 5}s;"}
+            class="relative h-1 rounded-full overflow-hidden"
+            style={"width: #{max(32, 80 / @image_count)}px; background: rgba(255,255,255,0.25);"}
           >
+            <span
+              class="absolute inset-0 rounded-full"
+              style={"background: white; animation: atelier-progress #{@total_duration / @image_count}s ease-in-out infinite #{idx * (@total_duration / @image_count)}s;"}
+            >
+            </span>
           </span>
         </div>
       </div>
@@ -299,7 +358,11 @@ defmodule Emakola.Themes.Atelier.Home do
       Map.get(trust_config, :heading, "Seamless Trust. Secure Commerce.")
 
     trust_subtitle =
-      Map.get(trust_config, :subtitle, "Shop with confidence using your preferred payment method.")
+      Map.get(
+        trust_config,
+        :subtitle,
+        "Shop with confidence using your preferred payment method."
+      )
 
     cards = Map.get(trust_config, :cards, nil)
 
