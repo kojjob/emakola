@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emakola Business Plan — Appendix C: Glossary</title>
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    .glossary-table td:first-child {
+      font-weight: 600;
+      color: var(--emerald-800);
+      white-space: nowrap;
+      width: 180px;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav-bar no-print">
+    <a href="../index.html">Index</a>
+    <a href="A-financial-model-tables.html">Appendix A</a>
+    <a href="B-market-research-sources.html">Appendix B</a>
+    <a href="C-glossary.html" class="active">Appendix C</a>
+  </nav>
+
+  <div class="section-header">
+    <div class="section-number">Appendix C</div>
+    <h1>Glossary</h1>
+    <p class="section-subtitle">Key terms, abbreviations, and local context</p>
+  </div>
+
+  <h2>Currency & Financial Terms</h2>
+  <table class="glossary-table">
+    <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+    <tbody>
+      <tr><td>GHS</td><td>Ghanaian Cedi (GH&#8373;) — official currency of Ghana. ISO 4217 code: GHS.</td></tr>
+      <tr><td>Pesewas</td><td>Minor unit of the Ghana Cedi. 1 GHS = 100 pesewas. All monetary amounts in Emakola are stored in pesewas to avoid floating-point errors.</td></tr>
+      <tr><td>NGN</td><td>Nigerian Naira (&#8358;) — official currency of Nigeria.</td></tr>
+      <tr><td>Kobo</td><td>Minor unit of the Nigerian Naira. 1 NGN = 100 kobo.</td></tr>
+      <tr><td>XOF</td><td>West African CFA Franc — used in 8 Francophone West African countries (Senegal, Ivory Coast, etc.).</td></tr>
+      <tr><td>GMV</td><td>Gross Merchandise Value — total value of goods sold through the platform before fees and returns.</td></tr>
+      <tr><td>MRR</td><td>Monthly Recurring Revenue — predictable subscription revenue per month.</td></tr>
+      <tr><td>ARR</td><td>Annual Recurring Revenue — MRR x 12.</td></tr>
+      <tr><td>ARPU</td><td>Average Revenue Per User (merchant) — total revenue divided by active merchants.</td></tr>
+      <tr><td>CAC</td><td>Customer Acquisition Cost — total marketing spend divided by new merchants acquired.</td></tr>
+      <tr><td>LTV</td><td>Lifetime Value — predicted total revenue from a merchant over their entire relationship with Emakola.</td></tr>
+      <tr><td>EBITDA</td><td>Earnings Before Interest, Taxes, Depreciation, and Amortization.</td></tr>
+      <tr><td>NPS</td><td>Net Promoter Score — customer satisfaction metric (-100 to +100).</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Payment & Mobile Money</h2>
+  <table class="glossary-table">
+    <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+    <tbody>
+      <tr><td>MoMo / MTN MoMo</td><td>MTN Mobile Money — the largest mobile money service in Ghana with ~70%+ market share. Allows sending/receiving money, bill payments, and merchant payments via phone.</td></tr>
+      <tr><td>Vodafone Cash</td><td>Vodafone's mobile money service in Ghana. ~20% market share.</td></tr>
+      <tr><td>AirtelTigo Money</td><td>AirtelTigo's mobile money service in Ghana. ~10% market share.</td></tr>
+      <tr><td>USSD</td><td>Unstructured Supplementary Service Data — a protocol used by mobile money (e.g., dialing *170#). Works on any phone, no internet required.</td></tr>
+      <tr><td>Paystack</td><td>Nigerian fintech company (acquired by Stripe in 2020) that provides payment processing APIs for African businesses. Handles cards, bank transfers, mobile money.</td></tr>
+      <tr><td>Hubtel</td><td>Ghanaian fintech company providing mobile money payment APIs, SMS, and merchant services.</td></tr>
+      <tr><td>Flutterwave</td><td>Nigerian fintech company ($3B valuation) providing pan-African payment infrastructure.</td></tr>
+      <tr><td>COD</td><td>Cash on Delivery — customer pays the rider in cash when the order arrives. Requires a confirmation workflow.</td></tr>
+      <tr><td>E-Levy</td><td>Electronic Transaction Levy — Ghana government tax on electronic transfers (currently 1-1.5%).</td></tr>
+      <tr><td>GhIPSS</td><td>Ghana Interbank Payment and Settlement Systems — manages mobile money interoperability.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Technology</h2>
+  <table class="glossary-table">
+    <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+    <tbody>
+      <tr><td>Elixir</td><td>Functional programming language built on the Erlang VM (BEAM). Known for concurrency, fault tolerance, and low-latency real-time applications.</td></tr>
+      <tr><td>Phoenix</td><td>Web framework for Elixir. Comparable to Rails (Ruby) or Django (Python) but with real-time capabilities built in.</td></tr>
+      <tr><td>LiveView</td><td>Phoenix library for building real-time, server-rendered UIs without JavaScript. Sends DOM diffs over WebSocket — ~30KB payload vs 300KB+ for React SPAs.</td></tr>
+      <tr><td>Ash Framework</td><td>Elixir framework for building domain-driven applications with declarative resources, built-in multi-tenancy, and authorization policies.</td></tr>
+      <tr><td>OTP</td><td>Open Telecom Platform — Erlang's framework for building fault-tolerant, distributed systems. Supervision trees automatically restart failed processes.</td></tr>
+      <tr><td>BEAM</td><td>Bogdan/Bjorn's Erlang Abstract Machine — the virtual machine that runs Elixir and Erlang. Designed for massive concurrency and fault tolerance.</td></tr>
+      <tr><td>Oban</td><td>Elixir library for background job processing. Used for payment webhooks, notifications, and image processing.</td></tr>
+      <tr><td>Multi-tenancy</td><td>Architecture pattern where a single application serves multiple customers (tenants/stores) with data isolation between them.</td></tr>
+      <tr><td>PWA</td><td>Progressive Web App — web application that can be installed on a phone like a native app, with offline support.</td></tr>
+      <tr><td>3G</td><td>Third-generation mobile network. Still the dominant connection type outside major African cities. Typical speeds: 300kbps-1Mbps.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Business & Regulatory</h2>
+  <table class="glossary-table">
+    <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+    <tbody>
+      <tr><td>SME</td><td>Small and Medium Enterprise. In Ghana: businesses with 6-100 employees. SMEs represent 92% of all Ghanaian businesses.</td></tr>
+      <tr><td>MSME</td><td>Micro, Small and Medium Enterprise. Includes sole proprietors and micro-businesses with fewer than 6 employees.</td></tr>
+      <tr><td>TAM</td><td>Total Addressable Market — the total revenue opportunity for a product/service if 100% market share were achieved.</td></tr>
+      <tr><td>SAM</td><td>Serviceable Available Market — the portion of TAM that can be reached with the current business model and geographic focus.</td></tr>
+      <tr><td>SOM</td><td>Serviceable Obtainable Market — the realistic portion of SAM that can be captured in the near term.</td></tr>
+      <tr><td>Ghana DPA</td><td>Ghana Data Protection Act, 2012 (Act 843) — governs collection, processing, and storage of personal data. Requires registration with the Data Protection Commission.</td></tr>
+      <tr><td>Nigeria NDPA</td><td>Nigeria Data Protection Act, 2023 — comprehensive data protection law replacing the earlier NDPR.</td></tr>
+      <tr><td>VAT</td><td>Value Added Tax — 15% standard rate in Ghana on goods and services.</td></tr>
+      <tr><td>NHIL</td><td>National Health Insurance Levy — 2.5% levy on goods and services in Ghana.</td></tr>
+      <tr><td>GETFund</td><td>Ghana Education Trust Fund levy — 2.5% levy on goods and services in Ghana.</td></tr>
+      <tr><td>AGI</td><td>Association of Ghana Industries — business association for manufacturers and service providers.</td></tr>
+      <tr><td>NBSSI</td><td>National Board for Small Scale Industries — Ghana government agency supporting SME development (now part of Ghana Enterprises Agency).</td></tr>
+      <tr><td>PCI DSS</td><td>Payment Card Industry Data Security Standard — security standard for organizations handling card payments.</td></tr>
+      <tr><td>SDG</td><td>Sustainable Development Goals — 17 goals adopted by the United Nations in 2015 as a blueprint for sustainable development.</td></tr>
+      <tr><td>ESG</td><td>Environmental, Social, and Governance — framework for evaluating a company's impact beyond financial performance.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Ghana-Specific Terms</h2>
+  <table class="glossary-table">
+    <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+    <tbody>
+      <tr><td>Ghana Card</td><td>National identification card issued by the National Identification Authority (NIA). Required for KYC, mobile money registration, and rider onboarding.</td></tr>
+      <tr><td>Osu</td><td>Vibrant commercial district in Accra, known for Oxford Street shopping. High concentration of small retail businesses.</td></tr>
+      <tr><td>Makola Market</td><td>Largest open-air market in Accra. Symbol of Ghana's informal commerce economy.</td></tr>
+      <tr><td>Twi</td><td>Most widely spoken local language in Ghana (Akan language). Content strategy includes Twi for merchant onboarding and tutorials.</td></tr>
+      <tr><td>Tecno / Infinix</td><td>Chinese smartphone brands (by Transsion) that dominate the African market with affordable devices under $50-150.</td></tr>
+      <tr><td>Kente</td><td>Traditional Ghanaian woven cloth, often used as a symbol of Ghanaian identity and craftsmanship.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="page-footer">
+    <span>Emakola Business Plan — Appendix C</span>
+    <span>Confidential | March 2026</span>
+  </div>
+
+</body>
+</html>

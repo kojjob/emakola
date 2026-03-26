@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emakola — Full Business Plan</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .section-embed {
+      border: none;
+      width: 100%;
+      min-height: 600px;
+    }
+    .full-toc {
+      background: var(--navy-50);
+      padding: 2rem;
+      border-radius: 12px;
+      margin: 2rem 0;
+      page-break-after: always;
+    }
+    .full-toc h2 {
+      margin-top: 0;
+      border-bottom: none;
+      text-align: center;
+    }
+    .full-toc ol {
+      list-style: none;
+      counter-reset: section;
+      margin: 0;
+      padding: 0;
+    }
+    .full-toc li {
+      counter-increment: section;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .full-toc li:last-child { border-bottom: none; }
+    .full-toc li::before {
+      content: counter(section, decimal-leading-zero);
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--emerald-600);
+      margin-right: 1rem;
+      font-size: 0.9rem;
+    }
+    .full-toc .toc-link {
+      flex: 1;
+      font-weight: 600;
+      color: var(--navy-800);
+      text-decoration: none;
+    }
+    .full-toc .toc-page {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .print-note {
+      text-align: center;
+      padding: 2rem;
+      background: var(--gold-50);
+      border: 1px solid var(--gold-400);
+      border-radius: 8px;
+      margin: 2rem 0;
+      font-size: 0.95rem;
+    }
+    @media print {
+      .print-note { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cover Page -->
+  <div class="cover-page">
+    <div class="logo"><span>E</span></div>
+    <h1>Emakola</h1>
+    <p class="subtitle">Comprehensive Business Plan</p>
+    <div style="width: 80px; height: 4px; background: linear-gradient(90deg, var(--emerald-500), var(--gold-500)); border-radius: 4px; margin: 1.5rem auto;"></div>
+    <p class="subtitle" style="font-size: 1.1rem; color: var(--navy-600);">
+      The Ecommerce Platform Built for West Africa
+    </p>
+    <div class="meta">
+      <span>March 2026</span>
+      <span>|</span>
+      <span>Confidential</span>
+    </div>
+    <div class="tagline">
+      Enabling West African merchants to create professional online stores with mobile money payments, WhatsApp communication, and local delivery infrastructure.
+    </div>
+  </div>
+
+  <!-- Print Instructions -->
+  <div class="print-note no-print">
+    <strong>To export as PDF:</strong> Use your browser's print function (Ctrl/Cmd + P) and select "Save as PDF". The document is optimized for A4 printing with proper page breaks between sections.<br><br>
+    For individual sections, open them directly from the <a href="index.html">index page</a>.
+  </div>
+
+  <!-- Table of Contents -->
+  <div class="full-toc">
+    <h2>Table of Contents</h2>
+    <ol>
+      <li><a href="#section-01" class="toc-link">Executive Summary</a></li>
+      <li><a href="#section-02" class="toc-link">The Africa Ecommerce Opportunity</a></li>
+      <li><a href="#section-03" class="toc-link">Competitive Landscape</a></li>
+      <li><a href="#section-04" class="toc-link">Product & Technology</a></li>
+      <li><a href="#section-05" class="toc-link">Business Model & Unit Economics</a></li>
+      <li><a href="#section-06" class="toc-link">Marketing & Growth Strategy</a></li>
+      <li><a href="#section-07" class="toc-link">Operations & Team</a></li>
+      <li><a href="#section-08" class="toc-link">Financial Projections</a></li>
+      <li><a href="#section-09" class="toc-link">Risk Analysis & Mitigation</a></li>
+      <li><a href="#section-10" class="toc-link">Social Impact & ESG</a></li>
+    </ol>
+    <hr style="margin: 1.5rem 0;">
+    <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">
+      Appendices: <a href="appendices/A-financial-model-tables.html">A. Financial Tables</a> |
+      <a href="appendices/B-market-research-sources.html">B. Research Sources</a> |
+      <a href="appendices/C-glossary.html">C. Glossary</a>
+    </p>
+  </div>
+
+  <!-- Section Links -->
+  <p style="text-align: center; color: var(--text-secondary); margin: 2rem 0;">
+    Each section below links to its full, standalone page. For the best reading experience, open sections individually from the <a href="index.html">index page</a>.
+  </p>
+
+  <!-- Section 01 -->
+  <div id="section-01" class="page-break"></div>
+  <div class="section-header">
+    <div class="section-number">Section 01</div>
+    <h1>Executive Summary</h1>
+  </div>
+  <p style="text-align: center; margin: 2rem 0;">
+    <a href="01-executive-summary.html" style="padding: 0.75rem 2rem; background: var(--emerald-600); color: white; border-radius: 8px; font-weight: 600; display: inline-block;">Open Executive Summary</a>
+  </p>
+
+  <!-- Section 02 -->
+  <div id="section-02" class="page-break"></div>
+  <div class="section-header">
+    <div class="section-number">Section 02</div>
+    <h1>The Africa Ecommerce Opportunity</h1>
+  </div>
+  <p style="text-align: center; margin: 2rem 0;">
+    <a href="02-africa-ecommerce-opportunity.html" style="padding: 0.75rem 2rem; background: var(--emerald-600); color: white; border-radius: 8px; font-weight: 600; display: inline-block;">Open Africa Ecommerce Opportunity</a>
+  </p>
+
+  <!-- Section 03 -->
+  <div id="section-03" class="page-break"></div>
+  <div class="section-header">
+    <div class="section-number">Section 03</div>
+    <h1>Competitive Landscape</h1>
+  </div>
+  <p style="text-align: center; margin: 2rem 0;">
+    <a href="03-competitive-landscape.html" style="padding: 0.75rem 2rem; background: var(--emerald-600); color: white; border-radius: 8px; font-weight: 600; display: inline-block;">Open Competitive Landscape</a>
+  </p>
+
+  <!-- Section 04 -->
+  <div id="section-04" class="page-break"></div>
+  <div class="section-header">
+    <div class="section-number">Section 04</div>
+    <h1>Product & Technology</h1>
+  </div>
+  <p style="text-align: center; margin: 2rem 0;">
+    <a href="04-product-and-technology.html" style="padding: 0.75rem 2rem; background: var(--emerald-600); color: white; border-radius: 8px; font-weight: 600; display: inline-block;">Open Product & Technology</a>
+  </p>
+
+  <!-- Section 05 -->
+  <div id="section-05" class="page-break"></div>
+  <div class="section-header">
+    <div class="section-number">Section 05</div>
+    <h1>Business Model & Unit Economics</h1>
+  </div>
+  <p style="text-align: center; margin: 2rem 0;">
+    <a href="05-business-model-unit-economics.html" style="padding: 0.75rem 2rem; background: var(--emerald-600); color: white; border-radius: 8px; font-weight: 600; display: inline-block;">Open Business Model</a>
+  </p>
+
+  <!-- Section 06 -->
+  <div id="section-06" class="page-break"></div>
+  <div class="section-header">
+    <div class="section-number">Section 06</div>
+    <h1>Marketing & Growth Strategy</h1>
+  </div>
+  <p style="text-align: center; margin: 2rem 0;">
+    <a href="06-marketing-growth-strategy.html" style="padding: 0.75rem 2rem; background: var(--emerald-600); color: white; border-radius: 8px; font-weight: 600; display: inline-block;">Open Marketing Strategy</a>
+  </p>
+
+  <!-- Section 07 -->
+  <div id="section-07" class="page-break"></div>
+  <div class="section-header">
+    <div class="section-number">Section 07</div>
+    <h1>Operations & Team</h1>
+  </div>
+  <p style="text-align: center; margin: 2rem 0;">
+    <a href="07-operations-and-team.html" style="padding: 0.75rem 2rem; background: var(--emerald-600); color: white; border-radius: 8px; font-weight: 600; display: inline-block;">Open Operations & Team</a>
+  </p>
+
+  <!-- Section 08 -->
+  <div id="section-08" class="page-break"></div>
+  <div class="section-header">
+    <div class="section-number">Section 08</div>
+    <h1>Financial Projections</h1>
+  </div>
+  <p style="text-align: center; margin: 2rem 0;">
+    <a href="08-financial-projections.html" style="padding: 0.75rem 2rem; background: var(--emerald-600); color: white; border-radius: 8px; font-weight: 600; display: inline-block;">Open Financial Projections</a>
+  </p>
+
+  <!-- Section 09 -->
+  <div id="section-09" class="page-break"></div>
+  <div class="section-header">
+    <div class="section-number">Section 09</div>
+    <h1>Risk Analysis & Mitigation</h1>
+  </div>
+  <p style="text-align: center; margin: 2rem 0;">
+    <a href="09-risk-analysis.html" style="padding: 0.75rem 2rem; background: var(--emerald-600); color: white; border-radius: 8px; font-weight: 600; display: inline-block;">Open Risk Analysis</a>
+  </p>
+
+  <!-- Section 10 -->
+  <div id="section-10" class="page-break"></div>
+  <div class="section-header">
+    <div class="section-number">Section 10</div>
+    <h1>Social Impact & ESG</h1>
+  </div>
+  <p style="text-align: center; margin: 2rem 0;">
+    <a href="10-social-impact-esg.html" style="padding: 0.75rem 2rem; background: var(--emerald-600); color: white; border-radius: 8px; font-weight: 600; display: inline-block;">Open Social Impact & ESG</a>
+  </p>
+
+  <!-- Closing -->
+  <div class="page-break"></div>
+  <div style="text-align: center; padding: 4rem 2rem;">
+    <div class="logo" style="margin: 0 auto 2rem;"><span>E</span></div>
+    <h2 style="border-bottom: none; margin-top: 0;">Thank You</h2>
+    <p style="color: var(--text-secondary); max-width: 500px; margin: 1rem auto;">
+      For questions, partnership inquiries, or investment discussions, please contact the Emakola team.
+    </p>
+    <div style="margin-top: 2rem; color: var(--text-muted); font-size: 0.85rem;">
+      Emakola | Accra, Ghana<br>
+      Confidential | March 2026
+    </div>
+  </div>
+
+</body>
+</html>

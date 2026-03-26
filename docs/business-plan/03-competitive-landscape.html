@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emakola Business Plan — Section 03: Competitive Landscape</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Page-specific styles */
+    .check { color: var(--emerald-600); font-weight: 700; }
+    .cross { color: var(--red-500); font-weight: 700; }
+    .partial { color: var(--orange-500); font-weight: 600; font-size: 0.8rem; }
+    .competitor-card { margin-bottom: 1.25rem; }
+    .competitor-card .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .competitor-card .funding {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--navy-500);
+      font-weight: 500;
+    }
+    .competitor-card .pricing {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--gold-600);
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+    .strength-weak {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
+    }
+    .strength-weak div h5 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.35rem;
+      font-weight: 600;
+    }
+    .strength-weak .strengths-col h5 { color: var(--emerald-700); }
+    .strength-weak .weaknesses-col h5 { color: var(--red-500); }
+    .strength-weak ul { margin: 0 0 0 1.25rem; font-size: 0.85rem; }
+
+    .moat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .moat-grid .callout { margin: 0; }
+
+    .forces-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .bar-chart-multi .bar-row { gap: 0.5rem; }
+    .bar-chart-multi .bar-label { width: 110px; }
+    .bar-legend {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .bar-legend span {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .bar-legend .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    .indirect-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .indirect-list li {
+      padding: 0.75rem 1rem;
+      border-left: 3px solid var(--navy-300);
+      margin-bottom: 0.75rem;
+      background: var(--navy-50);
+      border-radius: 0 6px 6px 0;
+    }
+    .indirect-list li strong { color: var(--navy-800); }
+
+    thead th.emakola-col {
+      background: var(--emerald-700);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="nav-bar">
+    <a href="#">Cover</a>
+    <a href="#">01 Executive Summary</a>
+    <a href="#">02 Market Opportunity</a>
+    <a href="#" class="active">03 Competitive Landscape</a>
+    <a href="#">04 Product</a>
+    <a href="#">05 Business Model</a>
+    <a href="#">06 Go-to-Market</a>
+    <a href="#">07 Team</a>
+    <a href="#">08 Financials</a>
+    <a href="#">09 Appendix</a>
+  </nav>
+
+  <!-- Section Header -->
+  <div class="section-header">
+    <div class="section-number">Section 03</div>
+    <h1>Competitive Landscape</h1>
+    <div class="section-subtitle">Understanding the battlefield: who we compete with, where we differentiate, and how we win</div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- DIRECT COMPETITORS                           -->
+  <!-- ============================================ -->
+  <h2>Direct Competitors</h2>
+  <p>West Africa's ecommerce tooling space is fragmented. Several players offer pieces of the puzzle, but none delivers a complete, localized merchant platform. Here is how the key competitors stack up.</p>
+
+  <!-- Competitor 1: Paystack Commerce -->
+  <div class="card card-accent competitor-card">
+    <div class="card-header">
+      <span>Paystack Commerce <span class="badge badge-navy">by Stripe</span></span>
+      <span class="funding">Acquired $200M+ (2020)</span>
+    </div>
+    <div class="strength-weak">
+      <div class="strengths-col">
+        <h5>Strengths</h5>
+        <ul>
+          <li>Payment infrastructure excellence</li>
+          <li>Brand trust across West Africa</li>
+          <li>Simple, fast setup</li>
+        </ul>
+      </div>
+      <div class="weaknesses-col">
+        <h5>Weaknesses</h5>
+        <ul>
+          <li>Very basic store builder</li>
+          <li>No themes or customization</li>
+          <li>No inventory management</li>
+          <li>No WhatsApp integration</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pricing">Pricing: Free (transaction fees only)</div>
+  </div>
+
+  <!-- Competitor 2: Flutterwave Store -->
+  <div class="card card-accent competitor-card">
+    <div class="card-header">
+      <span>Flutterwave Store</span>
+      <span class="funding">Valued at $3B (2022)</span>
+    </div>
+    <div class="strength-weak">
+      <div class="strengths-col">
+        <h5>Strengths</h5>
+        <ul>
+          <li>Pan-African payment coverage</li>
+          <li>Quick setup for merchants</li>
+        </ul>
+      </div>
+      <div class="weaknesses-col">
+        <h5>Weaknesses</h5>
+        <ul>
+          <li>Extremely basic store experience</li>
+          <li>Essentially a payment link with a product page</li>
+          <li>No delivery integration</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pricing">Pricing: Free (transaction fees only)</div>
+  </div>
+
+  <!-- Competitor 3: Selar -->
+  <div class="card card-accent competitor-card">
+    <div class="card-header">
+      <span>Selar <span class="badge badge-blue">Digital Products</span></span>
+      <span class="funding">~$1M seed</span>
+    </div>
+    <div class="strength-weak">
+      <div class="strengths-col">
+        <h5>Strengths</h5>
+        <ul>
+          <li>Strong digital products focus</li>
+          <li>Creator economy positioning</li>
+        </ul>
+      </div>
+      <div class="weaknesses-col">
+        <h5>Weaknesses</h5>
+        <ul>
+          <li>Limited physical product support</li>
+          <li>No delivery integration</li>
+          <li>Narrow use case</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pricing">Pricing: Free tier + 5% transaction fee</div>
+  </div>
+
+  <!-- Competitor 4: Bumpa -->
+  <div class="card card-accent competitor-card">
+    <div class="card-header">
+      <span>Bumpa <span class="badge badge-orange">Nigeria Only</span></span>
+      <span class="funding">$4M seed (2023)</span>
+    </div>
+    <div class="strength-weak">
+      <div class="strengths-col">
+        <h5>Strengths</h5>
+        <ul>
+          <li>Mobile-first design</li>
+          <li>Popular with small merchants in Nigeria</li>
+        </ul>
+      </div>
+      <div class="weaknesses-col">
+        <h5>Weaknesses</h5>
+        <ul>
+          <li>Nigeria-only coverage</li>
+          <li>Basic feature set</li>
+          <li>No custom domain support</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pricing">Pricing: Free tier, $5/mo premium</div>
+  </div>
+
+  <!-- Competitor 5: Shopify -->
+  <div class="card card-gold competitor-card">
+    <div class="card-header">
+      <span>Shopify <span class="badge badge-gold">International</span></span>
+      <span class="funding">Public (NYSE: SHOP)</span>
+    </div>
+    <div class="strength-weak">
+      <div class="strengths-col">
+        <h5>Strengths</h5>
+        <ul>
+          <li>Best-in-class ecommerce platform</li>
+          <li>Massive app ecosystem</li>
+          <li>Enterprise-grade infrastructure</li>
+        </ul>
+      </div>
+      <div class="weaknesses-col">
+        <h5>Weaknesses</h5>
+        <ul>
+          <li>$39/mo = GHS 600+ (prohibitive)</li>
+          <li>No native mobile money payments</li>
+          <li>No WhatsApp integration</li>
+          <li>Not built for West Africa</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pricing">Pricing: $39/mo Basic &middot; $105/mo Shopify &middot; $399/mo Advanced</div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================ -->
+  <!-- INDIRECT COMPETITORS                         -->
+  <!-- ============================================ -->
+  <h2>Indirect Competitors</h2>
+  <p>Beyond dedicated ecommerce tools, merchants also use (or default to) these alternatives:</p>
+
+  <ul class="indirect-list">
+    <li>
+      <strong>Jumia</strong> &mdash; Marketplace model, takes 10&ndash;25% commission. Merchants don't own their customer relationships, branding, or data. High fees erode already-thin margins.
+    </li>
+    <li>
+      <strong>Informal WhatsApp / Instagram Commerce</strong> &mdash; Free and already pervasive, but offers no checkout flow, no inventory tracking, no payment integration, and no analytics. Merchants manage everything manually.
+    </li>
+    <li>
+      <strong>Hubtel Merchant</strong> &mdash; Basic listing service with limited customization. Tied to Hubtel's payment ecosystem with minimal storefront capabilities.
+    </li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================ -->
+  <!-- FEATURE COMPARISON MATRIX                    -->
+  <!-- ============================================ -->
+  <h2>Feature Comparison Matrix</h2>
+  <p>A side-by-side look at platform capabilities. Emakola is the only solution that combines full ecommerce features with deep West African localization.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th class="emakola-col">Emakola</th>
+        <th>Paystack Commerce</th>
+        <th>Flutterwave Store</th>
+        <th>Bumpa</th>
+        <th>Shopify</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="table-highlight">
+        <td><strong>Mobile Money Native</strong></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+        <td class="text-center"><span class="partial">Partial</span></td>
+        <td class="text-center"><span class="partial">Partial</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+      </tr>
+      <tr>
+        <td><strong>WhatsApp Notifications</strong></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="partial">Partial</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+      </tr>
+      <tr class="table-highlight">
+        <td><strong>Custom Themes</strong></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+      </tr>
+      <tr>
+        <td><strong>Inventory Management</strong></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="partial">Partial</span></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+      </tr>
+      <tr class="table-highlight">
+        <td><strong>Delivery Integration</strong></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="partial">Partial</span></td>
+      </tr>
+      <tr>
+        <td><strong>Discount Codes</strong></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="partial">Partial</span></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+      </tr>
+      <tr>
+        <td><strong>Customer Accounts</strong></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="partial">Partial</span></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+      </tr>
+      <tr>
+        <td><strong>Analytics</strong></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+        <td class="text-center"><span class="partial">Partial</span></td>
+        <td class="text-center"><span class="partial">Partial</span></td>
+        <td class="text-center"><span class="partial">Partial</span></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+      </tr>
+      <tr>
+        <td><strong>Custom Domain</strong></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+      </tr>
+      <tr class="table-highlight">
+        <td><strong>Local Pricing (GHS)</strong></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+      </tr>
+      <tr>
+        <td><strong>API Access</strong></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+        <td class="text-center"><span class="partial">Partial</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+      </tr>
+      <tr class="table-highlight">
+        <td><strong>Offline / PWA</strong></td>
+        <td class="text-center"><span class="check">Yes</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="cross">No</span></td>
+        <td class="text-center"><span class="partial">Partial</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================ -->
+  <!-- PORTER'S FIVE FORCES                         -->
+  <!-- ============================================ -->
+  <h2>Porter's Five Forces Analysis</h2>
+  <p>An assessment of the competitive forces shaping West Africa's ecommerce platform market.</p>
+
+  <div class="text-center" style="margin: 2rem 0;">
+    <svg class="svg-chart" viewBox="0 0 500 460" width="500" height="460" xmlns="http://www.w3.org/2000/svg">
+      <!-- Pentagon shape -->
+      <polygon points="250,40 460,192 380,410 120,410 40,192"
+               fill="none" stroke="#CBD5E1" stroke-width="2" />
+      <!-- Inner pentagon (filled) -->
+      <polygon points="250,100 390,210 340,370 160,370 110,210"
+               fill="#ECFDF5" fill-opacity="0.6" stroke="#10B981" stroke-width="2" />
+
+      <!-- Force 1: Threat of New Entrants (top) -->
+      <circle cx="250" cy="40" r="8" fill="#EAB308" />
+      <text x="250" y="20" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#064E3B">THREAT OF NEW ENTRANTS</text>
+      <rect x="200" y="55" width="100" height="22" rx="11" fill="#FEF9C3" />
+      <text x="250" y="70" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" font-weight="600" fill="#854D0E">MEDIUM</text>
+
+      <!-- Force 2: Supplier Power (right) -->
+      <circle cx="460" cy="192" r="8" fill="#EF4444" />
+      <text x="495" y="182" text-anchor="end" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#064E3B">SUPPLIER</text>
+      <text x="495" y="196" text-anchor="end" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#064E3B">POWER</text>
+      <rect x="440" y="205" width="55" height="22" rx="11" fill="#FEE2E2" />
+      <text x="468" y="220" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" font-weight="600" fill="#991B1B">HIGH</text>
+
+      <!-- Force 3: Buyer Power (bottom right) -->
+      <circle cx="380" cy="410" r="8" fill="#EF4444" />
+      <text x="380" y="442" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#064E3B">BUYER POWER</text>
+      <rect x="345" y="415" width="55" height="22" rx="11" fill="#FEE2E2" />
+      <text x="372" y="430" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" font-weight="600" fill="#991B1B">HIGH</text>
+
+      <!-- Force 4: Threat of Substitutes (bottom left) -->
+      <circle cx="120" cy="410" r="8" fill="#EF4444" />
+      <text x="120" y="442" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#064E3B">THREAT OF SUBSTITUTES</text>
+      <rect x="88" y="415" width="55" height="22" rx="11" fill="#FEE2E2" />
+      <text x="116" y="430" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" font-weight="600" fill="#991B1B">HIGH</text>
+
+      <!-- Force 5: Competitive Rivalry (left) -->
+      <circle cx="40" cy="192" r="8" fill="#EAB308" />
+      <text x="5" y="182" text-anchor="start" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#064E3B">COMPETITIVE</text>
+      <text x="5" y="196" text-anchor="start" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#064E3B">RIVALRY</text>
+      <rect x="5" y="205" width="80" height="22" rx="11" fill="#FEF9C3" />
+      <text x="45" y="220" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" font-weight="600" fill="#854D0E">LOW-MED</text>
+
+      <!-- Center label -->
+      <text x="250" y="235" text-anchor="middle" font-family="Inter, sans-serif" font-size="13" font-weight="800" fill="#064E3B">EMAKOLA</text>
+      <text x="250" y="252" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" fill="#475569">Market Position</text>
+    </svg>
+  </div>
+
+  <div class="two-col">
+    <div class="callout callout-gold">
+      <div class="callout-title">Threat of New Entrants: Medium</div>
+      <p>Low barriers for basic stores (anyone can spin up a payment link), but building a full platform with deep payment gateway integration, delivery logistics, and multi-tenant architecture is a significant technical and regulatory challenge.</p>
+    </div>
+    <div class="callout callout-navy">
+      <div class="callout-title">Supplier Power: High</div>
+      <p>Payment gateways like Paystack and Hubtel hold significant leverage as infrastructure providers. They set transaction fees and could potentially compete downstream. Diversifying gateway support is essential.</p>
+    </div>
+    <div class="callout callout-navy">
+      <div class="callout-title">Buyer Power: High</div>
+      <p>Merchants have low switching costs and are extremely price-sensitive. Most are micro-businesses with thin margins. Retention depends on value delivered, not lock-in.</p>
+    </div>
+    <div class="callout callout-navy">
+      <div class="callout-title">Threat of Substitutes: High</div>
+      <p>WhatsApp and Instagram commerce is free, already dominant, and "good enough" for many merchants. Emakola must deliver clearly superior value to justify any cost.</p>
+    </div>
+  </div>
+  <div class="callout callout-gold" style="max-width: 48%;">
+    <div class="callout-title">Competitive Rivalry: Low-Medium</div>
+    <p>No dominant localized platform exists yet. Competitors are either payment-first (Paystack, Flutterwave), international (Shopify), or early-stage (Bumpa, Selar). The window to establish leadership is open.</p>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================ -->
+  <!-- POSITIONING MATRIX                           -->
+  <!-- ============================================ -->
+  <h2>Competitive Positioning Matrix</h2>
+  <p>Mapping competitors across two axes: localization depth and feature richness. Emakola targets the underserved top-right quadrant &mdash; feature-rich AND deeply West African.</p>
+
+  <div class="text-center" style="margin: 2rem 0;">
+    <svg class="svg-chart" viewBox="0 0 560 420" width="560" height="420" xmlns="http://www.w3.org/2000/svg">
+      <!-- Background quadrants -->
+      <rect x="60" y="20" width="230" height="175" rx="4" fill="#F1F5F9" fill-opacity="0.5" />
+      <rect x="290" y="20" width="230" height="175" rx="4" fill="#ECFDF5" fill-opacity="0.5" />
+      <rect x="60" y="195" width="230" height="175" rx="4" fill="#F8FAFC" fill-opacity="0.3" />
+      <rect x="290" y="195" width="230" height="175" rx="4" fill="#F1F5F9" fill-opacity="0.3" />
+
+      <!-- Quadrant labels -->
+      <text x="175" y="50" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#94A3B8" font-weight="500">FEATURE-RICH / INTERNATIONAL</text>
+      <text x="405" y="50" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#059669" font-weight="600">FEATURE-RICH / W. AFRICA NATIVE</text>
+      <text x="175" y="355" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#94A3B8" font-weight="500">BASIC / INTERNATIONAL</text>
+      <text x="405" y="355" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#94A3B8" font-weight="500">BASIC / W. AFRICA NATIVE</text>
+
+      <!-- Axes -->
+      <line x1="60" y1="370" x2="520" y2="370" stroke="#334155" stroke-width="2" />
+      <line x1="60" y1="20" x2="60" y2="370" stroke="#334155" stroke-width="2" />
+
+      <!-- Axis arrows -->
+      <polygon points="520,370 510,365 510,375" fill="#334155" />
+      <polygon points="60,20 55,30 65,30" fill="#334155" />
+
+      <!-- Axis labels -->
+      <text x="290" y="398" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#334155">International &larr;&rarr; West Africa Native</text>
+      <text x="25" y="200" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#334155" transform="rotate(-90, 25, 200)">Basic &larr;&rarr; Feature-Rich</text>
+
+      <!-- Shopify (top-left) -->
+      <circle cx="140" cy="75" r="28" fill="#064E3B" fill-opacity="0.15" stroke="#064E3B" stroke-width="2" />
+      <text x="140" y="79" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#064E3B">Shopify</text>
+
+      <!-- WooCommerce (middle-left) -->
+      <circle cx="160" cy="230" r="22" fill="#475569" fill-opacity="0.15" stroke="#475569" stroke-width="2" />
+      <text x="160" y="224" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#475569">Woo</text>
+      <text x="160" y="236" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#475569">Commerce</text>
+
+      <!-- Paystack Commerce (bottom-right) -->
+      <circle cx="400" cy="265" r="24" fill="#3B82F6" fill-opacity="0.15" stroke="#3B82F6" stroke-width="2" />
+      <text x="400" y="259" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#1E40AF">Paystack</text>
+      <text x="400" y="271" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#1E40AF">Commerce</text>
+
+      <!-- Flutterwave Store (bottom-right) -->
+      <circle cx="360" cy="300" r="22" fill="#F97316" fill-opacity="0.15" stroke="#F97316" stroke-width="2" />
+      <text x="360" y="294" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#9A3412">Flutter-</text>
+      <text x="360" y="306" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#9A3412">wave</text>
+
+      <!-- Bumpa (middle-right) -->
+      <circle cx="430" cy="220" r="20" fill="#EAB308" fill-opacity="0.15" stroke="#EAB308" stroke-width="2" />
+      <text x="430" y="224" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#854D0E">Bumpa</text>
+
+      <!-- Emakola Target (top-right, star highlight) -->
+      <circle cx="420" cy="85" r="34" fill="#059669" fill-opacity="0.2" stroke="#059669" stroke-width="3" stroke-dasharray="6,3" />
+      <circle cx="420" cy="85" r="26" fill="#059669" fill-opacity="0.35" stroke="#059669" stroke-width="2" />
+      <text x="420" y="82" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="800" fill="#064E3B">Emakola</text>
+      <text x="420" y="95" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" font-weight="600" fill="#065F46">(TARGET)</text>
+    </svg>
+  </div>
+
+  <div class="callout callout-emerald">
+    <div class="callout-title">The White Space</div>
+    <p>The top-right quadrant &mdash; feature-rich AND West Africa native &mdash; is entirely unoccupied. Every existing solution is either powerful but Western (Shopify, WooCommerce) or local but basic (Paystack Commerce, Flutterwave Store, Bumpa). Emakola is purpose-built to own this quadrant.</p>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================ -->
+  <!-- COMPETITIVE MOAT ANALYSIS                    -->
+  <!-- ============================================ -->
+  <h2>Competitive Moat Analysis</h2>
+  <p>Sustainable advantages that deepen over time and become harder for competitors to replicate.</p>
+
+  <div class="moat-grid">
+    <div class="callout callout-emerald">
+      <div class="callout-title">1. Network Effects</div>
+      <p>Rider delivery marketplace creates a powerful flywheel: more merchants attract more riders, which enables better delivery, which attracts more merchants. Each new participant makes the platform more valuable for everyone.</p>
+    </div>
+    <div class="callout callout-emerald">
+      <div class="callout-title">2. Data Moat</div>
+      <p>Deep understanding of West African purchase patterns, payment method preferences, peak buying times, and delivery logistics. This data compounds over time and informs product decisions that generic platforms cannot make.</p>
+    </div>
+    <div class="callout callout-emerald">
+      <div class="callout-title">3. Integration Depth</div>
+      <p>Deep, native integrations with mobile money providers (MTN MoMo, Vodafone Cash, AirtelTigo) and WhatsApp Business API. These integrations require local partnerships and regulatory knowledge that are hard to replicate quickly.</p>
+    </div>
+    <div class="callout callout-emerald">
+      <div class="callout-title">4. Local Knowledge</div>
+      <p>Built by people who understand the market from the inside &mdash; not adapting a Western product for Africa. This means better defaults, more relevant features, and authentic brand positioning.</p>
+    </div>
+  </div>
+  <div class="callout callout-gold" style="max-width: 48%;">
+    <div class="callout-title">5. Switching Costs</div>
+    <p>Once merchants build their store, configure products, train staff, accumulate customer data, and develop workflows around Emakola, switching becomes increasingly painful. The deeper a merchant integrates, the stickier the platform becomes.</p>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================ -->
+  <!-- BLUE OCEAN STRATEGY CANVAS                   -->
+  <!-- ============================================ -->
+  <h2>Blue Ocean Strategy Canvas</h2>
+  <p>Comparing Emakola against Shopify and informal WhatsApp Commerce across the factors that matter most in West Africa. Emakola creates uncontested market space by excelling where incumbents cannot.</p>
+
+  <div class="bar-chart bar-chart-multi">
+    <div class="bar-legend">
+      <span><span class="swatch" style="background: linear-gradient(90deg, #047857, #10B981);"></span> Emakola</span>
+      <span><span class="swatch" style="background: linear-gradient(90deg, #1E293B, #475569);"></span> Shopify</span>
+      <span><span class="swatch" style="background: linear-gradient(90deg, #CA8A04, #FACC15);"></span> WhatsApp Commerce</span>
+    </div>
+
+    <!-- Price (lower = better for customer, so WhatsApp high, Shopify low) -->
+    <h4 class="mt-1 mb-0" style="font-size: 0.85rem;">Affordability</h4>
+    <div class="bar-row">
+      <span class="bar-label">Emakola</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-emerald" style="width: 85%;">85%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Shopify</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-navy" style="width: 20%;">20%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">WhatsApp</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-gold" style="width: 100%;">100%</div></div>
+    </div>
+
+    <h4 class="mt-2 mb-0" style="font-size: 0.85rem;">Mobile Money Integration</h4>
+    <div class="bar-row">
+      <span class="bar-label">Emakola</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-emerald" style="width: 95%;">95%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Shopify</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-navy" style="width: 10%;">10%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">WhatsApp</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-gold" style="width: 5%;"></div></div>
+    </div>
+
+    <h4 class="mt-2 mb-0" style="font-size: 0.85rem;">WhatsApp Integration</h4>
+    <div class="bar-row">
+      <span class="bar-label">Emakola</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-emerald" style="width: 90%;">90%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Shopify</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-navy" style="width: 10%;">10%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">WhatsApp</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-gold" style="width: 70%;">70%</div></div>
+    </div>
+
+    <h4 class="mt-2 mb-0" style="font-size: 0.85rem;">3G / Low-Bandwidth Performance</h4>
+    <div class="bar-row">
+      <span class="bar-label">Emakola</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-emerald" style="width: 90%;">90%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Shopify</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-navy" style="width: 40%;">40%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">WhatsApp</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-gold" style="width: 85%;">85%</div></div>
+    </div>
+
+    <h4 class="mt-2 mb-0" style="font-size: 0.85rem;">Local Delivery Marketplace</h4>
+    <div class="bar-row">
+      <span class="bar-label">Emakola</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-emerald" style="width: 85%;">85%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Shopify</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-navy" style="width: 25%;">25%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">WhatsApp</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-gold" style="width: 5%;"></div></div>
+    </div>
+
+    <h4 class="mt-2 mb-0" style="font-size: 0.85rem;">Cash on Delivery Support</h4>
+    <div class="bar-row">
+      <span class="bar-label">Emakola</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-emerald" style="width: 90%;">90%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Shopify</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-navy" style="width: 30%;">30%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">WhatsApp</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-gold" style="width: 80%;">80%</div></div>
+    </div>
+
+    <h4 class="mt-2 mb-0" style="font-size: 0.85rem;">Theme Quality &amp; Customization</h4>
+    <div class="bar-row">
+      <span class="bar-label">Emakola</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-emerald" style="width: 75%;">75%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Shopify</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-navy" style="width: 95%;">95%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">WhatsApp</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-gold" style="width: 0%;"></div></div>
+    </div>
+
+    <h4 class="mt-2 mb-0" style="font-size: 0.85rem;">App Ecosystem</h4>
+    <div class="bar-row">
+      <span class="bar-label">Emakola</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-emerald" style="width: 20%;">20%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Shopify</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-navy" style="width: 95%;">95%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">WhatsApp</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-gold" style="width: 5%;"></div></div>
+    </div>
+
+    <h4 class="mt-2 mb-0" style="font-size: 0.85rem;">Global Reach</h4>
+    <div class="bar-row">
+      <span class="bar-label">Emakola</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-emerald" style="width: 15%;">15%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Shopify</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-navy" style="width: 95%;">95%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">WhatsApp</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-gold" style="width: 60%;">60%</div></div>
+    </div>
+
+    <h4 class="mt-2 mb-0" style="font-size: 0.85rem;">Enterprise Features</h4>
+    <div class="bar-row">
+      <span class="bar-label">Emakola</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-emerald" style="width: 35%;">35%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Shopify</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-navy" style="width: 90%;">90%</div></div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">WhatsApp</span>
+      <div class="bar-track"><div class="bar-fill bar-fill-gold" style="width: 0%;"></div></div>
+    </div>
+  </div>
+
+  <div class="callout callout-emerald">
+    <div class="callout-title">Where Emakola Creates Uncontested Space</div>
+    <p>Emakola dominates in the factors that matter most to West African merchants: mobile money, WhatsApp integration, 3G performance, local delivery, and cash on delivery. Shopify leads on global reach and enterprise features &mdash; capabilities most West African SMEs don't need today. WhatsApp Commerce is free but lacks any real commerce infrastructure.</p>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================ -->
+  <!-- KEY INSIGHT                                  -->
+  <!-- ============================================ -->
+  <h2>The Strategic Takeaway</h2>
+
+  <div class="insight">
+    The biggest competitor isn't Shopify or Paystack Commerce &mdash; it's WhatsApp. 93% of Ghanaian internet users are on WhatsApp, and most small merchants already run their businesses there. Emakola doesn't compete with WhatsApp &mdash; it extends it. WhatsApp becomes the notification and support channel, while Emakola provides the store, checkout, and inventory that WhatsApp can't.
+    <span class="source">Emakola Strategic Analysis, March 2026</span>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-value">93%</div>
+      <div class="stat-label">Ghanaians on WhatsApp</div>
+      <div class="stat-sub">Of all internet users</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value gold">0</div>
+      <div class="stat-label">Dominant Localized Platform</div>
+      <div class="stat-sub">Market leadership is unclaimed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value navy">GHS 600+</div>
+      <div class="stat-label">Shopify Monthly Cost</div>
+      <div class="stat-sub">Prohibitive for most SMEs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">5</div>
+      <div class="stat-label">Moat Layers</div>
+      <div class="stat-sub">Compounding advantages</div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SOURCES                                      -->
+  <!-- ============================================ -->
+  <div class="sources">
+    <h4>Sources</h4>
+    <ol>
+      <li>Stripe. "Stripe to acquire Paystack." Press Release, October 2020.</li>
+      <li>TechCrunch. "Flutterwave reaches $3B valuation." February 2022.</li>
+      <li>Disrupt Africa. "Bumpa raises $4M seed round." 2023.</li>
+      <li>Shopify Investor Relations. Pricing page and annual reports, 2025.</li>
+      <li>Selar.co. Official pricing and product documentation, 2025.</li>
+      <li>DataReportal. "Digital 2025: Ghana." WhatsApp penetration and internet usage statistics.</li>
+      <li>GSMA. "The Mobile Economy: Sub-Saharan Africa 2025." Mobile money adoption data.</li>
+      <li>Ghana Statistical Service. "SME Landscape Survey." Business demographics and technology adoption.</li>
+      <li>Porter, M.E. "Competitive Strategy." Free Press, 1980. Five Forces framework.</li>
+      <li>Kim, W.C. and Mauborgne, R. "Blue Ocean Strategy." Harvard Business Review Press, 2004.</li>
+    </ol>
+  </div>
+
+  <!-- Page Footer -->
+  <div class="page-footer">
+    <span>Emakola Business Plan | Confidential | March 2026</span>
+    <span>Section 03 &mdash; Competitive Landscape</span>
+  </div>
+
+</body>
+</html>

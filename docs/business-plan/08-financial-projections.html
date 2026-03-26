@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emakola Business Plan — Section 08: Financial Projections</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Section-specific overrides for dense financial tables */
+    .table-scroll { overflow-x: auto; margin: 1.5rem 0; }
+    .table-scroll table { min-width: 1400px; font-size: 0.78rem; }
+    .table-scroll thead th { padding: 0.6rem 0.5rem; font-size: 0.7rem; white-space: nowrap; }
+    .table-scroll tbody td { padding: 0.5rem 0.5rem; white-space: nowrap; }
+    .row-total { background: var(--emerald-50) !important; font-weight: 700; border-top: 2px solid var(--emerald-500); }
+    .row-negative td.table-money { color: var(--red-500); }
+    .row-positive td.table-money { color: var(--emerald-700); }
+    .scenario-conservative { background: var(--navy-100) !important; }
+    .scenario-base { background: var(--emerald-50) !important; font-weight: 600; }
+    .scenario-optimistic { background: var(--gold-50) !important; }
+    .pnl-revenue td { color: var(--emerald-700); }
+    .pnl-cost td { color: var(--navy-700); }
+    .pnl-total { background: var(--emerald-900) !important; color: white !important; font-weight: 700; }
+    .pnl-total td { color: white !important; border-bottom-color: var(--emerald-900); }
+    .pnl-total td.table-money { color: white !important; }
+    .pnl-margin { background: var(--gold-50) !important; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="nav-bar">
+    <a href="01-executive-summary.html">01 Executive Summary</a>
+    <a href="02-market-opportunity.html">02 Market Opportunity</a>
+    <a href="03-business-model.html">03 Business Model</a>
+    <a href="04-product-and-technology.html">04 Product &amp; Technology</a>
+    <a href="05-go-to-market.html">05 Go-to-Market</a>
+    <a href="06-operations.html">06 Operations</a>
+    <a href="07-team.html">07 Team</a>
+    <a href="08-financial-projections.html" class="active">08 Financial Projections</a>
+    <a href="09-risk-analysis.html">09 Risk Analysis</a>
+    <a href="10-appendices.html">10 Appendices</a>
+  </nav>
+
+  <!-- Section Header -->
+  <div class="section-header">
+    <div class="section-number">Section 08</div>
+    <h1>Financial Projections</h1>
+    <div class="section-subtitle">Five-year revenue model, P&amp;L projections, break-even analysis, and funding requirements &mdash; built bottom-up from merchant acquisition channels and unit economics.</div>
+  </div>
+
+  <!-- ============================================================
+       KEY ASSUMPTIONS
+       ============================================================ -->
+  <h2>Key Assumptions</h2>
+
+  <div class="callout callout-navy">
+    <div class="callout-title">Model Assumptions &amp; Basis</div>
+    <p class="text-small">All projections are built bottom-up from channel-level merchant acquisition targets, observed SaaS freemium conversion rates, and Ghana SME transaction benchmarks. Monetary values are shown in both GHS and USD throughout.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Assumption</th>
+          <th>Value</th>
+          <th>Basis</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Exchange rate</td>
+          <td class="table-money">1 USD = 15.5 GHS</td>
+          <td>March 2026 average (Bank of Ghana mid-rate)</td>
+        </tr>
+        <tr>
+          <td>Merchant growth (Year 1)</td>
+          <td class="table-money">0 &rarr; 1,000</td>
+          <td>Bottom-up: channels analysis (Section 05)</td>
+        </tr>
+        <tr>
+          <td>Merchant growth (Year 2)</td>
+          <td class="table-money">1,000 &rarr; 4,000</td>
+          <td>25% M/M declining to 12%</td>
+        </tr>
+        <tr>
+          <td>Merchant growth (Year 3)</td>
+          <td class="table-money">4,000 &rarr; 12,000</td>
+          <td>Nigeria launch adds addressable market</td>
+        </tr>
+        <tr>
+          <td>Plan mix (end Y1)</td>
+          <td>40% Free, 35% Growth, 20% Pro, 5% Ent</td>
+          <td>Comparable SaaS freemium benchmarks</td>
+        </tr>
+        <tr>
+          <td>Avg GMV per paid merchant</td>
+          <td class="table-money">GHS 20,000/mo ($1,290)</td>
+          <td>Ghana SME online sales benchmark</td>
+        </tr>
+        <tr>
+          <td>Avg GMV per free merchant</td>
+          <td class="table-money">GHS 5,000/mo ($323)</td>
+          <td>Lower activity on free tier</td>
+        </tr>
+        <tr>
+          <td>Monthly churn (paid)</td>
+          <td class="table-money">5%</td>
+          <td>Africa SaaS average</td>
+        </tr>
+        <tr>
+          <td>CAC (blended)</td>
+          <td class="table-money">GHS 100 ($6.45)</td>
+          <td>Channel-weighted average</td>
+        </tr>
+        <tr>
+          <td>Paystack/Hubtel gateway fee</td>
+          <td class="table-money">1.95%</td>
+          <td>Published rates (passthrough)</td>
+        </tr>
+        <tr>
+          <td>Infrastructure cost per merchant</td>
+          <td class="table-money">GHS 15/mo ($0.97)</td>
+          <td>Fly.io scaling estimates</td>
+        </tr>
+        <tr>
+          <td>Team costs Year 1</td>
+          <td class="table-money">GHS 180,000/yr ($11,613)</td>
+          <td>3&ndash;4 people, Accra market rates</td>
+        </tr>
+        <tr>
+          <td>Delivery commission rate</td>
+          <td class="table-money">10%</td>
+          <td>Rider marketplace take rate</td>
+        </tr>
+        <tr>
+          <td>Orders using delivery</td>
+          <td class="table-money">20%</td>
+          <td>Estimated adoption of rider marketplace</td>
+        </tr>
+        <tr>
+          <td>Avg delivery fee</td>
+          <td class="table-money">GHS 18 ($1.16)</td>
+          <td>Accra intra-city average</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================================
+       YEAR 1 — MONTHLY PROJECTIONS
+       ============================================================ -->
+  <h2>Year 1 &mdash; Monthly Projections</h2>
+
+  <p>Month-by-month build-up from launch to 1,000 merchants. Revenue streams include subscriptions, transaction fees on GMV, and delivery marketplace commission. Plan mix evolves from 80/15/5 (Free/Growth/Pro) at launch toward 40/35/20/5 (Free/Growth/Pro/Enterprise) by Month 12.</p>
+
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Active Merchants</th>
+          <th>Free</th>
+          <th>Growth</th>
+          <th>Pro</th>
+          <th>Ent</th>
+          <th>Sub Rev (GHS)</th>
+          <th>Sub Rev (USD)</th>
+          <th>GMV (GHS)</th>
+          <th>Txn Fee Rev (GHS)</th>
+          <th>Txn Fee Rev (USD)</th>
+          <th>Delivery Rev (GHS)</th>
+          <th>Delivery Rev (USD)</th>
+          <th>Total Rev (GHS)</th>
+          <th>Total Rev (USD)</th>
+          <th>Team Cost (GHS)</th>
+          <th>Infra Cost (GHS)</th>
+          <th>Mktg Cost (GHS)</th>
+          <th>Total Cost (GHS)</th>
+          <th>Total Cost (USD)</th>
+          <th>Net (GHS)</th>
+          <th>Net (USD)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- M1: 15 merchants, 80/15/5 split -->
+        <tr>
+          <td><strong>M1</strong></td>
+          <td class="table-money">15</td>
+          <td class="table-money">12</td>
+          <td class="table-money">2</td>
+          <td class="table-money">1</td>
+          <td class="table-money">0</td>
+          <td class="table-money">247</td>
+          <td class="table-money">16</td>
+          <td class="table-money">120,000</td>
+          <td class="table-money">3,780</td>
+          <td class="table-money">244</td>
+          <td class="table-money">162</td>
+          <td class="table-money">10</td>
+          <td class="table-money">4,189</td>
+          <td class="table-money">270</td>
+          <td class="table-money">15,000</td>
+          <td class="table-money">225</td>
+          <td class="table-money">7,500</td>
+          <td class="table-money">22,725</td>
+          <td class="table-money">1,466</td>
+          <td class="table-money" style="color:var(--red-500)">-18,536</td>
+          <td class="table-money" style="color:var(--red-500)">-1,196</td>
+        </tr>
+        <!-- M2: 30 merchants -->
+        <tr>
+          <td><strong>M2</strong></td>
+          <td class="table-money">30</td>
+          <td class="table-money">23</td>
+          <td class="table-money">5</td>
+          <td class="table-money">2</td>
+          <td class="table-money">0</td>
+          <td class="table-money">543</td>
+          <td class="table-money">35</td>
+          <td class="table-money">255,000</td>
+          <td class="table-money">8,033</td>
+          <td class="table-money">518</td>
+          <td class="table-money">324</td>
+          <td class="table-money">21</td>
+          <td class="table-money">8,900</td>
+          <td class="table-money">574</td>
+          <td class="table-money">15,000</td>
+          <td class="table-money">450</td>
+          <td class="table-money">7,500</td>
+          <td class="table-money">22,950</td>
+          <td class="table-money">1,481</td>
+          <td class="table-money" style="color:var(--red-500)">-14,050</td>
+          <td class="table-money" style="color:var(--red-500)">-906</td>
+        </tr>
+        <!-- M3: 50 merchants -->
+        <tr>
+          <td><strong>M3</strong></td>
+          <td class="table-money">50</td>
+          <td class="table-money">37</td>
+          <td class="table-money">9</td>
+          <td class="table-money">4</td>
+          <td class="table-money">0</td>
+          <td class="table-money">1,037</td>
+          <td class="table-money">67</td>
+          <td class="table-money">445,000</td>
+          <td class="table-money">14,018</td>
+          <td class="table-money">904</td>
+          <td class="table-money">540</td>
+          <td class="table-money">35</td>
+          <td class="table-money">15,595</td>
+          <td class="table-money">1,006</td>
+          <td class="table-money">15,000</td>
+          <td class="table-money">750</td>
+          <td class="table-money">7,500</td>
+          <td class="table-money">23,250</td>
+          <td class="table-money">1,500</td>
+          <td class="table-money" style="color:var(--red-500)">-7,655</td>
+          <td class="table-money" style="color:var(--red-500)">-494</td>
+        </tr>
+        <!-- M4: 85 merchants (paid channels kick in) -->
+        <tr>
+          <td><strong>M4</strong></td>
+          <td class="table-money">85</td>
+          <td class="table-money">59</td>
+          <td class="table-money">17</td>
+          <td class="table-money">8</td>
+          <td class="table-money">1</td>
+          <td class="table-money">2,225</td>
+          <td class="table-money">144</td>
+          <td class="table-money">815,000</td>
+          <td class="table-money">25,673</td>
+          <td class="table-money">1,656</td>
+          <td class="table-money">918</td>
+          <td class="table-money">59</td>
+          <td class="table-money">28,816</td>
+          <td class="table-money">1,859</td>
+          <td class="table-money">15,000</td>
+          <td class="table-money">1,275</td>
+          <td class="table-money">7,500</td>
+          <td class="table-money">23,775</td>
+          <td class="table-money">1,534</td>
+          <td class="table-money" style="color:var(--emerald-700)">5,041</td>
+          <td class="table-money" style="color:var(--emerald-700)">325</td>
+        </tr>
+        <!-- M5: 130 merchants -->
+        <tr>
+          <td><strong>M5</strong></td>
+          <td class="table-money">130</td>
+          <td class="table-money">84</td>
+          <td class="table-money">30</td>
+          <td class="table-money">14</td>
+          <td class="table-money">2</td>
+          <td class="table-money">3,956</td>
+          <td class="table-money">255</td>
+          <td class="table-money">1,340,000</td>
+          <td class="table-money">42,210</td>
+          <td class="table-money">2,723</td>
+          <td class="table-money">1,404</td>
+          <td class="table-money">91</td>
+          <td class="table-money">47,570</td>
+          <td class="table-money">3,069</td>
+          <td class="table-money">15,000</td>
+          <td class="table-money">1,950</td>
+          <td class="table-money">7,500</td>
+          <td class="table-money">24,450</td>
+          <td class="table-money">1,577</td>
+          <td class="table-money" style="color:var(--emerald-700)">23,120</td>
+          <td class="table-money" style="color:var(--emerald-700)">1,492</td>
+        </tr>
+        <!-- M6: 200 merchants -->
+        <tr>
+          <td><strong>M6</strong></td>
+          <td class="table-money">200</td>
+          <td class="table-money">120</td>
+          <td class="table-money">50</td>
+          <td class="table-money">26</td>
+          <td class="table-money">4</td>
+          <td class="table-money">6,924</td>
+          <td class="table-money">447</td>
+          <td class="table-money">2,200,000</td>
+          <td class="table-money">69,300</td>
+          <td class="table-money">4,471</td>
+          <td class="table-money">2,160</td>
+          <td class="table-money">139</td>
+          <td class="table-money">78,384</td>
+          <td class="table-money">5,057</td>
+          <td class="table-money">18,000</td>
+          <td class="table-money">3,000</td>
+          <td class="table-money">7,500</td>
+          <td class="table-money">28,500</td>
+          <td class="table-money">1,839</td>
+          <td class="table-money" style="color:var(--emerald-700)">49,884</td>
+          <td class="table-money" style="color:var(--emerald-700)">3,218</td>
+        </tr>
+        <!-- M7: 300 merchants (referral + partnerships) -->
+        <tr>
+          <td><strong>M7</strong></td>
+          <td class="table-money">300</td>
+          <td class="table-money">162</td>
+          <td class="table-money">84</td>
+          <td class="table-money">46</td>
+          <td class="table-money">8</td>
+          <td class="table-money">11,882</td>
+          <td class="table-money">766</td>
+          <td class="table-money">3,450,000</td>
+          <td class="table-money">108,675</td>
+          <td class="table-money">7,011</td>
+          <td class="table-money">3,240</td>
+          <td class="table-money">209</td>
+          <td class="table-money">123,797</td>
+          <td class="table-money">7,987</td>
+          <td class="table-money">18,000</td>
+          <td class="table-money">4,500</td>
+          <td class="table-money">7,500</td>
+          <td class="table-money">30,000</td>
+          <td class="table-money">1,935</td>
+          <td class="table-money" style="color:var(--emerald-700)">93,797</td>
+          <td class="table-money" style="color:var(--emerald-700)">6,052</td>
+        </tr>
+        <!-- M8: 420 merchants -->
+        <tr>
+          <td><strong>M8</strong></td>
+          <td class="table-money">420</td>
+          <td class="table-money">214</td>
+          <td class="table-money">126</td>
+          <td class="table-money">68</td>
+          <td class="table-money">12</td>
+          <td class="table-money">17,498</td>
+          <td class="table-money">1,129</td>
+          <td class="table-money">4,950,000</td>
+          <td class="table-money">155,925</td>
+          <td class="table-money">10,060</td>
+          <td class="table-money">4,536</td>
+          <td class="table-money">293</td>
+          <td class="table-money">177,959</td>
+          <td class="table-money">11,481</td>
+          <td class="table-money">18,000</td>
+          <td class="table-money">6,300</td>
+          <td class="table-money">7,500</td>
+          <td class="table-money">31,800</td>
+          <td class="table-money">2,052</td>
+          <td class="table-money" style="color:var(--emerald-700)">146,159</td>
+          <td class="table-money" style="color:var(--emerald-700)">9,430</td>
+        </tr>
+        <!-- M9: 550 merchants -->
+        <tr>
+          <td><strong>M9</strong></td>
+          <td class="table-money">550</td>
+          <td class="table-money">264</td>
+          <td class="table-money">172</td>
+          <td class="table-money">96</td>
+          <td class="table-money">18</td>
+          <td class="table-money">23,740</td>
+          <td class="table-money">1,532</td>
+          <td class="table-money">6,630,000</td>
+          <td class="table-money">208,845</td>
+          <td class="table-money">13,474</td>
+          <td class="table-money">5,940</td>
+          <td class="table-money">383</td>
+          <td class="table-money">238,525</td>
+          <td class="table-money">15,389</td>
+          <td class="table-money">20,000</td>
+          <td class="table-money">8,250</td>
+          <td class="table-money">7,500</td>
+          <td class="table-money">35,750</td>
+          <td class="table-money">2,306</td>
+          <td class="table-money" style="color:var(--emerald-700)">202,775</td>
+          <td class="table-money" style="color:var(--emerald-700)">13,082</td>
+        </tr>
+        <!-- M10: 700 merchants -->
+        <tr>
+          <td><strong>M10</strong></td>
+          <td class="table-money">700</td>
+          <td class="table-money">315</td>
+          <td class="table-money">228</td>
+          <td class="table-money">126</td>
+          <td class="table-money">31</td>
+          <td class="table-money">31,857</td>
+          <td class="table-money">2,055</td>
+          <td class="table-money">8,825,000</td>
+          <td class="table-money">277,988</td>
+          <td class="table-money">17,935</td>
+          <td class="table-money">7,560</td>
+          <td class="table-money">488</td>
+          <td class="table-money">317,405</td>
+          <td class="table-money">20,478</td>
+          <td class="table-money">20,000</td>
+          <td class="table-money">10,500</td>
+          <td class="table-money">7,500</td>
+          <td class="table-money">38,000</td>
+          <td class="table-money">2,452</td>
+          <td class="table-money" style="color:var(--emerald-700)">279,405</td>
+          <td class="table-money" style="color:var(--emerald-700)">18,026</td>
+        </tr>
+        <!-- M11: 850 merchants -->
+        <tr>
+          <td><strong>M11</strong></td>
+          <td class="table-money">850</td>
+          <td class="table-money">357</td>
+          <td class="table-money">286</td>
+          <td class="table-money">165</td>
+          <td class="table-money">42</td>
+          <td class="table-money">40,571</td>
+          <td class="table-money">2,618</td>
+          <td class="table-money">11,085,000</td>
+          <td class="table-money">349,178</td>
+          <td class="table-money">22,528</td>
+          <td class="table-money">9,180</td>
+          <td class="table-money">592</td>
+          <td class="table-money">398,929</td>
+          <td class="table-money">25,737</td>
+          <td class="table-money">20,000</td>
+          <td class="table-money">12,750</td>
+          <td class="table-money">7,500</td>
+          <td class="table-money">40,250</td>
+          <td class="table-money">2,597</td>
+          <td class="table-money" style="color:var(--emerald-700)">358,679</td>
+          <td class="table-money" style="color:var(--emerald-700)">23,141</td>
+        </tr>
+        <!-- M12: 1,000 merchants — 40/35/20/5 split -->
+        <tr class="table-highlight">
+          <td><strong>M12</strong></td>
+          <td class="table-money">1,000</td>
+          <td class="table-money">400</td>
+          <td class="table-money">350</td>
+          <td class="table-money">200</td>
+          <td class="table-money">50</td>
+          <td class="table-money">49,550</td>
+          <td class="table-money">3,197</td>
+          <td class="table-money">14,000,000</td>
+          <td class="table-money">441,000</td>
+          <td class="table-money">28,452</td>
+          <td class="table-money">10,800</td>
+          <td class="table-money">697</td>
+          <td class="table-money">501,350</td>
+          <td class="table-money">32,345</td>
+          <td class="table-money">20,000</td>
+          <td class="table-money">15,000</td>
+          <td class="table-money">7,500</td>
+          <td class="table-money">42,500</td>
+          <td class="table-money">2,742</td>
+          <td class="table-money" style="color:var(--emerald-700)">458,850</td>
+          <td class="table-money" style="color:var(--emerald-700)">29,603</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="text-small text-muted"><strong>Notes:</strong> Subscription revenue = (Growth &times; GHS 49) + (Pro &times; GHS 149) + (Enterprise &times; GHS 399). GMV = (paid merchants &times; GHS 20,000) + (free merchants &times; GHS 5,000). Transaction fee rate: weighted average ~3.15% across plan mix. Delivery revenue = 20% of estimated orders &times; GHS 18 avg fee &times; 10% commission. Team costs step up at M6 (4th hire) and M9 (5th hire).</p>
+
+  <!-- Year 1 Summary -->
+  <h3>Year 1 Summary</h3>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-value">GHS 1.94M</div>
+      <div class="stat-label">Total Revenue</div>
+      <div class="stat-sub">$125,161 USD</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value navy">GHS 364K</div>
+      <div class="stat-label">Total Costs</div>
+      <div class="stat-sub">$23,484 USD</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--emerald-700)">GHS 1.58M</div>
+      <div class="stat-label">Net Result</div>
+      <div class="stat-sub">$101,677 USD</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value gold">GHS 501K</div>
+      <div class="stat-label">Ending MRR (M12)</div>
+      <div class="stat-sub">$32,345 USD</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">1,000</div>
+      <div class="stat-label">Ending Merchants</div>
+      <div class="stat-sub">600 paid / 400 free</div>
+    </div>
+  </div>
+
+  <div class="callout callout-gold">
+    <div class="callout-title">Year 1 Note</div>
+    <p>While the monthly P&amp;L turns positive by Month 4, the cumulative cash position remains negative through early Year 1 due to upfront team and marketing spend before revenue ramps. The initial seed funding covers this gap. Revenue is heavily back-loaded: Month 12 alone generates 26% of total Year 1 revenue.</p>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================================
+       YEARS 2-3 — QUARTERLY PROJECTIONS
+       ============================================================ -->
+  <h2>Years 2&ndash;3 &mdash; Quarterly Projections</h2>
+
+  <p>Year 2 scales from 1,000 to 4,000 merchants with Nigeria soft-launch in Q4. Year 3 expands to 12,000 merchants with full Nigeria operations and add-on revenue (WhatsApp packs, premium themes, API access).</p>
+
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Period</th>
+          <th>Active Merchants</th>
+          <th>Paid Merchants</th>
+          <th>Sub Rev (GHS)</th>
+          <th>Sub Rev (USD)</th>
+          <th>Txn Fee Rev (GHS)</th>
+          <th>Txn Fee Rev (USD)</th>
+          <th>Delivery Rev (GHS)</th>
+          <th>Delivery Rev (USD)</th>
+          <th>Add-on Rev (GHS)</th>
+          <th>Add-on Rev (USD)</th>
+          <th>Total Rev (GHS)</th>
+          <th>Total Rev (USD)</th>
+          <th>Total Cost (GHS)</th>
+          <th>Total Cost (USD)</th>
+          <th>Net (GHS)</th>
+          <th>Net (USD)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Year 2 Quarters -->
+        <tr>
+          <td><strong>Y2 Q1</strong></td>
+          <td class="table-money">1,400</td>
+          <td class="table-money">910</td>
+          <td class="table-money">180,000</td>
+          <td class="table-money">11,613</td>
+          <td class="table-money">1,680,000</td>
+          <td class="table-money">108,387</td>
+          <td class="table-money">45,360</td>
+          <td class="table-money">2,926</td>
+          <td class="table-money">0</td>
+          <td class="table-money">0</td>
+          <td class="table-money">1,905,360</td>
+          <td class="table-money">122,926</td>
+          <td class="table-money">210,000</td>
+          <td class="table-money">13,548</td>
+          <td class="table-money" style="color:var(--emerald-700)">1,695,360</td>
+          <td class="table-money" style="color:var(--emerald-700)">109,378</td>
+        </tr>
+        <tr>
+          <td><strong>Y2 Q2</strong></td>
+          <td class="table-money">2,000</td>
+          <td class="table-money">1,360</td>
+          <td class="table-money">285,000</td>
+          <td class="table-money">18,387</td>
+          <td class="table-money">2,520,000</td>
+          <td class="table-money">162,581</td>
+          <td class="table-money">64,800</td>
+          <td class="table-money">4,181</td>
+          <td class="table-money">0</td>
+          <td class="table-money">0</td>
+          <td class="table-money">2,869,800</td>
+          <td class="table-money">185,148</td>
+          <td class="table-money">270,000</td>
+          <td class="table-money">17,419</td>
+          <td class="table-money" style="color:var(--emerald-700)">2,599,800</td>
+          <td class="table-money" style="color:var(--emerald-700)">167,729</td>
+        </tr>
+        <tr>
+          <td><strong>Y2 Q3</strong></td>
+          <td class="table-money">3,000</td>
+          <td class="table-money">2,100</td>
+          <td class="table-money">435,000</td>
+          <td class="table-money">28,065</td>
+          <td class="table-money">3,900,000</td>
+          <td class="table-money">251,613</td>
+          <td class="table-money">97,200</td>
+          <td class="table-money">6,271</td>
+          <td class="table-money">45,000</td>
+          <td class="table-money">2,903</td>
+          <td class="table-money">4,477,200</td>
+          <td class="table-money">288,852</td>
+          <td class="table-money">345,000</td>
+          <td class="table-money">22,258</td>
+          <td class="table-money" style="color:var(--emerald-700)">4,132,200</td>
+          <td class="table-money" style="color:var(--emerald-700)">266,594</td>
+        </tr>
+        <tr class="table-highlight">
+          <td><strong>Y2 Q4</strong></td>
+          <td class="table-money">4,000</td>
+          <td class="table-money">2,800</td>
+          <td class="table-money">582,000</td>
+          <td class="table-money">37,548</td>
+          <td class="table-money">5,200,000</td>
+          <td class="table-money">335,484</td>
+          <td class="table-money">129,600</td>
+          <td class="table-money">8,361</td>
+          <td class="table-money">90,000</td>
+          <td class="table-money">5,806</td>
+          <td class="table-money">6,001,600</td>
+          <td class="table-money">387,200</td>
+          <td class="table-money">420,000</td>
+          <td class="table-money">27,097</td>
+          <td class="table-money" style="color:var(--emerald-700)">5,581,600</td>
+          <td class="table-money" style="color:var(--emerald-700)">360,103</td>
+        </tr>
+        <!-- Year 2 Total -->
+        <tr class="row-total">
+          <td><strong>Year 2 Total</strong></td>
+          <td></td>
+          <td></td>
+          <td class="table-money">1,482,000</td>
+          <td class="table-money">95,613</td>
+          <td class="table-money">13,300,000</td>
+          <td class="table-money">858,065</td>
+          <td class="table-money">336,960</td>
+          <td class="table-money">21,739</td>
+          <td class="table-money">135,000</td>
+          <td class="table-money">8,710</td>
+          <td class="table-money">15,253,960</td>
+          <td class="table-money">984,126</td>
+          <td class="table-money">1,245,000</td>
+          <td class="table-money">80,323</td>
+          <td class="table-money" style="color:var(--emerald-700)">14,008,960</td>
+          <td class="table-money" style="color:var(--emerald-700)">903,804</td>
+        </tr>
+        <!-- Year 3 Quarters -->
+        <tr>
+          <td><strong>Y3 Q1</strong></td>
+          <td class="table-money">5,500</td>
+          <td class="table-money">3,850</td>
+          <td class="table-money">825,000</td>
+          <td class="table-money">53,226</td>
+          <td class="table-money">7,150,000</td>
+          <td class="table-money">461,290</td>
+          <td class="table-money">178,200</td>
+          <td class="table-money">11,497</td>
+          <td class="table-money">165,000</td>
+          <td class="table-money">10,645</td>
+          <td class="table-money">8,318,200</td>
+          <td class="table-money">536,658</td>
+          <td class="table-money">675,000</td>
+          <td class="table-money">43,548</td>
+          <td class="table-money" style="color:var(--emerald-700)">7,643,200</td>
+          <td class="table-money" style="color:var(--emerald-700)">493,110</td>
+        </tr>
+        <tr>
+          <td><strong>Y3 Q2</strong></td>
+          <td class="table-money">7,500</td>
+          <td class="table-money">5,250</td>
+          <td class="table-money">1,125,000</td>
+          <td class="table-money">72,581</td>
+          <td class="table-money">9,750,000</td>
+          <td class="table-money">629,032</td>
+          <td class="table-money">243,000</td>
+          <td class="table-money">15,677</td>
+          <td class="table-money">262,500</td>
+          <td class="table-money">16,935</td>
+          <td class="table-money">11,380,500</td>
+          <td class="table-money">734,226</td>
+          <td class="table-money">862,500</td>
+          <td class="table-money">55,645</td>
+          <td class="table-money" style="color:var(--emerald-700)">10,518,000</td>
+          <td class="table-money" style="color:var(--emerald-700)">678,581</td>
+        </tr>
+        <tr>
+          <td><strong>Y3 Q3</strong></td>
+          <td class="table-money">9,500</td>
+          <td class="table-money">6,650</td>
+          <td class="table-money">1,425,000</td>
+          <td class="table-money">91,935</td>
+          <td class="table-money">12,350,000</td>
+          <td class="table-money">796,774</td>
+          <td class="table-money">307,800</td>
+          <td class="table-money">19,858</td>
+          <td class="table-money">380,000</td>
+          <td class="table-money">24,516</td>
+          <td class="table-money">14,462,800</td>
+          <td class="table-money">933,084</td>
+          <td class="table-money">1,087,500</td>
+          <td class="table-money">70,161</td>
+          <td class="table-money" style="color:var(--emerald-700)">13,375,300</td>
+          <td class="table-money" style="color:var(--emerald-700)">862,923</td>
+        </tr>
+        <tr class="table-highlight">
+          <td><strong>Y3 Q4</strong></td>
+          <td class="table-money">12,000</td>
+          <td class="table-money">8,400</td>
+          <td class="table-money">1,800,000</td>
+          <td class="table-money">116,129</td>
+          <td class="table-money">15,600,000</td>
+          <td class="table-money">1,006,452</td>
+          <td class="table-money">388,800</td>
+          <td class="table-money">25,084</td>
+          <td class="table-money">510,000</td>
+          <td class="table-money">32,903</td>
+          <td class="table-money">18,298,800</td>
+          <td class="table-money">1,180,568</td>
+          <td class="table-money">1,350,000</td>
+          <td class="table-money">87,097</td>
+          <td class="table-money" style="color:var(--emerald-700)">16,948,800</td>
+          <td class="table-money" style="color:var(--emerald-700)">1,093,471</td>
+        </tr>
+        <!-- Year 3 Total -->
+        <tr class="row-total">
+          <td><strong>Year 3 Total</strong></td>
+          <td></td>
+          <td></td>
+          <td class="table-money">5,175,000</td>
+          <td class="table-money">333,871</td>
+          <td class="table-money">44,850,000</td>
+          <td class="table-money">2,893,548</td>
+          <td class="table-money">1,117,800</td>
+          <td class="table-money">72,116</td>
+          <td class="table-money">1,317,500</td>
+          <td class="table-money">85,000</td>
+          <td class="table-money">52,460,300</td>
+          <td class="table-money">3,384,535</td>
+          <td class="table-money">3,975,000</td>
+          <td class="table-money">256,452</td>
+          <td class="table-money" style="color:var(--emerald-700)">48,485,300</td>
+          <td class="table-money" style="color:var(--emerald-700)">3,128,084</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================================
+       YEARS 4-5 — ANNUAL HIGH-LEVEL
+       ============================================================ -->
+  <h2>Years 4&ndash;5 &mdash; Annual High-Level Projections</h2>
+
+  <p>Year 4 targets Francophone West Africa (Senegal, C&ocirc;te d&rsquo;Ivoire) while Year 5 reaches platform maturity with 50,000 merchants across the region.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Metric</th>
+        <th>Year 4</th>
+        <th>Year 4 (USD)</th>
+        <th>Year 5</th>
+        <th>Year 5 (USD)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Active Merchants (end of year)</td>
+        <td class="table-money">25,000</td>
+        <td></td>
+        <td class="table-money">50,000</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>Paid Merchants</td>
+        <td class="table-money">17,500</td>
+        <td></td>
+        <td class="table-money">37,500</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>Subscription Revenue</td>
+        <td class="table-money">14,400,000</td>
+        <td class="table-money">929,032</td>
+        <td class="table-money">31,200,000</td>
+        <td class="table-money">2,012,903</td>
+      </tr>
+      <tr>
+        <td>Transaction Fee Revenue</td>
+        <td class="table-money">84,000,000</td>
+        <td class="table-money">5,419,355</td>
+        <td class="table-money">180,000,000</td>
+        <td class="table-money">11,612,903</td>
+      </tr>
+      <tr>
+        <td>Delivery Commission</td>
+        <td class="table-money">4,860,000</td>
+        <td class="table-money">313,548</td>
+        <td class="table-money">10,800,000</td>
+        <td class="table-money">696,774</td>
+      </tr>
+      <tr>
+        <td>Add-on Revenue</td>
+        <td class="table-money">6,000,000</td>
+        <td class="table-money">387,097</td>
+        <td class="table-money">15,000,000</td>
+        <td class="table-money">967,742</td>
+      </tr>
+      <tr class="table-highlight">
+        <td><strong>Total Revenue</strong></td>
+        <td class="table-money"><strong>109,260,000</strong></td>
+        <td class="table-money"><strong>7,049,032</strong></td>
+        <td class="table-money"><strong>237,000,000</strong></td>
+        <td class="table-money"><strong>15,290,323</strong></td>
+      </tr>
+      <tr>
+        <td>Total Costs</td>
+        <td class="table-money">32,400,000</td>
+        <td class="table-money">2,090,323</td>
+        <td class="table-money">54,000,000</td>
+        <td class="table-money">3,483,871</td>
+      </tr>
+      <tr class="table-highlight">
+        <td><strong>EBITDA</strong></td>
+        <td class="table-money"><strong>76,860,000</strong></td>
+        <td class="table-money"><strong>4,958,710</strong></td>
+        <td class="table-money"><strong>183,000,000</strong></td>
+        <td class="table-money"><strong>11,806,452</strong></td>
+      </tr>
+      <tr>
+        <td>EBITDA Margin</td>
+        <td class="table-money"><strong>70%</strong></td>
+        <td></td>
+        <td class="table-money"><strong>77%</strong></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td>Markets</td>
+        <td colspan="2">Ghana, Nigeria, Senegal, C&ocirc;te d&rsquo;Ivoire</td>
+        <td colspan="2">+Kenya, Tanzania, Rwanda</td>
+      </tr>
+      <tr>
+        <td>Team Size</td>
+        <td class="table-money">25&ndash;35</td>
+        <td></td>
+        <td class="table-money">50&ndash;70</td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================================
+       REVENUE GROWTH VISUALIZATION
+       ============================================================ -->
+  <h2>Revenue Growth &mdash; 5-Year Trajectory</h2>
+
+  <div class="bar-chart">
+    <div class="bar-row">
+      <div class="bar-label">Year 1</div>
+      <div class="bar-track">
+        <div class="bar-fill bar-fill-emerald" style="width: 1%;">
+        </div>
+      </div>
+      <span class="text-small text-mono" style="flex-shrink:0; width:180px;">GHS 1.94M / $125K</span>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Year 2</div>
+      <div class="bar-track">
+        <div class="bar-fill bar-fill-emerald" style="width: 6.4%;">
+        </div>
+      </div>
+      <span class="text-small text-mono" style="flex-shrink:0; width:180px;">GHS 15.3M / $984K</span>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Year 3</div>
+      <div class="bar-track">
+        <div class="bar-fill bar-fill-emerald" style="width: 22%;">
+        </div>
+      </div>
+      <span class="text-small text-mono" style="flex-shrink:0; width:180px;">GHS 52.5M / $3.4M</span>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Year 4</div>
+      <div class="bar-track">
+        <div class="bar-fill bar-fill-gold" style="width: 46%;">
+        </div>
+      </div>
+      <span class="text-small text-mono" style="flex-shrink:0; width:180px;">GHS 109.3M / $7.0M</span>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Year 5</div>
+      <div class="bar-track">
+        <div class="bar-fill bar-fill-gold" style="width: 100%;">
+        </div>
+      </div>
+      <span class="text-small text-mono" style="flex-shrink:0; width:180px;">GHS 237M / $15.3M</span>
+    </div>
+  </div>
+
+  <p class="text-small text-muted">Revenue CAGR Years 1&ndash;5: ~230%. Growth driven by merchant base expansion across 3 markets, increasing ARPU from add-ons, and improving plan mix toward higher tiers.</p>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================================
+       P&L SUMMARY — 3 YEARS
+       ============================================================ -->
+  <h2>Profit &amp; Loss Summary &mdash; 3 Years</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Line Item</th>
+        <th>Year 1 (GHS)</th>
+        <th>Year 1 (USD)</th>
+        <th>Year 2 (GHS)</th>
+        <th>Year 2 (USD)</th>
+        <th>Year 3 (GHS)</th>
+        <th>Year 3 (USD)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Revenue -->
+      <tr class="pnl-revenue">
+        <td>Subscription Revenue</td>
+        <td class="table-money">190,030</td>
+        <td class="table-money">12,260</td>
+        <td class="table-money">1,482,000</td>
+        <td class="table-money">95,613</td>
+        <td class="table-money">5,175,000</td>
+        <td class="table-money">333,871</td>
+      </tr>
+      <tr class="pnl-revenue">
+        <td>Transaction Fee Revenue</td>
+        <td class="table-money">1,704,625</td>
+        <td class="table-money">109,976</td>
+        <td class="table-money">13,300,000</td>
+        <td class="table-money">858,065</td>
+        <td class="table-money">44,850,000</td>
+        <td class="table-money">2,893,548</td>
+      </tr>
+      <tr class="pnl-revenue">
+        <td>Delivery Commission</td>
+        <td class="table-money">46,764</td>
+        <td class="table-money">3,017</td>
+        <td class="table-money">336,960</td>
+        <td class="table-money">21,739</td>
+        <td class="table-money">1,117,800</td>
+        <td class="table-money">72,116</td>
+      </tr>
+      <tr class="pnl-revenue">
+        <td>Add-on Revenue</td>
+        <td class="table-money">0</td>
+        <td class="table-money">0</td>
+        <td class="table-money">135,000</td>
+        <td class="table-money">8,710</td>
+        <td class="table-money">1,317,500</td>
+        <td class="table-money">85,000</td>
+      </tr>
+      <tr class="pnl-total">
+        <td><strong>Total Revenue</strong></td>
+        <td class="table-money"><strong>1,941,419</strong></td>
+        <td class="table-money"><strong>125,253</strong></td>
+        <td class="table-money"><strong>15,253,960</strong></td>
+        <td class="table-money"><strong>984,126</strong></td>
+        <td class="table-money"><strong>52,460,300</strong></td>
+        <td class="table-money"><strong>3,384,535</strong></td>
+      </tr>
+      <!-- Costs -->
+      <tr class="pnl-cost">
+        <td>Team Costs</td>
+        <td class="table-money">209,000</td>
+        <td class="table-money">13,484</td>
+        <td class="table-money">600,000</td>
+        <td class="table-money">38,710</td>
+        <td class="table-money">1,800,000</td>
+        <td class="table-money">116,129</td>
+      </tr>
+      <tr class="pnl-cost">
+        <td>Infrastructure</td>
+        <td class="table-money">64,950</td>
+        <td class="table-money">4,190</td>
+        <td class="table-money">450,000</td>
+        <td class="table-money">29,032</td>
+        <td class="table-money">1,440,000</td>
+        <td class="table-money">92,903</td>
+      </tr>
+      <tr class="pnl-cost">
+        <td>Marketing</td>
+        <td class="table-money">90,000</td>
+        <td class="table-money">5,806</td>
+        <td class="table-money">150,000</td>
+        <td class="table-money">9,677</td>
+        <td class="table-money">480,000</td>
+        <td class="table-money">30,968</td>
+      </tr>
+      <tr class="pnl-cost">
+        <td>Payment Processing (passthrough)</td>
+        <td class="table-money">0</td>
+        <td class="table-money">0</td>
+        <td class="table-money">0</td>
+        <td class="table-money">0</td>
+        <td class="table-money">0</td>
+        <td class="table-money">0</td>
+      </tr>
+      <tr class="pnl-cost">
+        <td>Office / Admin</td>
+        <td class="table-money">0</td>
+        <td class="table-money">0</td>
+        <td class="table-money">30,000</td>
+        <td class="table-money">1,935</td>
+        <td class="table-money">150,000</td>
+        <td class="table-money">9,677</td>
+      </tr>
+      <tr class="pnl-cost">
+        <td>Legal / Compliance</td>
+        <td class="table-money">0</td>
+        <td class="table-money">0</td>
+        <td class="table-money">15,000</td>
+        <td class="table-money">968</td>
+        <td class="table-money">105,000</td>
+        <td class="table-money">6,774</td>
+      </tr>
+      <tr class="pnl-total">
+        <td><strong>Total Costs</strong></td>
+        <td class="table-money"><strong>363,950</strong></td>
+        <td class="table-money"><strong>23,484</strong></td>
+        <td class="table-money"><strong>1,245,000</strong></td>
+        <td class="table-money"><strong>80,323</strong></td>
+        <td class="table-money"><strong>3,975,000</strong></td>
+        <td class="table-money"><strong>256,452</strong></td>
+      </tr>
+      <!-- EBITDA -->
+      <tr class="table-highlight">
+        <td><strong>EBITDA</strong></td>
+        <td class="table-money"><strong>1,577,469</strong></td>
+        <td class="table-money"><strong>101,772</strong></td>
+        <td class="table-money"><strong>14,008,960</strong></td>
+        <td class="table-money"><strong>903,804</strong></td>
+        <td class="table-money"><strong>48,485,300</strong></td>
+        <td class="table-money"><strong>3,128,084</strong></td>
+      </tr>
+      <tr class="pnl-margin">
+        <td><strong>EBITDA Margin</strong></td>
+        <td class="table-money" colspan="2"><strong>81%</strong></td>
+        <td class="table-money" colspan="2"><strong>92%</strong></td>
+        <td class="table-money" colspan="2"><strong>92%</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="text-small text-muted"><strong>Note:</strong> Payment processing fees (Paystack/Hubtel 1.95%) are passed through to the merchant and not reflected in Emakola&rsquo;s P&amp;L. Transaction fee revenue shown above is Emakola&rsquo;s net margin above gateway costs.</p>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================================
+       BREAK-EVEN ANALYSIS
+       ============================================================ -->
+  <h2>Break-Even Analysis</h2>
+
+  <div class="callout callout-emerald">
+    <div class="callout-title">Break-Even Milestones</div>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-value">Month 16</div>
+        <div class="stat-label">Cumulative Break-Even</div>
+        <div class="stat-sub">Mid Year 2</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value gold">2,500</div>
+        <div class="stat-label">Paid Merchants at Break-Even</div>
+        <div class="stat-sub">~1,750 total active</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">GHS 250K</div>
+        <div class="stat-label">Break-Even MRR</div>
+        <div class="stat-sub">$16,129 USD/mo</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value navy">Month 4</div>
+        <div class="stat-label">Monthly P&amp;L Positive</div>
+        <div class="stat-sub">Operating break-even</div>
+      </div>
+    </div>
+
+    <p>Monthly operating break-even is reached by <strong>Month 4</strong> (85 merchants) due to the low cost base. However, cumulative cash break-even &mdash; accounting for all pre-launch and ramp-up costs funded by the seed round &mdash; occurs at <strong>Month 16</strong>, when cumulative revenue exceeds cumulative costs plus the initial investment drawdown.</p>
+  </div>
+
+  <!-- ============================================================
+       SENSITIVITY ANALYSIS
+       ============================================================ -->
+  <h2>Sensitivity Analysis &mdash; Three Scenarios</h2>
+
+  <p>Key model inputs are stress-tested across conservative, base, and optimistic scenarios. The model is most sensitive to merchant acquisition rate and churn, less so to ARPU variations.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Scenario</th>
+        <th>Merchants Y1</th>
+        <th>Monthly Churn</th>
+        <th>ARPU (GHS)</th>
+        <th>CAC (GHS)</th>
+        <th>Break-Even</th>
+        <th>Revenue Y3 (GHS)</th>
+        <th>Revenue Y3 (USD)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="scenario-conservative">
+        <td><span class="badge badge-navy">Conservative (-30%)</span></td>
+        <td class="table-money">700</td>
+        <td class="table-money">7%</td>
+        <td class="table-money">350</td>
+        <td class="table-money">140</td>
+        <td class="table-money">Month 22</td>
+        <td class="table-money">30,000,000</td>
+        <td class="table-money">1,935,484</td>
+      </tr>
+      <tr class="scenario-base">
+        <td><span class="badge badge-emerald">Base Case</span></td>
+        <td class="table-money">1,000</td>
+        <td class="table-money">5%</td>
+        <td class="table-money">449</td>
+        <td class="table-money">100</td>
+        <td class="table-money">Month 16</td>
+        <td class="table-money">52,460,300</td>
+        <td class="table-money">3,384,535</td>
+      </tr>
+      <tr class="scenario-optimistic">
+        <td><span class="badge badge-gold">Optimistic (+30%)</span></td>
+        <td class="table-money">1,300</td>
+        <td class="table-money">3%</td>
+        <td class="table-money">550</td>
+        <td class="table-money">70</td>
+        <td class="table-money">Month 11</td>
+        <td class="table-money">72,000,000</td>
+        <td class="table-money">4,645,161</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-navy">
+    <div class="callout-title">Sensitivity Insight</div>
+    <p>Even in the conservative scenario with 30% fewer merchants, 40% higher churn, and 22% lower ARPU, the model reaches break-even within 22 months &mdash; well within the 24-month outer bound of seed runway. The conservative Year 3 revenue of GHS 30M ($1.9M) still represents a compelling venture outcome for a pre-seed/seed investment.</p>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================================
+       FUNDING REQUIREMENTS
+       ============================================================ -->
+  <h2>Funding Requirements</h2>
+
+  <div class="two-col">
+    <div class="card card-accent">
+      <div class="card-header">Pre-Seed / Seed Round</div>
+      <div class="stat-card" style="border:none; background:transparent; padding:0.5rem 0;">
+        <div class="stat-value">GHS 775,000</div>
+        <div class="stat-label">~$50,000 USD</div>
+      </div>
+      <ul>
+        <li><strong>Engineering (50%):</strong> GHS 387,500 ($25,000) &mdash; salaries, infrastructure for 12 months</li>
+        <li><strong>Marketing (25%):</strong> GHS 193,750 ($12,500) &mdash; GTM execution, content, paid ads</li>
+        <li><strong>Operations (15%):</strong> GHS 116,250 ($7,500) &mdash; legal, compliance, office setup</li>
+        <li><strong>Reserve (10%):</strong> GHS 77,500 ($5,000) &mdash; buffer for unexpected costs</li>
+      </ul>
+      <p class="text-small text-muted mt-1">Timeline: Funds needed at launch. Provides runway to Month 16&ndash;18 break-even.</p>
+    </div>
+    <div class="card card-gold">
+      <div class="card-header">Series A (Year 2)</div>
+      <div class="stat-card" style="border:none; background:transparent; padding:0.5rem 0;">
+        <div class="stat-value gold">GHS 7.75M</div>
+        <div class="stat-label">~$500,000 USD</div>
+      </div>
+      <ul>
+        <li><strong>Nigeria expansion:</strong> local team, compliance, Naira payment integration</li>
+        <li><strong>Team scaling:</strong> 4 &rarr; 10&ndash;12 people across engineering, sales, ops</li>
+        <li><strong>Product acceleration:</strong> add-on features, API platform, premium themes</li>
+        <li><strong>Marketing:</strong> regional brand building, merchant acquisition at scale</li>
+      </ul>
+      <p class="text-small text-muted mt-1">Timeline: Raised at Month 12&ndash;15, deploying through Year 2.</p>
+    </div>
+  </div>
+
+  <!-- Use of Funds Visualization -->
+  <h3>Use of Funds &mdash; Seed Round Allocation</h3>
+
+  <div class="chart-container">
+    <svg viewBox="0 0 200 200" width="200" height="200" class="svg-chart">
+      <!-- Donut chart: Engineering 50%, Marketing 25%, Operations 15%, Reserve 10% -->
+      <!-- Total circumference = 2 * pi * 70 = 439.82 -->
+      <!-- Engineering: 50% = 219.91 -->
+      <!-- Marketing: 25% = 109.96 -->
+      <!-- Operations: 15% = 65.97 -->
+      <!-- Reserve: 10% = 43.98 -->
+      <circle cx="100" cy="100" r="70" fill="none" stroke="#F1F5F9" stroke-width="30"/>
+      <!-- Engineering: 0 to 180deg (50%) -->
+      <circle cx="100" cy="100" r="70" fill="none"
+              stroke="#059669" stroke-width="30"
+              stroke-dasharray="219.91 219.91"
+              stroke-dashoffset="0"
+              transform="rotate(-90 100 100)"/>
+      <!-- Marketing: 180 to 270deg (25%) -->
+      <circle cx="100" cy="100" r="70" fill="none"
+              stroke="#EAB308" stroke-width="30"
+              stroke-dasharray="109.96 329.86"
+              stroke-dashoffset="-219.91"
+              transform="rotate(-90 100 100)"/>
+      <!-- Operations: 270 to 324deg (15%) -->
+      <circle cx="100" cy="100" r="70" fill="none"
+              stroke="#1E293B" stroke-width="30"
+              stroke-dasharray="65.97 373.85"
+              stroke-dashoffset="-329.87"
+              transform="rotate(-90 100 100)"/>
+      <!-- Reserve: 324 to 360deg (10%) -->
+      <circle cx="100" cy="100" r="70" fill="none"
+              stroke="#94A3B8" stroke-width="30"
+              stroke-dasharray="43.98 395.84"
+              stroke-dashoffset="-395.84"
+              transform="rotate(-90 100 100)"/>
+      <!-- Center text -->
+      <text x="100" y="95" text-anchor="middle" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="#0F172A">GHS 775K</text>
+      <text x="100" y="112" text-anchor="middle" font-family="Inter, sans-serif" font-size="9" fill="#64748B">$50,000 USD</text>
+    </svg>
+
+    <ul class="chart-legend">
+      <li><span class="dot" style="background:#059669;"></span> <strong>Engineering (50%)</strong> &mdash; GHS 387,500</li>
+      <li><span class="dot" style="background:#EAB308;"></span> <strong>Marketing (25%)</strong> &mdash; GHS 193,750</li>
+      <li><span class="dot" style="background:#1E293B;"></span> <strong>Operations (15%)</strong> &mdash; GHS 116,250</li>
+      <li><span class="dot" style="background:#94A3B8;"></span> <strong>Reserve (10%)</strong> &mdash; GHS 77,500</li>
+    </ul>
+  </div>
+
+  <!-- ============================================================
+       CASH FLOW PROJECTION
+       ============================================================ -->
+  <h2>Cash Flow Projection</h2>
+
+  <div class="callout callout-gold">
+    <div class="callout-title">The J-Curve: Cash Flow Trajectory</div>
+    <p>Months 1&ndash;3 represent the deepest cash burn as team costs and marketing run ahead of revenue. With GHS 775,000 in seed funding, the cash position reaches its minimum at approximately <strong>Month 3</strong> (GHS ~735,000 remaining) before revenue inflection begins in Month 4.</p>
+    <p>By <strong>Month 4</strong>, monthly operating cash flow turns positive. The cumulative cash position recovers through Months 4&ndash;15, crossing back to the original seed amount by <strong>Month 16</strong> (cumulative break-even). From Month 16 onward, the business is self-funding with growing cash reserves.</p>
+    <p>Under the conservative scenario (700 merchants, 7% churn), break-even extends to Month 22 &mdash; still within the 24-month outer runway provided by the seed round plus retained operating revenue from Month 4 onward.</p>
+  </div>
+
+  <div class="insight">
+    The J-curve is shallow by SaaS standards: peak cash consumption is only GHS 40,000 ($2,580) in the worst month, and the business generates positive monthly operating cash flow within 4 months. This capital efficiency is driven by Accra-based team costs (80% lower than US equivalents), lean infrastructure on Fly.io, and high-margin transaction fee revenue that scales without proportional cost increases.
+    <span class="source">Emakola Financial Model, March 2026</span>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ============================================================
+       SOURCES
+       ============================================================ -->
+  <div class="sources">
+    <h4>Sources &amp; References</h4>
+    <ol>
+      <li>Bank of Ghana &mdash; Daily Interbank FX Rates, March 2026 (exchange rate basis)</li>
+      <li>Ghana Statistical Service &mdash; Integrated Business Establishment Survey 2024 (SME benchmarks)</li>
+      <li>Paystack &mdash; Published Pricing for Ghana Merchants (gateway fee rates)</li>
+      <li>Hubtel &mdash; Merchant API Pricing Schedule 2025 (gateway fee rates)</li>
+      <li>SaaS Capital &mdash; Annual Survey of Private SaaS Companies 2024 (churn and conversion benchmarks)</li>
+      <li>Fly.io &mdash; Pricing Calculator for Elixir/Phoenix Applications (infrastructure cost estimates)</li>
+      <li>Jobberman Ghana &mdash; 2025 Salary Survey: Technology Sector (team cost benchmarks)</li>
+      <li>DataReportal &mdash; Digital 2025: Ghana (digital commerce penetration rates)</li>
+      <li>GSMA &mdash; State of Mobile Money in Sub-Saharan Africa 2025 (mobile money transaction volumes)</li>
+      <li>Partech Africa &mdash; Africa Tech Venture Capital Report 2024 (funding benchmarks)</li>
+      <li>McKinsey &amp; Company &mdash; Lions Go Digital: The Internet&rsquo;s Transformative Potential in Africa (market sizing)</li>
+    </ol>
+  </div>
+
+  <!-- Page Footer -->
+  <div class="page-footer">
+    <span>Emakola Business Plan | Confidential | March 2026</span>
+    <span>Section 08 &mdash; Financial Projections</span>
+  </div>
+
+</body>
+</html>
