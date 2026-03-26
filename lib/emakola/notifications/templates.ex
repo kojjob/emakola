@@ -16,8 +16,11 @@ defmodule Emakola.Notifications.Templates do
   end
 
   def order_confirmed_sms(order, store) do
-    "Your order #{order.order_number} from #{store.name} has been confirmed. " <>
-      "Total: #{currency_symbol(order.currency)}#{format_amount(order.total)}. Thank you!"
+    item_count_text = item_count_segment(Map.get(order, :line_items))
+
+    "Receipt: Order #{order.order_number} from #{store.name}. " <>
+      item_count_text <>
+      "Total: #{currency_symbol(order.currency)}#{format_amount(order.total)}. Payment confirmed!"
   end
 
   def order_shipped_sms(order, store) do
@@ -102,6 +105,13 @@ defmodule Emakola.Notifications.Templates do
     minor = rem(minor_units, 100)
     "#{major}.#{String.pad_leading(Integer.to_string(minor), 2, "0")}"
   end
+
+  defp item_count_segment(items) when is_list(items) and length(items) > 0 do
+    count = length(items)
+    "#{count} item(s) | "
+  end
+
+  defp item_count_segment(_), do: ""
 
   defp currency_symbol("GHS"), do: "GH\u20B5"
   defp currency_symbol("NGN"), do: "\u20A6"
