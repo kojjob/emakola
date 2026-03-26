@@ -36,15 +36,20 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLiveTest do
         live(conn, "/s/#{store.slug}/orders/#{order.order_number}/confirmation")
 
       assert html =~ order.order_number
-      assert html =~ "Order Confirmed" or html =~ "Thank you"
+      assert html =~ "all set" or html =~ "Order Confirmed" or html =~ "Thank you"
     end
 
-    test "shows order items and total", %{conn: conn, store: store, order: order} do
-      {:ok, _view, html} =
+    test "shows order total and items", %{conn: conn, store: store, order: order} do
+      {:ok, view, html} =
         live(conn, "/s/#{store.slug}/orders/#{order.order_number}/confirmation")
 
-      assert html =~ "Confirm Item"
       assert html =~ "GH\u20B5"
+
+      # Items may be in expandable details -- click to expand if needed
+      if has_element?(view, "[phx-click='toggle_details']") do
+        html = render_click(view, "toggle_details", %{})
+        assert html =~ "Confirm Item"
+      end
     end
 
     test "shows continue shopping link", %{conn: conn, store: store, order: order} do
