@@ -10,6 +10,18 @@
 
 **Spec:** `docs/superpowers/specs/2026-03-26-checkout-redesign-design.md`
 
+## ERRATA (from plan review)
+
+Agents MUST apply these corrections over the plan examples:
+
+1. **Factory helper:** Use `create_store!()` (bang), not `create_store()`. All tests must `import Emakola.Factory`.
+2. **Store module:** Use `Emakola.Accounts.Store`, NOT `Emakola.Stores.Store` (in coupon resource relationship).
+3. **variant_label:** Use `variant_label(variant, socket.assigns.option_types)`, NOT `socket.assigns.product`.
+4. **Admin test auth:** No `setup :register_and_log_in_user`. Use local `create_authenticated_merchant!` + `authenticate_conn` pattern from existing admin tests (e.g., `test/emakola_web/live/admin/`).
+5. **require Ash.Query:** Must be at MODULE level in checkout_service.ex, not inside function body.
+6. **increment_usage race guard:** The `:increment_usage` action needs a filter `filter expr(is_nil(max_uses) or uses_count < max_uses)` to prevent exceeding max_uses under concurrency.
+7. **Task 6 is split:** Into 6a (coupon assigns + handlers), 6b (step order reversal), 6c (render rewrite), 6d (coupon UI wiring).
+
 ---
 
 ## File Structure
