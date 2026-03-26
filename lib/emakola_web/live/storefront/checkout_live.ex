@@ -1396,12 +1396,14 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   defp checkout_error_message(:insufficient_stock), do: "Some items are out of stock"
   defp checkout_error_message(_), do: "Something went wrong. Please try again."
 
-  defp coupon_error_message(:not_found), do: "Coupon code not found"
-  defp coupon_error_message(:expired), do: "This coupon has expired"
+  defp coupon_error_message(:coupon_not_found), do: "Coupon code not found"
+  defp coupon_error_message(:coupon_inactive), do: "This coupon is no longer active"
+  defp coupon_error_message(:coupon_expired), do: "This coupon has expired"
+  defp coupon_error_message(:coupon_not_started), do: "This coupon is not yet active"
+  defp coupon_error_message(:coupon_minimum_not_met), do: "Order does not meet the minimum amount"
 
-  defp coupon_error_message(:minimum_not_met),
-    do: "Order does not meet the minimum amount for this coupon"
+  defp coupon_error_message(:coupon_max_uses_reached),
+    do: "This coupon has reached its usage limit"
 
-  defp coupon_error_message(:usage_limit_reached), do: "This coupon has reached its usage limit"
   defp coupon_error_message(_), do: "Invalid coupon code"
 end
