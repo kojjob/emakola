@@ -31,12 +31,13 @@ import ThemeSettings from "./hooks/theme_settings"
 import ScrollGlass from "./hooks/scroll_glass"
 import AddToBag from "./hooks/add_to_bag"
 import AtelierNavScroll from "./hooks/atelier_nav_scroll"
+import ChartHook from "./hooks/chart_hook"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {ThemeToggle, Analytics, ScrollReveal, AutoDismiss, ThemeSettings, ScrollGlass, AddToBag, AtelierNavScroll},
+  hooks: {ThemeToggle, Analytics, ScrollReveal, AutoDismiss, ThemeSettings, ScrollGlass, AddToBag, AtelierNavScroll, ChartHook},
 })
 
 // Show progress bar on live navigation and form submits
