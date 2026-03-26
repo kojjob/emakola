@@ -65,11 +65,24 @@ defmodule Emakola.Inventory.Workers.LowStockAlertWorker do
       end)
 
       send_merchant_email_alerts(store, low_stock_variants)
+      send_merchant_sms_digest(store, length(low_stock_variants))
     end
   end
 
   defp variant_product_title(%{product: %{title: title}}) when is_binary(title), do: title
   defp variant_product_title(_), do: "Unknown Product"
+
+  defp send_merchant_sms_digest(store, count) do
+    message = Emakola.Notifications.Templates.low_stock_digest_sms(count, store.name)
+
+    if store.contact_phone && store.contact_phone != "" do
+      sms_provider().send_sms(store.contact_phone, message, store_id: store.id)
+    end
+  end
+
+  defp sms_provider do
+    Application.get_env(:emakola, :sms_provider, Emakola.Notifications.Providers.LogSMS)
+  end
 
   defp send_merchant_email_alerts(store, low_stock_variants) do
     memberships =

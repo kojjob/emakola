@@ -16,8 +16,11 @@ defmodule Emakola.Notifications.Templates do
   end
 
   def order_confirmed_sms(order, store) do
-    "Your order #{order.order_number} from #{store.name} has been confirmed. " <>
-      "Total: #{currency_symbol(order.currency)}#{format_amount(order.total)}. Thank you!"
+    item_count_text = item_count_segment(Map.get(order, :line_items))
+
+    "Receipt: Order #{order.order_number} from #{store.name}. " <>
+      item_count_text <>
+      "Total: #{currency_symbol(order.currency)}#{format_amount(order.total)}. Payment confirmed!"
   end
 
   def order_shipped_sms(order, store) do
@@ -66,6 +69,20 @@ defmodule Emakola.Notifications.Templates do
     }
   end
 
+  # ── Low-stock alert templates ────────────────────────────────
+
+  def low_stock_realtime_sms(product_title, sku, stock_quantity, store_name) do
+    sku_display = sku || "N/A"
+
+    "Low stock alert: #{product_title} (#{sku_display}) has only #{stock_quantity} units left. " <>
+      "Restock soon! - #{store_name}"
+  end
+
+  def low_stock_digest_sms(count, store_name) do
+    "#{count} items are running low on stock at #{store_name}. " <>
+      "Check your dashboard for details."
+  end
+
   # ── Formatting helpers ─────────────────────────────────────────
 
   @doc """
@@ -88,6 +105,13 @@ defmodule Emakola.Notifications.Templates do
     minor = rem(minor_units, 100)
     "#{major}.#{String.pad_leading(Integer.to_string(minor), 2, "0")}"
   end
+
+  defp item_count_segment(items) when is_list(items) and length(items) > 0 do
+    count = length(items)
+    "#{count} item(s) | "
+  end
+
+  defp item_count_segment(_), do: ""
 
   defp currency_symbol("GHS"), do: "GH\u20B5"
   defp currency_symbol("NGN"), do: "\u20A6"

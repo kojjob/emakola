@@ -5,15 +5,11 @@ defmodule Emakola.Security.AuthorizationTest do
   Verifies that store-scoped queries correctly isolate data:
   - Merchant A cannot see Store B's products, orders, or customers
   - Store-scoped read actions filter by store_id
+  - Merchant A cannot write to Store B's resources (policy enforced)
   - Unauthenticated users cannot access admin LiveView routes
-
-  NOTE: The current Ash policies use `authorize_if(always())`, so authorization
-  is not enforced at the policy level. Data isolation relies on store_id-scoped
-  queries. These tests document the expected isolation guarantees and will serve
-  as the safety net when proper policies are implemented.
   """
 
-  use Emakola.DataCase, async: true
+  use Emakola.DataCase, async: false
 
   require Ash.Query
 
@@ -201,6 +197,104 @@ defmodule Emakola.Security.AuthorizationTest do
 
       assert updated.store_id == ctx.store_a.id
       assert updated.title == "Updated Title"
+    end
+  end
+
+  # ── Policy-Enforced Write Isolation ──────────────────────────────
+
+  describe "merchant cannot write to another store's products" do
+    test "merchant B cannot create a product in store A", ctx do
+      result =
+        Product
+        |> Ash.Changeset.for_create(:create, %{
+          store_id: ctx.store_a.id,
+          title: "Hijacked Product"
+        })
+        |> Ash.create(actor: ctx.merchant_b)
+
+      assert {:error, %Ash.Error.Forbidden{}} = result
+    end
+
+    test "merchant B cannot update a product in store A", ctx do
+      product = create_product!(ctx.store_a, %{title: "Store A Product"})
+
+      result =
+        product
+        |> Ash.Changeset.for_update(:update, %{title: "Hijacked Title"})
+        |> Ash.update(actor: ctx.merchant_b)
+
+      assert {:error, %Ash.Error.Forbidden{}} = result
+    end
+
+    test "merchant A can create a product in their own store", ctx do
+      result =
+        Product
+        |> Ash.Changeset.for_create(:create, %{
+          store_id: ctx.store_a.id,
+          title: "My Product"
+        })
+        |> Ash.create(actor: ctx.merchant_a)
+
+      assert {:ok, product} = result
+      assert product.store_id == ctx.store_a.id
+    end
+  end
+
+  describe "merchant cannot write to another store's orders" do
+    test "merchant B cannot create an order in store A", ctx do
+      result =
+        Order
+        |> Ash.Changeset.for_create(:create, %{store_id: ctx.store_a.id})
+        |> Ash.create(actor: ctx.merchant_b)
+
+      assert {:error, %Ash.Error.Forbidden{}} = result
+    end
+
+    test "merchant B cannot cancel an order in store A", ctx do
+      order = create_order!(ctx.store_a)
+
+      result =
+        order
+        |> Ash.Changeset.for_update(:cancel)
+        |> Ash.update(actor: ctx.merchant_b)
+
+      assert {:error, %Ash.Error.Forbidden{}} = result
+    end
+  end
+
+  describe "merchant cannot modify another store" do
+    test "merchant B cannot update store A", ctx do
+      result =
+        ctx.store_a
+        |> Ash.Changeset.for_update(:update, %{name: "Hijacked Store"})
+        |> Ash.update(actor: ctx.merchant_b)
+
+      assert {:error, %Ash.Error.Forbidden{}} = result
+    end
+
+    test "merchant A can update their own store", ctx do
+      result =
+        ctx.store_a
+        |> Ash.Changeset.for_update(:update, %{name: "My Updated Store"})
+        |> Ash.update(actor: ctx.merchant_a)
+
+      assert {:ok, updated} = result
+      assert updated.name == "My Updated Store"
+    end
+  end
+
+  describe "merchant cannot write to another store's customers" do
+    test "merchant B cannot create a customer in store A", ctx do
+      result =
+        Customer
+        |> Ash.Changeset.for_create(:create, %{
+          store_id: ctx.store_a.id,
+          email: "hijacked@example.com",
+          name: "Hijacked Customer"
+        })
+        |> Ash.create(actor: ctx.merchant_b)
+
+      assert {:error, %Ash.Error.Forbidden{}} = result
     end
   end
 end

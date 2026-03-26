@@ -1,121 +1,133 @@
 defmodule EmakolaWeb.DashboardMetricComponents do
   @moduledoc """
-  Metric and chart card components for the admin dashboard:
-  API usage, orders activity, quota, and platform health cards.
+  KPI cards and chart card components for the merchant admin dashboard.
   """
 
   use Phoenix.Component
 
-  attr :token_usage, :string, required: true
-  attr :token_quota_pct, :integer, required: true
-  attr :token_chart, :list, required: true
-  attr :total_orders, :string, required: true
-  attr :orders_chart, :list, required: true
+  attr :total_revenue, :integer, required: true
+  attr :revenue_change, :float, default: nil
+  attr :order_count, :integer, required: true
+  attr :orders_change, :float, default: nil
+  attr :customer_count, :integer, required: true
+  attr :customers_change, :float, default: nil
+  attr :avg_order_value, :integer, required: true
+  attr :aov_change, :float, default: nil
 
-  def metric_cards(assigns) do
+  def kpi_cards(assigns) do
     ~H"""
-    <%!-- API Usage Card --%>
-    <div class="md:col-span-4 bg-surface-container p-6 rounded-lg relative overflow-hidden group">
-      <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-        <span class="material-symbols-outlined text-6xl">storefront</span>
-      </div>
-      <p class="text-sm font-medium text-on-surface-variant mb-4">API Usage</p>
-      <div class="flex items-baseline gap-2">
-        <span class="text-5xl font-mono font-medium text-primary">{@token_usage}</span>
-        <span class="text-xs font-mono text-on-surface-variant">calls</span>
-      </div>
-      <div class="mt-6 h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
-        <div
-          class="h-full bg-primary rounded-full transition-all duration-500"
-          style={"width: #{@token_quota_pct}%"}
-        >
-        </div>
-      </div>
-      <p class="text-[10px] text-on-surface-variant mt-2 font-mono">
-        {@token_quota_pct}% of plan limit
-      </p>
-    </div>
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <.kpi_card
+        label="Revenue"
+        icon="payments"
+        value={format_money(@total_revenue)}
+        change={@revenue_change}
+      />
+      <.kpi_card
+        label="Orders"
+        icon="shopping_cart"
+        value={Integer.to_string(@order_count)}
+        change={@orders_change}
+      />
+      <.kpi_card
+        label="Customers"
+        icon="group"
+        value={Integer.to_string(@customer_count)}
+        change={@customers_change}
+      />
+      <.kpi_card
+        label="Avg Order"
+        icon="trending_up"
+        value={format_money(@avg_order_value)}
+        change={@aov_change}
+      />
+    </section>
+    """
+  end
 
-    <%!-- Orders Card --%>
-    <div class="md:col-span-4 bg-surface-container p-6 rounded-lg">
-      <p class="text-sm font-medium text-on-surface-variant mb-4">Activity</p>
-      <div class="flex items-baseline gap-2">
-        <span class="text-5xl font-mono font-medium text-on-surface">{@total_orders}</span>
-      </div>
-      <div class="mt-4 flex gap-1 items-end h-12">
-        <div
-          :for={h <- @orders_chart}
-          class="flex-1 rounded-t-sm transition-all duration-300"
-          style={"height: #{h}%; background-color: var(--fp-chart-primary); opacity: #{max(h / 100, 0.3)};"}
-        >
-        </div>
-      </div>
-    </div>
+  attr :label, :string, required: true
+  attr :icon, :string, required: true
+  attr :value, :string, required: true
+  attr :change, :float, default: nil
 
-    <%!-- Quota Card --%>
-    <div class="md:col-span-4 bg-surface-container p-6 rounded-lg">
-      <div class="flex justify-between items-start mb-4">
-        <p class="text-sm font-medium text-on-surface-variant">Quota</p>
-        <span class={[
-          "text-[10px] font-mono px-2 py-0.5 rounded-full",
-          if(@token_quota_pct >= 80,
-            do: "bg-error/10 text-error",
-            else: "bg-secondary/10 text-secondary"
-          )
-        ]}>
-          {if @token_quota_pct >= 80, do: "LIMIT NEAR", else: "ON TRACK"} {@token_quota_pct}%
-        </span>
+  defp kpi_card(assigns) do
+    ~H"""
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-medium text-slate-500">{@label}</span>
+        <span class="material-symbols-outlined text-xl text-slate-300">{@icon}</span>
       </div>
-      <span class="text-5xl font-mono font-medium text-secondary">{@token_usage}</span>
-      <div class="mt-6 flex gap-1.5 h-8">
-        <div
-          :for={{h, opacity} <- @token_chart}
-          class="flex-1 mt-auto rounded-sm transition-all duration-300"
-          style={"height: #{h}%; background-color: var(--fp-chart-secondary); opacity: #{opacity};"}
-        >
-        </div>
+      <p class="text-2xl font-bold text-slate-900 tabular-nums">{@value}</p>
+      <.change_indicator change={@change} />
+    </div>
+    """
+  end
+
+  attr :change, :float, default: nil
+
+  defp change_indicator(%{change: nil} = assigns) do
+    ~H"""
+    <p class="text-xs text-slate-400 mt-2">No previous data</p>
+    """
+  end
+
+  defp change_indicator(%{change: change} = assigns) when change >= 0 do
+    ~H"""
+    <div class="flex items-center gap-1 mt-2">
+      <span class="material-symbols-outlined text-sm text-green-600">arrow_upward</span>
+      <span class="text-xs font-medium text-green-600">{abs(@change)}%</span>
+      <span class="text-xs text-slate-400">vs prev period</span>
+    </div>
+    """
+  end
+
+  defp change_indicator(assigns) do
+    ~H"""
+    <div class="flex items-center gap-1 mt-2">
+      <span class="material-symbols-outlined text-sm text-red-600">arrow_downward</span>
+      <span class="text-xs font-medium text-red-600">{abs(@change)}%</span>
+      <span class="text-xs text-slate-400">vs prev period</span>
+    </div>
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :title, :string, required: true
+  attr :chart_type, :string, required: true
+  attr :chart_data, :map, required: true
+  attr :height, :string, default: "h-64"
+
+  def chart_card(assigns) do
+    ~H"""
+    <div class="bg-white rounded-xl border border-slate-200 p-5">
+      <h3 class="text-sm font-semibold text-slate-900 mb-4">{@title}</h3>
+      <div class={@height}>
+        <canvas
+          id={@id}
+          phx-hook="ChartHook"
+          phx-update="ignore"
+          data-chart-type={@chart_type}
+          data-chart-data={Jason.encode!(@chart_data)}
+          class="w-full h-full"
+        />
       </div>
     </div>
     """
   end
 
-  attr :avg_latency, :string, required: true
-  attr :error_rate, :string, required: true
-  attr :success_rate, :float, required: true
-  attr :success_chart, :list, required: true
+  defp format_money(amount_pesewas) do
+    major = div(amount_pesewas, 100)
+    minor = rem(abs(amount_pesewas), 100)
 
-  def platform_health_card(assigns) do
-    ~H"""
-    <div class="md:col-span-8 bg-surface-container-low rounded-lg p-8 flex flex-col justify-between">
-      <div class="flex justify-between items-start">
-        <div>
-          <h3 class="text-xl font-bold font-headline mb-1">Platform Health</h3>
-          <p class="text-sm text-on-surface-variant">Across all activity in past 24 hours</p>
-        </div>
-        <div class="flex gap-4">
-          <div class="text-right">
-            <p class="text-xs font-mono text-on-surface-variant">AVG_LATENCY</p>
-            <p class="font-mono text-primary">{@avg_latency}</p>
-          </div>
-          <div class="text-right">
-            <p class="text-xs font-mono text-on-surface-variant">ERROR_RATE</p>
-            <p class="font-mono text-error">{@error_rate}</p>
-          </div>
-          <div class="text-right">
-            <p class="text-xs font-mono text-on-surface-variant">SUCCESS</p>
-            <p class="font-mono text-primary">{@success_rate}%</p>
-          </div>
-        </div>
-      </div>
-      <div class="mt-12 relative h-48 flex items-end justify-between gap-1">
-        <div
-          :for={{h, i} <- Enum.with_index(@success_chart)}
-          class="w-full rounded-t-lg transition-all duration-300"
-          style={"height: #{h}%; background-color: var(--fp-chart-primary); opacity: #{min((i + 2) / (length(@success_chart) + 1), 1)};"}
-        >
-        </div>
-      </div>
-    </div>
-    """
+    formatted =
+      major
+      |> abs()
+      |> Integer.to_string()
+      |> String.reverse()
+      |> String.replace(~r/.{3}(?=.)/, "\\0,")
+      |> String.reverse()
+
+    sign = if amount_pesewas < 0, do: "-", else: ""
+    "#{sign}GHS #{formatted}.#{String.pad_leading(to_string(minor), 2, "0")}"
   end
 end

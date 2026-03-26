@@ -49,10 +49,14 @@ defmodule Emakola.Accounts.Membership do
       authorize_if(always())
     end
 
-    # Role changes and deletes require an authenticated actor
-    policy action_type([:update, :destroy]) do
+    # Internal/system calls (nil actor) are allowed
+    bypass always() do
       authorize_unless(actor_present())
-      authorize_if(actor_present())
+    end
+
+    # Users can only modify their own memberships
+    policy action_type([:update, :destroy]) do
+      authorize_if(expr(user_id == ^actor(:id)))
     end
   end
 
