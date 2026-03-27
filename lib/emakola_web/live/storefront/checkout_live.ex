@@ -608,50 +608,211 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
                 <%!-- SECTION 4: Payment Method --%>
                 <section>
-                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
-                    Payment
+                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-2">
+                    How do you want to pay?
                   </h2>
-                  <%!-- Payment Method Tabs --%>
-                  <div class="flex border-b border-stone-200 mb-6" role="tablist">
+                  <p class="text-sm text-stone-500 mb-6">Choose your preferred payment method</p>
+
+                  <%!-- Visual Payment Cards --%>
+                  <div class="space-y-3">
+                    <%!-- MTN Mobile Money --%>
                     <button
-                      :for={
-                        {method, label, icon_path} <- [
-                          {"momo", "Mobile Money",
-                           "M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"},
-                          {"card", "Card",
-                           "M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v10.5a2.25 2.25 0 002.25 2.25z"},
-                          {"cod", "Cash on Delivery",
-                           "M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"}
-                        ]
-                      }
                       type="button"
                       phx-click="select_payment"
-                      phx-value-method={method}
-                      role="tab"
-                      aria-selected={@payment_method == method}
-                      class={"cursor-pointer flex items-center gap-2 px-4 sm:px-5 py-3 text-sm font-medium transition-colors border-b-2 -mb-px #{if @payment_method == method, do: "border-stone-900 text-stone-900", else: "border-transparent text-stone-400 hover:text-stone-600"}"}
+                      phx-value-method="momo"
+                      class={"cursor-pointer w-full flex items-center gap-4 p-4 sm:p-5 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "momo", do: "border-[#FFC107] bg-[#FFC107]/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
                     >
-                      <svg
-                        class="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        viewBox="0 0 24 24"
-                      >
-                        <path stroke-linecap="round" stroke-linejoin="round" d={icon_path} />
-                      </svg>
-                      {label}
+                      <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#FFC107] flex items-center justify-center shrink-0 shadow-sm">
+                        <span class="text-stone-900 font-extrabold text-lg sm:text-xl tracking-tight">
+                          MTN
+                        </span>
+                      </div>
+                      <div class="flex-1 text-left">
+                        <p class="text-base font-bold text-stone-900">MTN Mobile Money</p>
+                        <p class="text-sm text-stone-500 mt-0.5">Pay with your MoMo wallet</p>
+                      </div>
+                      <div class={"w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 #{if @payment_method == "momo", do: "border-[#FFC107] bg-[#FFC107]", else: "border-stone-300"}"}>
+                        <svg
+                          :if={@payment_method == "momo"}
+                          class="w-3.5 h-3.5 text-stone-900"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 12.75l6 6 9-13.5"
+                          />
+                        </svg>
+                      </div>
+                    </button>
+
+                    <%!-- Vodafone Cash --%>
+                    <button
+                      type="button"
+                      phx-click="select_payment"
+                      phx-value-method="vodafone"
+                      class={"cursor-pointer w-full flex items-center gap-4 p-4 sm:p-5 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "vodafone", do: "border-[#E60000] bg-[#E60000]/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                    >
+                      <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#E60000] flex items-center justify-center shrink-0 shadow-sm">
+                        <span class="text-white font-extrabold text-sm sm:text-base tracking-tight">
+                          VODA
+                        </span>
+                      </div>
+                      <div class="flex-1 text-left">
+                        <p class="text-base font-bold text-stone-900">Vodafone Cash</p>
+                        <p class="text-sm text-stone-500 mt-0.5">Pay with Vodafone Cash</p>
+                      </div>
+                      <div class={"w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 #{if @payment_method == "vodafone", do: "border-[#E60000] bg-[#E60000]", else: "border-stone-300"}"}>
+                        <svg
+                          :if={@payment_method == "vodafone"}
+                          class="w-3.5 h-3.5 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 12.75l6 6 9-13.5"
+                          />
+                        </svg>
+                      </div>
+                    </button>
+
+                    <%!-- Card Payment --%>
+                    <button
+                      type="button"
+                      phx-click="select_payment"
+                      phx-value-method="card"
+                      class={"cursor-pointer w-full flex items-center gap-4 p-4 sm:p-5 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "card", do: "border-blue-500 bg-blue-50/50 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                    >
+                      <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shrink-0 shadow-sm">
+                        <svg
+                          class="w-7 h-7 sm:w-8 sm:h-8 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v10.5a2.25 2.25 0 002.25 2.25z"
+                          />
+                        </svg>
+                      </div>
+                      <div class="flex-1 text-left">
+                        <p class="text-base font-bold text-stone-900">Visa / Mastercard</p>
+                        <p class="text-sm text-stone-500 mt-0.5">Debit or credit card</p>
+                      </div>
+                      <div class={"w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 #{if @payment_method == "card", do: "border-blue-500 bg-blue-500", else: "border-stone-300"}"}>
+                        <svg
+                          :if={@payment_method == "card"}
+                          class="w-3.5 h-3.5 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 12.75l6 6 9-13.5"
+                          />
+                        </svg>
+                      </div>
+                    </button>
+
+                    <%!-- Cash on Delivery --%>
+                    <button
+                      type="button"
+                      phx-click="select_payment"
+                      phx-value-method="cod"
+                      class={"cursor-pointer w-full flex items-center gap-4 p-4 sm:p-5 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "cod", do: "border-emerald-500 bg-emerald-50/50 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                    >
+                      <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shrink-0 shadow-sm">
+                        <svg
+                          class="w-7 h-7 sm:w-8 sm:h-8 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"
+                          />
+                        </svg>
+                      </div>
+                      <div class="flex-1 text-left">
+                        <p class="text-base font-bold text-stone-900">Pay on Delivery</p>
+                        <p class="text-sm text-stone-500 mt-0.5">Cash or MoMo when it arrives</p>
+                      </div>
+                      <div class={"w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 #{if @payment_method == "cod", do: "border-emerald-500 bg-emerald-500", else: "border-stone-300"}"}>
+                        <svg
+                          :if={@payment_method == "cod"}
+                          class="w-3.5 h-3.5 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 12.75l6 6 9-13.5"
+                          />
+                        </svg>
+                      </div>
                     </button>
                   </div>
 
-                  <%!-- Mobile Money Fields --%>
-                  <div :if={@payment_method == "momo"} class="space-y-4">
-                    <p class="text-sm text-stone-600">
-                      You will receive a payment prompt on your phone. Approve it to complete the purchase.
-                    </p>
-                    <div class="flex items-start gap-3 pt-1">
+                  <%!-- Selected method info --%>
+                  <div class="mt-5 p-4 bg-stone-50 rounded-xl">
+                    <div :if={@payment_method == "momo"} class="flex items-start gap-3">
                       <svg
-                        class="w-5 h-5 text-amber-600 mt-0.5 shrink-0"
+                        class="w-5 h-5 text-[#FFC107] mt-0.5 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"
+                        />
+                      </svg>
+                      <span class="text-sm text-stone-600">
+                        A prompt will appear on your phone. Approve it to pay.
+                      </span>
+                    </div>
+                    <div :if={@payment_method == "vodafone"} class="flex items-start gap-3">
+                      <svg
+                        class="w-5 h-5 text-[#E60000] mt-0.5 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"
+                        />
+                      </svg>
+                      <span class="text-sm text-stone-600">
+                        A prompt will appear on your phone. Approve it to pay.
+                      </span>
+                    </div>
+                    <div :if={@payment_method == "card"} class="flex items-start gap-3">
+                      <svg
+                        class="w-5 h-5 text-blue-500 mt-0.5 shrink-0"
                         fill="none"
                         stroke="currentColor"
                         stroke-width="1.5"
@@ -664,19 +825,12 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                         />
                       </svg>
                       <span class="text-sm text-stone-600">
-                        Secured by Paystack. Your phone number will be used to send the payment prompt.
+                        You'll be redirected to enter your card details securely.
                       </span>
                     </div>
-                  </div>
-
-                  <%!-- Card Payment Info --%>
-                  <div :if={@payment_method == "card"} class="space-y-4">
-                    <p class="text-sm text-stone-600">
-                      You will be securely redirected to Paystack to complete your card payment.
-                    </p>
-                    <div class="flex items-start gap-3 pt-1">
+                    <div :if={@payment_method == "cod"} class="flex items-start gap-3">
                       <svg
-                        class="w-5 h-5 text-amber-600 mt-0.5 shrink-0"
+                        class="w-5 h-5 text-emerald-500 mt-0.5 shrink-0"
                         fill="none"
                         stroke="currentColor"
                         stroke-width="1.5"
@@ -685,36 +839,11 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                         <path
                           stroke-linecap="round"
                           stroke-linejoin="round"
-                          d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                          d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"
                         />
                       </svg>
                       <span class="text-sm text-stone-600">
-                        Visa, Mastercard, and Verve accepted. Secured by Paystack.
-                      </span>
-                    </div>
-                  </div>
-
-                  <%!-- Cash on Delivery Info --%>
-                  <div :if={@payment_method == "cod"} class="space-y-4">
-                    <p class="text-sm text-stone-600">
-                      Pay with cash or mobile money when your order is delivered.
-                    </p>
-                    <div class="flex items-start gap-3 pt-1">
-                      <svg
-                        class="w-5 h-5 text-amber-600 mt-0.5 shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
-                        />
-                      </svg>
-                      <span class="text-sm text-stone-600">
-                        Please have the exact amount ready. Our delivery agent will confirm your order on arrival.
+                        Pay the rider with cash or MoMo when your order arrives.
                       </span>
                     </div>
                   </div>

@@ -84,19 +84,19 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
   # -- Payment Method Selection --
 
   describe "payment method selection" do
-    test "selects payment method via tabs", %{conn: conn, store: store} do
+    test "selects card payment method", %{conn: conn, store: store} do
       {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
 
       html = render_click(view, "select_payment", %{"method" => "card"})
 
-      assert html =~ "securely redirected to Paystack"
+      assert html =~ "redirected to enter your card"
     end
 
-    test "shows mobile money info by default", %{conn: conn, store: store} do
+    test "shows MTN MoMo selected by default", %{conn: conn, store: store} do
       {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
 
-      assert html =~ "payment prompt on your phone"
-      assert html =~ "Secured by Paystack"
+      assert html =~ "MTN Mobile Money"
+      assert html =~ "prompt will appear on your phone"
     end
 
     test "shows COD info when selected", %{conn: conn, store: store} do
@@ -104,7 +104,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
 
       html = render_click(view, "select_payment", %{"method" => "cod"})
 
-      assert html =~ "cash or mobile money when your order is delivered"
+      assert html =~ "Pay on Delivery"
+      assert html =~ "Pay the rider"
     end
   end
 
