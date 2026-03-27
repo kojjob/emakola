@@ -29,5 +29,11 @@ defmodule Emakola.Customers do
       define(:destroy_note, action: :destroy)
       define(:list_notes_by_customer, action: :list_by_customer, args: [:customer_id])
     end
+
+    resource Emakola.Customers.WishlistItem do
+      define(:add_to_wishlist, action: :add)
+      define(:remove_from_wishlist, action: :remove, args: [:customer_id, :product_id, :store_id])
+      define(:list_wishlist, action: :list_by_customer, args: [:customer_id, :store_id])
+    end
   end
 end

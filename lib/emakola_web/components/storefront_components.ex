@@ -214,39 +214,46 @@ defmodule EmakolaWeb.StorefrontComponents do
   attr :product, :map, required: true
   attr :store, :map, required: true
   attr :show_hover_overlay, :boolean, default: true
+  attr :wishlisted, :boolean, default: false
+  attr :show_wishlist_heart, :boolean, default: false
 
   def product_card(assigns) do
     assigns = assign(assigns, :image, first_image(assigns.product))
 
     ~H"""
-    <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
-      <div class="relative rounded-[16px] overflow-hidden mb-3.5 bg-[#F1F5F9]">
-        <img
-          :if={@image}
-          src={@image}
-          alt={@product.title}
-          loading="lazy"
-          class="w-full aspect-[3/4] object-cover group-hover:scale-[1.04] transition-transform duration-500 ease-out"
-        />
-        <div :if={!@image} class="w-full aspect-[3/4] flex items-center justify-center">
-          <.image_placeholder />
+    <div class="group relative">
+      <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="block">
+        <div class="relative rounded-[16px] overflow-hidden mb-3.5 bg-[#F1F5F9]">
+          <img
+            :if={@image}
+            src={@image}
+            alt={@product.title}
+            loading="lazy"
+            class="w-full aspect-[3/4] object-cover group-hover:scale-[1.04] transition-transform duration-500 ease-out"
+          />
+          <div :if={!@image} class="w-full aspect-[3/4] flex items-center justify-center">
+            <.image_placeholder />
+          </div>
+          <div
+            :if={@show_hover_overlay}
+            class="absolute bottom-3 left-3 right-3 translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 ease-out flex justify-center"
+          >
+            <span class="w-full py-2.5 bg-white/95 backdrop-blur-md text-[#0F172A] text-xs font-bold tracking-wide uppercase rounded-xl shadow-[0_8px_16px_rgba(0,0,0,0.08)] flex items-center justify-center">
+              Quick Add
+            </span>
+          </div>
         </div>
-        <div
-          :if={@show_hover_overlay}
-          class="absolute bottom-3 left-3 right-3 translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 ease-out flex justify-center"
-        >
-          <span class="w-full py-2.5 bg-white/95 backdrop-blur-md text-[#0F172A] text-xs font-bold tracking-wide uppercase rounded-xl shadow-[0_8px_16px_rgba(0,0,0,0.08)] flex items-center justify-center">
-            Quick Add
-          </span>
-        </div>
+        <h3 class="text-[0.875rem] font-semibold text-[#0F172A] leading-snug mb-1 truncate group-hover:text-[#B45309] transition-colors">
+          {@product.title}
+        </h3>
+        <p class="text-[0.8125rem] font-medium text-[#64748B]">
+          {Currency.format_price_range(@product.min_price, @product.max_price, @store.currency)}
+        </p>
+      </a>
+      <div :if={@show_wishlist_heart} class="absolute top-3 right-3 z-10">
+        <.wishlist_heart product_id={@product.id} wishlisted={@wishlisted} />
       </div>
-      <h3 class="text-[0.875rem] font-semibold text-[#0F172A] leading-snug mb-1 truncate group-hover:text-[#B45309] transition-colors">
-        {@product.title}
-      </h3>
-      <p class="text-[0.8125rem] font-medium text-[#64748B]">
-        {Currency.format_price_range(@product.min_price, @product.max_price, @store.currency)}
-      </p>
-    </a>
+    </div>
     """
   end
 
@@ -393,6 +400,60 @@ defmodule EmakolaWeb.StorefrontComponents do
         </span>
       </div>
     </a>
+    """
+  end
+
+  # ── Wishlist Heart Toggle ──
+
+  @doc """
+  Heart icon button for wishlisting a product.
+
+  Renders a filled amber heart when wishlisted, outline when not.
+  Sends a "toggle_wishlist" event with the product_id value.
+  Uses `Phoenix.LiveView.JS` for instant visual feedback before server round-trip.
+  """
+  attr :product_id, :string, required: true
+  attr :wishlisted, :boolean, default: false
+
+  def wishlist_heart(assigns) do
+    ~H"""
+    <button
+      type="button"
+      phx-click={
+        Phoenix.LiveView.JS.push("toggle_wishlist", value: %{product_id: @product_id})
+        |> Phoenix.LiveView.JS.toggle_class("wishlist-heart-filled",
+          to: "#wishlist-heart-#{@product_id}"
+        )
+      }
+      id={"wishlist-heart-#{@product_id}"}
+      class={"cursor-pointer w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors shadow-sm " <> if(@wishlisted, do: "wishlist-heart-filled", else: "")}
+      aria-label={if @wishlisted, do: "Remove from wishlist", else: "Add to wishlist"}
+    >
+      <%!-- Outline heart (shown when not wishlisted) --%>
+      <svg
+        class={"w-5 h-5 transition-colors " <> if(@wishlisted, do: "hidden", else: "text-[#44403C]")}
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        viewBox="0 0 24 24"
+        data-heart-outline
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+        />
+      </svg>
+      <%!-- Filled heart (shown when wishlisted) --%>
+      <svg
+        class={"w-5 h-5 transition-colors " <> if(@wishlisted, do: "text-[#B45309]", else: "hidden")}
+        fill="currentColor"
+        viewBox="0 0 24 24"
+        data-heart-filled
+      >
+        <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+      </svg>
+    </button>
     """
   end
 
