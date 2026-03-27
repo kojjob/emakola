@@ -38,6 +38,8 @@ defmodule Emakola.Themes.Bold.ProductList do
   def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-[#F8FAFC]">
+      <Shared.bold_nav store={@store} cart_count={@cart_count} />
+
       <%!-- Page Header --%>
       <div class="bg-[#F8FAFC] border-b border-[#E2E8F0]">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
@@ -130,7 +132,12 @@ defmodule Emakola.Themes.Bold.ProductList do
         <%!-- Product Grid --%>
         <%= if @products == [] do %>
           <div class="py-24 text-center">
-            <svg class="w-16 h-16 text-[#CBD5E1] mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              class="w-16 h-16 text-[#CBD5E1] mx-auto mb-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"

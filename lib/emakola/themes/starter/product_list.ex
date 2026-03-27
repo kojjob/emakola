@@ -38,6 +38,7 @@ defmodule Emakola.Themes.Starter.ProductList do
   def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-white">
+      <Shared.starter_nav store={@store} cart_count={@cart_count} />
       <%!-- Page Header --%>
       <div class="bg-[#F8FAFC] border-b border-gray-100">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">

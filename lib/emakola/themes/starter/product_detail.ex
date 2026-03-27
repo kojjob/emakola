@@ -48,6 +48,7 @@ defmodule Emakola.Themes.Starter.ProductDetail do
   def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-white">
+      <Shared.starter_nav store={@store} cart_count={@cart_count} />
       <%!-- Breadcrumb --%>
       <nav
         aria-label="Breadcrumb"

@@ -50,6 +50,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
   def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-[#FEFCE8]">
+      <Shared.fresh_nav store={@store} cart_count={@cart_count} />
       <%!-- Breadcrumb --%>
       <nav
         aria-label="Breadcrumb"

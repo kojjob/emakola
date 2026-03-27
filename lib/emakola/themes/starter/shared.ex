@@ -153,8 +153,7 @@ defmodule Emakola.Themes.Starter.Shared do
         "flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all",
         if(@active,
           do: "bg-[var(--theme-primary,#6366F1)] text-white shadow-sm",
-          else:
-            "bg-gray-100 text-[#64748B] hover:bg-[var(--theme-primary,#6366F1)] hover:text-white"
+          else: "bg-gray-100 text-[#64748B] hover:bg-[var(--theme-primary,#6366F1)] hover:text-white"
         )
       ]}
       style="font-family: 'Inter', sans-serif;"

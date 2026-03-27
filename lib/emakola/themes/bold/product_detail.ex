@@ -49,6 +49,8 @@ defmodule Emakola.Themes.Bold.ProductDetail do
   def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-[#F8FAFC]">
+      <Shared.bold_nav store={@store} cart_count={@cart_count} />
+
       <%!-- Breadcrumb --%>
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <a
@@ -56,8 +58,18 @@ defmodule Emakola.Themes.Bold.ProductDetail do
           class="text-sm text-[#64748B] hover:text-[#0F172A] transition-colors inline-flex items-center gap-1.5"
           style="font-family: 'Inter', sans-serif;"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
+            />
           </svg>
           Back to shop
         </a>
@@ -76,8 +88,18 @@ defmodule Emakola.Themes.Bold.ProductDetail do
               />
             <% else %>
               <div class="w-full h-full flex items-center justify-center">
-                <svg class="w-20 h-20 text-[#CBD5E1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <svg
+                  class="w-20 h-20 text-[#CBD5E1]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
                 </svg>
               </div>
             <% end %>
@@ -197,7 +219,13 @@ defmodule Emakola.Themes.Bold.ProductDetail do
                 class="w-10 h-10 flex items-center justify-center text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors disabled:text-[#CBD5E1] disabled:cursor-not-allowed"
                 aria-label="Decrease quantity"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
                   <path stroke-linecap="round" d="M5 12h14" />
                 </svg>
               </button>
@@ -213,7 +241,13 @@ defmodule Emakola.Themes.Bold.ProductDetail do
                 class="w-10 h-10 flex items-center justify-center text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors disabled:text-[#CBD5E1] disabled:cursor-not-allowed"
                 aria-label="Increase quantity"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
                   <path stroke-linecap="round" d="M12 5v14M5 12h14" />
                 </svg>
               </button>
@@ -233,8 +267,18 @@ defmodule Emakola.Themes.Bold.ProductDetail do
             ]}
             style="font-family: 'Inter', sans-serif;"
           >
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
+              />
             </svg>
             <%= if is_nil(@selected_variant) || @selected_variant.stock_quantity <= 0 do %>
               Out of Stock
@@ -281,7 +325,11 @@ defmodule Emakola.Themes.Bold.ProductDetail do
                   stroke-width="2"
                   stroke="currentColor"
                 >
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                  />
                 </svg>
               </summary>
               <div
@@ -305,7 +353,11 @@ defmodule Emakola.Themes.Bold.ProductDetail do
                   stroke-width="2"
                   stroke="currentColor"
                 >
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                  />
                 </svg>
               </summary>
               <div
@@ -329,14 +381,20 @@ defmodule Emakola.Themes.Bold.ProductDetail do
                   stroke-width="2"
                   stroke="currentColor"
                 >
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                  />
                 </svg>
               </summary>
               <div
                 class="pb-5 text-sm text-[#64748B] leading-relaxed"
                 style="font-family: 'Inter', sans-serif;"
               >
-                <p>Returns accepted within 7 days of delivery. Items must be unworn and in original packaging.</p>
+                <p>
+                  Returns accepted within 7 days of delivery. Items must be unworn and in original packaging.
+                </p>
               </div>
             </details>
           </div>
