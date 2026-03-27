@@ -12,7 +12,29 @@ defmodule Emakola.Customers.Customer do
   use Ash.Resource,
     domain: Emakola.Customers,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    extensions: [AshAuthentication]
+
+  authentication do
+    tokens do
+      enabled?(true)
+      token_resource(Emakola.Customers.CustomerToken)
+      require_token_presence_for_authentication?(true)
+
+      signing_secret(fn _, _ ->
+        Application.fetch_env(:emakola, :token_signing_secret)
+      end)
+    end
+
+    strategies do
+      password :password do
+        identity_field(:email)
+        hashed_password_field(:hashed_password)
+        register_action_name(:register_with_password)
+        sign_in_action_name(:sign_in_with_password)
+      end
+    end
+  end
 
   postgres do
     table("customers")
@@ -48,6 +70,11 @@ defmodule Emakola.Customers.Customer do
       public?(true)
     end
 
+    attribute :hashed_password, :string do
+      allow_nil?(true)
+      sensitive?(true)
+    end
+
     attribute :last_order_at, :utc_datetime_usec do
       public?(true)
     end
@@ -74,9 +101,22 @@ defmodule Emakola.Customers.Customer do
 
   identities do
     identity(:unique_store_email, [:store_id, :email])
+    # Required by AshAuthentication password strategy; real uniqueness is
+    # enforced by the composite :unique_store_email identity above.
+    identity(:unique_email, [:email])
   end
 
   policies do
+    # Authentication interactions (login, register, etc.) always allowed
+    bypass AshAuthentication.Checks.AshAuthenticationInteraction do
+      authorize_if(always())
+    end
+
+    # Registration allowed without actor (factory/internal calls)
+    bypass action(:register_with_password) do
+      authorize_if(always())
+    end
+
     bypass action_type(:read) do
       authorize_if(always())
     end
@@ -97,6 +137,25 @@ defmodule Emakola.Customers.Customer do
 
     create :create do
       accept([:email, :name, :phone, :store_id, :tags])
+    end
+
+    create :register_with_password do
+      accept([:email, :store_id, :name, :phone])
+
+      argument(:password, :string,
+        allow_nil?: false,
+        sensitive?: true,
+        constraints: [min_length: 8]
+      )
+
+      argument(:password_confirmation, :string,
+        allow_nil?: false,
+        sensitive?: true
+      )
+
+      validate(AshAuthentication.Strategy.Password.PasswordConfirmationValidation)
+      change(AshAuthentication.Strategy.Password.HashPasswordChange)
+      change(AshAuthentication.GenerateTokenChange)
     end
 
     update :update do

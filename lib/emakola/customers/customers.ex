@@ -16,6 +16,8 @@ defmodule Emakola.Customers do
       define(:get_customer_by_id, action: :get_by_id, args: [:id])
     end
 
+    resource(Emakola.Customers.CustomerToken)
+
     resource Emakola.Customers.Address do
       define(:create_address, action: :create)
       define(:update_address, action: :update)
