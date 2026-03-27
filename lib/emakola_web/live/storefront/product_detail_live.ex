@@ -57,7 +57,13 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
                Emakola.Themes.ThemeResolver.theme_module(
                  (store.theme_config || %{})["theme"] || "market"
                )
-             )}
+             )
+             |> assign(:reviews, load_reviews(product.id))
+             |> assign(:review_form_rating, 0)
+             |> assign(:review_form_title, "")
+             |> assign(:review_form_body, "")
+             |> assign(:review_submitting, false)
+             |> assign_review_eligibility(store, product)}
         end
 
       {:error, :not_found} ->
@@ -158,6 +164,55 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   end
 
   @impl true
+  def handle_event("set_review_rating", %{"rating" => r}, socket) do
+    {:noreply, assign(socket, :review_form_rating, String.to_integer(r))}
+  end
+
+  @impl true
+  def handle_event("submit_review", %{"body" => body} = params, socket) do
+    title = Map.get(params, "title", "")
+    rating = socket.assigns.review_form_rating
+    store = socket.assigns.store
+    product = socket.assigns.product
+
+    case socket.assigns[:review_order_id] do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Not eligible to review")}
+
+      order_id ->
+        case Emakola.Catalog.Review
+             |> Ash.Changeset.for_create(:create, %{
+               store_id: store.id,
+               product_id: product.id,
+               customer_id: socket.assigns.review_customer_id,
+               order_id: order_id,
+               rating: rating,
+               title: if(title == "", do: nil, else: title),
+               body: body
+             })
+             |> Ash.create() do
+          {:ok, _} ->
+            updated_product =
+              product |> Ash.load!([:avg_rating, :review_count], authorize?: false)
+
+            {:noreply,
+             socket
+             |> assign(:product, updated_product)
+             |> assign(:reviews, load_reviews(product.id))
+             |> assign(:can_review, false)
+             |> assign(:already_reviewed, true)
+             |> assign(:review_form_rating, 0)
+             |> assign(:review_form_title, "")
+             |> assign(:review_form_body, "")
+             |> put_flash(:info, "Review submitted!")}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Could not submit review")}
+        end
+    end
+  end
+
+  @impl true
   def render(assigns) do
     assigns.theme_module.render_product_detail(assigns)
   end
@@ -167,7 +222,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   defp load_product(store_id, product_slug) do
     Emakola.Catalog.Product
     |> Ash.Query.filter(store_id == ^store_id and slug == ^product_slug and status == :active)
-    |> Ash.Query.load([:variants, :images, :min_price, :max_price])
+    |> Ash.Query.load([:variants, :images, :min_price, :max_price, :avg_rating, :review_count])
     |> Ash.read_one!()
   end
 
@@ -239,5 +294,48 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
 
   defp load_root_categories(store) do
     Emakola.Catalog.list_root_categories!(store.id)
+  end
+
+  defp load_reviews(product_id) do
+    Emakola.Catalog.Review
+    |> Ash.Query.filter(product_id == ^product_id and status == :published)
+    |> Ash.Query.sort(inserted_at: :desc)
+    |> Ash.Query.load([:customer])
+    |> Ash.read!(authorize?: false)
+  end
+
+  defp assign_review_eligibility(socket, store, product) do
+    customer = socket.assigns[:current_customer]
+
+    if customer do
+      case Emakola.Catalog.Review.eligible?(store.id, product.id, customer.id) do
+        {:ok, order_id} ->
+          socket
+          |> assign(:can_review, true)
+          |> assign(:already_reviewed, false)
+          |> assign(:review_customer_id, customer.id)
+          |> assign(:review_order_id, order_id)
+
+        {:error, :already_reviewed} ->
+          socket
+          |> assign(:can_review, false)
+          |> assign(:already_reviewed, true)
+          |> assign(:review_customer_id, customer.id)
+          |> assign(:review_order_id, nil)
+
+        _ ->
+          assign_no_review(socket)
+      end
+    else
+      assign_no_review(socket)
+    end
+  end
+
+  defp assign_no_review(socket) do
+    socket
+    |> assign(:can_review, false)
+    |> assign(:already_reviewed, false)
+    |> assign(:review_customer_id, nil)
+    |> assign(:review_order_id, nil)
   end
 end
