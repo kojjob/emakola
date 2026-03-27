@@ -104,6 +104,9 @@ defmodule EmakolaWeb.Router do
       live "/admin/orders", Admin.OrderLive.Index
       live "/admin/orders/:id", Admin.OrderLive.Show
 
+      # Merchant admin — returns
+      live "/admin/returns", Admin.ReturnLive
+
       # Merchant admin — payment reconciliation
       live "/admin/payments", Admin.PaymentsLive
 
