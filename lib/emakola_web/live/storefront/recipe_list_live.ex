@@ -20,8 +20,6 @@ defmodule EmakolaWeb.Storefront.RecipeListLive do
 
         cart_session_id = session["cart_session_id"]
         cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
-        theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{})
-        theme_module = Emakola.Themes.ThemeResolver.theme_module(theme.theme_id)
 
         {:ok,
          socket
@@ -29,8 +27,6 @@ defmodule EmakolaWeb.Storefront.RecipeListLive do
          |> assign(:posts, posts)
          |> assign(:cart_session_id, cart_session_id)
          |> assign(:cart_count, cart_count)
-         |> assign(:theme, theme)
-         |> assign(:theme_module, theme_module)
          |> assign(:categories, [])
          |> assign(:page_title, "Recipes - #{store.name}")}
 

@@ -20,8 +20,6 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
 
         cart_session_id = session["cart_session_id"]
         cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
-        theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{})
-        theme_module = Emakola.Themes.ThemeResolver.theme_module(theme.theme_id)
 
         {featured, rest} =
           case posts do
@@ -37,8 +35,6 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
          |> assign(:rest_posts, rest)
          |> assign(:cart_session_id, cart_session_id)
          |> assign(:cart_count, cart_count)
-         |> assign(:theme, theme)
-         |> assign(:theme_module, theme_module)
          |> assign(:categories, [])
          |> assign(:page_title, "Blog - #{store.name}")}
 
@@ -50,7 +46,7 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-stone-50">
+    <div class="bg-stone-50">
       <%!-- Hero Header --%>
       <div class="bg-stone-900 text-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
@@ -93,7 +89,7 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
             href={"/s/#{@store.slug}/blog/#{@featured.slug}"}
             class="cursor-pointer group block bg-white rounded-2xl shadow-xl shadow-stone-900/5 overflow-hidden lg:grid lg:grid-cols-2"
           >
-            <div class="aspect-[16/10] lg:aspect-auto lg:h-full overflow-hidden">
+            <div class="aspect-[16/10] lg:aspect-[4/3] overflow-hidden">
               <img
                 :if={@featured.featured_image_url}
                 src={@featured.featured_image_url}
