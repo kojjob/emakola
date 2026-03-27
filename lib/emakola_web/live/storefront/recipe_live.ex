@@ -76,18 +76,24 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
         <h1 class="font-[Cormorant,Georgia,serif] text-3xl sm:text-4xl font-semibold text-stone-900 mb-3">
           {@post.title}
         </h1>
-        <div class="flex items-center gap-3 text-sm text-stone-500">
+        <div class="flex flex-wrap items-center gap-3 text-sm text-stone-500">
           <span :if={@post.published_at}>
             {Calendar.strftime(@post.published_at, "%B %d, %Y")}
           </span>
-          <span :if={@recipe_meta && @recipe_meta.prep_time_minutes}>
-            Prep: {@recipe_meta.prep_time_minutes} min
+          <span :if={@recipe_meta && @recipe_meta.prep_time}>
+            Prep: {@recipe_meta.prep_time} min
           </span>
-          <span :if={@recipe_meta && @recipe_meta.cook_time_minutes}>
-            Cook: {@recipe_meta.cook_time_minutes} min
+          <span :if={@recipe_meta && @recipe_meta.cook_time}>
+            Cook: {@recipe_meta.cook_time} min
           </span>
           <span :if={@recipe_meta && @recipe_meta.servings}>
             Serves {@recipe_meta.servings}
+          </span>
+          <span
+            :if={@recipe_meta && @recipe_meta.difficulty}
+            class="px-2 py-0.5 bg-stone-100 rounded-full text-xs font-medium capitalize"
+          >
+            {@recipe_meta.difficulty}
           </span>
         </div>
       </header>
@@ -96,17 +102,37 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
         <img src={@post.featured_image_url} alt={@post.title} class="w-full" />
       </div>
 
-      <div :if={@recipe_meta && @recipe_meta.ingredients != []} class="mb-8">
+      <div
+        :if={@recipe_meta && @recipe_meta.ingredients != []}
+        class="mb-8 bg-stone-50 rounded-2xl p-6"
+      >
         <h2 class="text-xl font-semibold text-stone-900 mb-4">Ingredients</h2>
-        <ul class="space-y-1.5">
+        <ul class="space-y-2">
           <li
             :for={ingredient <- @recipe_meta.ingredients}
-            class="flex items-start gap-2 text-stone-700"
+            class="flex items-start gap-3 text-stone-700"
           >
-            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 shrink-0"></span>
-            {ingredient}
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2.5 shrink-0"></span>
+            <span>
+              <strong>{ingredient["quantity"]}</strong> {ingredient["item"]}
+            </span>
           </li>
         </ul>
+      </div>
+
+      <div :if={@recipe_meta && @recipe_meta.instructions != []} class="mb-8">
+        <h2 class="text-xl font-semibold text-stone-900 mb-4">Instructions</h2>
+        <ol class="space-y-4">
+          <li
+            :for={{step, idx} <- Enum.with_index(@recipe_meta.instructions, 1)}
+            class="flex gap-4"
+          >
+            <span class="w-7 h-7 rounded-full bg-amber-600 text-white flex items-center justify-center text-sm font-bold shrink-0 mt-0.5">
+              {idx}
+            </span>
+            <p class="text-stone-700 flex-1">{step}</p>
+          </li>
+        </ol>
       </div>
 
       <div class="prose prose-stone prose-lg max-w-none">
@@ -126,8 +152,10 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
   end
 
   defp load_recipe_meta(post_id) do
-    case Emakola.Content.get_recipe_meta_by_post(post_id) do
-      {:ok, meta} -> meta
+    case Emakola.Content.RecipeMeta
+         |> Ash.Query.for_read(:get_by_post, %{post_id: post_id})
+         |> Ash.read() do
+      {:ok, [meta | _]} -> meta
       _ -> nil
     end
   end
