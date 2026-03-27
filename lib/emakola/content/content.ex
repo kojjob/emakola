@@ -17,7 +17,15 @@ defmodule Emakola.Content do
       define(:get_post_by_slug, action: :get_by_slug, args: [:slug])
     end
 
-    # resource(Emakola.Content.MediaAttachment) -- embedded, added in Task 2
-    # resource(Emakola.Content.RecipeMeta) -- embedded, added in Task 3
+    resource Emakola.Content.MediaAttachment do
+      define(:create_media_attachment, action: :create)
+      define(:list_media_by_post, action: :list_by_post, args: [:post_id])
+      define(:list_media_by_store, action: :list_by_store, args: [:store_id])
+    end
+
+    resource Emakola.Content.RecipeMeta do
+      define(:create_recipe_meta, action: :create)
+      define(:get_recipe_meta_by_post, action: :get_by_post, args: [:post_id])
+    end
   end
 end
