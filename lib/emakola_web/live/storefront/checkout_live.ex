@@ -613,28 +613,19 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                   </h2>
                   <p class="text-sm text-stone-500 mb-6">Choose your preferred payment method</p>
 
-                  <%!-- Visual Payment Cards --%>
-                  <div class="space-y-3">
+                  <%!-- Visual Payment Cards — 2x2 Grid --%>
+                  <div class="grid grid-cols-2 gap-3">
                     <%!-- MTN Mobile Money --%>
                     <button
                       type="button"
                       phx-click="select_payment"
                       phx-value-method="momo"
-                      class={"cursor-pointer w-full flex items-center gap-4 p-4 sm:p-5 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "momo", do: "border-[#FFC107] bg-[#FFC107]/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "momo", do: "border-[#FFC107] bg-[#FFC107]/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
                     >
-                      <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#FFC107] flex items-center justify-center shrink-0 shadow-sm">
-                        <span class="text-stone-900 font-extrabold text-lg sm:text-xl tracking-tight">
-                          MTN
-                        </span>
-                      </div>
-                      <div class="flex-1 text-left">
-                        <p class="text-base font-bold text-stone-900">MTN Mobile Money</p>
-                        <p class="text-sm text-stone-500 mt-0.5">Pay with your MoMo wallet</p>
-                      </div>
-                      <div class={"w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 #{if @payment_method == "momo", do: "border-[#FFC107] bg-[#FFC107]", else: "border-stone-300"}"}>
+                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "momo", do: "border-[#FFC107] bg-[#FFC107]", else: "border-stone-300"}"}>
                         <svg
                           :if={@payment_method == "momo"}
-                          class="w-3.5 h-3.5 text-stone-900"
+                          class="w-3 h-3 text-stone-900"
                           fill="none"
                           stroke="currentColor"
                           stroke-width="3"
@@ -646,6 +637,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                             d="M4.5 12.75l6 6 9-13.5"
                           />
                         </svg>
+                      </div>
+                      <div class="w-14 h-14 rounded-2xl bg-[#FFC107] flex items-center justify-center shadow-sm">
+                        <span class="text-stone-900 font-extrabold text-lg tracking-tight">MTN</span>
+                      </div>
+                      <div>
+                        <p class="text-sm font-bold text-stone-900">MTN MoMo</p>
+                        <p class="text-xs text-stone-500 mt-0.5">Mobile Money</p>
                       </div>
                     </button>
 
@@ -654,21 +652,12 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                       type="button"
                       phx-click="select_payment"
                       phx-value-method="vodafone"
-                      class={"cursor-pointer w-full flex items-center gap-4 p-4 sm:p-5 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "vodafone", do: "border-[#E60000] bg-[#E60000]/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "vodafone", do: "border-[#E60000] bg-[#E60000]/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
                     >
-                      <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#E60000] flex items-center justify-center shrink-0 shadow-sm">
-                        <span class="text-white font-extrabold text-sm sm:text-base tracking-tight">
-                          VODA
-                        </span>
-                      </div>
-                      <div class="flex-1 text-left">
-                        <p class="text-base font-bold text-stone-900">Vodafone Cash</p>
-                        <p class="text-sm text-stone-500 mt-0.5">Pay with Vodafone Cash</p>
-                      </div>
-                      <div class={"w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 #{if @payment_method == "vodafone", do: "border-[#E60000] bg-[#E60000]", else: "border-stone-300"}"}>
+                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "vodafone", do: "border-[#E60000] bg-[#E60000]", else: "border-stone-300"}"}>
                         <svg
                           :if={@payment_method == "vodafone"}
-                          class="w-3.5 h-3.5 text-white"
+                          class="w-3 h-3 text-white"
                           fill="none"
                           stroke="currentColor"
                           stroke-width="3"
@@ -681,6 +670,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                           />
                         </svg>
                       </div>
+                      <div class="w-14 h-14 rounded-2xl bg-[#E60000] flex items-center justify-center shadow-sm">
+                        <span class="text-white font-extrabold text-sm tracking-tight">VODA</span>
+                      </div>
+                      <div>
+                        <p class="text-sm font-bold text-stone-900">Vodafone Cash</p>
+                        <p class="text-xs text-stone-500 mt-0.5">Mobile Money</p>
+                      </div>
                     </button>
 
                     <%!-- Card Payment --%>
@@ -688,11 +684,27 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                       type="button"
                       phx-click="select_payment"
                       phx-value-method="card"
-                      class={"cursor-pointer w-full flex items-center gap-4 p-4 sm:p-5 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "card", do: "border-blue-500 bg-blue-50/50 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "card", do: "border-blue-500 bg-blue-50/50 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
                     >
-                      <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shrink-0 shadow-sm">
+                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "card", do: "border-blue-500 bg-blue-500", else: "border-stone-300"}"}>
                         <svg
-                          class="w-7 h-7 sm:w-8 sm:h-8 text-white"
+                          :if={@payment_method == "card"}
+                          class="w-3 h-3 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 12.75l6 6 9-13.5"
+                          />
+                        </svg>
+                      </div>
+                      <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-sm">
+                        <svg
+                          class="w-7 h-7 text-white"
                           fill="none"
                           stroke="currentColor"
                           stroke-width="1.5"
@@ -705,14 +717,23 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                           />
                         </svg>
                       </div>
-                      <div class="flex-1 text-left">
-                        <p class="text-base font-bold text-stone-900">Visa / Mastercard</p>
-                        <p class="text-sm text-stone-500 mt-0.5">Debit or credit card</p>
+                      <div>
+                        <p class="text-sm font-bold text-stone-900">Visa / Mastercard</p>
+                        <p class="text-xs text-stone-500 mt-0.5">Debit or credit card</p>
                       </div>
-                      <div class={"w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 #{if @payment_method == "card", do: "border-blue-500 bg-blue-500", else: "border-stone-300"}"}>
+                    </button>
+
+                    <%!-- Cash on Delivery --%>
+                    <button
+                      type="button"
+                      phx-click="select_payment"
+                      phx-value-method="cod"
+                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "cod", do: "border-emerald-500 bg-emerald-50/50 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                    >
+                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "cod", do: "border-emerald-500 bg-emerald-500", else: "border-stone-300"}"}>
                         <svg
-                          :if={@payment_method == "card"}
-                          class="w-3.5 h-3.5 text-white"
+                          :if={@payment_method == "cod"}
+                          class="w-3 h-3 text-white"
                           fill="none"
                           stroke="currentColor"
                           stroke-width="3"
@@ -725,18 +746,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                           />
                         </svg>
                       </div>
-                    </button>
-
-                    <%!-- Cash on Delivery --%>
-                    <button
-                      type="button"
-                      phx-click="select_payment"
-                      phx-value-method="cod"
-                      class={"cursor-pointer w-full flex items-center gap-4 p-4 sm:p-5 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "cod", do: "border-emerald-500 bg-emerald-50/50 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
-                    >
-                      <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shrink-0 shadow-sm">
+                      <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-sm">
                         <svg
-                          class="w-7 h-7 sm:w-8 sm:h-8 text-white"
+                          class="w-7 h-7 text-white"
                           fill="none"
                           stroke="currentColor"
                           stroke-width="1.5"
@@ -749,25 +761,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                           />
                         </svg>
                       </div>
-                      <div class="flex-1 text-left">
-                        <p class="text-base font-bold text-stone-900">Pay on Delivery</p>
-                        <p class="text-sm text-stone-500 mt-0.5">Cash or MoMo when it arrives</p>
-                      </div>
-                      <div class={"w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 #{if @payment_method == "cod", do: "border-emerald-500 bg-emerald-500", else: "border-stone-300"}"}>
-                        <svg
-                          :if={@payment_method == "cod"}
-                          class="w-3.5 h-3.5 text-white"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="3"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M4.5 12.75l6 6 9-13.5"
-                          />
-                        </svg>
+                      <div>
+                        <p class="text-sm font-bold text-stone-900">Pay on Delivery</p>
+                        <p class="text-xs text-stone-500 mt-0.5">Cash or MoMo</p>
                       </div>
                     </button>
                   </div>
