@@ -101,6 +101,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      |> assign(:address, Map.get(params, "address", socket.assigns.address))
      |> assign(:region, Map.get(params, "region", socket.assigns.region))
      |> assign(:notes, Map.get(params, "notes", socket.assigns.notes))
+     |> assign(:coupon_code, Map.get(params, "coupon_code", socket.assigns.coupon_code))
      |> assign(:form_errors, %{})
      |> update_delivery_fee()}
   end
@@ -167,26 +168,43 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   end
 
   @impl true
-  def handle_event("place_order", _params, socket) do
-    socket = assign(socket, :processing, true)
+  def handle_event("place_order", params, socket) do
+    # Update fields from form params
+    socket =
+      socket
+      |> assign(:phone, Map.get(params, "phone", socket.assigns.phone))
+      |> assign(:fullname, Map.get(params, "fullname", socket.assigns.fullname))
+      |> assign(:address, Map.get(params, "address", socket.assigns.address))
+      |> assign(:region, Map.get(params, "region", socket.assigns.region))
+      |> assign(:notes, Map.get(params, "notes", socket.assigns.notes))
+      |> update_delivery_fee()
 
-    if socket.assigns.cart == [] do
-      {:noreply,
-       socket
-       |> assign(:processing, false)
-       |> put_flash(:error, "Your cart is empty -- please add items before checking out")}
-    else
-      case create_order(socket) do
-        {:ok, order} ->
-          socket = assign(socket, :order, order)
-          handle_payment(socket, order)
+    errors = validate_contact_fields(socket.assigns)
 
-        {:error, reason} ->
-          {:noreply,
-           socket
-           |> assign(:processing, false)
-           |> put_flash(:error, checkout_error_message(reason))}
-      end
+    cond do
+      errors != %{} ->
+        {:noreply, assign(socket, :form_errors, errors)}
+
+      socket.assigns.cart == [] ->
+        {:noreply,
+         socket
+         |> assign(:processing, false)
+         |> put_flash(:error, "Your cart is empty -- please add items before checking out")}
+
+      true ->
+        socket = assign(socket, processing: true, form_errors: %{})
+
+        case create_order(socket) do
+          {:ok, order} ->
+            socket = assign(socket, :order, order)
+            handle_payment(socket, order)
+
+          {:error, reason} ->
+            {:noreply,
+             socket
+             |> assign(:processing, false)
+             |> put_flash(:error, checkout_error_message(reason))}
+        end
     end
   end
 
@@ -262,59 +280,77 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       |> assign(:effective_delivery_fee, effective_delivery_fee(assigns))
 
     ~H"""
-    <div class="min-h-screen flex flex-col bg-[#FAFAF9]">
-      <%!-- Header --%>
-      <header class="bg-white border-b border-[#E2E8F0] sticky top-0 z-50">
-        <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <a
-            href={"/s/#{@store.slug}/cart"}
-            class="flex items-center gap-1.5 text-[#475569] hover:text-[#0F172A] transition-colors text-sm font-medium"
-          >
-            <svg
-              class="w-5 h-5"
-              fill="none"
-              viewBox="0 0 20 20"
-              stroke="currentColor"
-              stroke-width="1.5"
+    <div class="min-h-screen flex flex-col bg-stone-50 font-[Montserrat,system-ui,sans-serif] text-stone-950 antialiased">
+      <%!-- Minimal Navigation --%>
+      <header class="border-b border-stone-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex items-center justify-between h-16">
+            <a
+              href={"/s/#{@store.slug}/cart"}
+              class="cursor-pointer flex items-center gap-2 text-stone-600 hover:text-stone-900 transition-colors text-sm font-medium rounded-lg px-2 py-1 -ml-2"
             >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12.5 15L7.5 10L12.5 5" />
-            </svg>
-            <span class="hidden sm:inline">Back to bag</span>
-          </a>
-          <span class="text-sm font-semibold text-[#0F172A] tracking-tight">{@store.name}</span>
-          <div class="flex items-center gap-1.5 text-[#94A3B8] text-xs">
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              viewBox="0 0 16 16"
-              stroke="currentColor"
-              stroke-width="1.5"
-            >
-              <rect x="3" y="7" width="10" height="7" rx="1.5" />
-              <path
-                d="M5 7V5C5 3.34315 6.34315 2 8 2C9.65685 2 11 3.34315 11 5V7"
-                stroke-linecap="round"
-              />
-            </svg>
-            <span class="hidden sm:inline">Secure checkout</span>
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Bag
+            </a>
+            <span class="absolute left-1/2 -translate-x-1/2 font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold tracking-[0.15em] text-stone-900">
+              {String.upcase(@store.name)}
+            </span>
+            <div class="flex items-center gap-2 text-stone-600 text-sm font-medium">
+              <svg
+                class="w-4 h-4 text-amber-600"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <span class="hidden sm:inline">Secure Checkout</span>
+            </div>
           </div>
         </div>
       </header>
 
-      <%!-- Progress Bar --%>
-      <div class="bg-white border-b border-[#E2E8F0]">
-        <div class="max-w-5xl mx-auto px-4 py-3">
-          <div class="flex gap-2">
-            <div class={"h-1 flex-1 rounded-full #{if @step >= 1, do: "bg-[#059669]", else: "bg-[#E2E8F0]"}"} />
-            <div class={"h-1 flex-1 rounded-full #{if @step >= 2, do: "bg-[#059669]", else: "bg-[#E2E8F0]"}"} />
-            <div class={"h-1 flex-1 rounded-full #{if @step >= 3, do: "bg-[#059669]", else: "bg-[#E2E8F0]"}"} />
+      <%!-- Checkout Progress Stepper --%>
+      <div class="bg-white border-b border-stone-100">
+        <div class="max-w-2xl mx-auto px-4 sm:px-6 py-6">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center text-xs font-semibold shadow-sm shadow-amber-600/20">
+                1
+              </div>
+              <span class="text-sm font-semibold text-stone-900 hidden sm:inline">Information</span>
+            </div>
+            <div class="h-0.5 flex-1 bg-stone-200 mx-3 sm:mx-4 rounded-full"></div>
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-full border-2 border-stone-300 text-stone-400 flex items-center justify-center text-xs font-semibold">
+                2
+              </div>
+              <span class="text-sm font-medium text-stone-400 hidden sm:inline">Shipping</span>
+            </div>
+            <div class="h-0.5 flex-1 bg-stone-200 mx-3 sm:mx-4 rounded-full"></div>
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-full border-2 border-stone-300 text-stone-400 flex items-center justify-center text-xs font-semibold">
+                3
+              </div>
+              <span class="text-sm font-medium text-stone-400 hidden sm:inline">Payment</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <main class="flex-1">
-        <div class="max-w-5xl mx-auto px-4 py-6 lg:py-8">
-          <%!-- MoMo Rich Waiting State --%>
+      <main class="flex-1 py-8 sm:py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <%!-- MoMo Waiting State --%>
           <div :if={@payment_status == :awaiting_payment} class="max-w-lg mx-auto">
             <.momo_waiting_state
               payment_method={@payment_method}
@@ -338,13 +374,15 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
-              <h3 class="text-lg font-semibold text-red-900 mb-1">Payment failed</h3>
+              <h3 class="font-[Cormorant,Georgia,serif] text-2xl font-semibold text-red-900 mb-1">
+                Payment failed
+              </h3>
               <p class="text-sm text-red-700 mb-4">
                 The payment was not completed. Please try again.
               </p>
               <button
                 phx-click="retry_payment"
-                class="inline-flex items-center px-6 py-2.5 bg-[#1C1917] text-white rounded-xl text-sm font-semibold hover:bg-[#292524] transition-colors"
+                class="cursor-pointer inline-flex items-center px-8 py-3.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors"
               >
                 Retry Payment
               </button>
@@ -369,308 +407,559 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                   />
                 </svg>
               </div>
-              <h3 class="text-lg font-semibold text-amber-900 mb-1">Payment timed out</h3>
+              <h3 class="font-[Cormorant,Georgia,serif] text-2xl font-semibold text-amber-900 mb-1">
+                Payment timed out
+              </h3>
               <p class="text-sm text-amber-700 mb-4">
                 We didn't receive a response in time. You can try again.
               </p>
               <button
                 phx-click="retry_payment"
-                class="inline-flex items-center px-6 py-2.5 bg-[#1C1917] text-white rounded-xl text-sm font-semibold hover:bg-[#292524] transition-colors"
+                class="cursor-pointer inline-flex items-center px-8 py-3.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors"
               >
                 Retry Payment
               </button>
             </div>
           </div>
 
-          <%!-- Main Checkout Content --%>
+          <%!-- Main Checkout Content: Two-Column Layout --%>
           <div
             :if={@payment_status not in [:awaiting_payment, :failed, :timeout]}
-            class="flex flex-col lg:flex-row gap-6 lg:gap-8"
+            class="lg:grid lg:grid-cols-5 lg:gap-12 xl:gap-16"
           >
-            <%!-- Left Column: Accordion Steps --%>
-            <div class="flex-1 lg:max-w-xl">
-              <%!-- Mobile Order Summary Toggle --%>
-              <div class="lg:hidden mb-4">
-                <button
-                  phx-click="toggle_mobile_summary"
-                  class="w-full flex items-center justify-between bg-white border border-[#E2E8F0] rounded-xl p-4"
-                >
-                  <div class="flex items-center gap-2">
-                    <svg
-                      class="w-5 h-5 text-[#475569]"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
-                      />
-                    </svg>
-                    <span class="text-sm font-medium text-[#0F172A]">
-                      Order summary ({@cart_count} items)
-                    </span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm font-semibold text-[#0F172A]">
-                      {Currency.format_price(@order_total, @store.currency)}
-                    </span>
-                    <svg
-                      class={"w-4 h-4 text-[#475569] transition-transform #{if @show_mobile_summary, do: "rotate-180"}"}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M19.5 8.25l-7.5 7.5-7.5-7.5"
-                      />
-                    </svg>
-                  </div>
-                </button>
-                <div
-                  :if={@show_mobile_summary}
-                  class="bg-white border border-t-0 border-[#E2E8F0] rounded-b-xl p-4 -mt-2"
-                >
-                  <.order_summary_content
-                    cart={@cart}
-                    cart_total={@cart_total}
-                    delivery_fee={@effective_delivery_fee}
-                    discount_amount={@discount_amount}
-                    coupon={@coupon}
-                    order_total={@order_total}
-                    store={@store}
-                  />
-                </div>
-              </div>
+            <%!-- LEFT COLUMN: Checkout Form (60%) --%>
+            <div class="lg:col-span-3">
+              <form phx-submit="place_order" phx-change="update_details" novalidate class="space-y-10">
+                <%!-- SECTION 1: Contact Information --%>
+                <section>
+                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
+                    Contact
+                  </h2>
+                  <div class="space-y-4">
+                    <div>
+                      <label for="phone" class="block text-sm font-medium text-stone-900 mb-1.5">
+                        Phone number <span class="text-amber-600">*</span>
+                      </label>
+                      <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                          <svg
+                            class="w-4 h-4 text-stone-400"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
+                            />
+                          </svg>
+                        </div>
+                        <input
+                          type="tel"
+                          id="phone"
+                          name="phone"
+                          value={@phone}
+                          placeholder="+233 24 123 4567"
+                          class={"w-full bg-white border rounded-xl pl-11 pr-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all #{if @form_errors[:phone], do: "border-red-400 bg-red-50", else: "border-stone-200"}"}
+                        />
+                      </div>
+                      <p :if={@form_errors[:phone]} class="text-xs text-red-600 mt-1">
+                        {@form_errors[:phone]}
+                      </p>
+                    </div>
 
-              <%!-- Step 1: Contact & Delivery --%>
-              <.accordion_step
-                number={1}
-                title="Contact & Delivery"
-                current_step={@step}
-                summary={step_1_summary(assigns)}
-              >
-                <form phx-submit="submit_details" phx-change="update_details" class="space-y-4">
-                  <div>
-                    <label for="phone" class="block text-sm font-medium text-[#0F172A] mb-1.5">
-                      Phone number <span class="text-red-600">*</span>
-                    </label>
-                    <div class="flex">
-                      <span class="inline-flex items-center px-3 bg-[#FAFAF9] border border-r-0 border-[#E2E8F0] rounded-l-lg text-sm text-[#475569] font-medium">
-                        +233
-                      </span>
+                    <div>
+                      <label for="fullname" class="block text-sm font-medium text-stone-900 mb-1.5">
+                        Full name <span class="text-amber-600">*</span>
+                      </label>
                       <input
-                        type="tel"
-                        id="phone"
-                        name="phone"
-                        value={@phone}
-                        placeholder="24 123 4567"
-                        class={"flex-1 border rounded-r-lg px-3 py-2.5 text-sm #{if @form_errors[:phone], do: "border-red-400 bg-red-50", else: "border-[#E2E8F0]"}"}
+                        type="text"
+                        id="fullname"
+                        name="fullname"
+                        value={@fullname}
+                        placeholder="Ama Mensah"
+                        class={"w-full bg-white border rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all #{if @form_errors[:fullname], do: "border-red-400 bg-red-50", else: "border-stone-200"}"}
+                      />
+                      <p :if={@form_errors[:fullname]} class="text-xs text-red-600 mt-1">
+                        {@form_errors[:fullname]}
+                      </p>
+                    </div>
+                  </div>
+                </section>
+
+                <div class="border-t border-stone-200"></div>
+
+                <%!-- SECTION 2: Shipping Address --%>
+                <section>
+                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
+                    Shipping Address
+                  </h2>
+                  <div class="space-y-4">
+                    <div>
+                      <label for="address" class="block text-sm font-medium text-stone-900 mb-1.5">
+                        Address <span class="text-amber-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="address"
+                        name="address"
+                        value={@address}
+                        placeholder="House 14, Osu Badu Street"
+                        class={"w-full bg-white border rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all #{if @form_errors[:address], do: "border-red-400 bg-red-50", else: "border-stone-200"}"}
+                      />
+                      <p :if={@form_errors[:address]} class="text-xs text-red-600 mt-1">
+                        {@form_errors[:address]}
+                      </p>
+                    </div>
+
+                    <div>
+                      <label for="region" class="block text-sm font-medium text-stone-900 mb-1.5">
+                        Region <span class="text-amber-600">*</span>
+                      </label>
+                      <div class="relative">
+                        <select
+                          id="region"
+                          name="region"
+                          class="cursor-pointer w-full bg-white border border-stone-200 rounded-xl px-4 py-3.5 text-sm text-stone-900 appearance-none focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all"
+                        >
+                          <option value="greater_accra" selected={@region == "greater_accra"}>
+                            Greater Accra
+                          </option>
+                          <option value="ashanti" selected={@region == "ashanti"}>Ashanti</option>
+                          <option value="central" selected={@region == "central"}>Central</option>
+                          <option value="western" selected={@region == "western"}>Western</option>
+                          <option value="eastern" selected={@region == "eastern"}>Eastern</option>
+                          <option value="northern" selected={@region == "northern"}>Northern</option>
+                          <option value="volta" selected={@region == "volta"}>Volta</option>
+                          <option value="other" selected={@region == "other"}>Other</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                          <svg
+                            class="w-4 h-4 text-stone-400"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                          >
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label for="notes" class="block text-sm font-medium text-stone-900 mb-1.5">
+                        Delivery notes <span class="text-stone-400 font-normal">(optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="notes"
+                        name="notes"
+                        value={@notes}
+                        placeholder="Landmark, special instructions, etc."
+                        class="w-full bg-white border border-stone-200 rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all"
                       />
                     </div>
-                    <p :if={@form_errors[:phone]} class="text-xs text-red-600 mt-1">
-                      {@form_errors[:phone]}
-                    </p>
-                    <p :if={!@form_errors[:phone]} class="text-xs text-[#94A3B8] mt-1">
-                      For SMS order updates
-                    </p>
                   </div>
-                  <div>
-                    <label for="fullname" class="block text-sm font-medium text-[#0F172A] mb-1.5">
-                      Full name <span class="text-red-600">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      id="fullname"
-                      name="fullname"
-                      value={@fullname}
-                      placeholder="Ama Mensah"
-                      class={"w-full border rounded-lg px-3 py-2.5 text-sm #{if @form_errors[:fullname], do: "border-red-400 bg-red-50", else: "border-[#E2E8F0]"}"}
-                    />
-                    <p :if={@form_errors[:fullname]} class="text-xs text-red-600 mt-1">
-                      {@form_errors[:fullname]}
-                    </p>
+                </section>
+
+                <div class="border-t border-stone-200"></div>
+
+                <%!-- SECTION 3: Delivery Method --%>
+                <section>
+                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
+                    Delivery Method
+                  </h2>
+                  <div class="space-y-3">
+                    <%!-- Standard Delivery (selected based on region) --%>
+                    <div class="flex items-center justify-between p-4 sm:p-5 bg-white border-2 border-amber-600 bg-amber-50/40 rounded-xl">
+                      <div class="flex items-center gap-4">
+                        <div class="w-5 h-5 rounded-full border-2 border-amber-600 flex items-center justify-center shrink-0">
+                          <div class="w-2.5 h-2.5 rounded-full bg-amber-600"></div>
+                        </div>
+                        <div>
+                          <p class="text-sm font-semibold text-stone-900">Standard Delivery</p>
+                          <p class="text-xs text-stone-600 mt-0.5">{delivery_estimate(@region)}</p>
+                        </div>
+                      </div>
+                      <span class="text-sm font-semibold text-stone-900">
+                        {Currency.format_price(@delivery_fee, @store.currency)}
+                      </span>
+                    </div>
+
+                    <%!-- Express Delivery --%>
+                    <div class="flex items-center justify-between p-4 sm:p-5 bg-white border-2 border-stone-200 rounded-xl opacity-50">
+                      <div class="flex items-center gap-4">
+                        <div class="w-5 h-5 rounded-full border-2 border-stone-300 flex items-center justify-center shrink-0">
+                        </div>
+                        <div>
+                          <p class="text-sm font-semibold text-stone-900">Express Delivery</p>
+                          <p class="text-xs text-stone-600 mt-0.5">Next business day</p>
+                        </div>
+                      </div>
+                      <span class="text-xs font-medium text-stone-400">Coming soon</span>
+                    </div>
                   </div>
-                  <div>
-                    <label for="address" class="block text-sm font-medium text-[#0F172A] mb-1.5">
-                      Delivery address <span class="text-red-600">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      id="address"
-                      name="address"
-                      value={@address}
-                      placeholder="House 14, Osu Badu Street"
-                      class={"w-full border rounded-lg px-3 py-2.5 text-sm #{if @form_errors[:address], do: "border-red-400 bg-red-50", else: "border-[#E2E8F0]"}"}
-                    />
-                    <p :if={@form_errors[:address]} class="text-xs text-red-600 mt-1">
-                      {@form_errors[:address]}
-                    </p>
-                  </div>
-                  <div>
-                    <label for="region" class="block text-sm font-medium text-[#0F172A] mb-1.5">
-                      Region
-                    </label>
-                    <select
-                      id="region"
-                      name="region"
-                      class="w-full border border-[#E2E8F0] rounded-lg px-3 py-2.5 text-sm bg-white"
+                </section>
+
+                <div class="border-t border-stone-200"></div>
+
+                <%!-- SECTION 4: Payment Method --%>
+                <section>
+                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-2">
+                    How do you want to pay?
+                  </h2>
+                  <p class="text-sm text-stone-500 mb-6">Choose your preferred payment method</p>
+
+                  <%!-- Visual Payment Cards — 2x2 Grid --%>
+                  <div class="grid grid-cols-2 gap-3">
+                    <%!-- MTN Mobile Money --%>
+                    <button
+                      type="button"
+                      phx-click="select_payment"
+                      phx-value-method="momo"
+                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "momo", do: "border-[#FFC107] bg-[#FFC107]/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
                     >
-                      <option value="greater_accra" selected={@region == "greater_accra"}>
-                        Greater Accra
-                      </option>
-                      <option value="ashanti" selected={@region == "ashanti"}>Ashanti</option>
-                      <option value="central" selected={@region == "central"}>Central</option>
-                      <option value="western" selected={@region == "western"}>Western</option>
-                      <option value="eastern" selected={@region == "eastern"}>Eastern</option>
-                      <option value="northern" selected={@region == "northern"}>Northern</option>
-                      <option value="volta" selected={@region == "volta"}>Volta</option>
-                      <option value="other" selected={@region == "other"}>Other</option>
-                    </select>
+                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "momo", do: "border-[#FFC107] bg-[#FFC107]", else: "border-stone-300"}"}>
+                        <svg
+                          :if={@payment_method == "momo"}
+                          class="w-3 h-3 text-stone-900"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 12.75l6 6 9-13.5"
+                          />
+                        </svg>
+                      </div>
+                      <div class="w-14 h-14 rounded-2xl bg-[#FFC107] flex items-center justify-center shadow-sm">
+                        <span class="text-stone-900 font-extrabold text-lg tracking-tight">MTN</span>
+                      </div>
+                      <div>
+                        <p class="text-sm font-bold text-stone-900">MTN MoMo</p>
+                        <p class="text-xs text-stone-500 mt-0.5">Mobile Money</p>
+                      </div>
+                    </button>
+
+                    <%!-- Vodafone Cash --%>
+                    <button
+                      type="button"
+                      phx-click="select_payment"
+                      phx-value-method="vodafone"
+                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "vodafone", do: "border-[#E60000] bg-[#E60000]/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                    >
+                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "vodafone", do: "border-[#E60000] bg-[#E60000]", else: "border-stone-300"}"}>
+                        <svg
+                          :if={@payment_method == "vodafone"}
+                          class="w-3 h-3 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 12.75l6 6 9-13.5"
+                          />
+                        </svg>
+                      </div>
+                      <div class="w-14 h-14 rounded-2xl bg-[#E60000] flex items-center justify-center shadow-sm">
+                        <span class="text-white font-extrabold text-sm tracking-tight">VODA</span>
+                      </div>
+                      <div>
+                        <p class="text-sm font-bold text-stone-900">Vodafone Cash</p>
+                        <p class="text-xs text-stone-500 mt-0.5">Mobile Money</p>
+                      </div>
+                    </button>
+
+                    <%!-- Card Payment --%>
+                    <button
+                      type="button"
+                      phx-click="select_payment"
+                      phx-value-method="card"
+                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "card", do: "border-blue-500 bg-blue-50/50 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                    >
+                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "card", do: "border-blue-500 bg-blue-500", else: "border-stone-300"}"}>
+                        <svg
+                          :if={@payment_method == "card"}
+                          class="w-3 h-3 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 12.75l6 6 9-13.5"
+                          />
+                        </svg>
+                      </div>
+                      <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-sm">
+                        <svg
+                          class="w-7 h-7 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v10.5a2.25 2.25 0 002.25 2.25z"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <p class="text-sm font-bold text-stone-900">Visa / Mastercard</p>
+                        <p class="text-xs text-stone-500 mt-0.5">Debit or credit card</p>
+                      </div>
+                    </button>
+
+                    <%!-- Cash on Delivery --%>
+                    <button
+                      type="button"
+                      phx-click="select_payment"
+                      phx-value-method="cod"
+                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "cod", do: "border-emerald-500 bg-emerald-50/50 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                    >
+                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "cod", do: "border-emerald-500 bg-emerald-500", else: "border-stone-300"}"}>
+                        <svg
+                          :if={@payment_method == "cod"}
+                          class="w-3 h-3 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="3"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M4.5 12.75l6 6 9-13.5"
+                          />
+                        </svg>
+                      </div>
+                      <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-sm">
+                        <svg
+                          class="w-7 h-7 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <p class="text-sm font-bold text-stone-900">Pay on Delivery</p>
+                        <p class="text-xs text-stone-500 mt-0.5">Cash or MoMo</p>
+                      </div>
+                    </button>
                   </div>
-                  <div>
-                    <label for="notes" class="block text-sm font-medium text-[#0F172A] mb-1.5">
-                      Order notes <span class="text-[#94A3B8] font-normal">(optional)</span>
-                    </label>
-                    <textarea
-                      id="notes"
-                      name="notes"
-                      rows="3"
-                      placeholder="Any special instructions..."
-                      class="w-full border border-[#E2E8F0] rounded-lg px-3 py-2.5 text-sm resize-none"
-                    >{@notes}</textarea>
+
+                  <%!-- Selected method info --%>
+                  <div class="mt-5 p-4 bg-stone-50 rounded-xl">
+                    <div :if={@payment_method == "momo"} class="flex items-start gap-3">
+                      <svg
+                        class="w-5 h-5 text-[#FFC107] mt-0.5 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"
+                        />
+                      </svg>
+                      <span class="text-sm text-stone-600">
+                        A prompt will appear on your phone. Approve it to pay.
+                      </span>
+                    </div>
+                    <div :if={@payment_method == "vodafone"} class="flex items-start gap-3">
+                      <svg
+                        class="w-5 h-5 text-[#E60000] mt-0.5 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"
+                        />
+                      </svg>
+                      <span class="text-sm text-stone-600">
+                        A prompt will appear on your phone. Approve it to pay.
+                      </span>
+                    </div>
+                    <div :if={@payment_method == "card"} class="flex items-start gap-3">
+                      <svg
+                        class="w-5 h-5 text-blue-500 mt-0.5 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                        />
+                      </svg>
+                      <span class="text-sm text-stone-600">
+                        You'll be redirected to enter your card details securely.
+                      </span>
+                    </div>
+                    <div :if={@payment_method == "cod"} class="flex items-start gap-3">
+                      <svg
+                        class="w-5 h-5 text-emerald-500 mt-0.5 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"
+                        />
+                      </svg>
+                      <span class="text-sm text-stone-600">
+                        Pay the rider with cash or MoMo when your order arrives.
+                      </span>
+                    </div>
                   </div>
+
+                  <%!-- Coupon Code --%>
+                  <div class="mt-6 pt-6 border-t border-stone-200">
+                    <label class="block text-sm font-medium text-stone-900 mb-1.5">Promo code</label>
+                    <div class="flex gap-2">
+                      <input
+                        type="text"
+                        name="coupon_code"
+                        value={@coupon_code}
+                        placeholder="Enter code"
+                        disabled={@coupon != nil}
+                        phx-keydown=""
+                        class={"flex-1 bg-white border rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all #{if @coupon_error, do: "border-red-400", else: "border-stone-200"} disabled:bg-stone-50 disabled:text-stone-400"}
+                      />
+                      <button
+                        :if={@coupon == nil}
+                        type="button"
+                        phx-click="apply_coupon"
+                        phx-value-coupon_code={@coupon_code}
+                        class="cursor-pointer px-5 py-3.5 border border-stone-200 rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-50 transition-colors"
+                      >
+                        Apply
+                      </button>
+                      <button
+                        :if={@coupon != nil}
+                        type="button"
+                        phx-click="remove_coupon"
+                        class="cursor-pointer px-5 py-3.5 border border-red-200 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <p :if={@coupon_error} class="text-xs text-red-600 mt-1">{@coupon_error}</p>
+                    <p :if={@coupon} class="text-xs text-emerald-600 mt-1">
+                      Coupon applied: -{Currency.format_price(@discount_amount, @store.currency)} off
+                    </p>
+                  </div>
+                </section>
+
+                <%!-- Place Order Button --%>
+                <div>
+                  <div
+                    :if={@checkout_error}
+                    class="mb-4 bg-red-50 border border-red-200 rounded-xl p-4"
+                  >
+                    <p class="text-sm text-red-700">{@checkout_error}</p>
+                  </div>
+
                   <button
                     type="submit"
-                    class="w-full bg-[#1C1917] text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-[#292524] transition-colors"
+                    disabled={@processing}
+                    class="cursor-pointer w-full bg-amber-600 text-white py-4 rounded-xl text-sm font-semibold hover:bg-amber-700 disabled:bg-stone-200 disabled:text-stone-400 transition-colors shadow-sm shadow-amber-600/20"
                   >
-                    Continue to Payment
+                    <%= if @processing do %>
+                      <span class="inline-flex items-center gap-2">
+                        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle
+                            class="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            stroke-width="4"
+                          >
+                          </circle>
+                          <path
+                            class="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          >
+                          </path>
+                        </svg>
+                        Processing...
+                      </span>
+                    <% else %>
+                      Place Order -- {Currency.format_price(@order_total, @store.currency)}
+                    <% end %>
                   </button>
-                </form>
-              </.accordion_step>
 
-              <%!-- Step 2: Payment Method --%>
-              <.accordion_step
-                number={2}
-                title="Payment Method"
-                current_step={@step}
-                summary={step_2_summary(assigns)}
-              >
-                <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Payment methods">
-                  <.payment_card
-                    method="momo"
-                    selected={@payment_method}
-                    title="MTN MoMo"
-                    subtitle="Mobile Money"
-                    badge_text="MTN"
-                    badge_bg="bg-[#FFC107]"
-                    badge_text_color="text-[#1C1917]"
-                    accent_color="#FFC107"
-                  />
-                  <.payment_card
-                    method="vodafone"
-                    selected={@payment_method}
-                    title="Vodafone Cash"
-                    subtitle="Mobile Money"
-                    badge_text="VODA"
-                    badge_bg="bg-[#E60000]"
-                    badge_text_color="text-white"
-                    accent_color="#E60000"
-                  />
-                  <.payment_card
-                    method="card"
-                    selected={@payment_method}
-                    title="Card"
-                    subtitle="Visa, Mastercard"
-                    badge_text="CARD"
-                    badge_bg="bg-[#EFF6FF]"
-                    badge_text_color="text-[#3B82F6]"
-                    accent_color="#3B82F6"
-                  />
-                  <.payment_card
-                    method="cod"
-                    selected={@payment_method}
-                    title="Pay on Delivery"
-                    subtitle="Cash / MoMo"
-                    badge_text="COD"
-                    badge_bg="bg-[#F8FAFC]"
-                    badge_text_color="text-[#64748B]"
-                    accent_color="#64748B"
-                  />
-                </div>
-                <div class="flex gap-3 mt-6">
-                  <button
-                    type="button"
-                    phx-click="go_to_step"
-                    phx-value-step="1"
-                    class="px-6 py-3 border border-[#E2E8F0] rounded-xl text-sm font-medium text-[#475569] hover:bg-[#F8FAFC] transition-colors"
-                  >
-                    Back
-                  </button>
-                  <button
-                    phx-click="go_to_step"
-                    phx-value-step="3"
-                    class="flex-1 bg-[#1C1917] text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-[#292524] transition-colors"
-                  >
-                    Continue to Review
-                  </button>
-                </div>
-              </.accordion_step>
-
-              <%!-- Step 3: Review & Pay --%>
-              <.accordion_step
-                number={3}
-                title="Review & Pay"
-                current_step={@step}
-                summary={nil}
-              >
-                <%!-- Coupon Code --%>
-                <div class="mb-5">
-                  <label class="block text-sm font-medium text-[#0F172A] mb-1.5">Discount code</label>
-                  <form phx-submit="apply_coupon" class="flex gap-2">
-                    <input
-                      type="text"
-                      name="coupon_code"
-                      value={@coupon_code}
-                      placeholder="Enter code"
-                      disabled={@coupon != nil}
-                      class={"flex-1 border rounded-lg px-3 py-2.5 text-sm #{if @coupon_error, do: "border-red-400", else: "border-[#E2E8F0]"} disabled:bg-[#F8FAFC] disabled:text-[#94A3B8]"}
-                    />
-                    <button
-                      :if={@coupon == nil}
-                      type="submit"
-                      class="px-4 py-2.5 border border-[#E2E8F0] rounded-lg text-sm font-medium text-[#475569] hover:bg-[#F8FAFC] transition-colors"
+                  <div class="flex items-center justify-center gap-2 mt-4 text-xs text-stone-400">
+                    <svg
+                      class="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      viewBox="0 0 24 24"
                     >
-                      Apply
-                    </button>
-                    <button
-                      :if={@coupon != nil}
-                      type="button"
-                      phx-click="remove_coupon"
-                      class="px-4 py-2.5 border border-red-200 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-                    >
-                      Remove
-                    </button>
-                  </form>
-                  <p :if={@coupon_error} class="text-xs text-red-600 mt-1">{@coupon_error}</p>
-                  <p :if={@coupon} class="text-xs text-[#059669] mt-1">
-                    Coupon applied: -{Currency.format_price(@discount_amount, @store.currency)} off
-                  </p>
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    Your payment information is encrypted and secure
+                  </div>
                 </div>
+              </form>
+            </div>
 
-                <%!-- Order Items --%>
-                <div class="bg-white border border-[#E2E8F0] rounded-xl p-4 mb-4">
-                  <h4 class="text-xs text-[#94A3B8] uppercase tracking-wide font-medium mb-3">
-                    Items
-                  </h4>
-                  <div class="space-y-3">
-                    <div :for={item <- @cart} class="flex gap-3">
-                      <div class="w-12 h-12 bg-[#F1F5F9] rounded-lg flex-shrink-0 overflow-hidden">
+            <%!-- RIGHT COLUMN: Order Summary Sidebar (40%) --%>
+            <div class="lg:col-span-2 mt-10 lg:mt-0">
+              <div class="sticky top-24">
+                <div class="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
+                  <%!-- Header --%>
+                  <div class="flex items-center justify-between mb-5">
+                    <h2 class="font-[Cormorant,Georgia,serif] text-xl font-semibold text-stone-900">
+                      Order Summary
+                    </h2>
+                    <a
+                      href={"/s/#{@store.slug}/cart"}
+                      class="text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors"
+                    >
+                      Edit
+                    </a>
+                  </div>
+
+                  <%!-- Cart Items --%>
+                  <div class="space-y-4 mb-6">
+                    <div :for={item <- @cart} class="flex gap-3.5">
+                      <div class="w-16 h-16 bg-stone-100 rounded-xl flex-shrink-0 overflow-hidden">
                         <img
                           :if={item[:image_url]}
                           src={item[:image_url]}
@@ -682,349 +971,180 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                           class="w-full h-full flex items-center justify-center"
                         >
                           <svg
-                            class="w-5 h-5 text-[#94A3B8]"
+                            class="w-6 h-6 text-stone-300"
                             fill="none"
                             stroke="currentColor"
+                            stroke-width="1"
                             viewBox="0 0 24 24"
                           >
                             <path
                               stroke-linecap="round"
                               stroke-linejoin="round"
-                              stroke-width="1"
                               d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                             />
                           </svg>
                         </div>
                       </div>
                       <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-[#0F172A] truncate">
+                        <h3 class="text-sm font-semibold text-stone-900 truncate">
                           {item.product_title}
-                        </p>
-                        <p :if={item[:variant_info]} class="text-xs text-[#94A3B8]">
+                        </h3>
+                        <p :if={item[:variant_info]} class="text-xs text-stone-500 mt-0.5">
                           {item[:variant_info]}
                         </p>
-                        <p class="text-xs text-[#94A3B8]">Qty: {item.quantity}</p>
+                        <p class="text-xs text-stone-500">Qty: {item.quantity}</p>
                       </div>
-                      <span class="text-sm font-medium text-[#0F172A] flex-shrink-0">
+                      <p class="text-sm font-semibold text-stone-900 flex-shrink-0">
                         {Currency.format_price(item.unit_price * item.quantity, @store.currency)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <%!-- Delivery Summary --%>
-                <div class="bg-white border border-[#E2E8F0] rounded-xl p-4 mb-4">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <p class="text-xs text-[#94A3B8] uppercase tracking-wide font-medium mb-1">
-                        Delivery
-                      </p>
-                      <p class="text-sm font-semibold text-[#0F172A]">{@fullname}</p>
-                      <p class="text-sm text-[#475569]">{@address}</p>
-                      <p class="text-sm text-[#475569]">+233 {@phone} -- {region_label(@region)}</p>
-                    </div>
-                    <button
-                      phx-click="go_to_step"
-                      phx-value-step="1"
-                      class="text-xs font-medium text-[#B45309]"
-                    >
-                      Edit
-                    </button>
-                  </div>
-                </div>
-
-                <%!-- Payment Summary --%>
-                <div class="bg-white border border-[#E2E8F0] rounded-xl p-4 mb-4">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <p class="text-xs text-[#94A3B8] uppercase tracking-wide font-medium mb-1">
-                        Payment
-                      </p>
-                      <p class="text-sm font-semibold text-[#0F172A]">
-                        {payment_method_label(@payment_method)}
                       </p>
                     </div>
-                    <button
-                      phx-click="go_to_step"
-                      phx-value-step="2"
-                      class="text-xs font-medium text-[#B45309]"
-                    >
-                      Edit
-                    </button>
+                    <div :if={@cart == []} class="text-sm text-stone-400 py-4 text-center">
+                      Your cart is empty
+                    </div>
                   </div>
-                </div>
 
-                <%!-- Totals --%>
-                <div class="bg-white border border-[#E2E8F0] rounded-xl p-4 mb-6">
-                  <div class="space-y-2 text-sm">
+                  <%!-- Price Breakdown --%>
+                  <div class="border-t border-stone-200 pt-4 space-y-2.5 text-sm">
                     <div class="flex justify-between">
-                      <span class="text-[#475569]">Subtotal</span>
-                      <span class="font-medium text-[#0F172A]">
+                      <span class="text-stone-500">Subtotal</span>
+                      <span class="font-medium text-stone-900">
                         {Currency.format_price(@cart_total, @store.currency)}
                       </span>
                     </div>
-                    <div :if={@discount_amount > 0} class="flex justify-between text-[#059669]">
-                      <span>Discount</span>
-                      <span class="font-medium">
+                    <div class="flex justify-between">
+                      <span class="text-stone-500">Shipping</span>
+                      <span class={"font-medium #{if @effective_delivery_fee == 0, do: "text-emerald-600", else: "text-stone-900"}"}>
+                        {if @effective_delivery_fee == 0,
+                          do: "Free",
+                          else: Currency.format_price(@effective_delivery_fee, @store.currency)}
+                      </span>
+                    </div>
+                    <div :if={@discount_amount > 0} class="flex justify-between">
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-stone-500">Promo</span>
+                        <span class="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                          <svg
+                            class="w-3 h-3"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M4.5 12.75l6 6 9-13.5"
+                            />
+                          </svg>
+                          {String.upcase(@coupon_code)}
+                        </span>
+                      </div>
+                      <span class="font-medium text-emerald-600">
                         -{Currency.format_price(@discount_amount, @store.currency)}
                       </span>
                     </div>
-                    <div class="flex justify-between">
-                      <span class="text-[#475569]">Delivery ({region_label(@region)})</span>
-                      <span class="font-medium text-[#0F172A]">
-                        {Currency.format_price(@effective_delivery_fee, @store.currency)}
-                      </span>
+                  </div>
+
+                  <%!-- Total --%>
+                  <div class="border-t border-stone-200 mt-4 pt-4 flex justify-between items-baseline">
+                    <span class="font-[Cormorant,Georgia,serif] text-lg font-semibold text-stone-900">
+                      Total
+                    </span>
+                    <span class="font-[Cormorant,Georgia,serif] text-2xl font-bold text-stone-900">
+                      {Currency.format_price(@order_total, @store.currency)}
+                    </span>
+                  </div>
+
+                  <%!-- Trust Badges --%>
+                  <div class="grid grid-cols-3 gap-3 mt-6 pt-6 border-t border-stone-100">
+                    <div class="flex flex-col items-center gap-1.5 text-center">
+                      <svg
+                        class="w-5 h-5 text-stone-400"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"
+                        />
+                      </svg>
+                      <p class="text-xs text-stone-500 leading-tight">
+                        <span class="font-semibold text-stone-700 block">Free</span>Returns
+                      </p>
                     </div>
-                    <div class="flex justify-between text-base font-bold pt-2 border-t border-[#E2E8F0]">
-                      <span class="text-[#0F172A]">Total</span>
-                      <span class="text-[#0F172A]">
-                        {Currency.format_price(@order_total, @store.currency)}
-                      </span>
+                    <div class="flex flex-col items-center gap-1.5 text-center">
+                      <svg
+                        class="w-5 h-5 text-stone-400"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                        />
+                      </svg>
+                      <p class="text-xs text-stone-500 leading-tight">
+                        <span class="font-semibold text-stone-700 block">Secure</span>Payment
+                      </p>
+                    </div>
+                    <div class="flex flex-col items-center gap-1.5 text-center">
+                      <svg
+                        class="w-5 h-5 text-stone-400"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+                        />
+                      </svg>
+                      <p class="text-xs text-stone-500 leading-tight">
+                        <span class="font-semibold text-stone-700 block">100%</span>Authentic
+                      </p>
                     </div>
                   </div>
                 </div>
-
-                <div :if={@checkout_error} class="mb-4 bg-red-50 border border-red-200 rounded-xl p-4">
-                  <p class="text-sm text-red-700">{@checkout_error}</p>
-                </div>
-
-                <div class="flex gap-3">
-                  <button
-                    type="button"
-                    phx-click="go_to_step"
-                    phx-value-step="2"
-                    disabled={@processing}
-                    class="px-6 py-3 border border-[#E2E8F0] rounded-xl text-sm font-medium text-[#475569] disabled:opacity-50"
-                  >
-                    Back
-                  </button>
-                  <button
-                    phx-click="place_order"
-                    disabled={@processing}
-                    class="flex-1 bg-[#1C1917] text-white py-3.5 rounded-xl text-sm font-semibold disabled:bg-[#E2E8F0] disabled:text-[#94A3B8] hover:bg-[#292524] transition-colors"
-                  >
-                    <%= if @processing do %>
-                      Processing...
-                    <% else %>
-                      <%= if @payment_method == "cod" do %>
-                        Place Order
-                      <% else %>
-                        Pay {Currency.format_price(@order_total, @store.currency)}
-                      <% end %>
-                    <% end %>
-                  </button>
-                </div>
-              </.accordion_step>
-            </div>
-
-            <%!-- Desktop Sidebar: Order Summary --%>
-            <div class="hidden lg:block w-80 flex-shrink-0">
-              <div class="sticky top-20 bg-white border border-[#E2E8F0] rounded-xl p-5">
-                <h3 class="text-sm font-semibold text-[#0F172A] mb-4">Order Summary</h3>
-                <.order_summary_content
-                  cart={@cart}
-                  cart_total={@cart_total}
-                  delivery_fee={@effective_delivery_fee}
-                  discount_amount={@discount_amount}
-                  coupon={@coupon}
-                  order_total={@order_total}
-                  store={@store}
-                />
               </div>
             </div>
           </div>
         </div>
       </main>
-      <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+
+      <%!-- Minimal Footer --%>
+      <footer class="border-t border-stone-200 bg-white mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p class="text-xs text-stone-400">
+              &copy; 2026 {String.upcase(@store.name)}. All rights reserved.
+            </p>
+            <div class="flex items-center gap-6">
+              <a href="#" class="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+                Privacy Policy
+              </a>
+              <a href="#" class="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+                Terms of Service
+              </a>
+              <a href="#" class="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+                Refund Policy
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
     """
   end
 
   # -- Components -----------------------------------------------------------
-
-  attr :cart, :list, required: true
-  attr :cart_total, :integer, required: true
-  attr :delivery_fee, :integer, required: true
-  attr :discount_amount, :integer, required: true
-  attr :coupon, :any, required: true
-  attr :order_total, :integer, required: true
-  attr :store, :any, required: true
-
-  defp order_summary_content(assigns) do
-    ~H"""
-    <div :if={@cart != []} class="space-y-3 mb-4">
-      <div :for={item <- @cart} class="flex gap-3">
-        <div class="w-12 h-12 bg-[#F1F5F9] rounded-lg flex-shrink-0 overflow-hidden">
-          <img
-            :if={item[:image_url]}
-            src={item[:image_url]}
-            alt={item.product_title}
-            class="w-full h-full object-cover"
-          />
-          <div :if={!item[:image_url]} class="w-full h-full flex items-center justify-center">
-            <svg class="w-5 h-5 text-[#94A3B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1"
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-          </div>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-[#0F172A] truncate">{item.product_title}</p>
-          <p :if={item[:variant_info]} class="text-xs text-[#94A3B8]">{item[:variant_info]}</p>
-          <p class="text-xs text-[#94A3B8]">Qty: {item.quantity}</p>
-        </div>
-        <span class="text-sm font-medium text-[#0F172A] flex-shrink-0">
-          {Currency.format_price(item.unit_price * item.quantity, @store.currency)}
-        </span>
-      </div>
-    </div>
-    <div :if={@cart == []} class="text-sm text-[#94A3B8] mb-4">No items in cart</div>
-    <div class="border-t border-[#E2E8F0] pt-3 space-y-2 text-sm">
-      <div class="flex justify-between">
-        <span class="text-[#475569]">Subtotal</span>
-        <span class="text-[#0F172A]">{Currency.format_price(@cart_total, @store.currency)}</span>
-      </div>
-      <div :if={@discount_amount > 0} class="flex justify-between text-[#059669]">
-        <span>Discount</span>
-        <span>-{Currency.format_price(@discount_amount, @store.currency)}</span>
-      </div>
-      <div class="flex justify-between">
-        <span class="text-[#475569]">Delivery</span>
-        <span class="text-[#0F172A]">{Currency.format_price(@delivery_fee, @store.currency)}</span>
-      </div>
-      <div class="flex justify-between font-bold pt-2 border-t border-[#E2E8F0]">
-        <span>Total</span>
-        <span>{Currency.format_price(@order_total, @store.currency)}</span>
-      </div>
-    </div>
-    """
-  end
-
-  attr :number, :integer, required: true
-  attr :title, :string, required: true
-  attr :current_step, :integer, required: true
-  attr :summary, :any, default: nil
-  slot :inner_block, required: true
-
-  defp accordion_step(assigns) do
-    ~H"""
-    <div class="mb-4">
-      <%!-- Completed step: collapsed summary --%>
-      <div :if={@current_step > @number} class="bg-white border border-[#E2E8F0] rounded-xl p-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-7 h-7 rounded-full bg-[#059669] flex items-center justify-center flex-shrink-0">
-              <svg
-                class="w-3.5 h-3.5 text-white"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-              </svg>
-            </div>
-            <div>
-              <p class="text-sm font-semibold text-[#0F172A]">{@title}</p>
-              <p :if={@summary} class="text-xs text-[#475569] mt-0.5">{@summary}</p>
-            </div>
-          </div>
-          <button
-            phx-click="go_to_step"
-            phx-value-step={@number}
-            class="text-xs font-medium text-[#B45309] hover:text-[#92400E] transition-colors"
-          >
-            Edit
-          </button>
-        </div>
-      </div>
-
-      <%!-- Active step: full form --%>
-      <div
-        :if={@current_step == @number}
-        class="bg-white border border-[#CBD5E1] rounded-xl p-5 shadow-sm"
-      >
-        <div class="flex items-center gap-3 mb-5">
-          <div class="w-7 h-7 rounded-full bg-[#0F172A] flex items-center justify-center flex-shrink-0">
-            <span class="text-white text-xs font-semibold">{@number}</span>
-          </div>
-          <h2 class="text-lg font-semibold text-[#0F172A]">{@title}</h2>
-        </div>
-        {render_slot(@inner_block)}
-      </div>
-
-      <%!-- Upcoming step: dimmed --%>
-      <div
-        :if={@current_step < @number}
-        class="bg-white border border-[#E2E8F0] rounded-xl p-4 opacity-50"
-      >
-        <div class="flex items-center gap-3">
-          <div class="w-7 h-7 rounded-full border-2 border-[#CBD5E1] flex items-center justify-center flex-shrink-0">
-            <span class="text-[#94A3B8] text-xs font-semibold">{@number}</span>
-          </div>
-          <p class="text-sm font-medium text-[#94A3B8]">{@title}</p>
-        </div>
-      </div>
-    </div>
-    """
-  end
-
-  attr :method, :string, required: true
-  attr :selected, :string, required: true
-  attr :title, :string, required: true
-  attr :subtitle, :string, required: true
-  attr :badge_text, :string, required: true
-  attr :badge_bg, :string, required: true
-  attr :badge_text_color, :string, required: true
-  attr :accent_color, :string, required: true
-
-  defp payment_card(assigns) do
-    ~H"""
-    <button
-      type="button"
-      phx-click="select_payment"
-      phx-value-method={@method}
-      role="radio"
-      aria-checked={@selected == @method}
-      class={[
-        "bg-white border-2 rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer text-center transition-all",
-        if(@selected == @method,
-          do: "border-[#{@accent_color}] shadow-[0_0_0_1px_#{@accent_color}]",
-          else: "border-[#E2E8F0] hover:border-[#CBD5E1]"
-        )
-      ]}
-      style={
-        if @selected == @method,
-          do: "border-color: #{@accent_color}; box-shadow: 0 0 0 1px #{@accent_color};",
-          else: ""
-      }
-    >
-      <div class={"w-10 h-10 rounded-lg #{@badge_bg} flex items-center justify-center"}>
-        <span class={"#{@badge_text_color} font-bold text-xs tracking-wide"}>{@badge_text}</span>
-      </div>
-      <div>
-        <p class="text-sm font-semibold text-[#0F172A]">{@title}</p>
-        <p class="text-xs text-[#94A3B8] mt-0.5">{@subtitle}</p>
-      </div>
-      <div :if={@selected == @method} class="mt-1">
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" fill="#059669" />
-          <path
-            d="M8 12L11 15L16 9"
-            stroke="white"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </div>
-    </button>
-    """
-  end
 
   attr :payment_method, :string, required: true
   attr :order, :any, required: true
@@ -1040,9 +1160,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       |> assign(:masked_phone, mask_phone(assigns.phone))
 
     ~H"""
-    <div class="bg-white border border-[#E2E8F0] rounded-xl p-6">
-      <%!-- Phone icon with brand halo --%>
-      <div class="flex justify-center mb-5">
+    <div class="bg-white border border-stone-200 rounded-2xl p-8">
+      <div class="flex justify-center mb-6">
         <div class="relative">
           <div
             class="w-20 h-20 rounded-full flex items-center justify-center animate-pulse"
@@ -1070,16 +1189,16 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         </div>
       </div>
 
-      <h3 class="text-lg font-semibold text-[#0F172A] text-center mb-1">Approve on your phone</h3>
-      <p class="text-sm text-[#475569] text-center mb-6">
+      <h3 class="font-[Cormorant,Georgia,serif] text-2xl font-semibold text-stone-900 text-center mb-1">
+        Approve on your phone
+      </h3>
+      <p class="text-sm text-stone-600 text-center mb-8">
         A {@brand_name} payment prompt has been sent to your phone
       </p>
 
-      <%!-- 3-step progress tracker --%>
-      <div class="space-y-4 mb-6">
-        <%!-- Step 1: Order created --%>
+      <div class="space-y-4 mb-8">
         <div class="flex items-start gap-3">
-          <div class="w-6 h-6 rounded-full bg-[#059669] flex items-center justify-center flex-shrink-0 mt-0.5">
+          <div class="w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
             <svg
               class="w-3.5 h-3.5 text-white"
               fill="none"
@@ -1091,14 +1210,12 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
             </svg>
           </div>
           <div>
-            <p class="text-sm font-medium text-[#0F172A]">Order created</p>
-            <p :if={@order} class="text-xs text-[#94A3B8]">#{@order.order_number}</p>
+            <p class="text-sm font-medium text-stone-900">Order created</p>
+            <p :if={@order} class="text-xs text-stone-500">#{@order.order_number}</p>
           </div>
         </div>
-
-        <%!-- Step 2: Payment request sent --%>
         <div class="flex items-start gap-3">
-          <div class="w-6 h-6 rounded-full bg-[#059669] flex items-center justify-center flex-shrink-0 mt-0.5">
+          <div class="w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
             <svg
               class="w-3.5 h-3.5 text-white"
               fill="none"
@@ -1110,30 +1227,25 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
             </svg>
           </div>
           <div>
-            <p class="text-sm font-medium text-[#0F172A]">Payment request sent</p>
-            <p class="text-xs text-[#94A3B8]">+233 {@masked_phone}</p>
+            <p class="text-sm font-medium text-stone-900">Payment request sent</p>
+            <p class="text-xs text-stone-500">+233 {@masked_phone}</p>
           </div>
         </div>
-
-        <%!-- Step 3: Awaiting approval --%>
         <div class="flex items-start gap-3">
           <div class="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
             <div class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
           </div>
           <div>
-            <p class="text-sm font-medium text-[#0F172A]">Awaiting approval</p>
-            <p class="text-xs text-[#94A3B8]">
-              Dial *170# if you don't see the prompt
-            </p>
+            <p class="text-sm font-medium text-stone-900">Awaiting approval</p>
+            <p class="text-xs text-stone-500">Dial *170# if you don't see the prompt</p>
           </div>
         </div>
       </div>
 
-      <%!-- Countdown timer --%>
       <div class="text-center mb-4">
-        <div class="inline-flex items-center gap-2 bg-[#F8FAFC] rounded-lg px-4 py-2">
+        <div class="inline-flex items-center gap-2 bg-stone-50 rounded-xl px-5 py-2.5">
           <svg
-            class="w-4 h-4 text-[#475569]"
+            class="w-4 h-4 text-stone-500"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -1145,14 +1257,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
               d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
             />
           </svg>
-          <span class="text-sm font-mono font-semibold text-[#0F172A]">{@timer_display}</span>
+          <span class="text-sm font-mono font-semibold text-stone-900">{@timer_display}</span>
         </div>
       </div>
 
-      <%!-- Help link --%>
-      <p class="text-center text-xs text-[#94A3B8]">
+      <p class="text-center text-xs text-stone-400">
         Didn't receive the prompt?
-        <a href="#" class="text-[#B45309] font-medium hover:underline">Get help</a>
+        <a href="#" class="text-amber-600 font-medium hover:underline">Get help</a>
       </p>
     </div>
     """
@@ -1352,36 +1463,10 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     end
   end
 
-  defp step_1_summary(assigns) do
-    if assigns.fullname != "" and assigns.phone != "" do
-      "#{assigns.fullname} -- +233 #{assigns.phone} -- #{region_label(assigns.region)}"
-    else
-      nil
-    end
-  end
-
-  defp step_2_summary(assigns) do
-    if assigns.step > 2 do
-      payment_method_label(assigns.payment_method)
-    else
-      nil
-    end
-  end
-
-  defp payment_method_label("momo"), do: "MTN Mobile Money"
-  defp payment_method_label("vodafone"), do: "Vodafone Cash"
-  defp payment_method_label("card"), do: "Card Payment"
-  defp payment_method_label("cod"), do: "Cash on Delivery"
-  defp payment_method_label(_), do: "Unknown"
-
-  defp region_label("greater_accra"), do: "Greater Accra"
-  defp region_label("ashanti"), do: "Ashanti"
-  defp region_label("central"), do: "Central"
-  defp region_label("western"), do: "Western"
-  defp region_label("eastern"), do: "Eastern"
-  defp region_label("northern"), do: "Northern"
-  defp region_label("volta"), do: "Volta"
-  defp region_label(_), do: "Other"
+  defp delivery_estimate("greater_accra"), do: "1-2 business days"
+  defp delivery_estimate("ashanti"), do: "2-4 business days"
+  defp delivery_estimate("central"), do: "2-4 business days"
+  defp delivery_estimate(_), do: "3-5 business days"
 
   defp momo_brand_color("momo"), do: "#FFC107"
   defp momo_brand_color("vodafone"), do: "#E60000"
