@@ -80,7 +80,8 @@ defmodule EmakolaWeb.Admin.CouponLive do
           "max_uses" => if(coupon.max_uses, do: to_string(coupon.max_uses), else: ""),
           "starts_at" => format_datetime_for_input(coupon.starts_at),
           "expires_at" => format_datetime_for_input(coupon.expires_at),
-          "active" => to_string(coupon.active)
+          "active" => to_string(coupon.active),
+          "is_public" => to_string(coupon.is_public)
         }
 
       {:noreply,
@@ -547,19 +548,39 @@ defmodule EmakolaWeb.Admin.CouponLive do
         </div>
 
         <%!-- Active Toggle --%>
-        <div class="flex items-center gap-3">
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              name="coupon[active]"
-              value="true"
-              checked={@form_changeset["active"] == "true"}
-              class="sr-only peer"
-            />
-            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600">
+        <div class="flex items-center gap-6">
+          <div class="flex items-center gap-3">
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                name="coupon[active]"
+                value="true"
+                checked={@form_changeset["active"] == "true"}
+                class="sr-only peer"
+              />
+              <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600">
+              </div>
+            </label>
+            <span class="text-sm font-medium text-slate-700">Active</span>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                name="coupon[is_public]"
+                value="true"
+                checked={@form_changeset["is_public"] == "true"}
+                class="sr-only peer"
+              />
+              <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500">
+              </div>
+            </label>
+            <div>
+              <span class="text-sm font-medium text-slate-700">Show on storefront</span>
+              <p class="text-xs text-slate-400">Display as a promotion banner for customers</p>
             </div>
-          </label>
-          <span class="text-sm font-medium text-slate-700">Active</span>
+          </div>
         </div>
 
         <%!-- Submit --%>
@@ -761,7 +782,8 @@ defmodule EmakolaWeb.Admin.CouponLive do
       "max_uses" => "",
       "starts_at" => "",
       "expires_at" => "",
-      "active" => "true"
+      "active" => "true",
+      "is_public" => "false"
     }
   end
 
@@ -779,7 +801,8 @@ defmodule EmakolaWeb.Admin.CouponLive do
       max_uses: parse_integer(params["max_uses"]),
       starts_at: parse_datetime(params["starts_at"]),
       expires_at: parse_datetime(params["expires_at"]),
-      active: params["active"] == "true"
+      active: params["active"] == "true",
+      is_public: params["is_public"] == "true"
     }
 
     # Remove nil values so Ash defaults are respected

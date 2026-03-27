@@ -396,6 +396,89 @@ defmodule EmakolaWeb.StorefrontComponents do
     """
   end
 
+  # ── Coupon Promotion Banner ──
+
+  @doc """
+  Slide-down banner showing active public coupons with a ticket-style visual.
+  Only renders when the coupons list is non-empty.
+  Dismissible via the close button.
+  """
+  attr :coupons, :list, required: true
+  attr :store, :map, required: true
+
+  def coupon_banner(assigns) do
+    assigns = assign(assigns, :first_coupon, List.first(assigns.coupons))
+
+    ~H"""
+    <div
+      :if={@first_coupon}
+      id="coupon-promo-banner"
+      class="relative bg-[#FFFBEB] border border-dashed border-[#F59E0B] rounded-xl px-4 py-3 sm:px-6 sm:py-3.5 mb-4"
+    >
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="flex-shrink-0 w-8 h-8 bg-[#FEF3C7] rounded-lg flex items-center justify-center">
+            <svg
+              class="w-4.5 h-4.5 text-[#B45309]"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"
+              />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z" />
+            </svg>
+          </div>
+          <p class="text-sm font-medium text-[#92400E] truncate">
+            Use code
+            <span class="font-bold font-mono bg-[#FEF3C7] px-1.5 py-0.5 rounded">
+              {@first_coupon.code}
+            </span>
+            for {format_coupon_discount(@first_coupon, @store)}!
+          </p>
+        </div>
+        <button
+          phx-click={
+            Phoenix.LiveView.JS.hide(
+              to: "#coupon-promo-banner",
+              transition:
+                {"transition-all duration-300", "opacity-100 translate-y-0",
+                 "opacity-0 -translate-y-2"}
+            )
+          }
+          class="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-[#B45309] hover:bg-[#FEF3C7] transition-colors"
+          aria-label="Dismiss promotion"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  defp format_coupon_discount(coupon, store) do
+    case coupon.discount_type do
+      :percentage ->
+        pct = div(coupon.discount_value, 100)
+        "#{pct}% off"
+
+      :fixed_amount ->
+        Currency.format_price(coupon.discount_value, store.currency) <> " off"
+
+      :free_shipping ->
+        "Free shipping"
+
+      _ ->
+        "a discount"
+    end
+  end
+
   # ── Shared Helpers ──
 
   @doc """

@@ -45,6 +45,10 @@ defmodule EmakolaWeb.Storefront.CartLive do
          |> assign(:cart_total, cart_total(cart))
          |> assign(:checking_out, false)
          |> assign(:show_mobile_summary, false)
+         |> assign(:promo_code, "")
+         |> assign(:promo_error, nil)
+         |> assign(:applied_coupon, nil)
+         |> assign(:discount_amount, 0)
          |> assign(:page_title, "Shopping Bag - #{store.name}")}
 
       {:error, :not_found} ->
@@ -112,6 +116,42 @@ defmodule EmakolaWeb.Storefront.CartLive do
   @impl true
   def handle_event("toggle_mobile_summary", _params, socket) do
     {:noreply, assign(socket, :show_mobile_summary, !socket.assigns.show_mobile_summary)}
+  end
+
+  @impl true
+  def handle_event("update_promo_code", %{"promo_code" => code}, socket) do
+    {:noreply, assign(socket, :promo_code, code)}
+  end
+
+  @impl true
+  def handle_event("apply_coupon", _params, socket) do
+    code = String.trim(socket.assigns.promo_code)
+    store = socket.assigns.store
+
+    if code == "" do
+      {:noreply, assign(socket, :promo_error, "Please enter a coupon code")}
+    else
+      case Emakola.Orders.find_coupon_by_code(store.id, code) do
+        {:ok, [coupon]} ->
+          validate_and_apply_coupon(socket, coupon)
+
+        {:ok, []} ->
+          {:noreply, assign(socket, :promo_error, "Invalid coupon code")}
+
+        {:error, _} ->
+          {:noreply, assign(socket, :promo_error, "Invalid coupon code")}
+      end
+    end
+  end
+
+  @impl true
+  def handle_event("remove_coupon", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:applied_coupon, nil)
+     |> assign(:discount_amount, 0)
+     |> assign(:promo_code, "")
+     |> assign(:promo_error, nil)}
   end
 
   @impl true
@@ -423,17 +463,84 @@ defmodule EmakolaWeb.Storefront.CartLive do
                         {Currency.format_price(@cart_total, @store.currency)}
                       </span>
                     </div>
+                    <%= if @applied_coupon do %>
+                      <div class="flex justify-between">
+                        <span class="text-[#059669]">Discount</span>
+                        <span class="font-medium text-[#059669]">
+                          -{Currency.format_price(@discount_amount, @store.currency)}
+                        </span>
+                      </div>
+                    <% end %>
                     <div class="flex justify-between">
                       <span class="text-[#94A3B8]">Shipping</span>
                       <span class="font-medium text-[#059669]">Calculated at checkout</span>
                     </div>
                   </div>
 
+                  <%!-- Coupon Input --%>
                   <div class="border-t border-[#E2E8F0] my-5"></div>
+
+                  <%= if @applied_coupon do %>
+                    <div class="flex items-center justify-between bg-[#F0FDF4] rounded-lg px-3 py-2.5 mb-5">
+                      <div class="flex items-center gap-2">
+                        <svg
+                          class="w-4 h-4 text-[#059669]"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span class="text-sm font-semibold text-[#059669] font-mono">
+                          {@applied_coupon.code}
+                        </span>
+                        <span class="text-xs text-[#475569]">
+                          (-{Currency.format_price(@discount_amount, @store.currency)})
+                        </span>
+                      </div>
+                      <button
+                        phx-click="remove_coupon"
+                        class="text-xs font-medium text-[#94A3B8] hover:text-red-500 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  <% else %>
+                    <div class="mb-5">
+                      <form phx-submit="apply_coupon" class="flex gap-2">
+                        <input
+                          type="text"
+                          name="promo_code"
+                          value={@promo_code}
+                          phx-change="update_promo_code"
+                          placeholder="Coupon code"
+                          class={"flex-1 px-3.5 py-2.5 rounded-lg border text-sm uppercase placeholder:normal-case transition-colors #{if @promo_error, do: "border-red-300 focus:border-red-500 focus:ring-red-500", else: "border-[#E2E8F0] focus:border-[#B45309] focus:ring-[#B45309]"}"}
+                        />
+                        <button
+                          type="submit"
+                          class="px-4 py-2.5 bg-[#1C1917] text-white text-sm font-semibold rounded-lg hover:bg-[#44403C] transition-colors flex-shrink-0"
+                        >
+                          Apply
+                        </button>
+                      </form>
+                      <p :if={@promo_error} class="mt-1.5 text-xs text-red-600">
+                        {@promo_error}
+                      </p>
+                    </div>
+                  <% end %>
+
+                  <div class="border-t border-[#E2E8F0] mb-5"></div>
 
                   <div class="flex justify-between text-lg font-bold text-[#0F172A] mb-6">
                     <span>Total</span>
-                    <span>{Currency.format_price(@cart_total, @store.currency)}</span>
+                    <span>
+                      {Currency.format_price(max(@cart_total - @discount_amount, 0), @store.currency)}
+                    </span>
                   </div>
 
                   <a
@@ -570,11 +677,20 @@ defmodule EmakolaWeb.Storefront.CartLive do
 
   defp reload_cart(socket) do
     cart = CartStore.get_cart(socket.assigns.cart_session_id)
+    total = cart_total(cart)
+
+    discount =
+      if socket.assigns.applied_coupon do
+        calculate_discount(socket.assigns.applied_coupon, total)
+      else
+        0
+      end
 
     socket
     |> assign(:cart, cart)
     |> assign(:cart_count, cart_count(cart))
-    |> assign(:cart_total, cart_total(cart))
+    |> assign(:cart_total, total)
+    |> assign(:discount_amount, discount)
   end
 
   defp cart_count(cart) do
@@ -583,5 +699,61 @@ defmodule EmakolaWeb.Storefront.CartLive do
 
   defp cart_total(cart) do
     Enum.reduce(cart, 0, fn item, acc -> acc + item.unit_price * item.quantity end)
+  end
+
+  defp validate_and_apply_coupon(socket, coupon) do
+    now = DateTime.utc_now()
+    cart_total = socket.assigns.cart_total
+
+    cond do
+      not coupon.active ->
+        {:noreply, assign(socket, :promo_error, "This coupon is no longer active")}
+
+      coupon.expires_at && DateTime.compare(coupon.expires_at, now) == :lt ->
+        {:noreply, assign(socket, :promo_error, "This coupon has expired")}
+
+      coupon.starts_at && DateTime.compare(coupon.starts_at, now) == :gt ->
+        {:noreply, assign(socket, :promo_error, "This coupon is not yet active")}
+
+      coupon.max_uses && coupon.uses_count >= coupon.max_uses ->
+        {:noreply, assign(socket, :promo_error, "This coupon has reached its usage limit")}
+
+      coupon.minimum_order_amount && cart_total < coupon.minimum_order_amount ->
+        min_formatted =
+          Currency.format_price(coupon.minimum_order_amount, socket.assigns.store.currency)
+
+        {:noreply, assign(socket, :promo_error, "Minimum order of #{min_formatted} required")}
+
+      true ->
+        discount = calculate_discount(coupon, cart_total)
+
+        {:noreply,
+         socket
+         |> assign(:applied_coupon, coupon)
+         |> assign(:discount_amount, discount)
+         |> assign(:promo_error, nil)}
+    end
+  end
+
+  defp calculate_discount(coupon, cart_total) do
+    case coupon.discount_type do
+      :percentage ->
+        raw = div(cart_total * coupon.discount_value, 10_000)
+
+        if coupon.max_discount_amount do
+          min(raw, coupon.max_discount_amount)
+        else
+          raw
+        end
+
+      :fixed_amount ->
+        min(coupon.discount_value, cart_total)
+
+      :free_shipping ->
+        0
+
+      _ ->
+        0
+    end
   end
 end
