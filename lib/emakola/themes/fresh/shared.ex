@@ -292,9 +292,45 @@ defmodule Emakola.Themes.Fresh.Shared do
             </div>
           </div>
 
-          <%!-- Categories --%>
-          <div :if={@categories != []}>
+          <%!-- Explore --%>
+          <div>
             <h3
+              class="text-sm font-bold text-[#1C1917] mb-3 uppercase tracking-wider"
+              style="font-family: 'Nunito', sans-serif;"
+            >
+              Explore
+            </h3>
+            <ul class="space-y-2 mb-4">
+              <li>
+                <a
+                  href={"/s/#{@store.slug}/blog"}
+                  class="text-sm text-[#78350F] hover:text-[#059669] transition-colors"
+                  style="font-family: 'Inter', sans-serif;"
+                >
+                  Blog
+                </a>
+              </li>
+              <li>
+                <a
+                  href={"/s/#{@store.slug}/recipes"}
+                  class="text-sm text-[#78350F] hover:text-[#059669] transition-colors"
+                  style="font-family: 'Inter', sans-serif;"
+                >
+                  Recipes
+                </a>
+              </li>
+              <li>
+                <a
+                  href={"/s/#{@store.slug}/about"}
+                  class="text-sm text-[#78350F] hover:text-[#059669] transition-colors"
+                  style="font-family: 'Inter', sans-serif;"
+                >
+                  About Us
+                </a>
+              </li>
+            </ul>
+            <h3
+              :if={@categories != []}
               class="text-sm font-bold text-[#1C1917] mb-3 uppercase tracking-wider"
               style="font-family: 'Nunito', sans-serif;"
             >
