@@ -24,8 +24,17 @@ defmodule Emakola.Notifications.Templates do
   end
 
   def order_shipped_sms(order, store) do
-    "Your order #{order.order_number} from #{store.name} has been shipped! " <>
-      "Track your delivery status."
+    tracking_url = Map.get(order, :tracking_url)
+
+    tracking_line =
+      if tracking_url do
+        " Track here: #{tracking_url}"
+      else
+        " Track at: #{storefront_tracking_url(store, order)}"
+      end
+
+    "Your order #{order.order_number} from #{store.name} has been shipped!" <>
+      tracking_line
   end
 
   def order_delivered_sms(order, store) do
@@ -112,6 +121,18 @@ defmodule Emakola.Notifications.Templates do
   end
 
   defp item_count_segment(_), do: ""
+
+  defp storefront_tracking_url(store, order) do
+    host = storefront_host()
+    "https://#{host}/s/#{store.slug}/track/#{order.order_number}"
+  end
+
+  defp storefront_host do
+    case Application.get_env(:emakola, EmakolaWeb.Endpoint)[:url][:host] do
+      nil -> "emakola.com"
+      host -> host
+    end
+  end
 
   defp currency_symbol("GHS"), do: "GH\u20B5"
   defp currency_symbol("NGN"), do: "\u20A6"
