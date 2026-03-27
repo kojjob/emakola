@@ -91,12 +91,21 @@ defmodule Emakola.Catalog.Product do
 
     has_many :variants, Emakola.Catalog.Variant
     has_many :images, Emakola.Catalog.Image
+    has_many :reviews, Emakola.Catalog.Review
   end
 
   aggregates do
     count(:variant_count, :variants)
     min(:min_price, :variants, :price)
     max(:max_price, :variants, :price)
+
+    count :review_count, :reviews do
+      filter(expr(status == :published))
+    end
+
+    avg :avg_rating, :reviews, :rating do
+      filter(expr(status == :published))
+    end
   end
 
   identities do

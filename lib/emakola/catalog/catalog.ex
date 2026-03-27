@@ -41,5 +41,7 @@ defmodule Emakola.Catalog do
     resource(Emakola.Catalog.VariantOptionValue)
 
     resource(Emakola.Catalog.Image)
+
+    resource(Emakola.Catalog.Review)
   end
 end
