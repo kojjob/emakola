@@ -289,7 +289,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
               href={"/s/#{@store.slug}/cart"}
               class="cursor-pointer flex items-center gap-2 text-stone-600 hover:text-stone-900 transition-colors text-sm font-medium rounded-lg px-2 py-1 -ml-2"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
               Back to Bag
@@ -298,7 +304,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
               {String.upcase(@store.name)}
             </span>
             <div class="flex items-center gap-2 text-stone-600 text-sm font-medium">
-              <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <svg
+                class="w-4 h-4 text-amber-600"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
@@ -313,17 +325,23 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         <div class="max-w-2xl mx-auto px-4 sm:px-6 py-6">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center text-xs font-semibold shadow-sm shadow-amber-600/20">1</div>
+              <div class="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center text-xs font-semibold shadow-sm shadow-amber-600/20">
+                1
+              </div>
               <span class="text-sm font-semibold text-stone-900 hidden sm:inline">Information</span>
             </div>
             <div class="h-0.5 flex-1 bg-stone-200 mx-3 sm:mx-4 rounded-full"></div>
             <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-full border-2 border-stone-300 text-stone-400 flex items-center justify-center text-xs font-semibold">2</div>
+              <div class="w-8 h-8 rounded-full border-2 border-stone-300 text-stone-400 flex items-center justify-center text-xs font-semibold">
+                2
+              </div>
               <span class="text-sm font-medium text-stone-400 hidden sm:inline">Shipping</span>
             </div>
             <div class="h-0.5 flex-1 bg-stone-200 mx-3 sm:mx-4 rounded-full"></div>
             <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-full border-2 border-stone-300 text-stone-400 flex items-center justify-center text-xs font-semibold">3</div>
+              <div class="w-8 h-8 rounded-full border-2 border-stone-300 text-stone-400 flex items-center justify-center text-xs font-semibold">
+                3
+              </div>
               <span class="text-sm font-medium text-stone-400 hidden sm:inline">Payment</span>
             </div>
           </div>
@@ -346,13 +364,26 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
           <div :if={@payment_status == :failed} class="max-w-lg mx-auto mb-6">
             <div class="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
               <div class="w-12 h-12 mx-auto mb-3 bg-red-100 rounded-full flex items-center justify-center">
-                <svg class="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg
+                  class="w-6 h-6 text-red-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
-              <h3 class="font-[Cormorant,Georgia,serif] text-2xl font-semibold text-red-900 mb-1">Payment failed</h3>
-              <p class="text-sm text-red-700 mb-4">The payment was not completed. Please try again.</p>
-              <button phx-click="retry_payment" class="cursor-pointer inline-flex items-center px-8 py-3.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors">
+              <h3 class="font-[Cormorant,Georgia,serif] text-2xl font-semibold text-red-900 mb-1">
+                Payment failed
+              </h3>
+              <p class="text-sm text-red-700 mb-4">
+                The payment was not completed. Please try again.
+              </p>
+              <button
+                phx-click="retry_payment"
+                class="cursor-pointer inline-flex items-center px-8 py-3.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors"
+              >
                 Retry Payment
               </button>
             </div>
@@ -362,28 +393,48 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
           <div :if={@payment_status == :timeout} class="max-w-lg mx-auto mb-6">
             <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
               <div class="w-12 h-12 mx-auto mb-3 bg-amber-100 rounded-full flex items-center justify-center">
-                <svg class="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                <svg
+                  class="w-6 h-6 text-amber-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                  />
                 </svg>
               </div>
-              <h3 class="font-[Cormorant,Georgia,serif] text-2xl font-semibold text-amber-900 mb-1">Payment timed out</h3>
-              <p class="text-sm text-amber-700 mb-4">We didn't receive a response in time. You can try again.</p>
-              <button phx-click="retry_payment" class="cursor-pointer inline-flex items-center px-8 py-3.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors">
+              <h3 class="font-[Cormorant,Georgia,serif] text-2xl font-semibold text-amber-900 mb-1">
+                Payment timed out
+              </h3>
+              <p class="text-sm text-amber-700 mb-4">
+                We didn't receive a response in time. You can try again.
+              </p>
+              <button
+                phx-click="retry_payment"
+                class="cursor-pointer inline-flex items-center px-8 py-3.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors"
+              >
                 Retry Payment
               </button>
             </div>
           </div>
 
           <%!-- Main Checkout Content: Two-Column Layout --%>
-          <div :if={@payment_status not in [:awaiting_payment, :failed, :timeout]} class="lg:grid lg:grid-cols-5 lg:gap-12 xl:gap-16">
-
+          <div
+            :if={@payment_status not in [:awaiting_payment, :failed, :timeout]}
+            class="lg:grid lg:grid-cols-5 lg:gap-12 xl:gap-16"
+          >
             <%!-- LEFT COLUMN: Checkout Form (60%) --%>
             <div class="lg:col-span-3">
               <form phx-submit="place_order" phx-change="update_details" novalidate class="space-y-10">
-
                 <%!-- SECTION 1: Contact Information --%>
                 <section>
-                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">Contact</h2>
+                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
+                    Contact
+                  </h2>
                   <div class="space-y-4">
                     <div>
                       <label for="phone" class="block text-sm font-medium text-stone-900 mb-1.5">
@@ -391,8 +442,18 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                       </label>
                       <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                          <svg class="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                          <svg
+                            class="w-4 h-4 text-stone-400"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"
+                            />
                           </svg>
                         </div>
                         <input
@@ -404,7 +465,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                           class={"w-full bg-white border rounded-xl pl-11 pr-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all #{if @form_errors[:phone], do: "border-red-400 bg-red-50", else: "border-stone-200"}"}
                         />
                       </div>
-                      <p :if={@form_errors[:phone]} class="text-xs text-red-600 mt-1">{@form_errors[:phone]}</p>
+                      <p :if={@form_errors[:phone]} class="text-xs text-red-600 mt-1">
+                        {@form_errors[:phone]}
+                      </p>
                     </div>
 
                     <div>
@@ -419,7 +482,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                         placeholder="Ama Mensah"
                         class={"w-full bg-white border rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all #{if @form_errors[:fullname], do: "border-red-400 bg-red-50", else: "border-stone-200"}"}
                       />
-                      <p :if={@form_errors[:fullname]} class="text-xs text-red-600 mt-1">{@form_errors[:fullname]}</p>
+                      <p :if={@form_errors[:fullname]} class="text-xs text-red-600 mt-1">
+                        {@form_errors[:fullname]}
+                      </p>
                     </div>
                   </div>
                 </section>
@@ -428,7 +493,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
                 <%!-- SECTION 2: Shipping Address --%>
                 <section>
-                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">Shipping Address</h2>
+                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
+                    Shipping Address
+                  </h2>
                   <div class="space-y-4">
                     <div>
                       <label for="address" class="block text-sm font-medium text-stone-900 mb-1.5">
@@ -442,7 +509,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                         placeholder="House 14, Osu Badu Street"
                         class={"w-full bg-white border rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all #{if @form_errors[:address], do: "border-red-400 bg-red-50", else: "border-stone-200"}"}
                       />
-                      <p :if={@form_errors[:address]} class="text-xs text-red-600 mt-1">{@form_errors[:address]}</p>
+                      <p :if={@form_errors[:address]} class="text-xs text-red-600 mt-1">
+                        {@form_errors[:address]}
+                      </p>
                     </div>
 
                     <div>
@@ -455,7 +524,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                           name="region"
                           class="cursor-pointer w-full bg-white border border-stone-200 rounded-xl px-4 py-3.5 text-sm text-stone-900 appearance-none focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all"
                         >
-                          <option value="greater_accra" selected={@region == "greater_accra"}>Greater Accra</option>
+                          <option value="greater_accra" selected={@region == "greater_accra"}>
+                            Greater Accra
+                          </option>
                           <option value="ashanti" selected={@region == "ashanti"}>Ashanti</option>
                           <option value="central" selected={@region == "central"}>Central</option>
                           <option value="western" selected={@region == "western"}>Western</option>
@@ -465,7 +536,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                           <option value="other" selected={@region == "other"}>Other</option>
                         </select>
                         <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                          <svg class="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                          <svg
+                            class="w-4 h-4 text-stone-400"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                          >
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                           </svg>
                         </div>
@@ -492,7 +569,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
                 <%!-- SECTION 3: Delivery Method --%>
                 <section>
-                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">Delivery Method</h2>
+                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
+                    Delivery Method
+                  </h2>
                   <div class="space-y-3">
                     <%!-- Standard Delivery (selected based on region) --%>
                     <div class="flex items-center justify-between p-4 sm:p-5 bg-white border-2 border-amber-600 bg-amber-50/40 rounded-xl">
@@ -513,7 +592,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                     <%!-- Express Delivery --%>
                     <div class="flex items-center justify-between p-4 sm:p-5 bg-white border-2 border-stone-200 rounded-xl opacity-50">
                       <div class="flex items-center gap-4">
-                        <div class="w-5 h-5 rounded-full border-2 border-stone-300 flex items-center justify-center shrink-0"></div>
+                        <div class="w-5 h-5 rounded-full border-2 border-stone-300 flex items-center justify-center shrink-0">
+                        </div>
                         <div>
                           <p class="text-sm font-semibold text-stone-900">Express Delivery</p>
                           <p class="text-xs text-stone-600 mt-0.5">Next business day</p>
@@ -528,15 +608,20 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
                 <%!-- SECTION 4: Payment Method --%>
                 <section>
-                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">Payment</h2>
+                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
+                    Payment
+                  </h2>
                   <%!-- Payment Method Tabs --%>
                   <div class="flex border-b border-stone-200 mb-6" role="tablist">
                     <button
                       :for={
                         {method, label, icon_path} <- [
-                          {"momo", "Mobile Money", "M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"},
-                          {"card", "Card", "M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v10.5a2.25 2.25 0 002.25 2.25z"},
-                          {"cod", "Cash on Delivery", "M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"}
+                          {"momo", "Mobile Money",
+                           "M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"},
+                          {"card", "Card",
+                           "M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v10.5a2.25 2.25 0 002.25 2.25z"},
+                          {"cod", "Cash on Delivery",
+                           "M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"}
                         ]
                       }
                       type="button"
@@ -546,7 +631,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                       aria-selected={@payment_method == method}
                       class={"cursor-pointer flex items-center gap-2 px-4 sm:px-5 py-3 text-sm font-medium transition-colors border-b-2 -mb-px #{if @payment_method == method, do: "border-stone-900 text-stone-900", else: "border-transparent text-stone-400 hover:text-stone-600"}"}
                     >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                      <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
                         <path stroke-linecap="round" stroke-linejoin="round" d={icon_path} />
                       </svg>
                       {label}
@@ -559,10 +650,22 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                       You will receive a payment prompt on your phone. Approve it to complete the purchase.
                     </p>
                     <div class="flex items-start gap-3 pt-1">
-                      <svg class="w-5 h-5 text-amber-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                      <svg
+                        class="w-5 h-5 text-amber-600 mt-0.5 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                        />
                       </svg>
-                      <span class="text-sm text-stone-600">Secured by Paystack. Your phone number will be used to send the payment prompt.</span>
+                      <span class="text-sm text-stone-600">
+                        Secured by Paystack. Your phone number will be used to send the payment prompt.
+                      </span>
                     </div>
                   </div>
 
@@ -572,10 +675,22 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                       You will be securely redirected to Paystack to complete your card payment.
                     </p>
                     <div class="flex items-start gap-3 pt-1">
-                      <svg class="w-5 h-5 text-amber-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                      <svg
+                        class="w-5 h-5 text-amber-600 mt-0.5 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                        />
                       </svg>
-                      <span class="text-sm text-stone-600">Visa, Mastercard, and Verve accepted. Secured by Paystack.</span>
+                      <span class="text-sm text-stone-600">
+                        Visa, Mastercard, and Verve accepted. Secured by Paystack.
+                      </span>
                     </div>
                   </div>
 
@@ -585,10 +700,22 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                       Pay with cash or mobile money when your order is delivered.
                     </p>
                     <div class="flex items-start gap-3 pt-1">
-                      <svg class="w-5 h-5 text-amber-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                      <svg
+                        class="w-5 h-5 text-amber-600 mt-0.5 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+                        />
                       </svg>
-                      <span class="text-sm text-stone-600">Please have the exact amount ready. Our delivery agent will confirm your order on arrival.</span>
+                      <span class="text-sm text-stone-600">
+                        Please have the exact amount ready. Our delivery agent will confirm your order on arrival.
+                      </span>
                     </div>
                   </div>
 
@@ -632,7 +759,10 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
                 <%!-- Place Order Button --%>
                 <div>
-                  <div :if={@checkout_error} class="mb-4 bg-red-50 border border-red-200 rounded-xl p-4">
+                  <div
+                    :if={@checkout_error}
+                    class="mb-4 bg-red-50 border border-red-200 rounded-xl p-4"
+                  >
                     <p class="text-sm text-red-700">{@checkout_error}</p>
                   </div>
 
@@ -644,8 +774,21 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                     <%= if @processing do %>
                       <span class="inline-flex items-center gap-2">
                         <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          <circle
+                            class="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            stroke-width="4"
+                          >
+                          </circle>
+                          <path
+                            class="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          >
+                          </path>
                         </svg>
                         Processing...
                       </span>
@@ -655,7 +798,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                   </button>
 
                   <div class="flex items-center justify-center gap-2 mt-4 text-xs text-stone-400">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <svg
+                      class="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      viewBox="0 0 24 24"
+                    >
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                     </svg>
@@ -671,8 +820,15 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                 <div class="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
                   <%!-- Header --%>
                   <div class="flex items-center justify-between mb-5">
-                    <h2 class="font-[Cormorant,Georgia,serif] text-xl font-semibold text-stone-900">Order Summary</h2>
-                    <a href={"/s/#{@store.slug}/cart"} class="text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors">Edit</a>
+                    <h2 class="font-[Cormorant,Georgia,serif] text-xl font-semibold text-stone-900">
+                      Order Summary
+                    </h2>
+                    <a
+                      href={"/s/#{@store.slug}/cart"}
+                      class="text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors"
+                    >
+                      Edit
+                    </a>
                   </div>
 
                   <%!-- Cart Items --%>
@@ -685,73 +841,150 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                           alt={item.product_title}
                           class="w-full h-full object-cover"
                         />
-                        <div :if={!item[:image_url]} class="w-full h-full flex items-center justify-center">
-                          <svg class="w-6 h-6 text-stone-300" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        <div
+                          :if={!item[:image_url]}
+                          class="w-full h-full flex items-center justify-center"
+                        >
+                          <svg
+                            class="w-6 h-6 text-stone-300"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
                           </svg>
                         </div>
                       </div>
                       <div class="flex-1 min-w-0">
-                        <h3 class="text-sm font-semibold text-stone-900 truncate">{item.product_title}</h3>
-                        <p :if={item[:variant_info]} class="text-xs text-stone-500 mt-0.5">{item[:variant_info]}</p>
+                        <h3 class="text-sm font-semibold text-stone-900 truncate">
+                          {item.product_title}
+                        </h3>
+                        <p :if={item[:variant_info]} class="text-xs text-stone-500 mt-0.5">
+                          {item[:variant_info]}
+                        </p>
                         <p class="text-xs text-stone-500">Qty: {item.quantity}</p>
                       </div>
                       <p class="text-sm font-semibold text-stone-900 flex-shrink-0">
                         {Currency.format_price(item.unit_price * item.quantity, @store.currency)}
                       </p>
                     </div>
-                    <div :if={@cart == []} class="text-sm text-stone-400 py-4 text-center">Your cart is empty</div>
+                    <div :if={@cart == []} class="text-sm text-stone-400 py-4 text-center">
+                      Your cart is empty
+                    </div>
                   </div>
 
                   <%!-- Price Breakdown --%>
                   <div class="border-t border-stone-200 pt-4 space-y-2.5 text-sm">
                     <div class="flex justify-between">
                       <span class="text-stone-500">Subtotal</span>
-                      <span class="font-medium text-stone-900">{Currency.format_price(@cart_total, @store.currency)}</span>
+                      <span class="font-medium text-stone-900">
+                        {Currency.format_price(@cart_total, @store.currency)}
+                      </span>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-stone-500">Shipping</span>
                       <span class={"font-medium #{if @effective_delivery_fee == 0, do: "text-emerald-600", else: "text-stone-900"}"}>
-                        {if @effective_delivery_fee == 0, do: "Free", else: Currency.format_price(@effective_delivery_fee, @store.currency)}
+                        {if @effective_delivery_fee == 0,
+                          do: "Free",
+                          else: Currency.format_price(@effective_delivery_fee, @store.currency)}
                       </span>
                     </div>
                     <div :if={@discount_amount > 0} class="flex justify-between">
                       <div class="flex items-center gap-1.5">
                         <span class="text-stone-500">Promo</span>
                         <span class="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                          <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                          <svg
+                            class="w-3 h-3"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M4.5 12.75l6 6 9-13.5"
+                            />
+                          </svg>
                           {String.upcase(@coupon_code)}
                         </span>
                       </div>
-                      <span class="font-medium text-emerald-600">-{Currency.format_price(@discount_amount, @store.currency)}</span>
+                      <span class="font-medium text-emerald-600">
+                        -{Currency.format_price(@discount_amount, @store.currency)}
+                      </span>
                     </div>
                   </div>
 
                   <%!-- Total --%>
                   <div class="border-t border-stone-200 mt-4 pt-4 flex justify-between items-baseline">
-                    <span class="font-[Cormorant,Georgia,serif] text-lg font-semibold text-stone-900">Total</span>
-                    <span class="font-[Cormorant,Georgia,serif] text-2xl font-bold text-stone-900">{Currency.format_price(@order_total, @store.currency)}</span>
+                    <span class="font-[Cormorant,Georgia,serif] text-lg font-semibold text-stone-900">
+                      Total
+                    </span>
+                    <span class="font-[Cormorant,Georgia,serif] text-2xl font-bold text-stone-900">
+                      {Currency.format_price(@order_total, @store.currency)}
+                    </span>
                   </div>
 
                   <%!-- Trust Badges --%>
                   <div class="grid grid-cols-3 gap-3 mt-6 pt-6 border-t border-stone-100">
                     <div class="flex flex-col items-center gap-1.5 text-center">
-                      <svg class="w-5 h-5 text-stone-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                      <svg
+                        class="w-5 h-5 text-stone-400"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"
+                        />
                       </svg>
-                      <p class="text-xs text-stone-500 leading-tight"><span class="font-semibold text-stone-700 block">Free</span>Returns</p>
+                      <p class="text-xs text-stone-500 leading-tight">
+                        <span class="font-semibold text-stone-700 block">Free</span>Returns
+                      </p>
                     </div>
                     <div class="flex flex-col items-center gap-1.5 text-center">
-                      <svg class="w-5 h-5 text-stone-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                      <svg
+                        class="w-5 h-5 text-stone-400"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                        />
                       </svg>
-                      <p class="text-xs text-stone-500 leading-tight"><span class="font-semibold text-stone-700 block">Secure</span>Payment</p>
+                      <p class="text-xs text-stone-500 leading-tight">
+                        <span class="font-semibold text-stone-700 block">Secure</span>Payment
+                      </p>
                     </div>
                     <div class="flex flex-col items-center gap-1.5 text-center">
-                      <svg class="w-5 h-5 text-stone-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                      <svg
+                        class="w-5 h-5 text-stone-400"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
+                        />
                       </svg>
-                      <p class="text-xs text-stone-500 leading-tight"><span class="font-semibold text-stone-700 block">100%</span>Authentic</p>
+                      <p class="text-xs text-stone-500 leading-tight">
+                        <span class="font-semibold text-stone-700 block">100%</span>Authentic
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -765,11 +998,19 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       <footer class="border-t border-stone-200 bg-white mt-auto">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p class="text-xs text-stone-400">&copy; 2026 {String.upcase(@store.name)}. All rights reserved.</p>
+            <p class="text-xs text-stone-400">
+              &copy; 2026 {String.upcase(@store.name)}. All rights reserved.
+            </p>
             <div class="flex items-center gap-6">
-              <a href="#" class="text-xs text-stone-400 hover:text-stone-600 transition-colors">Privacy Policy</a>
-              <a href="#" class="text-xs text-stone-400 hover:text-stone-600 transition-colors">Terms of Service</a>
-              <a href="#" class="text-xs text-stone-400 hover:text-stone-600 transition-colors">Refund Policy</a>
+              <a href="#" class="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+                Privacy Policy
+              </a>
+              <a href="#" class="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+                Terms of Service
+              </a>
+              <a href="#" class="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+                Refund Policy
+              </a>
             </div>
           </div>
         </div>
@@ -797,17 +1038,35 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     <div class="bg-white border border-stone-200 rounded-2xl p-8">
       <div class="flex justify-center mb-6">
         <div class="relative">
-          <div class="w-20 h-20 rounded-full flex items-center justify-center animate-pulse" style={"background-color: #{@brand_color}20;"}>
-            <div class="w-14 h-14 rounded-full flex items-center justify-center" style={"background-color: #{@brand_color}30;"}>
-              <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke={@brand_color}>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+          <div
+            class="w-20 h-20 rounded-full flex items-center justify-center animate-pulse"
+            style={"background-color: #{@brand_color}20;"}
+          >
+            <div
+              class="w-14 h-14 rounded-full flex items-center justify-center"
+              style={"background-color: #{@brand_color}30;"}
+            >
+              <svg
+                class="w-7 h-7"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke={@brand_color}
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"
+                />
               </svg>
             </div>
           </div>
         </div>
       </div>
 
-      <h3 class="font-[Cormorant,Georgia,serif] text-2xl font-semibold text-stone-900 text-center mb-1">Approve on your phone</h3>
+      <h3 class="font-[Cormorant,Georgia,serif] text-2xl font-semibold text-stone-900 text-center mb-1">
+        Approve on your phone
+      </h3>
       <p class="text-sm text-stone-600 text-center mb-8">
         A {@brand_name} payment prompt has been sent to your phone
       </p>
@@ -815,7 +1074,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       <div class="space-y-4 mb-8">
         <div class="flex items-start gap-3">
           <div class="w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <svg
+              class="w-3.5 h-3.5 text-white"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              viewBox="0 0 24 24"
+            >
               <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
           </div>
@@ -826,7 +1091,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         </div>
         <div class="flex items-start gap-3">
           <div class="w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <svg
+              class="w-3.5 h-3.5 text-white"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              viewBox="0 0 24 24"
+            >
               <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
             </svg>
           </div>
@@ -848,8 +1119,18 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
       <div class="text-center mb-4">
         <div class="inline-flex items-center gap-2 bg-stone-50 rounded-xl px-5 py-2.5">
-          <svg class="w-4 h-4 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          <svg
+            class="w-4 h-4 text-stone-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+            />
           </svg>
           <span class="text-sm font-mono font-semibold text-stone-900">{@timer_display}</span>
         </div>
