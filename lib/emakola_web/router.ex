@@ -55,6 +55,30 @@ defmodule EmakolaWeb.Router do
     live "/register", RegisterLive
   end
 
+  # Customer storefront session controller (sets/clears customer token cookie)
+  scope "/s/:store_slug", EmakolaWeb.Storefront do
+    pipe_through [:browser, :auth_rate_limit]
+    get "/auth/customer-session", CustomerSessionController, :create
+  end
+
+  scope "/s/:store_slug", EmakolaWeb.Storefront do
+    pipe_through :browser
+    delete "/auth/customer-session", CustomerSessionController, :delete
+  end
+
+  # Customer storefront auth pages (login/register — no customer auth required)
+  scope "/s/:store_slug", EmakolaWeb.Storefront do
+    pipe_through [:browser, :auth_rate_limit]
+
+    live_session :storefront_auth,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [{EmakolaWeb.Hooks.ResolveStore, :default}],
+      session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
+      live "/login", CustomerLoginLive
+      live "/register", CustomerRegisterLive
+    end
+  end
+
   # Customer storefront (public — no auth required)
   # In production, store is resolved from subdomain. For now, use store slug in URL.
   scope "/s/:store_slug", EmakolaWeb.Storefront do
@@ -62,7 +86,10 @@ defmodule EmakolaWeb.Router do
 
     live_session :storefront,
       layout: {EmakolaWeb.Layouts, :storefront},
-      on_mount: [{EmakolaWeb.Hooks.ResolveStore, :default}],
+      on_mount: [
+        {EmakolaWeb.Hooks.ResolveStore, :default},
+        {EmakolaWeb.Hooks.ResolveCustomer, :default}
+      ],
       session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
       live "/", StoreLive
       live "/products", ProductListLive
