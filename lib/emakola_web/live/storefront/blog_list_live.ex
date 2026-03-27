@@ -53,22 +53,22 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
     <div class="min-h-screen bg-stone-50">
       <%!-- Hero Header --%>
       <div class="bg-stone-900 text-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
           <div class="lg:flex lg:items-end lg:justify-between lg:gap-16">
-            <div class="max-w-2xl mb-10 lg:mb-0">
-              <p class="text-amber-400 text-sm font-semibold tracking-widest uppercase mb-4">
+            <div class="max-w-2xl mb-8 lg:mb-0">
+              <p class="text-amber-400 text-sm font-semibold tracking-widest uppercase mb-3">
                 {@store.name}
               </p>
-              <h1 class="font-[Cormorant,Georgia,serif] text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-4">
-                Stories, Recipes & Ideas
+              <h1 class="font-[Cormorant,Georgia,serif] text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-3">
+                Stories & Ideas
               </h1>
               <p class="text-stone-400 text-lg leading-relaxed">
-                Discover the flavours, traditions, and stories behind our favourite Ghanaian ingredients and dishes.
+                Discover the stories, tips, and inspiration behind what we do.
               </p>
             </div>
             <div class="lg:w-96 shrink-0">
               <p class="font-[Cormorant,Georgia,serif] text-xl font-semibold text-white mb-3">
-                Never miss a recipe
+                Stay in the loop
               </p>
               <div class="flex gap-2">
                 <input
@@ -88,7 +88,7 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
 
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <%!-- Featured Post (Hero Card) --%>
-        <div :if={@featured} class="mt-8 sm:mt-12 mb-12 sm:mb-16">
+        <div :if={@featured} class="mt-8 sm:mt-10 mb-8 sm:mb-10">
           <a
             href={"/s/#{@store.slug}/blog/#{@featured.slug}"}
             class="cursor-pointer group block bg-white rounded-2xl shadow-xl shadow-stone-900/5 overflow-hidden lg:grid lg:grid-cols-2"
@@ -150,7 +150,7 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
         </div>
 
         <%!-- Section Header --%>
-        <div :if={@rest_posts != []} class="mb-8">
+        <div :if={@rest_posts != []} class="mb-6">
           <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900">
             Latest Posts
           </h2>
@@ -159,7 +159,7 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
         <%!-- Post Grid --%>
         <div
           :if={@rest_posts != []}
-          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-16"
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-10"
         >
           <a
             :for={post <- @rest_posts}
@@ -240,29 +240,8 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
           </a>
         </div>
 
-        <%!-- Newsletter CTA --%>
-        <div class="bg-stone-900 rounded-2xl p-8 sm:p-12 mb-16 text-center">
-          <h3 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-bold text-white mb-3">
-            Never miss a recipe
-          </h3>
-          <p class="text-stone-400 mb-6 max-w-md mx-auto">
-            Get new recipes, cooking tips, and market updates delivered to your inbox every week.
-          </p>
-          <div class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              class="flex-1 bg-stone-800 border border-stone-700 rounded-xl px-4 py-3.5 text-sm text-white placeholder:text-stone-500 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
-            />
-            <button class="cursor-pointer px-6 py-3.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors shrink-0">
-              Subscribe
-            </button>
-          </div>
-          <p class="text-xs text-stone-500 mt-3">No spam. Unsubscribe anytime.</p>
-        </div>
-
         <%!-- Empty State --%>
-        <div :if={@posts == []} class="text-center py-24">
+        <div :if={@posts == []} class="text-center py-16 sm:py-20">
           <svg
             class="w-16 h-16 text-stone-300 mx-auto mb-4"
             fill="none"
