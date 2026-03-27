@@ -113,6 +113,9 @@ defmodule Emakola.Content.Post do
       define_attribute?(false)
       public?(true)
     end
+
+    has_many :media_attachments, Emakola.Content.MediaAttachment
+    has_one :recipe_meta, Emakola.Content.RecipeMeta
   end
 
   identities do

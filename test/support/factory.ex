@@ -437,6 +437,40 @@ defmodule Emakola.Factory do
     |> Ash.create!()
   end
 
+  def create_media!(store, attrs \\ %{}) do
+    attrs = Map.new(attrs)
+
+    default = %{
+      store_id: store.id,
+      type: :image,
+      url: "https://example.com/image-#{System.unique_integer([:positive])}.jpg",
+      filename: "image.jpg",
+      content_type: "image/jpeg"
+    }
+
+    Emakola.Content.MediaAttachment
+    |> Ash.Changeset.for_create(:create, Map.merge(default, attrs))
+    |> Ash.create!()
+  end
+
+  def create_recipe_meta!(post, attrs \\ %{}) do
+    attrs = Map.new(attrs)
+
+    default = %{
+      post_id: post.id,
+      prep_time: 15,
+      cook_time: 30,
+      servings: 4,
+      difficulty: :easy,
+      ingredients: [%{item: "Rice", quantity: "2 cups"}, %{item: "Water", quantity: "4 cups"}],
+      instructions: ["Wash the rice", "Boil water", "Cook for 20 minutes"]
+    }
+
+    Emakola.Content.RecipeMeta
+    |> Ash.Changeset.for_create(:create, Map.merge(default, attrs))
+    |> Ash.create!()
+  end
+
   def create_platform_post!(attrs \\ %{}) do
     attrs = Map.new(attrs)
 
