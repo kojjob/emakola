@@ -137,6 +137,12 @@
         active={@active_nav == :products}
       />
       <.sidebar_link
+        href="/admin/inventory"
+        title="Inventory"
+        icon="inventory"
+        active={@active_nav == :inventory}
+      />
+      <.sidebar_link
         href="/admin/orders"
         title="Orders"
         icon="bag"
