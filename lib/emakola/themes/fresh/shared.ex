@@ -198,10 +198,10 @@ defmodule Emakola.Themes.Fresh.Shared do
         </div>
         <%!-- Weight badge --%>
         <span
-          :if={@product[:weight]}
+          :if={Map.get(@product, :weight)}
           class="absolute top-3 left-3 px-2.5 py-1 bg-white/90 backdrop-blur-sm text-[#92400E] text-xs font-semibold rounded-full"
         >
-          {@product.weight}
+          {Map.get(@product, :weight)}
         </span>
       </div>
       <p
