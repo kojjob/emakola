@@ -24,4 +24,10 @@ defmodule EmakolaWeb.Storefront.CustomerSessionController do
     |> delete_session(:customer_token)
     |> redirect(to: "/s/#{slug}")
   end
+
+  def logout(conn, %{"store_slug" => slug}) do
+    conn
+    |> delete_session(:customer_token)
+    |> redirect(to: "/s/#{slug}")
+  end
 end

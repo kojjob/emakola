@@ -64,6 +64,7 @@ defmodule EmakolaWeb.Router do
   scope "/s/:store_slug", EmakolaWeb.Storefront do
     pipe_through :browser
     delete "/auth/customer-session", CustomerSessionController, :delete
+    get "/auth/customer-logout", CustomerSessionController, :logout
   end
 
   # Customer storefront auth pages (login/register — no customer auth required)
