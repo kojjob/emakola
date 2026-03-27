@@ -95,7 +95,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     test "shows MTN MoMo selected by default", %{conn: conn, store: store} do
       {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
 
-      assert html =~ "MTN Mobile Money"
+      assert html =~ "MTN MoMo"
       assert html =~ "prompt will appear on your phone"
     end
 
