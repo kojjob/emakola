@@ -70,7 +70,7 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
 
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <%!-- Featured Post (Hero Card) --%>
-        <div :if={@featured} class="-mt-12 mb-12 sm:mb-16">
+        <div :if={@featured} class="mt-8 sm:mt-12 mb-12 sm:mb-16">
           <a
             href={"/s/#{@store.slug}/blog/#{@featured.slug}"}
             class="cursor-pointer group block bg-white rounded-2xl shadow-xl shadow-stone-900/5 overflow-hidden lg:grid lg:grid-cols-2"
