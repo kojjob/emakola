@@ -54,6 +54,15 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       colors: %{primary: "#0F172A", accent: "#F59E0B", background: "#F8FAFC"},
       preview_bg: "bg-slate-50",
       preview_accent: "bg-slate-900"
+    },
+    %{
+      id: "fresh",
+      name: "Fresh",
+      description: "Food & grocery",
+      icon: "eco",
+      colors: %{primary: "#059669", accent: "#92400E", background: "#FEFCE8"},
+      preview_bg: "bg-yellow-50",
+      preview_accent: "bg-emerald-600"
     }
   ]
 
