@@ -53,17 +53,35 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
     <div class="min-h-screen bg-stone-50">
       <%!-- Hero Header --%>
       <div class="bg-stone-900 text-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
-          <div class="max-w-2xl">
-            <p class="text-amber-400 text-sm font-semibold tracking-widest uppercase mb-4">
-              {@store.name}
-            </p>
-            <h1 class="font-[Cormorant,Georgia,serif] text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-4">
-              Stories, Recipes & Ideas
-            </h1>
-            <p class="text-stone-400 text-lg leading-relaxed">
-              Discover the flavours, traditions, and stories behind our favourite Ghanaian ingredients and dishes.
-            </p>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+          <div class="lg:flex lg:items-end lg:justify-between lg:gap-16">
+            <div class="max-w-2xl mb-10 lg:mb-0">
+              <p class="text-amber-400 text-sm font-semibold tracking-widest uppercase mb-4">
+                {@store.name}
+              </p>
+              <h1 class="font-[Cormorant,Georgia,serif] text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-4">
+                Stories, Recipes & Ideas
+              </h1>
+              <p class="text-stone-400 text-lg leading-relaxed">
+                Discover the flavours, traditions, and stories behind our favourite Ghanaian ingredients and dishes.
+              </p>
+            </div>
+            <div class="lg:w-96 shrink-0">
+              <p class="font-[Cormorant,Georgia,serif] text-xl font-semibold text-white mb-3">
+                Never miss a recipe
+              </p>
+              <div class="flex gap-2">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  class="flex-1 bg-stone-800 border border-stone-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-stone-500 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+                />
+                <button class="cursor-pointer px-5 py-3 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors shrink-0">
+                  Subscribe
+                </button>
+              </div>
+              <p class="text-xs text-stone-500 mt-2">No spam. Unsubscribe anytime.</p>
+            </div>
           </div>
         </div>
       </div>
