@@ -12,6 +12,7 @@ defmodule Emakola.Themes.ThemeResolver do
   @theme_modules %{
     "atelier" => Emakola.Themes.Atelier,
     "market" => Emakola.Themes.Market,
+    "starter" => Emakola.Themes.Starter,
     "vibrant" => Emakola.Themes.Vibrant
   }
 

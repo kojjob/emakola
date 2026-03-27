@@ -4,7 +4,7 @@ defmodule Emakola.Stores.ThemeConfig do
 
   Theme config structure:
     %{
-      "theme" => "atelier" | "market" | "vibrant",
+      "theme" => "atelier" | "market" | "starter" | "vibrant",
       "colors" => %{
         "primary" => "#hex",
         "secondary" => "#hex",
@@ -25,7 +25,7 @@ defmodule Emakola.Stores.ThemeConfig do
     }
   """
 
-  @valid_themes ~w(atelier market vibrant)
+  @valid_themes ~w(atelier market starter vibrant)
   @hex_color_regex ~r/^#[0-9a-fA-F]{6}$/
   @valid_color_keys ~w(primary secondary accent background text)
   @valid_section_keys ~w(show_featured show_categories show_about)

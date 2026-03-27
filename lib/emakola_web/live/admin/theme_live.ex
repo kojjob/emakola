@@ -36,6 +36,15 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       colors: %{primary: "#DC2626", accent: "#7C2D12", background: "#FFFBEB"},
       preview_bg: "bg-amber-50",
       preview_accent: "bg-red-600"
+    },
+    %{
+      id: "starter",
+      name: "Starter",
+      description: "Clean & modern",
+      icon: "auto_awesome",
+      colors: %{primary: "#6366F1", accent: "#1E293B", background: "#FFFFFF"},
+      preview_bg: "bg-white",
+      preview_accent: "bg-indigo-500"
     }
   ]
 
