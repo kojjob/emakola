@@ -418,4 +418,38 @@ defmodule Emakola.Factory do
     |> Ash.Changeset.for_create(:create, params)
     |> Ash.create!()
   end
+
+  # ── Content (Blog Posts, Pages) ──────────────────────────────────
+
+  def create_post!(store, attrs \\ %{}) do
+    attrs = Map.new(attrs)
+
+    default = %{
+      store_id: store.id,
+      type: :blog_post,
+      title: "Test Post #{System.unique_integer([:positive])}",
+      body: "This is test content for the blog post.",
+      excerpt: "Test excerpt"
+    }
+
+    Emakola.Content.Post
+    |> Ash.Changeset.for_create(:create, Map.merge(default, attrs))
+    |> Ash.create!()
+  end
+
+  def create_platform_post!(attrs \\ %{}) do
+    attrs = Map.new(attrs)
+
+    default = %{
+      store_id: nil,
+      type: :blog_post,
+      title: "Platform Post #{System.unique_integer([:positive])}",
+      body: "Platform blog content.",
+      excerpt: "Platform excerpt"
+    }
+
+    Emakola.Content.Post
+    |> Ash.Changeset.for_create(:create, Map.merge(default, attrs))
+    |> Ash.create!()
+  end
 end
