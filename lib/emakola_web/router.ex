@@ -72,6 +72,10 @@ defmodule EmakolaWeb.Router do
       live "/orders/:order_number/confirmation", OrderConfirmationLive
       live "/category/:category_slug", CategoryLive
       live "/about", AboutLive
+      live "/blog", BlogListLive
+      live "/blog/:post_slug", BlogPostLive
+      live "/recipes", RecipeListLive
+      live "/recipes/:recipe_slug", RecipeLive
       live "/account", AccountLive
       live "/wishlist", WishlistLive
       live "/track/:order_number", TrackingLive
@@ -122,6 +126,12 @@ defmodule EmakolaWeb.Router do
       live "/admin/campaigns", Admin.CampaignLive.Index
       live "/admin/discounts", Admin.DiscountLive.Index
       live "/admin/coupons", Admin.CouponLive
+
+      # Content management
+      live "/admin/content/posts", Admin.Content.PostLive.Index
+      live "/admin/content/posts/new", Admin.Content.PostLive.Form, :new
+      live "/admin/content/posts/:id/edit", Admin.Content.PostLive.Form, :edit
+      live "/admin/content/media", Admin.Content.MediaLive.Index
 
       # Analytics
       live "/admin/reports", Admin.ReportLive.Index
