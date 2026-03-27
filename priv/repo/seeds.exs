@@ -1752,7 +1752,204 @@ Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
   position: 0
 })
 
-IO.puts("    3 blog posts, 2 recipes, 1 page, 4 media attachments created")
+# --- Blog Post 4: Video Blog — Market Day Tour (Published) ---
+blog4 = Seeds.create!(Emakola.Content.Post, :create, %{
+  store_id: store2.id,
+  author_id: merchant2.id,
+  type: :blog_post,
+  title: "A Day at Makola Market: Where We Source Our Ingredients",
+  body: """
+  <p class="text-lg text-stone-600 mb-6">Ever wondered where we get the freshest spices, the ripest plantains, and the best shito ingredients in Accra? Come along on our weekly sourcing trip to Makola Market — the beating heart of Accra's food scene.</p>
+
+  <div class="aspect-video rounded-2xl overflow-hidden my-8">
+    <iframe width="100%" height="100%" src="https://www.youtube.com/embed/kQsEOBCDFqg" title="Walking Through Makola Market, Accra Ghana" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+  </div>
+
+  <h2 class="text-2xl font-semibold text-stone-900 mt-10 mb-4">The 5 AM Wake-Up</h2>
+  <p>Our day starts before dawn. By 5:30 AM, we're already on the road heading to Makola. The early bird gets the freshest produce — and the best prices. By the time the market is in full swing at 8 AM, the best tomatoes and peppers are already spoken for.</p>
+
+  <img src="https://images.unsplash.com/photo-1590005354167-6da97870c757?w=800&q=80" alt="Fresh tomatoes and peppers at an African market stall" class="w-full rounded-2xl my-8" />
+
+  <h2 class="text-2xl font-semibold text-stone-900 mt-10 mb-4">Meeting Our Suppliers</h2>
+  <p>We've built relationships with the same market women for years. Auntie Akosua has the best scotch bonnet peppers — she grows them herself in Aburi. Maame Esi's dawadawa is fermented the traditional way, with no shortcuts. These relationships are what make our products special.</p>
+
+  <div class="grid grid-cols-2 gap-4 my-8">
+    <img src="https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=500&q=80" alt="Colourful spices in market bowls" class="rounded-xl w-full h-48 object-cover" />
+    <img src="https://images.unsplash.com/photo-1606914469633-bd39206ea739?w=500&q=80" alt="Fresh vegetables at market" class="rounded-xl w-full h-48 object-cover" />
+  </div>
+
+  <h2 class="text-2xl font-semibold text-stone-900 mt-10 mb-4">Watch: Full Market Tour</h2>
+  <p>We filmed this full walkthrough so you can experience the sights, sounds, and energy of Makola from wherever you are:</p>
+
+  <div class="aspect-video rounded-2xl overflow-hidden my-8">
+    <iframe width="100%" height="100%" src="https://www.youtube.com/embed/QWveXdj6oZU" title="Accra Ghana Market Walk" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+  </div>
+
+  <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 my-8">
+    <p class="font-semibold text-amber-900 mb-2">Want to visit Makola yourself?</p>
+    <p class="text-amber-800">Go early (before 8 AM), wear comfortable shoes, and bring cash in small denominations. The market women appreciate when you greet them in Twi — try "Maakye!" (Good morning!)</p>
+  </div>
+
+  <p class="mt-6">Every product in our store starts with a trip like this. When you order from Accra Fresh Market, you're getting ingredients chosen by hand, not from a warehouse.</p>
+  """,
+  excerpt: "Join us on our weekly trip to Makola Market. Watch videos of how we source the freshest spices, produce, and ingredients for our store.",
+  featured_image_url: "https://images.unsplash.com/photo-1590005354167-6da97870c757?w=1200&q=80",
+  tags: ["market", "behind-the-scenes", "video", "accra"],
+  seo_title: "Inside Makola Market: How We Source Our Ingredients | Video Tour",
+  seo_description: "Watch our video tour of Makola Market in Accra. See how we hand-pick the freshest spices, peppers, and ingredients for Accra Fresh Market."
+})
+
+Seeds.update!(blog4, :publish, %{})
+
+Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
+  store_id: store2.id,
+  post_id: blog4.id,
+  type: :video,
+  url: "https://www.youtube.com/watch?v=kQsEOBCDFqg",
+  filename: "makola-market-tour.mp4",
+  alt_text: "Walking through Makola Market in Accra",
+  caption: "Our weekly sourcing trip to Makola Market",
+  content_type: "video/mp4",
+  position: 0
+})
+
+Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
+  store_id: store2.id,
+  post_id: blog4.id,
+  type: :video,
+  url: "https://www.youtube.com/watch?v=QWveXdj6oZU",
+  filename: "accra-market-walk.mp4",
+  alt_text: "Full walkthrough of Accra market",
+  caption: "Full market tour video",
+  content_type: "video/mp4",
+  position: 1
+})
+
+Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
+  store_id: store2.id,
+  post_id: blog4.id,
+  type: :image,
+  url: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=800&q=80",
+  filename: "market-spices.jpg",
+  alt_text: "Colourful spices in market bowls",
+  content_type: "image/jpeg",
+  file_size: 145_000,
+  position: 2
+})
+
+# --- Blog Post 5: Audio Blog — Podcast / Story (Published) ---
+blog5 = Seeds.create!(Emakola.Content.Post, :create, %{
+  store_id: store2.id,
+  author_id: merchant2.id,
+  type: :blog_post,
+  title: "Listen: The Story of Ghanaian Chocolate — From Bean to Bar",
+  body: """
+  <p class="text-lg text-stone-600 mb-6">Ghana is the world's second-largest cocoa producer, but most Ghanaians have never tasted craft chocolate made from their own beans. In this audio feature, we explore the journey of Ghanaian cocoa — from the farms of Ashanti to artisan chocolate bars.</p>
+
+  <div class="bg-stone-900 rounded-2xl p-6 sm:p-8 my-8">
+    <div class="flex items-center gap-4 mb-4">
+      <div class="w-14 h-14 rounded-2xl bg-amber-600 flex items-center justify-center shrink-0">
+        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+        </svg>
+      </div>
+      <div>
+        <p class="text-white font-semibold text-lg">The Accra Fresh Podcast</p>
+        <p class="text-stone-400 text-sm">Episode 1 — 18 minutes</p>
+      </div>
+    </div>
+    <audio controls class="w-full rounded-lg" preload="metadata">
+      <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg" />
+      Your browser does not support the audio element.
+    </audio>
+    <p class="text-stone-500 text-xs mt-3">Sample audio for demonstration. Full episode coming soon.</p>
+  </div>
+
+  <h2 class="text-2xl font-semibold text-stone-900 mt-10 mb-4">Key Takeaways</h2>
+
+  <div class="space-y-4 my-6">
+    <div class="flex gap-4 p-4 bg-stone-50 rounded-xl">
+      <span class="text-amber-600 font-bold text-lg mt-0.5 shrink-0">01</span>
+      <div>
+        <p class="font-semibold text-stone-900">Ghana produces 800,000+ tonnes of cocoa yearly</p>
+        <p class="text-sm text-stone-600 mt-1">Yet less than 5% is processed locally into chocolate. Most is exported as raw beans.</p>
+      </div>
+    </div>
+    <div class="flex gap-4 p-4 bg-stone-50 rounded-xl">
+      <span class="text-amber-600 font-bold text-lg mt-0.5 shrink-0">02</span>
+      <div>
+        <p class="font-semibold text-stone-900">The "bean to bar" movement is growing</p>
+        <p class="text-sm text-stone-600 mt-1">Artisan chocolate makers like '57 Chocolate and Midunu are changing the narrative, producing world-class chocolate right here in Accra.</p>
+      </div>
+    </div>
+    <div class="flex gap-4 p-4 bg-stone-50 rounded-xl">
+      <span class="text-amber-600 font-bold text-lg mt-0.5 shrink-0">03</span>
+      <div>
+        <p class="font-semibold text-stone-900">Cocoa farmers deserve better</p>
+        <p class="text-sm text-stone-600 mt-1">Fair trade and direct sourcing puts more money in farmers' hands. When you buy local chocolate, you support the entire supply chain.</p>
+      </div>
+    </div>
+  </div>
+
+  <img src="https://images.unsplash.com/photo-1606312619070-d48b4c652a52?w=800&q=80" alt="Cocoa pods on a tree in Ghana" class="w-full rounded-2xl my-8" />
+
+  <h2 class="text-2xl font-semibold text-stone-900 mt-10 mb-4">Watch: Inside a Cocoa Farm</h2>
+  <div class="aspect-video rounded-2xl overflow-hidden my-8">
+    <iframe width="100%" height="100%" src="https://www.youtube.com/embed/3QeIBVrOSNY" title="Ghana Cocoa Farm Tour" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+  </div>
+
+  <div class="bg-stone-900 rounded-2xl p-6 my-8 text-center">
+    <p class="text-stone-400 text-sm mb-2">Enjoyed this episode?</p>
+    <p class="text-white font-semibold">Subscribe to The Accra Fresh Podcast for more stories about Ghanaian food, farmers, and culture.</p>
+  </div>
+  """,
+  excerpt: "Listen to our audio feature on Ghanaian chocolate. From cocoa farms in Ashanti to artisan chocolate bars in Accra — the full bean-to-bar journey.",
+  featured_image_url: "https://images.unsplash.com/photo-1606312619070-d48b4c652a52?w=1200&q=80",
+  tags: ["podcast", "audio", "chocolate", "cocoa", "ghana"],
+  seo_title: "The Story of Ghanaian Chocolate — Podcast | Accra Fresh",
+  seo_description: "Listen to our podcast episode on Ghana's cocoa journey. From farm to artisan chocolate bar. Audio feature + video tour of a cocoa farm."
+})
+
+Seeds.update!(blog5, :publish, %{})
+
+Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
+  store_id: store2.id,
+  post_id: blog5.id,
+  type: :audio,
+  url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+  filename: "ghanaian-chocolate-podcast-ep1.mp3",
+  alt_text: "The Accra Fresh Podcast Episode 1: Ghanaian Chocolate",
+  caption: "Episode 1 — The Story of Ghanaian Chocolate (18 min)",
+  content_type: "audio/mpeg",
+  file_size: 4_500_000,
+  position: 0
+})
+
+Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
+  store_id: store2.id,
+  post_id: blog5.id,
+  type: :video,
+  url: "https://www.youtube.com/watch?v=3QeIBVrOSNY",
+  filename: "cocoa-farm-tour.mp4",
+  alt_text: "Tour of a cocoa farm in Ghana",
+  caption: "Inside a cocoa farm in Ashanti Region",
+  content_type: "video/mp4",
+  position: 1
+})
+
+Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
+  store_id: store2.id,
+  post_id: blog5.id,
+  type: :image,
+  url: "https://images.unsplash.com/photo-1606312619070-d48b4c652a52?w=1200&q=80",
+  filename: "cocoa-pods.jpg",
+  alt_text: "Cocoa pods growing on a tree in Ghana",
+  content_type: "image/jpeg",
+  file_size: 198_000,
+  position: 2
+})
+
+IO.puts("    5 blog posts, 2 recipes, 1 page, 10 media attachments created")
 
 # =============================================================================
 # DONE
@@ -1767,7 +1964,7 @@ IO.puts("    adjoa@accrafresh.com   / Password123!  (Accra Fresh Market)")
 IO.puts("")
 IO.puts("  Kente Kingdom: 6 products (5 active, 1 draft), 5 customers, 5 orders")
 IO.puts("  Accra Fresh:   6 products (6 active), 3 customers, 3 orders")
-IO.puts("  Content:       3 blog posts, 2 recipes, 1 about page (all published)")
+IO.puts("  Content:       5 blog posts (incl. video + audio), 2 recipes, 1 about page")
 IO.puts("  Plans: Free, Starter, Growth, Enterprise")
 IO.puts("  Feature flags: #{length(feature_flags)} configured")
 IO.puts("")
