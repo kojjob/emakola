@@ -25,6 +25,6 @@ defmodule EmakolaWeb.Storefront.BlogListLiveTest do
 
   test "shows empty state when no posts", %{conn: conn, store: store} do
     {:ok, _view, html} = live(conn, "/s/#{store.slug}/blog")
-    assert html =~ "No posts yet"
+    assert html =~ "Coming soon"
   end
 end
