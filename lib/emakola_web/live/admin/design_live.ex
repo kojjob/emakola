@@ -584,15 +584,13 @@ defmodule EmakolaWeb.Admin.DesignLive do
   slot :inner_block, required: true
 
   defp option_tile(assigns) do
-    assigns =
-      assign(assigns, :is_selected, to_string(assigns.selected) == to_string(assigns.value))
+    is_selected = to_string(assigns.selected) == to_string(assigns.value)
+    assigns = assign(assigns, :is_selected, is_selected)
 
     ~H"""
     <button
       type="button"
-      phx-click="update_token"
-      phx-value-token={@token}
-      phx-value-value={@value}
+      phx-click={Phoenix.LiveView.JS.push("update_token", value: %{token: @token, value: @value})}
       class={[
         "cursor-pointer p-2.5 rounded-xl border-2 transition-all w-full",
         if(@is_selected,
@@ -638,15 +636,13 @@ defmodule EmakolaWeb.Admin.DesignLive do
   slot :inner_block, required: true
 
   defp option_row(assigns) do
-    assigns =
-      assign(assigns, :is_selected, to_string(assigns.selected) == to_string(assigns.value))
+    is_selected = to_string(assigns.selected) == to_string(assigns.value)
+    assigns = assign(assigns, :is_selected, is_selected)
 
     ~H"""
     <button
       type="button"
-      phx-click="update_token"
-      phx-value-token={@token}
-      phx-value-value={@value}
+      phx-click={Phoenix.LiveView.JS.push("update_token", value: %{token: @token, value: @value})}
       class={[
         "cursor-pointer flex items-center gap-3 w-full p-3 rounded-xl border-2 transition-all text-left",
         if(@is_selected,
