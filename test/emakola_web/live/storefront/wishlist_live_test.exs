@@ -21,7 +21,7 @@ defmodule EmakolaWeb.Storefront.WishlistLiveTest do
       {:ok, _view, html} = live(conn, "/s/#{store.slug}/wishlist")
 
       assert html =~ "Your wishlist is empty"
-      assert html =~ "Start Shopping"
+      assert html =~ "Browse Products"
     end
 
     test "shows product grid when items exist", %{conn: conn, store: store} do
