@@ -83,6 +83,12 @@ defmodule Emakola.Orders.Coupon do
       public?(true)
     end
 
+    attribute :is_public, :boolean do
+      default(false)
+      allow_nil?(false)
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -121,7 +127,8 @@ defmodule Emakola.Orders.Coupon do
         :max_uses,
         :starts_at,
         :expires_at,
-        :active
+        :active,
+        :is_public
       ])
 
       change(fn changeset, _context ->
@@ -157,7 +164,8 @@ defmodule Emakola.Orders.Coupon do
         :max_uses,
         :starts_at,
         :expires_at,
-        :active
+        :active,
+        :is_public
       ])
     end
 
@@ -174,6 +182,19 @@ defmodule Emakola.Orders.Coupon do
       argument(:store_id, :uuid, allow_nil?: false)
       filter(expr(store_id == ^arg(:store_id)))
       prepare(build(sort: [inserted_at: :desc]))
+    end
+
+    read :list_active_public do
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and active == true and is_public == true and
+            (is_nil(expires_at) or expires_at > now()) and
+            (is_nil(starts_at) or starts_at <= now()) and
+            (is_nil(max_uses) or uses_count < max_uses)
+        )
+      )
     end
 
     read :find_by_code do

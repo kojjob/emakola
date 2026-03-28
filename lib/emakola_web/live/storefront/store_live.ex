@@ -13,6 +13,8 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.StoreResolver
 
+  import EmakolaWeb.StorefrontComponents, only: [coupon_banner: 1]
+
   require Ash.Query
 
   @impl true
@@ -21,6 +23,7 @@ defmodule EmakolaWeb.Storefront.StoreLive do
       {:ok, store} ->
         products = load_featured_products(store)
         categories = load_root_categories(store)
+        public_coupons = load_public_coupons(store)
         cart_session_id = session["cart_session_id"]
         cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
 
@@ -32,6 +35,7 @@ defmodule EmakolaWeb.Storefront.StoreLive do
          |> assign(:store, store)
          |> assign(:products, products)
          |> assign(:categories, categories)
+         |> assign(:public_coupons, public_coupons)
          |> assign(:cart_session_id, cart_session_id)
          |> assign(:cart_count, cart_count)
          |> assign(:page_title, store.name)
@@ -49,6 +53,17 @@ defmodule EmakolaWeb.Storefront.StoreLive do
 
   @impl true
   def render(assigns) do
+    ~H"""
+    <div>
+      <div :if={@public_coupons != []} class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-2">
+        <.coupon_banner coupons={@public_coupons} store={@store} />
+      </div>
+      {render_theme_home(assigns)}
+    </div>
+    """
+  end
+
+  defp render_theme_home(assigns) do
     assigns.theme_module.render_home(assigns)
   end
 
@@ -62,5 +77,12 @@ defmodule EmakolaWeb.Storefront.StoreLive do
 
   defp load_root_categories(store) do
     Emakola.Catalog.list_root_categories!(store.id)
+  end
+
+  defp load_public_coupons(store) do
+    case Emakola.Orders.list_active_public_coupons(store.id) do
+      {:ok, coupons} -> coupons
+      _ -> []
+    end
   end
 end
