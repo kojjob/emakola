@@ -7,13 +7,42 @@
   <% end %>
 <% end %>
 
-<%!-- Theme CSS variables injection --%>
+<%!-- Theme CSS variables + design tokens injection --%>
 <%= if assigns[:theme] do %>
+  <% tokens = Map.get(@theme, :design_tokens, %{})
+  heading_font = Emakola.Themes.DesignTokens.heading_font_family(tokens[:heading_font] || "sans")
+  body_font = Emakola.Themes.DesignTokens.body_font_family(tokens[:body_font] || "sans")
+  heading_url = Emakola.Themes.DesignTokens.heading_font_url(tokens[:heading_font] || "sans")
+  body_url = Emakola.Themes.DesignTokens.body_font_url(tokens[:body_font] || "sans")
+  btn = Emakola.Themes.DesignTokens.button_classes(tokens[:button_style] || "rounded") %>
+  <%= if heading_url do %>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+    <link rel="stylesheet" href={heading_url} />
+  <% end %>
+  <%= if body_url && body_url != heading_url do %>
+    <link rel="stylesheet" href={body_url} />
+  <% end %>
   <style>
     :root {
       --theme-primary: <%= @theme.colors[:primary] || "#2563EB" %>;
       --theme-accent: <%= @theme.colors[:accent] || "#0F172A" %>;
       --theme-bg: <%= @theme.colors[:background] || "#FFFFFF" %>;
+      --dt-heading-font: <%= heading_font %>;
+      --dt-body-font: <%= body_font %>;
+      --dt-btn-radius: <%= case tokens[:button_style] do "pill" -> "9999px"; "square" -> "0px"; _ -> "0.5rem" end %>;
+    }
+    /* Design tokens — applied globally to all storefront pages */
+    h1, h2, h3, h4, h5, h6 { font-family: var(--dt-heading-font) !important; }
+    p, span, a, li, td, th, label, input, textarea, select, div {
+      font-family: var(--dt-body-font);
+    }
+    /* All button-like elements get the merchant's chosen border-radius */
+    button, [type="submit"], .btn, a[class*="rounded"], a[class*="bg-"] {
+      border-radius: var(--dt-btn-radius) !important;
+    }
+    input, textarea, select {
+      border-radius: var(--dt-btn-radius);
     }
   </style>
 <% end %>
