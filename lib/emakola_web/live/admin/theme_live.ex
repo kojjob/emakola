@@ -446,23 +446,26 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               Upload Hero Images
             </label>
             <form id="hero-upload-form" phx-change="validate_upload" phx-submit="save_hero_image">
-              <div class="space-y-3">
-                <div>
-                  <p class="text-sm font-medium text-slate-700 mb-2">Upload Hero Images</p>
-                  <.live_file_input
-                    upload={@uploads.hero_images}
-                    style="display: block; padding: 10px; font-size: 14px; cursor: pointer; border: 1px solid #cbd5e1; border-radius: 8px; width: 100%; background: white;"
-                  />
-                  <p class="text-[11px] text-slate-400 mt-1">
-                    JPG, PNG, WebP up to 5MB each (max 5)
-                  </p>
-                </div>
-                <div
-                  class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center text-slate-400 text-sm"
-                  phx-drop-target={@uploads.hero_images.ref}
-                >
-                  Or drag and drop images here
-                </div>
+              <div
+                class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-emerald-400 transition-colors cursor-pointer"
+                phx-drop-target={@uploads.hero_images.ref}
+              >
+                <.live_file_input upload={@uploads.hero_images} class="sr-only" />
+                <span class="material-symbols-outlined text-3xl text-slate-400">
+                  add_photo_alternate
+                </span>
+                <p class="text-sm text-slate-500 mt-2">
+                  Drag images here or
+                  <label
+                    for={@uploads.hero_images.ref}
+                    class="text-emerald-600 font-medium cursor-pointer hover:underline"
+                  >
+                    browse
+                  </label>
+                </p>
+                <p class="text-[11px] text-slate-400 mt-1">
+                  JPG, PNG, WebP up to 5MB each (max 5 images)
+                </p>
               </div>
 
               <%!-- Upload previews --%>
@@ -540,16 +543,15 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               <span class="material-symbols-outlined text-sm align-middle mr-1">link</span>
               Or paste an image URL
             </label>
-            <form id="hero-url-form" phx-change="update_hero_image" phx-submit="update_hero_image">
-              <input
-                type="url"
-                value={@hero_image}
-                phx-debounce="500"
-                name="hero_image"
-                placeholder="https://images.unsplash.com/..."
-                class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              />
-            </form>
+            <input
+              type="url"
+              value={@hero_image}
+              phx-change="update_hero_image"
+              phx-debounce="500"
+              name="hero_image"
+              placeholder="https://images.unsplash.com/..."
+              class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
             <p class="text-[11px] text-slate-400 mt-1">
               Paste a link to your banner image (used when no uploaded images)
             </p>
@@ -561,16 +563,15 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               <span class="material-symbols-outlined text-sm align-middle mr-1">title</span>
               Hero Title
             </label>
-            <form id="hero-title-form" phx-change="update_hero_title" phx-submit="update_hero_title">
-              <input
-                type="text"
-                value={@hero_title}
-                phx-debounce="300"
-                name="hero_title"
-                placeholder="The New Essential"
-                class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              />
-            </form>
+            <input
+              type="text"
+              value={@hero_title}
+              phx-change="update_hero_title"
+              phx-debounce="300"
+              name="hero_title"
+              placeholder="The New Essential"
+              class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
           </div>
         </div>
       </div>
