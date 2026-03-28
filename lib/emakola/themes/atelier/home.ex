@@ -358,50 +358,15 @@ defmodule Emakola.Themes.Atelier.Home do
 
   defp trust_section(assigns) do
     ~H"""
-    <section
-      id="trust-section"
-      class="relative py-20 sm:py-28 bg-[#FAFAF9] overflow-hidden"
-      phx-hook="ScrollReveal"
-    >
-      <%!-- Soft ambient orbs --%>
-      <div class="absolute top-10 right-[10%] w-[500px] h-[500px] rounded-full bg-[#B45309]/[0.03] blur-[120px] animate-[drift_20s_ease-in-out_infinite]">
-      </div>
-      <div class="absolute bottom-10 left-[5%] w-[400px] h-[400px] rounded-full bg-[#B45309]/[0.02] blur-[100px] animate-[drift_25s_ease-in-out_infinite_reverse]">
-      </div>
-
-      <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <%!-- Header --%>
-        <div class="text-center mb-16 sm:mb-20 reveal-up">
-          <div class="inline-flex items-center gap-2 bg-[#B45309]/8 border border-[#B45309]/15 rounded-full px-4 py-1.5 mb-6 animate-[shimmer-light_3s_ease-in-out_infinite]">
-            <svg
-              class="w-3.5 h-3.5 text-[#B45309] animate-[pulse-glow_2s_ease-in-out_infinite]"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-            <span class="text-xs font-semibold tracking-wider uppercase text-[#B45309]">
-              Trusted Payments
-            </span>
-          </div>
-          <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-[#1C1917] tracking-tight mb-4">
-            Every purchase, protected.
-          </h2>
-          <p class="text-[#78716C] text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
-            Bank-level security meets the payment methods you already use every day.
-          </p>
-        </div>
-
-        <%!-- Feature Grid --%>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 mb-16">
-          <%!-- Card 1: Security --%>
-          <div class="bg-white rounded-2xl p-8 sm:p-10 border border-[#E7E5E4] group relative overflow-hidden reveal-up reveal-delay-1 cursor-default hover:shadow-xl hover:shadow-[#B45309]/[0.06] hover:-translate-y-1 transition-all duration-500">
-            <%!-- Top accent line --%>
-            <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#B45309]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-            </div>
-            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#B45309]/10 to-[#B45309]/5 border border-[#B45309]/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:from-[#B45309]/15 group-hover:border-[#B45309]/30 transition-all duration-300">
+    <section id="trust-section" class="py-14 sm:py-20 bg-[#FAFAF9]" phx-hook="ScrollReveal">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <%!-- 3 big icons, 1-word labels — visual first --%>
+        <div class="grid grid-cols-3 gap-4 sm:gap-8 mb-12 sm:mb-16 reveal-up">
+          <%!-- Safe --%>
+          <div class="flex flex-col items-center text-center group cursor-default">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#059669]/10 flex items-center justify-center mb-3 group-hover:bg-[#059669]/15 group-hover:scale-110 transition-all duration-300">
               <svg
-                class="w-7 h-7 text-[#B45309] group-hover:scale-105 transition-transform duration-300"
+                class="w-8 h-8 sm:w-10 sm:h-10 text-[#059669]"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -414,21 +379,15 @@ defmodule Emakola.Themes.Atelier.Home do
                 />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-[#1C1917] mb-2">
-              End-to-end encrypted
-            </h3>
-            <p class="text-sm text-[#78716C] leading-relaxed">
-              256-bit SSL encryption on every transaction. Payment details never touch our servers.
-            </p>
+            <span class="text-sm sm:text-base font-semibold text-[#1C1917]">Safe</span>
+            <span class="text-[11px] sm:text-xs text-[#A8A29E] mt-0.5">Secure checkout</span>
           </div>
 
-          <%!-- Card 2: Speed --%>
-          <div class="bg-white rounded-2xl p-8 sm:p-10 border border-[#E7E5E4] group relative overflow-hidden reveal-up reveal-delay-2 cursor-default hover:shadow-xl hover:shadow-[#B45309]/[0.06] hover:-translate-y-1 transition-all duration-500">
-            <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#B45309]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-            </div>
-            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#B45309]/10 to-[#B45309]/5 border border-[#B45309]/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:from-[#B45309]/15 group-hover:border-[#B45309]/30 transition-all duration-300">
+          <%!-- Fast --%>
+          <div class="flex flex-col items-center text-center group cursor-default">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#B45309]/10 flex items-center justify-center mb-3 group-hover:bg-[#B45309]/15 group-hover:scale-110 transition-all duration-300">
               <svg
-                class="w-7 h-7 text-[#B45309] group-hover:scale-105 transition-transform duration-300"
+                class="w-8 h-8 sm:w-10 sm:h-10 text-[#B45309]"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -441,21 +400,15 @@ defmodule Emakola.Themes.Atelier.Home do
                 />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-[#1C1917] mb-2">
-              Confirmed in seconds
-            </h3>
-            <p class="text-sm text-[#78716C] leading-relaxed">
-              Real-time payment verification. Instant order confirmation via SMS and WhatsApp.
-            </p>
+            <span class="text-sm sm:text-base font-semibold text-[#1C1917]">Fast</span>
+            <span class="text-[11px] sm:text-xs text-[#A8A29E] mt-0.5">Instant confirmation</span>
           </div>
 
-          <%!-- Card 3: Mobile Money --%>
-          <div class="bg-white rounded-2xl p-8 sm:p-10 border border-[#E7E5E4] group relative overflow-hidden reveal-up reveal-delay-3 cursor-default hover:shadow-xl hover:shadow-[#B45309]/[0.06] hover:-translate-y-1 transition-all duration-500">
-            <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#B45309]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-            </div>
-            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#B45309]/10 to-[#B45309]/5 border border-[#B45309]/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:from-[#B45309]/15 group-hover:border-[#B45309]/30 transition-all duration-300">
+          <%!-- Easy --%>
+          <div class="flex flex-col items-center text-center group cursor-default">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#7C3AED]/10 flex items-center justify-center mb-3 group-hover:bg-[#7C3AED]/15 group-hover:scale-110 transition-all duration-300">
               <svg
-                class="w-7 h-7 text-[#B45309] group-hover:scale-105 transition-transform duration-300"
+                class="w-8 h-8 sm:w-10 sm:h-10 text-[#7C3AED]"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -468,78 +421,52 @@ defmodule Emakola.Themes.Atelier.Home do
                 />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-[#1C1917] mb-2">
-              Pay your way
-            </h3>
-            <p class="text-sm text-[#78716C] leading-relaxed">
-              MTN MoMo, Telecel Cash, Visa, or Mastercard. The payment methods Ghanaians trust most.
-            </p>
+            <span class="text-sm sm:text-base font-semibold text-[#1C1917]">Easy</span>
+            <span class="text-[11px] sm:text-xs text-[#A8A29E] mt-0.5">Pay with your phone</span>
           </div>
         </div>
 
-        <%!-- Payment Methods Visual --%>
-        <div class="flex flex-col items-center reveal-up reveal-delay-4">
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#A8A29E] mb-5">
-            Accepted Payments
+        <%!-- Divider --%>
+        <div class="border-t border-[#E7E5E4] mb-10 sm:mb-14 reveal-up reveal-delay-1"></div>
+
+        <%!-- Payment methods — big colorful pills --%>
+        <div class="reveal-up reveal-delay-2">
+          <p class="text-center text-xs font-semibold uppercase tracking-[0.2em] text-[#A8A29E] mb-6">
+            We Accept
           </p>
-          <div class="flex items-center gap-3 sm:gap-4">
-            <div class="flex items-center gap-2 bg-white border border-[#E7E5E4] rounded-xl px-4 py-2.5 shadow-sm hover:border-[#FBBF24]/50 hover:shadow-md hover:shadow-[#FBBF24]/10 transition-all duration-300 cursor-default">
-              <div class="w-2 h-2 rounded-full bg-[#FBBF24] animate-[pulse-dot_2s_ease-in-out_infinite]">
-              </div>
-              <span class="text-xs font-semibold text-[#44403C]">MTN MoMo</span>
+          <div class="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
+            <div class="flex items-center gap-2.5 bg-[#FBBF24]/10 border border-[#FBBF24]/25 rounded-full px-5 py-3 hover:bg-[#FBBF24]/15 hover:border-[#FBBF24]/40 hover:scale-105 transition-all duration-300 cursor-default">
+              <div class="w-3 h-3 rounded-full bg-[#FBBF24]"></div>
+              <span class="text-sm font-bold text-[#92400E]">MTN MoMo</span>
             </div>
-            <div class="flex items-center gap-2 bg-white border border-[#E7E5E4] rounded-xl px-4 py-2.5 shadow-sm hover:border-[#EF4444]/50 hover:shadow-md hover:shadow-[#EF4444]/10 transition-all duration-300 cursor-default">
-              <div class="w-2 h-2 rounded-full bg-[#EF4444] animate-[pulse-dot_2s_ease-in-out_infinite_0.3s]">
-              </div>
-              <span class="text-xs font-semibold text-[#44403C]">Telecel Cash</span>
+            <div class="flex items-center gap-2.5 bg-[#EF4444]/8 border border-[#EF4444]/20 rounded-full px-5 py-3 hover:bg-[#EF4444]/12 hover:border-[#EF4444]/35 hover:scale-105 transition-all duration-300 cursor-default">
+              <div class="w-3 h-3 rounded-full bg-[#EF4444]"></div>
+              <span class="text-sm font-bold text-[#991B1B]">Telecel Cash</span>
             </div>
-            <div class="flex items-center gap-2 bg-white border border-[#E7E5E4] rounded-xl px-4 py-2.5 shadow-sm hover:border-[#3B82F6]/50 hover:shadow-md hover:shadow-[#3B82F6]/10 transition-all duration-300 cursor-default">
-              <div class="w-2 h-2 rounded-full bg-[#3B82F6] animate-[pulse-dot_2s_ease-in-out_infinite_0.6s]">
-              </div>
-              <span class="text-xs font-semibold text-[#44403C]">Visa</span>
+            <div class="flex items-center gap-2.5 bg-[#3B82F6]/8 border border-[#3B82F6]/20 rounded-full px-5 py-3 hover:bg-[#3B82F6]/12 hover:border-[#3B82F6]/35 hover:scale-105 transition-all duration-300 cursor-default">
+              <div class="w-3 h-3 rounded-full bg-[#3B82F6]"></div>
+              <span class="text-sm font-bold text-[#1E40AF]">Visa</span>
             </div>
-            <div class="hidden sm:flex items-center gap-2 bg-white border border-[#E7E5E4] rounded-xl px-4 py-2.5 shadow-sm hover:border-[#F97316]/50 hover:shadow-md hover:shadow-[#F97316]/10 transition-all duration-300 cursor-default">
-              <div class="w-2 h-2 rounded-full bg-[#F97316] animate-[pulse-dot_2s_ease-in-out_infinite_0.9s]">
-              </div>
-              <span class="text-xs font-semibold text-[#44403C]">Mastercard</span>
+            <div class="flex items-center gap-2.5 bg-[#F97316]/8 border border-[#F97316]/20 rounded-full px-5 py-3 hover:bg-[#F97316]/12 hover:border-[#F97316]/35 hover:scale-105 transition-all duration-300 cursor-default">
+              <div class="w-3 h-3 rounded-full bg-[#F97316]"></div>
+              <span class="text-sm font-bold text-[#9A3412]">Mastercard</span>
             </div>
           </div>
         </div>
       </div>
 
       <style>
-        @keyframes drift {
-          0%, 100% { transform: translate(0, 0); }
-          25% { transform: translate(30px, -20px); }
-          50% { transform: translate(-20px, 15px); }
-          75% { transform: translate(15px, 25px); }
-        }
-        @keyframes pulse-glow {
-          0%, 100% { opacity: 1; filter: drop-shadow(0 0 0 transparent); }
-          50% { opacity: 0.7; filter: drop-shadow(0 0 6px rgba(180,83,9,0.4)); }
-        }
-        @keyframes pulse-dot {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(0.75); }
-        }
-        @keyframes shimmer-light {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(180,83,9,0); }
-          50% { box-shadow: 0 0 16px 3px rgba(180,83,9,0.08); }
-        }
-
         .reveal-up {
           opacity: 0;
-          transform: translateY(30px);
-          transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+          transform: translateY(24px);
+          transition: opacity 0.6s ease-out, transform 0.6s ease-out;
         }
         .reveal-up.revealed {
           opacity: 1;
           transform: translateY(0);
         }
-        .reveal-delay-1 { transition-delay: 0.1s; }
-        .reveal-delay-2 { transition-delay: 0.2s; }
-        .reveal-delay-3 { transition-delay: 0.3s; }
-        .reveal-delay-4 { transition-delay: 0.4s; }
+        .reveal-delay-1 { transition-delay: 0.15s; }
+        .reveal-delay-2 { transition-delay: 0.3s; }
       </style>
     </section>
     """
