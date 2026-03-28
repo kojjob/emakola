@@ -82,39 +82,48 @@ defmodule Emakola.Themes.Atelier.Home do
   attr :store, :map, required: true
   attr :theme, :map, required: true
 
-  @default_hero_image "https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=1600&h=900&fit=crop&q=80"
-
   defp hero_section(assigns) do
     hero_images = get_in(assigns.theme, [:hero, :images]) || []
     hero_image = get_in(assigns.theme, [:hero, :image_url])
     hero_carousel = get_in(assigns.theme, [:hero, :carousel]) || false
 
-    effective_images =
+    # Only use images that are actual uploads (not stock photos / unsplash URLs)
+    valid_images =
       case hero_images do
-        [_ | _] -> hero_images
-        _ when hero_image not in [nil, ""] -> [hero_image]
-        _ -> [@default_hero_image]
+        [_ | _] ->
+          Enum.filter(hero_images, &valid_hero_image?/1)
+
+        _ when hero_image not in [nil, ""] ->
+          if valid_hero_image?(hero_image), do: [hero_image], else: []
+
+        _ ->
+          []
       end
 
-    use_carousel = hero_carousel && length(effective_images) > 1
-    image_count = length(effective_images)
-    total_duration = image_count * 7
+    has_images = valid_images != []
 
-    hero_subtitle = get_in(assigns.theme, [:hero, :subtitle]) || "The 2024 Collection"
+    use_carousel = has_images && hero_carousel && length(valid_images) > 1
+    image_count = if has_images, do: length(valid_images), else: 0
+    total_duration = max(image_count, 1) * 7
+
+    store_name = Map.get(assigns.store, :name, "Our Store")
+
+    hero_subtitle = get_in(assigns.theme, [:hero, :subtitle]) || "Welcome to #{store_name}"
     hero_title = get_in(assigns.theme, [:hero, :title]) || "Crafting Trust,\nCurating Excellence."
 
     hero_description =
       get_in(assigns.theme, [:hero, :description]) ||
         "Experience the soul of West African craftsmanship. Every piece tells a story of heritage, precision, and modern elegance."
 
-    cta_text = get_in(assigns.theme, [:hero, :cta_text]) || "Explore Masterpieces"
+    cta_text = get_in(assigns.theme, [:hero, :cta_text]) || "Shop Now"
 
     cta_secondary_text =
-      get_in(assigns.theme, [:hero, :cta_secondary_text]) || "Meet the Artisans"
+      get_in(assigns.theme, [:hero, :cta_secondary_text]) || "Our Story"
 
     assigns =
       assigns
-      |> assign(:effective_images, effective_images)
+      |> assign(:valid_images, valid_images)
+      |> assign(:has_images, has_images)
       |> assign(:use_carousel, use_carousel)
       |> assign(:image_count, image_count)
       |> assign(:total_duration, total_duration)
@@ -126,66 +135,75 @@ defmodule Emakola.Themes.Atelier.Home do
 
     ~H"""
     <section class="relative min-h-screen flex items-end overflow-hidden -mt-16 sm:-mt-20">
-      <%!-- Image container: clip-path prevents Ken Burns zoom from overflowing --%>
+      <%!-- Background: images with Ken Burns, or solid gradient fallback --%>
       <div class="absolute inset-0 overflow-hidden" style="clip-path: inset(0);">
-        <%!-- Carousel — smooth crossfade with subtle Ken Burns zoom --%>
-        <%= if @use_carousel do %>
-          <% # Each slide owns (100 / N)% of the timeline.
-          # Fade overlap = 4% so there is NEVER a blank frame.
-          pct = Float.round(100.0 / @image_count, 2)
-          overlap = 4.0 %>
-          <style>
-            @keyframes atelier-slide {
-              0%                                 { opacity: 0; transform: scale(1); }
-              <%= overlap %>%                    { opacity: 1; transform: scale(1.005); }
-              <%= Float.round(pct - overlap, 1) %>% { opacity: 1; transform: scale(1.04); }
-              <%= pct %>%                        { opacity: 0; transform: scale(1.04); }
-              100%                               { opacity: 0; transform: scale(1); }
-            }
-            .atelier-hero-img {
-              will-change: opacity, transform;
-              animation: atelier-slide <%= @total_duration %>s ease-in-out infinite;
-            }
-            @keyframes atelier-progress {
-              0%   { transform: scaleX(0); transform-origin: left; }
-              92%  { transform: scaleX(1); transform-origin: left; }
-              100% { transform: scaleX(1); transform-origin: left; }
-            }
-          </style>
-          <%!--
-          Stagger each image by (total / N) seconds, but start the NEXT
-          image's fade-in slightly BEFORE the current one fades out.
-          This creates the overlap that prevents blank frames.
-        --%>
-          <img
-            :for={{url, idx} <- Enum.with_index(@effective_images)}
-            src={url}
-            alt={"#{@store.name} collection #{idx + 1}"}
-            class="atelier-hero-img absolute inset-0 w-full h-full object-cover object-center"
-            style={"animation-delay: #{Float.round(idx * @total_duration / @image_count - (if idx > 0, do: @total_duration * overlap / 100, else: 0), 1)}s; opacity: #{if idx == 0, do: 1, else: 0};"}
-          />
-        <% else %>
-          <%!-- Single image: gentle Ken Burns drift --%>
-          <img
-            src={List.first(@effective_images)}
-            alt={"#{@store.name} collection"}
-            class="absolute inset-0 w-full h-full object-cover object-center"
-            style="animation: kb-single 20s ease-in-out infinite alternate;"
-          />
-          <style>
-            @keyframes kb-single {
-              0%   { transform: scale(1)    translate(0, 0); }
-              100% { transform: scale(1.06) translate(-1%, -0.5%); }
-            }
-          </style>
-        <% end %>
+        <%= if @has_images do %>
+          <%!-- Carousel — smooth crossfade with subtle Ken Burns zoom --%>
+          <%= if @use_carousel do %>
+            <% # Each slide owns (100 / N)% of the timeline.
+            # Fade overlap = 4% so there is NEVER a blank frame.
+            pct = Float.round(100.0 / @image_count, 2)
+            overlap = 4.0 %>
+            <style>
+              @keyframes atelier-slide {
+                0%                                 { opacity: 0; transform: scale(1); }
+                <%= overlap %>%                    { opacity: 1; transform: scale(1.005); }
+                <%= Float.round(pct - overlap, 1) %>% { opacity: 1; transform: scale(1.04); }
+                <%= pct %>%                        { opacity: 0; transform: scale(1.04); }
+                100%                               { opacity: 0; transform: scale(1); }
+              }
+              .atelier-hero-img {
+                will-change: opacity, transform;
+                animation: atelier-slide <%= @total_duration %>s ease-in-out infinite;
+              }
+              @keyframes atelier-progress {
+                0%   { transform: scaleX(0); transform-origin: left; }
+                92%  { transform: scaleX(1); transform-origin: left; }
+                100% { transform: scaleX(1); transform-origin: left; }
+              }
+            </style>
+            <img
+              :for={{url, idx} <- Enum.with_index(@valid_images)}
+              src={url}
+              alt={"#{@store.name} collection #{idx + 1}"}
+              class="atelier-hero-img absolute inset-0 w-full h-full object-cover object-center"
+              style={"animation-delay: #{Float.round(idx * @total_duration / @image_count - (if idx > 0, do: @total_duration * overlap / 100, else: 0), 1)}s; opacity: #{if idx == 0, do: 1, else: 0};"}
+            />
+          <% else %>
+            <%!-- Single image: gentle Ken Burns drift --%>
+            <img
+              src={List.first(@valid_images)}
+              alt={"#{@store.name} collection"}
+              class="absolute inset-0 w-full h-full object-cover object-center"
+              style="animation: kb-single 20s ease-in-out infinite alternate;"
+            />
+            <style>
+              @keyframes kb-single {
+                0%   { transform: scale(1)    translate(0, 0); }
+                100% { transform: scale(1.06) translate(-1%, -0.5%); }
+              }
+            </style>
+          <% end %>
 
-        <%!-- Scrim: two-layer overlay guarantees text contrast on ANY image (dark or light) --%>
-        <div class="absolute inset-0 bg-black/30"></div>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent">
-        </div>
+          <%!-- Scrim: two-layer overlay guarantees text contrast on ANY image --%>
+          <div class="absolute inset-0 bg-black/30"></div>
+          <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent">
+          </div>
+        <% else %>
+          <%!-- Gradient fallback when no valid hero images exist --%>
+          <div
+            class="absolute inset-0"
+            style="background: linear-gradient(135deg, #1C1917 0%, #292524 40%, #44403C 70%, #B45309 100%);"
+          >
+          </div>
+          <%!-- Subtle pattern overlay for visual texture --%>
+          <div
+            class="absolute inset-0 opacity-10"
+            style="background-image: radial-gradient(circle at 25% 25%, white 1px, transparent 1px), radial-gradient(circle at 75% 75%, white 1px, transparent 1px); background-size: 60px 60px;"
+          >
+          </div>
+        <% end %>
       </div>
-      <%!-- /Image container --%>
 
       <%!-- Content --%>
       <div
@@ -276,8 +294,12 @@ defmodule Emakola.Themes.Atelier.Home do
     ~H"""
     <section class="py-12 sm:py-16">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <%!-- Section heading --%>
+        <h2 class="text-2xl sm:text-3xl font-black text-gray-900 text-center mb-8 sm:mb-10">
+          Shop by Category
+        </h2>
         <%!-- Horizontal scrolling category circles --%>
-        <div class="flex gap-6 sm:gap-8 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:justify-center sm:flex-wrap">
+        <div class="flex gap-8 sm:gap-10 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:justify-center sm:flex-wrap">
           <Shared.category_circle
             :for={category <- @categories}
             category={category}
@@ -543,13 +565,13 @@ defmodule Emakola.Themes.Atelier.Home do
     newsletter_config = get_in(assigns.theme, [:newsletter]) || %{}
 
     nl_heading =
-      Map.get(newsletter_config, :heading, "Join the Artisan Circle.")
+      Map.get(newsletter_config, :heading, "Stay Updated.")
 
     nl_description =
       Map.get(
         newsletter_config,
         :description,
-        "Be the first to discover new artisan collections, exclusive offers, and stories from the makers."
+        "Be the first to discover new collections, exclusive offers, and updates from our store."
       )
 
     nl_button_text =
@@ -615,4 +637,14 @@ defmodule Emakola.Themes.Atelier.Home do
       _ -> true
     end
   end
+
+  # Returns true only for local upload paths (not stock photo URLs)
+  defp valid_hero_image?(nil), do: false
+  defp valid_hero_image?(""), do: false
+
+  defp valid_hero_image?(url) when is_binary(url) do
+    String.starts_with?(url, "/uploads/") || String.starts_with?(url, "/images/")
+  end
+
+  defp valid_hero_image?(_), do: false
 end
