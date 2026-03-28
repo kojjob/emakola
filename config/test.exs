@@ -71,3 +71,6 @@ config :emakola, Emakola.Payments.PaystackClient,
 # Notification providers: use Mox mocks in tests
 config :emakola, :sms_provider, Emakola.SMSProviderMock
 config :emakola, :whatsapp_provider, Emakola.WhatsAppProviderMock
+
+# Disable rate limiting in tests
+config :emakola, env: :test
