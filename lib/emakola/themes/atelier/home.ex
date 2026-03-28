@@ -15,6 +15,7 @@ defmodule Emakola.Themes.Atelier.Home do
   import Phoenix.HTML, only: [raw: 1]
 
   alias Emakola.Themes.Atelier.Shared
+  alias EmakolaWeb.Helpers.Currency
 
   @doc """
   Renders the full Atelier home page.
@@ -295,57 +296,187 @@ defmodule Emakola.Themes.Atelier.Home do
   attr :products, :list, required: true
 
   defp products_section(assigns) do
-    hero_product = List.first(assigns.products)
-    smaller_products = assigns.products |> Enum.drop(1) |> Enum.take(2)
+    # Take first product as hero, rest as grid (max 4)
+    hero = List.first(assigns.products)
+    grid_products = assigns.products |> Enum.drop(1) |> Enum.take(4)
 
     assigns =
       assigns
-      |> assign(:hero_product, hero_product)
-      |> assign(:smaller_products, smaller_products)
+      |> assign(:hero, hero)
+      |> assign(:grid_products, grid_products)
 
     ~H"""
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
       <%!-- Section Header --%>
-      <div class="flex items-center justify-between mb-8 sm:mb-12">
-        <h2 class="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900">
-          Featured Masterpieces
-        </h2>
+      <div class="flex items-center justify-between mb-8 sm:mb-10">
+        <div>
+          <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-[#1C1917]">
+            Featured Masterpieces
+          </h2>
+          <p class="text-sm text-[#A8A29E] mt-1 hidden sm:block">Handpicked by our artisans</p>
+        </div>
         <a
           href={"/s/#{@store.slug}/products"}
-          class="text-sm font-semibold transition-colors hover:opacity-80"
+          class="group inline-flex items-center gap-1.5 text-sm font-semibold transition-colors hover:opacity-80"
           style="color: var(--theme-primary);"
         >
-          View all &rarr;
+          View all
+          <svg
+            class="w-4 h-4 transition-transform group-hover:translate-x-0.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+            />
+          </svg>
         </a>
       </div>
 
-      <%!-- Grid: Hero card on left, 2 smaller on right --%>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <%!-- Hero Product Card --%>
-        <div :if={@hero_product}>
-          <Shared.hero_product_card product={@hero_product} store={@store} />
+      <%!-- Bento Grid: Hero left + 2x2 cards right --%>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+        <%!-- Hero Product — left half --%>
+        <div :if={@hero}>
+          <a
+            href={"/s/#{@store.slug}/products/#{@hero.slug}"}
+            class="group block relative overflow-hidden rounded-2xl bg-[#F5F5F4] h-full min-h-[320px] sm:min-h-[480px] cursor-pointer"
+          >
+            <img
+              :if={first_product_image(@hero)}
+              src={first_product_image(@hero)}
+              alt={@hero.title}
+              loading="lazy"
+              class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+            <div
+              :if={!first_product_image(@hero)}
+              class="w-full h-full flex items-center justify-center"
+            >
+              <svg
+                class="w-16 h-16 text-[#D6D3D1]"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z"
+                />
+              </svg>
+            </div>
+            <%!-- Gradient + content --%>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent">
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 p-5 sm:p-8">
+              <h3 class="font-serif text-xl sm:text-2xl font-semibold text-white mb-1.5">
+                {@hero.title}
+              </h3>
+              <div class="flex items-center gap-3">
+                <span class="text-white/90 text-base sm:text-lg font-bold tabular-nums">
+                  {Currency.format_price(@hero.min_price || 0, @store.currency)}
+                </span>
+                <span
+                  :if={@hero.max_price && @hero.max_price != @hero.min_price}
+                  class="text-white/50 text-sm line-through tabular-nums"
+                >
+                  {Currency.format_price(@hero.max_price, @store.currency)}
+                </span>
+              </div>
+              <div class="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 text-white text-xs font-semibold uppercase tracking-wider group-hover:bg-white/25 transition-colors">
+                Shop Now
+                <svg
+                  class="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </div>
+            </div>
+          </a>
         </div>
 
-        <%!-- Two smaller cards stacked --%>
-        <div class="grid grid-cols-2 gap-4 sm:gap-6">
-          <Shared.product_card
-            :for={product <- @smaller_products}
-            product={product}
-            store={@store}
-          />
+        <%!-- Right half: 2x2 grid of smaller cards --%>
+        <div class="grid grid-cols-2 gap-3 sm:gap-4">
+          <div :for={product <- @grid_products}>
+            <a
+              href={"/s/#{@store.slug}/products/#{product.slug}"}
+              class="group block cursor-pointer"
+            >
+              <div class="relative overflow-hidden rounded-xl bg-[#F5F5F4] aspect-[4/5] mb-3">
+                <img
+                  :if={first_product_image(product)}
+                  src={first_product_image(product)}
+                  alt={product.title}
+                  loading="lazy"
+                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div
+                  :if={!first_product_image(product)}
+                  class="w-full h-full flex items-center justify-center"
+                >
+                  <svg
+                    class="w-8 h-8 text-[#D6D3D1]"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z"
+                    />
+                  </svg>
+                </div>
+                <%!-- Quick add button --%>
+                <div class="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                  <button
+                    class="w-full py-2.5 text-[11px] font-semibold uppercase tracking-wider rounded-lg text-white cursor-pointer transition-colors min-h-[40px]"
+                    style="background: var(--theme-primary);"
+                    phx-click="add_to_cart"
+                    phx-value-product-id={product.id}
+                  >
+                    Add to Cart
+                  </button>
+                </div>
+                <%!-- Sale badge --%>
+                <div
+                  :if={product.max_price && product.max_price > (product.min_price || 0)}
+                  class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#DC2626] text-white text-[10px] font-bold uppercase tracking-wider"
+                >
+                  Sale
+                </div>
+              </div>
+              <h3 class="text-sm font-medium text-[#1C1917] leading-snug mb-1 line-clamp-1 group-hover:text-[#B45309] transition-colors">
+                {product.title}
+              </h3>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-bold tabular-nums" style="color: var(--theme-primary);">
+                  {Currency.format_price(product.min_price || 0, @store.currency)}
+                </span>
+                <span
+                  :if={product.max_price && product.max_price > (product.min_price || 0)}
+                  class="text-xs text-[#A8A29E] line-through tabular-nums"
+                >
+                  {Currency.format_price(product.max_price, @store.currency)}
+                </span>
+              </div>
+            </a>
+          </div>
         </div>
-      </div>
-
-      <%!-- Extra products row --%>
-      <div
-        :if={length(@products) > 3}
-        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mt-8"
-      >
-        <Shared.product_card
-          :for={product <- Enum.drop(@products, 3) |> Enum.take(4)}
-          product={product}
-          store={@store}
-        />
       </div>
     </section>
     """
@@ -552,5 +683,9 @@ defmodule Emakola.Themes.Atelier.Home do
       false -> false
       _ -> true
     end
+  end
+
+  defp first_product_image(product) do
+    Shared.first_image(product)
   end
 end
