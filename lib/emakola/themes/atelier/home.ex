@@ -87,9 +87,9 @@ defmodule Emakola.Themes.Atelier.Home do
   @default_hero_image "https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=1600&h=900&fit=crop&q=80"
 
   defp hero_section(assigns) do
-    hero_images = get_in(assigns.theme, [:hero, :images]) || []
-    hero_image = get_in(assigns.theme, [:hero, :image_url])
-    hero_carousel = get_in(assigns.theme, [:hero, :carousel]) || false
+    hero_images = get_in(assigns[:theme] || %{}, [:hero, :images]) || []
+    hero_image = get_in(assigns[:theme] || %{}, [:hero, :image_url])
+    hero_carousel = get_in(assigns[:theme] || %{}, [:hero, :carousel]) || false
 
     effective_images =
       case hero_images do
@@ -102,19 +102,21 @@ defmodule Emakola.Themes.Atelier.Home do
     image_count = length(effective_images)
     total_duration = image_count * 7
 
-    hero_subtitle = get_in(assigns.theme, [:hero, :subtitle]) || "The 2024 Collection"
-    hero_title = get_in(assigns.theme, [:hero, :title]) || "Crafting Trust,\nCurating Excellence."
+    hero_subtitle = get_in(assigns[:theme] || %{}, [:hero, :subtitle]) || "The 2024 Collection"
+
+    hero_title =
+      get_in(assigns[:theme] || %{}, [:hero, :title]) || "Crafting Trust,\nCurating Excellence."
 
     hero_description =
-      get_in(assigns.theme, [:hero, :description]) ||
+      get_in(assigns[:theme] || %{}, [:hero, :description]) ||
         "Experience the soul of West African craftsmanship. Every piece tells a story of heritage, precision, and modern elegance."
 
-    cta_text = get_in(assigns.theme, [:hero, :cta_text]) || "Explore Masterpieces"
+    cta_text = get_in(assigns[:theme] || %{}, [:hero, :cta_text]) || "Explore Masterpieces"
 
     cta_secondary_text =
-      get_in(assigns.theme, [:hero, :cta_secondary_text]) || "Meet the Artisans"
+      get_in(assigns[:theme] || %{}, [:hero, :cta_secondary_text]) || "Meet the Artisans"
 
-    tokens = Map.get(assigns.theme, :design_tokens, %{})
+    tokens = Map.get(assigns[:theme] || %{}, :design_tokens, %{})
     hero_layout = DesignTokens.hero_layout(tokens[:hero_layout])
     heading_font = DesignTokens.heading_font_family(tokens[:heading_font])
     heading_size = DesignTokens.heading_size(tokens[:typography_scale])
@@ -441,7 +443,7 @@ defmodule Emakola.Themes.Atelier.Home do
     hero = List.first(assigns.products)
     grid_products = assigns.products |> Enum.drop(1) |> Enum.take(4)
 
-    tokens = Map.get(assigns.theme || %{}, :design_tokens, %{})
+    tokens = Map.get(assigns[:theme] || %{}, :design_tokens, %{})
     heading_font = DesignTokens.heading_font_family(tokens[:heading_font])
     heading_size = DesignTokens.heading_size(tokens[:typography_scale])
     grid_classes = DesignTokens.grid_classes(tokens[:product_grid_columns])
@@ -763,7 +765,7 @@ defmodule Emakola.Themes.Atelier.Home do
   attr :theme, :map, required: true
 
   defp newsletter_section(assigns) do
-    newsletter_config = get_in(assigns.theme, [:newsletter]) || %{}
+    newsletter_config = get_in(assigns[:theme] || %{}, [:newsletter]) || %{}
 
     nl_heading =
       Map.get(newsletter_config, :heading, "Join the Artisan Circle.")
@@ -784,7 +786,7 @@ defmodule Emakola.Themes.Atelier.Home do
     nl_disclaimer =
       Map.get(newsletter_config, :disclaimer, "No spam. Unsubscribe anytime.")
 
-    tokens = Map.get(assigns.theme, :design_tokens, %{})
+    tokens = Map.get(assigns[:theme] || %{}, :design_tokens, %{})
     heading_font = DesignTokens.heading_font_family(tokens[:heading_font])
     heading_size = DesignTokens.heading_size(tokens[:typography_scale])
     btn_classes = DesignTokens.button_classes(tokens[:button_style])

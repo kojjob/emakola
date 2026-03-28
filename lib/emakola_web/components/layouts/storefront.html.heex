@@ -8,13 +8,17 @@
 <% end %>
 
 <%!-- Theme CSS variables + design tokens injection --%>
-<%= if assigns[:theme] do %>
-  <% tokens = Map.get(@theme, :design_tokens, %{})
+<% theme =
+  assigns[:theme] ||
+    if assigns[:store],
+      do: Emakola.Themes.ThemeResolver.resolve(assigns[:store].theme_config || %{}),
+      else: nil %>
+<%= if theme do %>
+  <% tokens = Map.get(theme, :design_tokens, %{})
   heading_font = Emakola.Themes.DesignTokens.heading_font_family(tokens[:heading_font] || "sans")
   body_font = Emakola.Themes.DesignTokens.body_font_family(tokens[:body_font] || "sans")
   heading_url = Emakola.Themes.DesignTokens.heading_font_url(tokens[:heading_font] || "sans")
-  body_url = Emakola.Themes.DesignTokens.body_font_url(tokens[:body_font] || "sans")
-  _btn = Emakola.Themes.DesignTokens.button_classes(tokens[:button_style] || "rounded") %>
+  body_url = Emakola.Themes.DesignTokens.body_font_url(tokens[:body_font] || "sans") %>
   <%= if heading_url do %>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
@@ -25,9 +29,9 @@
   <% end %>
   <style>
     :root {
-      --theme-primary: <%= @theme.colors[:primary] || "#2563EB" %>;
-      --theme-accent: <%= @theme.colors[:accent] || "#0F172A" %>;
-      --theme-bg: <%= @theme.colors[:background] || "#FFFFFF" %>;
+      --theme-primary: <%= theme.colors[:primary] || "#2563EB" %>;
+      --theme-accent: <%= theme.colors[:accent] || "#0F172A" %>;
+      --theme-bg: <%= theme.colors[:background] || "#FFFFFF" %>;
       --dt-heading-font: <%= heading_font %>;
       --dt-body-font: <%= body_font %>;
       --dt-btn-radius: <%= case tokens[:button_style] do "pill" -> "9999px"; "square" -> "0px"; _ -> "0.5rem" end %>;
