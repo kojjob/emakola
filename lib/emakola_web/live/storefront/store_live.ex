@@ -41,7 +41,11 @@ defmodule EmakolaWeb.Storefront.StoreLive do
          |> assign(:page_title, store.name)
          |> assign(:theme, theme)
          |> assign(:theme_module, theme_module)
-         |> assign(:theme_fonts, theme_module.fonts())}
+         |> assign(:theme_fonts, theme_module.fonts())
+         |> assign(:search_overlay_query, "")
+         |> assign(:search_overlay_results, [])
+         |> assign(:search_overlay_total, 0)
+         |> assign(:searching, false)}
 
       {:error, :not_found} ->
         {:ok,
@@ -49,6 +53,39 @@ defmodule EmakolaWeb.Storefront.StoreLive do
          |> put_flash(:error, "Store not found")
          |> redirect(to: "/")}
     end
+  end
+
+  @impl true
+  def handle_event("search_overlay", %{"value" => query}, socket) do
+    query = String.trim(query)
+
+    if query == "" do
+      {:noreply,
+       socket
+       |> assign(:search_overlay_query, "")
+       |> assign(:search_overlay_results, [])
+       |> assign(:search_overlay_total, 0)
+       |> assign(:searching, false)}
+    else
+      results = search_overlay_products(socket.assigns.store.id, query)
+
+      {:noreply,
+       socket
+       |> assign(:search_overlay_query, query)
+       |> assign(:search_overlay_results, Enum.take(results, 6))
+       |> assign(:search_overlay_total, length(results))
+       |> assign(:searching, false)}
+    end
+  end
+
+  @impl true
+  def handle_event("close_search", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:search_overlay_query, "")
+     |> assign(:search_overlay_results, [])
+     |> assign(:search_overlay_total, 0)
+     |> assign(:searching, false)}
   end
 
   @impl true
@@ -84,5 +121,11 @@ defmodule EmakolaWeb.Storefront.StoreLive do
       {:ok, coupons} -> coupons
       _ -> []
     end
+  end
+
+  defp search_overlay_products(store_id, query) do
+    Emakola.Catalog.search_products!(query, store_id)
+    |> Enum.filter(&(&1.status == :active))
+    |> Ash.load!([:min_price, :max_price, :images])
   end
 end

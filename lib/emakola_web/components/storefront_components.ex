@@ -13,6 +13,7 @@ defmodule EmakolaWeb.StorefrontComponents do
   use Phoenix.Component
 
   alias EmakolaWeb.Helpers.Currency
+  alias EmakolaWeb.SearchComponents
 
   # ── Navigation ──
 
@@ -46,8 +47,9 @@ defmodule EmakolaWeb.StorefrontComponents do
           </a>
 
           <div class="flex items-center gap-1">
-            <a
-              href={"/s/#{@store.slug}/products"}
+            <button
+              type="button"
+              phx-click={SearchComponents.show_search()}
               class="p-2.5 rounded-xl hover:bg-[#F1F5F9] transition-colors"
               aria-label="Search products"
             >
@@ -64,7 +66,7 @@ defmodule EmakolaWeb.StorefrontComponents do
                   d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
                 />
               </svg>
-            </a>
+            </button>
             <a
               href={"/s/#{@store.slug}/wishlist"}
               class="p-2.5 rounded-xl hover:bg-[#F1F5F9] transition-colors"
