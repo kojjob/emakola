@@ -62,18 +62,27 @@ defmodule Emakola.Themes.ThemeResolver do
   # Converts string keys to atoms in the process.
   defp deep_merge_atomize(defaults, overrides) when is_map(defaults) and is_map(overrides) do
     Enum.reduce(overrides, defaults, fn {key, value}, acc ->
-      atom_key = safe_to_atom(key)
+      case safe_to_atom(key) do
+        {:ok, atom_key} ->
+          if Map.has_key?(acc, atom_key) do
+            Map.put(acc, atom_key, value)
+          else
+            acc
+          end
 
-      if Map.has_key?(acc, atom_key) do
-        Map.put(acc, atom_key, value)
-      else
-        acc
+        :error ->
+          acc
       end
     end)
   end
 
   defp deep_merge_atomize(defaults, _), do: defaults
 
-  defp safe_to_atom(key) when is_atom(key), do: key
-  defp safe_to_atom(key) when is_binary(key), do: String.to_existing_atom(key)
+  defp safe_to_atom(key) when is_atom(key), do: {:ok, key}
+
+  defp safe_to_atom(key) when is_binary(key) do
+    {:ok, String.to_existing_atom(key)}
+  rescue
+    ArgumentError -> :error
+  end
 end
