@@ -117,7 +117,6 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               brand_story: Map.get(resolved.sections, :brand_story, true),
               newsletter: Map.get(resolved.sections, :newsletter, true)
             },
-            design_tokens: resolved.design_tokens,
             saving: false,
             saved: false
           )
@@ -629,373 +628,28 @@ defmodule EmakolaWeb.Admin.ThemeLive do
         </div>
       </div>
 
-      <%!-- STEP 5: Design Tokens — Visual component style customization --%>
-      <div>
-        <div class="flex items-center gap-2 mb-4">
-          <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-            <span class="text-sm font-bold text-emerald-700">5</span>
-          </div>
-          <div>
-            <h2 class="text-lg font-bold text-slate-800">Design Style</h2>
-            <p class="text-xs text-slate-400">Customize how components look across your store</p>
-          </div>
-        </div>
-
-        <%!-- BUTTONS --%>
-        <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
-          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Buttons</p>
-          <div class="grid grid-cols-3 gap-3">
-            <.token_card
-              token="button_style"
-              value="rounded"
-              selected={@design_tokens.button_style}
-              label="Rounded"
-            >
-              <div class="bg-slate-900 text-white text-[10px] font-semibold px-5 py-2 rounded-lg">
-                Add to Cart
-              </div>
-            </.token_card>
-            <.token_card
-              token="button_style"
-              value="square"
-              selected={@design_tokens.button_style}
-              label="Square"
-            >
-              <div class="bg-slate-900 text-white text-[10px] font-semibold px-5 py-2 rounded-none">
-                Add to Cart
-              </div>
-            </.token_card>
-            <.token_card
-              token="button_style"
-              value="pill"
-              selected={@design_tokens.button_style}
-              label="Pill"
-            >
-              <div class="bg-slate-900 text-white text-[10px] font-semibold px-5 py-2 rounded-full">
-                Add to Cart
-              </div>
-            </.token_card>
-          </div>
-        </div>
-
-        <%!-- CARDS --%>
-        <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
-          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-            Product Cards
-          </p>
-          <div class="grid grid-cols-3 gap-3">
-            <.token_card
-              token="card_style"
-              value="minimal"
-              selected={@design_tokens.card_style}
-              label="Clean"
-            >
-              <div class="w-full bg-white p-2">
-                <div class="w-full h-8 bg-slate-100 rounded mb-1.5"></div>
-                <div class="h-1.5 bg-slate-200 rounded w-3/4 mb-1"></div>
-                <div class="h-1.5 bg-slate-100 rounded w-1/2"></div>
-              </div>
-            </.token_card>
-            <.token_card
-              token="card_style"
-              value="shadow"
-              selected={@design_tokens.card_style}
-              label="Shadow"
-            >
-              <div class="w-full bg-white shadow-md rounded-lg p-2">
-                <div class="w-full h-8 bg-slate-100 rounded mb-1.5"></div>
-                <div class="h-1.5 bg-slate-200 rounded w-3/4 mb-1"></div>
-                <div class="h-1.5 bg-slate-100 rounded w-1/2"></div>
-              </div>
-            </.token_card>
-            <.token_card
-              token="card_style"
-              value="bordered"
-              selected={@design_tokens.card_style}
-              label="Bordered"
-            >
-              <div class="w-full bg-white border border-slate-200 rounded-lg p-2">
-                <div class="w-full h-8 bg-slate-100 rounded mb-1.5"></div>
-                <div class="h-1.5 bg-slate-200 rounded w-3/4 mb-1"></div>
-                <div class="h-1.5 bg-slate-100 rounded w-1/2"></div>
-              </div>
-            </.token_card>
-          </div>
-        </div>
-
-        <%!-- GRID COLUMNS --%>
-        <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
-          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-            Product Grid
-          </p>
-          <div class="grid grid-cols-3 gap-3">
-            <.token_card
-              token="product_grid_columns"
-              value="2"
-              selected={to_string(@design_tokens.product_grid_columns)}
-              label="2 Columns"
-            >
-              <div class="grid grid-cols-2 gap-1 w-full">
-                <div class="h-10 bg-slate-100 rounded"></div>
-                <div class="h-10 bg-slate-100 rounded"></div>
-                <div class="h-10 bg-slate-100 rounded"></div>
-                <div class="h-10 bg-slate-100 rounded"></div>
-              </div>
-            </.token_card>
-            <.token_card
-              token="product_grid_columns"
-              value="3"
-              selected={to_string(@design_tokens.product_grid_columns)}
-              label="3 Columns"
-            >
-              <div class="grid grid-cols-3 gap-1 w-full">
-                <div class="h-8 bg-slate-100 rounded"></div>
-                <div class="h-8 bg-slate-100 rounded"></div>
-                <div class="h-8 bg-slate-100 rounded"></div>
-                <div class="h-8 bg-slate-100 rounded"></div>
-                <div class="h-8 bg-slate-100 rounded"></div>
-                <div class="h-8 bg-slate-100 rounded"></div>
-              </div>
-            </.token_card>
-            <.token_card
-              token="product_grid_columns"
-              value="4"
-              selected={to_string(@design_tokens.product_grid_columns)}
-              label="4 Columns"
-            >
-              <div class="grid grid-cols-4 gap-0.5 w-full">
-                <div class="h-6 bg-slate-100 rounded"></div>
-                <div class="h-6 bg-slate-100 rounded"></div>
-                <div class="h-6 bg-slate-100 rounded"></div>
-                <div class="h-6 bg-slate-100 rounded"></div>
-                <div class="h-6 bg-slate-100 rounded"></div>
-                <div class="h-6 bg-slate-100 rounded"></div>
-                <div class="h-6 bg-slate-100 rounded"></div>
-                <div class="h-6 bg-slate-100 rounded"></div>
-              </div>
-            </.token_card>
-          </div>
-        </div>
-
-        <%!-- TYPOGRAPHY --%>
-        <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
-          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-            Typography
-          </p>
-          <div class="grid grid-cols-2 gap-3 mb-4">
-            <div>
-              <p class="text-[11px] text-slate-400 mb-2">Heading Font</p>
-              <div class="space-y-2">
-                <.token_card
-                  token="heading_font"
-                  value="sans"
-                  selected={@design_tokens.heading_font}
-                  label="Sans Serif"
-                  layout="horizontal"
-                >
-                  <span class="text-base font-bold text-slate-800">Heading</span>
-                </.token_card>
-                <.token_card
-                  token="heading_font"
-                  value="serif"
-                  selected={@design_tokens.heading_font}
-                  label="Serif"
-                  layout="horizontal"
-                >
-                  <span
-                    class="text-base font-bold text-slate-800"
-                    style="font-family: 'Cormorant', Georgia, serif"
-                  >
-                    Heading
-                  </span>
-                </.token_card>
-                <.token_card
-                  token="heading_font"
-                  value="display"
-                  selected={@design_tokens.heading_font}
-                  label="Display"
-                  layout="horizontal"
-                >
-                  <span
-                    class="text-base font-bold text-slate-800"
-                    style="font-family: 'Playfair Display', Georgia, serif"
-                  >
-                    Heading
-                  </span>
-                </.token_card>
-              </div>
+      <%!-- Design Style link --%>
+      <div class="bg-white rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
+              <span class="material-symbols-outlined text-xl text-violet-600">palette</span>
             </div>
             <div>
-              <p class="text-[11px] text-slate-400 mb-2">Body Font</p>
-              <div class="space-y-2">
-                <.token_card
-                  token="body_font"
-                  value="sans"
-                  selected={@design_tokens.body_font}
-                  label="Sans Serif"
-                  layout="horizontal"
-                >
-                  <span class="text-xs text-slate-600">
-                    The quick brown fox jumps over the lazy dog.
-                  </span>
-                </.token_card>
-                <.token_card
-                  token="body_font"
-                  value="serif"
-                  selected={@design_tokens.body_font}
-                  label="Serif"
-                  layout="horizontal"
-                >
-                  <span
-                    class="text-xs text-slate-600"
-                    style="font-family: 'Lora', Georgia, serif"
-                  >
-                    The quick brown fox jumps over the lazy dog.
-                  </span>
-                </.token_card>
-              </div>
+              <p class="text-sm font-semibold text-slate-800">Design Style</p>
+              <p class="text-xs text-slate-400">Customize buttons, cards, typography & layout</p>
             </div>
           </div>
-
-          <p class="text-[11px] text-slate-400 mb-2">Spacing</p>
-          <div class="grid grid-cols-3 gap-3">
-            <.token_card
-              token="typography_scale"
-              value="compact"
-              selected={@design_tokens.typography_scale}
-              label="Compact"
-            >
-              <div class="space-y-0.5 w-full">
-                <div class="h-2 bg-slate-300 rounded w-3/4"></div>
-                <div class="h-1 bg-slate-100 rounded w-full"></div>
-                <div class="h-1 bg-slate-100 rounded w-5/6"></div>
-                <div class="h-1 bg-slate-100 rounded w-full"></div>
-              </div>
-            </.token_card>
-            <.token_card
-              token="typography_scale"
-              value="default"
-              selected={@design_tokens.typography_scale}
-              label="Default"
-            >
-              <div class="space-y-1 w-full">
-                <div class="h-2.5 bg-slate-300 rounded w-3/4"></div>
-                <div class="h-1 bg-slate-100 rounded w-full"></div>
-                <div class="h-1 bg-slate-100 rounded w-5/6"></div>
-                <div class="h-1 bg-slate-100 rounded w-full"></div>
-              </div>
-            </.token_card>
-            <.token_card
-              token="typography_scale"
-              value="spacious"
-              selected={@design_tokens.typography_scale}
-              label="Spacious"
-            >
-              <div class="space-y-1.5 w-full">
-                <div class="h-3 bg-slate-300 rounded w-3/4"></div>
-                <div class="h-1.5 bg-slate-100 rounded w-full"></div>
-                <div class="h-1.5 bg-slate-100 rounded w-5/6"></div>
-                <div class="h-1.5 bg-slate-100 rounded w-full"></div>
-              </div>
-            </.token_card>
-          </div>
-        </div>
-
-        <%!-- LAYOUT --%>
-        <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
-          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Layout</p>
-          <div class="grid grid-cols-2 gap-3 mb-4">
-            <div>
-              <p class="text-[11px] text-slate-400 mb-2">Hero Banner</p>
-              <div class="space-y-2">
-                <.token_card
-                  token="hero_layout"
-                  value="full-bleed"
-                  selected={@design_tokens.hero_layout}
-                  label="Full Bleed"
-                >
-                  <div class="w-full h-10 bg-slate-200 rounded relative">
-                    <div class="absolute inset-0 bg-gradient-to-t from-slate-400/60 to-transparent rounded">
-                    </div>
-                    <div class="absolute bottom-1 left-1.5">
-                      <div class="h-1 bg-white/80 rounded w-8 mb-0.5"></div>
-                      <div class="h-0.5 bg-white/50 rounded w-5"></div>
-                    </div>
-                  </div>
-                </.token_card>
-                <.token_card
-                  token="hero_layout"
-                  value="split"
-                  selected={@design_tokens.hero_layout}
-                  label="Split"
-                >
-                  <div class="w-full h-10 flex gap-1">
-                    <div class="flex-1 bg-slate-50 rounded p-1.5">
-                      <div class="h-1 bg-slate-300 rounded w-3/4 mb-0.5"></div>
-                      <div class="h-0.5 bg-slate-200 rounded w-full"></div>
-                    </div>
-                    <div class="flex-1 bg-slate-200 rounded"></div>
-                  </div>
-                </.token_card>
-              </div>
-            </div>
-            <div>
-              <p class="text-[11px] text-slate-400 mb-2">Footer</p>
-              <div class="space-y-2">
-                <.token_card
-                  token="footer_style"
-                  value="minimal"
-                  selected={@design_tokens.footer_style}
-                  label="Minimal"
-                >
-                  <div class="w-full bg-slate-800 rounded p-1.5 h-6 flex items-center justify-center">
-                    <div class="h-0.5 bg-slate-500 rounded w-1/2"></div>
-                  </div>
-                </.token_card>
-                <.token_card
-                  token="footer_style"
-                  value="columns"
-                  selected={@design_tokens.footer_style}
-                  label="Columns"
-                >
-                  <div class="w-full bg-slate-800 rounded p-1.5 h-8">
-                    <div class="grid grid-cols-3 gap-1 h-full">
-                      <div class="space-y-0.5">
-                        <div class="h-0.5 bg-slate-500 rounded w-full"></div>
-                        <div class="h-0.5 bg-slate-600 rounded w-3/4"></div>
-                      </div>
-                      <div class="space-y-0.5">
-                        <div class="h-0.5 bg-slate-500 rounded w-full"></div>
-                        <div class="h-0.5 bg-slate-600 rounded w-3/4"></div>
-                      </div>
-                      <div class="space-y-0.5">
-                        <div class="h-0.5 bg-slate-500 rounded w-full"></div>
-                        <div class="h-0.5 bg-slate-600 rounded w-3/4"></div>
-                      </div>
-                    </div>
-                  </div>
-                </.token_card>
-                <.token_card
-                  token="footer_style"
-                  value="mega"
-                  selected={@design_tokens.footer_style}
-                  label="Mega"
-                >
-                  <div class="w-full bg-slate-800 rounded p-1.5 h-10">
-                    <div class="h-1 bg-slate-500 rounded w-1/3 mb-1"></div>
-                    <div class="grid grid-cols-4 gap-0.5">
-                      <div class="h-0.5 bg-slate-600 rounded"></div>
-                      <div class="h-0.5 bg-slate-600 rounded"></div>
-                      <div class="h-0.5 bg-slate-600 rounded"></div>
-                      <div class="h-0.5 bg-slate-600 rounded"></div>
-                    </div>
-                  </div>
-                </.token_card>
-              </div>
-            </div>
-          </div>
+          <a
+            href="/admin/design"
+            class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors"
+          >
+            Open Designer
+          </a>
         </div>
       </div>
+
+      <%!-- Design Tokens UI is at /admin/design --%>
 
       <%!-- SAVE BUTTON — Big, obvious --%>
       <div class="sticky bottom-4 z-20">
@@ -1032,70 +686,6 @@ defmodule EmakolaWeb.Admin.ThemeLive do
         </a>
       </div>
     </div>
-    """
-  end
-
-  # ── Design Token Card Component ──
-
-  attr :token, :string, required: true
-  attr :value, :string, required: true
-  attr :selected, :string, required: true
-  attr :label, :string, required: true
-  attr :layout, :string, default: "vertical"
-  slot :inner_block, required: true
-
-  defp token_card(assigns) do
-    ~H"""
-    <button
-      type="button"
-      phx-click="update_design_token"
-      phx-value-token={@token}
-      phx-value-value={@value}
-      class={[
-        "cursor-pointer transition-all",
-        if(@layout == "horizontal",
-          do: "flex items-center gap-3 p-3 rounded-xl border-2 w-full text-left",
-          else: "flex flex-col items-center gap-2 p-3 rounded-xl border-2"
-        ),
-        if(@selected == @value,
-          do: "border-emerald-500 bg-emerald-50/50 ring-1 ring-emerald-500/20",
-          else: "border-slate-200 hover:border-slate-300 bg-slate-50/50"
-        )
-      ]}
-    >
-      <div class={if(@layout == "horizontal", do: "flex-1", else: "w-full flex justify-center")}>
-        {render_slot(@inner_block)}
-      </div>
-      <div class={[
-        "flex items-center gap-1.5",
-        if(@layout == "horizontal", do: "shrink-0", else: "")
-      ]}>
-        <div class={[
-          "w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center",
-          if(@selected == @value,
-            do: "border-emerald-500 bg-emerald-500",
-            else: "border-slate-300"
-          )
-        ]}>
-          <svg
-            :if={@selected == @value}
-            class="w-2 h-2 text-white"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="3"
-            viewBox="0 0 24 24"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-          </svg>
-        </div>
-        <span class={[
-          "text-xs font-medium",
-          if(@selected == @value, do: "text-emerald-700", else: "text-slate-500")
-        ]}>
-          {@label}
-        </span>
-      </div>
-    </button>
     """
   end
 
@@ -1212,21 +802,6 @@ defmodule EmakolaWeb.Admin.ThemeLive do
   @impl true
   def handle_event("toggle_carousel", _params, socket) do
     {:noreply, assign(socket, hero_carousel: !socket.assigns.hero_carousel, saved: false)}
-  end
-
-  @impl true
-  def handle_event("update_design_token", %{"token" => token, "value" => value}, socket) do
-    token_atom = String.to_existing_atom(token)
-
-    value =
-      if token_atom == :product_grid_columns do
-        String.to_integer(value)
-      else
-        value
-      end
-
-    updated_tokens = Map.put(socket.assigns.design_tokens, token_atom, value)
-    {:noreply, assign(socket, design_tokens: updated_tokens, saved: false)}
   end
 
   @impl true
