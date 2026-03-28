@@ -135,6 +135,9 @@ defmodule EmakolaWeb.Router do
       # Merchant admin — review management
       live "/admin/reviews", Admin.ReviewLive
 
+      # Merchant admin — inventory management
+      live "/admin/inventory", Admin.InventoryLive
+
       # Merchant admin — order management
       live "/admin/orders", Admin.OrderLive.Index
       live "/admin/orders/:id", Admin.OrderLive.Show
