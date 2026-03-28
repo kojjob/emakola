@@ -37,6 +37,13 @@ defmodule EmakolaWeb.Storefront.RecipeListLive do
 
   @impl true
   def render(assigns) do
+    case Emakola.Themes.ThemeRenderer.theme_render(assigns, :recipe_list) do
+      {:ok, rendered} -> rendered
+      :default -> render_default(assigns)
+    end
+  end
+
+  defp render_default(assigns) do
     ~H"""
     <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
       <h1 class="font-[Cormorant,Georgia,serif] text-3xl sm:text-4xl font-semibold text-stone-900 mb-8">
