@@ -446,21 +446,17 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               Upload Hero Images
             </label>
             <form id="hero-upload-form" phx-change="validate_upload" phx-submit="save_hero_image">
+              <.live_file_input upload={@uploads.hero_images} />
               <div
-                class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-emerald-400 transition-colors"
+                class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center"
                 phx-drop-target={@uploads.hero_images.ref}
               >
-                <span class="material-symbols-outlined text-3xl text-slate-400">
+                <span class="material-symbols-outlined text-2xl text-slate-400">
                   add_photo_alternate
                 </span>
-                <p class="text-sm text-slate-500 mt-2">Choose images to upload</p>
-                <p class="text-[11px] text-slate-400 mt-1 mb-3">
-                  JPG, PNG, WebP up to 5MB each (max 5 images)
+                <p class="text-[11px] text-slate-400 mt-1">
+                  Or drag and drop images here (JPG, PNG, WebP up to 5MB)
                 </p>
-                <.live_file_input
-                  upload={@uploads.hero_images}
-                  class="text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 file:cursor-pointer"
-                />
               </div>
 
               <%!-- Upload previews --%>
