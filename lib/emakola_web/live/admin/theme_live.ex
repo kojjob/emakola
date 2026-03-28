@@ -415,7 +415,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
           </div>
 
           <%!-- Uploaded hero images thumbnails --%>
-          <div :if={@hero_images != []} class="space-y-2">
+          <div :if={@hero_images != []} id="hero-images-list" class="space-y-2">
             <label class="block text-xs font-medium text-slate-500">
               <span class="material-symbols-outlined text-sm align-middle mr-1">collections</span>
               Hero Images ({length(@hero_images)}/5)
@@ -446,8 +446,8 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               Upload Hero Images
             </label>
             <form id="hero-upload-form" phx-change="validate_upload" phx-submit="save_hero_image">
-              <div
-                class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-emerald-400 transition-colors cursor-pointer"
+              <label
+                class="block border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-emerald-400 transition-colors cursor-pointer"
                 phx-drop-target={@uploads.hero_images.ref}
               >
                 <.live_file_input upload={@uploads.hero_images} class="sr-only" />
@@ -455,18 +455,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                   add_photo_alternate
                 </span>
                 <p class="text-sm text-slate-500 mt-2">
-                  Drag images here or
-                  <label
-                    for={@uploads.hero_images.ref}
-                    class="text-emerald-600 font-medium cursor-pointer hover:underline"
-                  >
-                    browse
-                  </label>
+                  Drag images here or <span class="text-emerald-600 font-medium">browse</span>
                 </p>
                 <p class="text-[11px] text-slate-400 mt-1">
                   JPG, PNG, WebP up to 5MB each (max 5 images)
                 </p>
-              </div>
+              </label>
 
               <%!-- Upload previews --%>
               <div :if={@uploads.hero_images.entries != []} class="mt-3 space-y-2">
@@ -511,6 +505,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
           <%!-- Carousel Toggle --%>
           <div
             :if={length(@hero_images) > 1}
+            id="hero-carousel-toggle"
             class="flex items-center justify-between p-3 bg-slate-50 rounded-xl"
           >
             <div class="flex items-center gap-2">
