@@ -435,6 +435,18 @@ defmodule Emakola.Themes.Atelier.Shared do
               About Us
             </a>
             <a
+              href={"/s/#{@store.slug}/blog"}
+              class="block px-3 py-3 text-sm text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center"
+            >
+              Blog
+            </a>
+            <a
+              href={"/s/#{@store.slug}/recipes"}
+              class="block px-3 py-3 text-sm text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center"
+            >
+              Recipes
+            </a>
+            <a
               href={"/s/#{@store.slug}/account"}
               class="block px-3 py-3 text-sm text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center gap-2"
             >
@@ -727,6 +739,8 @@ defmodule Emakola.Themes.Atelier.Shared do
     company_links =
       Map.get(footer_config, :company_links, [
         %{label: "Our Story", url: "/s/#{slug}/about"},
+        %{label: "Blog", url: "/s/#{slug}/blog"},
+        %{label: "Recipes", url: "/s/#{slug}/recipes"},
         %{label: "Shipping & Returns", url: nil},
         %{label: "Privacy Policy", url: nil},
         %{label: "Terms of Service", url: nil}

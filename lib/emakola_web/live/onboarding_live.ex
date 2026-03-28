@@ -36,6 +36,12 @@ defmodule EmakolaWeb.OnboardingLive do
       name: "Vibrant",
       description: "Bold, energetic West African style",
       colors: ["#DC2626", "#7C2D12", "#FFFBEB"]
+    },
+    %{
+      id: "starter",
+      name: "Starter",
+      description: "Clean, minimal default for any store",
+      colors: ["#6366F1", "#1E293B", "#FFFFFF"]
     }
   ]
 

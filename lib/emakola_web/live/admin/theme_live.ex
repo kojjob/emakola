@@ -36,6 +36,33 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       colors: %{primary: "#DC2626", accent: "#7C2D12", background: "#FFFBEB"},
       preview_bg: "bg-amber-50",
       preview_accent: "bg-red-600"
+    },
+    %{
+      id: "starter",
+      name: "Starter",
+      description: "Clean & modern",
+      icon: "auto_awesome",
+      colors: %{primary: "#6366F1", accent: "#1E293B", background: "#FFFFFF"},
+      preview_bg: "bg-white",
+      preview_accent: "bg-indigo-500"
+    },
+    %{
+      id: "bold",
+      name: "Bold",
+      description: "Editorial & dramatic",
+      icon: "newspaper",
+      colors: %{primary: "#0F172A", accent: "#F59E0B", background: "#F8FAFC"},
+      preview_bg: "bg-slate-50",
+      preview_accent: "bg-slate-900"
+    },
+    %{
+      id: "fresh",
+      name: "Fresh",
+      description: "Food & grocery",
+      icon: "eco",
+      colors: %{primary: "#059669", accent: "#92400E", background: "#FEFCE8"},
+      preview_bg: "bg-yellow-50",
+      preview_accent: "bg-emerald-600"
     }
   ]
 

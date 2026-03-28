@@ -15,7 +15,15 @@ defmodule EmakolaWeb.Hooks.ResolveStore do
   def on_mount(:default, %{"store_slug" => slug}, _session, socket) do
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
-        {:cont, assign(socket, :store, store)}
+        theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{})
+        theme_module = Emakola.Themes.ThemeResolver.theme_module(theme.theme_id)
+
+        {:cont,
+         socket
+         |> assign(:store, store)
+         |> assign(:theme, theme)
+         |> assign(:theme_module, theme_module)
+         |> assign(:theme_fonts, theme_module.fonts())}
 
       {:error, :not_found} ->
         {:halt,
