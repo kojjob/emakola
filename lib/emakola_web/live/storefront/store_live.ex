@@ -82,6 +82,49 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   end
 
   @impl true
+  def handle_event("add_to_cart", %{"product-id" => product_id}, socket) do
+    require Ash.Query
+
+    case Emakola.Catalog.Product
+         |> Ash.Query.filter(id == ^product_id)
+         |> Ash.Query.load([:variants, :images])
+         |> Ash.read_one(authorize?: false) do
+      {:ok, product} when not is_nil(product) ->
+        variant = product.variants |> Enum.sort_by(& &1.position) |> List.first()
+
+        if variant && variant.stock_quantity > 0 do
+          image_url =
+            case product.images do
+              [img | _] -> img.thumbnail_url || img.url
+              _ -> nil
+            end
+
+          CartStore.add_item(socket.assigns.cart_session_id, %{
+            variant_id: variant.id,
+            quantity: 1,
+            product_title: product.title,
+            variant_info: variant.sku || "",
+            unit_price: variant.price,
+            sku: variant.sku,
+            image_url: image_url
+          })
+
+          cart_count = CartStore.cart_count(socket.assigns.cart_session_id)
+
+          {:noreply,
+           socket
+           |> assign(:cart_count, cart_count)
+           |> put_flash(:info, "#{product.title} added to cart")}
+        else
+          {:noreply, put_flash(socket, :error, "This product is out of stock")}
+        end
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Product not found")}
+    end
+  end
+
+  @impl true
   def handle_event("close_search", _params, socket) do
     {:noreply,
      socket
