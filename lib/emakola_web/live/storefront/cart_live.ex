@@ -694,8 +694,8 @@ defmodule EmakolaWeb.Storefront.CartLive do
     cart = CartStore.get_cart(socket.assigns.cart_session_id)
     total = cart_total(cart)
 
-    discount =
-      if socket.assigns.applied_coupon do
+    _discount =
+      if socket.assigns[:applied_coupon] do
         calculate_discount(socket.assigns.applied_coupon, total)
       else
         0
@@ -736,45 +736,9 @@ defmodule EmakolaWeb.Storefront.CartLive do
     Enum.reduce(cart, 0, fn item, acc -> acc + item.unit_price * item.quantity end)
   end
 
-  @impl true
-  def handle_event("update_promo_code", %{"promo_code" => code}, socket) do
-    {:noreply, assign(socket, :promo_code, code)}
-  end
-
-  @impl true
-  def handle_event("apply_coupon", _params, socket) do
-    code = String.trim(socket.assigns.promo_code || "")
-    store_id = socket.assigns.store.id
-
-    if code == "" do
-      {:noreply, assign(socket, :promo_error, "Please enter a coupon code")}
-    else
-      case Emakola.Orders.find_coupon_by_code(store_id, code) do
-        {:ok, [coupon | _]} ->
-          validate_and_apply_coupon(coupon, socket)
-
-        {:ok, []} ->
-          {:noreply, assign(socket, :promo_error, "Invalid coupon code")}
-
-        _ ->
-          {:noreply, assign(socket, :promo_error, "Invalid coupon code")}
-      end
-    end
-  end
-
-  @impl true
-  def handle_event("remove_coupon", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:applied_coupon, nil)
-     |> assign(:discount_amount, 0)
-     |> assign(:promo_code, "")
-     |> assign(:promo_error, nil)}
-  end
-
-  defp validate_and_apply_coupon(coupon, socket) do
+  defp validate_and_apply_coupon(socket, coupon) do
     now = DateTime.utc_now()
-    cart_total = socket.assigns.cart_subtotal
+    subtotal = socket.assigns.cart_subtotal
 
     cond do
       not coupon.active ->
@@ -789,11 +753,11 @@ defmodule EmakolaWeb.Storefront.CartLive do
       coupon.max_uses && coupon.uses_count >= coupon.max_uses ->
         {:noreply, assign(socket, :promo_error, "This coupon has reached its usage limit")}
 
-      coupon.minimum_order_amount && cart_total < coupon.minimum_order_amount ->
+      coupon.minimum_order_amount && subtotal < coupon.minimum_order_amount ->
         {:noreply, assign(socket, :promo_error, "Order does not meet the minimum amount")}
 
       true ->
-        discount = calculate_discount(coupon, cart_total)
+        discount = calculate_discount(coupon, subtotal)
 
         {:noreply,
          socket
@@ -803,19 +767,14 @@ defmodule EmakolaWeb.Storefront.CartLive do
     end
   end
 
-  defp calculate_discount(coupon, cart_total) do
+  defp calculate_discount(coupon, subtotal) do
     case coupon.discount_type do
       :percentage ->
-        raw = div(cart_total * coupon.discount_value, 10_000)
-
-        if coupon.max_discount_amount do
-          min(raw, coupon.max_discount_amount)
-        else
-          raw
-        end
+        raw = div(subtotal * coupon.discount_value, 10_000)
+        if coupon.max_discount_amount, do: min(raw, coupon.max_discount_amount), else: raw
 
       :fixed_amount ->
-        min(coupon.discount_value, cart_total)
+        min(coupon.discount_value, subtotal)
 
       :free_shipping ->
         0
