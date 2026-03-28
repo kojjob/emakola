@@ -108,7 +108,6 @@ defmodule EmakolaWeb.Storefront.StoreLive do
 
   defp load_featured_products(store) do
     Emakola.Catalog.list_products_by_store_and_status!(store.id, :active)
-    |> Ash.load!([:min_price, :max_price, :images])
     |> Enum.take(8)
   end
 
@@ -126,6 +125,5 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   defp search_overlay_products(store_id, query) do
     Emakola.Catalog.search_products!(query, store_id)
     |> Enum.filter(&(&1.status == :active))
-    |> Ash.load!([:min_price, :max_price, :images])
   end
 end

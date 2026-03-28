@@ -193,7 +193,9 @@ defmodule Emakola.Customers.Customer do
       filter(expr(store_id == ^arg(:store_id)))
 
       prepare(fn query, _context ->
-        Ash.Query.sort(query, inserted_at: :desc)
+        query
+        |> Ash.Query.sort(inserted_at: :desc)
+        |> Ash.Query.load([:order_count])
       end)
     end
 
@@ -202,6 +204,7 @@ defmodule Emakola.Customers.Customer do
       argument(:query, :string, allow_nil?: false)
 
       prepare(Emakola.Customers.Preparations.SearchCustomers)
+      prepare(build(load: [:order_count]))
     end
 
     read :get_by_id do

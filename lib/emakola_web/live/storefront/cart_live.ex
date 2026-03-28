@@ -37,7 +37,6 @@ defmodule EmakolaWeb.Storefront.CartLive do
         recommended_products =
           try do
             Emakola.Catalog.list_products_by_store_and_status!(store.id, :active)
-            |> Ash.load!([:min_price, :max_price, :images, :variants])
             |> Enum.take(4)
           rescue
             _ -> []

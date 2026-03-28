@@ -173,6 +173,8 @@ defmodule Emakola.Catalog.Product do
             contains(fragment("lower(?)", title), fragment("lower(?)", ^arg(:query)))
         )
       )
+
+      prepare(build(load: [:min_price, :max_price, :images]))
     end
 
     read :list_by_store do
@@ -181,7 +183,9 @@ defmodule Emakola.Catalog.Product do
       filter(expr(store_id == ^arg(:store_id)))
 
       prepare(fn query, _context ->
-        Ash.Query.sort(query, inserted_at: :desc)
+        query
+        |> Ash.Query.sort(inserted_at: :desc)
+        |> Ash.Query.load([:min_price, :max_price, :images, :variant_count])
       end)
     end
 
@@ -196,7 +200,9 @@ defmodule Emakola.Catalog.Product do
       filter(expr(store_id == ^arg(:store_id) and status == ^arg(:status)))
 
       prepare(fn query, _context ->
-        Ash.Query.sort(query, inserted_at: :desc)
+        query
+        |> Ash.Query.sort(inserted_at: :desc)
+        |> Ash.Query.load([:min_price, :max_price, :images])
       end)
     end
 
@@ -205,6 +211,7 @@ defmodule Emakola.Catalog.Product do
       argument(:store_id, :uuid, allow_nil?: false)
 
       filter(expr(category_id == ^arg(:category_id) and store_id == ^arg(:store_id)))
+      prepare(build(load: [:min_price, :max_price, :images, :variant_count]))
     end
   end
 end

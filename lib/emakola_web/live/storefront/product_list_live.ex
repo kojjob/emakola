@@ -188,13 +188,11 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
 
   defp load_active_products(store_id, nil, nil) do
     Emakola.Catalog.list_products_by_store_and_status!(store_id, :active)
-    |> Ash.load!([:min_price, :max_price, :images])
     |> Enum.take(@products_per_page)
   end
 
   defp load_active_products(store_id, nil, page) do
     Emakola.Catalog.list_products_by_store_and_status!(store_id, :active)
-    |> Ash.load!([:min_price, :max_price, :images])
     |> Enum.drop((page - 1) * @products_per_page)
     |> Enum.take(@products_per_page)
   end
@@ -202,14 +200,12 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
   defp load_active_products(store_id, category_id, _page) do
     Emakola.Catalog.list_products_by_category!(category_id, store_id)
     |> Enum.filter(&(&1.status == :active))
-    |> Ash.load!([:min_price, :max_price, :images])
     |> Enum.take(@products_per_page)
   end
 
   defp search_active_products(store_id, query) do
     Emakola.Catalog.search_products!(query, store_id)
     |> Enum.filter(&(&1.status == :active))
-    |> Ash.load!([:min_price, :max_price, :images])
     |> Enum.take(@products_per_page)
   end
 

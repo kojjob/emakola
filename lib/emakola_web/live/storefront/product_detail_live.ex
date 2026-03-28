@@ -236,7 +236,6 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
 
   defp load_related_products(store, product) do
     Emakola.Catalog.list_products_by_store_and_status!(store.id, :active)
-    |> Ash.load!([:min_price, :max_price, :images])
     |> Enum.reject(&(&1.id == product.id))
     |> Enum.take(6)
   end

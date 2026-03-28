@@ -322,7 +322,6 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   defp load_category_products(store_id, category_id) do
     Emakola.Catalog.list_products_by_category!(category_id, store_id)
     |> Enum.filter(&(&1.status == :active))
-    |> Ash.load!([:min_price, :max_price, :images, :variant_count])
   end
 
   defp sort_products(products, :newest) do
