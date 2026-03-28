@@ -6,18 +6,8 @@ defmodule EmakolaWeb.Plugs.ContentSecurityPolicy do
   `conn.assigns.csp_nonce`. This nonce is used by Phoenix LiveView for its
   inline scripts and can be referenced in templates via `@csp_nonce`.
 
-  The CSP policy:
-    - default-src 'self'
-    - script-src 'self' 'nonce-<value>' (allows LiveView inline scripts)
-    - style-src 'self' 'unsafe-inline' https://fonts.googleapis.com
-      (TailwindCSS and Google Fonts need inline styles)
-    - img-src 'self' data: https: (S3/CDN images)
-    - font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com
-    - connect-src 'self' wss: ws: (LiveView websocket)
-    - frame-ancestors 'none' (clickjacking protection)
-    - base-uri 'self'
-    - form-action 'self'
-    - object-src 'none'
+  The CSP policy is enforced (not report-only) with a per-request nonce
+  for LiveView inline scripts. See `build_policy/1` for the full directive list.
   """
 
   import Plug.Conn
@@ -33,8 +23,7 @@ defmodule EmakolaWeb.Plugs.ContentSecurityPolicy do
 
     conn
     |> assign(:csp_nonce, nonce)
-    # Report-only until all inline scripts/handlers are migrated to bundled JS
-    |> put_resp_header("content-security-policy-report-only", build_policy(nonce))
+    |> put_resp_header("content-security-policy", build_policy(nonce))
   end
 
   defp generate_nonce do
@@ -46,7 +35,7 @@ defmodule EmakolaWeb.Plugs.ContentSecurityPolicy do
   defp build_policy(nonce) do
     directives = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'nonce-#{nonce}'",
+      "script-src 'self' 'nonce-#{nonce}'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: https:",
       "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",

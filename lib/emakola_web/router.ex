@@ -7,7 +7,11 @@ defmodule EmakolaWeb.Router do
     plug :fetch_live_flash
     plug :put_root_layout, html: {EmakolaWeb.Layouts, :root}
     plug :protect_from_forgery
-    plug :put_secure_browser_headers
+
+    plug :put_secure_browser_headers, %{
+      "cross-origin-opener-policy" => "same-origin"
+    }
+
     plug EmakolaWeb.Plugs.ContentSecurityPolicy
     plug EmakolaWeb.Plugs.CartSession
   end
