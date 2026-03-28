@@ -44,7 +44,8 @@ defmodule Emakola.Themes.ThemeResolver do
       sections: deep_merge_atomize(defaults.sections, Map.get(config, "sections", %{})),
       trust: deep_merge_atomize(defaults.trust, Map.get(config, "trust", %{})),
       newsletter: deep_merge_atomize(defaults.newsletter, Map.get(config, "newsletter", %{})),
-      footer: deep_merge_atomize(defaults.footer, Map.get(config, "footer", %{}))
+      footer: deep_merge_atomize(defaults.footer, Map.get(config, "footer", %{})),
+      design_tokens: Emakola.Themes.DesignTokens.resolve(Map.get(config, "design_tokens", %{}))
     }
   end
 

@@ -117,6 +117,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               brand_story: Map.get(resolved.sections, :brand_story, true),
               newsletter: Map.get(resolved.sections, :newsletter, true)
             },
+            design_tokens: resolved.design_tokens,
             saving: false,
             saved: false
           )
@@ -628,6 +629,62 @@ defmodule EmakolaWeb.Admin.ThemeLive do
         </div>
       </div>
 
+      <%!-- STEP 5: Design Tokens — Component style customization --%>
+      <div>
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+            <span class="text-sm font-bold text-emerald-700">5</span>
+          </div>
+          <h2 class="text-lg font-bold text-slate-800">Design Style</h2>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 shadow-sm space-y-6">
+          <%= for {token_key, token_options} <- Emakola.Themes.DesignTokens.options() do %>
+            <div>
+              <p class="text-sm font-semibold text-slate-700 mb-2.5 capitalize">
+                {token_key |> to_string() |> String.replace("_", " ")}
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <%= for opt <- token_options do %>
+                  <button
+                    type="button"
+                    phx-click="update_design_token"
+                    phx-value-token={token_key}
+                    phx-value-value={opt.value}
+                    class={[
+                      "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer border-2",
+                      if(Map.get(@design_tokens, token_key) == opt.value,
+                        do: "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm",
+                        else: "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      )
+                    ]}
+                  >
+                    <span class="material-symbols-outlined text-lg">{opt.icon}</span>
+                    <span>{opt.label}</span>
+                    <%= if Map.get(opt, :preview) do %>
+                      <span class={[
+                        "text-xs opacity-60 ml-1",
+                        if(token_key == :heading_font,
+                          do:
+                            case opt.value do
+                              "serif" -> "font-[Cormorant,Georgia,serif]"
+                              "display" -> "font-[Playfair_Display,Georgia,serif]"
+                              _ -> ""
+                            end,
+                          else: ""
+                        )
+                      ]}>
+                        {opt.preview}
+                      </span>
+                    <% end %>
+                  </button>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
       <%!-- SAVE BUTTON — Big, obvious --%>
       <div class="sticky bottom-4 z-20">
         <button
@@ -782,6 +839,21 @@ defmodule EmakolaWeb.Admin.ThemeLive do
   end
 
   @impl true
+  def handle_event("update_design_token", %{"token" => token, "value" => value}, socket) do
+    token_atom = String.to_existing_atom(token)
+
+    value =
+      if token_atom == :product_grid_columns do
+        String.to_integer(value)
+      else
+        value
+      end
+
+    updated_tokens = Map.put(socket.assigns.design_tokens, token_atom, value)
+    {:noreply, assign(socket, design_tokens: updated_tokens, saved: false)}
+  end
+
+  @impl true
   def handle_event("validate_upload", _params, socket) do
     {:noreply, socket}
   end
@@ -860,7 +932,11 @@ defmodule EmakolaWeb.Admin.ThemeLive do
             "trust" => socket.assigns.sections.trust,
             "brand_story" => socket.assigns.sections.brand_story,
             "newsletter" => socket.assigns.sections.newsletter
-          })
+          }),
+        "design_tokens" =>
+          socket.assigns.design_tokens
+          |> Enum.map(fn {k, v} -> {to_string(k), v} end)
+          |> Map.new()
       })
 
     actor = socket.assigns[:current_user] || socket.assigns[:current_merchant]
