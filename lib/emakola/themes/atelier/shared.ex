@@ -11,6 +11,7 @@ defmodule Emakola.Themes.Atelier.Shared do
   use Phoenix.Component
 
   alias Emakola.Themes.DesignTokens
+  alias Phoenix.LiveView.JS
   alias EmakolaWeb.Helpers.Currency
 
   # ── CSS Variables ──
@@ -230,8 +231,9 @@ defmodule Emakola.Themes.Atelier.Shared do
           <%!-- Right: Search + Icons + Mobile Menu --%>
           <div class="flex items-center gap-3 sm:gap-4">
             <%!-- Search Bar (Desktop pill) --%>
-            <a
-              href={"/s/#{@store.slug}/products"}
+            <button
+              type="button"
+              phx-click={show_search()}
               class="atelier-nav-search hidden md:flex items-center gap-2 bg-gray-100 rounded-full px-4 py-2.5 text-sm text-gray-500 cursor-pointer transition-colors duration-200 hover:bg-gray-200 min-w-[220px] min-h-[44px]"
             >
               <svg
@@ -248,11 +250,12 @@ defmodule Emakola.Themes.Atelier.Shared do
                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
               <span class="truncate">{@search_text}</span>
-            </a>
+            </button>
 
             <%!-- Search Icon (Mobile) --%>
-            <a
-              href={"/s/#{@store.slug}/products"}
+            <button
+              type="button"
+              phx-click={show_search()}
               class="atelier-nav-icon md:hidden flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
               aria-label="Search"
             >
@@ -268,7 +271,7 @@ defmodule Emakola.Themes.Atelier.Shared do
               >
                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
-            </a>
+            </button>
 
             <%!-- Cart --%>
             <a
@@ -386,9 +389,10 @@ defmodule Emakola.Themes.Atelier.Shared do
           </div>
 
           <%!-- Search --%>
-          <a
-            href={"/s/#{@store.slug}/products"}
-            class="flex items-center gap-3 bg-gray-100 rounded-lg px-4 py-3 text-sm text-gray-500 mb-8 min-h-[48px]"
+          <button
+            type="button"
+            phx-click={show_search()}
+            class="w-full flex items-center gap-3 bg-gray-100 rounded-lg px-4 py-3 text-sm text-gray-500 mb-8 min-h-[48px] cursor-pointer"
           >
             <svg
               width="18"
@@ -403,7 +407,7 @@ defmodule Emakola.Themes.Atelier.Shared do
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             {@search_text}
-          </a>
+          </button>
 
           <%!-- Nav Links --%>
           <nav class="space-y-1 mb-8">
@@ -488,7 +492,93 @@ defmodule Emakola.Themes.Atelier.Shared do
         </div>
       </div>
     </nav>
+
+    <%!-- Search Overlay --%>
+    <div
+      id="search-overlay"
+      class="hidden fixed inset-0 z-[60] bg-black/50"
+      phx-click={hide_search()}
+    >
+      <div
+        class="mx-auto mt-20 w-full max-w-2xl px-4"
+        phx-click-away={hide_search()}
+      >
+        <form
+          action={"/s/#{@store.slug}/products"}
+          method="get"
+          class="bg-white rounded-xl shadow-2xl overflow-hidden"
+          phx-click={JS.dispatch("click", to: "#search-overlay")}
+          onclick="event.stopPropagation()"
+        >
+          <div class="flex items-center gap-3 px-5 py-4">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="flex-shrink-0 text-gray-400"
+            >
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              id="search-input"
+              type="text"
+              name="q"
+              placeholder="Search products..."
+              class="flex-1 text-base text-gray-900 placeholder-gray-400 border-0 outline-none focus:ring-0 bg-transparent"
+              autocomplete="off"
+            />
+            <button
+              type="button"
+              phx-click={hide_search()}
+              class="text-gray-400 hover:text-gray-600 p-1"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+          <div class="border-t border-gray-100 px-5 py-3 bg-gray-50 text-xs text-gray-400">
+            Press Enter to search
+          </div>
+        </form>
+      </div>
+    </div>
     """
+  end
+
+  @doc """
+  JS command to show the search overlay and focus the input.
+  """
+  def show_search do
+    JS.show(
+      to: "#search-overlay",
+      transition: {"ease-out duration-200", "opacity-0", "opacity-100"}
+    )
+    |> JS.focus(to: "#search-input")
+  end
+
+  @doc """
+  JS command to hide the search overlay.
+  """
+  def hide_search do
+    JS.hide(
+      to: "#search-overlay",
+      transition: {"ease-in duration-150", "opacity-100", "opacity-0"}
+    )
   end
 
   # ── Product Card ──

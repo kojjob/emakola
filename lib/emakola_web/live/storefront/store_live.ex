@@ -24,6 +24,7 @@ defmodule EmakolaWeb.Storefront.StoreLive do
         products = load_featured_products(store)
         categories = load_root_categories(store)
         public_coupons = load_public_coupons(store)
+        delivery_zones = load_delivery_zones(store)
         cart_session_id = session["cart_session_id"]
         cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
 
@@ -42,6 +43,8 @@ defmodule EmakolaWeb.Storefront.StoreLive do
          |> assign(:theme, theme)
          |> assign(:theme_module, theme_module)
          |> assign(:theme_fonts, theme_module.fonts())
+         |> assign(:public_coupons, public_coupons)
+         |> assign(:delivery_zones, delivery_zones)
          |> assign(:search_overlay_query, "")
          |> assign(:search_overlay_results, [])
          |> assign(:search_overlay_total, 0)
@@ -118,6 +121,15 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   defp load_public_coupons(store) do
     case Emakola.Orders.list_active_public_coupons(store.id) do
       {:ok, coupons} -> coupons
+      _ -> []
+    end
+  end
+
+  defp load_delivery_zones(store) do
+    try do
+      Emakola.Shipping.list_delivery_zones!(store.id)
+      |> Enum.filter(& &1.active)
+    rescue
       _ -> []
     end
   end
