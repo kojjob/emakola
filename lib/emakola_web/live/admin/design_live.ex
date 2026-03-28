@@ -6,7 +6,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
   """
   use EmakolaWeb, :live_view
 
-  alias Emakola.Themes.{DesignTokens, ThemeResolver}
+  alias Emakola.Themes.ThemeResolver
 
   @impl true
   def mount(_params, _session, socket) do
