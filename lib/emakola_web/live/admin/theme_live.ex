@@ -446,24 +446,22 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               Upload Hero Images
             </label>
             <form id="hero-upload-form" phx-change="validate_upload" phx-submit="save_hero_image">
-              <div
-                class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-emerald-400 transition-colors"
-                phx-drop-target={@uploads.hero_images.ref}
-              >
-                <span class="material-symbols-outlined text-3xl text-slate-400 mb-2">
-                  add_photo_alternate
-                </span>
-                <p class="text-sm text-slate-500 mb-3">
-                  Upload hero images or drag and drop
-                </p>
-                <p class="text-[11px] text-slate-400 mb-4">
-                  JPG, PNG, WebP up to 5MB each (max 5 images)
-                </p>
-                <div class="inline-block">
+              <div class="space-y-3">
+                <div>
+                  <p class="text-sm font-medium text-slate-700 mb-2">Upload Hero Images</p>
                   <.live_file_input
                     upload={@uploads.hero_images}
-                    style="display: block; width: 100%; padding: 8px; font-size: 14px; cursor: pointer;"
+                    style="display: block; padding: 10px; font-size: 14px; cursor: pointer; border: 1px solid #cbd5e1; border-radius: 8px; width: 100%; background: white;"
                   />
+                  <p class="text-[11px] text-slate-400 mt-1">
+                    JPG, PNG, WebP up to 5MB each (max 5)
+                  </p>
+                </div>
+                <div
+                  class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center text-slate-400 text-sm"
+                  phx-drop-target={@uploads.hero_images.ref}
+                >
+                  Or drag and drop images here
                 </div>
               </div>
 
