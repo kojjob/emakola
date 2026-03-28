@@ -27,6 +27,9 @@ defmodule EmakolaWeb.Storefront.StoreLive do
         theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{})
         theme_module = Emakola.Themes.ThemeResolver.theme_module(theme.theme_id)
 
+        public_coupons = load_public_coupons(store)
+        delivery_zones = load_delivery_zones(store)
+
         {:ok,
          socket
          |> assign(:store, store)
@@ -37,7 +40,9 @@ defmodule EmakolaWeb.Storefront.StoreLive do
          |> assign(:page_title, store.name)
          |> assign(:theme, theme)
          |> assign(:theme_module, theme_module)
-         |> assign(:theme_fonts, theme_module.fonts())}
+         |> assign(:theme_fonts, theme_module.fonts())
+         |> assign(:public_coupons, public_coupons)
+         |> assign(:delivery_zones, delivery_zones)}
 
       {:error, :not_found} ->
         {:ok,
@@ -62,5 +67,22 @@ defmodule EmakolaWeb.Storefront.StoreLive do
 
   defp load_root_categories(store) do
     Emakola.Catalog.list_root_categories!(store.id)
+  end
+
+  defp load_public_coupons(store) do
+    now = DateTime.utc_now()
+
+    Emakola.Orders.list_coupons_by_store!(store.id)
+    |> Enum.filter(fn coupon ->
+      coupon.active &&
+        (is_nil(coupon.starts_at) || DateTime.compare(coupon.starts_at, now) != :gt) &&
+        (is_nil(coupon.expires_at) || DateTime.compare(coupon.expires_at, now) != :lt) &&
+        (is_nil(coupon.max_uses) || coupon.uses_count < coupon.max_uses)
+    end)
+  end
+
+  defp load_delivery_zones(store) do
+    Emakola.Shipping.list_delivery_zones!(store.id)
+    |> Enum.filter(& &1.active)
   end
 end
