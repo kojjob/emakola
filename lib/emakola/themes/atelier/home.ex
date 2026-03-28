@@ -68,6 +68,13 @@ defmodule Emakola.Themes.Atelier.Home do
         products={@products}
       />
 
+      <%!-- New Arrivals --%>
+      <.trending_section
+        :if={section_enabled?(@theme, :featured_products) && length(@products) > 5}
+        store={@store}
+        products={@products}
+      />
+
       <%!-- Trust / Payment Section --%>
       <.trust_section :if={section_enabled?(@theme, :trust)} store={@store} theme={@theme} />
 
@@ -336,186 +343,146 @@ defmodule Emakola.Themes.Atelier.Home do
     """
   end
 
-  # ── Trust / Payment Section ──
+  # ── New Arrivals / Trending Section ──
 
   attr :store, :map, required: true
-  attr :theme, :map, required: true
+  attr :products, :list, required: true
 
-  defp trust_section(assigns) do
-    trust_config = get_in(assigns.theme, [:trust]) || %{}
-
-    trust_heading =
-      Map.get(trust_config, :heading, "Seamless Trust. Secure Commerce.")
-
-    trust_subtitle =
-      Map.get(
-        trust_config,
-        :subtitle,
-        "Shop with confidence using your preferred payment method."
-      )
-
-    cards = Map.get(trust_config, :cards, nil)
-
-    default_cards = [
-      %{
-        title: "Encrypted Security",
-        description:
-          "Every transaction is protected with bank-level encryption. Your payment details are never stored on our servers.",
-        icon: :shield
-      },
-      %{
-        title: "Instant Settlement",
-        description:
-          "Payments are confirmed in real-time. No waiting, no uncertainty. Get instant order confirmation.",
-        icon: :bolt
-      },
-      %{
-        title: "Mobile Money Ready",
-        description:
-          "Pay with MTN Mobile Money, Telecel Cash, or your debit/credit card. Your choice, your convenience.",
-        icon: :phone
-      }
-    ]
-
-    trust_cards = cards || default_cards
-
-    partners =
-      Map.get(trust_config, :partners, ["MTN MoMo", "Telecel Cash", "Visa", "Mastercard"])
-
-    assigns =
-      assigns
-      |> assign(:trust_heading, trust_heading)
-      |> assign(:trust_subtitle, trust_subtitle)
-      |> assign(:trust_cards, trust_cards)
-      |> assign(:partners, partners)
+  defp trending_section(assigns) do
+    trending = assigns.products |> Enum.drop(5) |> Enum.take(4)
+    assigns = assign(assigns, :trending, trending)
 
     ~H"""
-    <section class="py-16 sm:py-24" style="background: var(--theme-bg, #F0FDF4);">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <%!-- Heading --%>
-        <div class="text-center mb-12 sm:mb-16">
-          <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-            {@trust_heading}
-          </h2>
-          <p class="text-gray-600 text-base sm:text-lg max-w-2xl mx-auto">
-            {@trust_subtitle}
-          </p>
-        </div>
-
-        <%!-- Feature Cards --%>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          <div
-            :for={{card, idx} <- Enum.with_index(@trust_cards)}
-            class={[
-              "bg-white rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100 transition-shadow duration-200 hover:shadow-md",
-              if(idx == 2, do: "md:col-span-2 lg:col-span-1", else: "")
-            ]}
+    <section :if={@trending != []} class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
+      <div class="flex items-center justify-between mb-8">
+        <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-[#1C1917]">New Arrivals</h2>
+        <a
+          href={"/s/#{@store.slug}/products"}
+          class="group inline-flex items-center gap-1.5 text-sm font-semibold transition-colors hover:opacity-80"
+          style="color: var(--theme-primary);"
+        >
+          View all
+          <svg
+            class="w-4 h-4 transition-transform group-hover:translate-x-0.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
           >
-            <div
-              class="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
-              style="background: color-mix(in srgb, var(--theme-primary) 12%, white);"
-            >
-              <.trust_icon name={Map.get(card, :icon, :shield)} />
-            </div>
-            <h3 class="text-lg font-bold text-gray-900 mb-2">{Map.get(card, :title)}</h3>
-            <p class="text-gray-600 text-sm leading-relaxed">
-              {Map.get(card, :description)}
-            </p>
-          </div>
-        </div>
-
-        <%!-- Payment Partners --%>
-        <div class="text-center">
-          <p class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-6">
-            Trusted Payment Partners
-          </p>
-          <div class="flex items-center justify-center gap-8 sm:gap-12 flex-wrap">
-            <span
-              :for={partner <- @partners}
-              class="text-gray-400 font-bold text-sm sm:text-base"
-            >
-              {partner}
-            </span>
-          </div>
-        </div>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+            />
+          </svg>
+        </a>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+        <Shared.product_card :for={product <- @trending} product={product} store={@store} />
       </div>
     </section>
     """
   end
 
-  defp trust_icon(%{name: :shield} = assigns) do
-    ~H"""
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke-width="2"
-      style="stroke: var(--theme-primary);"
-    >
-      <path
-        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke="currentColor"
-      />
-    </svg>
-    """
-  end
+  # ── Trust / Payment Section (Visual-First, Literacy-Aware) ──
 
-  defp trust_icon(%{name: :bolt} = assigns) do
-    ~H"""
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke-width="2"
-      style="stroke: var(--theme-primary);"
-    >
-      <path
-        d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke="currentColor"
-      />
-    </svg>
-    """
-  end
+  attr :store, :map, required: true
+  attr :theme, :map, required: true
 
-  defp trust_icon(%{name: :phone} = assigns) do
+  defp trust_section(assigns) do
     ~H"""
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke-width="2"
-      style="stroke: var(--theme-primary);"
-    >
-      <rect x="5" y="2" width="14" height="20" rx="2" ry="2" stroke="currentColor" />
-      <line x1="12" y1="18" x2="12.01" y2="18" stroke="currentColor" stroke-linecap="round" />
-    </svg>
-    """
-  end
-
-  defp trust_icon(assigns) do
-    ~H"""
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke-width="2"
-      style="stroke: var(--theme-primary);"
-    >
-      <path
-        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke="currentColor"
-      />
-    </svg>
+    <section id="trust-section" class="py-14 sm:py-20 bg-[#FAFAF9]" phx-hook="ScrollReveal">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <%!-- 3 big icons, 1-word labels — visual first --%>
+        <div class="grid grid-cols-3 gap-4 sm:gap-8 mb-12 sm:mb-16 reveal-up">
+          <div class="flex flex-col items-center text-center group cursor-default">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#059669]/10 flex items-center justify-center mb-3 group-hover:bg-[#059669]/15 group-hover:scale-110 transition-all duration-300">
+              <svg
+                class="w-8 h-8 sm:w-10 sm:h-10 text-[#059669]"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                />
+              </svg>
+            </div>
+            <span class="text-sm sm:text-base font-semibold text-[#1C1917]">Safe</span>
+            <span class="text-[11px] sm:text-xs text-[#A8A29E] mt-0.5">Secure checkout</span>
+          </div>
+          <div class="flex flex-col items-center text-center group cursor-default">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#B45309]/10 flex items-center justify-center mb-3 group-hover:bg-[#B45309]/15 group-hover:scale-110 transition-all duration-300">
+              <svg
+                class="w-8 h-8 sm:w-10 sm:h-10 text-[#B45309]"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
+                />
+              </svg>
+            </div>
+            <span class="text-sm sm:text-base font-semibold text-[#1C1917]">Fast</span>
+            <span class="text-[11px] sm:text-xs text-[#A8A29E] mt-0.5">Instant confirmation</span>
+          </div>
+          <div class="flex flex-col items-center text-center group cursor-default">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#7C3AED]/10 flex items-center justify-center mb-3 group-hover:bg-[#7C3AED]/15 group-hover:scale-110 transition-all duration-300">
+              <svg
+                class="w-8 h-8 sm:w-10 sm:h-10 text-[#7C3AED]"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"
+                />
+              </svg>
+            </div>
+            <span class="text-sm sm:text-base font-semibold text-[#1C1917]">Easy</span>
+            <span class="text-[11px] sm:text-xs text-[#A8A29E] mt-0.5">Pay with your phone</span>
+          </div>
+        </div>
+        <div class="border-t border-[#E7E5E4] mb-10 sm:mb-14 reveal-up"></div>
+        <div class="reveal-up">
+          <p class="text-center text-xs font-semibold uppercase tracking-[0.2em] text-[#A8A29E] mb-6">
+            We Accept
+          </p>
+          <div class="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
+            <div class="flex items-center gap-2.5 bg-[#FBBF24]/10 border border-[#FBBF24]/25 rounded-full px-5 py-3 hover:bg-[#FBBF24]/15 hover:scale-105 transition-all duration-300 cursor-default">
+              <div class="w-3 h-3 rounded-full bg-[#FBBF24]"></div>
+              <span class="text-sm font-bold text-[#92400E]">MTN MoMo</span>
+            </div>
+            <div class="flex items-center gap-2.5 bg-[#EF4444]/8 border border-[#EF4444]/20 rounded-full px-5 py-3 hover:bg-[#EF4444]/12 hover:scale-105 transition-all duration-300 cursor-default">
+              <div class="w-3 h-3 rounded-full bg-[#EF4444]"></div>
+              <span class="text-sm font-bold text-[#991B1B]">Telecel Cash</span>
+            </div>
+            <div class="flex items-center gap-2.5 bg-[#3B82F6]/8 border border-[#3B82F6]/20 rounded-full px-5 py-3 hover:bg-[#3B82F6]/12 hover:scale-105 transition-all duration-300 cursor-default">
+              <div class="w-3 h-3 rounded-full bg-[#3B82F6]"></div>
+              <span class="text-sm font-bold text-[#1E40AF]">Visa</span>
+            </div>
+            <div class="flex items-center gap-2.5 bg-[#F97316]/8 border border-[#F97316]/20 rounded-full px-5 py-3 hover:bg-[#F97316]/12 hover:scale-105 transition-all duration-300 cursor-default">
+              <div class="w-3 h-3 rounded-full bg-[#F97316]"></div>
+              <span class="text-sm font-bold text-[#9A3412]">Mastercard</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <style>
+        .reveal-up { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
+        .reveal-up.revealed { opacity: 1; transform: translateY(0); }
+      </style>
+    </section>
     """
   end
 
