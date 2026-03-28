@@ -70,7 +70,7 @@ defmodule Emakola.Themes.Atelier.Home do
 
       <%!-- New Arrivals --%>
       <.trending_section
-        :if={section_enabled?(@theme, :featured_products) && length(@products) > 5}
+        :if={section_enabled?(@theme, :featured_products) && length(@products) > 3}
         store={@store}
         products={@products}
       />
@@ -287,41 +287,57 @@ defmodule Emakola.Themes.Atelier.Home do
   attr :products, :list, required: true
 
   defp products_section(assigns) do
-    hero_product = List.first(assigns.products)
-    smaller_products = assigns.products |> Enum.drop(1) |> Enum.take(2)
+    hero = List.first(assigns.products)
+    grid_products = assigns.products |> Enum.drop(1) |> Enum.take(4)
 
     assigns =
       assigns
-      |> assign(:hero_product, hero_product)
-      |> assign(:smaller_products, smaller_products)
+      |> assign(:hero, hero)
+      |> assign(:grid_products, grid_products)
 
     ~H"""
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
       <%!-- Section Header --%>
-      <div class="flex items-center justify-between mb-8 sm:mb-12">
-        <h2 class="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900">
-          Featured Masterpieces
-        </h2>
+      <div class="flex items-center justify-between mb-8 sm:mb-10">
+        <div>
+          <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-[#1C1917]">
+            Featured Masterpieces
+          </h2>
+          <p class="text-sm text-[#A8A29E] mt-1 hidden sm:block">Handpicked by our artisans</p>
+        </div>
         <a
           href={"/s/#{@store.slug}/products"}
-          class="text-sm font-semibold transition-colors hover:opacity-80"
+          class="group inline-flex items-center gap-1.5 text-sm font-semibold transition-colors hover:opacity-80"
           style="color: var(--theme-primary);"
         >
-          View all &rarr;
+          View all
+          <svg
+            class="w-4 h-4 transition-transform group-hover:translate-x-0.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+            />
+          </svg>
         </a>
       </div>
 
-      <%!-- Grid: Hero card on left, 2 smaller on right --%>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <%!-- Hero Product Card --%>
-        <div :if={@hero_product}>
-          <Shared.hero_product_card product={@hero_product} store={@store} />
+      <%!-- Bento Grid: Hero left + 2x2 right --%>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+        <%!-- Hero Product --%>
+        <div :if={@hero}>
+          <Shared.hero_product_card product={@hero} store={@store} />
         </div>
 
-        <%!-- Two smaller cards stacked --%>
-        <div class="grid grid-cols-2 gap-4 sm:gap-6">
+        <%!-- Right: 2x2 grid --%>
+        <div class="grid grid-cols-2 gap-3 sm:gap-4 h-full">
           <Shared.product_card
-            :for={product <- @smaller_products}
+            :for={product <- @grid_products}
             product={product}
             store={@store}
           />
@@ -329,16 +345,6 @@ defmodule Emakola.Themes.Atelier.Home do
       </div>
 
       <%!-- Extra products row --%>
-      <div
-        :if={length(@products) > 3}
-        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mt-8"
-      >
-        <Shared.product_card
-          :for={product <- Enum.drop(@products, 3) |> Enum.take(4)}
-          product={product}
-          store={@store}
-        />
-      </div>
     </section>
     """
   end
@@ -349,7 +355,13 @@ defmodule Emakola.Themes.Atelier.Home do
   attr :products, :list, required: true
 
   defp trending_section(assigns) do
-    trending = assigns.products |> Enum.drop(5) |> Enum.take(4)
+    # Show products not in the featured hero section (skip first product used as hero)
+    featured_count = min(length(assigns.products), 5)
+    trending = assigns.products |> Enum.drop(featured_count) |> Enum.take(4)
+    # If not enough overflow, show last 4 products in different order
+    trending =
+      if trending == [], do: assigns.products |> Enum.reverse() |> Enum.take(4), else: trending
+
     assigns = assign(assigns, :trending, trending)
 
     ~H"""
