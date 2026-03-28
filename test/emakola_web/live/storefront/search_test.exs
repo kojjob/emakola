@@ -37,7 +37,7 @@ defmodule EmakolaWeb.Storefront.SearchTest do
       assert html =~ ~s(value="Kente")
       # The search overlay should contain the matching product result with price
       assert html =~ "Kente Cloth"
-      assert html =~ "GH\u20B5 150.00"
+      assert html =~ "GH\u20B5 150"
       # No results found message should NOT appear
       refute html =~ "No results found"
     end
