@@ -45,6 +45,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
         else: value
 
     updated = Map.put(socket.assigns.design_tokens, token_atom, value)
+
     {:noreply, assign(socket, design_tokens: updated, saved: false)}
   end
 
@@ -585,22 +586,42 @@ defmodule EmakolaWeb.Admin.DesignLive do
       phx-value-token={@token}
       phx-value-value={@value}
       class={[
-        "cursor-pointer p-2 rounded-lg border transition-all w-full",
+        "cursor-pointer p-2.5 rounded-xl border-2 transition-all w-full",
         if(@selected == @value,
-          do: "border-violet-500 bg-violet-50 ring-1 ring-violet-500/20",
-          else: "border-slate-200 bg-slate-50 hover:border-slate-300"
+          do: "border-emerald-500 bg-emerald-50 shadow-md shadow-emerald-500/10 scale-[1.02]",
+          else: "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
         )
       ]}
     >
-      <div class="mb-1.5">
+      <div class="mb-2">
         {render_slot(@inner_block)}
       </div>
-      <p class={[
-        "text-[10px] font-medium text-center",
-        if(@selected == @value, do: "text-violet-700", else: "text-slate-500")
-      ]}>
-        {@label}
-      </p>
+      <div class="flex items-center justify-center gap-1.5">
+        <div class={[
+          "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
+          if(@selected == @value,
+            do: "border-emerald-500 bg-emerald-500",
+            else: "border-slate-300"
+          )
+        ]}>
+          <svg
+            :if={@selected == @value}
+            class="w-2.5 h-2.5 text-white"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
+        </div>
+        <p class={[
+          "text-xs font-semibold",
+          if(@selected == @value, do: "text-emerald-700", else: "text-slate-500")
+        ]}>
+          {@label}
+        </p>
+      </div>
     </button>
     """
   end
@@ -619,25 +640,34 @@ defmodule EmakolaWeb.Admin.DesignLive do
       phx-value-token={@token}
       phx-value-value={@value}
       class={[
-        "cursor-pointer flex items-center gap-3 w-full p-2.5 rounded-lg border transition-all text-left",
+        "cursor-pointer flex items-center gap-3 w-full p-3 rounded-xl border-2 transition-all text-left",
         if(@selected == @value,
-          do: "border-violet-500 bg-violet-50",
-          else: "border-slate-200 hover:border-slate-300"
+          do: "border-emerald-500 bg-emerald-50 shadow-sm",
+          else: "border-slate-200 bg-white hover:border-slate-300"
         )
       ]}
     >
       <div class={[
-        "w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0",
-        if(@selected == @value, do: "border-violet-500 bg-violet-500", else: "border-slate-300")
+        "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
+        if(@selected == @value, do: "border-emerald-500 bg-emerald-500", else: "border-slate-300")
       ]}>
-        <div :if={@selected == @value} class="w-1.5 h-1.5 bg-white rounded-full"></div>
+        <svg
+          :if={@selected == @value}
+          class="w-2.5 h-2.5 text-white"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="3"
+          viewBox="0 0 24 24"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+        </svg>
       </div>
       <div class="flex-1 min-w-0">
         {render_slot(@inner_block)}
       </div>
       <span class={[
         "text-[10px] font-medium shrink-0",
-        if(@selected == @value, do: "text-violet-600", else: "text-slate-400")
+        if(@selected == @value, do: "text-emerald-700", else: "text-slate-400")
       ]}>
         {@label}
       </span>
