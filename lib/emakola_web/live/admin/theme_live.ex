@@ -117,6 +117,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               brand_story: Map.get(resolved.sections, :brand_story, true),
               newsletter: Map.get(resolved.sections, :newsletter, true)
             },
+            design_tokens: resolved.design_tokens,
             saving: false,
             saved: false
           )
@@ -948,15 +949,19 @@ defmodule EmakolaWeb.Admin.ThemeLive do
           {:theme_updated, updated_store}
         )
 
-        # Reload hero images from the saved config to ensure consistency
-        saved_hero = get_in(updated_store.theme_config || %{}, ["hero"]) || %{}
-        saved_images = Map.get(saved_hero, "images", [])
+        # Reload all values from the saved config to ensure consistency
+        saved_config = updated_store.theme_config || %{}
+        saved_hero = Map.get(saved_config, "hero", %{})
+        saved_colors = Map.get(saved_config, "colors", %{})
 
         {:noreply,
          socket
          |> assign(
            store: updated_store,
-           hero_images: saved_images,
+           primary_color: Map.get(saved_colors, "primary", "#2563EB"),
+           accent_color: Map.get(saved_colors, "accent", "#0F172A"),
+           bg_color: Map.get(saved_colors, "background", "#FFFFFF"),
+           hero_images: Map.get(saved_hero, "images", []),
            hero_image: Map.get(saved_hero, "image_url", ""),
            hero_carousel: Map.get(saved_hero, "carousel", false),
            hero_title: Map.get(saved_hero, "title", ""),
