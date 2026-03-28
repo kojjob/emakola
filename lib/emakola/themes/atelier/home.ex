@@ -357,180 +357,191 @@ defmodule Emakola.Themes.Atelier.Home do
   attr :theme, :map, required: true
 
   defp trust_section(assigns) do
-    trust_config = get_in(assigns.theme, [:trust]) || %{}
-
-    trust_heading =
-      Map.get(trust_config, :heading, "Seamless Trust. Secure Commerce.")
-
-    trust_subtitle =
-      Map.get(
-        trust_config,
-        :subtitle,
-        "Shop with confidence using your preferred payment method."
-      )
-
-    cards = Map.get(trust_config, :cards, nil)
-
-    default_cards = [
-      %{
-        title: "Encrypted Security",
-        description:
-          "Every transaction is protected with bank-level encryption. Your payment details are never stored on our servers.",
-        icon: :shield
-      },
-      %{
-        title: "Instant Settlement",
-        description:
-          "Payments are confirmed in real-time. No waiting, no uncertainty. Get instant order confirmation.",
-        icon: :bolt
-      },
-      %{
-        title: "Mobile Money Ready",
-        description:
-          "Pay with MTN Mobile Money, Telecel Cash, or your debit/credit card. Your choice, your convenience.",
-        icon: :phone
-      }
-    ]
-
-    trust_cards = cards || default_cards
-
-    partners =
-      Map.get(trust_config, :partners, ["MTN MoMo", "Telecel Cash", "Visa", "Mastercard"])
-
-    assigns =
-      assigns
-      |> assign(:trust_heading, trust_heading)
-      |> assign(:trust_subtitle, trust_subtitle)
-      |> assign(:trust_cards, trust_cards)
-      |> assign(:partners, partners)
-
     ~H"""
-    <section class="py-16 sm:py-24" style="background: var(--theme-bg, #F0FDF4);">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <%!-- Heading --%>
-        <div class="text-center mb-12 sm:mb-16">
-          <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-            {@trust_heading}
+    <section
+      id="trust-section"
+      class="relative py-20 sm:py-28 bg-[#FAFAF9] overflow-hidden"
+      phx-hook="ScrollReveal"
+    >
+      <%!-- Soft ambient orbs --%>
+      <div class="absolute top-10 right-[10%] w-[500px] h-[500px] rounded-full bg-[#B45309]/[0.03] blur-[120px] animate-[drift_20s_ease-in-out_infinite]">
+      </div>
+      <div class="absolute bottom-10 left-[5%] w-[400px] h-[400px] rounded-full bg-[#B45309]/[0.02] blur-[100px] animate-[drift_25s_ease-in-out_infinite_reverse]">
+      </div>
+
+      <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <%!-- Header --%>
+        <div class="text-center mb-16 sm:mb-20 reveal-up">
+          <div class="inline-flex items-center gap-2 bg-[#B45309]/8 border border-[#B45309]/15 rounded-full px-4 py-1.5 mb-6 animate-[shimmer-light_3s_ease-in-out_infinite]">
+            <svg
+              class="w-3.5 h-3.5 text-[#B45309] animate-[pulse-glow_2s_ease-in-out_infinite]"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span class="text-xs font-semibold tracking-wider uppercase text-[#B45309]">
+              Trusted Payments
+            </span>
+          </div>
+          <h2 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-[#1C1917] tracking-tight mb-4">
+            Every purchase, protected.
           </h2>
-          <p class="text-gray-600 text-base sm:text-lg max-w-2xl mx-auto">
-            {@trust_subtitle}
+          <p class="text-[#78716C] text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
+            Bank-level security meets the payment methods you already use every day.
           </p>
         </div>
 
-        <%!-- Feature Cards --%>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          <div
-            :for={{card, idx} <- Enum.with_index(@trust_cards)}
-            class={[
-              "bg-white rounded-xl p-6 sm:p-8 shadow-sm border border-gray-100 transition-shadow duration-200 hover:shadow-md",
-              if(idx == 2, do: "md:col-span-2 lg:col-span-1", else: "")
-            ]}
-          >
-            <div
-              class="w-12 h-12 rounded-lg flex items-center justify-center mb-4"
-              style="background: color-mix(in srgb, var(--theme-primary) 12%, white);"
-            >
-              <.trust_icon name={Map.get(card, :icon, :shield)} />
+        <%!-- Feature Grid --%>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 mb-16">
+          <%!-- Card 1: Security --%>
+          <div class="bg-white rounded-2xl p-8 sm:p-10 border border-[#E7E5E4] group relative overflow-hidden reveal-up reveal-delay-1 cursor-default hover:shadow-xl hover:shadow-[#B45309]/[0.06] hover:-translate-y-1 transition-all duration-500">
+            <%!-- Top accent line --%>
+            <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#B45309]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
             </div>
-            <h3 class="text-lg font-bold text-gray-900 mb-2">{Map.get(card, :title)}</h3>
-            <p class="text-gray-600 text-sm leading-relaxed">
-              {Map.get(card, :description)}
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#B45309]/10 to-[#B45309]/5 border border-[#B45309]/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:from-[#B45309]/15 group-hover:border-[#B45309]/30 transition-all duration-300">
+              <svg
+                class="w-7 h-7 text-[#B45309] group-hover:scale-105 transition-transform duration-300"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-[#1C1917] mb-2">
+              End-to-end encrypted
+            </h3>
+            <p class="text-sm text-[#78716C] leading-relaxed">
+              256-bit SSL encryption on every transaction. Payment details never touch our servers.
+            </p>
+          </div>
+
+          <%!-- Card 2: Speed --%>
+          <div class="bg-white rounded-2xl p-8 sm:p-10 border border-[#E7E5E4] group relative overflow-hidden reveal-up reveal-delay-2 cursor-default hover:shadow-xl hover:shadow-[#B45309]/[0.06] hover:-translate-y-1 transition-all duration-500">
+            <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#B45309]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+            </div>
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#B45309]/10 to-[#B45309]/5 border border-[#B45309]/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:from-[#B45309]/15 group-hover:border-[#B45309]/30 transition-all duration-300">
+              <svg
+                class="w-7 h-7 text-[#B45309] group-hover:scale-105 transition-transform duration-300"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
+                />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-[#1C1917] mb-2">
+              Confirmed in seconds
+            </h3>
+            <p class="text-sm text-[#78716C] leading-relaxed">
+              Real-time payment verification. Instant order confirmation via SMS and WhatsApp.
+            </p>
+          </div>
+
+          <%!-- Card 3: Mobile Money --%>
+          <div class="bg-white rounded-2xl p-8 sm:p-10 border border-[#E7E5E4] group relative overflow-hidden reveal-up reveal-delay-3 cursor-default hover:shadow-xl hover:shadow-[#B45309]/[0.06] hover:-translate-y-1 transition-all duration-500">
+            <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#B45309]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+            </div>
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#B45309]/10 to-[#B45309]/5 border border-[#B45309]/15 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:from-[#B45309]/15 group-hover:border-[#B45309]/30 transition-all duration-300">
+              <svg
+                class="w-7 h-7 text-[#B45309] group-hover:scale-105 transition-transform duration-300"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"
+                />
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-[#1C1917] mb-2">
+              Pay your way
+            </h3>
+            <p class="text-sm text-[#78716C] leading-relaxed">
+              MTN MoMo, Telecel Cash, Visa, or Mastercard. The payment methods Ghanaians trust most.
             </p>
           </div>
         </div>
 
-        <%!-- Payment Partners --%>
-        <div class="text-center">
-          <p class="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-6">
-            Trusted Payment Partners
+        <%!-- Payment Methods Visual --%>
+        <div class="flex flex-col items-center reveal-up reveal-delay-4">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#A8A29E] mb-5">
+            Accepted Payments
           </p>
-          <div class="flex items-center justify-center gap-8 sm:gap-12 flex-wrap">
-            <span
-              :for={partner <- @partners}
-              class="text-gray-400 font-bold text-sm sm:text-base"
-            >
-              {partner}
-            </span>
+          <div class="flex items-center gap-3 sm:gap-4">
+            <div class="flex items-center gap-2 bg-white border border-[#E7E5E4] rounded-xl px-4 py-2.5 shadow-sm hover:border-[#FBBF24]/50 hover:shadow-md hover:shadow-[#FBBF24]/10 transition-all duration-300 cursor-default">
+              <div class="w-2 h-2 rounded-full bg-[#FBBF24] animate-[pulse-dot_2s_ease-in-out_infinite]">
+              </div>
+              <span class="text-xs font-semibold text-[#44403C]">MTN MoMo</span>
+            </div>
+            <div class="flex items-center gap-2 bg-white border border-[#E7E5E4] rounded-xl px-4 py-2.5 shadow-sm hover:border-[#EF4444]/50 hover:shadow-md hover:shadow-[#EF4444]/10 transition-all duration-300 cursor-default">
+              <div class="w-2 h-2 rounded-full bg-[#EF4444] animate-[pulse-dot_2s_ease-in-out_infinite_0.3s]">
+              </div>
+              <span class="text-xs font-semibold text-[#44403C]">Telecel Cash</span>
+            </div>
+            <div class="flex items-center gap-2 bg-white border border-[#E7E5E4] rounded-xl px-4 py-2.5 shadow-sm hover:border-[#3B82F6]/50 hover:shadow-md hover:shadow-[#3B82F6]/10 transition-all duration-300 cursor-default">
+              <div class="w-2 h-2 rounded-full bg-[#3B82F6] animate-[pulse-dot_2s_ease-in-out_infinite_0.6s]">
+              </div>
+              <span class="text-xs font-semibold text-[#44403C]">Visa</span>
+            </div>
+            <div class="hidden sm:flex items-center gap-2 bg-white border border-[#E7E5E4] rounded-xl px-4 py-2.5 shadow-sm hover:border-[#F97316]/50 hover:shadow-md hover:shadow-[#F97316]/10 transition-all duration-300 cursor-default">
+              <div class="w-2 h-2 rounded-full bg-[#F97316] animate-[pulse-dot_2s_ease-in-out_infinite_0.9s]">
+              </div>
+              <span class="text-xs font-semibold text-[#44403C]">Mastercard</span>
+            </div>
           </div>
         </div>
       </div>
+
+      <style>
+        @keyframes drift {
+          0%, 100% { transform: translate(0, 0); }
+          25% { transform: translate(30px, -20px); }
+          50% { transform: translate(-20px, 15px); }
+          75% { transform: translate(15px, 25px); }
+        }
+        @keyframes pulse-glow {
+          0%, 100% { opacity: 1; filter: drop-shadow(0 0 0 transparent); }
+          50% { opacity: 0.7; filter: drop-shadow(0 0 6px rgba(180,83,9,0.4)); }
+        }
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.75); }
+        }
+        @keyframes shimmer-light {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(180,83,9,0); }
+          50% { box-shadow: 0 0 16px 3px rgba(180,83,9,0.08); }
+        }
+
+        .reveal-up {
+          opacity: 0;
+          transform: translateY(30px);
+          transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+        }
+        .reveal-up.revealed {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .reveal-delay-1 { transition-delay: 0.1s; }
+        .reveal-delay-2 { transition-delay: 0.2s; }
+        .reveal-delay-3 { transition-delay: 0.3s; }
+        .reveal-delay-4 { transition-delay: 0.4s; }
+      </style>
     </section>
-    """
-  end
-
-  defp trust_icon(%{name: :shield} = assigns) do
-    ~H"""
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke-width="2"
-      style="stroke: var(--theme-primary);"
-    >
-      <path
-        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke="currentColor"
-      />
-    </svg>
-    """
-  end
-
-  defp trust_icon(%{name: :bolt} = assigns) do
-    ~H"""
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke-width="2"
-      style="stroke: var(--theme-primary);"
-    >
-      <path
-        d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke="currentColor"
-      />
-    </svg>
-    """
-  end
-
-  defp trust_icon(%{name: :phone} = assigns) do
-    ~H"""
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke-width="2"
-      style="stroke: var(--theme-primary);"
-    >
-      <rect x="5" y="2" width="14" height="20" rx="2" ry="2" stroke="currentColor" />
-      <line x1="12" y1="18" x2="12.01" y2="18" stroke="currentColor" stroke-linecap="round" />
-    </svg>
-    """
-  end
-
-  defp trust_icon(assigns) do
-    ~H"""
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke-width="2"
-      style="stroke: var(--theme-primary);"
-    >
-      <path
-        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke="currentColor"
-      />
-    </svg>
     """
   end
 
