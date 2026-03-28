@@ -35,7 +35,7 @@ defmodule Emakola.Themes.DesignTokens do
           true -> nil
         end
 
-      if atom_key && Map.has_key?(acc, atom_key) do
+      if atom_key && Map.has_key?(acc, atom_key) && value != "" do
         Map.put(acc, atom_key, value)
       else
         acc
