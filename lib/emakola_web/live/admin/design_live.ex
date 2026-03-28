@@ -40,9 +40,14 @@ defmodule EmakolaWeb.Admin.DesignLive do
     token_atom = String.to_existing_atom(token)
 
     value =
-      if token_atom == :product_grid_columns,
-        do: String.to_integer(value),
-        else: value
+      if token_atom == :product_grid_columns do
+        case Integer.parse(value) do
+          {int, _} -> int
+          :error -> 3
+        end
+      else
+        value
+      end
 
     updated = Map.put(socket.assigns.design_tokens, token_atom, value)
 
