@@ -17,6 +17,8 @@ defmodule Emakola.Application do
       {Phoenix.PubSub, name: Emakola.PubSub},
       {Finch, name: Emakola.Finch},
       {Oban, Application.fetch_env!(:emakola, Oban)},
+      # PDF generation via headless Chrome
+      ChromicPDF,
       # ETS cache for storefront product/category queries
       Emakola.Cache.StoreCache,
       # Start to serve requests, typically the last entry

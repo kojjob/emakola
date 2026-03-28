@@ -96,7 +96,10 @@ defmodule Emakola.MixProject do
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
 
       # SAT solver for Ash policy checks
-      {:simple_sat, "~> 0.1"}
+      {:simple_sat, "~> 0.1"},
+
+      # PDF generation via headless Chrome
+      {:chromic_pdf, "~> 1.17"}
     ]
   end
 
