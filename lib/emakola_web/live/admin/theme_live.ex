@@ -446,23 +446,22 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               Upload Hero Images
             </label>
             <form id="hero-upload-form" phx-change="validate_upload" phx-submit="save_hero_image">
-              <div
-                class="relative border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-emerald-400 transition-colors cursor-pointer"
-                phx-drop-target={@uploads.hero_images.ref}
-              >
-                <.live_file_input
-                  upload={@uploads.hero_images}
-                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                />
-                <span class="material-symbols-outlined text-3xl text-slate-400 pointer-events-none">
-                  add_photo_alternate
-                </span>
-                <p class="text-sm text-slate-500 mt-2 pointer-events-none">
-                  Drag images here or <span class="text-emerald-600 font-medium">browse</span>
-                </p>
-                <p class="text-[11px] text-slate-400 mt-1 pointer-events-none">
-                  JPG, PNG, WebP up to 5MB each (max 5 images)
-                </p>
+              <div phx-drop-target={@uploads.hero_images.ref}>
+                <.live_file_input upload={@uploads.hero_images} class="sr-only" />
+                <label
+                  for={@uploads.hero_images.ref}
+                  class="block border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-emerald-400 transition-colors cursor-pointer"
+                >
+                  <span class="material-symbols-outlined text-3xl text-slate-400">
+                    add_photo_alternate
+                  </span>
+                  <p class="text-sm text-slate-500 mt-2">
+                    Drag images here or <span class="text-emerald-600 font-medium">browse</span>
+                  </p>
+                  <p class="text-[11px] text-slate-400 mt-1">
+                    JPG, PNG, WebP up to 5MB each (max 5 images)
+                  </p>
+                </label>
               </div>
 
               <%!-- Upload previews --%>
