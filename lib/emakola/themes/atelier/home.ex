@@ -5,9 +5,10 @@ defmodule Emakola.Themes.Atelier.Home do
   Sections (gated by `@theme.sections`):
   - Hero: Full-screen image bg, bold sans-serif heading, green CTAs
   - Categories: Horizontal scrolling circles
-  - Products: Featured hero card + 2 smaller cards
+  - Products: Featured hero card + 2x2 smaller cards grid
+  - Trending: New Arrivals flat 4-column grid
   - Trust: Secure commerce section with payment partners
-  - Newsletter: Email signup "Join the Artisan Circle"
+  - Newsletter: "Stay Updated" email signup with benefits
   - Footer: Dark bg with store info and links
   """
   use Phoenix.Component
@@ -56,6 +57,13 @@ defmodule Emakola.Themes.Atelier.Home do
       <%!-- Featured Products --%>
       <.products_section
         :if={section_enabled?(@theme, :featured_products) && @products != []}
+        store={@store}
+        products={@products}
+      />
+
+      <%!-- New Arrivals --%>
+      <.trending_section
+        :if={section_enabled?(@theme, :featured_products) && length(@products) > 5}
         store={@store}
         products={@products}
       />
@@ -296,7 +304,7 @@ defmodule Emakola.Themes.Atelier.Home do
 
   defp products_section(assigns) do
     hero_product = List.first(assigns.products)
-    smaller_products = assigns.products |> Enum.drop(1) |> Enum.take(2)
+    smaller_products = assigns.products |> Enum.drop(1) |> Enum.take(4)
 
     assigns =
       assigns
@@ -319,33 +327,24 @@ defmodule Emakola.Themes.Atelier.Home do
         </a>
       </div>
 
-      <%!-- Grid: Hero card on left, 2 smaller on right --%>
+      <%!-- Grid: Hero card on left, 4 smaller cards (2x2) on right --%>
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <%!-- Hero Product Card --%>
         <div :if={@hero_product}>
           <Shared.hero_product_card product={@hero_product} store={@store} />
         </div>
 
-        <%!-- Two smaller cards stacked --%>
-        <div class="grid grid-cols-2 gap-4 sm:gap-6">
+        <%!-- Four smaller cards in 2x2 grid, matching hero height --%>
+        <div
+          :if={@smaller_products != []}
+          class="grid grid-cols-2 grid-rows-2 gap-4 sm:gap-6 h-full"
+        >
           <Shared.product_card
             :for={product <- @smaller_products}
             product={product}
             store={@store}
           />
         </div>
-      </div>
-
-      <%!-- Extra products row --%>
-      <div
-        :if={length(@products) > 3}
-        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mt-8"
-      >
-        <Shared.product_card
-          :for={product <- Enum.drop(@products, 3) |> Enum.take(4)}
-          product={product}
-          store={@store}
-        />
       </div>
     </section>
     """
@@ -540,20 +539,20 @@ defmodule Emakola.Themes.Atelier.Home do
   attr :theme, :map, required: true
 
   defp newsletter_section(assigns) do
-    newsletter_config = get_in(assigns.theme, [:newsletter]) || %{}
+    newsletter_config = get_in(assigns[:theme], [:newsletter]) || %{}
 
     nl_heading =
-      Map.get(newsletter_config, :heading, "Join the Artisan Circle.")
+      Map.get(newsletter_config, :heading, "Stay Updated")
 
     nl_description =
       Map.get(
         newsletter_config,
         :description,
-        "Be the first to discover new artisan collections, exclusive offers, and stories from the makers."
+        "Get the latest collections, exclusive offers, and order updates delivered to your inbox."
       )
 
     nl_button_text =
-      Map.get(newsletter_config, :button_text, "Join Now")
+      Map.get(newsletter_config, :button_text, "Subscribe")
 
     nl_placeholder =
       Map.get(newsletter_config, :placeholder, "Enter your email")
@@ -570,16 +569,42 @@ defmodule Emakola.Themes.Atelier.Home do
       |> assign(:nl_disclaimer, nl_disclaimer)
 
     ~H"""
-    <section class="bg-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+    <section class="bg-gradient-to-b from-[#F5F5F4] to-[#FAFAF9] border-t border-stone-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div class="max-w-xl mx-auto text-center">
-          <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
+          <%!-- Envelope Icon --%>
+          <div class="flex justify-center mb-4">
+            <div
+              class="w-10 h-10 rounded-full flex items-center justify-center"
+              style="background: color-mix(in srgb, var(--theme-primary) 12%, white);"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke-width="2"
+                style="stroke: var(--theme-primary);"
+              >
+                <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" />
+                <path
+                  d="M22 7l-10 7L2 7"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+          </div>
+
+          <h2 class="text-2xl sm:text-3xl font-black text-gray-900 mb-2">
             {@nl_heading}
           </h2>
-          <p class="text-gray-600 text-base sm:text-lg leading-relaxed mb-8">
+          <p class="text-gray-600 text-sm sm:text-base leading-relaxed mb-6">
             {@nl_description}
           </p>
-          <form class="flex flex-col sm:flex-row gap-3 mb-4" phx-submit="subscribe_newsletter">
+
+          <form class="flex flex-col sm:flex-row gap-3 mb-5" phx-submit="subscribe_newsletter">
             <label for="newsletter-email" class="sr-only">Email address</label>
             <input
               id="newsletter-email"
@@ -587,21 +612,103 @@ defmodule Emakola.Themes.Atelier.Home do
               name="email"
               placeholder={@nl_placeholder}
               required
-              class="flex-1 px-5 py-3.5 bg-gray-100 rounded-lg text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 transition-shadow duration-200 border-0 min-h-[48px]"
+              class="flex-1 px-5 py-3 bg-white rounded-lg text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 transition-shadow duration-200 border border-stone-200 min-h-[48px]"
               style="--tw-ring-color: var(--theme-primary);"
             />
             <button
               type="submit"
-              class="cursor-pointer px-8 py-3.5 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-200 hover:opacity-90 whitespace-nowrap min-h-[48px]"
+              class="cursor-pointer px-8 py-3 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-200 hover:opacity-90 whitespace-nowrap min-h-[48px]"
               style="background: var(--theme-primary);"
             >
               {@nl_button_text}
             </button>
           </form>
+
+          <%!-- Benefits --%>
+          <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 mb-3">
+            <span class="flex items-center gap-1.5 text-xs text-gray-500">
+              <svg
+                class="w-3.5 h-3.5 text-green-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              New arrivals
+            </span>
+            <span class="flex items-center gap-1.5 text-xs text-gray-500">
+              <svg
+                class="w-3.5 h-3.5 text-green-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Exclusive deals
+            </span>
+            <span class="flex items-center gap-1.5 text-xs text-gray-500">
+              <svg
+                class="w-3.5 h-3.5 text-green-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Order updates
+            </span>
+          </div>
+
           <p class="text-xs text-gray-400">
             {@nl_disclaimer}
           </p>
         </div>
+      </div>
+    </section>
+    """
+  end
+
+  # ── Trending / New Arrivals Section ──
+
+  attr :store, :map, required: true
+  attr :products, :list, required: true
+
+  defp trending_section(assigns) do
+    trending_products = assigns.products |> Enum.drop(5) |> Enum.take(4)
+
+    assigns = assign(assigns, :trending_products, trending_products)
+
+    ~H"""
+    <section
+      :if={@trending_products != []}
+      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24"
+    >
+      <%!-- Section Header --%>
+      <div class="flex items-center justify-between mb-8 sm:mb-12">
+        <h2 class="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900">
+          New Arrivals
+        </h2>
+        <a
+          href={"/s/#{@store.slug}/products"}
+          class="text-sm font-semibold transition-colors hover:opacity-80"
+          style="color: var(--theme-primary);"
+        >
+          View all &rarr;
+        </a>
+      </div>
+
+      <%!-- Flat 4-column product grid --%>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+        <Shared.product_card
+          :for={product <- @trending_products}
+          product={product}
+          store={@store}
+        />
       </div>
     </section>
     """
