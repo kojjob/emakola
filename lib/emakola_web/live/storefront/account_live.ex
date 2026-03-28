@@ -242,7 +242,12 @@ defmodule EmakolaWeb.Storefront.AccountLive do
             <%!-- PROFILE TAB --%>
             <div :if={@active_tab == "profile"} class="space-y-10">
               <.profile_section customer={@customer} theme={@theme} />
-              <.recent_orders_section orders={@orders} store={@store} theme={@theme} order_returns={@order_returns} />
+              <.recent_orders_section
+                orders={@orders}
+                store={@store}
+                theme={@theme}
+                order_returns={@order_returns}
+              />
             </div>
 
             <%!-- ORDERS TAB --%>
@@ -250,7 +255,12 @@ defmodule EmakolaWeb.Storefront.AccountLive do
               <h2 class="text-2xl font-semibold text-[#1C1917]">
                 Order History
               </h2>
-              <.order_list orders={@orders} store={@store} theme={@theme} order_returns={@order_returns} />
+              <.order_list
+                orders={@orders}
+                store={@store}
+                theme={@theme}
+                order_returns={@order_returns}
+              />
             </div>
 
             <%!-- ADDRESSES TAB --%>
@@ -471,7 +481,12 @@ defmodule EmakolaWeb.Storefront.AccountLive do
           View All
         </button>
       </div>
-      <.order_list orders={Enum.take(@orders, 3)} store={@store} theme={@theme} order_returns={@order_returns} />
+      <.order_list
+        orders={Enum.take(@orders, 3)}
+        store={@store}
+        theme={@theme}
+        order_returns={@order_returns}
+      />
     </section>
     """
   end
@@ -533,7 +548,12 @@ defmodule EmakolaWeb.Storefront.AccountLive do
                 Order #{order.order_number}
               </p>
               <p class="text-xs mt-0.5 text-[#44403C]">
-                {format_order_date(order.inserted_at)} &middot; {order_item_count(order)} item{if order_item_count(order) != 1, do: "s"}
+                {format_order_date(order.inserted_at)} &middot; {order_item_count(order)} item{if order_item_count(
+                                                                                                    order
+                                                                                                  ) !=
+                                                                                                    1,
+                                                                                                  do:
+                                                                                                    "s"}
               </p>
             </div>
           </div>

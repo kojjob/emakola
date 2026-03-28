@@ -235,7 +235,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
                 <p class="text-xs text-stone-500 mt-0.5">
                   <.reason_label reason={return.reason} />
                   <span :if={return.reason_detail}>
-                     --  {String.slice(return.reason_detail, 0..60)}
+                    -- {String.slice(return.reason_detail, 0..60)}
                   </span>
                 </p>
               </div>
