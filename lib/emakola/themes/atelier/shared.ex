@@ -525,6 +525,33 @@ defmodule Emakola.Themes.Atelier.Shared do
             <.image_placeholder />
           </div>
 
+          <%!-- Quick View icon button (top-right, visible on hover) --%>
+          <a
+            href={"/s/#{@store.slug}/products/#{@product.slug}"}
+            class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-gray-50"
+            aria-label={"View #{@product.title}"}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-4 h-4 text-gray-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+              />
+            </svg>
+          </a>
+
           <%!-- Quick Add overlay button --%>
           <div :if={@show_add_button} class="absolute bottom-3 left-3 right-3">
             <button
@@ -545,6 +572,9 @@ defmodule Emakola.Themes.Atelier.Shared do
         </h3>
         <.price_display product={@product} store={@store} />
       </a>
+
+      <%!-- Variant indicator dots --%>
+      <.variant_dots count={@product[:variant_count]} />
     </div>
     """
   end
@@ -716,6 +746,27 @@ defmodule Emakola.Themes.Atelier.Shared do
       >
         {Currency.format_price(@product.max_price, @store.currency)}
       </p>
+    </div>
+    """
+  end
+
+  # ── Variant Dots ──
+
+  @doc """
+  Small indicator dots showing the number of available variants.
+  Only renders when a product has more than one variant.
+  """
+  attr :count, :integer, default: nil
+
+  def variant_dots(assigns) do
+    count = assigns[:count] || 0
+    dot_count = min(count, 5)
+    assigns = assign(assigns, count: count, dot_count: dot_count)
+
+    ~H"""
+    <div :if={@count > 1} class="flex items-center gap-1 mt-1">
+      <span :for={_i <- 1..@dot_count} class="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+      <span class="text-[10px] text-gray-400 ml-0.5">{@count} options</span>
     </div>
     """
   end

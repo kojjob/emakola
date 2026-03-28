@@ -10,24 +10,31 @@ defmodule EmakolaWeb.Helpers.Currency do
   @doc """
   Formats an integer amount in minor currency units to a display string.
 
+  Round numbers (no minor units) omit the decimal portion for cleaner display.
+
   ## Examples
 
       iex> EmakolaWeb.Helpers.Currency.format_price(15000)
-      "GH\\u20B5 150.00"
+      "GH\\u20B5 150"
 
       iex> EmakolaWeb.Helpers.Currency.format_price(5050, "NGN")
       "\\u20A6 50.50"
 
       iex> EmakolaWeb.Helpers.Currency.format_price(0)
-      "GH\\u20B5 0.00"
+      "GH\\u20B5 0"
   """
   @spec format_price(integer(), String.t()) :: String.t()
   def format_price(amount_minor_units, currency \\ "GHS") when is_integer(amount_minor_units) do
     major = div(amount_minor_units, 100)
     minor = rem(amount_minor_units, 100)
     symbol = currency_symbol(currency)
-    minor_str = minor |> abs() |> Integer.to_string() |> String.pad_leading(2, "0")
-    "#{symbol} #{major}.#{minor_str}"
+
+    if minor == 0 do
+      "#{symbol} #{major}"
+    else
+      minor_str = minor |> abs() |> Integer.to_string() |> String.pad_leading(2, "0")
+      "#{symbol} #{major}.#{minor_str}"
+    end
   end
 
   @doc """
