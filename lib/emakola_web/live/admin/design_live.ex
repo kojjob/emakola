@@ -14,7 +14,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
       nil ->
         {:ok,
          socket
-         |> assign(page_title: "Design", active_nav: :theme)
+         |> assign(page_title: "Design", active_nav: :design)
          |> put_flash(:error, "Please set up your store first.")
          |> redirect(to: "/onboarding")}
 
@@ -25,7 +25,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
          socket
          |> assign(
            page_title: "Design Studio",
-           active_nav: :theme,
+           active_nav: :design,
            store: store,
            design_tokens: resolved.design_tokens,
            preview_key: System.unique_integer([:positive]),
