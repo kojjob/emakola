@@ -4,15 +4,15 @@ defmodule EmakolaWeb.Helpers.CurrencyTest do
   alias EmakolaWeb.Helpers.Currency
 
   describe "format_price/2" do
-    test "formats GHS pesewas correctly" do
-      assert Currency.format_price(15000) == "GH\u20B5 150.00"
+    test "formats round GHS amounts without decimals" do
+      assert Currency.format_price(15000) == "GH\u20B5 150"
     end
 
-    test "formats zero amount" do
-      assert Currency.format_price(0) == "GH\u20B5 0.00"
+    test "formats zero amount without decimals" do
+      assert Currency.format_price(0) == "GH\u20B5 0"
     end
 
-    test "formats amount with minor units" do
+    test "formats amount with minor units showing 2 decimals" do
       assert Currency.format_price(5050) == "GH\u20B5 50.50"
     end
 
@@ -20,35 +20,48 @@ defmodule EmakolaWeb.Helpers.CurrencyTest do
       assert Currency.format_price(1) == "GH\u20B5 0.01"
     end
 
-    test "formats NGN kobo" do
-      assert Currency.format_price(50000, "NGN") == "\u20A6 500.00"
+    test "formats round NGN amount without decimals" do
+      assert Currency.format_price(50000, "NGN") == "\u20A6 500"
     end
 
-    test "formats USD cents" do
+    test "formats USD cents with decimals" do
       assert Currency.format_price(1999, "USD") == "$ 19.99"
     end
 
     test "pads minor units with leading zero" do
       assert Currency.format_price(105) == "GH\u20B5 1.05"
     end
+
+    test "formats round amount at exact boundary" do
+      assert Currency.format_price(30000) == "GH\u20B5 300"
+    end
+
+    test "formats non-round amount with trailing zero" do
+      assert Currency.format_price(2950) == "GH\u20B5 29.50"
+    end
   end
 
   describe "format_price_range/3" do
     test "shows single price when min equals max" do
-      assert Currency.format_price_range(5000, 5000, "GHS") == "GH\u20B5 50.00"
+      assert Currency.format_price_range(5000, 5000, "GHS") == "GH\u20B5 50"
     end
 
     test "shows range when min differs from max" do
       assert Currency.format_price_range(1000, 2500, "GHS") ==
-               "GH\u20B5 10.00 - GH\u20B5 25.00"
+               "GH\u20B5 10 - GH\u20B5 25"
+    end
+
+    test "shows range with non-round amounts" do
+      assert Currency.format_price_range(1050, 2550, "GHS") ==
+               "GH\u20B5 10.50 - GH\u20B5 25.50"
     end
 
     test "handles nil min" do
-      assert Currency.format_price_range(nil, 5000, "GHS") == "GH\u20B5 50.00"
+      assert Currency.format_price_range(nil, 5000, "GHS") == "GH\u20B5 50"
     end
 
     test "handles nil max" do
-      assert Currency.format_price_range(5000, nil, "GHS") == "GH\u20B5 50.00"
+      assert Currency.format_price_range(5000, nil, "GHS") == "GH\u20B5 50"
     end
 
     test "handles both nil" do
