@@ -92,57 +92,37 @@ defmodule EmakolaWeb.Admin.DesignLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="fixed inset-0 bg-slate-100 flex" style="top: 0; z-index: 40;">
-      <%!-- LEFT: Live Preview --%>
-      <div class="flex-1 flex flex-col">
-        <%!-- Top bar --%>
-        <div class="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 shrink-0">
-          <div class="flex items-center gap-3">
-            <a
-              href="/admin/theme"
-              class="p-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-500"
-            >
-              <svg
-                class="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M15.75 19.5L8.25 12l7.5-7.5"
-                />
-              </svg>
-            </a>
-            <div>
-              <h1 class="text-sm font-bold text-slate-900">Design Studio</h1>
-              <p class="text-[11px] text-slate-400">{@store.name}</p>
-            </div>
-          </div>
-          <button
-            phx-click="save_design"
-            disabled={@saving || @saved}
-            class={[
-              "px-5 py-2 rounded-xl text-sm font-semibold transition-all",
-              cond do
-                @saved -> "bg-emerald-100 text-emerald-700"
-                @saving -> "bg-slate-200 text-slate-400"
-                true -> "bg-slate-900 text-white hover:bg-slate-800"
-              end
-            ]}
-          >
-            {cond do
-              @saved -> "Saved"
-              @saving -> "Saving..."
-              true -> "Save Changes"
-            end}
-          </button>
+    <div class="space-y-6">
+      <%!-- Header --%>
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-xl font-bold text-slate-900">Design Studio</h1>
+          <p class="text-sm text-slate-500 mt-0.5">Customize your store's visual style</p>
         </div>
+        <button
+          phx-click="save_design"
+          disabled={@saving || @saved}
+          class={[
+            "px-6 py-2.5 rounded-xl text-sm font-semibold transition-all",
+            cond do
+              @saved -> "bg-emerald-100 text-emerald-700"
+              @saving -> "bg-slate-200 text-slate-400"
+              true -> "bg-emerald-600 text-white hover:bg-emerald-700"
+            end
+          ]}
+        >
+          {cond do
+            @saved -> "Saved"
+            @saving -> "Saving..."
+            true -> "Save Changes"
+          end}
+        </button>
+      </div>
 
-        <%!-- Live Preview (responds to token changes instantly) --%>
-        <div class="flex-1 p-4 overflow-y-auto">
+      <%!-- Two-column layout --%>
+      <div class="flex gap-6">
+        <%!-- LEFT: Live Preview --%>
+        <div class="flex-1 min-w-0">
           <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
             <%!-- Preview Navbar --%>
             <div class={"flex items-center h-12 px-4 border-b border-slate-200 gap-3 " <> Emakola.Themes.DesignTokens.navbar_classes(@design_tokens.navbar_layout)}>
@@ -281,15 +261,8 @@ defmodule EmakolaWeb.Admin.DesignLive do
       </div>
 
       <%!-- RIGHT: Design Panel --%>
-      <div class="w-80 bg-white border-l border-slate-200 flex flex-col shrink-0 overflow-hidden">
-        <div class="p-4 border-b border-slate-100 shrink-0">
-          <h2 class="text-sm font-bold text-slate-900">Design</h2>
-          <p class="text-[11px] text-slate-400 mt-0.5">
-            Customize your store's visual style
-          </p>
-        </div>
-
-        <div class="flex-1 overflow-y-auto p-4 space-y-6">
+      <div class="w-80 shrink-0">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-6 sticky top-4">
           <%!-- BUTTONS --%>
           <.panel_section title="Buttons">
             <div class="grid grid-cols-3 gap-2">
