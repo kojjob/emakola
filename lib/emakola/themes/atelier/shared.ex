@@ -663,14 +663,15 @@ defmodule Emakola.Themes.Atelier.Shared do
 
   def category_circle(assigns) do
     image = category_image(assigns.category)
-    assigns = assign(assigns, :image, image)
+    product_count = Map.get(assigns.category, :product_count, nil)
+    assigns = assigns |> assign(:image, image) |> assign(:product_count, product_count)
 
     ~H"""
     <a
       href={"/s/#{@store.slug}/category/#{@category.slug}"}
-      class="atelier-category-circle flex flex-col items-center gap-2 flex-shrink-0 group"
+      class="atelier-category-circle flex flex-col items-center gap-2.5 flex-shrink-0 group"
     >
-      <div class="atelier-cat-ring w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200 transition-colors duration-200">
+      <div class="atelier-cat-ring w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-2 border-gray-200 transition-colors duration-200">
         <img
           :if={@image}
           src={@image}
@@ -678,13 +679,27 @@ defmodule Emakola.Themes.Atelier.Shared do
           class="w-full h-full object-cover transition-transform duration-300"
           loading="lazy"
         />
-        <div :if={!@image} class="w-full h-full flex items-center justify-center bg-gray-200">
-          <span class="text-lg font-bold text-gray-400">{String.first(@category.name)}</span>
+        <div
+          :if={!@image}
+          class="w-full h-full flex items-center justify-center"
+          style="background: linear-gradient(135deg, color-mix(in srgb, var(--theme-primary) 15%, white), color-mix(in srgb, var(--theme-primary) 30%, white));"
+        >
+          <span
+            class="text-2xl sm:text-3xl font-black"
+            style="color: var(--theme-primary);"
+          >
+            {String.first(@category.name)}
+          </span>
         </div>
       </div>
-      <span class="text-xs sm:text-sm font-medium text-gray-700 text-center whitespace-nowrap">
-        {@category.name}
-      </span>
+      <div class="flex flex-col items-center gap-0.5">
+        <span class="text-xs sm:text-sm font-semibold text-gray-800 text-center whitespace-nowrap">
+          {@category.name}
+        </span>
+        <span :if={@product_count} class="text-[11px] text-gray-500">
+          {@product_count} {if @product_count == 1, do: "item", else: "items"}
+        </span>
+      </div>
     </a>
     """
   end

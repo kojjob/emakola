@@ -5,10 +5,9 @@ defmodule Emakola.Themes.Atelier.Home do
   Sections (gated by `@theme.sections`):
   - Hero: Full-screen image bg, bold sans-serif heading, green CTAs
   - Categories: Horizontal scrolling circles
-  - Products: Featured hero card + 2x2 smaller cards grid
-  - Trending: New Arrivals flat 4-column grid
+  - Products: Featured hero card + 2 smaller cards
   - Trust: Secure commerce section with payment partners
-  - Newsletter: "Stay Updated" email signup with benefits
+  - Newsletter: Email signup "Join the Artisan Circle"
   - Footer: Dark bg with store info and links
   """
   use Phoenix.Component
@@ -61,13 +60,6 @@ defmodule Emakola.Themes.Atelier.Home do
         products={@products}
       />
 
-      <%!-- New Arrivals --%>
-      <.trending_section
-        :if={section_enabled?(@theme, :featured_products) && length(@products) > 5}
-        store={@store}
-        products={@products}
-      />
-
       <%!-- Trust / Payment Section --%>
       <.trust_section :if={section_enabled?(@theme, :trust)} store={@store} theme={@theme} />
 
@@ -90,39 +82,48 @@ defmodule Emakola.Themes.Atelier.Home do
   attr :store, :map, required: true
   attr :theme, :map, required: true
 
-  @default_hero_image "https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=1600&h=900&fit=crop&q=80"
-
   defp hero_section(assigns) do
     hero_images = get_in(assigns.theme, [:hero, :images]) || []
     hero_image = get_in(assigns.theme, [:hero, :image_url])
     hero_carousel = get_in(assigns.theme, [:hero, :carousel]) || false
 
-    effective_images =
+    # Only use images that are actual uploads (not stock photos / unsplash URLs)
+    valid_images =
       case hero_images do
-        [_ | _] -> hero_images
-        _ when hero_image not in [nil, ""] -> [hero_image]
-        _ -> [@default_hero_image]
+        [_ | _] ->
+          Enum.filter(hero_images, &valid_hero_image?/1)
+
+        _ when hero_image not in [nil, ""] ->
+          if valid_hero_image?(hero_image), do: [hero_image], else: []
+
+        _ ->
+          []
       end
 
-    use_carousel = hero_carousel && length(effective_images) > 1
-    image_count = length(effective_images)
-    total_duration = image_count * 7
+    has_images = valid_images != []
 
-    hero_subtitle = get_in(assigns.theme, [:hero, :subtitle]) || "The 2024 Collection"
+    use_carousel = has_images && hero_carousel && length(valid_images) > 1
+    image_count = if has_images, do: length(valid_images), else: 0
+    total_duration = max(image_count, 1) * 7
+
+    store_name = Map.get(assigns.store, :name, "Our Store")
+
+    hero_subtitle = get_in(assigns.theme, [:hero, :subtitle]) || "Welcome to #{store_name}"
     hero_title = get_in(assigns.theme, [:hero, :title]) || "Crafting Trust,\nCurating Excellence."
 
     hero_description =
       get_in(assigns.theme, [:hero, :description]) ||
         "Experience the soul of West African craftsmanship. Every piece tells a story of heritage, precision, and modern elegance."
 
-    cta_text = get_in(assigns.theme, [:hero, :cta_text]) || "Explore Masterpieces"
+    cta_text = get_in(assigns.theme, [:hero, :cta_text]) || "Shop Now"
 
     cta_secondary_text =
-      get_in(assigns.theme, [:hero, :cta_secondary_text]) || "Meet the Artisans"
+      get_in(assigns.theme, [:hero, :cta_secondary_text]) || "Our Story"
 
     assigns =
       assigns
-      |> assign(:effective_images, effective_images)
+      |> assign(:valid_images, valid_images)
+      |> assign(:has_images, has_images)
       |> assign(:use_carousel, use_carousel)
       |> assign(:image_count, image_count)
       |> assign(:total_duration, total_duration)
@@ -134,66 +135,75 @@ defmodule Emakola.Themes.Atelier.Home do
 
     ~H"""
     <section class="relative min-h-screen flex items-end overflow-hidden -mt-16 sm:-mt-20">
-      <%!-- Image container: clip-path prevents Ken Burns zoom from overflowing --%>
+      <%!-- Background: images with Ken Burns, or solid gradient fallback --%>
       <div class="absolute inset-0 overflow-hidden" style="clip-path: inset(0);">
-        <%!-- Carousel — smooth crossfade with subtle Ken Burns zoom --%>
-        <%= if @use_carousel do %>
-          <% # Each slide owns (100 / N)% of the timeline.
-          # Fade overlap = 4% so there is NEVER a blank frame.
-          pct = Float.round(100.0 / @image_count, 2)
-          overlap = 4.0 %>
-          <style>
-            @keyframes atelier-slide {
-              0%                                 { opacity: 0; transform: scale(1); }
-              <%= overlap %>%                    { opacity: 1; transform: scale(1.005); }
-              <%= Float.round(pct - overlap, 1) %>% { opacity: 1; transform: scale(1.04); }
-              <%= pct %>%                        { opacity: 0; transform: scale(1.04); }
-              100%                               { opacity: 0; transform: scale(1); }
-            }
-            .atelier-hero-img {
-              will-change: opacity, transform;
-              animation: atelier-slide <%= @total_duration %>s ease-in-out infinite;
-            }
-            @keyframes atelier-progress {
-              0%   { transform: scaleX(0); transform-origin: left; }
-              92%  { transform: scaleX(1); transform-origin: left; }
-              100% { transform: scaleX(1); transform-origin: left; }
-            }
-          </style>
-          <%!--
-          Stagger each image by (total / N) seconds, but start the NEXT
-          image's fade-in slightly BEFORE the current one fades out.
-          This creates the overlap that prevents blank frames.
-        --%>
-          <img
-            :for={{url, idx} <- Enum.with_index(@effective_images)}
-            src={url}
-            alt={"#{@store.name} collection #{idx + 1}"}
-            class="atelier-hero-img absolute inset-0 w-full h-full object-cover object-center"
-            style={"animation-delay: #{Float.round(idx * @total_duration / @image_count - (if idx > 0, do: @total_duration * overlap / 100, else: 0), 1)}s; opacity: #{if idx == 0, do: 1, else: 0};"}
-          />
-        <% else %>
-          <%!-- Single image: gentle Ken Burns drift --%>
-          <img
-            src={List.first(@effective_images)}
-            alt={"#{@store.name} collection"}
-            class="absolute inset-0 w-full h-full object-cover object-center"
-            style="animation: kb-single 20s ease-in-out infinite alternate;"
-          />
-          <style>
-            @keyframes kb-single {
-              0%   { transform: scale(1)    translate(0, 0); }
-              100% { transform: scale(1.06) translate(-1%, -0.5%); }
-            }
-          </style>
-        <% end %>
+        <%= if @has_images do %>
+          <%!-- Carousel — smooth crossfade with subtle Ken Burns zoom --%>
+          <%= if @use_carousel do %>
+            <% # Each slide owns (100 / N)% of the timeline.
+            # Fade overlap = 4% so there is NEVER a blank frame.
+            pct = Float.round(100.0 / @image_count, 2)
+            overlap = 4.0 %>
+            <style>
+              @keyframes atelier-slide {
+                0%                                 { opacity: 0; transform: scale(1); }
+                <%= overlap %>%                    { opacity: 1; transform: scale(1.005); }
+                <%= Float.round(pct - overlap, 1) %>% { opacity: 1; transform: scale(1.04); }
+                <%= pct %>%                        { opacity: 0; transform: scale(1.04); }
+                100%                               { opacity: 0; transform: scale(1); }
+              }
+              .atelier-hero-img {
+                will-change: opacity, transform;
+                animation: atelier-slide <%= @total_duration %>s ease-in-out infinite;
+              }
+              @keyframes atelier-progress {
+                0%   { transform: scaleX(0); transform-origin: left; }
+                92%  { transform: scaleX(1); transform-origin: left; }
+                100% { transform: scaleX(1); transform-origin: left; }
+              }
+            </style>
+            <img
+              :for={{url, idx} <- Enum.with_index(@valid_images)}
+              src={url}
+              alt={"#{@store.name} collection #{idx + 1}"}
+              class="atelier-hero-img absolute inset-0 w-full h-full object-cover object-center"
+              style={"animation-delay: #{Float.round(idx * @total_duration / @image_count - (if idx > 0, do: @total_duration * overlap / 100, else: 0), 1)}s; opacity: #{if idx == 0, do: 1, else: 0};"}
+            />
+          <% else %>
+            <%!-- Single image: gentle Ken Burns drift --%>
+            <img
+              src={List.first(@valid_images)}
+              alt={"#{@store.name} collection"}
+              class="absolute inset-0 w-full h-full object-cover object-center"
+              style="animation: kb-single 20s ease-in-out infinite alternate;"
+            />
+            <style>
+              @keyframes kb-single {
+                0%   { transform: scale(1)    translate(0, 0); }
+                100% { transform: scale(1.06) translate(-1%, -0.5%); }
+              }
+            </style>
+          <% end %>
 
-        <%!-- Scrim: two-layer overlay guarantees text contrast on ANY image (dark or light) --%>
-        <div class="absolute inset-0 bg-black/30"></div>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent">
-        </div>
+          <%!-- Scrim: two-layer overlay guarantees text contrast on ANY image --%>
+          <div class="absolute inset-0 bg-black/30"></div>
+          <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent">
+          </div>
+        <% else %>
+          <%!-- Gradient fallback when no valid hero images exist --%>
+          <div
+            class="absolute inset-0"
+            style="background: linear-gradient(135deg, #1C1917 0%, #292524 40%, #44403C 70%, #B45309 100%);"
+          >
+          </div>
+          <%!-- Subtle pattern overlay for visual texture --%>
+          <div
+            class="absolute inset-0 opacity-10"
+            style="background-image: radial-gradient(circle at 25% 25%, white 1px, transparent 1px), radial-gradient(circle at 75% 75%, white 1px, transparent 1px); background-size: 60px 60px;"
+          >
+          </div>
+        <% end %>
       </div>
-      <%!-- /Image container --%>
 
       <%!-- Content --%>
       <div
@@ -284,8 +294,12 @@ defmodule Emakola.Themes.Atelier.Home do
     ~H"""
     <section class="py-12 sm:py-16">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <%!-- Section heading --%>
+        <h2 class="text-2xl sm:text-3xl font-black text-gray-900 text-center mb-8 sm:mb-10">
+          Shop by Category
+        </h2>
         <%!-- Horizontal scrolling category circles --%>
-        <div class="flex gap-6 sm:gap-8 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:justify-center sm:flex-wrap">
+        <div class="flex gap-8 sm:gap-10 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:justify-center sm:flex-wrap">
           <Shared.category_circle
             :for={category <- @categories}
             category={category}
@@ -304,7 +318,7 @@ defmodule Emakola.Themes.Atelier.Home do
 
   defp products_section(assigns) do
     hero_product = List.first(assigns.products)
-    smaller_products = assigns.products |> Enum.drop(1) |> Enum.take(4)
+    smaller_products = assigns.products |> Enum.drop(1) |> Enum.take(2)
 
     assigns =
       assigns
@@ -327,24 +341,33 @@ defmodule Emakola.Themes.Atelier.Home do
         </a>
       </div>
 
-      <%!-- Grid: Hero card on left, 4 smaller cards (2x2) on right --%>
+      <%!-- Grid: Hero card on left, 2 smaller on right --%>
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <%!-- Hero Product Card --%>
         <div :if={@hero_product}>
           <Shared.hero_product_card product={@hero_product} store={@store} />
         </div>
 
-        <%!-- Four smaller cards in 2x2 grid, matching hero height --%>
-        <div
-          :if={@smaller_products != []}
-          class="grid grid-cols-2 grid-rows-2 gap-4 sm:gap-6 h-full"
-        >
+        <%!-- Two smaller cards stacked --%>
+        <div class="grid grid-cols-2 gap-4 sm:gap-6">
           <Shared.product_card
             :for={product <- @smaller_products}
             product={product}
             store={@store}
           />
         </div>
+      </div>
+
+      <%!-- Extra products row --%>
+      <div
+        :if={length(@products) > 3}
+        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mt-8"
+      >
+        <Shared.product_card
+          :for={product <- Enum.drop(@products, 3) |> Enum.take(4)}
+          product={product}
+          store={@store}
+        />
       </div>
     </section>
     """
@@ -539,20 +562,20 @@ defmodule Emakola.Themes.Atelier.Home do
   attr :theme, :map, required: true
 
   defp newsletter_section(assigns) do
-    newsletter_config = get_in(assigns[:theme], [:newsletter]) || %{}
+    newsletter_config = get_in(assigns.theme, [:newsletter]) || %{}
 
     nl_heading =
-      Map.get(newsletter_config, :heading, "Stay Updated")
+      Map.get(newsletter_config, :heading, "Stay Updated.")
 
     nl_description =
       Map.get(
         newsletter_config,
         :description,
-        "Get the latest collections, exclusive offers, and order updates delivered to your inbox."
+        "Be the first to discover new collections, exclusive offers, and updates from our store."
       )
 
     nl_button_text =
-      Map.get(newsletter_config, :button_text, "Subscribe")
+      Map.get(newsletter_config, :button_text, "Join Now")
 
     nl_placeholder =
       Map.get(newsletter_config, :placeholder, "Enter your email")
@@ -569,42 +592,16 @@ defmodule Emakola.Themes.Atelier.Home do
       |> assign(:nl_disclaimer, nl_disclaimer)
 
     ~H"""
-    <section class="bg-gradient-to-b from-[#F5F5F4] to-[#FAFAF9] border-t border-stone-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+    <section class="bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <div class="max-w-xl mx-auto text-center">
-          <%!-- Envelope Icon --%>
-          <div class="flex justify-center mb-4">
-            <div
-              class="w-10 h-10 rounded-full flex items-center justify-center"
-              style="background: color-mix(in srgb, var(--theme-primary) 12%, white);"
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke-width="2"
-                style="stroke: var(--theme-primary);"
-              >
-                <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" />
-                <path
-                  d="M22 7l-10 7L2 7"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </div>
-          </div>
-
-          <h2 class="text-2xl sm:text-3xl font-black text-gray-900 mb-2">
+          <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
             {@nl_heading}
           </h2>
-          <p class="text-gray-600 text-sm sm:text-base leading-relaxed mb-6">
+          <p class="text-gray-600 text-base sm:text-lg leading-relaxed mb-8">
             {@nl_description}
           </p>
-
-          <form class="flex flex-col sm:flex-row gap-3 mb-5" phx-submit="subscribe_newsletter">
+          <form class="flex flex-col sm:flex-row gap-3 mb-4" phx-submit="subscribe_newsletter">
             <label for="newsletter-email" class="sr-only">Email address</label>
             <input
               id="newsletter-email"
@@ -612,103 +609,21 @@ defmodule Emakola.Themes.Atelier.Home do
               name="email"
               placeholder={@nl_placeholder}
               required
-              class="flex-1 px-5 py-3 bg-white rounded-lg text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 transition-shadow duration-200 border border-stone-200 min-h-[48px]"
+              class="flex-1 px-5 py-3.5 bg-gray-100 rounded-lg text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 transition-shadow duration-200 border-0 min-h-[48px]"
               style="--tw-ring-color: var(--theme-primary);"
             />
             <button
               type="submit"
-              class="cursor-pointer px-8 py-3 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-200 hover:opacity-90 whitespace-nowrap min-h-[48px]"
+              class="cursor-pointer px-8 py-3.5 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-200 hover:opacity-90 whitespace-nowrap min-h-[48px]"
               style="background: var(--theme-primary);"
             >
               {@nl_button_text}
             </button>
           </form>
-
-          <%!-- Benefits --%>
-          <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 mb-3">
-            <span class="flex items-center gap-1.5 text-xs text-gray-500">
-              <svg
-                class="w-3.5 h-3.5 text-green-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              New arrivals
-            </span>
-            <span class="flex items-center gap-1.5 text-xs text-gray-500">
-              <svg
-                class="w-3.5 h-3.5 text-green-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              Exclusive deals
-            </span>
-            <span class="flex items-center gap-1.5 text-xs text-gray-500">
-              <svg
-                class="w-3.5 h-3.5 text-green-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              Order updates
-            </span>
-          </div>
-
           <p class="text-xs text-gray-400">
             {@nl_disclaimer}
           </p>
         </div>
-      </div>
-    </section>
-    """
-  end
-
-  # ── Trending / New Arrivals Section ──
-
-  attr :store, :map, required: true
-  attr :products, :list, required: true
-
-  defp trending_section(assigns) do
-    trending_products = assigns.products |> Enum.drop(5) |> Enum.take(4)
-
-    assigns = assign(assigns, :trending_products, trending_products)
-
-    ~H"""
-    <section
-      :if={@trending_products != []}
-      class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24"
-    >
-      <%!-- Section Header --%>
-      <div class="flex items-center justify-between mb-8 sm:mb-12">
-        <h2 class="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900">
-          New Arrivals
-        </h2>
-        <a
-          href={"/s/#{@store.slug}/products"}
-          class="text-sm font-semibold transition-colors hover:opacity-80"
-          style="color: var(--theme-primary);"
-        >
-          View all &rarr;
-        </a>
-      </div>
-
-      <%!-- Flat 4-column product grid --%>
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-        <Shared.product_card
-          :for={product <- @trending_products}
-          product={product}
-          store={@store}
-        />
       </div>
     </section>
     """
@@ -722,4 +637,14 @@ defmodule Emakola.Themes.Atelier.Home do
       _ -> true
     end
   end
+
+  # Returns true only for local upload paths (not stock photo URLs)
+  defp valid_hero_image?(nil), do: false
+  defp valid_hero_image?(""), do: false
+
+  defp valid_hero_image?(url) when is_binary(url) do
+    String.starts_with?(url, "/uploads/") || String.starts_with?(url, "/images/")
+  end
+
+  defp valid_hero_image?(_), do: false
 end
