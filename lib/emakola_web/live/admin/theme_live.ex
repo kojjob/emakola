@@ -425,16 +425,38 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                 <img
                   src={url}
                   alt={"Hero image #{idx + 1}"}
-                  class="w-20 h-20 rounded-lg object-cover ring-1 ring-slate-200"
+                  class={"w-20 h-20 rounded-lg object-cover " <> if(idx == 0, do: "ring-2 ring-emerald-500", else: "ring-1 ring-slate-200")}
                 />
+                <%!-- Primary badge --%>
+                <div
+                  :if={idx == 0}
+                  class="absolute -top-1 -left-1 w-4 h-4 bg-emerald-500 text-white rounded-full flex items-center justify-center"
+                >
+                  <span class="text-[8px] font-bold">1</span>
+                </div>
+                <%!-- Remove button --%>
                 <button
                   type="button"
                   phx-click="remove_hero_image"
                   phx-value-index={idx}
-                  class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                 >
                   <span class="material-symbols-outlined text-xs">close</span>
                 </button>
+                <%!-- Move to front / swap buttons --%>
+                <div
+                  :if={idx > 0}
+                  class="absolute bottom-0 left-0 right-0 bg-black/60 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity flex justify-center py-0.5"
+                >
+                  <button
+                    type="button"
+                    phx-click="set_primary_hero_image"
+                    phx-value-index={idx}
+                    class="text-[9px] text-white font-medium cursor-pointer hover:text-emerald-300"
+                  >
+                    Set as main
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -849,6 +871,21 @@ defmodule EmakolaWeb.Admin.ThemeLive do
   end
 
   @impl true
+  def handle_event("set_primary_hero_image", %{"index" => index_str}, socket) do
+    index = String.to_integer(index_str)
+    images = socket.assigns.hero_images
+
+    if index >= 0 && index < length(images) do
+      # Move the selected image to the front
+      image = Enum.at(images, index)
+      new_images = [image | List.delete_at(images, index)]
+      {:noreply, assign(socket, hero_images: new_images, saved: false)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_event("save_theme", _params, socket) do
     socket = assign(socket, saving: true)
 
@@ -911,9 +948,21 @@ defmodule EmakolaWeb.Admin.ThemeLive do
           {:theme_updated, updated_store}
         )
 
+        # Reload hero images from the saved config to ensure consistency
+        saved_hero = get_in(updated_store.theme_config || %{}, ["hero"]) || %{}
+        saved_images = Map.get(saved_hero, "images", [])
+
         {:noreply,
          socket
-         |> assign(store: updated_store, saving: false, saved: true)
+         |> assign(
+           store: updated_store,
+           hero_images: saved_images,
+           hero_image: Map.get(saved_hero, "image_url", ""),
+           hero_carousel: Map.get(saved_hero, "carousel", false),
+           hero_title: Map.get(saved_hero, "title", ""),
+           saving: false,
+           saved: true
+         )
          |> put_flash(:info, "Theme saved! View your store to see the changes.")}
 
       {:error, _error} ->
