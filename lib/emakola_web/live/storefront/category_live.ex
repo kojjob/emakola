@@ -72,7 +72,55 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   end
 
   @impl true
+  def handle_event("add_to_cart", %{"product-id" => product_id}, socket) do
+    case Emakola.Catalog.Product
+         |> Ash.Query.filter(id == ^product_id)
+         |> Ash.Query.load([:variants, :images])
+         |> Ash.read_one(authorize?: false) do
+      {:ok, product} when not is_nil(product) ->
+        variant = product.variants |> Enum.sort_by(& &1.position) |> List.first()
+
+        if variant && variant.stock_quantity > 0 do
+          image_url =
+            case product.images do
+              [img | _] -> img.thumbnail_url || img.url
+              _ -> nil
+            end
+
+          Emakola.Cart.CartStore.add_item(socket.assigns.cart_session_id, %{
+            variant_id: variant.id,
+            quantity: 1,
+            product_title: product.title,
+            variant_info: variant.sku || "",
+            unit_price: variant.price,
+            sku: variant.sku,
+            image_url: image_url
+          })
+
+          cart_count = Emakola.Cart.CartStore.cart_count(socket.assigns.cart_session_id)
+
+          {:noreply,
+           socket
+           |> assign(:cart_count, cart_count)
+           |> put_flash(:info, "#{product.title} added to cart")}
+        else
+          {:noreply, put_flash(socket, :error, "Out of stock")}
+        end
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Product not found")}
+    end
+  end
+
+  @impl true
   def render(assigns) do
+    case Emakola.Themes.ThemeRenderer.theme_render(assigns, :category) do
+      {:ok, rendered} -> rendered
+      :default -> render_default(assigns)
+    end
+  end
+
+  defp render_default(assigns) do
     assigns = assign(assigns, :sort_options, @sort_options)
 
     ~H"""
@@ -198,10 +246,31 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
               </svg>
             </div>
             <h3 class="text-lg font-semibold text-[#0F172A] mb-1">No products yet</h3>
-            <p class="text-sm text-[#64748B]">Check back soon for new arrivals in this category.</p>
+            <p class="text-sm text-[#64748B] mb-6">
+              Check back soon for new arrivals in this category.
+            </p>
+            <a
+              href={"/s/#{@store.slug}/products"}
+              class="inline-flex items-center gap-2 px-6 py-3 bg-[#1C1917] text-white text-sm font-semibold rounded-xl hover:bg-[#292524] transition-colors"
+            >
+              Browse All Products
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                />
+              </svg>
+            </a>
           </div>
         <% else %>
-          <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
             <.category_product_card
               :for={{product, idx} <- Enum.with_index(@filtered_products)}
               product={product}
@@ -212,29 +281,63 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
         <% end %>
       </div>
 
-      <%!-- MoMo Trust Badge (fixed) --%>
-      <div class="fixed bottom-20 sm:bottom-6 right-4 z-40">
-        <div class="flex items-center gap-2 bg-white border border-[#E2E8F0] rounded-full px-4 py-2.5 shadow-lg shadow-black/5">
-          <svg
-            class="w-4 h-4 text-[#059669]"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
-            />
-          </svg>
-          <span class="text-xs font-semibold text-[#0F172A] uppercase tracking-wide">
-            Encrypted MoMo Checkout
-          </span>
+      <%!-- Trust strip --%>
+      <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        <div class="flex items-center justify-center gap-6 sm:gap-10 py-6 border-t border-[#E7E5E4]">
+          <div class="flex items-center gap-2 text-[#A8A29E]">
+            <svg
+              class="w-4 h-4 text-[#059669]"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+              />
+            </svg>
+            <span class="text-xs font-medium">Secure checkout</span>
+          </div>
+          <div class="flex items-center gap-2 text-[#A8A29E]">
+            <svg
+              class="w-4 h-4 text-[#B45309]"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
+              />
+            </svg>
+            <span class="text-xs font-medium">MoMo & Card</span>
+          </div>
+          <div class="hidden sm:flex items-center gap-2 text-[#A8A29E]">
+            <svg
+              class="w-4 h-4 text-[#7C3AED]"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"
+              />
+            </svg>
+            <span class="text-xs font-medium">Fast delivery</span>
+          </div>
         </div>
       </div>
     </div>
 
+    <%!-- Footer --%>
+    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
     <.bottom_nav store_slug={@store.slug} active_tab={:search} cart_count={@cart_count} />
     """
   end
@@ -249,58 +352,70 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
     assigns = assign(assigns, :image, first_image(assigns.product))
 
     ~H"""
-    <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
-      <%!-- Image Container --%>
-      <div class="relative rounded-2xl overflow-hidden mb-3 bg-[#F1F5F9]">
-        <img
-          :if={@image}
-          src={@image}
-          alt={@product.title}
-          loading="lazy"
-          class="w-full aspect-[4/5] object-cover group-hover:scale-[1.03] transition-transform duration-500"
-        />
-        <div :if={!@image} class="w-full aspect-[4/5] flex items-center justify-center">
-          <.image_placeholder size="lg" />
-        </div>
+    <div class="group">
+      <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="block">
+        <div class="relative rounded-xl overflow-hidden mb-3 bg-[#F5F5F4]">
+          <img
+            :if={@image}
+            src={@image}
+            alt={@product.title}
+            loading="lazy"
+            class="w-full aspect-[4/5] object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+          <div :if={!@image} class="w-full aspect-[4/5] flex items-center justify-center">
+            <.image_placeholder size="lg" />
+          </div>
 
-        <%!-- Badges --%>
-        <div class="absolute top-3 left-3 flex flex-col gap-1.5">
-          <%= if @product.max_price && @product.min_price && @product.max_price > @product.min_price do %>
-            <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-[#B45309]/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-wider">
-              Multiple Options
-            </span>
-          <% end %>
-          <%= cond do %>
-            <% @index == 0 -> %>
-              <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-[#059669]/90 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-wider">
-                Popular
+          <%!-- Badges --%>
+          <div class="absolute top-2.5 left-2.5 flex flex-col gap-1">
+            <%= if @product.max_price && @product.min_price && @product.max_price > @product.min_price do %>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-[#DC2626] text-white text-[10px] font-bold uppercase tracking-wider">
+                Sale
               </span>
-            <% @product.inserted_at && DateTime.diff(DateTime.utc_now(), @product.inserted_at, :day) < 14 -> %>
-              <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-[#0F172A]/80 backdrop-blur-sm text-white text-[10px] font-bold uppercase tracking-wider">
-                New Arrival
-              </span>
-            <% true -> %>
-          <% end %>
-        </div>
+            <% end %>
+            <%= cond do %>
+              <% @index == 0 -> %>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-[#059669] text-white text-[10px] font-bold uppercase tracking-wider">
+                  Popular
+                </span>
+              <% @product.inserted_at && DateTime.diff(DateTime.utc_now(), @product.inserted_at, :day) < 14 -> %>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-[#1C1917] text-white text-[10px] font-bold uppercase tracking-wider">
+                  New
+                </span>
+              <% true -> %>
+            <% end %>
+          </div>
 
-        <%!-- Quick add overlay --%>
-        <div class="absolute inset-x-0 bottom-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <div class="bg-white/95 backdrop-blur-sm rounded-xl py-2.5 text-center shadow-lg">
-            <span class="text-xs font-bold text-[#0F172A] uppercase tracking-wider">Quick View</span>
+          <%!-- Add to Cart slide-up --%>
+          <div class="absolute bottom-0 left-0 right-0 p-2.5 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+            <button
+              phx-click="add_to_cart"
+              phx-value-product-id={@product.id}
+              class="w-full py-2.5 text-[11px] font-semibold uppercase tracking-wider rounded-lg bg-[#1C1917] text-white cursor-pointer hover:bg-[#292524] transition-colors min-h-[40px]"
+            >
+              Add to Cart
+            </button>
           </div>
         </div>
-      </div>
+      </a>
 
-      <%!-- Product Info --%>
-      <div class="px-0.5">
-        <p class="text-sm font-medium text-[#0F172A] leading-snug mb-1 line-clamp-2 group-hover:text-[#B45309] transition-colors">
+      <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="block px-0.5">
+        <h3 class="text-sm font-medium text-[#1C1917] leading-snug mb-1 line-clamp-1 group-hover:text-[#B45309] transition-colors">
           {@product.title}
-        </p>
-        <p class="text-sm font-bold text-[#0F172A]">
-          {Currency.format_price_range(@product.min_price, @product.max_price, @store.currency)}
-        </p>
-      </div>
-    </a>
+        </h3>
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-bold" style="color: var(--theme-primary, #B45309);">
+            {Currency.format_price(@product.min_price || 0, @store.currency)}
+          </span>
+          <span
+            :if={@product.max_price && @product.max_price > (@product.min_price || 0)}
+            class="text-xs text-[#A8A29E] line-through"
+          >
+            {Currency.format_price(@product.max_price, @store.currency)}
+          </span>
+        </div>
+      </a>
+    </div>
     """
   end
 
@@ -322,7 +437,6 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   defp load_category_products(store_id, category_id) do
     Emakola.Catalog.list_products_by_category!(category_id, store_id)
     |> Enum.filter(&(&1.status == :active))
-    |> Ash.load!([:min_price, :max_price, :images, :variant_count])
   end
 
   defp sort_products(products, :newest) do

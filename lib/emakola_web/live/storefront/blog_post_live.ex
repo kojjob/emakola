@@ -63,6 +63,13 @@ defmodule EmakolaWeb.Storefront.BlogPostLive do
 
   @impl true
   def render(assigns) do
+    case Emakola.Themes.ThemeRenderer.theme_render(assigns, :blog_post) do
+      {:ok, rendered} -> rendered
+      :default -> render_default(assigns)
+    end
+  end
+
+  defp render_default(assigns) do
     ~H"""
     <div>
       <%!-- Hero Image --%>

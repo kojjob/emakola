@@ -28,6 +28,16 @@ defmodule Emakola.Orders do
       define(:find_coupon_by_code, action: :find_by_code, args: [:store_id, :code])
       define(:deactivate_coupon, action: :deactivate)
       define(:increment_coupon_usage, action: :increment_usage)
+      define(:list_active_public_coupons, action: :list_active_public, args: [:store_id])
+    end
+
+    resource Emakola.Orders.Return do
+      define(:request_return, action: :request_return)
+      define(:approve_return, action: :approve)
+      define(:deny_return, action: :deny)
+      define(:mark_return_refunded, action: :mark_refunded)
+      define(:list_returns_by_store, action: :list_by_store, args: [:store_id])
+      define(:get_return_by_order, action: :get_by_order, args: [:order_id])
     end
   end
 end

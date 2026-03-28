@@ -91,12 +91,21 @@ defmodule Emakola.Catalog.Product do
 
     has_many :variants, Emakola.Catalog.Variant
     has_many :images, Emakola.Catalog.Image
+    has_many :reviews, Emakola.Catalog.Review
   end
 
   aggregates do
     count(:variant_count, :variants)
     min(:min_price, :variants, :price)
     max(:max_price, :variants, :price)
+
+    count :review_count, :reviews do
+      filter(expr(status == :published))
+    end
+
+    avg :avg_rating, :reviews, :rating do
+      filter(expr(status == :published))
+    end
   end
 
   identities do
@@ -164,6 +173,8 @@ defmodule Emakola.Catalog.Product do
             contains(fragment("lower(?)", title), fragment("lower(?)", ^arg(:query)))
         )
       )
+
+      prepare(build(load: [:min_price, :max_price, :images]))
     end
 
     read :list_by_store do
@@ -172,7 +183,9 @@ defmodule Emakola.Catalog.Product do
       filter(expr(store_id == ^arg(:store_id)))
 
       prepare(fn query, _context ->
-        Ash.Query.sort(query, inserted_at: :desc)
+        query
+        |> Ash.Query.sort(inserted_at: :desc)
+        |> Ash.Query.load([:min_price, :max_price, :images, :variant_count])
       end)
     end
 
@@ -187,7 +200,16 @@ defmodule Emakola.Catalog.Product do
       filter(expr(store_id == ^arg(:store_id) and status == ^arg(:status)))
 
       prepare(fn query, _context ->
-        Ash.Query.sort(query, inserted_at: :desc)
+        query
+        |> Ash.Query.sort(inserted_at: :desc)
+        |> Ash.Query.load([
+          :min_price,
+          :max_price,
+          :images,
+          :variant_count,
+          :review_count,
+          :avg_rating
+        ])
       end)
     end
 
@@ -196,6 +218,7 @@ defmodule Emakola.Catalog.Product do
       argument(:store_id, :uuid, allow_nil?: false)
 
       filter(expr(category_id == ^arg(:category_id) and store_id == ^arg(:store_id)))
+      prepare(build(load: [:min_price, :max_price, :images, :variant_count]))
     end
   end
 end

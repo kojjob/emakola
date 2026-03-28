@@ -269,12 +269,8 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
           end
 
         case result do
-          {:ok, customers} ->
-            customers
-            |> Ash.load!(:order_count)
-
-          _ ->
-            []
+          {:ok, customers} -> customers
+          _ -> []
         end
       else
         []

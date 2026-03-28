@@ -45,6 +45,13 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
 
   @impl true
   def render(assigns) do
+    case Emakola.Themes.ThemeRenderer.theme_render(assigns, :blog_list) do
+      {:ok, rendered} -> rendered
+      :default -> render_default(assigns)
+    end
+  end
+
+  defp render_default(assigns) do
     ~H"""
     <div class="bg-stone-50">
       <%!-- Hero Header --%>

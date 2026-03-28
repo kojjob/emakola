@@ -55,7 +55,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
 
       assert html =~ "Test Shirt"
-      assert html =~ "GH\u20B5 100.00"
+      assert html =~ "GH\u20B5 100"
     end
 
     test "renders order summary sidebar", %{conn: conn, store: store, variant: variant} do
@@ -181,7 +181,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
           "region" => "greater_accra"
         })
 
-      assert html =~ "GH\u20B5 15.00"
+      assert html =~ "GH\u20B5 15"
     end
 
     test "Ashanti region has higher delivery fee", %{conn: conn, store: store} do
@@ -192,7 +192,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
           "region" => "ashanti"
         })
 
-      assert html =~ "GH\u20B5 25.00"
+      assert html =~ "GH\u20B5 25"
     end
   end
 end

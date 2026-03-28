@@ -279,6 +279,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       |> assign(:order_total, calculate_order_total(assigns))
       |> assign(:effective_delivery_fee, effective_delivery_fee(assigns))
 
+    case Emakola.Themes.ThemeRenderer.theme_render(assigns, :checkout) do
+      {:ok, rendered} -> rendered
+      :default -> render_default(assigns)
+    end
+  end
+
+  defp render_default(assigns) do
     ~H"""
     <div class="min-h-screen flex flex-col bg-stone-50 font-[Montserrat,system-ui,sans-serif] text-stone-950 antialiased">
       <%!-- Minimal Navigation --%>

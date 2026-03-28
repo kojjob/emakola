@@ -56,6 +56,13 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
 
   @impl true
   def render(assigns) do
+    case Emakola.Themes.ThemeRenderer.theme_render(assigns, :recipe_detail) do
+      {:ok, rendered} -> rendered
+      :default -> render_default(assigns)
+    end
+  end
+
+  defp render_default(assigns) do
     ~H"""
     <article class="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
       <a

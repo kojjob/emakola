@@ -137,11 +137,23 @@
         active={@active_nav == :products}
       />
       <.sidebar_link
+        href="/admin/inventory"
+        title="Inventory"
+        icon="inventory"
+        active={@active_nav == :inventory}
+      />
+      <.sidebar_link
         href="/admin/orders"
         title="Orders"
         icon="bag"
         active={@active_nav == :orders}
         badge="12"
+      />
+      <.sidebar_link
+        href="/admin/returns"
+        title="Returns"
+        icon="returns"
+        active={@active_nav == :returns}
       />
       <.sidebar_link
         href="/admin/payments"
@@ -186,6 +198,12 @@
         title="Theme"
         icon="palette"
         active={@active_nav == :theme}
+      />
+      <.sidebar_link
+        href="/admin/design"
+        title="Design"
+        icon="pencil-square"
+        active={@active_nav == :design}
       />
 
       <%!-- Content --%>

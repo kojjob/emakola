@@ -53,6 +53,13 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
 
   @impl true
   def render(assigns) do
+    case Emakola.Themes.ThemeRenderer.theme_render(assigns, :tracking) do
+      {:ok, rendered} -> rendered
+      :default -> render_default(assigns)
+    end
+  end
+
+  defp render_default(assigns) do
     ~H"""
     <div class="bg-[#FAFAF9] min-h-screen font-sans antialiased text-stone-800">
       <div class="max-w-lg mx-auto">

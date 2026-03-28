@@ -7,13 +7,43 @@
   <% end %>
 <% end %>
 
-<%!-- Theme CSS variables injection --%>
-<%= if assigns[:theme] do %>
+<%!-- Theme CSS variables + design tokens injection --%>
+<% theme =
+  assigns[:theme] ||
+    if assigns[:store],
+      do: Emakola.Themes.ThemeResolver.resolve(assigns[:store].theme_config || %{}),
+      else: nil %>
+<%= if theme do %>
+  <% tokens = Map.get(theme, :design_tokens, %{})
+  heading_font = Emakola.Themes.DesignTokens.heading_font_family(tokens[:heading_font] || "sans")
+  body_font = Emakola.Themes.DesignTokens.body_font_family(tokens[:body_font] || "sans")
+  heading_url = Emakola.Themes.DesignTokens.heading_font_url(tokens[:heading_font] || "sans")
+  body_url = Emakola.Themes.DesignTokens.body_font_url(tokens[:body_font] || "sans") %>
+  <%= if heading_url do %>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+    <link rel="stylesheet" href={heading_url} />
+  <% end %>
+  <%= if body_url && body_url != heading_url do %>
+    <link rel="stylesheet" href={body_url} />
+  <% end %>
   <style>
     :root {
-      --theme-primary: <%= @theme.colors[:primary] || "#2563EB" %>;
-      --theme-accent: <%= @theme.colors[:accent] || "#0F172A" %>;
-      --theme-bg: <%= @theme.colors[:background] || "#FFFFFF" %>;
+      --theme-primary: <%= theme.colors[:primary] || "#2563EB" %>;
+      --theme-accent: <%= theme.colors[:accent] || "#0F172A" %>;
+      --theme-bg: <%= theme.colors[:background] || "#FFFFFF" %>;
+      --dt-heading-font: <%= heading_font %>;
+      --dt-body-font: <%= body_font %>;
+      --dt-btn-radius: <%= case tokens[:button_style] do "pill" -> "9999px"; "square" -> "0px"; _ -> "0.5rem" end %>;
+    }
+    /* Design tokens — applied globally to all storefront pages */
+    h1, h2, h3, h4, h5, h6 { font-family: var(--dt-heading-font) !important; }
+    p, span, a, li, td, th, label, input, textarea, select, div {
+      font-family: var(--dt-body-font);
+    }
+    /* Merchant button radius — only opt-in elements with .dt-btn class */
+    .dt-btn {
+      border-radius: var(--dt-btn-radius) !important;
     }
   </style>
 <% end %>
@@ -62,6 +92,7 @@
           <!-- Search -->
           <button
             :if={assigns[:store]}
+            phx-click={EmakolaWeb.SearchComponents.show_search()}
             class="flex items-center justify-center w-10 h-10 rounded-full text-[#0F172A] hover:bg-[#F1F5F9] transition-colors"
             aria-label="Search products"
             type="button"
@@ -111,6 +142,17 @@
       </div>
     </div>
   </header>
+
+  <%!-- Search overlay --%>
+  <%= if assigns[:store] do %>
+    <EmakolaWeb.SearchComponents.search_overlay
+      store={@store}
+      search_query={assigns[:search_overlay_query] || ""}
+      search_results={assigns[:search_overlay_results] || []}
+      searching={assigns[:searching] || false}
+      total_results={assigns[:search_overlay_total] || 0}
+    />
+  <% end %>
   
 <!-- Flash messages -->
   <div class="max-w-[1280px] mx-auto px-4 sm:px-6 w-full">
@@ -124,11 +166,11 @@
   
 <!-- WhatsApp FAB (hidden when theme provides its own) -->
   <a
-    :if={assigns[:store] && !assigns[:theme_module]}
-    href={"https://wa.me/?text=Hi%20#{URI.encode(@store.name)}"}
+    :if={assigns[:store] && !assigns[:theme_module] && assigns[:store].whatsapp_number}
+    href={"https://wa.me/#{@store.whatsapp_number}?text=Hi!%20I'm%20browsing%20your%20store."}
     target="_blank"
     rel="noopener noreferrer"
-    class="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-[#25D366] flex items-center justify-center shadow-[0_4px_16px_rgba(37,211,102,0.35)] hover:scale-[1.08] hover:shadow-[0_6px_24px_rgba(37,211,102,0.45)] active:scale-[0.96] transition-transform z-50"
+    class="fixed bottom-20 lg:bottom-6 right-6 w-14 h-14 rounded-full bg-[#25D366] flex items-center justify-center shadow-[0_4px_16px_rgba(37,211,102,0.35)] hover:scale-[1.08] hover:shadow-[0_6px_24px_rgba(37,211,102,0.45)] active:scale-[0.96] transition-transform z-50"
     aria-label="Chat on WhatsApp"
   >
     <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -171,4 +213,104 @@
       </p>
     </div>
   </footer>
+  
+<!-- Mobile Bottom Navigation -->
+  <nav
+    :if={assigns[:store] && !assigns[:theme_module]}
+    class="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#E2E8F0] lg:hidden"
+  >
+    <div class="flex items-center justify-around h-16">
+      <!-- Home -->
+      <a
+        href={"/s/#{@store.slug}"}
+        class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] == "/s/#{@store.slug}", do: "text-[#B45309]", else: "text-[#94A3B8]"}"}
+      >
+        <svg
+          class="w-6 h-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
+          />
+        </svg>
+        <span class="text-[0.625rem] font-medium">Home</span>
+      </a>
+      
+<!-- Shop -->
+      <a
+        href={"/s/#{@store.slug}/products"}
+        class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/products"), do: "text-[#B45309]", else: "text-[#94A3B8]"}"}
+      >
+        <svg
+          class="w-6 h-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
+          />
+        </svg>
+        <span class="text-[0.625rem] font-medium">Shop</span>
+      </a>
+      
+<!-- Cart -->
+      <a
+        href={"/s/#{@store.slug}/cart"}
+        class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 relative #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/cart"), do: "text-[#B45309]", else: "text-[#94A3B8]"}"}
+      >
+        <div class="relative">
+          <svg
+            class="w-6 h-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"
+            />
+          </svg>
+          <span
+            :if={(assigns[:cart_count] || 0) > 0}
+            class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#B45309] text-white text-[0.5rem] font-bold flex items-center justify-center leading-none"
+          >
+            {assigns[:cart_count] || 0}
+          </span>
+        </div>
+        <span class="text-[0.625rem] font-medium">Cart</span>
+      </a>
+      
+<!-- Account -->
+      <a
+        href={"/s/#{@store.slug}/account"}
+        class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/account"), do: "text-[#B45309]", else: "text-[#94A3B8]"}"}
+      >
+        <svg
+          class="w-6 h-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+          />
+        </svg>
+        <span class="text-[0.625rem] font-medium">Account</span>
+      </a>
+    </div>
+  </nav>
 </div>

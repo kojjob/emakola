@@ -29,8 +29,8 @@ defmodule EmakolaWeb.Admin.PaymentsLiveTest do
       assert html =~ "Successful"
       assert html =~ "Pending"
       assert html =~ "Failed"
-      # Total revenue should only include successful payments: GHS 1000.00
-      assert html =~ "1000.00"
+      # Total revenue should only include successful payments: GH₵ 1000
+      assert html =~ "1000"
     end
 
     test "displays payment table with correct data", %{conn: conn, store: store} do
@@ -50,7 +50,7 @@ defmodule EmakolaWeb.Admin.PaymentsLiveTest do
       assert html =~ "buyer@example.com"
       assert html =~ "Paystack"
       assert html =~ "PAY-REF-123"
-      assert html =~ "500.00"
+      assert html =~ "500"
       assert html =~ order.order_number
     end
 

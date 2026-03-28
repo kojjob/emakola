@@ -63,7 +63,9 @@ config :emakola, EmakolaWeb.Endpoint,
       ~r"priv/gettext/.*\.po$"E,
       # Router, Controllers, LiveViews and LiveComponents
       ~r"lib/emakola_web/router\.ex$"E,
-      ~r"lib/emakola_web/(controllers|live|components)/.*\.(ex|heex)$"E
+      ~r"lib/emakola_web/(controllers|live|components)/.*\.(ex|heex)$"E,
+      # Theme files (storefront templates)
+      ~r"lib/emakola/themes/.*\.ex$"E
     ]
   ]
 

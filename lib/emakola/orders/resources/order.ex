@@ -352,7 +352,9 @@ defmodule Emakola.Orders.Order do
       filter(expr(store_id == ^arg(:store_id)))
 
       prepare(fn query, _context ->
-        Ash.Query.sort(query, inserted_at: :desc)
+        query
+        |> Ash.Query.sort(inserted_at: :desc)
+        |> Ash.Query.load([:customer])
       end)
     end
 
@@ -369,7 +371,9 @@ defmodule Emakola.Orders.Order do
       filter(expr(store_id == ^arg(:store_id) and status == ^arg(:status)))
 
       prepare(fn query, _context ->
-        Ash.Query.sort(query, inserted_at: :desc)
+        query
+        |> Ash.Query.sort(inserted_at: :desc)
+        |> Ash.Query.load([:customer])
       end)
     end
   end

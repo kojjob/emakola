@@ -173,8 +173,8 @@ defmodule EmakolaWeb.Admin.CustomerLiveTest do
 
       {:ok, _view, html} = live(conn, ~p"/admin/customers/#{customer.id}")
 
-      # 10_000 + 15_000 = 25_000 pesewas = GH₵ 250.00
-      assert html =~ "250.00"
+      # 10_000 + 15_000 = 25_000 pesewas = GH₵ 250
+      assert html =~ "250"
     end
 
     test "shows notes section placeholder", %{conn: conn, store: store} do

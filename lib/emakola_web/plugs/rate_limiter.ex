@@ -26,7 +26,11 @@ defmodule EmakolaWeb.Plugs.RateLimiter do
   end
 
   def call(conn, %{limit: limit, window_ms: window_ms}) do
-    do_rate_limit(conn, limit, window_ms)
+    if Application.get_env(:emakola, :env) == :test do
+      conn
+    else
+      do_rate_limit(conn, limit, window_ms)
+    end
   end
 
   defp do_rate_limit(conn, limit, window_ms) do

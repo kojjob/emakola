@@ -681,6 +681,21 @@ defmodule Emakola.Themes.Market.ProductDetail do
         </div>
       </section>
 
+      <%!-- Customer Reviews --%>
+      <EmakolaWeb.ReviewComponents.review_section
+        store={@store}
+        product={@product}
+        reviews={@reviews}
+        can_review={@can_review}
+        already_reviewed={@already_reviewed}
+        review_form_rating={@review_form_rating}
+        review_form_title={@review_form_title}
+        review_form_body={@review_form_body}
+        review_submitting={@review_submitting}
+        avg_rating={@product.avg_rating}
+        review_count={@product.review_count}
+      />
+
       <%!-- Desktop Footer --%>
       <footer class="hidden lg:block bg-[#0F172A] text-white/70 mt-0">
         <div class="max-w-7xl mx-auto px-8 py-12">
