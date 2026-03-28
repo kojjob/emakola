@@ -899,9 +899,17 @@ defmodule EmakolaWeb.Admin.ThemeLive do
         # Clear ETS cache so storefront picks up changes immediately
         try do
           Emakola.Cache.StoreCache.invalidate(updated_store.slug)
+          Emakola.Cache.StoreCache.invalidate_store(updated_store.id)
         rescue
           _ -> :ok
         end
+
+        # Broadcast so connected storefront LiveViews reload their store data
+        Phoenix.PubSub.broadcast(
+          Emakola.PubSub,
+          "store:#{updated_store.id}:theme",
+          {:theme_updated, updated_store}
+        )
 
         {:noreply,
          socket
