@@ -97,6 +97,50 @@
 
 ---
 
+## WHITE-LABEL DESIGN SYSTEM
+
+> Full plan: `docs/superpowers/plans/2026-03-28-white-label-design-system.md`
+
+### Phase 1: Full Page Coverage
+- [ ] Create `ThemeRenderer` dispatcher with `function_exported?` fallback
+- [ ] Extend `ThemeBehaviour` with `@optional_callbacks` for 13 new pages
+- [ ] Create `DefaultRenderers.Shared` wrapper (navbar + CSS vars + footer)
+- [ ] Extract `DefaultRenderers.Cart` from cart_live.ex
+- [ ] Extract `DefaultRenderers.Checkout` from checkout_live.ex
+- [ ] Extract `DefaultRenderers.BlogList` from blog_list_live.ex
+- [ ] Extract `DefaultRenderers.BlogPost` from blog_post_live.ex
+- [ ] Extract `DefaultRenderers.RecipeList` from recipe_list_live.ex
+- [ ] Extract `DefaultRenderers.RecipeDetail` from recipe_live.ex
+- [ ] Extract `DefaultRenderers.OrderConfirmation` from order_confirmation_live.ex
+- [ ] Extract `DefaultRenderers.Tracking` from tracking_live.ex
+- [ ] Extract `DefaultRenderers.Category` from category_live.ex
+- [ ] Extract `DefaultRenderers.Wishlist` from wishlist_live.ex
+- [ ] Extract `DefaultRenderers.Account` from account_live.ex
+- [ ] Wire all 13 LiveViews to delegate render through `ThemeRenderer.render/3`
+- [ ] Tests for dispatcher fallback + all default renderers
+
+### Phase 2: Section Editor (Shopify-style)
+- [ ] Define section type registry (15+ blocks: hero, products, categories, testimonials, FAQ, banner, video, countdown, gallery, newsletter, trust, brand_story, text, divider, custom HTML)
+- [ ] Create section renderer components (one per type)
+- [ ] Store `home_sections` as JSON array in `theme_config` (no migration needed)
+- [ ] Section-aware home rendering in `ThemeRenderer` (iterate sections array)
+- [ ] Build `SectionSortable` JS hook for drag-and-drop (SortableJS)
+- [ ] Build Section Editor admin UI (drag list, add/remove, per-section settings)
+- [ ] Dynamic section settings forms based on section type schema
+- [ ] Backwards compatible: stores without `home_sections` use existing `render_home`
+- [ ] Tests for registry, renderers, editor LiveView
+
+### Phase 3: Component Variant System
+- [ ] Create `DesignTokens` module — pure function class maps (button, card, navbar, grid, hero, footer, product card, typography)
+- [ ] Create `FontLoader` — font family token to Google Fonts URL mapping
+- [ ] Store `design_tokens` in `theme_config` (10 dimensions: button_style, card_style, navbar_layout, product_grid_columns, hero_layout, footer_style, product_card_style, typography_scale, heading_font, body_font)
+- [ ] Refactor all DefaultRenderers to use `DesignTokens` for component styling
+- [ ] Add Tailwind safelist for all variant class fragments
+- [ ] Build Design tab in admin theme customizer (visual variant pickers with previews)
+- [ ] Tests for token resolution, class generation, font loading
+
+---
+
 ## ARCHITECTURE — Structural Improvements
 
 ### Domain Restructuring
