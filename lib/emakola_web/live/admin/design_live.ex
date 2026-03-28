@@ -141,15 +141,141 @@ defmodule EmakolaWeb.Admin.DesignLive do
           </button>
         </div>
 
-        <%!-- Preview iframe --%>
-        <div class="flex-1 p-4 overflow-hidden">
-          <div class="w-full h-full bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200">
-            <iframe
-              src={"/s/#{@store.slug}?preview=#{@preview_key}"}
-              class="w-full h-full border-0"
-              title="Store preview"
-            >
-            </iframe>
+        <%!-- Live Preview (responds to token changes instantly) --%>
+        <div class="flex-1 p-4 overflow-y-auto">
+          <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+            <%!-- Preview Navbar --%>
+            <div class={"flex items-center h-12 px-4 border-b border-slate-200 gap-3 " <> Emakola.Themes.DesignTokens.navbar_classes(@design_tokens.navbar_layout)}>
+              <div class="w-6 h-6 rounded-full bg-slate-200"></div>
+              <span class="text-sm font-semibold text-slate-800">{@store.name}</span>
+              <div class="flex-1"></div>
+              <div class="w-5 h-5 rounded-full bg-slate-100"></div>
+              <div class="w-5 h-5 rounded-full bg-slate-100"></div>
+            </div>
+
+            <%!-- Preview Hero --%>
+            <%= if @design_tokens.hero_layout == "split" do %>
+              <div class="flex">
+                <div class="flex-1 p-8">
+                  <h2
+                    class={"font-bold text-slate-900 mb-2 " <> Emakola.Themes.DesignTokens.heading_size(@design_tokens.typography_scale)}
+                    style={"font-family: #{Emakola.Themes.DesignTokens.heading_font_family(@design_tokens.heading_font)}"}
+                  >
+                    Welcome to our store
+                  </h2>
+                  <p
+                    class={"text-slate-500 mb-4 " <> Emakola.Themes.DesignTokens.body_size(@design_tokens.typography_scale)}
+                    style={"font-family: #{Emakola.Themes.DesignTokens.body_font_family(@design_tokens.body_font)}"}
+                  >
+                    Discover our curated collection of premium products.
+                  </p>
+                  <button class={"bg-slate-900 text-white text-sm font-semibold px-6 py-2.5 " <> Emakola.Themes.DesignTokens.button_classes(@design_tokens.button_style)}>
+                    Shop Now
+                  </button>
+                </div>
+                <div class="flex-1 bg-gradient-to-br from-amber-100 to-orange-200"></div>
+              </div>
+            <% else %>
+              <div class="relative bg-gradient-to-br from-stone-800 to-stone-900 p-8 sm:p-12">
+                <h2
+                  class={"font-bold text-white mb-2 " <> Emakola.Themes.DesignTokens.heading_size(@design_tokens.typography_scale)}
+                  style={"font-family: #{Emakola.Themes.DesignTokens.heading_font_family(@design_tokens.heading_font)}"}
+                >
+                  Welcome to our store
+                </h2>
+                <p
+                  class={"text-stone-300 mb-4 " <> Emakola.Themes.DesignTokens.body_size(@design_tokens.typography_scale)}
+                  style={"font-family: #{Emakola.Themes.DesignTokens.body_font_family(@design_tokens.body_font)}"}
+                >
+                  Discover our curated collection of premium products.
+                </p>
+                <button class={"bg-white text-stone-900 text-sm font-semibold px-6 py-2.5 " <> Emakola.Themes.DesignTokens.button_classes(@design_tokens.button_style)}>
+                  Shop Now
+                </button>
+              </div>
+            <% end %>
+
+            <%!-- Preview Product Grid --%>
+            <div class="p-6">
+              <h3
+                class={"font-bold text-slate-900 mb-4 " <> Emakola.Themes.DesignTokens.heading_size(@design_tokens.typography_scale)}
+                style={"font-family: #{Emakola.Themes.DesignTokens.heading_font_family(@design_tokens.heading_font)}"}
+              >
+                Featured Products
+              </h3>
+              <div class={"grid gap-4 " <> Emakola.Themes.DesignTokens.grid_classes(@design_tokens.product_grid_columns)}>
+                <div
+                  :for={i <- 1..(@design_tokens.product_grid_columns * 2)}
+                  class={Emakola.Themes.DesignTokens.card_classes(@design_tokens.card_style) <> " overflow-hidden"}
+                >
+                  <div class={"w-full bg-gradient-to-br #{card_gradient(i)} " <> if(@design_tokens.product_grid_columns == 4, do: "h-20", else: "h-28")}>
+                  </div>
+                  <div class="p-3">
+                    <div
+                      class="h-3 bg-slate-200 rounded w-3/4 mb-1.5"
+                      style={"font-family: #{Emakola.Themes.DesignTokens.body_font_family(@design_tokens.body_font)}"}
+                    >
+                    </div>
+                    <div class="h-2 bg-slate-100 rounded w-1/2 mb-3"></div>
+                    <button class={"w-full bg-slate-900 text-white text-[10px] font-semibold py-1.5 " <> Emakola.Themes.DesignTokens.button_classes(@design_tokens.button_style)}>
+                      Add to Cart
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <%!-- Preview Footer --%>
+            <%= case Emakola.Themes.DesignTokens.footer_style(@design_tokens.footer_style) do %>
+              <% :minimal -> %>
+                <div class="bg-slate-900 px-6 py-4 text-center">
+                  <p class="text-xs text-slate-500">&copy; 2026 {@store.name}</p>
+                </div>
+              <% :columns -> %>
+                <div class="bg-slate-900 px-6 py-6">
+                  <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <div class="h-2 bg-slate-600 rounded w-1/2 mb-2"></div>
+                      <div class="space-y-1">
+                        <div class="h-1.5 bg-slate-700 rounded w-3/4"></div>
+                        <div class="h-1.5 bg-slate-700 rounded w-2/3"></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="h-2 bg-slate-600 rounded w-1/2 mb-2"></div>
+                      <div class="space-y-1">
+                        <div class="h-1.5 bg-slate-700 rounded w-3/4"></div>
+                        <div class="h-1.5 bg-slate-700 rounded w-2/3"></div>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="h-2 bg-slate-600 rounded w-1/2 mb-2"></div>
+                      <div class="space-y-1">
+                        <div class="h-1.5 bg-slate-700 rounded w-3/4"></div>
+                        <div class="h-1.5 bg-slate-700 rounded w-2/3"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="text-xs text-slate-500 text-center">&copy; 2026 {@store.name}</p>
+                </div>
+              <% :mega -> %>
+                <div class="bg-slate-900 px-6 py-8">
+                  <div class="text-sm font-semibold text-white mb-4">{@store.name}</div>
+                  <div class="grid grid-cols-4 gap-4 mb-6">
+                    <div :for={_ <- 1..4}>
+                      <div class="h-1.5 bg-slate-600 rounded w-1/2 mb-2"></div>
+                      <div class="space-y-1">
+                        <div class="h-1 bg-slate-700 rounded w-3/4"></div>
+                        <div class="h-1 bg-slate-700 rounded w-2/3"></div>
+                        <div class="h-1 bg-slate-700 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="border-t border-slate-800 pt-4">
+                    <p class="text-xs text-slate-500 text-center">&copy; 2026 {@store.name}</p>
+                  </div>
+                </div>
+            <% end %>
           </div>
         </div>
       </div>
@@ -567,4 +693,13 @@ defmodule EmakolaWeb.Admin.DesignLive do
     </button>
     """
   end
+
+  defp card_gradient(1), do: "from-amber-100 to-orange-200"
+  defp card_gradient(2), do: "from-sky-100 to-blue-200"
+  defp card_gradient(3), do: "from-emerald-100 to-green-200"
+  defp card_gradient(4), do: "from-rose-100 to-pink-200"
+  defp card_gradient(5), do: "from-violet-100 to-purple-200"
+  defp card_gradient(6), do: "from-amber-100 to-yellow-200"
+  defp card_gradient(7), do: "from-cyan-100 to-teal-200"
+  defp card_gradient(_), do: "from-slate-100 to-slate-200"
 end
