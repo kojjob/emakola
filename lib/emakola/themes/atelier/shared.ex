@@ -661,15 +661,15 @@ defmodule Emakola.Themes.Atelier.Shared do
           {@product.title}
         </h3>
         <.product_card_stars
-          :if={@product.review_count && @product.review_count > 0}
-          avg_rating={@product.avg_rating}
+          :if={is_integer(Map.get(@product, :review_count)) && @product.review_count > 0}
+          avg_rating={@product.avg_rating || 0}
           review_count={@product.review_count}
         />
         <.price_display product={@product} store={@store} />
       </a>
 
       <%!-- Variant indicator dots --%>
-      <.variant_dots count={@product[:variant_count]} />
+      <.variant_dots count={Map.get(@product, :variant_count)} />
     </div>
     """
   end
@@ -890,7 +890,12 @@ defmodule Emakola.Themes.Atelier.Shared do
   attr :count, :integer, default: nil
 
   def variant_dots(assigns) do
-    count = assigns[:count] || 0
+    count =
+      case assigns[:count] do
+        n when is_integer(n) -> n
+        _ -> 0
+      end
+
     dot_count = min(count, 5)
     assigns = assign(assigns, count: count, dot_count: dot_count)
 

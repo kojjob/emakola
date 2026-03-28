@@ -202,7 +202,14 @@ defmodule Emakola.Catalog.Product do
       prepare(fn query, _context ->
         query
         |> Ash.Query.sort(inserted_at: :desc)
-        |> Ash.Query.load([:min_price, :max_price, :images])
+        |> Ash.Query.load([
+          :min_price,
+          :max_price,
+          :images,
+          :variant_count,
+          :review_count,
+          :avg_rating
+        ])
       end)
     end
 
