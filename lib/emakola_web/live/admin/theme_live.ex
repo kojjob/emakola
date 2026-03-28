@@ -446,11 +446,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               Upload Hero Images
             </label>
             <form id="hero-upload-form" phx-change="validate_upload" phx-submit="save_hero_image">
-              <label
-                class="block border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-emerald-400 transition-colors cursor-pointer"
+              <.live_file_input upload={@uploads.hero_images} class="hidden" />
+              <div
+                class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-emerald-400 transition-colors cursor-pointer"
                 phx-drop-target={@uploads.hero_images.ref}
+                onclick={"document.getElementById('#{@uploads.hero_images.ref}').click()"}
               >
-                <.live_file_input upload={@uploads.hero_images} class="sr-only" />
                 <span class="material-symbols-outlined text-3xl text-slate-400">
                   add_photo_alternate
                 </span>
@@ -460,7 +461,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                 <p class="text-[11px] text-slate-400 mt-1">
                   JPG, PNG, WebP up to 5MB each (max 5 images)
                 </p>
-              </label>
+              </div>
 
               <%!-- Upload previews --%>
               <div :if={@uploads.hero_images.entries != []} class="mt-3 space-y-2">
