@@ -440,7 +440,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
           </div>
 
           <%!-- File Upload --%>
-          <div :if={length(@hero_images) < 5}>
+          <div :if={length(@hero_images) < 5} id="hero-upload-section">
             <label class="block text-xs font-medium text-slate-500 mb-1.5">
               <span class="material-symbols-outlined text-sm align-middle mr-1">upload</span>
               Upload Hero Images
@@ -542,15 +542,16 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               <span class="material-symbols-outlined text-sm align-middle mr-1">link</span>
               Or paste an image URL
             </label>
-            <input
-              type="url"
-              value={@hero_image}
-              phx-change="update_hero_image"
-              phx-debounce="500"
-              name="hero_image"
-              placeholder="https://images.unsplash.com/..."
-              class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            />
+            <form id="hero-url-form" phx-change="update_hero_image" phx-submit="update_hero_image">
+              <input
+                type="url"
+                value={@hero_image}
+                phx-debounce="500"
+                name="hero_image"
+                placeholder="https://images.unsplash.com/..."
+                class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </form>
             <p class="text-[11px] text-slate-400 mt-1">
               Paste a link to your banner image (used when no uploaded images)
             </p>
@@ -562,15 +563,16 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               <span class="material-symbols-outlined text-sm align-middle mr-1">title</span>
               Hero Title
             </label>
-            <input
-              type="text"
-              value={@hero_title}
-              phx-change="update_hero_title"
-              phx-debounce="300"
-              name="hero_title"
-              placeholder="The New Essential"
-              class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            />
+            <form id="hero-title-form" phx-change="update_hero_title" phx-submit="update_hero_title">
+              <input
+                type="text"
+                value={@hero_title}
+                phx-debounce="300"
+                name="hero_title"
+                placeholder="The New Essential"
+                class="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </form>
           </div>
         </div>
       </div>
