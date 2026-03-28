@@ -175,6 +175,9 @@ defmodule EmakolaWeb.Router do
       live "/admin/revenue", Admin.RevenueLive.Index
     end
 
+    # PDF export (outside live_session, uses session-based auth)
+    get "/admin/export/analytics.pdf", ExportController, :analytics_pdf
+
     live "/onboarding", OnboardingLive
   end
 

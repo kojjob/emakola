@@ -12,6 +12,8 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
   def mount(_params, _session, socket) do
     store_id = get_store_id(socket)
 
+    {start_date, end_date} = date_range_to_dates("30d")
+
     socket =
       socket
       |> assign(
@@ -19,6 +21,8 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
         active_nav: :reports,
         store_id: store_id,
         date_range: "30d",
+        start_date: start_date,
+        end_date: end_date,
         compare_previous: true
       )
 
@@ -27,7 +31,8 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
 
   @impl true
   def handle_event("set_date_range", %{"range" => range}, socket) do
-    {:noreply, assign(socket, date_range: range)}
+    {start_date, end_date} = date_range_to_dates(range)
+    {:noreply, assign(socket, date_range: range, start_date: start_date, end_date: end_date)}
   end
 
   @impl true
@@ -71,7 +76,10 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
           </button>
         </div>
         <%!-- Export buttons --%>
-        <button class="inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer">
+        <a
+          href={"/admin/export/analytics.pdf?start_date=#{@start_date}&end_date=#{@end_date}"}
+          class="inline-flex items-center gap-2 px-3.5 py-2 bg-stone-900 text-white rounded-xl text-xs font-medium hover:bg-stone-800 transition-colors cursor-pointer"
+        >
           <svg
             class="w-3.5 h-3.5"
             fill="none"
@@ -82,11 +90,11 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
-              d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
             />
           </svg>
           Export PDF
-        </button>
+        </a>
         <button class="inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer">
           <svg
             class="w-3.5 h-3.5"
@@ -1015,4 +1023,13 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
       _ -> nil
     end
   end
+
+  defp date_range_to_dates("7d"), do: {Date.add(Date.utc_today(), -7), Date.utc_today()}
+  defp date_range_to_dates("30d"), do: {Date.add(Date.utc_today(), -30), Date.utc_today()}
+  defp date_range_to_dates("90d"), do: {Date.add(Date.utc_today(), -90), Date.utc_today()}
+
+  defp date_range_to_dates("12m"),
+    do: {Date.add(Date.utc_today(), -365), Date.utc_today()}
+
+  defp date_range_to_dates(_), do: {Date.add(Date.utc_today(), -30), Date.utc_today()}
 end
