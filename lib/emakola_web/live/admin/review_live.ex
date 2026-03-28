@@ -159,7 +159,9 @@ defmodule EmakolaWeb.Admin.ReviewLive do
                 <span :if={review.title} class="font-medium text-slate-900">
                   {review.title}:
                 </span>
-                {String.slice(review.body || "", 0, 80)}{if String.length(review.body || "") > 80, do: "...", else: ""}
+                {String.slice(review.body || "", 0, 80)}{if String.length(review.body || "") > 80,
+                  do: "...",
+                  else: ""}
               </td>
               <td class="px-4 py-3">
                 <.status_badge status={review.status} />
@@ -250,7 +252,9 @@ defmodule EmakolaWeb.Admin.ReviewLive do
   defp status_label(:published), do: "Published"
   defp status_label(:hidden), do: "Hidden"
 
-  defp status_badge_class(:published), do: "bg-emerald-50 text-emerald-700 border border-emerald-200"
+  defp status_badge_class(:published),
+    do: "bg-emerald-50 text-emerald-700 border border-emerald-200"
+
   defp status_badge_class(:hidden), do: "bg-red-50 text-red-700 border border-red-200"
   defp status_badge_class(_), do: "bg-slate-100 text-slate-600"
 

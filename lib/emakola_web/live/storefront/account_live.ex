@@ -5,6 +5,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
   """
   use EmakolaWeb, :live_view
   import EmakolaWeb.StorefrontComponents
+  import EmakolaWeb.ReturnComponents
 
   require Ash.Query
 
@@ -49,7 +50,12 @@ defmodule EmakolaWeb.Storefront.AccountLive do
              |> assign(:page_title, "My Account - #{store.name}")
              |> assign(:customer, customer)
              |> assign(:orders, orders)
-             |> assign(:addresses, addresses)}
+             |> assign(:addresses, addresses)
+             |> assign(:show_return_modal, false)
+             |> assign(:return_order, nil)
+             |> assign(:return_reason, nil)
+             |> assign(:return_detail, "")
+             |> assign(:order_returns, %{})}
         end
 
       {:error, :not_found} ->
@@ -68,6 +74,54 @@ defmodule EmakolaWeb.Storefront.AccountLive do
   @impl true
   def handle_event("save_profile", _params, socket) do
     {:noreply, put_flash(socket, :info, "Profile updated")}
+  end
+
+  @impl true
+  def handle_event("show_return_modal", %{"order" => order_number}, socket) do
+    order = Enum.find(socket.assigns.orders, &(to_string(&1.order_number) == order_number))
+
+    {:noreply,
+     assign(socket,
+       show_return_modal: true,
+       return_order: order,
+       return_reason: nil,
+       return_detail: ""
+     )}
+  end
+
+  @impl true
+  def handle_event("close_return_modal", _params, socket) do
+    {:noreply, assign(socket, show_return_modal: false, return_order: nil)}
+  end
+
+  @impl true
+  def handle_event("set_return_reason", %{"reason" => reason}, socket) do
+    {:noreply, assign(socket, return_reason: reason)}
+  end
+
+  @impl true
+  def handle_event("update_return_detail", %{"detail" => detail}, socket) do
+    {:noreply, assign(socket, return_detail: detail)}
+  end
+
+  @impl true
+  def handle_event("submit_return_request", _params, socket) do
+    order = socket.assigns.return_order
+
+    order_returns =
+      Map.put(socket.assigns.order_returns, order.order_number, %{
+        status: :requested,
+        reason: String.to_existing_atom(socket.assigns.return_reason)
+      })
+
+    {:noreply,
+     socket
+     |> assign(
+       show_return_modal: false,
+       return_order: nil,
+       order_returns: order_returns
+     )
+     |> put_flash(:info, "Return request submitted for Order ##{order.order_number}")}
   end
 
   @impl true
@@ -188,7 +242,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
             <%!-- PROFILE TAB --%>
             <div :if={@active_tab == "profile"} class="space-y-10">
               <.profile_section customer={@customer} theme={@theme} />
-              <.recent_orders_section orders={@orders} store={@store} theme={@theme} />
+              <.recent_orders_section orders={@orders} store={@store} theme={@theme} order_returns={@order_returns} />
             </div>
 
             <%!-- ORDERS TAB --%>
@@ -196,7 +250,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
               <h2 class="text-2xl font-semibold text-[#1C1917]">
                 Order History
               </h2>
-              <.order_list orders={@orders} store={@store} theme={@theme} />
+              <.order_list orders={@orders} store={@store} theme={@theme} order_returns={@order_returns} />
             </div>
 
             <%!-- ADDRESSES TAB --%>
@@ -226,6 +280,88 @@ defmodule EmakolaWeb.Storefront.AccountLive do
           </div>
         </div>
       </section>
+
+      <%!-- Return Request Modal --%>
+      <div
+        :if={@show_return_modal}
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+        phx-click="close_return_modal"
+      >
+        <div
+          class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6 space-y-5"
+          phx-click-away="close_return_modal"
+        >
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-[#1C1917]">Request Return</h3>
+            <button
+              phx-click="close_return_modal"
+              class="cursor-pointer text-stone-400 hover:text-stone-600"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <p :if={@return_order} class="text-sm text-stone-500">
+            Order #{@return_order.order_number}
+          </p>
+
+          <div>
+            <label class="block text-xs font-medium uppercase tracking-wider text-[#44403C] mb-2">
+              Reason
+            </label>
+            <div class="space-y-2">
+              <button
+                :for={{value, label} <- return_reason_options()}
+                phx-click="set_return_reason"
+                phx-value-reason={value}
+                class={[
+                  "cursor-pointer w-full text-left px-4 py-3 border rounded-lg text-sm transition-colors",
+                  if(@return_reason == value,
+                    do: "border-[#B45309] bg-amber-50 text-[#1C1917]",
+                    else: "border-stone-200 text-[#44403C] hover:border-stone-400"
+                  )
+                ]}
+              >
+                {label}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium uppercase tracking-wider text-[#44403C] mb-2">
+              Details (optional)
+            </label>
+            <textarea
+              phx-change="update_return_detail"
+              name="detail"
+              rows="3"
+              placeholder="Tell us more about the issue..."
+              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-[#1C1917] focus:ring-2 focus:ring-[#B45309] focus:border-[#B45309] focus:outline-none"
+            >{@return_detail}</textarea>
+          </div>
+
+          <button
+            phx-click="submit_return_request"
+            disabled={is_nil(@return_reason)}
+            class={[
+              "cursor-pointer w-full text-center text-xs font-semibold uppercase tracking-wider px-6 py-3 rounded-[20px] transition-colors",
+              if(@return_reason,
+                do: "bg-[#1C1917] text-white hover:bg-stone-800",
+                else: "bg-stone-200 text-stone-400 cursor-not-allowed"
+              )
+            ]}
+          >
+            Submit Request
+          </button>
+        </div>
+      </div>
 
       <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
     </div>
@@ -335,10 +471,15 @@ defmodule EmakolaWeb.Storefront.AccountLive do
           View All
         </button>
       </div>
-      <.order_list orders={Enum.take(@orders, 3)} store={@store} theme={@theme} />
+      <.order_list orders={Enum.take(@orders, 3)} store={@store} theme={@theme} order_returns={@order_returns} />
     </section>
     """
   end
+
+  attr :orders, :list, required: true
+  attr :store, :any, required: true
+  attr :theme, :any, default: nil
+  attr :order_returns, :map, default: %{}
 
   defp order_list(assigns) do
     ~H"""
@@ -360,7 +501,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
       <.link
         navigate={"/s/#{@store.slug}/products"}
         class="inline-block mt-3 text-sm font-medium transition-colors hover:opacity-70"
-        style={"color: #{@theme.colors.primary}"}
+        style={"color: #{if @theme, do: @theme.colors.primary, else: "#B45309"}"}
       >
         Start Shopping
       </.link>
@@ -392,12 +533,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
                 Order #{order.order_number}
               </p>
               <p class="text-xs mt-0.5 text-[#44403C]">
-                {format_order_date(order.inserted_at)} &middot; {order_item_count(order)} item{if order_item_count(
-                                                                                                    order
-                                                                                                  ) !=
-                                                                                                    1,
-                                                                                                  do:
-                                                                                                    "s"}
+                {format_order_date(order.inserted_at)} &middot; {order_item_count(order)} item{if order_item_count(order) != 1, do: "s"}
               </p>
             </div>
           </div>
@@ -411,6 +547,28 @@ defmodule EmakolaWeb.Storefront.AccountLive do
             ]}>
               {order.status}
             </span>
+          </div>
+        </div>
+
+        <%!-- Return actions for delivered orders --%>
+        <div
+          :if={order.status == :delivered}
+          class="mt-4 pt-4 border-t border-stone-100 flex items-center justify-between"
+        >
+          <div :if={return_info = Map.get(@order_returns, order.order_number)}>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-stone-500">Return:</span>
+              <.return_status_badge status={return_info.status} />
+            </div>
+          </div>
+          <div :if={!Map.has_key?(@order_returns, order.order_number)}>
+            <button
+              phx-click="show_return_modal"
+              phx-value-order={order.order_number}
+              class="cursor-pointer text-xs font-medium text-[#B45309] hover:text-amber-800 transition-colors"
+            >
+              Request Return
+            </button>
           </div>
         </div>
       </div>
@@ -504,6 +662,16 @@ defmodule EmakolaWeb.Storefront.AccountLive do
       %{id: "profile", label: "Profile"},
       %{id: "orders", label: "Orders"},
       %{id: "addresses", label: "Addresses"}
+    ]
+  end
+
+  defp return_reason_options do
+    [
+      {"defective", "Defective item"},
+      {"wrong_item", "Wrong item received"},
+      {"not_as_described", "Not as described"},
+      {"changed_mind", "Changed mind"},
+      {"other", "Other"}
     ]
   end
 

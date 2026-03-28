@@ -68,7 +68,9 @@ defmodule EmakolaWeb.ReviewComponents do
       <.star_display rating={@avg_rating || 0.0} size="sm" />
       <span class="text-sm text-gray-600">
         {format_rating(@avg_rating)} out of 5
-        <span class="text-gray-400">({@review_count} {if @review_count == 1, do: "review", else: "reviews"})</span>
+        <span class="text-gray-400">
+          ({@review_count} {if @review_count == 1, do: "review", else: "reviews"})
+        </span>
       </span>
     </div>
     """
@@ -128,7 +130,13 @@ defmodule EmakolaWeb.ReviewComponents do
                   aria-label={"Rate #{i} star#{if i > 1, do: "s", else: ""}"}
                 >
                   <svg
-                    class={["w-8 h-8 transition-colors", if(i <= @review_form_rating, do: "text-amber-400", else: "text-gray-300 hover:text-amber-200")]}
+                    class={[
+                      "w-8 h-8 transition-colors",
+                      if(i <= @review_form_rating,
+                        do: "text-amber-400",
+                        else: "text-gray-300 hover:text-amber-200"
+                      )
+                    ]}
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
@@ -181,7 +189,8 @@ defmodule EmakolaWeb.ReviewComponents do
                 "inline-flex items-center rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors",
                 if(@review_form_rating == 0 || @review_submitting,
                   do: "bg-gray-300 cursor-not-allowed",
-                  else: "bg-amber-600 hover:bg-amber-700 focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+                  else:
+                    "bg-amber-600 hover:bg-amber-700 focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
                 )
               ]}
             >
@@ -198,7 +207,10 @@ defmodule EmakolaWeb.ReviewComponents do
         </div>
 
         <%!-- Purchase to Review Message --%>
-        <div :if={!@can_review && !@already_reviewed} class="mb-10 rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <div
+          :if={!@can_review && !@already_reviewed}
+          class="mb-10 rounded-lg border border-gray-200 bg-gray-50 p-4"
+        >
           <p class="text-sm text-gray-500">
             Purchase this product to leave a review.
           </p>
@@ -254,7 +266,10 @@ defmodule EmakolaWeb.ReviewComponents do
   # ── Helpers ────────────────────────────────────────────────────────
 
   defp format_rating(nil), do: "0.0"
-  defp format_rating(rating) when is_float(rating), do: :erlang.float_to_binary(rating, decimals: 1)
+
+  defp format_rating(rating) when is_float(rating),
+    do: :erlang.float_to_binary(rating, decimals: 1)
+
   defp format_rating(rating) when is_integer(rating), do: "#{rating}.0"
 
   defp format_rating(%Decimal{} = rating) do
