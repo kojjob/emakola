@@ -579,6 +579,9 @@ defmodule EmakolaWeb.Admin.DesignLive do
   slot :inner_block, required: true
 
   defp option_tile(assigns) do
+    assigns =
+      assign(assigns, :is_selected, to_string(assigns.selected) == to_string(assigns.value))
+
     ~H"""
     <button
       type="button"
@@ -587,7 +590,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
       phx-value-value={@value}
       class={[
         "cursor-pointer p-2.5 rounded-xl border-2 transition-all w-full",
-        if(@selected == @value,
+        if(@is_selected,
           do: "border-emerald-500 bg-emerald-50 shadow-md shadow-emerald-500/10 scale-[1.02]",
           else: "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"
         )
@@ -599,13 +602,10 @@ defmodule EmakolaWeb.Admin.DesignLive do
       <div class="flex items-center justify-center gap-1.5">
         <div class={[
           "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
-          if(@selected == @value,
-            do: "border-emerald-500 bg-emerald-500",
-            else: "border-slate-300"
-          )
+          if(@is_selected, do: "border-emerald-500 bg-emerald-500", else: "border-slate-300")
         ]}>
           <svg
-            :if={@selected == @value}
+            :if={@is_selected}
             class="w-2.5 h-2.5 text-white"
             fill="none"
             stroke="currentColor"
@@ -617,7 +617,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
         </div>
         <p class={[
           "text-xs font-semibold",
-          if(@selected == @value, do: "text-emerald-700", else: "text-slate-500")
+          if(@is_selected, do: "text-emerald-700", else: "text-slate-500")
         ]}>
           {@label}
         </p>
@@ -633,6 +633,9 @@ defmodule EmakolaWeb.Admin.DesignLive do
   slot :inner_block, required: true
 
   defp option_row(assigns) do
+    assigns =
+      assign(assigns, :is_selected, to_string(assigns.selected) == to_string(assigns.value))
+
     ~H"""
     <button
       type="button"
@@ -641,7 +644,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
       phx-value-value={@value}
       class={[
         "cursor-pointer flex items-center gap-3 w-full p-3 rounded-xl border-2 transition-all text-left",
-        if(@selected == @value,
+        if(@is_selected,
           do: "border-emerald-500 bg-emerald-50 shadow-sm",
           else: "border-slate-200 bg-white hover:border-slate-300"
         )
@@ -649,10 +652,10 @@ defmodule EmakolaWeb.Admin.DesignLive do
     >
       <div class={[
         "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
-        if(@selected == @value, do: "border-emerald-500 bg-emerald-500", else: "border-slate-300")
+        if(@is_selected, do: "border-emerald-500 bg-emerald-500", else: "border-slate-300")
       ]}>
         <svg
-          :if={@selected == @value}
+          :if={@is_selected}
           class="w-2.5 h-2.5 text-white"
           fill="none"
           stroke="currentColor"
@@ -667,7 +670,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
       </div>
       <span class={[
         "text-[10px] font-medium shrink-0",
-        if(@selected == @value, do: "text-emerald-700", else: "text-slate-400")
+        if(@is_selected, do: "text-emerald-700", else: "text-slate-400")
       ]}>
         {@label}
       </span>
