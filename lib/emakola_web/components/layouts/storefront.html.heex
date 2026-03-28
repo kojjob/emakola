@@ -14,7 +14,7 @@
   body_font = Emakola.Themes.DesignTokens.body_font_family(tokens[:body_font] || "sans")
   heading_url = Emakola.Themes.DesignTokens.heading_font_url(tokens[:heading_font] || "sans")
   body_url = Emakola.Themes.DesignTokens.body_font_url(tokens[:body_font] || "sans")
-  btn = Emakola.Themes.DesignTokens.button_classes(tokens[:button_style] || "rounded") %>
+  _btn = Emakola.Themes.DesignTokens.button_classes(tokens[:button_style] || "rounded") %>
   <%= if heading_url do %>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />

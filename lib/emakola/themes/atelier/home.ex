@@ -15,6 +15,7 @@ defmodule Emakola.Themes.Atelier.Home do
   import Phoenix.HTML, only: [raw: 1]
 
   alias Emakola.Themes.Atelier.Shared
+  alias Emakola.Themes.DesignTokens
   alias EmakolaWeb.Helpers.Currency
 
   @doc """
@@ -113,6 +114,12 @@ defmodule Emakola.Themes.Atelier.Home do
     cta_secondary_text =
       get_in(assigns.theme, [:hero, :cta_secondary_text]) || "Meet the Artisans"
 
+    tokens = Map.get(assigns.theme, :design_tokens, %{})
+    hero_layout = DesignTokens.hero_layout(tokens[:hero_layout])
+    heading_font = DesignTokens.heading_font_family(tokens[:heading_font])
+    heading_size = DesignTokens.heading_size(tokens[:typography_scale])
+    btn_classes = DesignTokens.button_classes(tokens[:button_style])
+
     assigns =
       assigns
       |> assign(:effective_images, effective_images)
@@ -124,7 +131,62 @@ defmodule Emakola.Themes.Atelier.Home do
       |> assign(:hero_description, hero_description)
       |> assign(:cta_text, cta_text)
       |> assign(:cta_secondary_text, cta_secondary_text)
+      |> assign(:hero_layout, hero_layout)
+      |> assign(:heading_font, heading_font)
+      |> assign(:heading_size, heading_size)
+      |> assign(:btn_classes, btn_classes)
 
+    ~H"""
+    <%= if @hero_layout == :split do %>
+      <.hero_split
+        store={@store}
+        effective_images={@effective_images}
+        hero_subtitle={@hero_subtitle}
+        hero_title={@hero_title}
+        hero_description={@hero_description}
+        cta_text={@cta_text}
+        cta_secondary_text={@cta_secondary_text}
+        heading_font={@heading_font}
+        heading_size={@heading_size}
+        btn_classes={@btn_classes}
+      />
+    <% else %>
+      <.hero_full_bleed
+        store={@store}
+        effective_images={@effective_images}
+        use_carousel={@use_carousel}
+        image_count={@image_count}
+        total_duration={@total_duration}
+        hero_subtitle={@hero_subtitle}
+        hero_title={@hero_title}
+        hero_description={@hero_description}
+        cta_text={@cta_text}
+        cta_secondary_text={@cta_secondary_text}
+        heading_font={@heading_font}
+        heading_size={@heading_size}
+        btn_classes={@btn_classes}
+      />
+    <% end %>
+    """
+  end
+
+  # ── Hero: Full-Bleed Variant ──
+
+  attr :store, :map, required: true
+  attr :effective_images, :list, required: true
+  attr :use_carousel, :boolean, required: true
+  attr :image_count, :integer, required: true
+  attr :total_duration, :integer, required: true
+  attr :hero_subtitle, :string, required: true
+  attr :hero_title, :string, required: true
+  attr :hero_description, :string, required: true
+  attr :cta_text, :string, required: true
+  attr :cta_secondary_text, :string, required: true
+  attr :heading_font, :string, required: true
+  attr :heading_size, :string, required: true
+  attr :btn_classes, :string, required: true
+
+  defp hero_full_bleed(assigns) do
     ~H"""
     <section class="relative min-h-screen flex items-end overflow-hidden -mt-16 sm:-mt-20">
       <%!-- Image container: clip-path prevents Ken Burns zoom from overflowing --%>
@@ -153,11 +215,6 @@ defmodule Emakola.Themes.Atelier.Home do
               100% { transform: scaleX(1); transform-origin: left; }
             }
           </style>
-          <%!--
-          Stagger each image by (total / N) seconds, but start the NEXT
-          image's fade-in slightly BEFORE the current one fades out.
-          This creates the overlap that prevents blank frames.
-        --%>
           <img
             :for={{url, idx} <- Enum.with_index(@effective_images)}
             src={url}
@@ -186,7 +243,6 @@ defmodule Emakola.Themes.Atelier.Home do
         <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent">
         </div>
       </div>
-      <%!-- /Image container --%>
 
       <%!-- Content --%>
       <div
@@ -205,7 +261,7 @@ defmodule Emakola.Themes.Atelier.Home do
           <%!-- Heading --%>
           <h1
             class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white leading-[1.02] mb-6 tracking-tight"
-            style="text-shadow: 0 2px 8px rgba(0,0,0,0.5);"
+            style={"text-shadow: 0 2px 8px rgba(0,0,0,0.5); font-family: #{@heading_font};"}
           >
             {raw(String.replace(@hero_title, "\n", "<br>"))}
           </h1>
@@ -222,7 +278,7 @@ defmodule Emakola.Themes.Atelier.Home do
           <div class="flex flex-col sm:flex-row gap-4">
             <a
               href={"/s/#{@store.slug}/products"}
-              class="inline-flex items-center justify-center gap-2 px-8 py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-300 hover:opacity-90 min-h-[48px]"
+              class={"inline-flex items-center justify-center gap-2 px-8 py-4 text-sm font-bold uppercase tracking-wider #{@btn_classes} text-white transition-all duration-300 hover:opacity-90 min-h-[48px]"}
               style="background: var(--theme-primary);"
             >
               {@cta_text}
@@ -242,7 +298,7 @@ defmodule Emakola.Themes.Atelier.Home do
             </a>
             <a
               href={"/s/#{@store.slug}/about"}
-              class="inline-flex items-center justify-center px-8 py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white border-2 border-white/40 hover:bg-white/10 transition-all duration-300 min-h-[48px]"
+              class={"inline-flex items-center justify-center px-8 py-4 text-sm font-bold uppercase tracking-wider #{@btn_classes} text-white border-2 border-white/40 hover:bg-white/10 transition-all duration-300 min-h-[48px]"}
             >
               {@cta_secondary_text}
             </a>
@@ -262,6 +318,91 @@ defmodule Emakola.Themes.Atelier.Home do
             >
             </span>
           </span>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  # ── Hero: Split Variant ──
+
+  attr :store, :map, required: true
+  attr :effective_images, :list, required: true
+  attr :hero_subtitle, :string, required: true
+  attr :hero_title, :string, required: true
+  attr :hero_description, :string, required: true
+  attr :cta_text, :string, required: true
+  attr :cta_secondary_text, :string, required: true
+  attr :heading_font, :string, required: true
+  attr :heading_size, :string, required: true
+  attr :btn_classes, :string, required: true
+
+  defp hero_split(assigns) do
+    ~H"""
+    <section class="bg-[#FAFAF9] pt-24 sm:pt-28 pb-12 sm:pb-20">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+          <%!-- Left: Text content --%>
+          <div class="order-2 lg:order-1">
+            <span
+              class="inline-block px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase mb-6 text-white"
+              style="background: var(--theme-primary);"
+            >
+              {@hero_subtitle}
+            </span>
+
+            <h1
+              class="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-[#1C1917] leading-[1.05] mb-6 tracking-tight"
+              style={"font-family: #{@heading_font};"}
+            >
+              {raw(String.replace(@hero_title, "\n", "<br>"))}
+            </h1>
+
+            <p class="text-base sm:text-lg text-[#78716C] max-w-lg leading-relaxed mb-8">
+              {@hero_description}
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-4">
+              <a
+                href={"/s/#{@store.slug}/products"}
+                class={"inline-flex items-center justify-center gap-2 px-8 py-4 text-sm font-bold uppercase tracking-wider #{@btn_classes} text-white transition-all duration-300 hover:opacity-90 min-h-[48px]"}
+                style="background: var(--theme-primary);"
+              >
+                {@cta_text}
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </a>
+              <a
+                href={"/s/#{@store.slug}/about"}
+                class={"inline-flex items-center justify-center px-8 py-4 text-sm font-bold uppercase tracking-wider #{@btn_classes} text-[#1C1917] border-2 border-[#D6D3D1] hover:border-[#A8A29E] hover:bg-[#F5F5F4] transition-all duration-300 min-h-[48px]"}
+              >
+                {@cta_secondary_text}
+              </a>
+            </div>
+          </div>
+
+          <%!-- Right: Hero image --%>
+          <div class="order-1 lg:order-2">
+            <div class="relative overflow-hidden rounded-2xl aspect-[4/5] sm:aspect-[3/4] lg:aspect-[4/5] bg-[#F5F5F4]">
+              <img
+                src={List.first(@effective_images)}
+                alt={"#{@store.name} collection"}
+                loading="eager"
+                class="w-full h-full object-cover"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -300,17 +441,30 @@ defmodule Emakola.Themes.Atelier.Home do
     hero = List.first(assigns.products)
     grid_products = assigns.products |> Enum.drop(1) |> Enum.take(4)
 
+    tokens = Map.get(assigns.theme || %{}, :design_tokens, %{})
+    heading_font = DesignTokens.heading_font_family(tokens[:heading_font])
+    heading_size = DesignTokens.heading_size(tokens[:typography_scale])
+    grid_classes = DesignTokens.grid_classes(tokens[:product_grid_columns])
+    btn_classes = DesignTokens.button_classes(tokens[:button_style])
+
     assigns =
       assigns
       |> assign(:hero, hero)
       |> assign(:grid_products, grid_products)
+      |> assign(:heading_font, heading_font)
+      |> assign(:heading_size, heading_size)
+      |> assign(:grid_classes, grid_classes)
+      |> assign(:btn_classes, btn_classes)
 
     ~H"""
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
       <%!-- Section Header --%>
       <div class="flex items-center justify-between mb-8 sm:mb-10">
         <div>
-          <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-[#1C1917]">
+          <h2
+            class={"#{@heading_size} font-semibold text-[#1C1917]"}
+            style={"font-family: #{@heading_font};"}
+          >
             Featured Masterpieces
           </h2>
           <p class="text-sm text-[#A8A29E] mt-1 hidden sm:block">Handpicked by our artisans</p>
@@ -408,8 +562,8 @@ defmodule Emakola.Themes.Atelier.Home do
           </a>
         </div>
 
-        <%!-- Right half: 2x2 grid of smaller cards --%>
-        <div class="grid grid-cols-2 gap-3 sm:gap-4">
+        <%!-- Right half: grid of smaller cards (column count from design tokens) --%>
+        <div class={"grid #{@grid_classes} gap-3 sm:gap-4"}>
           <div :for={product <- @grid_products}>
             <a
               href={"/s/#{@store.slug}/products/#{product.slug}"}
@@ -444,7 +598,7 @@ defmodule Emakola.Themes.Atelier.Home do
                 <%!-- Quick add button --%>
                 <div class="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
                   <button
-                    class="w-full py-2.5 text-[11px] font-semibold uppercase tracking-wider rounded-lg text-white cursor-pointer transition-colors min-h-[40px]"
+                    class={"w-full py-2.5 text-[11px] font-semibold uppercase tracking-wider #{@btn_classes} text-white cursor-pointer transition-colors min-h-[40px]"}
                     style="background: var(--theme-primary);"
                     phx-click="add_to_cart"
                     phx-value-product-id={product.id}
@@ -630,6 +784,11 @@ defmodule Emakola.Themes.Atelier.Home do
     nl_disclaimer =
       Map.get(newsletter_config, :disclaimer, "No spam. Unsubscribe anytime.")
 
+    tokens = Map.get(assigns.theme, :design_tokens, %{})
+    heading_font = DesignTokens.heading_font_family(tokens[:heading_font])
+    heading_size = DesignTokens.heading_size(tokens[:typography_scale])
+    btn_classes = DesignTokens.button_classes(tokens[:button_style])
+
     assigns =
       assigns
       |> assign(:nl_heading, nl_heading)
@@ -637,12 +796,18 @@ defmodule Emakola.Themes.Atelier.Home do
       |> assign(:nl_button_text, nl_button_text)
       |> assign(:nl_placeholder, nl_placeholder)
       |> assign(:nl_disclaimer, nl_disclaimer)
+      |> assign(:heading_font, heading_font)
+      |> assign(:heading_size, heading_size)
+      |> assign(:btn_classes, btn_classes)
 
     ~H"""
     <section class="bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         <div class="max-w-xl mx-auto text-center">
-          <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
+          <h2
+            class={"#{@heading_size} font-black text-gray-900 mb-4"}
+            style={"font-family: #{@heading_font};"}
+          >
             {@nl_heading}
           </h2>
           <p class="text-gray-600 text-base sm:text-lg leading-relaxed mb-8">
@@ -661,7 +826,7 @@ defmodule Emakola.Themes.Atelier.Home do
             />
             <button
               type="submit"
-              class="cursor-pointer px-8 py-3.5 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-200 hover:opacity-90 whitespace-nowrap min-h-[48px]"
+              class={"cursor-pointer px-8 py-3.5 text-sm font-bold uppercase tracking-wider #{@btn_classes} text-white transition-all duration-200 hover:opacity-90 whitespace-nowrap min-h-[48px]"}
               style="background: var(--theme-primary);"
             >
               {@nl_button_text}
