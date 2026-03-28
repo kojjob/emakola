@@ -94,55 +94,7 @@ defmodule Emakola.Themes.Atelier.Home do
   attr :theme, :map, required: true
 
   defp hero_section(assigns) do
-    hero_images = get_in(assigns.theme, [:hero, :images]) || []
-    hero_image = get_in(assigns.theme, [:hero, :image_url])
-    hero_carousel = get_in(assigns.theme, [:hero, :carousel]) || false
-
-    # Only use images that are actual uploads (not stock photos / unsplash URLs)
-    valid_images =
-      case hero_images do
-        [_ | _] ->
-          Enum.filter(hero_images, &valid_hero_image?/1)
-
-        _ when hero_image not in [nil, ""] ->
-          if valid_hero_image?(hero_image), do: [hero_image], else: []
-
-        _ ->
-          []
-      end
-
-    has_images = valid_images != []
-
-    use_carousel = has_images && hero_carousel && length(valid_images) > 1
-    image_count = if has_images, do: length(valid_images), else: 0
-    total_duration = max(image_count, 1) * 7
-
-    store_name = Map.get(assigns.store, :name, "Our Store")
-
-    hero_subtitle = get_in(assigns.theme, [:hero, :subtitle]) || "Welcome to #{store_name}"
-    hero_title = get_in(assigns.theme, [:hero, :title]) || "Crafting Trust,\nCurating Excellence."
-
-    hero_description =
-      get_in(assigns.theme, [:hero, :description]) ||
-        "Experience the soul of West African craftsmanship. Every piece tells a story of heritage, precision, and modern elegance."
-
-    cta_text = get_in(assigns.theme, [:hero, :cta_text]) || "Shop Now"
-
-    cta_secondary_text =
-      get_in(assigns.theme, [:hero, :cta_secondary_text]) || "Our Story"
-
-    assigns =
-      assigns
-      |> assign(:valid_images, valid_images)
-      |> assign(:has_images, has_images)
-      |> assign(:use_carousel, use_carousel)
-      |> assign(:image_count, image_count)
-      |> assign(:total_duration, total_duration)
-      |> assign(:hero_subtitle, hero_subtitle)
-      |> assign(:hero_title, hero_title)
-      |> assign(:hero_description, hero_description)
-      |> assign(:cta_text, cta_text)
-      |> assign(:cta_secondary_text, cta_secondary_text)
+    assigns = prepare_hero_assigns(assigns)
 
     ~H"""
     <section class="relative min-h-screen flex items-end overflow-hidden -mt-16 sm:-mt-20">
@@ -781,6 +733,49 @@ defmodule Emakola.Themes.Atelier.Home do
   end
 
   # Returns true only for local upload paths (not stock photo URLs)
+  defp prepare_hero_assigns(assigns) do
+    theme = assigns.theme
+    valid_images = collect_valid_hero_images(theme)
+    image_count = length(valid_images)
+    hero_carousel = get_in(theme, [:hero, :carousel]) || false
+    store_name = Map.get(assigns.store, :name, "Our Store")
+
+    assigns
+    |> assign(:valid_images, valid_images)
+    |> assign(:has_images, image_count > 0)
+    |> assign(:use_carousel, image_count > 1 && hero_carousel)
+    |> assign(:image_count, image_count)
+    |> assign(:total_duration, max(image_count, 1) * 7)
+    |> assign_hero_text(theme, store_name)
+  end
+
+  defp collect_valid_hero_images(theme) do
+    images = get_in(theme, [:hero, :images]) || []
+    single = get_in(theme, [:hero, :image_url])
+
+    cond do
+      is_list(images) && images != [] -> Enum.filter(images, &valid_hero_image?/1)
+      valid_hero_image?(single) -> [single]
+      true -> []
+    end
+  end
+
+  defp assign_hero_text(assigns, theme, store_name) do
+    assigns
+    |> assign(:hero_subtitle, get_in(theme, [:hero, :subtitle]) || "Welcome to #{store_name}")
+    |> assign(
+      :hero_title,
+      get_in(theme, [:hero, :title]) || "Crafting Trust,\nCurating Excellence."
+    )
+    |> assign(
+      :hero_description,
+      get_in(theme, [:hero, :description]) ||
+        "Experience the soul of West African craftsmanship. Every piece tells a story of heritage, precision, and modern elegance."
+    )
+    |> assign(:cta_text, get_in(theme, [:hero, :cta_text]) || "Shop Now")
+    |> assign(:cta_secondary_text, get_in(theme, [:hero, :cta_secondary_text]) || "Our Story")
+  end
+
   defp valid_hero_image?(nil), do: false
   defp valid_hero_image?(""), do: false
 
