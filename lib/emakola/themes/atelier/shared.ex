@@ -10,6 +10,8 @@ defmodule Emakola.Themes.Atelier.Shared do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+
   alias Emakola.Themes.DesignTokens
   alias Phoenix.LiveView.JS
   alias EmakolaWeb.Helpers.Currency
@@ -163,10 +165,11 @@ defmodule Emakola.Themes.Atelier.Shared do
             href={"/s/#{@store.slug}"}
             class="cursor-pointer transition-opacity duration-200 hover:opacity-80 min-h-[44px] flex items-center gap-2.5"
           >
-            <img
+            <.optimized_image
               :if={Map.get(@store, :logo_url) && Map.get(@store, :logo_url) != ""}
               src={@store.logo_url}
               alt={@store.name}
+              priority={:high}
               class="h-8 sm:h-10 w-auto object-contain"
             />
             <span
@@ -604,11 +607,10 @@ defmodule Emakola.Themes.Atelier.Shared do
     <div class="atelier-product-card group">
       <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="block">
         <div class="relative overflow-hidden bg-gray-100 rounded-lg aspect-square mb-3">
-          <img
+          <.optimized_image
             :if={@image}
             src={@image}
             alt={@product.title}
-            loading="lazy"
             class="w-full h-full object-cover transition-transform duration-300"
           />
           <div :if={!@image} class="w-full h-full flex items-center justify-center bg-gray-100">
@@ -712,11 +714,10 @@ defmodule Emakola.Themes.Atelier.Shared do
       href={"/s/#{@store.slug}/products/#{@product.slug}"}
       class="group block relative overflow-hidden rounded-xl bg-gray-100 aspect-[4/5] sm:aspect-[3/4] cursor-pointer"
     >
-      <img
+      <.optimized_image
         :if={@image}
         src={@image}
         alt={@product.title}
-        loading="lazy"
         class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
       />
       <div :if={!@image} class="w-full h-full flex items-center justify-center">
@@ -762,12 +763,12 @@ defmodule Emakola.Themes.Atelier.Shared do
       class="atelier-category-circle flex flex-col items-center gap-2.5 flex-shrink-0 group"
     >
       <div class="atelier-cat-ring w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-2 border-gray-200 transition-colors duration-200">
-        <img
+        <.optimized_image
           :if={@image}
           src={@image}
           alt={@category.name}
+          priority={:low}
           class="w-full h-full object-cover transition-transform duration-300"
-          loading="lazy"
         />
         <div
           :if={!@image}
