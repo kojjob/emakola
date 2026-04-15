@@ -53,9 +53,11 @@ defmodule EmakolaWeb.Helpers.SEO do
   """
   @spec json_ld_product(map(), list(map()), map()) :: map()
   def json_ld_product(product, variants, store) do
+    # Use product_field/2 for struct-safe access. Ash resources are
+    # structs, not maps, and do not implement Access — so `product[:key]`
+    # raises. `Map.get/2` works on both structs and plain maps.
     description =
-      product[:seo_description] || Map.get(product, :seo_description) ||
-        product[:description] || Map.get(product, :description)
+      product_field(product, :seo_description) || product_field(product, :description)
 
     base = %{
       "@context" => "https://schema.org",

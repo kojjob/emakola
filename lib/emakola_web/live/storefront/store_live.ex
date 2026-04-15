@@ -11,6 +11,7 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   use EmakolaWeb, :live_view
 
   alias Emakola.Cart.CartStore
+  alias EmakolaWeb.Helpers.SEO, as: SEOHelpers
   alias EmakolaWeb.Helpers.StoreResolver
 
   import EmakolaWeb.StorefrontComponents, only: [coupon_banner: 1]
@@ -40,6 +41,7 @@ defmodule EmakolaWeb.Storefront.StoreLive do
          |> assign(:cart_session_id, cart_session_id)
          |> assign(:cart_count, cart_count)
          |> assign(:page_title, store.name)
+         |> assign_seo_metadata(store, products)
          |> assign(:theme, theme)
          |> assign(:theme_module, theme_module)
          |> assign(:theme_fonts, theme_module.fonts())
@@ -56,6 +58,11 @@ defmodule EmakolaWeb.Storefront.StoreLive do
          |> put_flash(:error, "Store not found")
          |> redirect(to: "/")}
     end
+  end
+
+  @impl true
+  def handle_params(_params, uri, socket) do
+    {:noreply, assign(socket, :canonical_url, uri)}
   end
 
   @impl true
@@ -180,5 +187,62 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   defp search_overlay_products(store_id, query) do
     Emakola.Catalog.search_products!(query, store_id)
     |> Enum.filter(&(&1.status == :active))
+  end
+
+  # -- SEO --
+
+  # Sets meta_description, og_image, og_type, and Store JSON-LD for the
+  # storefront home page. These flow to the root layout and get rendered
+  # as OG/Twitter/JSON-LD tags, so WhatsApp and Google show rich previews
+  # when the merchant's store URL is shared.
+  defp assign_seo_metadata(socket, store, products) do
+    description = store_description_for_seo(store)
+    og_image = first_featured_product_image(products) || store_logo_url(store)
+    json_ld = SEOHelpers.json_ld_store(store)
+
+    socket
+    |> assign(:meta_description, description)
+    |> assign(:og_image, og_image)
+    |> assign(:og_type, "website")
+    |> assign(:og_site_name, store.name)
+    |> assign(:json_ld, json_ld)
+  end
+
+  defp store_description_for_seo(store) do
+    raw =
+      Map.get(store, :description) ||
+        Map.get(store, :tagline) ||
+        "Shop authentic products from #{store.name} — fast delivery, mobile money accepted."
+
+    raw
+    |> to_string()
+    |> String.trim()
+    |> truncate_at_word(155)
+  end
+
+  defp first_featured_product_image([first | _]) when is_map(first) do
+    case Map.get(first, :images) do
+      [img | _] when is_map(img) ->
+        Map.get(img, :medium_url) || Map.get(img, :url)
+
+      _ ->
+        nil
+    end
+  end
+
+  defp first_featured_product_image(_), do: nil
+
+  defp store_logo_url(store) do
+    Map.get(store, :logo_url)
+  end
+
+  defp truncate_at_word(str, max) when byte_size(str) <= max, do: str
+
+  defp truncate_at_word(str, max) do
+    str
+    |> binary_part(0, max)
+    |> String.trim_trailing()
+    |> String.replace(~r/\s+\S*$/, "")
+    |> Kernel.<>("…")
   end
 end

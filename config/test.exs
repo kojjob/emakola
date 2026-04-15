@@ -72,5 +72,8 @@ config :emakola, Emakola.Payments.PaystackClient,
 config :emakola, :sms_provider, Emakola.SMSProviderMock
 config :emakola, :whatsapp_provider, Emakola.WhatsAppProviderMock
 
-# Disable rate limiting in tests
-config :emakola, env: :test
+# Disable rate limiting globally in tests to avoid flaky 429s in auth/page
+# tests. Tests that specifically exercise the rate limiter (see
+# rate_limiter_test.exs, security_test.exs) re-enable it per-test via
+# Application.put_env/3 in their setup block.
+config :emakola, :disable_rate_limit, true
