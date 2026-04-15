@@ -54,6 +54,21 @@ if config_env() == :prod do
     config :emakola, :hubtel_client_secret, System.get_env("HUBTEL_CLIENT_SECRET") || ""
   end
 
+  # Hubtel webhook source-IP allowlist. Hubtel does not sign webhooks, so
+  # conn.remote_ip is the only trust boundary. Populate from the comma-
+  # separated HUBTEL_WEBHOOK_ALLOWLIST env var with IPv4 addresses or CIDR
+  # ranges (e.g. "203.0.113.5,10.0.0.0/24"). If unset or empty, the
+  # HubtelAllowlist plug fails closed and rejects every /webhooks/hubtel
+  # request with 403 — see Emakola.Web.Plugs.HubtelAllowlist.
+  config :emakola,
+         :hubtel_webhook_allowlist,
+         (System.get_env("HUBTEL_WEBHOOK_ALLOWLIST") || "")
+         |> String.split(",", trim: true)
+         |> Enum.map(&String.trim/1)
+
+  # Bypass flag is never set in prod — keeping fail-closed semantics.
+  config :emakola, :hubtel_webhook_allowlist_disabled, false
+
   # SMS notifications
   if sms_key = System.get_env("SMS_API_KEY") do
     config :emakola, :sms_api_key, sms_key

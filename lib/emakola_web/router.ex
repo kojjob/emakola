@@ -22,16 +22,32 @@ defmodule EmakolaWeb.Router do
     plug EmakolaWeb.Plugs.RateLimiter, limit: 10, window_ms: 60_000
   end
 
+  # Source-IP allowlist for the Hubtel webhook endpoint. Hubtel does not
+  # sign webhooks, so remote_ip is the only trust boundary. The plug fails
+  # closed on any misconfiguration.
+  pipeline :hubtel_webhook_auth do
+    plug EmakolaWeb.Plugs.HubtelAllowlist
+  end
+
   # Health check — required by Docker/fly.toml for deployment readiness
   scope "/api", EmakolaWeb do
     pipe_through :api
     get "/health", HealthController, :show
   end
 
-  # Payment gateway webhooks — no CSRF, raw JSON bodies
+  # Payment gateway webhooks — no CSRF, raw JSON bodies.
+  #
+  # Paystack is authenticated via HMAC-SHA512 signature verified in the
+  # controller/gateway. Hubtel does not sign webhooks, so the route is
+  # gated by :hubtel_webhook_auth which matches conn.remote_ip against a
+  # configured IPv4/CIDR allowlist and fails closed on misconfiguration.
+  scope "/webhooks", EmakolaWeb do
+    pipe_through [:api, :hubtel_webhook_auth]
+    post "/hubtel", WebhookController, :hubtel
+  end
+
   scope "/webhooks", EmakolaWeb do
     pipe_through :api
-    post "/hubtel", WebhookController, :hubtel
     post "/paystack", WebhookController, :paystack
   end
 
