@@ -55,6 +55,31 @@ defmodule EmakolaWeb.Router do
     live "/register", RegisterLive
   end
 
+  # Customer storefront session controller (sets/clears customer token cookie)
+  scope "/s/:store_slug", EmakolaWeb.Storefront do
+    pipe_through [:browser, :auth_rate_limit]
+    get "/auth/customer-session", CustomerSessionController, :create
+  end
+
+  scope "/s/:store_slug", EmakolaWeb.Storefront do
+    pipe_through :browser
+    delete "/auth/customer-session", CustomerSessionController, :delete
+    get "/auth/customer-logout", CustomerSessionController, :logout
+  end
+
+  # Customer storefront auth pages (login/register — no customer auth required)
+  scope "/s/:store_slug", EmakolaWeb.Storefront do
+    pipe_through [:browser, :auth_rate_limit]
+
+    live_session :storefront_auth,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [{EmakolaWeb.Hooks.ResolveStore, :default}],
+      session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
+      live "/login", CustomerLoginLive
+      live "/register", CustomerRegisterLive
+    end
+  end
+
   # Customer storefront (public — no auth required)
   # In production, store is resolved from subdomain. For now, use store slug in URL.
   scope "/s/:store_slug", EmakolaWeb.Storefront do
@@ -62,6 +87,10 @@ defmodule EmakolaWeb.Router do
 
     live_session :storefront,
       layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [
+        {EmakolaWeb.Hooks.ResolveStore, :default},
+        {EmakolaWeb.Hooks.ResolveCustomer, :default}
+      ],
       session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
       live "/", StoreLive
       live "/products", ProductListLive
@@ -71,6 +100,10 @@ defmodule EmakolaWeb.Router do
       live "/orders/:order_number/confirmation", OrderConfirmationLive
       live "/category/:category_slug", CategoryLive
       live "/about", AboutLive
+      live "/blog", BlogListLive
+      live "/blog/:post_slug", BlogPostLive
+      live "/recipes", RecipeListLive
+      live "/recipes/:recipe_slug", RecipeLive
       live "/account", AccountLive
       live "/wishlist", WishlistLive
       live "/track/:order_number", TrackingLive
@@ -99,9 +132,18 @@ defmodule EmakolaWeb.Router do
       live "/admin/products/:id/edit", Admin.ProductLive.Form, :edit
       live "/admin/categories", Admin.CategoryLive.Index
 
+      # Merchant admin — review management
+      live "/admin/reviews", Admin.ReviewLive
+
+      # Merchant admin — inventory management
+      live "/admin/inventory", Admin.InventoryLive
+
       # Merchant admin — order management
       live "/admin/orders", Admin.OrderLive.Index
       live "/admin/orders/:id", Admin.OrderLive.Show
+
+      # Merchant admin — returns
+      live "/admin/returns", Admin.ReturnLive
 
       # Merchant admin — payment reconciliation
       live "/admin/payments", Admin.PaymentsLive
@@ -116,16 +158,26 @@ defmodule EmakolaWeb.Router do
 
       # Theme customizer
       live "/admin/theme", Admin.ThemeLive
+      live "/admin/design", Admin.DesignLive
 
       # Marketing
       live "/admin/campaigns", Admin.CampaignLive.Index
       live "/admin/discounts", Admin.DiscountLive.Index
       live "/admin/coupons", Admin.CouponLive
 
+      # Content management
+      live "/admin/content/posts", Admin.Content.PostLive.Index
+      live "/admin/content/posts/new", Admin.Content.PostLive.Form, :new
+      live "/admin/content/posts/:id/edit", Admin.Content.PostLive.Form, :edit
+      live "/admin/content/media", Admin.Content.MediaLive.Index
+
       # Analytics
       live "/admin/reports", Admin.ReportLive.Index
       live "/admin/revenue", Admin.RevenueLive.Index
     end
+
+    # PDF export (outside live_session, uses session-based auth)
+    get "/admin/export/analytics.pdf", ExportController, :analytics_pdf
 
     live "/onboarding", OnboardingLive
   end

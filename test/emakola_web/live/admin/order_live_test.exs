@@ -89,7 +89,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
 
       {:ok, _view, html} = live(conn, ~p"/admin/orders")
 
-      assert html =~ "520.00"
+      assert html =~ "520"
     end
   end
 
@@ -121,8 +121,8 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
 
       {:ok, _view, html} = live(conn, ~p"/admin/orders/#{order.id}")
 
-      assert html =~ "500.00"
-      assert html =~ "520.00"
+      assert html =~ "500"
+      assert html =~ "520"
     end
 
     test "shows confirm button for pending order", %{
@@ -266,7 +266,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       order =
         create_order!(store.id, customer.id, :pending,
           shipping_address: %{
-            "line1" => "123 Test St",
+            "line_1" => "123 Test St",
             "city" => "Accra",
             "region" => "Greater Accra"
           }

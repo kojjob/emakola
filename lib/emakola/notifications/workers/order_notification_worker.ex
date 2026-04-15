@@ -67,6 +67,7 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
   defp load_order(order_id) do
     Emakola.Orders.Order
     |> Ash.Query.filter(id == ^order_id)
+    |> Ash.Query.load([:line_items])
     |> Ash.read_one(authorize?: false)
     |> case do
       {:ok, nil} -> {:error, :order_not_found}

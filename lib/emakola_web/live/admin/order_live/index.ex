@@ -300,8 +300,6 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
             Emakola.Orders.list_orders_by_store!(store_id)
           end
 
-        results = Ash.load!(results, [:customer])
-
         if query != "" do
           query_down = String.downcase(query)
 

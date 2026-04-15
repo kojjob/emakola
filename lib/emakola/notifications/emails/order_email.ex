@@ -134,6 +134,7 @@ defmodule Emakola.Notifications.Emails.OrderEmail do
                       <td style="padding:8px 0;font-size:14px;color:#6b7280;">Shipping</td>
                       <td style="padding:8px 0;font-size:14px;color:#374151;text-align:right;">#{shipping_amount(order)}</td>
                     </tr>
+                    #{discount_html(order)}
                     <tr style="border-top:2px solid #e5e7eb;">
                       <td style="padding:12px 0;font-size:18px;color:#111827;font-weight:700;">Total</td>
                       <td style="padding:12px 0;font-size:18px;color:#111827;font-weight:700;text-align:right;">#{EmailHelpers.format_money(order.total, order.currency)}</td>
@@ -196,7 +197,7 @@ defmodule Emakola.Notifications.Emails.OrderEmail do
     #{line_items_text}
     Subtotal: #{EmailHelpers.format_money(order.subtotal, order.currency)}
     Shipping: #{shipping_amount(order)}
-    Total: #{EmailHelpers.format_money(order.total, order.currency)}
+    #{discount_text(order)}Total: #{EmailHelpers.format_money(order.total, order.currency)}
     #{address_text}
     Track your order: #{track_url}
 
@@ -213,15 +214,21 @@ defmodule Emakola.Notifications.Emails.OrderEmail do
 
   defp build_line_items_html(line_items, currency) when is_list(line_items) do
     Enum.map_join(line_items, "\n", fn item ->
+      title = Map.get(item, :product_title) || Map.get(item, "product_title")
+      sku = Map.get(item, :variant_sku) || Map.get(item, "variant_sku")
+      qty = Map.get(item, :quantity) || Map.get(item, "quantity")
+      unit = Map.get(item, :unit_price) || Map.get(item, "unit_price")
+      total = Map.get(item, :line_total) || Map.get(item, "line_total")
+
       """
       <tr style="border-bottom:1px solid #f3f4f6;">
         <td style="padding:12px 0;">
-          <p style="font-size:14px;color:#111827;margin:0;font-weight:500;">#{escape_html(item.product_title || item[:product_title])}</p>
-          #{if sku = item.variant_sku || item[:variant_sku], do: "<p style=\"font-size:12px;color:#9ca3af;margin:2px 0 0 0;\">SKU: #{escape_html(sku)}</p>", else: ""}
+          <p style="font-size:14px;color:#111827;margin:0;font-weight:500;">#{escape_html(title)}</p>
+          #{if sku, do: "<p style=\"font-size:12px;color:#9ca3af;margin:2px 0 0 0;\">SKU: #{escape_html(sku)}</p>", else: ""}
         </td>
-        <td style="padding:12px 0;text-align:center;font-size:14px;color:#374151;">#{item.quantity || item[:quantity]}</td>
-        <td style="padding:12px 0;text-align:right;font-size:14px;color:#374151;">#{EmailHelpers.format_money(item.unit_price || item[:unit_price], currency)}</td>
-        <td style="padding:12px 0;text-align:right;font-size:14px;color:#111827;font-weight:500;">#{EmailHelpers.format_money(item.line_total || item[:line_total], currency)}</td>
+        <td style="padding:12px 0;text-align:center;font-size:14px;color:#374151;">#{qty}</td>
+        <td style="padding:12px 0;text-align:right;font-size:14px;color:#374151;">#{EmailHelpers.format_money(unit, currency)}</td>
+        <td style="padding:12px 0;text-align:right;font-size:14px;color:#111827;font-weight:500;">#{EmailHelpers.format_money(total, currency)}</td>
       </tr>
       """
     end)
@@ -231,10 +238,21 @@ defmodule Emakola.Notifications.Emails.OrderEmail do
 
   defp build_line_items_text(line_items, currency) when is_list(line_items) do
     Enum.map_join(line_items, "\n", fn item ->
-      title = item.product_title || item[:product_title]
-      qty = item.quantity || item[:quantity]
-      unit = EmailHelpers.format_money(item.unit_price || item[:unit_price], currency)
-      total = EmailHelpers.format_money(item.line_total || item[:line_total], currency)
+      title = Map.get(item, :product_title) || Map.get(item, "product_title")
+      qty = Map.get(item, :quantity) || Map.get(item, "quantity")
+
+      unit =
+        EmailHelpers.format_money(
+          Map.get(item, :unit_price) || Map.get(item, "unit_price"),
+          currency
+        )
+
+      total =
+        EmailHelpers.format_money(
+          Map.get(item, :line_total) || Map.get(item, "line_total"),
+          currency
+        )
+
       "- #{title} x#{qty} @ #{unit} = #{total}"
     end)
   end
@@ -316,6 +334,25 @@ defmodule Emakola.Notifications.Emails.OrderEmail do
     </p>
     """
   end
+
+  defp discount_html(%{discount_amount: amount} = order)
+       when is_integer(amount) and amount > 0 do
+    """
+    <tr>
+      <td style="padding:8px 0;font-size:14px;color:#059669;">Discount</td>
+      <td style="padding:8px 0;font-size:14px;color:#059669;text-align:right;">-#{EmailHelpers.format_money(amount, order.currency)}</td>
+    </tr>
+    """
+  end
+
+  defp discount_html(_), do: ""
+
+  defp discount_text(%{discount_amount: amount} = order)
+       when is_integer(amount) and amount > 0 do
+    "Discount: -#{EmailHelpers.format_money(amount, order.currency)}\n"
+  end
+
+  defp discount_text(_), do: ""
 
   defp shipping_amount(order) do
     shipping = (order.total || 0) - (order.subtotal || 0)

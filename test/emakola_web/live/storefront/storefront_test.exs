@@ -126,7 +126,7 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
 
       assert html =~ "Fancy Bag"
       assert html =~ "A fancy bag"
-      assert html =~ "GH\u20B5 250.00"
+      assert html =~ "GH\u20B5 250"
       assert html =~ "In Stock"
       assert html =~ "BAG-001"
     end

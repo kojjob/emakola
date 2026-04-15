@@ -36,6 +36,33 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       colors: %{primary: "#DC2626", accent: "#7C2D12", background: "#FFFBEB"},
       preview_bg: "bg-amber-50",
       preview_accent: "bg-red-600"
+    },
+    %{
+      id: "starter",
+      name: "Starter",
+      description: "Clean & modern",
+      icon: "auto_awesome",
+      colors: %{primary: "#6366F1", accent: "#1E293B", background: "#FFFFFF"},
+      preview_bg: "bg-white",
+      preview_accent: "bg-indigo-500"
+    },
+    %{
+      id: "bold",
+      name: "Bold",
+      description: "Editorial & dramatic",
+      icon: "newspaper",
+      colors: %{primary: "#0F172A", accent: "#F59E0B", background: "#F8FAFC"},
+      preview_bg: "bg-slate-50",
+      preview_accent: "bg-slate-900"
+    },
+    %{
+      id: "fresh",
+      name: "Fresh",
+      description: "Food & grocery",
+      icon: "eco",
+      colors: %{primary: "#059669", accent: "#92400E", background: "#FEFCE8"},
+      preview_bg: "bg-yellow-50",
+      preview_accent: "bg-emerald-600"
     }
   ]
 
@@ -90,6 +117,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               brand_story: Map.get(resolved.sections, :brand_story, true),
               newsletter: Map.get(resolved.sections, :newsletter, true)
             },
+            design_tokens: resolved.design_tokens,
             saving: false,
             saved: false
           )
@@ -388,7 +416,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
           </div>
 
           <%!-- Uploaded hero images thumbnails --%>
-          <div :if={@hero_images != []} class="space-y-2">
+          <div :if={@hero_images != []} id="hero-images-list" class="space-y-2">
             <label class="block text-xs font-medium text-slate-500">
               <span class="material-symbols-outlined text-sm align-middle mr-1">collections</span>
               Hero Images ({length(@hero_images)}/5)
@@ -398,22 +426,44 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                 <img
                   src={url}
                   alt={"Hero image #{idx + 1}"}
-                  class="w-20 h-20 rounded-lg object-cover ring-1 ring-slate-200"
+                  class={"w-20 h-20 rounded-lg object-cover " <> if(idx == 0, do: "ring-2 ring-emerald-500", else: "ring-1 ring-slate-200")}
                 />
+                <%!-- Primary badge --%>
+                <div
+                  :if={idx == 0}
+                  class="absolute -top-1 -left-1 w-4 h-4 bg-emerald-500 text-white rounded-full flex items-center justify-center"
+                >
+                  <span class="text-[8px] font-bold">1</span>
+                </div>
+                <%!-- Remove button --%>
                 <button
                   type="button"
                   phx-click="remove_hero_image"
                   phx-value-index={idx}
-                  class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                 >
                   <span class="material-symbols-outlined text-xs">close</span>
                 </button>
+                <%!-- Move to front / swap buttons --%>
+                <div
+                  :if={idx > 0}
+                  class="absolute bottom-0 left-0 right-0 bg-black/60 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity flex justify-center py-0.5"
+                >
+                  <button
+                    type="button"
+                    phx-click="set_primary_hero_image"
+                    phx-value-index={idx}
+                    class="text-[9px] text-white font-medium cursor-pointer hover:text-emerald-300"
+                  >
+                    Set as main
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
           <%!-- File Upload --%>
-          <div :if={length(@hero_images) < 5}>
+          <div :if={length(@hero_images) < 5} id="hero-upload-section">
             <label class="block text-xs font-medium text-slate-500 mb-1.5">
               <span class="material-symbols-outlined text-sm align-middle mr-1">upload</span>
               Upload Hero Images
@@ -484,6 +534,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
           <%!-- Carousel Toggle --%>
           <div
             :if={length(@hero_images) > 1}
+            id="hero-carousel-toggle"
             class="flex items-center justify-between p-3 bg-slate-50 rounded-xl"
           >
             <div class="flex items-center gap-2">
@@ -599,6 +650,29 @@ defmodule EmakolaWeb.Admin.ThemeLive do
           </div>
         </div>
       </div>
+
+      <%!-- Design Style link --%>
+      <div class="bg-white rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
+              <span class="material-symbols-outlined text-xl text-violet-600">palette</span>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-800">Design Style</p>
+              <p class="text-xs text-slate-400">Customize buttons, cards, typography & layout</p>
+            </div>
+          </div>
+          <a
+            href="/admin/design"
+            class="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors"
+          >
+            Open Designer
+          </a>
+        </div>
+      </div>
+
+      <%!-- Design Tokens UI is at /admin/design --%>
 
       <%!-- SAVE BUTTON — Big, obvious --%>
       <div class="sticky bottom-4 z-20">
@@ -798,6 +872,21 @@ defmodule EmakolaWeb.Admin.ThemeLive do
   end
 
   @impl true
+  def handle_event("set_primary_hero_image", %{"index" => index_str}, socket) do
+    index = String.to_integer(index_str)
+    images = socket.assigns.hero_images
+
+    if index >= 0 && index < length(images) do
+      # Move the selected image to the front
+      image = Enum.at(images, index)
+      new_images = [image | List.delete_at(images, index)]
+      {:noreply, assign(socket, hero_images: new_images, saved: false)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_event("save_theme", _params, socket) do
     socket = assign(socket, saving: true)
 
@@ -832,7 +921,11 @@ defmodule EmakolaWeb.Admin.ThemeLive do
             "trust" => socket.assigns.sections.trust,
             "brand_story" => socket.assigns.sections.brand_story,
             "newsletter" => socket.assigns.sections.newsletter
-          })
+          }),
+        "design_tokens" =>
+          socket.assigns.design_tokens
+          |> Enum.map(fn {k, v} -> {to_string(k), v} end)
+          |> Map.new()
       })
 
     actor = socket.assigns[:current_user] || socket.assigns[:current_merchant]
@@ -844,13 +937,37 @@ defmodule EmakolaWeb.Admin.ThemeLive do
         # Clear ETS cache so storefront picks up changes immediately
         try do
           Emakola.Cache.StoreCache.invalidate(updated_store.slug)
+          Emakola.Cache.StoreCache.invalidate_store(updated_store.id)
         rescue
           _ -> :ok
         end
 
+        # Broadcast so connected storefront LiveViews reload their store data
+        Phoenix.PubSub.broadcast(
+          Emakola.PubSub,
+          "store:#{updated_store.id}:theme",
+          {:theme_updated, updated_store}
+        )
+
+        # Reload all values from the saved config to ensure consistency
+        saved_config = updated_store.theme_config || %{}
+        saved_hero = Map.get(saved_config, "hero", %{})
+        saved_colors = Map.get(saved_config, "colors", %{})
+
         {:noreply,
          socket
-         |> assign(store: updated_store, saving: false, saved: true)
+         |> assign(
+           store: updated_store,
+           primary_color: Map.get(saved_colors, "primary", "#2563EB"),
+           accent_color: Map.get(saved_colors, "accent", "#0F172A"),
+           bg_color: Map.get(saved_colors, "background", "#FFFFFF"),
+           hero_images: Map.get(saved_hero, "images", []),
+           hero_image: Map.get(saved_hero, "image_url", ""),
+           hero_carousel: Map.get(saved_hero, "carousel", false),
+           hero_title: Map.get(saved_hero, "title", ""),
+           saving: false,
+           saved: true
+         )
          |> put_flash(:info, "Theme saved! View your store to see the changes.")}
 
       {:error, _error} ->

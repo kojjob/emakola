@@ -15,7 +15,7 @@ defmodule Emakola.Notifications.TemplatesTest do
   end
 
   defp store do
-    %{name: "Adwoa's Shop", id: "some-store-id"}
+    %{name: "Adwoa's Shop", id: "some-store-id", slug: "adwoas-shop"}
   end
 
   defp ngn_order do
@@ -28,7 +28,7 @@ defmodule Emakola.Notifications.TemplatesTest do
   end
 
   defp ngn_store do
-    %{name: "Lagos Mart", id: "nigerian-store-id"}
+    %{name: "Lagos Mart", id: "nigerian-store-id", slug: "lagos-mart"}
   end
 
   # ── Amount formatting ──────────────────────────────────────────

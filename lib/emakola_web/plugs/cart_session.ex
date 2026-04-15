@@ -32,6 +32,9 @@ defmodule EmakolaWeb.Plugs.CartSession do
   Used as: `session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []}`
   """
   def live_session_data(conn) do
-    %{"cart_session_id" => get_session(conn, "cart_session_id")}
+    %{
+      "cart_session_id" => get_session(conn, "cart_session_id"),
+      "customer_token" => get_session(conn, "customer_token")
+    }
   end
 end

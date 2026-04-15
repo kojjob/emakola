@@ -1405,6 +1405,584 @@ Seeds.create!(Emakola.Notifications.Notification, :create, %{
 })
 
 # =============================================================================
+# BLOG & CONTENT SEEDS
+# =============================================================================
+
+IO.puts("  Creating blog posts and recipes for Accra Fresh Market...")
+
+# --- Blog Post 1: Jollof Rice Guide (Published) ---
+blog1 =
+  Seeds.create!(Emakola.Content.Post, :create, %{
+    store_id: store2.id,
+    author_id: merchant2.id,
+    type: :blog_post,
+    title: "The Ultimate Guide to Cooking Perfect Jollof Rice",
+    body: """
+    <p class="text-lg text-stone-600 mb-6">Jollof rice is more than just a dish — it's a cultural icon across West Africa. Whether you're Team Ghana or Team Nigeria, one thing is certain: the perfect jollof requires patience, quality ingredients, and the right technique.</p>
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-8 mb-4">What Makes Ghanaian Jollof Special?</h2>
+    <p>Ghanaian jollof stands apart with its smoky, slightly charred base — what we lovingly call "the bottom pot" or <em>kanzo</em>. This isn't a mistake; it's the signature. The rice is cooked entirely in a rich tomato base with aromatic spices until each grain absorbs every bit of flavor.</p>
+
+    <img src="https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=800&q=80" alt="A pot of golden Ghanaian jollof rice with tomato stew" class="w-full rounded-2xl my-8" />
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-8 mb-4">The Essential Ingredients</h2>
+    <ul class="list-disc pl-6 space-y-2 text-stone-700">
+      <li><strong>Basmati or jasmine rice</strong> — long grain is key</li>
+      <li><strong>Fresh tomatoes and tomato paste</strong> — the flavor foundation</li>
+      <li><strong>Scotch bonnet pepper</strong> — for that authentic heat</li>
+      <li><strong>Onions, garlic, and ginger</strong> — the holy trinity</li>
+      <li><strong>Our Jollof Rice Spice Mix</strong> — the secret weapon</li>
+      <li><strong>Bay leaves and dried thyme</strong> — aromatic depth</li>
+    </ul>
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-8 mb-4">Step-by-Step Method</h2>
+    <ol class="list-decimal pl-6 space-y-3 text-stone-700">
+      <li>Blend tomatoes, pepper, onions, garlic, and ginger into a smooth paste</li>
+      <li>Fry the paste in vegetable oil on medium-high heat until the oil floats on top (about 30 minutes)</li>
+      <li>Add tomato paste and our Jollof Spice Mix — stir well</li>
+      <li>Pour in stock or water, add salt to taste, and bring to a boil</li>
+      <li>Add washed rice, stir once, then reduce heat to the lowest setting</li>
+      <li>Cover tightly with foil then the lid — do NOT open for 30 minutes</li>
+      <li>Check after 30 minutes. If rice is cooked, fluff with a fork. The bottom should have a golden crust!</li>
+    </ol>
+
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 my-8">
+      <p class="font-semibold text-amber-900 mb-2">Pro Tip: The Kanzo</p>
+      <p class="text-amber-800">The smoky bottom layer is the best part. To get it right, use a thick-bottomed pot, keep the heat very low, and resist the urge to stir. When you hear a gentle crackling sound, it's forming.</p>
+    </div>
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-8 mb-4">Watch the Full Tutorial</h2>
+    <div class="aspect-video rounded-2xl overflow-hidden my-6">
+      <iframe width="100%" height="100%" src="https://www.youtube.com/embed/bsGbfpJRsE4" title="How to Cook Perfect Ghanaian Jollof Rice" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+
+    <p class="mt-6">Ready to make your own? <a href="/s/accra-fresh/products/jollof-rice-spice-mix" class="text-amber-700 font-semibold hover:underline">Get our Jollof Rice Spice Mix</a> and <a href="/s/accra-fresh/products/premium-basmati-rice" class="text-amber-700 font-semibold hover:underline">Premium Basmati Rice</a> delivered to your door.</p>
+    """,
+    excerpt:
+      "Master the art of Ghanaian jollof rice with our step-by-step guide. Learn the secrets to the perfect smoky kanzo bottom and rich tomato flavor.",
+    featured_image_url:
+      "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=1200&q=80",
+    tags: ["recipes", "jollof", "cooking", "ghana"],
+    seo_title: "How to Cook Perfect Ghanaian Jollof Rice | Accra Fresh Market",
+    seo_description:
+      "Step-by-step guide to making authentic Ghanaian jollof rice with smoky kanzo bottom. Includes video tutorial, ingredients list, and pro tips."
+  })
+
+Seeds.update!(blog1, :publish, %{})
+
+# --- Blog Post 2: Shito Guide (Published) ---
+blog2 =
+  Seeds.create!(Emakola.Content.Post, :create, %{
+    store_id: store2.id,
+    author_id: merchant2.id,
+    type: :blog_post,
+    title: "What is Shito? Ghana's Beloved Hot Pepper Sauce",
+    body: """
+    <p class="text-lg text-stone-600 mb-6">If you've ever eaten at a Ghanaian home or restaurant, you've probably seen a dark, oily, intensely flavored sauce sitting in a jar on the table. That's <strong>shito</strong> — and once you try it, you'll put it on everything.</p>
+
+    <img src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=800&q=80" alt="Dark chili sauce in a glass jar with a wooden spoon" class="w-full rounded-2xl my-8" />
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-8 mb-4">What Exactly is Shito?</h2>
+    <p>Shito (pronounced "SHEE-toh") is a Ghanaian hot pepper sauce made from a blend of dried chili peppers, dried fish or shrimp, onions, tomatoes, and ginger, all slow-cooked in oil until deeply caramelized. The result is a complex, umami-rich condiment that's spicy, smoky, and savory all at once.</p>
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-8 mb-4">How to Use Shito</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-6">
+      <div class="bg-stone-50 rounded-xl p-5">
+        <p class="font-semibold text-stone-900 mb-2">With Rice Dishes</p>
+        <p class="text-sm text-stone-600">A spoonful alongside jollof, waakye, or plain rice transforms the meal.</p>
+      </div>
+      <div class="bg-stone-50 rounded-xl p-5">
+        <p class="font-semibold text-stone-900 mb-2">With Bread</p>
+        <p class="text-sm text-stone-600">Spread on toast or bread for a quick, flavorful snack.</p>
+      </div>
+      <div class="bg-stone-50 rounded-xl p-5">
+        <p class="font-semibold text-stone-900 mb-2">As a Dip</p>
+        <p class="text-sm text-stone-600">Perfect with kelewele, plantain chips, or fried yam.</p>
+      </div>
+      <div class="bg-stone-50 rounded-xl p-5">
+        <p class="font-semibold text-stone-900 mb-2">In Stews</p>
+        <p class="text-sm text-stone-600">Add a tablespoon to any stew for extra depth and heat.</p>
+      </div>
+    </div>
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-8 mb-4">Our Homemade Shito</h2>
+    <p>At Accra Fresh Market, our shito is made in small batches using a family recipe passed down through three generations. We use only the freshest dried shrimp from Elmina and locally-grown scotch bonnet peppers.</p>
+
+    <p class="mt-4"><a href="/s/accra-fresh/products/homemade-shito-hot-pepper-sauce" class="inline-flex items-center gap-2 px-6 py-3 bg-amber-600 text-white rounded-xl font-semibold hover:bg-amber-700 transition-colors">Shop Our Shito</a></p>
+    """,
+    excerpt:
+      "Discover Ghana's most iconic condiment. Learn what shito is, how it's made, and the many ways to enjoy this rich, spicy pepper sauce.",
+    featured_image_url:
+      "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=1200&q=80",
+    tags: ["shito", "ghanaian-food", "condiments", "spicy"],
+    seo_title: "What is Shito? Guide to Ghana's Hot Pepper Sauce",
+    seo_description:
+      "Everything you need to know about shito — Ghana's beloved hot pepper sauce. History, how it's made, and delicious ways to use it."
+  })
+
+Seeds.update!(blog2, :publish, %{})
+
+# --- Blog Post 3: Healthy Snacking (Published) ---
+blog3 =
+  Seeds.create!(Emakola.Content.Post, :create, %{
+    store_id: store2.id,
+    author_id: merchant2.id,
+    type: :blog_post,
+    title: "5 Healthy Ghanaian Snacks You Should Be Eating",
+    body: """
+    <p class="text-lg text-stone-600 mb-6">Ghana has a rich tradition of snacking that goes far beyond the usual suspects. Many traditional Ghanaian snacks are naturally healthy, packed with protein, fiber, and essential nutrients. Here are five you should add to your rotation.</p>
+
+    <img src="https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?w=800&q=80" alt="Assorted nuts and dried fruits in market bowls" class="w-full rounded-2xl my-8" />
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-8 mb-4">1. Roasted Groundnuts (Nkatse)</h2>
+    <p>High in protein, healthy fats, and vitamin E. A handful of roasted groundnuts keeps you full for hours. Perfect with coconut or on their own.</p>
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-8 mb-4">2. Plantain Chips (Kelewele-Style)</h2>
+    <p>When made with ripe plantain and baked instead of fried, plantain chips are a fantastic source of potassium, fiber, and complex carbs. Our kelewele-style chips add ginger and spice for extra flavor without the guilt.</p>
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-8 mb-4">3. Tiger Nuts</h2>
+    <p>These aren't actually nuts — they're tubers! Rich in fiber, iron, and magnesium. In Ghana, we drink them as "atadwe milk" (tiger nut milk), a naturally sweet, dairy-free treat.</p>
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-8 mb-4">4. Kulikuli (Groundnut Cake)</h2>
+    <p>Made from groundnut paste pressed into shapes and fried, kulikuli is crunchy, savory, and surprisingly filling. A traditional snack that's stood the test of time.</p>
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-8 mb-4">5. Dawadawa</h2>
+    <p>Fermented locust beans might not sound like a snack, but many Ghanaians enjoy them as a savory nibble. They're rich in protein and probiotics — great for gut health.</p>
+
+    <p class="mt-8"><a href="/s/accra-fresh/products" class="text-amber-700 font-semibold hover:underline">Browse all our healthy snacks at Accra Fresh Market</a></p>
+    """,
+    excerpt:
+      "From roasted groundnuts to kelewele plantain chips, discover five traditional Ghanaian snacks that are naturally healthy and delicious.",
+    featured_image_url:
+      "https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?w=1200&q=80",
+    tags: ["snacks", "healthy-eating", "ghana", "nutrition"],
+    seo_title: "5 Healthy Ghanaian Snacks | Accra Fresh Market Blog",
+    seo_description:
+      "Discover 5 traditional Ghanaian snacks that are naturally healthy. Groundnuts, plantain chips, tiger nuts, and more."
+  })
+
+Seeds.update!(blog3, :publish, %{})
+
+# --- Recipe 1: Jollof Rice (Published) ---
+recipe1 =
+  Seeds.create!(Emakola.Content.Post, :create, %{
+    store_id: store2.id,
+    author_id: merchant2.id,
+    type: :recipe,
+    title: "Classic Ghanaian Jollof Rice",
+    body: """
+    <p>The quintessential Ghanaian jollof rice — smoky, flavorful, and perfect for any occasion. This recipe uses our Jollof Rice Spice Mix for authentic flavor every time.</p>
+
+    <img src="https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=800&q=80" alt="Ghanaian jollof rice served with fried plantain" class="w-full rounded-2xl my-6" />
+
+    <div class="aspect-video rounded-2xl overflow-hidden my-6">
+      <iframe width="100%" height="100%" src="https://www.youtube.com/embed/bsGbfpJRsE4" title="Ghanaian Jollof Rice Recipe" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+    """,
+    excerpt:
+      "The quintessential Ghanaian jollof rice with smoky kanzo bottom. Uses our Jollof Rice Spice Mix for authentic flavor.",
+    featured_image_url:
+      "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=1200&q=80",
+    tags: ["jollof", "rice", "ghanaian", "main-dish"],
+    seo_title: "Classic Ghanaian Jollof Rice Recipe | Accra Fresh Market",
+    seo_description:
+      "Authentic Ghanaian jollof rice recipe with smoky kanzo bottom. 45 minutes, serves 6. Includes video tutorial."
+  })
+
+Seeds.update!(recipe1, :publish, %{})
+
+Seeds.create!(Emakola.Content.RecipeMeta, :create, %{
+  post_id: recipe1.id,
+  prep_time: 15,
+  cook_time: 45,
+  servings: 6,
+  difficulty: :medium,
+  ingredients: [
+    %{item: "Basmati rice", quantity: "3 cups"},
+    %{item: "Fresh tomatoes", quantity: "6 large"},
+    %{item: "Tomato paste", quantity: "3 tbsp"},
+    %{item: "Scotch bonnet pepper", quantity: "2"},
+    %{item: "Onions", quantity: "2 large"},
+    %{item: "Garlic cloves", quantity: "4"},
+    %{item: "Fresh ginger", quantity: "1 inch piece"},
+    %{item: "Jollof Rice Spice Mix", quantity: "2 tbsp"},
+    %{item: "Vegetable oil", quantity: "1/3 cup"},
+    %{item: "Chicken stock", quantity: "4 cups"},
+    %{item: "Bay leaves", quantity: "2"},
+    %{item: "Salt", quantity: "to taste"}
+  ],
+  instructions: [
+    "Wash rice in cold water until water runs clear. Soak for 30 minutes, then drain.",
+    "Blend tomatoes, scotch bonnet, 1 onion, garlic, and ginger until smooth.",
+    "Dice the remaining onion. Heat oil in a thick-bottomed pot over medium-high heat.",
+    "Fry diced onion until translucent, about 3 minutes.",
+    "Pour in the blended tomato mixture. Cook on medium-high heat, stirring occasionally, for 25-30 minutes until the oil rises to the top.",
+    "Add tomato paste and Jollof Rice Spice Mix. Stir well and cook for 5 more minutes.",
+    "Pour in chicken stock, add bay leaves, and season with salt. Bring to a rolling boil.",
+    "Add the drained rice. Stir once to distribute evenly.",
+    "Reduce heat to the lowest setting. Cover pot tightly with foil, then place the lid on top.",
+    "Cook for 30 minutes without opening. Do not stir!",
+    "After 30 minutes, check the rice. If cooked through, fluff gently with a fork.",
+    "The golden crust at the bottom (kanzo) is the best part. Serve it up!"
+  ]
+})
+
+# --- Recipe 2: Kelewele (Published) ---
+recipe2 =
+  Seeds.create!(Emakola.Content.Post, :create, %{
+    store_id: store2.id,
+    author_id: merchant2.id,
+    type: :recipe,
+    title: "Kelewele (Spiced Fried Plantain)",
+    body: """
+    <p>Kelewele is Ghana's most popular street food — ripe plantain cubed and fried with a spicy ginger-chili coating. Crunchy outside, sweet and soft inside. Perfect as a snack or side dish.</p>
+
+    <img src="https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=800&q=80" alt="Fried plantain cubes on a plate" class="w-full rounded-2xl my-6" />
+
+    <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-6 my-6">
+      <p class="font-semibold text-emerald-900 mb-2">Choosing the Right Plantain</p>
+      <p class="text-emerald-800">Use ripe plantains with yellow-black skin. They should be soft but not mushy. Green plantains won't have the sweetness needed for kelewele.</p>
+    </div>
+    """,
+    excerpt:
+      "Ghana's favorite street food. Ripe plantain cubed and fried with spicy ginger and chili. Ready in 20 minutes.",
+    featured_image_url:
+      "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=1200&q=80",
+    tags: ["kelewele", "plantain", "street-food", "snack"],
+    seo_title: "Kelewele Recipe — Spiced Fried Plantain | Accra Fresh",
+    seo_description:
+      "Make authentic Ghanaian kelewele at home. Spiced fried plantain with ginger, chili, and cloves. Ready in 20 minutes."
+  })
+
+Seeds.update!(recipe2, :publish, %{})
+
+Seeds.create!(Emakola.Content.RecipeMeta, :create, %{
+  post_id: recipe2.id,
+  prep_time: 10,
+  cook_time: 10,
+  servings: 4,
+  difficulty: :easy,
+  ingredients: [
+    %{item: "Ripe plantains", quantity: "4"},
+    %{item: "Fresh ginger", quantity: "2 inch piece, grated"},
+    %{item: "Scotch bonnet pepper", quantity: "1, minced"},
+    %{item: "Ground cloves", quantity: "1/4 tsp"},
+    %{item: "Salt", quantity: "1/2 tsp"},
+    %{item: "Vegetable oil", quantity: "for frying"}
+  ],
+  instructions: [
+    "Peel and cut plantains into 1-inch cubes.",
+    "Mix grated ginger, minced scotch bonnet, ground cloves, and salt in a bowl.",
+    "Add plantain cubes to the spice mix. Toss gently to coat all pieces.",
+    "Let marinate for 10-15 minutes (longer = more flavor).",
+    "Heat oil in a deep pan to 170C/340F.",
+    "Fry plantain in batches until golden brown on all sides, about 3-4 minutes per batch.",
+    "Drain on paper towels. Serve hot with groundnuts on the side."
+  ]
+})
+
+# --- Page: About Us (Published) ---
+about_page =
+  Seeds.create!(Emakola.Content.Post, :create, %{
+    store_id: store2.id,
+    author_id: merchant2.id,
+    type: :page,
+    title: "About Accra Fresh Market",
+    body: """
+    <div class="space-y-8">
+      <div>
+        <h2 class="text-2xl font-semibold text-stone-900 mb-4">Our Story</h2>
+        <p class="text-stone-600 leading-relaxed">Accra Fresh Market was born from a simple idea: every family in Accra deserves access to fresh, quality groceries without the hassle of navigating crowded markets in the heat. Founded in 2024 by Adjoa Mensah, we bridge the gap between local farmers, producers, and your kitchen table.</p>
+      </div>
+
+      <div>
+        <h2 class="text-2xl font-semibold text-stone-900 mb-4">What We Stand For</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div class="text-center p-6 bg-stone-50 rounded-xl">
+            <p class="text-3xl mb-3">&#127807;</p>
+            <p class="font-semibold text-stone-900 mb-1">Fresh First</p>
+            <p class="text-sm text-stone-600">Every product is sourced fresh from local farms and producers</p>
+          </div>
+          <div class="text-center p-6 bg-stone-50 rounded-xl">
+            <p class="text-3xl mb-3">&#128666;</p>
+            <p class="font-semibold text-stone-900 mb-1">Same Day Delivery</p>
+            <p class="text-sm text-stone-600">Order by 2pm, get it delivered the same evening in Accra</p>
+          </div>
+          <div class="text-center p-6 bg-stone-50 rounded-xl">
+            <p class="text-3xl mb-3">&#129309;</p>
+            <p class="font-semibold text-stone-900 mb-1">Community First</p>
+            <p class="text-sm text-stone-600">We support local farmers and artisan food producers</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    """,
+    excerpt:
+      "Fresh groceries delivered to your door in Accra. Learn about our mission to connect local farmers with families.",
+    seo_title: "About Accra Fresh Market | Fresh Groceries in Accra",
+    seo_description:
+      "Accra Fresh Market delivers farm-fresh produce, spices, and Ghanaian groceries to your door. Same day delivery in Greater Accra."
+  })
+
+Seeds.update!(about_page, :publish, %{})
+
+# --- Media attachments for blog posts ---
+Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
+  store_id: store2.id,
+  post_id: blog1.id,
+  type: :image,
+  url: "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=1200&q=80",
+  filename: "jollof-rice-hero.jpg",
+  alt_text: "A pot of golden Ghanaian jollof rice",
+  content_type: "image/jpeg",
+  file_size: 185_000,
+  position: 0
+})
+
+Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
+  store_id: store2.id,
+  post_id: blog1.id,
+  type: :video,
+  url: "https://www.youtube.com/watch?v=bsGbfpJRsE4",
+  filename: "jollof-rice-tutorial.mp4",
+  alt_text: "How to cook perfect Ghanaian jollof rice video tutorial",
+  caption: "Watch the full step-by-step jollof rice tutorial",
+  content_type: "video/mp4",
+  position: 1
+})
+
+Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
+  store_id: store2.id,
+  post_id: blog2.id,
+  type: :image,
+  url: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=1200&q=80",
+  filename: "shito-jar.jpg",
+  alt_text: "Homemade Ghanaian shito in a glass jar",
+  content_type: "image/jpeg",
+  file_size: 142_000,
+  position: 0
+})
+
+Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
+  store_id: store2.id,
+  post_id: blog3.id,
+  type: :image,
+  url: "https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?w=1200&q=80",
+  filename: "healthy-snacks.jpg",
+  alt_text: "Assorted Ghanaian nuts and snacks in market bowls",
+  content_type: "image/jpeg",
+  file_size: 167_000,
+  position: 0
+})
+
+# --- Blog Post 4: Video Blog — Market Day Tour (Published) ---
+blog4 =
+  Seeds.create!(Emakola.Content.Post, :create, %{
+    store_id: store2.id,
+    author_id: merchant2.id,
+    type: :blog_post,
+    title: "A Day at Makola Market: Where We Source Our Ingredients",
+    body: """
+    <p class="text-lg text-stone-600 mb-6">Ever wondered where we get the freshest spices, the ripest plantains, and the best shito ingredients in Accra? Come along on our weekly sourcing trip to Makola Market — the beating heart of Accra's food scene.</p>
+
+    <div class="aspect-video rounded-2xl overflow-hidden my-8">
+      <iframe width="100%" height="100%" src="https://www.youtube.com/embed/kQsEOBCDFqg" title="Walking Through Makola Market, Accra Ghana" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-10 mb-4">The 5 AM Wake-Up</h2>
+    <p>Our day starts before dawn. By 5:30 AM, we're already on the road heading to Makola. The early bird gets the freshest produce — and the best prices. By the time the market is in full swing at 8 AM, the best tomatoes and peppers are already spoken for.</p>
+
+    <img src="https://images.unsplash.com/photo-1590005354167-6da97870c757?w=800&q=80" alt="Fresh tomatoes and peppers at an African market stall" class="w-full rounded-2xl my-8" />
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-10 mb-4">Meeting Our Suppliers</h2>
+    <p>We've built relationships with the same market women for years. Auntie Akosua has the best scotch bonnet peppers — she grows them herself in Aburi. Maame Esi's dawadawa is fermented the traditional way, with no shortcuts. These relationships are what make our products special.</p>
+
+    <div class="grid grid-cols-2 gap-4 my-8">
+      <img src="https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=500&q=80" alt="Colourful spices in market bowls" class="rounded-xl w-full h-48 object-cover" />
+      <img src="https://images.unsplash.com/photo-1606914469633-bd39206ea739?w=500&q=80" alt="Fresh vegetables at market" class="rounded-xl w-full h-48 object-cover" />
+    </div>
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-10 mb-4">Watch: Full Market Tour</h2>
+    <p>We filmed this full walkthrough so you can experience the sights, sounds, and energy of Makola from wherever you are:</p>
+
+    <div class="aspect-video rounded-2xl overflow-hidden my-8">
+      <iframe width="100%" height="100%" src="https://www.youtube.com/embed/QWveXdj6oZU" title="Accra Ghana Market Walk" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 my-8">
+      <p class="font-semibold text-amber-900 mb-2">Want to visit Makola yourself?</p>
+      <p class="text-amber-800">Go early (before 8 AM), wear comfortable shoes, and bring cash in small denominations. The market women appreciate when you greet them in Twi — try "Maakye!" (Good morning!)</p>
+    </div>
+
+    <p class="mt-6">Every product in our store starts with a trip like this. When you order from Accra Fresh Market, you're getting ingredients chosen by hand, not from a warehouse.</p>
+    """,
+    excerpt:
+      "Join us on our weekly trip to Makola Market. Watch videos of how we source the freshest spices, produce, and ingredients for our store.",
+    featured_image_url:
+      "https://images.unsplash.com/photo-1590005354167-6da97870c757?w=1200&q=80",
+    tags: ["market", "behind-the-scenes", "video", "accra"],
+    seo_title: "Inside Makola Market: How We Source Our Ingredients | Video Tour",
+    seo_description:
+      "Watch our video tour of Makola Market in Accra. See how we hand-pick the freshest spices, peppers, and ingredients for Accra Fresh Market."
+  })
+
+Seeds.update!(blog4, :publish, %{})
+
+Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
+  store_id: store2.id,
+  post_id: blog4.id,
+  type: :video,
+  url: "https://www.youtube.com/watch?v=kQsEOBCDFqg",
+  filename: "makola-market-tour.mp4",
+  alt_text: "Walking through Makola Market in Accra",
+  caption: "Our weekly sourcing trip to Makola Market",
+  content_type: "video/mp4",
+  position: 0
+})
+
+Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
+  store_id: store2.id,
+  post_id: blog4.id,
+  type: :video,
+  url: "https://www.youtube.com/watch?v=QWveXdj6oZU",
+  filename: "accra-market-walk.mp4",
+  alt_text: "Full walkthrough of Accra market",
+  caption: "Full market tour video",
+  content_type: "video/mp4",
+  position: 1
+})
+
+Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
+  store_id: store2.id,
+  post_id: blog4.id,
+  type: :image,
+  url: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=800&q=80",
+  filename: "market-spices.jpg",
+  alt_text: "Colourful spices in market bowls",
+  content_type: "image/jpeg",
+  file_size: 145_000,
+  position: 2
+})
+
+# --- Blog Post 5: Audio Blog — Podcast / Story (Published) ---
+blog5 =
+  Seeds.create!(Emakola.Content.Post, :create, %{
+    store_id: store2.id,
+    author_id: merchant2.id,
+    type: :blog_post,
+    title: "Listen: The Story of Ghanaian Chocolate — From Bean to Bar",
+    body: """
+    <p class="text-lg text-stone-600 mb-6">Ghana is the world's second-largest cocoa producer, but most Ghanaians have never tasted craft chocolate made from their own beans. In this audio feature, we explore the journey of Ghanaian cocoa — from the farms of Ashanti to artisan chocolate bars.</p>
+
+    <div class="bg-stone-900 rounded-2xl p-6 sm:p-8 my-8">
+      <div class="flex items-center gap-4 mb-4">
+        <div class="w-14 h-14 rounded-2xl bg-amber-600 flex items-center justify-center shrink-0">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-white font-semibold text-lg">The Accra Fresh Podcast</p>
+          <p class="text-stone-400 text-sm">Episode 1 — 18 minutes</p>
+        </div>
+      </div>
+      <audio controls class="w-full rounded-lg" preload="metadata">
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg" />
+        Your browser does not support the audio element.
+      </audio>
+      <p class="text-stone-500 text-xs mt-3">Sample audio for demonstration. Full episode coming soon.</p>
+    </div>
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-10 mb-4">Key Takeaways</h2>
+
+    <div class="space-y-4 my-6">
+      <div class="flex gap-4 p-4 bg-stone-50 rounded-xl">
+        <span class="text-amber-600 font-bold text-lg mt-0.5 shrink-0">01</span>
+        <div>
+          <p class="font-semibold text-stone-900">Ghana produces 800,000+ tonnes of cocoa yearly</p>
+          <p class="text-sm text-stone-600 mt-1">Yet less than 5% is processed locally into chocolate. Most is exported as raw beans.</p>
+        </div>
+      </div>
+      <div class="flex gap-4 p-4 bg-stone-50 rounded-xl">
+        <span class="text-amber-600 font-bold text-lg mt-0.5 shrink-0">02</span>
+        <div>
+          <p class="font-semibold text-stone-900">The "bean to bar" movement is growing</p>
+          <p class="text-sm text-stone-600 mt-1">Artisan chocolate makers like '57 Chocolate and Midunu are changing the narrative, producing world-class chocolate right here in Accra.</p>
+        </div>
+      </div>
+      <div class="flex gap-4 p-4 bg-stone-50 rounded-xl">
+        <span class="text-amber-600 font-bold text-lg mt-0.5 shrink-0">03</span>
+        <div>
+          <p class="font-semibold text-stone-900">Cocoa farmers deserve better</p>
+          <p class="text-sm text-stone-600 mt-1">Fair trade and direct sourcing puts more money in farmers' hands. When you buy local chocolate, you support the entire supply chain.</p>
+        </div>
+      </div>
+    </div>
+
+    <img src="https://images.unsplash.com/photo-1606312619070-d48b4c652a52?w=800&q=80" alt="Cocoa pods on a tree in Ghana" class="w-full rounded-2xl my-8" />
+
+    <h2 class="text-2xl font-semibold text-stone-900 mt-10 mb-4">Watch: Inside a Cocoa Farm</h2>
+    <div class="aspect-video rounded-2xl overflow-hidden my-8">
+      <iframe width="100%" height="100%" src="https://www.youtube.com/embed/3QeIBVrOSNY" title="Ghana Cocoa Farm Tour" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+
+    <div class="bg-stone-900 rounded-2xl p-6 my-8 text-center">
+      <p class="text-stone-400 text-sm mb-2">Enjoyed this episode?</p>
+      <p class="text-white font-semibold">Subscribe to The Accra Fresh Podcast for more stories about Ghanaian food, farmers, and culture.</p>
+    </div>
+    """,
+    excerpt:
+      "Listen to our audio feature on Ghanaian chocolate. From cocoa farms in Ashanti to artisan chocolate bars in Accra — the full bean-to-bar journey.",
+    featured_image_url:
+      "https://images.unsplash.com/photo-1606312619070-d48b4c652a52?w=1200&q=80",
+    tags: ["podcast", "audio", "chocolate", "cocoa", "ghana"],
+    seo_title: "The Story of Ghanaian Chocolate — Podcast | Accra Fresh",
+    seo_description:
+      "Listen to our podcast episode on Ghana's cocoa journey. From farm to artisan chocolate bar. Audio feature + video tour of a cocoa farm."
+  })
+
+Seeds.update!(blog5, :publish, %{})
+
+Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
+  store_id: store2.id,
+  post_id: blog5.id,
+  type: :audio,
+  url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+  filename: "ghanaian-chocolate-podcast-ep1.mp3",
+  alt_text: "The Accra Fresh Podcast Episode 1: Ghanaian Chocolate",
+  caption: "Episode 1 — The Story of Ghanaian Chocolate (18 min)",
+  content_type: "audio/mpeg",
+  file_size: 4_500_000,
+  position: 0
+})
+
+Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
+  store_id: store2.id,
+  post_id: blog5.id,
+  type: :video,
+  url: "https://www.youtube.com/watch?v=3QeIBVrOSNY",
+  filename: "cocoa-farm-tour.mp4",
+  alt_text: "Tour of a cocoa farm in Ghana",
+  caption: "Inside a cocoa farm in Ashanti Region",
+  content_type: "video/mp4",
+  position: 1
+})
+
+Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
+  store_id: store2.id,
+  post_id: blog5.id,
+  type: :image,
+  url: "https://images.unsplash.com/photo-1606312619070-d48b4c652a52?w=1200&q=80",
+  filename: "cocoa-pods.jpg",
+  alt_text: "Cocoa pods growing on a tree in Ghana",
+  content_type: "image/jpeg",
+  file_size: 198_000,
+  position: 2
+})
+
+IO.puts("    5 blog posts, 2 recipes, 1 page, 10 media attachments created")
+
+# =============================================================================
 # DONE
 # =============================================================================
 
@@ -1417,6 +1995,7 @@ IO.puts("    adjoa@accrafresh.com   / Password123!  (Accra Fresh Market)")
 IO.puts("")
 IO.puts("  Kente Kingdom: 6 products (5 active, 1 draft), 5 customers, 5 orders")
 IO.puts("  Accra Fresh:   6 products (6 active), 3 customers, 3 orders")
+IO.puts("  Content:       5 blog posts (incl. video + audio), 2 recipes, 1 about page")
 IO.puts("  Plans: Free, Starter, Growth, Enterprise")
 IO.puts("  Feature flags: #{length(feature_flags)} configured")
 IO.puts("")

@@ -64,8 +64,10 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   end
 
   @impl true
-  def handle_event("submit_shipped", %{"tracking_number" => _tracking}, socket) do
-    transition_order(socket, :mark_shipped, "Order marked as shipped")
+  def handle_event("submit_shipped", %{"tracking_number" => tracking}, socket) do
+    transition_order(socket, :mark_shipped, "Order marked as shipped",
+      params: %{tracking_number: tracking}
+    )
   end
 
   @impl true
@@ -479,8 +481,8 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   defp address_display(assigns) do
     ~H"""
     <div class="text-sm text-slate-700 space-y-0.5">
-      <p :if={@address["line1"]}>{@address["line1"]}</p>
-      <p :if={@address["line2"]}>{@address["line2"]}</p>
+      <p :if={@address["line_1"]}>{@address["line_1"]}</p>
+      <p :if={@address["line_2"]}>{@address["line_2"]}</p>
       <p>
         <span :if={@address["city"]}>{@address["city"]}</span>
         <span :if={@address["region"]}>, {@address["region"]}</span>
@@ -542,10 +544,11 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
 
   # ── Transition Helper ──
 
-  defp transition_order(socket, action, success_message) do
+  defp transition_order(socket, action, success_message, opts \\ []) do
     order = socket.assigns.order
+    params = Keyword.get(opts, :params, %{})
 
-    case Ash.update(order, %{}, action: action) do
+    case Ash.update(order, params, action: action) do
       {:ok, updated_order} ->
         updated_order = Ash.load!(updated_order, [:line_items, :customer])
 

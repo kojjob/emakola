@@ -137,11 +137,23 @@
         active={@active_nav == :products}
       />
       <.sidebar_link
+        href="/admin/inventory"
+        title="Inventory"
+        icon="inventory"
+        active={@active_nav == :inventory}
+      />
+      <.sidebar_link
         href="/admin/orders"
         title="Orders"
         icon="bag"
         active={@active_nav == :orders}
         badge="12"
+      />
+      <.sidebar_link
+        href="/admin/returns"
+        title="Returns"
+        icon="returns"
+        active={@active_nav == :returns}
       />
       <.sidebar_link
         href="/admin/payments"
@@ -186,6 +198,30 @@
         title="Theme"
         icon="palette"
         active={@active_nav == :theme}
+      />
+      <.sidebar_link
+        href="/admin/design"
+        title="Design"
+        icon="pencil-square"
+        active={@active_nav == :design}
+      />
+
+      <%!-- Content --%>
+      <p class="nav-section-label px-3 text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em] mt-6 mb-1.5">
+        Content
+      </p>
+
+      <.sidebar_link
+        href="/admin/content/posts"
+        title="Blog & Pages"
+        icon="pencil-square"
+        active={@active_nav == :content}
+      />
+      <.sidebar_link
+        href="/admin/content/media"
+        title="Media"
+        icon="photo"
+        active={@active_nav == :media}
       />
 
       <%!-- Analytics --%>

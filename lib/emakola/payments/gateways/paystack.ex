@@ -133,6 +133,7 @@ defmodule Emakola.Payments.Gateways.Paystack do
   defp map_status("success"), do: :success
   defp map_status("failed"), do: :failed
   defp map_status("abandoned"), do: :failed
+  defp map_status("reversed"), do: :failed
   defp map_status(_other), do: :unknown
 
   # Paystack refund status values. Same atom-exhaustion rationale as map_status/1.

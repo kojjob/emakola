@@ -103,6 +103,11 @@ defmodule Emakola.Orders.Order do
       constraints(max_length: 5_000)
     end
 
+    attribute :tracking_number, :string do
+      public?(true)
+      constraints(max_length: 100)
+    end
+
     attribute :shipping_address, :map do
       public?(true)
     end
@@ -248,7 +253,7 @@ defmodule Emakola.Orders.Order do
 
     update :mark_shipped do
       require_atomic?(false)
-      accept([])
+      accept([:tracking_number])
 
       validate(fn changeset, _context ->
         status = Ash.Changeset.get_attribute(changeset, :status)
@@ -351,7 +356,9 @@ defmodule Emakola.Orders.Order do
       filter(expr(store_id == ^arg(:store_id)))
 
       prepare(fn query, _context ->
-        Ash.Query.sort(query, inserted_at: :desc)
+        query
+        |> Ash.Query.sort(inserted_at: :desc)
+        |> Ash.Query.load([:customer])
       end)
     end
 
@@ -368,7 +375,9 @@ defmodule Emakola.Orders.Order do
       filter(expr(store_id == ^arg(:store_id) and status == ^arg(:status)))
 
       prepare(fn query, _context ->
-        Ash.Query.sort(query, inserted_at: :desc)
+        query
+        |> Ash.Query.sort(inserted_at: :desc)
+        |> Ash.Query.load([:customer])
       end)
     end
   end

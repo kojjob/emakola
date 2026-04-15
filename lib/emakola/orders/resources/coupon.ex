@@ -13,7 +13,8 @@ defmodule Emakola.Orders.Coupon do
 
   use Ash.Resource,
     domain: Emakola.Orders,
-    data_layer: AshPostgres.DataLayer
+    data_layer: AshPostgres.DataLayer,
+    authorizers: [Ash.Policy.Authorizer]
 
   postgres do
     table("coupons")
@@ -82,11 +83,33 @@ defmodule Emakola.Orders.Coupon do
       public?(true)
     end
 
+    attribute :is_public, :boolean do
+      default(false)
+      allow_nil?(false)
+      public?(true)
+    end
+
     timestamps()
   end
 
   identities do
     identity(:unique_code_per_store, [:store_id, :code])
+  end
+
+  policies do
+    bypass action_type(:read) do
+      authorize_if(always())
+    end
+
+    # Internal/system calls (nil actor) are allowed
+    bypass always() do
+      authorize_unless(actor_present())
+    end
+
+    # Merchant actors: verify store membership for writes
+    policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
+      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
+    end
   end
 
   actions do
@@ -104,7 +127,8 @@ defmodule Emakola.Orders.Coupon do
         :max_uses,
         :starts_at,
         :expires_at,
-        :active
+        :active,
+        :is_public
       ])
 
       change(fn changeset, _context ->
@@ -140,7 +164,8 @@ defmodule Emakola.Orders.Coupon do
         :max_uses,
         :starts_at,
         :expires_at,
-        :active
+        :active,
+        :is_public
       ])
     end
 
@@ -157,6 +182,19 @@ defmodule Emakola.Orders.Coupon do
       argument(:store_id, :uuid, allow_nil?: false)
       filter(expr(store_id == ^arg(:store_id)))
       prepare(build(sort: [inserted_at: :desc]))
+    end
+
+    read :list_active_public do
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and active == true and is_public == true and
+            (is_nil(expires_at) or expires_at > now()) and
+            (is_nil(starts_at) or starts_at <= now()) and
+            (is_nil(max_uses) or uses_count < max_uses)
+        )
+      )
     end
 
     read :find_by_code do

@@ -16,6 +16,8 @@ defmodule Emakola.Customers do
       define(:get_customer_by_id, action: :get_by_id, args: [:id])
     end
 
+    resource(Emakola.Customers.CustomerToken)
+
     resource Emakola.Customers.Address do
       define(:create_address, action: :create)
       define(:update_address, action: :update)
@@ -28,6 +30,12 @@ defmodule Emakola.Customers do
       define(:create_note, action: :create)
       define(:destroy_note, action: :destroy)
       define(:list_notes_by_customer, action: :list_by_customer, args: [:customer_id])
+    end
+
+    resource Emakola.Customers.WishlistItem do
+      define(:add_to_wishlist, action: :add)
+      define(:remove_from_wishlist, action: :remove, args: [:customer_id, :product_id, :store_id])
+      define(:list_wishlist, action: :list_by_customer, args: [:customer_id, :store_id])
     end
   end
 end
