@@ -50,7 +50,11 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
                sort_by: :newest,
                cart_session_id: cart_session_id,
                cart_count: cart_count,
-               page_title: "#{category.name} - #{store.name}"
+               page_title: "#{category.name} - #{store.name}",
+               meta_description: category_meta_description(category, store, products),
+               og_image: first_product_image(products),
+               og_type: "website",
+               og_site_name: store.name
              )}
         end
 
@@ -456,4 +460,41 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   end
 
   defp sort_products(products, _), do: products
+
+  # -- SEO --
+
+  defp category_meta_description(category, store, products) do
+    count = length(products)
+
+    raw =
+      Map.get(category, :description) ||
+        "Shop #{category.name} at #{store.name}. #{count} products available. Fast delivery, mobile money accepted."
+
+    raw
+    |> to_string()
+    |> String.trim()
+    |> truncate_at_word(155)
+  end
+
+  defp first_product_image([first | _]) when is_map(first) do
+    case Map.get(first, :images) do
+      [img | _] when is_map(img) ->
+        Map.get(img, :medium_url) || Map.get(img, :url)
+
+      _ ->
+        nil
+    end
+  end
+
+  defp first_product_image(_), do: nil
+
+  defp truncate_at_word(str, max) when byte_size(str) <= max, do: str
+
+  defp truncate_at_word(str, max) do
+    str
+    |> binary_part(0, max)
+    |> String.trim_trailing()
+    |> String.replace(~r/\s+\S*$/, "")
+    |> Kernel.<>("…")
+  end
 end
