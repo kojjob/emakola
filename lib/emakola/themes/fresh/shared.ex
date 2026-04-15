@@ -11,6 +11,8 @@ defmodule Emakola.Themes.Fresh.Shared do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+
   alias EmakolaWeb.Helpers.Currency
 
   # ── Fresh Nav Bar ──
@@ -130,13 +132,13 @@ defmodule Emakola.Themes.Fresh.Shared do
         )
       ]}>
         <%= if category_image(@category) do %>
-          <img
+          <.optimized_image
             src={category_image(@category)}
             alt={@category.name}
+            priority={:low}
             class="w-full h-full rounded-full object-cover border-[3px] border-[#FEFCE8]"
-            loading="lazy"
-            width="70"
-            height="70"
+            width={70}
+            height={70}
           />
         <% else %>
           <div class="w-full h-full rounded-full bg-[#FEFCE8] border-[3px] border-[#FEFCE8] flex items-center justify-center">
@@ -174,11 +176,10 @@ defmodule Emakola.Themes.Fresh.Shared do
     ~H"""
     <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
       <div class="relative rounded-3xl overflow-hidden mb-3 bg-[#FEF9C3]/30 shadow-sm group-hover:shadow-lg group-hover:shadow-emerald-100/60 transition-all duration-300">
-        <img
+        <.optimized_image
           :if={@image}
           src={@image}
           alt={@product.title}
-          loading="lazy"
           class="w-full aspect-square object-cover group-hover:scale-[1.04] transition-transform duration-500"
         />
         <div :if={!@image} class="w-full aspect-square flex items-center justify-center bg-[#ECFDF5]">

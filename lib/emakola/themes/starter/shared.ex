@@ -10,6 +10,8 @@ defmodule Emakola.Themes.Starter.Shared do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+
   alias EmakolaWeb.Helpers.Currency
 
   # ── Starter Nav Bar ──
@@ -102,11 +104,10 @@ defmodule Emakola.Themes.Starter.Shared do
     ~H"""
     <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
       <div class="relative rounded-2xl overflow-hidden mb-3 bg-gray-50 shadow-sm group-hover:shadow-md group-hover:-translate-y-0.5 transition-all duration-300">
-        <img
+        <.optimized_image
           :if={@image}
           src={@image}
           alt={@product.title}
-          loading="lazy"
           class="w-full aspect-[3/4] object-cover"
         />
         <div :if={!@image} class="w-full aspect-[3/4] flex items-center justify-center bg-gray-100">
