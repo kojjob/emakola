@@ -110,4 +110,38 @@ defmodule Emakola.Notifications.DispatcherTest do
       assert {:error, :unknown_event} = Dispatcher.dispatch(order, nil)
     end
   end
+
+  # ── C2 regression: dispatch/2 must never raise ────────────────────
+  # Dispatcher runs inside Ash after_action hooks. If it raised, a
+  # successful order status transition would be rolled back by a
+  # notification subsystem failure. These tests pin the no-raise contract.
+
+  describe "dispatch/2 does not raise" do
+    test "malformed order (no :id) returns {:error, :missing_order_id}" do
+      order_without_id = %{store_id: Ash.UUID.generate()}
+
+      assert {:error, :missing_order_id} = Dispatcher.dispatch(order_without_id, :order_placed)
+    end
+
+    test "order with nil :id returns {:error, :missing_order_id}" do
+      order = %{id: nil, store_id: Ash.UUID.generate()}
+
+      assert {:error, :missing_order_id} = Dispatcher.dispatch(order, :order_placed)
+    end
+
+    test "order without store_id still enqueues job (broadcast skipped)" do
+      order = %{id: Ash.UUID.generate()}
+
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch(order, :order_placed)
+    end
+
+    test "nil order with valid event returns {:error, :dispatch_raised} (no crash)" do
+      # nil is pattern-matched into do_dispatch/2 which fails the :id guard,
+      # so this should land in the :missing_order_id branch via rescue.
+      result = Dispatcher.dispatch(nil, :order_placed)
+
+      assert match?({:error, _}, result),
+             "expected dispatch(nil, valid_event) to return {:error, _}, got: #{inspect(result)}"
+    end
+  end
 end

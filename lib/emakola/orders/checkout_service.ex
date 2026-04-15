@@ -12,6 +12,7 @@ defmodule Emakola.Orders.CheckoutService do
   """
 
   require Ash.Query
+  require Logger
 
   @doc """
   Process a checkout for the given store.
@@ -39,11 +40,19 @@ defmodule Emakola.Orders.CheckoutService do
          :ok <- validate_stock(variants, items) do
       case run_checkout(store_id, items, variants, opts) do
         {:ok, order} ->
-          # Dispatch notification outside the transaction (fire and forget)
-          try do
-            Emakola.Notifications.Dispatcher.dispatch(order, :order_placed)
-          rescue
-            _ -> :ok
+          # Dispatch notification outside the transaction. Dispatcher is
+          # guaranteed not to raise; we log but never fail the checkout
+          # on a notification subsystem error.
+          case Emakola.Notifications.Dispatcher.dispatch(order, :order_placed) do
+            {:ok, _job} ->
+              :ok
+
+            {:error, reason} ->
+              Logger.error(
+                "[checkout] order_placed notification dispatch failed: #{inspect(reason)}",
+                order_id: order.id,
+                store_id: store_id
+              )
           end
 
           {:ok, order}
@@ -257,12 +266,42 @@ defmodule Emakola.Orders.CheckoutService do
       order
     end)
   rescue
-    _e in Ash.Error.Invalid ->
-      {:error, :insufficient_stock}
+    # Concurrent oversell: two checkouts both pass the upfront stock check,
+    # both attempt to decrement, and the second hits the DB CHECK constraint
+    # `stock_non_negative` (defined on `variants` in Catalog.Variant). Ash
+    # surfaces this as Ash.Error.Invalid; we inspect for the stock signature
+    # to disambiguate from unrelated validation failures.
+    e in Ash.Error.Invalid ->
+      if stock_constraint_violation?(e) do
+        {:error, :insufficient_stock}
+      else
+        Logger.error("[checkout] validation error during transaction: #{Exception.message(e)}")
+        {:error, :checkout_failed}
+      end
 
+    # Ecto raises StaleEntryError when a row the transaction depends on has
+    # been modified concurrently (e.g., optimistic-lock mismatch on stock).
     _e in Ecto.StaleEntryError ->
       {:error, :insufficient_stock}
   end
+
+  @doc false
+  # Public for unit testing via `@doc false` convention. Recognises the
+  # `stock_non_negative` DB CHECK constraint violation (or any
+  # stock_quantity-related error) inside an Ash.Error.Invalid aggregate.
+  def stock_constraint_violation?(%Ash.Error.Invalid{errors: errors}) when is_list(errors) do
+    Enum.any?(errors, &stock_related_error?/1)
+  end
+
+  def stock_constraint_violation?(_), do: false
+
+  defp stock_related_error?(%{constraint: "stock_non_negative"}), do: true
+  defp stock_related_error?(%{field: :stock_quantity}), do: true
+
+  defp stock_related_error?(%{message: msg}) when is_binary(msg),
+    do: String.contains?(msg, "stock")
+
+  defp stock_related_error?(_), do: false
 
   # -- Customer resolution (called inside transaction) -----------------
 
