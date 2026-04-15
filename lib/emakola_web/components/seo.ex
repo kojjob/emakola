@@ -111,12 +111,22 @@ defmodule EmakolaWeb.SEO do
 
     <%!--
       HEEx treats <script> tag content as raw text — curly-brace
-      interpolation ({...}) is NOT processed inside <script>. Use
+      interpolation ({...}) is NOT processed inside <script>. We use
       <%= ... %> embedded Elixir instead, then pass the encoded JSON
-      through Phoenix.HTML.raw/1 so it doesn't get HTML-escaped.
+      through Phoenix.HTML.raw/1 so it doesn't get HTML-escaped twice.
+
+      CRITICAL: we encode with `escape: :html_safe` which converts `<`,
+      `>`, `&`, `/`, U+2028, U+2029 to their `\u...` forms. Without this,
+      merchant-controlled strings (product description, store tagline,
+      SKU) containing the literal `</script>` would break out of the
+      script tag on the HTML tokenization pass and inject arbitrary HTML
+      into the storefront. The JSON parser still decodes the escapes
+      back to the original characters in memory, so Google sees the
+      intended structured data — but the HTML tokenizer never sees the
+      closing tag. See Jason.Encode docs for escape modes.
     --%>
     <script :if={@json_ld} type="application/ld+json">
-      <%= raw(Jason.encode!(@json_ld)) %>
+      <%= raw(Jason.encode!(@json_ld, escape: :html_safe)) %>
     </script>
     """
   end
