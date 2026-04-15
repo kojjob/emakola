@@ -2,10 +2,28 @@ defmodule Emakola.Notifications.Dispatcher do
   @moduledoc """
   Dispatches order lifecycle notifications by enqueuing Oban jobs.
 
-  Called from order status transition actions or LiveView after status change.
-  Each event maps to a specific notification type sent via the
-  OrderNotificationWorker.
+  Called from order status transition actions (inside after_action hooks) or
+  from LiveView after a status change. Each event maps to a specific
+  notification type sent via the `OrderNotificationWorker`.
+
+  ## Contract
+
+  `dispatch/2` is guaranteed to **never raise**. Callers running inside an
+  Ash `after_action` hook can rely on this so that a notification subsystem
+  failure does not roll back a successful domain transaction.
+
+  All failures — known error tuples, unknown events, and unexpected
+  exceptions — are logged and returned as `{:error, reason}`.
+
+  ## Return values
+
+    * `{:ok, %Oban.Job{}}` — job enqueued successfully
+    * `{:error, :unknown_event}` — event not in the valid set
+    * `{:error, {:oban_insert_failed, changeset}}` — Oban could not enqueue
+    * `{:error, {:dispatch_raised, message}}` — something unexpected raised
   """
+
+  require Logger
 
   alias Emakola.Notifications.Workers.OrderNotificationWorker
 
@@ -14,53 +32,76 @@ defmodule Emakola.Notifications.Dispatcher do
   @doc """
   Dispatch a notification for an order lifecycle event.
 
-  Enqueues an Oban job to send SMS/WhatsApp notifications to the
-  customer and merchant.
+  Enqueues an Oban job to send SMS/WhatsApp notifications to the customer and
+  merchant, and broadcasts a real-time PubSub event to the store topic.
 
   ## Parameters
-    - `order` — the Order struct (must have :id)
+    - `order` — an order struct/map with at least `:id` (and ideally `:store_id`)
     - `event` — one of #{inspect(@valid_events)}
-
-  ## Returns
-    - `{:ok, %Oban.Job{}}` on successful enqueue
-    - `{:error, :unknown_event}` for unrecognized events
   """
-  def dispatch(%{id: order_id, store_id: store_id} = order, event)
-      when event in @valid_events do
-    result =
-      %{order_id: order_id, event: Atom.to_string(event)}
-      |> OrderNotificationWorker.new(queue: :notifications)
-      |> Oban.insert()
+  @spec dispatch(map(), atom()) ::
+          {:ok, Oban.Job.t()}
+          | {:error,
+             :unknown_event
+             | :missing_order_id
+             | {:oban_insert_failed, any()}
+             | {:dispatch_raised, String.t()}}
+  def dispatch(order, event) when event in @valid_events do
+    do_dispatch(order, event)
+  rescue
+    exception ->
+      Logger.error(
+        "[notifications] dispatch raised for #{inspect(event)}: " <>
+          Exception.message(exception),
+        order_id: Map.get(order || %{}, :id),
+        event: event
+      )
 
-    # Broadcast for real-time merchant dashboard updates
+      {:error, {:dispatch_raised, Exception.message(exception)}}
+  end
+
+  def dispatch(_order, event) do
+    Logger.warning("[notifications] unknown event: #{inspect(event)}")
+    {:error, :unknown_event}
+  end
+
+  # ── Internal ──────────────────────────────────────────────────────────
+
+  defp do_dispatch(%{id: order_id} = order, event) when not is_nil(order_id) do
+    case enqueue_job(order_id, event) do
+      {:ok, job} ->
+        maybe_broadcast(order, event)
+        {:ok, job}
+
+      {:error, reason} ->
+        Logger.error(
+          "[notifications] Oban insert failed for #{inspect(event)}: #{inspect(reason)}",
+          order_id: order_id,
+          event: event
+        )
+
+        {:error, {:oban_insert_failed, reason}}
+    end
+  end
+
+  defp do_dispatch(_order, event) do
+    Logger.error("[notifications] cannot dispatch #{inspect(event)}: order has no :id")
+    {:error, :missing_order_id}
+  end
+
+  defp enqueue_job(order_id, event) do
+    %{order_id: order_id, event: Atom.to_string(event)}
+    |> OrderNotificationWorker.new(queue: :notifications)
+    |> Oban.insert()
+  end
+
+  defp maybe_broadcast(%{store_id: store_id} = order, event) when not is_nil(store_id) do
     Phoenix.PubSub.broadcast(
       Emakola.PubSub,
       "store:#{store_id}:orders",
       {:order_event, event, order}
     )
-
-    result
   end
 
-  def dispatch(%{id: order_id} = order, event) when event in @valid_events do
-    result =
-      %{order_id: order_id, event: Atom.to_string(event)}
-      |> OrderNotificationWorker.new(queue: :notifications)
-      |> Oban.insert()
-
-    # Broadcast if store_id is available
-    if store_id = Map.get(order, :store_id) do
-      Phoenix.PubSub.broadcast(
-        Emakola.PubSub,
-        "store:#{store_id}:orders",
-        {:order_event, event, order}
-      )
-    end
-
-    result
-  end
-
-  def dispatch(_order, _event) do
-    {:error, :unknown_event}
-  end
+  defp maybe_broadcast(_order, _event), do: :ok
 end
