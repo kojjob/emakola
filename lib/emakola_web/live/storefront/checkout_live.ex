@@ -12,7 +12,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
   alias Emakola.Cart.CartStore
   alias Emakola.Orders.CheckoutService
-  alias EmakolaWeb.Helpers.{Currency, StoreResolver}
+  alias EmakolaWeb.Helpers.Currency
 
   require Ash.Query
 

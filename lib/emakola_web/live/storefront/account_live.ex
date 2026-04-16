@@ -10,7 +10,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
   require Ash.Query
 
   alias Emakola.Cart.CartStore
-  alias EmakolaWeb.Helpers.{Currency, StoreResolver}
+  alias EmakolaWeb.Helpers.Currency
 
   @impl true
   def mount(%{"store_slug" => slug}, session, socket) do

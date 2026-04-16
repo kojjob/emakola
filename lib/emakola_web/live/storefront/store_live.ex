@@ -12,7 +12,6 @@ defmodule EmakolaWeb.Storefront.StoreLive do
 
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.SEO, as: SEOHelpers
-  alias EmakolaWeb.Helpers.StoreResolver
 
   import EmakolaWeb.StorefrontComponents, only: [coupon_banner: 1]
 

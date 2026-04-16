@@ -13,7 +13,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
   import EmakolaWeb.StorefrontComponents
 
   alias Emakola.Cart.CartStore
-  alias EmakolaWeb.Helpers.{Currency, StoreResolver}
+  alias EmakolaWeb.Helpers.Currency
 
   require Ash.Query
 

@@ -14,7 +14,6 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
   use EmakolaWeb, :live_view
 
   alias Emakola.Cart.CartStore
-  alias EmakolaWeb.Helpers.StoreResolver
 
   require Ash.Query
 
