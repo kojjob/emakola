@@ -11,6 +11,8 @@ defmodule Emakola.Themes.Bold.Shared do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+
   alias EmakolaWeb.Helpers.Currency
 
   # ── Bold Nav Bar ──
@@ -113,11 +115,10 @@ defmodule Emakola.Themes.Bold.Shared do
     ~H"""
     <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
       <div class="relative overflow-hidden mb-4 bg-[#F1F5F9]">
-        <img
+        <.optimized_image
           :if={@image}
           src={@image}
           alt={@product.title}
-          loading="lazy"
           class="w-full aspect-[3/4] object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div :if={!@image} class="w-full aspect-[3/4] flex items-center justify-center bg-[#F1F5F9]">
