@@ -33,6 +33,7 @@ defmodule Emakola.Themes.Starter.Home do
   def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-white">
+      <Shared.theme_styles theme={@theme} />
       <Shared.starter_nav store={@store} cart_count={@cart_count} />
       <%!-- Hero Section --%>
       <section

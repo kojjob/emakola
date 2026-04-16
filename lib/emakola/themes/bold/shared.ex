@@ -15,6 +15,26 @@ defmodule Emakola.Themes.Bold.Shared do
 
   alias EmakolaWeb.Helpers.Currency
 
+  # ── CSS Variable Injection ──
+
+  @doc """
+  Injects theme CSS custom properties into the page as a <style> block.
+  Place this as the first element inside the outermost div of each page.
+  """
+  attr :theme, :map, required: true
+
+  def theme_styles(assigns) do
+    ~H"""
+    <style>
+      :root {
+        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#0F172A" %>;
+        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#F59E0B" %>;
+        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#F8FAFC" %>;
+      }
+    </style>
+    """
+  end
+
   # ── Bold Nav Bar ──
 
   @doc """
