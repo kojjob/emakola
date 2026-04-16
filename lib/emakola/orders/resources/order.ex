@@ -15,6 +15,30 @@ defmodule Emakola.Orders.Order do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  require Logger
+
+  # Dispatches an order lifecycle notification and logs any failure without
+  # raising. This runs inside the Ash transaction via after_action; a raise
+  # here would roll back the successful status update, so we must never
+  # propagate notification errors to the caller.
+  @doc false
+  def dispatch_notification(order, event) do
+    case Emakola.Notifications.Dispatcher.dispatch(order, event) do
+      {:ok, _job} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.error(
+          "[orders] #{inspect(event)} notification dispatch failed: #{inspect(reason)}",
+          order_id: order.id,
+          store_id: Map.get(order, :store_id),
+          event: event
+        )
+
+        :ok
+    end
+  end
+
   postgres do
     table("orders")
     repo(Emakola.Repo)
@@ -200,12 +224,7 @@ defmodule Emakola.Orders.Order do
 
       change(
         after_action(fn _changeset, order, _context ->
-          try do
-            Emakola.Notifications.Dispatcher.dispatch(order, :order_confirmed)
-          rescue
-            _ -> :ok
-          end
-
+          dispatch_notification(order, :order_confirmed)
           {:ok, order}
         end)
       )
@@ -254,12 +273,7 @@ defmodule Emakola.Orders.Order do
 
       change(
         after_action(fn _changeset, order, _context ->
-          try do
-            Emakola.Notifications.Dispatcher.dispatch(order, :order_shipped)
-          rescue
-            _ -> :ok
-          end
-
+          dispatch_notification(order, :order_shipped)
           {:ok, order}
         end)
       )
@@ -287,12 +301,7 @@ defmodule Emakola.Orders.Order do
 
       change(
         after_action(fn _changeset, order, _context ->
-          try do
-            Emakola.Notifications.Dispatcher.dispatch(order, :order_delivered)
-          rescue
-            _ -> :ok
-          end
-
+          dispatch_notification(order, :order_delivered)
           {:ok, order}
         end)
       )
@@ -320,12 +329,7 @@ defmodule Emakola.Orders.Order do
 
       change(
         after_action(fn _changeset, order, _context ->
-          try do
-            Emakola.Notifications.Dispatcher.dispatch(order, :order_cancelled)
-          rescue
-            _ -> :ok
-          end
-
+          dispatch_notification(order, :order_cancelled)
           {:ok, order}
         end)
       )
