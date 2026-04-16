@@ -33,9 +33,23 @@
   <% end %>
 <% end %>
 
-<%!-- Design token fonts (loaded separately from theme_fonts for custom font stacks) --%>
+<%!--
+  CSS variables + design token fonts.
+
+  These :root variables are the BASELINE for all themes. Themes that define
+  their own theme_styles/1 (currently only Atelier) will override these in
+  a later <style> block. Themes that don't define theme_styles/1 (Vibrant,
+  Starter) rely on these as their ONLY source of --theme-* values.
+
+  IMPORTANT: We read from assigns[:theme] which is set by the ResolveStore
+  hook — NO independent re-resolution. This eliminates the race condition
+  that caused the "old design flash" while still providing CSS variables
+  for all themes.
+--%>
 <%= if assigns[:theme] do %>
   <% tokens = Map.get(assigns[:theme], :design_tokens, %{})
+  heading_font = Emakola.Themes.DesignTokens.heading_font_family(tokens[:heading_font] || "sans")
+  body_font = Emakola.Themes.DesignTokens.body_font_family(tokens[:body_font] || "sans")
   heading_url = Emakola.Themes.DesignTokens.heading_font_url(tokens[:heading_font] || "sans")
   body_url = Emakola.Themes.DesignTokens.body_font_url(tokens[:body_font] || "sans") %>
   <%= if heading_url do %>
@@ -46,6 +60,23 @@
   <%= if body_url && body_url != heading_url do %>
     <link rel="stylesheet" href={body_url} />
   <% end %>
+  <style>
+    :root {
+      --theme-primary: <%= assigns[:theme][:colors][:primary] || "#2563EB" %>;
+      --theme-accent: <%= assigns[:theme][:colors][:accent] || "#0F172A" %>;
+      --theme-bg: <%= assigns[:theme][:colors][:background] || "#FFFFFF" %>;
+      --dt-heading-font: <%= heading_font %>;
+      --dt-body-font: <%= body_font %>;
+      --dt-btn-radius: <%= case tokens[:button_style] do "pill" -> "9999px"; "square" -> "0px"; _ -> "0.5rem" end %>;
+    }
+    h1, h2, h3, h4, h5, h6 { font-family: var(--dt-heading-font) !important; }
+    p, span, a, li, td, th, label, input, textarea, select, div {
+      font-family: var(--dt-body-font);
+    }
+    .dt-btn {
+      border-radius: var(--dt-btn-radius) !important;
+    }
+  </style>
 <% end %>
 
 <div
