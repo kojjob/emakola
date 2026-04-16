@@ -100,6 +100,14 @@ defmodule EmakolaWeb.Router do
     end
   end
 
+  # Sitemap + AI-readable files (no browser pipeline — raw XML/text responses)
+  scope "/s/:store_slug", EmakolaWeb do
+    pipe_through :api
+    get "/sitemap.xml", SitemapController, :show
+    get "/robots.txt", SitemapController, :robots
+    get "/llms.txt", SitemapController, :llms
+  end
+
   # Customer storefront (public — no auth required)
   # In production, store is resolved from subdomain. For now, use store slug in URL.
   scope "/s/:store_slug", EmakolaWeb.Storefront do
