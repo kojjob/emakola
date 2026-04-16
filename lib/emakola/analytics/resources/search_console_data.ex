@@ -1,4 +1,5 @@
 defmodule Emakola.Analytics.SearchConsoleData do
+  @moduledoc "Google Search Console metrics synced periodically via the GSC worker for SEO reporting."
   use Ash.Resource,
     domain: Emakola.Analytics,
     data_layer: AshPostgres.DataLayer

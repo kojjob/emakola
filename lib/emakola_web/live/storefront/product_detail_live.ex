@@ -360,14 +360,23 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   defp assign_seo_metadata(socket, store, product) do
     description = product_description_for_seo(product, store)
     og_image = first_product_image_url(product)
-    json_ld = SEOHelpers.json_ld_product(product, product.variants || [], store)
+    product_json_ld = SEOHelpers.json_ld_product(product, product.variants || [], store)
+
+    breadcrumb_json_ld =
+      SEOHelpers.json_ld_breadcrumb([
+        %{name: store.name, url: "/s/#{store.slug}"},
+        %{name: "Products", url: "/s/#{store.slug}/products"},
+        %{name: product.title, url: "/s/#{store.slug}/products/#{product.slug}"}
+      ])
+
+    combined_json_ld = [product_json_ld, breadcrumb_json_ld]
 
     socket
     |> assign(:meta_description, description)
     |> assign(:og_image, og_image)
     |> assign(:og_type, "product")
     |> assign(:og_site_name, store.name)
-    |> assign(:json_ld, json_ld)
+    |> assign(:json_ld, combined_json_ld)
   end
 
   # Prefer the SEO-specific description, fall back to the main description,

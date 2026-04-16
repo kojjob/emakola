@@ -1,4 +1,5 @@
 defmodule Emakola.Webhooks.OutboundWebhook do
+  @moduledoc "Registered outbound webhook endpoint with URL and subscribed event type configuration."
   use Ash.Resource,
     domain: Emakola.Webhooks,
     data_layer: AshPostgres.DataLayer

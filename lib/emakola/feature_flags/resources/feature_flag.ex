@@ -1,4 +1,5 @@
 defmodule Emakola.FeatureFlags.FeatureFlag do
+  @moduledoc "Individual feature flag with a unique key and store-scoped targeting for gradual rollout."
   use Ash.Resource,
     domain: Emakola.FeatureFlags,
     data_layer: AshPostgres.DataLayer

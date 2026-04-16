@@ -1,4 +1,5 @@
 defmodule Emakola.Accounts do
+  @moduledoc "Accounts domain — users, merchants, organisations, and authentication."
   use Ash.Domain
 
   resources do
