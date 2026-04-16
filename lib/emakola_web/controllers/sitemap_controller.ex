@@ -29,8 +29,6 @@ defmodule EmakolaWeb.SitemapController do
 
   require Ash.Query
 
-  @cache_ttl_ms 15 * 60 * 1000
-
   @doc "Serves the sitemap.xml for a store — lists all indexable URLs."
   def show(conn, %{"store_slug" => slug}) do
     case StoreResolver.resolve(slug) do
