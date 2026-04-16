@@ -39,6 +39,7 @@ defmodule Emakola.Themes.Vibrant.Home do
 
     ~H"""
     <div class="min-h-screen bg-[#FFFBEB]">
+      <Shared.theme_styles theme={@theme} />
       <%!-- Bold Hero Section --%>
       <section
         :if={section_enabled?(@theme, :hero)}

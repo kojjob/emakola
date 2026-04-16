@@ -44,6 +44,7 @@ defmodule Emakola.Themes.Bold.Home do
 
     ~H"""
     <div class="min-h-screen bg-[#F8FAFC]">
+      <Shared.theme_styles theme={@theme} />
       <Shared.bold_nav store={@store} cart_count={@cart_count} />
 
       <%!-- Full-Bleed Dark Hero --%>

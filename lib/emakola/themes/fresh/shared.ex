@@ -15,6 +15,26 @@ defmodule Emakola.Themes.Fresh.Shared do
 
   alias EmakolaWeb.Helpers.Currency
 
+  # ── CSS Variable Injection ──
+
+  @doc """
+  Injects theme CSS custom properties into the page as a <style> block.
+  Place this as the first element inside the outermost div of each page.
+  """
+  attr :theme, :map, required: true
+
+  def theme_styles(assigns) do
+    ~H"""
+    <style>
+      :root {
+        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#059669" %>;
+        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#92400E" %>;
+        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#FEFCE8" %>;
+      }
+    </style>
+    """
+  end
+
   # ── Fresh Nav Bar ──
 
   @doc """

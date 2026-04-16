@@ -39,6 +39,7 @@ defmodule Emakola.Themes.Fresh.Home do
 
     ~H"""
     <div class="min-h-screen bg-[#FEFCE8]">
+      <Shared.theme_styles theme={@theme} />
       <Shared.fresh_nav store={@store} cart_count={@cart_count} />
       <%!-- Hero Section --%>
       <section

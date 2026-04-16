@@ -20,6 +20,7 @@ defmodule Emakola.Themes.Market.Home do
   def render(assigns) do
     ~H"""
     <div class="max-w-[1280px] mx-auto">
+      <Shared.theme_styles theme={@theme} />
       <%!-- Story-style category circles --%>
       <nav
         :if={@categories != []}

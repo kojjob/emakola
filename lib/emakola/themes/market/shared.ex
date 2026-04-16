@@ -5,6 +5,27 @@ defmodule Emakola.Themes.Market.Shared do
   Provides image extraction and other utilities used across
   the home, product list, and product detail renderers.
   """
+  use Phoenix.Component
+
+  # ── CSS Variable Injection ──
+
+  @doc """
+  Injects theme CSS custom properties into the page as a <style> block.
+  Place this as the first element inside the outermost div of each page.
+  """
+  attr :theme, :map, required: true
+
+  def theme_styles(assigns) do
+    ~H"""
+    <style>
+      :root {
+        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#1C1917" %>;
+        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#B45309" %>;
+        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#FAFAF9" %>;
+      }
+    </style>
+    """
+  end
 
   @doc """
   Extract the first image URL from a product's images association.

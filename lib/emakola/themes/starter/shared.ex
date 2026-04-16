@@ -14,6 +14,26 @@ defmodule Emakola.Themes.Starter.Shared do
 
   alias EmakolaWeb.Helpers.Currency
 
+  # ── Theme Styles ──
+
+  @doc """
+  Injects a <style> block that defines CSS custom properties for the Starter theme.
+  Call once near the top of any page that uses Starter theme components.
+  """
+  attr :theme, :map, required: true
+
+  def theme_styles(assigns) do
+    ~H"""
+    <style>
+      :root {
+        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#6366F1" %>;
+        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#1E293B" %>;
+        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#FFFFFF" %>;
+      }
+    </style>
+    """
+  end
+
   # ── Starter Nav Bar ──
 
   @doc """
