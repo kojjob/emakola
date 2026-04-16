@@ -14,10 +14,8 @@ defmodule EmakolaWeb.DashboardHelpers do
     prev_day_start = DateTime.new!(prev_start, ~T[00:00:00], "Etc/UTC")
     prev_day_end = DateTime.new!(Date.add(prev_end, 1), ~T[00:00:00], "Etc/UTC")
 
-    # Current period metrics
-    current_orders = load_non_cancelled_orders(store_id, day_start, day_end)
-    total_revenue = current_orders |> Enum.map(& &1.total) |> Enum.sum()
-    order_count = length(current_orders)
+    # Current period metrics — use aggregates instead of loading full rows
+    {total_revenue, order_count} = revenue_and_count(store_id, day_start, day_end)
     avg_order_value = if order_count > 0, do: div(total_revenue, order_count), else: 0
 
     customer_count = count_customers(store_id, day_start, day_end)
@@ -27,9 +25,9 @@ defmodule EmakolaWeb.DashboardHelpers do
       if period == "all" do
         {nil, nil, nil, nil}
       else
-        prev_orders = load_non_cancelled_orders(store_id, prev_day_start, prev_day_end)
-        prev_revenue = prev_orders |> Enum.map(& &1.total) |> Enum.sum()
-        prev_order_count = length(prev_orders)
+        {prev_revenue, prev_order_count} =
+          revenue_and_count(store_id, prev_day_start, prev_day_end)
+
         prev_avg = if prev_order_count > 0, do: div(prev_revenue, prev_order_count), else: 0
         prev_customer_count = count_customers(store_id, prev_day_start, prev_day_end)
 
@@ -41,11 +39,17 @@ defmodule EmakolaWeb.DashboardHelpers do
         }
       end
 
-    # Charts
+    # Charts — single bulk query per chart, grouped by date in Elixir
     dates = chart_dates(range_start, range_end)
-    revenue_chart = build_revenue_chart(store_id, dates)
-    orders_chart = build_orders_chart(store_id, dates)
-    customers_chart = build_customers_chart(store_id, dates)
+    chart_start = DateTime.new!(List.first(dates), ~T[00:00:00], "Etc/UTC")
+    chart_end = DateTime.new!(Date.add(List.last(dates), 1), ~T[00:00:00], "Etc/UTC")
+
+    orders_in_range = load_non_cancelled_orders(store_id, chart_start, chart_end)
+    customers_in_range = load_customers_in_range(store_id, chart_start, chart_end)
+
+    revenue_chart = build_revenue_chart(orders_in_range, dates)
+    orders_chart = build_orders_chart(orders_in_range, dates)
+    customers_chart = build_customers_chart(customers_in_range, dates)
     top_products_chart = build_top_products_chart(store_id, day_start, day_end)
 
     # Alerts
@@ -129,6 +133,21 @@ defmodule EmakolaWeb.DashboardHelpers do
 
   # ── Data Loaders ──
 
+  defp revenue_and_count(store_id, from, to) do
+    base =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(
+        store_id == ^store_id and
+          status != :cancelled and
+          inserted_at >= ^from and
+          inserted_at < ^to
+      )
+
+    {:ok, revenue} = Ash.sum(base, :total, authorize?: false)
+    {:ok, count} = Ash.count(base, authorize?: false)
+    {revenue || 0, count}
+  end
+
   defp load_non_cancelled_orders(store_id, from, to) do
     Emakola.Orders.Order
     |> Ash.Query.filter(
@@ -137,6 +156,18 @@ defmodule EmakolaWeb.DashboardHelpers do
         inserted_at >= ^from and
         inserted_at < ^to
     )
+    |> Ash.Query.select([:id, :total, :inserted_at])
+    |> Ash.read!(authorize?: false)
+  end
+
+  defp load_customers_in_range(store_id, from, to) do
+    Emakola.Customers.Customer
+    |> Ash.Query.filter(
+      store_id == ^store_id and
+        inserted_at >= ^from and
+        inserted_at < ^to
+    )
+    |> Ash.Query.select([:id, :inserted_at])
     |> Ash.read!(authorize?: false)
   end
 
@@ -210,64 +241,29 @@ defmodule EmakolaWeb.DashboardHelpers do
     end
   end
 
-  defp build_revenue_chart(store_id, dates) do
+  defp build_revenue_chart(orders, dates) do
+    by_date = Enum.group_by(orders, fn o -> DateTime.to_date(o.inserted_at) end)
     labels = Enum.map(dates, &Calendar.strftime(&1, "%b %d"))
 
     values =
       Enum.map(dates, fn date ->
-        day_start = DateTime.new!(date, ~T[00:00:00], "Etc/UTC")
-        day_end = DateTime.new!(Date.add(date, 1), ~T[00:00:00], "Etc/UTC")
-
-        orders = load_non_cancelled_orders(store_id, day_start, day_end)
-        orders |> Enum.map(& &1.total) |> Enum.sum()
+        Map.get(by_date, date, []) |> Enum.map(& &1.total) |> Enum.sum()
       end)
 
     %{labels: labels, values: values}
   end
 
-  defp build_orders_chart(store_id, dates) do
+  defp build_orders_chart(orders, dates) do
+    by_date = Enum.group_by(orders, fn o -> DateTime.to_date(o.inserted_at) end)
     labels = Enum.map(dates, &Calendar.strftime(&1, "%b %d"))
-
-    values =
-      Enum.map(dates, fn date ->
-        day_start = DateTime.new!(date, ~T[00:00:00], "Etc/UTC")
-        day_end = DateTime.new!(Date.add(date, 1), ~T[00:00:00], "Etc/UTC")
-
-        {:ok, count} =
-          Emakola.Orders.Order
-          |> Ash.Query.filter(
-            store_id == ^store_id and
-              inserted_at >= ^day_start and
-              inserted_at < ^day_end
-          )
-          |> Ash.count(authorize?: false)
-
-        count
-      end)
-
+    values = Enum.map(dates, fn date -> length(Map.get(by_date, date, [])) end)
     %{labels: labels, values: values}
   end
 
-  defp build_customers_chart(store_id, dates) do
+  defp build_customers_chart(customers, dates) do
+    by_date = Enum.group_by(customers, fn c -> DateTime.to_date(c.inserted_at) end)
     labels = Enum.map(dates, &Calendar.strftime(&1, "%b %d"))
-
-    values =
-      Enum.map(dates, fn date ->
-        day_start = DateTime.new!(date, ~T[00:00:00], "Etc/UTC")
-        day_end = DateTime.new!(Date.add(date, 1), ~T[00:00:00], "Etc/UTC")
-
-        {:ok, count} =
-          Emakola.Customers.Customer
-          |> Ash.Query.filter(
-            store_id == ^store_id and
-              inserted_at >= ^day_start and
-              inserted_at < ^day_end
-          )
-          |> Ash.count(authorize?: false)
-
-        count
-      end)
-
+    values = Enum.map(dates, fn date -> length(Map.get(by_date, date, [])) end)
     %{labels: labels, values: values}
   end
 

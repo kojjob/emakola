@@ -214,8 +214,6 @@ defmodule Emakola.SecurityTest do
   # ── Rate Limiting ─────────────────────────────────────────────────
 
   describe "rate limiting" do
-    # Rate limiter is disabled globally in test env; re-enable it for these
-    # tests so rate limit headers are actually set by the plug pipeline.
     setup do
       Application.put_env(:emakola, :disable_rate_limit, false)
       on_exit(fn -> Application.put_env(:emakola, :disable_rate_limit, true) end)

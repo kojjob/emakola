@@ -31,6 +31,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
       product ->
         option_types = load_option_types(product)
         selected_variant = List.first(product.variants)
+        vov_map = load_variant_option_values(product.variants)
         related = load_related_products(store, product)
         categories = load_root_categories(store)
         cart_session_id = session["cart_session_id"]
@@ -40,8 +41,12 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
          socket
          |> assign(:product, product)
          |> assign(:option_types, option_types)
+         |> assign(:vov_map, vov_map)
          |> assign(:selected_variant, selected_variant)
-         |> assign(:selected_options, build_initial_options(option_types, selected_variant))
+         |> assign(
+           :selected_options,
+           build_initial_options(option_types, selected_variant, vov_map)
+         )
          |> assign(:quantity, 1)
          |> assign(:current_image_index, 0)
          |> assign(:related_products, related)
@@ -77,7 +82,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
       find_matching_variant(
         socket.assigns.product.variants,
         selected_options,
-        socket.assigns.option_types
+        socket.assigns.vov_map
       )
 
     {:noreply,
@@ -143,7 +148,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
         variant_id: variant.id,
         quantity: quantity,
         product_title: socket.assigns.product.title,
-        variant_info: variant_label(variant, socket.assigns.option_types),
+        variant_info: variant_label(variant, socket.assigns.option_types, socket.assigns.vov_map),
         unit_price: variant.price,
         sku: variant.sku,
         image_url: image_url
@@ -230,20 +235,30 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   end
 
   defp load_related_products(store, product) do
-    Emakola.Catalog.list_products_by_store_and_status!(store.id, :active)
-    |> Enum.reject(&(&1.id == product.id))
-    |> Enum.take(6)
+    Emakola.Catalog.Product
+    |> Ash.Query.filter(store_id == ^store.id and status == :active and id != ^product.id)
+    |> Ash.Query.limit(6)
+    |> Ash.Query.load([:images, :min_price, :max_price])
+    |> Ash.read!(authorize?: false)
   end
 
-  defp build_initial_options([], _variant), do: %{}
-  defp build_initial_options(_option_types, nil), do: %{}
+  # Load all VariantOptionValues for a product's variants in one query,
+  # grouped by variant_id. Eliminates N+1 on every option selection click.
+  defp load_variant_option_values(variants) do
+    variant_ids = Enum.map(variants, & &1.id)
 
-  defp build_initial_options(option_types, variant) do
-    vovs =
-      Emakola.Catalog.VariantOptionValue
-      |> Ash.Query.filter(variant_id == ^variant.id)
-      |> Ash.Query.load(:option_value)
-      |> Ash.read!()
+    Emakola.Catalog.VariantOptionValue
+    |> Ash.Query.filter(variant_id in ^variant_ids)
+    |> Ash.Query.load(:option_value)
+    |> Ash.read!()
+    |> Enum.group_by(& &1.variant_id)
+  end
+
+  defp build_initial_options([], _variant, _vov_map), do: %{}
+  defp build_initial_options(_option_types, nil, _vov_map), do: %{}
+
+  defp build_initial_options(option_types, variant, vov_map) do
+    vovs = Map.get(vov_map, variant.id, [])
 
     Enum.reduce(vovs, %{}, fn vov, acc ->
       ov = vov.option_value
@@ -252,34 +267,26 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
     end)
   end
 
-  defp find_matching_variant(variants, selected_options, _option_types)
+  defp find_matching_variant(variants, selected_options, _vov_map)
        when map_size(selected_options) == 0 do
     List.first(variants)
   end
 
-  defp find_matching_variant(variants, selected_options, _option_types) do
+  defp find_matching_variant(variants, selected_options, vov_map) do
     selected_value_ids = Map.values(selected_options) |> MapSet.new()
 
     Enum.find(variants, fn variant ->
-      vovs =
-        Emakola.Catalog.VariantOptionValue
-        |> Ash.Query.filter(variant_id == ^variant.id)
-        |> Ash.read!()
-
+      vovs = Map.get(vov_map, variant.id, [])
       variant_value_ids = MapSet.new(Enum.map(vovs, & &1.option_value_id))
       MapSet.subset?(selected_value_ids, variant_value_ids)
     end) || List.first(variants)
   end
 
-  defp variant_label(variant, option_types) do
+  defp variant_label(variant, option_types, vov_map) do
     if option_types == [] do
       variant.sku || "Default"
     else
-      vovs =
-        Emakola.Catalog.VariantOptionValue
-        |> Ash.Query.filter(variant_id == ^variant.id)
-        |> Ash.Query.load(:option_value)
-        |> Ash.read!()
+      vovs = Map.get(vov_map, variant.id, [])
 
       Enum.map(vovs, fn vov -> vov.option_value.value end)
       |> Enum.join(" / ")
@@ -294,6 +301,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
     Emakola.Catalog.Review
     |> Ash.Query.filter(product_id == ^product_id and status == :published)
     |> Ash.Query.sort(inserted_at: :desc)
+    |> Ash.Query.limit(20)
     |> Ash.Query.load([:customer])
     |> Ash.read!(authorize?: false)
   end

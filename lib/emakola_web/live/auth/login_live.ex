@@ -102,6 +102,23 @@ defmodule EmakolaWeb.Auth.LoginLive do
               </span>
             </div>
           </div>
+          <!-- Flash Messages -->
+          <div
+            :if={@flash["error"]}
+            class="mb-4 flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
+            role="alert"
+          >
+            <span class="material-symbols-outlined text-lg text-red-500">error</span>
+            <span>{@flash["error"]}</span>
+          </div>
+          <div
+            :if={@flash["info"]}
+            class="mb-4 flex items-center gap-2 rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700"
+            role="alert"
+          >
+            <span class="material-symbols-outlined text-lg text-blue-500">info</span>
+            <span>{@flash["info"]}</span>
+          </div>
           <!-- Login Form -->
           <.form for={@form} phx-submit="login" class="space-y-4">
             <!-- Email -->

@@ -12,11 +12,6 @@ defmodule EmakolaWeb.DashboardLive do
   def mount(_params, _session, socket) do
     store_id = get_store_id(socket)
 
-    if connected?(socket) do
-      Process.send_after(self(), :refresh, @refresh_interval)
-      if store_id, do: Phoenix.PubSub.subscribe(Emakola.PubSub, "store:#{store_id}:orders")
-    end
-
     socket =
       socket
       |> assign(
@@ -26,7 +21,13 @@ defmodule EmakolaWeb.DashboardLive do
         period: "week",
         periods: @periods
       )
-      |> load_dashboard_data()
+
+    socket = load_dashboard_data(socket)
+
+    if connected?(socket) do
+      Process.send_after(self(), :refresh, @refresh_interval)
+      if store_id, do: Phoenix.PubSub.subscribe(Emakola.PubSub, "store:#{store_id}:orders")
+    end
 
     {:ok, socket}
   end

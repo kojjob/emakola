@@ -5,9 +5,6 @@ defmodule EmakolaWeb.Plugs.RateLimiterTest do
 
   @opts RateLimiter.init(limit: 5, window_ms: 60_000)
 
-  # The rate limiter is disabled globally in test env (config/test.exs) to
-  # avoid flaky 429s in unrelated auth/page tests. These tests specifically
-  # exercise the rate limiter, so we re-enable it for their duration.
   setup do
     Application.put_env(:emakola, :disable_rate_limit, false)
     on_exit(fn -> Application.put_env(:emakola, :disable_rate_limit, true) end)
