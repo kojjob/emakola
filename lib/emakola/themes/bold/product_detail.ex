@@ -15,6 +15,8 @@ defmodule Emakola.Themes.Bold.ProductDetail do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+
   alias Emakola.Themes.Bold.Shared
   alias EmakolaWeb.Helpers.Currency
 
@@ -81,9 +83,10 @@ defmodule Emakola.Themes.Bold.ProductDetail do
         <section class="lg:col-span-3" aria-label="Product images">
           <div class="w-full aspect-[3/4] lg:aspect-[4/5] overflow-hidden bg-[#F1F5F9]">
             <%= if current_image(@product, @current_image_index) do %>
-              <img
+              <.optimized_image
                 src={current_image(@product, @current_image_index)}
                 alt={"#{@product.title} — image #{@current_image_index + 1}"}
+                priority={:high}
                 class="w-full h-full object-cover"
               />
             <% else %>
@@ -126,11 +129,11 @@ defmodule Emakola.Themes.Bold.ProductDetail do
                 )
               ]}
             >
-              <img
+              <.optimized_image
                 src={(img && (Map.get(img, :thumbnail_url) || Map.get(img, :url))) || ""}
                 alt={"Thumbnail #{idx + 1}"}
+                priority={:low}
                 class="w-full h-full object-cover"
-                loading="lazy"
               />
             </button>
           </div>

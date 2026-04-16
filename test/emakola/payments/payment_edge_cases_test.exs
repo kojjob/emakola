@@ -476,6 +476,67 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       assert {:error, :invalid_signature} =
                Emakola.Payments.Gateways.Paystack.verify_webhook(tampered_body, headers)
     end
+
+    # ── C4 regression: secret_key resolution ──────────────────────────
+    # Verifies the gateway reads the secret from BOTH config paths so dev,
+    # test, and prod all work without drift.
+
+    test "resolves secret from nested PaystackClient config when flat path unset" do
+      # Clear the flat override so the nested fallback fires.
+      Application.delete_env(:emakola, :paystack_secret_key)
+
+      original_client_config = Application.get_env(:emakola, Emakola.Payments.PaystackClient, [])
+
+      on_exit(fn ->
+        Application.put_env(:emakola, Emakola.Payments.PaystackClient, original_client_config)
+      end)
+
+      nested_secret = "nested_path_secret_for_test"
+
+      Application.put_env(
+        :emakola,
+        Emakola.Payments.PaystackClient,
+        Keyword.put(original_client_config, :secret_key, nested_secret)
+      )
+
+      body = ~s({"event":"charge.success"})
+
+      computed =
+        :crypto.mac(:hmac, :sha512, nested_secret, body)
+        |> Base.encode16(case: :lower)
+
+      headers = %{"x-paystack-signature" => computed}
+
+      assert :ok = Emakola.Payments.Gateways.Paystack.verify_webhook(body, headers)
+    end
+
+    test "flat :paystack_secret_key overrides nested config" do
+      # Both paths set, different values. Flat should win (runtime override).
+      original_client_config = Application.get_env(:emakola, Emakola.Payments.PaystackClient, [])
+
+      on_exit(fn ->
+        Application.put_env(:emakola, Emakola.Payments.PaystackClient, original_client_config)
+      end)
+
+      Application.put_env(
+        :emakola,
+        Emakola.Payments.PaystackClient,
+        Keyword.put(original_client_config, :secret_key, "nested_wrong")
+      )
+
+      flat_secret = "flat_override_wins"
+      Application.put_env(:emakola, :paystack_secret_key, flat_secret)
+
+      body = ~s({"event":"charge.success"})
+
+      computed =
+        :crypto.mac(:hmac, :sha512, flat_secret, body)
+        |> Base.encode16(case: :lower)
+
+      headers = %{"x-paystack-signature" => computed}
+
+      assert :ok = Emakola.Payments.Gateways.Paystack.verify_webhook(body, headers)
+    end
   end
 
   # ═══════════════════════════════════════════════════════════════════

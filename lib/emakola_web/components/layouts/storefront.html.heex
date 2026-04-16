@@ -41,12 +41,9 @@
     p, span, a, li, td, th, label, input, textarea, select, div {
       font-family: var(--dt-body-font);
     }
-    /* All button-like elements get the merchant's chosen border-radius */
-    button, [type="submit"], .btn, a[class*="rounded"], a[class*="bg-"] {
+    /* Merchant button radius — only opt-in elements with .dt-btn class */
+    .dt-btn {
       border-radius: var(--dt-btn-radius) !important;
-    }
-    input, textarea, select {
-      border-radius: var(--dt-btn-radius);
     }
   </style>
 <% end %>
