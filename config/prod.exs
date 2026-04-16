@@ -7,11 +7,18 @@ import Config
 # before starting your production server.
 config :emakola, EmakolaWeb.Endpoint, cache_static_manifest: "priv/static/cache_manifest.json"
 
-# Force using SSL in production. This also sets the "strict-security-transport" header,
-# known as HSTS. If you have a health check endpoint, you may want to exclude it below.
+# Force using SSL in production. This also sets the "strict-transport-security" header
+# (HSTS). The health check endpoint is excluded so load balancers can reach it over HTTP.
 # Note `:force_ssl` is required to be set at compile-time.
 config :emakola, EmakolaWeb.Endpoint,
-  force_ssl: [rewrite_on: [:x_forwarded_proto]],
+  force_ssl: [
+    rewrite_on: [:x_forwarded_proto],
+    hsts: true,
+    # 1 year max-age, include subdomains for full coverage
+    expires: 31_536_000,
+    subdomains: true,
+    preload: true
+  ],
   exclude: [
     # paths: ["/health"],
     hosts: ["localhost", "127.0.0.1"]
