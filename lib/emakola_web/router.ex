@@ -152,6 +152,18 @@ defmodule EmakolaWeb.Router do
     live "/", LandingLive
     live "/docs", Docs.DocsLive
 
+    # Platform admin routes (project owner only)
+    live_session :platform,
+      layout: {EmakolaWeb.Layouts, :platform},
+      on_mount: [
+        {EmakolaWeb.Hooks.AssignDefaults, :default},
+        {EmakolaWeb.Hooks.RequireAuth, :default},
+        {EmakolaWeb.Hooks.RequirePlatformAdmin, :default}
+      ] do
+      live "/platform", Platform.DashboardLive
+      live "/platform/stores", Platform.StoreLive.Index
+    end
+
     # Authenticated app routes with sidebar layout
     live_session :app,
       layout: {EmakolaWeb.Layouts, :app},
