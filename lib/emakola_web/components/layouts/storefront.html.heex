@@ -1,4 +1,30 @@
-<%!-- Theme font loading --%>
+<%!--
+  Storefront layout — renders the structural shell around theme content.
+
+  IMPORTANT: This layout must NOT resolve the theme or inject CSS variables.
+  Theme resolution is handled exclusively by the ResolveStore on_mount hook
+  (lib/emakola_web/hooks/resolve_store.ex), which sets:
+
+    @store        — the resolved store struct
+    @theme        — fully resolved theme config (colors, fonts, sections, etc.)
+    @theme_module — the theme module (Atelier, Market, Vibrant, etc.)
+    @theme_fonts  — list of Google Fonts URLs for the theme
+
+  CSS variables (:root custom properties) are injected by each theme's
+  `theme_styles/1` component, NOT by this layout. Having two sources of
+  CSS variables (layout + theme template) caused a race condition where
+  LiveView DOM patching would briefly show the layout's defaults before
+  the theme's overrides took effect — the "old design flash" bug.
+
+  The layout's job is:
+  1. Load theme fonts via <link> tags (from @theme_fonts)
+  2. Render the flash messages
+  3. Render the inner content (which includes the theme's own nav/footer)
+  4. Show fallback nav/footer/WhatsApp FAB only when no theme_module is set
+  5. Render the search overlay
+--%>
+
+<%!-- Theme font loading (from ResolveStore hook) --%>
 <%= if assigns[:theme_fonts] && is_list(assigns[:theme_fonts]) do %>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
@@ -7,16 +33,9 @@
   <% end %>
 <% end %>
 
-<%!-- Theme CSS variables + design tokens injection --%>
-<% theme =
-  assigns[:theme] ||
-    if assigns[:store],
-      do: Emakola.Themes.ThemeResolver.resolve(assigns[:store].theme_config || %{}),
-      else: nil %>
-<%= if theme do %>
-  <% tokens = Map.get(theme, :design_tokens, %{})
-  heading_font = Emakola.Themes.DesignTokens.heading_font_family(tokens[:heading_font] || "sans")
-  body_font = Emakola.Themes.DesignTokens.body_font_family(tokens[:body_font] || "sans")
+<%!-- Design token fonts (loaded separately from theme_fonts for custom font stacks) --%>
+<%= if assigns[:theme] do %>
+  <% tokens = Map.get(assigns[:theme], :design_tokens, %{})
   heading_url = Emakola.Themes.DesignTokens.heading_font_url(tokens[:heading_font] || "sans")
   body_url = Emakola.Themes.DesignTokens.body_font_url(tokens[:body_font] || "sans") %>
   <%= if heading_url do %>
@@ -27,25 +46,6 @@
   <%= if body_url && body_url != heading_url do %>
     <link rel="stylesheet" href={body_url} />
   <% end %>
-  <style>
-    :root {
-      --theme-primary: <%= theme.colors[:primary] || "#2563EB" %>;
-      --theme-accent: <%= theme.colors[:accent] || "#0F172A" %>;
-      --theme-bg: <%= theme.colors[:background] || "#FFFFFF" %>;
-      --dt-heading-font: <%= heading_font %>;
-      --dt-body-font: <%= body_font %>;
-      --dt-btn-radius: <%= case tokens[:button_style] do "pill" -> "9999px"; "square" -> "0px"; _ -> "0.5rem" end %>;
-    }
-    /* Design tokens — applied globally to all storefront pages */
-    h1, h2, h3, h4, h5, h6 { font-family: var(--dt-heading-font) !important; }
-    p, span, a, li, td, th, label, input, textarea, select, div {
-      font-family: var(--dt-body-font);
-    }
-    /* Merchant button radius — only opt-in elements with .dt-btn class */
-    .dt-btn {
-      border-radius: var(--dt-btn-radius) !important;
-    }
-  </style>
 <% end %>
 
 <div
@@ -220,7 +220,6 @@
     class="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#E2E8F0] lg:hidden"
   >
     <div class="flex items-center justify-around h-16">
-      <!-- Home -->
       <a
         href={"/s/#{@store.slug}"}
         class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] == "/s/#{@store.slug}", do: "text-[#B45309]", else: "text-[#94A3B8]"}"}
@@ -240,8 +239,6 @@
         </svg>
         <span class="text-[0.625rem] font-medium">Home</span>
       </a>
-      
-<!-- Shop -->
       <a
         href={"/s/#{@store.slug}/products"}
         class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/products"), do: "text-[#B45309]", else: "text-[#94A3B8]"}"}
@@ -261,8 +258,6 @@
         </svg>
         <span class="text-[0.625rem] font-medium">Shop</span>
       </a>
-      
-<!-- Cart -->
       <a
         href={"/s/#{@store.slug}/cart"}
         class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 relative #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/cart"), do: "text-[#B45309]", else: "text-[#94A3B8]"}"}
@@ -290,8 +285,6 @@
         </div>
         <span class="text-[0.625rem] font-medium">Cart</span>
       </a>
-      
-<!-- Account -->
       <a
         href={"/s/#{@store.slug}/account"}
         class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/account"), do: "text-[#B45309]", else: "text-[#94A3B8]"}"}
