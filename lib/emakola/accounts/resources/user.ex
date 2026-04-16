@@ -59,6 +59,12 @@ defmodule Emakola.Accounts.User do
 
     attribute(:confirmed_at, :utc_datetime_usec, public?: true)
 
+    attribute :is_platform_admin, :boolean do
+      default(false)
+      allow_nil?(false)
+      public?(true)
+    end
+
     timestamps()
   end
 
