@@ -63,38 +63,43 @@ defmodule EmakolaWeb.SitemapController do
       {:ok, store} ->
         base = base_url(conn, store)
 
+        # Private paths that ALL crawlers (including AI) must not access
+        disallows = build_disallow_rules(store.slug)
+
         body = """
         # Emakola storefront robots.txt for #{store.name}
         # Generated dynamically — do not edit
 
         User-Agent: *
         Allow: /
-        Disallow: /s/#{store.slug}/cart
-        Disallow: /s/#{store.slug}/checkout
-        Disallow: /s/#{store.slug}/account
-        Disallow: /s/#{store.slug}/wishlist
-        Disallow: /s/#{store.slug}/track/
-        Disallow: /s/#{store.slug}/orders/
-        Disallow: /s/#{store.slug}/auth/
+        #{disallows}
 
-        # AI search crawlers — explicitly allowed for product discovery
+        # AI search crawlers — explicitly allowed for product discovery.
+        # Each group repeats the Disallow rules because per the robots.txt
+        # spec, a specific User-Agent group overrides the wildcard entirely.
         User-Agent: GPTBot
         Allow: /
+        #{disallows}
 
         User-Agent: Google-Extended
         Allow: /
+        #{disallows}
 
         User-Agent: anthropic-ai
         Allow: /
+        #{disallows}
 
         User-Agent: ClaudeBot
         Allow: /
+        #{disallows}
 
         User-Agent: PerplexityBot
         Allow: /
+        #{disallows}
 
         User-Agent: Amazonbot
         Allow: /
+        #{disallows}
 
         Sitemap: #{base}/s/#{store.slug}/sitemap.xml
         """
@@ -143,7 +148,11 @@ defmodule EmakolaWeb.SitemapController do
   # ── Caching ────────────────────────────────────────────────────────
 
   defp cached_sitemap(store, conn) do
-    cache_key = "sitemap:#{store.id}"
+    # Include host+scheme in cache key so stores reachable on multiple
+    # domains (platform URL vs custom domain) get separate cached sitemaps
+    # with correct <loc> URLs for each host.
+    base = base_url(conn, store)
+    cache_key = "sitemap:#{store.id}:#{base}"
 
     case Emakola.Cache.StoreCache.fetch(cache_key, fn ->
            {:ok, build_sitemap(store, conn)}
@@ -281,6 +290,12 @@ defmodule EmakolaWeb.SitemapController do
   defp format_date(%DateTime{} = dt), do: DateTime.to_date(dt) |> Date.to_iso8601()
   defp format_date(%NaiveDateTime{} = ndt), do: NaiveDateTime.to_date(ndt) |> Date.to_iso8601()
   defp format_date(_), do: nil
+
+  # Private paths that all crawlers should not access
+  defp build_disallow_rules(slug) do
+    ["/cart", "/checkout", "/account", "/wishlist", "/track/", "/orders/", "/auth/"]
+    |> Enum.map_join("\n", fn path -> "Disallow: /s/#{slug}#{path}" end)
+  end
 
   # Minimal XML escaping for URL values
   defp xml_escape(nil), do: ""
