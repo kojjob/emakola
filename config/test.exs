@@ -77,3 +77,9 @@ config :emakola, :whatsapp_provider, Emakola.WhatsAppProviderMock
 # rate_limiter_test.exs, security_test.exs) re-enable it per-test via
 # Application.put_env/3 in their setup block.
 config :emakola, :disable_rate_limit, true
+
+# Hubtel webhook allowlist: disabled by default in tests so existing webhook
+# integration tests continue to work without knowing about IP enforcement.
+# Tests that specifically exercise the plug override this per-test.
+config :emakola, :hubtel_webhook_allowlist, []
+config :emakola, :hubtel_webhook_allowlist_disabled, true

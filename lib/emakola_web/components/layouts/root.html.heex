@@ -8,10 +8,15 @@
     <meta name="csrf-token" content={get_csrf_token()} />
     <EmakolaWeb.SEO.meta_tags
       title={assigns[:page_title] || "Emakola"}
-      description={assigns[:meta_description] || "Production-ready Phoenix SaaS boilerplate"}
-      url={assigns[:canonical_url] || "https://founderpad.io"}
+      description={assigns[:meta_description] || "Your online store powered by Emakola"}
+      canonical_url={assigns[:canonical_url]}
+      og_image={assigns[:og_image]}
+      og_type={assigns[:og_type] || "website"}
+      site_name={assigns[:og_site_name] || "Emakola"}
+      robots={assigns[:robots] || "index, follow"}
+      json_ld={assigns[:json_ld]}
     />
-    <.live_title default="Emakola" suffix=" · Phoenix Framework">
+    <.live_title default="Emakola">
       {assigns[:page_title]}
     </.live_title>
     <%!--

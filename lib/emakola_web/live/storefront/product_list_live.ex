@@ -41,6 +41,12 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
          |> assign(:cart_session_id, cart_session_id)
          |> assign(:cart_count, cart_count)
          |> assign(:page_title, "Shop - #{store.name}")
+         |> assign(
+           :meta_description,
+           "Browse the full collection at #{store.name}. Authentic products, secure mobile money checkout, fast delivery across Ghana."
+         )
+         |> assign(:og_type, "website")
+         |> assign(:og_site_name, store.name)
          |> assign(:theme, Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{}))
          |> assign(
            :theme_module,
@@ -59,7 +65,9 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
   end
 
   @impl true
-  def handle_params(params, _uri, socket) do
+  def handle_params(params, uri, socket) do
+    socket = assign(socket, :canonical_url, uri)
+
     case params do
       %{"q" => query} when query != "" ->
         products = search_active_products(socket.assigns.store.id, String.trim(query))
