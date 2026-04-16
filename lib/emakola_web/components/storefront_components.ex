@@ -15,6 +15,99 @@ defmodule EmakolaWeb.StorefrontComponents do
   alias EmakolaWeb.Helpers.Currency
   alias EmakolaWeb.SearchComponents
 
+  # ── Optimized Image ──
+
+  @doc """
+  Performance-optimized `<img>` wrapper.
+
+  This component centralises image best-practice attributes so the storefront
+  renders fast on low-bandwidth mobile networks (the Emakola primary audience).
+  Use it for **every** storefront `<img>` — plain `<img>` tags should be
+  considered a lint violation in theme templates.
+
+  ## Priority values
+
+    * `:auto` (default) — lazy load, async decode. Use for everything below
+      the fold and any repeat/gallery thumbnails.
+    * `:high` — eager load, `fetchpriority="high"`, async decode. Use for
+      the single most important image on each page: the home hero, the PDP
+      main gallery image. These are the Largest Contentful Paint (LCP)
+      candidates Google measures for Core Web Vitals.
+    * `:low` — lazy load, `fetchpriority="low"`, async decode. Use for
+      decorative, icon-sized, or far-below-fold images that should yield
+      bandwidth to more important content.
+
+  ## Dimensions
+
+  Supplying `width` and `height` (or wrapping in an `aspect-ratio` container)
+  prevents Cumulative Layout Shift (CLS) when the image loads. The Atelier
+  theme uses `aspect-[...]` container classes, so `width`/`height` are
+  optional on most call sites.
+
+  ## Responsive images
+
+  Pass `srcset` and `sizes` for responsive loading. For example:
+
+      <.optimized_image
+        src="/uploads/product-640.jpg"
+        srcset="/uploads/product-320.jpg 320w, /uploads/product-640.jpg 640w, /uploads/product-1280.jpg 1280w"
+        sizes="(max-width: 640px) 100vw, 50vw"
+        alt="Product"
+      />
+
+  Responsive variants are not generated automatically — this is wiring for
+  the ImageWorker to produce multiple sizes in a follow-up.
+
+  ## Accessibility
+
+  `alt` is required. Decorative images should pass `alt=""` explicitly to
+  tell screen readers to skip them — never omit the attribute.
+  """
+  attr :src, :string, required: true
+  attr :alt, :string, required: true
+
+  attr :priority, :atom,
+    values: [:auto, :high, :low],
+    default: :auto,
+    doc: ":high for LCP images, :low for decorative, :auto (default) elsewhere"
+
+  attr :width, :integer, default: nil
+  attr :height, :integer, default: nil
+  attr :sizes, :string, default: nil
+  attr :srcset, :string, default: nil
+  attr :class, :string, default: nil
+  attr :rest, :global
+
+  def optimized_image(assigns) do
+    {loading, fetchpriority} =
+      case assigns.priority do
+        :high -> {"eager", "high"}
+        :low -> {"lazy", "low"}
+        :auto -> {"lazy", nil}
+      end
+
+    assigns =
+      assigns
+      |> assign(:loading, loading)
+      |> assign(:fetchpriority, fetchpriority)
+
+    ~H"""
+    <img
+      src={@src}
+      alt={@alt}
+      loading={@loading}
+      decoding="async"
+      fetchpriority={@fetchpriority}
+      width={@width}
+      height={@height}
+      sizes={@sizes}
+      srcset={@srcset}
+      class={@class}
+      {@rest}
+    />
+    """
+  end
+
   # ── Navigation ──
 
   @doc """
