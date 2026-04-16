@@ -143,10 +143,11 @@ defmodule Emakola.Themes.Atelier.Shared do
   attr :search_placeholder, :string, default: nil
 
   def navbar(assigns) do
+    store_name = Map.get(assigns.store, :name, "products")
+
     search_text =
       assigns[:search_placeholder] ||
-        get_in(assigns.store, [Access.key(:theme), Access.key(:search_placeholder)]) ||
-        "Search artisans..."
+        "Search #{store_name}..."
 
     assigns = assign(assigns, :search_text, search_text)
 
@@ -180,12 +181,12 @@ defmodule Emakola.Themes.Atelier.Shared do
             </span>
           </a>
 
-          <%!-- Center: Nav links (Desktop only) --%>
-          <div class="hidden lg:flex items-center gap-8">
+          <%!-- Center: Nav links (Desktop only — hidden below xl for long category names) --%>
+          <div class="hidden xl:flex items-center gap-5">
             <a
               href={"/s/#{@store.slug}/products"}
               class={[
-                "atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center",
+                "atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center whitespace-nowrap",
                 if(@active_path in ["/", "/products", nil] and @active_path != nil,
                   do: "text-gray-900",
                   else: "text-gray-600"
@@ -200,21 +201,16 @@ defmodule Emakola.Themes.Atelier.Shared do
               />
             </a>
             <a
-              href={"/s/#{@store.slug}/collections"}
-              class="atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center text-gray-600"
-            >
-              Collections
-            </a>
-            <a
-              :for={category <- Enum.take(@categories, 2)}
+              :for={category <- Enum.take(@categories, 3)}
               href={"/s/#{@store.slug}/category/#{category.slug}"}
               class={[
-                "atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center",
+                "atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center whitespace-nowrap max-w-[160px] truncate",
                 if(@active_path == "/category/#{category.slug}",
                   do: "text-gray-900 font-semibold",
                   else: "text-gray-600"
                 )
               ]}
+              title={category.name}
             >
               {category.name}
               <span
@@ -224,8 +220,8 @@ defmodule Emakola.Themes.Atelier.Shared do
               />
             </a>
             <a
-              href={"/s/#{@store.slug}/journal"}
-              class="atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center text-gray-600"
+              href={"/s/#{@store.slug}/blog"}
+              class="atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center text-gray-600 whitespace-nowrap"
             >
               Journal
             </a>
@@ -328,7 +324,7 @@ defmodule Emakola.Themes.Atelier.Shared do
             <%!-- Hamburger Menu (Mobile) --%>
             <label
               for="atelier-mobile-menu"
-              class="atelier-nav-icon lg:hidden flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
+              class="atelier-nav-icon xl:hidden flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
               aria-label="Menu"
             >
               <svg
