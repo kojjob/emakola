@@ -14,54 +14,37 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
   use EmakolaWeb, :live_view
 
   alias Emakola.Cart.CartStore
-  alias EmakolaWeb.Helpers.StoreResolver
 
   require Ash.Query
 
   @products_per_page 12
 
   @impl true
-  def mount(%{"store_slug" => slug}, session, socket) do
-    case StoreResolver.resolve(slug) do
-      {:ok, store} ->
-        categories = Emakola.Catalog.list_root_categories!(store.id)
-        products = load_active_products(store.id, nil, nil)
-        cart_session_id = session["cart_session_id"]
-        cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+  def mount(_params, session, socket) do
+    store = socket.assigns.store
+    categories = Emakola.Catalog.list_root_categories!(store.id)
+    products = load_active_products(store.id, nil, nil)
+    cart_session_id = session["cart_session_id"]
+    cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
 
-        {:ok,
-         socket
-         |> assign(:store, store)
-         |> assign(:categories, categories)
-         |> assign(:products, products)
-         |> assign(:selected_category, nil)
-         |> assign(:search_query, "")
-         |> assign(:page, 1)
-         |> assign(:has_more, length(products) >= @products_per_page)
-         |> assign(:cart_session_id, cart_session_id)
-         |> assign(:cart_count, cart_count)
-         |> assign(:page_title, "Shop - #{store.name}")
-         |> assign(
-           :meta_description,
-           "Browse the full collection at #{store.name}. Authentic products, secure mobile money checkout, fast delivery across Ghana."
-         )
-         |> assign(:og_type, "website")
-         |> assign(:og_site_name, store.name)
-         |> assign(:theme, Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{}))
-         |> assign(
-           :theme_module,
-           Emakola.Themes.ThemeResolver.theme_module(
-             (store.theme_config || %{})["theme"] || "market"
-           )
-         )
-         |> assign_search_defaults()}
-
-      {:error, :not_found} ->
-        {:ok,
-         socket
-         |> put_flash(:error, "Store not found")
-         |> redirect(to: "/")}
-    end
+    {:ok,
+     socket
+     |> assign(:categories, categories)
+     |> assign(:products, products)
+     |> assign(:selected_category, nil)
+     |> assign(:search_query, "")
+     |> assign(:page, 1)
+     |> assign(:has_more, length(products) >= @products_per_page)
+     |> assign(:cart_session_id, cart_session_id)
+     |> assign(:cart_count, cart_count)
+     |> assign(:page_title, "Shop - #{store.name}")
+     |> assign(
+       :meta_description,
+       "Browse the full collection at #{store.name}. Authentic products, secure mobile money checkout, fast delivery across Ghana."
+     )
+     |> assign(:og_type, "website")
+     |> assign(:og_site_name, store.name)
+     |> assign_search_defaults()}
   end
 
   @impl true

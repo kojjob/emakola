@@ -669,7 +669,7 @@ defmodule Emakola.Themes.Atelier.Home do
             Use code <span class="font-bold">{@coupon.code}</span> for {@message}
           </p>
         <% else %>
-          <p>Free delivery in Accra &amp; Kumasi on orders over GHS 100</p>
+          <p>Free delivery in Accra & Kumasi on orders over GHS 100</p>
         <% end %>
       </div>
       <button

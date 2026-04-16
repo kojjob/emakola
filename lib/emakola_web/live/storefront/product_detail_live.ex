@@ -14,65 +14,48 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   use EmakolaWeb, :live_view
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.SEO, as: SEOHelpers
-  alias EmakolaWeb.Helpers.StoreResolver
 
   require Ash.Query
 
   @impl true
   def mount(%{"store_slug" => slug, "product_slug" => product_slug}, session, socket) do
-    case StoreResolver.resolve(slug) do
-      {:ok, store} ->
-        case load_product(store.id, product_slug) do
-          nil ->
-            {:ok,
-             socket
-             |> assign(:store, store)
-             |> put_flash(:error, "Product not found")
-             |> redirect(to: "/s/#{slug}/products")}
+    store = socket.assigns.store
 
-          product ->
-            option_types = load_option_types(product)
-            selected_variant = List.first(product.variants)
-            related = load_related_products(store, product)
-            categories = load_root_categories(store)
-            cart_session_id = session["cart_session_id"]
-            cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
-
-            {:ok,
-             socket
-             |> assign(:store, store)
-             |> assign(:product, product)
-             |> assign(:option_types, option_types)
-             |> assign(:selected_variant, selected_variant)
-             |> assign(:selected_options, build_initial_options(option_types, selected_variant))
-             |> assign(:quantity, 1)
-             |> assign(:current_image_index, 0)
-             |> assign(:related_products, related)
-             |> assign(:categories, categories)
-             |> assign(:cart_session_id, cart_session_id)
-             |> assign(:cart_count, cart_count)
-             |> assign(:page_title, "#{product.title} - #{store.name}")
-             |> assign_seo_metadata(store, product)
-             |> assign(:theme, Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{}))
-             |> assign(
-               :theme_module,
-               Emakola.Themes.ThemeResolver.theme_module(
-                 (store.theme_config || %{})["theme"] || "market"
-               )
-             )
-             |> assign(:reviews, load_reviews(product.id))
-             |> assign(:review_form_rating, 0)
-             |> assign(:review_form_title, "")
-             |> assign(:review_form_body, "")
-             |> assign(:review_submitting, false)
-             |> assign_review_eligibility(store, product)}
-        end
-
-      {:error, :not_found} ->
+    case load_product(store.id, product_slug) do
+      nil ->
         {:ok,
          socket
-         |> put_flash(:error, "Store not found")
-         |> redirect(to: "/")}
+         |> put_flash(:error, "Product not found")
+         |> redirect(to: "/s/#{slug}/products")}
+
+      product ->
+        option_types = load_option_types(product)
+        selected_variant = List.first(product.variants)
+        related = load_related_products(store, product)
+        categories = load_root_categories(store)
+        cart_session_id = session["cart_session_id"]
+        cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+
+        {:ok,
+         socket
+         |> assign(:product, product)
+         |> assign(:option_types, option_types)
+         |> assign(:selected_variant, selected_variant)
+         |> assign(:selected_options, build_initial_options(option_types, selected_variant))
+         |> assign(:quantity, 1)
+         |> assign(:current_image_index, 0)
+         |> assign(:related_products, related)
+         |> assign(:categories, categories)
+         |> assign(:cart_session_id, cart_session_id)
+         |> assign(:cart_count, cart_count)
+         |> assign(:page_title, "#{product.title} - #{store.name}")
+         |> assign_seo_metadata(store, product)
+         |> assign(:reviews, load_reviews(product.id))
+         |> assign(:review_form_rating, 0)
+         |> assign(:review_form_title, "")
+         |> assign(:review_form_body, "")
+         |> assign(:review_submitting, false)
+         |> assign_review_eligibility(store, product)}
     end
   end
 

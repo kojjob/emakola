@@ -13,57 +13,44 @@ defmodule EmakolaWeb.Storefront.CartLive do
   import EmakolaWeb.StorefrontComponents
 
   alias Emakola.Cart.CartStore
-  alias EmakolaWeb.Helpers.{Currency, StoreResolver}
+  alias EmakolaWeb.Helpers.Currency
 
   require Ash.Query
 
   @impl true
-  def mount(%{"store_slug" => slug}, session, socket) do
-    case StoreResolver.resolve(slug) do
-      {:ok, store} ->
-        cart_session_id = session["cart_session_id"]
-        cart = if cart_session_id, do: CartStore.get_cart(cart_session_id), else: []
+  def mount(_params, session, socket) do
+    store = socket.assigns.store
+    cart_session_id = session["cart_session_id"]
+    cart = if cart_session_id, do: CartStore.get_cart(cart_session_id), else: []
 
-        categories =
-          try do
-            Emakola.Catalog.list_root_categories!(store.id)
-          rescue
-            _ -> []
-          end
+    categories =
+      try do
+        Emakola.Catalog.list_root_categories!(store.id)
+      rescue
+        _ -> []
+      end
 
-        theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{})
-        theme_module = Emakola.Themes.ThemeResolver.theme_module(theme.theme_id)
+    recommended_products =
+      try do
+        Emakola.Catalog.list_products_by_store_and_status!(store.id, :active)
+        |> Enum.take(4)
+      rescue
+        _ -> []
+      end
 
-        recommended_products =
-          try do
-            Emakola.Catalog.list_products_by_store_and_status!(store.id, :active)
-            |> Enum.take(4)
-          rescue
-            _ -> []
-          end
-
-        {:ok,
-         socket
-         |> assign(:store, store)
-         |> assign(:categories, categories)
-         |> assign(:theme_module, theme_module)
-         |> assign(:cart_session_id, cart_session_id)
-         |> assign(:cart, cart)
-         |> assign(:recommended_products, recommended_products)
-         |> assign(:promo_code, nil)
-         |> assign(:promo_error, nil)
-         |> assign_totals(cart)
-         |> assign(:checking_out, false)
-         |> assign(:applied_coupon, nil)
-         |> assign(:discount_amount, 0)
-         |> assign(:page_title, "Shopping Bag - #{store.name}")}
-
-      {:error, :not_found} ->
-        {:ok,
-         socket
-         |> put_flash(:error, "Store not found")
-         |> redirect(to: "/")}
-    end
+    {:ok,
+     socket
+     |> assign(:categories, categories)
+     |> assign(:cart_session_id, cart_session_id)
+     |> assign(:cart, cart)
+     |> assign(:recommended_products, recommended_products)
+     |> assign(:promo_code, nil)
+     |> assign(:promo_error, nil)
+     |> assign_totals(cart)
+     |> assign(:checking_out, false)
+     |> assign(:applied_coupon, nil)
+     |> assign(:discount_amount, 0)
+     |> assign(:page_title, "Shopping Bag - #{store.name}")}
   end
 
   @impl true

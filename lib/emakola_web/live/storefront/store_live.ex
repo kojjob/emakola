@@ -12,52 +12,36 @@ defmodule EmakolaWeb.Storefront.StoreLive do
 
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.SEO, as: SEOHelpers
-  alias EmakolaWeb.Helpers.StoreResolver
 
   import EmakolaWeb.StorefrontComponents, only: [coupon_banner: 1]
 
   require Ash.Query
 
   @impl true
-  def mount(%{"store_slug" => slug}, session, socket) do
-    case StoreResolver.resolve(slug) do
-      {:ok, store} ->
-        products = load_featured_products(store)
-        categories = load_root_categories(store)
-        public_coupons = load_public_coupons(store)
-        delivery_zones = load_delivery_zones(store)
-        cart_session_id = session["cart_session_id"]
-        cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+  def mount(_params, session, socket) do
+    store = socket.assigns.store
+    products = load_featured_products(store)
+    categories = load_root_categories(store)
+    public_coupons = load_public_coupons(store)
+    delivery_zones = load_delivery_zones(store)
+    cart_session_id = session["cart_session_id"]
+    cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
 
-        theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{})
-        theme_module = Emakola.Themes.ThemeResolver.theme_module(theme.theme_id)
-
-        {:ok,
-         socket
-         |> assign(:store, store)
-         |> assign(:products, products)
-         |> assign(:categories, categories)
-         |> assign(:public_coupons, public_coupons)
-         |> assign(:cart_session_id, cart_session_id)
-         |> assign(:cart_count, cart_count)
-         |> assign(:page_title, store.name)
-         |> assign_seo_metadata(store, products)
-         |> assign(:theme, theme)
-         |> assign(:theme_module, theme_module)
-         |> assign(:theme_fonts, theme_module.fonts())
-         |> assign(:public_coupons, public_coupons)
-         |> assign(:delivery_zones, delivery_zones)
-         |> assign(:search_overlay_query, "")
-         |> assign(:search_overlay_results, [])
-         |> assign(:search_overlay_total, 0)
-         |> assign(:searching, false)}
-
-      {:error, :not_found} ->
-        {:ok,
-         socket
-         |> put_flash(:error, "Store not found")
-         |> redirect(to: "/")}
-    end
+    {:ok,
+     socket
+     |> assign(:products, products)
+     |> assign(:categories, categories)
+     |> assign(:public_coupons, public_coupons)
+     |> assign(:cart_session_id, cart_session_id)
+     |> assign(:cart_count, cart_count)
+     |> assign(:page_title, store.name)
+     |> assign_seo_metadata(store, products)
+     |> assign(:public_coupons, public_coupons)
+     |> assign(:delivery_zones, delivery_zones)
+     |> assign(:search_overlay_query, "")
+     |> assign(:search_overlay_results, [])
+     |> assign(:search_overlay_total, 0)
+     |> assign(:searching, false)}
   end
 
   @impl true
