@@ -12,6 +12,8 @@ defmodule Emakola.Themes.Vibrant.Home do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+
   alias Emakola.Themes.Vibrant.Shared
   alias EmakolaWeb.Helpers.Currency
 
@@ -37,6 +39,7 @@ defmodule Emakola.Themes.Vibrant.Home do
 
     ~H"""
     <div class="min-h-screen bg-[#FFFBEB]">
+      <Shared.theme_styles theme={@theme} />
       <%!-- Bold Hero Section --%>
       <section
         :if={section_enabled?(@theme, :hero)}
@@ -373,12 +376,12 @@ defmodule Emakola.Themes.Vibrant.Home do
       aria-label={"Featured product: #{@product.title}"}
     >
       <div class="w-full aspect-[16/10] md:aspect-auto md:h-full md:min-h-[360px] bg-[#FEF3C7]/30 overflow-hidden">
-        <img
+        <.optimized_image
           :if={@image}
           src={@image}
           alt={@product.title}
+          priority={:high}
           class="w-full h-full object-cover"
-          loading="eager"
         />
         <div :if={!@image} class="w-full h-full flex items-center justify-center">
           <svg class="w-16 h-16 text-[#D97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

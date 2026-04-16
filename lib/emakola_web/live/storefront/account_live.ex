@@ -10,59 +10,48 @@ defmodule EmakolaWeb.Storefront.AccountLive do
   require Ash.Query
 
   alias Emakola.Cart.CartStore
-  alias EmakolaWeb.Helpers.{Currency, StoreResolver}
+  alias EmakolaWeb.Helpers.Currency
 
   @impl true
   def mount(%{"store_slug" => slug}, session, socket) do
-    case StoreResolver.resolve(slug) do
-      {:ok, store} ->
-        case socket.assigns[:current_customer] do
-          nil ->
-            {:ok,
-             socket
-             |> put_flash(:info, "Please sign in to view your account")
-             |> redirect(to: "/s/#{slug}/login")}
+    store = socket.assigns.store
 
-          customer ->
-            cart_session_id = session["cart_session_id"]
-            cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
-
-            categories =
-              try do
-                Emakola.Catalog.list_root_categories!(store.id)
-              rescue
-                _ -> []
-              end
-
-            theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{})
-
-            orders = load_orders(customer.id, store.id)
-            addresses = load_addresses(customer.id, store.id)
-
-            {:ok,
-             socket
-             |> assign(:store, store)
-             |> assign(:categories, categories)
-             |> assign(:theme, theme)
-             |> assign(:cart_count, cart_count)
-             |> assign(:cart_session_id, cart_session_id)
-             |> assign(:active_tab, "profile")
-             |> assign(:page_title, "My Account - #{store.name}")
-             |> assign(:customer, customer)
-             |> assign(:orders, orders)
-             |> assign(:addresses, addresses)
-             |> assign(:show_return_modal, false)
-             |> assign(:return_order, nil)
-             |> assign(:return_reason, nil)
-             |> assign(:return_detail, "")
-             |> assign(:order_returns, %{})}
-        end
-
-      {:error, :not_found} ->
+    case socket.assigns[:current_customer] do
+      nil ->
         {:ok,
          socket
-         |> put_flash(:error, "Store not found")
-         |> redirect(to: "/")}
+         |> put_flash(:info, "Please sign in to view your account")
+         |> redirect(to: "/s/#{slug}/login")}
+
+      customer ->
+        cart_session_id = session["cart_session_id"]
+        cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+
+        categories =
+          try do
+            Emakola.Catalog.list_root_categories!(store.id)
+          rescue
+            _ -> []
+          end
+
+        orders = load_orders(customer.id, store.id)
+        addresses = load_addresses(customer.id, store.id)
+
+        {:ok,
+         socket
+         |> assign(:categories, categories)
+         |> assign(:cart_count, cart_count)
+         |> assign(:cart_session_id, cart_session_id)
+         |> assign(:active_tab, "profile")
+         |> assign(:page_title, "My Account - #{store.name}")
+         |> assign(:customer, customer)
+         |> assign(:orders, orders)
+         |> assign(:addresses, addresses)
+         |> assign(:show_return_modal, false)
+         |> assign(:return_order, nil)
+         |> assign(:return_reason, nil)
+         |> assign(:return_detail, "")
+         |> assign(:order_returns, %{})}
     end
   end
 

@@ -15,9 +15,16 @@ defmodule EmakolaWeb.WebhookController do
   @doc """
   Receives Hubtel payment webhooks.
 
-  Hubtel does not sign webhooks (uses IP allowlisting instead).
-  We enqueue an Oban worker that verifies the transaction by calling
-  Hubtel's status check API before updating payment/order records.
+  Hubtel does not sign webhooks, so source-IP allowlisting is enforced at
+  the router level via `EmakolaWeb.Plugs.HubtelAllowlist` in the
+  `:hubtel_webhook_auth` pipeline. By the time a request reaches this
+  action, the remote_ip has already been verified against the configured
+  allowlist (`:hubtel_webhook_allowlist`).
+
+  Inside the action, we enqueue an Oban worker that additionally verifies
+  the transaction by calling Hubtel's status check API before updating
+  payment/order records — defense in depth against compromised allowlisted
+  hosts.
   """
   def hubtel(conn, params) do
     %{

@@ -12,7 +12,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
   alias Emakola.Cart.CartStore
   alias Emakola.Orders.CheckoutService
-  alias EmakolaWeb.Helpers.{Currency, StoreResolver}
+  alias EmakolaWeb.Helpers.Currency
 
   require Ash.Query
 
@@ -20,62 +20,52 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   @payment_poll_max_attempts 60
 
   @impl true
-  def mount(%{"store_slug" => slug}, session, socket) do
-    case StoreResolver.resolve(slug) do
-      {:ok, store} ->
-        cart_session_id = session["cart_session_id"]
-        cart = if cart_session_id, do: CartStore.get_cart(cart_session_id), else: []
+  def mount(_params, session, socket) do
+    store = socket.assigns.store
+    cart_session_id = session["cart_session_id"]
+    cart = if cart_session_id, do: CartStore.get_cart(cart_session_id), else: []
 
-        cart_total =
-          Enum.reduce(cart, 0, fn item, acc -> acc + item.unit_price * item.quantity end)
+    cart_total =
+      Enum.reduce(cart, 0, fn item, acc -> acc + item.unit_price * item.quantity end)
 
-        cart_count = Enum.reduce(cart, 0, fn item, acc -> acc + item.quantity end)
+    cart_count = Enum.reduce(cart, 0, fn item, acc -> acc + item.quantity end)
 
-        categories =
-          try do
-            Emakola.Catalog.list_root_categories!(store.id)
-          rescue
-            _ -> []
-          end
+    categories =
+      try do
+        Emakola.Catalog.list_root_categories!(store.id)
+      rescue
+        _ -> []
+      end
 
-        theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{})
-        theme_module = Emakola.Themes.ThemeResolver.theme_module(theme.theme_id)
-
-        {:ok,
-         socket
-         |> assign(:store, store)
-         |> assign(:categories, categories)
-         |> assign(:theme_module, theme_module)
-         |> assign(:cart_session_id, cart_session_id)
-         |> assign(:cart, cart)
-         |> assign(:cart_count, cart_count)
-         |> assign(:cart_total, cart_total)
-         |> assign(:step, 1)
-         |> assign(:payment_method, "momo")
-         |> assign(:phone, "")
-         |> assign(:fullname, "")
-         |> assign(:address, "")
-         |> assign(:region, "greater_accra")
-         |> assign(:delivery_fee, 1500)
-         |> assign(:notes, "")
-         |> assign(:processing, false)
-         |> assign(:order, nil)
-         |> assign(:checkout_error, nil)
-         |> assign(:payment_status, nil)
-         |> assign(:poll_attempts, 0)
-         |> assign(:gateway_reference, nil)
-         |> assign(:coupon_code, "")
-         |> assign(:coupon, nil)
-         |> assign(:discount_amount, 0)
-         |> assign(:coupon_error, nil)
-         |> assign(:show_mobile_summary, false)
-         |> assign(:form_errors, %{})
-         |> assign(:timer_seconds, 180)
-         |> assign(:page_title, "Checkout - #{store.name}")}
-
-      {:error, :not_found} ->
-        {:ok, socket |> put_flash(:error, "Store not found") |> redirect(to: "/")}
-    end
+    {:ok,
+     socket
+     |> assign(:categories, categories)
+     |> assign(:cart_session_id, cart_session_id)
+     |> assign(:cart, cart)
+     |> assign(:cart_count, cart_count)
+     |> assign(:cart_total, cart_total)
+     |> assign(:step, 1)
+     |> assign(:payment_method, "momo")
+     |> assign(:phone, "")
+     |> assign(:fullname, "")
+     |> assign(:address, "")
+     |> assign(:region, "greater_accra")
+     |> assign(:delivery_fee, 1500)
+     |> assign(:notes, "")
+     |> assign(:processing, false)
+     |> assign(:order, nil)
+     |> assign(:checkout_error, nil)
+     |> assign(:payment_status, nil)
+     |> assign(:poll_attempts, 0)
+     |> assign(:gateway_reference, nil)
+     |> assign(:coupon_code, "")
+     |> assign(:coupon, nil)
+     |> assign(:discount_amount, 0)
+     |> assign(:coupon_error, nil)
+     |> assign(:show_mobile_summary, false)
+     |> assign(:form_errors, %{})
+     |> assign(:timer_seconds, 180)
+     |> assign(:page_title, "Checkout - #{store.name}")}
   end
 
   # -- Event Handlers -------------------------------------------------------

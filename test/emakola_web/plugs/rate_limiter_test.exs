@@ -6,10 +6,8 @@ defmodule EmakolaWeb.Plugs.RateLimiterTest do
   @opts RateLimiter.init(limit: 5, window_ms: 60_000)
 
   setup do
-    # Enable rate limiting for these unit tests (disabled globally in test.exs)
-    previous = Application.get_env(:emakola, :disable_rate_limiter)
-    Application.put_env(:emakola, :disable_rate_limiter, false)
-    on_exit(fn -> Application.put_env(:emakola, :disable_rate_limiter, previous) end)
+    Application.put_env(:emakola, :disable_rate_limit, false)
+    on_exit(fn -> Application.put_env(:emakola, :disable_rate_limit, true) end)
     :ok
   end
 

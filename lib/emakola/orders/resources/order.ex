@@ -15,6 +15,30 @@ defmodule Emakola.Orders.Order do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  require Logger
+
+  # Dispatches an order lifecycle notification and logs any failure without
+  # raising. This runs inside the Ash transaction via after_action; a raise
+  # here would roll back the successful status update, so we must never
+  # propagate notification errors to the caller.
+  @doc false
+  def dispatch_notification(order, event) do
+    case Emakola.Notifications.Dispatcher.dispatch(order, event) do
+      {:ok, _job} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.error(
+          "[orders] #{inspect(event)} notification dispatch failed: #{inspect(reason)}",
+          order_id: order.id,
+          store_id: Map.get(order, :store_id),
+          event: event
+        )
+
+        :ok
+    end
+  end
+
   postgres do
     table("orders")
     repo(Emakola.Repo)
@@ -178,34 +202,24 @@ defmodule Emakola.Orders.Order do
       ])
     end
 
+    # ── Status transitions ──
+    # Uses the reusable StatusGuard validation. See
+    # Emakola.Orders.Validations.StatusGuard for docs.
+
     update :confirm do
       require_atomic?(false)
       accept([])
 
-      validate(fn changeset, _context ->
-        status = Ash.Changeset.get_attribute(changeset, :status)
-
-        if status == :pending do
-          :ok
-        else
-          {:error,
-           Ash.Error.Changes.InvalidAttribute.exception(
-             field: :status,
-             message: "can only confirm a pending order"
-           )}
-        end
-      end)
+      validate(
+        {Emakola.Orders.Validations.StatusGuard,
+         from: [:pending], message: "can only confirm a pending order"}
+      )
 
       change(set_attribute(:status, :confirmed))
 
       change(
         after_action(fn _changeset, order, _context ->
-          try do
-            Emakola.Notifications.Dispatcher.dispatch(order, :order_confirmed)
-          rescue
-            _ -> :ok
-          end
-
+          dispatch_notification(order, :order_confirmed)
           {:ok, order}
         end)
       )
@@ -215,19 +229,10 @@ defmodule Emakola.Orders.Order do
       require_atomic?(false)
       accept([])
 
-      validate(fn changeset, _context ->
-        status = Ash.Changeset.get_attribute(changeset, :status)
-
-        if status == :confirmed do
-          :ok
-        else
-          {:error,
-           Ash.Error.Changes.InvalidAttribute.exception(
-             field: :status,
-             message: "can only start processing from confirmed"
-           )}
-        end
-      end)
+      validate(
+        {Emakola.Orders.Validations.StatusGuard,
+         from: [:confirmed], message: "can only start processing from confirmed"}
+      )
 
       change(set_attribute(:status, :processing))
     end
@@ -236,30 +241,16 @@ defmodule Emakola.Orders.Order do
       require_atomic?(false)
       accept([:tracking_number])
 
-      validate(fn changeset, _context ->
-        status = Ash.Changeset.get_attribute(changeset, :status)
-
-        if status == :processing do
-          :ok
-        else
-          {:error,
-           Ash.Error.Changes.InvalidAttribute.exception(
-             field: :status,
-             message: "can only mark as shipped from processing"
-           )}
-        end
-      end)
+      validate(
+        {Emakola.Orders.Validations.StatusGuard,
+         from: [:processing], message: "can only mark as shipped from processing"}
+      )
 
       change(set_attribute(:status, :shipped))
 
       change(
         after_action(fn _changeset, order, _context ->
-          try do
-            Emakola.Notifications.Dispatcher.dispatch(order, :order_shipped)
-          rescue
-            _ -> :ok
-          end
-
+          dispatch_notification(order, :order_shipped)
           {:ok, order}
         end)
       )
@@ -269,30 +260,16 @@ defmodule Emakola.Orders.Order do
       require_atomic?(false)
       accept([])
 
-      validate(fn changeset, _context ->
-        status = Ash.Changeset.get_attribute(changeset, :status)
-
-        if status == :shipped do
-          :ok
-        else
-          {:error,
-           Ash.Error.Changes.InvalidAttribute.exception(
-             field: :status,
-             message: "can only mark as delivered from shipped"
-           )}
-        end
-      end)
+      validate(
+        {Emakola.Orders.Validations.StatusGuard,
+         from: [:shipped], message: "can only mark as delivered from shipped"}
+      )
 
       change(set_attribute(:status, :delivered))
 
       change(
         after_action(fn _changeset, order, _context ->
-          try do
-            Emakola.Notifications.Dispatcher.dispatch(order, :order_delivered)
-          rescue
-            _ -> :ok
-          end
-
+          dispatch_notification(order, :order_delivered)
           {:ok, order}
         end)
       )
@@ -302,30 +279,17 @@ defmodule Emakola.Orders.Order do
       require_atomic?(false)
       accept([])
 
-      validate(fn changeset, _context ->
-        status = Ash.Changeset.get_attribute(changeset, :status)
-
-        if status in [:pending, :confirmed, :processing, :shipped] do
-          :ok
-        else
-          {:error,
-           Ash.Error.Changes.InvalidAttribute.exception(
-             field: :status,
-             message: "can only cancel an active order (not delivered or already cancelled)"
-           )}
-        end
-      end)
+      validate(
+        {Emakola.Orders.Validations.StatusGuard,
+         from: [:pending, :confirmed, :processing, :shipped],
+         message: "can only cancel an active order (not delivered or already cancelled)"}
+      )
 
       change(set_attribute(:status, :cancelled))
 
       change(
         after_action(fn _changeset, order, _context ->
-          try do
-            Emakola.Notifications.Dispatcher.dispatch(order, :order_cancelled)
-          rescue
-            _ -> :ok
-          end
-
+          dispatch_notification(order, :order_cancelled)
           {:ok, order}
         end)
       )

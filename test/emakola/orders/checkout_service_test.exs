@@ -130,6 +130,64 @@ defmodule Emakola.Orders.CheckoutServiceTest do
     end
   end
 
+  # -- C1 regression: stock error classification ----------------------
+  # Before the C1 fix, ANY Ash.Error.Invalid caught in run_checkout/4 was
+  # mapped to {:error, :insufficient_stock}. This tested the pure
+  # classification helper so we can trust the pattern matching even
+  # without reproducing every failure mode end-to-end.
+
+  describe "stock_constraint_violation? classification" do
+    alias Emakola.Orders.CheckoutService
+
+    test "returns true for stock_non_negative constraint violation" do
+      error =
+        %Ash.Error.Invalid{
+          errors: [
+            %{constraint: "stock_non_negative", message: "check constraint violated"}
+          ]
+        }
+
+      assert CheckoutService.stock_constraint_violation?(error) == true
+    end
+
+    test "returns true for :stock_quantity field error" do
+      error =
+        %Ash.Error.Invalid{
+          errors: [%{field: :stock_quantity, message: "must be non-negative"}]
+        }
+
+      assert CheckoutService.stock_constraint_violation?(error) == true
+    end
+
+    test "returns true when error message mentions 'stock'" do
+      error =
+        %Ash.Error.Invalid{
+          errors: [%{message: "insufficient stock for variant"}]
+        }
+
+      assert CheckoutService.stock_constraint_violation?(error) == true
+    end
+
+    test "returns false for unrelated validation errors" do
+      error =
+        %Ash.Error.Invalid{
+          errors: [%{field: :shipping_address, message: "is invalid"}]
+        }
+
+      assert CheckoutService.stock_constraint_violation?(error) == false
+    end
+
+    test "returns false for non-Ash.Error.Invalid structs" do
+      assert CheckoutService.stock_constraint_violation?(%RuntimeError{message: "boom"}) == false
+      assert CheckoutService.stock_constraint_violation?(nil) == false
+      assert CheckoutService.stock_constraint_violation?(:some_atom) == false
+    end
+
+    test "returns false for Ash.Error.Invalid with empty errors list" do
+      assert CheckoutService.stock_constraint_violation?(%Ash.Error.Invalid{errors: []}) == false
+    end
+  end
+
   # -- Concurrency ----------------------------------------------------
 
   describe "concurrent checkouts" do

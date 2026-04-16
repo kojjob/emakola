@@ -10,6 +10,8 @@ defmodule Emakola.Themes.Atelier.Shared do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+
   alias Emakola.Themes.DesignTokens
   alias Phoenix.LiveView.JS
   alias EmakolaWeb.Helpers.Currency
@@ -141,10 +143,11 @@ defmodule Emakola.Themes.Atelier.Shared do
   attr :search_placeholder, :string, default: nil
 
   def navbar(assigns) do
+    store_name = Map.get(assigns.store, :name, "products")
+
     search_text =
       assigns[:search_placeholder] ||
-        get_in(assigns.store, [Access.key(:theme), Access.key(:search_placeholder)]) ||
-        "Search artisans..."
+        "Search #{store_name}..."
 
     assigns = assign(assigns, :search_text, search_text)
 
@@ -163,10 +166,11 @@ defmodule Emakola.Themes.Atelier.Shared do
             href={"/s/#{@store.slug}"}
             class="cursor-pointer transition-opacity duration-200 hover:opacity-80 min-h-[44px] flex items-center gap-2.5"
           >
-            <img
+            <.optimized_image
               :if={Map.get(@store, :logo_url) && Map.get(@store, :logo_url) != ""}
               src={@store.logo_url}
               alt={@store.name}
+              priority={:high}
               class="h-8 sm:h-10 w-auto object-contain"
             />
             <span
@@ -177,12 +181,12 @@ defmodule Emakola.Themes.Atelier.Shared do
             </span>
           </a>
 
-          <%!-- Center: Nav links (Desktop only) --%>
-          <div class="hidden lg:flex items-center gap-8">
+          <%!-- Center: Nav links (Desktop only — hidden below xl for long category names) --%>
+          <div class="hidden xl:flex items-center gap-5">
             <a
               href={"/s/#{@store.slug}/products"}
               class={[
-                "atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center",
+                "atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center whitespace-nowrap",
                 if(@active_path in ["/", "/products", nil] and @active_path != nil,
                   do: "text-gray-900",
                   else: "text-gray-600"
@@ -197,21 +201,16 @@ defmodule Emakola.Themes.Atelier.Shared do
               />
             </a>
             <a
-              href={"/s/#{@store.slug}/collections"}
-              class="atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center text-gray-600"
-            >
-              Collections
-            </a>
-            <a
-              :for={category <- Enum.take(@categories, 2)}
+              :for={category <- Enum.take(@categories, 3)}
               href={"/s/#{@store.slug}/category/#{category.slug}"}
               class={[
-                "atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center",
+                "atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center whitespace-nowrap max-w-[160px] truncate",
                 if(@active_path == "/category/#{category.slug}",
                   do: "text-gray-900 font-semibold",
                   else: "text-gray-600"
                 )
               ]}
+              title={category.name}
             >
               {category.name}
               <span
@@ -221,8 +220,8 @@ defmodule Emakola.Themes.Atelier.Shared do
               />
             </a>
             <a
-              href={"/s/#{@store.slug}/journal"}
-              class="atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center text-gray-600"
+              href={"/s/#{@store.slug}/blog"}
+              class="atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center text-gray-600 whitespace-nowrap"
             >
               Journal
             </a>
@@ -325,7 +324,7 @@ defmodule Emakola.Themes.Atelier.Shared do
             <%!-- Hamburger Menu (Mobile) --%>
             <label
               for="atelier-mobile-menu"
-              class="atelier-nav-icon lg:hidden flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
+              class="atelier-nav-icon xl:hidden flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
               aria-label="Menu"
             >
               <svg
@@ -604,11 +603,10 @@ defmodule Emakola.Themes.Atelier.Shared do
     <div class="atelier-product-card group">
       <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="block">
         <div class="relative overflow-hidden bg-gray-100 rounded-lg aspect-square mb-3">
-          <img
+          <.optimized_image
             :if={@image}
             src={@image}
             alt={@product.title}
-            loading="lazy"
             class="w-full h-full object-cover transition-transform duration-300"
           />
           <div :if={!@image} class="w-full h-full flex items-center justify-center bg-gray-100">
@@ -712,11 +710,10 @@ defmodule Emakola.Themes.Atelier.Shared do
       href={"/s/#{@store.slug}/products/#{@product.slug}"}
       class="group block relative overflow-hidden rounded-xl bg-gray-100 aspect-[4/5] sm:aspect-[3/4] cursor-pointer"
     >
-      <img
+      <.optimized_image
         :if={@image}
         src={@image}
         alt={@product.title}
-        loading="lazy"
         class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
       />
       <div :if={!@image} class="w-full h-full flex items-center justify-center">
@@ -762,12 +759,12 @@ defmodule Emakola.Themes.Atelier.Shared do
       class="atelier-category-circle flex flex-col items-center gap-2.5 flex-shrink-0 group"
     >
       <div class="atelier-cat-ring w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-2 border-gray-200 transition-colors duration-200">
-        <img
+        <.optimized_image
           :if={@image}
           src={@image}
           alt={@category.name}
+          priority={:low}
           class="w-full h-full object-cover transition-transform duration-300"
-          loading="lazy"
         />
         <div
           :if={!@image}

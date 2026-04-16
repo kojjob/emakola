@@ -12,6 +12,8 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+
   alias Emakola.Themes.Vibrant.Shared
   alias EmakolaWeb.Helpers.Currency
 
@@ -51,9 +53,10 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
         >
           <div class="w-full aspect-[4/5] lg:aspect-square overflow-hidden bg-[#FEF3C7]/30">
             <%= if current_image(@product, @current_image_index) do %>
-              <img
+              <.optimized_image
                 src={current_image(@product, @current_image_index)}
                 alt={"#{@product.title} — image #{@current_image_index + 1}"}
+                priority={:high}
                 class="w-full h-full object-cover"
               />
             <% else %>
@@ -380,10 +383,9 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
               <div class="rounded-2xl overflow-hidden bg-[#FEF3C7]/30 shadow-md shadow-amber-100 group-hover:shadow-xl group-hover:shadow-amber-200/60 transition-all duration-300 mb-2.5">
                 <div class="w-full aspect-square overflow-hidden">
                   <%= if Shared.first_image(rp) do %>
-                    <img
+                    <.optimized_image
                       src={Shared.first_image(rp)}
                       alt={rp.title}
-                      loading="lazy"
                       class="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500"
                     />
                   <% else %>

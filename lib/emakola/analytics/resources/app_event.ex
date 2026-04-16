@@ -1,4 +1,5 @@
 defmodule Emakola.Analytics.AppEvent do
+  @moduledoc "Tracks application-level events such as page views and user actions for analytics."
   use Ash.Resource,
     domain: Emakola.Analytics,
     data_layer: AshPostgres.DataLayer

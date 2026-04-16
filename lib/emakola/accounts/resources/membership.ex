@@ -1,4 +1,5 @@
 defmodule Emakola.Accounts.Membership do
+  @moduledoc "Organisation membership linking users to organisations with role assignments."
   use Ash.Resource,
     domain: Emakola.Accounts,
     data_layer: AshPostgres.DataLayer,

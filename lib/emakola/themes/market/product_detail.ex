@@ -13,7 +13,8 @@ defmodule Emakola.Themes.Market.ProductDetail do
   """
   use Phoenix.Component
 
-  import EmakolaWeb.StorefrontComponents, only: [image_placeholder: 1, bottom_nav: 1]
+  import EmakolaWeb.StorefrontComponents,
+    only: [image_placeholder: 1, bottom_nav: 1, optimized_image: 1]
 
   alias EmakolaWeb.Helpers.Currency
   alias Emakola.Themes.Market.Shared
@@ -157,9 +158,10 @@ defmodule Emakola.Themes.Market.ProductDetail do
             <%!-- Primary Image --%>
             <div class="w-full aspect-[4/5] lg:aspect-[3/4] overflow-hidden bg-[#F1F5F9] lg:rounded-2xl">
               <%= if Shared.current_image(@product, @current_image_index) do %>
-                <img
+                <.optimized_image
                   src={Shared.current_image(@product, @current_image_index)}
                   alt={"#{@product.title} — image #{@current_image_index + 1}"}
+                  priority={:high}
                   class="w-full h-full object-cover transition-opacity duration-300"
                   id="pdp-primary-image"
                 />
@@ -212,10 +214,10 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 ]}
                 aria-label={"View image #{idx + 1}"}
               >
-                <img
+                <.optimized_image
                   src={Shared.current_image(@product, idx)}
                   alt={"#{@product.title} thumbnail #{idx + 1}"}
-                  loading="lazy"
+                  priority={:low}
                   class="w-full h-full object-cover"
                 />
               </button>
@@ -624,10 +626,9 @@ defmodule Emakola.Themes.Market.ProductDetail do
             >
               <div class="w-full aspect-square bg-[#F1F5F9] overflow-hidden">
                 <%= if Shared.first_image(rp) do %>
-                  <img
+                  <.optimized_image
                     src={Shared.first_image(rp)}
                     alt={rp.title}
-                    loading="lazy"
                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 <% else %>
@@ -656,10 +657,9 @@ defmodule Emakola.Themes.Market.ProductDetail do
             >
               <div class="w-full aspect-[3/4] bg-[#F1F5F9] overflow-hidden">
                 <%= if Shared.first_image(rp) do %>
-                  <img
+                  <.optimized_image
                     src={Shared.first_image(rp)}
                     alt={rp.title}
-                    loading="lazy"
                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 <% else %>

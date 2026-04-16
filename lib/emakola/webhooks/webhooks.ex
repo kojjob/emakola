@@ -1,4 +1,5 @@
 defmodule Emakola.Webhooks do
+  @moduledoc "Webhooks domain — outbound webhook registration and per-delivery attempt tracking."
   use Ash.Domain
 
   resources do

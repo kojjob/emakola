@@ -1,4 +1,5 @@
 defmodule Emakola.Billing.Invoice do
+  @moduledoc "Invoice records generated for each subscription billing cycle."
   use Ash.Resource,
     domain: Emakola.Billing,
     data_layer: AshPostgres.DataLayer

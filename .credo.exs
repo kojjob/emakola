@@ -16,9 +16,8 @@
       },
       checks: %{
         enabled: [
-          # Disable moduledoc requirement — many FounderPad modules lack it
-          # Re-enable once legacy modules are cleaned up
-          {Credo.Check.Readability.ModuleDoc, false},
+          # Re-enabled: all modules now have @moduledoc.
+          {Credo.Check.Readability.ModuleDoc, []},
 
           # TODOs are intentional markers, not issues
           {Credo.Check.Design.TagTODO, false},

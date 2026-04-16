@@ -26,7 +26,7 @@ defmodule EmakolaWeb.Plugs.RateLimiter do
   end
 
   def call(conn, %{limit: limit, window_ms: window_ms}) do
-    if Application.get_env(:emakola, :disable_rate_limiter, false) do
+    if Application.get_env(:emakola, :disable_rate_limit, false) do
       conn
     else
       do_rate_limit(conn, limit, window_ms)
@@ -57,7 +57,10 @@ defmodule EmakolaWeb.Plugs.RateLimiter do
     end
   end
 
+  # sobelow_skip ["XSS.SendResp"]
   defp send_rate_limit_response(conn, retry_after) do
+    safe_retry = Integer.to_string(retry_after)
+
     if accepts_html?(conn) do
       conn
       |> put_resp_header("content-type", "text/html; charset=utf-8")
@@ -69,7 +72,7 @@ defmodule EmakolaWeb.Plugs.RateLimiter do
         <head><title>Too Many Requests</title></head>
         <body style="font-family: sans-serif; text-align: center; padding: 50px;">
           <h1>Too Many Requests</h1>
-          <p>You have made too many requests. Please try again in #{retry_after} seconds.</p>
+          <p>You have made too many requests. Please try again in #{safe_retry} seconds.</p>
           <p><a href="javascript:history.back()">Go back</a></p>
         </body>
         </html>
@@ -82,7 +85,7 @@ defmodule EmakolaWeb.Plugs.RateLimiter do
         429,
         Jason.encode!(%{
           error: "rate_limit_exceeded",
-          message: "Too many requests. Please retry after #{retry_after} seconds.",
+          message: "Too many requests. Please retry after #{safe_retry} seconds.",
           retry_after: retry_after
         })
       )

@@ -18,6 +18,8 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+
   alias Emakola.Themes.Atelier.Shared
   alias EmakolaWeb.Helpers.Currency
 
@@ -91,10 +93,11 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
             <div>
               <%!-- Main Image with navigation --%>
               <div class="relative aspect-[3/4] bg-gray-100 rounded-xl overflow-hidden mb-4 group">
-                <img
+                <.optimized_image
                   :if={@primary_image}
                   src={@primary_image}
                   alt={"#{@product.title} - image #{@current_idx + 1} of #{length(@images)}"}
+                  priority={:high}
                   class="w-full h-full object-cover transition-opacity duration-300"
                   id="atelier-primary-image"
                 />
@@ -169,11 +172,11 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                   phx-value-index={idx}
                   aria-label={"View image #{idx + 1}"}
                 >
-                  <img
+                  <.optimized_image
                     src={img}
                     alt={"#{@product.title} - image #{idx + 1}"}
+                    priority={:low}
                     class="w-full h-full object-cover"
-                    loading="lazy"
                   />
                 </button>
               </div>

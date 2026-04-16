@@ -128,20 +128,41 @@ defmodule Emakola.Payments.Gateways.Paystack do
     "PAY-#{prefix}-#{timestamp}-#{random}"
   end
 
+  # Paystack transaction status values. Unknown statuses are mapped to :unknown
+  # rather than dynamically created atoms (Iron Law #10: atom exhaustion DoS).
   defp map_status("success"), do: :success
   defp map_status("failed"), do: :failed
   defp map_status("abandoned"), do: :failed
   defp map_status("reversed"), do: :failed
   defp map_status(_other), do: :unknown
 
+  # Paystack refund status values. Same atom-exhaustion rationale as map_status/1.
   defp map_refund_status("processed"), do: :processed
   defp map_refund_status("pending"), do: :pending
   defp map_refund_status("failed"), do: :failed
   defp map_refund_status(_other), do: :unknown
 
+  # Reads the Paystack secret key. Resolution order:
+  #
+  #   1. `config :emakola, :paystack_secret_key, "..."`                          (runtime override — prod)
+  #   2. `config :emakola, Emakola.Payments.PaystackClient, secret_key: "..."`  (compile-time default — dev/test)
+  #
+  # The flat path is checked first so that runtime.exs (and tests using
+  # `Application.put_env/3`) can override the compile-time default without
+  # touching the nested client config.
   defp secret_key do
-    Application.get_env(:emakola, :paystack_secret_key) ||
-      raise "Paystack secret key not configured. Set :paystack_secret_key in config."
+    case Application.get_env(:emakola, :paystack_secret_key) do
+      value when is_binary(value) and value != "" ->
+        value
+
+      _ ->
+        client_config = Application.get_env(:emakola, Emakola.Payments.PaystackClient, [])
+
+        Keyword.get(client_config, :secret_key) ||
+          raise "Paystack secret key not configured. " <>
+                  "Set :paystack_secret_key at the application level " <>
+                  "or :secret_key under Emakola.Payments.PaystackClient."
+    end
   end
 
   defp paystack_client do

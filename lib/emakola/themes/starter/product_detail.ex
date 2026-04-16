@@ -14,6 +14,8 @@ defmodule Emakola.Themes.Starter.ProductDetail do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+
   alias Emakola.Themes.Starter.Shared
   alias EmakolaWeb.Helpers.Currency
 
@@ -107,9 +109,10 @@ defmodule Emakola.Themes.Starter.ProductDetail do
         >
           <div class="w-full aspect-[4/5] lg:aspect-square overflow-hidden">
             <%= if current_image(@product, @current_image_index) do %>
-              <img
+              <.optimized_image
                 src={current_image(@product, @current_image_index)}
                 alt={"#{@product.title} -- image #{@current_image_index + 1}"}
+                priority={:high}
                 class="w-full h-full object-cover"
               />
             <% else %>
@@ -436,10 +439,9 @@ defmodule Emakola.Themes.Starter.ProductDetail do
               <div class="rounded-2xl overflow-hidden bg-gray-50 shadow-sm group-hover:shadow-md group-hover:-translate-y-0.5 transition-all duration-300 mb-2.5">
                 <div class="w-full aspect-square overflow-hidden">
                   <%= if Shared.first_image(rp) do %>
-                    <img
+                    <.optimized_image
                       src={Shared.first_image(rp)}
                       alt={rp.title}
-                      loading="lazy"
                       class="w-full h-full object-cover"
                     />
                   <% else %>

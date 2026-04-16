@@ -13,6 +13,7 @@ defmodule Emakola.Themes.Atelier.Home do
   use Phoenix.Component
 
   import Phoenix.HTML, only: [raw: 1]
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Phoenix.LiveView.JS
   alias Emakola.Themes.Atelier.Shared
@@ -132,18 +133,20 @@ defmodule Emakola.Themes.Atelier.Home do
                 100% { transform: scaleX(1); transform-origin: left; }
               }
             </style>
-            <img
+            <.optimized_image
               :for={{url, idx} <- Enum.with_index(@valid_images)}
               src={url}
               alt={"#{@store.name} collection #{idx + 1}"}
+              priority={if idx == 0, do: :high, else: :auto}
               class="atelier-hero-img absolute inset-0 w-full h-full object-cover object-center"
               style={"animation-delay: #{Float.round(idx * @total_duration / @image_count - (if idx > 0, do: @total_duration * overlap / 100, else: 0), 1)}s; opacity: #{if idx == 0, do: 1, else: 0};"}
             />
           <% else %>
             <%!-- Single image: gentle Ken Burns drift --%>
-            <img
+            <.optimized_image
               src={List.first(@valid_images)}
               alt={"#{@store.name} collection"}
+              priority={:high}
               class="absolute inset-0 w-full h-full object-cover object-center"
               style="animation: kb-single 20s ease-in-out infinite alternate;"
             />
@@ -666,7 +669,7 @@ defmodule Emakola.Themes.Atelier.Home do
             Use code <span class="font-bold">{@coupon.code}</span> for {@message}
           </p>
         <% else %>
-          <p>Free delivery in Accra &amp; Kumasi on orders over GHS 100</p>
+          <p>Free delivery in Accra & Kumasi on orders over GHS 100</p>
         <% end %>
       </div>
       <button

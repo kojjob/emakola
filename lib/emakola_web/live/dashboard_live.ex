@@ -22,14 +22,12 @@ defmodule EmakolaWeb.DashboardLive do
         periods: @periods
       )
 
-    socket =
-      if connected?(socket) do
-        Process.send_after(self(), :refresh, @refresh_interval)
-        if store_id, do: Phoenix.PubSub.subscribe(Emakola.PubSub, "store:#{store_id}:orders")
-        load_dashboard_data(socket)
-      else
-        assign(socket, DashboardHelpers.default_data())
-      end
+    socket = load_dashboard_data(socket)
+
+    if connected?(socket) do
+      Process.send_after(self(), :refresh, @refresh_interval)
+      if store_id, do: Phoenix.PubSub.subscribe(Emakola.PubSub, "store:#{store_id}:orders")
+    end
 
     {:ok, socket}
   end

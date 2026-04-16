@@ -1,4 +1,5 @@
 defmodule Emakola.Billing.Subscription do
+  @moduledoc "Active subscription linking a store to a billing plan with status and renewal tracking."
   use Ash.Resource,
     domain: Emakola.Billing,
     data_layer: AshPostgres.DataLayer

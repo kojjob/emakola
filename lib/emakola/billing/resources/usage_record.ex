@@ -1,4 +1,5 @@
 defmodule Emakola.Billing.UsageRecord do
+  @moduledoc "Metered usage tracking records used to calculate billing overages for a subscription period."
   use Ash.Resource,
     domain: Emakola.Billing,
     data_layer: AshPostgres.DataLayer

@@ -11,51 +11,42 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   use EmakolaWeb, :live_view
 
   alias Emakola.Cart.CartStore
-  alias EmakolaWeb.Helpers.StoreResolver
+  alias EmakolaWeb.Helpers.SEO, as: SEOHelpers
 
   import EmakolaWeb.StorefrontComponents, only: [coupon_banner: 1]
 
   require Ash.Query
 
   @impl true
-  def mount(%{"store_slug" => slug}, session, socket) do
-    case StoreResolver.resolve(slug) do
-      {:ok, store} ->
-        products = load_featured_products(store)
-        categories = load_root_categories(store)
-        public_coupons = load_public_coupons(store)
-        delivery_zones = load_delivery_zones(store)
-        cart_session_id = session["cart_session_id"]
-        cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+  def mount(_params, session, socket) do
+    store = socket.assigns.store
+    products = load_featured_products(store)
+    categories = load_root_categories(store)
+    public_coupons = load_public_coupons(store)
+    delivery_zones = load_delivery_zones(store)
+    cart_session_id = session["cart_session_id"]
+    cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
 
-        theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{})
-        theme_module = Emakola.Themes.ThemeResolver.theme_module(theme.theme_id)
+    {:ok,
+     socket
+     |> assign(:products, products)
+     |> assign(:categories, categories)
+     |> assign(:public_coupons, public_coupons)
+     |> assign(:cart_session_id, cart_session_id)
+     |> assign(:cart_count, cart_count)
+     |> assign(:page_title, store.name)
+     |> assign_seo_metadata(store, products)
+     |> assign(:public_coupons, public_coupons)
+     |> assign(:delivery_zones, delivery_zones)
+     |> assign(:search_overlay_query, "")
+     |> assign(:search_overlay_results, [])
+     |> assign(:search_overlay_total, 0)
+     |> assign(:searching, false)}
+  end
 
-        {:ok,
-         socket
-         |> assign(:store, store)
-         |> assign(:products, products)
-         |> assign(:categories, categories)
-         |> assign(:public_coupons, public_coupons)
-         |> assign(:cart_session_id, cart_session_id)
-         |> assign(:cart_count, cart_count)
-         |> assign(:page_title, store.name)
-         |> assign(:theme, theme)
-         |> assign(:theme_module, theme_module)
-         |> assign(:theme_fonts, theme_module.fonts())
-         |> assign(:public_coupons, public_coupons)
-         |> assign(:delivery_zones, delivery_zones)
-         |> assign(:search_overlay_query, "")
-         |> assign(:search_overlay_results, [])
-         |> assign(:search_overlay_total, 0)
-         |> assign(:searching, false)}
-
-      {:error, :not_found} ->
-        {:ok,
-         socket
-         |> put_flash(:error, "Store not found")
-         |> redirect(to: "/")}
-    end
+  @impl true
+  def handle_params(_params, uri, socket) do
+    {:noreply, assign(socket, :canonical_url, uri)}
   end
 
   @impl true
@@ -180,5 +171,62 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   defp search_overlay_products(store_id, query) do
     Emakola.Catalog.search_products!(query, store_id)
     |> Enum.filter(&(&1.status == :active))
+  end
+
+  # -- SEO --
+
+  # Sets meta_description, og_image, og_type, and Store JSON-LD for the
+  # storefront home page. These flow to the root layout and get rendered
+  # as OG/Twitter/JSON-LD tags, so WhatsApp and Google show rich previews
+  # when the merchant's store URL is shared.
+  defp assign_seo_metadata(socket, store, products) do
+    description = store_description_for_seo(store)
+    og_image = first_featured_product_image(products) || store_logo_url(store)
+    json_ld = SEOHelpers.json_ld_store(store)
+
+    socket
+    |> assign(:meta_description, description)
+    |> assign(:og_image, og_image)
+    |> assign(:og_type, "website")
+    |> assign(:og_site_name, store.name)
+    |> assign(:json_ld, json_ld)
+  end
+
+  defp store_description_for_seo(store) do
+    raw =
+      Map.get(store, :description) ||
+        Map.get(store, :tagline) ||
+        "Shop authentic products from #{store.name} — fast delivery, mobile money accepted."
+
+    raw
+    |> to_string()
+    |> String.trim()
+    |> truncate_at_word(155)
+  end
+
+  defp first_featured_product_image([first | _]) when is_map(first) do
+    case Map.get(first, :images) do
+      [img | _] when is_map(img) ->
+        Map.get(img, :medium_url) || Map.get(img, :url)
+
+      _ ->
+        nil
+    end
+  end
+
+  defp first_featured_product_image(_), do: nil
+
+  defp store_logo_url(store) do
+    Map.get(store, :logo_url)
+  end
+
+  defp truncate_at_word(str, max) when byte_size(str) <= max, do: str
+
+  defp truncate_at_word(str, max) do
+    str
+    |> binary_part(0, max)
+    |> String.trim_trailing()
+    |> String.replace(~r/\s+\S*$/, "")
+    |> Kernel.<>("…")
   end
 end

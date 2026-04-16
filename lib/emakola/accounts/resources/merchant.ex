@@ -1,4 +1,5 @@
 defmodule Emakola.Accounts.Merchant do
+  @moduledoc "Merchant actor resource used as the principal for Ash authorization policy checks."
   use Ash.Resource,
     domain: Emakola.Accounts,
     data_layer: AshPostgres.DataLayer,

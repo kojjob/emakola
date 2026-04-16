@@ -1,4 +1,5 @@
 defmodule Emakola.Webhooks.WebhookDelivery do
+  @moduledoc "Individual webhook delivery attempt recording HTTP status, response body, and retry state."
   use Ash.Resource,
     domain: Emakola.Webhooks,
     data_layer: AshPostgres.DataLayer

@@ -7,7 +7,11 @@ defmodule EmakolaWeb.Router do
     plug :fetch_live_flash
     plug :put_root_layout, html: {EmakolaWeb.Layouts, :root}
     plug :protect_from_forgery
-    plug :put_secure_browser_headers
+
+    plug :put_secure_browser_headers, %{
+      "cross-origin-opener-policy" => "same-origin"
+    }
+
     plug EmakolaWeb.Plugs.ContentSecurityPolicy
     plug EmakolaWeb.Plugs.CartSession
   end
@@ -17,9 +21,23 @@ defmodule EmakolaWeb.Router do
     plug EmakolaWeb.Plugs.RateLimiter, limit: 100, window_ms: 60_000
   end
 
+  # Pipeline for SEO/crawler endpoints that return XML or plain text.
+  # Separate from :api to avoid the JSON-only :accepts plug rejecting
+  # crawlers that send Accept: text/xml or Accept: */*.
+  pipeline :seo do
+    plug :accepts, ["xml", "text", "html", "json"]
+  end
+
   # Stricter rate limiting for authentication endpoints to prevent brute-force attacks
   pipeline :auth_rate_limit do
     plug EmakolaWeb.Plugs.RateLimiter, limit: 10, window_ms: 60_000
+  end
+
+  # Source-IP allowlist for the Hubtel webhook endpoint. Hubtel does not
+  # sign webhooks, so remote_ip is the only trust boundary. The plug fails
+  # closed on any misconfiguration.
+  pipeline :hubtel_webhook_auth do
+    plug EmakolaWeb.Plugs.HubtelAllowlist
   end
 
   # Health check — required by Docker/fly.toml for deployment readiness
@@ -28,10 +46,19 @@ defmodule EmakolaWeb.Router do
     get "/health", HealthController, :show
   end
 
-  # Payment gateway webhooks — no CSRF, raw JSON bodies
+  # Payment gateway webhooks — no CSRF, raw JSON bodies.
+  #
+  # Paystack is authenticated via HMAC-SHA512 signature verified in the
+  # controller/gateway. Hubtel does not sign webhooks, so the route is
+  # gated by :hubtel_webhook_auth which matches conn.remote_ip against a
+  # configured IPv4/CIDR allowlist and fails closed on misconfiguration.
+  scope "/webhooks", EmakolaWeb do
+    pipe_through [:api, :hubtel_webhook_auth]
+    post "/hubtel", WebhookController, :hubtel
+  end
+
   scope "/webhooks", EmakolaWeb do
     pipe_through :api
-    post "/hubtel", WebhookController, :hubtel
     post "/paystack", WebhookController, :paystack
   end
 
@@ -78,6 +105,15 @@ defmodule EmakolaWeb.Router do
       live "/login", CustomerLoginLive
       live "/register", CustomerRegisterLive
     end
+  end
+
+  # Sitemap + AI-readable files — uses :seo pipeline (accepts XML/text),
+  # NOT :api (which enforces JSON-only and would 406 crawlers).
+  scope "/s/:store_slug", EmakolaWeb do
+    pipe_through :seo
+    get "/sitemap.xml", SitemapController, :show
+    get "/robots.txt", SitemapController, :robots
+    get "/llms.txt", SitemapController, :llms
   end
 
   # Customer storefront (public — no auth required)

@@ -13,6 +13,8 @@ defmodule Emakola.Themes.Bold.Home do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+
   alias Emakola.Themes.Bold.Shared
   alias EmakolaWeb.Helpers.Currency
 
@@ -42,15 +44,17 @@ defmodule Emakola.Themes.Bold.Home do
 
     ~H"""
     <div class="min-h-screen bg-[#F8FAFC]">
+      <Shared.theme_styles theme={@theme} />
       <Shared.bold_nav store={@store} cart_count={@cart_count} />
 
       <%!-- Full-Bleed Dark Hero --%>
       <section :if={section_enabled?(@theme, :hero)} class="relative overflow-hidden">
         <%= if @theme.hero.image_url && @theme.hero.image_url != "" do %>
           <div class="relative min-h-[70vh] sm:min-h-[80vh] flex items-center">
-            <img
+            <.optimized_image
               src={@theme.hero.image_url}
               alt=""
+              priority={:high}
               class="absolute inset-0 w-full h-full object-cover"
             />
             <div class="absolute inset-0 bg-[#0F172A]/70"></div>
@@ -142,12 +146,12 @@ defmodule Emakola.Themes.Bold.Home do
                 class="group block md:row-span-2"
               >
                 <div class="relative overflow-hidden bg-[#F1F5F9] h-full min-h-[400px] md:min-h-0">
-                  <img
+                  <.optimized_image
                     :if={Shared.first_image(product)}
                     src={Shared.first_image(product)}
                     alt={product.title}
+                    priority={:high}
                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    loading="eager"
                   />
                   <div
                     :if={!Shared.first_image(product)}
@@ -192,12 +196,11 @@ defmodule Emakola.Themes.Bold.Home do
                 class="group block"
               >
                 <div class="relative overflow-hidden bg-[#F1F5F9]">
-                  <img
+                  <.optimized_image
                     :if={Shared.first_image(product)}
                     src={Shared.first_image(product)}
                     alt={product.title}
                     class="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-700"
-                    loading="lazy"
                   />
                   <div
                     :if={!Shared.first_image(product)}

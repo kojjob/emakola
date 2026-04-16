@@ -1,4 +1,5 @@
 defmodule Emakola.Notifications.Notification do
+  @moduledoc "Notification record tracking SMS, WhatsApp, and email delivery status per recipient."
   use Ash.Resource,
     domain: Emakola.Notifications,
     data_layer: AshPostgres.DataLayer

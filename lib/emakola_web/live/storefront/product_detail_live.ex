@@ -13,70 +13,65 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   """
   use EmakolaWeb, :live_view
   alias Emakola.Cart.CartStore
-  alias EmakolaWeb.Helpers.StoreResolver
+  alias EmakolaWeb.Helpers.SEO, as: SEOHelpers
 
   require Ash.Query
 
   @impl true
   def mount(%{"store_slug" => slug, "product_slug" => product_slug}, session, socket) do
-    case StoreResolver.resolve(slug) do
-      {:ok, store} ->
-        case load_product(store.id, product_slug) do
-          nil ->
-            {:ok,
-             socket
-             |> assign(:store, store)
-             |> put_flash(:error, "Product not found")
-             |> redirect(to: "/s/#{slug}/products")}
+    store = socket.assigns.store
 
-          product ->
-            option_types = load_option_types(product)
-            selected_variant = List.first(product.variants)
-            vov_map = load_variant_option_values(product.variants)
-            related = load_related_products(store, product)
-            categories = load_root_categories(store)
-            cart_session_id = session["cart_session_id"]
-            cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
-
-            {:ok,
-             socket
-             |> assign(:store, store)
-             |> assign(:product, product)
-             |> assign(:option_types, option_types)
-             |> assign(:vov_map, vov_map)
-             |> assign(:selected_variant, selected_variant)
-             |> assign(
-               :selected_options,
-               build_initial_options(option_types, selected_variant, vov_map)
-             )
-             |> assign(:quantity, 1)
-             |> assign(:current_image_index, 0)
-             |> assign(:related_products, related)
-             |> assign(:categories, categories)
-             |> assign(:cart_session_id, cart_session_id)
-             |> assign(:cart_count, cart_count)
-             |> assign(:page_title, "#{product.title} - #{store.name}")
-             |> assign(:theme, Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{}))
-             |> assign(
-               :theme_module,
-               Emakola.Themes.ThemeResolver.theme_module(
-                 (store.theme_config || %{})["theme"] || "market"
-               )
-             )
-             |> assign(:reviews, load_reviews(product.id))
-             |> assign(:review_form_rating, 0)
-             |> assign(:review_form_title, "")
-             |> assign(:review_form_body, "")
-             |> assign(:review_submitting, false)
-             |> assign_review_eligibility(store, product)}
-        end
-
-      {:error, :not_found} ->
+    case load_product(store.id, product_slug) do
+      nil ->
         {:ok,
          socket
-         |> put_flash(:error, "Store not found")
-         |> redirect(to: "/")}
+         |> put_flash(:error, "Product not found")
+         |> redirect(to: "/s/#{slug}/products")}
+
+      product ->
+        option_types = load_option_types(product)
+        selected_variant = List.first(product.variants)
+        vov_map = load_variant_option_values(product.variants)
+        related = load_related_products(store, product)
+        categories = load_root_categories(store)
+        cart_session_id = session["cart_session_id"]
+        cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+
+        {:ok,
+         socket
+         |> assign(:product, product)
+         |> assign(:option_types, option_types)
+         |> assign(:vov_map, vov_map)
+         |> assign(:selected_variant, selected_variant)
+         |> assign(
+           :selected_options,
+           build_initial_options(option_types, selected_variant, vov_map)
+         )
+         |> assign(:quantity, 1)
+         |> assign(:current_image_index, 0)
+         |> assign(:related_products, related)
+         |> assign(:categories, categories)
+         |> assign(:cart_session_id, cart_session_id)
+         |> assign(:cart_count, cart_count)
+         |> assign(:page_title, "#{product.title} - #{store.name}")
+         |> assign_seo_metadata(store, product)
+         |> assign(:reviews, load_reviews(product.id))
+         |> assign(:review_form_rating, 0)
+         |> assign(:review_form_title, "")
+         |> assign(:review_form_body, "")
+         |> assign(:review_submitting, false)
+         |> assign_review_eligibility(store, product)}
     end
+  end
+
+  @impl true
+  def handle_params(_params, uri, socket) do
+    # Capture the absolute URL on first mount so SEO tags have a canonical
+    # URL. handle_params runs after mount and on every live navigation, so
+    # this also covers the case where the user re-enters the page via
+    # push_patch (variant selection doesn't patch, but it's the right hook
+    # regardless).
+    {:noreply, assign(socket, :canonical_url, uri)}
   end
 
   @impl true
@@ -345,4 +340,71 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
     |> assign(:review_customer_id, nil)
     |> assign(:review_order_id, nil)
   end
+
+  # -- SEO --
+
+  # Assigns meta_description, og_image, og_type, and json_ld for the PDP.
+  # These flow to the root layout and get rendered as OG/Twitter/JSON-LD
+  # tags. Without these, WhatsApp link unfurling shows plain URLs instead
+  # of a product preview card — a significant conversion loss for West
+  # African merchants who rely on WhatsApp for sharing.
+  defp assign_seo_metadata(socket, store, product) do
+    description = product_description_for_seo(product, store)
+    og_image = first_product_image_url(product)
+    product_json_ld = SEOHelpers.json_ld_product(product, product.variants || [], store)
+
+    breadcrumb_json_ld =
+      SEOHelpers.json_ld_breadcrumb([
+        %{name: store.name, url: "/s/#{store.slug}"},
+        %{name: "Products", url: "/s/#{store.slug}/products"},
+        %{name: product.title, url: "/s/#{store.slug}/products/#{product.slug}"}
+      ])
+
+    combined_json_ld = [product_json_ld, breadcrumb_json_ld]
+
+    socket
+    |> assign(:meta_description, description)
+    |> assign(:og_image, og_image)
+    |> assign(:og_type, "product")
+    |> assign(:og_site_name, store.name)
+    |> assign(:json_ld, combined_json_ld)
+  end
+
+  # Prefer the SEO-specific description, fall back to the main description,
+  # then to a generic store-anchored fallback. Truncated to keep under
+  # ~155 chars so social platforms don't cut mid-sentence.
+  defp product_description_for_seo(product, store) do
+    raw =
+      Map.get(product, :seo_description) ||
+        Map.get(product, :description) ||
+        "Shop #{product.title} at #{store.name} — authentic products, delivered across Ghana."
+
+    raw
+    |> to_string()
+    |> String.trim()
+    |> truncate_at_word(155)
+  end
+
+  defp truncate_at_word(str, max) when byte_size(str) <= max, do: str
+
+  defp truncate_at_word(str, max) do
+    str
+    |> binary_part(0, max)
+    |> String.trim_trailing()
+    |> String.replace(~r/\s+\S*$/, "")
+    |> Kernel.<>("…")
+  end
+
+  # Returns the URL of the product's first image (sorted by position),
+  # preferring medium_url over url for social-preview-appropriate sizing.
+  # Returns nil when the product has no images — the SEO component
+  # gracefully omits og:image in that case.
+  defp first_product_image_url(%{images: images}) when is_list(images) and images != [] do
+    images
+    |> Enum.sort_by(&Map.get(&1, :position, 0))
+    |> List.first()
+    |> then(fn img -> Map.get(img, :medium_url) || Map.get(img, :url) end)
+  end
+
+  defp first_product_image_url(_), do: nil
 end

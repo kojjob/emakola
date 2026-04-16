@@ -11,7 +11,8 @@ defmodule Emakola.Themes.Market.Home do
     only: [
       featured_product_card: 1,
       product_card: 1,
-      about_section: 1
+      about_section: 1,
+      optimized_image: 1
     ]
 
   alias Emakola.Themes.Market.Shared
@@ -19,6 +20,7 @@ defmodule Emakola.Themes.Market.Home do
   def render(assigns) do
     ~H"""
     <div class="max-w-[1280px] mx-auto">
+      <Shared.theme_styles theme={@theme} />
       <%!-- Story-style category circles --%>
       <nav
         :if={@categories != []}
@@ -37,13 +39,13 @@ defmodule Emakola.Themes.Market.Home do
           >
             <div class="w-[68px] h-[68px] rounded-full p-[3px] bg-[#E2E8F0] group-hover:scale-105 transition-transform">
               <%= if Shared.category_image(category) do %>
-                <img
+                <.optimized_image
                   src={Shared.category_image(category)}
                   alt={category.name}
+                  priority={:low}
                   class="w-full h-full rounded-full object-cover border-2 border-white"
-                  loading="lazy"
-                  width="62"
-                  height="62"
+                  width={62}
+                  height={62}
                 />
               <% else %>
                 <div class="w-full h-full rounded-full bg-[#F1F5F9] border-2 border-white flex items-center justify-center">

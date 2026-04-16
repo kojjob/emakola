@@ -11,7 +11,29 @@ defmodule Emakola.Themes.Vibrant.Shared do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+
   alias EmakolaWeb.Helpers.Currency
+
+  # ── Theme Styles ──
+
+  @doc """
+  Injects a <style> block that defines CSS custom properties for the Vibrant theme.
+  Call once near the top of any page that uses Vibrant theme components.
+  """
+  attr :theme, :map, required: true
+
+  def theme_styles(assigns) do
+    ~H"""
+    <style>
+      :root {
+        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#DC2626" %>;
+        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#7C2D12" %>;
+        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#FFFBEB" %>;
+      }
+    </style>
+    """
+  end
 
   # ── Vibrant Nav Bar ──
 
@@ -147,13 +169,13 @@ defmodule Emakola.Themes.Vibrant.Shared do
         )
       ]}>
         <%= if category_image(@category) do %>
-          <img
+          <.optimized_image
             src={category_image(@category)}
             alt={@category.name}
+            priority={:low}
             class="w-full h-full rounded-full object-cover border-[3px] border-[#FFFBEB]"
-            loading="lazy"
-            width="70"
-            height="70"
+            width={70}
+            height={70}
           />
         <% else %>
           <div class="w-full h-full rounded-full bg-[#FFFBEB] border-[3px] border-[#FFFBEB] flex items-center justify-center">
@@ -190,11 +212,10 @@ defmodule Emakola.Themes.Vibrant.Shared do
     ~H"""
     <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
       <div class="relative rounded-2xl overflow-hidden mb-3 bg-[#FEF3C7]/40 shadow-md shadow-amber-100 group-hover:shadow-xl group-hover:shadow-amber-200/60 transition-all duration-300">
-        <img
+        <.optimized_image
           :if={@image}
           src={@image}
           alt={@product.title}
-          loading="lazy"
           class="w-full aspect-[3/4] object-cover group-hover:scale-[1.06] transition-transform duration-500"
         />
         <div :if={!@image} class="w-full aspect-[3/4] flex items-center justify-center bg-[#FEF3C7]">

@@ -215,9 +215,8 @@ defmodule Emakola.SecurityTest do
 
   describe "rate limiting" do
     setup do
-      previous = Application.get_env(:emakola, :disable_rate_limiter)
-      Application.put_env(:emakola, :disable_rate_limiter, false)
-      on_exit(fn -> Application.put_env(:emakola, :disable_rate_limiter, previous) end)
+      Application.put_env(:emakola, :disable_rate_limit, false)
+      on_exit(fn -> Application.put_env(:emakola, :disable_rate_limit, true) end)
       :ok
     end
 

@@ -1,4 +1,5 @@
 defmodule Emakola.FeatureFlags do
+  @moduledoc "FeatureFlags domain — runtime feature flags with store-level targeting for gradual rollout."
   use Ash.Domain
 
   resources do

@@ -11,7 +11,29 @@ defmodule Emakola.Themes.Bold.Shared do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
+
   alias EmakolaWeb.Helpers.Currency
+
+  # ── CSS Variable Injection ──
+
+  @doc """
+  Injects theme CSS custom properties into the page as a <style> block.
+  Place this as the first element inside the outermost div of each page.
+  """
+  attr :theme, :map, required: true
+
+  def theme_styles(assigns) do
+    ~H"""
+    <style>
+      :root {
+        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#0F172A" %>;
+        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#F59E0B" %>;
+        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#F8FAFC" %>;
+      }
+    </style>
+    """
+  end
 
   # ── Bold Nav Bar ──
 
@@ -113,11 +135,10 @@ defmodule Emakola.Themes.Bold.Shared do
     ~H"""
     <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
       <div class="relative overflow-hidden mb-4 bg-[#F1F5F9]">
-        <img
+        <.optimized_image
           :if={@image}
           src={@image}
           alt={@product.title}
-          loading="lazy"
           class="w-full aspect-[3/4] object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div :if={!@image} class="w-full aspect-[3/4] flex items-center justify-center bg-[#F1F5F9]">
