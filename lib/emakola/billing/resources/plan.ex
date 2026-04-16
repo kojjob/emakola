@@ -1,4 +1,5 @@
 defmodule Emakola.Billing.Plan do
+  @moduledoc "Subscription plan definitions (Free, Growth, Pro, Enterprise) with pricing and feature limits."
   use Ash.Resource,
     domain: Emakola.Billing,
     data_layer: AshPostgres.DataLayer

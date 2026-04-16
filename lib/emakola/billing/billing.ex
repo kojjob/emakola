@@ -1,4 +1,5 @@
 defmodule Emakola.Billing do
+  @moduledoc "Billing domain — subscription plans, invoices, and metered usage records."
   use Ash.Domain
 
   resources do

@@ -1,4 +1,5 @@
 defmodule Emakola.Accounts.User do
+  @moduledoc "User resource with AshAuthentication supporting email/password and magic-link sign-in."
   use Ash.Resource,
     domain: Emakola.Accounts,
     data_layer: AshPostgres.DataLayer,

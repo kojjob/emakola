@@ -1,4 +1,5 @@
 defmodule Emakola.Analytics do
+  @moduledoc "Analytics domain — application events and Google Search Console metrics."
   use Ash.Domain
 
   resources do

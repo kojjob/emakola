@@ -1,4 +1,5 @@
 defmodule Emakola.Shipping do
+  @moduledoc "Shipping domain — delivery zones and shipping rates for store fulfilment configuration."
   use Ash.Domain
 
   resources do

@@ -202,23 +202,18 @@ defmodule Emakola.Orders.Order do
       ])
     end
 
+    # ── Status transitions ──
+    # Uses the reusable StatusGuard validation. See
+    # Emakola.Orders.Validations.StatusGuard for docs.
+
     update :confirm do
       require_atomic?(false)
       accept([])
 
-      validate(fn changeset, _context ->
-        status = Ash.Changeset.get_attribute(changeset, :status)
-
-        if status == :pending do
-          :ok
-        else
-          {:error,
-           Ash.Error.Changes.InvalidAttribute.exception(
-             field: :status,
-             message: "can only confirm a pending order"
-           )}
-        end
-      end)
+      validate(
+        {Emakola.Orders.Validations.StatusGuard,
+         from: [:pending], message: "can only confirm a pending order"}
+      )
 
       change(set_attribute(:status, :confirmed))
 
@@ -234,19 +229,10 @@ defmodule Emakola.Orders.Order do
       require_atomic?(false)
       accept([])
 
-      validate(fn changeset, _context ->
-        status = Ash.Changeset.get_attribute(changeset, :status)
-
-        if status == :confirmed do
-          :ok
-        else
-          {:error,
-           Ash.Error.Changes.InvalidAttribute.exception(
-             field: :status,
-             message: "can only start processing from confirmed"
-           )}
-        end
-      end)
+      validate(
+        {Emakola.Orders.Validations.StatusGuard,
+         from: [:confirmed], message: "can only start processing from confirmed"}
+      )
 
       change(set_attribute(:status, :processing))
     end
@@ -255,19 +241,10 @@ defmodule Emakola.Orders.Order do
       require_atomic?(false)
       accept([:tracking_number])
 
-      validate(fn changeset, _context ->
-        status = Ash.Changeset.get_attribute(changeset, :status)
-
-        if status == :processing do
-          :ok
-        else
-          {:error,
-           Ash.Error.Changes.InvalidAttribute.exception(
-             field: :status,
-             message: "can only mark as shipped from processing"
-           )}
-        end
-      end)
+      validate(
+        {Emakola.Orders.Validations.StatusGuard,
+         from: [:processing], message: "can only mark as shipped from processing"}
+      )
 
       change(set_attribute(:status, :shipped))
 
@@ -283,19 +260,10 @@ defmodule Emakola.Orders.Order do
       require_atomic?(false)
       accept([])
 
-      validate(fn changeset, _context ->
-        status = Ash.Changeset.get_attribute(changeset, :status)
-
-        if status == :shipped do
-          :ok
-        else
-          {:error,
-           Ash.Error.Changes.InvalidAttribute.exception(
-             field: :status,
-             message: "can only mark as delivered from shipped"
-           )}
-        end
-      end)
+      validate(
+        {Emakola.Orders.Validations.StatusGuard,
+         from: [:shipped], message: "can only mark as delivered from shipped"}
+      )
 
       change(set_attribute(:status, :delivered))
 
@@ -311,19 +279,11 @@ defmodule Emakola.Orders.Order do
       require_atomic?(false)
       accept([])
 
-      validate(fn changeset, _context ->
-        status = Ash.Changeset.get_attribute(changeset, :status)
-
-        if status in [:pending, :confirmed, :processing, :shipped] do
-          :ok
-        else
-          {:error,
-           Ash.Error.Changes.InvalidAttribute.exception(
-             field: :status,
-             message: "can only cancel an active order (not delivered or already cancelled)"
-           )}
-        end
-      end)
+      validate(
+        {Emakola.Orders.Validations.StatusGuard,
+         from: [:pending, :confirmed, :processing, :shipped],
+         message: "can only cancel an active order (not delivered or already cancelled)"}
+      )
 
       change(set_attribute(:status, :cancelled))
 

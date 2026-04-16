@@ -1,4 +1,5 @@
 defmodule Emakola.Notifications do
+  @moduledoc "Notifications domain — SMS, WhatsApp, and email delivery with notification and email log resources."
   use Ash.Domain
 
   resources do

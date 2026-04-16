@@ -1,4 +1,5 @@
 defmodule Emakola.Accounts.Organisation do
+  @moduledoc "Organisation (company or team) that owns one or more stores within the platform."
   use Ash.Resource,
     domain: Emakola.Accounts,
     data_layer: AshPostgres.DataLayer,

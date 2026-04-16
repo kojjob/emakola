@@ -1,4 +1,5 @@
 defmodule Emakola.Accounts.Token do
+  @moduledoc "Authentication token resource backing magic-link and password-reset flows via AshAuthentication."
   use Ash.Resource,
     domain: Emakola.Accounts,
     data_layer: AshPostgres.DataLayer,

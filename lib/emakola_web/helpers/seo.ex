@@ -70,6 +70,7 @@ defmodule EmakolaWeb.Helpers.SEO do
     base
     |> maybe_put_product_image(product)
     |> maybe_put_product_sku(variants)
+    |> maybe_put_aggregate_rating(product)
   end
 
   @doc """
@@ -205,6 +206,23 @@ defmodule EmakolaWeb.Helpers.SEO do
   end
 
   defp maybe_put_product_sku(json_ld, _), do: json_ld
+
+  defp maybe_put_aggregate_rating(json_ld, product) do
+    avg = product_field(product, :avg_rating)
+    count = product_field(product, :review_count)
+
+    if is_number(avg) and avg > 0 and is_integer(count) and count > 0 do
+      Map.put(json_ld, "aggregateRating", %{
+        "@type" => "AggregateRating",
+        "ratingValue" => Float.round(avg / 1, 1),
+        "reviewCount" => count,
+        "bestRating" => 5,
+        "worstRating" => 1
+      })
+    else
+      json_ld
+    end
+  end
 
   # Access fields from structs or plain maps with atom or string keys
   defp product_field(product, key), do: Map.get(product, key) || Map.get(product, to_string(key))

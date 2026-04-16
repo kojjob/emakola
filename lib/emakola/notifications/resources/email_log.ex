@@ -1,4 +1,5 @@
 defmodule Emakola.Notifications.EmailLog do
+  @moduledoc "Audit log of sent emails including delivery status and recipient metadata."
   use Ash.Resource,
     domain: Emakola.Notifications,
     data_layer: AshPostgres.DataLayer

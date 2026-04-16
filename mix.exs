@@ -12,7 +12,7 @@ defmodule Emakola.MixProject do
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
-      test_coverage: [threshold: 40]
+      test_coverage: [threshold: 50]
     ]
   end
 
