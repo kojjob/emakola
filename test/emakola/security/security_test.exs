@@ -214,6 +214,13 @@ defmodule Emakola.SecurityTest do
   # ── Rate Limiting ─────────────────────────────────────────────────
 
   describe "rate limiting" do
+    setup do
+      previous = Application.get_env(:emakola, :disable_rate_limiter)
+      Application.put_env(:emakola, :disable_rate_limiter, false)
+      on_exit(fn -> Application.put_env(:emakola, :disable_rate_limiter, previous) end)
+      :ok
+    end
+
     test "API health endpoint returns 429 after exceeding rate limit" do
       # The API pipeline has rate limiting: limit: 100, window_ms: 60_000
       # We can verify the rate limit headers are present

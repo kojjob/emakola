@@ -72,5 +72,5 @@ config :emakola, Emakola.Payments.PaystackClient,
 config :emakola, :sms_provider, Emakola.SMSProviderMock
 config :emakola, :whatsapp_provider, Emakola.WhatsAppProviderMock
 
-# Disable rate limiting in tests
-config :emakola, env: :test
+# Disable rate limiting in router pipelines (unit tests call the plug directly)
+config :emakola, disable_rate_limiter: true
