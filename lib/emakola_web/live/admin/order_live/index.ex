@@ -288,27 +288,36 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
 
   # ── Data Loading ──
 
+  @orders_per_page 50
+
   defp load_orders(socket) do
+    require Ash.Query
     %{store_id: store_id, search_query: query, status_filter: status} = socket.assigns
 
     orders =
       try do
-        results =
+        base =
+          Emakola.Orders.Order
+          |> Ash.Query.filter(store_id == ^store_id)
+          |> Ash.Query.sort(inserted_at: :desc)
+          |> Ash.Query.load([:customer])
+          |> Ash.Query.limit(@orders_per_page)
+
+        base =
           if status != :all do
-            Emakola.Orders.list_orders_by_status!(store_id, status)
+            Ash.Query.filter(base, status == ^status)
           else
-            Emakola.Orders.list_orders_by_store!(store_id)
+            base
           end
 
-        if query != "" do
-          query_down = String.downcase(query)
+        base =
+          if query != "" do
+            Ash.Query.filter(base, contains(order_number, ^query))
+          else
+            base
+          end
 
-          Enum.filter(results, fn order ->
-            String.contains?(String.downcase(order.order_number || ""), query_down)
-          end)
-        else
-          results
-        end
+        Ash.read!(base, authorize?: false)
       rescue
         _ -> []
       end

@@ -178,26 +178,36 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
   # -- Helpers --
 
   defp load_active_products(store_id, nil, nil) do
-    Emakola.Catalog.list_products_by_store_and_status!(store_id, :active)
-    |> Enum.take(@products_per_page)
+    load_active_products_query(store_id, 0)
   end
 
   defp load_active_products(store_id, nil, page) do
-    Emakola.Catalog.list_products_by_store_and_status!(store_id, :active)
-    |> Enum.drop((page - 1) * @products_per_page)
-    |> Enum.take(@products_per_page)
+    offset = ((page || 1) - 1) * @products_per_page
+    load_active_products_query(store_id, offset)
   end
 
   defp load_active_products(store_id, category_id, _page) do
-    Emakola.Catalog.list_products_by_category!(category_id, store_id)
-    |> Enum.filter(&(&1.status == :active))
-    |> Enum.take(@products_per_page)
+    Emakola.Catalog.Product
+    |> Ash.Query.for_read(:list_by_category, %{category_id: category_id, store_id: store_id})
+    |> Ash.Query.filter(status == :active)
+    |> Ash.Query.limit(@products_per_page)
+    |> Ash.read!(authorize?: false)
+  end
+
+  defp load_active_products_query(store_id, offset) do
+    Emakola.Catalog.Product
+    |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store_id, status: :active})
+    |> Ash.Query.limit(@products_per_page)
+    |> Ash.Query.offset(offset)
+    |> Ash.read!(authorize?: false)
   end
 
   defp search_active_products(store_id, query) do
-    Emakola.Catalog.search_products!(query, store_id)
-    |> Enum.filter(&(&1.status == :active))
-    |> Enum.take(@products_per_page)
+    Emakola.Catalog.Product
+    |> Ash.Query.for_read(:search, %{query: query, store_id: store_id})
+    |> Ash.Query.filter(status == :active)
+    |> Ash.Query.limit(@products_per_page)
+    |> Ash.read!(authorize?: false)
   end
 
   defp assign_search_defaults(socket) do

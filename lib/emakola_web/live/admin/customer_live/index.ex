@@ -255,20 +255,30 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
   # ── Data Loading ──
 
+  @customers_limit 100
+
   defp load_customers(socket) do
+    require Ash.Query
     store_id = socket.assigns.store_id
     search_query = socket.assigns.search_query
 
     customers =
       if store_id do
-        result =
+        base =
+          Emakola.Customers.Customer
+          |> Ash.Query.filter(store_id == ^store_id)
+          |> Ash.Query.sort(inserted_at: :desc)
+          |> Ash.Query.limit(@customers_limit)
+
+        base =
           if search_query != "" do
-            Emakola.Customers.search_customers(store_id, search_query)
+            base
+            |> Ash.Query.filter(contains(name, ^search_query) or contains(email, ^search_query))
           else
-            Emakola.Customers.list_customers_by_store(store_id)
+            base
           end
 
-        case result do
+        case Ash.read(base, authorize?: false) do
           {:ok, customers} -> customers
           _ -> []
         end

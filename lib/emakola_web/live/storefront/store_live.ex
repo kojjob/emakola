@@ -144,8 +144,10 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   # -- Helpers --
 
   defp load_featured_products(store) do
-    Emakola.Catalog.list_products_by_store_and_status!(store.id, :active)
-    |> Enum.take(8)
+    Emakola.Catalog.Product
+    |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
+    |> Ash.Query.limit(8)
+    |> Ash.read!(authorize?: false)
   end
 
   defp load_root_categories(store) do

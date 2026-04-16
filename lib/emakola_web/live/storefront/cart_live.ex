@@ -32,8 +32,13 @@ defmodule EmakolaWeb.Storefront.CartLive do
 
     recommended_products =
       try do
-        Emakola.Catalog.list_products_by_store_and_status!(store.id, :active)
-        |> Enum.take(4)
+        Emakola.Catalog.Product
+        |> Ash.Query.for_read(:list_by_store_and_status, %{
+          store_id: store.id,
+          status: :active
+        })
+        |> Ash.Query.limit(4)
+        |> Ash.read!(authorize?: false)
       rescue
         _ -> []
       end

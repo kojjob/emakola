@@ -1164,24 +1164,36 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
   # ── Data Loading ──
 
+  @admin_products_limit 100
+
   defp load_products(socket) do
+    require Ash.Query
     %{store_id: store_id, search_query: query, status_filter: status} = socket.assigns
 
     products =
       try do
-        results =
-          cond do
-            query != "" ->
-              Emakola.Catalog.search_products!(query, store_id)
+        base =
+          Emakola.Catalog.Product
+          |> Ash.Query.filter(store_id == ^store_id)
+          |> Ash.Query.sort(inserted_at: :desc)
+          |> Ash.Query.load([:variant_count, :min_price, :max_price, :images])
+          |> Ash.Query.limit(@admin_products_limit)
 
-            status != :all ->
-              Emakola.Catalog.list_products_by_store_and_status!(store_id, status)
-
-            true ->
-              Emakola.Catalog.list_products_by_store!(store_id)
+        base =
+          if query != "" do
+            Ash.Query.filter(base, contains(title, ^query))
+          else
+            base
           end
 
-        Ash.load!(results, [:variant_count, :min_price, :max_price, :images])
+        base =
+          if status != :all do
+            Ash.Query.filter(base, status == ^status)
+          else
+            base
+          end
+
+        Ash.read!(base, authorize?: false)
       rescue
         _ -> []
       end
