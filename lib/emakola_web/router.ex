@@ -21,6 +21,13 @@ defmodule EmakolaWeb.Router do
     plug EmakolaWeb.Plugs.RateLimiter, limit: 100, window_ms: 60_000
   end
 
+  # Pipeline for SEO/crawler endpoints that return XML or plain text.
+  # Separate from :api to avoid the JSON-only :accepts plug rejecting
+  # crawlers that send Accept: text/xml or Accept: */*.
+  pipeline :seo do
+    plug :accepts, ["xml", "text", "html", "json"]
+  end
+
   # Stricter rate limiting for authentication endpoints to prevent brute-force attacks
   pipeline :auth_rate_limit do
     plug EmakolaWeb.Plugs.RateLimiter, limit: 10, window_ms: 60_000
@@ -98,6 +105,15 @@ defmodule EmakolaWeb.Router do
       live "/login", CustomerLoginLive
       live "/register", CustomerRegisterLive
     end
+  end
+
+  # Sitemap + AI-readable files — uses :seo pipeline (accepts XML/text),
+  # NOT :api (which enforces JSON-only and would 406 crawlers).
+  scope "/s/:store_slug", EmakolaWeb do
+    pipe_through :seo
+    get "/sitemap.xml", SitemapController, :show
+    get "/robots.txt", SitemapController, :robots
+    get "/llms.txt", SitemapController, :llms
   end
 
   # Customer storefront (public — no auth required)
