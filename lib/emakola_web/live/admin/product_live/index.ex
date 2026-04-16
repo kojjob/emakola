@@ -1525,16 +1525,15 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
   defp save_uploaded_images(socket, product) do
     store_id = socket.assigns.store_id
-    upload_dir = Path.join(["priv/static/uploads", store_id])
-    File.mkdir_p!(upload_dir)
 
     consume_uploaded_entries(socket, :product_images, fn %{path: tmp_path}, entry ->
       ext = Path.extname(entry.client_name)
       filename = "#{Ecto.UUID.generate()}#{ext}"
-      dest = Path.join(upload_dir, filename)
-      File.cp!(tmp_path, dest)
+      s3_path = "stores/#{store_id}/products/#{filename}"
+      binary = File.read!(tmp_path)
 
-      url = "/uploads/#{store_id}/#{filename}"
+      {:ok, url} =
+        Emakola.Storage.upload(binary, s3_path, content_type: entry.client_type)
 
       Emakola.Catalog.Image
       |> Ash.Changeset.for_create(:create, %{

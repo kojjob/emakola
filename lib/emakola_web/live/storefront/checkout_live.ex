@@ -1349,17 +1349,27 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
     case gateway.initiate_payment(params) do
       {:ok, %{reference: reference} = resp} ->
-        Emakola.Payments.Payment
-        |> Ash.Changeset.for_create(:create, %{
-          store_id: store.id,
-          order_id: order.id,
-          amount: order.total,
-          currency: store.currency || "GHS",
-          gateway: :paystack,
-          gateway_reference: reference,
-          metadata: %{payment_method: method}
-        })
-        |> Ash.create()
+        case Emakola.Payments.Payment
+             |> Ash.Changeset.for_create(:create, %{
+               store_id: store.id,
+               order_id: order.id,
+               amount: order.total,
+               currency: store.currency || "GHS",
+               gateway: :paystack,
+               gateway_reference: reference,
+               metadata: %{payment_method: method}
+             })
+             |> Ash.create() do
+          {:ok, _payment} ->
+            :ok
+
+          {:error, reason} ->
+            require Logger
+
+            Logger.error(
+              "[Checkout] Failed to create payment record for order #{order.order_number}: #{inspect(reason)}"
+            )
+        end
 
         if method == "card" do
           url = Map.get(resp, :authorization_url, "")

@@ -103,7 +103,8 @@ config :emakola, Oban,
   ],
   repo: Emakola.Repo,
   crontab: [
-    {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker}
+    {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker},
+    {"0 */6 * * *", Emakola.Cart.CartCleanupWorker}
   ]
 
 # Demo mode

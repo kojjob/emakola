@@ -36,9 +36,24 @@ if config_env() == :prod do
     socket_options: if(System.get_env("ECTO_IPV6") == "true", do: [:inet6], else: [])
 
   # Swoosh / Resend
+  resend_api_key =
+    System.get_env("RESEND_API_KEY") ||
+      raise "environment variable RESEND_API_KEY is missing."
+
   config :emakola, Emakola.Mailer,
     adapter: Swoosh.Adapters.Resend,
-    api_key: System.get_env("RESEND_API_KEY")
+    api_key: resend_api_key
+
+  # S3-compatible storage for product images, media uploads
+  config :emakola, :storage, Emakola.Storage.S3
+
+  config :emakola,
+         :s3_bucket,
+         System.get_env("AWS_S3_BUCKET") || "emakola-uploads"
+
+  config :emakola,
+         :s3_region,
+         System.get_env("AWS_S3_REGION") || "eu-west-1"
 
   # Payment gateways (required in prod)
   paystack_secret_key =
