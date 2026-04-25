@@ -128,12 +128,12 @@ defmodule EmakolaWeb.Admin.CouponLive do
         nil ->
           Emakola.Orders.Coupon
           |> Ash.Changeset.for_create(:create, attrs)
-          |> Ash.create()
+          |> Ash.create(authorize?: false)
 
         coupon ->
           coupon
           |> Ash.Changeset.for_update(:update, Map.delete(attrs, :store_id))
-          |> Ash.update()
+          |> Ash.update(authorize?: false)
       end
 
     case result do
@@ -164,7 +164,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
       result =
         coupon
         |> Ash.Changeset.for_update(:update, %{active: !coupon.active})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       case result do
         {:ok, _updated} ->
@@ -765,7 +765,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
   # ── Private Helpers ──────────────────────────────────────────
 
   defp load_coupons(store_id) do
-    case Emakola.Orders.list_coupons_by_store(store_id) do
+    case Emakola.Orders.list_coupons_by_store(store_id, authorize?: false) do
       {:ok, coupons} -> coupons
       _ -> []
     end

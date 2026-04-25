@@ -35,13 +35,13 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
   end
 
   defp reload_variant(variant) do
-    Ash.get!(Variant, variant.id, authorize?: false, authorize?: false)
+    Ash.get!(Variant, variant.id, authorize?: false)
   end
 
   defp reload_order(order) do
     order.id
-    |> then(&Ash.get!(Order, &1))
-    |> Ash.load!(:line_items)
+    |> then(&Ash.get!(Order, &1, authorize?: false))
+    |> Ash.load!(:line_items, authorize?: false)
   end
 
   # ═══════════════════════════════════════════════════════════════════
@@ -204,7 +204,7 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
         })
 
       # The system allows creating the payment but we can detect the mismatch
-      reloaded_order = Ash.get!(Order, order.id, authorize?: false, authorize?: false)
+      reloaded_order = Ash.get!(Order, order.id, authorize?: false)
       assert payment.amount != reloaded_order.total
       assert abs(payment.amount - reloaded_order.total) == 2000
     end
@@ -609,7 +609,7 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
         |> Ash.update(authorize?: false)
 
       # Reload the line item — the snapshot should NOT change
-      reloaded_li = Ash.get!(LineItem, line_item.id, authorize?: false, authorize?: false)
+      reloaded_li = Ash.get!(LineItem, line_item.id, authorize?: false)
       assert reloaded_li.unit_price == 8000
     end
 
@@ -632,7 +632,7 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
         |> Ash.update(authorize?: false)
 
       # Line item snapshot unchanged
-      reloaded_li = Ash.get!(LineItem, line_item.id, authorize?: false, authorize?: false)
+      reloaded_li = Ash.get!(LineItem, line_item.id, authorize?: false)
       assert reloaded_li.product_title == "Original Title"
     end
   end

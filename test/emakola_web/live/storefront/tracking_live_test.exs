@@ -123,7 +123,7 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
 
     test "shows processing status for processing order", %{conn: conn, store: store, order: order} do
       order = Emakola.Orders.confirm_order!(order, authorize?: false)
-      Emakola.Orders.start_processing_order!(order)
+      Emakola.Orders.start_processing_order!(order, authorize?: false)
 
       {:ok, _view, html} = live(conn, "/s/#{store.slug}/track/#{order.order_number}")
 
@@ -133,7 +133,7 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
 
     test "shows rider card for shipped order", %{conn: conn, store: store, order: order} do
       order = Emakola.Orders.confirm_order!(order, authorize?: false)
-      order = Emakola.Orders.start_processing_order!(order)
+      order = Emakola.Orders.start_processing_order!(order, authorize?: false)
       Emakola.Orders.mark_order_shipped!(order)
 
       {:ok, _view, html} = live(conn, "/s/#{store.slug}/track/#{order.order_number}")
@@ -144,9 +144,9 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
 
     test "shows delivered status for delivered order", %{conn: conn, store: store, order: order} do
       order = Emakola.Orders.confirm_order!(order, authorize?: false)
-      order = Emakola.Orders.start_processing_order!(order)
+      order = Emakola.Orders.start_processing_order!(order, authorize?: false)
       order = Emakola.Orders.mark_order_shipped!(order)
-      Emakola.Orders.mark_order_delivered!(order)
+      Emakola.Orders.mark_order_delivered!(order, authorize?: false)
 
       {:ok, _view, html} = live(conn, "/s/#{store.slug}/track/#{order.order_number}")
 

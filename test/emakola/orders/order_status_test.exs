@@ -194,7 +194,7 @@ defmodule Emakola.Orders.OrderStatusTest do
                Order
                |> Ash.Query.filter(id: order.id)
                |> Ash.Query.load(:line_items)
-               |> Ash.read(action: :read)
+               |> Ash.read(action: :read, authorize?: false)
 
       assert found_order.id == order.id
       assert found_order.line_items == []

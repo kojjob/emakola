@@ -34,13 +34,13 @@ defmodule Emakola.Orders.CheckoutEdgeCasesTest do
   end
 
   defp reload_variant(variant) do
-    Ash.get!(Variant, variant.id, authorize?: false, authorize?: false)
+    Ash.get!(Variant, variant.id, authorize?: false)
   end
 
   defp reload_order(order) do
     order.id
-    |> then(&Ash.get!(Order, &1))
-    |> Ash.load!(:line_items)
+    |> then(&Ash.get!(Order, &1, authorize?: false))
+    |> Ash.load!(:line_items, authorize?: false)
   end
 
   # ═══════════════════════════════════════════════════════════════════

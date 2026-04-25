@@ -74,7 +74,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   def handle_event("update_notes", %{"notes" => notes}, socket) do
     order = socket.assigns.order
 
-    case Ash.update(order, %{notes: notes}, action: :update_notes) do
+    case Ash.update(order, %{notes: notes}, action: :update_notes, authorize?: false) do
       {:ok, updated_order} ->
         socket =
           socket
@@ -548,9 +548,9 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
     order = socket.assigns.order
     params = Keyword.get(opts, :params, %{})
 
-    case Ash.update(order, params, action: action) do
+    case Ash.update(order, params, action: action, authorize?: false) do
       {:ok, updated_order} ->
-        updated_order = Ash.load!(updated_order, [:line_items, :customer])
+        updated_order = Ash.load!(updated_order, [:line_items, :customer], authorize?: false)
 
         socket =
           socket

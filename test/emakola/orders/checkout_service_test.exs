@@ -46,7 +46,7 @@ defmodule Emakola.Orders.CheckoutServiceTest do
 
       line_items =
         order
-        |> Ash.load!(:line_items)
+        |> Ash.load!(:line_items, authorize?: false)
         |> Map.get(:line_items)
 
       assert length(line_items) == 2
