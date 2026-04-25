@@ -122,6 +122,21 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert result.sections.capsules == true
     end
 
+    test "circuit theme returns correct defaults (tech / electronics niche)" do
+      result = ThemeResolver.resolve(%{"theme" => "circuit"})
+
+      assert result.theme_id == "circuit"
+      assert result.theme_name == "Circuit"
+      assert result.colors.background == "#0F0F12"
+      assert result.colors.primary == "#FFFFFF"
+      assert result.colors.accent == "#3B82F6"
+      assert result.fonts.heading == "Inter"
+      assert result.fonts.body == "Inter"
+      # Tech-specific section gates
+      assert result.sections.compare == true
+      assert result.sections.specs == true
+    end
+
     test "color overrides merge correctly" do
       config = %{
         "theme" => "market",
