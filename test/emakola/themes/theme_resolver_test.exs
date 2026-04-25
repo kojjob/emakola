@@ -42,6 +42,21 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert result.colors.background == "#FFFBEB"
     end
 
+    test "savor theme returns correct defaults (food & drink niche)" do
+      result = ThemeResolver.resolve(%{"theme" => "savor"})
+
+      assert result.theme_id == "savor"
+      assert result.theme_name == "Savor"
+      assert result.colors.primary == "#DC2626"
+      assert result.colors.accent == "#15803D"
+      assert result.colors.background == "#FFFBEB"
+      assert result.fonts.heading == "Anton"
+      assert result.fonts.body == "Lora"
+      # Restaurant-specific section gates
+      assert result.sections.menu == true
+      assert result.sections.delivery == true
+    end
+
     test "color overrides merge correctly" do
       config = %{
         "theme" => "market",
