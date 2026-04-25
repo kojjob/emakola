@@ -166,7 +166,7 @@ defmodule EmakolaWeb.Admin.CampaignLiveTest do
         name: "Test Store #{System.unique_integer([:positive])}",
         slug: "test-store-#{System.unique_integer([:positive])}"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     merchant =
       Emakola.Accounts.Merchant
@@ -175,7 +175,7 @@ defmodule EmakolaWeb.Admin.CampaignLiveTest do
         password: "Password123!",
         password_confirmation: "Password123!"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     Emakola.Accounts.StoreMembership
     |> Ash.Changeset.for_create(:create, %{
@@ -183,7 +183,7 @@ defmodule EmakolaWeb.Admin.CampaignLiveTest do
       store_id: store.id,
       role: :owner
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
 
     {merchant, store}
   end

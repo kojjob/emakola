@@ -35,7 +35,7 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
   end
 
   defp reload_variant(variant) do
-    Ash.get!(Variant, variant.id)
+    Ash.get!(Variant, variant.id, authorize?: false, authorize?: false)
   end
 
   defp reload_order(order) do
@@ -140,7 +140,7 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
         |> Ash.Changeset.for_update(:mark_success, %{
           gateway_response: %{"status" => "success", "reference" => "PAY-123"}
         })
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert payment.status == :success
 
@@ -148,7 +148,7 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
       {:ok, confirmed_order} =
         order
         |> Ash.Changeset.for_update(:confirm, %{})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert confirmed_order.status == :confirmed
     end
@@ -204,7 +204,7 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
         })
 
       # The system allows creating the payment but we can detect the mismatch
-      reloaded_order = Ash.get!(Order, order.id)
+      reloaded_order = Ash.get!(Order, order.id, authorize?: false, authorize?: false)
       assert payment.amount != reloaded_order.total
       assert abs(payment.amount - reloaded_order.total) == 2000
     end
@@ -222,13 +222,13 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
       {:ok, payment} =
         payment
         |> Ash.Changeset.for_update(:mark_success, %{})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       # Attempt refund exceeding original amount
       {:ok, refunded} =
         payment
         |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 10_000})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert refunded.status == :refunded
       assert refunded.refunded_amount > refunded.amount
@@ -368,7 +368,7 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
       store_b_orders =
         Order
         |> Ash.Query.filter(store_id == ^ctx.store_b.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert store_b_orders == []
     end
@@ -390,12 +390,12 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
       store_a_payments =
         Payment
         |> Ash.Query.filter(store_id == ^ctx.store_a.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       store_b_payments =
         Payment
         |> Ash.Query.filter(store_id == ^ctx.store_b.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(store_a_payments) >= 1
       assert length(store_b_payments) >= 1
@@ -436,14 +436,14 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
       {:ok, confirmed} =
         order
         |> Ash.Changeset.for_update(:confirm, %{})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert confirmed.status == :confirmed
 
       {:ok, cancelled} =
         confirmed
         |> Ash.Changeset.for_update(:cancel, %{})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert cancelled.status == :cancelled
     end
@@ -457,14 +457,14 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
       {:ok, cancelled} =
         order
         |> Ash.Changeset.for_update(:cancel, %{})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert cancelled.status == :cancelled
 
       assert {:error, _} =
                cancelled
                |> Ash.Changeset.for_update(:confirm, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "cancel an already cancelled order fails (not in [:pending, :confirmed])" do
@@ -476,12 +476,12 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
       {:ok, cancelled} =
         order
         |> Ash.Changeset.for_update(:cancel, %{})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert {:error, _} =
                cancelled
                |> Ash.Changeset.for_update(:cancel, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "checkout with empty cart is rejected" do
@@ -539,7 +539,7 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
       assert_raise Ash.Error.Unknown, fn ->
         variant
         |> Ash.Changeset.for_destroy(:destroy)
-        |> Ash.destroy!()
+        |> Ash.destroy!(authorize?: false)
       end
 
       # Attempting to destroy the product should fail (has_many variants)
@@ -547,7 +547,7 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
       assert_raise Ash.Error.Invalid, fn ->
         product
         |> Ash.Changeset.for_destroy(:destroy)
-        |> Ash.destroy!()
+        |> Ash.destroy!(authorize?: false)
       end
     end
 
@@ -606,10 +606,10 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
       {:ok, _updated_variant} =
         variant
         |> Ash.Changeset.for_update(:update, %{price: 12_000})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       # Reload the line item — the snapshot should NOT change
-      reloaded_li = Ash.get!(LineItem, line_item.id)
+      reloaded_li = Ash.get!(LineItem, line_item.id, authorize?: false, authorize?: false)
       assert reloaded_li.unit_price == 8000
     end
 
@@ -629,10 +629,10 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
       {:ok, _} =
         product
         |> Ash.Changeset.for_update(:update, %{title: "Updated Title"})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       # Line item snapshot unchanged
-      reloaded_li = Ash.get!(LineItem, line_item.id)
+      reloaded_li = Ash.get!(LineItem, line_item.id, authorize?: false, authorize?: false)
       assert reloaded_li.product_title == "Original Title"
     end
   end

@@ -36,7 +36,7 @@ defmodule Emakola.Content.MediaAttachmentTest do
       {:ok, results} =
         Emakola.Content.MediaAttachment
         |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert length(results) == 2
     end
@@ -51,7 +51,7 @@ defmodule Emakola.Content.MediaAttachmentTest do
       {:ok, results} =
         Emakola.Content.MediaAttachment
         |> Ash.Query.for_read(:list_by_post, %{post_id: post.id})
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert length(results) == 2
       assert Enum.at(results, 0).position == 1

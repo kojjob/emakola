@@ -43,7 +43,7 @@ defmodule Emakola.Payments.RefundFlowTest do
         |> Ash.Changeset.for_update(:mark_success, %{
           gateway_response: %{"status" => "success"}
         })
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert payment.status == :success
 
@@ -51,7 +51,7 @@ defmodule Emakola.Payments.RefundFlowTest do
       {:ok, refunded} =
         payment
         |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 500_000})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert refunded.status == :refunded
       assert refunded.refunded_amount == 500_000
@@ -65,13 +65,13 @@ defmodule Emakola.Payments.RefundFlowTest do
         |> Ash.Changeset.for_update(:mark_success, %{
           gateway_response: %{"status" => "success"}
         })
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       # Partial refund — only 200,000 pesewas of 500,000
       {:ok, refunded} =
         payment
         |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 200_000})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert refunded.status == :refunded
       assert refunded.refunded_amount == 200_000
@@ -174,7 +174,7 @@ defmodule Emakola.Payments.RefundFlowTest do
       |> Ash.Changeset.for_update(:mark_success, %{
         gateway_response: %{"status" => "success"}
       })
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       event = %{
         "event" => "refund.processed",
@@ -189,7 +189,7 @@ defmodule Emakola.Payments.RefundFlowTest do
       updated =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert updated.status == :refunded
       assert updated.refunded_amount == 250_000
@@ -202,7 +202,7 @@ defmodule Emakola.Payments.RefundFlowTest do
       |> Ash.Changeset.for_update(:mark_success, %{
         gateway_response: %{"status" => "success"}
       })
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       event = %{
         "event" => "refund.processed",
@@ -219,7 +219,7 @@ defmodule Emakola.Payments.RefundFlowTest do
       updated =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert updated.status == :refunded
     end
@@ -249,7 +249,7 @@ defmodule Emakola.Payments.RefundFlowTest do
         |> Ash.Changeset.for_update(:mark_success, %{
           gateway_response: %{"status" => "success"}
         })
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       # Attempting to refund more than paid should fail
       # NOTE: This validation is not yet implemented in the mark_refunded action.
@@ -257,7 +257,7 @@ defmodule Emakola.Payments.RefundFlowTest do
       assert {:error, _reason} =
                payment
                |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 200_000})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     @tag :pending
@@ -269,12 +269,12 @@ defmodule Emakola.Payments.RefundFlowTest do
         |> Ash.Changeset.for_update(:mark_success, %{
           gateway_response: %{"status" => "success"}
         })
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       {:ok, payment} =
         payment
         |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 500_000})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert payment.status == :refunded
 
@@ -284,7 +284,7 @@ defmodule Emakola.Payments.RefundFlowTest do
       assert {:error, _reason} =
                payment
                |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 500_000})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     @tag :pending
@@ -297,7 +297,7 @@ defmodule Emakola.Payments.RefundFlowTest do
       assert {:error, _reason} =
                payment
                |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 500_000})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     @tag :pending
@@ -309,7 +309,7 @@ defmodule Emakola.Payments.RefundFlowTest do
         |> Ash.Changeset.for_update(:mark_failed, %{
           gateway_response: %{"status" => "failed"}
         })
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert payment.status == :failed
 
@@ -318,7 +318,7 @@ defmodule Emakola.Payments.RefundFlowTest do
       assert {:error, _reason} =
                payment
                |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 500_000})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
   end
 
@@ -340,7 +340,7 @@ defmodule Emakola.Payments.RefundFlowTest do
         |> Ash.Changeset.for_update(:mark_success, %{
           gateway_response: %{"status" => "success"}
         })
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       # Process refund webhook
       event = %{
@@ -358,7 +358,7 @@ defmodule Emakola.Payments.RefundFlowTest do
       updated_order =
         Emakola.Orders.Order
         |> Ash.Query.filter(id == ^order.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert updated_order.status == :cancelled
     end

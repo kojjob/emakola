@@ -38,14 +38,14 @@ defmodule Emakola.Catalog.CategoryTest do
       assert {:error, _} =
                Emakola.Catalog.Category
                |> Ash.Changeset.for_create(:create, %{name: "", store_id: store.id})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects nil name", %{store: store} do
       assert {:error, _} =
                Emakola.Catalog.Category
                |> Ash.Changeset.for_create(:create, %{store_id: store.id})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "creates category with description", %{store: store} do
@@ -73,7 +73,7 @@ defmodule Emakola.Catalog.CategoryTest do
                  name: "Electronics",
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "allows same slug in different stores" do
@@ -101,7 +101,7 @@ defmodule Emakola.Catalog.CategoryTest do
       my_cats =
         Emakola.Catalog.Category
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(my_cats) == 1
       assert hd(my_cats).name == "My Category"
@@ -156,7 +156,7 @@ defmodule Emakola.Catalog.CategoryTest do
       updated =
         category
         |> Ash.Changeset.for_update(:update, %{name: "New Name"})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.name == "New Name"
       assert updated.slug == "new-name"
@@ -168,7 +168,7 @@ defmodule Emakola.Catalog.CategoryTest do
       updated =
         category
         |> Ash.Changeset.for_update(:update, %{position: 5})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.position == 5
     end
@@ -179,7 +179,7 @@ defmodule Emakola.Catalog.CategoryTest do
       updated =
         category
         |> Ash.Changeset.for_update(:update, %{description: "Updated description"})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.description == "Updated description"
     end
@@ -192,7 +192,7 @@ defmodule Emakola.Catalog.CategoryTest do
       updated =
         child
         |> Ash.Changeset.for_update(:update, %{parent_id: parent_b.id})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.parent_id == parent_b.id
     end
@@ -209,7 +209,7 @@ defmodule Emakola.Catalog.CategoryTest do
       assert [] =
                Emakola.Catalog.Category
                |> Ash.Query.filter(store_id == ^store.id)
-               |> Ash.read!()
+               |> Ash.read!(authorize?: false)
     end
   end
 
@@ -222,14 +222,14 @@ defmodule Emakola.Catalog.CategoryTest do
       assert {:error, _} =
                category
                |> Ash.Changeset.for_update(:update, %{parent_id: category.id})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "whitespace-only name is rejected", %{store: store} do
       assert {:error, _} =
                Emakola.Catalog.Category
                |> Ash.Changeset.for_create(:create, %{name: "   ", store_id: store.id})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "very long name is handled gracefully", %{store: store} do

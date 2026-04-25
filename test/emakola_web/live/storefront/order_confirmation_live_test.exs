@@ -11,7 +11,7 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLiveTest do
 
     product
     |> Ash.Changeset.for_update(:activate, %{})
-    |> Ash.update!()
+    |> Ash.update!(authorize?: false)
 
     # Create an order via the checkout service
     {:ok, order} =

@@ -54,14 +54,14 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       {:ok, updated} =
         current_order
         |> Ash.Changeset.for_update(action, %{})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       updated
     end)
   end
 
   defp reload_order(order) do
-    Ash.get!(Order, order.id)
+    Ash.get!(Order, order.id, authorize?: false, authorize?: false)
   end
 
   # ═══════════════════════════════════════════════════════════════════
@@ -88,7 +88,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       assert {:error, _} =
                order
                |> Ash.Changeset.for_update(:confirm, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "cancelled -> shipped (cancel is terminal for forward transitions)" do
@@ -102,7 +102,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       assert {:error, _} =
                order
                |> Ash.Changeset.for_update(:mark_shipped, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "pending -> shipped (must go through confirmed and processing first)" do
@@ -115,7 +115,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       assert {:error, _} =
                order
                |> Ash.Changeset.for_update(:mark_shipped, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "pending -> delivered (must go through confirmed, processing, shipped)" do
@@ -128,7 +128,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       assert {:error, _} =
                order
                |> Ash.Changeset.for_update(:mark_delivered, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "confirmed -> delivered (must go through processing and shipped)" do
@@ -142,7 +142,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       assert {:error, _} =
                order
                |> Ash.Changeset.for_update(:mark_delivered, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "processing -> pending (no reverse transitions)" do
@@ -157,7 +157,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       assert {:error, _} =
                order
                |> Ash.Changeset.for_update(:confirm, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "shipped -> confirmed (no reverse transitions)" do
@@ -171,7 +171,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       assert {:error, _} =
                order
                |> Ash.Changeset.for_update(:confirm, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
   end
 
@@ -191,7 +191,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       assert {:error, _} =
                confirmed
                |> Ash.Changeset.for_update(:confirm, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
   end
 
@@ -210,7 +210,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       assert {:error, _} =
                delivered
                |> Ash.Changeset.for_update(:cancel, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "cancelling an already cancelled order fails" do
@@ -223,7 +223,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       assert {:error, _} =
                cancelled
                |> Ash.Changeset.for_update(:cancel, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
   end
 
@@ -321,7 +321,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
                  store_id: store.id,
                  stock_quantity: 10
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "variant price of 0 is rejected" do
@@ -336,7 +336,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
                  store_id: store.id,
                  stock_quantity: 10
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "order total is always non-negative after checkout" do
@@ -361,20 +361,20 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
 
       task1 =
         Task.async(fn ->
-          fresh = Ash.get!(Order, order.id)
+          fresh = Ash.get!(Order, order.id, authorize?: false, authorize?: false)
 
           fresh
           |> Ash.Changeset.for_update(:confirm, %{})
-          |> Ash.update()
+          |> Ash.update(authorize?: false)
         end)
 
       task2 =
         Task.async(fn ->
-          fresh = Ash.get!(Order, order.id)
+          fresh = Ash.get!(Order, order.id, authorize?: false, authorize?: false)
 
           fresh
           |> Ash.Changeset.for_update(:confirm, %{})
-          |> Ash.update()
+          |> Ash.update(authorize?: false)
         end)
 
       results = Task.await_many([task1, task2], 10_000)
@@ -395,20 +395,20 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
 
       task_confirm =
         Task.async(fn ->
-          fresh = Ash.get!(Order, order.id)
+          fresh = Ash.get!(Order, order.id, authorize?: false, authorize?: false)
 
           fresh
           |> Ash.Changeset.for_update(:confirm, %{})
-          |> Ash.update()
+          |> Ash.update(authorize?: false)
         end)
 
       task_cancel =
         Task.async(fn ->
-          fresh = Ash.get!(Order, order.id)
+          fresh = Ash.get!(Order, order.id, authorize?: false, authorize?: false)
 
           fresh
           |> Ash.Changeset.for_update(:cancel, %{})
-          |> Ash.update()
+          |> Ash.update(authorize?: false)
         end)
 
       _results = Task.await_many([task_confirm, task_cancel], 10_000)
@@ -439,7 +439,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       store_b_orders =
         Order
         |> Ash.Query.filter(store_id == ^store_b.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert store_b_orders == []
     end
@@ -461,7 +461,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       store_b_results =
         Order
         |> Ash.Query.filter(store_id == ^store_b.id and id == ^order.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert store_b_results == []
     end
@@ -481,7 +481,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       {:ok, updated} =
         order
         |> Ash.Changeset.for_update(:update_notes, %{notes: long_notes})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert String.length(updated.notes) == 5_000
     end
@@ -530,7 +530,8 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       {:ok, order} = CheckoutService.checkout!(store.id, items, [])
 
       # Reload with line items
-      order = Ash.get!(Order, order.id) |> Ash.load!(:line_items)
+      order =
+        Ash.get!(Order, order.id, authorize?: false) |> Ash.load!(:line_items, authorize?: false)
 
       assert length(order.line_items) == 100
 
@@ -541,7 +542,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
 
       # Verify all stocks decremented
       for v <- variants do
-        reloaded = Ash.get!(Emakola.Catalog.Variant, v.id)
+        reloaded = Ash.get!(Emakola.Catalog.Variant, v.id, authorize?: false, authorize?: false)
         assert reloaded.stock_quantity == 49
       end
     end
@@ -578,7 +579,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
         {:ok, cancelled} =
           order_at_state
           |> Ash.Changeset.for_update(:cancel, %{})
-          |> Ash.update()
+          |> Ash.update(authorize?: false)
 
         assert cancelled.status == :cancelled
       end

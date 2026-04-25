@@ -15,7 +15,7 @@ defmodule Emakola.Inventory.Workers.LowStockAlertWorkerSmsTest do
     store =
       store
       |> Ash.Changeset.for_update(:update_settings, %{contact_phone: "+233244123456"})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
     product = Factory.create_product!(store, status: :active)
     Factory.create_variant!(product, store, price: 5000, stock_quantity: 2, sku: "LOW-1")

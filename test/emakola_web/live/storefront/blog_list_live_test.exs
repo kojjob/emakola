@@ -10,7 +10,7 @@ defmodule EmakolaWeb.Storefront.BlogListLiveTest do
 
   test "renders blog list with published posts", %{conn: conn, store: store} do
     post = Factory.create_post!(store, %{title: "Published Article", type: :blog_post})
-    post |> Ash.Changeset.for_update(:publish) |> Ash.update!()
+    post |> Ash.Changeset.for_update(:publish) |> Ash.update!(authorize?: false)
 
     {:ok, _view, html} = live(conn, "/s/#{store.slug}/blog")
     assert html =~ "Blog"

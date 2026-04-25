@@ -122,7 +122,7 @@ defmodule EmakolaWeb.Auth.AuthTest do
 
       users =
         Emakola.Accounts.User
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
         |> Enum.filter(&(to_string(&1.email) == "orgcreator@example.com"))
 
       assert length(users) == 1
@@ -130,7 +130,7 @@ defmodule EmakolaWeb.Auth.AuthTest do
 
       memberships =
         Emakola.Accounts.Membership
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
         |> Enum.filter(&(&1.user_id == user.id))
 
       assert memberships == []
@@ -204,7 +204,7 @@ defmodule EmakolaWeb.Auth.AuthTest do
       user =
         user
         |> Ash.Changeset.for_update(:update_profile, %{name: "Ada Lovelace"})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       token = AshAuthentication.user_to_subject(user)
 

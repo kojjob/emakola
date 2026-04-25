@@ -48,21 +48,21 @@ defmodule Emakola.Customers.CustomerTest do
                  email: "ama@example.com",
                  name: "Another"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "requires email", %{store: store} do
       assert {:error, _} =
                Emakola.Customers.Customer
                |> Ash.Changeset.for_create(:create, %{store_id: store.id, name: "No Email"})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "requires store_id" do
       assert {:error, _} =
                Emakola.Customers.Customer
                |> Ash.Changeset.for_create(:create, %{email: "test@example.com"})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -79,7 +79,7 @@ defmodule Emakola.Customers.CustomerTest do
                  email: "dup@example.com",
                  name: "Dup"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "allows same email in different stores", %{store: store} do
@@ -101,7 +101,7 @@ defmodule Emakola.Customers.CustomerTest do
       updated =
         customer
         |> Ash.Changeset.for_update(:update, %{name: "New Name", phone: "+233201234567"})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.name == "New Name"
       assert updated.phone == "+233201234567"
@@ -113,7 +113,7 @@ defmodule Emakola.Customers.CustomerTest do
       updated =
         customer
         |> Ash.Changeset.for_update(:update, %{tags: ["vip", "wholesale"]})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.tags == ["vip", "wholesale"]
     end
@@ -129,7 +129,7 @@ defmodule Emakola.Customers.CustomerTest do
       updated =
         customer
         |> Ash.Changeset.for_update(:touch_last_order)
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert %DateTime{} = updated.last_order_at
     end
@@ -149,7 +149,7 @@ defmodule Emakola.Customers.CustomerTest do
       results =
         Emakola.Customers.Customer
         |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       ids = Enum.map(results, & &1.id)
       assert length(ids) == 2
@@ -169,7 +169,7 @@ defmodule Emakola.Customers.CustomerTest do
       results =
         Emakola.Customers.Customer
         |> Ash.Query.for_read(:search, %{query: "kwame", store_id: store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(results) == 1
       assert hd(results).name == "Kwame Asante"
@@ -182,7 +182,7 @@ defmodule Emakola.Customers.CustomerTest do
       results =
         Emakola.Customers.Customer
         |> Ash.Query.for_read(:search, %{query: "findme", store_id: store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(results) == 1
     end
@@ -193,7 +193,7 @@ defmodule Emakola.Customers.CustomerTest do
       results =
         Emakola.Customers.Customer
         |> Ash.Query.for_read(:search, %{query: "244123", store_id: store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(results) == 1
     end
@@ -205,7 +205,7 @@ defmodule Emakola.Customers.CustomerTest do
       results =
         Emakola.Customers.Customer
         |> Ash.Query.for_read(:search, %{query: "cross", store_id: store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert Enum.empty?(results)
     end

@@ -25,7 +25,7 @@ defmodule Emakola.Catalog.ReviewTest do
       variant_id: variant.id,
       quantity: 1
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
 
     %{store: store, customer: customer, product: product, variant: variant, order: order}
   end
@@ -48,7 +48,7 @@ defmodule Emakola.Catalog.ReviewTest do
                  title: "Great product",
                  body: "This product exceeded my expectations."
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert review.rating == 5
       assert review.title == "Great product"
@@ -73,7 +73,7 @@ defmodule Emakola.Catalog.ReviewTest do
                  rating: 0,
                  body: "Bad rating value."
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects rating of 6", %{
@@ -92,7 +92,7 @@ defmodule Emakola.Catalog.ReviewTest do
                  rating: 6,
                  body: "Too high rating."
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "body is required", %{
@@ -110,7 +110,7 @@ defmodule Emakola.Catalog.ReviewTest do
                  order_id: order.id,
                  rating: 4
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "prevents duplicate review for same customer and product", %{
@@ -128,7 +128,7 @@ defmodule Emakola.Catalog.ReviewTest do
         rating: 4,
         body: "First review."
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
       assert {:error, _} =
                Review
@@ -140,7 +140,7 @@ defmodule Emakola.Catalog.ReviewTest do
                  rating: 3,
                  body: "Duplicate review."
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -161,21 +161,21 @@ defmodule Emakola.Catalog.ReviewTest do
           rating: 3,
           body: "Average product."
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert review.status == :published
 
       hidden =
         review
         |> Ash.Changeset.for_update(:hide)
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert hidden.status == :hidden
 
       unhidden =
         hidden
         |> Ash.Changeset.for_update(:unhide)
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert unhidden.status == :published
     end
@@ -215,7 +215,7 @@ defmodule Emakola.Catalog.ReviewTest do
         rating: 5,
         body: "Already reviewed."
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
       assert {:error, :already_reviewed} =
                Review.eligible?(store.id, product.id, customer.id)
@@ -240,7 +240,7 @@ defmodule Emakola.Catalog.ReviewTest do
         rating: 4,
         body: "Good product."
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
       review2 =
         Review
@@ -252,7 +252,7 @@ defmodule Emakola.Catalog.ReviewTest do
           rating: 2,
           body: "Not great."
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       product_loaded =
         Ash.get!(Emakola.Catalog.Product, product.id, load: [:review_count, :avg_rating])
@@ -263,7 +263,7 @@ defmodule Emakola.Catalog.ReviewTest do
       # Hide one review and check aggregates update
       review2
       |> Ash.Changeset.for_update(:hide)
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       product_reloaded =
         Ash.get!(Emakola.Catalog.Product, product.id, load: [:review_count, :avg_rating])

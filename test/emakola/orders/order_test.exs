@@ -70,7 +70,7 @@ defmodule Emakola.Orders.OrderTest do
       confirmed =
         order
         |> Ash.Changeset.for_update(:confirm, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert confirmed.status == :confirmed
     end
@@ -81,7 +81,7 @@ defmodule Emakola.Orders.OrderTest do
       cancelled =
         order
         |> Ash.Changeset.for_update(:cancel, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert cancelled.status == :cancelled
     end
@@ -92,12 +92,12 @@ defmodule Emakola.Orders.OrderTest do
       cancelled =
         order
         |> Ash.Changeset.for_update(:cancel, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert {:error, _} =
                cancelled
                |> Ash.Changeset.for_update(:confirm, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
   end
 
@@ -111,7 +111,7 @@ defmodule Emakola.Orders.OrderTest do
       results =
         Emakola.Orders.Order
         |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       ids = Enum.map(results, & &1.id)
       assert order2.id in ids
@@ -128,7 +128,7 @@ defmodule Emakola.Orders.OrderTest do
       results =
         Emakola.Orders.Order
         |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(results) == 1
       assert hd(results).store_id == store.id
@@ -142,17 +142,17 @@ defmodule Emakola.Orders.OrderTest do
       order2 =
         create_order!(store)
         |> Ash.Changeset.for_update(:confirm, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       pending_results =
         Emakola.Orders.Order
         |> Ash.Query.for_read(:list_by_status, %{store_id: store.id, status: :pending})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       confirmed_results =
         Emakola.Orders.Order
         |> Ash.Query.for_read(:list_by_status, %{store_id: store.id, status: :confirmed})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(pending_results) == 1
       assert hd(pending_results).id == order1.id
@@ -173,12 +173,12 @@ defmodule Emakola.Orders.OrderTest do
       store_orders =
         Emakola.Orders.Order
         |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       other_orders =
         Emakola.Orders.Order
         |> Ash.Query.for_read(:list_by_store, %{store_id: other_store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(store_orders) == 2
       assert length(other_orders) == 1

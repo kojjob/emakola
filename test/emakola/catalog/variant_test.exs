@@ -63,7 +63,7 @@ defmodule Emakola.Catalog.VariantTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects negative price", %{store: store, product: product} do
@@ -74,7 +74,7 @@ defmodule Emakola.Catalog.VariantTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects compare_at_price less than price", %{store: store, product: product} do
@@ -86,7 +86,7 @@ defmodule Emakola.Catalog.VariantTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects compare_at_price equal to price", %{store: store, product: product} do
@@ -98,7 +98,7 @@ defmodule Emakola.Catalog.VariantTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects duplicate SKU within same store", %{store: store, product: product} do
@@ -114,7 +114,7 @@ defmodule Emakola.Catalog.VariantTest do
                  product_id: other_product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "allows same SKU in different stores", %{product: product, store: store} do
@@ -139,7 +139,7 @@ defmodule Emakola.Catalog.VariantTest do
       updated =
         variant
         |> Ash.Changeset.for_update(:adjust_stock, %{delta: 5})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.stock_quantity == 15
     end
@@ -150,7 +150,7 @@ defmodule Emakola.Catalog.VariantTest do
       updated =
         variant
         |> Ash.Changeset.for_update(:adjust_stock, %{delta: -3})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.stock_quantity == 7
     end
@@ -161,7 +161,7 @@ defmodule Emakola.Catalog.VariantTest do
       assert {:error, _} =
                variant
                |> Ash.Changeset.for_update(:adjust_stock, %{delta: -10})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "allows decrement to exactly zero", %{store: store, product: product} do
@@ -170,7 +170,7 @@ defmodule Emakola.Catalog.VariantTest do
       updated =
         variant
         |> Ash.Changeset.for_update(:adjust_stock, %{delta: -5})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.stock_quantity == 0
     end
@@ -221,7 +221,7 @@ defmodule Emakola.Catalog.VariantTest do
       updated =
         variant
         |> Ash.Changeset.for_update(:update, %{price: 7500})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.price == 7500
     end
@@ -232,7 +232,7 @@ defmodule Emakola.Catalog.VariantTest do
       updated =
         variant
         |> Ash.Changeset.for_update(:update, %{sku: "NEW-SKU"})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.sku == "NEW-SKU"
     end
@@ -251,7 +251,7 @@ defmodule Emakola.Catalog.VariantTest do
       my_variants =
         Emakola.Catalog.Variant
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(my_variants) == 1
     end

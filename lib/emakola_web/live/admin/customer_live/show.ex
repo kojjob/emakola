@@ -45,7 +45,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
   def handle_event("save_customer", %{"customer" => params}, socket) do
     case socket.assigns.customer
          |> Ash.Changeset.for_update(:update, params)
-         |> Ash.update() do
+         |> Ash.update(authorize?: false) do
       {:ok, updated} ->
         {:noreply,
          socket
@@ -244,14 +244,14 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
   # ── Data Loading ──
 
   defp load_customer(id) do
-    Emakola.Customers.get_customer_by_id(id)
+    Emakola.Customers.get_customer_by_id(id, authorize?: false)
   end
 
   defp load_orders(customer_id, store_id) do
     Emakola.Orders.Order
     |> Ash.Query.filter(customer_id == ^customer_id and store_id == ^store_id)
     |> Ash.Query.sort(inserted_at: :desc)
-    |> Ash.read!()
+    |> Ash.read!(authorize?: false)
   rescue
     _ -> []
   end

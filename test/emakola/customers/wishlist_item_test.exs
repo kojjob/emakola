@@ -89,10 +89,12 @@ defmodule Emakola.Customers.WishlistItemTest do
         })
 
       assert {:ok, _removed} =
-               Emakola.Customers.remove_from_wishlist(customer.id, product.id, store.id)
+               Emakola.Customers.remove_from_wishlist(customer.id, product.id, store.id,
+                 authorize?: false
+               )
 
       # Verify it is gone
-      {:ok, items} = Emakola.Customers.list_wishlist(customer.id, store.id)
+      {:ok, items} = Emakola.Customers.list_wishlist(customer.id, store.id, authorize?: false)
       assert items == []
     end
 
@@ -102,13 +104,15 @@ defmodule Emakola.Customers.WishlistItemTest do
       product: product
     } do
       assert {:ok, nil} =
-               Emakola.Customers.remove_from_wishlist(customer.id, product.id, store.id)
+               Emakola.Customers.remove_from_wishlist(customer.id, product.id, store.id,
+                 authorize?: false
+               )
     end
   end
 
   describe "list_wishlist/2" do
     test "returns empty list when no items saved", %{store: store, customer: customer} do
-      assert {:ok, []} = Emakola.Customers.list_wishlist(customer.id, store.id)
+      assert {:ok, []} = Emakola.Customers.list_wishlist(customer.id, store.id, authorize?: false)
     end
 
     test "returns items ordered by most recently added", %{store: store, customer: customer} do
@@ -133,7 +137,7 @@ defmodule Emakola.Customers.WishlistItemTest do
         store_id: store.id
       })
 
-      {:ok, items} = Emakola.Customers.list_wishlist(customer.id, store.id)
+      {:ok, items} = Emakola.Customers.list_wishlist(customer.id, store.id, authorize?: false)
       assert length(items) == 2
       # Most recent first — verify ordering works in general
       [first, second] = items
@@ -149,7 +153,7 @@ defmodule Emakola.Customers.WishlistItemTest do
         store_id: store.id
       })
 
-      {:ok, [item]} = Emakola.Customers.list_wishlist(customer.id, store.id)
+      {:ok, [item]} = Emakola.Customers.list_wishlist(customer.id, store.id, authorize?: false)
       assert item.product.title == "Kente Dress"
     end
 

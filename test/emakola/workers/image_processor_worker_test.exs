@@ -21,7 +21,7 @@ defmodule Emakola.Workers.ImageProcessorWorkerTest do
 
       assert :ok = perform_job(ImageProcessorWorker, %{"image_id" => image.id})
 
-      updated = Ash.get!(Emakola.Catalog.Image, image.id)
+      updated = Ash.get!(Emakola.Catalog.Image, image.id, authorize?: false, authorize?: false)
       assert updated.processing_status == :completed
       assert is_binary(updated.thumbnail_url)
       assert is_binary(updated.medium_url)
@@ -37,14 +37,14 @@ defmodule Emakola.Workers.ImageProcessorWorkerTest do
           thumbnail_url: "https://s3.example.com/thumbs/existing.jpg",
           medium_url: "https://s3.example.com/medium/existing.jpg"
         })
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert image.processing_status == :completed
 
       # Running again should be a no-op (idempotent)
       assert :ok = perform_job(ImageProcessorWorker, %{"image_id" => image.id})
 
-      updated = Ash.get!(Emakola.Catalog.Image, image.id)
+      updated = Ash.get!(Emakola.Catalog.Image, image.id, authorize?: false, authorize?: false)
       assert updated.thumbnail_url == "https://s3.example.com/thumbs/existing.jpg"
     end
 

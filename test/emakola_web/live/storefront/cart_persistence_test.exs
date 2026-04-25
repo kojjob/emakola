@@ -168,6 +168,6 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
   defp activate_product!(product) do
     product
     |> Ash.Changeset.for_update(:activate, %{})
-    |> Ash.update!()
+    |> Ash.update!(authorize?: false)
   end
 end

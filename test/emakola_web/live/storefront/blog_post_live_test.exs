@@ -16,7 +16,7 @@ defmodule EmakolaWeb.Storefront.BlogPostLiveTest do
         body: "<p>Hello world</p>"
       })
 
-    post |> Ash.Changeset.for_update(:publish) |> Ash.update!()
+    post |> Ash.Changeset.for_update(:publish) |> Ash.update!(authorize?: false)
 
     {:ok, _view, html} = live(conn, "/s/#{store.slug}/blog/#{post.slug}")
     assert html =~ "My Great Post"

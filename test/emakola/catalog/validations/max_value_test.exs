@@ -134,7 +134,7 @@ defmodule Emakola.Catalog.Validations.MaxValueTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "integration: creating an image with file size at limit succeeds", %{
@@ -150,7 +150,7 @@ defmodule Emakola.Catalog.Validations.MaxValueTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert image.file_size_bytes == 10_000_000
     end

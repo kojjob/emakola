@@ -40,7 +40,7 @@ defmodule Emakola.Customers.CustomerNoteTest do
                  customer_id: customer.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -50,7 +50,7 @@ defmodule Emakola.Customers.CustomerNoteTest do
     test "deletes a note", %{store: store, customer: customer} do
       note = create_customer_note!(customer, store, content: "Delete me")
 
-      assert :ok = note |> Ash.Changeset.for_destroy(:destroy) |> Ash.destroy()
+      assert :ok = note |> Ash.Changeset.for_destroy(:destroy) |> Ash.destroy(authorize?: false)
     end
   end
 

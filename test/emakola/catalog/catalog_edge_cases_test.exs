@@ -22,7 +22,7 @@ defmodule Emakola.Catalog.EdgeCasesTest do
       assert {:error, _} =
                product
                |> Ash.Changeset.for_destroy(:destroy)
-               |> Ash.destroy()
+               |> Ash.destroy(authorize?: false)
     end
 
     test "deleting a product with no variants succeeds" do
@@ -32,7 +32,7 @@ defmodule Emakola.Catalog.EdgeCasesTest do
       assert :ok =
                product
                |> Ash.Changeset.for_destroy(:destroy)
-               |> Ash.destroy!()
+               |> Ash.destroy!(authorize?: false)
     end
 
     test "deleting a variant with variant_option_values fails due to referential integrity" do
@@ -47,7 +47,7 @@ defmodule Emakola.Catalog.EdgeCasesTest do
       assert {:error, _} =
                variant
                |> Ash.Changeset.for_destroy(:destroy)
-               |> Ash.destroy()
+               |> Ash.destroy(authorize?: false)
     end
 
     test "deleting a category that has products fails due to referential integrity" do
@@ -59,7 +59,7 @@ defmodule Emakola.Catalog.EdgeCasesTest do
       assert {:error, _} =
                category
                |> Ash.Changeset.for_destroy(:destroy)
-               |> Ash.destroy()
+               |> Ash.destroy(authorize?: false)
     end
 
     test "deleting a category with no products succeeds" do
@@ -69,7 +69,7 @@ defmodule Emakola.Catalog.EdgeCasesTest do
       assert :ok =
                category
                |> Ash.Changeset.for_destroy(:destroy)
-               |> Ash.destroy!()
+               |> Ash.destroy!(authorize?: false)
     end
 
     test "deleting a parent category with child categories fails due to referential integrity" do
@@ -80,7 +80,7 @@ defmodule Emakola.Catalog.EdgeCasesTest do
       assert {:error, _} =
                parent
                |> Ash.Changeset.for_destroy(:destroy)
-               |> Ash.destroy()
+               |> Ash.destroy(authorize?: false)
     end
   end
 
@@ -100,11 +100,11 @@ defmodule Emakola.Catalog.EdgeCasesTest do
             fresh =
               Emakola.Catalog.Variant
               |> Ash.Query.filter(id == ^variant.id)
-              |> Ash.read_one!()
+              |> Ash.read_one!(authorize?: false)
 
             fresh
             |> Ash.Changeset.for_update(:adjust_stock, %{delta: 5})
-            |> Ash.update()
+            |> Ash.update(authorize?: false)
           end)
         end
 
@@ -115,7 +115,7 @@ defmodule Emakola.Catalog.EdgeCasesTest do
       final =
         Emakola.Catalog.Variant
         |> Ash.Query.filter(id == ^variant.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       # All 10 should succeed (increments never go negative)
       assert successes == 10
@@ -137,11 +137,11 @@ defmodule Emakola.Catalog.EdgeCasesTest do
             fresh =
               Emakola.Catalog.Variant
               |> Ash.Query.filter(id == ^variant.id)
-              |> Ash.read_one!()
+              |> Ash.read_one!(authorize?: false)
 
             fresh
             |> Ash.Changeset.for_update(:adjust_stock, %{delta: -1})
-            |> Ash.update()
+            |> Ash.update(authorize?: false)
           end)
         end
 
@@ -158,7 +158,7 @@ defmodule Emakola.Catalog.EdgeCasesTest do
       final =
         Emakola.Catalog.Variant
         |> Ash.Query.filter(id == ^variant.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert final.stock_quantity == 0
     end
@@ -171,13 +171,13 @@ defmodule Emakola.Catalog.EdgeCasesTest do
       assert {:error, _} =
                variant
                |> Ash.Changeset.for_update(:adjust_stock, %{delta: -5})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
 
       # Stock should remain unchanged
       unchanged =
         Emakola.Catalog.Variant
         |> Ash.Query.filter(id == ^variant.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert unchanged.stock_quantity == 2
     end
@@ -310,7 +310,7 @@ defmodule Emakola.Catalog.EdgeCasesTest do
       queried =
         Emakola.Catalog.Variant
         |> Ash.Query.filter(product_id == ^product.id and store_id == ^store.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(queried) == 25
 
@@ -403,7 +403,7 @@ defmodule Emakola.Catalog.EdgeCasesTest do
                  title: "test-product",
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "products with same slug in different stores succeed" do
@@ -440,7 +440,7 @@ defmodule Emakola.Catalog.EdgeCasesTest do
                  name: "electronics",
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "product slug with special characters stripped matches plain version" do
@@ -456,7 +456,7 @@ defmodule Emakola.Catalog.EdgeCasesTest do
                  title: "Test Product?",
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 end

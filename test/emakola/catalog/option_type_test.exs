@@ -30,7 +30,7 @@ defmodule Emakola.Catalog.OptionTypeTest do
       types =
         Emakola.Catalog.OptionType
         |> Ash.Query.filter(product_id == ^product.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(types) == 3
     end
@@ -47,7 +47,7 @@ defmodule Emakola.Catalog.OptionTypeTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects blank name", %{store: store, product: product} do
@@ -58,7 +58,7 @@ defmodule Emakola.Catalog.OptionTypeTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects duplicate name within same product", %{store: store, product: product} do
@@ -71,7 +71,7 @@ defmodule Emakola.Catalog.OptionTypeTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "allows same name on different products", %{store: store} do
@@ -96,7 +96,7 @@ defmodule Emakola.Catalog.OptionTypeTest do
       updated =
         option_type
         |> Ash.Changeset.for_update(:update, %{name: "Dress Size"})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.name == "Dress Size"
     end
@@ -107,7 +107,7 @@ defmodule Emakola.Catalog.OptionTypeTest do
       updated =
         option_type
         |> Ash.Changeset.for_update(:update, %{position: 2})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.position == 2
     end
@@ -135,7 +135,7 @@ defmodule Emakola.Catalog.OptionTypeTest do
       my_types =
         Emakola.Catalog.OptionType
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(my_types) == 1
       assert hd(my_types).name == "Size"

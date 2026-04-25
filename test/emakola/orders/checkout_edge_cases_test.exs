@@ -34,7 +34,7 @@ defmodule Emakola.Orders.CheckoutEdgeCasesTest do
   end
 
   defp reload_variant(variant) do
-    Ash.get!(Variant, variant.id)
+    Ash.get!(Variant, variant.id, authorize?: false, authorize?: false)
   end
 
   defp reload_order(order) do
@@ -422,10 +422,10 @@ defmodule Emakola.Orders.CheckoutEdgeCasesTest do
       {:ok, _updated_variant} =
         ctx.variant
         |> Ash.Changeset.for_update(:update, %{price: 12_000})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       # Verify snapshot is preserved
-      reloaded_li = Ash.get!(LineItem, original_li.id)
+      reloaded_li = Ash.get!(LineItem, original_li.id, authorize?: false, authorize?: false)
       assert reloaded_li.unit_price == 8000
       assert reloaded_li.line_total == 16_000
     end
@@ -450,10 +450,10 @@ defmodule Emakola.Orders.CheckoutEdgeCasesTest do
       {:ok, _} =
         product
         |> Ash.Changeset.for_update(:update, %{title: "New Kente Design"})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       # Snapshot unchanged
-      reloaded_li = Ash.get!(LineItem, li.id)
+      reloaded_li = Ash.get!(LineItem, li.id, authorize?: false, authorize?: false)
       assert reloaded_li.product_title == "Original Kente"
     end
 
@@ -479,9 +479,9 @@ defmodule Emakola.Orders.CheckoutEdgeCasesTest do
       {:ok, _} =
         variant
         |> Ash.Changeset.for_update(:update, %{sku: "KNT-002"})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
-      reloaded_li = Ash.get!(LineItem, li.id)
+      reloaded_li = Ash.get!(LineItem, li.id, authorize?: false, authorize?: false)
       assert reloaded_li.variant_sku == "KNT-001"
     end
 

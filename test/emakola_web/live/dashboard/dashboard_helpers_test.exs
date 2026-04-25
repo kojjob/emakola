@@ -143,7 +143,7 @@ defmodule EmakolaWeb.DashboardHelpersTest do
         variant_id: variant.id,
         quantity: 5
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
       Emakola.Orders.LineItem
       |> Ash.Changeset.for_create(:create, %{
@@ -152,7 +152,7 @@ defmodule EmakolaWeb.DashboardHelpersTest do
         variant_id: variant2.id,
         quantity: 2
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
       data = DashboardHelpers.load_merchant_dashboard(store.id, "today")
 
@@ -194,7 +194,7 @@ defmodule EmakolaWeb.DashboardHelpersTest do
 
       payment
       |> Ash.Changeset.for_update(:mark_failed, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       data = DashboardHelpers.load_merchant_dashboard(store.id, "today")
 

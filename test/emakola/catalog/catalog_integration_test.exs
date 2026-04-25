@@ -57,7 +57,7 @@ defmodule Emakola.Catalog.IntegrationTest do
         links =
           Emakola.Catalog.VariantOptionValue
           |> Ash.Query.filter(variant_id == ^variant.id)
-          |> Ash.read!()
+          |> Ash.read!(authorize?: false)
 
         assert length(links) == 2
       end
@@ -66,7 +66,7 @@ defmodule Emakola.Catalog.IntegrationTest do
       activated =
         product
         |> Ash.Changeset.for_update(:activate, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert activated.status == :active
       assert activated.published_at != nil
@@ -75,7 +75,7 @@ defmodule Emakola.Catalog.IntegrationTest do
       archived =
         activated
         |> Ash.Changeset.for_update(:archive, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert archived.status == :archived
     end
@@ -105,7 +105,7 @@ defmodule Emakola.Catalog.IntegrationTest do
       a_categories =
         Emakola.Catalog.Category
         |> Ash.Query.filter(store_id == ^store_a.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(a_categories) == 1
       assert hd(a_categories).name == "Electronics"
@@ -113,7 +113,7 @@ defmodule Emakola.Catalog.IntegrationTest do
       a_products =
         Emakola.Catalog.Product
         |> Ash.Query.filter(store_id == ^store_a.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(a_products) == 1
       assert hd(a_products).title == "Phone"
@@ -121,7 +121,7 @@ defmodule Emakola.Catalog.IntegrationTest do
       a_variants =
         Emakola.Catalog.Variant
         |> Ash.Query.filter(store_id == ^store_a.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(a_variants) == 1
       assert hd(a_variants).price == 500_000
@@ -130,7 +130,7 @@ defmodule Emakola.Catalog.IntegrationTest do
       b_products =
         Emakola.Catalog.Product
         |> Ash.Query.filter(store_id == ^store_b.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(b_products) == 1
       assert hd(b_products).title == "Jollof Rice"
@@ -181,9 +181,20 @@ defmodule Emakola.Catalog.IntegrationTest do
       v3 = create_variant!(product, store, price: 5000, stock_quantity: 5, sku: "TS-L")
 
       # Sell some stock
-      v1 = v1 |> Ash.Changeset.for_update(:adjust_stock, %{delta: -10}) |> Ash.update!()
-      v2 = v2 |> Ash.Changeset.for_update(:adjust_stock, %{delta: -45}) |> Ash.update!()
-      v3 = v3 |> Ash.Changeset.for_update(:adjust_stock, %{delta: -5}) |> Ash.update!()
+      v1 =
+        v1
+        |> Ash.Changeset.for_update(:adjust_stock, %{delta: -10})
+        |> Ash.update!(authorize?: false)
+
+      v2 =
+        v2
+        |> Ash.Changeset.for_update(:adjust_stock, %{delta: -45})
+        |> Ash.update!(authorize?: false)
+
+      v3 =
+        v3
+        |> Ash.Changeset.for_update(:adjust_stock, %{delta: -5})
+        |> Ash.update!(authorize?: false)
 
       assert v1.stock_quantity == 90
       assert v2.stock_quantity == 5
@@ -208,7 +219,7 @@ defmodule Emakola.Catalog.IntegrationTest do
       activated =
         product
         |> Ash.Changeset.for_update(:activate, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert activated.status == :active
     end
@@ -228,7 +239,7 @@ defmodule Emakola.Catalog.IntegrationTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "money is always in integer minor units" do

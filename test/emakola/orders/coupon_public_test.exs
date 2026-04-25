@@ -29,7 +29,7 @@ defmodule Emakola.Orders.CouponPublicTest do
           discount_type: :percentage,
           discount_value: 1000
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert coupon.is_public == false
     end
@@ -44,7 +44,7 @@ defmodule Emakola.Orders.CouponPublicTest do
           discount_value: 1000,
           is_public: true
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert coupon.is_public == true
     end
@@ -59,14 +59,14 @@ defmodule Emakola.Orders.CouponPublicTest do
           discount_value: 500,
           is_public: false
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert coupon.is_public == false
 
       {:ok, updated} =
         coupon
         |> Ash.Changeset.for_update(:update, %{is_public: true})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert updated.is_public == true
     end
@@ -77,7 +77,7 @@ defmodule Emakola.Orders.CouponPublicTest do
       create_coupon!(store, %{code: "PUB1", is_public: true, active: true})
       create_coupon!(store, %{code: "PUB2", is_public: true, active: true})
 
-      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id)
+      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id, authorize?: false)
 
       codes = Enum.map(coupons, & &1.code)
       assert "PUB1" in codes
@@ -88,7 +88,7 @@ defmodule Emakola.Orders.CouponPublicTest do
       create_coupon!(store, %{code: "PRIVATE", is_public: false, active: true})
       create_coupon!(store, %{code: "SHOWN", is_public: true, active: true})
 
-      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id)
+      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id, authorize?: false)
 
       codes = Enum.map(coupons, & &1.code)
       assert "SHOWN" in codes
@@ -98,7 +98,7 @@ defmodule Emakola.Orders.CouponPublicTest do
     test "excludes inactive coupons", %{store: store} do
       create_coupon!(store, %{code: "INACTIVE", is_public: true, active: false})
 
-      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id)
+      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id, authorize?: false)
       assert coupons == []
     end
 
@@ -106,14 +106,14 @@ defmodule Emakola.Orders.CouponPublicTest do
       past = DateTime.add(DateTime.utc_now(), -3600, :second)
       create_coupon!(store, %{code: "EXPIRED", is_public: true, active: true, expires_at: past})
 
-      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id)
+      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id, authorize?: false)
       assert coupons == []
     end
 
     test "includes coupons with no expiry", %{store: store} do
       create_coupon!(store, %{code: "NOEXP", is_public: true, active: true, expires_at: nil})
 
-      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id)
+      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id, authorize?: false)
       assert length(coupons) == 1
       assert hd(coupons).code == "NOEXP"
     end
@@ -122,7 +122,7 @@ defmodule Emakola.Orders.CouponPublicTest do
       future = DateTime.add(DateTime.utc_now(), 86_400, :second)
       create_coupon!(store, %{code: "FUTURE", is_public: true, active: true, starts_at: future})
 
-      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id)
+      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id, authorize?: false)
       assert coupons == []
     end
 
@@ -130,7 +130,7 @@ defmodule Emakola.Orders.CouponPublicTest do
       past = DateTime.add(DateTime.utc_now(), -3600, :second)
       create_coupon!(store, %{code: "STARTED", is_public: true, active: true, starts_at: past})
 
-      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id)
+      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id, authorize?: false)
       assert length(coupons) == 1
     end
 
@@ -146,22 +146,22 @@ defmodule Emakola.Orders.CouponPublicTest do
           active: true,
           max_uses: 1
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       # Increment usage to hit the limit
       {:ok, _} =
         coupon
         |> Ash.Changeset.for_update(:increment_usage, %{})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
-      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id)
+      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id, authorize?: false)
       assert coupons == []
     end
 
     test "includes coupons with no max usage limit", %{store: store} do
       create_coupon!(store, %{code: "UNLIMITED", is_public: true, active: true, max_uses: nil})
 
-      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id)
+      {:ok, coupons} = Emakola.Orders.list_active_public_coupons(store.id, authorize?: false)
       assert length(coupons) == 1
     end
 
@@ -171,7 +171,9 @@ defmodule Emakola.Orders.CouponPublicTest do
       create_coupon!(store, %{code: "STORE1", is_public: true, active: true})
       create_coupon!(other_store, %{code: "STORE2", is_public: true, active: true})
 
-      {:ok, store1_coupons} = Emakola.Orders.list_active_public_coupons(store.id)
+      {:ok, store1_coupons} =
+        Emakola.Orders.list_active_public_coupons(store.id, authorize?: false)
+
       {:ok, store2_coupons} = Emakola.Orders.list_active_public_coupons(other_store.id)
 
       codes1 = Enum.map(store1_coupons, & &1.code)
@@ -197,6 +199,6 @@ defmodule Emakola.Orders.CouponPublicTest do
 
     Coupon
     |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 end

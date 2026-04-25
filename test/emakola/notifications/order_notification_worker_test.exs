@@ -18,7 +18,7 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerTest do
     store =
       store
       |> Ash.Changeset.for_update(:update_settings, %{contact_phone: @merchant_phone})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
     customer =
       Factory.create_customer!(store, %{
@@ -42,7 +42,7 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerTest do
     store =
       store
       |> Ash.Changeset.for_update(:update_settings, %{contact_phone: @merchant_phone})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
     order = Factory.create_order!(store, %{total: 10_000, currency: "GHS"})
     {order, store}

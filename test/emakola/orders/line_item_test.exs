@@ -28,7 +28,7 @@ defmodule Emakola.Orders.LineItemTest do
           variant_id: variant.id,
           quantity: 2
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert line_item.product_title == product.title
       assert line_item.variant_sku == variant.sku
@@ -50,7 +50,7 @@ defmodule Emakola.Orders.LineItemTest do
           variant_id: variant.id,
           quantity: 5
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert line_item.line_total == 75_000
     end
@@ -64,7 +64,7 @@ defmodule Emakola.Orders.LineItemTest do
                  variant_id: variant.id,
                  quantity: 0
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects negative quantity", %{store: store, variant: variant, order: order} do
@@ -76,7 +76,7 @@ defmodule Emakola.Orders.LineItemTest do
                  variant_id: variant.id,
                  quantity: -1
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 end

@@ -33,7 +33,7 @@ defmodule EmakolaWeb.DashboardLiveTest do
         variant_id: variant.id,
         quantity: 1
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
       %{conn: conn, merchant: merchant, store: store, order: order, customer: customer}
     end

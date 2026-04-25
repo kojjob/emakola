@@ -81,7 +81,7 @@ defmodule Emakola.Payments.PaystackWebhookTest do
       updated =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert updated.status == :success
       assert updated.gateway_response["gateway_response"] == "Successful"
@@ -123,7 +123,7 @@ defmodule Emakola.Payments.PaystackWebhookTest do
       updated =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert updated.status == :failed
     end
@@ -140,7 +140,7 @@ defmodule Emakola.Payments.PaystackWebhookTest do
       |> Ash.Changeset.for_update(:mark_success, %{
         gateway_response: %{"status" => "success"}
       })
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       event = %{
         "event" => "refund.processed",
@@ -155,7 +155,7 @@ defmodule Emakola.Payments.PaystackWebhookTest do
       updated =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert updated.status == :refunded
       assert updated.refunded_amount == 250_000
@@ -201,7 +201,7 @@ defmodule Emakola.Payments.PaystackWebhookTest do
       updated =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert updated.status == :success
     end
@@ -214,7 +214,7 @@ defmodule Emakola.Payments.PaystackWebhookTest do
       |> Ash.Changeset.for_update(:mark_failed, %{
         gateway_response: %{"status" => "failed"}
       })
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       # Try to process a success event — should be idempotent
       event = %{
@@ -232,7 +232,7 @@ defmodule Emakola.Payments.PaystackWebhookTest do
       updated =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       # Should still be failed — not overwritten
       assert updated.status == :failed
@@ -243,11 +243,11 @@ defmodule Emakola.Payments.PaystackWebhookTest do
 
       payment
       |> Ash.Changeset.for_update(:mark_success, %{gateway_response: %{}})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       payment
       |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 250_000})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       event = %{
         "event" => "refund.processed",
@@ -262,7 +262,7 @@ defmodule Emakola.Payments.PaystackWebhookTest do
       updated =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert updated.status == :refunded
       # Amount unchanged from first refund

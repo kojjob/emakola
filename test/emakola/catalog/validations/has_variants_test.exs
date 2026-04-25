@@ -14,7 +14,7 @@ defmodule Emakola.Catalog.Validations.HasVariantsTest do
       assert {:error, _} =
                product
                |> Ash.Changeset.for_update(:activate, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "passes activation when product has one variant", %{store: store} do
@@ -24,7 +24,7 @@ defmodule Emakola.Catalog.Validations.HasVariantsTest do
       assert {:ok, activated} =
                product
                |> Ash.Changeset.for_update(:activate, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
 
       assert activated.status == :active
     end
@@ -38,7 +38,7 @@ defmodule Emakola.Catalog.Validations.HasVariantsTest do
       assert {:ok, activated} =
                product
                |> Ash.Changeset.for_update(:activate, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
 
       assert activated.status == :active
     end
@@ -50,7 +50,7 @@ defmodule Emakola.Catalog.Validations.HasVariantsTest do
       assert {:ok, activated} =
                product
                |> Ash.Changeset.for_update(:activate, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
 
       assert activated.published_at != nil
     end
@@ -61,7 +61,7 @@ defmodule Emakola.Catalog.Validations.HasVariantsTest do
       {:error, error} =
         product
         |> Ash.Changeset.for_update(:activate, %{})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       error_string = inspect(error)
       assert error_string =~ "variant"

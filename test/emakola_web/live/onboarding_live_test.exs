@@ -180,7 +180,7 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       assert_redirect(view, "/dashboard")
 
       # Verify store was created
-      stores = Emakola.Accounts.Store |> Ash.read!()
+      stores = Emakola.Accounts.Store |> Ash.read!(authorize?: false)
       assert Enum.any?(stores, &(&1.name == "Kojo Shop"))
 
       # Verify the store has the right slug
@@ -192,7 +192,7 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       memberships =
         Emakola.Accounts.Membership
         |> Ash.Query.filter(user_id: user.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(memberships) == 1
       assert hd(memberships).role == :owner
@@ -219,7 +219,7 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       assert_redirect(view, "/dashboard")
 
       # Verify store
-      stores = Emakola.Accounts.Store |> Ash.read!()
+      stores = Emakola.Accounts.Store |> Ash.read!(authorize?: false)
       store = Enum.find(stores, &(&1.name == "Merchant Store"))
       assert store
       assert store.slug == "merchant-store"
@@ -228,7 +228,7 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       memberships =
         Emakola.Accounts.StoreMembership
         |> Ash.Query.filter(merchant_id: merchant.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(memberships) == 1
       assert hd(memberships).role == :owner
@@ -249,7 +249,7 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       render_click(view, "complete")
       assert_redirect(view, "/dashboard")
 
-      stores = Emakola.Accounts.Store |> Ash.read!()
+      stores = Emakola.Accounts.Store |> Ash.read!(authorize?: false)
       store = Enum.find(stores, &(&1.name == "Naija Store"))
       assert store.currency == "NGN"
     end

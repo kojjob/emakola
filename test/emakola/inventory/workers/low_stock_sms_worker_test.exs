@@ -20,7 +20,7 @@ defmodule Emakola.Inventory.Workers.LowStockSmsWorkerTest do
     variant =
       variant
       |> Ash.Changeset.for_update(:set_low_stock_alerted, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
     %{store: store, merchant: merchant, variant: variant, product: product}
   end
@@ -33,7 +33,7 @@ defmodule Emakola.Inventory.Workers.LowStockSmsWorkerTest do
       store =
         store
         |> Ash.Changeset.for_update(:update_settings, %{contact_phone: "+233244123456"})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       Emakola.SMSProviderMock
       |> expect(:send_sms, fn to, message, _opts ->
@@ -55,7 +55,9 @@ defmodule Emakola.Inventory.Workers.LowStockSmsWorkerTest do
       store: store,
       variant: variant
     } do
-      variant |> Ash.Changeset.for_update(:clear_low_stock_alerted, %{}) |> Ash.update!()
+      variant
+      |> Ash.Changeset.for_update(:clear_low_stock_alerted, %{})
+      |> Ash.update!(authorize?: false)
 
       # No SMS expectation — should not be called
       assert :ok ==

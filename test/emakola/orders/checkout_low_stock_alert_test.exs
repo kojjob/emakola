@@ -46,7 +46,9 @@ defmodule Emakola.Orders.CheckoutLowStockAlertTest do
         args: %{"variant_id" => variant.id, "store_id" => store.id}
       )
 
-      updated = Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false)
+      updated =
+        Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false, authorize?: false)
+
       assert updated.low_stock_alerted == true
     end
 
@@ -71,7 +73,10 @@ defmodule Emakola.Orders.CheckoutLowStockAlertTest do
       product: product
     } do
       variant = Factory.create_variant!(product, store, price: 1000, stock_quantity: 8)
-      variant |> Ash.Changeset.for_update(:set_low_stock_alerted, %{}) |> Ash.update!()
+
+      variant
+      |> Ash.Changeset.for_update(:set_low_stock_alerted, %{})
+      |> Ash.update!(authorize?: false)
 
       {:ok, _order} =
         CheckoutService.checkout!(store.id, [%{variant_id: variant.id, quantity: 1}],
@@ -90,13 +95,19 @@ defmodule Emakola.Orders.CheckoutLowStockAlertTest do
       variant = Factory.create_variant!(product, store, price: 1000, stock_quantity: 3)
 
       variant =
-        variant |> Ash.Changeset.for_update(:set_low_stock_alerted, %{}) |> Ash.update!()
+        variant
+        |> Ash.Changeset.for_update(:set_low_stock_alerted, %{})
+        |> Ash.update!(authorize?: false)
 
       # Restock: add 20 units (total 23, above 10) — uses :restock action
       # which resets low_stock_alerted when new stock >= threshold
-      variant |> Ash.Changeset.for_update(:restock, %{delta: 20}) |> Ash.update!()
+      variant
+      |> Ash.Changeset.for_update(:restock, %{delta: 20})
+      |> Ash.update!(authorize?: false)
 
-      updated = Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false)
+      updated =
+        Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false, authorize?: false)
+
       assert updated.low_stock_alerted == false
     end
   end

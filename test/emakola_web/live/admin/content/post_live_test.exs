@@ -39,7 +39,7 @@ defmodule EmakolaWeb.Admin.Content.PostLiveTest do
 
     test "filters by status", %{conn: conn, store: store} do
       post = Factory.create_post!(store, %{title: "Published One"})
-      post |> Ash.Changeset.for_update(:publish) |> Ash.update!()
+      post |> Ash.Changeset.for_update(:publish) |> Ash.update!(authorize?: false)
       Factory.create_post!(store, %{title: "Draft One"})
 
       {:ok, view, _html} = live(conn, ~p"/admin/content/posts")

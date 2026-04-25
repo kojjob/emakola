@@ -296,7 +296,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
         name: "Test Store #{System.unique_integer([:positive])}",
         slug: "test-store-#{System.unique_integer([:positive])}"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     merchant =
       Emakola.Accounts.Merchant
@@ -305,7 +305,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
         password: "Password123!",
         password_confirmation: "Password123!"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     Emakola.Accounts.StoreMembership
     |> Ash.Changeset.for_create(:create, %{
@@ -313,7 +313,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       store_id: store.id,
       role: :owner
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
 
     {merchant, store}
   end
@@ -333,7 +333,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       name: "Test Customer",
       phone: "+233240000000"
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   defp create_order!(store_id, customer_id, status, opts \\ []) do
@@ -349,7 +349,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
         shipping_address: Keyword.get(opts, :shipping_address, nil),
         billing_address: Keyword.get(opts, :billing_address, nil)
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     transition_to_status(order, status)
   end
@@ -357,30 +357,30 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
   defp transition_to_status(order, :pending), do: order
 
   defp transition_to_status(order, :confirmed) do
-    {:ok, order} = Ash.update(order, %{}, action: :confirm)
+    {:ok, order} = Ash.update(order, %{}, action: :confirm, authorize?: false)
     order
   end
 
   defp transition_to_status(order, :processing) do
     order = transition_to_status(order, :confirmed)
-    {:ok, order} = Ash.update(order, %{}, action: :start_processing)
+    {:ok, order} = Ash.update(order, %{}, action: :start_processing, authorize?: false)
     order
   end
 
   defp transition_to_status(order, :shipped) do
     order = transition_to_status(order, :processing)
-    {:ok, order} = Ash.update(order, %{}, action: :mark_shipped)
+    {:ok, order} = Ash.update(order, %{}, action: :mark_shipped, authorize?: false)
     order
   end
 
   defp transition_to_status(order, :delivered) do
     order = transition_to_status(order, :shipped)
-    {:ok, order} = Ash.update(order, %{}, action: :mark_delivered)
+    {:ok, order} = Ash.update(order, %{}, action: :mark_delivered, authorize?: false)
     order
   end
 
   defp transition_to_status(order, :cancelled) do
-    {:ok, order} = Ash.update(order, %{}, action: :cancel)
+    {:ok, order} = Ash.update(order, %{}, action: :cancel, authorize?: false)
     order
   end
 end

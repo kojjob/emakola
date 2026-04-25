@@ -13,7 +13,7 @@ defmodule Emakola.AccountsTest do
                  password: "Password123!",
                  password_confirmation: "Password123!"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert user.email
       assert user.hashed_password
@@ -28,7 +28,7 @@ defmodule Emakola.AccountsTest do
         password: "Password123!",
         password_confirmation: "Password123!"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
       assert {:error, _} =
                User
@@ -37,7 +37,7 @@ defmodule Emakola.AccountsTest do
                  password: "Password123!",
                  password_confirmation: "Password123!"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -46,7 +46,7 @@ defmodule Emakola.AccountsTest do
       assert {:ok, org} =
                Organisation
                |> Ash.Changeset.for_create(:create, %{name: "My Cool Company"})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert org.name == "My Cool Company"
       assert org.slug == "my-cool-company"
@@ -55,12 +55,12 @@ defmodule Emakola.AccountsTest do
     test "slug uniqueness" do
       Organisation
       |> Ash.Changeset.for_create(:create, %{name: "Unique Org"})
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
       assert {:error, _} =
                Organisation
                |> Ash.Changeset.for_create(:create, %{name: "Unique Org"})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -76,7 +76,7 @@ defmodule Emakola.AccountsTest do
                  user_id: user.id,
                  organisation_id: org.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert membership.role == :member
     end
@@ -94,7 +94,7 @@ defmodule Emakola.AccountsTest do
                  user_id: user.id,
                  organisation_id: org.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "supports role change" do
@@ -105,7 +105,7 @@ defmodule Emakola.AccountsTest do
       assert {:ok, updated} =
                membership
                |> Ash.Changeset.for_update(:change_role, %{role: :admin})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
 
       assert updated.role == :admin
     end

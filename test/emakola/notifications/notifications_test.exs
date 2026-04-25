@@ -17,7 +17,7 @@ defmodule Emakola.NotificationsTest do
                  action_url: "/teams/123",
                  user_id: user.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert notif.type == :team_invite
       assert is_nil(notif.read_at)
@@ -33,12 +33,12 @@ defmodule Emakola.NotificationsTest do
           title: "New feature!",
           user_id: user.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert {:ok, read_notif} =
                notif
                |> Ash.Changeset.for_update(:mark_read)
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
 
       assert read_notif.read_at
     end
@@ -58,7 +58,7 @@ defmodule Emakola.NotificationsTest do
                  sent_at: DateTime.utc_now(),
                  user_id: user.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert log.status == :sent
       assert log.template == "auth/welcome"
@@ -73,12 +73,12 @@ defmodule Emakola.NotificationsTest do
           template: "test",
           status: :pending
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert {:ok, failed} =
                log
                |> Ash.Changeset.for_update(:mark_failed, %{error: "SMTP connection refused"})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
 
       assert failed.status == :failed
       assert failed.error == "SMTP connection refused"

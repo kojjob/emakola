@@ -17,7 +17,7 @@ defmodule Emakola.WebhooksTest do
                  events: ["agent.completed", "billing.updated"],
                  organisation_id: org.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert wh.url == "https://example.com/webhook"
       assert wh.active == true
@@ -30,7 +30,7 @@ defmodule Emakola.WebhooksTest do
       assert {:error, _} =
                OutboundWebhook
                |> Ash.Changeset.for_create(:create, %{organisation_id: org.id})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rotates secret" do
@@ -44,12 +44,12 @@ defmodule Emakola.WebhooksTest do
           events: [],
           organisation_id: org.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       {:ok, rotated} =
         wh
         |> Ash.Changeset.for_update(:rotate_secret, %{secret: "new_secret"})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert rotated.secret == "new_secret"
     end
@@ -67,7 +67,7 @@ defmodule Emakola.WebhooksTest do
           events: ["test"],
           organisation_id: org.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       {:ok, delivery} =
         WebhookDelivery
@@ -76,14 +76,14 @@ defmodule Emakola.WebhooksTest do
           payload: %{"data" => "test"},
           webhook_id: wh.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert delivery.status == :pending
 
       {:ok, delivered} =
         delivery
         |> Ash.Changeset.for_update(:mark_delivered, %{response_status: 200, attempts: 1})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert delivered.status == :delivered
       assert delivered.delivered_at
@@ -138,7 +138,7 @@ defmodule Emakola.WebhooksTest do
           events: [],
           organisation_id: org.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert wh.events == []
     end
@@ -154,7 +154,7 @@ defmodule Emakola.WebhooksTest do
           events: ["test"],
           organisation_id: org.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       nested = %{"level1" => %{"level2" => %{"level3" => [1, 2, 3]}}}
 
@@ -165,7 +165,7 @@ defmodule Emakola.WebhooksTest do
           payload: nested,
           webhook_id: wh.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert delivery.payload["level1"]["level2"]["level3"] == [1, 2, 3]
     end

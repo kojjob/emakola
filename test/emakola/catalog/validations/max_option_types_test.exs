@@ -20,7 +20,7 @@ defmodule Emakola.Catalog.Validations.MaxOptionTypesTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert option_type.name == "Size"
     end
@@ -38,7 +38,7 @@ defmodule Emakola.Catalog.Validations.MaxOptionTypesTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert second.name == "Color"
     end
@@ -57,7 +57,7 @@ defmodule Emakola.Catalog.Validations.MaxOptionTypesTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert third.name == "Material"
     end
@@ -77,7 +77,7 @@ defmodule Emakola.Catalog.Validations.MaxOptionTypesTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "error message mentions maximum option types", %{store: store, product: product} do
@@ -92,7 +92,7 @@ defmodule Emakola.Catalog.Validations.MaxOptionTypesTest do
           product_id: product.id,
           store_id: store.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       error_string = inspect(error)
       assert error_string =~ "maximum" or error_string =~ "3"
@@ -115,7 +115,7 @@ defmodule Emakola.Catalog.Validations.MaxOptionTypesTest do
                  product_id: product_b.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 

@@ -31,7 +31,7 @@ defmodule Emakola.Catalog.OptionValueTest do
       values =
         Emakola.Catalog.OptionValue
         |> Ash.Query.filter(option_type_id == ^option_type.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(values) == 3
     end
@@ -44,7 +44,7 @@ defmodule Emakola.Catalog.OptionValueTest do
                  option_type_id: option_type.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects whitespace-only value", %{store: store, option_type: option_type} do
@@ -55,7 +55,7 @@ defmodule Emakola.Catalog.OptionValueTest do
                  option_type_id: option_type.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects duplicate value within same option type", %{
@@ -71,7 +71,7 @@ defmodule Emakola.Catalog.OptionValueTest do
                  option_type_id: option_type.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "allows same value in different option types", %{store: store, product: product} do
@@ -96,7 +96,7 @@ defmodule Emakola.Catalog.OptionValueTest do
                  option_type_id: option_type.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -109,7 +109,7 @@ defmodule Emakola.Catalog.OptionValueTest do
       updated =
         value
         |> Ash.Changeset.for_update(:update, %{value: "Extra Small"})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.value == "Extra Small"
     end
@@ -120,7 +120,7 @@ defmodule Emakola.Catalog.OptionValueTest do
       updated =
         value
         |> Ash.Changeset.for_update(:update, %{position: 3})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.position == 3
     end
@@ -149,7 +149,7 @@ defmodule Emakola.Catalog.OptionValueTest do
       my_values =
         Emakola.Catalog.OptionValue
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(my_values) == 1
       assert hd(my_values).value == "Small"

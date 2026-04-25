@@ -32,21 +32,21 @@ defmodule Emakola.Shipping.DeliveryZoneTest do
       assert {:error, _} =
                Emakola.Shipping.DeliveryZone
                |> Ash.Changeset.for_create(:create, %{store_id: store.id, fee: 1500})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects missing fee", %{store: store} do
       assert {:error, _} =
                Emakola.Shipping.DeliveryZone
                |> Ash.Changeset.for_create(:create, %{store_id: store.id, name: "Test"})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects missing store_id" do
       assert {:error, _} =
                Emakola.Shipping.DeliveryZone
                |> Ash.Changeset.for_create(:create, %{name: "Test", fee: 1500})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "fee must be >= 0", %{store: store} do
@@ -57,7 +57,7 @@ defmodule Emakola.Shipping.DeliveryZoneTest do
                  name: "Test",
                  fee: -100
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "name is unique per store", %{store: store} do
@@ -70,7 +70,7 @@ defmodule Emakola.Shipping.DeliveryZoneTest do
                  name: "Greater Accra",
                  fee: 2000
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "same name allowed in different stores", %{store: store} do
@@ -92,7 +92,7 @@ defmodule Emakola.Shipping.DeliveryZoneTest do
       {:ok, zones} =
         Emakola.Shipping.DeliveryZone
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert length(zones) == 2
       names = Enum.map(zones, & &1.name) |> Enum.sort()
@@ -107,7 +107,7 @@ defmodule Emakola.Shipping.DeliveryZoneTest do
       {:ok, zones} =
         Emakola.Shipping.DeliveryZone
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert length(zones) == 1
       assert hd(zones).name == "Greater Accra"
@@ -123,7 +123,7 @@ defmodule Emakola.Shipping.DeliveryZoneTest do
       {:ok, updated} =
         zone
         |> Ash.Changeset.for_update(:update, %{fee: 2000, estimated_days: 2})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert updated.fee == 2000
       assert updated.estimated_days == 2
@@ -135,7 +135,7 @@ defmodule Emakola.Shipping.DeliveryZoneTest do
       {:ok, updated} =
         zone
         |> Ash.Changeset.for_update(:update, %{active: false})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert updated.active == false
     end
@@ -152,7 +152,7 @@ defmodule Emakola.Shipping.DeliveryZoneTest do
       {:ok, zones} =
         Emakola.Shipping.DeliveryZone
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert zones == []
     end
@@ -171,12 +171,12 @@ defmodule Emakola.Shipping.DeliveryZoneTest do
       {:ok, store1_zones} =
         Emakola.Shipping.DeliveryZone
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       {:ok, store2_zones} =
         Emakola.Shipping.DeliveryZone
         |> Ash.Query.filter(store_id == ^store2.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert length(store1_zones) == 2
       assert length(store2_zones) == 1

@@ -92,7 +92,7 @@ defmodule Emakola.Content.PostTest do
       published =
         post
         |> Ash.Changeset.for_update(:publish, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert published.status == :published
       assert published.published_at != nil
@@ -104,24 +104,24 @@ defmodule Emakola.Content.PostTest do
       post =
         create_post!(store)
         |> Ash.Changeset.for_update(:publish, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       # Force set a specific published_at, then re-publish
       post =
         post
         |> Ash.Changeset.for_update(:archive, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       post =
         post
         |> Ash.Changeset.for_update(:update, %{})
         |> Ash.Changeset.force_change_attribute(:published_at, original_time)
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       republished =
         post
         |> Ash.Changeset.for_update(:publish, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert republished.status == :published
       assert republished.published_at == original_time
@@ -133,12 +133,12 @@ defmodule Emakola.Content.PostTest do
       post =
         create_post!(store)
         |> Ash.Changeset.for_update(:publish, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       archived =
         post
         |> Ash.Changeset.for_update(:archive, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert archived.status == :archived
     end
@@ -151,12 +151,12 @@ defmodule Emakola.Content.PostTest do
       published =
         create_post!(store, %{title: "Published Post"})
         |> Ash.Changeset.for_update(:publish, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       results =
         Post
         |> Ash.Query.for_read(:list_published, %{store_id: store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(results) == 1
       assert hd(results).id == published.id
@@ -165,16 +165,16 @@ defmodule Emakola.Content.PostTest do
     test "filters by type when provided", %{store: store} do
       create_post!(store, %{title: "Blog", type: :blog_post})
       |> Ash.Changeset.for_update(:publish, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       create_post!(store, %{title: "Page", type: :page})
       |> Ash.Changeset.for_update(:publish, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       results =
         Post
         |> Ash.Query.for_read(:list_published, %{store_id: store.id, type: :blog_post})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(results) == 1
       assert hd(results).type == :blog_post
@@ -188,7 +188,7 @@ defmodule Emakola.Content.PostTest do
       found =
         Post
         |> Ash.Query.for_read(:get_by_slug, %{slug: "unique-slug-post", store_id: store.id})
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert found.id == post.id
     end
@@ -197,7 +197,7 @@ defmodule Emakola.Content.PostTest do
       result =
         Post
         |> Ash.Query.for_read(:get_by_slug, %{slug: "does-not-exist", store_id: store.id})
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert result == nil
     end
@@ -211,14 +211,14 @@ defmodule Emakola.Content.PostTest do
       updated =
         post
         |> Ash.Changeset.for_update(:increment_views, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.view_count == 1
 
       updated2 =
         updated
         |> Ash.Changeset.for_update(:increment_views, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated2.view_count == 2
     end
@@ -233,7 +233,7 @@ defmodule Emakola.Content.PostTest do
       results =
         Post
         |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(results) == 1
       assert hd(results).title == "Store A Post"
