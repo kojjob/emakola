@@ -89,6 +89,23 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert result.sections.designer_note == true
     end
 
+    test "heritage theme returns correct defaults (lifestyle / crafts niche)" do
+      result = ThemeResolver.resolve(%{"theme" => "heritage"})
+
+      assert result.theme_id == "heritage"
+      assert result.theme_name == "Heritage"
+      assert result.colors.primary == "#A0522D"
+      assert result.colors.accent == "#84A98C"
+      assert result.colors.background == "#FFFBEB"
+      assert result.fonts.heading == "Lora"
+      assert result.fonts.body == "Inter"
+      # Lifestyle/crafts-specific section gates
+      assert result.sections.makers == true
+      assert result.sections.rooms == true
+      assert result.sections.story == true
+      assert result.sections.bundles == true
+    end
+
     test "color overrides merge correctly" do
       config = %{
         "theme" => "market",
