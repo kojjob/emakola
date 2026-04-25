@@ -57,6 +57,22 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert result.sections.delivery == true
     end
 
+    test "luminous theme returns correct defaults (beauty & cosmetics niche)" do
+      result = ThemeResolver.resolve(%{"theme" => "luminous"})
+
+      assert result.theme_id == "luminous"
+      assert result.theme_name == "Luminous"
+      assert result.colors.primary == "#DB2777"
+      assert result.colors.accent == "#E5B299"
+      assert result.colors.background == "#FFFBF8"
+      assert result.fonts.heading == "Cormorant Garamond"
+      assert result.fonts.body == "Inter"
+      # Beauty-specific section gates
+      assert result.sections.concerns == true
+      assert result.sections.bundles == true
+      assert result.sections.ingredients == true
+    end
+
     test "color overrides merge correctly" do
       config = %{
         "theme" => "market",
