@@ -243,7 +243,7 @@ defmodule EmakolaWeb.LandingLive do
               <span class="material-symbols-outlined text-[#8896ab] text-xl mr-3">search</span>
               <span class="text-sm text-[#8896ab]">Search products, stores...</span>
               <a
-                href="/auth/register?role=shopper"
+                href="/stores"
                 class="ml-auto bg-[#2563eb] text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-[#1d4ed8] transition-colors"
               >
                 Browse Stores
@@ -1044,7 +1044,7 @@ defmodule EmakolaWeb.LandingLive do
               Start Selling
             </a>
             <a
-              href="/auth/register?role=shopper"
+              href="/stores"
               class="inline-flex items-center px-8 py-3 text-base font-semibold text-[#8896ab] border border-[#2a3a5c] rounded-lg hover:text-[#f1f5f9] hover:border-[#f1f5f9] transition-colors"
             >
               Browse Stores
