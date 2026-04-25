@@ -150,6 +150,7 @@ defmodule EmakolaWeb.Router do
     pipe_through :browser
 
     live "/", LandingLive
+    live "/stores", StoresLive
     live "/docs", Docs.DocsLive
 
     # Authenticated app routes with sidebar layout
