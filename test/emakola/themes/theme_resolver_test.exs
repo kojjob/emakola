@@ -106,6 +106,22 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert result.sections.bundles == true
     end
 
+    test "fade theme returns correct defaults (streetwear / drop-driven niche)" do
+      result = ThemeResolver.resolve(%{"theme" => "fade"})
+
+      assert result.theme_id == "fade"
+      assert result.theme_name == "Fade"
+      assert result.colors.background == "#0A0A0A"
+      assert result.colors.primary == "#FAFAFA"
+      assert result.colors.accent == "#00FF85"
+      assert result.fonts.heading == "Space Grotesk"
+      assert result.fonts.body == "Inter"
+      # Drop-driven section gates
+      assert result.sections.drop_counter == true
+      assert result.sections.lookbook == true
+      assert result.sections.capsules == true
+    end
+
     test "color overrides merge correctly" do
       config = %{
         "theme" => "market",

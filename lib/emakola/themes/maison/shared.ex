@@ -150,10 +150,7 @@ defmodule Emakola.Themes.Maison.Shared do
           <.optimized_image
             src={@hero_image}
             alt={@product.title}
-            class={[
-              "absolute inset-0 w-full h-full object-cover transition-opacity duration-700",
-              if(@detail_image, do: "group-hover:opacity-0", else: "")
-            ]}
+            class={"absolute inset-0 w-full h-full object-cover transition-opacity duration-700 #{if @detail_image, do: "group-hover:opacity-0", else: ""}"}
           />
           <.optimized_image
             :if={@detail_image}
