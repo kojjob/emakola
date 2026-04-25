@@ -2,12 +2,13 @@ defmodule Emakola.Themes.Vibrant do
   @moduledoc """
   Vibrant theme — bold, energetic, West African commerce-inspired.
 
-  Design tokens:
-  - Primary: #DC2626 (red)
+  Design tokens (aligned with the canonical Emakola storefront palette):
+  - Primary: #B45309 (amber-700)
   - Accent: #7C2D12 (burnt orange)
-  - Background: #FFFBEB (warm ivory)
-  - Heading font: Playfair Display
-  - Body font: DM Sans
+  - Highlight: #F59E0B (amber-500) — used in gradients
+  - Background: #FFFBEB (warm ivory) — preserved for Vibrant identity
+  - Heading font: Manrope
+  - Body font: Inter
 
   Render modules:
   - `Emakola.Themes.Vibrant.Home` — store landing page
@@ -21,7 +22,7 @@ defmodule Emakola.Themes.Vibrant do
 
   def fonts,
     do: [
-      "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap"
+      "https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"
     ]
 
   @doc """
@@ -32,16 +33,17 @@ defmodule Emakola.Themes.Vibrant do
       id: :vibrant,
       name: "Vibrant",
       colors: %{
-        primary: "#DC2626",
+        primary: "#B45309",
         accent: "#7C2D12",
+        highlight: "#F59E0B",
         background: "#FFFBEB",
         text: "#1C1917",
         text_secondary: "#78350F",
         border: "#FDE68A"
       },
       fonts: %{
-        heading: "Playfair Display",
-        body: "DM Sans"
+        heading: "Manrope",
+        body: "Inter"
       },
       hero: %{
         image_url: "",
@@ -73,11 +75,12 @@ defmodule Emakola.Themes.Vibrant do
       },
       footer: %{social_links: %{instagram: "", twitter: "", facebook: ""}},
       css_variables: %{
-        "--theme-primary" => "#DC2626",
+        "--theme-primary" => "#B45309",
         "--theme-accent" => "#7C2D12",
+        "--theme-highlight" => "#F59E0B",
         "--theme-bg" => "#FFFBEB",
-        "--theme-font-heading" => "'Playfair Display', serif",
-        "--theme-font-body" => "'DM Sans', sans-serif"
+        "--theme-font-heading" => "'Manrope', sans-serif",
+        "--theme-font-body" => "'Inter', sans-serif"
       }
     }
   end

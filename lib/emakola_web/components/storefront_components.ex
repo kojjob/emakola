@@ -676,6 +676,273 @@ defmodule EmakolaWeb.StorefrontComponents do
     """
   end
 
+  # ── Trust Badge ──
+
+  @doc """
+  Compact icon + label pill that signals provenance, scarcity, or social proof.
+
+  Variants control color emphasis:
+    * `:default` — neutral, low-contrast (most contexts)
+    * `:scarcity` — amber, draws the eye ("Only 3 left", "Limited Edition")
+    * `:provenance` — emerald, signals trust ("Made in Ghana", "Hand-woven")
+  """
+  attr :icon, :string,
+    required: true,
+    doc: "Material symbol name (e.g. \"verified\", \"location_on\")"
+
+  attr :label, :string, required: true
+  attr :variant, :atom, default: :default, values: [:default, :scarcity, :provenance]
+  attr :class, :string, default: ""
+
+  def trust_badge(assigns) do
+    ~H"""
+    <span class={[
+      "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide",
+      badge_classes(@variant),
+      @class
+    ]}>
+      <span class="material-symbols-outlined text-[14px] leading-none">{@icon}</span>
+      {@label}
+    </span>
+    """
+  end
+
+  defp badge_classes(:default), do: "bg-[#F1F5F9] text-[#475569]"
+  defp badge_classes(:scarcity), do: "bg-[#FEF3C7] text-[#92400E]"
+  defp badge_classes(:provenance), do: "bg-[#D1FAE5] text-[#065F46]"
+
+  # ── Trust Badges Strip ──
+
+  @doc """
+  Horizontal strip of trust_badge entries, used under hero or above fold.
+
+  Each badge is a map: `%{icon: "verified", label: "Made in Ghana", variant: :provenance}`.
+  `:variant` is optional and defaults to `:default`.
+  """
+  attr :badges, :list, required: true
+  attr :class, :string, default: ""
+
+  def trust_badges_strip(assigns) do
+    ~H"""
+    <div class={["flex flex-wrap gap-2", @class]} role="list">
+      <.trust_badge
+        :for={badge <- @badges}
+        icon={badge.icon}
+        label={badge.label}
+        variant={Map.get(badge, :variant, :default)}
+      />
+    </div>
+    """
+  end
+
+  # ── Occasion Collection Tile ──
+
+  @doc """
+  Large tile linking to a category, framed as an occasion ("For Celebrations").
+
+  Renders a full-bleed image (or amber gradient fallback) with overlay title and
+  chevron. Designed for narrative-first navigation per the storefront redesign —
+  customers think in occasions, not product types.
+  """
+  attr :category, :map, required: true, doc: "Map with :name, :slug, optional :image_url"
+  attr :store_slug, :string, required: true
+
+  attr :occasion_label, :string,
+    default: nil,
+    doc: "Override display label (e.g. \"For Celebrations\")"
+
+  def occasion_collection_tile(assigns) do
+    assigns =
+      assign_new(assigns, :display_label, fn ->
+        assigns.occasion_label || assigns.category.name
+      end)
+
+    ~H"""
+    <a
+      href={"/s/#{@store_slug}/category/#{@category.slug}"}
+      class="group relative block aspect-[4/5] sm:aspect-[5/6] rounded-[20px] overflow-hidden bg-[#1C1917] focus-visible:ring-2 focus-visible:ring-[#B45309] focus-visible:ring-offset-2"
+    >
+      <%= if Map.get(@category, :image_url) do %>
+        <.optimized_image
+          src={@category.image_url}
+          alt={@category.name}
+          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+        />
+      <% else %>
+        <div class="absolute inset-0 bg-gradient-to-br from-[#B45309] via-[#D97706] to-[#F59E0B]">
+        </div>
+      <% end %>
+      <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent"></div>
+      <div class="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+        <p class="text-[11px] font-semibold tracking-[0.2em] uppercase text-white/70 mb-1.5">
+          Shop the edit
+        </p>
+        <h3 class="text-xl sm:text-2xl font-bold text-white leading-tight mb-3">
+          {@display_label}
+        </h3>
+        <span class="inline-flex items-center gap-1 text-sm font-semibold text-white">
+          Browse
+          <span class="material-symbols-outlined text-base group-hover:translate-x-1 transition-transform">
+            arrow_forward
+          </span>
+        </span>
+      </div>
+    </a>
+    """
+  end
+
+  # ── Artisan Signature Card ──
+
+  @doc """
+  Maker bio card — surfaces the human behind the store.
+
+  Renders avatar (store logo or initial), name, location, short bio, and an
+  optional WhatsApp message link. Used for the "Artisan's Signature" section
+  on the storefront home and PDP per the Stitch design system.
+  """
+  attr :store, :map,
+    required: true,
+    doc: "Store with :name, :description, :logo_url, :city, :region, :whatsapp_number"
+
+  attr :headline, :string, default: "Meet the Artisan"
+  attr :class, :string, default: ""
+
+  def artisan_signature_card(assigns) do
+    ~H"""
+    <article class={[
+      "relative rounded-[24px] bg-[#FAFAF9] border border-[#E7E5E4] overflow-hidden",
+      "p-6 sm:p-8 lg:p-10",
+      @class
+    ]}>
+      <p class="text-[11px] font-semibold tracking-[0.2em] uppercase text-[#B45309] mb-4">
+        {@headline}
+      </p>
+      <div class="flex flex-col sm:flex-row gap-5 sm:gap-7 items-start">
+        <div class="flex-shrink-0">
+          <%= if @store.logo_url do %>
+            <.optimized_image
+              src={@store.logo_url}
+              alt={"#{@store.name} portrait"}
+              priority={:low}
+              class="w-20 h-20 sm:w-28 sm:h-28 rounded-full object-cover ring-4 ring-[#FEF3C7]"
+            />
+          <% else %>
+            <div class="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br from-[#B45309] to-[#F59E0B] flex items-center justify-center ring-4 ring-[#FEF3C7]">
+              <span class="text-2xl sm:text-3xl font-bold text-white">
+                {String.first(@store.name)}
+              </span>
+            </div>
+          <% end %>
+        </div>
+        <div class="flex-1 min-w-0">
+          <h3 class="text-xl sm:text-2xl font-bold text-[#1C1917] leading-tight">
+            {@store.name}
+          </h3>
+          <p
+            :if={artisan_location(@store) != ""}
+            class="mt-1 inline-flex items-center gap-1 text-sm text-[#78716C]"
+          >
+            <span class="material-symbols-outlined text-base">location_on</span>
+            {artisan_location(@store)}
+          </p>
+          <p :if={@store.description} class="mt-4 text-[15px] leading-relaxed text-[#44403C]">
+            {@store.description}
+          </p>
+          <a
+            :if={Map.get(@store, :whatsapp_number)}
+            href={"https://wa.me/#{normalise_whatsapp(@store.whatsapp_number)}"}
+            target="_blank"
+            rel="noopener"
+            class="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#25D366] text-white text-sm font-semibold hover:bg-[#1FB855] transition-colors"
+          >
+            <span class="material-symbols-outlined text-[18px]">chat</span> Message on WhatsApp
+          </a>
+        </div>
+      </div>
+    </article>
+    """
+  end
+
+  defp artisan_location(store) do
+    [Map.get(store, :city), Map.get(store, :region)]
+    |> Enum.reject(&(is_nil(&1) or &1 == ""))
+    |> Enum.join(", ")
+  end
+
+  defp normalise_whatsapp(number) do
+    number
+    |> to_string()
+    |> String.replace(~r/[^\d]/, "")
+  end
+
+  # ── Pattern Divider ──
+
+  @doc """
+  Decorative section divider with a subtle culturally-inspired motif.
+
+  Variants:
+    * `:kente` — interlocking amber/gold zigzag (default)
+    * `:ankara` — diamond + dot wax-print accent
+    * `:none` — plain hairline rule with a single dot (use to soften without ornament)
+  """
+  attr :variant, :atom, default: :kente, values: [:kente, :ankara, :none]
+  attr :class, :string, default: ""
+
+  def pattern_divider(assigns) do
+    ~H"""
+    <div
+      class={["w-full flex items-center justify-center py-6 sm:py-8", @class]}
+      aria-hidden="true"
+    >
+      <div class="flex-1 h-px bg-gradient-to-r from-transparent via-[#E7E5E4] to-transparent"></div>
+      <div class="px-4">
+        <.divider_motif variant={@variant} />
+      </div>
+      <div class="flex-1 h-px bg-gradient-to-r from-[#E7E5E4] via-[#E7E5E4] to-transparent"></div>
+    </div>
+    """
+  end
+
+  attr :variant, :atom, required: true
+
+  defp divider_motif(%{variant: :kente} = assigns) do
+    ~H"""
+    <svg
+      width="48"
+      height="14"
+      viewBox="0 0 48 14"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M0 7 L8 0 L16 7 L24 0 L32 7 L40 0 L48 7" stroke="#B45309" stroke-width="2" />
+      <path d="M0 7 L8 14 L16 7 L24 14 L32 7 L40 14 L48 7" stroke="#F59E0B" stroke-width="2" />
+    </svg>
+    """
+  end
+
+  defp divider_motif(%{variant: :ankara} = assigns) do
+    ~H"""
+    <svg
+      width="48"
+      height="14"
+      viewBox="0 0 48 14"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <circle cx="6" cy="7" r="2" fill="#B45309" />
+      <path d="M14 7 L20 1 L26 7 L20 13 Z" fill="none" stroke="#B45309" stroke-width="1.5" />
+      <circle cx="34" cy="7" r="2" fill="#F59E0B" />
+      <path d="M42 7 L48 1" stroke="#F59E0B" stroke-width="1.5" />
+    </svg>
+    """
+  end
+
+  defp divider_motif(%{variant: :none} = assigns) do
+    ~H"""
+    <span class="block w-1.5 h-1.5 rounded-full bg-[#E7E5E4]"></span>
+    """
+  end
+
   defp nav_icon(%{name: "home"} = assigns) do
     ~H"""
     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
