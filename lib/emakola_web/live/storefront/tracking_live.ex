@@ -614,7 +614,7 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
     case Emakola.Orders.Order
          |> Ash.Query.filter(store_id == ^store.id and order_number == ^order_number)
          |> Ash.Query.load([:line_items])
-         |> Ash.read_one() do
+         |> Ash.read_one(authorize?: false) do
       {:ok, nil} -> {:error, :not_found}
       {:ok, order} -> {:ok, order}
       {:error, _} -> {:error, :not_found}

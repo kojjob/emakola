@@ -112,7 +112,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     product = socket.assigns.action_product
 
     if product do
-      case product |> Ash.Changeset.for_update(:archive) |> Ash.update() do
+      case product |> Ash.Changeset.for_update(:archive) |> Ash.update(authorize?: false) do
         {:ok, _} ->
           {:noreply,
            socket
@@ -133,7 +133,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     product = socket.assigns.action_product
 
     if product do
-      case product |> Ash.Changeset.for_update(:activate) |> Ash.update() do
+      case product |> Ash.Changeset.for_update(:activate) |> Ash.update(authorize?: false) do
         {:ok, _} ->
           {:noreply,
            socket
@@ -1223,7 +1223,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   defp create_product(attrs, :active) do
     case Emakola.Catalog.create_product(attrs) do
       {:ok, product} ->
-        case Ash.Changeset.for_update(product, :activate) |> Ash.update() do
+        case Ash.Changeset.for_update(product, :activate) |> Ash.update(authorize?: false) do
           {:ok, activated} -> {:ok, activated}
           {:error, _} -> {:ok, product}
         end
@@ -1240,9 +1240,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   end
 
   defp update_product(product, attrs, :active) do
-    case product |> Ash.Changeset.for_update(:update, attrs) |> Ash.update() do
+    case product |> Ash.Changeset.for_update(:update, attrs) |> Ash.update(authorize?: false) do
       {:ok, updated} ->
-        case updated |> Ash.Changeset.for_update(:activate) |> Ash.update() do
+        case updated |> Ash.Changeset.for_update(:activate) |> Ash.update(authorize?: false) do
           {:ok, activated} -> {:ok, activated}
           {:error, _} -> {:ok, updated}
         end

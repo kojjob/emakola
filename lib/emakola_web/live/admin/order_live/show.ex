@@ -503,7 +503,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
         case Emakola.Orders.Order
              |> Ash.Query.filter(id: id, store_id: store_id)
              |> Ash.Query.load([:line_items, :customer])
-             |> Ash.read() do
+             |> Ash.read(authorize?: false) do
           {:ok, [order]} -> order
           _ -> nil
         end
@@ -530,7 +530,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
             case Emakola.Payments.Payment
                  |> Ash.Query.filter(order_id: order.id)
                  |> Ash.Query.limit(1)
-                 |> Ash.read() do
+                 |> Ash.read(authorize?: false) do
               {:ok, [payment]} -> payment
               _ -> nil
             end

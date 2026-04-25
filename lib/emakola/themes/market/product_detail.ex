@@ -539,11 +539,13 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 </summary>
                 <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-[#475569] leading-relaxed space-y-2">
                   <div class="flex items-start gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-store-accent mt-1.5 flex-shrink-0"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-store-accent mt-1.5 flex-shrink-0">
+                    </span>
                     <p>Delivery within Greater Accra: 1-2 business days.</p>
                   </div>
                   <div class="flex items-start gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-store-accent mt-1.5 flex-shrink-0"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-store-accent mt-1.5 flex-shrink-0">
+                    </span>
                     <p>Nationwide delivery: 3-5 business days.</p>
                   </div>
                   <div class="flex items-start gap-2">

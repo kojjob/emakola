@@ -17,7 +17,7 @@ defmodule EmakolaWeb.Helpers.StoreResolver do
   def resolve(slug) when is_binary(slug) do
     case Emakola.Accounts.Store
          |> Ash.Query.filter(slug == ^slug)
-         |> Ash.read_one() do
+         |> Ash.read_one(authorize?: false) do
       {:ok, nil} -> {:error, :not_found}
       {:ok, store} -> {:ok, store}
       {:error, _} -> {:error, :not_found}

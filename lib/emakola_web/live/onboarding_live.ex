@@ -547,7 +547,7 @@ defmodule EmakolaWeb.OnboardingLive do
         case Emakola.Accounts.StoreMembership
              |> Ash.Query.filter(merchant_id: user.id)
              |> Ash.Query.limit(1)
-             |> Ash.read() do
+             |> Ash.read(authorize?: false) do
           {:ok, [_ | _]} -> true
           _ -> false
         end
@@ -556,7 +556,7 @@ defmodule EmakolaWeb.OnboardingLive do
         case Emakola.Accounts.Membership
              |> Ash.Query.filter(user_id: user.id)
              |> Ash.Query.limit(1)
-             |> Ash.read() do
+             |> Ash.read(authorize?: false) do
           {:ok, [_ | _]} -> true
           _ -> false
         end
@@ -643,7 +643,7 @@ defmodule EmakolaWeb.OnboardingLive do
              user_id: user.id,
              organisation_id: org.id
            })
-           |> Ash.create() do
+           |> Ash.create(authorize?: false) do
       {:ok, membership}
     end
   end

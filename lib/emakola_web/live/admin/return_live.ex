@@ -95,7 +95,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
            admin_notes: socket.assigns.action_notes,
            refund_amount: refund_amount
          })
-         |> Ash.update() do
+         |> Ash.update(authorize?: false) do
       {:ok, _updated} ->
         returns = load_returns(socket.assigns.store.id, socket.assigns.status_filter)
 
@@ -115,7 +115,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
 
     case return
          |> Ash.Changeset.for_update(:deny, %{admin_notes: socket.assigns.action_notes})
-         |> Ash.update() do
+         |> Ash.update(authorize?: false) do
       {:ok, _updated} ->
         returns = load_returns(socket.assigns.store.id, socket.assigns.status_filter)
 
@@ -135,7 +135,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
 
     case return
          |> Ash.Changeset.for_update(:mark_refunded, %{})
-         |> Ash.update() do
+         |> Ash.update(authorize?: false) do
       {:ok, _updated} ->
         returns = load_returns(socket.assigns.store.id, socket.assigns.status_filter)
 
@@ -373,7 +373,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
     returns =
       Emakola.Orders.Return
       |> Ash.Query.for_read(:list_by_store, %{store_id: store_id})
-      |> Ash.read!()
+      |> Ash.read!(authorize?: false)
 
     case status_filter do
       "all" -> returns

@@ -77,7 +77,7 @@ defmodule EmakolaWeb.ExportController do
          |> Ash.Query.filter(merchant_id: merchant.id)
          |> Ash.Query.load(:store)
          |> Ash.Query.limit(1)
-         |> Ash.read() do
+         |> Ash.read(authorize?: false) do
       {:ok, [membership | _]} -> {:ok, membership.store}
       _ -> {:error, :no_store}
     end

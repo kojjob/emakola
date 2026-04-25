@@ -147,7 +147,9 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
       {:ok, category} ->
         update_attrs = Map.take(attrs, [:name, :description, :parent_id])
 
-        case category |> Ash.Changeset.for_update(:update, update_attrs) |> Ash.update() do
+        case category
+             |> Ash.Changeset.for_update(:update, update_attrs)
+             |> Ash.update(authorize?: false) do
           {:ok, _updated} ->
             {:noreply,
              socket

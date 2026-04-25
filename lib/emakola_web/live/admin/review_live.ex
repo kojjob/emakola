@@ -55,7 +55,7 @@ defmodule EmakolaWeb.Admin.ReviewLive do
         {:noreply, put_flash(socket, :error, "Review not found")}
 
       review ->
-        case review |> Ash.Changeset.for_update(:hide, %{}) |> Ash.update() do
+        case review |> Ash.Changeset.for_update(:hide, %{}) |> Ash.update(authorize?: false) do
           {:ok, _} ->
             {:noreply,
              socket
@@ -75,7 +75,7 @@ defmodule EmakolaWeb.Admin.ReviewLive do
         {:noreply, put_flash(socket, :error, "Review not found")}
 
       review ->
-        case review |> Ash.Changeset.for_update(:unhide, %{}) |> Ash.update() do
+        case review |> Ash.Changeset.for_update(:unhide, %{}) |> Ash.update(authorize?: false) do
           {:ok, _} ->
             {:noreply,
              socket

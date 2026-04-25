@@ -1359,7 +1359,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                gateway_reference: reference,
                metadata: %{payment_method: method}
              })
-             |> Ash.create() do
+             |> Ash.create(authorize?: false) do
           {:ok, _payment} ->
             :ok
 

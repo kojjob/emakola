@@ -218,7 +218,10 @@ defmodule Emakola.Themes.Vibrant.Shared do
           alt={@product.title}
           class="w-full aspect-[3/4] object-cover group-hover:scale-[1.06] transition-transform duration-500"
         />
-        <div :if={!@image} class="w-full aspect-[3/4] flex items-center justify-center bg-store-accent-light">
+        <div
+          :if={!@image}
+          class="w-full aspect-[3/4] flex items-center justify-center bg-store-accent-light"
+        >
           <svg class="w-12 h-12 text-[#D97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"

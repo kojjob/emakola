@@ -11,7 +11,7 @@ defmodule EmakolaWeb.Admin.Content.MediaLive.Index do
       if store do
         Emakola.Content.MediaAttachment
         |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
       else
         []
       end

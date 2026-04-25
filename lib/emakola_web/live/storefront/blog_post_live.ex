@@ -20,7 +20,7 @@ defmodule EmakolaWeb.Storefront.BlogPostLive do
                store_id: store.id,
                type: :blog_post
              })
-             |> Ash.read() do
+             |> Ash.read(authorize?: false) do
           {:ok, [post | _]} ->
             try do
               post |> Ash.Changeset.for_update(:increment_views) |> Ash.update()
