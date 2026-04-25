@@ -315,7 +315,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         {:noreply, assign(socket, csv_errors: ["No file uploaded"])}
 
       content ->
-        {rows, errors} = parse_csv_content(content, socket.assigns.categories)
+        {rows, errors} = Emakola.Catalog.CsvImporter.parse(content, socket.assigns.categories)
         {:noreply, assign(socket, csv_preview: rows, csv_errors: errors)}
     end
   end
@@ -329,7 +329,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     else
       socket = assign(socket, bulk_importing: true)
       store_id = socket.assigns.store_id
-      {success_count, error_count, errors} = import_csv_rows(rows, store_id)
+
+      {success_count, error_count, errors} =
+        Emakola.Catalog.CsvImporter.import_rows(rows, store_id)
 
       socket =
         socket
@@ -978,7 +980,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
               Download the template, fill in your products, then upload below.
             </p>
             <a
-              href={"data:text/csv;charset=utf-8,#{URI.encode(csv_template_header() <> "\n")}"}
+              href={"data:text/csv;charset=utf-8,#{URI.encode(Emakola.Catalog.CsvImporter.template_header() <> "\n")}"}
               download="emakola_products_template.csv"
               class="inline-flex items-center gap-2 text-sm font-medium text-emerald-600
                      hover:text-emerald-700 transition-colors"
@@ -986,7 +988,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
               <.icon name="hero-arrow-down-tray" class="size-4" /> Download Template (.csv)
             </a>
             <p class="text-xs text-slate-400 font-mono mt-1">
-              {csv_template_header()}
+              {Emakola.Catalog.CsvImporter.template_header()}
             </p>
           </div>
 
@@ -1270,131 +1272,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     end
   end
 
-  defp parse_csv_content(content, categories_map) do
-    lines =
-      content
-      |> String.trim()
-      |> String.split(~r/\r?\n/)
-
-    case lines do
-      [] ->
-        {[], ["CSV file is empty"]}
-
-      [_header | []] ->
-        {[], ["CSV file contains only a header row, no data"]}
-
-      [_header | data_lines] ->
-        rows =
-          data_lines
-          |> Enum.with_index(2)
-          |> Enum.reduce({[], []}, fn {line, row_num}, {rows_acc, errors_acc} ->
-            fields =
-              line
-              |> String.split(",")
-              |> Enum.map(&String.trim/1)
-
-            case fields do
-              [title, description, category, sku, price, stock_quantity | rest] ->
-                tags = Enum.join(rest, ",")
-
-                if String.trim(title) == "" do
-                  {rows_acc, ["Row #{row_num}: title is required" | errors_acc]}
-                else
-                  row = %{
-                    "title" => title,
-                    "description" => description,
-                    "category" => category,
-                    "category_id" => resolve_category_id(category, categories_map),
-                    "sku" => sku,
-                    "price" => price,
-                    "stock_quantity" => stock_quantity,
-                    "tags" => tags
-                  }
-
-                  {[row | rows_acc], errors_acc}
-                end
-
-              _ ->
-                {rows_acc,
-                 ["Row #{row_num}: invalid format, expected at least 6 columns" | errors_acc]}
-            end
-          end)
-
-        {rows |> elem(0) |> Enum.reverse(), rows |> elem(1) |> Enum.reverse()}
-    end
-  end
-
-  defp resolve_category_id(category_name, categories_map) when is_map(categories_map) do
-    # categories_map is %{id => name}, so search by name
-    result =
-      Enum.find(categories_map, fn {_id, name} ->
-        String.downcase(String.trim(name)) == String.downcase(String.trim(category_name))
-      end)
-
-    case result do
-      {id, _name} -> id
-      nil -> nil
-    end
-  end
-
-  defp resolve_category_id(_category_name, _categories_map), do: nil
-
-  defp import_csv_rows(rows, store_id) do
-    Enum.reduce(rows, {0, 0, []}, fn row, {success, errors, error_msgs} ->
-      tags =
-        (row["tags"] || "")
-        |> String.split(",", trim: true)
-        |> Enum.map(&String.trim/1)
-        |> Enum.reject(&(&1 == ""))
-
-      price =
-        case Integer.parse(row["price"] || "0") do
-          {val, _} -> val
-          :error -> 0
-        end
-
-      stock =
-        case Integer.parse(row["stock_quantity"] || "0") do
-          {val, _} -> val
-          :error -> 0
-        end
-
-      attrs = %{
-        title: row["title"],
-        description: row["description"],
-        category_id: row["category_id"],
-        tags: tags,
-        store_id: store_id
-      }
-
-      case Emakola.Catalog.create_product(attrs) do
-        {:ok, product} ->
-          # Create a default variant with the SKU, price, and stock
-          variant_attrs = %{
-            product_id: product.id,
-            sku: row["sku"],
-            price: price,
-            stock_quantity: stock,
-            store_id: store_id
-          }
-
-          try do
-            Emakola.Catalog.Variant
-            |> Ash.Changeset.for_create(:create, variant_attrs)
-            |> Ash.create()
-          rescue
-            _ -> :ok
-          end
-
-          {success + 1, errors, error_msgs}
-
-        {:error, error} ->
-          msg = "\"#{row["title"]}\": #{format_error(error)}"
-          {success, errors + 1, [msg | error_msgs]}
-      end
-    end)
-  end
-
   # ── Form Helpers ──
 
   defp empty_form_data do
@@ -1511,8 +1388,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   end
 
   defp format_error(error), do: inspect(error)
-
-  defp csv_template_header, do: "title,description,category,sku,price,stock_quantity,tags"
 
   defp upload_error_to_string(:too_large), do: "File is too large"
   defp upload_error_to_string(:not_accepted), do: "Only .csv files are accepted"
