@@ -272,10 +272,32 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
           }
         )
 
-      {:ok, _view, html} = live(conn, ~p"/admin/orders/#{order.id}")
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
 
-      assert html =~ "123 Test St"
-      assert html =~ "Accra"
+      assert has_element?(view, "#shipping-address-card", "123 Test St")
+      assert has_element?(view, "#shipping-address-card", "Accra")
+    end
+
+    test "displays checkout shipping address format", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order =
+        create_order!(store.id, customer.id, :pending,
+          shipping_address: %{
+            "name" => "Ama Mensah",
+            "phone" => "+233240000000",
+            "address" => "House 14, Osu",
+            "region" => "Greater Accra"
+          }
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert has_element?(view, "#shipping-address-card", "Ama Mensah")
+      assert has_element?(view, "#shipping-address-card", "House 14, Osu")
+      assert has_element?(view, "#shipping-address-card", "+233240000000")
     end
   end
 
