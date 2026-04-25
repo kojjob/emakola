@@ -73,6 +73,22 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert result.sections.ingredients == true
     end
 
+    test "maison theme returns correct defaults (premium fashion niche)" do
+      result = ThemeResolver.resolve(%{"theme" => "maison"})
+
+      assert result.theme_id == "maison"
+      assert result.theme_name == "Maison"
+      assert result.colors.primary == "#1C1917"
+      assert result.colors.accent == "#D4A843"
+      assert result.colors.background == "#FFFFFF"
+      assert result.fonts.heading == "Playfair Display"
+      assert result.fonts.body == "Inter"
+      # Editorial-specific section gates
+      assert result.sections.lookbook == true
+      assert result.sections.capsules == true
+      assert result.sections.designer_note == true
+    end
+
     test "color overrides merge correctly" do
       config = %{
         "theme" => "market",
