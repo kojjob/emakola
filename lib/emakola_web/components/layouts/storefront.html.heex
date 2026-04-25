@@ -164,7 +164,7 @@
             </svg>
             <span
               :if={assigns[:cart_count] && @cart_count > 0}
-              class="absolute top-1 right-1 w-[18px] h-[18px] rounded-full bg-[#B45309] text-white text-[0.625rem] font-bold flex items-center justify-center leading-none"
+              class="absolute top-1 right-1 w-[18px] h-[18px] rounded-full bg-store-accent text-white text-[0.625rem] font-bold flex items-center justify-center leading-none"
             >
               {@cart_count}
             </span>
@@ -201,7 +201,7 @@
     href={"https://wa.me/#{@store.whatsapp_number}?text=Hi!%20I'm%20browsing%20your%20store."}
     target="_blank"
     rel="noopener noreferrer"
-    class="fixed bottom-20 lg:bottom-6 right-6 w-14 h-14 rounded-full bg-[#25D366] flex items-center justify-center shadow-[0_4px_16px_rgba(37,211,102,0.35)] hover:scale-[1.08] hover:shadow-[0_6px_24px_rgba(37,211,102,0.45)] active:scale-[0.96] transition-transform z-50"
+    class="fixed bottom-20 lg:bottom-6 right-6 w-14 h-14 rounded-full bg-whatsapp flex items-center justify-center shadow-[0_4px_16px_rgba(37,211,102,0.35)] hover:scale-[1.08] hover:shadow-[0_6px_24px_rgba(37,211,102,0.45)] active:scale-[0.96] transition-transform z-50"
     aria-label="Chat on WhatsApp"
   >
     <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -253,7 +253,7 @@
     <div class="flex items-center justify-around h-16">
       <a
         href={"/s/#{@store.slug}"}
-        class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] == "/s/#{@store.slug}", do: "text-[#B45309]", else: "text-[#94A3B8]"}"}
+        class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] == "/s/#{@store.slug}", do: "text-store-accent", else: "text-[#94A3B8]"}"}
       >
         <svg
           class="w-6 h-6"
@@ -272,7 +272,7 @@
       </a>
       <a
         href={"/s/#{@store.slug}/products"}
-        class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/products"), do: "text-[#B45309]", else: "text-[#94A3B8]"}"}
+        class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/products"), do: "text-store-accent", else: "text-[#94A3B8]"}"}
       >
         <svg
           class="w-6 h-6"
@@ -291,7 +291,7 @@
       </a>
       <a
         href={"/s/#{@store.slug}/cart"}
-        class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 relative #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/cart"), do: "text-[#B45309]", else: "text-[#94A3B8]"}"}
+        class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 relative #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/cart"), do: "text-store-accent", else: "text-[#94A3B8]"}"}
       >
         <div class="relative">
           <svg
@@ -309,7 +309,7 @@
           </svg>
           <span
             :if={(assigns[:cart_count] || 0) > 0}
-            class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#B45309] text-white text-[0.5rem] font-bold flex items-center justify-center leading-none"
+            class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-store-accent text-white text-[0.5rem] font-bold flex items-center justify-center leading-none"
           >
             {assigns[:cart_count] || 0}
           </span>
@@ -318,7 +318,7 @@
       </a>
       <a
         href={"/s/#{@store.slug}/account"}
-        class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/account"), do: "text-[#B45309]", else: "text-[#94A3B8]"}"}
+        class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/account"), do: "text-store-accent", else: "text-[#94A3B8]"}"}
       >
         <svg
           class="w-6 h-6"

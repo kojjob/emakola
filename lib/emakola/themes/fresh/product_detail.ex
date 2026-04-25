@@ -89,7 +89,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
               <path stroke-linecap="round" stroke-linejoin="round" d="m9 5 7 7-7 7" />
             </svg>
           </li>
-          <li class="text-[#1C1917] font-medium truncate max-w-[200px]">{@product.title}</li>
+          <li class="text-cta-dark font-medium truncate max-w-[200px]">{@product.title}</li>
         </ol>
       </nav>
 
@@ -170,7 +170,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
             </div>
 
             <h1
-              class="text-3xl font-bold text-[#1C1917] leading-tight mb-2"
+              class="text-3xl font-bold text-cta-dark leading-tight mb-2"
               style="font-family: 'Nunito', sans-serif;"
             >
               {@product.title}
@@ -203,7 +203,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
           >
             <div :for={ot <- @option_types}>
               <div
-                class="text-sm font-bold text-[#1C1917] mb-3"
+                class="text-sm font-bold text-cta-dark mb-3"
                 style="font-family: 'Nunito', sans-serif;"
               >
                 {ot.name}
@@ -253,7 +253,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
                 </svg>
               </button>
               <div
-                class="w-14 h-12 flex items-center justify-center text-base font-bold text-[#1C1917] border-x-2 border-[#D9F99D] select-none"
+                class="w-14 h-12 flex items-center justify-center text-base font-bold text-cta-dark border-x-2 border-[#D9F99D] select-none"
                 style="font-family: 'Inter', sans-serif;"
               >
                 {@quantity}
@@ -315,7 +315,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
               href={"https://wa.me/#{String.replace(@store.whatsapp_number || "", "+", "")}?text=Hi%2C%20I'd%20like%20to%20order%20#{URI.encode(@product.title)}%20from%20#{URI.encode(@store.name)}"}
               target="_blank"
               rel="noopener noreferrer"
-              class="flex items-center justify-center gap-2.5 w-full h-12 border-2 border-[#25D366] rounded-2xl text-base font-semibold text-[#25D366] hover:bg-[#25D366]/5 transition-all"
+              class="flex items-center justify-center gap-2.5 w-full h-12 border-2 border-[#25D366] rounded-2xl text-base font-semibold text-[#25D366] hover:bg-whatsapp/5 transition-all"
               style="font-family: 'Inter', sans-serif;"
             >
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -352,7 +352,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
                     d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"
                   />
                 </svg>
-                <p class="text-sm font-bold text-[#1C1917]" style="font-family: 'Nunito', sans-serif;">
+                <p class="text-sm font-bold text-cta-dark" style="font-family: 'Nunito', sans-serif;">
                   Delivered fresh within 24 hours
                 </p>
               </div>
@@ -369,7 +369,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
           <div class="px-4 lg:px-0">
             <details class="bg-white rounded-2xl border border-[#D9F99D]/60 mb-3 overflow-hidden">
               <summary
-                class="px-5 py-4 text-base font-bold text-[#1C1917] cursor-pointer flex items-center justify-between hover:bg-[#ECFDF5]/30 select-none list-none [&::-webkit-details-marker]:hidden"
+                class="px-5 py-4 text-base font-bold text-cta-dark cursor-pointer flex items-center justify-between hover:bg-[#ECFDF5]/30 select-none list-none [&::-webkit-details-marker]:hidden"
                 style="font-family: 'Nunito', sans-serif;"
               >
                 <span>Product Details</span>
@@ -397,7 +397,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
             </details>
             <details class="bg-white rounded-2xl border border-[#D9F99D]/60 mb-3 overflow-hidden">
               <summary
-                class="px-5 py-4 text-base font-bold text-[#1C1917] cursor-pointer flex items-center justify-between hover:bg-[#ECFDF5]/30 select-none list-none [&::-webkit-details-marker]:hidden"
+                class="px-5 py-4 text-base font-bold text-cta-dark cursor-pointer flex items-center justify-between hover:bg-[#ECFDF5]/30 select-none list-none [&::-webkit-details-marker]:hidden"
                 style="font-family: 'Nunito', sans-serif;"
               >
                 <span>Delivery Information</span>
@@ -427,7 +427,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
             </details>
             <details class="bg-white rounded-2xl border border-[#D9F99D]/60 mb-3 overflow-hidden">
               <summary
-                class="px-5 py-4 text-base font-bold text-[#1C1917] cursor-pointer flex items-center justify-between hover:bg-[#ECFDF5]/30 select-none list-none [&::-webkit-details-marker]:hidden"
+                class="px-5 py-4 text-base font-bold text-cta-dark cursor-pointer flex items-center justify-between hover:bg-[#ECFDF5]/30 select-none list-none [&::-webkit-details-marker]:hidden"
                 style="font-family: 'Nunito', sans-serif;"
               >
                 <span>Freshness Guarantee</span>
@@ -462,7 +462,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
       <section :if={@related_products != []} class="py-8 bg-[#FEFCE8]">
         <div class="max-w-[1280px] mx-auto">
           <h2
-            class="text-xl font-bold text-[#1C1917] px-4 sm:px-6 lg:px-8 mb-5"
+            class="text-xl font-bold text-cta-dark px-4 sm:px-6 lg:px-8 mb-5"
             style="font-family: 'Nunito', sans-serif;"
           >
             You Might Also Like
@@ -501,7 +501,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
                 </div>
               </div>
               <p
-                class="text-sm font-bold text-[#1C1917] leading-tight mb-1 truncate"
+                class="text-sm font-bold text-cta-dark leading-tight mb-1 truncate"
                 style="font-family: 'Nunito', sans-serif;"
               >
                 {rp.title}

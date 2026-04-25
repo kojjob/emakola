@@ -102,12 +102,9 @@ defmodule Emakola.Accounts.Store do
       authorize_if(always())
     end
 
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
-      authorize_unless(actor_present())
-    end
-
-    # Merchant actors: verify store membership for writes
+    # Writes (update, destroy): require an authenticated Merchant with
+    # StoreMembership for this store. nil actor falls through to default-deny.
+    # System code that needs to mutate a Store must opt in with `authorize?: false`.
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end

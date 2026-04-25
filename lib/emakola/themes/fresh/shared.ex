@@ -61,7 +61,7 @@ defmodule Emakola.Themes.Fresh.Shared do
               </div>
               <div class="min-w-0">
                 <div
-                  class="text-[0.9375rem] font-bold text-[#1C1917] truncate leading-tight"
+                  class="text-[0.9375rem] font-bold text-cta-dark truncate leading-tight"
                   style="font-family: 'Nunito', sans-serif;"
                 >
                   {@store.name}
@@ -226,7 +226,7 @@ defmodule Emakola.Themes.Fresh.Shared do
         </span>
       </div>
       <p
-        class="text-sm font-bold text-[#1C1917] leading-tight mb-1 truncate"
+        class="text-sm font-bold text-cta-dark leading-tight mb-1 truncate"
         style="font-family: 'Nunito', sans-serif;"
       >
         {@product.title}
@@ -264,7 +264,7 @@ defmodule Emakola.Themes.Fresh.Shared do
                 </span>
               </div>
               <span
-                class="text-base font-bold text-[#1C1917]"
+                class="text-base font-bold text-cta-dark"
                 style="font-family: 'Nunito', sans-serif;"
               >
                 {@store.name}
@@ -316,7 +316,7 @@ defmodule Emakola.Themes.Fresh.Shared do
           <%!-- Explore --%>
           <div>
             <h3
-              class="text-sm font-bold text-[#1C1917] mb-3 uppercase tracking-wider"
+              class="text-sm font-bold text-cta-dark mb-3 uppercase tracking-wider"
               style="font-family: 'Nunito', sans-serif;"
             >
               Explore
@@ -352,7 +352,7 @@ defmodule Emakola.Themes.Fresh.Shared do
             </ul>
             <h3
               :if={@categories != []}
-              class="text-sm font-bold text-[#1C1917] mb-3 uppercase tracking-wider"
+              class="text-sm font-bold text-cta-dark mb-3 uppercase tracking-wider"
               style="font-family: 'Nunito', sans-serif;"
             >
               Categories
@@ -373,7 +373,7 @@ defmodule Emakola.Themes.Fresh.Shared do
           <%!-- Contact --%>
           <div>
             <h3
-              class="text-sm font-bold text-[#1C1917] mb-3 uppercase tracking-wider"
+              class="text-sm font-bold text-cta-dark mb-3 uppercase tracking-wider"
               style="font-family: 'Nunito', sans-serif;"
             >
               Get in Touch

@@ -139,7 +139,7 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
         <%!-- Header --%>
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-10">
           <div>
-            <h1 class="text-3xl sm:text-4xl font-semibold text-[#1C1917] mb-2">My Wishlist</h1>
+            <h1 class="text-3xl sm:text-4xl font-semibold text-cta-dark mb-2">My Wishlist</h1>
             <p class="text-sm text-[#44403C]">
               {wishlist_count_text(length(@wishlist))}
             </p>
@@ -147,7 +147,7 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
           <div class="mt-4 sm:mt-0">
             <a
               href={"/s/#{@store.slug}/products"}
-              class="text-sm font-medium text-[#B45309] hover:text-amber-800 transition-colors flex items-center gap-1"
+              class="text-sm font-medium text-store-accent hover:text-amber-800 transition-colors flex items-center gap-1"
             >
               Continue Shopping
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -217,8 +217,8 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
               </button>
             </div>
             <div class="px-1">
-              <h3 class="text-sm font-medium text-[#1C1917] truncate">{item_title(item)}</h3>
-              <p class="text-sm font-semibold text-[#1C1917] mt-1">
+              <h3 class="text-sm font-medium text-cta-dark truncate">{item_title(item)}</h3>
+              <p class="text-sm font-semibold text-cta-dark mt-1">
                 {format_item_price(item, @store)}
               </p>
               <p
@@ -231,7 +231,7 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
                 <button
                   phx-click="add_to_bag"
                   phx-value-product_id={item_product_id(item)}
-                  class="cursor-pointer w-full bg-[#1C1917] text-white text-xs font-semibold uppercase tracking-wider py-2.5 rounded-[20px] hover:bg-stone-800 transition-colors"
+                  class="cursor-pointer w-full bg-cta-dark text-white text-xs font-semibold uppercase tracking-wider py-2.5 rounded-[20px] hover:bg-stone-800 transition-colors"
                 >
                   Add to Bag
                 </button>
@@ -262,11 +262,11 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
               d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
             />
           </svg>
-          <h2 class="text-2xl font-semibold text-[#1C1917] mb-2">Your wishlist is empty</h2>
+          <h2 class="text-2xl font-semibold text-cta-dark mb-2">Your wishlist is empty</h2>
           <p class="text-[#44403C] text-sm mb-8">Save items you love to find them later</p>
           <a
             href={"/s/#{@store.slug}/products"}
-            class="inline-block cursor-pointer bg-[#1C1917] text-white text-xs font-semibold uppercase tracking-wider px-8 py-3 rounded-[20px] hover:bg-stone-800 transition-colors"
+            class="inline-block cursor-pointer bg-cta-dark text-white text-xs font-semibold uppercase tracking-wider px-8 py-3 rounded-[20px] hover:bg-stone-800 transition-colors"
           >
             Browse Products
           </a>

@@ -271,6 +271,18 @@ html:not(.dark) {
   --color-outline: var(--fp-outline);
   --color-outline-variant: var(--fp-outline-variant);
 
+  /* ── Emakola brand tokens ── */
+  --color-emakola-emerald: #0C1F17;       /* admin sidebar / dark surfaces */
+  --color-emakola-emerald-500: #10B981;
+  --color-emakola-emerald-600: #059669;
+  --color-emakola-gold: #CA8A04;          /* admin accent (atelier gold) */
+  --color-store-accent: #B45309;          /* storefront accent (amber-700) */
+  --color-store-accent-light: #FEF3C7;
+  --color-cta-dark: #1C1917;              /* storefront dark CTA / nav */
+  --color-mtn: #FFC107;                   /* MTN MoMo brand */
+  --color-voda: #E60000;                  /* Vodafone Cash brand */
+  --color-whatsapp: #25D366;              /* WhatsApp green */
+
   /* ── Fonts ── */
   --font-headline: 'Manrope', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;

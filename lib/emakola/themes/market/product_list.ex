@@ -94,7 +94,7 @@ defmodule Emakola.Themes.Market.ProductList do
             <form phx-change="search" class="w-full lg:max-w-xs xl:max-w-sm">
               <div class="relative group">
                 <svg
-                  class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-[#94A3B8] group-focus-within:text-[#B45309] transition-colors"
+                  class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-[#94A3B8] group-focus-within:text-store-accent transition-colors"
                   fill="none"
                   stroke="currentColor"
                   stroke-width="2"

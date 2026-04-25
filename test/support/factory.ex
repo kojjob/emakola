@@ -81,7 +81,7 @@ defmodule Emakola.Factory do
     else
       store
       |> Ash.Changeset.for_update(:update_settings, settings_params)
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
     end
   end
 

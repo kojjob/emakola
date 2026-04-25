@@ -108,7 +108,7 @@ defmodule Emakola.Themes.Fresh.ProductList do
               value={@search_query}
               placeholder="Search fresh products..."
               phx-debounce="300"
-              class="w-full pl-12 pr-4 py-3 border border-[#D9F99D] rounded-full text-sm text-[#1C1917] bg-[#FEFCE8] placeholder:text-[#92400E]/40 focus:outline-none focus:ring-2 focus:ring-[#059669] focus:border-transparent shadow-sm"
+              class="w-full pl-12 pr-4 py-3 border border-[#D9F99D] rounded-full text-sm text-cta-dark bg-[#FEFCE8] placeholder:text-[#92400E]/40 focus:outline-none focus:ring-2 focus:ring-[#059669] focus:border-transparent shadow-sm"
               style="font-family: 'Inter', sans-serif;"
             />
           </div>

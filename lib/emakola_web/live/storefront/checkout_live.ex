@@ -617,9 +617,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                       type="button"
                       phx-click="select_payment"
                       phx-value-method="momo"
-                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "momo", do: "border-[#FFC107] bg-[#FFC107]/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "momo", do: "border-[#FFC107] bg-mtn/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
                     >
-                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "momo", do: "border-[#FFC107] bg-[#FFC107]", else: "border-stone-300"}"}>
+                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "momo", do: "border-[#FFC107] bg-mtn", else: "border-stone-300"}"}>
                         <svg
                           :if={@payment_method == "momo"}
                           class="w-3 h-3 text-stone-900"
@@ -635,7 +635,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                           />
                         </svg>
                       </div>
-                      <div class="w-14 h-14 rounded-2xl bg-[#FFC107] flex items-center justify-center shadow-sm">
+                      <div class="w-14 h-14 rounded-2xl bg-mtn flex items-center justify-center shadow-sm">
                         <span class="text-stone-900 font-extrabold text-lg tracking-tight">MTN</span>
                       </div>
                       <div>
@@ -649,9 +649,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                       type="button"
                       phx-click="select_payment"
                       phx-value-method="vodafone"
-                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "vodafone", do: "border-[#E60000] bg-[#E60000]/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "vodafone", do: "border-[#E60000] bg-voda/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
                     >
-                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "vodafone", do: "border-[#E60000] bg-[#E60000]", else: "border-stone-300"}"}>
+                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "vodafone", do: "border-[#E60000] bg-voda", else: "border-stone-300"}"}>
                         <svg
                           :if={@payment_method == "vodafone"}
                           class="w-3 h-3 text-white"
@@ -667,7 +667,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                           />
                         </svg>
                       </div>
-                      <div class="w-14 h-14 rounded-2xl bg-[#E60000] flex items-center justify-center shadow-sm">
+                      <div class="w-14 h-14 rounded-2xl bg-voda flex items-center justify-center shadow-sm">
                         <span class="text-white font-extrabold text-sm tracking-tight">VODA</span>
                       </div>
                       <div>

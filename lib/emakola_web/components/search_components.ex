@@ -197,7 +197,7 @@ defmodule EmakolaWeb.SearchComponents do
                   <p class="text-sm font-semibold text-[#0F172A] truncate">
                     {product.title}
                   </p>
-                  <p class="text-xs font-medium text-[#B45309]">
+                  <p class="text-xs font-medium text-store-accent">
                     {Currency.format_price(product.min_price || 0, @store.currency)}
                   </p>
                 </div>

@@ -156,7 +156,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
       <%!-- Header --%>
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-[#1C1917]">Returns</h1>
+          <h1 class="text-2xl font-bold text-cta-dark">Returns</h1>
           <p class="text-sm text-stone-500 mt-1">Review and manage customer return requests</p>
         </div>
       </div>
@@ -170,7 +170,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
           class={[
             "cursor-pointer whitespace-nowrap px-4 py-2 text-sm font-medium rounded-full border transition-colors",
             if(@status_filter == status,
-              do: "bg-[#1C1917] text-white border-[#1C1917]",
+              do: "bg-cta-dark text-white border-[#1C1917]",
               else: "bg-white text-stone-600 border-stone-200 hover:border-stone-400"
             )
           ]}
@@ -229,7 +229,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
                 </svg>
               </div>
               <div>
-                <p class="text-sm font-semibold text-[#1C1917]">
+                <p class="text-sm font-semibold text-cta-dark">
                   Order #{return.order_id |> String.slice(0..7)}
                 </p>
                 <p class="text-xs text-stone-500 mt-0.5">
@@ -241,7 +241,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
               </div>
             </div>
             <div class="flex items-center gap-4">
-              <span :if={return.refund_amount} class="text-sm font-medium text-[#1C1917]">
+              <span :if={return.refund_amount} class="text-sm font-medium text-cta-dark">
                 {Currency.format_price(return.refund_amount, return.currency)}
               </span>
               <.return_status_badge status={return.status} />
@@ -256,7 +256,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
         class="bg-white rounded-xl border border-stone-200 p-6 space-y-6"
       >
         <div class="flex items-center justify-between">
-          <h2 class="text-lg font-semibold text-[#1C1917]">Return Details</h2>
+          <h2 class="text-lg font-semibold text-cta-dark">Return Details</h2>
           <button
             phx-click="close_detail"
             class="cursor-pointer text-stone-400 hover:text-stone-600 transition-colors"
@@ -281,7 +281,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <p class="text-xs font-medium uppercase tracking-wider text-stone-500 mb-1">Reason</p>
-            <p class="text-sm text-[#1C1917]"><.reason_label reason={@selected_return.reason} /></p>
+            <p class="text-sm text-cta-dark"><.reason_label reason={@selected_return.reason} /></p>
           </div>
           <div>
             <p class="text-xs font-medium uppercase tracking-wider text-stone-500 mb-1">Status</p>
@@ -289,19 +289,19 @@ defmodule EmakolaWeb.Admin.ReturnLive do
           </div>
           <div :if={@selected_return.reason_detail} class="sm:col-span-2">
             <p class="text-xs font-medium uppercase tracking-wider text-stone-500 mb-1">Details</p>
-            <p class="text-sm text-[#1C1917]">{@selected_return.reason_detail}</p>
+            <p class="text-sm text-cta-dark">{@selected_return.reason_detail}</p>
           </div>
           <div :if={@selected_return.admin_notes} class="sm:col-span-2">
             <p class="text-xs font-medium uppercase tracking-wider text-stone-500 mb-1">
               Admin Notes
             </p>
-            <p class="text-sm text-[#1C1917]">{@selected_return.admin_notes}</p>
+            <p class="text-sm text-cta-dark">{@selected_return.admin_notes}</p>
           </div>
           <div :if={@selected_return.refund_amount}>
             <p class="text-xs font-medium uppercase tracking-wider text-stone-500 mb-1">
               Refund Amount
             </p>
-            <p class="text-sm font-semibold text-[#1C1917]">
+            <p class="text-sm font-semibold text-cta-dark">
               {Currency.format_price(@selected_return.refund_amount, @selected_return.currency)}
             </p>
           </div>
@@ -321,7 +321,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
               name="notes"
               rows="3"
               placeholder="Add notes about this decision..."
-              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-[#1C1917] focus:ring-2 focus:ring-[#B45309] focus:border-[#B45309] focus:outline-none"
+              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-[#B45309] focus:border-[#B45309] focus:outline-none"
             >{@action_notes}</textarea>
           </div>
           <div>
@@ -334,7 +334,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
               name="amount"
               value={@refund_amount_input}
               placeholder="0.00"
-              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-[#1C1917] focus:ring-2 focus:ring-[#B45309] focus:border-[#B45309] focus:outline-none"
+              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-[#B45309] focus:border-[#B45309] focus:outline-none"
             />
           </div>
           <div class="flex gap-3">

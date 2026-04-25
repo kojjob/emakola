@@ -158,7 +158,7 @@ defmodule EmakolaWeb.Storefront.BlogPostLive do
               href={"https://wa.me/?text=#{URI.encode(@post.title <> " — " <> current_url(assigns))}"}
               target="_blank"
               rel="noopener"
-              class="cursor-pointer w-9 h-9 rounded-full bg-stone-100 hover:bg-[#25D366] hover:text-white flex items-center justify-center text-stone-500 transition-colors"
+              class="cursor-pointer w-9 h-9 rounded-full bg-stone-100 hover:bg-whatsapp hover:text-white flex items-center justify-center text-stone-500 transition-colors"
               title="Share on WhatsApp"
             >
               <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">

@@ -679,12 +679,13 @@ defmodule EmakolaWeb.OnboardingLive do
 
   defp maybe_save_theme(assigns, store) do
     selected_theme = Map.get(assigns, :selected_theme, "market")
+    actor = Map.get(assigns, :current_user)
 
     case store
          |> Ash.Changeset.for_update(:update_settings, %{
            theme_config: %{"theme" => selected_theme}
          })
-         |> Ash.update() do
+         |> Ash.update(actor: actor) do
       {:ok, updated_store} -> updated_store
       {:error, _} -> store
     end

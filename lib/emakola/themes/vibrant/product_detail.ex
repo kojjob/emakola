@@ -51,7 +51,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
           class="bg-white lg:rounded-3xl lg:overflow-hidden lg:shadow-md lg:shadow-amber-100"
           aria-label="Product images"
         >
-          <div class="w-full aspect-[4/5] lg:aspect-square overflow-hidden bg-[#FEF3C7]/30">
+          <div class="w-full aspect-[4/5] lg:aspect-square overflow-hidden bg-store-accent-light/30">
             <%= if current_image(@product, @current_image_index) do %>
               <.optimized_image
                 src={current_image(@product, @current_image_index)}
@@ -110,7 +110,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
               New Arrival
             </span>
             <h1
-              class="text-3xl font-bold text-[#1C1917] leading-tight mb-2"
+              class="text-3xl font-bold text-cta-dark leading-tight mb-2"
               style="font-family: 'Playfair Display', serif;"
             >
               {@product.title}
@@ -143,7 +143,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
           >
             <div :for={ot <- @option_types}>
               <div
-                class="text-sm font-bold text-[#1C1917] mb-3"
+                class="text-sm font-bold text-cta-dark mb-3"
                 style="font-family: 'DM Sans', sans-serif;"
               >
                 {ot.name}
@@ -179,7 +179,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
               <button
                 phx-click="decrement_quantity"
                 disabled={@quantity <= 1}
-                class="w-12 h-12 flex items-center justify-center text-[#78350F] hover:bg-[#FEF3C7] transition-colors disabled:text-[#FDE68A] disabled:cursor-not-allowed"
+                class="w-12 h-12 flex items-center justify-center text-[#78350F] hover:bg-store-accent-light transition-colors disabled:text-[#FDE68A] disabled:cursor-not-allowed"
                 aria-label="Decrease quantity"
               >
                 <svg
@@ -193,7 +193,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
                 </svg>
               </button>
               <div
-                class="w-14 h-12 flex items-center justify-center text-base font-bold text-[#1C1917] border-x-2 border-[#FDE68A] select-none"
+                class="w-14 h-12 flex items-center justify-center text-base font-bold text-cta-dark border-x-2 border-[#FDE68A] select-none"
                 style="font-family: 'DM Sans', sans-serif;"
               >
                 {@quantity}
@@ -201,7 +201,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
               <button
                 phx-click="increment_quantity"
                 disabled={@quantity >= 10}
-                class="w-12 h-12 flex items-center justify-center text-[#78350F] hover:bg-[#FEF3C7] transition-colors disabled:text-[#FDE68A] disabled:cursor-not-allowed"
+                class="w-12 h-12 flex items-center justify-center text-[#78350F] hover:bg-store-accent-light transition-colors disabled:text-[#FDE68A] disabled:cursor-not-allowed"
                 aria-label="Increase quantity"
               >
                 <svg
@@ -255,7 +255,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
               href={"https://wa.me/?text=Hi%2C%20I'm%20interested%20in%20#{URI.encode(@product.title)}%20from%20#{URI.encode(@store.name)}"}
               target="_blank"
               rel="noopener noreferrer"
-              class="flex items-center justify-center gap-2.5 w-full h-12 border-2 border-[#25D366] rounded-full text-base font-semibold text-[#25D366] hover:bg-[#25D366]/5 transition-all"
+              class="flex items-center justify-center gap-2.5 w-full h-12 border-2 border-[#25D366] rounded-full text-base font-semibold text-[#25D366] hover:bg-whatsapp/5 transition-all"
               style="font-family: 'DM Sans', sans-serif;"
             >
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -278,7 +278,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
           <div class="px-4 lg:px-0">
             <details class="bg-white rounded-2xl border border-[#FDE68A]/60 mb-3 overflow-hidden">
               <summary
-                class="px-5 py-4 text-base font-bold text-[#1C1917] cursor-pointer flex items-center justify-between hover:bg-[#FEF3C7]/30 select-none list-none [&::-webkit-details-marker]:hidden"
+                class="px-5 py-4 text-base font-bold text-cta-dark cursor-pointer flex items-center justify-between hover:bg-store-accent-light/30 select-none list-none [&::-webkit-details-marker]:hidden"
                 style="font-family: 'DM Sans', sans-serif;"
               >
                 <span>Product Details</span>
@@ -306,7 +306,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
             </details>
             <details class="bg-white rounded-2xl border border-[#FDE68A]/60 mb-3 overflow-hidden">
               <summary
-                class="px-5 py-4 text-base font-bold text-[#1C1917] cursor-pointer flex items-center justify-between hover:bg-[#FEF3C7]/30 select-none list-none [&::-webkit-details-marker]:hidden"
+                class="px-5 py-4 text-base font-bold text-cta-dark cursor-pointer flex items-center justify-between hover:bg-store-accent-light/30 select-none list-none [&::-webkit-details-marker]:hidden"
                 style="font-family: 'DM Sans', sans-serif;"
               >
                 <span>Shipping & Delivery</span>
@@ -334,7 +334,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
             </details>
             <details class="bg-white rounded-2xl border border-[#FDE68A]/60 mb-3 overflow-hidden">
               <summary
-                class="px-5 py-4 text-base font-bold text-[#1C1917] cursor-pointer flex items-center justify-between hover:bg-[#FEF3C7]/30 select-none list-none [&::-webkit-details-marker]:hidden"
+                class="px-5 py-4 text-base font-bold text-cta-dark cursor-pointer flex items-center justify-between hover:bg-store-accent-light/30 select-none list-none [&::-webkit-details-marker]:hidden"
                 style="font-family: 'DM Sans', sans-serif;"
               >
                 <span>Returns & Exchange</span>
@@ -369,7 +369,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
       <section :if={@related_products != []} class="py-8 bg-[#FFFBEB]">
         <div class="max-w-[1280px] mx-auto">
           <h2
-            class="text-xl font-bold text-[#1C1917] px-4 sm:px-6 lg:px-8 mb-5"
+            class="text-xl font-bold text-cta-dark px-4 sm:px-6 lg:px-8 mb-5"
             style="font-family: 'Playfair Display', serif;"
           >
             You May Also Like
@@ -380,7 +380,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
               href={"/s/#{@store.slug}/products/#{rp.slug}"}
               class="flex-[0_0_160px] snap-start group"
             >
-              <div class="rounded-2xl overflow-hidden bg-[#FEF3C7]/30 shadow-md shadow-amber-100 group-hover:shadow-xl group-hover:shadow-amber-200/60 transition-all duration-300 mb-2.5">
+              <div class="rounded-2xl overflow-hidden bg-store-accent-light/30 shadow-md shadow-amber-100 group-hover:shadow-xl group-hover:shadow-amber-200/60 transition-all duration-300 mb-2.5">
                 <div class="w-full aspect-square overflow-hidden">
                   <%= if Shared.first_image(rp) do %>
                     <.optimized_image
@@ -389,7 +389,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
                       class="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500"
                     />
                   <% else %>
-                    <div class="w-full h-full flex items-center justify-center bg-[#FEF3C7]">
+                    <div class="w-full h-full flex items-center justify-center bg-store-accent-light">
                       <svg
                         class="w-10 h-10 text-[#D97706]"
                         fill="none"
@@ -407,7 +407,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
                   <% end %>
                 </div>
               </div>
-              <p class="text-sm font-semibold text-[#1C1917] leading-tight mb-1 truncate">
+              <p class="text-sm font-semibold text-cta-dark leading-tight mb-1 truncate">
                 {rp.title}
               </p>
               <p class="text-sm font-bold text-[var(--theme-primary,#DC2626)]">

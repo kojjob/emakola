@@ -188,14 +188,14 @@ defmodule EmakolaWeb.Storefront.CartLive do
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6 sm:pt-14 sm:pb-8">
       <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-[#1C1917]">Shopping Bag</h1>
+          <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-cta-dark">Shopping Bag</h1>
           <p id="item-count-text" class="mt-1 text-sm text-[#78716C] font-light tracking-wide">
             {@cart_count} {if @cart_count == 1, do: "item", else: "items"}
           </p>
         </div>
         <.link
           navigate={"/s/#{@store.slug}"}
-          class="inline-flex items-center gap-2 text-sm font-medium text-[#44403C] hover:text-[#CA8A04] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none rounded px-1 py-0.5 group"
+          class="inline-flex items-center gap-2 text-sm font-medium text-[#44403C] hover:text-store-accent transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none rounded px-1 py-0.5 group"
         >
           <svg
             class="w-4 h-4 transition-transform group-hover:-translate-x-0.5"
@@ -236,13 +236,13 @@ defmodule EmakolaWeb.Storefront.CartLive do
                   stroke-linejoin="round"
                 />
               </svg>
-              <h2 class="font-serif text-2xl font-semibold text-[#1C1917] mb-2">Your bag is empty</h2>
+              <h2 class="font-serif text-2xl font-semibold text-cta-dark mb-2">Your bag is empty</h2>
               <p class="text-sm text-[#78716C] mb-8">
                 Discover our curated collection and find something you love.
               </p>
               <.link
                 navigate={"/s/#{@store.slug}"}
-                class="inline-flex items-center gap-2 px-8 py-3 bg-[#1C1917] text-white text-sm font-semibold tracking-wider uppercase rounded-lg hover:bg-[#44403C] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none"
+                class="inline-flex items-center gap-2 px-8 py-3 bg-cta-dark text-white text-sm font-semibold tracking-wider uppercase rounded-lg hover:bg-[#44403C] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none"
               >
                 Start Shopping
                 <svg
@@ -303,14 +303,14 @@ defmodule EmakolaWeb.Storefront.CartLive do
                   <div class="flex-1 min-w-0">
                     <.link
                       navigate={"/s/#{@store.slug}/products/#{item.variant_id}"}
-                      class="font-serif text-lg sm:text-xl font-semibold text-[#1C1917] hover:text-[#CA8A04] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none rounded leading-tight"
+                      class="font-serif text-lg sm:text-xl font-semibold text-cta-dark hover:text-store-accent transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none rounded leading-tight"
                     >
                       {item.product_title}
                     </.link>
                     <div :if={item.variant_info} class="mt-2 space-y-0.5">
                       <p class="text-xs sm:text-sm text-[#78716C]">{item.variant_info}</p>
                     </div>
-                    <p class="mt-2 text-base font-semibold text-[#1C1917] sm:hidden">
+                    <p class="mt-2 text-base font-semibold text-cta-dark sm:hidden">
                       {Currency.format_price(item.unit_price * item.quantity, @store.currency)}
                     </p>
                     <div class="mt-3 flex items-center gap-4 sm:hidden">
@@ -336,7 +336,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
                         </svg>
                       </button>
                     </div>
-                    <button class="wishlist-btn mt-3 inline-flex items-center gap-1.5 text-xs text-[#78716C] hover:text-[#CA8A04] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none rounded px-0.5 py-0.5">
+                    <button class="wishlist-btn mt-3 inline-flex items-center gap-1.5 text-xs text-[#78716C] hover:text-store-accent transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none rounded px-0.5 py-0.5">
                       <svg
                         class="w-3.5 h-3.5"
                         fill="none"
@@ -354,13 +354,13 @@ defmodule EmakolaWeb.Storefront.CartLive do
                     </button>
                   </div>
                   <div class="hidden sm:flex flex-col items-end justify-between flex-shrink-0 sm:min-w-[160px]">
-                    <p class="text-base font-semibold text-[#1C1917]">
+                    <p class="text-base font-semibold text-cta-dark">
                       {Currency.format_price(item.unit_price, @store.currency)}
                     </p>
                     <.quantity_stepper index={index} quantity={item.quantity} />
                     <div class="flex items-center gap-1 mb-2 mt-2">
                       <span class="text-xs text-[#78716C]">Subtotal:</span>
-                      <span class="item-subtotal text-sm font-semibold text-[#1C1917]">
+                      <span class="item-subtotal text-sm font-semibold text-cta-dark">
                         {Currency.format_price(item.unit_price * item.quantity, @store.currency)}
                       </span>
                     </div>
@@ -396,12 +396,12 @@ defmodule EmakolaWeb.Storefront.CartLive do
         <div :if={@cart != []} id="order-summary-wrapper" class="mt-8 lg:mt-0">
           <div class="lg:sticky lg:top-28">
             <div class="bg-white rounded-2xl border border-[#E7E5E4] p-6 sm:p-8 shadow-sm">
-              <h2 class="font-serif text-2xl font-semibold text-[#1C1917] mb-6">Order Summary</h2>
+              <h2 class="font-serif text-2xl font-semibold text-cta-dark mb-6">Order Summary</h2>
 
               <div class="space-y-3 text-sm">
                 <div class="flex justify-between">
                   <span class="text-[#78716C]">Subtotal</span>
-                  <span id="summary-subtotal" class="font-medium text-[#1C1917]">
+                  <span id="summary-subtotal" class="font-medium text-cta-dark">
                     {Currency.format_price(@cart_subtotal, @store.currency)}
                   </span>
                 </div>
@@ -412,7 +412,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
                 <p class="text-xs text-[#78716C]">Free shipping on orders over $200</p>
                 <div class="flex justify-between">
                   <span class="text-[#78716C]">Estimated Tax</span>
-                  <span id="summary-tax" class="font-medium text-[#1C1917]">
+                  <span id="summary-tax" class="font-medium text-cta-dark">
                     {Currency.format_price(@cart_tax, @store.currency)}
                   </span>
                 </div>
@@ -435,13 +435,13 @@ defmodule EmakolaWeb.Storefront.CartLive do
                     type="text"
                     placeholder="Enter code"
                     disabled={@promo_code != nil}
-                    class="flex-1 h-10 px-3 text-sm border border-[#E7E5E4] rounded-lg bg-transparent text-[#1C1917] placeholder:text-[#78716C]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#CA8A04] transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="flex-1 h-10 px-3 text-sm border border-[#E7E5E4] rounded-lg bg-transparent text-cta-dark placeholder:text-[#78716C]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#CA8A04] transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
                     autocomplete="off"
                   />
                   <button
                     type="submit"
                     disabled={@promo_code != nil}
-                    class="h-10 px-5 text-xs font-semibold tracking-wider uppercase bg-[#1C1917] text-white rounded-lg hover:bg-[#44403C] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="h-10 px-5 text-xs font-semibold tracking-wider uppercase bg-cta-dark text-white rounded-lg hover:bg-[#44403C] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Apply
                   </button>
@@ -501,8 +501,8 @@ defmodule EmakolaWeb.Storefront.CartLive do
               
     <!-- Total -->
               <div class="flex justify-between items-center mb-6">
-                <span class="text-base font-semibold text-[#1C1917]">Total</span>
-                <span id="summary-total" class="text-2xl font-bold text-[#1C1917] font-sans">
+                <span class="text-base font-semibold text-cta-dark">Total</span>
+                <span id="summary-total" class="text-2xl font-bold text-cta-dark font-sans">
                   {Currency.format_price(@cart_total, @store.currency)}
                 </span>
               </div>
@@ -511,7 +511,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
               <.link
                 navigate={"/s/#{@store.slug}/checkout"}
                 id="checkout-btn"
-                class="flex items-center justify-center gap-2 w-full h-14 bg-[#CA8A04] text-white text-sm font-semibold tracking-widest uppercase rounded-xl hover:bg-[#A16207] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none shadow-lg shadow-[#CA8A04]/20"
+                class="flex items-center justify-center gap-2 w-full h-14 bg-store-accent text-white text-sm font-semibold tracking-widest uppercase rounded-xl hover:bg-[#A16207] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none shadow-lg shadow-[#CA8A04]/20"
               >
                 <svg
                   class="w-5 h-5"
@@ -578,7 +578,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
       class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 sm:pb-28"
     >
       <div class="text-center mb-10">
-        <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-[#1C1917]">
+        <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-cta-dark">
           You May Also Like
         </h2>
         <p class="mt-2 text-sm text-[#78716C]">Curated selections to complement your style</p>
@@ -619,7 +619,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
             </div>
           </div>
           <div class="mt-3 px-0.5">
-            <h3 class="font-serif text-base sm:text-lg font-semibold text-[#1C1917] group-hover:text-[#CA8A04] transition-colors">
+            <h3 class="font-serif text-base sm:text-lg font-semibold text-cta-dark group-hover:text-store-accent transition-colors">
               {product.title}
             </h3>
             <p class="mt-0.5 text-sm font-medium text-[#44403C]">
@@ -648,7 +648,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
         phx-click="update_quantity"
         phx-value-index={@index}
         phx-value-delta="-1"
-        class="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 text-[#44403C] hover:text-[#1C1917] hover:bg-gray-50 transition-colors cursor-pointer disabled:text-neutral-300 disabled:cursor-not-allowed"
+        class="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 text-[#44403C] hover:text-cta-dark hover:bg-gray-50 transition-colors cursor-pointer disabled:text-neutral-300 disabled:cursor-not-allowed"
         aria-label="Decrease quantity"
       >
         <svg
@@ -661,7 +661,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
           <path d="M5 12h14" stroke-linecap="round" />
         </svg>
       </button>
-      <div class="flex items-center justify-center w-10 text-sm font-medium bg-transparent border-x sm:w-12 h-8 sm:h-9 text-[#1C1917] border-[#E7E5E4]">
+      <div class="flex items-center justify-center w-10 text-sm font-medium bg-transparent border-x sm:w-12 h-8 sm:h-9 text-cta-dark border-[#E7E5E4]">
         {@quantity}
       </div>
       <button
@@ -669,7 +669,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
         phx-click="update_quantity"
         phx-value-index={@index}
         phx-value-delta="1"
-        class="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 text-[#44403C] hover:text-[#1C1917] hover:bg-gray-50 transition-colors cursor-pointer disabled:text-neutral-300 disabled:cursor-not-allowed"
+        class="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 text-[#44403C] hover:text-cta-dark hover:bg-gray-50 transition-colors cursor-pointer disabled:text-neutral-300 disabled:cursor-not-allowed"
         aria-label="Increase quantity"
       >
         <svg

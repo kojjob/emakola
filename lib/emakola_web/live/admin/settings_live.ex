@@ -59,10 +59,11 @@ defmodule EmakolaWeb.Admin.SettingsLive do
 
   defp save_settings(socket, params) do
     store = socket.assigns.store
+    actor = socket.assigns[:current_user] || socket.assigns[:current_merchant]
 
     case store
          |> Ash.Changeset.for_update(:update_settings, params)
-         |> Ash.update() do
+         |> Ash.update(actor: actor) do
       {:ok, updated_store} ->
         {:noreply,
          socket

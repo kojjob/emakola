@@ -93,7 +93,7 @@ defmodule Emakola.Themes.Vibrant.Home do
               <div class="flex flex-wrap gap-3">
                 <a
                   href={"/s/#{@store.slug}/products"}
-                  class="inline-flex items-center gap-2 px-8 py-4 bg-white text-[var(--theme-primary,#DC2626)] rounded-full text-base font-bold hover:bg-[#FEF3C7] active:scale-[0.97] transition-all shadow-lg shadow-black/20"
+                  class="inline-flex items-center gap-2 px-8 py-4 bg-white text-[var(--theme-primary,#DC2626)] rounded-full text-base font-bold hover:bg-store-accent-light active:scale-[0.97] transition-all shadow-lg shadow-black/20"
                   style="font-family: 'DM Sans', sans-serif;"
                 >
                   Shop Now
@@ -138,7 +138,7 @@ defmodule Emakola.Themes.Vibrant.Home do
       >
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <h2
-            class="text-lg font-bold text-[#1C1917] mb-4"
+            class="text-lg font-bold text-cta-dark mb-4"
             style="font-family: 'Playfair Display', serif;"
           >
             Shop by Category
@@ -176,7 +176,7 @@ defmodule Emakola.Themes.Vibrant.Home do
           <div class="flex items-center justify-between mb-6">
             <h2
               id="vibrant-shop-all"
-              class="text-2xl font-bold text-[#1C1917]"
+              class="text-2xl font-bold text-cta-dark"
               style="font-family: 'Playfair Display', serif;"
             >
               Shop All
@@ -247,7 +247,7 @@ defmodule Emakola.Themes.Vibrant.Home do
               </p>
               <a
                 href={"/s/#{@store.slug}/products"}
-                class="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-[var(--theme-accent,#7C2D12)] rounded-full text-sm font-bold hover:bg-[#FEF3C7] active:scale-[0.97] transition-all shadow-lg"
+                class="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-[var(--theme-accent,#7C2D12)] rounded-full text-sm font-bold hover:bg-store-accent-light active:scale-[0.97] transition-all shadow-lg"
               >
                 Explore Collection
                 <svg
@@ -277,7 +277,7 @@ defmodule Emakola.Themes.Vibrant.Home do
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="bg-white rounded-3xl border border-[#FDE68A]/60 p-8 sm:p-12 text-center shadow-sm">
             <h2
-              class="text-2xl font-bold text-[#1C1917] mb-5"
+              class="text-2xl font-bold text-cta-dark mb-5"
               style="font-family: 'Playfair Display', serif;"
             >
               Our Story
@@ -304,7 +304,7 @@ defmodule Emakola.Themes.Vibrant.Home do
               href={"https://wa.me/#{@store.whatsapp_number}"}
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center gap-2 px-6 py-3 bg-[#25D366] text-white rounded-full text-sm font-bold hover:bg-[#1FAF55] transition-colors shadow-md"
+              class="inline-flex items-center gap-2 px-6 py-3 bg-whatsapp text-white rounded-full text-sm font-bold hover:bg-[#1FAF55] transition-colors shadow-md"
             >
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
@@ -375,7 +375,7 @@ defmodule Emakola.Themes.Vibrant.Home do
       class="block bg-white rounded-3xl overflow-hidden border border-[#FDE68A]/60 mb-2 hover:shadow-2xl hover:shadow-amber-200/40 transition-all duration-300 md:grid md:grid-cols-2"
       aria-label={"Featured product: #{@product.title}"}
     >
-      <div class="w-full aspect-[16/10] md:aspect-auto md:h-full md:min-h-[360px] bg-[#FEF3C7]/30 overflow-hidden">
+      <div class="w-full aspect-[16/10] md:aspect-auto md:h-full md:min-h-[360px] bg-store-accent-light/30 overflow-hidden">
         <.optimized_image
           :if={@image}
           src={@image}
@@ -399,7 +399,7 @@ defmodule Emakola.Themes.Vibrant.Home do
           Featured
         </span>
         <h2
-          class="text-2xl sm:text-3xl font-bold text-[#1C1917] mb-2 leading-tight"
+          class="text-2xl sm:text-3xl font-bold text-cta-dark mb-2 leading-tight"
           style="font-family: 'Playfair Display', serif;"
         >
           {@product.title}

@@ -86,7 +86,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
           <button
             type="button"
             disabled
-            class="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm mb-6 opacity-50 cursor-not-allowed"
+            class="w-full flex items-center justify-center gap-2 bg-whatsapp hover:bg-[#20bd5a] text-white font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm mb-6 opacity-50 cursor-not-allowed"
           >
             <span class="material-symbols-outlined text-xl">chat</span>
             Continue with WhatsApp (Coming Soon)

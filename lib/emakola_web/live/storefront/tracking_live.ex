@@ -67,12 +67,12 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
         <header class="bg-white border-b border-stone-200 px-4 py-4 sticky top-0 z-50">
           <div class="flex items-center justify-between">
             <div>
-              <h1 class="text-base font-bold text-[#1C1917]">{@store.name}</h1>
+              <h1 class="text-base font-bold text-cta-dark">{@store.name}</h1>
               <p class="text-xs text-stone-400 font-mono mt-0.5">Order #{@order_number}</p>
             </div>
             <a
               href={"/s/#{@store.slug}"}
-              class="text-xs font-semibold text-[#B45309] cursor-pointer"
+              class="text-xs font-semibold text-store-accent cursor-pointer"
               aria-label="Go back"
             >
               <svg
@@ -110,7 +110,7 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
             <div class="relative pl-8 space-y-6" role="list" aria-label="Delivery timeline">
               <%!-- Vertical line --%>
               <div class="absolute left-[11px] top-1 bottom-1 w-0.5" aria-hidden="true">
-                <div class={"w-full bg-[#B45309] h-[#{timeline_progress(@tracking.current_step)}%]"}>
+                <div class={"w-full bg-store-accent h-[#{timeline_progress(@tracking.current_step)}%]"}>
                 </div>
                 <div class={"w-full bg-stone-200 h-[#{100 - timeline_progress(@tracking.current_step)}%]"}>
                 </div>
@@ -126,8 +126,8 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
                 <div class={[
                   "absolute -left-8 top-0 w-6 h-6 rounded-full flex items-center justify-center",
                   cond do
-                    index < @tracking.current_step -> "bg-[#B45309]"
-                    index == @tracking.current_step -> "bg-[#B45309]"
+                    index < @tracking.current_step -> "bg-store-accent"
+                    index == @tracking.current_step -> "bg-store-accent"
                     true -> "bg-stone-200"
                   end
                 ]}>
@@ -162,8 +162,8 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
                   <p class={[
                     "text-sm",
                     cond do
-                      index < @tracking.current_step -> "font-semibold text-[#1C1917]"
-                      index == @tracking.current_step -> "font-bold text-[#B45309]"
+                      index < @tracking.current_step -> "font-semibold text-cta-dark"
+                      index == @tracking.current_step -> "font-bold text-store-accent"
                       true -> "font-medium text-stone-400"
                     end
                   ]}>
@@ -174,7 +174,7 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
                     class={[
                       "text-xs mt-0.5",
                       if(index == @tracking.current_step,
-                        do: "text-[#B45309] font-medium",
+                        do: "text-store-accent font-medium",
                         else: "text-stone-500"
                       )
                     ]}
@@ -275,8 +275,8 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
               <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white/90 to-transparent px-4 py-3">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 bg-[#B45309] rounded-full animate-pulse"></span>
-                    <p class="text-sm font-semibold text-[#1C1917]">
+                    <span class="w-2.5 h-2.5 bg-store-accent rounded-full animate-pulse"></span>
+                    <p class="text-sm font-semibold text-cta-dark">
                       Your order is on the way
                     </p>
                   </div>
@@ -292,7 +292,7 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
               class="w-full flex items-center justify-between px-5 py-4 cursor-pointer rounded-2xl"
               aria-expanded={to_string(@details_open)}
             >
-              <span class="text-sm font-semibold text-[#1C1917]">Order Details</span>
+              <span class="text-sm font-semibold text-cta-dark">Order Details</span>
               <svg
                 class={"w-4 h-4 text-stone-400 transition-transform #{if @details_open, do: "rotate-180"}"}
                 fill="none"
@@ -319,7 +319,7 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
                     <p class="text-sm text-stone-800">{item.product_title}</p>
                     <p class="text-xs text-stone-400">Qty: {item.quantity}</p>
                   </div>
-                  <span class="text-sm font-semibold text-[#1C1917] font-mono">
+                  <span class="text-sm font-semibold text-cta-dark font-mono">
                     {Currency.format_price(item.line_total, @order.currency)}
                   </span>
                 </div>
@@ -327,15 +327,15 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
                 <%!-- Subtotal --%>
                 <div class="flex items-center justify-between">
                   <p class="text-sm text-stone-500">Subtotal</p>
-                  <span class="text-sm font-semibold text-[#1C1917] font-mono">
+                  <span class="text-sm font-semibold text-cta-dark font-mono">
                     {Currency.format_price(@order.subtotal, @order.currency)}
                   </span>
                 </div>
 
                 <%!-- Total --%>
                 <div class="border-t border-stone-100 pt-3 flex items-center justify-between">
-                  <p class="text-sm font-bold text-[#1C1917]">Total</p>
-                  <span class="text-base font-bold text-[#1C1917] font-mono">
+                  <p class="text-sm font-bold text-cta-dark">Total</p>
+                  <span class="text-base font-bold text-cta-dark font-mono">
                     {Currency.format_price(@order.total, @order.currency)}
                   </span>
                 </div>
@@ -382,7 +382,7 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
           <.status_icon icon={@icon} />
         </div>
         <div class="flex-1 min-w-0">
-          <h2 class="text-base font-bold text-[#1C1917]">{@title}</h2>
+          <h2 class="text-base font-bold text-cta-dark">{@title}</h2>
           <p class="text-sm text-stone-500 mt-1">{@subtitle}</p>
         </div>
       </div>
@@ -480,7 +480,7 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
     ~H"""
     <div class="bg-white rounded-2xl border border-stone-200 p-5">
       <div class="flex items-center gap-4">
-        <div class="w-14 h-14 rounded-full bg-[#B45309] flex items-center justify-center text-white text-lg font-bold">
+        <div class="w-14 h-14 rounded-full bg-store-accent flex items-center justify-center text-white text-lg font-bold">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -490,7 +490,7 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
           </svg>
         </div>
         <div class="flex-1 min-w-0">
-          <h2 class="text-base font-bold text-[#1C1917]">Order Shipped</h2>
+          <h2 class="text-base font-bold text-cta-dark">Order Shipped</h2>
           <p class="text-sm text-stone-500 mt-1">Your order is on its way to you</p>
         </div>
       </div>
@@ -499,7 +499,7 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
       <div class="flex gap-3 mt-4">
         <a
           href={"/s/#{@store.slug}/about"}
-          class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#B45309] hover:bg-amber-800 text-white rounded-xl text-sm font-semibold transition-colors"
+          class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-store-accent hover:bg-amber-800 text-white rounded-xl text-sm font-semibold transition-colors"
         >
           <svg
             class="w-4 h-4"

@@ -124,7 +124,7 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLive do
               <%!-- Step 1 --%>
               <div class="flex-1 text-center">
                 <div class="flex justify-center mb-3">
-                  <div class="w-10 h-10 rounded-full bg-[#B45309] flex items-center justify-center shadow-md shadow-[#B45309]/20">
+                  <div class="w-10 h-10 rounded-full bg-store-accent flex items-center justify-center shadow-md shadow-[#B45309]/20">
                     <svg
                       class="w-5 h-5 text-white"
                       fill="none"
@@ -136,7 +136,7 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLive do
                     </svg>
                   </div>
                 </div>
-                <p class="text-xs font-semibold text-[#1C1917]">Received</p>
+                <p class="text-xs font-semibold text-cta-dark">Received</p>
                 <p class="text-[10px] text-[#A8A29E] mt-0.5">Seller notified</p>
               </div>
 
@@ -247,16 +247,16 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLive do
                 </div>
                 <span
                   :if={item.quantity > 1}
-                  class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#1C1917] text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white"
+                  class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-cta-dark text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white"
                 >
                   {item.quantity}
                 </span>
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-[#1C1917] truncate">{item.product_title}</p>
+                <p class="text-sm font-medium text-cta-dark truncate">{item.product_title}</p>
                 <p :if={item.variant_sku} class="text-xs text-[#A8A29E] mt-0.5">{item.variant_sku}</p>
               </div>
-              <span class="text-sm font-semibold text-[#1C1917] tabular-nums flex-shrink-0">
+              <span class="text-sm font-semibold text-cta-dark tabular-nums flex-shrink-0">
                 {Currency.format_price(item.line_total, @store.currency)}
               </span>
             </div>
@@ -289,8 +289,8 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLive do
               </span>
             </div>
             <div class="flex justify-between items-baseline pt-3 border-t border-[#E7E5E4]">
-              <span class="text-sm font-semibold text-[#1C1917]">Total</span>
-              <span class="text-xl font-bold text-[#1C1917] tabular-nums">
+              <span class="text-sm font-semibold text-cta-dark">Total</span>
+              <span class="text-xl font-bold text-cta-dark tabular-nums">
                 {Currency.format_price(@order.total, @store.currency)}
               </span>
             </div>
@@ -327,7 +327,7 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLive do
                   />
                 </svg>
               </div>
-              <span class="text-sm font-medium text-[#1C1917]">Delivery details</span>
+              <span class="text-sm font-medium text-cta-dark">Delivery details</span>
             </div>
             <svg
               class={"w-4 h-4 text-[#A8A29E] transition-transform #{if @show_details, do: "rotate-180"}"}
@@ -341,7 +341,7 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLive do
           </button>
           <div :if={@show_details} class="px-6 pb-5 pt-0">
             <div class="ml-11 text-sm text-[#57534E] space-y-0.5">
-              <p :if={@order.shipping_address["name"]} class="font-medium text-[#1C1917]">
+              <p :if={@order.shipping_address["name"]} class="font-medium text-cta-dark">
                 {@order.shipping_address["name"]}
               </p>
               <p :if={@order.shipping_address["address"]}>{@order.shipping_address["address"]}</p>
@@ -366,7 +366,7 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLive do
         <div class="space-y-3 mb-6">
           <a
             href={"/s/#{@store.slug}"}
-            class="group w-full flex items-center justify-center gap-2.5 px-8 py-4 bg-[#1C1917] text-white text-sm font-semibold tracking-wide rounded-2xl hover:bg-[#292524] transition-all hover:shadow-lg hover:shadow-stone-900/10"
+            class="group w-full flex items-center justify-center gap-2.5 px-8 py-4 bg-cta-dark text-white text-sm font-semibold tracking-wide rounded-2xl hover:bg-[#292524] transition-all hover:shadow-lg hover:shadow-stone-900/10"
           >
             Continue Shopping
             <svg
@@ -389,7 +389,7 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLive do
             href={"https://wa.me/#{clean_phone(@store.whatsapp_number)}?text=Hi! I just placed order #{@order.order_number}"}
             target="_blank"
             rel="noopener noreferrer"
-            class="group w-full flex items-center justify-center gap-2.5 px-8 py-4 bg-white border border-[#E7E5E4] text-[#1C1917] text-sm font-semibold tracking-wide rounded-2xl hover:border-[#25D366] hover:text-[#25D366] transition-all"
+            class="group w-full flex items-center justify-center gap-2.5 px-8 py-4 bg-white border border-[#E7E5E4] text-cta-dark text-sm font-semibold tracking-wide rounded-2xl hover:border-[#25D366] hover:text-[#25D366] transition-all"
           >
             <svg class="w-4.5 h-4.5 text-[#25D366]" fill="currentColor" viewBox="0 0 24 24">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />

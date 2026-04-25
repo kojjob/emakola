@@ -170,7 +170,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
               </svg>
             </span>
-            <span class="text-[#B45309] uppercase tracking-wider">{@category.name}</span>
+            <span class="text-store-accent uppercase tracking-wider">{@category.name}</span>
           </nav>
 
           <%!-- Hero Title --%>
@@ -179,9 +179,9 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
             <%= if length(words) > 1 do %>
               <span class="text-[#0F172A]">{Enum.at(words, 0)}</span>
               <br class="sm:hidden" />
-              <span class="text-[#B45309]">{Enum.at(words, 1)}</span>
+              <span class="text-store-accent">{Enum.at(words, 1)}</span>
             <% else %>
-              <span class="text-[#B45309]">{@category.name}</span>
+              <span class="text-store-accent">{@category.name}</span>
             <% end %>
           </h1>
 
@@ -255,7 +255,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
             </p>
             <a
               href={"/s/#{@store.slug}/products"}
-              class="inline-flex items-center gap-2 px-6 py-3 bg-[#1C1917] text-white text-sm font-semibold rounded-xl hover:bg-[#292524] transition-colors"
+              class="inline-flex items-center gap-2 px-6 py-3 bg-cta-dark text-white text-sm font-semibold rounded-xl hover:bg-[#292524] transition-colors"
             >
               Browse All Products
               <svg
@@ -306,7 +306,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
           </div>
           <div class="flex items-center gap-2 text-[#A8A29E]">
             <svg
-              class="w-4 h-4 text-[#B45309]"
+              class="w-4 h-4 text-store-accent"
               fill="none"
               stroke="currentColor"
               stroke-width="2"
@@ -383,7 +383,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
                   Popular
                 </span>
               <% @product.inserted_at && DateTime.diff(DateTime.utc_now(), @product.inserted_at, :day) < 14 -> %>
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-[#1C1917] text-white text-[10px] font-bold uppercase tracking-wider">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-cta-dark text-white text-[10px] font-bold uppercase tracking-wider">
                   New
                 </span>
               <% true -> %>
@@ -395,7 +395,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
             <button
               phx-click="add_to_cart"
               phx-value-product-id={@product.id}
-              class="w-full py-2.5 text-[11px] font-semibold uppercase tracking-wider rounded-lg bg-[#1C1917] text-white cursor-pointer hover:bg-[#292524] transition-colors min-h-[40px]"
+              class="w-full py-2.5 text-[11px] font-semibold uppercase tracking-wider rounded-lg bg-cta-dark text-white cursor-pointer hover:bg-[#292524] transition-colors min-h-[40px]"
             >
               Add to Cart
             </button>
@@ -404,7 +404,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
       </a>
 
       <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="block px-0.5">
-        <h3 class="text-sm font-medium text-[#1C1917] leading-snug mb-1 line-clamp-1 group-hover:text-[#B45309] transition-colors">
+        <h3 class="text-sm font-medium text-cta-dark leading-snug mb-1 line-clamp-1 group-hover:text-store-accent transition-colors">
           {@product.title}
         </h3>
         <div class="flex items-center gap-2">

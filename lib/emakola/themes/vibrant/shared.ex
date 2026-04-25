@@ -59,7 +59,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
               </div>
               <div class="min-w-0">
                 <div
-                  class="text-[0.9375rem] font-bold text-[#1C1917] truncate leading-tight"
+                  class="text-[0.9375rem] font-bold text-cta-dark truncate leading-tight"
                   style="font-family: 'Playfair Display', serif;"
                 >
                   {@store.name}
@@ -74,7 +74,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
             <div class="flex items-center gap-1">
               <a
                 href={"/s/#{@store.slug}/products"}
-                class="p-2.5 rounded-xl hover:bg-[#FEF3C7] transition-colors"
+                class="p-2.5 rounded-xl hover:bg-store-accent-light transition-colors"
                 aria-label="Search products"
               >
                 <svg
@@ -93,7 +93,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
               </a>
               <a
                 href={"/s/#{@store.slug}/wishlist"}
-                class="p-2.5 rounded-xl hover:bg-[#FEF3C7] transition-colors"
+                class="p-2.5 rounded-xl hover:bg-store-accent-light transition-colors"
                 aria-label="Wishlist"
               >
                 <svg
@@ -112,7 +112,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
               </a>
               <a
                 href={"/s/#{@store.slug}/cart"}
-                class="relative p-2.5 rounded-xl hover:bg-[#FEF3C7] transition-colors"
+                class="relative p-2.5 rounded-xl hover:bg-store-accent-light transition-colors"
                 aria-label={"Shopping cart, #{@cart_count} items"}
               >
                 <svg
@@ -211,14 +211,14 @@ defmodule Emakola.Themes.Vibrant.Shared do
 
     ~H"""
     <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
-      <div class="relative rounded-2xl overflow-hidden mb-3 bg-[#FEF3C7]/40 shadow-md shadow-amber-100 group-hover:shadow-xl group-hover:shadow-amber-200/60 transition-all duration-300">
+      <div class="relative rounded-2xl overflow-hidden mb-3 bg-store-accent-light/40 shadow-md shadow-amber-100 group-hover:shadow-xl group-hover:shadow-amber-200/60 transition-all duration-300">
         <.optimized_image
           :if={@image}
           src={@image}
           alt={@product.title}
           class="w-full aspect-[3/4] object-cover group-hover:scale-[1.06] transition-transform duration-500"
         />
-        <div :if={!@image} class="w-full aspect-[3/4] flex items-center justify-center bg-[#FEF3C7]">
+        <div :if={!@image} class="w-full aspect-[3/4] flex items-center justify-center bg-store-accent-light">
           <svg class="w-12 h-12 text-[#D97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -233,7 +233,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
           <span class="text-sm font-bold text-white tracking-wide">Shop Now</span>
         </div>
       </div>
-      <p class="text-sm font-semibold text-[#1C1917] leading-tight mb-1 truncate">
+      <p class="text-sm font-semibold text-cta-dark leading-tight mb-1 truncate">
         {@product.title}
       </p>
       <p class="text-sm font-bold text-[var(--theme-primary,#DC2626)]">

@@ -128,7 +128,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
       <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6 sm:pt-14 sm:pb-8">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-[#1C1917]">
+            <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-cta-dark">
               My Account
             </h1>
             <p class="mt-1 text-sm font-light tracking-wide text-[#44403C]">
@@ -157,7 +157,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
             </a>
             <.link
               navigate={"/s/#{@store.slug}"}
-              class="inline-flex items-center gap-2 text-sm font-medium transition-colors cursor-pointer group text-[#44403C] hover:text-[#1C1917]"
+              class="inline-flex items-center gap-2 text-sm font-medium transition-colors cursor-pointer group text-[#44403C] hover:text-cta-dark"
             >
               <svg
                 class="w-4 h-4 transition-transform group-hover:-translate-x-0.5"
@@ -248,7 +248,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
 
             <%!-- ORDERS TAB --%>
             <div :if={@active_tab == "orders"} class="space-y-6">
-              <h2 class="text-2xl font-semibold text-[#1C1917]">
+              <h2 class="text-2xl font-semibold text-cta-dark">
                 Order History
               </h2>
               <.order_list
@@ -262,7 +262,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
             <%!-- ADDRESSES TAB --%>
             <div :if={@active_tab == "addresses"} class="space-y-6">
               <div class="flex items-center justify-between">
-                <h2 class="text-2xl font-semibold text-[#1C1917]">
+                <h2 class="text-2xl font-semibold text-cta-dark">
                   Addresses
                 </h2>
                 <button
@@ -298,7 +298,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
           phx-click-away="close_return_modal"
         >
           <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-[#1C1917]">Request Return</h3>
+            <h3 class="text-lg font-semibold text-cta-dark">Request Return</h3>
             <button
               phx-click="close_return_modal"
               class="cursor-pointer text-stone-400 hover:text-stone-600"
@@ -330,7 +330,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
                 class={[
                   "cursor-pointer w-full text-left px-4 py-3 border rounded-lg text-sm transition-colors",
                   if(@return_reason == value,
-                    do: "border-[#B45309] bg-amber-50 text-[#1C1917]",
+                    do: "border-[#B45309] bg-amber-50 text-cta-dark",
                     else: "border-stone-200 text-[#44403C] hover:border-stone-400"
                   )
                 ]}
@@ -349,7 +349,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
               name="detail"
               rows="3"
               placeholder="Tell us more about the issue..."
-              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-[#1C1917] focus:ring-2 focus:ring-[#B45309] focus:border-[#B45309] focus:outline-none"
+              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-[#B45309] focus:border-[#B45309] focus:outline-none"
             >{@return_detail}</textarea>
           </div>
 
@@ -359,7 +359,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
             class={[
               "cursor-pointer w-full text-center text-xs font-semibold uppercase tracking-wider px-6 py-3 rounded-[20px] transition-colors",
               if(@return_reason,
-                do: "bg-[#1C1917] text-white hover:bg-stone-800",
+                do: "bg-cta-dark text-white hover:bg-stone-800",
                 else: "bg-stone-200 text-stone-400 cursor-not-allowed"
               )
             ]}
@@ -380,7 +380,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
   defp profile_section(assigns) do
     ~H"""
     <section>
-      <h2 class="text-2xl font-semibold mb-6 text-[#1C1917]">
+      <h2 class="text-2xl font-semibold mb-6 text-cta-dark">
         Profile
       </h2>
       <div class="bg-white rounded-xl border border-stone-200 p-6 sm:p-8">
@@ -393,7 +393,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
             {customer_initials(@customer)}
           </div>
           <div>
-            <h3 class="font-semibold text-lg text-[#1C1917]">
+            <h3 class="font-semibold text-lg text-cta-dark">
               {customer_display_name(@customer)}
             </h3>
             <p class="text-sm text-[#44403C]">
@@ -412,7 +412,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
               type="text"
               name="name"
               value={@customer.name || ""}
-              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-[#1C1917] focus:outline-none transition-colors"
+              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:outline-none transition-colors"
               style={"--tw-ring-color: #{@theme.colors.primary};"}
               onfocus="this.style.boxShadow=`0 0 0 2px ${this.style.getPropertyValue('--tw-ring-color')}`;"
               onblur="this.style.boxShadow=''"
@@ -427,7 +427,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
               name="email"
               value={to_string(@customer.email)}
               readonly
-              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-[#1C1917] bg-stone-50 cursor-not-allowed focus:outline-none transition-colors"
+              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark bg-stone-50 cursor-not-allowed focus:outline-none transition-colors"
             />
           </div>
           <div>
@@ -438,7 +438,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
               type="tel"
               name="phone"
               value={@customer.phone || ""}
-              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-[#1C1917] focus:outline-none transition-colors"
+              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:outline-none transition-colors"
               style={"--tw-ring-color: #{@theme.colors.primary};"}
               onfocus="this.style.boxShadow=`0 0 0 2px ${this.style.getPropertyValue('--tw-ring-color')}`;"
               onblur="this.style.boxShadow=''"
@@ -464,7 +464,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
     ~H"""
     <section>
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-semibold text-[#1C1917]">
+        <h2 class="text-2xl font-semibold text-cta-dark">
           Recent Orders
         </h2>
         <button
@@ -540,7 +540,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
               </svg>
             </div>
             <div>
-              <p class="text-sm font-semibold text-[#1C1917]">
+              <p class="text-sm font-semibold text-cta-dark">
                 Order #{order.order_number}
               </p>
               <p class="text-xs mt-0.5 text-[#44403C]">
@@ -554,7 +554,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
             </div>
           </div>
           <div class="flex items-center gap-4 sm:gap-6">
-            <p class="text-sm font-semibold text-[#1C1917]">
+            <p class="text-sm font-semibold text-cta-dark">
               {Currency.format_price(order.total, @store.currency)}
             </p>
             <span class={[
@@ -581,7 +581,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
             <button
               phx-click="show_return_modal"
               phx-value-order={order.order_number}
-              class="cursor-pointer text-xs font-medium text-[#B45309] hover:text-amber-800 transition-colors"
+              class="cursor-pointer text-xs font-medium text-store-accent hover:text-amber-800 transition-colors"
             >
               Request Return
             </button>
@@ -622,7 +622,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
         class="bg-white rounded-xl border border-stone-200 p-6"
       >
         <div class="flex items-center gap-2 mb-3">
-          <h3 class="text-sm font-semibold text-[#1C1917]">
+          <h3 class="text-sm font-semibold text-cta-dark">
             {address.label || "Address"}
           </h3>
           <span
@@ -638,7 +638,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
             do: ", #{address.region}"}
         </p>
         <div class="flex items-center gap-4 mt-4 pt-4 border-t border-stone-100">
-          <button class="cursor-pointer text-xs font-medium text-[#44403C] hover:text-[#1C1917] transition-colors">
+          <button class="cursor-pointer text-xs font-medium text-[#44403C] hover:text-cta-dark transition-colors">
             Edit
           </button>
           <button class="cursor-pointer text-xs font-medium text-rose-500 hover:text-rose-700 transition-colors">
