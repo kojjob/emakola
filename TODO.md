@@ -1,6 +1,6 @@
 # Emakola — Project TODO
 
-**Last updated:** 2026-04-25 (post-audit refresh)
+**Last updated:** 2026-04-25 (post-audit refresh + multitenancy hardening pass)
 
 > This list reflects the 2026-04-25 codebase audit. Items previously listed as P0
 > were re-verified; many were already fixed and have been removed (address
@@ -11,6 +11,14 @@
 
 ## RECENTLY COMPLETED (since last refresh)
 
+### 2026-04-25 multitenancy hardening pass (commits a56b4b5, 05a2cb9, 0a2bea2, c755bc0, 7e51cf6)
+
+- **Store update bypass closed** (`a56b4b5`) — nil-actor writes now denied; `settings_live`/`onboarding_live` pass `actor: current_user`; factory uses `authorize?: false` for test infra. 4-test `store_policy_test.exs` covers nil/non-member/member/escape-hatch cases.
+- **Cross-tenant read isolation enforced** (`05a2cb9`) — added `multitenancy strategy: :attribute, attribute: :store_id, global?: true` to 9 resources: customer, address, customer_note, wishlist_item, order, line_item, return, coupon, payment. Replaced read bypass with scoped policies. 19-test `multitenancy_isolation_test.exs` proves the boundary.
+- **Tailwind v4 named tokens** (`a56b4b5`) — added 10 brand tokens (`emakola-emerald`, `emakola-gold`, `store-accent`, `cta-dark`, `mtn`, `voda`, `whatsapp`, etc.) and replaced 242 inline `bg-[#hex]`/`text-[#hex]` literals across 32 files. Reconciled storefront color drift `#CA8A04` → `#B45309`.
+- **Test suite: 1841→1862 passing**, 6 residual failures (see Follow-ups below).
+
+### Earlier
 - Address `line_1` key consistency between writer and reader — verified
 - Coupon resource `authorizers: [Ash.Policy.Authorizer]` — verified at `lib/emakola/orders/resources/coupon.ex:17`
 - `/health` controller queries `SELECT 1` — verified
@@ -25,44 +33,38 @@
 
 ---
 
+## RESIDUAL: Multitenancy follow-ups (6 test failures remain)
+
+### TrackingLive needs tenant on read (2 tests)
+- `lib/emakola_web/live/storefront/tracking_live.ex` — Order reads should
+  call `Ash.Query.set_tenant(store.id)` (or pass `authorize?: false` if
+  already store-scoped via filter).
+
+### Tighten create policies for Order + Customer (4 tests)
+- `Security.AuthorizationTest` expects merchant_b to be denied creating in
+  store_a. Currently `bypass action_type(:create) do authorize_if(always()) end`
+  matches existing project convention but is permissive. To tighten:
+  replace with `policy action_type(:create) do authorize_if(merchant has store access) end`
+  on `Order`, `Customer`, `LineItem`, etc. Will require updating any
+  service/worker code that creates without an actor to pass `authorize?: false`.
+
+---
+
 ## CRITICAL — Fix Before Launch
 
-### P0: Multi-Tenant Read Isolation (NEW, audit finding)
+### Catalog reads (still P0)
 
-**Systemic finding:** every tenant-scoped Ash resource declares
-`bypass action_type(:read) do authorize_if(always()) end`. Cross-tenant
-isolation depends entirely on callers passing `store_id` arguments. There is
-no `multitenancy do strategy :attribute end` block on any resource. One
-forgotten filter exposes every store's data.
+The 2026-04-25 hardening covered customers/orders/payments. Catalog
+resources still have `bypass action_type(:read) do authorize_if(always()) end`
+which is intentional for unauthenticated storefront browsing — but draft/
+hidden products leak across stores.
 
-- [ ] Add `multitenancy do strategy :attribute; attribute :store_id; global? true end` to every tenant-scoped resource:
-  - [ ] `lib/emakola/customers/resources/customer.ex`
-  - [ ] `lib/emakola/customers/resources/address.ex`
-  - [ ] `lib/emakola/customers/resources/customer_note.ex`
-  - [ ] `lib/emakola/customers/resources/wishlist_item.ex`
-  - [ ] `lib/emakola/orders/resources/order.ex`
-  - [ ] `lib/emakola/orders/resources/line_item.ex`
-  - [ ] `lib/emakola/orders/resources/return.ex`
-  - [ ] `lib/emakola/orders/resources/coupon.ex`
-  - [ ] `lib/emakola/payments/resources/payment.ex`
-- [ ] Replace `bypass action_type(:read)` with scoped policies that authorize on
-      `actor.current_store_id == store_id` for merchants and `customer_id == ^actor(:id)`
-      for customers.
-- [ ] Tighten catalog reads to `filter(expr(status == :published))` for the public
-      bypass; add a separate admin read action that requires merchant ownership:
+- [ ] Tighten catalog public read bypass to `filter(expr(status == :published))`:
   - [ ] `lib/emakola/catalog/resources/product.ex`
   - [ ] `lib/emakola/catalog/resources/variant.ex`
   - [ ] `lib/emakola/catalog/resources/category.ex`
   - [ ] `lib/emakola/catalog/resources/review.ex`
-- [ ] Write integration tests proving `store_a` actor cannot read `store_b` data
-      across all resources above.
-
-### P0: Store Update Bypass
-
-- [ ] `lib/emakola/accounts/resources/store.ex:99-115` — `bypass always() do
-      authorize_unless(actor_present()) end` allows nil-actor (system) writes to
-      any store. Move bypass below ownership check or require explicit system
-      actor; ensure background workers carry an explicit actor.
+- [ ] Add separate admin `read :all` action requiring Merchant + store membership.
 
 ### P0: Checkout Correctness
 
