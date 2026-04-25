@@ -89,6 +89,7 @@ defmodule EmakolaWeb do
       # Core UI components
       import EmakolaWeb.CoreComponents
       import EmakolaWeb.SidebarComponents
+      import EmakolaWeb.AdminComponents
       # Storefront components — use explicit import in storefront LiveViews
       # import EmakolaWeb.StorefrontComponents
 

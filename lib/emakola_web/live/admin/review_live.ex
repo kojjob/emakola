@@ -92,11 +92,10 @@ defmodule EmakolaWeb.Admin.ReviewLive do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <%!-- Page Header --%>
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900">Reviews</h1>
-        <p class="text-sm text-slate-500 mt-1">Manage customer reviews for your products</p>
-      </div>
+      <.admin_page_header
+        title="Reviews"
+        subtitle="Manage customer reviews for your products"
+      />
 
       <%!-- Status Filter --%>
       <div class="flex gap-2">
