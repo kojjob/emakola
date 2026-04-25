@@ -37,7 +37,7 @@ defmodule Emakola.Themes.ThemeResolverTest do
 
       assert result.theme_id == "vibrant"
       assert result.theme_name == "Vibrant"
-      assert result.colors.primary == "#DC2626"
+      assert result.colors.primary == "#B45309"
       assert result.colors.accent == "#7C2D12"
       assert result.colors.background == "#FFFBEB"
     end
