@@ -137,6 +137,21 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert result.sections.specs == true
     end
 
+    test "atlas theme returns correct defaults (sidebar-driven catalog niche)" do
+      result = ThemeResolver.resolve(%{"theme" => "atlas"})
+
+      assert result.theme_id == "atlas"
+      assert result.theme_name == "Atlas"
+      assert result.colors.background == "#FAFAFA"
+      assert result.colors.primary == "#0F172A"
+      assert result.colors.accent == "#2563EB"
+      assert result.fonts.heading == "Inter"
+      # Catalog-specific section gates
+      assert result.sections.whats_new == true
+      assert result.sections.bestsellers == true
+      assert result.sections.feed == true
+    end
+
     test "color overrides merge correctly" do
       config = %{
         "theme" => "market",

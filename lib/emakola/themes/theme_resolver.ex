@@ -11,6 +11,7 @@ defmodule Emakola.Themes.ThemeResolver do
 
   @theme_modules %{
     "atelier" => Emakola.Themes.Atelier,
+    "atlas" => Emakola.Themes.Atlas,
     "bold" => Emakola.Themes.Bold,
     "circuit" => Emakola.Themes.Circuit,
     "fade" => Emakola.Themes.Fade,
