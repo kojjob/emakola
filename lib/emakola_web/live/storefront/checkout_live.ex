@@ -47,6 +47,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      |> assign(:step, 1)
      |> assign(:payment_method, "momo")
      |> assign(:phone, "")
+     |> assign(:email, "")
      |> assign(:fullname, "")
      |> assign(:address, "")
      |> assign(:region, "greater_accra")
@@ -87,6 +88,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     {:noreply,
      socket
      |> assign(:phone, Map.get(params, "phone", socket.assigns.phone))
+     |> assign(:email, Map.get(params, "email", socket.assigns.email))
      |> assign(:fullname, Map.get(params, "fullname", socket.assigns.fullname))
      |> assign(:address, Map.get(params, "address", socket.assigns.address))
      |> assign(:region, Map.get(params, "region", socket.assigns.region))
@@ -101,6 +103,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     socket =
       socket
       |> assign(:phone, Map.get(params, "phone", ""))
+      |> assign(:email, Map.get(params, "email", ""))
       |> assign(:fullname, Map.get(params, "fullname", ""))
       |> assign(:address, Map.get(params, "address", ""))
       |> assign(:region, Map.get(params, "region", "greater_accra"))
@@ -163,6 +166,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     socket =
       socket
       |> assign(:phone, Map.get(params, "phone", socket.assigns.phone))
+      |> assign(:email, Map.get(params, "email", socket.assigns.email))
       |> assign(:fullname, Map.get(params, "fullname", socket.assigns.fullname))
       |> assign(:address, Map.get(params, "address", socket.assigns.address))
       |> assign(:region, Map.get(params, "region", socket.assigns.region))
@@ -481,6 +485,24 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                       />
                       <p :if={@form_errors[:fullname]} class="text-xs text-red-600 mt-1">
                         {@form_errors[:fullname]}
+                      </p>
+                    </div>
+
+                    <div>
+                      <label for="email" class="block text-sm font-medium text-stone-900 mb-1.5">
+                        Email <span class="text-stone-400 text-xs">(optional, for receipt)</span>
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={@email}
+                        placeholder="ama@example.com"
+                        autocomplete="email"
+                        class={"w-full bg-white border rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all #{if @form_errors[:email], do: "border-red-400 bg-red-50", else: "border-stone-200"}"}
+                      />
+                      <p :if={@form_errors[:email]} class="text-xs text-red-600 mt-1">
+                        {@form_errors[:email]}
                       </p>
                     </div>
                   </div>
@@ -1334,7 +1356,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
     params = %{
       amount: order.total,
-      email: "#{socket.assigns.phone}@checkout.emakola.com",
+      email: paystack_email(socket.assigns, store),
       currency: store.currency || "GHS",
       order_id: order.id,
       store_id: store.id,
@@ -1382,8 +1404,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                |> assign(:processing, false)
                |> redirect(to: "/s/#{store.slug}/orders/#{order.order_number}/confirmation")}
         else
-          Process.send_after(self(), :poll_payment_status, @payment_poll_interval_ms)
-          Process.send_after(self(), :tick_timer, 1000)
+          # Guard against disconnected static render — without this, the
+          # timer/poll messages leak into a process that has no client to
+          # render to and never get handled.
+          if connected?(socket) do
+            Process.send_after(self(), :poll_payment_status, @payment_poll_interval_ms)
+            Process.send_after(self(), :tick_timer, 1000)
+          end
 
           {:noreply,
            socket
@@ -1428,13 +1455,46 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   defp paystack_channel("card"), do: "card"
   defp paystack_channel(_), do: "mobile_money"
 
+  # Resolves the email Paystack receives for this transaction.
+  #
+  # Preference order:
+  #   1. customer-provided email (real address — best for receipts)
+  #   2. store contact email (so transactions land under the merchant)
+  #   3. a deterministic, store-scoped placeholder
+  #
+  # Crucially, we never synthesise per-customer fake addresses anymore — the
+  # earlier `#{phone}@checkout.emakola.com` pattern polluted Paystack's
+  # customer database with thousands of unrouteable addresses.
+  defp paystack_email(assigns, store) do
+    cond do
+      assigns[:email] not in [nil, ""] -> assigns.email
+      Map.get(store, :contact_email) not in [nil, ""] -> store.contact_email
+      true -> "checkout+#{store.slug}@emakola.com"
+    end
+  end
+
+  # Default per-region fees used when the merchant has not configured a
+  # `Emakola.Shipping.DeliveryZone`. Kept as a fallback so onboarding stores
+  # can take orders before configuring zones; merchants who configure zones
+  # override this entirely.
+  @default_region_fees %{
+    "greater_accra" => 1500,
+    "ashanti" => 2500,
+    "central" => 2500
+  }
+  @default_region_fee 3500
+
   defp update_delivery_fee(socket) do
+    region = socket.assigns.region
+    store_id = socket.assigns.store.id
+
     fee =
-      case socket.assigns.region do
-        "greater_accra" -> 1500
-        "ashanti" -> 2500
-        "central" -> 2500
-        _ -> 3500
+      case Emakola.Shipping.calculate_fee(store_id, region) do
+        {:ok, configured_fee} ->
+          configured_fee
+
+        {:error, :no_zone} ->
+          Map.get(@default_region_fees, region, @default_region_fee)
       end
 
     assign(socket, :delivery_fee, fee)
@@ -1453,9 +1513,25 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         do: Map.put(errors, :fullname, "Full name is required"),
         else: errors
 
-    if assigns.address == "",
-      do: Map.put(errors, :address, "Delivery address is required"),
-      else: errors
+    errors =
+      if assigns.address == "",
+        do: Map.put(errors, :address, "Delivery address is required"),
+        else: errors
+
+    # Email is optional, but if provided must look like an email address.
+    email = assigns[:email] || ""
+
+    if email != "" and not email_format_ok?(email) do
+      Map.put(errors, :email, "Email format looks invalid")
+    else
+      errors
+    end
+  end
+
+  defp email_format_ok?(email) do
+    String.contains?(email, "@") and
+      String.split(email, "@") |> length() == 2 and
+      String.length(email) <= 320
   end
 
   defp calculate_order_total(assigns) do
