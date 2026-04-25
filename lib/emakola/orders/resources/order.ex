@@ -39,6 +39,12 @@ defmodule Emakola.Orders.Order do
     end
   end
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("orders")
     repo(Emakola.Repo)
@@ -143,19 +149,27 @@ defmodule Emakola.Orders.Order do
   end
 
   policies do
-    bypass action_type(:read) do
+    # Creates are permissive (callers ensure store_id is valid)
+    bypass action_type(:create) do
       authorize_if(always())
     end
 
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
-      authorize_unless(actor_present())
+    # Generic actions (action :name) — internal helpers, no policy
+    bypass action_type(:action) do
+      authorize_if(always())
     end
 
-    # Merchant actors: verify store membership for writes
+    # Merchant actors: verify store membership (for reads + writes)
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
+
+    # Customer actors: tenant-scoped reads (row scoping by customer_id is a follow-up)
+    policy actor_attribute_equals(:__struct__, Emakola.Customers.Customer) do
+      authorize_if(action_type(:read))
+    end
+
+    # nil actor falls through to default-deny. System code uses `authorize?: false`.
   end
 
   actions do

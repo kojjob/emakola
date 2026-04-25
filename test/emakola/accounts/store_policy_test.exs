@@ -18,7 +18,7 @@ defmodule Emakola.Accounts.StorePolicyTest do
       result =
         store
         |> Ash.Changeset.for_update(:update_settings, %{name: "Hacked"})
-        |> Ash.update()
+        |> Ash.update(authorize?: true)
 
       assert {:error, %Ash.Error.Forbidden{}} = result
     end
@@ -30,7 +30,7 @@ defmodule Emakola.Accounts.StorePolicyTest do
       result =
         store
         |> Ash.Changeset.for_update(:update_settings, %{name: "Hacked"})
-        |> Ash.update(actor: stranger)
+        |> Ash.update(actor: stranger, authorize?: true)
 
       assert {:error, %Ash.Error.Forbidden{}} = result
     end
@@ -43,7 +43,7 @@ defmodule Emakola.Accounts.StorePolicyTest do
       result =
         store
         |> Ash.Changeset.for_update(:update_settings, %{name: "New Name"})
-        |> Ash.update(actor: owner)
+        |> Ash.update(actor: owner, authorize?: true)
 
       assert {:ok, updated} = result
       assert updated.name == "New Name"

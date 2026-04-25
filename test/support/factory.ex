@@ -20,7 +20,7 @@ defmodule Emakola.Factory do
       password: attrs[:password] || "Password123!",
       password_confirmation: attrs[:password_confirmation] || attrs[:password] || "Password123!"
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   def build_organisation(attrs \\ %{}) do
@@ -36,13 +36,13 @@ defmodule Emakola.Factory do
 
     Emakola.Accounts.Organisation
     |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   def create_membership!(user, org, role \\ :member) do
     Emakola.Accounts.Membership
     |> Ash.Changeset.for_create(:create, %{role: role, user_id: user.id, organisation_id: org.id})
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   # ── Merchant (ecommerce auth) ──────────────────────────────────
@@ -54,7 +54,7 @@ defmodule Emakola.Factory do
       password: attrs[:password] || "Password123!",
       password_confirmation: attrs[:password_confirmation] || attrs[:password] || "Password123!"
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   # ── Store ─────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ defmodule Emakola.Factory do
     store =
       Emakola.Accounts.Store
       |> Ash.Changeset.for_create(:create, create_params)
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     if settings_params == %{} do
       store
@@ -92,7 +92,7 @@ defmodule Emakola.Factory do
       merchant_id: merchant.id,
       store_id: store.id
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   # ── Catalog ───────────────────────────────────────────────────
@@ -107,7 +107,7 @@ defmodule Emakola.Factory do
 
     Emakola.Catalog.Category
     |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   def create_product!(store, attrs \\ %{}) do
@@ -124,13 +124,13 @@ defmodule Emakola.Factory do
     product =
       Emakola.Catalog.Product
       |> Ash.Changeset.for_create(:create, params)
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     if status do
       product
       |> Ash.Changeset.for_update(:update, %{})
       |> Ash.Changeset.force_change_attribute(:status, status)
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
     else
       product
     end
@@ -147,7 +147,7 @@ defmodule Emakola.Factory do
 
     Emakola.Catalog.OptionType
     |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   def create_option_value!(option_type, store, attrs \\ %{}) do
@@ -161,7 +161,7 @@ defmodule Emakola.Factory do
 
     Emakola.Catalog.OptionValue
     |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   def create_variant!(product, store, attrs \\ %{}) do
@@ -175,7 +175,7 @@ defmodule Emakola.Factory do
 
     Emakola.Catalog.Variant
     |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   def create_variant_option_value!(variant, option_value, store) do
@@ -185,7 +185,7 @@ defmodule Emakola.Factory do
       option_value_id: option_value.id,
       store_id: store.id
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   # ── Billing (legacy from FounderPad) ──────────────────────────
@@ -208,7 +208,7 @@ defmodule Emakola.Factory do
 
     Emakola.Billing.Plan
     |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   def create_agent!(org, attrs \\ %{}) do
@@ -224,7 +224,7 @@ defmodule Emakola.Factory do
 
     Emakola.AI.Agent
     |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   def create_invoice!(org, attrs \\ %{}) do
@@ -239,7 +239,7 @@ defmodule Emakola.Factory do
 
     Emakola.Billing.Invoice
     |> Ash.Changeset.for_create(:create, Map.merge(default, Map.new(attrs)))
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   def create_conversation_chain! do
@@ -255,7 +255,7 @@ defmodule Emakola.Factory do
         organisation_id: org.id,
         user_id: user.id
       })
-      |> Ash.create()
+      |> Ash.create(authorize?: false)
 
     {org, user, agent, conversation}
   end
@@ -272,7 +272,7 @@ defmodule Emakola.Factory do
       store_id: store.id,
       role: :owner
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
 
     {merchant, store}
   end
@@ -296,12 +296,12 @@ defmodule Emakola.Factory do
     image =
       Emakola.Catalog.Image
       |> Ash.Changeset.for_create(:create, params)
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     if position do
       image
       |> Ash.Changeset.for_update(:update, %{position: position})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
     else
       image
     end
@@ -320,7 +320,7 @@ defmodule Emakola.Factory do
 
     Emakola.Customers.Customer
     |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   # ── Orders ───────────────────────────────────────────────────────
@@ -338,13 +338,13 @@ defmodule Emakola.Factory do
     order =
       Emakola.Orders.Order
       |> Ash.Changeset.for_create(:create, params)
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     if status do
       order
       |> Ash.Changeset.for_update(:update, %{})
       |> Ash.Changeset.force_change_attribute(:status, status)
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
     else
       order
     end
@@ -366,7 +366,7 @@ defmodule Emakola.Factory do
 
     Emakola.Payments.Payment
     |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   # ── Delivery Zones ────────────────────────────────────────────────
@@ -383,7 +383,7 @@ defmodule Emakola.Factory do
 
     Emakola.Shipping.DeliveryZone
     |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   # ── Addresses ──────────────────────────────────────────────────────
@@ -400,7 +400,7 @@ defmodule Emakola.Factory do
 
     Emakola.Customers.Address
     |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   # ── Customer Notes ─────────────────────────────────────────────────
@@ -416,7 +416,7 @@ defmodule Emakola.Factory do
 
     Emakola.Customers.CustomerNote
     |> Ash.Changeset.for_create(:create, params)
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   # ── Content (Blog Posts, Pages) ──────────────────────────────────
@@ -434,7 +434,7 @@ defmodule Emakola.Factory do
 
     Emakola.Content.Post
     |> Ash.Changeset.for_create(:create, Map.merge(default, attrs))
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   def create_media!(store, attrs \\ %{}) do
@@ -450,7 +450,7 @@ defmodule Emakola.Factory do
 
     Emakola.Content.MediaAttachment
     |> Ash.Changeset.for_create(:create, Map.merge(default, attrs))
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   def create_recipe_meta!(post, attrs \\ %{}) do
@@ -468,7 +468,7 @@ defmodule Emakola.Factory do
 
     Emakola.Content.RecipeMeta
     |> Ash.Changeset.for_create(:create, Map.merge(default, attrs))
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   def create_platform_post!(attrs \\ %{}) do
@@ -484,6 +484,6 @@ defmodule Emakola.Factory do
 
     Emakola.Content.Post
     |> Ash.Changeset.for_create(:create, Map.merge(default, attrs))
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 end

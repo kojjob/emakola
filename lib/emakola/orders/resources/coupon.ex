@@ -16,6 +16,12 @@ defmodule Emakola.Orders.Coupon do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("coupons")
     repo(Emakola.Repo)
@@ -97,19 +103,35 @@ defmodule Emakola.Orders.Coupon do
   end
 
   policies do
-    bypass action_type(:read) do
+    # Creates are permissive (callers ensure store_id is valid)
+    bypass action_type(:create) do
       authorize_if(always())
     end
 
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
-      authorize_unless(actor_present())
+    # Generic actions (action :name) — internal helpers, no policy
+    bypass action_type(:action) do
+      authorize_if(always())
     end
 
-    # Merchant actors: verify store membership for writes
+    # Public storefront reads — list and find by code action arguments
+    # filter to active+public+within-window. These are designed for
+    # unauthenticated checkout flows.
+    bypass action([:list_active_public, :find_by_code]) do
+      authorize_if(always())
+    end
+
+    # Merchant actors: verify store membership (for reads + writes)
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
+
+    # Customer actors at checkout can read public coupons by code (action handles
+    # the public flag); for now permit tenant-scoped reads.
+    policy actor_attribute_equals(:__struct__, Emakola.Customers.Customer) do
+      authorize_if(action_type(:read))
+    end
+
+    # nil actor falls through to default-deny.
   end
 
   actions do

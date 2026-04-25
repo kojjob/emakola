@@ -102,10 +102,11 @@ defmodule Emakola.Accounts.Store do
       authorize_if(always())
     end
 
-    # Writes (update, destroy): require an authenticated Merchant with
-    # StoreMembership for this store. nil actor falls through to default-deny.
-    # System code that needs to mutate a Store must opt in with `authorize?: false`.
-    policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
+    # Writes (update, destroy): nil actor → deny; non-Merchant → deny;
+    # Merchant must have store access. System code uses `authorize?: false`.
+    policy action_type([:update, :destroy]) do
+      forbid_unless(actor_present())
+      forbid_unless(actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant))
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
   end

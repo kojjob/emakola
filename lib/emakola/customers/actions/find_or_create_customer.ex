@@ -33,7 +33,7 @@ defmodule Emakola.Customers.Actions.FindOrCreateCustomer do
   defp find_existing(email, store_id) do
     Emakola.Customers.Customer
     |> Ash.Query.filter(email == ^email and store_id == ^store_id)
-    |> Ash.read!()
+    |> Ash.read!(authorize?: false)
     |> List.first()
   end
 

@@ -41,7 +41,7 @@ defmodule Emakola.Dashboard.Stats do
     case Emakola.Payments.Payment
          |> Ash.Query.filter(store_id == ^store_id and status == :success)
          |> Ash.Query.new()
-         |> Ash.sum(:amount) do
+         |> Ash.sum(:amount, authorize?: false) do
       {:ok, nil} -> 0
       {:ok, total} -> total
       _ -> 0
@@ -52,7 +52,7 @@ defmodule Emakola.Dashboard.Stats do
   def count_orders(store_id) do
     case Emakola.Orders.Order
          |> Ash.Query.filter(store_id == ^store_id)
-         |> Ash.count() do
+         |> Ash.count(authorize?: false) do
       {:ok, count} -> count
       _ -> 0
     end
@@ -62,7 +62,7 @@ defmodule Emakola.Dashboard.Stats do
   def count_active_products(store_id) do
     case Emakola.Catalog.Product
          |> Ash.Query.filter(store_id == ^store_id and status == :active)
-         |> Ash.count() do
+         |> Ash.count(authorize?: false) do
       {:ok, count} -> count
       _ -> 0
     end
@@ -72,7 +72,7 @@ defmodule Emakola.Dashboard.Stats do
   def count_customers(store_id) do
     case Emakola.Customers.Customer
          |> Ash.Query.filter(store_id == ^store_id)
-         |> Ash.count() do
+         |> Ash.count(authorize?: false) do
       {:ok, count} -> count
       _ -> 0
     end
@@ -85,7 +85,7 @@ defmodule Emakola.Dashboard.Stats do
          |> Ash.Query.sort(inserted_at: :desc)
          |> Ash.Query.limit(limit)
          |> Ash.Query.load(:customer)
-         |> Ash.read() do
+         |> Ash.read(authorize?: false) do
       {:ok, orders} -> orders
       _ -> []
     end
@@ -102,7 +102,7 @@ defmodule Emakola.Dashboard.Stats do
          |> Ash.Query.sort(stock_quantity: :asc)
          |> Ash.Query.limit(10)
          |> Ash.Query.load(:product)
-         |> Ash.read() do
+         |> Ash.read(authorize?: false) do
       {:ok, variants} -> variants
       _ -> []
     end
@@ -115,7 +115,7 @@ defmodule Emakola.Dashboard.Stats do
          |> Ash.Query.load([:variant_count, :min_price, :max_price])
          |> Ash.Query.sort(variant_count: :desc)
          |> Ash.Query.limit(limit)
-         |> Ash.read() do
+         |> Ash.read(authorize?: false) do
       {:ok, products} -> products
       _ -> []
     end

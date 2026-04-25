@@ -67,7 +67,7 @@ defmodule Emakola.Payments.PaystackWebhook do
       else
         payment
         |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: refund_amount})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
         :ok
       end
@@ -85,7 +85,7 @@ defmodule Emakola.Payments.PaystackWebhook do
          false <- terminal?(payment) do
       payment
       |> Ash.Changeset.for_update(action, %{gateway_response: data})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       if action == :mark_success, do: maybe_confirm_order(payment.order_id)
 
@@ -99,7 +99,7 @@ defmodule Emakola.Payments.PaystackWebhook do
   defp find_payment(reference) do
     case Payment
          |> Ash.Query.filter(gateway_reference == ^reference)
-         |> Ash.read_one() do
+         |> Ash.read_one(authorize?: false) do
       {:ok, nil} -> {:error, :payment_not_found}
       {:ok, payment} -> {:ok, payment}
       {:error, reason} -> {:error, reason}
@@ -114,11 +114,11 @@ defmodule Emakola.Payments.PaystackWebhook do
   defp maybe_confirm_order(order_id) do
     case Emakola.Orders.Order
          |> Ash.Query.filter(id == ^order_id)
-         |> Ash.read_one() do
+         |> Ash.read_one(authorize?: false) do
       {:ok, %{status: :pending} = order} ->
         order
         |> Ash.Changeset.for_update(:confirm, %{})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       _ ->
         :ok
