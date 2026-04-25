@@ -75,7 +75,8 @@ config :emakola,
     Emakola.Customers,
     Emakola.Payments,
     Emakola.Shipping,
-    Emakola.Content
+    Emakola.Content,
+    Emakola.Pages
   ]
 
 # Token signing secret — loaded from env var; fallback only for dev/test

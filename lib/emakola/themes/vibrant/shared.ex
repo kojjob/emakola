@@ -4,8 +4,8 @@ defmodule Emakola.Themes.Vibrant.Shared do
 
   Bold, energetic, West African commerce-inspired design with:
   - Warm ivory (#FFFBEB) background
-  - Red (#DC2626) primary / burnt orange (#7C2D12) accent
-  - Playfair Display headings + DM Sans body
+  - Amber (#B45309) primary / burnt orange (#7C2D12) accent / gold (#F59E0B) highlight
+  - Manrope headings + Inter body (canonical Emakola storefront typography)
   - Large rounded cards with prominent shadows
   - Story-style category circles with gradient rings
   """
@@ -27,8 +27,9 @@ defmodule Emakola.Themes.Vibrant.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#DC2626" %>;
+        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#B45309" %>;
         --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#7C2D12" %>;
+        --theme-highlight: <%= get_in(@theme, [:colors, :highlight]) || "#F59E0B" %>;
         --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#FFFBEB" %>;
       }
     </style>
@@ -46,21 +47,21 @@ defmodule Emakola.Themes.Vibrant.Shared do
   def vibrant_nav(assigns) do
     ~H"""
     <header class="sticky top-0 z-50">
-      <div class="h-1 bg-gradient-to-r from-[var(--theme-primary,#DC2626)] via-[var(--theme-accent,#7C2D12)] to-[var(--theme-primary,#DC2626)]">
+      <div class="h-1 bg-gradient-to-r from-[var(--theme-primary,#B45309)] via-[var(--theme-highlight,#F59E0B)] to-[var(--theme-primary,#B45309)]">
       </div>
       <div class="bg-[#FFFBEB] border-b border-[#FDE68A]/60 shadow-sm">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between h-14 sm:h-16">
             <a href={"/s/#{@store.slug}"} class="flex items-center gap-3 min-w-0">
-              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--theme-primary,#DC2626)] to-[var(--theme-accent,#7C2D12)] flex items-center justify-center flex-shrink-0 shadow-md">
+              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--theme-primary,#B45309)] to-[var(--theme-highlight,#F59E0B)] flex items-center justify-center flex-shrink-0 shadow-md">
                 <span class="text-sm font-bold text-white">
                   {String.first(@store.name)}
                 </span>
               </div>
               <div class="min-w-0">
                 <div
-                  class="text-[0.9375rem] font-bold text-cta-dark truncate leading-tight"
-                  style="font-family: 'Playfair Display', serif;"
+                  class="text-[0.9375rem] font-bold text-[#1C1917] truncate leading-tight"
+                  style="font-family: 'Manrope', sans-serif;"
                 >
                   {@store.name}
                 </div>
@@ -74,7 +75,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
             <div class="flex items-center gap-1">
               <a
                 href={"/s/#{@store.slug}/products"}
-                class="p-2.5 rounded-xl hover:bg-store-accent-light transition-colors"
+                class="p-2.5 rounded-xl hover:bg-[#FEF3C7] transition-colors"
                 aria-label="Search products"
               >
                 <svg
@@ -93,7 +94,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
               </a>
               <a
                 href={"/s/#{@store.slug}/wishlist"}
-                class="p-2.5 rounded-xl hover:bg-store-accent-light transition-colors"
+                class="p-2.5 rounded-xl hover:bg-[#FEF3C7] transition-colors"
                 aria-label="Wishlist"
               >
                 <svg
@@ -112,7 +113,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
               </a>
               <a
                 href={"/s/#{@store.slug}/cart"}
-                class="relative p-2.5 rounded-xl hover:bg-store-accent-light transition-colors"
+                class="relative p-2.5 rounded-xl hover:bg-[#FEF3C7] transition-colors"
                 aria-label={"Shopping cart, #{@cart_count} items"}
               >
                 <svg
@@ -164,7 +165,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
         "w-[76px] h-[76px] rounded-full p-[3px] group-hover:scale-110 transition-transform duration-200",
         if(@active,
           do:
-            "bg-gradient-to-br from-[var(--theme-primary,#DC2626)] to-[var(--theme-accent,#7C2D12)] shadow-lg shadow-red-200",
+            "bg-gradient-to-br from-[var(--theme-primary,#B45309)] to-[var(--theme-highlight,#F59E0B)] shadow-lg shadow-amber-200",
           else: "bg-gradient-to-br from-[#FDE68A] to-[#F59E0B]"
         )
       ]}>
@@ -188,8 +189,8 @@ defmodule Emakola.Themes.Vibrant.Shared do
       <span class={[
         "text-xs font-semibold text-center whitespace-nowrap max-w-[80px] truncate",
         if(@active,
-          do: "text-[var(--theme-primary,#DC2626)]",
-          else: "text-[#78350F] group-hover:text-[var(--theme-primary,#DC2626)]"
+          do: "text-[var(--theme-primary,#B45309)]",
+          else: "text-[#78350F] group-hover:text-[var(--theme-primary,#B45309)]"
         )
       ]}>
         {@category.name}
@@ -211,17 +212,14 @@ defmodule Emakola.Themes.Vibrant.Shared do
 
     ~H"""
     <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
-      <div class="relative rounded-2xl overflow-hidden mb-3 bg-store-accent-light/40 shadow-md shadow-amber-100 group-hover:shadow-xl group-hover:shadow-amber-200/60 transition-all duration-300">
+      <div class="relative rounded-2xl overflow-hidden mb-3 bg-[#FEF3C7]/40 shadow-md shadow-amber-100 group-hover:shadow-xl group-hover:shadow-amber-200/60 transition-all duration-300">
         <.optimized_image
           :if={@image}
           src={@image}
           alt={@product.title}
           class="w-full aspect-[3/4] object-cover group-hover:scale-[1.06] transition-transform duration-500"
         />
-        <div
-          :if={!@image}
-          class="w-full aspect-[3/4] flex items-center justify-center bg-store-accent-light"
-        >
+        <div :if={!@image} class="w-full aspect-[3/4] flex items-center justify-center bg-[#FEF3C7]">
           <svg class="w-12 h-12 text-[#D97706]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -236,10 +234,10 @@ defmodule Emakola.Themes.Vibrant.Shared do
           <span class="text-sm font-bold text-white tracking-wide">Shop Now</span>
         </div>
       </div>
-      <p class="text-sm font-semibold text-cta-dark leading-tight mb-1 truncate">
+      <p class="text-sm font-semibold text-[#1C1917] leading-tight mb-1 truncate">
         {@product.title}
       </p>
-      <p class="text-sm font-bold text-[var(--theme-primary,#DC2626)]">
+      <p class="text-sm font-bold text-[var(--theme-primary,#B45309)]">
         {Currency.format_price_range(@product.min_price, @product.max_price, @store.currency)}
       </p>
     </a>

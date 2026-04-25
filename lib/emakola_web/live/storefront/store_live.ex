@@ -137,8 +137,24 @@ defmodule EmakolaWeb.Storefront.StoreLive do
     """
   end
 
+  # Page-builder override: if the merchant has a published page at slug
+  # "home", render it via the page-builder pipeline. Otherwise fall through
+  # to the active theme's home renderer (existing behaviour, zero risk to
+  # stores that haven't opted in).
   defp render_theme_home(assigns) do
-    assigns.theme_module.render_home(assigns)
+    case Emakola.Pages.fetch_published_page(assigns.store, "home") do
+      {:ok, page} ->
+        Emakola.PageBuilder.Renderer.page(%{
+          __changed__: nil,
+          page: page,
+          store: assigns.store,
+          products: assigns[:products] || [],
+          categories: assigns[:categories] || []
+        })
+
+      :not_found ->
+        assigns.theme_module.render_home(assigns)
+    end
   end
 
   # -- Helpers --
