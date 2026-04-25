@@ -321,6 +321,20 @@ body {
   animation: slide-in-left 0.2s ease-out;
 }
 
+/* ── Landing page nav scroll-glass effect ── */
+#main-nav.scrolled {
+  background-color: rgba(12, 21, 38, 0.95);
+  border-bottom-color: rgba(26, 39, 68, 1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-down { animation: slide-down 0.2s ease-out; }
+
 /* ── Slide-in animation for toast notifications ── */
 @keyframes slide-in-right {
   from { transform: translateX(100%); opacity: 0; }
