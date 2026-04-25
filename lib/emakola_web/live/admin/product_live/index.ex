@@ -429,7 +429,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
       <%!-- Product List --%>
       <%= if @products == [] do %>
-        <div class="text-center py-16 bg-surface-container-lowest rounded-lg">
+        <div id="product-empty-state" class="text-center py-16 bg-surface-container-lowest rounded-lg">
           <.icon name="hero-cube" class="size-12 mx-auto text-on-surface-variant/30 mb-3" />
           <p class="text-on-surface-variant font-medium">No products found</p>
           <p class="text-sm text-on-surface-variant/60 mt-1">
@@ -1166,6 +1166,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
   @admin_products_limit 100
 
+  defp load_products(%{assigns: %{store_id: nil}} = socket) do
+    assign(socket, products: [])
+  end
+
   defp load_products(socket) do
     require Ash.Query
     %{store_id: store_id, search_query: query, status_filter: status} = socket.assigns
@@ -1199,6 +1203,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       end
 
     assign(socket, products: products)
+  end
+
+  defp load_categories(%{assigns: %{store_id: nil}} = socket) do
+    assign(socket, categories: %{}, categories_list: [])
   end
 
   defp load_categories(socket) do
