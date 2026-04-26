@@ -943,6 +943,136 @@ defmodule EmakolaWeb.StorefrontComponents do
     """
   end
 
+  # ── Share Strip ──
+
+  @doc """
+  Horizontal row of social-share buttons. Used on the product detail page
+  and the order confirmation page to turn every shopper into a distribution
+  node.
+
+  Each button opens a platform-specific share intent with the page URL and
+  product/order title pre-filled. The Copy-link button uses a small JS
+  hook (Phoenix.LiveView.JS) for clipboard write — no server round-trip.
+
+  Phase 1 of the social-media integration plan. Phase 3 will increment a
+  `share_count` per click; Phase 1 ships click-to-share without counting.
+
+  ## Required attrs
+
+    * `url` — the canonical absolute URL to share. Caller is responsible for
+      ensuring this is the right URL (PDP canonical, order confirmation, etc).
+    * `title` — the human-readable text included in share intents.
+
+  ## Optional
+
+    * `headline` — small heading rendered above the buttons (e.g. "Share
+      this with friends"). Hidden if nil.
+    * `class` — extra classes on the wrapper.
+
+  ## Behaviour
+
+  * **Additive only.** Inserted as a new section; doesn't replace any
+    existing CTA.
+  * **Always renders.** No conditional on having social handles set on the
+    store — these buttons share the page itself, not link to merchant
+    socials.
+  """
+  attr :url, :string, required: true
+  attr :title, :string, required: true
+  attr :headline, :string, default: nil
+  attr :class, :string, default: ""
+
+  def share_strip(assigns) do
+    ~H"""
+    <div class={["w-full", @class]}>
+      <p
+        :if={@headline}
+        class="text-xs font-semibold tracking-[0.15em] uppercase text-[#78716C] mb-3"
+      >
+        {@headline}
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <a
+          href={whatsapp_share_url(@url, @title)}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#25D366] text-white text-xs font-semibold hover:bg-[#1FAF55] transition-colors"
+          aria-label="Share on WhatsApp"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" />
+          </svg>
+          WhatsApp
+        </a>
+        <a
+          href={x_share_url(@url, @title)}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#0F1419] text-white text-xs font-semibold hover:bg-black transition-colors"
+          aria-label="Share on X"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          X
+        </a>
+        <a
+          href={facebook_share_url(@url)}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#1877F2] text-white text-xs font-semibold hover:bg-[#0E62D0] transition-colors"
+          aria-label="Share on Facebook"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M24 12.073c0-6.627-5.373-12-12-12S0 5.446 0 12.073c0 5.99 4.388 10.954 10.125 11.854V15.563H7.078v-3.49h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.49h-2.796v8.385C19.612 23.027 24 18.062 24 12.073" />
+          </svg>
+          Facebook
+        </a>
+        <button
+          type="button"
+          phx-click={Phoenix.LiveView.JS.dispatch("copy-to-clipboard", detail: %{text: @url})}
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#F1F5F9] text-[#1F1717] text-xs font-semibold hover:bg-[#E2E8F0] transition-colors"
+          aria-label="Copy link to clipboard"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"
+            />
+          </svg>
+          Copy link
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  @doc false
+  def whatsapp_share_url(url, title) when is_binary(url) and is_binary(title) do
+    text = URI.encode_www_form("#{title} — #{url}")
+    "https://wa.me/?text=#{text}"
+  end
+
+  @doc false
+  def x_share_url(url, title) when is_binary(url) and is_binary(title) do
+    text = URI.encode_www_form(title)
+    encoded_url = URI.encode_www_form(url)
+    "https://twitter.com/intent/tweet?text=#{text}&url=#{encoded_url}"
+  end
+
+  @doc false
+  def facebook_share_url(url) when is_binary(url) do
+    "https://www.facebook.com/sharer/sharer.php?u=#{URI.encode_www_form(url)}"
+  end
+
   defp nav_icon(%{name: "home"} = assigns) do
     ~H"""
     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">

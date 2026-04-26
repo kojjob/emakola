@@ -25,14 +25,27 @@ defmodule Emakola.Themes.ThemeResolver do
 
   Accepts a theme_config map with string keys (as stored in the database).
   Returns a map with atom keys containing the fully resolved configuration.
-  """
-  @spec resolve(map() | nil) :: map()
-  def resolve(nil), do: resolve(%{})
 
-  def resolve(config) when is_map(config) do
+  When `store` is provided (the second arg), the store's social URL fields
+  (`instagram_url`, `tiktok_url`, `facebook_url`, `youtube_url`, `x_url`) are
+  overlaid onto `footer.social_links` so theme footers render the merchant's
+  actual handles. Pass `nil` (the default) to resolve without store overlay
+  — used by admin theme previews where store data isn't relevant.
+  """
+  @spec resolve(map() | nil, map() | nil) :: map()
+  def resolve(config, store \\ nil)
+
+  def resolve(nil, store), do: resolve(%{}, store)
+
+  def resolve(config, store) when is_map(config) do
     theme_id = Map.get(config, "theme", @default_theme)
     theme_mod = theme_module(theme_id)
     defaults = theme_mod.defaults()
+
+    footer =
+      defaults.footer
+      |> deep_merge_atomize(Map.get(config, "footer", %{}))
+      |> overlay_store_social(store)
 
     %{
       theme_id: theme_id,
@@ -44,7 +57,7 @@ defmodule Emakola.Themes.ThemeResolver do
       sections: deep_merge_atomize(defaults.sections, Map.get(config, "sections", %{})),
       trust: deep_merge_atomize(defaults.trust, Map.get(config, "trust", %{})),
       newsletter: deep_merge_atomize(defaults.newsletter, Map.get(config, "newsletter", %{})),
-      footer: deep_merge_atomize(defaults.footer, Map.get(config, "footer", %{})),
+      footer: footer,
       design_tokens: Emakola.Themes.DesignTokens.resolve(Map.get(config, "design_tokens", %{}))
     }
   end
@@ -86,4 +99,33 @@ defmodule Emakola.Themes.ThemeResolver do
   rescue
     ArgumentError -> :error
   end
+
+  # Overlay the store's social URL fields onto the footer.social_links map.
+  # When `store` is nil the footer is returned unchanged. nil URL fields on
+  # the store are treated as "no overlay" so theme defaults / merchant
+  # theme_config overrides win for unset platforms.
+  defp overlay_store_social(footer, nil), do: footer
+
+  defp overlay_store_social(footer, store) when is_map(footer) and is_map(store) do
+    overlay = %{
+      instagram: Map.get(store, :instagram_url),
+      tiktok: Map.get(store, :tiktok_url),
+      facebook: Map.get(store, :facebook_url),
+      youtube: Map.get(store, :youtube_url),
+      twitter: Map.get(store, :x_url)
+    }
+
+    base = Map.get(footer, :social_links, %{})
+
+    merged =
+      Enum.reduce(overlay, base, fn
+        {_key, nil}, acc -> acc
+        {_key, ""}, acc -> acc
+        {key, value}, acc -> Map.put(acc, key, value)
+      end)
+
+    Map.put(footer, :social_links, merged)
+  end
+
+  defp overlay_store_social(footer, _), do: footer
 end
