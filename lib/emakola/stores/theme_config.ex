@@ -25,7 +25,7 @@ defmodule Emakola.Stores.ThemeConfig do
     }
   """
 
-  @valid_themes ~w(atelier bold fresh market pharmacy starter vibrant)
+  @valid_themes ~w(atelier beauty bold fresh market pharmacy starter vibrant)
   @hex_color_regex ~r/^#[0-9a-fA-F]{6}$/
   @valid_color_keys ~w(primary secondary accent background text)
   @valid_section_keys ~w(show_featured show_categories show_about)

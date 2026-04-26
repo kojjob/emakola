@@ -102,6 +102,18 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert result.sections.featured_products == true
       assert result.trust.title =~ "Trusted"
     end
+
+    test "beauty theme returns correct defaults" do
+      result = ThemeResolver.resolve(%{"theme" => "beauty"})
+
+      assert result.theme_id == "beauty"
+      assert result.theme_name == "Beauty"
+      assert result.colors.primary == "#6B4423"
+      assert result.colors.accent == "#C9925E"
+      assert result.colors.background == "#F5EFE5"
+      assert result.sections.hero == true
+      assert result.sections.featured_products == true
+    end
   end
 
   describe "theme_module/1" do
@@ -123,6 +135,10 @@ defmodule Emakola.Themes.ThemeResolverTest do
 
     test "returns Pharmacy module for pharmacy" do
       assert ThemeResolver.theme_module("pharmacy") == Emakola.Themes.Pharmacy
+    end
+
+    test "returns Beauty module for beauty" do
+      assert ThemeResolver.theme_module("beauty") == Emakola.Themes.Beauty
     end
   end
 end

@@ -46,7 +46,7 @@ defmodule Emakola.Stores.ThemeConfigTest do
     end
 
     test "all valid theme names pass" do
-      for theme <- ~w(atelier bold fresh market pharmacy starter vibrant) do
+      for theme <- ~w(atelier beauty bold fresh market pharmacy starter vibrant) do
         assert :ok = ThemeConfig.validate(%{"theme" => theme})
       end
     end

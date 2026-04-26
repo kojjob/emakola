@@ -24,6 +24,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       name: "Pharmacy",
       description: "Wellness & medicines",
       icon: "medical_services"
+    },
+    %{
+      id: "beauty",
+      name: "Beauty",
+      description: "Skincare & cosmetics",
+      icon: "spa"
     }
   ]
 
