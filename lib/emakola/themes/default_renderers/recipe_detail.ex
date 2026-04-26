@@ -14,6 +14,13 @@ defmodule Emakola.Themes.DefaultRenderers.RecipeDetail do
 
   def render(assigns) do
     ~H"""
+    <Emakola.Themes.Atelier.Shared.navbar
+      store={@store}
+      categories={@categories}
+      cart_count={@cart_count}
+      active_path="recipes"
+    />
+
     <article class="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
       <a
         href={"/s/#{@store.slug}/recipes"}
@@ -101,6 +108,8 @@ defmodule Emakola.Themes.DefaultRenderers.RecipeDetail do
         </span>
       </div>
     </article>
+
+    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
     """
   end
 end

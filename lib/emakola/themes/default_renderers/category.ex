@@ -26,6 +26,13 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
     assigns = assign(assigns, :sort_options, @sort_options)
 
     ~H"""
+    <Emakola.Themes.Atelier.Shared.navbar
+      store={@store}
+      categories={@categories}
+      cart_count={@cart_count}
+      active_path="category"
+    />
+
     <div class="min-h-screen bg-[#FAFAF9]">
       <%!-- Hero Section --%>
       <div class="bg-white border-b border-[#E2E8F0]">

@@ -22,6 +22,8 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
           socket
           |> assign(:store, store)
           |> assign(:current_customer, customer)
+          |> assign(:categories, [])
+          |> assign(:cart_count, 0)
           |> assign(:flash_bag, nil)
           |> assign(:page_title, "My Wishlist - #{store.name}")
           |> load_wishlist()

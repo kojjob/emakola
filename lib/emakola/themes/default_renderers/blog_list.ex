@@ -11,6 +11,13 @@ defmodule Emakola.Themes.DefaultRenderers.BlogList do
 
   def render(assigns) do
     ~H"""
+    <Emakola.Themes.Atelier.Shared.navbar
+      store={@store}
+      categories={@categories}
+      cart_count={@cart_count}
+      active_path="blog"
+    />
+
     <div class="bg-stone-50">
       <%!-- Hero Header --%>
       <div class="bg-stone-900 text-white">
@@ -225,6 +232,8 @@ defmodule Emakola.Themes.DefaultRenderers.BlogList do
         </div>
       </div>
     </div>
+
+    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
     """
   end
 

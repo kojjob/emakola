@@ -215,10 +215,12 @@ defmodule Emakola.Themes.Atelier.Nav do
             </a>
 
             <%!-- Hamburger Menu (Mobile) --%>
-            <label
-              for="atelier-mobile-menu"
+            <button
+              type="button"
+              phx-click={show_mobile_menu()}
               class="atelier-nav-icon xl:hidden flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
-              aria-label="Menu"
+              aria-label="Open menu"
+              aria-controls="atelier-mobile-drawer"
             >
               <svg
                 width="22"
@@ -236,21 +238,28 @@ defmodule Emakola.Themes.Atelier.Nav do
                   y2="18"
                 />
               </svg>
-            </label>
+            </button>
           </div>
         </div>
       </div>
 
-      <%!-- Mobile Drawer (CSS-only via checkbox) --%>
-      <input type="checkbox" id="atelier-mobile-menu" class="atelier-mobile-toggle sr-only" />
+      <%!-- Mobile Drawer (JS-driven; survives LV diffs unlike CSS-checkbox) --%>
       <%!-- Backdrop --%>
-      <label
-        for="atelier-mobile-menu"
-        class="atelier-mobile-backdrop fixed inset-0 bg-black/40 z-40"
+      <div
+        id="atelier-mobile-backdrop"
+        phx-click={hide_mobile_menu()}
+        class="hidden fixed inset-0 bg-black/40 z-40"
         aria-hidden="true"
       />
       <%!-- Drawer panel --%>
-      <div class="atelier-mobile-drawer fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white z-50 shadow-2xl overflow-y-auto">
+      <div
+        id="atelier-mobile-drawer"
+        phx-click-away={hide_mobile_menu()}
+        class="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white z-50 shadow-2xl overflow-y-auto translate-x-full transition-transform duration-300 ease-out"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Mobile menu"
+      >
         <div class="p-6">
           <%!-- Close button --%>
           <div class="flex items-center justify-between mb-8">
@@ -261,8 +270,9 @@ defmodule Emakola.Themes.Atelier.Nav do
             >
               {@store.name}
             </a>
-            <label
-              for="atelier-mobile-menu"
+            <button
+              type="button"
+              phx-click={hide_mobile_menu()}
               class="flex items-center justify-center w-10 h-10 text-gray-500 cursor-pointer hover:text-gray-900 rounded-full hover:bg-gray-100"
               aria-label="Close menu"
             >
@@ -277,7 +287,7 @@ defmodule Emakola.Themes.Atelier.Nav do
               >
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
               </svg>
-            </label>
+            </button>
           </div>
 
           <%!-- Search --%>
@@ -385,9 +395,12 @@ defmodule Emakola.Themes.Atelier.Nav do
       </div>
     </nav>
 
-    <%!-- Search Overlay --%>
+    <%!-- Atelier-nav search overlay — distinct from the layout's
+         SearchComponents.search_overlay (which uses #search-overlay /
+         #search-input). Different IDs prevent LiveView's duplicate-id
+         strict mode from raising. --%>
     <div
-      id="search-overlay"
+      id="atelier-nav-search-overlay"
       class="hidden fixed inset-0 z-[60] bg-black/50"
       phx-click={hide_search()}
     >
@@ -399,7 +412,7 @@ defmodule Emakola.Themes.Atelier.Nav do
           action={"/s/#{@store.slug}/products"}
           method="get"
           class="bg-white rounded-xl shadow-2xl overflow-hidden"
-          phx-click={JS.dispatch("click", to: "#search-overlay")}
+          phx-click={JS.dispatch("click", to: "#atelier-nav-search-overlay")}
           onclick="event.stopPropagation()"
         >
           <div class="flex items-center gap-3 px-5 py-4">
@@ -416,8 +429,11 @@ defmodule Emakola.Themes.Atelier.Nav do
             >
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
+            <%!-- Decorative input only — actual search lives in the
+                 layout's SearchComponents.search_overlay (#search-input).
+                 A unique id avoids LiveView's duplicate-id strict mode. --%>
             <input
-              id="search-input"
+              id="atelier-nav-search-decorative"
               type="text"
               name="q"
               placeholder="Search products..."
@@ -457,10 +473,10 @@ defmodule Emakola.Themes.Atelier.Nav do
   """
   def show_search do
     JS.show(
-      to: "#search-overlay",
+      to: "#atelier-nav-search-overlay",
       transition: {"ease-out duration-200", "opacity-0", "opacity-100"}
     )
-    |> JS.focus(to: "#search-input")
+    |> JS.focus(to: "#atelier-nav-search-decorative")
   end
 
   @doc """
@@ -468,8 +484,30 @@ defmodule Emakola.Themes.Atelier.Nav do
   """
   def hide_search do
     JS.hide(
-      to: "#search-overlay",
+      to: "#atelier-nav-search-overlay",
       transition: {"ease-in duration-150", "opacity-100", "opacity-0"}
     )
+  end
+
+  @doc """
+  JS command to open the mobile menu drawer.
+
+  Shows the backdrop, slides the drawer in from the right, and locks
+  body scroll. Survives LV diffs because it manipulates classes via
+  JS commands, not server state.
+  """
+  def show_mobile_menu do
+    JS.remove_class("hidden", to: "#atelier-mobile-backdrop")
+    |> JS.remove_class("translate-x-full", to: "#atelier-mobile-drawer")
+    |> JS.add_class("overflow-hidden", to: "body")
+  end
+
+  @doc """
+  JS command to close the mobile menu drawer.
+  """
+  def hide_mobile_menu do
+    JS.add_class("hidden", to: "#atelier-mobile-backdrop")
+    |> JS.add_class("translate-x-full", to: "#atelier-mobile-drawer")
+    |> JS.remove_class("overflow-hidden", to: "body")
   end
 end

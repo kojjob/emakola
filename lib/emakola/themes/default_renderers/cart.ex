@@ -40,6 +40,13 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
 
   def render(assigns) do
     ~H"""
+    <Emakola.Themes.Atelier.Shared.navbar
+      store={@store}
+      categories={@categories}
+      cart_count={@cart_count}
+      active_path="cart"
+    />
+
     <!-- PAGE HEADER -->
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6 sm:pt-14 sm:pb-8">
       <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">

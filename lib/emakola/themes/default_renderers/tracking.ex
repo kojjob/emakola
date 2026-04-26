@@ -15,6 +15,13 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
 
   def render(assigns) do
     ~H"""
+    <Emakola.Themes.Atelier.Shared.navbar
+      store={@store}
+      categories={@categories}
+      cart_count={@cart_count}
+      active_path="track"
+    />
+
     <div class="bg-[#FAFAF9] min-h-screen font-sans antialiased text-stone-800">
       <div class="max-w-lg mx-auto">
         <%!-- HEADER --%>

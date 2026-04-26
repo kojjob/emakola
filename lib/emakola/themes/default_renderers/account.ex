@@ -21,6 +21,13 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
 
   def render(assigns) do
     ~H"""
+    <Emakola.Themes.Atelier.Shared.navbar
+      store={@store}
+      categories={@categories}
+      cart_count={@cart_count}
+      active_path="account"
+    />
+
     <div class="bg-[#FAFAF9] min-h-screen font-sans antialiased pb-20 sm:pb-0">
       <%!-- PAGE HEADER --%>
       <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6 sm:pt-14 sm:pb-8">
