@@ -60,7 +60,12 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
          |> assign(:review_form_title, "")
          |> assign(:review_form_body, "")
          |> assign(:review_submitting, false)
-         |> assign_review_eligibility(store, product)}
+         |> assign_review_eligibility(store, product)
+         |> allow_upload(:review_photos,
+           accept: ~w(.jpg .jpeg .png .webp),
+           max_entries: 4,
+           max_file_size: 5_000_000
+         )}
     end
   end
 
@@ -180,6 +185,8 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
         {:noreply, put_flash(socket, :error, "Not eligible to review")}
 
       order_id ->
+        images = consume_review_photo_uploads(socket)
+
         case Emakola.Catalog.Review
              |> Ash.Changeset.for_create(:create, %{
                store_id: store.id,
@@ -188,7 +195,8 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
                order_id: order_id,
                rating: rating,
                title: if(title == "", do: nil, else: title),
-               body: body
+               body: body,
+               images: images
              })
              |> Ash.create() do
           {:ok, _} ->
@@ -210,6 +218,32 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
             {:noreply, put_flash(socket, :error, "Could not submit review")}
         end
     end
+  end
+
+  @impl true
+  def handle_event("share-product", %{"platform" => platform} = _params, socket) do
+    # Public/anonymous storefront tracking — no actor required.
+    # Atomic SQL UPDATE means concurrent shares can't collide.
+    case socket.assigns.product
+         |> Ash.Changeset.for_update(:increment_share_count, %{})
+         |> Ash.update(authorize?: false) do
+      {:ok, updated} ->
+        require Logger
+        Logger.debug("[share] platform=#{platform} product=#{updated.id}")
+        {:noreply, assign(socket, :product, updated)}
+
+      {:error, _} ->
+        # Don't fail the share — the link still opens client-side via the <a> tag.
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("validate_review", _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("cancel_review_photo", %{"ref" => ref}, socket) do
+    {:noreply, cancel_upload(socket, :review_photos, ref)}
   end
 
   @impl true
@@ -407,4 +441,29 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   end
 
   defp first_product_image_url(_), do: nil
+
+  # Consumes the LiveView upload entries for :review_photos, copies each
+  # file to priv/static/uploads/reviews, and returns the list of image
+  # maps in the shape Review.images expects.
+  #
+  # Returns [] when no entries — safe to call unconditionally.
+  defp consume_review_photo_uploads(socket) do
+    consume_uploaded_entries(socket, :review_photos, fn %{path: path}, entry ->
+      filename =
+        "#{System.os_time(:millisecond)}_#{entry.client_name}"
+        |> String.replace(~r/[^a-zA-Z0-9._-]/, "_")
+
+      dest = Path.join(reviews_upload_dir(), filename)
+      File.cp!(path, dest)
+
+      url = "/uploads/reviews/#{filename}"
+      {:ok, %{"url" => url, "thumbnail_url" => url, "alt" => ""}}
+    end)
+  end
+
+  defp reviews_upload_dir do
+    dir = Path.join([:code.priv_dir(:emakola), "static", "uploads", "reviews"])
+    File.mkdir_p!(dir)
+    dir
+  end
 end
