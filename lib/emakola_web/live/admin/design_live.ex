@@ -37,7 +37,23 @@ defmodule EmakolaWeb.Admin.DesignLive do
 
   @impl true
   def handle_event("update_token", %{"token" => token, "value" => value}, socket) do
-    token_atom = String.to_existing_atom(token)
+    token_atom =
+      Emakola.SafeAtom.to_atom_in(
+        token,
+        [
+          :button_style,
+          :card_style,
+          :navbar_layout,
+          :product_grid_columns,
+          :hero_layout,
+          :footer_style,
+          :product_card_style,
+          :typography_scale,
+          :heading_font,
+          :body_font
+        ],
+        :button_style
+      )
 
     value =
       if token_atom == :product_grid_columns do

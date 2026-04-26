@@ -958,7 +958,13 @@ defmodule EmakolaWeb.Admin.ThemeLive do
 
   @impl true
   def handle_event("toggle_section", %{"section" => section}, socket) do
-    section_atom = String.to_existing_atom(section)
+    section_atom =
+      Emakola.SafeAtom.to_atom_in(
+        section,
+        [:hero, :categories, :featured_products, :trust, :brand_story, :newsletter],
+        :hero
+      )
+
     sections = Map.update!(socket.assigns.sections, section_atom, &(!&1))
     {:noreply, assign(socket, sections: sections, saved: false)}
   end

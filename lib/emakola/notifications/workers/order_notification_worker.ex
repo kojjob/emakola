@@ -26,7 +26,18 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"order_id" => order_id, "event" => event_string}}) do
-    event = String.to_existing_atom(event_string)
+    event =
+      Emakola.SafeAtom.to_atom_in(
+        event_string,
+        [
+          :order_placed,
+          :order_confirmed,
+          :order_shipped,
+          :order_delivered,
+          :order_cancelled
+        ],
+        :order_placed
+      )
 
     with {:ok, order} <- load_order(order_id),
          {:ok, store} <- load_store(order.store_id),

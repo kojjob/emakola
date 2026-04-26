@@ -778,7 +778,12 @@ defmodule EmakolaWeb.Admin.CouponLive do
   end
 
   defp build_attrs(params, store_id) do
-    discount_type = String.to_existing_atom(params["discount_type"] || "percentage")
+    discount_type =
+      Emakola.SafeAtom.to_atom_in(
+        params["discount_type"],
+        [:percentage, :fixed_amount, :free_shipping],
+        :percentage
+      )
 
     attrs = %{
       store_id: store_id,

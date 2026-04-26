@@ -88,15 +88,18 @@ defmodule Emakola.Themes.Atelier.Shared do
         color: rgb(107 114 128) !important;
       }
 
-      /* Mobile menu drawer */
-      .atelier-mobile-backdrop { display: none; }
-      .atelier-mobile-drawer { transform: translateX(100%); transition: transform 0.3s ease; }
-      .atelier-mobile-toggle:checked ~ .atelier-mobile-backdrop { display: block; }
-      .atelier-mobile-toggle:checked ~ .atelier-mobile-drawer { transform: translateX(0); }
+      /* Mobile menu drawer — JS-driven via Phoenix.LiveView.JS commands
+         in atelier/nav.ex (show_mobile_menu/0 and hide_mobile_menu/0).
+         The old .atelier-mobile-toggle:checked sibling pattern was removed
+         because LiveView's DOM diff loses native checkbox state across
+         re-renders. */
 
+      /* Accordion — toggled by `.open` class via Phoenix.LiveView.JS.toggle_class
+         in atelier/product_detail.ex. Same checkbox-pattern fix as the mobile
+         menu. */
       .atelier-accordion-content { max-height: 0 !important; overflow: hidden !important; opacity: 0; transition: max-height 0.3s ease, opacity 0.2s ease; }
-      .atelier-accordion-toggle:checked ~ .atelier-accordion-content { max-height: 300px !important; opacity: 1; }
-      .atelier-accordion-toggle:checked ~ label .atelier-accordion-icon { transform: rotate(180deg); }
+      .atelier-accordion.open .atelier-accordion-content { max-height: 300px !important; opacity: 1; }
+      .atelier-accordion.open .atelier-accordion-icon { transform: rotate(180deg); }
 
       /* About page layouts */
       .atelier-about-2col { display: grid; gap: 3rem; }

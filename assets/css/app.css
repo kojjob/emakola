@@ -202,28 +202,32 @@ html:not(.dark) {
   --fp-outline-variant: #c7c4d7;
 }
 
-/* ── Light mode editorial utilities (from Stitch team design) ── */
-.editorial-shadow {
-  box-shadow: 0 12px 40px rgba(70, 72, 212, 0.08);
-}
+/* ── Light mode editorial utilities (from Stitch team design)
+   Wrapped in @layer components so Tailwind utilities (shadow-*, bg-*, etc.)
+   can override these when both are applied to the same element. ── */
+@layer components {
+  .editorial-shadow {
+    box-shadow: 0 12px 40px rgba(70, 72, 212, 0.08);
+  }
 
-.primary-gradient {
-  background: linear-gradient(135deg, #4648d4 0%, #6063ee 100%);
-  color: #ffffff;
-}
+  .primary-gradient {
+    background: linear-gradient(135deg, #4648d4 0%, #6063ee 100%);
+    color: #ffffff;
+  }
 
-.glass-effect {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-}
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+  }
 
-.dark .editorial-shadow {
-  box-shadow: none;
-}
+  .dark .editorial-shadow {
+    box-shadow: none;
+  }
 
-.dark .glass-effect {
-  background: rgba(11, 19, 38, 0.95);
-  backdrop-filter: blur(16px);
+  .dark .glass-effect {
+    background: rgba(11, 19, 38, 0.95);
+    backdrop-filter: blur(16px);
+  }
 }
 
 /* ── Register vars with @theme so Tailwind generates utilities ── */
@@ -317,8 +321,10 @@ body {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
 }
-.animate-slide-in-left {
-  animation: slide-in-left 0.2s ease-out;
+@layer components {
+  .animate-slide-in-left {
+    animation: slide-in-left 0.2s ease-out;
+  }
 }
 
 /* ── Landing page nav scroll-glass effect ── */
@@ -333,50 +339,54 @@ body {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animate-slide-down { animation: slide-down 0.2s ease-out; }
+@layer components {
+  .animate-slide-down { animation: slide-down 0.2s ease-out; }
+}
 
 /* ── Slide-in animation for toast notifications ── */
 @keyframes slide-in-right {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
 }
-.animate-slide-in-right {
-  animation: slide-in-right 0.3s ease-out;
+@layer components {
+  .animate-slide-in-right {
+    animation: slide-in-right 0.3s ease-out;
+  }
 }
 
-/* This file is for your main application CSS */
+/* Scroll reveal animations — @layer so Tailwind opacity-* / translate-* win */
+@layer components {
+  .reveal-hidden {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  }
 
-/* Scroll reveal animations */
-.reveal-hidden {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-}
+  .reveal-hidden.revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
 
-.reveal-hidden.revealed {
-  opacity: 1;
-  transform: translateY(0);
-}
+  .reveal-hidden[data-reveal="left"] {
+    transform: translateX(-20px);
+  }
+  .reveal-hidden[data-reveal="left"].revealed {
+    transform: translateX(0);
+  }
 
-.reveal-hidden[data-reveal="left"] {
-  transform: translateX(-20px);
-}
-.reveal-hidden[data-reveal="left"].revealed {
-  transform: translateX(0);
-}
+  .reveal-hidden[data-reveal="right"] {
+    transform: translateX(20px);
+  }
+  .reveal-hidden[data-reveal="right"].revealed {
+    transform: translateX(0);
+  }
 
-.reveal-hidden[data-reveal="right"] {
-  transform: translateX(20px);
-}
-.reveal-hidden[data-reveal="right"].revealed {
-  transform: translateX(0);
-}
-
-.reveal-hidden[data-reveal="scale"] {
-  transform: scale(0.95);
-}
-.reveal-hidden[data-reveal="scale"].revealed {
-  transform: scale(1);
+  .reveal-hidden[data-reveal="scale"] {
+    transform: scale(0.95);
+  }
+  .reveal-hidden[data-reveal="scale"].revealed {
+    transform: scale(1);
+  }
 }
 
 /* ── Compact UI Mode ── */
