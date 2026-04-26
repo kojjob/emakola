@@ -211,7 +211,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
             <.link navigate={~p"/admin/settings"} class="text-slate-400 hover:text-slate-600">
               <.icon name="hero-arrow-left" class="size-4" />
             </.link>
-            <h1 class="text-2xl font-bold text-slate-900">Delivery Zones</h1>
+            <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Delivery Zones</h1>
           </div>
           <p class="text-sm text-slate-500">Configure delivery areas and fees for your store</p>
         </div>

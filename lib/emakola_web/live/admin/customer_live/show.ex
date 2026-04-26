@@ -79,7 +79,9 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
               </span>
             </div>
             <div>
-              <h1 class="text-xl font-bold text-slate-900">{@customer.name || "Unnamed"}</h1>
+              <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">
+                {@customer.name || "Unnamed"}
+              </h1>
               <p class="text-sm text-slate-500">{@customer.email}</p>
               <p :if={@customer.phone} class="text-sm text-slate-500">{@customer.phone}</p>
               <p class="text-xs text-slate-400 mt-1">
