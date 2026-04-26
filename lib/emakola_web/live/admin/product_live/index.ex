@@ -114,6 +114,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     if product do
       case product |> Ash.Changeset.for_update(:archive) |> Ash.update(authorize?: false) do
         {:ok, _} ->
+          Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
+
           {:noreply,
            socket
            |> assign(action_product: nil, action_type: nil)
@@ -135,6 +137,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     if product do
       case product |> Ash.Changeset.for_update(:activate) |> Ash.update(authorize?: false) do
         {:ok, _} ->
+          Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
+
           {:noreply,
            socket
            |> assign(action_product: nil, action_type: nil)
@@ -332,6 +336,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
       {success_count, error_count, errors} =
         Emakola.Catalog.CsvImporter.import_rows(rows, store_id)
+
+      if success_count > 0 do
+        Emakola.Catalog.CachedCatalog.invalidate_store(store_id)
+      end
 
       socket =
         socket

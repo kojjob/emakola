@@ -197,8 +197,14 @@ defmodule Emakola.Orders.Order do
       change(fn changeset, _context ->
         date = Date.utc_today() |> Calendar.strftime("%Y%m%d")
 
+        # Cryptographically random 6-char suffix. 4 random bytes →
+        # base32 → keep first 6 alphanumerics. Collision space is
+        # ~1 billion per (store_id, date), so practical collision rate
+        # is ~0% under any realistic order volume.
         random =
-          for(_ <- 1..6, into: "", do: <<Enum.random(~c"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")>>)
+          :crypto.strong_rand_bytes(4)
+          |> Base.encode32(padding: false, case: :upper)
+          |> binary_part(0, 6)
 
         order_number = "ORD-#{date}-#{random}"
         Ash.Changeset.force_change_attribute(changeset, :order_number, order_number)

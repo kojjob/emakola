@@ -260,6 +260,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
 
       case result do
         {:ok, _product} ->
+          Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
+
           {:noreply,
            socket
            |> put_flash(:info, "Product saved successfully")
