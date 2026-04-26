@@ -147,6 +147,7 @@ defmodule Emakola.Catalog.Product do
 
       validate({Emakola.Catalog.Validations.NotBlank, attribute: :title})
       change({Emakola.Catalog.Changes.GenerateSlug, from: :title})
+      change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :upsert})
     end
 
     update :update do
@@ -155,6 +156,7 @@ defmodule Emakola.Catalog.Product do
 
       validate({Emakola.Catalog.Validations.NotBlank, attribute: :title})
       change({Emakola.Catalog.Changes.GenerateSlug, from: :title})
+      change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :upsert})
     end
 
     update :archive do
@@ -162,6 +164,7 @@ defmodule Emakola.Catalog.Product do
       accept([])
 
       change(set_attribute(:status, :archived))
+      change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :delete})
     end
 
     update :activate do
@@ -171,6 +174,7 @@ defmodule Emakola.Catalog.Product do
       validate(Emakola.Catalog.Validations.HasVariants)
       change(set_attribute(:status, :active))
       change(set_attribute(:published_at, &DateTime.utc_now/0))
+      change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :upsert})
     end
 
     # Atomic increment of share_count, fired by the storefront PDP when a

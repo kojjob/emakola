@@ -89,10 +89,45 @@ defmodule Emakola.Workers.WhatsappCatalogSyncWorkerTest do
   end
 
   describe "perform/1 — delete action" do
-    test "delete logs and returns :ok" do
+    test "delete without store_id logs warning and returns :ok (back-compat)" do
       job =
         %Oban.Job{
           args: %{"product_id" => Ecto.UUID.generate(), "action" => "delete"}
+        }
+
+      assert :ok = WhatsappCatalogSyncWorker.perform(job)
+    end
+
+    test "delete with store_id + catalog_id dispatches to provider" do
+      store = Factory.create_store!(%{name: "Del Catalog Shop", slug: "del-catalog"})
+
+      {:ok, store} =
+        store
+        |> Ash.Changeset.for_update(:update_settings, %{whatsapp_catalog_id: "987654321"})
+        |> Ash.update(authorize?: false)
+
+      job =
+        %Oban.Job{
+          args: %{
+            "product_id" => Ecto.UUID.generate(),
+            "store_id" => store.id,
+            "action" => "delete"
+          }
+        }
+
+      assert :ok = WhatsappCatalogSyncWorker.perform(job)
+    end
+
+    test "delete with store_id but no catalog_id skips silently" do
+      store = Factory.create_store!(%{name: "No Cat Del Shop", slug: "no-cat-del"})
+
+      job =
+        %Oban.Job{
+          args: %{
+            "product_id" => Ecto.UUID.generate(),
+            "store_id" => store.id,
+            "action" => "delete"
+          }
         }
 
       assert :ok = WhatsappCatalogSyncWorker.perform(job)

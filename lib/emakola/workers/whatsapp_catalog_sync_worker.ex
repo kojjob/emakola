@@ -50,13 +50,28 @@ defmodule Emakola.Workers.WhatsappCatalogSyncWorker do
     end
   end
 
-  defp sync_delete(product_id, _args) do
-    # On delete the product row is gone; we need the store_id and the
-    # retailer_id (product UUID) to call delete_product. Caller passes
-    # store_id alongside in the job args.
-    # For Phase 2 we keep this minimal — soft-deletes are out of scope.
-    Logger.info("[whatsapp_catalog_sync] delete requested product_id=#{product_id}")
-    :ok
+  defp sync_delete(product_id, args) do
+    # On archive (soft-delete) we still have the product row, but the
+    # change module only passes us product_id + store_id — we don't need
+    # to load the product because Meta Commerce keys by retailer_id (the
+    # product UUID).
+    case Map.fetch(args, "store_id") do
+      {:ok, store_id} ->
+        with {:ok, store} <- load_store(store_id),
+             :ok <- ensure_catalog_connected(store) do
+          provider().delete_product(store.whatsapp_catalog_id, product_id)
+        else
+          :skip_no_catalog -> :ok
+          {:error, _} = err -> err
+        end
+
+      :error ->
+        Logger.warning(
+          "[whatsapp_catalog_sync] delete requested without store_id product_id=#{product_id}"
+        )
+
+        :ok
+    end
   end
 
   defp load_product(product_id) do
