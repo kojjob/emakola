@@ -694,6 +694,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
         review_submitting={@review_submitting}
         avg_rating={@product.avg_rating}
         review_count={@product.review_count}
+        uploads={@uploads}
       />
 
       <%!-- Desktop Footer --%>

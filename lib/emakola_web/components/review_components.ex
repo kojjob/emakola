@@ -94,6 +94,7 @@ defmodule EmakolaWeb.ReviewComponents do
   attr :review_submitting, :boolean, default: false
   attr :avg_rating, :float, default: nil
   attr :review_count, :integer, default: 0
+  attr :uploads, :map, default: nil
 
   def review_section(assigns) do
     ~H"""
@@ -116,7 +117,7 @@ defmodule EmakolaWeb.ReviewComponents do
         <%!-- Review Form (eligible customers only) --%>
         <div :if={@can_review} class="mb-10 rounded-lg border border-gray-200 bg-gray-50 p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Write a Review</h3>
-          <form phx-submit="submit_review" class="space-y-4">
+          <form phx-submit="submit_review" phx-change="validate_review" class="space-y-4">
             <%!-- Star Selector --%>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Rating</label>
@@ -179,6 +180,44 @@ defmodule EmakolaWeb.ReviewComponents do
                 placeholder="Tell others what you think about this product..."
                 class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
               >{@review_form_body}</textarea>
+            </div>
+
+            <%!-- Photo Upload (up to 4) --%>
+            <div :if={@uploads}>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Add photos (optional, up to 4)
+              </label>
+              <.live_file_input
+                upload={@uploads.review_photos}
+                class="block w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"
+              />
+              <%!-- Per-entry preview + cancel + error --%>
+              <div :if={@uploads.review_photos.entries != []} class="mt-3 grid grid-cols-4 gap-2">
+                <div
+                  :for={entry <- @uploads.review_photos.entries}
+                  class="relative aspect-square overflow-hidden rounded border border-gray-200 bg-gray-50"
+                >
+                  <.live_img_preview
+                    entry={entry}
+                    class="absolute inset-0 w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    phx-click="cancel_review_photo"
+                    phx-value-ref={entry.ref}
+                    class="absolute top-1 right-1 inline-flex items-center justify-center w-5 h-5 rounded-full bg-black/60 text-white text-xs hover:bg-black/80"
+                    aria-label="Remove photo"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+              <p
+                :for={err <- upload_errors(@uploads.review_photos)}
+                class="mt-1 text-xs text-red-600"
+              >
+                {humanize_upload_error(err)}
+              </p>
             </div>
 
             <%!-- Submit --%>
@@ -254,6 +293,24 @@ defmodule EmakolaWeb.ReviewComponents do
 
       <p class="mt-2 text-sm text-gray-700 leading-relaxed">{@review.body}</p>
 
+      <%!-- Photo gallery (up to 4-up grid). Renders only when images present. --%>
+      <div :if={review_images(@review) != []} class="mt-3 grid grid-cols-4 gap-2 max-w-md">
+        <a
+          :for={img <- review_images(@review)}
+          href={image_url(img)}
+          target="_blank"
+          rel="noopener"
+          class="block aspect-square overflow-hidden rounded border border-gray-200 bg-gray-50"
+        >
+          <img
+            src={image_thumbnail_url(img)}
+            alt={image_alt(img) || "Customer review photo"}
+            loading="lazy"
+            class="w-full h-full object-cover"
+          />
+        </a>
+      </div>
+
       <div class="mt-3 flex items-center gap-2 text-xs text-gray-400">
         <span>{reviewer_name(@review)}</span>
         <span>&middot;</span>
@@ -310,4 +367,28 @@ defmodule EmakolaWeb.ReviewComponents do
   defp format_time_diff(diff) when diff < 604_800, do: "#{div(diff, 86_400)} days ago"
   defp format_time_diff(diff) when diff < 2_592_000, do: "#{div(diff, 604_800)} weeks ago"
   defp format_time_diff(_diff), do: "over a month ago"
+
+  # ── Image helpers ──────────────────────────────────────────────────
+  #
+  # Review images are stored as a list of maps with string keys (the
+  # storefront upload path emits `%{"url" => ..., "thumbnail_url" => ...,
+  # "alt" => ...}`). Tolerant accessors below so manually-seeded data
+  # with atom keys also works.
+
+  defp review_images(%{images: images}) when is_list(images), do: images
+  defp review_images(_), do: []
+
+  defp image_url(img), do: img["url"] || img[:url]
+
+  defp image_thumbnail_url(img),
+    do: img["thumbnail_url"] || img[:thumbnail_url] || image_url(img)
+
+  defp image_alt(img), do: img["alt"] || img[:alt]
+
+  # ── Upload error humaniser ─────────────────────────────────────────
+
+  defp humanize_upload_error(:too_large), do: "File too large (max 5 MB)"
+  defp humanize_upload_error(:not_accepted), do: "Unsupported file type"
+  defp humanize_upload_error(:too_many_files), do: "Too many files (max 4)"
+  defp humanize_upload_error(other), do: "Upload error: #{inspect(other)}"
 end
