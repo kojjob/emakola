@@ -41,7 +41,7 @@ defmodule EmakolaWeb.Admin.Content.MediaLive.Index do
     assigns = assign(assigns, :filtered_media, filtered)
 
     ~H"""
-    <div class="space-y-6">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-xl font-bold text-slate-900">Media Library</h1>

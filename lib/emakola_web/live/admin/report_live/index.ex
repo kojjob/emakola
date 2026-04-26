@@ -131,7 +131,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     </div>
 
     <%!-- ROW 1: KPI Summary Strip --%>
-    <div class="bg-white rounded-2xl border border-slate-200 p-6 mb-6">
+    <div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 lg:gap-0 lg:divide-x lg:divide-slate-200">
         <.kpi_item
           label="Total Revenue"
@@ -154,7 +154,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     </div>
 
     <%!-- ROW 2: Revenue Trend Chart --%>
-    <div class="bg-white rounded-2xl border border-slate-200 p-6 mb-6">
+    <div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <h2 class="text-base font-bold text-slate-900">Revenue Trend</h2>
@@ -288,7 +288,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     <%!-- ROW 3: Sales by Channel + Top Products --%>
     <div class="grid xl:grid-cols-2 gap-6 mb-6">
       <%!-- Sales by Channel (Donut) --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+      <div class="bg-white rounded-2xl shadow-sm p-6">
         <h2 class="text-base font-bold text-slate-900 mb-1">Sales by Channel</h2>
         <p class="text-xs text-slate-400 mb-6">Traffic source distribution this period</p>
 
@@ -406,7 +406,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
       </div>
 
       <%!-- Top Products (Horizontal Bar Chart) --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+      <div class="bg-white rounded-2xl shadow-sm p-6">
         <h2 class="text-base font-bold text-slate-900 mb-1">Top Products</h2>
         <p class="text-xs text-slate-400 mb-6">Best sellers by revenue this period</p>
 
@@ -423,7 +423,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     <%!-- ROW 4: Customer Acquisition + Payments + Order Status --%>
     <div class="grid lg:grid-cols-3 gap-6 mb-6">
       <%!-- Customer Acquisition --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+      <div class="bg-white rounded-2xl shadow-sm p-6">
         <h2 class="text-base font-bold text-slate-900 mb-1">Customer Acquisition</h2>
         <p class="text-xs text-slate-400 mb-4">New customers per week (12 weeks)</p>
 
@@ -478,7 +478,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
       </div>
 
       <%!-- Payment Methods --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+      <div class="bg-white rounded-2xl shadow-sm p-6">
         <h2 class="text-base font-bold text-slate-900 mb-1">Payment Methods</h2>
         <p class="text-xs text-slate-400 mb-4">Distribution and success rates</p>
 
@@ -499,7 +499,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
       </div>
 
       <%!-- Order Status Breakdown --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+      <div class="bg-white rounded-2xl shadow-sm p-6">
         <h2 class="text-base font-bold text-slate-900 mb-1">Order Status</h2>
         <p class="text-xs text-slate-400 mb-4">Breakdown for this period</p>
 
@@ -596,7 +596,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     </div>
 
     <%!-- ROW 5: Sales by Region Table --%>
-    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
+    <div class="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
       <div class="px-6 py-5 border-b border-slate-100">
         <h2 class="text-base font-bold text-slate-900">Sales by Region</h2>
         <p class="text-xs text-slate-400 mt-0.5">Top performing regions this period</p>
@@ -649,7 +649,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     </div>
 
     <%!-- ROW 6: AI Insights & Recommendations --%>
-    <div class="bg-white rounded-2xl border border-slate-200 p-6 mb-8">
+    <div class="bg-white rounded-2xl shadow-sm p-6 mb-8">
       <div class="flex items-center gap-2.5 mb-5">
         <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center">
           <svg
@@ -693,7 +693,7 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
     assigns = assign_new(assigns, :sparkline, fn -> nil end)
 
     ~H"""
-    <div class="lg:px-6 first:lg:pl-0 last:lg:pr-0">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-6 first:lg:pl-0 last:lg:pr-0">
       <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
         {@label}
       </p>

@@ -88,7 +88,7 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="px-4 sm:px-6 lg:px-8 py-6">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 px-4 sm:px-6 lg:px-8 py-6">
       <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-semibold text-slate-900">Content</h1>
         <.link
@@ -181,7 +181,7 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Index do
       </div>
 
       <%!-- Posts table --%>
-      <div :if={@posts == []} class="text-center py-16 bg-white rounded-xl border border-slate-200">
+      <div :if={@posts == []} class="text-center py-16 bg-white rounded-2xl shadow-sm">
         <p class="text-slate-500">No posts yet</p>
         <.link
           navigate={~p"/admin/content/posts/new"}
@@ -191,7 +191,7 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Index do
         </.link>
       </div>
 
-      <div :if={@posts != []} class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div :if={@posts != []} class="bg-white rounded-2xl shadow-sm overflow-hidden">
         <table class="min-w-full divide-y divide-slate-200">
           <thead class="bg-slate-50">
             <tr>

@@ -152,7 +152,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <%!-- Header --%>
       <div class="flex items-center justify-between">
         <div>

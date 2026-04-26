@@ -85,7 +85,7 @@ defmodule EmakolaWeb.Admin.RevenueLive.Index do
     <%!-- KPI Cards --%>
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
       <%!-- Gross Revenue --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
+      <div class="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
         <div class="flex items-center justify-between mb-4">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Gross Revenue
@@ -132,7 +132,7 @@ defmodule EmakolaWeb.Admin.RevenueLive.Index do
         </div>
       </div>
       <%!-- Net Revenue --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
+      <div class="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
         <div class="flex items-center justify-between mb-4">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Net Revenue
@@ -160,7 +160,7 @@ defmodule EmakolaWeb.Admin.RevenueLive.Index do
         <p class="text-xs text-slate-400 mt-2">After fees</p>
       </div>
       <%!-- Platform Fees --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
+      <div class="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
         <div class="flex items-center justify-between mb-4">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Platform Fees
@@ -188,7 +188,7 @@ defmodule EmakolaWeb.Admin.RevenueLive.Index do
         <p class="text-xs text-slate-400 mt-2">2% transaction fee</p>
       </div>
       <%!-- Pending Payouts --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
+      <div class="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
         <div class="flex items-center justify-between mb-4">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Pending Payouts
@@ -218,7 +218,7 @@ defmodule EmakolaWeb.Admin.RevenueLive.Index do
     </div>
 
     <%!-- Daily Revenue Chart --%>
-    <div class="bg-white rounded-2xl border border-slate-200 p-6 mb-8">
+    <div class="bg-white rounded-2xl shadow-sm p-6 mb-8">
       <div class="flex items-center justify-between mb-6">
         <div>
           <h2 class="text-base font-bold text-slate-900">Daily Revenue</h2>
@@ -372,7 +372,7 @@ defmodule EmakolaWeb.Admin.RevenueLive.Index do
     <%!-- Revenue Breakdown --%>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
       <%!-- Revenue by Category (Donut) --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+      <div class="bg-white rounded-2xl shadow-sm p-6">
         <h2 class="text-base font-bold text-slate-900 mb-6">Revenue by Category</h2>
         <div class="flex justify-center mb-6">
           <svg viewBox="0 0 200 200" width="200" height="200">
@@ -463,7 +463,7 @@ defmodule EmakolaWeb.Admin.RevenueLive.Index do
         </div>
       </div>
       <%!-- Revenue by Payment Method --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+      <div class="bg-white rounded-2xl shadow-sm p-6">
         <h2 class="text-base font-bold text-slate-900 mb-6">Revenue by Payment Method</h2>
         <div class="space-y-5">
           <.payment_bar
@@ -499,7 +499,7 @@ defmodule EmakolaWeb.Admin.RevenueLive.Index do
     </div>
 
     <%!-- Recent Transactions Table --%>
-    <div class="bg-white rounded-2xl border border-slate-200 mb-8">
+    <div class="bg-white rounded-2xl shadow-sm mb-8">
       <div class="px-6 py-5 border-b border-slate-100">
         <h2 class="text-base font-bold text-slate-900">Recent Transactions</h2>
         <p class="text-xs text-slate-400 mt-0.5">Latest revenue transactions</p>
@@ -566,7 +566,7 @@ defmodule EmakolaWeb.Admin.RevenueLive.Index do
     </div>
 
     <%!-- Payout History --%>
-    <div class="bg-white rounded-2xl border border-slate-200 p-6">
+    <div class="bg-white rounded-2xl shadow-sm p-6">
       <div class="flex items-center justify-between mb-6">
         <div>
           <h2 class="text-base font-bold text-slate-900">Payout History</h2>
@@ -673,7 +673,7 @@ defmodule EmakolaWeb.Admin.RevenueLive.Index do
 
   defp category_legend(assigns) do
     ~H"""
-    <div class="flex items-center gap-2">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 flex items-center gap-2">
       <span class={["w-3 h-3 rounded-full shrink-0", @color]}></span>
       <div class="min-w-0">
         <p class="text-sm font-medium text-slate-700 truncate">{@name}</p>
