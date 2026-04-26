@@ -81,6 +81,9 @@ defmodule Emakola.MixProject do
       # URL-safe slug generation (Unicode-aware)
       {:slugify, "~> 1.3"},
 
+      # HTML sanitization for merchant-authored blog/recipe content
+      {:html_sanitize_ex, "~> 1.4"},
+
       # HTTP client (used by webhook delivery, payment gateways)
       {:req, "~> 0.5"},
 
