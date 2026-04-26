@@ -102,21 +102,16 @@ defmodule Emakola.Dashboard.Stats do
     end
   end
 
-  @doc "Returns variants below the stock threshold that track inventory."
+  @doc """
+  Returns variants below the stock threshold that track inventory.
+
+  Delegates to `Emakola.Inventory.list_low_stock/2` — the dashboard
+  is one of several callers (alongside the inventory page and
+  low-stock alert worker) for the same query, so the canonical
+  implementation lives in the Inventory context.
+  """
   def low_stock_variants(store_id, threshold) do
-    case Emakola.Catalog.Variant
-         |> Ash.Query.filter(
-           store_id == ^store_id and
-             stock_quantity < ^threshold and
-             track_inventory == true
-         )
-         |> Ash.Query.sort(stock_quantity: :asc)
-         |> Ash.Query.limit(10)
-         |> Ash.Query.load(:product)
-         |> Ash.read(authorize?: false) do
-      {:ok, variants} -> variants
-      _ -> []
-    end
+    Emakola.Inventory.list_low_stock(store_id, threshold)
   end
 
   @doc "Returns the top `limit` products by variant count, with aggregates loaded."
