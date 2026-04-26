@@ -1,8 +1,8 @@
 defmodule EmakolaWeb.Admin.DesignLive do
   @moduledoc """
-  Design Studio — sidebar panel with live store preview.
-  Merchants customize component styles, typography, and layout
-  while seeing changes reflected in a live iframe preview.
+  Design Studio — 3-column layout (components | live preview | typography)
+  matching ThemeLive's visual structure. Merchants pick component styles,
+  typography, and layout while seeing changes reflected in a live preview.
   """
   use EmakolaWeb, :live_view
 
@@ -37,7 +37,23 @@ defmodule EmakolaWeb.Admin.DesignLive do
 
   @impl true
   def handle_event("update_token", %{"token" => token, "value" => value}, socket) do
-    token_atom = String.to_existing_atom(token)
+    token_atom =
+      Emakola.SafeAtom.to_atom_in(
+        token,
+        [
+          :button_style,
+          :card_style,
+          :navbar_layout,
+          :product_grid_columns,
+          :hero_layout,
+          :footer_style,
+          :product_card_style,
+          :typography_scale,
+          :heading_font,
+          :body_font
+        ],
+        :button_style
+      )
 
     value =
       if token_atom == :product_grid_columns do
@@ -106,463 +122,601 @@ defmodule EmakolaWeb.Admin.DesignLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
-      <%!-- Header --%>
-      <div class="flex items-center justify-between">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
+      <%!-- Header (matches Theme page) --%>
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6 pt-2">
         <div>
-          <h1 class="text-xl font-bold text-slate-900">Design Studio</h1>
-          <p class="text-sm text-slate-500 mt-0.5">Customize your store's visual style</p>
+          <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Design Studio</h1>
+          <p class="text-sm text-slate-500 mt-1">
+            Customize buttons, cards, typography, and layout — preview live
+          </p>
         </div>
-        <button
-          phx-click="save_design"
-          disabled={@saving || @saved}
-          class={[
-            "px-6 py-2.5 rounded-xl text-sm font-semibold transition-all",
-            cond do
-              @saved -> "bg-emerald-100 text-emerald-700"
-              @saving -> "bg-slate-200 text-slate-400"
-              true -> "bg-emerald-600 text-white hover:bg-emerald-700"
-            end
-          ]}
+        <a
+          href={"/s/#{@store.slug}/"}
+          target="_blank"
+          class="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 font-medium self-start sm:self-auto"
         >
-          {cond do
-            @saved -> "Saved"
-            @saving -> "Saving..."
-            true -> "Save Changes"
-          end}
-        </button>
+          <span class="material-symbols-outlined text-base">open_in_new</span> View live store
+        </a>
       </div>
 
-      <%!-- Options Panel (horizontal scrolling cards) --%>
-      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-        <div class="flex gap-6 overflow-x-auto pb-2 -mb-2">
-          <%!-- BUTTONS --%>
-          <div class="shrink-0 w-48">
-            <.panel_section title="Buttons">
-              <div class="space-y-2">
-                <.option_tile
-                  token="button_style"
-                  value="rounded"
-                  selected={@design_tokens.button_style}
-                  label="Rounded"
-                >
-                  <div class="h-6 flex items-center justify-center">
-                    <div class="bg-slate-800 text-white text-[8px] font-bold px-3 py-1 rounded-md">
-                      Button
-                    </div>
+      <%!-- 3-COLUMN LAYOUT — components | preview | typography ──────── --%>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 pb-32">
+        <%!-- ═══ LEFT: COMPONENTS ═══ --%>
+        <aside class="lg:col-span-3 space-y-4 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:sticky lg:top-4 lg:pr-1">
+          <%!-- Buttons --%>
+          <div class="bg-white rounded-2xl p-4 shadow-sm">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="material-symbols-outlined text-xl text-emerald-600">smart_button</span>
+              <h2 class="text-base font-bold text-slate-800">Buttons</h2>
+            </div>
+            <div class="space-y-2">
+              <.option_tile
+                token="button_style"
+                value="rounded"
+                selected={@design_tokens.button_style}
+                label="Rounded"
+              >
+                <div class="h-6 flex items-center justify-center">
+                  <div class="bg-slate-800 text-white text-[8px] font-bold px-3 py-1 rounded-md">
+                    Button
                   </div>
-                </.option_tile>
-                <.option_tile
-                  token="button_style"
-                  value="square"
-                  selected={@design_tokens.button_style}
-                  label="Square"
-                >
-                  <div class="h-6 flex items-center justify-center">
-                    <div class="bg-slate-800 text-white text-[8px] font-bold px-3 py-1 rounded-none">
-                      Button
-                    </div>
-                  </div>
-                </.option_tile>
-                <.option_tile
-                  token="button_style"
-                  value="pill"
-                  selected={@design_tokens.button_style}
-                  label="Pill"
-                >
-                  <div class="h-6 flex items-center justify-center">
-                    <div class="bg-slate-800 text-white text-[8px] font-bold px-3 py-1 rounded-full">
-                      Button
-                    </div>
-                  </div>
-                </.option_tile>
-              </div>
-            </.panel_section>
-          </div>
-
-          <%!-- CARDS --%>
-          <div class="shrink-0 w-48">
-            <.panel_section title="Cards">
-              <div class="space-y-2">
-                <.option_tile
-                  token="card_style"
-                  value="minimal"
-                  selected={@design_tokens.card_style}
-                  label="Clean"
-                >
-                  <div class="h-6 bg-white p-0.5">
-                    <div class="h-3 bg-slate-100 rounded-sm mb-0.5"></div>
-                    <div class="h-0.5 bg-slate-200 rounded w-2/3"></div>
-                  </div>
-                </.option_tile>
-                <.option_tile
-                  token="card_style"
-                  value="shadow"
-                  selected={@design_tokens.card_style}
-                  label="Shadow"
-                >
-                  <div class="h-6 bg-white shadow rounded-md p-0.5">
-                    <div class="h-3 bg-slate-100 rounded-sm mb-0.5"></div>
-                    <div class="h-0.5 bg-slate-200 rounded w-2/3"></div>
-                  </div>
-                </.option_tile>
-                <.option_tile
-                  token="card_style"
-                  value="bordered"
-                  selected={@design_tokens.card_style}
-                  label="Border"
-                >
-                  <div class="h-6 bg-white border border-slate-200 rounded-md p-0.5">
-                    <div class="h-3 bg-slate-100 rounded-sm mb-0.5"></div>
-                    <div class="h-0.5 bg-slate-200 rounded w-2/3"></div>
-                  </div>
-                </.option_tile>
-              </div>
-            </.panel_section>
-          </div>
-
-          <%!-- GRID --%>
-          <div class="shrink-0 w-48">
-            <.panel_section title="Grid">
-              <div class="space-y-2">
-                <.option_tile
-                  token="product_grid_columns"
-                  value="2"
-                  selected={to_string(@design_tokens.product_grid_columns)}
-                  label="2 col"
-                >
-                  <div class="grid grid-cols-2 gap-0.5 h-6">
-                    <div class="bg-slate-200 rounded-sm"></div>
-                    <div class="bg-slate-200 rounded-sm"></div>
-                  </div>
-                </.option_tile>
-                <.option_tile
-                  token="product_grid_columns"
-                  value="3"
-                  selected={to_string(@design_tokens.product_grid_columns)}
-                  label="3 col"
-                >
-                  <div class="grid grid-cols-3 gap-0.5 h-6">
-                    <div class="bg-slate-200 rounded-sm"></div>
-                    <div class="bg-slate-200 rounded-sm"></div>
-                    <div class="bg-slate-200 rounded-sm"></div>
-                  </div>
-                </.option_tile>
-                <.option_tile
-                  token="product_grid_columns"
-                  value="4"
-                  selected={to_string(@design_tokens.product_grid_columns)}
-                  label="4 col"
-                >
-                  <div class="grid grid-cols-4 gap-0.5 h-6">
-                    <div class="bg-slate-200 rounded-sm"></div>
-                    <div class="bg-slate-200 rounded-sm"></div>
-                    <div class="bg-slate-200 rounded-sm"></div>
-                    <div class="bg-slate-200 rounded-sm"></div>
-                  </div>
-                </.option_tile>
-              </div>
-            </.panel_section>
-          </div>
-
-          <%!-- HEADING FONT --%>
-          <div class="shrink-0 w-52">
-            <.panel_section title="Heading">
-              <div class="space-y-2">
-                <.option_row
-                  token="heading_font"
-                  value="sans"
-                  selected={@design_tokens.heading_font}
-                  label="Sans"
-                >
-                  <span class="text-sm font-bold text-slate-800">Modern</span>
-                </.option_row>
-                <.option_row
-                  token="heading_font"
-                  value="serif"
-                  selected={@design_tokens.heading_font}
-                  label="Serif"
-                >
-                  <span
-                    class="text-sm font-bold text-slate-800"
-                    style="font-family: 'Cormorant', Georgia, serif"
-                  >
-                    Elegant
-                  </span>
-                </.option_row>
-                <.option_row
-                  token="heading_font"
-                  value="display"
-                  selected={@design_tokens.heading_font}
-                  label="Display"
-                >
-                  <span
-                    class="text-sm font-bold text-slate-800"
-                    style="font-family: 'Playfair Display', Georgia, serif"
-                  >
-                    Bold
-                  </span>
-                </.option_row>
-              </div>
-            </.panel_section>
-          </div>
-
-          <%!-- SPACING --%>
-          <div class="shrink-0 w-48">
-            <.panel_section title="Spacing">
-              <div class="space-y-2">
-                <.option_tile
-                  token="typography_scale"
-                  value="compact"
-                  selected={@design_tokens.typography_scale}
-                  label="Tight"
-                >
-                  <div class="space-y-px h-6 flex flex-col justify-center">
-                    <div class="h-1 bg-slate-300 rounded w-3/4"></div>
-                    <div class="h-0.5 bg-slate-200 rounded w-full"></div>
-                    <div class="h-0.5 bg-slate-200 rounded w-5/6"></div>
-                  </div>
-                </.option_tile>
-                <.option_tile
-                  token="typography_scale"
-                  value="default"
-                  selected={@design_tokens.typography_scale}
-                  label="Default"
-                >
-                  <div class="space-y-0.5 h-6 flex flex-col justify-center">
-                    <div class="h-1.5 bg-slate-300 rounded w-3/4"></div>
-                    <div class="h-0.5 bg-slate-200 rounded w-full"></div>
-                    <div class="h-0.5 bg-slate-200 rounded w-5/6"></div>
-                  </div>
-                </.option_tile>
-                <.option_tile
-                  token="typography_scale"
-                  value="spacious"
-                  selected={@design_tokens.typography_scale}
-                  label="Relaxed"
-                >
-                  <div class="space-y-1 h-6 flex flex-col justify-center">
-                    <div class="h-2 bg-slate-300 rounded w-3/4"></div>
-                    <div class="h-0.5 bg-slate-200 rounded w-full"></div>
-                  </div>
-                </.option_tile>
-              </div>
-            </.panel_section>
-          </div>
-
-          <%!-- HERO + FOOTER --%>
-          <div class="shrink-0 w-48">
-            <.panel_section title="Hero">
-              <div class="space-y-2">
-                <.option_tile
-                  token="hero_layout"
-                  value="full-bleed"
-                  selected={@design_tokens.hero_layout}
-                  label="Full"
-                >
-                  <div class="h-6 bg-slate-300 rounded-sm relative">
-                    <div class="absolute bottom-0.5 left-1">
-                      <div class="h-0.5 bg-white/70 rounded w-4"></div>
-                    </div>
-                  </div>
-                </.option_tile>
-                <.option_tile
-                  token="hero_layout"
-                  value="split"
-                  selected={@design_tokens.hero_layout}
-                  label="Split"
-                >
-                  <div class="h-6 flex gap-0.5">
-                    <div class="flex-1 bg-slate-100 rounded-sm"></div>
-                    <div class="flex-1 bg-slate-300 rounded-sm"></div>
-                  </div>
-                </.option_tile>
-              </div>
-            </.panel_section>
-            <div class="mt-4">
-              <.panel_section title="Footer">
-                <div class="space-y-2">
-                  <.option_tile
-                    token="footer_style"
-                    value="minimal"
-                    selected={@design_tokens.footer_style}
-                    label="Minimal"
-                  >
-                    <div class="h-4 bg-slate-700 rounded-sm flex items-center justify-center">
-                      <div class="h-0.5 bg-slate-400 rounded w-1/2"></div>
-                    </div>
-                  </.option_tile>
-                  <.option_tile
-                    token="footer_style"
-                    value="columns"
-                    selected={@design_tokens.footer_style}
-                    label="Columns"
-                  >
-                    <div class="h-4 bg-slate-700 rounded-sm p-0.5">
-                      <div class="grid grid-cols-3 gap-0.5 h-full">
-                        <div class="bg-slate-600 rounded-sm"></div>
-                        <div class="bg-slate-600 rounded-sm"></div>
-                        <div class="bg-slate-600 rounded-sm"></div>
-                      </div>
-                    </div>
-                  </.option_tile>
-                  <.option_tile
-                    token="footer_style"
-                    value="mega"
-                    selected={@design_tokens.footer_style}
-                    label="Mega"
-                  >
-                    <div class="h-4 bg-slate-700 rounded-sm p-0.5">
-                      <div class="grid grid-cols-4 gap-px">
-                        <div class="h-1 bg-slate-600 rounded-sm"></div>
-                        <div class="h-1 bg-slate-600 rounded-sm"></div>
-                        <div class="h-1 bg-slate-600 rounded-sm"></div>
-                        <div class="h-1 bg-slate-600 rounded-sm"></div>
-                      </div>
-                    </div>
-                  </.option_tile>
                 </div>
-              </.panel_section>
+              </.option_tile>
+              <.option_tile
+                token="button_style"
+                value="square"
+                selected={@design_tokens.button_style}
+                label="Square"
+              >
+                <div class="h-6 flex items-center justify-center">
+                  <div class="bg-slate-800 text-white text-[8px] font-bold px-3 py-1 rounded-none">
+                    Button
+                  </div>
+                </div>
+              </.option_tile>
+              <.option_tile
+                token="button_style"
+                value="pill"
+                selected={@design_tokens.button_style}
+                label="Pill"
+              >
+                <div class="h-6 flex items-center justify-center">
+                  <div class="bg-slate-800 text-white text-[8px] font-bold px-3 py-1 rounded-full">
+                    Button
+                  </div>
+                </div>
+              </.option_tile>
             </div>
           </div>
-        </div>
+
+          <%!-- Cards --%>
+          <div class="bg-white rounded-2xl p-4 shadow-sm">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="material-symbols-outlined text-xl text-emerald-600">crop_portrait</span>
+              <h2 class="text-base font-bold text-slate-800">Cards</h2>
+            </div>
+            <div class="space-y-2">
+              <.option_tile
+                token="card_style"
+                value="minimal"
+                selected={@design_tokens.card_style}
+                label="Clean"
+              >
+                <div class="h-6 bg-white p-0.5">
+                  <div class="h-3 bg-slate-100 rounded-sm mb-0.5"></div>
+                  <div class="h-0.5 bg-slate-200 rounded w-2/3"></div>
+                </div>
+              </.option_tile>
+              <.option_tile
+                token="card_style"
+                value="shadow"
+                selected={@design_tokens.card_style}
+                label="Shadow"
+              >
+                <div class="h-6 bg-white shadow rounded-md p-0.5">
+                  <div class="h-3 bg-slate-100 rounded-sm mb-0.5"></div>
+                  <div class="h-0.5 bg-slate-200 rounded w-2/3"></div>
+                </div>
+              </.option_tile>
+              <.option_tile
+                token="card_style"
+                value="bordered"
+                selected={@design_tokens.card_style}
+                label="Border"
+              >
+                <div class="h-6 bg-white border border-slate-200 rounded-md p-0.5">
+                  <div class="h-3 bg-slate-100 rounded-sm mb-0.5"></div>
+                  <div class="h-0.5 bg-slate-200 rounded w-2/3"></div>
+                </div>
+              </.option_tile>
+            </div>
+          </div>
+
+          <%!-- Product Grid --%>
+          <div class="bg-white rounded-2xl p-4 shadow-sm">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="material-symbols-outlined text-xl text-emerald-600">grid_view</span>
+              <h2 class="text-base font-bold text-slate-800">Product Grid</h2>
+            </div>
+            <div class="space-y-2">
+              <.option_tile
+                token="product_grid_columns"
+                value="2"
+                selected={to_string(@design_tokens.product_grid_columns)}
+                label="2 col"
+              >
+                <div class="grid grid-cols-2 gap-0.5 h-6">
+                  <div class="bg-slate-200 rounded-sm"></div>
+                  <div class="bg-slate-200 rounded-sm"></div>
+                </div>
+              </.option_tile>
+              <.option_tile
+                token="product_grid_columns"
+                value="3"
+                selected={to_string(@design_tokens.product_grid_columns)}
+                label="3 col"
+              >
+                <div class="grid grid-cols-3 gap-0.5 h-6">
+                  <div class="bg-slate-200 rounded-sm"></div>
+                  <div class="bg-slate-200 rounded-sm"></div>
+                  <div class="bg-slate-200 rounded-sm"></div>
+                </div>
+              </.option_tile>
+              <.option_tile
+                token="product_grid_columns"
+                value="4"
+                selected={to_string(@design_tokens.product_grid_columns)}
+                label="4 col"
+              >
+                <div class="grid grid-cols-4 gap-0.5 h-6">
+                  <div class="bg-slate-200 rounded-sm"></div>
+                  <div class="bg-slate-200 rounded-sm"></div>
+                  <div class="bg-slate-200 rounded-sm"></div>
+                  <div class="bg-slate-200 rounded-sm"></div>
+                </div>
+              </.option_tile>
+            </div>
+          </div>
+        </aside>
+
+        <%!-- ═══ CENTER: LIVE PREVIEW ═══ --%>
+        <section class="lg:col-span-6">
+          <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <%!-- Preview header --%>
+            <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-xl text-emerald-600">visibility</span>
+                <h2 class="text-base font-bold text-slate-800">Live Preview</h2>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-[11px] text-slate-500 font-medium">Live</span>
+              </div>
+            </div>
+
+            <%!-- Storefront mock --%>
+            <div class="bg-slate-50 p-4 sm:p-6">
+              <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                <%!-- Mock browser chrome --%>
+                <div class="px-3 py-2 border-b border-slate-100 flex items-center gap-1.5 bg-slate-50">
+                  <span class="w-2.5 h-2.5 rounded-full bg-rose-300"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-300"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-300"></span>
+                  <div class="ml-2 flex-1 h-5 bg-white rounded text-[10px] text-slate-400 px-2 flex items-center">
+                    {@store.slug}.emakola.shop
+                  </div>
+                </div>
+
+                <%!-- Preview Navbar --%>
+                <div class={
+                  "flex items-center h-12 px-4 border-b border-slate-200 gap-3 " <>
+                    Emakola.Themes.DesignTokens.navbar_classes(@design_tokens.navbar_layout)
+                }>
+                  <div class="w-6 h-6 rounded-full bg-slate-200"></div>
+                  <span class="text-sm font-semibold text-slate-800">{@store.name}</span>
+                  <div class="flex-1"></div>
+                  <div class="w-5 h-5 rounded-full bg-slate-100"></div>
+                  <div class="w-5 h-5 rounded-full bg-slate-100"></div>
+                </div>
+
+                <%!-- Preview Hero --%>
+                <%= if @design_tokens.hero_layout == "split" do %>
+                  <div class="flex">
+                    <div class="flex-1 p-8">
+                      <h2
+                        class={
+                          "font-bold text-slate-900 mb-2 " <>
+                            Emakola.Themes.DesignTokens.heading_size(@design_tokens.typography_scale)
+                        }
+                        style={
+                          "font-family: #{Emakola.Themes.DesignTokens.heading_font_family(@design_tokens.heading_font)}"
+                        }
+                      >
+                        Welcome to our store
+                      </h2>
+                      <p
+                        class={
+                          "text-slate-500 mb-4 " <>
+                            Emakola.Themes.DesignTokens.body_size(@design_tokens.typography_scale)
+                        }
+                        style={
+                          "font-family: #{Emakola.Themes.DesignTokens.body_font_family(@design_tokens.body_font)}"
+                        }
+                      >
+                        Discover our curated collection of premium products.
+                      </p>
+                      <button class={
+                        "bg-slate-900 text-white text-sm font-semibold px-6 py-2.5 " <>
+                          Emakola.Themes.DesignTokens.button_classes(@design_tokens.button_style)
+                      }>
+                        Shop Now
+                      </button>
+                    </div>
+                    <div class="flex-1 bg-gradient-to-br from-amber-100 to-orange-200"></div>
+                  </div>
+                <% else %>
+                  <div class="relative bg-gradient-to-br from-stone-800 to-stone-900 p-8 sm:p-12">
+                    <h2
+                      class={
+                        "font-bold text-white mb-2 " <>
+                          Emakola.Themes.DesignTokens.heading_size(@design_tokens.typography_scale)
+                      }
+                      style={
+                        "font-family: #{Emakola.Themes.DesignTokens.heading_font_family(@design_tokens.heading_font)}"
+                      }
+                    >
+                      Welcome to our store
+                    </h2>
+                    <p
+                      class={
+                        "text-stone-300 mb-4 " <>
+                          Emakola.Themes.DesignTokens.body_size(@design_tokens.typography_scale)
+                      }
+                      style={
+                        "font-family: #{Emakola.Themes.DesignTokens.body_font_family(@design_tokens.body_font)}"
+                      }
+                    >
+                      Discover our curated collection of premium products.
+                    </p>
+                    <button class={
+                      "bg-white text-stone-900 text-sm font-semibold px-6 py-2.5 " <>
+                        Emakola.Themes.DesignTokens.button_classes(@design_tokens.button_style)
+                    }>
+                      Shop Now
+                    </button>
+                  </div>
+                <% end %>
+
+                <%!-- Preview Product Grid --%>
+                <div class="p-6">
+                  <h3
+                    class={
+                      "font-bold text-slate-900 mb-4 " <>
+                        Emakola.Themes.DesignTokens.heading_size(@design_tokens.typography_scale)
+                    }
+                    style={
+                      "font-family: #{Emakola.Themes.DesignTokens.heading_font_family(@design_tokens.heading_font)}"
+                    }
+                  >
+                    Featured Products
+                  </h3>
+                  <div class={
+                    "grid gap-4 " <>
+                      Emakola.Themes.DesignTokens.grid_classes(@design_tokens.product_grid_columns)
+                  }>
+                    <div
+                      :for={i <- 1..(@design_tokens.product_grid_columns * 2)}
+                      class={
+                        Emakola.Themes.DesignTokens.card_classes(@design_tokens.card_style) <>
+                          " overflow-hidden"
+                      }
+                    >
+                      <div class={
+                        "w-full bg-gradient-to-br #{card_gradient(i)} " <>
+                          if(@design_tokens.product_grid_columns == 4,
+                            do: "h-20",
+                            else: "h-28"
+                          )
+                      }>
+                      </div>
+                      <div class="p-3">
+                        <div
+                          class="h-3 bg-slate-200 rounded w-3/4 mb-1.5"
+                          style={
+                            "font-family: #{Emakola.Themes.DesignTokens.body_font_family(@design_tokens.body_font)}"
+                          }
+                        >
+                        </div>
+                        <div class="h-2 bg-slate-100 rounded w-1/2 mb-3"></div>
+                        <button class={
+                          "w-full bg-slate-900 text-white text-[10px] font-semibold py-1.5 " <>
+                            Emakola.Themes.DesignTokens.button_classes(@design_tokens.button_style)
+                        }>
+                          Add to Cart
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <%!-- Preview Footer --%>
+                <%= case Emakola.Themes.DesignTokens.footer_style(@design_tokens.footer_style) do %>
+                  <% :minimal -> %>
+                    <div class="bg-slate-900 px-6 py-4 text-center">
+                      <p class="text-xs text-slate-500">&copy; 2026 {@store.name}</p>
+                    </div>
+                  <% :columns -> %>
+                    <div class="bg-slate-900 px-6 py-6">
+                      <div class="grid grid-cols-3 gap-4 mb-4">
+                        <div :for={_ <- 1..3}>
+                          <div class="h-2 bg-slate-600 rounded w-1/2 mb-2"></div>
+                          <div class="space-y-1">
+                            <div class="h-1.5 bg-slate-700 rounded w-3/4"></div>
+                            <div class="h-1.5 bg-slate-700 rounded w-2/3"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <p class="text-xs text-slate-500 text-center">&copy; 2026 {@store.name}</p>
+                    </div>
+                  <% :mega -> %>
+                    <div class="bg-slate-900 px-6 py-8">
+                      <div class="text-sm font-semibold text-white mb-4">{@store.name}</div>
+                      <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div :for={_ <- 1..4}>
+                          <div class="h-1.5 bg-slate-600 rounded w-1/2 mb-2"></div>
+                          <div class="space-y-1">
+                            <div class="h-1 bg-slate-700 rounded w-3/4"></div>
+                            <div class="h-1 bg-slate-700 rounded w-2/3"></div>
+                            <div class="h-1 bg-slate-700 rounded w-1/2"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="border-t border-slate-800 pt-4">
+                        <p class="text-xs text-slate-500 text-center">
+                          &copy; 2026 {@store.name}
+                        </p>
+                      </div>
+                    </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <%!-- ═══ RIGHT: TYPOGRAPHY & LAYOUT ═══ --%>
+        <aside class="lg:col-span-3 space-y-4 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:sticky lg:top-4 lg:pr-1">
+          <%!-- Typography --%>
+          <div class="bg-white rounded-2xl p-4 shadow-sm">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="material-symbols-outlined text-xl text-emerald-600">title</span>
+              <h2 class="text-base font-bold text-slate-800">Typography</h2>
+            </div>
+
+            <p class="text-[11px] text-slate-500 mb-2 uppercase tracking-wider font-medium">
+              Heading
+            </p>
+            <div class="space-y-2 mb-4">
+              <.option_row
+                token="heading_font"
+                value="sans"
+                selected={@design_tokens.heading_font}
+                label="Sans"
+              >
+                <span class="text-sm font-bold text-slate-800">Modern</span>
+              </.option_row>
+              <.option_row
+                token="heading_font"
+                value="serif"
+                selected={@design_tokens.heading_font}
+                label="Serif"
+              >
+                <span
+                  class="text-sm font-bold text-slate-800"
+                  style="font-family: 'Cormorant', Georgia, serif"
+                >
+                  Elegant
+                </span>
+              </.option_row>
+              <.option_row
+                token="heading_font"
+                value="display"
+                selected={@design_tokens.heading_font}
+                label="Display"
+              >
+                <span
+                  class="text-sm font-bold text-slate-800"
+                  style="font-family: 'Playfair Display', Georgia, serif"
+                >
+                  Bold
+                </span>
+              </.option_row>
+            </div>
+
+            <p class="text-[11px] text-slate-500 mb-2 uppercase tracking-wider font-medium">
+              Body
+            </p>
+            <div class="space-y-2">
+              <.option_row
+                token="body_font"
+                value="sans"
+                selected={@design_tokens.body_font}
+                label="Sans"
+              >
+                <span class="text-sm text-slate-700">Clean & readable</span>
+              </.option_row>
+              <.option_row
+                token="body_font"
+                value="serif"
+                selected={@design_tokens.body_font}
+                label="Serif"
+              >
+                <span class="text-sm text-slate-700" style="font-family: 'Lora', Georgia, serif">
+                  Editorial feel
+                </span>
+              </.option_row>
+            </div>
+          </div>
+
+          <%!-- Spacing --%>
+          <div class="bg-white rounded-2xl p-4 shadow-sm">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="material-symbols-outlined text-xl text-emerald-600">density_medium</span>
+              <h2 class="text-base font-bold text-slate-800">Spacing</h2>
+            </div>
+            <div class="space-y-2">
+              <.option_tile
+                token="typography_scale"
+                value="compact"
+                selected={@design_tokens.typography_scale}
+                label="Tight"
+              >
+                <div class="space-y-px h-6 flex flex-col justify-center">
+                  <div class="h-1 bg-slate-300 rounded w-3/4"></div>
+                  <div class="h-0.5 bg-slate-200 rounded w-full"></div>
+                  <div class="h-0.5 bg-slate-200 rounded w-5/6"></div>
+                </div>
+              </.option_tile>
+              <.option_tile
+                token="typography_scale"
+                value="default"
+                selected={@design_tokens.typography_scale}
+                label="Default"
+              >
+                <div class="space-y-0.5 h-6 flex flex-col justify-center">
+                  <div class="h-1.5 bg-slate-300 rounded w-3/4"></div>
+                  <div class="h-0.5 bg-slate-200 rounded w-full"></div>
+                  <div class="h-0.5 bg-slate-200 rounded w-5/6"></div>
+                </div>
+              </.option_tile>
+              <.option_tile
+                token="typography_scale"
+                value="spacious"
+                selected={@design_tokens.typography_scale}
+                label="Relaxed"
+              >
+                <div class="space-y-1 h-6 flex flex-col justify-center">
+                  <div class="h-2 bg-slate-300 rounded w-3/4"></div>
+                  <div class="h-0.5 bg-slate-200 rounded w-full"></div>
+                </div>
+              </.option_tile>
+            </div>
+          </div>
+
+          <%!-- Hero --%>
+          <div class="bg-white rounded-2xl p-4 shadow-sm">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="material-symbols-outlined text-xl text-emerald-600">image</span>
+              <h2 class="text-base font-bold text-slate-800">Hero Layout</h2>
+            </div>
+            <div class="space-y-2">
+              <.option_tile
+                token="hero_layout"
+                value="full-bleed"
+                selected={@design_tokens.hero_layout}
+                label="Full Bleed"
+              >
+                <div class="h-6 bg-slate-300 rounded-sm relative">
+                  <div class="absolute bottom-0.5 left-1">
+                    <div class="h-0.5 bg-white/70 rounded w-4"></div>
+                  </div>
+                </div>
+              </.option_tile>
+              <.option_tile
+                token="hero_layout"
+                value="split"
+                selected={@design_tokens.hero_layout}
+                label="Split"
+              >
+                <div class="h-6 flex gap-0.5">
+                  <div class="flex-1 bg-slate-100 rounded-sm"></div>
+                  <div class="flex-1 bg-slate-300 rounded-sm"></div>
+                </div>
+              </.option_tile>
+            </div>
+          </div>
+
+          <%!-- Footer --%>
+          <div class="bg-white rounded-2xl p-4 shadow-sm">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="material-symbols-outlined text-xl text-emerald-600">space_dashboard</span>
+              <h2 class="text-base font-bold text-slate-800">Footer Style</h2>
+            </div>
+            <div class="space-y-2">
+              <.option_tile
+                token="footer_style"
+                value="minimal"
+                selected={@design_tokens.footer_style}
+                label="Minimal"
+              >
+                <div class="h-4 bg-slate-700 rounded-sm flex items-center justify-center">
+                  <div class="h-0.5 bg-slate-400 rounded w-1/2"></div>
+                </div>
+              </.option_tile>
+              <.option_tile
+                token="footer_style"
+                value="columns"
+                selected={@design_tokens.footer_style}
+                label="Columns"
+              >
+                <div class="h-4 bg-slate-700 rounded-sm p-0.5">
+                  <div class="grid grid-cols-3 gap-0.5 h-full">
+                    <div class="bg-slate-600 rounded-sm"></div>
+                    <div class="bg-slate-600 rounded-sm"></div>
+                    <div class="bg-slate-600 rounded-sm"></div>
+                  </div>
+                </div>
+              </.option_tile>
+              <.option_tile
+                token="footer_style"
+                value="mega"
+                selected={@design_tokens.footer_style}
+                label="Mega"
+              >
+                <div class="h-4 bg-slate-700 rounded-sm p-0.5">
+                  <div class="grid grid-cols-4 gap-px">
+                    <div class="h-1 bg-slate-600 rounded-sm"></div>
+                    <div class="h-1 bg-slate-600 rounded-sm"></div>
+                    <div class="h-1 bg-slate-600 rounded-sm"></div>
+                    <div class="h-1 bg-slate-600 rounded-sm"></div>
+                  </div>
+                </div>
+              </.option_tile>
+            </div>
+          </div>
+        </aside>
       </div>
 
-      <%!-- Live Preview --%>
-      <div>
-        <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-          <%!-- Preview Navbar --%>
-          <div class={"flex items-center h-12 px-4 border-b border-slate-200 gap-3 " <> Emakola.Themes.DesignTokens.navbar_classes(@design_tokens.navbar_layout)}>
-            <div class="w-6 h-6 rounded-full bg-slate-200"></div>
-            <span class="text-sm font-semibold text-slate-800">{@store.name}</span>
-            <div class="flex-1"></div>
-            <div class="w-5 h-5 rounded-full bg-slate-100"></div>
-            <div class="w-5 h-5 rounded-full bg-slate-100"></div>
+      <%!-- STICKY SAVE BAR — bottom of viewport (matches Theme page) --%>
+      <div class="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 shadow-lg">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+          <div class="hidden sm:flex items-center gap-2 text-xs text-slate-500">
+            <span class="material-symbols-outlined text-base">info</span>
+            <span>Changes apply to your live storefront when you save</span>
           </div>
-
-          <%!-- Preview Hero --%>
-          <%= if @design_tokens.hero_layout == "split" do %>
-            <div class="flex">
-              <div class="flex-1 p-8">
-                <h2
-                  class={"font-bold text-slate-900 mb-2 " <> Emakola.Themes.DesignTokens.heading_size(@design_tokens.typography_scale)}
-                  style={"font-family: #{Emakola.Themes.DesignTokens.heading_font_family(@design_tokens.heading_font)}"}
-                >
-                  Welcome to our store
-                </h2>
-                <p
-                  class={"text-slate-500 mb-4 " <> Emakola.Themes.DesignTokens.body_size(@design_tokens.typography_scale)}
-                  style={"font-family: #{Emakola.Themes.DesignTokens.body_font_family(@design_tokens.body_font)}"}
-                >
-                  Discover our curated collection of premium products.
-                </p>
-                <button class={"bg-slate-900 text-white text-sm font-semibold px-6 py-2.5 " <> Emakola.Themes.DesignTokens.button_classes(@design_tokens.button_style)}>
-                  Shop Now
-                </button>
-              </div>
-              <div class="flex-1 bg-gradient-to-br from-amber-100 to-orange-200"></div>
-            </div>
-          <% else %>
-            <div class="relative bg-gradient-to-br from-stone-800 to-stone-900 p-8 sm:p-12">
-              <h2
-                class={"font-bold text-white mb-2 " <> Emakola.Themes.DesignTokens.heading_size(@design_tokens.typography_scale)}
-                style={"font-family: #{Emakola.Themes.DesignTokens.heading_font_family(@design_tokens.heading_font)}"}
-              >
-                Welcome to our store
-              </h2>
-              <p
-                class={"text-stone-300 mb-4 " <> Emakola.Themes.DesignTokens.body_size(@design_tokens.typography_scale)}
-                style={"font-family: #{Emakola.Themes.DesignTokens.body_font_family(@design_tokens.body_font)}"}
-              >
-                Discover our curated collection of premium products.
-              </p>
-              <button class={"bg-white text-stone-900 text-sm font-semibold px-6 py-2.5 " <> Emakola.Themes.DesignTokens.button_classes(@design_tokens.button_style)}>
-                Shop Now
-              </button>
-            </div>
-          <% end %>
-
-          <%!-- Preview Product Grid --%>
-          <div class="p-6">
-            <h3
-              class={"font-bold text-slate-900 mb-4 " <> Emakola.Themes.DesignTokens.heading_size(@design_tokens.typography_scale)}
-              style={"font-family: #{Emakola.Themes.DesignTokens.heading_font_family(@design_tokens.heading_font)}"}
+          <button
+            phx-click="save_design"
+            disabled={@saving}
+            class={[
+              "ml-auto px-8 py-3 rounded-xl text-sm font-bold shadow-md transition-all active:scale-[0.98]",
+              if(@saved,
+                do: "bg-emerald-500 text-white",
+                else: "bg-emerald-600 hover:bg-emerald-700 text-white"
+              )
+            ]}
+          >
+            <span
+              :if={@saving}
+              class="material-symbols-outlined animate-spin text-base align-middle mr-1.5"
             >
-              Featured Products
-            </h3>
-            <div class={"grid gap-4 " <> Emakola.Themes.DesignTokens.grid_classes(@design_tokens.product_grid_columns)}>
-              <div
-                :for={i <- 1..(@design_tokens.product_grid_columns * 2)}
-                class={Emakola.Themes.DesignTokens.card_classes(@design_tokens.card_style) <> " overflow-hidden"}
-              >
-                <div class={"w-full bg-gradient-to-br #{card_gradient(i)} " <> if(@design_tokens.product_grid_columns == 4, do: "h-20", else: "h-28")}>
-                </div>
-                <div class="p-3">
-                  <div
-                    class="h-3 bg-slate-200 rounded w-3/4 mb-1.5"
-                    style={"font-family: #{Emakola.Themes.DesignTokens.body_font_family(@design_tokens.body_font)}"}
-                  >
-                  </div>
-                  <div class="h-2 bg-slate-100 rounded w-1/2 mb-3"></div>
-                  <button class={"w-full bg-slate-900 text-white text-[10px] font-semibold py-1.5 " <> Emakola.Themes.DesignTokens.button_classes(@design_tokens.button_style)}>
-                    Add to Cart
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <%!-- Preview Footer --%>
-          <%= case Emakola.Themes.DesignTokens.footer_style(@design_tokens.footer_style) do %>
-            <% :minimal -> %>
-              <div class="bg-slate-900 px-6 py-4 text-center">
-                <p class="text-xs text-slate-500">&copy; 2026 {@store.name}</p>
-              </div>
-            <% :columns -> %>
-              <div class="bg-slate-900 px-6 py-6">
-                <div class="grid grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <div class="h-2 bg-slate-600 rounded w-1/2 mb-2"></div>
-                    <div class="space-y-1">
-                      <div class="h-1.5 bg-slate-700 rounded w-3/4"></div>
-                      <div class="h-1.5 bg-slate-700 rounded w-2/3"></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div class="h-2 bg-slate-600 rounded w-1/2 mb-2"></div>
-                    <div class="space-y-1">
-                      <div class="h-1.5 bg-slate-700 rounded w-3/4"></div>
-                      <div class="h-1.5 bg-slate-700 rounded w-2/3"></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div class="h-2 bg-slate-600 rounded w-1/2 mb-2"></div>
-                    <div class="space-y-1">
-                      <div class="h-1.5 bg-slate-700 rounded w-3/4"></div>
-                      <div class="h-1.5 bg-slate-700 rounded w-2/3"></div>
-                    </div>
-                  </div>
-                </div>
-                <p class="text-xs text-slate-500 text-center">&copy; 2026 {@store.name}</p>
-              </div>
-            <% :mega -> %>
-              <div class="bg-slate-900 px-6 py-8">
-                <div class="text-sm font-semibold text-white mb-4">{@store.name}</div>
-                <div class="grid grid-cols-4 gap-4 mb-6">
-                  <div :for={_ <- 1..4}>
-                    <div class="h-1.5 bg-slate-600 rounded w-1/2 mb-2"></div>
-                    <div class="space-y-1">
-                      <div class="h-1 bg-slate-700 rounded w-3/4"></div>
-                      <div class="h-1 bg-slate-700 rounded w-2/3"></div>
-                      <div class="h-1 bg-slate-700 rounded w-1/2"></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="border-t border-slate-800 pt-4">
-                  <p class="text-xs text-slate-500 text-center">&copy; 2026 {@store.name}</p>
-                </div>
-              </div>
-          <% end %>
+              progress_activity
+            </span>
+            {cond do
+              @saving -> "Saving..."
+              @saved -> "Saved!"
+              true -> "Save Changes"
+            end}
+          </button>
         </div>
       </div>
     </div>
@@ -570,20 +724,6 @@ defmodule EmakolaWeb.Admin.DesignLive do
   end
 
   # ── Components ──
-
-  slot :inner_block, required: true
-  attr :title, :string, required: true
-
-  defp panel_section(assigns) do
-    ~H"""
-    <div>
-      <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
-        {@title}
-      </p>
-      {render_slot(@inner_block)}
-    </div>
-    """
-  end
 
   attr :token, :string, required: true
   attr :value, :string, required: true

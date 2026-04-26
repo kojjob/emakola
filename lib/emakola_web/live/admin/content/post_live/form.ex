@@ -77,7 +77,12 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
     attrs = %{
       store_id: store && store.id,
       author_id: socket.assigns[:current_merchant] && socket.assigns.current_merchant.id,
-      type: String.to_existing_atom(form_data["type"]),
+      type:
+        Emakola.SafeAtom.to_atom_in(
+          form_data["type"],
+          [:blog_post, :page, :recipe, :guide],
+          :blog_post
+        ),
       title: form_data["title"],
       body: form_data["body"],
       excerpt: form_data["excerpt"],

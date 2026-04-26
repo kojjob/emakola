@@ -450,11 +450,12 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
     assigns = assign(assigns, :accordion_id, accordion_id)
 
     ~H"""
-    <div class="border-b border-gray-200">
-      <input type="checkbox" id={@accordion_id} class="atelier-accordion-toggle sr-only peer" />
-      <label
-        for={@accordion_id}
-        class="atelier-accordion-header flex items-center justify-between py-4 cursor-pointer group"
+    <div id={@accordion_id} class="atelier-accordion border-b border-gray-200">
+      <button
+        type="button"
+        phx-click={Phoenix.LiveView.JS.toggle_class("open", to: "##{@accordion_id}")}
+        aria-controls={@accordion_id <> "-content"}
+        class="atelier-accordion-header w-full flex items-center justify-between py-4 cursor-pointer group text-left"
       >
         <span class="text-xs font-bold uppercase tracking-widest text-gray-900">
           {@title}
@@ -472,8 +473,8 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </span>
-      </label>
-      <div class="atelier-accordion-content pb-4">
+      </button>
+      <div id={@accordion_id <> "-content"} class="atelier-accordion-content pb-4">
         {render_slot(@inner_block)}
       </div>
     </div>

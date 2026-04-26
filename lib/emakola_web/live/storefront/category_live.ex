@@ -61,7 +61,13 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
 
   @impl true
   def handle_event("sort_products", %{"sort" => sort_key}, socket) do
-    sort = String.to_existing_atom(sort_key)
+    sort =
+      Emakola.SafeAtom.to_atom_in(
+        sort_key,
+        [:newest, :price_asc, :price_desc, :name_asc],
+        :newest
+      )
+
     sorted = sort_products(socket.assigns.products, sort)
     {:noreply, assign(socket, filtered_products: sorted, sort_by: sort)}
   end

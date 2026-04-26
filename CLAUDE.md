@@ -290,3 +290,49 @@ mix credo --strict              # Static analysis
 mix dialyzer                    # Type checking
 mix sobelow                     # Security scanning
 ```
+
+---
+
+## Workflow Lessons
+
+### Long-running branches: rebase early, rebase often
+A branch that lives more than ~5 days or accumulates more than ~10 commits will hit painful merge conflicts when it finally lands. The longer a branch diverges from `main`, the harder the rejoin gets — especially when both sides touch the same render functions or context modules.
+
+**Rule:** Rebase your feature branch on `main` daily (`git pull --rebase origin main`). If you're working on a long task, land it in stacked sub-PRs every 2-3 days.
+
+### `mix phx.server` + concurrent code edits = race conditions
+Running `mix phx.server` in one terminal while editing files in another causes:
+- Server holds the `_build` directory lock while compiling
+- Hot-reload fires while you're mid-edit, sometimes auto-formatting your changes
+- Tests can fail intermittently because the server process is recompiling
+
+**Rule:** When doing focused code work (refactors, large edits), stop `phx.server`. Restart it only when you need to look at the UI.
+
+### Stacked PRs: always merge bottom-up
+For a stack like A → B → C → D where each branch's base is the previous one:
+
+- **Right way:** merge A → main first, then B (auto-rebases), then C, then D.
+- **Wrong way:** merge C into B first → GitHub auto-cascades all stacked PRs to "MERGED" without anything reaching `main`. You'll need an extra fast-forward PR to land the work.
+
+**Rule:** When merging a stacked PR series, always start with the PR whose base is `main`.
+
+### Browser cache vs Phoenix hot-reload
+Phoenix's `live_reload` pushes asset updates, but Chrome aggressively caches CSS/JS on `localhost`. Symptom: "I changed the CSS, why doesn't it apply?"
+
+**Rule:** Open DevTools (Cmd+Option+I) → Network tab → ☑️ **Disable cache** → keep DevTools open while developing.
+
+### CSS-only state toggles don't compose with LiveView
+Patterns like `<input type="checkbox"> + <label> + .x:checked ~ .y { ... }` break under LiveView's DOM diffing — the `:checked` state lives in browser memory, not in the rendered HTML, so LV diffs lose it.
+
+**Rule:** For client-side UI state in LiveView, use `Phoenix.LiveView.JS` commands (`JS.toggle_class`, `JS.add_class`, `JS.show`, etc.) instead of CSS-checkbox toggles.
+
+### Custom CSS rules in app.css must live inside `@layer components`
+Tailwind v4 uses `@layer theme, base, components, utilities;` for cascade order. Rules outside any `@layer` (i.e. unlayered) **outrank ALL layered rules including utilities**. So `class="sidebar-link p-4"` would have `.sidebar-link` win over Tailwind's `.p-4` if `.sidebar-link` is unlayered.
+
+**Rule:** Wrap custom component-style CSS in `@layer components { ... }`. Then Tailwind utilities reliably override your defaults.
+
+### Atom conversion from user input
+`String.to_atom/1` (atom-table DoS) and `String.to_existing_atom/1` (raises on unknown input → 500 error DoS) are both unsafe with user-controlled input.
+
+**Rule:** Use `Emakola.SafeAtom.to_atom_in/3` with an explicit allowlist for form fields, sort keys, and other user-facing inputs. Use `Emakola.SafeAtom.to_atom/2` with a default for cases where the set of valid atoms is too large to enumerate.
+

@@ -99,7 +99,12 @@ defmodule EmakolaWeb.Storefront.AccountLive do
     order_returns =
       Map.put(socket.assigns.order_returns, order.order_number, %{
         status: :requested,
-        reason: String.to_existing_atom(socket.assigns.return_reason)
+        reason:
+          Emakola.SafeAtom.to_atom_in(
+            socket.assigns.return_reason,
+            [:defective, :wrong_item, :not_as_described, :changed_mind, :other],
+            :other
+          )
       })
 
     {:noreply,

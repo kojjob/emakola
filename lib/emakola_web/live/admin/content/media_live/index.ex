@@ -26,7 +26,8 @@ defmodule EmakolaWeb.Admin.Content.MediaLive.Index do
 
   @impl true
   def handle_event("filter_type", %{"type" => type}, socket) do
-    {:noreply, assign(socket, :filter_type, String.to_existing_atom(type))}
+    filter = Emakola.SafeAtom.to_atom_in(type, [:all, :image, :video, :audio], :all)
+    {:noreply, assign(socket, :filter_type, filter)}
   end
 
   @impl true
