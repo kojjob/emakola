@@ -57,12 +57,7 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <%!-- Page Header --%>
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900">Campaigns</h1>
-        <p class="text-sm text-slate-500 mt-1">Engage customers with targeted messages</p>
-      </div>
+    <.admin_page_header title="Campaigns" subtitle="Engage customers with targeted messages">
       <button
         phx-click={show_modal("create-campaign-modal")}
         class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
@@ -72,7 +67,7 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
         </svg>
         Create Campaign
       </button>
-    </div>
+    </.admin_page_header>
 
     <%!-- KPI Cards --%>
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">

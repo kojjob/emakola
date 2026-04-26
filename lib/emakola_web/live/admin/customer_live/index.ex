@@ -40,21 +40,14 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <%!-- Page Header --%>
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-2xl font-bold text-slate-900">Customers</h1>
-          <p class="text-sm text-slate-500 mt-1">Manage your customer base</p>
-        </div>
-        <div class="flex gap-2">
-          <button class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">
-            <.icon name="hero-arrow-down-tray" class="size-4" /> Export
-          </button>
-          <button class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer">
-            <.icon name="hero-plus" class="size-4" /> Add Customer
-          </button>
-        </div>
-      </div>
+      <.admin_page_header title="Customers" subtitle="Manage your customer base">
+        <button class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">
+          <.icon name="hero-arrow-down-tray" class="size-4" /> Export
+        </button>
+        <button class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer">
+          <.icon name="hero-plus" class="size-4" /> Add Customer
+        </button>
+      </.admin_page_header>
 
       <%!-- KPI Cards --%>
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

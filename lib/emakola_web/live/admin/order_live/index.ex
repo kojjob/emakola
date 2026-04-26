@@ -67,13 +67,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <%!-- Page Header --%>
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-2xl font-bold text-slate-900">Orders</h1>
-          <p class="text-sm text-slate-500 mt-1">Manage and track all customer orders</p>
-        </div>
-      </div>
+      <.admin_page_header title="Orders" subtitle="Manage and track all customer orders" />
 
       <%!-- Status Filter Tabs --%>
       <div class="flex flex-wrap items-center gap-3">

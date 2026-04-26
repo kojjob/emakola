@@ -57,11 +57,7 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <%!-- Page Header --%>
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900">Payments</h1>
-        <p class="text-sm text-slate-500 mt-1">Track and reconcile all payment transactions</p>
-      </div>
+      <.admin_page_header title="Payments" subtitle="Track and reconcile all payment transactions" />
 
       <%!-- Summary Cards --%>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
