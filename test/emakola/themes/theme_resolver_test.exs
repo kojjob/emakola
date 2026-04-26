@@ -89,6 +89,19 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert result.theme_name == "Market"
       assert result.colors.primary == "#2563EB"
     end
+
+    test "pharmacy theme returns correct defaults" do
+      result = ThemeResolver.resolve(%{"theme" => "pharmacy"})
+
+      assert result.theme_id == "pharmacy"
+      assert result.theme_name == "Pharmacy"
+      assert result.colors.primary == "#14543E"
+      assert result.colors.accent == "#A7E5C5"
+      assert result.colors.background == "#F9F6F0"
+      assert result.sections.hero == true
+      assert result.sections.featured_products == true
+      assert result.trust.title =~ "Trusted"
+    end
   end
 
   describe "theme_module/1" do
@@ -106,6 +119,10 @@ defmodule Emakola.Themes.ThemeResolverTest do
 
     test "returns Market module for unknown theme" do
       assert ThemeResolver.theme_module("unknown") == Emakola.Themes.Market
+    end
+
+    test "returns Pharmacy module for pharmacy" do
+      assert ThemeResolver.theme_module("pharmacy") == Emakola.Themes.Pharmacy
     end
   end
 end
