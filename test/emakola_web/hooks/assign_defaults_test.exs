@@ -29,8 +29,9 @@ defmodule EmakolaWeb.Hooks.AssignDefaultsTest do
 
       # Should still authenticate (merchant exists) but current_store will be nil
       # The admin pages may still render but with empty data
-      {:ok, _view, html} = live(conn, ~p"/admin/products")
+      {:ok, view, html} = live(conn, ~p"/admin/products")
       assert html =~ "Products"
+      assert has_element?(view, "#product-empty-state")
     end
   end
 

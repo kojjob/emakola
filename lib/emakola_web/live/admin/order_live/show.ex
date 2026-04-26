@@ -310,6 +310,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
             <%!-- Shipping Address --%>
             <div
               :if={@order.shipping_address}
+              id="shipping-address-card"
               class="bg-white rounded-2xl border border-slate-200 p-5"
             >
               <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
@@ -319,7 +320,11 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
             </div>
 
             <%!-- Billing Address --%>
-            <div :if={@order.billing_address} class="bg-white rounded-2xl border border-slate-200 p-5">
+            <div
+              :if={@order.billing_address}
+              id="billing-address-card"
+              class="bg-white rounded-2xl border border-slate-200 p-5"
+            >
               <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
                 Billing Address
               </h2>
@@ -479,16 +484,29 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   attr :address, :map, required: true
 
   defp address_display(assigns) do
+    assigns =
+      assigns
+      |> assign(:name, address_name(assigns.address))
+      |> assign(:line_1, address_line_1(assigns.address))
+      |> assign(:line_2, address_value(assigns.address, ["line_2", :line_2, "line2", :line2]))
+      |> assign(:city, address_value(assigns.address, ["city", :city]))
+      |> assign(:region, address_value(assigns.address, ["region", :region]))
+      |> assign(:country, address_value(assigns.address, ["country", :country]))
+      |> assign(:postal_code, address_value(assigns.address, ["postal_code", :postal_code]))
+      |> assign(:phone, address_value(assigns.address, ["phone", :phone]))
+
     ~H"""
     <div class="text-sm text-slate-700 space-y-0.5">
-      <p :if={@address["line_1"]}>{@address["line_1"]}</p>
-      <p :if={@address["line_2"]}>{@address["line_2"]}</p>
+      <p :if={@name} class="font-semibold text-slate-900">{@name}</p>
+      <p :if={@line_1}>{@line_1}</p>
+      <p :if={@line_2}>{@line_2}</p>
       <p>
-        <span :if={@address["city"]}>{@address["city"]}</span>
-        <span :if={@address["region"]}>, {@address["region"]}</span>
+        <span :if={@city}>{@city}</span>
+        <span :if={@region}>, {@region}</span>
       </p>
-      <p :if={@address["country"]}>{@address["country"]}</p>
-      <p :if={@address["postal_code"]}>{@address["postal_code"]}</p>
+      <p :if={@country}>{@country}</p>
+      <p :if={@postal_code}>{@postal_code}</p>
+      <p :if={@phone} class="pt-1 text-xs text-slate-500">{@phone}</p>
     </div>
     """
   end
@@ -594,6 +612,47 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   defp payment_badge_class(:failed), do: "bg-red-50 text-red-700"
   defp payment_badge_class(:refunded), do: "bg-purple-50 text-purple-700"
   defp payment_badge_class(_), do: "bg-slate-50 text-slate-700"
+
+  defp address_name(address) do
+    address_value(address, ["name", :name]) ||
+      [
+        address_value(address, ["first_name", :first_name]),
+        address_value(address, ["last_name", :last_name])
+      ]
+      |> Enum.reject(&is_nil/1)
+      |> Enum.join(" ")
+      |> blank_to_nil()
+  end
+
+  defp address_line_1(address) do
+    address_value(address, [
+      "line_1",
+      :line_1,
+      "line1",
+      :line1,
+      "address_line_1",
+      :address_line_1,
+      "address",
+      :address
+    ])
+  end
+
+  defp address_value(address, keys) when is_map(address) do
+    Enum.find_value(keys, fn key ->
+      address
+      |> Map.get(key)
+      |> normalize_address_value()
+    end)
+  end
+
+  defp normalize_address_value(value) when is_binary(value), do: blank_to_nil(value)
+  defp normalize_address_value(nil), do: nil
+  defp normalize_address_value(value), do: value |> to_string() |> blank_to_nil()
+
+  defp blank_to_nil(value) when is_binary(value) do
+    value = String.trim(value)
+    if value == "", do: nil, else: value
+  end
 
   defp format_datetime(nil), do: ""
 
