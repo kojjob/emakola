@@ -145,6 +145,7 @@ defmodule EmakolaWeb.Router do
       live "/account", AccountLive
       live "/wishlist", WishlistLive
       live "/track/:order_number", TrackingLive
+      live "/p/:page_slug", PageLive
     end
   end
 
@@ -221,6 +222,11 @@ defmodule EmakolaWeb.Router do
       live "/admin/content/posts/new", Admin.Content.PostLive.Form, :new
       live "/admin/content/posts/:id/edit", Admin.Content.PostLive.Form, :edit
       live "/admin/content/media", Admin.Content.MediaLive.Index
+
+      # Pages (block-based merchant pages with images/audio/video)
+      live "/admin/pages", Admin.PageLive.Index
+      live "/admin/pages/new", Admin.PageLive.Form, :new
+      live "/admin/pages/:id/edit", Admin.PageLive.Form, :edit
 
       # Analytics
       live "/admin/reports", Admin.ReportLive.Index

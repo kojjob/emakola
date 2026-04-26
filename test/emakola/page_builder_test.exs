@@ -15,12 +15,17 @@ defmodule Emakola.PageBuilderTest do
   alias Emakola.PageBuilder
 
   describe "blocks/0" do
-    test "returns the 5 starter blocks" do
-      assert length(PageBuilder.blocks()) == 5
+    test "returns all registered blocks" do
+      assert length(PageBuilder.blocks()) == 10
 
       types = Enum.map(PageBuilder.blocks(), & &1.type())
 
-      for expected <- ~w(hero_banner product_grid text_section image_banner spacer) do
+      expected_types = ~w(
+        hero_banner product_grid text_section image_banner
+        split video audio faq testimonials spacer
+      )
+
+      for expected <- expected_types do
         assert expected in types,
                "expected #{expected} in registered block types, got #{inspect(types)}"
       end

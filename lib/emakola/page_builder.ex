@@ -33,6 +33,11 @@ defmodule Emakola.PageBuilder do
     Blocks.ProductGrid,
     Blocks.TextSection,
     Blocks.ImageBanner,
+    Blocks.Split,
+    Blocks.Video,
+    Blocks.Audio,
+    Blocks.Faq,
+    Blocks.Testimonials,
     Blocks.Spacer
   ]
 
