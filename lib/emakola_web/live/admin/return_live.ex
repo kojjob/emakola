@@ -357,7 +357,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
         <div :if={@selected_return.status == :approved} class="border-t border-stone-100 pt-4">
           <button
             phx-click="mark_refunded"
-            class="cursor-pointer bg-blue-600 text-white text-xs font-semibold uppercase tracking-wider px-6 py-2.5 rounded-[20px] hover:bg-blue-700 transition-colors"
+            class="cursor-pointer bg-emerald-600 text-white text-xs font-semibold uppercase tracking-wider px-6 py-2.5 rounded-[20px] hover:bg-emerald-700 transition-colors"
           >
             Mark as Refunded
           </button>

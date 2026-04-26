@@ -136,7 +136,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                   :if={@order.status == :pending}
                   phx-click={show_modal("confirm-order-modal")}
                   class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
-                         bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                         bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
                 >
                   Confirm Order
                 </button>
@@ -373,7 +373,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
           title="Confirm Order"
           message={"Are you sure you want to confirm order #{@order.order_number}? The customer will be notified."}
           confirm_text="Confirm Order"
-          confirm_class="bg-blue-600 hover:bg-blue-700 text-white"
+          confirm_class="bg-emerald-600 hover:bg-emerald-700 text-white"
           on_confirm="confirm_order"
         />
 
