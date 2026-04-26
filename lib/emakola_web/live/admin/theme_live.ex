@@ -42,6 +42,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       name: "Electronics",
       description: "Phones, audio & gadgets",
       icon: "devices"
+    },
+    %{
+      id: "fashion",
+      name: "Fashion",
+      description: "Editorial boutique",
+      icon: "checkroom"
     }
   ]
 
