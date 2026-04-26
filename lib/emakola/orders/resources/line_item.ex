@@ -86,14 +86,17 @@ defmodule Emakola.Orders.LineItem do
   end
 
   policies do
-    # Creates are permissive (callers ensure store_id is valid)
-    bypass action_type(:create) do
-      authorize_if(always())
-    end
-
     # Generic actions (action :name) — internal helpers, no policy
     bypass action_type(:action) do
       authorize_if(always())
+    end
+
+    # Creates require Merchant with store access. CheckoutService creates
+    # line items without an actor and opts in via `authorize?: false`.
+    policy action_type(:create) do
+      forbid_unless(actor_present())
+      forbid_unless(actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant))
+      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
     # Merchant actors: verify store membership (for reads + writes)

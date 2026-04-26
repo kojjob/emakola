@@ -147,7 +147,7 @@ defmodule Emakola.Security.AuthorizationTest do
       _customer_b = create_customer!(ctx.store_b, %{name: "Ama"})
 
       # Read all customers and filter by store_id
-      {:ok, all_customers} = Ash.read(Customer)
+      {:ok, all_customers} = Ash.read(Customer, authorize?: false)
 
       store_a_customers = Enum.filter(all_customers, &(&1.store_id == ctx.store_a.id))
 
@@ -158,7 +158,7 @@ defmodule Emakola.Security.AuthorizationTest do
     test "customer created in Store A is not visible when filtering for Store B", ctx do
       create_customer!(ctx.store_a, %{name: "Only in A"})
 
-      {:ok, all_customers} = Ash.read(Customer)
+      {:ok, all_customers} = Ash.read(Customer, authorize?: false)
       store_b_customers = Enum.filter(all_customers, &(&1.store_id == ctx.store_b.id))
 
       customer_names = Enum.map(store_b_customers, & &1.name)

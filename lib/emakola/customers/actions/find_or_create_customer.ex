@@ -45,7 +45,7 @@ defmodule Emakola.Customers.Actions.FindOrCreateCustomer do
            name: name,
            phone: phone
          })
-         |> Ash.create() do
+         |> Ash.create(authorize?: false) do
       {:ok, customer} ->
         {:ok, customer}
 

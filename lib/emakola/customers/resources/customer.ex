@@ -123,14 +123,19 @@ defmodule Emakola.Customers.Customer do
       authorize_if(always())
     end
 
-    # Creates are permissive (callers ensure store_id is valid)
-    bypass action_type(:create) do
+    # Generic actions (action :name) — internal helpers like find_or_create
+    # invoked from unauthenticated checkout. The action's run/3 calls
+    # `Ash.create(authorize?: false)` internally for the actual write.
+    bypass action_type(:action) do
       authorize_if(always())
     end
 
-    # Generic actions (action :name) — internal helpers, no policy
-    bypass action_type(:action) do
-      authorize_if(always())
+    # Creates require Merchant with store access. CheckoutService customer
+    # creation and webhook handlers opt in via `authorize?: false`.
+    policy action_type(:create) do
+      forbid_unless(actor_present())
+      forbid_unless(actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant))
+      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
     # Merchant actors: verify store membership (for reads + writes)

@@ -149,14 +149,18 @@ defmodule Emakola.Orders.Order do
   end
 
   policies do
-    # Creates are permissive (callers ensure store_id is valid)
-    bypass action_type(:create) do
-      authorize_if(always())
-    end
-
     # Generic actions (action :name) — internal helpers, no policy
     bypass action_type(:action) do
       authorize_if(always())
+    end
+
+    # Creates require Merchant with store access. CheckoutService and
+    # webhook handlers create orders without an actor and opt in via
+    # `authorize?: false` explicitly.
+    policy action_type(:create) do
+      forbid_unless(actor_present())
+      forbid_unless(actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant))
+      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
     # Merchant actors: verify store membership (for reads + writes)
