@@ -447,7 +447,15 @@ html.high-contrast:not(.dark) {
    These rules style the merchant admin sidebar + topbar. Were
    previously inlined in the HEEx template — now part of the
    compiled stylesheet so they don't ship in every LV diff.
+
+   Wrapped in `@layer components` so Tailwind utility classes (which
+   live in `@layer utilities`) win the cascade. Without the layer,
+   unlayered rules outrank ALL layered rules — meaning a class like
+   `class="sidebar-link p-4"` would have the custom `.sidebar-link`
+   padding override Tailwind's `.p-4`, breaking utility classes inside
+   the sidebar markup.
    ───────────────────────────────────────────────────────────────── */
+@layer components {
 
   /* ═══════════════════════════════════════════
      SIDEBAR CORE
@@ -504,7 +512,7 @@ html.high-contrast:not(.dark) {
   .sidebar-link .link-icon {
     width: 20px;
     height: 20px;
-    shrink: 0;
+    flex-shrink: 0;
     transition: transform 0.2s ease;
   }
   .sidebar-link:hover .link-icon { transform: scale(1.08); }
@@ -655,3 +663,5 @@ html.high-contrast:not(.dark) {
     .fade-in { animation: none; opacity: 1; transform: none; }
     .sidebar, .sidebar-link, .nav-label, .collapse-icon { transition: none !important; }
   }
+
+}
