@@ -1,4 +1,4 @@
-defmodule Emakola.Orders.Coupon do
+defmodule Emakola.Marketing.Coupon do
   @moduledoc """
   Coupon resource for the checkout discount system.
 
@@ -9,10 +9,13 @@ defmodule Emakola.Orders.Coupon do
 
   All monetary amounts are integers in minor currency units (pesewas).
   Multi-tenant via store_id.
+
+  Moved from `Emakola.Orders.Coupon` to `Emakola.Marketing.Coupon` on
+  2026-04-26 — coupons are marketing/growth, not transactional.
   """
 
   use Ash.Resource,
-    domain: Emakola.Orders,
+    domain: Emakola.Marketing,
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 

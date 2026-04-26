@@ -260,7 +260,7 @@ defmodule EmakolaWeb.Admin.CouponLiveTest do
 
     params = Map.merge(default, Map.new(attrs))
 
-    Emakola.Orders.Coupon
+    Emakola.Marketing.Coupon
     |> Ash.Changeset.for_create(:create, params)
     |> Ash.create!(authorize?: false)
   end

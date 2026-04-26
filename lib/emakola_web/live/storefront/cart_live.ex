@@ -151,7 +151,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
     if code == "" do
       {:noreply, assign(socket, :promo_error, "Please enter a coupon code")}
     else
-      case Emakola.Orders.find_coupon_by_code(store.id, code) do
+      case Emakola.Marketing.find_coupon_by_code(store.id, code) do
         {:ok, [coupon]} ->
           validate_and_apply_coupon(socket, coupon)
 

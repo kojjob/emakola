@@ -1,9 +1,9 @@
-defmodule Emakola.Orders.CouponTest do
+defmodule Emakola.Marketing.CouponTest do
   use Emakola.DataCase, async: true
 
   import Emakola.Factory
 
-  alias Emakola.Orders.Coupon
+  alias Emakola.Marketing.Coupon
 
   setup do
     store = create_store!()

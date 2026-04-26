@@ -171,7 +171,7 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   end
 
   defp load_public_coupons(store) do
-    case Emakola.Orders.list_active_public_coupons(store.id) do
+    case Emakola.Marketing.list_active_public_coupons(store.id) do
       {:ok, coupons} -> coupons
       _ -> []
     end

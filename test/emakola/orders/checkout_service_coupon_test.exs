@@ -4,7 +4,7 @@ defmodule Emakola.Orders.CheckoutServiceCouponTest do
   import Emakola.Factory
 
   alias Emakola.Orders.CheckoutService
-  alias Emakola.Orders.Coupon
+  alias Emakola.Marketing.Coupon
 
   setup do
     store = create_store!()
@@ -246,7 +246,7 @@ defmodule Emakola.Orders.CheckoutServiceCouponTest do
       assert {:ok, _order} = CheckoutService.checkout!(store.id, items, opts)
 
       updated_coupon =
-        Ash.get!(Emakola.Orders.Coupon, coupon.id, authorize?: false, authorize?: false)
+        Ash.get!(Emakola.Marketing.Coupon, coupon.id, authorize?: false, authorize?: false)
 
       assert updated_coupon.uses_count == 1
     end

@@ -138,7 +138,7 @@ defmodule Emakola.Orders.Order do
 
     has_many :line_items, Emakola.Orders.LineItem
 
-    belongs_to :coupon, Emakola.Orders.Coupon do
+    belongs_to :coupon, Emakola.Marketing.Coupon do
       attribute_writable?(true)
       public?(true)
     end

@@ -70,7 +70,7 @@ defmodule Emakola.Orders.CheckoutService do
   a descriptive atom if validation fails.
   """
   def validate_coupon(store_id, code, subtotal) do
-    case Emakola.Orders.Coupon
+    case Emakola.Marketing.Coupon
          |> Ash.Query.filter(store_id == ^store_id and code == ^String.upcase(code))
          |> Ash.read(authorize?: false) do
       {:ok, [coupon]} -> check_coupon_validity(coupon, subtotal)
@@ -224,7 +224,7 @@ defmodule Emakola.Orders.CheckoutService do
             {nil, 0}
 
           cid ->
-            coupon = Ash.get!(Emakola.Orders.Coupon, cid, authorize?: false)
+            coupon = Ash.get!(Emakola.Marketing.Coupon, cid, authorize?: false)
 
             case check_coupon_validity(coupon, subtotal) do
               {:ok, valid_coupon} ->

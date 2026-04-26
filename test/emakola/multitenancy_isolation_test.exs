@@ -383,7 +383,7 @@ defmodule Emakola.MultitenancyIsolationTest do
       merchant_a: merchant_a,
       store_b: store_b
     } do
-      Emakola.Orders.Coupon
+      Emakola.Marketing.Coupon
       |> Ash.Changeset.for_create(:create, %{
         store_id: store_b.id,
         code: "SAVE10B",
@@ -392,7 +392,7 @@ defmodule Emakola.MultitenancyIsolationTest do
       })
       |> Ash.create!(authorize?: false)
 
-      Emakola.Orders.Coupon
+      Emakola.Marketing.Coupon
       |> Ash.Query.set_tenant(store_b.id)
       |> assert_no_cross_tenant_leak(merchant_a)
     end
@@ -402,7 +402,7 @@ defmodule Emakola.MultitenancyIsolationTest do
       store_a: store_a
     } do
       coupon =
-        Emakola.Orders.Coupon
+        Emakola.Marketing.Coupon
         |> Ash.Changeset.for_create(:create, %{
           store_id: store_a.id,
           code: "SAVE10A",
@@ -412,7 +412,7 @@ defmodule Emakola.MultitenancyIsolationTest do
         |> Ash.create!(authorize?: false)
 
       results =
-        Emakola.Orders.Coupon
+        Emakola.Marketing.Coupon
         |> Ash.Query.set_tenant(store_a.id)
         |> Ash.read!(actor: merchant_a, authorize?: true)
 

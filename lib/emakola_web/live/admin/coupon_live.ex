@@ -2,7 +2,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
   @moduledoc """
   Merchant admin page for managing coupon codes.
 
-  Supports CRUD operations on `Emakola.Orders.Coupon` resources:
+  Supports CRUD operations on `Emakola.Marketing.Coupon` resources:
   - List coupons with status indicators
   - Create coupons with type-specific value handling
   - Toggle active/inactive inline
@@ -126,7 +126,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
     result =
       case socket.assigns.editing_coupon do
         nil ->
-          Emakola.Orders.Coupon
+          Emakola.Marketing.Coupon
           |> Ash.Changeset.for_create(:create, attrs)
           |> Ash.create(authorize?: false)
 
@@ -755,7 +755,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
   # ── Private Helpers ──────────────────────────────────────────
 
   defp load_coupons(store_id) do
-    case Emakola.Orders.list_coupons_by_store(store_id, authorize?: false) do
+    case Emakola.Marketing.list_coupons_by_store(store_id, authorize?: false) do
       {:ok, coupons} -> coupons
       _ -> []
     end
