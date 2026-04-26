@@ -35,7 +35,7 @@ defmodule Emakola.Accounts.StoreMembership do
       public?(true)
     end
 
-    belongs_to :store, Emakola.Accounts.Store do
+    belongs_to :store, Emakola.Stores.Store do
       allow_nil?(false)
       public?(true)
     end

@@ -72,7 +72,7 @@ defmodule Emakola.Factory do
     {create_params, settings_params} = Map.split(params, @store_create_fields)
 
     store =
-      Emakola.Accounts.Store
+      Emakola.Stores.Store
       |> Ash.Changeset.for_create(:create, create_params)
       |> Ash.create!(authorize?: false)
 

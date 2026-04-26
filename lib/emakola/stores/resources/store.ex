@@ -1,13 +1,19 @@
-defmodule Emakola.Accounts.Store do
+defmodule Emakola.Stores.Store do
   @moduledoc """
   Store resource — the multi-tenant anchor for Emakola.
 
-  Every merchant can own/manage one or more stores. All ecommerce resources
-  (products, orders, payments) are scoped to a store via store_id.
+  Every merchant can own/manage one or more stores. All ecommerce
+  resources (products, orders, payments) are scoped to a store via
+  `store_id`.
+
+  Moved from `Emakola.Accounts.Store` to `Emakola.Stores.Store` on
+  2026-04-26 — Stores has its own bounded context, distinct from
+  user/merchant authentication. `StoreMembership` (the merchant↔store
+  bridge) stays in `Accounts`.
   """
 
   use Ash.Resource,
-    domain: Emakola.Accounts,
+    domain: Emakola.Stores,
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 

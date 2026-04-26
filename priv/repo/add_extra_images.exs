@@ -10,7 +10,7 @@ IO.puts("Adding extra images to Kente Kingdom products...")
 require Ash.Query
 
 store =
-  Emakola.Accounts.Store
+  Emakola.Stores.Store
   |> Ash.Query.filter(slug == "kente-kingdom")
   |> Ash.read_one!()
 

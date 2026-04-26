@@ -38,12 +38,12 @@ end
 # ── Load existing stores and variants ────────────────────────────────────────
 
 store1 =
-  Emakola.Accounts.Store
+  Emakola.Stores.Store
   |> Ash.Query.filter(slug == "kente-kingdom")
   |> Ash.read_one!(authorize?: false)
 
 store2 =
-  Emakola.Accounts.Store
+  Emakola.Stores.Store
   |> Ash.Query.filter(slug == "accra-fresh")
   |> Ash.read_one!(authorize?: false)
 

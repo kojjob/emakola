@@ -47,7 +47,7 @@ defmodule Emakola.Policies.Checks.ActorHasStoreAccess do
 
   defp get_store_id(%Ash.Changeset{} = changeset) do
     # For the Store resource itself, the resource's id IS the store_id
-    if changeset.resource == Emakola.Accounts.Store do
+    if changeset.resource == Emakola.Stores.Store do
       Map.get(changeset.data || %{}, :id)
     else
       # Try the changeset data first (for updates), then arguments/attributes (for creates)

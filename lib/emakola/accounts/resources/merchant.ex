@@ -69,7 +69,7 @@ defmodule Emakola.Accounts.Merchant do
   relationships do
     has_many :store_memberships, Emakola.Accounts.StoreMembership
 
-    many_to_many :stores, Emakola.Accounts.Store do
+    many_to_many :stores, Emakola.Stores.Store do
       through(Emakola.Accounts.StoreMembership)
     end
   end

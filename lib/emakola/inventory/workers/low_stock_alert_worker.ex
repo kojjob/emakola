@@ -36,7 +36,7 @@ defmodule Emakola.Inventory.Workers.LowStockAlertWorker do
   # ── Private ─────────────────────────────────────────────────
 
   defp list_active_stores do
-    Emakola.Accounts.Store
+    Emakola.Stores.Store
     |> Ash.read!(authorize?: false)
   end
 

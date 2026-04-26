@@ -250,7 +250,7 @@ defmodule EmakolaWeb.Admin.InventoryLiveTest do
     uid = :crypto.strong_rand_bytes(8) |> Base.hex_encode32(case: :lower, padding: false)
 
     store =
-      Emakola.Accounts.Store
+      Emakola.Stores.Store
       |> Ash.Changeset.for_create(:create, %{
         name: "Test Store #{uid}",
         slug: "test-store-#{uid}"

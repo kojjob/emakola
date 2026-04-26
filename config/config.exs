@@ -76,6 +76,7 @@ config :emakola,
     Emakola.Customers,
     Emakola.Payments,
     Emakola.Shipping,
+    Emakola.Stores,
     Emakola.Content,
     Emakola.Pages
   ]

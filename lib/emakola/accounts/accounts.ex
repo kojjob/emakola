@@ -22,11 +22,8 @@ defmodule Emakola.Accounts do
 
     resource(Emakola.Accounts.Merchant)
 
-    resource Emakola.Accounts.Store do
-      define(:create_store, action: :create)
-      define(:get_store, action: :read, get_by: [:id])
-      define(:update_store_settings, action: :update_settings)
-    end
+    # Store resource moved to Emakola.Stores on 2026-04-26.
+    # See docs/PLAN-domain-restructuring-2026-04-26.md Step 3.
 
     resource Emakola.Accounts.StoreMembership do
       define(:create_store_membership, action: :create)

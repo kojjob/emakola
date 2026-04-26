@@ -595,7 +595,7 @@ defmodule EmakolaWeb.OnboardingLive do
       currency = assigns.currency
 
       with {:ok, store} <-
-             Emakola.Accounts.Store
+             Emakola.Stores.Store
              |> Ash.Changeset.for_create(:create, %{
                name: store_name,
                slug: slug,

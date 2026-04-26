@@ -124,7 +124,7 @@ defmodule EmakolaWeb.StoresLive do
   end
 
   defp list_active_stores do
-    Emakola.Accounts.Store
+    Emakola.Stores.Store
     |> Ash.Query.filter(active == true)
     |> Ash.Query.sort(name: :asc)
     |> Ash.read!(authorize?: false)
