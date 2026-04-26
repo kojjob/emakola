@@ -25,15 +25,26 @@ defmodule Emakola.Dashboard.Stats do
   """
   @spec load_stats(Ash.UUID.t()) :: map()
   def load_stats(store_id) do
-    %{
-      total_revenue: calculate_revenue(store_id),
-      order_count: count_orders(store_id),
-      active_products: count_active_products(store_id),
-      customer_count: count_customers(store_id),
-      recent_orders: recent_orders(store_id, 10),
-      low_stock: low_stock_variants(store_id, @low_stock_threshold),
-      top_products: top_products(store_id, 5)
-    }
+    # Each query hits an independent table (payments / orders / products /
+    # customers / variants); they don't depend on each other so we run them
+    # concurrently. With 7 sequential ~50ms queries the dashboard mount
+    # blocked for ~350ms; in parallel it's bounded by the slowest single
+    # query (~50–100ms). Each task gets a fresh DB connection from the
+    # pool — load_stats/1 is called from the dashboard LV mount which
+    # already runs in its own process.
+    tasks = [
+      Task.async(fn -> {:total_revenue, calculate_revenue(store_id)} end),
+      Task.async(fn -> {:order_count, count_orders(store_id)} end),
+      Task.async(fn -> {:active_products, count_active_products(store_id)} end),
+      Task.async(fn -> {:customer_count, count_customers(store_id)} end),
+      Task.async(fn -> {:recent_orders, recent_orders(store_id, 10)} end),
+      Task.async(fn -> {:low_stock, low_stock_variants(store_id, @low_stock_threshold)} end),
+      Task.async(fn -> {:top_products, top_products(store_id, 5)} end)
+    ]
+
+    tasks
+    |> Task.await_many(10_000)
+    |> Map.new()
   end
 
   @doc "Sum of amounts for successful payments belonging to the store."
