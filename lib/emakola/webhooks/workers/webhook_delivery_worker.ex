@@ -9,11 +9,33 @@ defmodule Emakola.Webhooks.Workers.WebhookDeliveryWorker do
     %{
       "webhook_id" => webhook_id,
       "event_type" => event_type,
-      "payload" => payload,
-      "url" => url,
-      "secret" => secret
+      "payload" => payload
     } = args
 
+    # Look up url + secret from the resource at perform time so we
+    # don't persist secrets in `oban_jobs.args`.
+    case load_webhook(webhook_id) do
+      nil ->
+        {:cancel, "webhook #{webhook_id} not found"}
+
+      %{active: false} ->
+        {:cancel, "webhook #{webhook_id} disabled"}
+
+      webhook ->
+        deliver(webhook, event_type, payload, attempt)
+    end
+  end
+
+  defp load_webhook(id) do
+    Emakola.Webhooks.OutboundWebhook
+    |> Ash.get(id, authorize?: false)
+    |> case do
+      {:ok, webhook} -> webhook
+      _ -> nil
+    end
+  end
+
+  defp deliver(%{id: webhook_id, url: url, secret: secret}, event_type, payload, attempt) do
     body = Jason.encode!(payload)
     timestamp = DateTime.utc_now() |> DateTime.to_unix() |> to_string()
     signature = compute_hmac(secret, timestamp, body)
