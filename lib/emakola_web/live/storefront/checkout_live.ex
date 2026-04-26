@@ -37,6 +37,11 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         _ -> []
       end
 
+    # UTM attribution captured by EmakolaWeb.Plugs.UtmCapture during the
+    # customer's browse → checkout journey. Persisted onto the order at
+    # creation so merchant analytics can attribute revenue by source.
+    utm_attribution = session["utm_attribution"] || %{}
+
     {:ok,
      socket
      |> assign(:categories, categories)
@@ -44,6 +49,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      |> assign(:cart, cart)
      |> assign(:cart_count, cart_count)
      |> assign(:cart_total, cart_total)
+     |> assign(:utm_attribution, utm_attribution)
      |> assign(:step, 1)
      |> assign(:payment_method, "momo")
      |> assign(:phone, "")
@@ -1354,7 +1360,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     opts = [
       notes: notes,
       shipping_address: shipping_address,
-      delivery_fee: delivery_fee
+      delivery_fee: delivery_fee,
+      attribution: socket.assigns[:utm_attribution] || %{}
     ]
 
     opts =

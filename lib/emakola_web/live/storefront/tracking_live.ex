@@ -8,7 +8,7 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
   """
   use EmakolaWeb, :live_view
 
-  alias EmakolaWeb.Helpers.{Currency, StoreResolver}
+  alias EmakolaWeb.Helpers.StoreResolver
 
   require Ash.Query
 

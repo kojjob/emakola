@@ -10,8 +10,7 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
   """
   use EmakolaWeb, :live_view
 
-  alias EmakolaWeb.Helpers.{Currency, StoreResolver}
-  alias EmakolaWeb.StorefrontComponents
+  alias EmakolaWeb.Helpers.StoreResolver
 
   @impl true
   def mount(%{"store_slug" => slug}, session, socket) do

@@ -184,7 +184,8 @@ defmodule Emakola.Orders.CheckoutService do
           customer_id: customer_id,
           notes: Keyword.get(opts, :notes),
           shipping_address: shipping_address,
-          billing_address: Keyword.get(opts, :billing_address)
+          billing_address: Keyword.get(opts, :billing_address),
+          attribution: Keyword.get(opts, :attribution, %{})
         })
         |> Ash.create!(authorize?: false)
 

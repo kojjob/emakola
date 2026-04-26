@@ -349,6 +349,15 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
         <p :if={customer_phone(@order)} class="text-center text-xs text-[#A8A29E]">
           We'll text you at {mask_phone(customer_phone(@order))} with updates
         </p>
+
+        <%!-- Share strip — turn every buyer into a distribution node --%>
+        <div class="mt-8 pt-8 border-t border-[#E7E5E4]">
+          <EmakolaWeb.StorefrontComponents.share_strip
+            url={share_url(@store, @order)}
+            title={"I just shopped at #{@store.name}"}
+            headline="Loved your order? Share it"
+          />
+        </div>
       </div>
     </div>
 
@@ -452,4 +461,12 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
   defp region_label("northern"), do: "Northern"
   defp region_label("volta"), do: "Volta"
   defp region_label(_), do: "Other"
+
+  # Builds the share URL for the share_strip — points back to the merchant's
+  # storefront home so social shares from the order confirmation drive new
+  # traffic into the store. Uses host from EmakolaWeb.Endpoint config.
+  defp share_url(store, _order) do
+    base = EmakolaWeb.Endpoint.url()
+    "#{base}/s/#{store.slug}"
+  end
 end

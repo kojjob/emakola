@@ -18,7 +18,7 @@ defmodule EmakolaWeb.Hooks.ResolveStore do
   def on_mount(:default, %{"store_slug" => slug}, _session, socket) do
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
-        theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{})
+        theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{}, store)
         theme_module = Emakola.Themes.ThemeResolver.theme_module(theme.theme_id)
 
         # Subscribe to theme updates so storefront refreshes automatically
@@ -50,7 +50,7 @@ defmodule EmakolaWeb.Hooks.ResolveStore do
   end
 
   defp handle_theme_update({:theme_updated, updated_store}, socket) do
-    theme = Emakola.Themes.ThemeResolver.resolve(updated_store.theme_config || %{})
+    theme = Emakola.Themes.ThemeResolver.resolve(updated_store.theme_config || %{}, updated_store)
     theme_module = Emakola.Themes.ThemeResolver.theme_module(theme.theme_id)
 
     {:halt,

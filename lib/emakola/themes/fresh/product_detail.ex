@@ -527,6 +527,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
         review_submitting={@review_submitting}
         avg_rating={@product.avg_rating}
         review_count={@product.review_count}
+        uploads={@uploads}
       />
 
       <Shared.footer store={@store} categories={@categories} />

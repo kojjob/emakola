@@ -264,6 +264,15 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
               Ask on WhatsApp
             </a>
 
+            <%!-- Share Strip — fires share-product event for atomic count tracking --%>
+            <EmakolaWeb.StorefrontComponents.share_strip
+              url={@canonical_url || "/s/#{@store.slug}/products/#{@product.slug}"}
+              title={@product.title}
+              on_share="share-product"
+              share_value={@product.id}
+              class="pt-2"
+            />
+
             <%!-- SKU --%>
             <p
               :if={@selected_variant && @selected_variant.sku}
@@ -431,6 +440,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
         review_submitting={@review_submitting}
         avg_rating={@product.avg_rating}
         review_count={@product.review_count}
+        uploads={@uploads}
       />
 
       <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />

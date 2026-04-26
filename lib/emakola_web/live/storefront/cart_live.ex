@@ -10,10 +10,8 @@ defmodule EmakolaWeb.Storefront.CartLive do
   - Responsive layout: stacked mobile, side-by-side desktop
   """
   use EmakolaWeb, :live_view
-  import EmakolaWeb.StorefrontComponents
 
   alias Emakola.Cart.CartStore
-  alias EmakolaWeb.Helpers.Currency
 
   require Ash.Query
 

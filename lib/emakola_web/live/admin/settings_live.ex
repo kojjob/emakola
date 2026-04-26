@@ -57,6 +57,15 @@ defmodule EmakolaWeb.Admin.SettingsLive do
     save_settings(socket, params)
   end
 
+  # Phase 1.5 of social media integration. Same auth + persistence path
+  # as save_contact / save_general (inherited security posture); the
+  # update_settings action's `accept` list gates which Store fields can
+  # be mutated, so additional params in the form payload are ignored.
+  @impl true
+  def handle_event("save_social", %{"store" => params}, socket) do
+    save_settings(socket, params)
+  end
+
   defp save_settings(socket, params) do
     store = socket.assigns.store
     actor = socket.assigns[:current_user] || socket.assigns[:current_merchant]
@@ -95,6 +104,9 @@ defmodule EmakolaWeb.Admin.SettingsLive do
             <.tab_button tab="delivery" active_tab={@active_tab} icon="hero-truck">
               Delivery
             </.tab_button>
+            <.tab_button tab="social" active_tab={@active_tab} icon="hero-share">
+              Social
+            </.tab_button>
             <.tab_button tab="notifications" active_tab={@active_tab} icon="hero-bell">
               Notifications
             </.tab_button>
@@ -111,6 +123,9 @@ defmodule EmakolaWeb.Admin.SettingsLive do
           </div>
           <div :if={@active_tab == "delivery"}>
             <.delivery_tab />
+          </div>
+          <div :if={@active_tab == "social"}>
+            <.social_tab store={@store} />
           </div>
           <div :if={@active_tab == "notifications"}>
             <.notifications_tab />
@@ -326,6 +341,144 @@ defmodule EmakolaWeb.Admin.SettingsLive do
           </div>
         </.form>
       </div>
+    </div>
+    """
+  end
+
+  # -- Social tab --
+
+  attr :store, :map, required: true
+
+  defp social_tab(assigns) do
+    ~H"""
+    <div class="space-y-6">
+      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+        <h3 class="text-base font-bold text-slate-900 mb-1">Social media</h3>
+        <p class="text-sm text-slate-500 mb-5">
+          These appear as icons in your storefront footer and help shoppers verify
+          your brand. Leave any field blank to hide its icon.
+        </p>
+        <.form for={%{}} as={:store} id="social-form" phx-submit="save_social" class="space-y-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <.social_url_input
+              field="instagram_url"
+              label="Instagram"
+              placeholder="https://instagram.com/your_store"
+              value={@store && @store.instagram_url}
+              icon="hero-camera"
+            />
+            <.social_url_input
+              field="tiktok_url"
+              label="TikTok"
+              placeholder="https://tiktok.com/@your_store"
+              value={@store && @store.tiktok_url}
+              icon="hero-musical-note"
+            />
+            <.social_url_input
+              field="facebook_url"
+              label="Facebook"
+              placeholder="https://facebook.com/your_store"
+              value={@store && @store.facebook_url}
+              icon="hero-user-group"
+            />
+            <.social_url_input
+              field="x_url"
+              label="X (Twitter)"
+              placeholder="https://x.com/your_store"
+              value={@store && @store.x_url}
+              icon="hero-hashtag"
+            />
+            <.social_url_input
+              field="youtube_url"
+              label="YouTube"
+              placeholder="https://youtube.com/@your_store"
+              value={@store && @store.youtube_url}
+              icon="hero-play"
+            />
+          </div>
+
+          <div class="flex justify-end pt-2">
+            <button
+              type="submit"
+              class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer"
+            >
+              <.icon name="hero-check" class="size-4" /> Save changes
+            </button>
+          </div>
+        </.form>
+      </div>
+
+      <%!-- WhatsApp Catalog connection (Phase 2) --%>
+      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+        <h3 class="text-base font-bold text-slate-900 mb-1">WhatsApp Catalog</h3>
+        <p class="text-sm text-slate-500 mb-5">
+          Mirror your products to your WhatsApp Business Catalog so customers can browse
+          and shop without leaving WhatsApp.
+          <a
+            href="https://business.whatsapp.com/products/whatsapp-catalog"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-emerald-700 hover:underline"
+          >
+            Learn how to create a catalog →
+          </a>
+        </p>
+        <.form
+          for={%{}}
+          as={:store}
+          id="whatsapp-catalog-form"
+          phx-submit="save_social"
+          class="space-y-5"
+        >
+          <div>
+            <label class="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+              <.icon name="hero-link" class="size-4 text-slate-400" /> WhatsApp Catalog ID
+            </label>
+            <input
+              type="text"
+              name="store[whatsapp_catalog_id]"
+              value={@store && @store.whatsapp_catalog_id}
+              placeholder="e.g. 1234567890123456"
+              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+            />
+            <p class="mt-1.5 text-xs text-slate-500">
+              Found in Meta Commerce Manager → Catalog → Settings. Leave blank to disable sync.
+            </p>
+          </div>
+          <div class="flex justify-end pt-2">
+            <button
+              type="submit"
+              class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer"
+            >
+              <.icon name="hero-check" class="size-4" /> Save catalog connection
+            </button>
+          </div>
+        </.form>
+      </div>
+    </div>
+    """
+  end
+
+  attr :field, :string, required: true
+  attr :label, :string, required: true
+  attr :placeholder, :string, required: true
+  attr :value, :any, default: nil
+  attr :icon, :string, required: true
+
+  defp social_url_input(assigns) do
+    ~H"""
+    <div>
+      <label class="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+        <.icon name={@icon} class="size-4 text-slate-400" /> {@label}
+      </label>
+      <input
+        type="url"
+        name={"store[#{@field}]"}
+        value={@value}
+        placeholder={@placeholder}
+        inputmode="url"
+        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+      />
     </div>
     """
   end
