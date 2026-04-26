@@ -100,7 +100,8 @@ config :emakola, Oban,
     notifications: 5,
     webhooks: 5,
     images: 3,
-    orders: 5
+    orders: 5,
+    whatsapp_catalog: 3
   ],
   repo: Emakola.Repo,
   crontab: [
