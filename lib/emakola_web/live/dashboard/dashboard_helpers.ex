@@ -268,27 +268,27 @@ defmodule EmakolaWeb.DashboardHelpers do
   end
 
   defp build_top_products_chart(store_id, from, to) do
-    line_items =
-      Emakola.Orders.LineItem
-      |> Ash.Query.filter(
-        store_id == ^store_id and
-          inserted_at >= ^from and
-          inserted_at < ^to
-      )
-      |> Ash.read!(authorize?: false)
+    import Ecto.Query, only: [from: 2]
 
-    grouped =
-      line_items
-      |> Enum.group_by(& &1.product_title)
-      |> Enum.map(fn {title, items} ->
-        total_qty = items |> Enum.map(& &1.quantity) |> Enum.sum()
-        {String.slice(title, 0, 20), total_qty}
+    query =
+      from li in Emakola.Orders.LineItem,
+        where:
+          li.store_id == ^store_id and
+            li.inserted_at >= ^from and
+            li.inserted_at < ^to,
+        group_by: li.product_title,
+        order_by: [desc: sum(li.quantity)],
+        limit: 5,
+        select: {fragment("LEFT(?, 20)", li.product_title), sum(li.quantity)}
+
+    results = Emakola.Repo.all(query)
+
+    labels = Enum.map(results, fn {title, _qty} -> title end)
+
+    values =
+      Enum.map(results, fn {_title, qty} ->
+        if is_struct(qty, Decimal), do: Decimal.to_integer(qty), else: qty || 0
       end)
-      |> Enum.sort_by(fn {_title, qty} -> qty end, :desc)
-      |> Enum.take(5)
-
-    labels = Enum.map(grouped, fn {title, _qty} -> title end)
-    values = Enum.map(grouped, fn {_title, qty} -> qty end)
 
     %{labels: labels, values: values}
   end

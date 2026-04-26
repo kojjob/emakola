@@ -46,7 +46,7 @@ defmodule Emakola.Security.AuthorizationTest do
       {:ok, store_a_products} =
         Product
         |> Ash.Query.for_read(:list_by_store, %{store_id: ctx.store_a.id})
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       store_a_ids = Enum.map(store_a_products, & &1.id) |> MapSet.new()
 
@@ -61,7 +61,7 @@ defmodule Emakola.Security.AuthorizationTest do
       {:ok, store_a_products} =
         Product
         |> Ash.Query.for_read(:list_by_store, %{store_id: ctx.store_a.id})
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       store_a_product_titles = Enum.map(store_a_products, & &1.title)
       refute "Secret Store B Product" in store_a_product_titles
@@ -75,7 +75,7 @@ defmodule Emakola.Security.AuthorizationTest do
       {:ok, store_a_products} =
         Product
         |> Ash.Query.for_read(:list_by_store, %{store_id: ctx.store_a.id})
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       store_a_ids = Enum.map(store_a_products, & &1.id)
       refute product_b.id in store_a_ids
@@ -88,7 +88,7 @@ defmodule Emakola.Security.AuthorizationTest do
       {:ok, results} =
         Product
         |> Ash.Query.for_read(:search, %{query: "kente", store_id: ctx.store_a.id})
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert Enum.count(results) == 1
       assert hd(results).store_id == ctx.store_a.id
@@ -105,7 +105,7 @@ defmodule Emakola.Security.AuthorizationTest do
       {:ok, store_a_orders} =
         Order
         |> Ash.Query.for_read(:list_by_store, %{store_id: ctx.store_a.id})
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert Enum.count(store_a_orders) == 1
       assert hd(store_a_orders).id == order_a.id
@@ -117,7 +117,7 @@ defmodule Emakola.Security.AuthorizationTest do
       {:ok, store_a_orders} =
         Order
         |> Ash.Query.for_read(:list_by_store, %{store_id: ctx.store_a.id})
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert Enum.empty?(store_a_orders)
     end
@@ -132,7 +132,7 @@ defmodule Emakola.Security.AuthorizationTest do
           store_id: ctx.store_a.id,
           status: :pending
         })
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert Enum.count(store_a_pending) == 1
       assert Enum.all?(store_a_pending, &(&1.store_id == ctx.store_a.id))
@@ -147,7 +147,7 @@ defmodule Emakola.Security.AuthorizationTest do
       _customer_b = create_customer!(ctx.store_b, %{name: "Ama"})
 
       # Read all customers and filter by store_id
-      {:ok, all_customers} = Ash.read(Customer)
+      {:ok, all_customers} = Ash.read(Customer, authorize?: false)
 
       store_a_customers = Enum.filter(all_customers, &(&1.store_id == ctx.store_a.id))
 
@@ -158,7 +158,7 @@ defmodule Emakola.Security.AuthorizationTest do
     test "customer created in Store A is not visible when filtering for Store B", ctx do
       create_customer!(ctx.store_a, %{name: "Only in A"})
 
-      {:ok, all_customers} = Ash.read(Customer)
+      {:ok, all_customers} = Ash.read(Customer, authorize?: false)
       store_b_customers = Enum.filter(all_customers, &(&1.store_id == ctx.store_b.id))
 
       customer_names = Enum.map(store_b_customers, & &1.name)
@@ -176,7 +176,7 @@ defmodule Emakola.Security.AuthorizationTest do
       {:ok, store_a_payments} =
         Emakola.Payments.Payment
         |> Ash.Query.for_read(:by_store, %{store_id: ctx.store_a.id})
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert Enum.count(store_a_payments) == 1
       assert Enum.all?(store_a_payments, &(&1.store_id == ctx.store_a.id))
@@ -193,7 +193,7 @@ defmodule Emakola.Security.AuthorizationTest do
       {:ok, updated} =
         product
         |> Ash.Changeset.for_update(:update, %{title: "Updated Title"})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert updated.store_id == ctx.store_a.id
       assert updated.title == "Updated Title"

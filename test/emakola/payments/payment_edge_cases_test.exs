@@ -168,7 +168,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
           gateway: :paystack,
           gateway_reference: nil
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert is_nil(payment.gateway_reference)
     end
@@ -177,7 +177,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       result =
         Payment
         |> Ash.Query.filter(gateway_reference == "PAY-does-not-exist-ever")
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert is_nil(result)
     end
@@ -208,7 +208,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       first_update =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert first_update.status == :success
 
@@ -218,7 +218,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       second_update =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       # Status remains the same, not re-processed
       assert second_update.status == :success
@@ -244,7 +244,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       failed =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert failed.status == :failed
 
@@ -264,7 +264,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       still_failed =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert still_failed.status == :failed
     end
@@ -276,7 +276,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       # Mark as success first
       payment
       |> Ash.Changeset.for_update(:mark_success, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       refund_event = %{
         "event" => "refund.processed",
@@ -292,7 +292,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       refunded =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert refunded.status == :refunded
 
@@ -302,7 +302,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       still_refunded =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert still_refunded.status == :refunded
     end
@@ -334,7 +334,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       {:ok, success_payment} =
         payment
         |> Ash.Changeset.for_update(:mark_success, %{})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert success_payment.status == :success
 
@@ -342,7 +342,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       {:ok, refunded_payment} =
         success_payment
         |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 250_000})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert refunded_payment.status == :refunded
 
@@ -364,7 +364,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       final =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert final.status == :refunded
     end
@@ -376,7 +376,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       # Mark as failed
       payment
       |> Ash.Changeset.for_update(:mark_failed, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       # Try to refund a failed payment via webhook
       refund_event = %{
@@ -395,7 +395,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       final =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       # The refund handler only skips if already :refunded, so a failed payment
       # that receives a refund event will be marked refunded at the resource level.
@@ -560,7 +560,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       still_pending =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert still_pending.status == :pending
     end
@@ -582,7 +582,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
         |> Ash.Changeset.for_update(:mark_failed, %{
           gateway_response: %{"reason" => "timeout", "channel" => "mtn-gh"}
         })
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert failed.status == :failed
       assert failed.gateway_response["reason"] == "timeout"
@@ -623,7 +623,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
                  gateway: :invalid_gateway,
                  gateway_reference: "INV-test-#{System.unique_integer([:positive])}"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -642,12 +642,12 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       store_a_payments =
         Payment
         |> Ash.Query.filter(store_id == ^store_a.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       store_b_payments =
         Payment
         |> Ash.Query.filter(store_id == ^store_b.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       a_ids = MapSet.new(Enum.map(store_a_payments, & &1.id))
       b_ids = MapSet.new(Enum.map(store_b_payments, & &1.id))
@@ -686,7 +686,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       assert :ok = perform_job(PaystackWebhookHandler, event)
 
       # Order should be confirmed
-      updated_order = Ash.get!(Order, order.id)
+      updated_order = Ash.get!(Order, order.id, authorize?: false, authorize?: false)
       assert updated_order.status == :confirmed
     end
 
@@ -697,7 +697,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       {:ok, confirmed} =
         order
         |> Ash.Changeset.for_update(:confirm, %{})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert confirmed.status == :confirmed
 
@@ -720,7 +720,7 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       assert :ok = perform_job(PaystackWebhookHandler, event)
 
       # Order should still be confirmed (not changed)
-      unchanged = Ash.get!(Order, order.id)
+      unchanged = Ash.get!(Order, order.id, authorize?: false, authorize?: false)
       assert unchanged.status == :confirmed
     end
   end

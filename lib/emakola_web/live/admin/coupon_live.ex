@@ -2,7 +2,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
   @moduledoc """
   Merchant admin page for managing coupon codes.
 
-  Supports CRUD operations on `Emakola.Orders.Coupon` resources:
+  Supports CRUD operations on `Emakola.Marketing.Coupon` resources:
   - List coupons with status indicators
   - Create coupons with type-specific value handling
   - Toggle active/inactive inline
@@ -126,14 +126,14 @@ defmodule EmakolaWeb.Admin.CouponLive do
     result =
       case socket.assigns.editing_coupon do
         nil ->
-          Emakola.Orders.Coupon
+          Emakola.Marketing.Coupon
           |> Ash.Changeset.for_create(:create, attrs)
-          |> Ash.create()
+          |> Ash.create(authorize?: false)
 
         coupon ->
           coupon
           |> Ash.Changeset.for_update(:update, Map.delete(attrs, :store_id))
-          |> Ash.update()
+          |> Ash.update(authorize?: false)
       end
 
     case result do
@@ -164,7 +164,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
       result =
         coupon
         |> Ash.Changeset.for_update(:update, %{active: !coupon.active})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       case result do
         {:ok, _updated} ->
@@ -187,22 +187,12 @@ defmodule EmakolaWeb.Admin.CouponLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <%!-- Page Header --%>
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900">Coupons</h1>
-        <p class="text-sm text-slate-500 mt-1">Create and manage coupon codes for your customers</p>
-      </div>
-      <button
-        phx-click="show_create_form"
-        class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 self-start sm:self-auto"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-        </svg>
-        Create Coupon
-      </button>
-    </div>
+    <.admin_page_header
+      title="Coupons"
+      subtitle="Create and manage coupon codes for your customers"
+      action_label="+ Create Coupon"
+      action_event="show_create_form"
+    />
 
     <%!-- Summary Cards --%>
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -765,7 +755,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
   # ── Private Helpers ──────────────────────────────────────────
 
   defp load_coupons(store_id) do
-    case Emakola.Orders.list_coupons_by_store(store_id) do
+    case Emakola.Marketing.list_coupons_by_store(store_id, authorize?: false) do
       {:ok, coupons} -> coupons
       _ -> []
     end

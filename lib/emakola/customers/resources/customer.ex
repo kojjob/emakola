@@ -36,6 +36,12 @@ defmodule Emakola.Customers.Customer do
     end
   end
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("customers")
     repo(Emakola.Repo)
@@ -83,7 +89,7 @@ defmodule Emakola.Customers.Customer do
   end
 
   relationships do
-    belongs_to :store, Emakola.Accounts.Store do
+    belongs_to :store, Emakola.Stores.Store do
       define_attribute?(false)
       public?(true)
     end
@@ -117,19 +123,35 @@ defmodule Emakola.Customers.Customer do
       authorize_if(always())
     end
 
-    bypass action_type(:read) do
+    # Generic actions (action :name) — internal helpers like find_or_create
+    # invoked from unauthenticated checkout. The action's run/3 calls
+    # `Ash.create(authorize?: false)` internally for the actual write.
+    bypass action_type(:action) do
       authorize_if(always())
     end
 
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
-      authorize_unless(actor_present())
+    # Creates require Merchant with store access. CheckoutService customer
+    # creation and webhook handlers opt in via `authorize?: false`.
+    policy action_type(:create) do
+      forbid_unless(actor_present())
+      forbid_unless(actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant))
+      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
-    # Merchant actors: verify store membership for writes
+    # Merchant actors: verify store membership (for reads + writes)
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
+
+    # Customer actors: scoped by tenant via multitenancy attribute. Customer
+    # row-level scoping (only their own data) belongs in a calculation/filter
+    # at the action level if needed.
+    policy actor_attribute_equals(:__struct__, Emakola.Customers.Customer) do
+      authorize_if(action_type(:read))
+    end
+
+    # nil actor on writes falls through to default-deny. System code must
+    # opt in with `authorize?: false`.
   end
 
   actions do

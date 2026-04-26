@@ -168,7 +168,7 @@ defmodule Emakola.Catalog.Validations.OneOfTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "integration: creating image with valid content type succeeds", %{
@@ -184,7 +184,7 @@ defmodule Emakola.Catalog.Validations.OneOfTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert image.content_type == "image/png"
     end

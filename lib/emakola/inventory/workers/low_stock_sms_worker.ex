@@ -59,7 +59,7 @@ defmodule Emakola.Inventory.Workers.LowStockSmsWorker do
   end
 
   defp load_store(store_id) do
-    case Ash.get(Emakola.Accounts.Store, store_id, authorize?: false) do
+    case Ash.get(Emakola.Stores.Store, store_id, authorize?: false) do
       {:ok, store} -> {:ok, store}
       _ -> {:error, :not_found}
     end

@@ -202,7 +202,7 @@ defmodule Emakola.Billing.Workers.StripeHandler do
   defp find_subscription_by_stripe_id(stripe_sub_id) do
     case Emakola.Billing.Subscription
          |> Ash.Query.filter(stripe_subscription_id == ^stripe_sub_id)
-         |> Ash.read() do
+         |> Ash.read(authorize?: false) do
       {:ok, [sub | _]} -> {:ok, sub}
       {:ok, []} -> {:error, :not_found}
       {:error, error} -> {:error, error}
@@ -240,7 +240,7 @@ defmodule Emakola.Billing.Workers.StripeHandler do
     case Emakola.Accounts.Membership
          |> Ash.Query.filter(organisation_id == ^subscription.organisation_id)
          |> Ash.Query.filter(role == :owner)
-         |> Ash.read() do
+         |> Ash.read(authorize?: false) do
       {:ok, memberships} ->
         Enum.each(memberships, fn membership ->
           Emakola.Notifications.Notification

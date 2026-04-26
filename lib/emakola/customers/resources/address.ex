@@ -14,6 +14,12 @@ defmodule Emakola.Customers.Address do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("addresses")
     repo(Emakola.Repo)
@@ -91,26 +97,35 @@ defmodule Emakola.Customers.Address do
       public?(true)
     end
 
-    belongs_to :store, Emakola.Accounts.Store do
+    belongs_to :store, Emakola.Stores.Store do
       define_attribute?(false)
       public?(true)
     end
   end
 
   policies do
-    bypass action_type(:read) do
+    # Creates are permissive (callers ensure store_id is valid)
+    bypass action_type(:create) do
       authorize_if(always())
     end
 
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
-      authorize_unless(actor_present())
+    # Generic actions (action :name) — internal helpers, no policy
+    bypass action_type(:action) do
+      authorize_if(always())
     end
 
-    # Merchant actors: verify store membership for writes
+    # Merchant actors: verify store membership (for reads + writes)
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
+
+    # Customer actors: scoped by tenant via multitenancy attribute.
+    policy actor_attribute_equals(:__struct__, Emakola.Customers.Customer) do
+      authorize_if(action_type(:read))
+    end
+
+    # nil actor on writes falls through to default-deny. System code must
+    # opt in with `authorize?: false`.
   end
 
   actions do
@@ -176,7 +191,7 @@ defmodule Emakola.Customers.Address do
             customer_id == ^input.arguments.customer_id and
               store_id == ^input.arguments.store_id
           )
-          |> Ash.read!()
+          |> Ash.read!(authorize?: false)
 
         {:ok, results}
       end)

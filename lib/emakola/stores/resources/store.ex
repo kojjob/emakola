@@ -1,13 +1,19 @@
-defmodule Emakola.Accounts.Store do
+defmodule Emakola.Stores.Store do
   @moduledoc """
   Store resource — the multi-tenant anchor for Emakola.
 
-  Every merchant can own/manage one or more stores. All ecommerce resources
-  (products, orders, payments) are scoped to a store via store_id.
+  Every merchant can own/manage one or more stores. All ecommerce
+  resources (products, orders, payments) are scoped to a store via
+  `store_id`.
+
+  Moved from `Emakola.Accounts.Store` to `Emakola.Stores.Store` on
+  2026-04-26 — Stores has its own bounded context, distinct from
+  user/merchant authentication. `StoreMembership` (the merchant↔store
+  bridge) stays in `Accounts`.
   """
 
   use Ash.Resource,
-    domain: Emakola.Accounts,
+    domain: Emakola.Stores,
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
@@ -131,13 +137,11 @@ defmodule Emakola.Accounts.Store do
       authorize_if(always())
     end
 
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
-      authorize_unless(actor_present())
-    end
-
-    # Merchant actors: verify store membership for writes
-    policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
+    # Writes (update, destroy): nil actor → deny; non-Merchant → deny;
+    # Merchant must have store access. System code uses `authorize?: false`.
+    policy action_type([:update, :destroy]) do
+      forbid_unless(actor_present())
+      forbid_unless(actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant))
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
   end

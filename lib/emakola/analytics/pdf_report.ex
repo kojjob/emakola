@@ -54,7 +54,7 @@ defmodule Emakola.Analytics.PdfReport do
       |> Ash.Query.filter(store_id == ^store_id)
       |> Ash.Query.filter(inserted_at >= ^start_dt)
       |> Ash.Query.filter(inserted_at < ^end_dt)
-      |> Ash.read!()
+      |> Ash.read!(authorize?: false)
 
     total_revenue = orders |> Enum.map(& &1.total) |> Enum.sum()
     order_count = length(orders)
@@ -73,7 +73,7 @@ defmodule Emakola.Analytics.PdfReport do
       |> Ash.Query.filter(store_id == ^store_id and status == :active)
       |> Ash.Query.sort(inserted_at: :desc)
       |> Ash.Query.limit(10)
-      |> Ash.read!()
+      |> Ash.read!(authorize?: false)
       |> Enum.map(& &1.title)
 
     %{

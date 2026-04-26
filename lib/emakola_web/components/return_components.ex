@@ -46,21 +46,21 @@ defmodule EmakolaWeb.ReturnComponents do
           :if={idx > 0}
           class={[
             "w-8 h-0.5",
-            if(step.completed, do: "bg-[#B45309]", else: "bg-stone-200")
+            if(step.completed, do: "bg-store-accent", else: "bg-stone-200")
           ]}
         />
         <div class="flex flex-col items-center gap-1">
           <div class={[
             "w-3 h-3 rounded-full border-2",
             cond do
-              step.current -> "bg-[#B45309] border-[#B45309]"
-              step.completed -> "bg-[#B45309] border-[#B45309]"
+              step.current -> "bg-store-accent border-[#B45309]"
+              step.completed -> "bg-store-accent border-[#B45309]"
               true -> "bg-white border-stone-300"
             end
           ]} />
           <span class={[
             "text-[10px] font-medium whitespace-nowrap",
-            if(step.current or step.completed, do: "text-[#1C1917]", else: "text-stone-400")
+            if(step.current or step.completed, do: "text-cta-dark", else: "text-stone-400")
           ]}>
             {step.label}
           </span>

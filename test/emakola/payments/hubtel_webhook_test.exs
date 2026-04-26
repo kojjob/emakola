@@ -32,7 +32,7 @@ defmodule Emakola.Payments.HubtelWebhookTest do
       updated =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert updated.status == :success
       assert updated.gateway_response["response_code"] == "0000"
@@ -71,7 +71,7 @@ defmodule Emakola.Payments.HubtelWebhookTest do
       updated =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert updated.status == :failed
       assert updated.gateway_response["response_code"] == "4001"
@@ -122,7 +122,7 @@ defmodule Emakola.Payments.HubtelWebhookTest do
       updated =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert updated.status == :success
     end
@@ -135,7 +135,7 @@ defmodule Emakola.Payments.HubtelWebhookTest do
       |> Ash.Changeset.for_update(:mark_failed, %{
         gateway_response: %{"status" => "failed"}
       })
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       # Try to process a success event — should be idempotent
       event = %{
@@ -151,7 +151,7 @@ defmodule Emakola.Payments.HubtelWebhookTest do
       updated =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       # Should still be failed — not overwritten
       assert updated.status == :failed

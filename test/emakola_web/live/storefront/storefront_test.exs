@@ -220,6 +220,6 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
   defp activate_product!(product) do
     product
     |> Ash.Changeset.for_update(:activate, %{})
-    |> Ash.update!()
+    |> Ash.update!(authorize?: false)
   end
 end

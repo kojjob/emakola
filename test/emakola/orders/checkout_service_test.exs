@@ -46,7 +46,7 @@ defmodule Emakola.Orders.CheckoutServiceTest do
 
       line_items =
         order
-        |> Ash.load!(:line_items)
+        |> Ash.load!(:line_items, authorize?: false)
         |> Map.get(:line_items)
 
       assert length(line_items) == 2
@@ -57,7 +57,9 @@ defmodule Emakola.Orders.CheckoutServiceTest do
 
       assert {:ok, _order} = Emakola.Orders.CheckoutService.checkout!(store.id, items, [])
 
-      updated_variant = Ash.get!(Emakola.Catalog.Variant, variant.id)
+      updated_variant =
+        Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false, authorize?: false)
+
       assert updated_variant.stock_quantity == 7
     end
 
@@ -109,7 +111,9 @@ defmodule Emakola.Orders.CheckoutServiceTest do
                Emakola.Orders.CheckoutService.checkout!(store.id, items, [])
 
       # Stock should be unchanged
-      refreshed = Ash.get!(Emakola.Catalog.Variant, variant.id)
+      refreshed =
+        Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false, authorize?: false)
+
       assert refreshed.stock_quantity == 10
     end
 
@@ -216,7 +220,9 @@ defmodule Emakola.Orders.CheckoutServiceTest do
       assert length(failures) == 1
 
       # Stock should be 0
-      refreshed = Ash.get!(Emakola.Catalog.Variant, scarce_variant.id)
+      refreshed =
+        Ash.get!(Emakola.Catalog.Variant, scarce_variant.id, authorize?: false, authorize?: false)
+
       assert refreshed.stock_quantity == 0
     end
   end
@@ -235,7 +241,13 @@ defmodule Emakola.Orders.CheckoutServiceTest do
                )
 
       assert order.customer_id
-      customer = Ash.get!(Emakola.Customers.Customer, order.customer_id)
+
+      customer =
+        Ash.get!(Emakola.Customers.Customer, order.customer_id,
+          authorize?: false,
+          authorize?: false
+        )
+
       assert to_string(customer.email) == "new-checkout@example.com"
       assert customer.name == "New Buyer"
     end
@@ -329,7 +341,12 @@ defmodule Emakola.Orders.CheckoutServiceTest do
                  customer_email: "lastorder@example.com"
                )
 
-      customer = Ash.get!(Emakola.Customers.Customer, order.customer_id)
+      customer =
+        Ash.get!(Emakola.Customers.Customer, order.customer_id,
+          authorize?: false,
+          authorize?: false
+        )
+
       assert %DateTime{} = customer.last_order_at
     end
   end

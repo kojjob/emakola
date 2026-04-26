@@ -59,7 +59,7 @@ defmodule Emakola.Customers.AddressTest do
                  store_id: store.id,
                  city: "Accra"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "requires city", %{store: store, customer: customer} do
@@ -70,7 +70,7 @@ defmodule Emakola.Customers.AddressTest do
                  store_id: store.id,
                  line_1: "Some Street"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "country defaults to GH", %{store: store, customer: customer} do
@@ -88,7 +88,7 @@ defmodule Emakola.Customers.AddressTest do
       updated =
         address
         |> Ash.Changeset.for_update(:update, %{line_1: "New Street", region: "Greater Accra"})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.line_1 == "New Street"
       assert updated.region == "Greater Accra"
@@ -101,7 +101,8 @@ defmodule Emakola.Customers.AddressTest do
     test "deletes an address", %{store: store, customer: customer} do
       address = create_address!(customer, store, line_1: "Delete Me", city: "Accra")
 
-      assert :ok = address |> Ash.Changeset.for_destroy(:destroy) |> Ash.destroy()
+      assert :ok =
+               address |> Ash.Changeset.for_destroy(:destroy) |> Ash.destroy(authorize?: false)
 
       assert {:error, _} = Ash.get(Emakola.Customers.Address, address.id)
     end
@@ -155,11 +156,15 @@ defmodule Emakola.Customers.AddressTest do
       |> Ash.run_action!()
 
       # a2 should now be default
-      reloaded_a2 = Ash.get!(Emakola.Customers.Address, a2.id)
+      reloaded_a2 =
+        Ash.get!(Emakola.Customers.Address, a2.id, authorize?: false, authorize?: false)
+
       assert reloaded_a2.is_default == true
 
       # a1 should no longer be default
-      reloaded_a1 = Ash.get!(Emakola.Customers.Address, a1.id)
+      reloaded_a1 =
+        Ash.get!(Emakola.Customers.Address, a1.id, authorize?: false, authorize?: false)
+
       assert reloaded_a1.is_default == false
     end
 
@@ -170,7 +175,9 @@ defmodule Emakola.Customers.AddressTest do
       |> Ash.ActionInput.for_action(:set_as_default, %{address_id: addr.id})
       |> Ash.run_action!()
 
-      reloaded = Ash.get!(Emakola.Customers.Address, addr.id)
+      reloaded =
+        Ash.get!(Emakola.Customers.Address, addr.id, authorize?: false, authorize?: false)
+
       assert reloaded.is_default == true
     end
   end

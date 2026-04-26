@@ -24,20 +24,20 @@ defmodule Emakola.Orders.OrderStatusTest do
     test "transitions pending order to confirmed", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :pending)
 
-      assert {:ok, confirmed_order} = Ash.update(order, %{}, action: :confirm)
+      assert {:ok, confirmed_order} = Ash.update(order, %{}, action: :confirm, authorize?: false)
       assert confirmed_order.status == :confirmed
     end
 
     test "rejects confirm on non-pending order", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :confirmed)
 
-      assert {:error, _} = Ash.update(order, %{}, action: :confirm)
+      assert {:error, _} = Ash.update(order, %{}, action: :confirm, authorize?: false)
     end
 
     test "rejects confirm on cancelled order", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :cancelled)
 
-      assert {:error, _} = Ash.update(order, %{}, action: :confirm)
+      assert {:error, _} = Ash.update(order, %{}, action: :confirm, authorize?: false)
     end
   end
 
@@ -45,20 +45,22 @@ defmodule Emakola.Orders.OrderStatusTest do
     test "transitions confirmed order to processing", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :confirmed)
 
-      assert {:ok, processing_order} = Ash.update(order, %{}, action: :start_processing)
+      assert {:ok, processing_order} =
+               Ash.update(order, %{}, action: :start_processing, authorize?: false)
+
       assert processing_order.status == :processing
     end
 
     test "rejects start_processing on pending order", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :pending)
 
-      assert {:error, _} = Ash.update(order, %{}, action: :start_processing)
+      assert {:error, _} = Ash.update(order, %{}, action: :start_processing, authorize?: false)
     end
 
     test "rejects start_processing on shipped order", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :shipped)
 
-      assert {:error, _} = Ash.update(order, %{}, action: :start_processing)
+      assert {:error, _} = Ash.update(order, %{}, action: :start_processing, authorize?: false)
     end
   end
 
@@ -66,20 +68,22 @@ defmodule Emakola.Orders.OrderStatusTest do
     test "transitions processing order to shipped", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :processing)
 
-      assert {:ok, shipped_order} = Ash.update(order, %{}, action: :mark_shipped)
+      assert {:ok, shipped_order} =
+               Ash.update(order, %{}, action: :mark_shipped, authorize?: false)
+
       assert shipped_order.status == :shipped
     end
 
     test "rejects mark_shipped on confirmed order", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :confirmed)
 
-      assert {:error, _} = Ash.update(order, %{}, action: :mark_shipped)
+      assert {:error, _} = Ash.update(order, %{}, action: :mark_shipped, authorize?: false)
     end
 
     test "rejects mark_shipped on pending order", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :pending)
 
-      assert {:error, _} = Ash.update(order, %{}, action: :mark_shipped)
+      assert {:error, _} = Ash.update(order, %{}, action: :mark_shipped, authorize?: false)
     end
   end
 
@@ -87,20 +91,22 @@ defmodule Emakola.Orders.OrderStatusTest do
     test "transitions shipped order to delivered", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :shipped)
 
-      assert {:ok, delivered_order} = Ash.update(order, %{}, action: :mark_delivered)
+      assert {:ok, delivered_order} =
+               Ash.update(order, %{}, action: :mark_delivered, authorize?: false)
+
       assert delivered_order.status == :delivered
     end
 
     test "rejects mark_delivered on processing order", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :processing)
 
-      assert {:error, _} = Ash.update(order, %{}, action: :mark_delivered)
+      assert {:error, _} = Ash.update(order, %{}, action: :mark_delivered, authorize?: false)
     end
 
     test "rejects mark_delivered on pending order", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :pending)
 
-      assert {:error, _} = Ash.update(order, %{}, action: :mark_delivered)
+      assert {:error, _} = Ash.update(order, %{}, action: :mark_delivered, authorize?: false)
     end
   end
 
@@ -108,41 +114,41 @@ defmodule Emakola.Orders.OrderStatusTest do
     test "cancels a pending order", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :pending)
 
-      assert {:ok, cancelled_order} = Ash.update(order, %{}, action: :cancel)
+      assert {:ok, cancelled_order} = Ash.update(order, %{}, action: :cancel, authorize?: false)
       assert cancelled_order.status == :cancelled
     end
 
     test "cancels a confirmed order", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :confirmed)
 
-      assert {:ok, cancelled_order} = Ash.update(order, %{}, action: :cancel)
+      assert {:ok, cancelled_order} = Ash.update(order, %{}, action: :cancel, authorize?: false)
       assert cancelled_order.status == :cancelled
     end
 
     test "cancels a processing order", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :processing)
 
-      assert {:ok, cancelled_order} = Ash.update(order, %{}, action: :cancel)
+      assert {:ok, cancelled_order} = Ash.update(order, %{}, action: :cancel, authorize?: false)
       assert cancelled_order.status == :cancelled
     end
 
     test "cancels a shipped order", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :shipped)
 
-      assert {:ok, cancelled_order} = Ash.update(order, %{}, action: :cancel)
+      assert {:ok, cancelled_order} = Ash.update(order, %{}, action: :cancel, authorize?: false)
       assert cancelled_order.status == :cancelled
     end
 
     test "rejects cancel on delivered order", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :delivered)
 
-      assert {:error, _} = Ash.update(order, %{}, action: :cancel)
+      assert {:error, _} = Ash.update(order, %{}, action: :cancel, authorize?: false)
     end
 
     test "rejects cancel on already cancelled order", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :cancelled)
 
-      assert {:error, _} = Ash.update(order, %{}, action: :cancel)
+      assert {:error, _} = Ash.update(order, %{}, action: :cancel, authorize?: false)
     end
   end
 
@@ -154,29 +160,29 @@ defmodule Emakola.Orders.OrderStatusTest do
       order = create_order!(store.id, customer.id, :pending)
       assert order.status == :pending
 
-      {:ok, order} = Ash.update(order, %{}, action: :confirm)
+      {:ok, order} = Ash.update(order, %{}, action: :confirm, authorize?: false)
       assert order.status == :confirmed
 
-      {:ok, order} = Ash.update(order, %{}, action: :start_processing)
+      {:ok, order} = Ash.update(order, %{}, action: :start_processing, authorize?: false)
       assert order.status == :processing
 
-      {:ok, order} = Ash.update(order, %{}, action: :mark_shipped)
+      {:ok, order} = Ash.update(order, %{}, action: :mark_shipped, authorize?: false)
       assert order.status == :shipped
 
-      {:ok, order} = Ash.update(order, %{}, action: :mark_delivered)
+      {:ok, order} = Ash.update(order, %{}, action: :mark_delivered, authorize?: false)
       assert order.status == :delivered
     end
 
     test "cannot skip states (pending -> shipped)", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :pending)
 
-      assert {:error, _} = Ash.update(order, %{}, action: :mark_shipped)
+      assert {:error, _} = Ash.update(order, %{}, action: :mark_shipped, authorize?: false)
     end
 
     test "cannot reverse states (delivered -> confirmed)", %{store: store, customer: customer} do
       order = create_order!(store.id, customer.id, :delivered)
 
-      assert {:error, _} = Ash.update(order, %{}, action: :confirm)
+      assert {:error, _} = Ash.update(order, %{}, action: :confirm, authorize?: false)
     end
   end
 
@@ -188,7 +194,7 @@ defmodule Emakola.Orders.OrderStatusTest do
                Order
                |> Ash.Query.filter(id: order.id)
                |> Ash.Query.load(:line_items)
-               |> Ash.read(action: :read)
+               |> Ash.read(action: :read, authorize?: false)
 
       assert found_order.id == order.id
       assert found_order.line_items == []
@@ -198,12 +204,12 @@ defmodule Emakola.Orders.OrderStatusTest do
   # ── Test Helpers ──
 
   defp create_store! do
-    Emakola.Accounts.Store
+    Emakola.Stores.Store
     |> Ash.Changeset.for_create(:create, %{
       name: "Test Store #{System.unique_integer([:positive])}",
       slug: "test-store-#{System.unique_integer([:positive])}"
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   defp create_customer!(store_id) do
@@ -213,7 +219,7 @@ defmodule Emakola.Orders.OrderStatusTest do
       email: "customer-#{System.unique_integer([:positive])}@test.com",
       name: "Test Customer"
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   defp create_order!(store_id, customer_id, status) do
@@ -226,7 +232,7 @@ defmodule Emakola.Orders.OrderStatusTest do
         total: 10000,
         currency: "GHS"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     # Transition to the desired status through the valid path
     transition_to_status(order, status)
@@ -235,30 +241,30 @@ defmodule Emakola.Orders.OrderStatusTest do
   defp transition_to_status(order, :pending), do: order
 
   defp transition_to_status(order, :confirmed) do
-    {:ok, order} = Ash.update(order, %{}, action: :confirm)
+    {:ok, order} = Ash.update(order, %{}, action: :confirm, authorize?: false)
     order
   end
 
   defp transition_to_status(order, :processing) do
     order = transition_to_status(order, :confirmed)
-    {:ok, order} = Ash.update(order, %{}, action: :start_processing)
+    {:ok, order} = Ash.update(order, %{}, action: :start_processing, authorize?: false)
     order
   end
 
   defp transition_to_status(order, :shipped) do
     order = transition_to_status(order, :processing)
-    {:ok, order} = Ash.update(order, %{}, action: :mark_shipped)
+    {:ok, order} = Ash.update(order, %{}, action: :mark_shipped, authorize?: false)
     order
   end
 
   defp transition_to_status(order, :delivered) do
     order = transition_to_status(order, :shipped)
-    {:ok, order} = Ash.update(order, %{}, action: :mark_delivered)
+    {:ok, order} = Ash.update(order, %{}, action: :mark_delivered, authorize?: false)
     order
   end
 
   defp transition_to_status(order, :cancelled) do
-    {:ok, order} = Ash.update(order, %{}, action: :cancel)
+    {:ok, order} = Ash.update(order, %{}, action: :cancel, authorize?: false)
     order
   end
 end

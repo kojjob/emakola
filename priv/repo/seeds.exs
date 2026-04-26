@@ -246,7 +246,7 @@ Seeds.create!(Emakola.Accounts.Membership, :create, %{
 
 # -- Store --
 store1 =
-  Seeds.create!(Emakola.Accounts.Store, :create, %{
+  Seeds.create!(Emakola.Stores.Store, :create, %{
     name: "Kente Kingdom",
     slug: "kente-kingdom",
     currency: "GHS"
@@ -905,7 +905,7 @@ Seeds.create!(Emakola.Accounts.Membership, :create, %{
 })
 
 store2 =
-  Seeds.create!(Emakola.Accounts.Store, :create, %{
+  Seeds.create!(Emakola.Stores.Store, :create, %{
     name: "Accra Fresh Market",
     slug: "accra-fresh",
     currency: "GHS"

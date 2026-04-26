@@ -39,6 +39,12 @@ defmodule Emakola.Orders.Order do
     end
   end
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("orders")
     repo(Emakola.Repo)
@@ -129,7 +135,7 @@ defmodule Emakola.Orders.Order do
   end
 
   relationships do
-    belongs_to :store, Emakola.Accounts.Store do
+    belongs_to :store, Emakola.Stores.Store do
       define_attribute?(false)
       public?(true)
     end
@@ -141,7 +147,7 @@ defmodule Emakola.Orders.Order do
 
     has_many :line_items, Emakola.Orders.LineItem
 
-    belongs_to :coupon, Emakola.Orders.Coupon do
+    belongs_to :coupon, Emakola.Marketing.Coupon do
       attribute_writable?(true)
       public?(true)
     end
@@ -152,19 +158,31 @@ defmodule Emakola.Orders.Order do
   end
 
   policies do
-    bypass action_type(:read) do
+    # Generic actions (action :name) — internal helpers, no policy
+    bypass action_type(:action) do
       authorize_if(always())
     end
 
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
-      authorize_unless(actor_present())
+    # Creates require Merchant with store access. CheckoutService and
+    # webhook handlers create orders without an actor and opt in via
+    # `authorize?: false` explicitly.
+    policy action_type(:create) do
+      forbid_unless(actor_present())
+      forbid_unless(actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant))
+      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
-    # Merchant actors: verify store membership for writes
+    # Merchant actors: verify store membership (for reads + writes)
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
+
+    # Customer actors: tenant-scoped reads (row scoping by customer_id is a follow-up)
+    policy actor_attribute_equals(:__struct__, Emakola.Customers.Customer) do
+      authorize_if(action_type(:read))
+    end
+
+    # nil actor falls through to default-deny. System code uses `authorize?: false`.
   end
 
   actions do
@@ -189,8 +207,14 @@ defmodule Emakola.Orders.Order do
       change(fn changeset, _context ->
         date = Date.utc_today() |> Calendar.strftime("%Y%m%d")
 
+        # Cryptographically random 6-char suffix. 4 random bytes →
+        # base32 → keep first 6 alphanumerics. Collision space is
+        # ~1 billion per (store_id, date), so practical collision rate
+        # is ~0% under any realistic order volume.
         random =
-          for(_ <- 1..6, into: "", do: <<Enum.random(~c"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")>>)
+          :crypto.strong_rand_bytes(4)
+          |> Base.encode32(padding: false, case: :upper)
+          |> binary_part(0, 6)
 
         order_number = "ORD-#{date}-#{random}"
         Ash.Changeset.force_change_attribute(changeset, :order_number, order_number)

@@ -7,7 +7,7 @@ defmodule Emakola.FeatureFlagsTest do
   defp create_flag!(attrs) do
     FeatureFlag
     |> Ash.Changeset.for_create(:create, attrs)
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   describe "FeatureFlag CRUD" do
@@ -21,7 +21,7 @@ defmodule Emakola.FeatureFlagsTest do
                  enabled: true,
                  required_plan: "starter"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert flag.key == "ai_agents"
       assert flag.enabled == true
@@ -34,16 +34,18 @@ defmodule Emakola.FeatureFlagsTest do
       assert {:error, _} =
                FeatureFlag
                |> Ash.Changeset.for_create(:create, %{key: "unique_test", name: "Dupe"})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "toggles a flag" do
       flag = create_flag!(%{key: "toggle_test", name: "Toggle", enabled: true})
 
-      {:ok, toggled} = flag |> Ash.Changeset.for_update(:toggle) |> Ash.update()
+      {:ok, toggled} = flag |> Ash.Changeset.for_update(:toggle) |> Ash.update(authorize?: false)
       assert toggled.enabled == false
 
-      {:ok, toggled_back} = toggled |> Ash.Changeset.for_update(:toggle) |> Ash.update()
+      {:ok, toggled_back} =
+        toggled |> Ash.Changeset.for_update(:toggle) |> Ash.update(authorize?: false)
+
       assert toggled_back.enabled == true
     end
 
@@ -51,7 +53,7 @@ defmodule Emakola.FeatureFlagsTest do
       assert {:error, _} =
                FeatureFlag
                |> Ash.Changeset.for_create(:create, %{})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 

@@ -18,7 +18,7 @@ defmodule EmakolaWeb.Storefront.AccountLiveTest do
         password: "password123",
         password_confirmation: "password123"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     token = AshAuthentication.user_to_subject(customer)
 
@@ -110,11 +110,11 @@ defmodule EmakolaWeb.Storefront.AccountLiveTest do
           city: "Accra",
           region: "Greater Accra"
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       address
       |> Ash.Changeset.for_update(:toggle_default, %{is_default: true})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       {:ok, view, _html} = live(conn, "/s/#{store.slug}/account")
 

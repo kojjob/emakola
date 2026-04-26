@@ -20,7 +20,7 @@ defmodule Emakola.BillingTest do
                  max_agents: 10,
                  max_api_calls_per_month: 10_000
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert plan.name == "Test Plan"
       assert plan.price_cents == 2900
@@ -41,7 +41,7 @@ defmodule Emakola.BillingTest do
                  organisation_id: org.id,
                  plan_id: plan.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert sub.status == :active
     end
@@ -59,12 +59,12 @@ defmodule Emakola.BillingTest do
           organisation_id: org.id,
           plan_id: plan.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert {:ok, canceled} =
                sub
                |> Ash.Changeset.for_update(:cancel)
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
 
       assert canceled.status == :canceled
       assert canceled.canceled_at
@@ -83,7 +83,7 @@ defmodule Emakola.BillingTest do
                  metadata: %{"agent_id" => "test"},
                  organisation_id: org.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert record.event_type == "agent.run"
       assert record.quantity == 1

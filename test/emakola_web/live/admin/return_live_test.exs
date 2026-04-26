@@ -94,7 +94,7 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
       returns =
         Emakola.Orders.Return
         |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       return = hd(returns)
 
@@ -113,7 +113,7 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
       returns =
         Emakola.Orders.Return
         |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       return = hd(returns)
 
@@ -160,12 +160,12 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
 
   defp create_authenticated_merchant! do
     store =
-      Emakola.Accounts.Store
+      Emakola.Stores.Store
       |> Ash.Changeset.for_create(:create, %{
         name: "Test Store #{System.unique_integer([:positive])}",
         slug: "test-store-#{System.unique_integer([:positive])}"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     merchant =
       Emakola.Accounts.Merchant
@@ -174,7 +174,7 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
         password: "Password123!",
         password_confirmation: "Password123!"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     Emakola.Accounts.StoreMembership
     |> Ash.Changeset.for_create(:create, %{
@@ -182,7 +182,7 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
       store_id: store.id,
       role: :owner
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
 
     {merchant, store}
   end
@@ -198,12 +198,12 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
     order =
       Emakola.Orders.Order
       |> Ash.Changeset.for_create(:create, %{store_id: store.id})
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     order
     |> Ash.Changeset.for_update(:update, %{})
     |> Ash.Changeset.force_change_attribute(:status, status)
-    |> Ash.update!()
+    |> Ash.update!(authorize?: false)
   end
 
   defp create_return!(store, order \\ nil, attrs \\ []) do
@@ -219,7 +219,7 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
 
     Emakola.Orders.Return
     |> Ash.Changeset.for_create(:request_return, params)
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   defp create_approved_return!(store, order) do
@@ -227,6 +227,6 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
 
     return
     |> Ash.Changeset.for_update(:approve, %{refund_amount: 4850})
-    |> Ash.update!()
+    |> Ash.update!(authorize?: false)
   end
 end

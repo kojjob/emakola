@@ -29,7 +29,7 @@ defmodule Emakola.Notifications.ReceiptWorkerTest do
       variant_id: variant.id,
       quantity: 1
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
 
     # Stub SMS and WhatsApp providers
     Emakola.SMSProviderMock

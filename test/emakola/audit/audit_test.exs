@@ -73,7 +73,7 @@ defmodule Emakola.AuditTest do
                  resource_type: "User",
                  resource_id: "123"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "requires resource_type" do
@@ -83,7 +83,7 @@ defmodule Emakola.AuditTest do
                  action: :create,
                  resource_id: "123"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "requires resource_id" do
@@ -93,7 +93,7 @@ defmodule Emakola.AuditTest do
                  action: :create,
                  resource_type: "User"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "requires action" do
@@ -103,7 +103,7 @@ defmodule Emakola.AuditTest do
                  resource_type: "User",
                  resource_id: "123"
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 

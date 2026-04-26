@@ -91,7 +91,7 @@ defmodule Emakola.Workers.WhatsappCatalogSyncWorker do
   defp load_store(store_id) do
     require Ash.Query
 
-    Emakola.Accounts.Store
+    Emakola.Stores.Store
     |> Ash.Query.filter(id == ^store_id)
     |> Ash.read_one(authorize?: false)
     |> case do

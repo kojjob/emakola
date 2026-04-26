@@ -250,12 +250,12 @@ defmodule EmakolaWeb.Admin.InventoryLiveTest do
     uid = :crypto.strong_rand_bytes(8) |> Base.hex_encode32(case: :lower, padding: false)
 
     store =
-      Emakola.Accounts.Store
+      Emakola.Stores.Store
       |> Ash.Changeset.for_create(:create, %{
         name: "Test Store #{uid}",
         slug: "test-store-#{uid}"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     merchant =
       Emakola.Accounts.Merchant
@@ -264,7 +264,7 @@ defmodule EmakolaWeb.Admin.InventoryLiveTest do
         password: "Password123!",
         password_confirmation: "Password123!"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     Emakola.Accounts.StoreMembership
     |> Ash.Changeset.for_create(:create, %{
@@ -272,7 +272,7 @@ defmodule EmakolaWeb.Admin.InventoryLiveTest do
       store_id: store.id,
       role: :owner
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
 
     {merchant, store}
   end

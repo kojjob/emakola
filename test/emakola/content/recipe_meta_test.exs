@@ -29,7 +29,7 @@ defmodule Emakola.Content.RecipeMetaTest do
       {:ok, [found]} =
         Emakola.Content.RecipeMeta
         |> Ash.Query.for_read(:get_by_post, %{post_id: post.id})
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert found.post_id == post.id
     end
@@ -45,7 +45,7 @@ defmodule Emakola.Content.RecipeMetaTest do
           servings: 6,
           ingredients: [%{item: "Rice", quantity: "3 cups"}]
         })
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert updated.servings == 6
       assert length(updated.ingredients) == 1

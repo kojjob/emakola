@@ -101,6 +101,8 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
       {:ok, category} ->
         case Ash.destroy(category) do
           :ok ->
+            Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
+
             {:noreply,
              socket
              |> assign(delete_category: nil)
@@ -131,6 +133,8 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
   defp do_create_category(socket, attrs) do
     case Emakola.Catalog.create_category(attrs) do
       {:ok, _category} ->
+        Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
+
         {:noreply,
          socket
          |> assign(form_name: "", form_description: "", form_parent_id: nil, form_errors: %{})
@@ -147,8 +151,12 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
       {:ok, category} ->
         update_attrs = Map.take(attrs, [:name, :description, :parent_id])
 
-        case category |> Ash.Changeset.for_update(:update, update_attrs) |> Ash.update() do
+        case category
+             |> Ash.Changeset.for_update(:update, update_attrs)
+             |> Ash.update(authorize?: false) do
           {:ok, _updated} ->
+            Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
+
             {:noreply,
              socket
              |> assign(

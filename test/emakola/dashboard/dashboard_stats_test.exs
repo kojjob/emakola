@@ -19,12 +19,12 @@ defmodule Emakola.Dashboard.StatsTest do
       :success ->
         payment
         |> Ash.Changeset.for_update(:mark_success, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       :failed ->
         payment
         |> Ash.Changeset.for_update(:mark_failed, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       :pending ->
         payment
@@ -95,14 +95,14 @@ defmodule Emakola.Dashboard.StatsTest do
 
       p1
       |> Ash.Changeset.for_update(:activate, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       p2 = Factory.create_product!(store)
       Factory.create_variant!(p2, store)
 
       p2
       |> Ash.Changeset.for_update(:activate, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       # Draft product (should be excluded)
       Factory.create_product!(store)
@@ -122,11 +122,11 @@ defmodule Emakola.Dashboard.StatsTest do
       p =
         p
         |> Ash.Changeset.for_update(:activate, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       p
       |> Ash.Changeset.for_update(:archive, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       stats = Stats.load_stats(store.id)
       assert stats.active_products == 0

@@ -547,7 +547,7 @@ defmodule EmakolaWeb.OnboardingLive do
         case Emakola.Accounts.StoreMembership
              |> Ash.Query.filter(merchant_id: user.id)
              |> Ash.Query.limit(1)
-             |> Ash.read() do
+             |> Ash.read(authorize?: false) do
           {:ok, [_ | _]} -> true
           _ -> false
         end
@@ -556,7 +556,7 @@ defmodule EmakolaWeb.OnboardingLive do
         case Emakola.Accounts.Membership
              |> Ash.Query.filter(user_id: user.id)
              |> Ash.Query.limit(1)
-             |> Ash.read() do
+             |> Ash.read(authorize?: false) do
           {:ok, [_ | _]} -> true
           _ -> false
         end
@@ -595,7 +595,7 @@ defmodule EmakolaWeb.OnboardingLive do
       currency = assigns.currency
 
       with {:ok, store} <-
-             Emakola.Accounts.Store
+             Emakola.Stores.Store
              |> Ash.Changeset.for_create(:create, %{
                name: store_name,
                slug: slug,
@@ -643,7 +643,7 @@ defmodule EmakolaWeb.OnboardingLive do
              user_id: user.id,
              organisation_id: org.id
            })
-           |> Ash.create() do
+           |> Ash.create(authorize?: false) do
       {:ok, membership}
     end
   end
@@ -679,12 +679,13 @@ defmodule EmakolaWeb.OnboardingLive do
 
   defp maybe_save_theme(assigns, store) do
     selected_theme = Map.get(assigns, :selected_theme, "market")
+    actor = Map.get(assigns, :current_user)
 
     case store
          |> Ash.Changeset.for_update(:update_settings, %{
            theme_config: %{"theme" => selected_theme}
          })
-         |> Ash.update() do
+         |> Ash.update(actor: actor) do
       {:ok, updated_store} -> updated_store
       {:error, _} -> store
     end

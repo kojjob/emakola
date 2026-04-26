@@ -62,7 +62,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
           name: "Textiles",
           store_id: store.id
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
 

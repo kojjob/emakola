@@ -42,7 +42,7 @@ defmodule Emakola.Payments.HubtelWebhook do
 
       payment
       |> Ash.Changeset.for_update(:mark_success, %{gateway_response: gateway_response})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       maybe_confirm_order(payment.order_id)
 
@@ -66,7 +66,7 @@ defmodule Emakola.Payments.HubtelWebhook do
 
       payment
       |> Ash.Changeset.for_update(:mark_failed, %{gateway_response: gateway_response})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       :ok
     else
@@ -82,7 +82,7 @@ defmodule Emakola.Payments.HubtelWebhook do
   defp find_payment(reference) do
     case Payment
          |> Ash.Query.filter(gateway_reference == ^reference)
-         |> Ash.read_one() do
+         |> Ash.read_one(authorize?: false) do
       {:ok, nil} -> {:error, :payment_not_found}
       {:ok, payment} -> {:ok, payment}
       {:error, reason} -> {:error, reason}
@@ -97,12 +97,12 @@ defmodule Emakola.Payments.HubtelWebhook do
   defp maybe_confirm_order(order_id) do
     case Emakola.Orders.Order
          |> Ash.Query.filter(id == ^order_id)
-         |> Ash.read_one() do
+         |> Ash.read_one(authorize?: false) do
       {:ok, %{status: :pending} = order} ->
         result =
           order
           |> Ash.Changeset.for_update(:confirm, %{})
-          |> Ash.update()
+          |> Ash.update(authorize?: false)
 
         case result do
           {:ok, confirmed_order} ->

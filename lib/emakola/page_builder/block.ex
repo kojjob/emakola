@@ -16,7 +16,7 @@ defmodule Emakola.PageBuilder.Block do
 
       %{
         block:   %{"id" => "...", "type" => "...", "content" => %{...}},
-        store:   %Emakola.Accounts.Store{},
+        store:   %Emakola.Stores.Store{},
         products: [...],          # featured products loaded by StoreLive
         categories: [...]         # root categories loaded by StoreLive
       }

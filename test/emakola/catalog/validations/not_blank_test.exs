@@ -86,21 +86,21 @@ defmodule Emakola.Catalog.Validations.NotBlankTest do
       assert {:error, _} =
                Emakola.Catalog.Category
                |> Ash.Changeset.for_create(:create, %{name: "   ", store_id: store.id})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "integration: creating product with blank title fails", %{store: store} do
       assert {:error, _} =
                Emakola.Catalog.Product
                |> Ash.Changeset.for_create(:create, %{title: "", store_id: store.id})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "integration: creating category with valid name succeeds", %{store: store} do
       assert {:ok, category} =
                Emakola.Catalog.Category
                |> Ash.Changeset.for_create(:create, %{name: "Valid Name", store_id: store.id})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert category.name == "Valid Name"
     end

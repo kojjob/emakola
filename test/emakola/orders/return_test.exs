@@ -37,7 +37,7 @@ defmodule Emakola.Orders.ReturnTest do
           order_id: order.id,
           reason: :changed_mind
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert return.id
       assert is_nil(return.customer_id)
@@ -83,7 +83,7 @@ defmodule Emakola.Orders.ReturnTest do
                  customer_id: customer.id,
                  reason: :wrong_item
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -99,7 +99,7 @@ defmodule Emakola.Orders.ReturnTest do
           admin_notes: "Approved, items clearly defective",
           refund_amount: 4850
         })
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert approved.status == :approved
       assert approved.admin_notes == "Approved, items clearly defective"
@@ -112,12 +112,12 @@ defmodule Emakola.Orders.ReturnTest do
       approved =
         return
         |> Ash.Changeset.for_update(:approve, %{refund_amount: 4850})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert {:error, _} =
                approved
                |> Ash.Changeset.for_update(:approve, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "cannot approve a denied return", %{store: store, order: order} do
@@ -126,12 +126,12 @@ defmodule Emakola.Orders.ReturnTest do
       denied =
         return
         |> Ash.Changeset.for_update(:deny, %{admin_notes: "No defect found"})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert {:error, _} =
                denied
                |> Ash.Changeset.for_update(:approve, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
   end
 
@@ -142,7 +142,7 @@ defmodule Emakola.Orders.ReturnTest do
       denied =
         return
         |> Ash.Changeset.for_update(:deny, %{admin_notes: "Outside return window"})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert denied.status == :denied
       assert denied.admin_notes == "Outside return window"
@@ -154,12 +154,12 @@ defmodule Emakola.Orders.ReturnTest do
       approved =
         return
         |> Ash.Changeset.for_update(:approve, %{refund_amount: 4850})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert {:error, _} =
                approved
                |> Ash.Changeset.for_update(:deny, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
   end
 
@@ -170,9 +170,9 @@ defmodule Emakola.Orders.ReturnTest do
       refunded =
         return
         |> Ash.Changeset.for_update(:approve, %{refund_amount: 4850})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
         |> Ash.Changeset.for_update(:mark_refunded, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert refunded.status == :refunded
     end
@@ -183,7 +183,7 @@ defmodule Emakola.Orders.ReturnTest do
       assert {:error, _} =
                return
                |> Ash.Changeset.for_update(:mark_refunded, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "cannot mark as refunded from denied", %{store: store, order: order} do
@@ -192,12 +192,12 @@ defmodule Emakola.Orders.ReturnTest do
       denied =
         return
         |> Ash.Changeset.for_update(:deny, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert {:error, _} =
                denied
                |> Ash.Changeset.for_update(:mark_refunded, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
   end
 
@@ -217,7 +217,7 @@ defmodule Emakola.Orders.ReturnTest do
       results =
         Emakola.Orders.Return
         |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(results) == 2
     end
@@ -232,7 +232,7 @@ defmodule Emakola.Orders.ReturnTest do
       results =
         Emakola.Orders.Return
         |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(results) == 1
       assert hd(results).store_id == store.id
@@ -246,7 +246,7 @@ defmodule Emakola.Orders.ReturnTest do
       results =
         Emakola.Orders.Return
         |> Ash.Query.for_read(:get_by_order, %{order_id: order.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(results) == 1
       assert hd(results).id == created.id
@@ -258,7 +258,7 @@ defmodule Emakola.Orders.ReturnTest do
       results =
         Emakola.Orders.Return
         |> Ash.Query.for_read(:get_by_order, %{order_id: order2.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert results == []
     end
@@ -277,12 +277,12 @@ defmodule Emakola.Orders.ReturnTest do
       store_returns =
         Emakola.Orders.Return
         |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       other_returns =
         Emakola.Orders.Return
         |> Ash.Query.for_read(:list_by_store, %{store_id: other_store.id})
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(store_returns) == 1
       assert length(other_returns) == 1
@@ -311,6 +311,6 @@ defmodule Emakola.Orders.ReturnTest do
 
     Emakola.Orders.Return
     |> Ash.Changeset.for_create(:request_return, params)
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 end

@@ -67,13 +67,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <%!-- Page Header --%>
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-2xl font-bold text-slate-900">Orders</h1>
-          <p class="text-sm text-slate-500 mt-1">Manage and track all customer orders</p>
-        </div>
-      </div>
+      <.admin_page_header title="Orders" subtitle="Manage and track all customer orders" />
 
       <%!-- Status Filter Tabs --%>
       <div class="flex flex-wrap items-center gap-3">
@@ -288,27 +282,36 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
 
   # ── Data Loading ──
 
+  @orders_per_page 50
+
   defp load_orders(socket) do
+    require Ash.Query
     %{store_id: store_id, search_query: query, status_filter: status} = socket.assigns
 
     orders =
       try do
-        results =
+        base =
+          Emakola.Orders.Order
+          |> Ash.Query.filter(store_id == ^store_id)
+          |> Ash.Query.sort(inserted_at: :desc)
+          |> Ash.Query.load([:customer])
+          |> Ash.Query.limit(@orders_per_page)
+
+        base =
           if status != :all do
-            Emakola.Orders.list_orders_by_status!(store_id, status)
+            Ash.Query.filter(base, status == ^status)
           else
-            Emakola.Orders.list_orders_by_store!(store_id)
+            base
           end
 
-        if query != "" do
-          query_down = String.downcase(query)
+        base =
+          if query != "" do
+            Ash.Query.filter(base, contains(order_number, ^query))
+          else
+            base
+          end
 
-          Enum.filter(results, fn order ->
-            String.contains?(String.downcase(order.order_number || ""), query_down)
-          end)
-        else
-          results
-        end
+        Ash.read!(base, authorize?: false)
       rescue
         _ -> []
       end

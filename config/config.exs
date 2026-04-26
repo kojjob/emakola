@@ -72,9 +72,11 @@ config :emakola,
     Emakola.Analytics,
     Emakola.Catalog,
     Emakola.Orders,
+    Emakola.Marketing,
     Emakola.Customers,
     Emakola.Payments,
     Emakola.Shipping,
+    Emakola.Stores,
     Emakola.Content,
     Emakola.Pages
   ]
@@ -105,7 +107,8 @@ config :emakola, Oban,
   ],
   repo: Emakola.Repo,
   crontab: [
-    {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker}
+    {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker},
+    {"0 */6 * * *", Emakola.Cart.CartCleanupWorker}
   ]
 
 # Demo mode
@@ -122,9 +125,13 @@ config :emakola, Emakola.Payments.PaystackClient,
   base_url: "https://api.paystack.co"
 
 # WhatsApp Business API (Cloud API)
+# api_version is overridable via WHATSAPP_API_VERSION env var so we
+# can roll forward when Meta deprecates a Graph API version without
+# a redeploy. See https://developers.facebook.com/docs/graph-api/changelog
 config :emakola, Emakola.Notifications.Channels.WhatsApp,
   api_token: System.get_env("WHATSAPP_API_TOKEN"),
-  phone_number_id: System.get_env("WHATSAPP_PHONE_NUMBER_ID")
+  phone_number_id: System.get_env("WHATSAPP_PHONE_NUMBER_ID"),
+  api_version: System.get_env("WHATSAPP_API_VERSION") || "v21.0"
 
 # SMS Gateway
 config :emakola, Emakola.Notifications.Channels.SMS,

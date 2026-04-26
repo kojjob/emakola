@@ -53,6 +53,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      |> assign(:step, 1)
      |> assign(:payment_method, "momo")
      |> assign(:phone, "")
+     |> assign(:email, "")
      |> assign(:fullname, "")
      |> assign(:address, "")
      |> assign(:region, "greater_accra")
@@ -93,6 +94,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     {:noreply,
      socket
      |> assign(:phone, Map.get(params, "phone", socket.assigns.phone))
+     |> assign(:email, Map.get(params, "email", socket.assigns.email))
      |> assign(:fullname, Map.get(params, "fullname", socket.assigns.fullname))
      |> assign(:address, Map.get(params, "address", socket.assigns.address))
      |> assign(:region, Map.get(params, "region", socket.assigns.region))
@@ -107,6 +109,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     socket =
       socket
       |> assign(:phone, Map.get(params, "phone", ""))
+      |> assign(:email, Map.get(params, "email", ""))
       |> assign(:fullname, Map.get(params, "fullname", ""))
       |> assign(:address, Map.get(params, "address", ""))
       |> assign(:region, Map.get(params, "region", "greater_accra"))
@@ -169,6 +172,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     socket =
       socket
       |> assign(:phone, Map.get(params, "phone", socket.assigns.phone))
+      |> assign(:email, Map.get(params, "email", socket.assigns.email))
       |> assign(:fullname, Map.get(params, "fullname", socket.assigns.fullname))
       |> assign(:address, Map.get(params, "address", socket.assigns.address))
       |> assign(:region, Map.get(params, "region", socket.assigns.region))
@@ -265,6 +269,45 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       {:noreply, socket}
     end
   end
+
+  # Webhook-driven payment success — typically fires within 1-2s of the
+  # customer confirming on the gateway, which is faster than the next 3s
+  # poll. We complete the flow and redirect to the confirmation page.
+  @impl true
+  def handle_info({:payment_succeeded, _reference, _payment}, socket) do
+    order = socket.assigns.order
+
+    if order && socket.assigns.payment_status == :awaiting_payment do
+      if socket.assigns[:cart_session_id],
+        do: CartStore.clear_cart(socket.assigns.cart_session_id)
+
+      {:noreply,
+       socket
+       |> assign(:processing, false)
+       |> redirect(
+         to: "/s/#{socket.assigns.store.slug}/orders/#{order.order_number}/confirmation"
+       )}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:payment_failed, _reference, _payment}, socket) do
+    if socket.assigns.payment_status == :awaiting_payment do
+      {:noreply,
+       socket
+       |> assign(:processing, false)
+       |> assign(:payment_status, :failed)
+       |> put_flash(:error, "Payment failed. Please try again.")}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:payment_refunded, _reference, _payment}, socket),
+    do: {:noreply, socket}
 
   # -- Render ---------------------------------------------------------------
 
@@ -489,6 +532,24 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                         {@form_errors[:fullname]}
                       </p>
                     </div>
+
+                    <div>
+                      <label for="email" class="block text-sm font-medium text-stone-900 mb-1.5">
+                        Email <span class="text-stone-400 text-xs">(optional, for receipt)</span>
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={@email}
+                        placeholder="ama@example.com"
+                        autocomplete="email"
+                        class={"w-full bg-white border rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all #{if @form_errors[:email], do: "border-red-400 bg-red-50", else: "border-stone-200"}"}
+                      />
+                      <p :if={@form_errors[:email]} class="text-xs text-red-600 mt-1">
+                        {@form_errors[:email]}
+                      </p>
+                    </div>
                   </div>
                 </section>
 
@@ -623,9 +684,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                       type="button"
                       phx-click="select_payment"
                       phx-value-method="momo"
-                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "momo", do: "border-[#FFC107] bg-[#FFC107]/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "momo", do: "border-[#FFC107] bg-mtn/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
                     >
-                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "momo", do: "border-[#FFC107] bg-[#FFC107]", else: "border-stone-300"}"}>
+                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "momo", do: "border-[#FFC107] bg-mtn", else: "border-stone-300"}"}>
                         <svg
                           :if={@payment_method == "momo"}
                           class="w-3 h-3 text-stone-900"
@@ -641,7 +702,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                           />
                         </svg>
                       </div>
-                      <div class="w-14 h-14 rounded-2xl bg-[#FFC107] flex items-center justify-center shadow-sm">
+                      <div class="w-14 h-14 rounded-2xl bg-mtn flex items-center justify-center shadow-sm">
                         <span class="text-stone-900 font-extrabold text-lg tracking-tight">MTN</span>
                       </div>
                       <div>
@@ -655,9 +716,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                       type="button"
                       phx-click="select_payment"
                       phx-value-method="vodafone"
-                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "vodafone", do: "border-[#E60000] bg-[#E60000]/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "vodafone", do: "border-[#E60000] bg-voda/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
                     >
-                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "vodafone", do: "border-[#E60000] bg-[#E60000]", else: "border-stone-300"}"}>
+                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "vodafone", do: "border-[#E60000] bg-voda", else: "border-stone-300"}"}>
                         <svg
                           :if={@payment_method == "vodafone"}
                           class="w-3 h-3 text-white"
@@ -673,7 +734,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                           />
                         </svg>
                       </div>
-                      <div class="w-14 h-14 rounded-2xl bg-[#E60000] flex items-center justify-center shadow-sm">
+                      <div class="w-14 h-14 rounded-2xl bg-voda flex items-center justify-center shadow-sm">
                         <span class="text-white font-extrabold text-sm tracking-tight">VODA</span>
                       </div>
                       <div>
@@ -1341,7 +1402,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
     params = %{
       amount: order.total,
-      email: "#{socket.assigns.phone}@checkout.emakola.com",
+      email: paystack_email(socket.assigns, store),
       currency: store.currency || "GHS",
       order_id: order.id,
       store_id: store.id,
@@ -1356,17 +1417,27 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
     case gateway.initiate_payment(params) do
       {:ok, %{reference: reference} = resp} ->
-        Emakola.Payments.Payment
-        |> Ash.Changeset.for_create(:create, %{
-          store_id: store.id,
-          order_id: order.id,
-          amount: order.total,
-          currency: store.currency || "GHS",
-          gateway: :paystack,
-          gateway_reference: reference,
-          metadata: %{payment_method: method}
-        })
-        |> Ash.create()
+        case Emakola.Payments.Payment
+             |> Ash.Changeset.for_create(:create, %{
+               store_id: store.id,
+               order_id: order.id,
+               amount: order.total,
+               currency: store.currency || "GHS",
+               gateway: :paystack,
+               gateway_reference: reference,
+               metadata: %{payment_method: method}
+             })
+             |> Ash.create(authorize?: false) do
+          {:ok, _payment} ->
+            :ok
+
+          {:error, reason} ->
+            require Logger
+
+            Logger.error(
+              "[Checkout] Failed to create payment record for order #{order.order_number}: #{inspect(reason)}"
+            )
+        end
 
         if method == "card" do
           url = Map.get(resp, :authorization_url, "")
@@ -1379,8 +1450,19 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                |> assign(:processing, false)
                |> redirect(to: "/s/#{store.slug}/orders/#{order.order_number}/confirmation")}
         else
-          Process.send_after(self(), :poll_payment_status, @payment_poll_interval_ms)
-          Process.send_after(self(), :tick_timer, 1000)
+          # Guard against disconnected static render — without this, the
+          # timer/poll messages leak into a process that has no client to
+          # render to and never get handled.
+          if connected?(socket) do
+            # Subscribe to webhook-driven payment updates so we react
+            # immediately when Paystack confirms (instead of waiting up
+            # to 3s for the next poll). Polling stays as a fallback in
+            # case the webhook is delayed or the LV process restarted.
+            Phoenix.PubSub.subscribe(Emakola.PubSub, "payment:#{reference}")
+
+            Process.send_after(self(), :poll_payment_status, @payment_poll_interval_ms)
+            Process.send_after(self(), :tick_timer, 1000)
+          end
 
           {:noreply,
            socket
@@ -1425,13 +1507,46 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   defp paystack_channel("card"), do: "card"
   defp paystack_channel(_), do: "mobile_money"
 
+  # Resolves the email Paystack receives for this transaction.
+  #
+  # Preference order:
+  #   1. customer-provided email (real address — best for receipts)
+  #   2. store contact email (so transactions land under the merchant)
+  #   3. a deterministic, store-scoped placeholder
+  #
+  # Crucially, we never synthesise per-customer fake addresses anymore — the
+  # earlier `#{phone}@checkout.emakola.com` pattern polluted Paystack's
+  # customer database with thousands of unrouteable addresses.
+  defp paystack_email(assigns, store) do
+    cond do
+      assigns[:email] not in [nil, ""] -> assigns.email
+      Map.get(store, :contact_email) not in [nil, ""] -> store.contact_email
+      true -> "checkout+#{store.slug}@emakola.com"
+    end
+  end
+
+  # Default per-region fees used when the merchant has not configured a
+  # `Emakola.Shipping.DeliveryZone`. Kept as a fallback so onboarding stores
+  # can take orders before configuring zones; merchants who configure zones
+  # override this entirely.
+  @default_region_fees %{
+    "greater_accra" => 1500,
+    "ashanti" => 2500,
+    "central" => 2500
+  }
+  @default_region_fee 3500
+
   defp update_delivery_fee(socket) do
+    region = socket.assigns.region
+    store_id = socket.assigns.store.id
+
     fee =
-      case socket.assigns.region do
-        "greater_accra" -> 1500
-        "ashanti" -> 2500
-        "central" -> 2500
-        _ -> 3500
+      case Emakola.Shipping.calculate_fee(store_id, region) do
+        {:ok, configured_fee} ->
+          configured_fee
+
+        {:error, :no_zone} ->
+          Map.get(@default_region_fees, region, @default_region_fee)
       end
 
     assign(socket, :delivery_fee, fee)
@@ -1450,9 +1565,25 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         do: Map.put(errors, :fullname, "Full name is required"),
         else: errors
 
-    if assigns.address == "",
-      do: Map.put(errors, :address, "Delivery address is required"),
-      else: errors
+    errors =
+      if assigns.address == "",
+        do: Map.put(errors, :address, "Delivery address is required"),
+        else: errors
+
+    # Email is optional, but if provided must look like an email address.
+    email = assigns[:email] || ""
+
+    if email != "" and not email_format_ok?(email) do
+      Map.put(errors, :email, "Email format looks invalid")
+    else
+      errors
+    end
+  end
+
+  defp email_format_ok?(email) do
+    String.contains?(email, "@") and
+      String.split(email, "@") |> length() == 2 and
+      String.length(email) <= 320
   end
 
   defp calculate_order_total(assigns) do

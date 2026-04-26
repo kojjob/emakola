@@ -198,7 +198,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
                body: body,
                images: images
              })
-             |> Ash.create() do
+             |> Ash.create(authorize?: false) do
           {:ok, _} ->
             updated_product =
               product |> Ash.load!([:avg_rating, :review_count], authorize?: false)
@@ -265,7 +265,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
     |> Ash.Query.filter(product_id == ^product.id)
     |> Ash.Query.load(:option_values)
     |> Ash.Query.sort(position: :asc)
-    |> Ash.read!()
+    |> Ash.read!(authorize?: false)
   end
 
   defp load_related_products(store, product) do
@@ -284,7 +284,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
     Emakola.Catalog.VariantOptionValue
     |> Ash.Query.filter(variant_id in ^variant_ids)
     |> Ash.Query.load(:option_value)
-    |> Ash.read!()
+    |> Ash.read!(authorize?: false)
     |> Enum.group_by(& &1.variant_id)
   end
 

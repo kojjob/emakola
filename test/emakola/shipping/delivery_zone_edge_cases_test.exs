@@ -31,7 +31,7 @@ defmodule Emakola.Shipping.DeliveryZoneEdgeCasesTest do
                  name: "Greater Accra",
                  fee: 2000
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects duplicate name even with different fee and estimated_days", %{store: store} do
@@ -45,7 +45,7 @@ defmodule Emakola.Shipping.DeliveryZoneEdgeCasesTest do
                  fee: 5000,
                  estimated_days: 7
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -86,7 +86,7 @@ defmodule Emakola.Shipping.DeliveryZoneEdgeCasesTest do
                  name: "Bad Zone",
                  fee: -500
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects fee of -1", %{store: store} do
@@ -97,7 +97,7 @@ defmodule Emakola.Shipping.DeliveryZoneEdgeCasesTest do
                  name: "Negative One",
                  fee: -1
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -130,7 +130,7 @@ defmodule Emakola.Shipping.DeliveryZoneEdgeCasesTest do
       assert {:error, _} =
                zone_beta
                |> Ash.Changeset.for_update(:update, %{name: "Zone Alpha"})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "allows updating name to a non-conflicting value", %{store: store} do
@@ -140,7 +140,7 @@ defmodule Emakola.Shipping.DeliveryZoneEdgeCasesTest do
       {:ok, updated} =
         zone_beta
         |> Ash.Changeset.for_update(:update, %{name: "Zone Gamma"})
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert updated.name == "Zone Gamma"
     end
@@ -157,7 +157,7 @@ defmodule Emakola.Shipping.DeliveryZoneEdgeCasesTest do
       {:ok, zones} =
         DeliveryZone
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       refute Enum.any?(zones, fn z -> z.id == zone.id end)
     end
@@ -172,7 +172,7 @@ defmodule Emakola.Shipping.DeliveryZoneEdgeCasesTest do
       {:ok, zones} =
         DeliveryZone
         |> Ash.Query.filter(store_id == ^empty_store.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert zones == []
     end
@@ -193,12 +193,12 @@ defmodule Emakola.Shipping.DeliveryZoneEdgeCasesTest do
       {:ok, zones_a} =
         DeliveryZone
         |> Ash.Query.filter(store_id == ^store_a.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       {:ok, zones_b} =
         DeliveryZone
         |> Ash.Query.filter(store_id == ^store_b.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert length(zones_a) == 2
       assert length(zones_b) == 3
@@ -220,7 +220,7 @@ defmodule Emakola.Shipping.DeliveryZoneEdgeCasesTest do
       {:ok, zones_b} =
         DeliveryZone
         |> Ash.Query.filter(store_id == ^store_b.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       refute Enum.any?(zones_b, fn z -> z.id == zone.id end)
     end
@@ -237,7 +237,7 @@ defmodule Emakola.Shipping.DeliveryZoneEdgeCasesTest do
           name: "",
           fee: 1000
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       # Empty string may be treated as nil by Ash, or pass through
       # Either way, verify behavior is defined
@@ -260,7 +260,7 @@ defmodule Emakola.Shipping.DeliveryZoneEdgeCasesTest do
                  name: nil,
                  fee: 1000
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -315,7 +315,7 @@ defmodule Emakola.Shipping.DeliveryZoneEdgeCasesTest do
           name: "Default Days Zone",
           fee: 1000
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert zone.estimated_days == 1
     end
@@ -336,7 +336,7 @@ defmodule Emakola.Shipping.DeliveryZoneEdgeCasesTest do
           fee: 1000,
           estimated_days: -1
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       case result do
         {:error, _} ->
@@ -361,7 +361,7 @@ defmodule Emakola.Shipping.DeliveryZoneEdgeCasesTest do
           name: "Free Delivery",
           fee: 0
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert zone.fee == 0
     end

@@ -98,7 +98,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 </svg>
                 <span
                   :if={@cart_count > 0}
-                  class="absolute top-1 right-1 min-w-[18px] h-[18px] bg-[#B45309] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1"
+                  class="absolute top-1 right-1 min-w-[18px] h-[18px] bg-store-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1"
                 >
                   {@cart_count}
                 </span>
@@ -189,7 +189,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 class={[
                   "h-2 rounded-full border-none transition-all cursor-pointer",
                   if(idx == @current_image_index,
-                    do: "w-6 bg-[#B45309]",
+                    do: "w-6 bg-store-accent",
                     else: "w-2 bg-[#CBD5E1] hover:bg-[#94A3B8]"
                   )
                 ]}
@@ -424,7 +424,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 href={"https://wa.me/?text=Hi%2C%20I'm%20interested%20in%20#{URI.encode(@product.title)}%20from%20#{URI.encode(@store.name)}"}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex items-center justify-center gap-2.5 w-full h-12 border-[1.5px] border-[#E2E8F0] rounded-full text-[0.9375rem] font-medium text-[#0F172A] hover:border-[#25D366] hover:text-[#25D366] hover:bg-[#25D366]/5 transition-all duration-200 group"
+                class="flex items-center justify-center gap-2.5 w-full h-12 border-[1.5px] border-[#E2E8F0] rounded-full text-[0.9375rem] font-medium text-[#0F172A] hover:border-[#25D366] hover:text-[#25D366] hover:bg-whatsapp/5 transition-all duration-200 group"
               >
                 <svg
                   class="w-5 h-5 text-[#25D366] group-hover:scale-110 transition-transform"
@@ -469,7 +469,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
             <%!-- Accordion Sections --%>
             <div class="bg-white lg:bg-transparent">
               <details class="group border-b border-[#E2E8F0] lg:border-[#E2E8F0]/60">
-                <summary class="px-4 sm:px-6 lg:px-0 py-4 text-[0.9375rem] font-semibold text-[#0F172A] cursor-pointer flex items-center justify-between hover:text-[#B45309] transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
+                <summary class="px-4 sm:px-6 lg:px-0 py-4 text-[0.9375rem] font-semibold text-[#0F172A] cursor-pointer flex items-center justify-between hover:text-store-accent transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
                   <div class="flex items-center gap-2.5">
                     <svg
                       class="w-5 h-5 text-[#94A3B8]"
@@ -506,7 +506,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 </div>
               </details>
               <details class="group border-b border-[#E2E8F0] lg:border-[#E2E8F0]/60">
-                <summary class="px-4 sm:px-6 lg:px-0 py-4 text-[0.9375rem] font-semibold text-[#0F172A] cursor-pointer flex items-center justify-between hover:text-[#B45309] transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
+                <summary class="px-4 sm:px-6 lg:px-0 py-4 text-[0.9375rem] font-semibold text-[#0F172A] cursor-pointer flex items-center justify-between hover:text-store-accent transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
                   <div class="flex items-center gap-2.5">
                     <svg
                       class="w-5 h-5 text-[#94A3B8]"
@@ -539,11 +539,13 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 </summary>
                 <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-[#475569] leading-relaxed space-y-2">
                   <div class="flex items-start gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-[#B45309] mt-1.5 flex-shrink-0"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-store-accent mt-1.5 flex-shrink-0">
+                    </span>
                     <p>Delivery within Greater Accra: 1-2 business days.</p>
                   </div>
                   <div class="flex items-start gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-[#B45309] mt-1.5 flex-shrink-0"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-store-accent mt-1.5 flex-shrink-0">
+                    </span>
                     <p>Nationwide delivery: 3-5 business days.</p>
                   </div>
                   <div class="flex items-start gap-2">
@@ -553,7 +555,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 </div>
               </details>
               <details class="group border-b border-[#E2E8F0] lg:border-[#E2E8F0]/60">
-                <summary class="px-4 sm:px-6 lg:px-0 py-4 text-[0.9375rem] font-semibold text-[#0F172A] cursor-pointer flex items-center justify-between hover:text-[#B45309] transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
+                <summary class="px-4 sm:px-6 lg:px-0 py-4 text-[0.9375rem] font-semibold text-[#0F172A] cursor-pointer flex items-center justify-between hover:text-store-accent transition-colors select-none list-none [&::-webkit-details-marker]:hidden">
                   <div class="flex items-center gap-2.5">
                     <svg
                       class="w-5 h-5 text-[#94A3B8]"
@@ -602,7 +604,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
             <h2 class="text-xl lg:text-2xl font-bold text-[#0F172A]">You May Also Like</h2>
             <a
               href={"/s/#{@store.slug}/products"}
-              class="text-sm font-medium text-[#B45309] hover:text-[#92400E] transition-colors flex items-center gap-1"
+              class="text-sm font-medium text-store-accent hover:text-[#92400E] transition-colors flex items-center gap-1"
             >
               View All
               <svg
@@ -782,7 +784,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
   defp trust_icon(%{name: "truck"} = assigns) do
     ~H"""
     <svg
-      class="w-5 h-5 text-[#B45309]"
+      class="w-5 h-5 text-store-accent"
       fill="none"
       stroke="currentColor"
       stroke-width="1.5"
@@ -800,7 +802,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
   defp trust_icon(%{name: "shield"} = assigns) do
     ~H"""
     <svg
-      class="w-5 h-5 text-[#B45309]"
+      class="w-5 h-5 text-store-accent"
       fill="none"
       stroke="currentColor"
       stroke-width="1.5"
@@ -818,7 +820,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
   defp trust_icon(%{name: "refresh"} = assigns) do
     ~H"""
     <svg
-      class="w-5 h-5 text-[#B45309]"
+      class="w-5 h-5 text-store-accent"
       fill="none"
       stroke="currentColor"
       stroke-width="1.5"

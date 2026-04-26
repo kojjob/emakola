@@ -74,7 +74,7 @@ defmodule Emakola.Catalog.ImageTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects text/html", %{store: store, product: product} do
@@ -87,7 +87,7 @@ defmodule Emakola.Catalog.ImageTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -109,7 +109,7 @@ defmodule Emakola.Catalog.ImageTest do
                  product_id: product.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -129,7 +129,7 @@ defmodule Emakola.Catalog.ImageTest do
           thumbnail_url: "https://s3.example.com/thumbs/img.jpg",
           medium_url: "https://s3.example.com/medium/img.jpg"
         })
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.processing_status == :completed
       assert updated.thumbnail_url == "https://s3.example.com/thumbs/img.jpg"
@@ -147,7 +147,7 @@ defmodule Emakola.Catalog.ImageTest do
       updated =
         image
         |> Ash.Changeset.for_update(:mark_failed, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.processing_status == :failed
     end
@@ -162,7 +162,7 @@ defmodule Emakola.Catalog.ImageTest do
       updated =
         image
         |> Ash.Changeset.for_update(:update, %{alt_text: "Updated alt text"})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.alt_text == "Updated alt text"
     end
@@ -173,7 +173,7 @@ defmodule Emakola.Catalog.ImageTest do
       updated =
         image
         |> Ash.Changeset.for_update(:update, %{position: 3})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.position == 3
     end
@@ -188,7 +188,7 @@ defmodule Emakola.Catalog.ImageTest do
       assert :ok =
                image
                |> Ash.Changeset.for_destroy(:destroy)
-               |> Ash.destroy()
+               |> Ash.destroy(authorize?: false)
 
       assert {:error, %Ash.Error.Invalid{}} =
                Emakola.Catalog.Image
@@ -209,12 +209,12 @@ defmodule Emakola.Catalog.ImageTest do
       store_images =
         Emakola.Catalog.Image
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       other_store_images =
         Emakola.Catalog.Image
         |> Ash.Query.filter(store_id == ^other_store.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(store_images) == 1
       assert length(other_store_images) == 1

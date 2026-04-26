@@ -59,7 +59,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
       nil ->
         case Emakola.Shipping.DeliveryZone
              |> Ash.Changeset.for_create(:create, zone_params)
-             |> Ash.create() do
+             |> Ash.create(authorize?: false) do
           {:ok, _zone} ->
             {:noreply,
              socket
@@ -76,7 +76,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
 
         case zone
              |> Ash.Changeset.for_update(:update, update_params)
-             |> Ash.update() do
+             |> Ash.update(authorize?: false) do
           {:ok, _zone} ->
             {:noreply,
              socket
@@ -108,7 +108,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
     if zone do
       case zone
            |> Ash.Changeset.for_update(:update, %{active: !zone.active})
-           |> Ash.update() do
+           |> Ash.update(authorize?: false) do
         {:ok, _} -> {:noreply, load_zones(socket)}
         {:error, _} -> {:noreply, put_flash(socket, :error, "Could not update zone")}
       end

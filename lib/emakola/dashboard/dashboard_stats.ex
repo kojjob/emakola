@@ -25,15 +25,26 @@ defmodule Emakola.Dashboard.Stats do
   """
   @spec load_stats(Ash.UUID.t()) :: map()
   def load_stats(store_id) do
-    %{
-      total_revenue: calculate_revenue(store_id),
-      order_count: count_orders(store_id),
-      active_products: count_active_products(store_id),
-      customer_count: count_customers(store_id),
-      recent_orders: recent_orders(store_id, 10),
-      low_stock: low_stock_variants(store_id, @low_stock_threshold),
-      top_products: top_products(store_id, 5)
-    }
+    # Each query hits an independent table (payments / orders / products /
+    # customers / variants); they don't depend on each other so we run them
+    # concurrently. With 7 sequential ~50ms queries the dashboard mount
+    # blocked for ~350ms; in parallel it's bounded by the slowest single
+    # query (~50–100ms). Each task gets a fresh DB connection from the
+    # pool — load_stats/1 is called from the dashboard LV mount which
+    # already runs in its own process.
+    tasks = [
+      Task.async(fn -> {:total_revenue, calculate_revenue(store_id)} end),
+      Task.async(fn -> {:order_count, count_orders(store_id)} end),
+      Task.async(fn -> {:active_products, count_active_products(store_id)} end),
+      Task.async(fn -> {:customer_count, count_customers(store_id)} end),
+      Task.async(fn -> {:recent_orders, recent_orders(store_id, 10)} end),
+      Task.async(fn -> {:low_stock, low_stock_variants(store_id, @low_stock_threshold)} end),
+      Task.async(fn -> {:top_products, top_products(store_id, 5)} end)
+    ]
+
+    tasks
+    |> Task.await_many(10_000)
+    |> Map.new()
   end
 
   @doc "Sum of amounts for successful payments belonging to the store."
@@ -41,7 +52,7 @@ defmodule Emakola.Dashboard.Stats do
     case Emakola.Payments.Payment
          |> Ash.Query.filter(store_id == ^store_id and status == :success)
          |> Ash.Query.new()
-         |> Ash.sum(:amount) do
+         |> Ash.sum(:amount, authorize?: false) do
       {:ok, nil} -> 0
       {:ok, total} -> total
       _ -> 0
@@ -52,7 +63,7 @@ defmodule Emakola.Dashboard.Stats do
   def count_orders(store_id) do
     case Emakola.Orders.Order
          |> Ash.Query.filter(store_id == ^store_id)
-         |> Ash.count() do
+         |> Ash.count(authorize?: false) do
       {:ok, count} -> count
       _ -> 0
     end
@@ -62,7 +73,7 @@ defmodule Emakola.Dashboard.Stats do
   def count_active_products(store_id) do
     case Emakola.Catalog.Product
          |> Ash.Query.filter(store_id == ^store_id and status == :active)
-         |> Ash.count() do
+         |> Ash.count(authorize?: false) do
       {:ok, count} -> count
       _ -> 0
     end
@@ -72,7 +83,7 @@ defmodule Emakola.Dashboard.Stats do
   def count_customers(store_id) do
     case Emakola.Customers.Customer
          |> Ash.Query.filter(store_id == ^store_id)
-         |> Ash.count() do
+         |> Ash.count(authorize?: false) do
       {:ok, count} -> count
       _ -> 0
     end
@@ -85,27 +96,22 @@ defmodule Emakola.Dashboard.Stats do
          |> Ash.Query.sort(inserted_at: :desc)
          |> Ash.Query.limit(limit)
          |> Ash.Query.load(:customer)
-         |> Ash.read() do
+         |> Ash.read(authorize?: false) do
       {:ok, orders} -> orders
       _ -> []
     end
   end
 
-  @doc "Returns variants below the stock threshold that track inventory."
+  @doc """
+  Returns variants below the stock threshold that track inventory.
+
+  Delegates to `Emakola.Inventory.list_low_stock/2` — the dashboard
+  is one of several callers (alongside the inventory page and
+  low-stock alert worker) for the same query, so the canonical
+  implementation lives in the Inventory context.
+  """
   def low_stock_variants(store_id, threshold) do
-    case Emakola.Catalog.Variant
-         |> Ash.Query.filter(
-           store_id == ^store_id and
-             stock_quantity < ^threshold and
-             track_inventory == true
-         )
-         |> Ash.Query.sort(stock_quantity: :asc)
-         |> Ash.Query.limit(10)
-         |> Ash.Query.load(:product)
-         |> Ash.read() do
-      {:ok, variants} -> variants
-      _ -> []
-    end
+    Emakola.Inventory.list_low_stock(store_id, threshold)
   end
 
   @doc "Returns the top `limit` products by variant count, with aggregates loaded."
@@ -115,7 +121,7 @@ defmodule Emakola.Dashboard.Stats do
          |> Ash.Query.load([:variant_count, :min_price, :max_price])
          |> Ash.Query.sort(variant_count: :desc)
          |> Ash.Query.limit(limit)
-         |> Ash.read() do
+         |> Ash.read(authorize?: false) do
       {:ok, products} -> products
       _ -> []
     end

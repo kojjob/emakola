@@ -7,9 +7,6 @@ defmodule Emakola.Application do
 
   @impl true
   def start(_type, _args) do
-    # Initialize ETS table for cart storage
-    Emakola.Cart.CartStore.init()
-
     children = [
       EmakolaWeb.Telemetry,
       Emakola.Repo,
@@ -21,6 +18,8 @@ defmodule Emakola.Application do
       ChromicPDF,
       # ETS cache for storefront product/category queries
       Emakola.Cache.StoreCache,
+      # Cart ETS table owned by supervised GenServer
+      Emakola.Cart.CartServer,
       # Start to serve requests, typically the last entry
       EmakolaWeb.Endpoint
     ]

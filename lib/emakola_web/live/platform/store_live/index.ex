@@ -25,13 +25,13 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   defp load_stores(socket, query) do
     stores =
       if String.trim(query) == "" do
-        Emakola.Accounts.Store
+        Emakola.Stores.Store
         |> Ash.Query.sort(inserted_at: :desc)
         |> Ash.read!(authorize?: false)
       else
         q = "%#{String.trim(query)}%"
 
-        Emakola.Accounts.Store
+        Emakola.Stores.Store
         |> Ash.Query.filter(ilike(name, ^q) or ilike(slug, ^q))
         |> Ash.Query.sort(inserted_at: :desc)
         |> Ash.read!(authorize?: false)

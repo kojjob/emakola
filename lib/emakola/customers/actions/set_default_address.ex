@@ -15,23 +15,23 @@ defmodule Emakola.Customers.Actions.SetDefaultAddress do
   def run(input, _opts, _context) do
     address_id = input.arguments.address_id
 
-    address = Ash.get!(Emakola.Customers.Address, address_id)
+    address = Ash.get!(Emakola.Customers.Address, address_id, authorize?: false)
 
     # Clear all defaults for this customer
     Emakola.Customers.Address
     |> Ash.Query.filter(
       customer_id == ^address.customer_id and is_default == true and id != ^address_id
     )
-    |> Ash.read!()
+    |> Ash.read!(authorize?: false)
     |> Enum.each(fn addr ->
       addr
       |> Ash.Changeset.for_update(:toggle_default, %{is_default: false})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
     end)
 
     # Set the target as default
     address
     |> Ash.Changeset.for_update(:toggle_default, %{is_default: true})
-    |> Ash.update()
+    |> Ash.update(authorize?: false)
   end
 end

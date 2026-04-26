@@ -77,7 +77,7 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
   end
 
   defp load_store(store_id) do
-    Emakola.Accounts.Store
+    Emakola.Stores.Store
     |> Ash.Query.filter(id == ^store_id)
     |> Ash.read_one(authorize?: false)
     |> case do

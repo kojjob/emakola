@@ -148,12 +148,12 @@ defmodule EmakolaWeb.Admin.PaymentsLiveTest do
 
   defp create_authenticated_merchant! do
     store =
-      Emakola.Accounts.Store
+      Emakola.Stores.Store
       |> Ash.Changeset.for_create(:create, %{
         name: "Test Store #{System.unique_integer([:positive])}",
         slug: "test-store-#{System.unique_integer([:positive])}"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     merchant =
       Emakola.Accounts.Merchant
@@ -162,7 +162,7 @@ defmodule EmakolaWeb.Admin.PaymentsLiveTest do
         password: "Password123!",
         password_confirmation: "Password123!"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     Emakola.Accounts.StoreMembership
     |> Ash.Changeset.for_create(:create, %{
@@ -170,7 +170,7 @@ defmodule EmakolaWeb.Admin.PaymentsLiveTest do
       store_id: store.id,
       role: :owner
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
 
     {merchant, store}
   end
@@ -195,18 +195,18 @@ defmodule EmakolaWeb.Admin.PaymentsLiveTest do
         customer_email: Keyword.get(opts, :customer_email, "customer@example.com"),
         order_id: Keyword.get(opts, :order_id, nil)
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     case status do
       :success ->
         payment
         |> Ash.Changeset.for_update(:mark_success, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       :failed ->
         payment
         |> Ash.Changeset.for_update(:mark_failed, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       :pending ->
         payment

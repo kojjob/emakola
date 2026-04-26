@@ -50,7 +50,7 @@ defmodule Emakola.Catalog.VariantOptionValueTest do
       links =
         Emakola.Catalog.VariantOptionValue
         |> Ash.Query.filter(variant_id == ^variant.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(links) == 2
     end
@@ -69,7 +69,7 @@ defmodule Emakola.Catalog.VariantOptionValueTest do
                  option_value_id: small.id,
                  store_id: store.id
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -108,7 +108,7 @@ defmodule Emakola.Catalog.VariantOptionValueTest do
         links =
           Emakola.Catalog.VariantOptionValue
           |> Ash.Query.filter(variant_id == ^variant.id)
-          |> Ash.read!()
+          |> Ash.read!(authorize?: false)
 
         assert length(links) == 2
       end
@@ -117,7 +117,7 @@ defmodule Emakola.Catalog.VariantOptionValueTest do
       all_links =
         Emakola.Catalog.VariantOptionValue
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       # 8 from matrix + 0 from setup variant (not linked)
       assert length(all_links) == 8
@@ -134,7 +134,7 @@ defmodule Emakola.Catalog.VariantOptionValueTest do
       links =
         Emakola.Catalog.VariantOptionValue
         |> Ash.Query.filter(variant_id == ^variant.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert links == []
     end
@@ -160,7 +160,7 @@ defmodule Emakola.Catalog.VariantOptionValueTest do
       my_links =
         Emakola.Catalog.VariantOptionValue
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(my_links) == 1
     end

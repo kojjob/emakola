@@ -60,14 +60,14 @@ defmodule Emakola.Catalog.ProductTest do
       assert {:error, _} =
                Emakola.Catalog.Product
                |> Ash.Changeset.for_create(:create, %{title: "", store_id: store.id})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "rejects nil title", %{store: store} do
       assert {:error, _} =
                Emakola.Catalog.Product
                |> Ash.Changeset.for_create(:create, %{store_id: store.id})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "product without category is valid", %{store: store} do
@@ -85,7 +85,7 @@ defmodule Emakola.Catalog.ProductTest do
       assert {:error, _} =
                Emakola.Catalog.Product
                |> Ash.Changeset.for_create(:create, %{title: "iPhone", store_id: store.id})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "allows same slug in different stores" do
@@ -113,7 +113,7 @@ defmodule Emakola.Catalog.ProductTest do
       my_products =
         Emakola.Catalog.Product
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read!()
+        |> Ash.read!(authorize?: false)
 
       assert length(my_products) == 1
       assert hd(my_products).title == "My Product"
@@ -129,7 +129,7 @@ defmodule Emakola.Catalog.ProductTest do
       archived =
         product
         |> Ash.Changeset.for_update(:archive, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert archived.status == :archived
     end
@@ -140,7 +140,7 @@ defmodule Emakola.Catalog.ProductTest do
       assert {:error, _} =
                product
                |> Ash.Changeset.for_update(:activate, %{})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "activate succeeds with at least one variant", %{store: store} do
@@ -150,7 +150,7 @@ defmodule Emakola.Catalog.ProductTest do
       activated =
         product
         |> Ash.Changeset.for_update(:activate, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert activated.status == :active
       assert activated.published_at != nil
@@ -163,14 +163,14 @@ defmodule Emakola.Catalog.ProductTest do
       activated =
         product
         |> Ash.Changeset.for_update(:activate, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert activated.status == :active
 
       archived =
         activated
         |> Ash.Changeset.for_update(:archive, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert archived.status == :archived
     end
@@ -185,7 +185,7 @@ defmodule Emakola.Catalog.ProductTest do
       updated =
         product
         |> Ash.Changeset.for_update(:update, %{title: "New Name"})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.title == "New Name"
       assert updated.slug == "new-name"
@@ -197,7 +197,7 @@ defmodule Emakola.Catalog.ProductTest do
       updated =
         product
         |> Ash.Changeset.for_update(:update, %{description: "Updated description"})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.description == "Updated description"
     end
@@ -208,7 +208,7 @@ defmodule Emakola.Catalog.ProductTest do
       updated =
         product
         |> Ash.Changeset.for_update(:update, %{tags: ["promo", "featured"]})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.tags == ["promo", "featured"]
     end
@@ -220,7 +220,7 @@ defmodule Emakola.Catalog.ProductTest do
       updated =
         product
         |> Ash.Changeset.for_update(:update, %{category_id: new_category.id})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       assert updated.category_id == new_category.id
     end
@@ -283,7 +283,7 @@ defmodule Emakola.Catalog.ProductTest do
       assert [] =
                Emakola.Catalog.Product
                |> Ash.Query.filter(store_id == ^store.id)
-               |> Ash.read!()
+               |> Ash.read!(authorize?: false)
     end
   end
 
@@ -297,7 +297,7 @@ defmodule Emakola.Catalog.ProductTest do
         Emakola.Catalog.Product
         |> Ash.Query.filter(id == ^product.id)
         |> Ash.Query.load([:variant_count])
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert loaded.variant_count == 0
     end
@@ -312,7 +312,7 @@ defmodule Emakola.Catalog.ProductTest do
         Emakola.Catalog.Product
         |> Ash.Query.filter(id == ^product.id)
         |> Ash.Query.load([:variant_count, :min_price, :max_price])
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert loaded.variant_count == 3
       assert loaded.min_price == 3000
@@ -326,7 +326,7 @@ defmodule Emakola.Catalog.ProductTest do
         Emakola.Catalog.Product
         |> Ash.Query.filter(id == ^product.id)
         |> Ash.Query.load([:min_price, :max_price])
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert is_nil(loaded.min_price)
       assert is_nil(loaded.max_price)
@@ -340,7 +340,7 @@ defmodule Emakola.Catalog.ProductTest do
         Emakola.Catalog.Product
         |> Ash.Query.filter(id == ^product.id)
         |> Ash.Query.load([:variant_count, :min_price, :max_price])
-        |> Ash.read_one!()
+        |> Ash.read_one!(authorize?: false)
 
       assert loaded.variant_count == 1
       assert loaded.min_price == 4500
@@ -355,7 +355,7 @@ defmodule Emakola.Catalog.ProductTest do
       assert {:error, _} =
                Emakola.Catalog.Product
                |> Ash.Changeset.for_create(:create, %{title: "   ", store_id: store.id})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "Unicode title generates valid slug", %{store: store} do

@@ -95,7 +95,7 @@ defmodule Emakola.Catalog.Review do
       public?(true)
     end
 
-    belongs_to :store, Emakola.Accounts.Store do
+    belongs_to :store, Emakola.Stores.Store do
       define_attribute?(false)
       public?(true)
     end
@@ -156,6 +156,8 @@ defmodule Emakola.Catalog.Review do
   Returns `{:ok, order_id}` if eligible, `{:error, reason}` otherwise.
   """
   def eligible?(store_id, product_id, customer_id) do
+    import Ecto.Query, only: [from: 2]
+
     existing =
       __MODULE__
       |> Ash.Query.filter(
@@ -166,32 +168,23 @@ defmodule Emakola.Catalog.Review do
     if existing > 0 do
       {:error, :already_reviewed}
     else
-      variant_ids =
-        Emakola.Catalog.Variant
-        |> Ash.Query.filter(product_id == ^product_id and store_id == ^store_id)
-        |> Ash.read!(authorize?: false)
-        |> Enum.map(& &1.id)
+      query =
+        from o in Emakola.Orders.Order,
+          join: li in Emakola.Orders.LineItem,
+          on: li.order_id == o.id,
+          join: v in Emakola.Catalog.Variant,
+          on: v.id == li.variant_id,
+          where:
+            o.store_id == ^store_id and
+              o.customer_id == ^customer_id and
+              o.status == ^:delivered and
+              v.product_id == ^product_id,
+          select: o.id,
+          limit: 1
 
-      if variant_ids == [] do
-        {:error, :not_eligible}
-      else
-        delivered_order =
-          Emakola.Orders.Order
-          |> Ash.Query.filter(
-            store_id == ^store_id and customer_id == ^customer_id and status == :delivered
-          )
-          |> Ash.read!(authorize?: false)
-          |> Enum.find(fn order ->
-            Emakola.Orders.LineItem
-            |> Ash.Query.filter(order_id == ^order.id)
-            |> Ash.read!(authorize?: false)
-            |> Enum.any?(fn li -> li.variant_id in variant_ids end)
-          end)
-
-        case delivered_order do
-          nil -> {:error, :not_eligible}
-          order -> {:ok, order.id}
-        end
+      case Emakola.Repo.one(query) do
+        nil -> {:error, :not_eligible}
+        order_id -> {:ok, order_id}
       end
     end
   end

@@ -49,7 +49,7 @@ defmodule Emakola.Catalog.Validations.NoSelfParentTest do
       assert {:error, _} =
                category
                |> Ash.Changeset.for_update(:update, %{parent_id: category.id})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
     end
 
     test "integration: setting a valid parent succeeds", %{store: store} do
@@ -59,7 +59,7 @@ defmodule Emakola.Catalog.Validations.NoSelfParentTest do
       assert {:ok, updated} =
                child
                |> Ash.Changeset.for_update(:update, %{parent_id: parent.id})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
 
       assert updated.parent_id == parent.id
     end

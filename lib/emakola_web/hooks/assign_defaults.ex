@@ -142,7 +142,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
          |> Ash.Query.filter(merchant_id: merchant_id)
          |> Ash.Query.load(:store)
          |> Ash.Query.limit(1)
-         |> Ash.read() do
+         |> Ash.read(authorize?: false) do
       {:ok, [membership | _]} -> membership.store
       _ -> nil
     end
@@ -154,7 +154,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
     updated =
       Enum.map(notifs, fn notif ->
         if is_nil(notif.read_at) do
-          case Ash.Changeset.for_update(notif, :mark_read, %{}) |> Ash.update() do
+          case Ash.Changeset.for_update(notif, :mark_read, %{})
+               |> Ash.update(authorize?: false) do
             {:ok, updated} -> updated
             _ -> notif
           end
@@ -176,19 +177,19 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
     product_count =
       Emakola.Catalog.Product
       |> Ash.Query.filter(store_id: store.id)
-      |> Ash.read!()
+      |> Ash.read!(authorize?: false)
       |> length()
 
     order_count =
       Emakola.Orders.Order
       |> Ash.Query.filter(store_id: store.id)
-      |> Ash.read!()
+      |> Ash.read!(authorize?: false)
       |> length()
 
     customer_count =
       Emakola.Customers.Customer
       |> Ash.Query.filter(store_id: store.id)
-      |> Ash.read!()
+      |> Ash.read!(authorize?: false)
       |> length()
 
     %{products: product_count, orders: order_count, customers: customer_count}
@@ -207,7 +208,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
           |> Ash.Query.filter(user_id: uid)
           |> Ash.Query.sort(inserted_at: :desc)
           |> Ash.Query.limit(20)
-          |> Ash.read!()
+          |> Ash.read!(authorize?: false)
 
         unread = Enum.count(notifs, &is_nil(&1.read_at))
         {notifs, unread}
@@ -220,7 +221,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
     case Emakola.Accounts.Membership
          |> Ash.Query.filter(user_id: user_id)
          |> Ash.Query.limit(1)
-         |> Ash.read() do
+         |> Ash.read(authorize?: false) do
       {:ok, [_ | _]} -> true
       _ -> false
     end

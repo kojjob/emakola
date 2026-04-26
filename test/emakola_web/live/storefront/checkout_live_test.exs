@@ -14,7 +14,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     # Activate product so it's visible in storefront
     product
     |> Ash.Changeset.for_update(:activate, %{})
-    |> Ash.update!()
+    |> Ash.update!(authorize?: false)
 
     %{store: store, product: product, variant: variant}
   end

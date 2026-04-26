@@ -127,7 +127,7 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
     if socket.assigns.post do
       case socket.assigns.post
            |> Ash.Changeset.for_update(:publish)
-           |> Ash.update() do
+           |> Ash.update(authorize?: false) do
         {:ok, post} ->
           {:noreply,
            socket
@@ -316,7 +316,7 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
     case Emakola.Content.Post
          |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
          |> Ash.Query.filter(id == ^id)
-         |> Ash.read() do
+         |> Ash.read(authorize?: false) do
       {:ok, [post]} -> {:ok, post}
       _ -> {:error, :not_found}
     end

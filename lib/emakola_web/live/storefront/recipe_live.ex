@@ -19,7 +19,7 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
                store_id: store.id,
                type: :recipe
              })
-             |> Ash.read_one() do
+             |> Ash.read_one(authorize?: false) do
           {:ok, %{} = post} ->
             try do
               post |> Ash.Changeset.for_update(:increment_views) |> Ash.update()
@@ -157,7 +157,7 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
   defp load_recipe_meta(post_id) do
     case Emakola.Content.RecipeMeta
          |> Ash.Query.for_read(:get_by_post, %{post_id: post_id})
-         |> Ash.read() do
+         |> Ash.read(authorize?: false) do
       {:ok, [meta | _]} -> meta
       _ -> nil
     end

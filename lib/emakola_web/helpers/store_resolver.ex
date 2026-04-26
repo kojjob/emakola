@@ -13,11 +13,11 @@ defmodule EmakolaWeb.Helpers.StoreResolver do
 
   Returns `{:ok, store}` or `{:error, :not_found}`.
   """
-  @spec resolve(String.t()) :: {:ok, Emakola.Accounts.Store.t()} | {:error, :not_found}
+  @spec resolve(String.t()) :: {:ok, Emakola.Stores.Store.t()} | {:error, :not_found}
   def resolve(slug) when is_binary(slug) do
-    case Emakola.Accounts.Store
+    case Emakola.Stores.Store
          |> Ash.Query.filter(slug == ^slug)
-         |> Ash.read_one() do
+         |> Ash.read_one(authorize?: false) do
       {:ok, nil} -> {:error, :not_found}
       {:ok, store} -> {:ok, store}
       {:error, _} -> {:error, :not_found}

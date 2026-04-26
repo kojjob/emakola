@@ -34,7 +34,7 @@ defmodule Emakola.AnalyticsTest do
       assert {:error, _} =
                AppEvent
                |> Ash.Changeset.for_create(:create, %{occurred_at: DateTime.utc_now()})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "broadcasts event to org channel" do
@@ -80,7 +80,7 @@ defmodule Emakola.AnalyticsTest do
                  organisation_id: org.id,
                  fetched_at: DateTime.utc_now()
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert data.keyword == "elixir saas boilerplate"
       assert data.clicks == 42
@@ -91,7 +91,7 @@ defmodule Emakola.AnalyticsTest do
       assert {:error, _} =
                SearchConsoleData
                |> Ash.Changeset.for_create(:create, %{clicks: 10})
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -143,7 +143,7 @@ defmodule Emakola.AnalyticsTest do
                  ctr: 0.0,
                  fetched_at: DateTime.utc_now()
                })
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert data.clicks == 0
     end

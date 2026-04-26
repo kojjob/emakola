@@ -76,22 +76,12 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <%!-- Page Header --%>
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900">Discounts</h1>
-        <p class="text-sm text-slate-500 mt-1">Create and manage discount codes</p>
-      </div>
-      <button
-        phx-click="toggle_create_form"
-        class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 self-start sm:self-auto"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-        </svg>
-        Create Discount
-      </button>
-    </div>
+    <.admin_page_header
+      title="Discounts"
+      subtitle="Create and manage discount codes"
+      action_label="+ Create Discount"
+      action_event="toggle_create_form"
+    />
 
     <%!-- Summary Cards --%>
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">

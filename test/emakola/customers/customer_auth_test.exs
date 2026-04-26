@@ -17,7 +17,7 @@ defmodule Emakola.Customers.CustomerAuthTest do
           password_confirmation: "Password123!",
           store_id: store.id
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert to_string(customer.email) == "shopper@example.com"
       assert customer.store_id == store.id
@@ -33,7 +33,7 @@ defmodule Emakola.Customers.CustomerAuthTest do
           password_confirmation: "DifferentPassword!",
           store_id: store.id
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
       end
     end
 
@@ -46,7 +46,7 @@ defmodule Emakola.Customers.CustomerAuthTest do
           password_confirmation: "short",
           store_id: store.id
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
       end
     end
 
@@ -61,7 +61,7 @@ defmodule Emakola.Customers.CustomerAuthTest do
           password_confirmation: "Password123!",
           store_id: store.id
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       c2 =
         Emakola.Customers.Customer
@@ -71,7 +71,7 @@ defmodule Emakola.Customers.CustomerAuthTest do
           password_confirmation: "Password123!",
           store_id: store2.id
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert c1.store_id == store.id
       assert c2.store_id == store2.id
@@ -87,7 +87,7 @@ defmodule Emakola.Customers.CustomerAuthTest do
           password_confirmation: "Password123!",
           store_id: store.id
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert customer.__metadata__[:token] != nil
     end
@@ -103,7 +103,7 @@ defmodule Emakola.Customers.CustomerAuthTest do
           name: "Kwame Asante",
           phone: "+233201234567"
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert customer.name == "Kwame Asante"
       assert customer.phone == "+233201234567"

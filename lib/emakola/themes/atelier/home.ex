@@ -264,7 +264,7 @@ defmodule Emakola.Themes.Atelier.Home do
   attr :categories, :list, required: true
 
   @category_colors [
-    {"from-[#B45309]/10 to-[#92400E]/5", "text-[#B45309]", "bg-[#B45309]"},
+    {"from-[#B45309]/10 to-[#92400E]/5", "text-store-accent", "bg-store-accent"},
     {"from-[#7C3AED]/10 to-[#6D28D9]/5", "text-[#7C3AED]", "bg-[#7C3AED]"},
     {"from-[#059669]/10 to-[#047857]/5", "text-[#059669]", "bg-[#059669]"},
     {"from-[#DC2626]/10 to-[#B91C1C]/5", "text-[#DC2626]", "bg-[#DC2626]"},
@@ -288,12 +288,12 @@ defmodule Emakola.Themes.Atelier.Home do
     <section class="py-10 sm:py-14">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between mb-6 sm:mb-8">
-          <h2 class="font-serif text-xl sm:text-2xl font-semibold text-[#1C1917]">
+          <h2 class="font-serif text-xl sm:text-2xl font-semibold text-cta-dark">
             Shop by Category
           </h2>
           <a
             href={"/s/#{@store.slug}/products"}
-            class="text-xs sm:text-sm font-medium text-[#A8A29E] hover:text-[#1C1917] transition-colors"
+            class="text-xs sm:text-sm font-medium text-[#A8A29E] hover:text-cta-dark transition-colors"
           >
             Browse all
           </a>
@@ -317,17 +317,17 @@ defmodule Emakola.Themes.Atelier.Home do
             </div>
 
             <%!-- Category name --%>
-            <h3 class="text-base sm:text-lg font-semibold text-[#1C1917] mb-1">
+            <h3 class="text-base sm:text-lg font-semibold text-cta-dark mb-1">
               {item.category.name}
             </h3>
 
             <%!-- Arrow indicator --%>
             <div class="flex items-center gap-1 mt-2">
-              <span class="text-xs font-medium text-[#A8A29E] group-hover:text-[#1C1917] transition-colors">
+              <span class="text-xs font-medium text-[#A8A29E] group-hover:text-cta-dark transition-colors">
                 Explore
               </span>
               <svg
-                class="w-3.5 h-3.5 text-[#A8A29E] group-hover:text-[#1C1917] group-hover:translate-x-0.5 transition-all"
+                class="w-3.5 h-3.5 text-[#A8A29E] group-hover:text-cta-dark group-hover:translate-x-0.5 transition-all"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
@@ -366,7 +366,7 @@ defmodule Emakola.Themes.Atelier.Home do
       <%!-- Section Header --%>
       <div class="flex items-center justify-between mb-8 sm:mb-10">
         <div>
-          <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-[#1C1917]">
+          <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-cta-dark">
             Featured Masterpieces
           </h2>
           <p class="text-sm text-[#A8A29E] mt-1 hidden sm:block">Handpicked by our artisans</p>
@@ -433,7 +433,7 @@ defmodule Emakola.Themes.Atelier.Home do
     ~H"""
     <section :if={@trending != []} class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
       <div class="flex items-center justify-between mb-8">
-        <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-[#1C1917]">New Arrivals</h2>
+        <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-cta-dark">New Arrivals</h2>
         <a
           href={"/s/#{@store.slug}/products"}
           class="group inline-flex items-center gap-1.5 text-sm font-semibold transition-colors hover:opacity-80"
@@ -489,13 +489,13 @@ defmodule Emakola.Themes.Atelier.Home do
                 />
               </svg>
             </div>
-            <span class="text-sm sm:text-base font-semibold text-[#1C1917]">Safe</span>
+            <span class="text-sm sm:text-base font-semibold text-cta-dark">Safe</span>
             <span class="text-[11px] sm:text-xs text-[#A8A29E] mt-0.5">Secure checkout</span>
           </div>
           <div class="flex flex-col items-center text-center group cursor-default">
-            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#B45309]/10 flex items-center justify-center mb-3 group-hover:bg-[#B45309]/15 group-hover:scale-110 transition-all duration-300">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-store-accent/10 flex items-center justify-center mb-3 group-hover:bg-store-accent/15 group-hover:scale-110 transition-all duration-300">
               <svg
-                class="w-8 h-8 sm:w-10 sm:h-10 text-[#B45309]"
+                class="w-8 h-8 sm:w-10 sm:h-10 text-store-accent"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -508,7 +508,7 @@ defmodule Emakola.Themes.Atelier.Home do
                 />
               </svg>
             </div>
-            <span class="text-sm sm:text-base font-semibold text-[#1C1917]">Fast</span>
+            <span class="text-sm sm:text-base font-semibold text-cta-dark">Fast</span>
             <span class="text-[11px] sm:text-xs text-[#A8A29E] mt-0.5">Instant confirmation</span>
           </div>
           <div class="flex flex-col items-center text-center group cursor-default">
@@ -527,7 +527,7 @@ defmodule Emakola.Themes.Atelier.Home do
                 />
               </svg>
             </div>
-            <span class="text-sm sm:text-base font-semibold text-[#1C1917]">Easy</span>
+            <span class="text-sm sm:text-base font-semibold text-cta-dark">Easy</span>
             <span class="text-[11px] sm:text-xs text-[#A8A29E] mt-0.5">Pay with your phone</span>
           </div>
         </div>

@@ -48,7 +48,7 @@ defmodule Emakola.SecurityTest do
       product =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: xss_title, store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       # The title stored should preserve the raw text
       assert product.title == xss_title
@@ -60,7 +60,7 @@ defmodule Emakola.SecurityTest do
       category =
         Emakola.Catalog.Category
         |> Ash.Changeset.for_create(:create, %{name: xss_name, store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert category.name == xss_name
     end
@@ -75,7 +75,7 @@ defmodule Emakola.SecurityTest do
           description: xss_desc,
           store_id: store.id
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert product.description == xss_desc
     end
@@ -89,7 +89,7 @@ defmodule Emakola.SecurityTest do
       _product =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: xss_title, store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       {:ok, _view, html} = live(conn, ~p"/admin/products")
 
@@ -108,7 +108,7 @@ defmodule Emakola.SecurityTest do
       _category =
         Emakola.Catalog.Category
         |> Ash.Changeset.for_create(:create, %{name: xss_name, store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       {:ok, _view, html} = live(conn, ~p"/admin/categories")
 
@@ -125,7 +125,7 @@ defmodule Emakola.SecurityTest do
       _product =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: "Real Product", store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       # Attempt SQL injection via Ash query - should not raise or execute
       malicious_input = "'; DROP TABLE products; --"
@@ -134,7 +134,7 @@ defmodule Emakola.SecurityTest do
         Emakola.Catalog.Product
         |> Ash.Query.filter(contains(title, ^malicious_input))
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert {:ok, []} = result
     end
@@ -147,7 +147,7 @@ defmodule Emakola.SecurityTest do
           name: "Safe Customer",
           store_id: store.id
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       malicious_email = "' OR '1'='1"
 
@@ -155,7 +155,7 @@ defmodule Emakola.SecurityTest do
         Emakola.Customers.Customer
         |> Ash.Query.filter(email == ^malicious_email)
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert {:ok, []} = result
     end
@@ -242,18 +242,18 @@ defmodule Emakola.SecurityTest do
       product_a =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: "Store A Product", store_id: store_a.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       _product_b =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: "Store B Product", store_id: store_b.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       # Query products for store B
       {:ok, store_b_products} =
         Emakola.Catalog.Product
         |> Ash.Query.filter(store_id == ^store_b.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       product_ids = Enum.map(store_b_products, & &1.id)
       refute product_a.id in product_ids
@@ -270,7 +270,7 @@ defmodule Emakola.SecurityTest do
           name: "Customer A",
           store_id: store_a.id
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       _customer_b =
         Emakola.Customers.Customer
@@ -279,12 +279,12 @@ defmodule Emakola.SecurityTest do
           name: "Customer B",
           store_id: store_b.id
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       {:ok, store_b_customers} =
         Emakola.Customers.Customer
         |> Ash.Query.filter(store_id == ^store_b.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       customer_ids = Enum.map(store_b_customers, & &1.id)
       refute customer_a.id in customer_ids
@@ -303,7 +303,7 @@ defmodule Emakola.SecurityTest do
       {:ok, store_b_orders} =
         Emakola.Orders.Order
         |> Ash.Query.filter(store_id == ^store_b.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       order_ids = Enum.map(store_b_orders, & &1.id)
       refute order_a.id in order_ids
@@ -316,7 +316,7 @@ defmodule Emakola.SecurityTest do
       _product_a =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: "Secret Product", store_id: store_a.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       # Merchant B accesses admin products - should only see their own store's products
       {:ok, _view, html} = live(conn_b, ~p"/admin/products")
@@ -383,12 +383,12 @@ defmodule Emakola.SecurityTest do
       _product_a =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: "Product Alpha", store_id: store_a.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       _product_b =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: "Product Beta", store_id: store_b.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       # Merchant A should see Product Alpha but not Product Beta
       {:ok, _view, html_a} = live(conn_a, ~p"/admin/products")
@@ -432,7 +432,7 @@ defmodule Emakola.SecurityTest do
       result =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: long_title, store_id: store.id})
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       # Should either reject with an error or truncate - not crash
       case result do
@@ -452,7 +452,7 @@ defmodule Emakola.SecurityTest do
       result =
         Emakola.Catalog.Category
         |> Ash.Changeset.for_create(:create, %{name: long_name, store_id: store.id})
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       case result do
         {:error, _changeset} -> assert true
@@ -470,7 +470,7 @@ defmodule Emakola.SecurityTest do
           name: long_name,
           store_id: store.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       case result do
         {:error, _changeset} -> assert true
@@ -486,7 +486,7 @@ defmodule Emakola.SecurityTest do
       product =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: "Upload Test Product", store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       # Valid image content type should succeed
       valid_result =
@@ -498,7 +498,7 @@ defmodule Emakola.SecurityTest do
           product_id: product.id,
           store_id: store.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert {:ok, _image} = valid_result
 
@@ -512,7 +512,7 @@ defmodule Emakola.SecurityTest do
           product_id: product.id,
           store_id: store.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert {:error, _changeset} = malicious_result
     end
@@ -521,7 +521,7 @@ defmodule Emakola.SecurityTest do
       product =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: "HTML Upload Test", store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       result =
         Emakola.Catalog.Image
@@ -532,7 +532,7 @@ defmodule Emakola.SecurityTest do
           product_id: product.id,
           store_id: store.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert {:error, _changeset} = result
     end
@@ -541,7 +541,7 @@ defmodule Emakola.SecurityTest do
       product =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: "JS Upload Test", store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       result =
         Emakola.Catalog.Image
@@ -552,7 +552,7 @@ defmodule Emakola.SecurityTest do
           product_id: product.id,
           store_id: store.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert {:error, _changeset} = result
     end
@@ -562,12 +562,12 @@ defmodule Emakola.SecurityTest do
 
   defp create_authenticated_merchant! do
     store =
-      Emakola.Accounts.Store
+      Emakola.Stores.Store
       |> Ash.Changeset.for_create(:create, %{
         name: "Test Store #{System.unique_integer([:positive])}",
         slug: "test-store-#{System.unique_integer([:positive])}"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     merchant =
       Emakola.Accounts.Merchant
@@ -576,7 +576,7 @@ defmodule Emakola.SecurityTest do
         password: "Password123!",
         password_confirmation: "Password123!"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     Emakola.Accounts.StoreMembership
     |> Ash.Changeset.for_create(:create, %{
@@ -584,7 +584,7 @@ defmodule Emakola.SecurityTest do
       store_id: store.id,
       role: :owner
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
 
     {merchant, store}
   end
@@ -604,7 +604,7 @@ defmodule Emakola.SecurityTest do
       name: "Test Customer",
       phone: "+233240000000"
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   defp create_order!(store_id, customer_id, status, opts \\ []) do
@@ -617,7 +617,7 @@ defmodule Emakola.SecurityTest do
         total: Keyword.get(opts, :total, 10000),
         currency: "GHS"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     transition_to_status(order, status)
   end
@@ -625,7 +625,7 @@ defmodule Emakola.SecurityTest do
   defp transition_to_status(order, :pending), do: order
 
   defp transition_to_status(order, :confirmed) do
-    {:ok, order} = Ash.update(order, %{}, action: :confirm)
+    {:ok, order} = Ash.update(order, %{}, action: :confirm, authorize?: false)
     order
   end
 end

@@ -7,6 +7,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.Admin.ProductLive.BulkUploadModal, only: [bulk_upload_modal: 1]
+
   require Ash.Query
 
   @impl true
@@ -112,8 +114,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     product = socket.assigns.action_product
 
     if product do
-      case product |> Ash.Changeset.for_update(:archive) |> Ash.update() do
+      case product |> Ash.Changeset.for_update(:archive) |> Ash.update(authorize?: false) do
         {:ok, _} ->
+          Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
+
           {:noreply,
            socket
            |> assign(action_product: nil, action_type: nil)
@@ -133,8 +137,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     product = socket.assigns.action_product
 
     if product do
-      case product |> Ash.Changeset.for_update(:activate) |> Ash.update() do
+      case product |> Ash.Changeset.for_update(:activate) |> Ash.update(authorize?: false) do
         {:ok, _} ->
+          Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
+
           {:noreply,
            socket
            |> assign(action_product: nil, action_type: nil)
@@ -315,7 +321,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         {:noreply, assign(socket, csv_errors: ["No file uploaded"])}
 
       content ->
-        {rows, errors} = parse_csv_content(content, socket.assigns.categories)
+        {rows, errors} = Emakola.Catalog.CsvImporter.parse(content, socket.assigns.categories)
         {:noreply, assign(socket, csv_preview: rows, csv_errors: errors)}
     end
   end
@@ -329,7 +335,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     else
       socket = assign(socket, bulk_importing: true)
       store_id = socket.assigns.store_id
-      {success_count, error_count, errors} = import_csv_rows(rows, store_id)
+
+      {success_count, error_count, errors} =
+        Emakola.Catalog.CsvImporter.import_rows(rows, store_id)
+
+      if success_count > 0 do
+        Emakola.Catalog.CachedCatalog.invalidate_store(store_id)
+      end
 
       socket =
         socket
@@ -429,7 +441,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
       <%!-- Product List --%>
       <%= if @products == [] do %>
-        <div class="text-center py-16 bg-surface-container-lowest rounded-lg">
+        <div id="product-empty-state" class="text-center py-16 bg-surface-container-lowest rounded-lg">
           <.icon name="hero-cube" class="size-12 mx-auto text-on-surface-variant/30 mb-3" />
           <p class="text-on-surface-variant font-medium">No products found</p>
           <p class="text-sm text-on-surface-variant/60 mt-1">
@@ -963,164 +975,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         </:footer>
       </.modal>
 
-      <%!-- Bulk Upload Slide-Over --%>
-      <.modal
-        id="bulk-upload-modal"
-        title="Bulk Upload Products"
-        kind={:slide_over}
-        on_cancel={JS.push("cancel_bulk_upload")}
-      >
-        <div class="space-y-5">
-          <%!-- CSV Template Download --%>
-          <div class="bg-slate-50 rounded-lg p-4 space-y-2">
-            <h3 class="text-sm font-semibold text-slate-700">CSV Template</h3>
-            <p class="text-xs text-slate-500">
-              Download the template, fill in your products, then upload below.
-            </p>
-            <a
-              href={"data:text/csv;charset=utf-8,#{URI.encode(csv_template_header() <> "\n")}"}
-              download="emakola_products_template.csv"
-              class="inline-flex items-center gap-2 text-sm font-medium text-emerald-600
-                     hover:text-emerald-700 transition-colors"
-            >
-              <.icon name="hero-arrow-down-tray" class="size-4" /> Download Template (.csv)
-            </a>
-            <p class="text-xs text-slate-400 font-mono mt-1">
-              {csv_template_header()}
-            </p>
-          </div>
-
-          <%!-- File Upload Area --%>
-          <form phx-change="validate_csv" phx-submit="parse_csv" id="csv-upload-form">
-            <div class="space-y-3">
-              <label class="block text-sm font-medium text-slate-700">Upload CSV File</label>
-              <div
-                class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center
-                       hover:border-emerald-400 transition-colors"
-                phx-drop-target={@uploads.csv_file.ref}
-              >
-                <.icon name="hero-cloud-arrow-up" class="size-8 mx-auto text-slate-400 mb-2" />
-                <p class="text-sm text-slate-600">
-                  Drag and drop your CSV file here, or
-                </p>
-                <.live_file_input upload={@uploads.csv_file} class="mt-2" />
-              </div>
-
-              <%!-- Upload entries --%>
-              <div :for={entry <- @uploads.csv_file.entries} class="flex items-center gap-3">
-                <.icon name="hero-document-text" class="size-5 text-slate-500" />
-                <span class="text-sm text-slate-700 flex-1 truncate">{entry.client_name}</span>
-                <span class="text-xs text-slate-400">
-                  {Float.round(entry.client_size / 1024, 1)} KB
-                </span>
-                <button
-                  type="button"
-                  phx-click="cancel_upload"
-                  phx-value-ref={entry.ref}
-                  class="text-slate-400 hover:text-red-500"
-                >
-                  <.icon name="hero-x-mark" class="size-4" />
-                </button>
-              </div>
-
-              <%!-- Upload errors --%>
-              <p
-                :for={err <- upload_errors(@uploads.csv_file)}
-                class="text-xs text-red-600"
-              >
-                {upload_error_to_string(err)}
-              </p>
-
-              <button
-                :if={@uploads.csv_file.entries != []}
-                type="submit"
-                class="w-full px-4 py-2.5 rounded-lg text-sm font-semibold bg-slate-700 text-white
-                       hover:bg-slate-800 active:scale-95 transition-all"
-              >
-                Parse CSV
-              </button>
-            </div>
-          </form>
-
-          <%!-- CSV Errors --%>
-          <div
-            :if={@csv_errors != []}
-            class="bg-red-50 border border-red-200 rounded-lg p-3 space-y-1"
-          >
-            <p class="text-sm font-medium text-red-700">Errors:</p>
-            <p :for={error <- @csv_errors} class="text-xs text-red-600">{error}</p>
-          </div>
-
-          <%!-- CSV Preview Table --%>
-          <div :if={@csv_preview != []} class="space-y-3">
-            <h3 class="text-sm font-semibold text-slate-700">
-              Preview ({length(@csv_preview)} products)
-            </h3>
-            <div class="overflow-x-auto border border-slate-200 rounded-lg">
-              <table class="w-full text-xs">
-                <thead>
-                  <tr class="bg-slate-50 text-left text-slate-500 uppercase tracking-wider">
-                    <th class="px-3 py-2">Title</th>
-                    <th class="px-3 py-2">Category</th>
-                    <th class="px-3 py-2">SKU</th>
-                    <th class="px-3 py-2 text-right">Price</th>
-                    <th class="px-3 py-2 text-right">Stock</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    :for={row <- @csv_preview}
-                    class="border-t border-slate-100"
-                  >
-                    <td class="px-3 py-2 font-medium text-slate-700 truncate max-w-[120px]">
-                      {row["title"]}
-                    </td>
-                    <td class="px-3 py-2 text-slate-500">{row["category"]}</td>
-                    <td class="px-3 py-2 text-slate-500 font-mono">{row["sku"]}</td>
-                    <td class="px-3 py-2 text-right font-mono">{row["price"]}</td>
-                    <td class="px-3 py-2 text-right font-mono">{row["stock_quantity"]}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-        <:footer>
-          <div class="flex flex-col sm:flex-row gap-3">
-            <button
-              type="button"
-              phx-click={
-                JS.push("cancel_bulk_upload")
-                |> hide_modal("bulk-upload-modal")
-              }
-              class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold border border-slate-300
-                     text-slate-700 hover:bg-slate-50 active:scale-95 transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              :if={@csv_preview != []}
-              type="button"
-              phx-click="import_products"
-              disabled={@bulk_importing}
-              class={[
-                "flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white
-                 active:scale-95 transition-all shadow-sm",
-                if(@bulk_importing,
-                  do: "bg-emerald-400 cursor-not-allowed",
-                  else: "bg-emerald-600 hover:bg-emerald-700"
-                )
-              ]}
-            >
-              <%= if @bulk_importing do %>
-                Importing...
-              <% else %>
-                Import {length(@csv_preview)} Products
-              <% end %>
-            </button>
-          </div>
-        </:footer>
-      </.modal>
+      <.bulk_upload_modal
+        uploads={@uploads}
+        csv_preview={@csv_preview}
+        csv_errors={@csv_errors}
+        bulk_importing={@bulk_importing}
+      />
     </div>
     """
   end
@@ -1164,29 +1024,49 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
   # ── Data Loading ──
 
+  @admin_products_limit 100
+
+  defp load_products(%{assigns: %{store_id: nil}} = socket) do
+    assign(socket, products: [])
+  end
+
   defp load_products(socket) do
+    require Ash.Query
     %{store_id: store_id, search_query: query, status_filter: status} = socket.assigns
 
     products =
       try do
-        results =
-          cond do
-            query != "" ->
-              Emakola.Catalog.search_products!(query, store_id)
+        base =
+          Emakola.Catalog.Product
+          |> Ash.Query.filter(store_id == ^store_id)
+          |> Ash.Query.sort(inserted_at: :desc)
+          |> Ash.Query.load([:variant_count, :min_price, :max_price, :images])
+          |> Ash.Query.limit(@admin_products_limit)
 
-            status != :all ->
-              Emakola.Catalog.list_products_by_store_and_status!(store_id, status)
-
-            true ->
-              Emakola.Catalog.list_products_by_store!(store_id)
+        base =
+          if query != "" do
+            Ash.Query.filter(base, contains(title, ^query))
+          else
+            base
           end
 
-        Ash.load!(results, [:variant_count, :min_price, :max_price, :images])
+        base =
+          if status != :all do
+            Ash.Query.filter(base, status == ^status)
+          else
+            base
+          end
+
+        Ash.read!(base, authorize?: false)
       rescue
         _ -> []
       end
 
     assign(socket, products: products)
+  end
+
+  defp load_categories(%{assigns: %{store_id: nil}} = socket) do
+    assign(socket, categories: %{}, categories_list: [])
   end
 
   defp load_categories(socket) do
@@ -1211,7 +1091,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   defp create_product(attrs, :active) do
     case Emakola.Catalog.create_product(attrs) do
       {:ok, product} ->
-        case Ash.Changeset.for_update(product, :activate) |> Ash.update() do
+        case Ash.Changeset.for_update(product, :activate) |> Ash.update(authorize?: false) do
           {:ok, activated} -> {:ok, activated}
           {:error, _} -> {:ok, product}
         end
@@ -1228,9 +1108,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   end
 
   defp update_product(product, attrs, :active) do
-    case product |> Ash.Changeset.for_update(:update, attrs) |> Ash.update() do
+    case product |> Ash.Changeset.for_update(:update, attrs) |> Ash.update(authorize?: false) do
       {:ok, updated} ->
-        case updated |> Ash.Changeset.for_update(:activate) |> Ash.update() do
+        case updated |> Ash.Changeset.for_update(:activate) |> Ash.update(authorize?: false) do
           {:ok, activated} -> {:ok, activated}
           {:error, _} -> {:ok, updated}
         end
@@ -1256,131 +1136,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       [content | _] -> {content, socket}
       [] -> {nil, socket}
     end
-  end
-
-  defp parse_csv_content(content, categories_map) do
-    lines =
-      content
-      |> String.trim()
-      |> String.split(~r/\r?\n/)
-
-    case lines do
-      [] ->
-        {[], ["CSV file is empty"]}
-
-      [_header | []] ->
-        {[], ["CSV file contains only a header row, no data"]}
-
-      [_header | data_lines] ->
-        rows =
-          data_lines
-          |> Enum.with_index(2)
-          |> Enum.reduce({[], []}, fn {line, row_num}, {rows_acc, errors_acc} ->
-            fields =
-              line
-              |> String.split(",")
-              |> Enum.map(&String.trim/1)
-
-            case fields do
-              [title, description, category, sku, price, stock_quantity | rest] ->
-                tags = Enum.join(rest, ",")
-
-                if String.trim(title) == "" do
-                  {rows_acc, ["Row #{row_num}: title is required" | errors_acc]}
-                else
-                  row = %{
-                    "title" => title,
-                    "description" => description,
-                    "category" => category,
-                    "category_id" => resolve_category_id(category, categories_map),
-                    "sku" => sku,
-                    "price" => price,
-                    "stock_quantity" => stock_quantity,
-                    "tags" => tags
-                  }
-
-                  {[row | rows_acc], errors_acc}
-                end
-
-              _ ->
-                {rows_acc,
-                 ["Row #{row_num}: invalid format, expected at least 6 columns" | errors_acc]}
-            end
-          end)
-
-        {rows |> elem(0) |> Enum.reverse(), rows |> elem(1) |> Enum.reverse()}
-    end
-  end
-
-  defp resolve_category_id(category_name, categories_map) when is_map(categories_map) do
-    # categories_map is %{id => name}, so search by name
-    result =
-      Enum.find(categories_map, fn {_id, name} ->
-        String.downcase(String.trim(name)) == String.downcase(String.trim(category_name))
-      end)
-
-    case result do
-      {id, _name} -> id
-      nil -> nil
-    end
-  end
-
-  defp resolve_category_id(_category_name, _categories_map), do: nil
-
-  defp import_csv_rows(rows, store_id) do
-    Enum.reduce(rows, {0, 0, []}, fn row, {success, errors, error_msgs} ->
-      tags =
-        (row["tags"] || "")
-        |> String.split(",", trim: true)
-        |> Enum.map(&String.trim/1)
-        |> Enum.reject(&(&1 == ""))
-
-      price =
-        case Integer.parse(row["price"] || "0") do
-          {val, _} -> val
-          :error -> 0
-        end
-
-      stock =
-        case Integer.parse(row["stock_quantity"] || "0") do
-          {val, _} -> val
-          :error -> 0
-        end
-
-      attrs = %{
-        title: row["title"],
-        description: row["description"],
-        category_id: row["category_id"],
-        tags: tags,
-        store_id: store_id
-      }
-
-      case Emakola.Catalog.create_product(attrs) do
-        {:ok, product} ->
-          # Create a default variant with the SKU, price, and stock
-          variant_attrs = %{
-            product_id: product.id,
-            sku: row["sku"],
-            price: price,
-            stock_quantity: stock,
-            store_id: store_id
-          }
-
-          try do
-            Emakola.Catalog.Variant
-            |> Ash.Changeset.for_create(:create, variant_attrs)
-            |> Ash.create()
-          rescue
-            _ -> :ok
-          end
-
-          {success + 1, errors, error_msgs}
-
-        {:error, error} ->
-          msg = "\"#{row["title"]}\": #{format_error(error)}"
-          {success, errors + 1, [msg | error_msgs]}
-      end
-    end)
   end
 
   # ── Form Helpers ──
@@ -1500,8 +1255,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
   defp format_error(error), do: inspect(error)
 
-  defp csv_template_header, do: "title,description,category,sku,price,stock_quantity,tags"
-
   defp upload_error_to_string(:too_large), do: "File is too large"
   defp upload_error_to_string(:not_accepted), do: "Only .csv files are accepted"
   defp upload_error_to_string(:too_many_files), do: "Only one file at a time"
@@ -1525,16 +1278,15 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
   defp save_uploaded_images(socket, product) do
     store_id = socket.assigns.store_id
-    upload_dir = Path.join(["priv/static/uploads", store_id])
-    File.mkdir_p!(upload_dir)
 
     consume_uploaded_entries(socket, :product_images, fn %{path: tmp_path}, entry ->
       ext = Path.extname(entry.client_name)
       filename = "#{Ecto.UUID.generate()}#{ext}"
-      dest = Path.join(upload_dir, filename)
-      File.cp!(tmp_path, dest)
+      s3_path = "stores/#{store_id}/products/#{filename}"
+      binary = File.read!(tmp_path)
 
-      url = "/uploads/#{store_id}/#{filename}"
+      {:ok, url} =
+        Emakola.Storage.upload(binary, s3_path, content_type: entry.client_type)
 
       Emakola.Catalog.Image
       |> Ash.Changeset.for_create(:create, %{

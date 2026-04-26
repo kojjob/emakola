@@ -151,7 +151,7 @@ defmodule Emakola.Themes.Fresh.Home do
       >
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <h2
-            class="text-lg font-bold text-[#1C1917] mb-4"
+            class="text-lg font-bold text-cta-dark mb-4"
             style="font-family: 'Nunito', sans-serif;"
           >
             Shop by Category
@@ -184,7 +184,7 @@ defmodule Emakola.Themes.Fresh.Home do
                 local_fire_department
               </span>
               <h2
-                class="text-2xl font-bold text-[#1C1917]"
+                class="text-2xl font-bold text-cta-dark"
                 style="font-family: 'Nunito', sans-serif;"
               >
                 Today's Picks
@@ -244,7 +244,7 @@ defmodule Emakola.Themes.Fresh.Home do
                   />
                 </svg>
                 <h3
-                  class="text-2xl sm:text-3xl font-bold text-[#1C1917]"
+                  class="text-2xl sm:text-3xl font-bold text-cta-dark"
                   style="font-family: 'Nunito', sans-serif;"
                 >
                   Same-Day Delivery in Accra
@@ -275,7 +275,7 @@ defmodule Emakola.Themes.Fresh.Home do
                   </div>
                   <div>
                     <p
-                      class="text-sm font-bold text-[#1C1917]"
+                      class="text-sm font-bold text-cta-dark"
                       style="font-family: 'Nunito', sans-serif;"
                     >
                       Fresh Guarantee
@@ -303,7 +303,7 @@ defmodule Emakola.Themes.Fresh.Home do
                   </div>
                   <div>
                     <p
-                      class="text-sm font-bold text-[#1C1917]"
+                      class="text-sm font-bold text-cta-dark"
                       style="font-family: 'Nunito', sans-serif;"
                     >
                       Same Day Delivery
@@ -331,7 +331,7 @@ defmodule Emakola.Themes.Fresh.Home do
                   </div>
                   <div>
                     <p
-                      class="text-sm font-bold text-[#1C1917]"
+                      class="text-sm font-bold text-cta-dark"
                       style="font-family: 'Nunito', sans-serif;"
                     >
                       Secure Payment
@@ -364,7 +364,7 @@ defmodule Emakola.Themes.Fresh.Home do
               </span>
               <h2
                 id="fresh-shop-all"
-                class="text-2xl font-bold text-[#1C1917]"
+                class="text-2xl font-bold text-cta-dark"
                 style="font-family: 'Nunito', sans-serif;"
               >
                 Shop All Products
@@ -405,7 +405,7 @@ defmodule Emakola.Themes.Fresh.Home do
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="bg-[#FEF9C3] rounded-3xl p-8 sm:p-12 text-center">
             <h2
-              class="text-2xl sm:text-3xl font-bold text-[#1C1917] mb-3"
+              class="text-2xl sm:text-3xl font-bold text-cta-dark mb-3"
               style="font-family: 'Nunito', sans-serif;"
             >
               {@theme.newsletter.title || "Get Weekly Deals & Recipes"}
@@ -426,7 +426,7 @@ defmodule Emakola.Themes.Fresh.Home do
                 name="email"
                 placeholder="Enter your email"
                 required
-                class="flex-1 px-5 py-3.5 rounded-full bg-white text-[#1C1917] placeholder:text-[#92400E]/40 border border-[#D9F99D] focus:outline-none focus:ring-2 focus:ring-[#059669] focus:border-transparent text-sm shadow-sm"
+                class="flex-1 px-5 py-3.5 rounded-full bg-white text-cta-dark placeholder:text-[#92400E]/40 border border-[#D9F99D] focus:outline-none focus:ring-2 focus:ring-[#059669] focus:border-transparent text-sm shadow-sm"
                 style="font-family: 'Inter', sans-serif;"
               />
               <button

@@ -22,10 +22,33 @@ defmodule Emakola.Notifications.Channels.SMS do
 
   require Logger
 
+  # Per-store SMS rate limit. 100/hour catches accidental notification
+  # loops (e.g., a worker stuck retrying) while allowing legitimate
+  # bursts. Bypass via opts: `[bypass_rate_limit: true]` for tests.
+  @rate_limit 100
+  @rate_window_ms :timer.hours(1)
+
   # ── Public API ─────────────────────────────────────────────────
 
   @impl true
-  def send_sms(phone, message, _opts \\ []) do
+  def send_sms(phone, message, opts \\ []) do
+    case rate_limit_check(opts) do
+      :allow ->
+        do_send_sms(phone, message)
+
+      :deny ->
+        store_id = Keyword.get(opts, :store_id)
+
+        Logger.warning(
+          "[SMS] rate limit exceeded for store=#{inspect(store_id)} " <>
+            "(#{@rate_limit} per #{div(@rate_window_ms, 60_000)}m); dropping message"
+        )
+
+        {:error, :rate_limited}
+    end
+  end
+
+  defp do_send_sms(phone, message) do
     body = build_sms_payload(phone, message)
 
     Logger.info("[SMS] Sending to #{normalize_phone(phone)}: #{String.slice(message, 0..49)}...")
@@ -41,6 +64,24 @@ defmodule Emakola.Notifications.Channels.SMS do
       {:error, reason} ->
         Logger.error("[SMS] HTTP error: #{inspect(reason)}")
         {:error, reason}
+    end
+  end
+
+  defp rate_limit_check(opts) do
+    cond do
+      Keyword.get(opts, :bypass_rate_limit, false) ->
+        :allow
+
+      store_id = Keyword.get(opts, :store_id) ->
+        case Emakola.RateLimit.check_rate("sms:store:#{store_id}", @rate_limit, @rate_window_ms) do
+          {:allow, _count} -> :allow
+          {:deny, _limit} -> :deny
+        end
+
+      true ->
+        # No store_id passed — can't rate-limit safely; allow but log.
+        Logger.warning("[SMS] no :store_id in opts; rate limit not applied")
+        :allow
     end
   end
 

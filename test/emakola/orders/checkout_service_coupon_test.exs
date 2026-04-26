@@ -4,7 +4,7 @@ defmodule Emakola.Orders.CheckoutServiceCouponTest do
   import Emakola.Factory
 
   alias Emakola.Orders.CheckoutService
-  alias Emakola.Orders.Coupon
+  alias Emakola.Marketing.Coupon
 
   setup do
     store = create_store!()
@@ -74,7 +74,7 @@ defmodule Emakola.Orders.CheckoutServiceCouponTest do
           max_uses: 1
         })
 
-      coupon |> Ash.Changeset.for_update(:increment_usage, %{}) |> Ash.update!()
+      coupon |> Ash.Changeset.for_update(:increment_usage, %{}) |> Ash.update!(authorize?: false)
 
       assert {:error, :coupon_max_uses_reached} =
                CheckoutService.validate_coupon(store.id, "MAXED", 50_000)
@@ -245,7 +245,9 @@ defmodule Emakola.Orders.CheckoutServiceCouponTest do
 
       assert {:ok, _order} = CheckoutService.checkout!(store.id, items, opts)
 
-      updated_coupon = Ash.get!(Emakola.Orders.Coupon, coupon.id)
+      updated_coupon =
+        Ash.get!(Emakola.Marketing.Coupon, coupon.id, authorize?: false, authorize?: false)
+
       assert updated_coupon.uses_count == 1
     end
 
@@ -277,7 +279,9 @@ defmodule Emakola.Orders.CheckoutServiceCouponTest do
       assert {:error, :coupon_expired} = CheckoutService.checkout!(store.id, items, opts)
 
       # Stock should be unchanged (transaction rolled back)
-      refreshed = Ash.get!(Emakola.Catalog.Variant, variant.id)
+      refreshed =
+        Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false, authorize?: false)
+
       assert refreshed.stock_quantity == 10
     end
 
@@ -325,6 +329,6 @@ defmodule Emakola.Orders.CheckoutServiceCouponTest do
   defp create_coupon(store, attrs) do
     Coupon
     |> Ash.Changeset.for_create(:create, Map.merge(%{store_id: store.id, active: true}, attrs))
-    |> Ash.create()
+    |> Ash.create(authorize?: false)
   end
 end

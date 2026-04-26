@@ -15,6 +15,12 @@ defmodule Emakola.Orders.LineItem do
 
   require Ash.Query
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("line_items")
     repo(Emakola.Repo)
@@ -80,19 +86,30 @@ defmodule Emakola.Orders.LineItem do
   end
 
   policies do
-    bypass action_type(:read) do
+    # Generic actions (action :name) — internal helpers, no policy
+    bypass action_type(:action) do
       authorize_if(always())
     end
 
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
-      authorize_unless(actor_present())
+    # Creates require Merchant with store access. CheckoutService creates
+    # line items without an actor and opts in via `authorize?: false`.
+    policy action_type(:create) do
+      forbid_unless(actor_present())
+      forbid_unless(actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant))
+      authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
-    # Merchant actors: verify store membership for writes
+    # Merchant actors: verify store membership (for reads + writes)
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
+
+    # Customer actors: tenant-scoped reads only.
+    policy actor_attribute_equals(:__struct__, Emakola.Customers.Customer) do
+      authorize_if(action_type(:read))
+    end
+
+    # nil actor falls through to default-deny.
   end
 
   validations do

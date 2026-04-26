@@ -62,7 +62,7 @@ defmodule EmakolaWeb.Admin.ReviewLiveTest do
       # Hide the review
       review
       |> Ash.Changeset.for_update(:hide, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       {:ok, view, _html} = live(conn, ~p"/admin/reviews")
 
@@ -113,7 +113,7 @@ defmodule EmakolaWeb.Admin.ReviewLiveTest do
       # Hide it first
       review
       |> Ash.Changeset.for_update(:hide, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       {:ok, view, _html} = live(conn, ~p"/admin/reviews")
 
@@ -160,17 +160,17 @@ defmodule EmakolaWeb.Admin.ReviewLiveTest do
 
     Emakola.Catalog.Review
     |> Ash.Changeset.for_create(:create, Map.merge(default, attrs))
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   defp create_authenticated_merchant! do
     store =
-      Emakola.Accounts.Store
+      Emakola.Stores.Store
       |> Ash.Changeset.for_create(:create, %{
         name: "Test Store #{System.unique_integer([:positive])}",
         slug: "test-store-#{System.unique_integer([:positive])}"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     merchant =
       Emakola.Accounts.Merchant
@@ -179,7 +179,7 @@ defmodule EmakolaWeb.Admin.ReviewLiveTest do
         password: "Password123!",
         password_confirmation: "Password123!"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     Emakola.Accounts.StoreMembership
     |> Ash.Changeset.for_create(:create, %{
@@ -187,7 +187,7 @@ defmodule EmakolaWeb.Admin.ReviewLiveTest do
       store_id: store.id,
       role: :owner
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
 
     {merchant, store}
   end

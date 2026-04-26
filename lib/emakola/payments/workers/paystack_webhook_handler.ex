@@ -10,7 +10,15 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   Idempotent: skips processing if payment is already in a terminal state.
   """
 
-  use Oban.Worker, queue: :webhooks, max_attempts: 5
+  use Oban.Worker,
+    queue: :webhooks,
+    max_attempts: 5,
+    # Paystack replays the same payload on retry. Deduplicate at insert
+    # time within a 24h window — `Oban.insert!/1` returns the existing
+    # job rather than creating a duplicate. The terminal-state guard
+    # inside perform/1 remains as defense-in-depth for non-identical
+    # jobs that happen to converge on the same payment.
+    unique: [period: 86_400, fields: [:args]]
 
   require Ash.Query
 
@@ -33,17 +41,27 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
 
     with {:ok, payment} <- find_payment(reference),
          false <- terminal?(payment) do
-      payment
-      |> Ash.Changeset.for_update(:mark_success, %{gateway_response: data})
-      |> Ash.update!()
+      updated =
+        payment
+        |> Ash.Changeset.for_update(:mark_success, %{gateway_response: data})
+        |> Ash.update!(authorize?: false)
 
       # Confirm the associated order if present
       maybe_confirm_order(payment.order_id)
 
+      # Notify any LiveView still polling on this reference so the
+      # customer sees confirmation immediately rather than waiting up
+      # to 3s for the next poll cycle.
+      Phoenix.PubSub.broadcast(
+        Emakola.PubSub,
+        "payment:#{reference}",
+        {:payment_succeeded, reference, updated}
+      )
+
       :ok
     else
       true -> :ok
-      {:error, :payment_not_found} -> {:error, :payment_not_found}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -52,14 +70,21 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
 
     with {:ok, payment} <- find_payment(reference),
          false <- terminal?(payment) do
-      payment
-      |> Ash.Changeset.for_update(:mark_failed, %{gateway_response: data})
-      |> Ash.update!()
+      updated =
+        payment
+        |> Ash.Changeset.for_update(:mark_failed, %{gateway_response: data})
+        |> Ash.update!(authorize?: false)
+
+      Phoenix.PubSub.broadcast(
+        Emakola.PubSub,
+        "payment:#{reference}",
+        {:payment_failed, reference, updated}
+      )
 
       :ok
     else
       true -> :ok
-      {:error, :payment_not_found} -> {:error, :payment_not_found}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -71,9 +96,16 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
       if payment.status == :refunded do
         :ok
       else
-        payment
-        |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: refund_amount})
-        |> Ash.update!()
+        updated =
+          payment
+          |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: refund_amount})
+          |> Ash.update!(authorize?: false)
+
+        Phoenix.PubSub.broadcast(
+          Emakola.PubSub,
+          "payment:#{reference}",
+          {:payment_refunded, reference, updated}
+        )
 
         :ok
       end
@@ -83,7 +115,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   defp find_payment(reference) do
     case Payment
          |> Ash.Query.filter(gateway_reference == ^reference)
-         |> Ash.read_one() do
+         |> Ash.read_one(authorize?: false) do
       {:ok, nil} -> {:error, :payment_not_found}
       {:ok, payment} -> {:ok, payment}
       {:error, reason} -> {:error, reason}
@@ -98,12 +130,12 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   defp maybe_confirm_order(order_id) do
     case Emakola.Orders.Order
          |> Ash.Query.filter(id == ^order_id)
-         |> Ash.read_one() do
+         |> Ash.read_one(authorize?: false) do
       {:ok, %{status: :pending} = order} ->
         result =
           order
           |> Ash.Changeset.for_update(:confirm, %{})
-          |> Ash.update()
+          |> Ash.update(authorize?: false)
 
         case result do
           {:ok, confirmed_order} ->

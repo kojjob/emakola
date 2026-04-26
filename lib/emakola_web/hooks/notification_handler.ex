@@ -103,7 +103,7 @@ defmodule EmakolaWeb.Hooks.NotificationHandler do
          |> Ash.Query.filter(user_id == ^user.id and is_nil(read_at))
          |> Ash.Query.sort(inserted_at: :desc)
          |> Ash.Query.limit(10)
-         |> Ash.read() do
+         |> Ash.read(authorize?: false) do
       {:ok, notifs} ->
         notifs
 

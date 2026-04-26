@@ -70,9 +70,9 @@ defmodule Emakola.Orders.CheckoutService do
   a descriptive atom if validation fails.
   """
   def validate_coupon(store_id, code, subtotal) do
-    case Emakola.Orders.Coupon
+    case Emakola.Marketing.Coupon
          |> Ash.Query.filter(store_id == ^store_id and code == ^String.upcase(code))
-         |> Ash.read() do
+         |> Ash.read(authorize?: false) do
       {:ok, [coupon]} -> check_coupon_validity(coupon, subtotal)
       {:ok, []} -> {:error, :coupon_not_found}
       _ -> {:error, :coupon_not_found}
@@ -112,7 +112,7 @@ defmodule Emakola.Orders.CheckoutService do
       Emakola.Catalog.Variant
       |> Ash.Query.filter(id in ^variant_ids)
       |> Ash.Query.load(:product)
-      |> Ash.read!()
+      |> Ash.read!(authorize?: false)
 
     found_ids = MapSet.new(Enum.map(variants, & &1.id))
     requested_ids = MapSet.new(variant_ids)
@@ -187,7 +187,7 @@ defmodule Emakola.Orders.CheckoutService do
           billing_address: Keyword.get(opts, :billing_address),
           attribution: Keyword.get(opts, :attribution, %{})
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       # 4. Create line items and decrement stock
       line_items =
@@ -200,13 +200,13 @@ defmodule Emakola.Orders.CheckoutService do
               variant_id: vid,
               quantity: qty
             })
-            |> Ash.create!()
+            |> Ash.create!(authorize?: false)
 
           variant = Map.fetch!(variants, vid)
 
           variant
           |> Ash.Changeset.for_update(:adjust_stock, %{delta: -qty})
-          |> Ash.update!()
+          |> Ash.update!(authorize?: false)
 
           line_item
         end)
@@ -225,7 +225,7 @@ defmodule Emakola.Orders.CheckoutService do
             {nil, 0}
 
           cid ->
-            coupon = Ash.get!(Emakola.Orders.Coupon, cid)
+            coupon = Ash.get!(Emakola.Marketing.Coupon, cid, authorize?: false)
 
             case check_coupon_validity(coupon, subtotal) do
               {:ok, valid_coupon} ->
@@ -233,7 +233,7 @@ defmodule Emakola.Orders.CheckoutService do
 
                 valid_coupon
                 |> Ash.Changeset.for_update(:increment_usage, %{})
-                |> Ash.update!()
+                |> Ash.update!(authorize?: false)
 
                 {valid_coupon.id, discount}
 
@@ -253,15 +253,15 @@ defmodule Emakola.Orders.CheckoutService do
           discount_amount: discount_amount,
           coupon_id: coupon_id
         })
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
       # 7. Touch customer's last_order_at
       if customer_id do
-        customer = Ash.get!(Emakola.Customers.Customer, customer_id)
+        customer = Ash.get!(Emakola.Customers.Customer, customer_id, authorize?: false)
 
         customer
         |> Ash.Changeset.for_update(:touch_last_order)
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
       end
 
       order
@@ -335,7 +335,7 @@ defmodule Emakola.Orders.CheckoutService do
   defp resolve_default_address(customer) do
     Emakola.Customers.Address
     |> Ash.Query.filter(customer_id == ^customer.id and is_default == true)
-    |> Ash.read!()
+    |> Ash.read!(authorize?: false)
     |> List.first()
     |> case do
       nil -> nil
@@ -370,7 +370,7 @@ defmodule Emakola.Orders.CheckoutService do
         # Flag the variant so we don't alert again
         variant
         |> Ash.Changeset.for_update(:set_low_stock_alerted, %{})
-        |> Ash.update!()
+        |> Ash.update!(authorize?: false)
 
         # Enqueue real-time SMS/WhatsApp alert
         %{"variant_id" => vid, "store_id" => store_id}

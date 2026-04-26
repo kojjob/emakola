@@ -8,7 +8,8 @@ defmodule Emakola.Policies.Checks.ActorHasStoreAccess do
 
   This check operates differently depending on the action type:
   - For create/update/destroy: checks the resource's store_id against the actor's stores
-  - For read: always returns true (tenant filtering should be handled at the query level)
+  - For read: checks the query's tenant against the actor's stores (enforces cross-tenant
+    isolation when multitenancy :attribute is declared on the resource)
   """
 
   use Ash.Policy.SimpleCheck
@@ -28,16 +29,25 @@ defmodule Emakola.Policies.Checks.ActorHasStoreAccess do
     actor_has_store?(actor, store_id)
   end
 
-  def match?(actor, %{subject: %Ash.Query{}}, _opts) do
-    # For reads, we allow — the query-level store_id filters handle tenant scoping
-    is_struct(actor)
+  def match?(actor, %{subject: %Ash.Query{} = query}, _opts) do
+    # For reads with multitenancy, the tenant is set on the query.
+    # Check that the actor has a store membership for the tenant store.
+    # If no tenant is set, fall back to checking if the actor is a known struct
+    # (to preserve backward-compatibility with non-tenant-scoped queries).
+    case query.tenant do
+      nil ->
+        is_struct(actor)
+
+      store_id ->
+        actor_has_store?(actor, store_id)
+    end
   end
 
   def match?(_actor, _context, _opts), do: false
 
   defp get_store_id(%Ash.Changeset{} = changeset) do
     # For the Store resource itself, the resource's id IS the store_id
-    if changeset.resource == Emakola.Accounts.Store do
+    if changeset.resource == Emakola.Stores.Store do
       Map.get(changeset.data || %{}, :id)
     else
       # Try the changeset data first (for updates), then arguments/attributes (for creates)

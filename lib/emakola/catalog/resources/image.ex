@@ -90,7 +90,7 @@ defmodule Emakola.Catalog.Image do
       public?(true)
     end
 
-    belongs_to :store, Emakola.Accounts.Store do
+    belongs_to :store, Emakola.Stores.Store do
       define_attribute?(false)
       public?(true)
     end

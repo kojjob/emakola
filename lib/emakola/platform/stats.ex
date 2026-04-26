@@ -3,7 +3,7 @@ defmodule Emakola.Platform.Stats do
   require Ash.Query
 
   def total_stores do
-    Emakola.Accounts.Store
+    Emakola.Stores.Store
     |> Ash.count(authorize?: false)
     |> case do
       {:ok, count} -> count
@@ -12,7 +12,7 @@ defmodule Emakola.Platform.Stats do
   end
 
   def active_stores do
-    Emakola.Accounts.Store
+    Emakola.Stores.Store
     |> Ash.Query.filter(active == true)
     |> Ash.count(authorize?: false)
     |> case do
@@ -69,7 +69,7 @@ defmodule Emakola.Platform.Stats do
   end
 
   def recent_stores(limit \\ 10) do
-    Emakola.Accounts.Store
+    Emakola.Stores.Store
     |> Ash.Query.sort(inserted_at: :desc)
     |> Ash.Query.limit(limit)
     |> Ash.read!(authorize?: false)

@@ -47,7 +47,7 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
     ~H"""
     <div class="min-h-screen bg-[#FAFAF9] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div class="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 class="text-center text-2xl font-serif font-semibold text-[#1C1917]">
+        <h2 class="text-center text-2xl font-serif font-semibold text-cta-dark">
           {@store.name}
         </h2>
         <p class="mt-2 text-center text-sm text-[#44403C]">
@@ -78,7 +78,7 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
                 id="customer_email"
                 required
                 autocomplete="email"
-                class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-[#1C1917] focus:outline-none focus:ring-2 focus:ring-stone-900 focus:border-transparent transition-colors"
+                class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:outline-none focus:ring-2 focus:ring-stone-900 focus:border-transparent transition-colors"
                 value={@form[:email].value}
               />
             </div>
@@ -96,7 +96,7 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
                 id="customer_password"
                 required
                 autocomplete="current-password"
-                class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-[#1C1917] focus:outline-none focus:ring-2 focus:ring-stone-900 focus:border-transparent transition-colors"
+                class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:outline-none focus:ring-2 focus:ring-stone-900 focus:border-transparent transition-colors"
               />
             </div>
 
@@ -104,7 +104,7 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
               <button
                 type="submit"
                 id="login-submit-btn"
-                class="cursor-pointer w-full flex justify-center py-3 px-4 rounded-lg text-sm font-semibold text-white bg-[#1C1917] hover:bg-[#292524] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stone-900"
+                class="cursor-pointer w-full flex justify-center py-3 px-4 rounded-lg text-sm font-semibold text-white bg-cta-dark hover:bg-[#292524] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stone-900"
               >
                 Sign In
               </button>
@@ -116,7 +116,7 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
               Don't have an account?
               <.link
                 navigate={"/s/#{@store.slug}/register"}
-                class="font-medium text-[#1C1917] hover:underline"
+                class="font-medium text-cta-dark hover:underline"
               >
                 Create one
               </.link>

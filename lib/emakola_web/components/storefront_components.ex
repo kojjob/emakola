@@ -199,7 +199,7 @@ defmodule EmakolaWeb.StorefrontComponents do
               </svg>
               <span
                 :if={@cart_count > 0}
-                class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-[#B45309] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1"
+                class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-store-accent text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1"
               >
                 {@cart_count}
               </span>
@@ -244,7 +244,7 @@ defmodule EmakolaWeb.StorefrontComponents do
               </span>
             </div>
           </div>
-          <span class={"text-[0.6875rem] font-medium text-center whitespace-nowrap " <> if(@active_slug == category.slug, do: "text-[#B45309] font-semibold", else: "text-[#475569] group-hover:text-[#0F172A]")}>
+          <span class={"text-[0.6875rem] font-medium text-center whitespace-nowrap " <> if(@active_slug == category.slug, do: "text-store-accent font-semibold", else: "text-[#475569] group-hover:text-[#0F172A]")}>
             {category.name}
           </span>
         </a>
@@ -283,7 +283,7 @@ defmodule EmakolaWeb.StorefrontComponents do
         </div>
       </div>
       <div class="p-5 sm:p-6 md:p-8 md:flex md:flex-col md:justify-center">
-        <span class="inline-flex items-center px-2.5 py-1 text-[0.625rem] font-bold tracking-wider uppercase text-[#B45309] bg-[#FEF3C7] rounded-full mb-2.5">
+        <span class="inline-flex items-center px-2.5 py-1 text-[0.625rem] font-bold tracking-wider uppercase text-store-accent bg-store-accent-light rounded-full mb-2.5">
           New Arrival
         </span>
         <h1 class="text-xl font-bold text-[#0F172A] mb-1.5 leading-tight">{@product.title}</h1>
@@ -293,7 +293,7 @@ defmodule EmakolaWeb.StorefrontComponents do
         <p class="text-lg font-bold text-[#0F172A] mb-4">
           {Currency.format_price_range(@product.min_price, @product.max_price, @store.currency)}
         </p>
-        <span class="flex items-center justify-center gap-2 w-full py-3.5 px-6 bg-[#1C1917] text-white rounded-full text-[0.9375rem] font-semibold hover:bg-[#292524] active:scale-[0.98] transition-all leading-none">
+        <span class="flex items-center justify-center gap-2 w-full py-3.5 px-6 bg-cta-dark text-white rounded-full text-[0.9375rem] font-semibold hover:bg-[#292524] active:scale-[0.98] transition-all leading-none">
           <.bag_icon /> Add to Bag
         </span>
       </div>
@@ -338,7 +338,7 @@ defmodule EmakolaWeb.StorefrontComponents do
             </span>
           </div>
         </div>
-        <h3 class="text-[0.875rem] font-semibold text-[#0F172A] leading-snug mb-1 truncate group-hover:text-[#B45309] transition-colors">
+        <h3 class="text-[0.875rem] font-semibold text-[#0F172A] leading-snug mb-1 truncate group-hover:text-store-accent transition-colors">
           {@product.title}
         </h3>
         <p class="text-[0.8125rem] font-medium text-[#64748B]">
@@ -363,8 +363,8 @@ defmodule EmakolaWeb.StorefrontComponents do
     ~H"""
     <section class="bg-white border border-[#E2E8F0] rounded-[20px] p-6 sm:p-8 mb-10 text-center">
       <h2 class="text-lg font-bold text-[#0F172A] mb-4">About the Shop</h2>
-      <div class="w-20 h-20 rounded-full bg-[#FEF3C7] border-[3px] border-[#FEF3C7] mx-auto mb-3.5 flex items-center justify-center">
-        <span class="text-2xl font-bold text-[#B45309]">{String.first(@store.name)}</span>
+      <div class="w-20 h-20 rounded-full bg-store-accent-light border-[3px] border-[#FEF3C7] mx-auto mb-3.5 flex items-center justify-center">
+        <span class="text-2xl font-bold text-store-accent">{String.first(@store.name)}</span>
       </div>
       <p class="text-sm text-[#475569] leading-relaxed max-w-[480px] mx-auto mb-4">
         {if @store.description,
@@ -376,7 +376,7 @@ defmodule EmakolaWeb.StorefrontComponents do
         :if={Map.get(@store, :whatsapp_number)}
         href={"https://wa.me/#{@store.whatsapp_number}"}
         target="_blank"
-        class="inline-flex items-center gap-2 px-5 py-2.5 bg-[#25D366] text-white rounded-full text-sm font-semibold hover:bg-[#1FAF55] transition-colors"
+        class="inline-flex items-center gap-2 px-5 py-2.5 bg-whatsapp text-white rounded-full text-sm font-semibold hover:bg-[#1FAF55] transition-colors"
       >
         <svg class="w-4.5 h-4.5" viewBox="0 0 24 24" fill="currentColor">
           <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
@@ -441,13 +441,13 @@ defmodule EmakolaWeb.StorefrontComponents do
     ~H"""
     <a
       href={@href}
-      class={"flex flex-col items-center gap-0.5 px-3 py-1 relative " <> if(@active, do: "text-[#B45309]", else: "text-[#94A3B8]")}
+      class={"flex flex-col items-center gap-0.5 px-3 py-1 relative " <> if(@active, do: "text-store-accent", else: "text-[#94A3B8]")}
     >
       <.nav_icon name={@icon} />
       <span class="text-[0.625rem] font-medium">{@label}</span>
       <span
         :if={@badge > 0}
-        class="absolute -top-0.5 right-1 min-w-[14px] h-[14px] bg-[#B45309] text-white text-[8px] font-bold rounded-full flex items-center justify-center px-0.5"
+        class="absolute -top-0.5 right-1 min-w-[14px] h-[14px] bg-store-accent text-white text-[8px] font-bold rounded-full flex items-center justify-center px-0.5"
       >
         {@badge}
       </span>
@@ -541,7 +541,7 @@ defmodule EmakolaWeb.StorefrontComponents do
       </svg>
       <%!-- Filled heart (shown when wishlisted) --%>
       <svg
-        class={"w-5 h-5 transition-colors " <> if(@wishlisted, do: "text-[#B45309]", else: "hidden")}
+        class={"w-5 h-5 transition-colors " <> if(@wishlisted, do: "text-store-accent", else: "hidden")}
         fill="currentColor"
         viewBox="0 0 24 24"
         data-heart-filled
@@ -573,9 +573,9 @@ defmodule EmakolaWeb.StorefrontComponents do
     >
       <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2.5 min-w-0">
-          <div class="flex-shrink-0 w-8 h-8 bg-[#FEF3C7] rounded-lg flex items-center justify-center">
+          <div class="flex-shrink-0 w-8 h-8 bg-store-accent-light rounded-lg flex items-center justify-center">
             <svg
-              class="w-4.5 h-4.5 text-[#B45309]"
+              class="w-4.5 h-4.5 text-store-accent"
               fill="none"
               stroke="currentColor"
               stroke-width="1.8"
@@ -591,7 +591,7 @@ defmodule EmakolaWeb.StorefrontComponents do
           </div>
           <p class="text-sm font-medium text-[#92400E] truncate">
             Use code
-            <span class="font-bold font-mono bg-[#FEF3C7] px-1.5 py-0.5 rounded">
+            <span class="font-bold font-mono bg-store-accent-light px-1.5 py-0.5 rounded">
               {@first_coupon.code}
             </span>
             for {format_coupon_discount(@first_coupon, @store)}!
@@ -606,7 +606,7 @@ defmodule EmakolaWeb.StorefrontComponents do
                  "opacity-0 -translate-y-2"}
             )
           }
-          class="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-[#B45309] hover:bg-[#FEF3C7] transition-colors"
+          class="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-store-accent hover:bg-store-accent-light transition-colors"
           aria-label="Dismiss promotion"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

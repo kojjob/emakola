@@ -53,7 +53,7 @@ defmodule Emakola.Shipping.DeliveryZone do
   end
 
   relationships do
-    belongs_to :store, Emakola.Accounts.Store do
+    belongs_to :store, Emakola.Stores.Store do
       attribute_writable?(true)
       define_attribute?(false)
       source_attribute(:store_id)

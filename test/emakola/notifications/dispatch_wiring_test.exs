@@ -80,7 +80,7 @@ defmodule Emakola.Notifications.DispatchWiringTest do
 
       order
       |> Ash.Changeset.for_update(:confirm, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       assert_enqueued(
         worker: OrderNotificationWorker,
@@ -94,7 +94,7 @@ defmodule Emakola.Notifications.DispatchWiringTest do
 
       order
       |> Ash.Changeset.for_update(:mark_shipped, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       assert_enqueued(
         worker: OrderNotificationWorker,
@@ -108,7 +108,7 @@ defmodule Emakola.Notifications.DispatchWiringTest do
 
       order
       |> Ash.Changeset.for_update(:mark_delivered, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       assert_enqueued(
         worker: OrderNotificationWorker,
@@ -122,7 +122,7 @@ defmodule Emakola.Notifications.DispatchWiringTest do
 
       order
       |> Ash.Changeset.for_update(:cancel, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       assert_enqueued(
         worker: OrderNotificationWorker,
@@ -136,7 +136,7 @@ defmodule Emakola.Notifications.DispatchWiringTest do
 
       order
       |> Ash.Changeset.for_update(:start_processing, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       refute_enqueued(
         worker: OrderNotificationWorker,
@@ -159,7 +159,7 @@ defmodule Emakola.Notifications.DispatchWiringTest do
 
       order
       |> Ash.Changeset.for_update(:confirm, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       assert_receive {:order_event, :order_confirmed, _order}
     end
@@ -170,7 +170,7 @@ defmodule Emakola.Notifications.DispatchWiringTest do
 
       order
       |> Ash.Changeset.for_update(:mark_shipped, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       assert_receive {:order_event, :order_shipped, _order}
     end
@@ -181,7 +181,7 @@ defmodule Emakola.Notifications.DispatchWiringTest do
 
       order
       |> Ash.Changeset.for_update(:cancel, %{})
-      |> Ash.update!()
+      |> Ash.update!(authorize?: false)
 
       assert_receive {:order_event, :order_cancelled, _order}
     end

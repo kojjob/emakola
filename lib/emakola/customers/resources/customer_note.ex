@@ -14,6 +14,12 @@ defmodule Emakola.Customers.CustomerNote do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("customer_notes")
     repo(Emakola.Repo)
@@ -50,7 +56,7 @@ defmodule Emakola.Customers.CustomerNote do
       public?(true)
     end
 
-    belongs_to :store, Emakola.Accounts.Store do
+    belongs_to :store, Emakola.Stores.Store do
       define_attribute?(false)
       public?(true)
     end
@@ -62,16 +68,20 @@ defmodule Emakola.Customers.CustomerNote do
   end
 
   policies do
-    bypass action_type(:read) do
+    # Creates are permissive (callers ensure store_id is valid)
+    bypass action_type(:create) do
       authorize_if(always())
     end
 
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
-      authorize_unless(actor_present())
+    # Generic actions (action :name) — internal helpers, no policy
+    bypass action_type(:action) do
+      authorize_if(always())
     end
 
-    # Merchant actors: verify store membership for writes
+    # Merchant actors: verify store membership (for reads + writes).
+    # nil actor falls through to default-deny; system code must opt in with
+    # `authorize?: false`. CustomerNote is internal-only — customers never
+    # see notes.
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
@@ -105,7 +115,7 @@ defmodule Emakola.Customers.CustomerNote do
               store_id == ^input.arguments.store_id
           )
           |> Ash.Query.sort(inserted_at: :desc)
-          |> Ash.read!()
+          |> Ash.read!(authorize?: false)
 
         {:ok, results}
       end)

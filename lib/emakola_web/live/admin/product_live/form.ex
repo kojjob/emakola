@@ -260,6 +260,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
 
       case result do
         {:ok, _product} ->
+          Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
+
           {:noreply,
            socket
            |> put_flash(:info, "Product saved successfully")
@@ -282,7 +284,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
     case Emakola.Catalog.create_product(attrs) do
       {:ok, product} ->
         # Try to activate — will fail if no variants (expected for new products)
-        case Ash.Changeset.for_update(product, :activate) |> Ash.update() do
+        case Ash.Changeset.for_update(product, :activate) |> Ash.update(authorize?: false) do
           {:ok, activated} -> {:ok, activated}
           {:error, _} -> {:ok, product}
         end
@@ -299,9 +301,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
   end
 
   defp update_product(product, attrs, :active) do
-    case product |> Ash.Changeset.for_update(:update, attrs) |> Ash.update() do
+    case product |> Ash.Changeset.for_update(:update, attrs) |> Ash.update(authorize?: false) do
       {:ok, updated} ->
-        case updated |> Ash.Changeset.for_update(:activate) |> Ash.update() do
+        case updated |> Ash.Changeset.for_update(:activate) |> Ash.update(authorize?: false) do
           {:ok, activated} -> {:ok, activated}
           {:error, _} -> {:ok, updated}
         end

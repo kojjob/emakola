@@ -33,7 +33,7 @@ defmodule Emakola.InputSanitizationTest do
       product =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: @xss_title, store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       # Data layer stores the raw text
       assert product.title == @xss_title
@@ -46,7 +46,7 @@ defmodule Emakola.InputSanitizationTest do
       _product =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: @xss_title, store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       {:ok, _view, html} = live(conn, ~p"/admin/products")
 
@@ -63,7 +63,7 @@ defmodule Emakola.InputSanitizationTest do
       product =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: encoded_xss, store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert product.title == encoded_xss
     end
@@ -74,7 +74,7 @@ defmodule Emakola.InputSanitizationTest do
       product =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: event_xss, store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert product.title == event_xss
     end
@@ -85,7 +85,7 @@ defmodule Emakola.InputSanitizationTest do
       _product =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: img_xss, store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       {:ok, _view, html} = live(conn, ~p"/admin/products")
 
@@ -104,7 +104,7 @@ defmodule Emakola.InputSanitizationTest do
       _category =
         Emakola.Catalog.Category
         |> Ash.Changeset.for_create(:create, %{name: html_name, store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       {:ok, _view, html} = live(conn, ~p"/admin/categories")
 
@@ -121,7 +121,7 @@ defmodule Emakola.InputSanitizationTest do
       category =
         Emakola.Catalog.Category
         |> Ash.Changeset.for_create(:create, %{name: entity_name, store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert category.name == entity_name
     end
@@ -132,7 +132,7 @@ defmodule Emakola.InputSanitizationTest do
       category =
         Emakola.Catalog.Category
         |> Ash.Changeset.for_create(:create, %{name: svg_xss, store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert category.name == svg_xss
     end
@@ -149,7 +149,7 @@ defmodule Emakola.InputSanitizationTest do
           name: "Plus User",
           store_id: store.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert {:ok, customer} = result
       assert to_string(customer.email) == "user+tag@example.com"
@@ -163,7 +163,7 @@ defmodule Emakola.InputSanitizationTest do
           name: "Dot User",
           store_id: store.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert {:ok, customer} = result
       assert to_string(customer.email) == "first.last@example.co.gh"
@@ -179,7 +179,7 @@ defmodule Emakola.InputSanitizationTest do
           name: "SQL Inject User",
           store_id: store.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       # Should either reject as invalid email or store safely (parameterized)
       case result do
@@ -203,7 +203,7 @@ defmodule Emakola.InputSanitizationTest do
           name: "XSS Email User",
           store_id: store.id
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       case result do
         {:error, _changeset} ->
@@ -235,7 +235,7 @@ defmodule Emakola.InputSanitizationTest do
           currency: "GHS",
           notes: sql_inject_notes
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       # The notes should be stored as plain text, not executed as SQL
       assert order.notes == sql_inject_notes
@@ -244,7 +244,7 @@ defmodule Emakola.InputSanitizationTest do
       {:ok, orders} =
         Emakola.Orders.Order
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert length(orders) >= 1
     end
@@ -264,7 +264,7 @@ defmodule Emakola.InputSanitizationTest do
           currency: "GHS",
           notes: union_inject
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert order.notes == union_inject
     end
@@ -284,7 +284,7 @@ defmodule Emakola.InputSanitizationTest do
           currency: "GHS",
           notes: nested_inject
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       assert order.notes == nested_inject
     end
@@ -297,7 +297,7 @@ defmodule Emakola.InputSanitizationTest do
       _product =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: "Normal Product", store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       malicious_search = "'; DROP TABLE products; --"
 
@@ -305,7 +305,7 @@ defmodule Emakola.InputSanitizationTest do
         Emakola.Catalog.Product
         |> Ash.Query.filter(contains(title, ^malicious_search))
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       # Should return empty - not crash or destroy data
       assert results == []
@@ -314,7 +314,7 @@ defmodule Emakola.InputSanitizationTest do
       {:ok, all_products} =
         Emakola.Catalog.Product
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert length(all_products) >= 1
     end
@@ -323,7 +323,7 @@ defmodule Emakola.InputSanitizationTest do
       _product =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: "Safe Product", store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       union_search = "' UNION SELECT email, password FROM merchants --"
 
@@ -331,7 +331,7 @@ defmodule Emakola.InputSanitizationTest do
         Emakola.Catalog.Product
         |> Ash.Query.filter(contains(title, ^union_search))
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       assert results == []
     end
@@ -344,7 +344,7 @@ defmodule Emakola.InputSanitizationTest do
           name: "Real Customer",
           store_id: store.id
         })
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       blind_inject = "' OR '1'='1' --"
 
@@ -352,7 +352,7 @@ defmodule Emakola.InputSanitizationTest do
         Emakola.Customers.Customer
         |> Ash.Query.filter(email == ^blind_inject)
         |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.read()
+        |> Ash.read(authorize?: false)
 
       # Should NOT return all customers - parameterized query prevents injection
       assert results == []
@@ -362,7 +362,7 @@ defmodule Emakola.InputSanitizationTest do
       _product =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: "Quick Product", store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       time_inject = "'; SELECT pg_sleep(5); --"
 
@@ -372,7 +372,7 @@ defmodule Emakola.InputSanitizationTest do
           Emakola.Catalog.Product
           |> Ash.Query.filter(contains(title, ^time_inject))
           |> Ash.Query.filter(store_id == ^store.id)
-          |> Ash.read()
+          |> Ash.read(authorize?: false)
         end)
 
       assert results == []
@@ -400,7 +400,7 @@ defmodule Emakola.InputSanitizationTest do
       _product =
         Emakola.Catalog.Product
         |> Ash.Changeset.for_create(:create, %{title: "Searchable Product", store_id: store.id})
-        |> Ash.create!()
+        |> Ash.create!(authorize?: false)
 
       {:ok, view, _html} = live(conn, ~p"/admin/products")
 
@@ -418,12 +418,12 @@ defmodule Emakola.InputSanitizationTest do
 
   defp create_authenticated_merchant! do
     store =
-      Emakola.Accounts.Store
+      Emakola.Stores.Store
       |> Ash.Changeset.for_create(:create, %{
         name: "Test Store #{System.unique_integer([:positive])}",
         slug: "test-store-#{System.unique_integer([:positive])}"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     merchant =
       Emakola.Accounts.Merchant
@@ -432,7 +432,7 @@ defmodule Emakola.InputSanitizationTest do
         password: "Password123!",
         password_confirmation: "Password123!"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     Emakola.Accounts.StoreMembership
     |> Ash.Changeset.for_create(:create, %{
@@ -440,7 +440,7 @@ defmodule Emakola.InputSanitizationTest do
       store_id: store.id,
       role: :owner
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
 
     {merchant, store}
   end
@@ -460,7 +460,7 @@ defmodule Emakola.InputSanitizationTest do
       name: "Test Customer",
       phone: "+233240000000"
     })
-    |> Ash.create!()
+    |> Ash.create!(authorize?: false)
   end
 
   defp create_order!(store_id, customer_id, status, opts \\ []) do
@@ -473,7 +473,7 @@ defmodule Emakola.InputSanitizationTest do
         total: Keyword.get(opts, :total, 10000),
         currency: "GHS"
       })
-      |> Ash.create!()
+      |> Ash.create!(authorize?: false)
 
     transition_to_status(order, status)
   end
@@ -481,7 +481,7 @@ defmodule Emakola.InputSanitizationTest do
   defp transition_to_status(order, :pending), do: order
 
   defp transition_to_status(order, :confirmed) do
-    {:ok, order} = Ash.update(order, %{}, action: :confirm)
+    {:ok, order} = Ash.update(order, %{}, action: :confirm, authorize?: false)
     order
   end
 end

@@ -133,7 +133,7 @@ defmodule Emakola.Themes.Vibrant.ProductList do
               value={@search_query}
               placeholder="Search products..."
               phx-debounce="300"
-              class="w-full pl-12 pr-4 py-3 border border-[#FDE68A] rounded-full text-sm text-[#1C1917] bg-white placeholder:text-[#D97706]/50 focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary,#DC2626)] focus:border-transparent shadow-sm"
+              class="w-full pl-12 pr-4 py-3 border border-[#FDE68A] rounded-full text-sm text-cta-dark bg-white placeholder:text-[#D97706]/50 focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary,#DC2626)] focus:border-transparent shadow-sm"
               style="font-family: 'DM Sans', sans-serif;"
             />
           </div>
@@ -142,7 +142,7 @@ defmodule Emakola.Themes.Vibrant.ProductList do
         <%!-- Product Grid --%>
         <%= if @products == [] do %>
           <div class="py-20 text-center">
-            <div class="w-20 h-20 rounded-full bg-[#FEF3C7] mx-auto mb-4 flex items-center justify-center">
+            <div class="w-20 h-20 rounded-full bg-store-accent-light mx-auto mb-4 flex items-center justify-center">
               <svg
                 class="w-10 h-10 text-[#D97706]"
                 fill="none"

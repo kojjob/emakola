@@ -22,14 +22,8 @@ defmodule Emakola.Orders do
       define(:create_line_item, action: :create)
     end
 
-    resource Emakola.Orders.Coupon do
-      define(:create_coupon, action: :create)
-      define(:list_coupons_by_store, action: :list_by_store, args: [:store_id])
-      define(:find_coupon_by_code, action: :find_by_code, args: [:store_id, :code])
-      define(:deactivate_coupon, action: :deactivate)
-      define(:increment_coupon_usage, action: :increment_usage)
-      define(:list_active_public_coupons, action: :list_active_public, args: [:store_id])
-    end
+    # Coupon resource moved to Emakola.Marketing on 2026-04-26.
+    # See docs/PLAN-domain-restructuring-2026-04-26.md
 
     resource Emakola.Orders.Return do
       define(:request_return, action: :request_return)

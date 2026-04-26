@@ -26,7 +26,7 @@ defmodule Emakola.Payments.PaymentTest do
       assert {:ok, payment} =
                Payment
                |> Ash.Changeset.for_create(:create, attrs)
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert payment.store_id == store.id
       assert payment.amount == 500_000
@@ -48,7 +48,7 @@ defmodule Emakola.Payments.PaymentTest do
       assert {:error, _changeset} =
                Payment
                |> Ash.Changeset.for_create(:create, attrs)
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "requires amount", %{store: store} do
@@ -62,7 +62,7 @@ defmodule Emakola.Payments.PaymentTest do
       assert {:error, _changeset} =
                Payment
                |> Ash.Changeset.for_create(:create, attrs)
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "requires gateway", %{store: store} do
@@ -76,7 +76,7 @@ defmodule Emakola.Payments.PaymentTest do
       assert {:error, _changeset} =
                Payment
                |> Ash.Changeset.for_create(:create, attrs)
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
 
     test "defaults currency to GHS", %{store: store} do
@@ -90,7 +90,7 @@ defmodule Emakola.Payments.PaymentTest do
       assert {:ok, payment} =
                Payment
                |> Ash.Changeset.for_create(:create, attrs)
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert payment.currency == "GHS"
     end
@@ -109,7 +109,7 @@ defmodule Emakola.Payments.PaymentTest do
       assert {:ok, payment} =
                Payment
                |> Ash.Changeset.for_create(:create, attrs)
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert payment.metadata == metadata
     end
@@ -129,12 +129,12 @@ defmodule Emakola.Payments.PaymentTest do
       assert {:ok, _payment} =
                Payment
                |> Ash.Changeset.for_create(:create, attrs)
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
 
       assert {:error, _changeset} =
                Payment
                |> Ash.Changeset.for_create(:create, attrs)
-               |> Ash.create()
+               |> Ash.create(authorize?: false)
     end
   end
 
@@ -150,7 +150,7 @@ defmodule Emakola.Payments.PaymentTest do
           gateway: :paystack,
           gateway_reference: reference
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       %{payment: payment}
     end
@@ -163,7 +163,7 @@ defmodule Emakola.Payments.PaymentTest do
                |> Ash.Changeset.for_update(:mark_success, %{
                  gateway_response: %{"gateway_response" => "Successful"}
                })
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
 
       assert updated.status == :success
       assert updated.gateway_response["gateway_response"] == "Successful"
@@ -177,7 +177,7 @@ defmodule Emakola.Payments.PaymentTest do
                |> Ash.Changeset.for_update(:mark_failed, %{
                  gateway_response: %{"gateway_response" => "Declined"}
                })
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
 
       assert updated.status == :failed
       assert updated.gateway_response["gateway_response"] == "Declined"
@@ -190,12 +190,12 @@ defmodule Emakola.Payments.PaymentTest do
         |> Ash.Changeset.for_update(:mark_success, %{
           gateway_response: %{"status" => "success"}
         })
-        |> Ash.update()
+        |> Ash.update(authorize?: false)
 
       assert {:ok, updated} =
                payment
                |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 250_000})
-               |> Ash.update()
+               |> Ash.update(authorize?: false)
 
       assert updated.status == :refunded
       assert updated.refunded_amount == 250_000
@@ -214,12 +214,12 @@ defmodule Emakola.Payments.PaymentTest do
           gateway: :paystack,
           gateway_reference: reference
         })
-        |> Ash.create()
+        |> Ash.create(authorize?: false)
 
       assert {:ok, found} =
                Payment
                |> Ash.Query.filter(gateway_reference == ^reference)
-               |> Ash.read_one()
+               |> Ash.read_one(authorize?: false)
 
       assert found.id == created.id
     end

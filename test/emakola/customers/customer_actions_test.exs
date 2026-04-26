@@ -20,7 +20,7 @@ defmodule Emakola.Customers.CustomerActionsTest do
       other_store = create_store!()
       _c3 = create_customer!(other_store, name: "Yaw Owusu", email: "yaw@example.com")
 
-      {:ok, customers} = Emakola.Customers.list_customers_by_store(store.id)
+      {:ok, customers} = Emakola.Customers.list_customers_by_store(store.id, authorize?: false)
 
       customer_ids = Enum.map(customers, & &1.id)
       assert c1.id in customer_ids
@@ -35,7 +35,7 @@ defmodule Emakola.Customers.CustomerActionsTest do
       Process.sleep(10)
       c2 = create_customer!(store, name: "Second", email: "second@example.com")
 
-      {:ok, customers} = Emakola.Customers.list_customers_by_store(store.id)
+      {:ok, customers} = Emakola.Customers.list_customers_by_store(store.id, authorize?: false)
 
       assert hd(customers).id == c2.id
       assert List.last(customers).id == c1.id
@@ -43,7 +43,10 @@ defmodule Emakola.Customers.CustomerActionsTest do
 
     test "returns empty list for store with no customers" do
       empty_store = create_store!()
-      {:ok, customers} = Emakola.Customers.list_customers_by_store(empty_store.id)
+
+      {:ok, customers} =
+        Emakola.Customers.list_customers_by_store(empty_store.id, authorize?: false)
+
       assert customers == []
     end
   end
@@ -55,7 +58,7 @@ defmodule Emakola.Customers.CustomerActionsTest do
       create_customer!(store, name: "Ama Mensah", email: "ama@example.com")
       create_customer!(store, name: "Kofi Boateng", email: "kofi@example.com")
 
-      {:ok, results} = Emakola.Customers.search_customers(store.id, "ama")
+      {:ok, results} = Emakola.Customers.search_customers(store.id, "ama", authorize?: false)
 
       assert length(results) == 1
       assert hd(results).name == "Ama Mensah"
@@ -65,7 +68,8 @@ defmodule Emakola.Customers.CustomerActionsTest do
       create_customer!(store, name: "Test User", email: "ama.mensah@example.com")
       create_customer!(store, name: "Other User", email: "kofi@example.com")
 
-      {:ok, results} = Emakola.Customers.search_customers(store.id, "ama.mensah")
+      {:ok, results} =
+        Emakola.Customers.search_customers(store.id, "ama.mensah", authorize?: false)
 
       assert length(results) == 1
       assert hd(results).name == "Test User"
@@ -77,7 +81,7 @@ defmodule Emakola.Customers.CustomerActionsTest do
       other_store = create_store!()
       create_customer!(other_store, name: "Ama Store2", email: "ama2@example.com")
 
-      {:ok, results} = Emakola.Customers.search_customers(store.id, "Ama")
+      {:ok, results} = Emakola.Customers.search_customers(store.id, "Ama", authorize?: false)
 
       assert length(results) == 1
       assert hd(results).name == "Ama Store1"
@@ -86,7 +90,8 @@ defmodule Emakola.Customers.CustomerActionsTest do
     test "returns empty list when no match", %{store: store} do
       create_customer!(store, name: "Ama Mensah", email: "ama@example.com")
 
-      {:ok, results} = Emakola.Customers.search_customers(store.id, "nonexistent")
+      {:ok, results} =
+        Emakola.Customers.search_customers(store.id, "nonexistent", authorize?: false)
 
       assert results == []
     end
@@ -98,7 +103,7 @@ defmodule Emakola.Customers.CustomerActionsTest do
     test "returns customer by id", %{store: store} do
       customer = create_customer!(store, name: "Ama Mensah", email: "ama@example.com")
 
-      {:ok, found} = Emakola.Customers.get_customer_by_id(customer.id)
+      {:ok, found} = Emakola.Customers.get_customer_by_id(customer.id, authorize?: false)
 
       assert found.id == customer.id
       assert found.name == "Ama Mensah"
@@ -106,7 +111,7 @@ defmodule Emakola.Customers.CustomerActionsTest do
 
     test "returns error for non-existent id" do
       assert {:error, _} =
-               Emakola.Customers.get_customer_by_id(Ash.UUID.generate())
+               Emakola.Customers.get_customer_by_id(Ash.UUID.generate(), authorize?: false)
     end
   end
 
@@ -124,7 +129,7 @@ defmodule Emakola.Customers.CustomerActionsTest do
         Emakola.Customers.Customer
         |> Ash.Query.filter(id == ^customer.id)
         |> Ash.Query.load(:order_count)
-        |> Ash.read_one()
+        |> Ash.read_one(authorize?: false)
 
       assert loaded.order_count == 2
     end
@@ -136,7 +141,7 @@ defmodule Emakola.Customers.CustomerActionsTest do
         Emakola.Customers.Customer
         |> Ash.Query.filter(id == ^customer.id)
         |> Ash.Query.load(:order_count)
-        |> Ash.read_one()
+        |> Ash.read_one(authorize?: false)
 
       assert loaded.order_count == 0
     end

@@ -135,11 +135,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <%!-- Page Header --%>
-      <div>
-        <h1 class="text-2xl font-bold text-slate-900">Inventory</h1>
-        <p class="text-sm text-slate-500 mt-1">Monitor stock levels and manage inventory</p>
-      </div>
+      <.admin_page_header title="Inventory" subtitle="Monitor stock levels and manage inventory" />
 
       <%!-- Stat Cards --%>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
