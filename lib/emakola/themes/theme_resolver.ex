@@ -14,6 +14,7 @@ defmodule Emakola.Themes.ThemeResolver do
     "beauty" => Emakola.Themes.Beauty,
     "bold" => Emakola.Themes.Bold,
     "fresh" => Emakola.Themes.Fresh,
+    "home_living" => Emakola.Themes.HomeLiving,
     "market" => Emakola.Themes.Market,
     "pharmacy" => Emakola.Themes.Pharmacy,
     "starter" => Emakola.Themes.Starter,

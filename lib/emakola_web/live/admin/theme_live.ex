@@ -30,6 +30,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       name: "Beauty",
       description: "Skincare & cosmetics",
       icon: "spa"
+    },
+    %{
+      id: "home_living",
+      name: "Home Living",
+      description: "Furniture & home goods",
+      icon: "chair"
     }
   ]
 

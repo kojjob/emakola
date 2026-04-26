@@ -114,6 +114,18 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert result.sections.hero == true
       assert result.sections.featured_products == true
     end
+
+    test "home_living theme returns correct defaults" do
+      result = ThemeResolver.resolve(%{"theme" => "home_living"})
+
+      assert result.theme_id == "home_living"
+      assert result.theme_name == "Home Living"
+      assert result.colors.primary == "#1F2937"
+      assert result.colors.accent == "#84CC16"
+      assert result.colors.background == "#FAF7F2"
+      assert result.sections.hero == true
+      assert result.sections.featured_products == true
+    end
   end
 
   describe "theme_module/1" do
@@ -139,6 +151,10 @@ defmodule Emakola.Themes.ThemeResolverTest do
 
     test "returns Beauty module for beauty" do
       assert ThemeResolver.theme_module("beauty") == Emakola.Themes.Beauty
+    end
+
+    test "returns HomeLiving module for home_living" do
+      assert ThemeResolver.theme_module("home_living") == Emakola.Themes.HomeLiving
     end
   end
 end
