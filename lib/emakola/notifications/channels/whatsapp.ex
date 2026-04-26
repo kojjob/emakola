@@ -3,7 +3,9 @@ defmodule Emakola.Notifications.Channels.WhatsApp do
   WhatsApp Business Cloud API client for order notifications.
 
   Sends template messages via the WhatsApp Cloud API at
-  `https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages`.
+  `https://graph.facebook.com/{api_version}/{PHONE_NUMBER_ID}/messages`.
+  The version is configurable so we can update without a redeploy when
+  Meta deprecates a Graph API version.
 
   Template messages must be pre-approved by Meta. This module formats
   the API request with template parameters; actual template names are
@@ -13,7 +15,8 @@ defmodule Emakola.Notifications.Channels.WhatsApp do
 
       config :emakola, Emakola.Notifications.Channels.WhatsApp,
         api_token: System.get_env("WHATSAPP_API_TOKEN"),
-        phone_number_id: System.get_env("WHATSAPP_PHONE_NUMBER_ID")
+        phone_number_id: System.get_env("WHATSAPP_PHONE_NUMBER_ID"),
+        api_version: System.get_env("WHATSAPP_API_VERSION") || "v21.0"
 
   ## Usage
 
@@ -26,7 +29,15 @@ defmodule Emakola.Notifications.Channels.WhatsApp do
 
   require Logger
 
-  @base_url "https://graph.facebook.com/v18.0"
+  @default_api_version "v21.0"
+  @base_host "https://graph.facebook.com"
+
+  # Per-store WhatsApp rate limit. Meta enforces its own per-phone-number
+  # limits; ours sits underneath as a safety net catching notification
+  # loops or runaway workers. 200/hour matches typical transactional
+  # volume for a small-merchant catalog.
+  @rate_limit 200
+  @rate_window_ms :timer.hours(1)
 
   # ── Public API ─────────────────────────────────────────────────
 
@@ -99,9 +110,26 @@ defmodule Emakola.Notifications.Channels.WhatsApp do
 
   # ── HTTP Client ────────────────────────────────────────────────
 
-  defp send_template(phone, template_name, parameters, _opts) do
+  defp send_template(phone, template_name, parameters, opts) do
+    case rate_limit_check(opts) do
+      :allow ->
+        do_send_template(phone, template_name, parameters)
+
+      :deny ->
+        store_id = Keyword.get(opts, :store_id)
+
+        Logger.warning(
+          "[WhatsApp] rate limit exceeded for store=#{inspect(store_id)} " <>
+            "(#{@rate_limit} per #{div(@rate_window_ms, 60_000)}m); dropping message"
+        )
+
+        {:error, :rate_limited}
+    end
+  end
+
+  defp do_send_template(phone, template_name, parameters) do
     body = build_template_message(phone, template_name, parameters)
-    url = "#{@base_url}/#{phone_number_id()}/messages"
+    url = "#{@base_host}/#{api_version()}/#{phone_number_id()}/messages"
 
     headers = [
       {"authorization", "Bearer #{api_token()}"},
@@ -122,6 +150,27 @@ defmodule Emakola.Notifications.Channels.WhatsApp do
       {:error, reason} ->
         Logger.error("[WhatsApp] HTTP error: #{inspect(reason)}")
         {:error, reason}
+    end
+  end
+
+  defp rate_limit_check(opts) do
+    cond do
+      Keyword.get(opts, :bypass_rate_limit, false) ->
+        :allow
+
+      store_id = Keyword.get(opts, :store_id) ->
+        case Emakola.RateLimit.check_rate(
+               "whatsapp:store:#{store_id}",
+               @rate_limit,
+               @rate_window_ms
+             ) do
+          {:allow, _count} -> :allow
+          {:deny, _limit} -> :deny
+        end
+
+      true ->
+        Logger.warning("[WhatsApp] no :store_id in opts; rate limit not applied")
+        :allow
     end
   end
 
@@ -160,6 +209,10 @@ defmodule Emakola.Notifications.Channels.WhatsApp do
 
   defp phone_number_id do
     config()[:phone_number_id] || ""
+  end
+
+  defp api_version do
+    config()[:api_version] || @default_api_version
   end
 
   defp config do
