@@ -7,6 +7,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.Admin.ProductLive.BulkUploadModal, only: [bulk_upload_modal: 1]
+
   require Ash.Query
 
   @impl true
@@ -973,164 +975,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         </:footer>
       </.modal>
 
-      <%!-- Bulk Upload Slide-Over --%>
-      <.modal
-        id="bulk-upload-modal"
-        title="Bulk Upload Products"
-        kind={:slide_over}
-        on_cancel={JS.push("cancel_bulk_upload")}
-      >
-        <div class="space-y-5">
-          <%!-- CSV Template Download --%>
-          <div class="bg-slate-50 rounded-lg p-4 space-y-2">
-            <h3 class="text-sm font-semibold text-slate-700">CSV Template</h3>
-            <p class="text-xs text-slate-500">
-              Download the template, fill in your products, then upload below.
-            </p>
-            <a
-              href={"data:text/csv;charset=utf-8,#{URI.encode(Emakola.Catalog.CsvImporter.template_header() <> "\n")}"}
-              download="emakola_products_template.csv"
-              class="inline-flex items-center gap-2 text-sm font-medium text-emerald-600
-                     hover:text-emerald-700 transition-colors"
-            >
-              <.icon name="hero-arrow-down-tray" class="size-4" /> Download Template (.csv)
-            </a>
-            <p class="text-xs text-slate-400 font-mono mt-1">
-              {Emakola.Catalog.CsvImporter.template_header()}
-            </p>
-          </div>
-
-          <%!-- File Upload Area --%>
-          <form phx-change="validate_csv" phx-submit="parse_csv" id="csv-upload-form">
-            <div class="space-y-3">
-              <label class="block text-sm font-medium text-slate-700">Upload CSV File</label>
-              <div
-                class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center
-                       hover:border-emerald-400 transition-colors"
-                phx-drop-target={@uploads.csv_file.ref}
-              >
-                <.icon name="hero-cloud-arrow-up" class="size-8 mx-auto text-slate-400 mb-2" />
-                <p class="text-sm text-slate-600">
-                  Drag and drop your CSV file here, or
-                </p>
-                <.live_file_input upload={@uploads.csv_file} class="mt-2" />
-              </div>
-
-              <%!-- Upload entries --%>
-              <div :for={entry <- @uploads.csv_file.entries} class="flex items-center gap-3">
-                <.icon name="hero-document-text" class="size-5 text-slate-500" />
-                <span class="text-sm text-slate-700 flex-1 truncate">{entry.client_name}</span>
-                <span class="text-xs text-slate-400">
-                  {Float.round(entry.client_size / 1024, 1)} KB
-                </span>
-                <button
-                  type="button"
-                  phx-click="cancel_upload"
-                  phx-value-ref={entry.ref}
-                  class="text-slate-400 hover:text-red-500"
-                >
-                  <.icon name="hero-x-mark" class="size-4" />
-                </button>
-              </div>
-
-              <%!-- Upload errors --%>
-              <p
-                :for={err <- upload_errors(@uploads.csv_file)}
-                class="text-xs text-red-600"
-              >
-                {upload_error_to_string(err)}
-              </p>
-
-              <button
-                :if={@uploads.csv_file.entries != []}
-                type="submit"
-                class="w-full px-4 py-2.5 rounded-lg text-sm font-semibold bg-slate-700 text-white
-                       hover:bg-slate-800 active:scale-95 transition-all"
-              >
-                Parse CSV
-              </button>
-            </div>
-          </form>
-
-          <%!-- CSV Errors --%>
-          <div
-            :if={@csv_errors != []}
-            class="bg-red-50 border border-red-200 rounded-lg p-3 space-y-1"
-          >
-            <p class="text-sm font-medium text-red-700">Errors:</p>
-            <p :for={error <- @csv_errors} class="text-xs text-red-600">{error}</p>
-          </div>
-
-          <%!-- CSV Preview Table --%>
-          <div :if={@csv_preview != []} class="space-y-3">
-            <h3 class="text-sm font-semibold text-slate-700">
-              Preview ({length(@csv_preview)} products)
-            </h3>
-            <div class="overflow-x-auto border border-slate-200 rounded-lg">
-              <table class="w-full text-xs">
-                <thead>
-                  <tr class="bg-slate-50 text-left text-slate-500 uppercase tracking-wider">
-                    <th class="px-3 py-2">Title</th>
-                    <th class="px-3 py-2">Category</th>
-                    <th class="px-3 py-2">SKU</th>
-                    <th class="px-3 py-2 text-right">Price</th>
-                    <th class="px-3 py-2 text-right">Stock</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    :for={row <- @csv_preview}
-                    class="border-t border-slate-100"
-                  >
-                    <td class="px-3 py-2 font-medium text-slate-700 truncate max-w-[120px]">
-                      {row["title"]}
-                    </td>
-                    <td class="px-3 py-2 text-slate-500">{row["category"]}</td>
-                    <td class="px-3 py-2 text-slate-500 font-mono">{row["sku"]}</td>
-                    <td class="px-3 py-2 text-right font-mono">{row["price"]}</td>
-                    <td class="px-3 py-2 text-right font-mono">{row["stock_quantity"]}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-        <:footer>
-          <div class="flex flex-col sm:flex-row gap-3">
-            <button
-              type="button"
-              phx-click={
-                JS.push("cancel_bulk_upload")
-                |> hide_modal("bulk-upload-modal")
-              }
-              class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold border border-slate-300
-                     text-slate-700 hover:bg-slate-50 active:scale-95 transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              :if={@csv_preview != []}
-              type="button"
-              phx-click="import_products"
-              disabled={@bulk_importing}
-              class={[
-                "flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white
-                 active:scale-95 transition-all shadow-sm",
-                if(@bulk_importing,
-                  do: "bg-emerald-400 cursor-not-allowed",
-                  else: "bg-emerald-600 hover:bg-emerald-700"
-                )
-              ]}
-            >
-              <%= if @bulk_importing do %>
-                Importing...
-              <% else %>
-                Import {length(@csv_preview)} Products
-              <% end %>
-            </button>
-          </div>
-        </:footer>
-      </.modal>
+      <.bulk_upload_modal
+        uploads={@uploads}
+        csv_preview={@csv_preview}
+        csv_errors={@csv_errors}
+        bulk_importing={@bulk_importing}
+      />
     </div>
     """
   end
