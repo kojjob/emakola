@@ -684,6 +684,27 @@ defmodule EmakolaWeb.Admin.DesignLive do
               </.option_tile>
             </div>
           </div>
+
+          <%!-- Hand-off CTA → back to Theme picker --%>
+          <.link
+            navigate="/admin/theme"
+            class="block bg-gradient-to-br from-emerald-50 to-emerald-100 hover:from-emerald-100 hover:to-emerald-200 rounded-2xl p-4 transition-colors group"
+          >
+            <div class="flex items-start gap-3">
+              <span class="material-symbols-outlined text-base text-emerald-600 group-hover:-translate-x-0.5 transition-transform shrink-0 mt-0.5">
+                arrow_back
+              </span>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-emerald-900">Pick a different theme</p>
+                <p class="text-[11px] text-emerald-700 mt-0.5 leading-relaxed">
+                  Change colors, hero style, and section toggles in the Theme picker
+                </p>
+              </div>
+              <div class="w-9 h-9 rounded-xl bg-emerald-200 group-hover:bg-emerald-300 flex items-center justify-center shrink-0 transition-colors">
+                <span class="material-symbols-outlined text-lg text-emerald-700">style</span>
+              </div>
+            </div>
+          </.link>
         </aside>
       </div>
 
