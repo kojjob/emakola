@@ -28,6 +28,7 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
              |> assign(:order, order)
              |> assign(:tracking, tracking)
              |> assign(:categories, categories)
+             |> assign(:cart_count, 0)
              |> assign(:details_open, false)
              |> assign(:page_title, "Track Order ##{order_number} - #{store.name}")}
 

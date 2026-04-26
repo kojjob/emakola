@@ -10,6 +10,13 @@ defmodule Emakola.Themes.DefaultRenderers.RecipeList do
 
   def render(assigns) do
     ~H"""
+    <Emakola.Themes.Atelier.Shared.navbar
+      store={@store}
+      categories={@categories}
+      cart_count={@cart_count}
+      active_path="recipes"
+    />
+
     <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
       <h1 class="font-[Cormorant,Georgia,serif] text-3xl sm:text-4xl font-semibold text-stone-900 mb-8">
         Recipes
@@ -48,6 +55,8 @@ defmodule Emakola.Themes.DefaultRenderers.RecipeList do
         </a>
       </div>
     </div>
+
+    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
     """
   end
 end

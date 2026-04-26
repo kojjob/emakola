@@ -385,9 +385,12 @@ defmodule Emakola.Themes.Atelier.Nav do
       </div>
     </nav>
 
-    <%!-- Search Overlay --%>
+    <%!-- Atelier-nav search overlay — distinct from the layout's
+         SearchComponents.search_overlay (which uses #search-overlay /
+         #search-input). Different IDs prevent LiveView's duplicate-id
+         strict mode from raising. --%>
     <div
-      id="search-overlay"
+      id="atelier-nav-search-overlay"
       class="hidden fixed inset-0 z-[60] bg-black/50"
       phx-click={hide_search()}
     >
@@ -399,7 +402,7 @@ defmodule Emakola.Themes.Atelier.Nav do
           action={"/s/#{@store.slug}/products"}
           method="get"
           class="bg-white rounded-xl shadow-2xl overflow-hidden"
-          phx-click={JS.dispatch("click", to: "#search-overlay")}
+          phx-click={JS.dispatch("click", to: "#atelier-nav-search-overlay")}
           onclick="event.stopPropagation()"
         >
           <div class="flex items-center gap-3 px-5 py-4">
@@ -416,8 +419,11 @@ defmodule Emakola.Themes.Atelier.Nav do
             >
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
+            <%!-- Decorative input only — actual search lives in the
+                 layout's SearchComponents.search_overlay (#search-input).
+                 A unique id avoids LiveView's duplicate-id strict mode. --%>
             <input
-              id="search-input"
+              id="atelier-nav-search-decorative"
               type="text"
               name="q"
               placeholder="Search products..."
@@ -457,10 +463,10 @@ defmodule Emakola.Themes.Atelier.Nav do
   """
   def show_search do
     JS.show(
-      to: "#search-overlay",
+      to: "#atelier-nav-search-overlay",
       transition: {"ease-out duration-200", "opacity-0", "opacity-100"}
     )
-    |> JS.focus(to: "#search-input")
+    |> JS.focus(to: "#atelier-nav-search-decorative")
   end
 
   @doc """
@@ -468,7 +474,7 @@ defmodule Emakola.Themes.Atelier.Nav do
   """
   def hide_search do
     JS.hide(
-      to: "#search-overlay",
+      to: "#atelier-nav-search-overlay",
       transition: {"ease-in duration-150", "opacity-100", "opacity-0"}
     )
   end

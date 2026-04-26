@@ -15,6 +15,12 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
 
   def render(assigns) do
     ~H"""
+    <Emakola.Themes.Atelier.Shared.navbar
+      store={@store}
+      categories={@categories}
+      cart_count={@cart_count}
+    />
+
     <div class="min-h-screen bg-[#FAFAF9]">
       <%!-- ===== HERO CELEBRATION ===== --%>
       <section class="relative overflow-hidden bg-gradient-to-b from-[#1C1917] via-[#292524] to-[#1C1917] text-white">

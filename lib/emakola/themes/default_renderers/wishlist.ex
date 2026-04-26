@@ -17,6 +17,13 @@ defmodule Emakola.Themes.DefaultRenderers.Wishlist do
 
   def render(assigns) do
     ~H"""
+    <Emakola.Themes.Atelier.Shared.navbar
+      store={@store}
+      categories={@categories}
+      cart_count={@cart_count}
+      active_path="wishlist"
+    />
+
     <div class="bg-[#FAFAF9] min-h-screen font-sans antialiased">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <%!-- Header --%>
@@ -156,6 +163,8 @@ defmodule Emakola.Themes.DefaultRenderers.Wishlist do
         </div>
       </div>
     </div>
+
+    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
     """
   end
 
