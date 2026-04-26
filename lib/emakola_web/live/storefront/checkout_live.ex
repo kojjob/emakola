@@ -264,6 +264,45 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     end
   end
 
+  # Webhook-driven payment success — typically fires within 1-2s of the
+  # customer confirming on the gateway, which is faster than the next 3s
+  # poll. We complete the flow and redirect to the confirmation page.
+  @impl true
+  def handle_info({:payment_succeeded, _reference, _payment}, socket) do
+    order = socket.assigns.order
+
+    if order && socket.assigns.payment_status == :awaiting_payment do
+      if socket.assigns[:cart_session_id],
+        do: CartStore.clear_cart(socket.assigns.cart_session_id)
+
+      {:noreply,
+       socket
+       |> assign(:processing, false)
+       |> redirect(
+         to: "/s/#{socket.assigns.store.slug}/orders/#{order.order_number}/confirmation"
+       )}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:payment_failed, _reference, _payment}, socket) do
+    if socket.assigns.payment_status == :awaiting_payment do
+      {:noreply,
+       socket
+       |> assign(:processing, false)
+       |> assign(:payment_status, :failed)
+       |> put_flash(:error, "Payment failed. Please try again.")}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:payment_refunded, _reference, _payment}, socket),
+    do: {:noreply, socket}
+
   # -- Render ---------------------------------------------------------------
 
   @impl true
@@ -1408,6 +1447,12 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
           # timer/poll messages leak into a process that has no client to
           # render to and never get handled.
           if connected?(socket) do
+            # Subscribe to webhook-driven payment updates so we react
+            # immediately when Paystack confirms (instead of waiting up
+            # to 3s for the next poll). Polling stays as a fallback in
+            # case the webhook is delayed or the LV process restarted.
+            Phoenix.PubSub.subscribe(Emakola.PubSub, "payment:#{reference}")
+
             Process.send_after(self(), :poll_payment_status, @payment_poll_interval_ms)
             Process.send_after(self(), :tick_timer, 1000)
           end
