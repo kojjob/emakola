@@ -75,6 +75,16 @@ defmodule Emakola.Catalog.Product do
       public?(true)
     end
 
+    # Counter incremented when a customer taps a button on the product's
+    # share_strip (Phase 1). Displayed on the PDP as social proof
+    # ("1.2K shares") once > 0. Phase 3 of social media integration plan.
+    attribute :share_count, :integer do
+      default(0)
+      allow_nil?(false)
+      public?(true)
+      constraints(min: 0)
+    end
+
     timestamps()
   end
 
@@ -137,6 +147,7 @@ defmodule Emakola.Catalog.Product do
 
       validate({Emakola.Catalog.Validations.NotBlank, attribute: :title})
       change({Emakola.Catalog.Changes.GenerateSlug, from: :title})
+      change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :upsert})
     end
 
     update :update do
@@ -145,6 +156,7 @@ defmodule Emakola.Catalog.Product do
 
       validate({Emakola.Catalog.Validations.NotBlank, attribute: :title})
       change({Emakola.Catalog.Changes.GenerateSlug, from: :title})
+      change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :upsert})
     end
 
     update :archive do
@@ -152,6 +164,7 @@ defmodule Emakola.Catalog.Product do
       accept([])
 
       change(set_attribute(:status, :archived))
+      change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :delete})
     end
 
     update :activate do
@@ -161,6 +174,18 @@ defmodule Emakola.Catalog.Product do
       validate(Emakola.Catalog.Validations.HasVariants)
       change(set_attribute(:status, :active))
       change(set_attribute(:published_at, &DateTime.utc_now/0))
+      change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :upsert})
+    end
+
+    # Atomic increment of share_count, fired by the storefront PDP when a
+    # customer taps a button on the share_strip. No actor required — this
+    # is a public/anonymous action driven by storefront UI. Idempotency
+    # is intentionally NOT enforced; double-counted shares are acceptable
+    # noise compared to the cost of dedupe infrastructure.
+    update :increment_share_count do
+      require_atomic?(true)
+      accept([])
+      change(atomic_update(:share_count, expr(share_count + 1)))
     end
 
     read :search do

@@ -71,6 +71,16 @@ defmodule Emakola.Catalog.Review do
       public?(true)
     end
 
+    # Customer-uploaded photos attached to this review. Optional.
+    # Each entry: %{"url" => ..., "thumbnail_url" => ..., "alt" => ...}
+    # PDP renders a 4-up gallery beneath the review text when present.
+    # Phase 3 of social media integration plan.
+    attribute :images, {:array, :map} do
+      default([])
+      allow_nil?(false)
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -123,7 +133,7 @@ defmodule Emakola.Catalog.Review do
     defaults([:read])
 
     create :create do
-      accept([:store_id, :product_id, :customer_id, :order_id, :rating, :title, :body])
+      accept([:store_id, :product_id, :customer_id, :order_id, :rating, :title, :body, :images])
       change(set_attribute(:verified_purchase, true))
       change(set_attribute(:status, :published))
     end

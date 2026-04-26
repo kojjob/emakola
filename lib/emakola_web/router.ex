@@ -115,6 +115,7 @@ defmodule EmakolaWeb.Router do
     get "/sitemap.xml", SitemapController, :show
     get "/robots.txt", SitemapController, :robots
     get "/llms.txt", SitemapController, :llms
+    get "/feed/instagram.xml", InstagramFeedController, :show
   end
 
   # Customer storefront (public — no auth required)

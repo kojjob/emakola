@@ -92,6 +92,13 @@ defmodule Emakola.Accounts.Store do
       public?(true)
     end
 
+    # Set when the merchant connects their WhatsApp Business Catalog.
+    # When present, product publish/update events enqueue a mirror sync.
+    # Nil = no catalog connected; sync worker skips silently.
+    attribute :whatsapp_catalog_id, :string do
+      public?(true)
+    end
+
     attribute :active, :boolean do
       default(true)
       public?(true)
@@ -162,6 +169,7 @@ defmodule Emakola.Accounts.Store do
         :facebook_url,
         :youtube_url,
         :x_url,
+        :whatsapp_catalog_id,
         :active,
         :theme_config
       ])
