@@ -13,6 +13,7 @@ defmodule Emakola.Themes.ThemeResolver do
     "atelier" => Emakola.Themes.Atelier,
     "beauty" => Emakola.Themes.Beauty,
     "bold" => Emakola.Themes.Bold,
+    "electronics" => Emakola.Themes.Electronics,
     "fresh" => Emakola.Themes.Fresh,
     "home_living" => Emakola.Themes.HomeLiving,
     "market" => Emakola.Themes.Market,

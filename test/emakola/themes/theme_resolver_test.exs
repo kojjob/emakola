@@ -126,6 +126,18 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert result.sections.hero == true
       assert result.sections.featured_products == true
     end
+
+    test "electronics theme returns correct defaults" do
+      result = ThemeResolver.resolve(%{"theme" => "electronics"})
+
+      assert result.theme_id == "electronics"
+      assert result.theme_name == "Electronics"
+      assert result.colors.primary == "#134E4A"
+      assert result.colors.accent == "#F97316"
+      assert result.colors.background == "#F5EFE5"
+      assert result.sections.hero == true
+      assert result.sections.featured_products == true
+    end
   end
 
   describe "theme_module/1" do
@@ -155,6 +167,10 @@ defmodule Emakola.Themes.ThemeResolverTest do
 
     test "returns HomeLiving module for home_living" do
       assert ThemeResolver.theme_module("home_living") == Emakola.Themes.HomeLiving
+    end
+
+    test "returns Electronics module for electronics" do
+      assert ThemeResolver.theme_module("electronics") == Emakola.Themes.Electronics
     end
   end
 end

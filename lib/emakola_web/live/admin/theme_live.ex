@@ -36,6 +36,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       name: "Home Living",
       description: "Furniture & home goods",
       icon: "chair"
+    },
+    %{
+      id: "electronics",
+      name: "Electronics",
+      description: "Phones, audio & gadgets",
+      icon: "devices"
     }
   ]
 
