@@ -56,6 +56,8 @@ defmodule EmakolaWeb.SidebarComponents do
     <a href={@href} title={@title} class={"sidebar-link" <> if(@active, do: " active", else: "")}>
       <svg
         class="link-icon"
+        width="20"
+        height="20"
         fill="none"
         stroke="currentColor"
         stroke-width="1.8"
