@@ -1,6 +1,6 @@
 defmodule Emakola.Themes.Electronics.ProductList do
   @moduledoc """
-  Electronics theme product listing — cream bg, teal headers, orange CTAs.
+  Electronics theme product listing — cream bg, teal headers, sky-blue CTAs.
   """
 
   use Phoenix.Component
@@ -24,7 +24,7 @@ defmodule Emakola.Themes.Electronics.ProductList do
       <%!-- Page header --%>
       <section class="bg-[#134E4A] text-white">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-          <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#F97316] mb-3">
+          <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0EA5E9] mb-3">
             Shop electronics
           </p>
           <h1 class="electronics-heading text-4xl sm:text-5xl font-extrabold mb-3">
@@ -75,7 +75,7 @@ defmodule Emakola.Themes.Electronics.ProductList do
             <p class="text-sm text-[#4B5563]">Try a different category.</p>
             <a
               href={"/s/#{@store.slug}/products"}
-              class="inline-flex items-center mt-6 px-6 py-3 rounded-full bg-[#F97316] text-white text-sm font-bold hover:bg-[#EA580C] transition-colors"
+              class="inline-flex items-center mt-6 px-6 py-3 rounded-full bg-[#0EA5E9] text-white text-sm font-bold hover:bg-[#0284C7] transition-colors"
             >
               Browse all
             </a>
@@ -113,10 +113,10 @@ defmodule Emakola.Themes.Electronics.ProductList do
   defp page_title(_, _, _), do: "All Electronics"
 
   defp pill_class(true) do
-    "inline-flex items-center px-4 py-2 rounded-full bg-[#F97316] text-white text-sm font-bold transition-colors min-h-[40px]"
+    "inline-flex items-center px-4 py-2 rounded-full bg-[#0EA5E9] text-white text-sm font-bold transition-colors min-h-[40px]"
   end
 
   defp pill_class(false) do
-    "inline-flex items-center px-4 py-2 rounded-full bg-white border border-[#E5E7EB] text-[#1F2937] text-sm font-medium hover:border-[#F97316] hover:text-[#F97316] transition-colors min-h-[40px]"
+    "inline-flex items-center px-4 py-2 rounded-full bg-white border border-[#E5E7EB] text-[#1F2937] text-sm font-medium hover:border-[#0EA5E9] hover:text-[#0EA5E9] transition-colors min-h-[40px]"
   end
 end

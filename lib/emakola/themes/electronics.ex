@@ -2,14 +2,14 @@ defmodule Emakola.Themes.Electronics do
   @moduledoc """
   Electronics theme — modern tech-forward store inspired by user-supplied
   Dribbble reference ("Upgrade Your Gear, Upgrade Yourself"): deep teal
-  hero with vivid orange CTAs, cream body sections, lifestyle imagery
+  hero with sky-blue CTAs, cream body sections, lifestyle imagery
   alongside product shots, monospace prices for that "spec sheet" feel.
 
   Targets phones, accessories, computers, audio, gadgets.
 
   Design tokens:
   - Primary: `#134E4A` (deep teal) — hero, footer, secondary CTAs
-  - Accent:  `#F97316` (vivid orange) — primary CTAs, "Add to Cart"
+  - Accent:  `#0EA5E9` (sky blue) — primary CTAs, "Add to Cart"
   - Background: `#F5EFE5` (cream) — body sections
   - Heading: Outfit (geometric sans)
   - Body:    Inter
@@ -34,7 +34,7 @@ defmodule Emakola.Themes.Electronics do
       name: "Electronics",
       colors: %{
         primary: "#134E4A",
-        accent: "#F97316",
+        accent: "#0EA5E9",
         background: "#F5EFE5",
         text: "#1F2937",
         text_secondary: "#4B5563",
@@ -111,7 +111,7 @@ defmodule Emakola.Themes.Electronics do
       footer: %{social_links: %{instagram: "", twitter: "", facebook: ""}},
       css_variables: %{
         "--theme-primary" => "#134E4A",
-        "--theme-accent" => "#F97316",
+        "--theme-accent" => "#0EA5E9",
         "--theme-bg" => "#F5EFE5",
         "--theme-font-heading" => "'Outfit', sans-serif",
         "--theme-font-body" => "'Inter', sans-serif"
