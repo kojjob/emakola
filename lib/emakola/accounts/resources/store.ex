@@ -70,6 +70,28 @@ defmodule Emakola.Accounts.Store do
       public?(true)
     end
 
+    # Social URLs — null for stores that haven't connected the platform.
+    # Footers render zero icons when all are nil (same as before).
+    attribute :instagram_url, :string do
+      public?(true)
+    end
+
+    attribute :tiktok_url, :string do
+      public?(true)
+    end
+
+    attribute :facebook_url, :string do
+      public?(true)
+    end
+
+    attribute :youtube_url, :string do
+      public?(true)
+    end
+
+    attribute :x_url, :string do
+      public?(true)
+    end
+
     attribute :active, :boolean do
       default(true)
       public?(true)
@@ -135,6 +157,11 @@ defmodule Emakola.Accounts.Store do
         :city,
         :region,
         :whatsapp_number,
+        :instagram_url,
+        :tiktok_url,
+        :facebook_url,
+        :youtube_url,
+        :x_url,
         :active,
         :theme_config
       ])

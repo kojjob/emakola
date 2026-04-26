@@ -116,6 +116,15 @@ defmodule Emakola.Orders.Order do
       public?(true)
     end
 
+    # UTM and click-source attribution captured during the customer's
+    # session. Populated by EmakolaWeb.Plugs.UtmCapture during checkout.
+    # Defaults to %{} so legacy rows are valid and downstream rendering
+    # can pattern-match safely.
+    attribute :attribution, :map do
+      public?(true)
+      default(%{})
+    end
+
     timestamps()
   end
 
@@ -173,7 +182,8 @@ defmodule Emakola.Orders.Order do
         :currency,
         :delivery_fee,
         :discount_amount,
-        :coupon_id
+        :coupon_id,
+        :attribution
       ])
 
       change(fn changeset, _context ->
