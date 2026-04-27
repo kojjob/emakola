@@ -15,6 +15,7 @@ defmodule EmakolaWeb.Router do
     plug EmakolaWeb.Plugs.ContentSecurityPolicy
     plug EmakolaWeb.Plugs.CartSession
     plug EmakolaWeb.Plugs.UtmCapture
+    plug EmakolaWeb.Plugs.RecentlyViewedStores
   end
 
   pipeline :api do
