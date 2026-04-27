@@ -16,6 +16,7 @@ defmodule Emakola.Themes.ThemeResolver do
     "electronics" => Emakola.Themes.Electronics,
     "fashion" => Emakola.Themes.Fashion,
     "fresh" => Emakola.Themes.Fresh,
+    "heritage" => Emakola.Themes.Heritage,
     "home_living" => Emakola.Themes.HomeLiving,
     "market" => Emakola.Themes.Market,
     "pharmacy" => Emakola.Themes.Pharmacy,
@@ -61,6 +62,11 @@ defmodule Emakola.Themes.ThemeResolver do
       nav: deep_merge_atomize(defaults.nav, Map.get(config, "nav", %{})),
       sections: deep_merge_atomize(defaults.sections, Map.get(config, "sections", %{})),
       trust: deep_merge_atomize(defaults.trust, Map.get(config, "trust", %{})),
+      testimonials:
+        deep_merge_atomize(
+          Map.get(defaults, :testimonials, %{title: nil, items: []}),
+          Map.get(config, "testimonials", %{})
+        ),
       newsletter: deep_merge_atomize(defaults.newsletter, Map.get(config, "newsletter", %{})),
       footer: footer,
       design_tokens: Emakola.Themes.DesignTokens.resolve(Map.get(config, "design_tokens", %{}))

@@ -20,7 +20,8 @@ defmodule Emakola.Themes.ProductDetailVariantsTest do
     {Emakola.Themes.Beauty, "beauty"},
     {Emakola.Themes.HomeLiving, "home_living"},
     {Emakola.Themes.Electronics, "electronics"},
-    {Emakola.Themes.Fashion, "fashion"}
+    {Emakola.Themes.Fashion, "fashion"},
+    {Emakola.Themes.Heritage, "heritage"}
   ]
 
   setup do
