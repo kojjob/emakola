@@ -16,7 +16,13 @@ defmodule EmakolaWeb.Helpers.SEO do
   Supports: `:page_title`, `:meta_description`, `:og_image`,
   `:canonical_url`, `:robots`.
   """
-  @spec meta_tags(map()) :: map()
+  @spec meta_tags(map()) :: %{
+          page_title: term(),
+          meta_description: term(),
+          og_image: term(),
+          canonical_url: term(),
+          robots: term()
+        }
   def meta_tags(assigns) do
     %{
       page_title: Map.get(assigns, :page_title, @default_title),
@@ -76,7 +82,7 @@ defmodule EmakolaWeb.Helpers.SEO do
   @doc """
   Generates schema.org Store JSON-LD structured data.
   """
-  @spec json_ld_store(map()) :: map()
+  @spec json_ld_store(map()) :: %{String.t() => term()}
   def json_ld_store(store) do
     %{
       "@context" => "https://schema.org",
