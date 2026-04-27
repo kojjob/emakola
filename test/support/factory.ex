@@ -60,6 +60,7 @@ defmodule Emakola.Factory do
   # ── Store ─────────────────────────────────────────────────────
 
   @store_create_fields ~w(name slug currency)a
+  @store_directory_meta_fields ~w(featured featured_rank verified)a
 
   def create_store!(attrs \\ %{}) do
     default = %{
@@ -69,18 +70,28 @@ defmodule Emakola.Factory do
     }
 
     params = Map.merge(default, Map.new(attrs))
-    {create_params, settings_params} = Map.split(params, @store_create_fields)
+    {create_params, rest} = Map.split(params, @store_create_fields)
+    {directory_params, settings_params} = Map.split(rest, @store_directory_meta_fields)
 
     store =
       Emakola.Stores.Store
       |> Ash.Changeset.for_create(:create, create_params)
       |> Ash.create!(authorize?: false)
 
-    if settings_params == %{} do
+    store =
+      if settings_params == %{} do
+        store
+      else
+        store
+        |> Ash.Changeset.for_update(:update_settings, settings_params)
+        |> Ash.update!(authorize?: false)
+      end
+
+    if directory_params == %{} do
       store
     else
       store
-      |> Ash.Changeset.for_update(:update_settings, settings_params)
+      |> Ash.Changeset.for_update(:update_directory_meta, directory_params)
       |> Ash.update!(authorize?: false)
     end
   end
