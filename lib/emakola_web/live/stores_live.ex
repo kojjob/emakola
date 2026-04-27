@@ -105,13 +105,27 @@ defmodule EmakolaWeb.StoresLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-[#0c1526] text-slate-100">
-      <%!-- Header --%>
-      <header class="sticky top-0 z-40 backdrop-blur-md bg-[#0c1526]/85 border-b border-white/5">
+    <div class="min-h-screen bg-white text-slate-900">
+      <%!-- Header — clean white with subtle border --%>
+      <header class="sticky top-0 z-40 backdrop-blur-md bg-white/90 border-b border-slate-200/80">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between h-16">
-            <a href="/" class="flex items-center gap-2 font-bold text-lg tracking-tight">
-              <span class="text-amber-400">●</span> emakola
+            <a
+              href="/"
+              class="flex items-center gap-2 font-bold text-lg tracking-tight text-slate-900"
+            >
+              <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-amber-500 shadow-sm">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  class="w-4 h-4 text-white"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M3 7l3-4h12l3 4v2a3 3 0 0 1-5 2 3 3 0 0 1-5 0 3 3 0 0 1-5 0 3 3 0 0 1-3-2V7Zm2 5a5 5 0 0 0 3-1 5 5 0 0 0 3 1 5 5 0 0 0 3-1 5 5 0 0 0 3 1v8a1 1 0 0 1-1 1h-3v-6h-4v6H6a1 1 0 0 1-1-1v-8Z" />
+                </svg>
+              </span>
+              emakola
             </a>
 
             <div class="hidden md:flex flex-1 max-w-md mx-8">
@@ -122,20 +136,28 @@ defmodule EmakolaWeb.StoresLive do
                   value={@search_query}
                   phx-debounce="300"
                   placeholder="Search stores by name…"
-                  class="w-full pl-10 pr-4 py-2 rounded-full bg-white/10 border border-white/10 text-sm text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400/60"
+                  class="w-full pl-10 pr-4 py-2 rounded-full bg-slate-100 border border-slate-200 text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400/60 focus:bg-white"
                 />
-                <span
-                  class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none"
-                  style="font-size: 18px;"
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
                 >
-                  search
-                </span>
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
               </form>
             </div>
 
             <a
               href="/"
-              class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-400 text-slate-900 text-sm font-semibold hover:bg-amber-300 transition-colors"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 text-white text-sm font-semibold hover:bg-slate-700 transition-colors shadow-sm"
             >
               Sell on Emakola
             </a>
@@ -143,36 +165,60 @@ defmodule EmakolaWeb.StoresLive do
         </div>
       </header>
 
-      <%!-- Hero --%>
-      <section class="relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-br from-[#0c1526] via-[#101a30] to-[#0c1526]">
+      <%!--
+        Hero — light, premium treatment. Soft cream-to-white background
+        with amber + emerald accent blobs (radial gradients) for warmth.
+        All text is dark on light: no contrast guesswork, fully WCAG AAA.
+      --%>
+      <section class="relative overflow-hidden bg-gradient-to-b from-amber-50/40 via-white to-white">
+        <%!-- Decorative warm gradient blobs (very subtle) --%>
+        <div
+          class="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-40 blur-3xl pointer-events-none"
+          style="background: radial-gradient(circle, rgba(251,191,36,0.45), transparent 70%);"
+        >
         </div>
-        <div class="absolute inset-0 opacity-30 [background-image:radial-gradient(rgba(212,168,67,0.15),transparent_50%)]">
+        <div
+          class="absolute -bottom-32 -left-32 w-96 h-96 rounded-full opacity-30 blur-3xl pointer-events-none"
+          style="background: radial-gradient(circle, rgba(16,185,129,0.4), transparent 70%);"
+        >
         </div>
 
-        <div class="relative max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 text-center">
-          <p class="text-xs font-semibold uppercase tracking-[0.3em] text-amber-400 mb-4">
+        <div class="relative max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 text-center">
+          <p class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-[0.2em] mb-5">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 16 16"
+              class="w-3.5 h-3.5"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M8 0 9.5 5 14.5 6 10.5 9.5 11.5 14.5 8 12 4.5 14.5 5.5 9.5 1.5 6 6.5 5 8 0Z" />
+            </svg>
             Browse the marketplace
           </p>
-          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4 leading-tight text-white drop-shadow-sm">
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight mb-5 leading-[1.05] text-slate-900">
             <%= if @total_active > 0 do %>
-              Discover <span class="text-amber-400">{@total_active}</span>
-              stores<br class="hidden sm:block" />
-              <span class="text-white">across Ghana</span>
+              Discover
+              <span class="relative inline-block">
+                <span class="relative z-10 text-amber-600">{@total_active}</span>
+                <span class="absolute inset-x-0 bottom-1 h-3 bg-amber-200/70 -z-0"></span>
+              </span>
+              shops<br class="hidden sm:block" />
+              <span class="text-slate-900">across Ghana</span>
             <% else %>
               The marketplace is just getting started
             <% end %>
           </h1>
-          <p class="text-base sm:text-lg text-white/90 max-w-2xl mx-auto mb-8">
-            Verified shops. Mobile money. Doorstep delivery. Search by category, region, or just
-            browse.
+          <p class="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed">
+            Verified shops. Mobile money. Doorstep delivery. Search by category, region,
+            or just browse.
           </p>
 
-          <%!-- Hero search (mirrors header search but oversized) --%>
+          <%!-- Hero search — large, premium feel --%>
           <form
             phx-change="update_search"
             phx-submit="update_search"
-            class="relative max-w-xl mx-auto mb-6"
+            class="relative max-w-xl mx-auto mb-8"
           >
             <input
               type="text"
@@ -180,33 +226,69 @@ defmodule EmakolaWeb.StoresLive do
               value={@search_query}
               phx-debounce="300"
               placeholder="Try 'beauty', 'kente', 'tomatoes'..."
-              class="w-full pl-12 pr-4 py-4 rounded-2xl bg-white/95 border border-white/20 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-amber-400/40"
+              class="w-full pl-14 pr-4 py-4 rounded-2xl bg-white border-2 border-slate-200 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-4 focus:ring-amber-400/30 focus:border-amber-400 shadow-lg shadow-slate-200/50"
             />
-            <span
-              class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-              style="font-size: 22px;"
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="w-5 h-5 absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
             >
-              search
-            </span>
+              <circle cx="11" cy="11" r="7" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
           </form>
 
-          <%!-- Trust pills --%>
-          <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm font-medium text-white">
-            <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/15 border border-white/25 backdrop-blur-sm">
-              <span class="material-symbols-outlined text-emerald-300" style="font-size: 16px;">
-                verified
+          <%!-- Trust pills — solid colored chips, fully readable --%>
+          <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-sm font-semibold">
+            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-800 shadow-sm">
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  class="w-3.5 h-3.5 text-emerald-600"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M8.6 2.5a3 3 0 0 1 4.8 0 3 3 0 0 1 3.4 1.4 3 3 0 0 1 2.7 2.7 3 3 0 0 1 1.4 3.4 3 3 0 0 1 0 4.8 3 3 0 0 1-1.4 3.4 3 3 0 0 1-2.7 2.7 3 3 0 0 1-3.4 1.4 3 3 0 0 1-4.8 0 3 3 0 0 1-3.4-1.4 3 3 0 0 1-2.7-2.7 3 3 0 0 1-1.4-3.4 3 3 0 0 1 0-4.8 3 3 0 0 1 1.4-3.4 3 3 0 0 1 2.7-2.7A3 3 0 0 1 8.6 2.5Zm7.7 6.7a1 1 0 0 0-1.4-1.4l-4.4 4.4-1.7-1.7a1 1 0 1 0-1.4 1.4l2.4 2.4a1 1 0 0 0 1.4 0l5.1-5.1Z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
               </span>
               Verified merchants
             </span>
-            <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/15 border border-white/25 backdrop-blur-sm">
-              <span class="material-symbols-outlined text-amber-300" style="font-size: 16px;">
-                payments
+            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-800 shadow-sm">
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  class="w-3.5 h-3.5 text-amber-600"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M2 7a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7Zm2 1v2h16V8H4Zm0 4v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5H4Z" />
+                </svg>
               </span>
               Mobile money + cards
             </span>
-            <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/15 border border-white/25 backdrop-blur-sm">
-              <span class="material-symbols-outlined text-sky-300" style="font-size: 16px;">
-                local_shipping
+            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-800 shadow-sm">
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-sky-100">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  class="w-3.5 h-3.5 text-sky-600"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M3 4a1 1 0 0 0-1 1v11a3 3 0 0 0 3 3 3 3 0 0 0 6 0h2a3 3 0 0 0 6 0 3 3 0 0 0 3-3v-3.59L18.4 7H14V5a1 1 0 0 0-1-1H3Zm14 5h.59L20 11.41V13h-3V9ZM7 18.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm10 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z" />
+                </svg>
               </span>
               Doorstep delivery
             </span>
@@ -220,8 +302,8 @@ defmodule EmakolaWeb.StoresLive do
         stores={@featured_stores}
       />
 
-      <%!-- Filters bar --%>
-      <section class="sticky top-16 z-30 backdrop-blur-md bg-[#0c1526]/85 border-y border-white/5">
+      <%!-- Filters bar — light, sticky, on a soft slate-50 strip --%>
+      <section class="sticky top-16 z-30 backdrop-blur-md bg-white/90 border-y border-slate-200">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
           <div class="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
             <div class="min-w-max sm:min-w-0">
@@ -237,13 +319,13 @@ defmodule EmakolaWeb.StoresLive do
               <StoresComponents.region_filter active_region={@active_region} />
               <StoresComponents.sort_dropdown active_sort={@active_sort} />
             </div>
-            <p class="text-xs text-white/65">
-              <span class="font-semibold text-white">{@total_filtered}</span>
+            <p class="text-sm text-slate-600">
+              <span class="font-bold text-slate-900">{@total_filtered}</span>
               {if @total_filtered == 1, do: "store", else: "stores"}
               <button
                 :if={filters_active?(assigns)}
                 phx-click="clear_filters"
-                class="ml-2 text-amber-400 hover:underline"
+                class="ml-2 text-emerald-700 hover:text-emerald-800 hover:underline font-semibold"
               >
                 Clear filters
               </button>
@@ -304,9 +386,11 @@ defmodule EmakolaWeb.StoresLive do
       />
 
       <%!-- Footer --%>
-      <footer class="bg-[#0c1526] text-white/60 text-xs py-8 text-center">
+      <footer class="bg-slate-900 text-slate-300 text-sm py-10 text-center">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-          <p>&copy; {DateTime.utc_now().year} Emakola — A marketplace for West Africa</p>
+          <p>
+            &copy; {DateTime.utc_now().year} Emakola — A marketplace for West Africa
+          </p>
         </div>
       </footer>
     </div>
