@@ -10,7 +10,13 @@ defmodule EmakolaWeb.DashboardLive do
   alias EmakolaWeb.DashboardHelpers
   alias Emakola.Onboarding.SetupChecklist
 
-  @refresh_interval 30_000
+  # 5-minute safety-net poll. Real-time updates land via PubSub
+  # (`{:order_created, _}` / `{:order_updated, _}` from
+  # `Emakola.Orders` broadcasts) so this only catches edge cases
+  # where a PubSub message was missed (process restart, dropped
+  # connection). Was 30s — too aggressive given each refresh fires
+  # 12 queries.
+  @refresh_interval 300_000
   @periods ~w(today week month all)
 
   def mount(_params, _session, socket) do
