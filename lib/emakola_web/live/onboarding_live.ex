@@ -18,31 +18,23 @@ defmodule EmakolaWeb.OnboardingLive do
     %{code: "USD", label: "USD — US Dollar", flag: "\u{1F1FA}\u{1F1F8}"}
   ]
 
-  @themes [
-    %{
-      id: "market",
-      name: "Market",
-      description: "Clean, modern commerce for everyday stores",
-      colors: ["#2563EB", "#0F172A", "#FFFFFF"]
-    },
-    %{
-      id: "atelier",
-      name: "Atelier",
-      description: "Premium editorial fashion aesthetic",
-      colors: ["#CA8A04", "#1C1917", "#FAFAF9"]
-    },
-    %{
-      id: "vibrant",
-      name: "Vibrant",
-      description: "Bold, energetic West African style",
-      colors: ["#DC2626", "#7C2D12", "#FFFBEB"]
-    },
-    %{
-      id: "starter",
-      name: "Starter",
-      description: "Clean, minimal default for any store",
-      colors: ["#6366F1", "#1E293B", "#FFFFFF"]
-    }
+  # Canonical theme list — kept in sync with `EmakolaWeb.Admin.ThemeLive`'s
+  # @theme_metadata so the onboarding picker shows the same set the merchant
+  # would see in the admin Theme page. Colors are derived at runtime from
+  # each theme module's defaults() in build_themes/0 — no hardcoded color
+  # duplication so picker stays in sync if a theme's brand colors change.
+  @theme_metadata [
+    %{id: "starter", name: "Starter", description: "Clean & modern — fits any store"},
+    %{id: "market", name: "Market", description: "Simple commerce for everyday stores"},
+    %{id: "atelier", name: "Atelier", description: "Premium editorial aesthetic"},
+    %{id: "vibrant", name: "Vibrant", description: "Bold West African energy"},
+    %{id: "bold", name: "Bold", description: "Editorial & dramatic"},
+    %{id: "fresh", name: "Fresh", description: "Food & grocery"},
+    %{id: "fashion", name: "Fashion", description: "Editorial boutique"},
+    %{id: "beauty", name: "Beauty", description: "Skincare & cosmetics"},
+    %{id: "pharmacy", name: "Pharmacy", description: "Wellness & medicines"},
+    %{id: "home_living", name: "Home Living", description: "Furniture & home goods"},
+    %{id: "electronics", name: "Electronics", description: "Phones, audio & gadgets"}
   ]
 
   def mount(_params, session, socket) do
@@ -66,7 +58,7 @@ defmodule EmakolaWeb.OnboardingLive do
          store_slug: "",
          currency: "GHS",
          currencies: @currencies,
-         themes: @themes,
+         themes: build_themes(),
          selected_theme: "market",
          product_name: "",
          product_price: "",
@@ -720,4 +712,22 @@ defmodule EmakolaWeb.OnboardingLive do
 
   defp step_button_label(step, total_steps) when step < total_steps, do: "Continue"
   defp step_button_label(_, _), do: "Go to Dashboard"
+
+  # Build the theme picker list with colors derived at runtime from each
+  # theme module's defaults(). Colors stay as a 3-element list so the
+  # existing render (`for color <- theme.colors`) keeps working without
+  # template changes.
+  defp build_themes do
+    Enum.map(@theme_metadata, fn meta ->
+      defaults = Emakola.Themes.ThemeResolver.theme_module(meta.id).defaults()
+
+      colors = [
+        defaults.colors.primary,
+        defaults.colors.accent,
+        Map.get(defaults.colors, :background, "#FFFFFF")
+      ]
+
+      Map.put(meta, :colors, colors)
+    end)
+  end
 end
