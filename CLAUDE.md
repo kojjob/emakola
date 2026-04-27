@@ -287,9 +287,16 @@ mix test --failed               # Re-run failed tests
 mix format                      # Format code
 mix format --check-formatted    # Check formatting (CI)
 mix credo --strict              # Static analysis
-mix dialyzer                    # Type checking
+mix dialyzer --plt              # Generate/update PLT (slow, run once after deps change)
+mix dialyzer                    # Run static analysis
 mix sobelow                     # Security scanning
 ```
+
+### Static analysis (Dialyzer)
+
+The PLT (Persistent Lookup Table) is cached at `priv/plts/dialyzer.plt` and is gitignored — every developer regenerates it locally with `mix dialyzer --plt` after pulling new deps. The first run takes 2–10 minutes; subsequent runs are incremental and fast.
+
+`mix dialyzer` performs success-typing static analysis on the project. False positives are common with Ash macros and Phoenix LiveView generated code. Findings should be triaged on the merits — fix the underlying type issue when possible, and only register a filter in `.dialyzer_ignore.exs` after confirming the warning is a genuine false positive. Every entry in that file is technical debt; keep it short.
 
 ---
 
