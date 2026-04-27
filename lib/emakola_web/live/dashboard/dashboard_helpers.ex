@@ -33,19 +33,17 @@ defmodule EmakolaWeb.DashboardHelpers do
     # in dev mode any query that takes longer is broken anyway.
     tasks =
       [
-        revenue_count: Task.async(fn -> revenue_and_count(store_id, day_start, day_end) end),
-        customers: Task.async(fn -> count_customers(store_id, day_start, day_end) end),
+        revenue_count: run_async(fn -> revenue_and_count(store_id, day_start, day_end) end),
+        customers: run_async(fn -> count_customers(store_id, day_start, day_end) end),
         orders_in_range:
-          Task.async(fn -> load_non_cancelled_orders(store_id, chart_start, chart_end) end),
+          run_async(fn -> load_non_cancelled_orders(store_id, chart_start, chart_end) end),
         customers_in_range:
-          Task.async(fn -> load_customers_in_range(store_id, chart_start, chart_end) end),
-        top_products:
-          Task.async(fn -> build_top_products_chart(store_id, day_start, day_end) end),
-        pending_orders: Task.async(fn -> count_pending_orders(store_id) end),
-        low_stock: Task.async(fn -> count_low_stock(store_id) end),
-        failed_payments:
-          Task.async(fn -> count_failed_payments(store_id, day_start, day_end) end),
-        recent_orders: Task.async(fn -> load_recent_orders(store_id) end)
+          run_async(fn -> load_customers_in_range(store_id, chart_start, chart_end) end),
+        top_products: run_async(fn -> build_top_products_chart(store_id, day_start, day_end) end),
+        pending_orders: run_async(fn -> count_pending_orders(store_id) end),
+        low_stock: run_async(fn -> count_low_stock(store_id) end),
+        failed_payments: run_async(fn -> count_failed_payments(store_id, day_start, day_end) end),
+        recent_orders: run_async(fn -> load_recent_orders(store_id) end)
       ]
       |> Enum.concat(prev_period_tasks(period, store_id, prev_day_start, prev_day_end))
 
@@ -89,9 +87,31 @@ defmodule EmakolaWeb.DashboardHelpers do
 
   defp prev_period_tasks(_period, store_id, prev_start, prev_end) do
     [
-      prev_revenue_count: Task.async(fn -> revenue_and_count(store_id, prev_start, prev_end) end),
-      prev_customers: Task.async(fn -> count_customers(store_id, prev_start, prev_end) end)
+      prev_revenue_count: run_async(fn -> revenue_and_count(store_id, prev_start, prev_end) end),
+      prev_customers: run_async(fn -> count_customers(store_id, prev_start, prev_end) end)
     ]
+  end
+
+  # ── Async Task Wrapper ──
+
+  # Wraps `Task.async/1` to propagate Ecto sandbox ownership to the spawned
+  # task in the test environment. Production builds compile out the
+  # propagation as a no-op via the `Mix.env()` guard on `maybe_allow_sandbox/1`.
+  defp run_async(fun) do
+    parent = self()
+
+    Task.async(fn ->
+      maybe_allow_sandbox(parent)
+      fun.()
+    end)
+  end
+
+  if Mix.env() == :test do
+    defp maybe_allow_sandbox(parent) do
+      Ecto.Adapters.SQL.Sandbox.allow(Emakola.Repo, parent, self())
+    end
+  else
+    defp maybe_allow_sandbox(_parent), do: :ok
   end
 
   defp compute_changes("all", _results, _rev, _ord, _cust, _aov), do: {nil, nil, nil, nil}
