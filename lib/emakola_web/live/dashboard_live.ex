@@ -3,8 +3,12 @@ defmodule EmakolaWeb.DashboardLive do
 
   import EmakolaWeb.DashboardComponents
   import EmakolaWeb.DashboardMetricComponents
+  import EmakolaWeb.SetupChecklistComponent
+
+  require Ash.Query
 
   alias EmakolaWeb.DashboardHelpers
+  alias Emakola.Onboarding.SetupChecklist
 
   @refresh_interval 30_000
   @periods ~w(today week month all)
@@ -21,6 +25,7 @@ defmodule EmakolaWeb.DashboardLive do
         period: "week",
         periods: @periods
       )
+      |> assign_setup_checklist()
 
     socket = load_dashboard_data(socket)
 
@@ -89,10 +94,54 @@ defmodule EmakolaWeb.DashboardLive do
     end
   end
 
+  # Computes the merchant setup checklist and assigns it for the
+  # dashboard widget. Cheap (two count queries + struct introspection)
+  # so we can recompute on every mount without dedicated invalidation.
+  defp assign_setup_checklist(socket) do
+    case socket.assigns[:current_store] do
+      nil ->
+        assign(socket, setup_steps: [], setup_complete?: true)
+
+      store ->
+        product_count = count_products(store.id)
+        delivery_zone_count = count_delivery_zones(store.id)
+
+        steps =
+          SetupChecklist.steps(store,
+            product_count: product_count,
+            delivery_zone_count: delivery_zone_count
+          )
+
+        assign(socket,
+          setup_steps: steps,
+          setup_complete?: Enum.all?(steps, & &1.done?)
+        )
+    end
+  end
+
+  defp count_products(store_id) do
+    Emakola.Catalog.Product
+    |> Ash.Query.filter(store_id == ^store_id and status == :active)
+    |> Ash.count!(authorize?: false)
+  rescue
+    _ -> 0
+  end
+
+  defp count_delivery_zones(store_id) do
+    Emakola.Shipping.DeliveryZone
+    |> Ash.Query.filter(store_id == ^store_id and active == true)
+    |> Ash.count!(authorize?: false)
+  rescue
+    _ -> 0
+  end
+
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
       <.dashboard_header period={@period} periods={@periods} />
+
+      <%!-- Setup checklist — auto-hides when all steps are done --%>
+      <.setup_checklist :if={@setup_steps != []} steps={@setup_steps} />
 
       <.kpi_cards
         total_revenue={@total_revenue}
