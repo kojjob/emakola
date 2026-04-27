@@ -130,19 +130,19 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
                   </div>
                   <div class="flex flex-wrap gap-2">
                     <button
-                      :for={value <- option_type.values}
+                      :for={option_value <- option_type.option_values || []}
                       type="button"
                       phx-click="select_option"
-                      phx-value-option={option_type.name}
-                      phx-value-value={value}
+                      phx-value-option_type_id={option_type.id}
+                      phx-value-value={option_value.id}
                       class={"px-4 py-2.5 border text-sm font-medium uppercase tracking-wider transition-colors min-h-[44px] " <>
-                        if(Map.get(@selected_options, option_type.name) == value,
+                        if(Map.get(@selected_options, option_type.id) == option_value.id,
                           do: "bg-[#1C1917] text-white border-[#1C1917]",
                           else:
                             "bg-white text-[#1C1917] border-[#E7E5E4] hover:border-[#1C1917]"
                         )}
                     >
-                      {value}
+                      {option_value.value}
                     </button>
                   </div>
                 </div>
