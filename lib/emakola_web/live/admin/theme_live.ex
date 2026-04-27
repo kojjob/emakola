@@ -48,6 +48,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       name: "Fashion",
       description: "Editorial boutique",
       icon: "checkroom"
+    },
+    %{
+      id: "heritage",
+      name: "Heritage",
+      description: "Artisan crafts & heirloom",
+      icon: "auto_stories"
     }
   ]
 

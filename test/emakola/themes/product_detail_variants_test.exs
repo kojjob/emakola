@@ -19,6 +19,7 @@ defmodule Emakola.Themes.ProductDetailVariantsTest do
     {Emakola.Themes.Beauty.ProductDetail, "beauty"},
     {Emakola.Themes.Electronics.ProductDetail, "electronics"},
     {Emakola.Themes.Fashion.ProductDetail, "fashion"},
+    {Emakola.Themes.Heritage.ProductDetail, "heritage"},
     {Emakola.Themes.HomeLiving.ProductDetail, "home_living"},
     {Emakola.Themes.Pharmacy.ProductDetail, "pharmacy"}
   ]
