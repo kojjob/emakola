@@ -37,5 +37,11 @@ defmodule Emakola.Customers do
       define(:remove_from_wishlist, action: :remove, args: [:customer_id, :product_id, :store_id])
       define(:list_wishlist, action: :list_by_customer, args: [:customer_id, :store_id])
     end
+
+    resource Emakola.Customers.FavoriteStore do
+      define(:favorite_store, action: :create)
+      define(:unfavorite_store, action: :destroy)
+      define(:list_favorite_stores, action: :list_for_customer, args: [:customer_id])
+    end
   end
 end
