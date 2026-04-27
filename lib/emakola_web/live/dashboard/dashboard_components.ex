@@ -11,22 +11,22 @@ defmodule EmakolaWeb.DashboardComponents do
 
   def dashboard_header(assigns) do
     ~H"""
-    <header class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <header class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pt-2">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900">Dashboard</h1>
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard</h1>
         <p class="text-sm text-slate-500 mt-1">Your store at a glance</p>
       </div>
 
       <div class="flex items-center gap-2">
-        <div class="flex items-center rounded-lg border border-slate-200 bg-white p-1">
+        <div class="flex items-center rounded-xl bg-white shadow-sm p-1">
           <button
             :for={p <- @periods}
             phx-click="change_period"
             phx-value-period={p}
             class={[
-              "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
+              "px-3 py-1.5 text-sm font-medium rounded-lg transition-colors",
               if(p == @period,
-                do: "bg-blue-600 text-white",
+                do: "bg-emerald-600 text-white shadow-sm",
                 else: "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
               )
             ]}
@@ -37,7 +37,7 @@ defmodule EmakolaWeb.DashboardComponents do
 
         <button
           phx-click="refresh_data"
-          class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+          class="p-2 text-slate-400 hover:text-emerald-600 hover:bg-white hover:shadow-sm rounded-xl transition-all"
           title="Refresh dashboard"
         >
           <span class="material-symbols-outlined text-xl">refresh</span>
@@ -59,8 +59,11 @@ defmodule EmakolaWeb.DashboardComponents do
 
   def alerts_panel(assigns) do
     ~H"""
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <h3 class="text-sm font-semibold text-slate-900 mb-4">Needs Attention</h3>
+    <div class="bg-white rounded-2xl shadow-sm p-5">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="material-symbols-outlined text-xl text-emerald-600">notifications_active</span>
+        <h3 class="text-base font-bold text-slate-800">Needs Attention</h3>
+      </div>
 
       <div class="space-y-1">
         <.alert_row
@@ -135,11 +138,17 @@ defmodule EmakolaWeb.DashboardComponents do
 
   def recent_orders_table(assigns) do
     ~H"""
-    <section class="bg-white rounded-xl border border-slate-200">
+    <section class="bg-white rounded-2xl shadow-sm overflow-hidden">
       <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-        <h2 class="text-base font-semibold text-slate-900">Recent Orders</h2>
-        <.link navigate="/admin/orders" class="text-sm font-medium text-blue-600 hover:text-blue-700">
-          View All
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-xl text-emerald-600">receipt_long</span>
+          <h2 class="text-base font-bold text-slate-800">Recent Orders</h2>
+        </div>
+        <.link
+          navigate="/admin/orders"
+          class="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700"
+        >
+          View all <span class="material-symbols-outlined text-base">arrow_forward</span>
         </.link>
       </div>
 

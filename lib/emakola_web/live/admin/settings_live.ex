@@ -169,7 +169,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   defp general_tab(assigns) do
     ~H"""
     <div class="space-y-6">
-      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+      <div class="bg-white rounded-2xl shadow-sm p-6">
         <h3 class="text-base font-bold text-slate-900 mb-5">Store Information</h3>
         <.form for={%{}} as={:store} id="general-form" phx-submit="save_general" class="space-y-5">
           <div>
@@ -259,7 +259,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   defp contact_tab(assigns) do
     ~H"""
     <div class="space-y-6">
-      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+      <div class="bg-white rounded-2xl shadow-sm p-6">
         <h3 class="text-base font-bold text-slate-900 mb-5">Contact Information</h3>
         <.form for={%{}} as={:store} id="contact-form" phx-submit="save_contact" class="space-y-5">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -352,7 +352,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   defp social_tab(assigns) do
     ~H"""
     <div class="space-y-6">
-      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+      <div class="bg-white rounded-2xl shadow-sm p-6">
         <h3 class="text-base font-bold text-slate-900 mb-1">Social media</h3>
         <p class="text-sm text-slate-500 mb-5">
           These appear as icons in your storefront footer and help shoppers verify
@@ -409,7 +409,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
       </div>
 
       <%!-- WhatsApp Catalog connection (Phase 2) --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+      <div class="bg-white rounded-2xl shadow-sm p-6">
         <h3 class="text-base font-bold text-slate-900 mb-1">WhatsApp Catalog</h3>
         <p class="text-sm text-slate-500 mb-5">
           Mirror your products to your WhatsApp Business Catalog so customers can browse
@@ -488,7 +488,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   defp delivery_tab(assigns) do
     ~H"""
     <div class="space-y-6">
-      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+      <div class="bg-white rounded-2xl shadow-sm p-6">
         <div class="flex items-center justify-between mb-5">
           <div>
             <h3 class="text-base font-bold text-slate-900">Delivery Zones</h3>
@@ -515,7 +515,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   defp notifications_tab(assigns) do
     ~H"""
     <div class="space-y-6">
-      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+      <div class="bg-white rounded-2xl shadow-sm p-6">
         <h3 class="text-base font-bold text-slate-900 mb-5">Notification Preferences</h3>
         <p class="text-sm text-slate-500">
           Notification settings will be available soon. You will be able to configure

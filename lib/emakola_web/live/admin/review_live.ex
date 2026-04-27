@@ -91,7 +91,7 @@ defmodule EmakolaWeb.Admin.ReviewLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <.admin_page_header
         title="Reviews"
         subtitle="Manage customer reviews for your products"

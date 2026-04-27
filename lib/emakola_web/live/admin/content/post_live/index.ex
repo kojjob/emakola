@@ -88,19 +88,13 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="px-4 sm:px-6 lg:px-8 py-6">
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-semibold text-slate-900">Content</h1>
-        <.link
-          navigate={~p"/admin/content/posts/new"}
-          class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 transition-colors"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          New Post
-        </.link>
-      </div>
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <.admin_page_header
+        title="Content"
+        subtitle="Posts, pages, recipes & guides"
+        action_label="+ New Post"
+        action_path={~p"/admin/content/posts/new"}
+      />
 
       <%!-- Type filter --%>
       <div class="flex flex-wrap gap-2 mb-4">
@@ -181,7 +175,7 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Index do
       </div>
 
       <%!-- Posts table --%>
-      <div :if={@posts == []} class="text-center py-16 bg-white rounded-xl border border-slate-200">
+      <div :if={@posts == []} class="text-center py-16 bg-white rounded-2xl shadow-sm">
         <p class="text-slate-500">No posts yet</p>
         <.link
           navigate={~p"/admin/content/posts/new"}
@@ -191,7 +185,7 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Index do
         </.link>
       </div>
 
-      <div :if={@posts != []} class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div :if={@posts != []} class="bg-white rounded-2xl shadow-sm overflow-hidden">
         <table class="min-w-full divide-y divide-slate-200">
           <thead class="bg-slate-50">
             <tr>

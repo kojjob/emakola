@@ -337,12 +337,16 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                   <p class="text-sm font-semibold" style={"color: #{@accent_color};"}>
                     Featured Products
                   </p>
-                  <span
-                    class="text-xs font-medium"
+                  <a
+                    href={"/s/#{@store.slug}/products"}
+                    target="_blank"
+                    rel="noopener"
+                    class="text-xs font-medium hover:underline"
                     style={"color: #{@primary_color};"}
+                    title="Open products page on your storefront"
                   >
                     See all →
-                  </span>
+                  </a>
                 </div>
                 <div class="grid grid-cols-3 gap-3">
                   <div :for={_ <- 1..3} class="space-y-2">

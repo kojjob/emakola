@@ -56,7 +56,7 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <.admin_page_header title="Payments" subtitle="Track and reconcile all payment transactions" />
 
       <%!-- Summary Cards --%>
@@ -92,7 +92,7 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
 
       <%!-- Payments Table --%>
       <%= if @payments == [] do %>
-        <div class="text-center py-16 bg-white rounded-2xl border border-slate-200">
+        <div class="text-center py-16 bg-white rounded-2xl shadow-sm">
           <svg
             class="w-12 h-12 mx-auto text-slate-300 mb-3"
             fill="none"
@@ -117,7 +117,7 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
         </div>
       <% else %>
         <%!-- Desktop Table --%>
-        <div class="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="hidden md:block bg-white rounded-2xl shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
@@ -192,7 +192,7 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
         <div class="md:hidden space-y-3">
           <div
             :for={payment <- @payments}
-            class="bg-white rounded-2xl border border-slate-200 p-4"
+            class="bg-white rounded-2xl shadow-sm p-4"
           >
             <div class="flex items-start justify-between gap-3 mb-3">
               <div>
@@ -229,7 +229,7 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
 
   defp summary_card(assigns) do
     ~H"""
-    <div class="bg-white rounded-2xl border border-slate-200 p-5">
+    <div class="bg-white rounded-2xl shadow-sm p-5">
       <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{@title}</p>
       <p class={[
         "text-2xl font-bold mt-2",

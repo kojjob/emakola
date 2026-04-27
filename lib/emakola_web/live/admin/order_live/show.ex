@@ -91,7 +91,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <%!-- Back link & Header --%>
       <div class="flex items-center gap-4">
         <.link
@@ -127,7 +127,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
           <%!-- Main Column --%>
           <div class="lg:col-span-2 space-y-6">
             <%!-- Status Actions --%>
-            <div class="bg-white rounded-2xl border border-slate-200 p-5">
+            <div class="bg-white rounded-2xl shadow-sm p-5">
               <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
                 Order Actions
               </h2>
@@ -136,7 +136,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                   :if={@order.status == :pending}
                   phx-click={show_modal("confirm-order-modal")}
                   class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
-                         bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                         bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
                 >
                   Confirm Order
                 </button>
@@ -189,7 +189,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
             </div>
 
             <%!-- Line Items --%>
-            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
               <div class="px-5 py-4 border-b border-slate-100">
                 <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   Order Items
@@ -259,7 +259,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
             </div>
 
             <%!-- Notes --%>
-            <div class="bg-white rounded-2xl border border-slate-200 p-5">
+            <div class="bg-white rounded-2xl shadow-sm p-5">
               <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
                 Notes
               </h2>
@@ -288,7 +288,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
           <%!-- Sidebar --%>
           <div class="space-y-6">
             <%!-- Customer Info --%>
-            <div class="bg-white rounded-2xl border border-slate-200 p-5">
+            <div class="bg-white rounded-2xl shadow-sm p-5">
               <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
                 Customer
               </h2>
@@ -311,7 +311,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
             <div
               :if={@order.shipping_address}
               id="shipping-address-card"
-              class="bg-white rounded-2xl border border-slate-200 p-5"
+              class="bg-white rounded-2xl shadow-sm p-5"
             >
               <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
                 Shipping Address
@@ -323,7 +323,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
             <div
               :if={@order.billing_address}
               id="billing-address-card"
-              class="bg-white rounded-2xl border border-slate-200 p-5"
+              class="bg-white rounded-2xl shadow-sm p-5"
             >
               <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
                 Billing Address
@@ -332,7 +332,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
             </div>
 
             <%!-- Payment Info --%>
-            <div :if={@payment} class="bg-white rounded-2xl border border-slate-200 p-5">
+            <div :if={@payment} class="bg-white rounded-2xl shadow-sm p-5">
               <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
                 Payment
               </h2>
@@ -373,7 +373,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
           title="Confirm Order"
           message={"Are you sure you want to confirm order #{@order.order_number}? The customer will be notified."}
           confirm_text="Confirm Order"
-          confirm_class="bg-blue-600 hover:bg-blue-700 text-white"
+          confirm_class="bg-emerald-600 hover:bg-emerald-700 text-white"
           on_confirm="confirm_order"
         />
 

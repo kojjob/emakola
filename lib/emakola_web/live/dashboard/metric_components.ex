@@ -52,12 +52,14 @@ defmodule EmakolaWeb.DashboardMetricComponents do
 
   defp kpi_card(assigns) do
     ~H"""
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
+    <div class="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow">
       <div class="flex items-center justify-between mb-3">
         <span class="text-sm font-medium text-slate-500">{@label}</span>
-        <span class="material-symbols-outlined text-xl text-slate-300">{@icon}</span>
+        <div class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-lg text-emerald-600">{@icon}</span>
+        </div>
       </div>
-      <p class="text-2xl font-bold text-slate-900 tabular-nums">{@value}</p>
+      <p class="text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums">{@value}</p>
       <.change_indicator change={@change} />
     </div>
     """
@@ -99,8 +101,11 @@ defmodule EmakolaWeb.DashboardMetricComponents do
 
   def chart_card(assigns) do
     ~H"""
-    <div class="bg-white rounded-xl border border-slate-200 p-5">
-      <h3 class="text-sm font-semibold text-slate-900 mb-4">{@title}</h3>
+    <div class="bg-white rounded-2xl shadow-sm p-5">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="material-symbols-outlined text-xl text-emerald-600">analytics</span>
+        <h3 class="text-base font-bold text-slate-800">{@title}</h3>
+      </div>
       <div class={@height}>
         <canvas
           id={@id}

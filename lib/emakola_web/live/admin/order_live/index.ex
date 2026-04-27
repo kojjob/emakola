@@ -66,7 +66,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <.admin_page_header title="Orders" subtitle="Manage and track all customer orders" />
 
       <%!-- Status Filter Tabs --%>
@@ -105,7 +105,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
 
       <%!-- Orders --%>
       <%= if @orders == [] do %>
-        <div class="text-center py-16 bg-white rounded-2xl border border-slate-200">
+        <div class="text-center py-16 bg-white rounded-2xl shadow-sm">
           <svg
             class="w-12 h-12 mx-auto text-slate-300 mb-3"
             fill="none"
@@ -130,7 +130,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
         </div>
       <% else %>
         <%!-- Desktop Table --%>
-        <div class="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="hidden md:block bg-white rounded-2xl shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
@@ -217,7 +217,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
           <.link
             :for={order <- @orders}
             navigate={~p"/admin/orders/#{order.id}"}
-            class="block bg-white rounded-2xl border border-slate-200 p-4 hover:shadow-sm
+            class="block bg-white rounded-2xl shadow-sm p-4 hover:shadow-sm
                    hover:border-slate-300 transition-all"
           >
             <div class="flex items-start justify-between gap-3 mb-3">

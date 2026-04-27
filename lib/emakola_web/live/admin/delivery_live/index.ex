@@ -203,7 +203,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <%!-- Header --%>
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -211,7 +211,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
             <.link navigate={~p"/admin/settings"} class="text-slate-400 hover:text-slate-600">
               <.icon name="hero-arrow-left" class="size-4" />
             </.link>
-            <h1 class="text-2xl font-bold text-slate-900">Delivery Zones</h1>
+            <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Delivery Zones</h1>
           </div>
           <p class="text-sm text-slate-500">Configure delivery areas and fees for your store</p>
         </div>
@@ -235,7 +235,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
       <%!-- Add/Edit form --%>
       <div
         :if={@show_form}
-        class="bg-white rounded-2xl border border-slate-200 p-6"
+        class="bg-white rounded-2xl shadow-sm p-6"
       >
         <h3 class="text-base font-bold text-slate-900 mb-5">
           {if @editing_zone, do: "Edit Zone", else: "New Delivery Zone"}
@@ -300,7 +300,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
       </div>
 
       <%!-- Zones list --%>
-      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div :if={@zones == []} class="p-12 text-center">
           <.icon name="hero-truck" class="size-12 text-slate-300 mx-auto mb-4" />
           <p class="text-sm font-medium text-slate-500">No delivery zones yet</p>
