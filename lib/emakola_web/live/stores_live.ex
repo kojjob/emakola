@@ -17,12 +17,17 @@ defmodule EmakolaWeb.StoresLive do
   require Ash.Query
 
   alias Emakola.Stores.Store
+  alias EmakolaWeb.Plugs.RecentlyViewedStores
   alias EmakolaWeb.StoresComponents
 
   @per_page 12
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
+    customer = socket.assigns[:current_customer]
+    favorite_slugs = load_favorite_slugs(customer)
+    recently_viewed_slugs = load_recently_viewed_slugs(session)
+
     socket =
       socket
       |> assign(
@@ -37,7 +42,12 @@ defmodule EmakolaWeb.StoresLive do
         total_active: count_active_stores(),
         featured_stores: load_featured(),
         recent_stores: load_recent(),
-        editor_picks: load_editor_picks()
+        editor_picks: load_editor_picks(),
+        current_customer: customer,
+        favorite_slugs: favorite_slugs,
+        favorite_stores: load_stores_by_slug(favorite_slugs),
+        recently_viewed_stores: load_stores_by_slug(recently_viewed_slugs),
+        map_open: false
       )
       |> load_grid(reset: true)
       |> load_theme_counts()
@@ -69,7 +79,7 @@ defmodule EmakolaWeb.StoresLive do
   def handle_event("select_region", %{"region" => region}, socket) do
     {:noreply,
      socket
-     |> assign(active_region: region, offset: 0)
+     |> assign(active_region: region, offset: 0, map_open: false)
      |> load_grid(reset: true)}
   end
 
@@ -97,8 +107,40 @@ defmodule EmakolaWeb.StoresLive do
      |> load_grid(reset: true)}
   end
 
-  # Phase 3 placeholder — does nothing yet.
-  def handle_event("toggle_favorite", _params, socket), do: {:noreply, socket}
+  # Toggle a store as a customer favorite. No-ops (with a soft prompt
+  # via flash) when the visitor isn't logged in as a customer — keeps
+  # the ♡ button visually present for everyone but only persists for
+  # authenticated customers.
+  def handle_event("toggle_favorite", %{"slug" => slug}, socket) do
+    case socket.assigns.current_customer do
+      nil ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Sign in as a customer to save stores.")}
+
+      customer ->
+        store = find_store_by_slug(slug)
+
+        cond do
+          is_nil(store) ->
+            {:noreply, socket}
+
+          slug in socket.assigns.favorite_slugs ->
+            unfavorite_store(customer, store, socket)
+
+          true ->
+            favorite_store(customer, store, socket)
+        end
+    end
+  end
+
+  def handle_event("open_map", _params, socket) do
+    {:noreply, assign(socket, :map_open, true)}
+  end
+
+  def handle_event("close_map", _params, socket) do
+    {:noreply, assign(socket, :map_open, false)}
+  end
 
   # ── Render ──
 
@@ -318,6 +360,26 @@ defmodule EmakolaWeb.StoresLive do
             <div class="flex flex-wrap items-center gap-2">
               <StoresComponents.region_filter active_region={@active_region} />
               <StoresComponents.sort_dropdown active_sort={@active_sort} />
+              <button
+                phx-click="open_map"
+                type="button"
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M9 20l-5.5-3V4l5.5 3 6-3 5.5 3v13l-5.5-3-6 3z" />
+                  <path d="M9 4v13M15 7v13" />
+                </svg>
+                Map
+              </button>
             </div>
             <p class="text-sm text-slate-600">
               <span class="font-bold text-slate-900">{@total_filtered}</span>
@@ -359,7 +421,11 @@ defmodule EmakolaWeb.StoresLive do
             :if={@stores != []}
             class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6"
           >
-            <StoresComponents.store_card :for={store <- @stores} store={store} />
+            <StoresComponents.store_card
+              :for={store <- @stores}
+              store={store}
+              is_favorite={store.slug in @favorite_slugs}
+            />
           </div>
 
           <div :if={@has_more} class="text-center mt-10">
@@ -374,6 +440,30 @@ defmodule EmakolaWeb.StoresLive do
         </div>
       </section>
 
+      <%!-- "Your saved stores" — only when logged-in customer has favorites --%>
+      <div
+        :if={!filters_active?(assigns) && @current_customer && @favorite_stores != []}
+        class="bg-rose-50/40"
+      >
+        <StoresComponents.recent_strip
+          stores={@favorite_stores}
+          title="Your saved stores"
+          subtitle="Stores you've hearted on Emakola"
+        />
+      </div>
+
+      <%!-- "Recently viewed" — only when cookie has slugs --%>
+      <div
+        :if={!filters_active?(assigns) && @recently_viewed_stores != []}
+        class="bg-slate-50"
+      >
+        <StoresComponents.recent_strip
+          stores={@recently_viewed_stores}
+          title="Recently viewed"
+          subtitle="Pick up where you left off"
+        />
+      </div>
+
       <%!-- New on Emakola strip (light section) — hidden when filtering --%>
       <div :if={!filters_active?(assigns)} class="bg-slate-50">
         <StoresComponents.recent_strip stores={@recent_stores} />
@@ -383,6 +473,13 @@ defmodule EmakolaWeb.StoresLive do
       <StoresComponents.editor_picks
         :if={!filters_active?(assigns)}
         stores={@editor_picks}
+      />
+
+      <%!-- Map view modal (Phase 3 / Track C). Renders nothing when closed. --%>
+      <StoresComponents.map_view
+        stores={@stores}
+        active_region={@active_region}
+        open={@map_open}
       />
 
       <%!-- Footer --%>
@@ -503,5 +600,109 @@ defmodule EmakolaWeb.StoresLive do
 
   defp theme_ids do
     ~w(market atelier vibrant starter bold fresh pharmacy beauty home_living electronics fashion)
+  end
+
+  # ── Phase 3: favorites + recently viewed ──
+
+  defp load_favorite_slugs(nil), do: []
+
+  defp load_favorite_slugs(customer) do
+    case Emakola.Customers.list_favorite_stores(customer.id, actor: customer) do
+      {:ok, favorites} ->
+        favorites
+        |> Enum.map(fn fav -> fav.store && fav.store.slug end)
+        |> Enum.reject(&is_nil/1)
+
+      _ ->
+        []
+    end
+  rescue
+    _ -> []
+  end
+
+  # The recently_viewed_stores cookie is set by RecentlyViewedStores plug
+  # on the connected (HTTP) request before LiveView mounts. We read it
+  # from the session — Phoenix promotes Plug.Conn cookies into the
+  # session map under the same key when they're :http_only and
+  # :same_site Lax (our case).
+  defp load_recently_viewed_slugs(session) do
+    case Map.get(session, RecentlyViewedStores.cookie_name()) do
+      cookie when is_binary(cookie) ->
+        cookie
+        |> String.split(",", trim: true)
+        |> Enum.take(8)
+
+      _ ->
+        []
+    end
+  end
+
+  defp load_stores_by_slug([]), do: []
+
+  defp load_stores_by_slug(slugs) when is_list(slugs) do
+    stores =
+      Store
+      |> Ash.Query.filter(active == true and slug in ^slugs)
+      |> Ash.Query.load([:product_count])
+      |> Ash.read!(authorize?: false)
+
+    # Preserve cookie order (most-recent first); the DB query won't
+    by_slug = Map.new(stores, &{&1.slug, &1})
+
+    slugs
+    |> Enum.map(&Map.get(by_slug, &1))
+    |> Enum.reject(&is_nil/1)
+  rescue
+    _ -> []
+  end
+
+  defp find_store_by_slug(slug) when is_binary(slug) do
+    Store
+    |> Ash.Query.filter(active == true and slug == ^slug)
+    |> Ash.read_one(authorize?: false)
+    |> case do
+      {:ok, store} -> store
+      _ -> nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp favorite_store(customer, store, socket) do
+    case Emakola.Customers.favorite_store(
+           %{customer_id: customer.id, store_id: store.id},
+           actor: customer
+         ) do
+      {:ok, _} ->
+        new_slugs = [store.slug | socket.assigns.favorite_slugs]
+
+        {:noreply,
+         socket
+         |> assign(
+           favorite_slugs: new_slugs,
+           favorite_stores: load_stores_by_slug(new_slugs)
+         )}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  defp unfavorite_store(customer, store, socket) do
+    # Find the favorite row to destroy via the read action
+    with {:ok, favorites} <- Emakola.Customers.list_favorite_stores(customer.id, actor: customer),
+         %{} = favorite <- Enum.find(favorites, &(&1.store_id == store.id)),
+         :ok <- Emakola.Customers.unfavorite_store(favorite, actor: customer) do
+      new_slugs = Enum.reject(socket.assigns.favorite_slugs, &(&1 == store.slug))
+
+      {:noreply,
+       socket
+       |> assign(
+         favorite_slugs: new_slugs,
+         favorite_stores: load_stores_by_slug(new_slugs)
+       )}
+    else
+      _ -> {:noreply, socket}
+    end
   end
 end
