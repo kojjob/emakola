@@ -15,12 +15,21 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
 
   @default_renderers_dir "lib/emakola/themes/default_renderers"
 
+  # Renderers that intentionally don't carry the shared nav+footer
+  # (focused conversion-flow pages where site chrome would distract
+  # the customer from completing the action).
+  @nav_footer_exempt ~w(checkout.ex)
+
   defp renderer_files do
     @default_renderers_dir
     |> Path.expand()
     |> File.ls!()
     |> Enum.filter(&String.ends_with?(&1, ".ex"))
     |> Enum.map(&Path.join(@default_renderers_dir, &1))
+  end
+
+  defp nav_footer_renderer_files do
+    Enum.reject(renderer_files(), &(Path.basename(&1) in @nav_footer_exempt))
   end
 
   describe "default renderer pattern" do
@@ -34,7 +43,7 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
     end
 
     test "every renderer mounts the shared navbar" do
-      for file <- renderer_files() do
+      for file <- nav_footer_renderer_files() do
         source = File.read!(file)
 
         assert source =~ ~r/(Atelier\.Shared\.navbar|Shared\.navbar)/,
@@ -53,7 +62,7 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
     end
 
     test "every renderer mounts the shared footer" do
-      for file <- renderer_files() do
+      for file <- nav_footer_renderer_files() do
         source = File.read!(file)
 
         assert source =~ ~r/(Atelier\.Shared\.footer|Shared\.footer)/,
