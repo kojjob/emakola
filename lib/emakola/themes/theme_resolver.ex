@@ -67,6 +67,11 @@ defmodule Emakola.Themes.ThemeResolver do
           Map.get(defaults, :testimonials, %{title: nil, items: []}),
           Map.get(config, "testimonials", %{})
         ),
+      closing_cta:
+        deep_merge_atomize(
+          Map.get(defaults, :closing_cta, %{title: nil, subtitle: nil, button_text: nil}),
+          Map.get(config, "closing_cta", %{})
+        ),
       newsletter: deep_merge_atomize(defaults.newsletter, Map.get(config, "newsletter", %{})),
       footer: footer,
       design_tokens: Emakola.Themes.DesignTokens.resolve(Map.get(config, "design_tokens", %{}))

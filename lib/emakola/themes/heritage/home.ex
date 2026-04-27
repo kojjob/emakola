@@ -355,24 +355,35 @@ defmodule Emakola.Themes.Heritage.Home do
         </div>
       </section>
 
-      <%!-- CLOSING CTA + Newsletter --%>
+      <%!--
+        Closing CTA + Newsletter — visible if EITHER toggle is on.
+        Each inner block is gated independently so the merchant can
+        keep the headline without the form, or vice versa.
+      --%>
       <section
-        :if={section_enabled?(@theme, :newsletter) && @theme.newsletter}
+        :if={section_enabled?(@theme, :closing_cta) || section_enabled?(@theme, :newsletter)}
         class="bg-[#7A1F1F] text-[#F5EFE0]"
       >
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 text-center">
-          <p class="text-xs font-bold uppercase tracking-[0.3em] text-[#D4A843] mb-3">
-            Join the Collective
-          </p>
-          <h2 class="heritage-heading text-3xl sm:text-4xl font-bold mb-3">
-            {@theme.newsletter.title || "Join the Collective"}
-          </h2>
-          <p class="text-sm sm:text-base text-[#F5EFE0]/80 max-w-xl mx-auto mb-8">
-            {@theme.newsletter.subtitle ||
-              "New artisans, untold stories, and limited drops — straight to your inbox."}
-          </p>
+          <div :if={section_enabled?(@theme, :closing_cta)}>
+            <p class="text-xs font-bold uppercase tracking-[0.3em] text-[#D4A843] mb-3">
+              Join the Collective
+            </p>
+            <h2 class="heritage-heading text-3xl sm:text-4xl font-bold mb-3">
+              {get_in(@theme, [:closing_cta, :title]) ||
+                get_in(@theme, [:newsletter, :title]) || "Join the Collective"}
+            </h2>
+            <p class="text-sm sm:text-base text-[#F5EFE0]/80 max-w-xl mx-auto mb-8">
+              {get_in(@theme, [:closing_cta, :subtitle]) ||
+                get_in(@theme, [:newsletter, :subtitle]) ||
+                "New artisans, untold stories, and limited drops — straight to your inbox."}
+            </p>
+          </div>
 
-          <form class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+          <form
+            :if={section_enabled?(@theme, :newsletter)}
+            class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto"
+          >
             <input
               type="email"
               placeholder="your@email.com"
@@ -383,7 +394,7 @@ defmodule Emakola.Themes.Heritage.Home do
               type="submit"
               class="inline-flex items-center justify-center px-6 py-3 rounded-full bg-[#D4A843] text-[#3D2817] text-sm font-bold hover:bg-[#E5BB5A] transition-colors min-h-[44px]"
             >
-              {@theme.newsletter.button_text || "Subscribe"}
+              {get_in(@theme, [:newsletter, :button_text]) || "Subscribe"}
             </button>
           </form>
         </div>
