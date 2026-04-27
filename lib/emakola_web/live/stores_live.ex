@@ -154,14 +154,16 @@ defmodule EmakolaWeb.StoresLive do
           <p class="text-xs font-semibold uppercase tracking-[0.3em] text-amber-400 mb-4">
             Browse the marketplace
           </p>
-          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4 leading-tight">
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4 leading-tight text-white drop-shadow-sm">
             <%= if @total_active > 0 do %>
-              Discover {@total_active} stores<br class="hidden sm:block" /> across Ghana
+              Discover <span class="text-amber-400">{@total_active}</span>
+              stores<br class="hidden sm:block" />
+              <span class="text-white">across Ghana</span>
             <% else %>
               The marketplace is just getting started
             <% end %>
           </h1>
-          <p class="text-base sm:text-lg text-white/70 max-w-2xl mx-auto mb-8">
+          <p class="text-base sm:text-lg text-white/90 max-w-2xl mx-auto mb-8">
             Verified shops. Mobile money. Doorstep delivery. Search by category, region, or just
             browse.
           </p>
@@ -189,17 +191,23 @@ defmodule EmakolaWeb.StoresLive do
           </form>
 
           <%!-- Trust pills --%>
-          <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs text-white/65">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-              <span class="material-symbols-outlined" style="font-size: 14px;">verified</span>
+          <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm font-medium text-white">
+            <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/15 border border-white/25 backdrop-blur-sm">
+              <span class="material-symbols-outlined text-emerald-300" style="font-size: 16px;">
+                verified
+              </span>
               Verified merchants
             </span>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-              <span class="material-symbols-outlined" style="font-size: 14px;">payments</span>
+            <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/15 border border-white/25 backdrop-blur-sm">
+              <span class="material-symbols-outlined text-amber-300" style="font-size: 16px;">
+                payments
+              </span>
               Mobile money + cards
             </span>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-              <span class="material-symbols-outlined" style="font-size: 14px;">local_shipping</span>
+            <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/15 border border-white/25 backdrop-blur-sm">
+              <span class="material-symbols-outlined text-sky-300" style="font-size: 16px;">
+                local_shipping
+              </span>
               Doorstep delivery
             </span>
           </div>
@@ -245,7 +253,7 @@ defmodule EmakolaWeb.StoresLive do
       </section>
 
       <%!-- Main grid --%>
-      <section class="bg-slate-50 text-slate-900">
+      <section id="main-grid" class="bg-slate-50 text-slate-900 scroll-mt-32">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
           <div :if={@stores == []} class="text-center py-20">
             <span class="material-symbols-outlined text-slate-300" style="font-size: 80px;">

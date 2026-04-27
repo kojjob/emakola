@@ -333,27 +333,46 @@ defmodule EmakolaWeb.StoresComponents do
   def recent_strip(assigns) do
     ~H"""
     <section :if={@stores != []}>
-      <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div class="flex items-end justify-between gap-3 mb-5">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-              Fresh arrivals
-            </p>
-            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mt-1">
-              {@title}
-            </h2>
-            <p class="text-sm text-slate-500">{@subtitle}</p>
+      <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div class="flex items-end justify-between gap-4 mb-7 flex-wrap">
+          <div class="flex items-center gap-4">
+            <span class="hidden sm:flex w-12 h-12 rounded-2xl bg-emerald-100 items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-emerald-700" style="font-size: 24px;">
+                auto_awesome
+              </span>
+            </span>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                Fresh arrivals
+              </p>
+              <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-0.5">
+                {@title}
+              </h2>
+              <p class="text-sm text-slate-500 mt-0.5">{@subtitle}</p>
+            </div>
           </div>
+          <a
+            href="#main-grid"
+            class="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700 hover:text-emerald-700 transition-colors"
+          >
+            View all stores
+            <span class="material-symbols-outlined" style="font-size: 18px;">arrow_forward</span>
+          </a>
         </div>
 
+        <%!--
+          Flex-wrap layout instead of rigid grid: cards keep a consistent
+          width but flow naturally so 1-2 stores look intentional rather
+          than leaving 4 empty grid cells. Mobile gets horizontal scroll.
+        --%>
         <div class="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-hide pb-2">
-          <div class="flex gap-4 sm:gap-5 min-w-max sm:grid sm:grid-cols-3 lg:grid-cols-6 sm:min-w-0">
+          <div class="flex flex-nowrap sm:flex-wrap gap-5 sm:gap-6 min-w-max sm:min-w-0">
             <a
               :for={store <- @stores}
               href={"/s/#{store.slug}"}
-              class="group block w-[160px] sm:w-auto shrink-0 sm:shrink"
+              class="group block w-[200px] sm:w-[220px] shrink-0"
             >
-              <div class="relative aspect-square overflow-hidden rounded-2xl bg-white border border-slate-200 group-hover:border-slate-300 group-hover:shadow-md transition-all">
+              <div class="relative aspect-square overflow-hidden rounded-2xl bg-white border border-slate-200 group-hover:border-emerald-300 group-hover:shadow-lg transition-all">
                 <%= if store.cover_image_url && store.cover_image_url != "" do %>
                   <.optimized_image
                     src={store.cover_image_url}
@@ -366,34 +385,90 @@ defmodule EmakolaWeb.StoresComponents do
                     style={"background: linear-gradient(135deg, #{theme_primary(store)} 0%, #{theme_accent(store)} 100%);"}
                   >
                   </div>
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-white/30" style="font-size: 64px;">
+                      storefront
+                    </span>
+                  </div>
                 <% end %>
 
-                <div class="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider">
-                  New
+                <%!-- Subtle gradient at bottom for legibility --%>
+                <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/50 to-transparent">
                 </div>
+
+                <span class="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider shadow">
+                  <span class="material-symbols-outlined" style="font-size: 12px;">
+                    fiber_new
+                  </span>
+                  New
+                </span>
 
                 <%= if store.logo_url && store.logo_url != "" do %>
                   <img
                     src={store.logo_url}
                     alt={"#{store.name} logo"}
-                    class="absolute bottom-2 left-2 w-9 h-9 rounded-lg border-2 border-white object-cover bg-white shadow-md"
+                    class="absolute bottom-3 left-3 w-11 h-11 rounded-xl border-2 border-white object-cover bg-white shadow-md"
                     loading="lazy"
                   />
                 <% else %>
-                  <div class="absolute bottom-2 left-2 w-9 h-9 rounded-lg border-2 border-white bg-white shadow-md flex items-center justify-center">
-                    <span class="text-sm font-bold" style={"color: #{theme_primary(store)};"}>
+                  <div class="absolute bottom-3 left-3 w-11 h-11 rounded-xl border-2 border-white bg-white shadow-md flex items-center justify-center">
+                    <span class="text-base font-bold" style={"color: #{theme_primary(store)};"}>
                       {String.first(store.name) |> String.upcase()}
                     </span>
                   </div>
                 <% end %>
               </div>
 
-              <p class="text-sm font-semibold text-slate-900 mt-2 line-clamp-1 group-hover:text-emerald-700 transition-colors">
-                {store.name}
-              </p>
-              <p :if={location(store) != ""} class="text-xs text-slate-500 line-clamp-1">
-                {location(store)}
-              </p>
+              <div class="mt-3">
+                <p class="text-base font-bold text-slate-900 line-clamp-1 group-hover:text-emerald-700 transition-colors">
+                  {store.name}
+                </p>
+                <div class="flex items-center gap-2 mt-1 text-xs text-slate-500">
+                  <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+                    {theme_label(store)}
+                  </span>
+                  <span :if={location(store) != ""} class="inline-flex items-center gap-0.5 truncate">
+                    <span class="material-symbols-outlined" style="font-size: 12px;">
+                      location_on
+                    </span>
+                    <span class="truncate">{location(store)}</span>
+                  </span>
+                </div>
+              </div>
+            </a>
+
+            <%!--
+              Final CTA card. Always rendered so the strip never looks
+              empty — fills the trailing whitespace when there are fewer
+              stores than columns and gives users a path to the full grid.
+            --%>
+            <a
+              href="#main-grid"
+              class="group block w-[200px] sm:w-[220px] shrink-0"
+            >
+              <div class="relative aspect-square overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 hover:border-emerald-400 bg-slate-50 hover:bg-emerald-50/40 flex flex-col items-center justify-center text-center px-5 transition-all">
+                <span class="w-12 h-12 rounded-2xl bg-white border border-slate-200 group-hover:border-emerald-300 flex items-center justify-center shadow-sm transition-colors">
+                  <span class="material-symbols-outlined text-emerald-600" style="font-size: 24px;">
+                    explore
+                  </span>
+                </span>
+                <p class="text-base font-bold text-slate-900 mt-3 group-hover:text-emerald-700 transition-colors">
+                  Explore all stores
+                </p>
+                <p class="text-xs text-slate-500 mt-1">
+                  Browse the full marketplace
+                </p>
+                <span
+                  class="material-symbols-outlined text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all mt-2"
+                  style="font-size: 18px;"
+                >
+                  arrow_forward
+                </span>
+              </div>
+              <div class="mt-3 invisible">
+                <p class="text-base font-bold">.</p>
+                <p class="text-xs">.</p>
+              </div>
             </a>
           </div>
         </div>
