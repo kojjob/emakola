@@ -37,6 +37,21 @@ defmodule EmakolaWeb.StoresComponents do
     {"name", "A → Z"}
   ]
 
+  # Approximate (x, y) coordinates for each region pin within the
+  # `viewBox 0 0 400 500` Ghana outline used by `map_view/1`. Not
+  # cartographically precise — placed where a Ghanaian user would
+  # expect each region to sit on a familiar outline.
+  @region_pins %{
+    "northern" => {200, 110},
+    "ashanti" => {185, 295},
+    "volta" => {305, 305},
+    "eastern" => {255, 360},
+    "western" => {135, 390},
+    "central" => {200, 420},
+    "greater_accra" => {275, 425},
+    "other" => {140, 205}
+  }
+
   @doc "Curated Ghana regions (slug → label)."
   def regions, do: @regions
 
@@ -942,4 +957,203 @@ defmodule EmakolaWeb.StoresComponents do
   rescue
     _ -> fallback
   end
+
+  # ── Ghana map_view modal (Phase 3) ──
+  #
+  # Modal that lets shoppers browse stores by Ghanaian region. Renders a
+  # backdrop overlay containing a hand-drawn SVG outline of Ghana with
+  # clickable region pins on the left, and the same regions as a
+  # scrollable list with per-region store counts on the right.
+  #
+  # Both the SVG pins and the list buttons emit `phx-click="select_region"`
+  # with `phx-value-region={slug}`. Backdrop and close button emit
+  # `phx-click="close_map"`. Wiring lives in the parent LiveView.
+
+  attr :stores, :list,
+    required: true,
+    doc: "Stores to plot. Each must have a :region string field."
+
+  attr :active_region, :string, default: ""
+  attr :open, :boolean, default: false
+
+  def map_view(assigns) do
+    assigns = assign(assigns, :region_rows, regions_with_counts(assigns.stores))
+
+    ~H"""
+    <div
+      :if={@open}
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm"
+      phx-click="close_map"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Browse stores by region"
+    >
+      <div
+        class="bg-white rounded-3xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+        phx-click-away="close_map"
+      >
+        <header class="flex items-center justify-between gap-4 px-6 pt-6 pb-4 border-b border-slate-200">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">
+              Browse by region
+            </p>
+            <h2 class="text-2xl font-bold text-slate-900 mt-0.5">Stores across Ghana</h2>
+          </div>
+          <button
+            type="button"
+            phx-click="close_map"
+            class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center"
+            aria-label="Close map"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="w-5 h-5 text-slate-700"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </header>
+
+        <div class="grid md:grid-cols-2 gap-6 p-6">
+          <div class="aspect-[4/5] rounded-2xl bg-slate-50 border border-slate-200 p-4 flex items-center justify-center">
+            <svg
+              viewBox="0 0 400 500"
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-full h-full"
+              role="img"
+              aria-label="Outline map of Ghana with region pins"
+            >
+              <%!--
+                Hand-drawn approximation of Ghana's outline.
+                Tall north-south shape, narrower at the southern coast,
+                wider in the north, with a slight bulge eastward where
+                Volta meets Togo. Coast is a gentle curve along the
+                bottom edge.
+              --%>
+              <path
+                d="M 95 60
+                   L 200 50
+                   L 305 55
+                   L 320 110
+                   L 335 170
+                   L 330 230
+                   L 345 280
+                   L 340 340
+                   L 320 380
+                   L 310 420
+                   L 300 455
+                   Q 230 478 165 470
+                   Q 120 462 95 445
+                   L 75 400
+                   L 70 340
+                   L 60 270
+                   L 65 200
+                   L 80 130
+                   Z"
+                fill="#fef3c7"
+                stroke="#7A1F1F"
+                stroke-width="2.5"
+                stroke-linejoin="round"
+              />
+
+              <%!-- Region pins. Active region gets emerald; others amber. --%>
+              <g
+                :for={{slug, label, _count} <- @region_rows}
+                phx-click="select_region"
+                phx-value-region={slug}
+                class="cursor-pointer"
+                data-region={slug}
+              >
+                <circle
+                  cx={pin_x(slug)}
+                  cy={pin_y(slug)}
+                  r="9"
+                  fill={if slug == @active_region, do: "#059669", else: "#d4a843"}
+                  stroke={if slug == @active_region, do: "#065f46", else: "#7A1F1F"}
+                  stroke-width={if slug == @active_region, do: "3", else: "1.5"}
+                />
+                <text
+                  x={pin_x(slug)}
+                  y={pin_y(slug) + 24}
+                  text-anchor="middle"
+                  font-size="11"
+                  font-weight="600"
+                  fill="#1f2937"
+                  style="paint-order: stroke; stroke: #ffffff; stroke-width: 3px;"
+                >
+                  {label}
+                </text>
+              </g>
+            </svg>
+          </div>
+
+          <div class="space-y-2">
+            <button
+              :for={{slug, label, count} <- @region_rows}
+              type="button"
+              phx-click="select_region"
+              phx-value-region={slug}
+              class={[
+                "w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-colors",
+                if(slug == @active_region,
+                  do: "border-emerald-600 bg-emerald-50 ring-2 ring-emerald-600",
+                  else: "border-slate-200 bg-white hover:border-amber-400 hover:bg-amber-50"
+                )
+              ]}
+            >
+              <span class="font-semibold text-slate-900">{label}</span>
+              <span class="text-xs text-slate-500">
+                {count} {if count == 1, do: "store", else: "stores"}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <footer class="px-6 py-4 border-t border-slate-200 text-xs text-slate-500 text-center">
+          Pick a region to filter the directory.
+        </footer>
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Returns `[{slug, label, count}]` for the canonical Ghanaian region list,
+  where `count` is the number of `stores` whose `:region` equals `slug`.
+
+  Stores with a nil/missing/unrecognized `:region` field do not contribute
+  to any count (except the literal `"other"`, which buckets to Other).
+
+  Order matches `regions/0` (minus the "All regions" sentinel).
+  """
+  def regions_with_counts(stores) when is_list(stores) do
+    counts =
+      Enum.reduce(stores, %{}, fn store, acc ->
+        case Map.get(store, :region) do
+          slug when is_binary(slug) -> Map.update(acc, slug, 1, &(&1 + 1))
+          _ -> acc
+        end
+      end)
+
+    @regions
+    |> Enum.reject(fn {slug, _} -> slug == "" end)
+    |> Enum.map(fn {slug, label} -> {slug, label, Map.get(counts, slug, 0)} end)
+  end
+
+  # Pin coordinate accessors. Falls back to map centroid so a
+  # mistyped slug renders something visible rather than crashing.
+  for {slug, {x, y}} <- @region_pins do
+    defp pin_x(unquote(slug)), do: unquote(x)
+    defp pin_y(unquote(slug)), do: unquote(y)
+  end
+
+  defp pin_x(_), do: 200
+  defp pin_y(_), do: 250
 end
