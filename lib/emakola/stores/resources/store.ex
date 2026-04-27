@@ -115,11 +115,62 @@ defmodule Emakola.Stores.Store do
       public?(true)
     end
 
+    # ── Directory fields (drive `/stores` marketplace) ──
+
+    # Admin pin: forces this store to top of the directory carousel.
+    attribute :featured, :boolean do
+      allow_nil?(false)
+      default(false)
+      public?(true)
+    end
+
+    # Manual ordering within featured. Lower numbers appear first.
+    # Nil = not in the manual rank; falls back to view_count desc.
+    attribute :featured_rank, :integer do
+      public?(true)
+    end
+
+    # Trust badge — admin sets after KYC / catalog review.
+    attribute :verified, :boolean do
+      allow_nil?(false)
+      default(false)
+      public?(true)
+    end
+
+    # 16:9 banner shown above the card on /stores. Falls back to a
+    # theme-color gradient when nil.
+    attribute :cover_image_url, :string do
+      public?(true)
+    end
+
+    # Atomic counter incremented on every storefront page load (debounced
+    # per session). Drives the "Most popular" sort.
+    attribute :view_count, :integer do
+      allow_nil?(false)
+      default(0)
+      public?(true)
+    end
+
+    # One-line shop pitch shown above description on the directory card.
+    attribute :tagline, :string do
+      public?(true)
+      constraints(max_length: 140)
+    end
+
     timestamps()
   end
 
   relationships do
     has_many :store_memberships, Emakola.Accounts.StoreMembership
+    has_many :products, Emakola.Catalog.Product
+  end
+
+  aggregates do
+    # Active products count — powers the "86 products" line on the card
+    # and the "Most popular" tiebreaker on the main grid sort.
+    count :product_count, :products do
+      filter(expr(status == :active))
+    end
   end
 
   identities do
@@ -162,6 +213,8 @@ defmodule Emakola.Stores.Store do
         :name,
         :description,
         :logo_url,
+        :cover_image_url,
+        :tagline,
         :contact_email,
         :contact_phone,
         :address,
@@ -177,6 +230,95 @@ defmodule Emakola.Stores.Store do
         :active,
         :theme_config
       ])
+    end
+
+    # ── Directory read actions ──
+
+    read :list_active do
+      filter(expr(active == true))
+      prepare(build(sort: [name: :asc]))
+    end
+
+    read :list_featured do
+      argument(:limit, :integer, default: 8)
+      filter(expr(active == true and featured == true))
+      prepare(build(sort: [featured_rank: :asc_nils_last, view_count: :desc]))
+      pagination(offset?: true, default_limit: 8, max_page_size: 50, required?: false)
+    end
+
+    read :list_recent do
+      argument(:limit, :integer, default: 6)
+      filter(expr(active == true))
+      prepare(build(sort: [inserted_at: :desc]))
+    end
+
+    read :list_editor_picks do
+      filter(expr(active == true and not is_nil(featured_rank) and featured_rank <= 6))
+      prepare(build(sort: [featured_rank: :asc]))
+    end
+
+    # Workhorse for the main grid. Filters by theme (string in
+    # theme_config["theme"]), region, and free-text search; sorts by
+    # one of: :newest | :name | :popular | :featured.
+    read :list_with_filters do
+      argument(:theme, :string)
+      argument(:region, :string)
+      argument(:search, :string)
+      argument(:sort, :atom, default: :featured)
+      argument(:limit, :integer, default: 12)
+      argument(:offset, :integer, default: 0)
+
+      filter(expr(active == true))
+
+      filter(
+        expr(
+          is_nil(^arg(:region)) or ^arg(:region) == "" or
+            region == ^arg(:region)
+        )
+      )
+
+      filter(
+        expr(
+          is_nil(^arg(:search)) or ^arg(:search) == "" or
+            contains(string_downcase(name), string_downcase(^arg(:search))) or
+            (not is_nil(tagline) and
+               contains(string_downcase(tagline), string_downcase(^arg(:search)))) or
+            (not is_nil(description) and
+               contains(string_downcase(description), string_downcase(^arg(:search))))
+        )
+      )
+
+      filter(
+        expr(
+          is_nil(^arg(:theme)) or ^arg(:theme) == "" or ^arg(:theme) == "all" or
+            fragment("(theme_config ->> 'theme') = ?", ^arg(:theme)) or
+            (fragment("(theme_config ->> 'theme')") |> is_nil() and ^arg(:theme) == "market")
+        )
+      )
+
+      pagination(offset?: true, default_limit: 12, max_page_size: 60, required?: false)
+
+      prepare(fn query, _ ->
+        sort =
+          case Ash.Query.get_argument(query, :sort) do
+            :newest -> [inserted_at: :desc]
+            :name -> [name: :asc]
+            :popular -> [view_count: :desc, name: :asc]
+            _ -> [featured: :desc, featured_rank: :asc_nils_last, view_count: :desc, name: :asc]
+          end
+
+        Ash.Query.sort(query, sort)
+      end)
+    end
+
+    update :update_directory_meta do
+      accept([:featured, :featured_rank, :verified])
+    end
+
+    update :increment_view_count do
+      require_atomic?(true)
+      accept([])
+      change(atomic_update(:view_count, expr(view_count + 1)))
     end
   end
 end

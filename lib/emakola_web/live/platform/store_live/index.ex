@@ -22,6 +22,45 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
      |> load_stores(query)}
   end
 
+  def handle_event("toggle_featured", %{"id" => id}, socket) do
+    update_directory_meta(socket, id, fn s -> %{featured: !Map.get(s, :featured, false)} end)
+  end
+
+  def handle_event("toggle_verified", %{"id" => id}, socket) do
+    update_directory_meta(socket, id, fn s -> %{verified: !Map.get(s, :verified, false)} end)
+  end
+
+  def handle_event("update_rank", %{"store_id" => id, "value" => value}, socket) do
+    rank =
+      case Integer.parse(value || "") do
+        {n, _} when n > 0 -> n
+        _ -> nil
+      end
+
+    update_directory_meta(socket, id, fn _ -> %{featured_rank: rank} end)
+  end
+
+  defp update_directory_meta(socket, id, attrs_fn) do
+    case Enum.find(socket.assigns.stores, &(&1.id == id)) do
+      nil ->
+        {:noreply, socket}
+
+      store ->
+        case store
+             |> Ash.Changeset.for_update(:update_directory_meta, attrs_fn.(store))
+             |> Ash.update(authorize?: false) do
+          {:ok, updated} ->
+            stores =
+              Enum.map(socket.assigns.stores, fn s -> if s.id == id, do: updated, else: s end)
+
+            {:noreply, assign(socket, :stores, stores)}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Could not update store")}
+        end
+    end
+  end
+
   defp load_stores(socket, query) do
     stores =
       if String.trim(query) == "" do
@@ -92,13 +131,14 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                 <th class="px-6 py-3">Slug</th>
                 <th class="px-6 py-3">Currency</th>
                 <th class="px-6 py-3">Status</th>
+                <th class="px-6 py-3">Directory</th>
                 <th class="px-6 py-3">Created</th>
                 <th class="px-6 py-3"></th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
               <tr :if={@stores == []} class="hover:bg-gray-50">
-                <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-400">
+                <td colspan="7" class="px-6 py-12 text-center text-sm text-gray-400">
                   No stores found
                 </td>
               </tr>
@@ -137,6 +177,54 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                     </span>
                     {if(Map.get(store, :active, true), do: "Active", else: "Suspended")}
                   </span>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      phx-click="toggle_featured"
+                      phx-value-id={store.id}
+                      title="Toggle featured"
+                      class={[
+                        "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors",
+                        if(Map.get(store, :featured, false),
+                          do: "bg-amber-400 text-amber-950 hover:bg-amber-300",
+                          else: "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                        )
+                      ]}
+                    >
+                      <span class="material-symbols-outlined" style="font-size: 12px;">star</span>
+                      Featured
+                    </button>
+                    <button
+                      type="button"
+                      phx-click="toggle_verified"
+                      phx-value-id={store.id}
+                      title="Toggle verified"
+                      class={[
+                        "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors",
+                        if(Map.get(store, :verified, false),
+                          do: "bg-sky-500 text-white hover:bg-sky-400",
+                          else: "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                        )
+                      ]}
+                    >
+                      <span class="material-symbols-outlined" style="font-size: 12px;">verified</span>
+                      Verified
+                    </button>
+                    <form phx-change="update_rank" class="inline-flex items-center">
+                      <input type="hidden" name="store_id" value={store.id} />
+                      <input
+                        type="number"
+                        name="value"
+                        value={Map.get(store, :featured_rank)}
+                        placeholder="Rank"
+                        min="1"
+                        phx-debounce="500"
+                        class="w-16 px-2 py-1 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+                      />
+                    </form>
+                  </div>
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-500">
                   {Calendar.strftime(store.inserted_at, "%b %d, %Y")}
