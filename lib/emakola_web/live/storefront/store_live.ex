@@ -36,7 +36,6 @@ defmodule EmakolaWeb.Storefront.StoreLive do
      |> assign(:cart_count, cart_count)
      |> assign(:page_title, store.name)
      |> assign_seo_metadata(store, products)
-     |> assign(:public_coupons, public_coupons)
      |> assign(:delivery_zones, delivery_zones)
      |> assign(:search_overlay_query, "")
      |> assign(:search_overlay_results, [])
