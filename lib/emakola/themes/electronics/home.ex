@@ -303,7 +303,7 @@ defmodule Emakola.Themes.Electronics.Home do
 
       <%!-- DARK CTA BAND with star pattern --%>
       <section
-        :if={section_enabled?(@theme, :cta_band)}
+        :if={section_enabled?(@theme, :closing_cta)}
         class="bg-[#134E4A] py-14 sm:py-20 relative overflow-hidden"
       >
         <%!-- Star pattern background --%>
