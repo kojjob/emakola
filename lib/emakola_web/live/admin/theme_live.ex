@@ -107,6 +107,10 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               featured_products: Map.get(resolved.sections, :featured_products, true),
               trust: Map.get(resolved.sections, :trust, true),
               brand_story: Map.get(resolved.sections, :brand_story, true),
+              testimonials: Map.get(resolved.sections, :testimonials, true),
+              faq: Map.get(resolved.sections, :faq, false),
+              featured_in: Map.get(resolved.sections, :featured_in, false),
+              closing_cta: Map.get(resolved.sections, :closing_cta, true),
               newsletter: Map.get(resolved.sections, :newsletter, true)
             },
             trust_config: resolved.trust,
@@ -726,20 +730,28 @@ defmodule EmakolaWeb.Admin.ThemeLive do
             </div>
           </div>
 
-          <%!-- Sections --%>
+          <%!-- Sections — comprehensive panel grouped into Essentials,
+               Social Proof, and Engagement so merchants can scan quickly. --%>
           <div class="bg-white rounded-2xl p-4 shadow-sm">
-            <div class="flex items-center gap-2 mb-3">
-              <span class="material-symbols-outlined text-xl text-emerald-600">view_module</span>
-              <h2 class="text-base font-bold text-slate-800">Sections</h2>
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-xl text-emerald-600">view_module</span>
+                <h2 class="text-base font-bold text-slate-800">Sections</h2>
+              </div>
+              <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+                {Enum.count(@sections, fn {_k, v} -> v end)}/{map_size(@sections)} on
+              </span>
             </div>
-            <p class="text-[11px] text-slate-500 mb-3">Tap to show or hide</p>
-            <div class="grid grid-cols-2 gap-2">
-              <.visual_toggle
-                icon="image"
-                label="Hero"
-                enabled={@sections.hero}
-                field="hero"
-              />
+            <p class="text-[11px] text-slate-500 mb-4">
+              Tap to show or hide on your storefront homepage
+            </p>
+
+            <%!-- Essentials --%>
+            <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 mb-2">
+              Essentials
+            </p>
+            <div class="grid grid-cols-2 gap-2 mb-4">
+              <.visual_toggle icon="image" label="Hero" enabled={@sections.hero} field="hero" />
               <.visual_toggle
                 icon="grid_view"
                 label="Categories"
@@ -753,16 +765,54 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                 field="featured_products"
               />
               <.visual_toggle
+                icon="auto_stories"
+                label="Story"
+                enabled={@sections.brand_story}
+                field="brand_story"
+              />
+            </div>
+
+            <%!-- Social proof --%>
+            <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 mb-2">
+              Social Proof
+            </p>
+            <div class="grid grid-cols-2 gap-2 mb-4">
+              <.visual_toggle
                 icon="verified_user"
                 label="Trust"
                 enabled={@sections.trust}
                 field="trust"
               />
               <.visual_toggle
-                icon="auto_stories"
-                label="Story"
-                enabled={@sections.brand_story}
-                field="brand_story"
+                icon="format_quote"
+                label="Reviews"
+                enabled={@sections.testimonials}
+                field="testimonials"
+              />
+              <.visual_toggle
+                icon="newspaper"
+                label="As Seen In"
+                enabled={@sections.featured_in}
+                field="featured_in"
+              />
+              <.visual_toggle
+                icon="quiz"
+                label="FAQ"
+                enabled={@sections.faq}
+                field="faq"
+              />
+            </div>
+
+            <%!-- Engagement --%>
+            <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 mb-2">
+              Engagement
+            </p>
+            <div class="grid grid-cols-2 gap-2">
+              <.visual_toggle
+                icon="campaign"
+                label="Closing CTA"
+                enabled={@sections.closing_cta}
+                field="closing_cta"
               />
               <.visual_toggle
                 icon="mail"
@@ -967,7 +1017,18 @@ defmodule EmakolaWeb.Admin.ThemeLive do
     section_atom =
       Emakola.SafeAtom.to_atom_in(
         section,
-        [:hero, :categories, :featured_products, :trust, :brand_story, :newsletter],
+        [
+          :hero,
+          :categories,
+          :featured_products,
+          :trust,
+          :brand_story,
+          :testimonials,
+          :faq,
+          :featured_in,
+          :closing_cta,
+          :newsletter
+        ],
         :hero
       )
 
@@ -1083,6 +1144,10 @@ defmodule EmakolaWeb.Admin.ThemeLive do
             "featured_products" => socket.assigns.sections.featured_products,
             "trust" => socket.assigns.sections.trust,
             "brand_story" => socket.assigns.sections.brand_story,
+            "testimonials" => socket.assigns.sections.testimonials,
+            "faq" => socket.assigns.sections.faq,
+            "featured_in" => socket.assigns.sections.featured_in,
+            "closing_cta" => socket.assigns.sections.closing_cta,
             "newsletter" => socket.assigns.sections.newsletter
           }),
         "design_tokens" =>
