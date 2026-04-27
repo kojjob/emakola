@@ -125,6 +125,66 @@ defmodule EmakolaWeb.StoresLiveTest do
       assert html =~ "Zzz Shop"
     end
 
+    test "featured carousel renders when at least one featured store exists", %{conn: conn} do
+      Factory.create_store!(%{
+        name: "Carousel Star",
+        slug: "carousel-star",
+        featured: true,
+        featured_rank: 1,
+        tagline: "Hand-picked excellence"
+      })
+
+      {:ok, _view, html} = live(conn, "/stores")
+
+      assert html =~ "Spotlight on Ghana"
+      assert html =~ "Carousel Star"
+      assert html =~ "Hand-picked excellence"
+    end
+
+    test "editor's picks section renders for stores with featured_rank ≤ 6", %{conn: conn} do
+      Factory.create_store!(%{
+        name: "Pick One",
+        slug: "pick-one",
+        featured: true,
+        featured_rank: 2,
+        tagline: "Bold pick"
+      })
+
+      {:ok, _view, html} = live(conn, "/stores")
+
+      assert html =~ "Editor"
+      assert html =~ "Pick One"
+    end
+
+    test "curation strips hide when filters are active", %{conn: conn} do
+      Factory.create_store!(%{
+        name: "Featured Apparel",
+        slug: "featured-apparel",
+        featured: true,
+        featured_rank: 1,
+        theme_config: %{"theme" => "fashion"}
+      })
+
+      Factory.create_store!(%{
+        name: "Beauty Standalone",
+        slug: "beauty-standalone",
+        theme_config: %{"theme" => "beauty"}
+      })
+
+      {:ok, view, html} = live(conn, "/stores")
+
+      # No filters → carousel is shown
+      assert html =~ "Spotlight on Ghana"
+
+      # Apply theme filter → carousel must disappear
+      html =
+        view
+        |> element(~s|button[phx-click="select_theme"][phx-value-theme="beauty"]|)
+        |> render_click()
+
+      refute html =~ "Spotlight on Ghana"
+    end
+
     test "featured stores show the Featured pill on their card", %{conn: conn} do
       Factory.create_store!(%{
         name: "Top Shop",

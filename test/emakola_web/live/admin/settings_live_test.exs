@@ -44,6 +44,24 @@ defmodule EmakolaWeb.Admin.SettingsLiveTest do
       assert html =~ "Settings saved"
     end
 
+    test "can update tagline and cover image URL via General tab", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      html =
+        view
+        |> form("#general-form", %{
+          store: %{
+            tagline: "Handmade with love in Accra",
+            cover_image_url: "https://cdn.example.com/cover.jpg"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Settings saved"
+      assert html =~ "Handmade with love in Accra"
+      assert html =~ "https://cdn.example.com/cover.jpg"
+    end
+
     test "can update contact info", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/admin/settings")
 

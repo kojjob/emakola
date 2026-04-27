@@ -34,7 +34,10 @@ defmodule EmakolaWeb.StoresLive do
         offset: 0,
         per_page: @per_page,
         has_more: true,
-        total_active: count_active_stores()
+        total_active: count_active_stores(),
+        featured_stores: load_featured(),
+        recent_stores: load_recent(),
+        editor_picks: load_editor_picks()
       )
       |> load_grid(reset: true)
       |> load_theme_counts()
@@ -203,6 +206,12 @@ defmodule EmakolaWeb.StoresLive do
         </div>
       </section>
 
+      <%!-- Featured carousel (only when no filters applied) --%>
+      <StoresComponents.featured_carousel
+        :if={!filters_active?(assigns)}
+        stores={@featured_stores}
+      />
+
       <%!-- Filters bar --%>
       <section class="sticky top-16 z-30 backdrop-blur-md bg-[#0c1526]/85 border-y border-white/5">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
@@ -274,6 +283,17 @@ defmodule EmakolaWeb.StoresLive do
           </div>
         </div>
       </section>
+
+      <%!-- New on Emakola strip (light section) — hidden when filtering --%>
+      <div :if={!filters_active?(assigns)} class="bg-slate-50">
+        <StoresComponents.recent_strip stores={@recent_stores} />
+      </div>
+
+      <%!-- Editor's picks (dark editorial) — hidden when filtering --%>
+      <StoresComponents.editor_picks
+        :if={!filters_active?(assigns)}
+        stores={@editor_picks}
+      />
 
       <%!-- Footer --%>
       <footer class="bg-[#0c1526] text-white/60 text-xs py-8 text-center">
@@ -350,6 +370,33 @@ defmodule EmakolaWeb.StoresLive do
     |> Ash.count!(authorize?: false)
   rescue
     _ -> 0
+  end
+
+  defp load_featured do
+    Store
+    |> Ash.Query.for_read(:list_featured, %{limit: 8})
+    |> Ash.Query.limit(8)
+    |> Ash.read!(authorize?: false)
+  rescue
+    _ -> []
+  end
+
+  defp load_recent do
+    Store
+    |> Ash.Query.for_read(:list_recent, %{limit: 6})
+    |> Ash.Query.limit(6)
+    |> Ash.read!(authorize?: false)
+  rescue
+    _ -> []
+  end
+
+  defp load_editor_picks do
+    Store
+    |> Ash.Query.for_read(:list_editor_picks)
+    |> Ash.Query.limit(6)
+    |> Ash.read!(authorize?: false)
+  rescue
+    _ -> []
   end
 
   defp load_theme_counts(socket) do

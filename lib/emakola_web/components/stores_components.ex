@@ -200,6 +200,297 @@ defmodule EmakolaWeb.StoresComponents do
   defp card_variant_class(:compact), do: ""
   defp card_variant_class(_), do: ""
 
+  # ── Featured carousel (horizontal snap) ──
+  #
+  # Renders a horizontally scrolling row of taller hero cards. Pure CSS
+  # scroll-snap; no JS hook needed. Each card uses the same color/logo
+  # treatment as `store_card/1` but with a larger cover and editorial
+  # vibe (tagline takes precedence over description).
+
+  attr :stores, :list, required: true
+
+  def featured_carousel(assigns) do
+    ~H"""
+    <section :if={@stores != []} class="relative -mt-2">
+      <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-2">
+        <div class="flex items-end justify-between gap-3 mb-4">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400">
+              Featured shops
+            </p>
+            <h2 class="text-2xl sm:text-3xl font-bold text-white mt-1">
+              Spotlight on Ghana's best
+            </h2>
+          </div>
+          <p class="text-xs text-white/50 hidden sm:block">
+            Hand-picked by our team
+          </p>
+        </div>
+      </div>
+
+      <div class="relative">
+        <div
+          class="overflow-x-auto scroll-smooth snap-x snap-mandatory pb-6 -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-hide"
+          style="scrollbar-width: none;"
+        >
+          <div class="max-w-[1280px] mx-auto sm:px-6 lg:px-8">
+            <div class="flex gap-4 sm:gap-5 min-w-max sm:min-w-0">
+              <a
+                :for={store <- @stores}
+                href={"/s/#{store.slug}"}
+                class="snap-start group relative w-[280px] sm:w-[320px] shrink-0 rounded-2xl overflow-hidden border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-all"
+              >
+                <div class="relative aspect-[4/3] overflow-hidden">
+                  <%= if store.cover_image_url && store.cover_image_url != "" do %>
+                    <.optimized_image
+                      src={store.cover_image_url}
+                      alt={"#{store.name} cover"}
+                      class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
+                  <% else %>
+                    <div
+                      class="absolute inset-0"
+                      style={"background: linear-gradient(135deg, #{theme_primary(store)} 0%, #{theme_accent(store)} 100%);"}
+                    >
+                    </div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                      <span class="material-symbols-outlined text-white/30" style="font-size: 96px;">
+                        storefront
+                      </span>
+                    </div>
+                  <% end %>
+
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent">
+                  </div>
+
+                  <span class="absolute top-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-400 text-amber-950 text-[10px] font-bold uppercase tracking-wider">
+                    <span class="material-symbols-outlined" style="font-size: 12px;">star</span>
+                    Featured
+                  </span>
+
+                  <%!-- Logo + name overlay --%>
+                  <div class="absolute bottom-3 left-3 right-3 flex items-end gap-3">
+                    <div class="w-12 h-12 rounded-xl border-2 border-white/90 bg-white shadow-md overflow-hidden flex items-center justify-center shrink-0">
+                      <%= if store.logo_url && store.logo_url != "" do %>
+                        <img
+                          src={store.logo_url}
+                          alt={"#{store.name} logo"}
+                          class="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      <% else %>
+                        <span
+                          class="text-base font-bold"
+                          style={"color: #{theme_primary(store)};"}
+                        >
+                          {String.first(store.name) |> String.upcase()}
+                        </span>
+                      <% end %>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-white text-base font-bold drop-shadow line-clamp-1">
+                        {store.name}
+                      </p>
+                      <p
+                        :if={Map.get(store, :tagline) && store.tagline != ""}
+                        class="text-white/85 text-xs line-clamp-1"
+                      >
+                        {store.tagline}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="px-4 py-3 flex items-center justify-between gap-2 text-xs text-white/70">
+                  <span class="inline-flex items-center gap-1">
+                    <span class="material-symbols-outlined" style="font-size: 12px;">
+                      location_on
+                    </span>
+                    {location(store)}
+                  </span>
+                  <span class="inline-flex items-center gap-1 text-amber-300 font-semibold">
+                    Visit shop
+                    <span class="material-symbols-outlined" style="font-size: 14px;">
+                      arrow_forward
+                    </span>
+                  </span>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  # ── New-on-Emakola strip (compact horizontal) ──
+
+  attr :stores, :list, required: true
+  attr :title, :string, default: "New on Emakola"
+  attr :subtitle, :string, default: "Just joined the marketplace"
+
+  def recent_strip(assigns) do
+    ~H"""
+    <section :if={@stores != []}>
+      <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="flex items-end justify-between gap-3 mb-5">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+              Fresh arrivals
+            </p>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900 mt-1">
+              {@title}
+            </h2>
+            <p class="text-sm text-slate-500">{@subtitle}</p>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-hide pb-2">
+          <div class="flex gap-4 sm:gap-5 min-w-max sm:grid sm:grid-cols-3 lg:grid-cols-6 sm:min-w-0">
+            <a
+              :for={store <- @stores}
+              href={"/s/#{store.slug}"}
+              class="group block w-[160px] sm:w-auto shrink-0 sm:shrink"
+            >
+              <div class="relative aspect-square overflow-hidden rounded-2xl bg-white border border-slate-200 group-hover:border-slate-300 group-hover:shadow-md transition-all">
+                <%= if store.cover_image_url && store.cover_image_url != "" do %>
+                  <.optimized_image
+                    src={store.cover_image_url}
+                    alt={"#{store.name}"}
+                    class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                <% else %>
+                  <div
+                    class="absolute inset-0"
+                    style={"background: linear-gradient(135deg, #{theme_primary(store)} 0%, #{theme_accent(store)} 100%);"}
+                  >
+                  </div>
+                <% end %>
+
+                <div class="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider">
+                  New
+                </div>
+
+                <%= if store.logo_url && store.logo_url != "" do %>
+                  <img
+                    src={store.logo_url}
+                    alt={"#{store.name} logo"}
+                    class="absolute bottom-2 left-2 w-9 h-9 rounded-lg border-2 border-white object-cover bg-white shadow-md"
+                    loading="lazy"
+                  />
+                <% else %>
+                  <div class="absolute bottom-2 left-2 w-9 h-9 rounded-lg border-2 border-white bg-white shadow-md flex items-center justify-center">
+                    <span class="text-sm font-bold" style={"color: #{theme_primary(store)};"}>
+                      {String.first(store.name) |> String.upcase()}
+                    </span>
+                  </div>
+                <% end %>
+              </div>
+
+              <p class="text-sm font-semibold text-slate-900 mt-2 line-clamp-1 group-hover:text-emerald-700 transition-colors">
+                {store.name}
+              </p>
+              <p :if={location(store) != ""} class="text-xs text-slate-500 line-clamp-1">
+                {location(store)}
+              </p>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  # ── Editor's picks (dark editorial cards) ──
+
+  attr :stores, :list, required: true
+
+  def editor_picks(assigns) do
+    ~H"""
+    <section :if={@stores != []} class="bg-slate-900 text-white">
+      <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div class="flex items-end justify-between gap-3 mb-6">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-amber-400">
+              Editor's picks
+            </p>
+            <h2 class="text-2xl sm:text-3xl font-bold mt-1">
+              Curated for the way you shop
+            </h2>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <a
+            :for={store <- @stores}
+            href={"/s/#{store.slug}"}
+            class="group relative bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 rounded-2xl overflow-hidden transition-all flex flex-col"
+          >
+            <div class="relative aspect-[16/9] overflow-hidden">
+              <%= if store.cover_image_url && store.cover_image_url != "" do %>
+                <.optimized_image
+                  src={store.cover_image_url}
+                  alt={"#{store.name}"}
+                  class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                />
+              <% else %>
+                <div
+                  class="absolute inset-0"
+                  style={"background: linear-gradient(135deg, #{theme_primary(store)} 0%, #{theme_accent(store)} 100%);"}
+                >
+                </div>
+              <% end %>
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
+
+              <%!-- Rank badge (1-6) --%>
+              <span
+                :if={Map.get(store, :featured_rank)}
+                class="absolute top-3 left-3 inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-400 text-amber-950 text-sm font-black"
+              >
+                {store.featured_rank}
+              </span>
+            </div>
+
+            <div class="p-5 flex-1 flex flex-col">
+              <p class="text-base font-bold line-clamp-1 group-hover:text-amber-300 transition-colors">
+                {store.name}
+              </p>
+              <p
+                :if={Map.get(store, :tagline) && store.tagline != ""}
+                class="text-sm text-white/80 mt-1.5 italic line-clamp-2"
+              >
+                "{store.tagline}"
+              </p>
+              <p
+                :if={(!Map.get(store, :tagline) || store.tagline == "") && store.description}
+                class="text-sm text-white/70 mt-1.5 line-clamp-2"
+              >
+                {store.description}
+              </p>
+
+              <div class="flex items-center gap-2 mt-4 pt-4 border-t border-white/10 text-xs text-white/60">
+                <span class="inline-flex items-center gap-1">
+                  <span class="material-symbols-outlined" style="font-size: 12px;">
+                    location_on
+                  </span>
+                  {location(store)}
+                </span>
+                <span class="ml-auto inline-flex items-center gap-1 text-amber-300 font-semibold">
+                  Visit shop
+                  <span class="material-symbols-outlined" style="font-size: 14px;">
+                    arrow_forward
+                  </span>
+                </span>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
   # ── Filter chips (theme) ──
 
   attr :active_theme, :string, default: "all"
