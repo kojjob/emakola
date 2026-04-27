@@ -9,6 +9,8 @@ defmodule Emakola.Dashboard.Stats do
 
   require Ash.Query
 
+  alias Emakola.AsyncSandbox
+
   @low_stock_threshold 10
 
   @doc """
@@ -33,13 +35,15 @@ defmodule Emakola.Dashboard.Stats do
     # pool — load_stats/1 is called from the dashboard LV mount which
     # already runs in its own process.
     tasks = [
-      Task.async(fn -> {:total_revenue, calculate_revenue(store_id)} end),
-      Task.async(fn -> {:order_count, count_orders(store_id)} end),
-      Task.async(fn -> {:active_products, count_active_products(store_id)} end),
-      Task.async(fn -> {:customer_count, count_customers(store_id)} end),
-      Task.async(fn -> {:recent_orders, recent_orders(store_id, 10)} end),
-      Task.async(fn -> {:low_stock, low_stock_variants(store_id, @low_stock_threshold)} end),
-      Task.async(fn -> {:top_products, top_products(store_id, 5)} end)
+      AsyncSandbox.run_async(fn -> {:total_revenue, calculate_revenue(store_id)} end),
+      AsyncSandbox.run_async(fn -> {:order_count, count_orders(store_id)} end),
+      AsyncSandbox.run_async(fn -> {:active_products, count_active_products(store_id)} end),
+      AsyncSandbox.run_async(fn -> {:customer_count, count_customers(store_id)} end),
+      AsyncSandbox.run_async(fn -> {:recent_orders, recent_orders(store_id, 10)} end),
+      AsyncSandbox.run_async(fn ->
+        {:low_stock, low_stock_variants(store_id, @low_stock_threshold)}
+      end),
+      AsyncSandbox.run_async(fn -> {:top_products, top_products(store_id, 5)} end)
     ]
 
     tasks
