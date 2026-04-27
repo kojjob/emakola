@@ -336,10 +336,27 @@ defmodule EmakolaWeb.StoresComponents do
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div class="flex items-end justify-between gap-4 mb-7 flex-wrap">
           <div class="flex items-center gap-4">
-            <span class="hidden sm:flex w-12 h-12 rounded-2xl bg-emerald-100 items-center justify-center shrink-0">
-              <span class="material-symbols-outlined text-emerald-700" style="font-size: 24px;">
-                auto_awesome
-              </span>
+            <%!--
+              Custom inline SVG: layered sparkle on a soft gradient tile.
+              Better than the Material `auto_awesome` glyph because the
+              strokes are tuned for the size, the gradient ties the icon
+              to the section's emerald accent, and it scales sharp at any
+              DPI without the icon-font flash-of-unstyled-text problem.
+            --%>
+            <span class="hidden sm:flex w-14 h-14 rounded-2xl items-center justify-center shrink-0 shadow-[0_8px_24px_-12px_rgba(16,185,129,0.45)] bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 32 32"
+                class="w-8 h-8 text-white"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M19.5 4a1 1 0 0 1 .96.72l1.27 4.32 4.55 1.34a1 1 0 0 1 0 1.92l-4.55 1.34-1.27 4.32a1 1 0 0 1-1.92 0L17.27 13.64 12.72 12.3a1 1 0 0 1 0-1.92l4.55-1.34L18.54 4.72A1 1 0 0 1 19.5 4Zm-9 9a1 1 0 0 1 .96.72l.83 2.85 2.93.86a1 1 0 0 1 0 1.92l-2.93.86-.83 2.85a1 1 0 0 1-1.92 0l-.83-2.85-2.93-.86a1 1 0 0 1 0-1.92l2.93-.86.83-2.85A1 1 0 0 1 10.5 13Zm12.18 8.05a1 1 0 0 1 1.86 0l.4 1.07 1.06.4a1 1 0 0 1 0 1.86l-1.06.4-.4 1.07a1 1 0 0 1-1.86 0l-.4-1.07-1.06-.4a1 1 0 0 1 0-1.86l1.06-.4.4-1.07Z"
+                  clip-rule="evenodd"
+                />
+              </svg>
             </span>
             <div>
               <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
@@ -353,10 +370,21 @@ defmodule EmakolaWeb.StoresComponents do
           </div>
           <a
             href="#main-grid"
-            class="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700 hover:text-emerald-700 transition-colors"
+            class="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700 hover:text-emerald-700 transition-colors group"
           >
             View all stores
-            <span class="material-symbols-outlined" style="font-size: 18px;">arrow_forward</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="w-4 h-4 group-hover:translate-x-0.5 transition-transform"
+            >
+              <path d="M5 12h14M13 5l7 7-7 7" />
+            </svg>
           </a>
         </div>
 
@@ -365,19 +393,24 @@ defmodule EmakolaWeb.StoresComponents do
           width but flow naturally so 1-2 stores look intentional rather
           than leaving 4 empty grid cells. Mobile gets horizontal scroll.
         --%>
-        <div class="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-hide pb-2">
+        <div class="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-hide pb-3">
           <div class="flex flex-nowrap sm:flex-wrap gap-5 sm:gap-6 min-w-max sm:min-w-0">
             <a
               :for={store <- @stores}
               href={"/s/#{store.slug}"}
-              class="group block w-[200px] sm:w-[220px] shrink-0"
+              class="group block w-[260px] sm:w-[280px] shrink-0 relative"
             >
-              <div class="relative aspect-square overflow-hidden rounded-2xl bg-white border border-slate-200 group-hover:border-emerald-300 group-hover:shadow-lg transition-all">
+              <%!--
+                Image area: 5:4 aspect, real image OR a richer fallback
+                with a soft pattern + storefront silhouette so empty
+                stores still look intentional. Logo lifts on hover.
+              --%>
+              <div class="relative aspect-[5/4] overflow-hidden rounded-3xl bg-slate-100 ring-1 ring-slate-200 group-hover:ring-2 group-hover:ring-emerald-300 group-hover:shadow-[0_20px_40px_-20px_rgba(16,185,129,0.35)] transition-all duration-300">
                 <%= if store.cover_image_url && store.cover_image_url != "" do %>
                   <.optimized_image
                     src={store.cover_image_url}
                     alt={"#{store.name}"}
-                    class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   />
                 <% else %>
                   <div
@@ -385,54 +418,134 @@ defmodule EmakolaWeb.StoresComponents do
                     style={"background: linear-gradient(135deg, #{theme_primary(store)} 0%, #{theme_accent(store)} 100%);"}
                   >
                   </div>
-                  <div class="absolute inset-0 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-white/30" style="font-size: 64px;">
-                      storefront
-                    </span>
-                  </div>
+                  <%!-- Subtle dot pattern overlay for visual texture --%>
+                  <svg
+                    class="absolute inset-0 w-full h-full opacity-15 mix-blend-overlay"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <defs>
+                      <pattern
+                        id={"dots-#{store.slug}"}
+                        x="0"
+                        y="0"
+                        width="20"
+                        height="20"
+                        patternUnits="userSpaceOnUse"
+                      >
+                        <circle cx="2" cy="2" r="1.5" fill="white" />
+                      </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill={"url(#dots-#{store.slug})"} />
+                  </svg>
+                  <%!-- Storefront silhouette --%>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    class="absolute inset-0 m-auto w-20 h-20 text-white/30"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M3.6 5.4a1 1 0 0 1 .9-.6h15a1 1 0 0 1 .9.6l1.6 3.6a1 1 0 0 1-.1.94 3.5 3.5 0 0 1-2.9 1.56V19a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-7.5a3.5 3.5 0 0 1-2.9-1.56 1 1 0 0 1-.1-.94l1.6-3.6Zm5.4 8.6h6v4H9v-4Z" />
+                  </svg>
                 <% end %>
 
-                <%!-- Subtle gradient at bottom for legibility --%>
-                <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/50 to-transparent">
+                <%!-- Top gradient for badge legibility --%>
+                <div class="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/30 to-transparent pointer-events-none">
+                </div>
+                <%!-- Bottom gradient (stronger) — only when no logo to anchor --%>
+                <div class="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/40 to-transparent pointer-events-none">
                 </div>
 
-                <span class="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider shadow">
-                  <span class="material-symbols-outlined" style="font-size: 12px;">
-                    fiber_new
-                  </span>
+                <%!-- New badge: real SVG burst, gradient pill --%>
+                <span class="absolute top-3 left-3 inline-flex items-center gap-1.5 pl-2 pr-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] font-black uppercase tracking-[0.1em] shadow-lg shadow-emerald-500/30">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 16 16"
+                    class="w-3.5 h-3.5"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M8 0 9.5 5 14.5 6 10.5 9.5 11.5 14.5 8 12 4.5 14.5 5.5 9.5 1.5 6 6.5 5 8 0Z" />
+                  </svg>
                   New
                 </span>
 
-                <%= if store.logo_url && store.logo_url != "" do %>
-                  <img
-                    src={store.logo_url}
-                    alt={"#{store.name} logo"}
-                    class="absolute bottom-3 left-3 w-11 h-11 rounded-xl border-2 border-white object-cover bg-white shadow-md"
-                    loading="lazy"
-                  />
-                <% else %>
-                  <div class="absolute bottom-3 left-3 w-11 h-11 rounded-xl border-2 border-white bg-white shadow-md flex items-center justify-center">
-                    <span class="text-base font-bold" style={"color: #{theme_primary(store)};"}>
-                      {String.first(store.name) |> String.upcase()}
-                    </span>
-                  </div>
-                <% end %>
+                <%!-- Verified badge (top-right) --%>
+                <span
+                  :if={Map.get(store, :verified)}
+                  class="absolute top-3 right-3 inline-flex items-center justify-center w-7 h-7 rounded-full bg-sky-500 text-white shadow-md ring-2 ring-white/40"
+                  title="Verified merchant"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    class="w-4 h-4"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M12 2.25c.93 0 1.78.34 2.43.9.86-.07 1.74.21 2.4.86.65.66.93 1.54.86 2.4.56.65.9 1.5.9 2.43 0 .93-.34 1.78-.9 2.43.07.86-.21 1.74-.86 2.4-.66.65-1.54.93-2.4.86-.65.56-1.5.9-2.43.9-.93 0-1.78-.34-2.43-.9-.86.07-1.74-.21-2.4-.86a2.96 2.96 0 0 1-.86-2.4 3.74 3.74 0 0 1 0-4.86 2.96 2.96 0 0 1 .86-2.4 2.96 2.96 0 0 1 2.4-.86A3.74 3.74 0 0 1 12 2.25Zm3.78 6.53a.75.75 0 1 0-1.06-1.06L10.5 11.94l-1.72-1.72a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.06 0l4.75-4.75Z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </span>
               </div>
 
-              <div class="mt-3">
-                <p class="text-base font-bold text-slate-900 line-clamp-1 group-hover:text-emerald-700 transition-colors">
-                  {store.name}
-                </p>
-                <div class="flex items-center gap-2 mt-1 text-xs text-slate-500">
-                  <span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
-                    {theme_label(store)}
-                  </span>
-                  <span :if={location(store) != ""} class="inline-flex items-center gap-0.5 truncate">
-                    <span class="material-symbols-outlined" style="font-size: 12px;">
-                      location_on
-                    </span>
-                    <span class="truncate">{location(store)}</span>
-                  </span>
+              <%!--
+                Body card with overlapping logo. The negative margin-top
+                lifts the logo into the image so the eye reads
+                image → logo → name as a single unit.
+              --%>
+              <div class="relative -mt-7 mx-3 bg-white rounded-2xl shadow-sm ring-1 ring-slate-200/80 group-hover:ring-emerald-200 group-hover:shadow-md transition-all px-4 pt-4 pb-3.5">
+                <div class="flex items-start gap-3">
+                  <%= if store.logo_url && store.logo_url != "" do %>
+                    <img
+                      src={store.logo_url}
+                      alt={"#{store.name} logo"}
+                      class="w-11 h-11 rounded-xl ring-2 ring-white shadow-md object-cover bg-white shrink-0 -mt-7"
+                      loading="lazy"
+                    />
+                  <% else %>
+                    <div
+                      class="w-11 h-11 rounded-xl ring-2 ring-white shadow-md flex items-center justify-center shrink-0 -mt-7"
+                      style={"background: linear-gradient(135deg, #{theme_primary(store)} 0%, #{theme_accent(store)} 100%);"}
+                    >
+                      <span class="text-base font-black text-white drop-shadow">
+                        {String.first(store.name) |> String.upcase()}
+                      </span>
+                    </div>
+                  <% end %>
+
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[15px] font-bold text-slate-900 line-clamp-1 group-hover:text-emerald-700 transition-colors">
+                      {store.name}
+                    </p>
+                    <p class="text-xs text-slate-500 line-clamp-1 mt-0.5">
+                      {theme_label(store)}
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  :if={location(store) != ""}
+                  class="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    class="w-3.5 h-3.5 text-slate-400 shrink-0"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M11.54 22.35a.75.75 0 0 0 .92 0c4.45-3.4 8.04-7.16 8.04-12.1A8.5 8.5 0 0 0 12 1.75a8.5 8.5 0 0 0-8.5 8.5c0 4.94 3.59 8.7 8.04 12.1ZM12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                  <span class="truncate font-medium">{location(store)}</span>
                 </div>
               </div>
             </a>
@@ -444,31 +557,47 @@ defmodule EmakolaWeb.StoresComponents do
             --%>
             <a
               href="#main-grid"
-              class="group block w-[200px] sm:w-[220px] shrink-0"
+              class="group block w-[260px] sm:w-[280px] shrink-0"
             >
-              <div class="relative aspect-square overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 hover:border-emerald-400 bg-slate-50 hover:bg-emerald-50/40 flex flex-col items-center justify-center text-center px-5 transition-all">
-                <span class="w-12 h-12 rounded-2xl bg-white border border-slate-200 group-hover:border-emerald-300 flex items-center justify-center shadow-sm transition-colors">
-                  <span class="material-symbols-outlined text-emerald-600" style="font-size: 24px;">
-                    explore
-                  </span>
+              <div class="relative aspect-[5/4] overflow-hidden rounded-3xl border-2 border-dashed border-slate-300 group-hover:border-emerald-400 bg-gradient-to-br from-slate-50 to-emerald-50/30 group-hover:from-emerald-50/40 group-hover:to-emerald-100/30 flex flex-col items-center justify-center text-center px-6 transition-all">
+                <span class="w-14 h-14 rounded-2xl bg-white ring-1 ring-slate-200 group-hover:ring-emerald-300 flex items-center justify-center shadow-md transition-all group-hover:scale-105">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    class="w-7 h-7 text-emerald-600"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="m21 21-4.3-4.3" />
+                  </svg>
                 </span>
-                <p class="text-base font-bold text-slate-900 mt-3 group-hover:text-emerald-700 transition-colors">
+                <p class="text-base font-bold text-slate-900 mt-3.5 group-hover:text-emerald-700 transition-colors">
                   Explore all stores
                 </p>
                 <p class="text-xs text-slate-500 mt-1">
                   Browse the full marketplace
                 </p>
-                <span
-                  class="material-symbols-outlined text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all mt-2"
-                  style="font-size: 18px;"
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  class="w-5 h-5 text-slate-400 group-hover:text-emerald-600 group-hover:translate-x-1 transition-all mt-3"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
                 >
-                  arrow_forward
-                </span>
+                  <path d="M5 12h14M13 5l7 7-7 7" />
+                </svg>
               </div>
-              <div class="mt-3 invisible">
-                <p class="text-base font-bold">.</p>
-                <p class="text-xs">.</p>
-              </div>
+              <%!-- Spacer matching real cards' meta block, kept invisible --%>
+              <div class="relative -mt-7 mx-3 invisible h-[88px]"></div>
             </a>
           </div>
         </div>
