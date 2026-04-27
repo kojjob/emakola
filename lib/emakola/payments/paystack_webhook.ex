@@ -11,6 +11,7 @@ defmodule Emakola.Payments.PaystackWebhook do
   """
 
   require Ash.Query
+  require Logger
 
   alias Emakola.Payments.Payment
 
@@ -74,7 +75,15 @@ defmodule Emakola.Payments.PaystackWebhook do
     end
   end
 
-  def handle_event(_), do: :ok
+  def handle_event(%{"event" => event}) do
+    Logger.warning("[paystack_webhook] unhandled event: #{inspect(event)}")
+    :ok
+  end
+
+  def handle_event(payload) do
+    Logger.warning("[paystack_webhook] malformed payload (no :event key): #{inspect(payload)}")
+    :ok
+  end
 
   # -- Private helpers -------------------------------------------------------
 
@@ -120,7 +129,25 @@ defmodule Emakola.Payments.PaystackWebhook do
         |> Ash.Changeset.for_update(:confirm, %{})
         |> Ash.update(authorize?: false)
 
-      _ ->
+      {:ok, %{status: status}} ->
+        # Order already in a non-pending state — webhook is a no-op for
+        # status transitions, but log so reconciliation can audit
+        # whether we missed a transition or the gateway re-fired.
+        Logger.info(
+          "[paystack_webhook] order #{order_id} already in :#{status}, skipping confirm"
+        )
+
+        :ok
+
+      {:ok, nil} ->
+        Logger.warning("[paystack_webhook] order #{order_id} not found while confirming payment")
+
+        :ok
+
+      {:error, reason} ->
+        # Was previously swallowed silently — could mask DB errors.
+        Logger.error("[paystack_webhook] failed to load order #{order_id}: #{inspect(reason)}")
+
         :ok
     end
   end

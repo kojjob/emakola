@@ -3,14 +3,14 @@ defmodule Emakola.Themes.Electronics.Home do
   Electronics theme home — modern tech store mirroring the user-supplied
   Dribbble reference ("Upgrade Your Gear, Upgrade Yourself"):
 
-  - Deep teal hero with vibrant product shot, orange CTA pill
-  - Category pill strip (active = orange)
+  - Deep teal hero with vibrant product shot, sky-blue CTA pill
+  - Category pill strip (active = sky blue)
   - "Immersive Sound, Unmatched Comfort" — split: 2x2 product mini-grid
     on left + lifestyle image on right
   - Popular product grid (4-col) + featured deal split card
   - Trust statement banner (centered cream copy)
   - Best selling product grid (3-col)
-  - Dark teal CTA band with star pattern + orange button
+  - Dark teal CTA band with star pattern + sky-blue button
   - Newsletter on dark navy (footer-matched)
   """
 
@@ -43,14 +43,14 @@ defmodule Emakola.Themes.Electronics.Home do
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-20">
           <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             <div class="text-white">
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F97316]/20 text-[#F97316] text-[11px] font-bold uppercase tracking-[0.18em] mb-5">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0EA5E9]/20 text-[#0EA5E9] text-[11px] font-bold uppercase tracking-[0.18em] mb-5">
                 <span class="material-symbols-outlined" style="font-size: 14px;">flash_on</span>
                 New Arrivals
               </span>
               <h1 class="electronics-heading text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] mb-3">
                 {hero_title_first(@theme)}
               </h1>
-              <p class="electronics-heading text-2xl sm:text-3xl lg:text-4xl text-[#F97316] font-bold mb-6">
+              <p class="electronics-heading text-2xl sm:text-3xl lg:text-4xl text-[#0EA5E9] font-bold mb-6">
                 {hero_title_second(@theme)}
               </p>
               <p
@@ -62,7 +62,7 @@ defmodule Emakola.Themes.Electronics.Home do
               <div class="flex flex-col sm:flex-row gap-3">
                 <a
                   href={"/s/#{@store.slug}/products"}
-                  class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[#F97316] text-white text-sm font-bold hover:bg-[#EA580C] transition-colors min-h-[48px]"
+                  class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[#0EA5E9] text-white text-sm font-bold hover:bg-[#0284C7] transition-colors min-h-[48px]"
                 >
                   {@theme.hero.cta_text || "Shop Now"}
                   <span class="material-symbols-outlined" style="font-size: 18px;">
@@ -87,7 +87,7 @@ defmodule Emakola.Themes.Electronics.Home do
                     class="w-full h-full object-cover"
                   />
                 <% else %>
-                  <span class="material-symbols-outlined text-[#F97316]/40" style="font-size: 200px;">
+                  <span class="material-symbols-outlined text-[#0EA5E9]/40" style="font-size: 200px;">
                     headphones
                   </span>
                 <% end %>
@@ -115,7 +115,7 @@ defmodule Emakola.Themes.Electronics.Home do
               :for={item <- categories_strip_items(@theme)}
               href={"/s/#{@store.slug}/products"}
               class={"inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold transition-colors min-h-[40px] " <>
-                if(Map.get(item, :active), do: "bg-[#F97316] text-white", else: "bg-white border border-[#E5E7EB] text-[#1F2937] hover:border-[#F97316] hover:text-[#F97316]")}
+                if(Map.get(item, :active), do: "bg-[#0EA5E9] text-white", else: "bg-white border border-[#E5E7EB] text-[#1F2937] hover:border-[#0EA5E9] hover:text-[#0EA5E9]")}
             >
               {item.label}
             </a>
@@ -155,7 +155,7 @@ defmodule Emakola.Themes.Electronics.Home do
             </div>
             <div class="aspect-square lg:aspect-auto rounded-2xl overflow-hidden bg-gradient-to-br from-[#0F4A45] via-[#134E4A] to-[#0E3F3B] relative">
               <span class="absolute inset-0 flex items-center justify-center">
-                <span class="material-symbols-outlined text-[#F97316]/30" style="font-size: 200px;">
+                <span class="material-symbols-outlined text-[#0EA5E9]/30" style="font-size: 200px;">
                   headphones
                 </span>
               </span>
@@ -168,7 +168,7 @@ defmodule Emakola.Themes.Electronics.Home do
                 </p>
                 <a
                   href={"/s/#{@store.slug}/products"}
-                  class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#F97316] text-white text-xs font-bold hover:bg-[#EA580C] transition-colors"
+                  class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0EA5E9] text-white text-xs font-bold hover:bg-[#0284C7] transition-colors"
                 >
                   Learn More
                   <span class="material-symbols-outlined" style="font-size: 14px;">
@@ -237,8 +237,8 @@ defmodule Emakola.Themes.Electronics.Home do
               </p>
               <%!-- Color swatches --%>
               <div class="flex items-center gap-2 mb-5">
-                <span class="w-6 h-6 rounded-full bg-[#1F2937] ring-2 ring-[#F97316]"></span>
-                <span class="w-6 h-6 rounded-full bg-[#F97316] ring-1 ring-black/10"></span>
+                <span class="w-6 h-6 rounded-full bg-[#1F2937] ring-2 ring-[#0EA5E9]"></span>
+                <span class="w-6 h-6 rounded-full bg-[#0EA5E9] ring-1 ring-black/10"></span>
                 <span class="w-6 h-6 rounded-full bg-[#134E4A] ring-1 ring-black/10"></span>
                 <span class="w-6 h-6 rounded-full bg-white ring-1 ring-[#E5E7EB]"></span>
               </div>
@@ -251,7 +251,7 @@ defmodule Emakola.Themes.Electronics.Home do
                 </span>
                 <a
                   href={"/s/#{@store.slug}/products/#{@featured_deal.slug}"}
-                  class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#F97316] text-white text-sm font-bold hover:bg-[#EA580C] transition-colors"
+                  class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#0EA5E9] text-white text-sm font-bold hover:bg-[#0284C7] transition-colors"
                 >
                   Add to Cart
                 </a>
@@ -335,7 +335,7 @@ defmodule Emakola.Themes.Electronics.Home do
           <p class="text-base text-white/80 mb-7">{cta_band_subtitle(@theme)}</p>
           <a
             href={"/s/#{@store.slug}/products"}
-            class="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-[#F97316] text-white text-sm font-bold hover:bg-[#EA580C] transition-colors min-h-[48px]"
+            class="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-[#0EA5E9] text-white text-sm font-bold hover:bg-[#0284C7] transition-colors min-h-[48px]"
           >
             {cta_band_button(@theme)}
             <span class="material-symbols-outlined" style="font-size: 18px;">arrow_forward</span>
@@ -356,11 +356,11 @@ defmodule Emakola.Themes.Electronics.Home do
               type="email"
               id="electronics-newsletter-email"
               placeholder="Enter your email"
-              class="flex-1 px-5 py-3.5 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#F97316] text-sm"
+              class="flex-1 px-5 py-3.5 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#0EA5E9] text-sm"
             />
             <button
               type="submit"
-              class="px-7 py-3.5 rounded-full bg-[#F97316] text-white text-sm font-bold hover:bg-[#EA580C] transition-colors min-h-[48px]"
+              class="px-7 py-3.5 rounded-full bg-[#0EA5E9] text-white text-sm font-bold hover:bg-[#0284C7] transition-colors min-h-[48px]"
             >
               {newsletter_button(@theme)}
             </button>
@@ -396,7 +396,7 @@ defmodule Emakola.Themes.Electronics.Home do
   end
 
   # Splits hero title at first comma so headline can be "Upgrade Your Gear"
-  # then orange "Upgrade Yourself" on a second line.
+  # then sky-blue "Upgrade Yourself" on a second line.
   defp hero_title_first(theme) do
     case get_in(theme, [:hero, :title]) do
       nil ->

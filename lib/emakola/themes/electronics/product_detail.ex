@@ -1,7 +1,7 @@
 defmodule Emakola.Themes.Electronics.ProductDetail do
   @moduledoc """
   Electronics theme product detail — gallery + spec accordion +
-  monospace price + orange "Add to Cart" CTA + warranty pill.
+  monospace price + sky-blue "Add to Cart" CTA + warranty pill.
   """
 
   use Phoenix.Component
@@ -71,7 +71,7 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
                   phx-value-index={idx}
                   class={"flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-white border-2 transition-colors " <>
                     if(idx == @current_image_index,
-                      do: "border-[#F97316]",
+                      do: "border-[#0EA5E9]",
                       else: "border-transparent hover:border-[#E5E7EB]"
                     )}
                 >
@@ -97,7 +97,7 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
               <%!-- Rating --%>
               <div class="flex items-center gap-3 mb-6">
                 <div class="flex items-center gap-1">
-                  <span :for={_ <- 1..5} class="text-[#F97316]" style="font-size: 16px;">★</span>
+                  <span :for={_ <- 1..5} class="text-[#0EA5E9]" style="font-size: 16px;">★</span>
                 </div>
                 <span class="text-xs text-[#6B7280]">(4.8 · 254 reviews)</span>
               </div>
@@ -129,19 +129,19 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
                   </p>
                   <div class="flex flex-wrap gap-2">
                     <button
-                      :for={value <- option_type.values}
+                      :for={option_value <- option_type.option_values || []}
                       type="button"
                       phx-click="select_option"
-                      phx-value-option={option_type.name}
-                      phx-value-value={value}
+                      phx-value-option_type_id={option_type.id}
+                      phx-value-value={option_value.id}
                       class={"px-4 py-2.5 rounded-xl border-2 text-sm font-medium transition-colors min-h-[44px] " <>
-                        if(Map.get(@selected_options, option_type.name) == value,
+                        if(Map.get(@selected_options, option_type.id) == option_value.id,
                           do: "bg-[#134E4A] text-white border-[#134E4A]",
                           else:
-                            "bg-white text-[#1F2937] border-[#E5E7EB] hover:border-[#F97316]"
+                            "bg-white text-[#1F2937] border-[#E5E7EB] hover:border-[#0EA5E9]"
                         )}
                     >
-                      {value}
+                      {option_value.value}
                     </button>
                   </div>
                 </div>
@@ -177,7 +177,7 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
                 <button
                   type="button"
                   phx-click="add_to_cart"
-                  class="flex-1 inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[#F97316] text-white text-sm font-bold hover:bg-[#EA580C] transition-colors min-h-[48px]"
+                  class="flex-1 inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[#0EA5E9] text-white text-sm font-bold hover:bg-[#0284C7] transition-colors min-h-[48px]"
                 >
                   <span class="material-symbols-outlined" style="font-size: 18px;">shopping_bag</span>
                   Add to Cart
@@ -190,7 +190,7 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
                   <summary class="flex items-center justify-between p-4 cursor-pointer list-none">
                     <span class="text-sm font-bold text-[#134E4A]">Specifications</span>
                     <span
-                      class="material-symbols-outlined text-[#F97316] transition-transform group-open:rotate-180"
+                      class="material-symbols-outlined text-[#0EA5E9] transition-transform group-open:rotate-180"
                       style="font-size: 20px;"
                     >
                       expand_more
@@ -207,7 +207,7 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
                   <summary class="flex items-center justify-between p-4 cursor-pointer list-none">
                     <span class="text-sm font-bold text-[#134E4A]">In the box</span>
                     <span
-                      class="material-symbols-outlined text-[#F97316] transition-transform group-open:rotate-180"
+                      class="material-symbols-outlined text-[#0EA5E9] transition-transform group-open:rotate-180"
                       style="font-size: 20px;"
                     >
                       expand_more

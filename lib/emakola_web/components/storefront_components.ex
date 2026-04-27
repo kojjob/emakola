@@ -1279,4 +1279,51 @@ defmodule EmakolaWeb.StorefrontComponents do
       _ -> nil
     end
   end
+
+  @doc """
+  Lists merchant-built pages as footer links. Loads on render for the
+  given store. Themes opt in by adding `<.footer_pages store={@store} />`
+  to their footer. Renders nothing if the store has no published pages,
+  so it's safe to drop in unconditionally.
+  """
+  attr :store, :map, required: true
+  attr :heading, :string, default: "More"
+  attr :class, :string, default: ""
+  attr :link_class, :string, default: "hover:text-white transition-colors"
+
+  def footer_pages(assigns) do
+    pages =
+      case assigns.store do
+        %{id: id} -> safe_list_pages(id)
+        _ -> []
+      end
+
+    assigns = assign(assigns, :pages, pages)
+
+    ~H"""
+    <div :if={@pages != []} class={@class}>
+      <h4 class="text-sm font-semibold uppercase tracking-wider mb-4">
+        {@heading}
+      </h4>
+      <ul class="space-y-3 text-sm opacity-75">
+        <li :for={page <- @pages}>
+          <a href={"/s/#{@store.slug}/p/#{page.slug}"} class={@link_class}>
+            {page.title}
+          </a>
+        </li>
+      </ul>
+    </div>
+    """
+  end
+
+  defp safe_list_pages(store_id) do
+    require Ash.Query
+
+    Emakola.Pages.Page
+    |> Ash.Query.for_read(:list_for_store, %{store_id: store_id})
+    |> Ash.Query.filter(published == true)
+    |> Ash.read!(authorize?: false)
+  rescue
+    _ -> []
+  end
 end

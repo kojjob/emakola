@@ -766,6 +766,27 @@ defmodule EmakolaWeb.Admin.ThemeLive do
               />
             </div>
           </div>
+
+          <%!-- Hand-off CTA → Design Studio --%>
+          <.link
+            navigate="/admin/design"
+            class="block bg-gradient-to-br from-violet-50 to-violet-100 hover:from-violet-100 hover:to-violet-200 rounded-2xl p-4 transition-colors group"
+          >
+            <div class="flex items-start gap-3">
+              <div class="w-9 h-9 rounded-xl bg-violet-200 group-hover:bg-violet-300 flex items-center justify-center shrink-0 transition-colors">
+                <span class="material-symbols-outlined text-lg text-violet-700">tune</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-violet-900">Fine-tune the details</p>
+                <p class="text-[11px] text-violet-700 mt-0.5 leading-relaxed">
+                  Buttons, cards, typography &amp; layout in the Design Studio
+                </p>
+              </div>
+              <span class="material-symbols-outlined text-base text-violet-600 group-hover:translate-x-0.5 transition-transform shrink-0">
+                arrow_forward
+              </span>
+            </div>
+          </.link>
         </aside>
       </div>
 

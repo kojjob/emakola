@@ -14,7 +14,12 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
   use Oban.Worker,
     queue: :notifications,
     max_attempts: 3,
-    unique: [period: 60, fields: [:args]]
+    # 10-minute dedup window. The previous 60-second value was tuned
+    # for retry storms but missed the more common case: webhook
+    # processors that re-fire the same lifecycle event minutes apart
+    # (gateway retries are typically ~3 min, ~6 min, ~10 min). 600s
+    # absorbs all three without sending duplicate SMS to the customer.
+    unique: [period: 600, fields: [:args]]
 
   require Ash.Query
   require Logger

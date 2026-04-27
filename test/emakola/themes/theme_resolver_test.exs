@@ -133,7 +133,7 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert result.theme_id == "electronics"
       assert result.theme_name == "Electronics"
       assert result.colors.primary == "#134E4A"
-      assert result.colors.accent == "#F97316"
+      assert result.colors.accent == "#0EA5E9"
       assert result.colors.background == "#F5EFE5"
       assert result.sections.hero == true
       assert result.sections.featured_products == true
