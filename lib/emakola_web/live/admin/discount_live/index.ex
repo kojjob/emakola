@@ -86,7 +86,7 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
     <%!-- Summary Cards --%>
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
       <%!-- Active Discounts --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
+      <div class="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
         <div class="flex items-center justify-between mb-4">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Active Discounts
@@ -113,7 +113,7 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
         </p>
       </div>
       <%!-- Total Uses --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
+      <div class="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
         <div class="flex items-center justify-between mb-4">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Total Uses
@@ -139,7 +139,7 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
         </p>
       </div>
       <%!-- Revenue Impact --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
+      <div class="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
         <div class="flex items-center justify-between mb-4">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Revenue Impact
@@ -208,7 +208,7 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
     </div>
 
     <%!-- Discounts Table --%>
-    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-8">
+    <div class="bg-white rounded-2xl shadow-sm overflow-hidden mb-8">
       <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100">
         <div>
           <h2 class="text-base font-bold text-slate-900">All Discount Codes</h2>
@@ -383,7 +383,7 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
     </div>
 
     <%!-- Create Discount Form --%>
-    <div :if={@show_create_form} class="bg-white rounded-2xl border border-slate-200 p-6">
+    <div :if={@show_create_form} class="bg-white rounded-2xl shadow-sm p-6">
       <h2 class="text-base font-bold text-slate-900 mb-1">Create New Discount</h2>
       <p class="text-xs text-slate-400 mb-6">Configure your discount code settings</p>
 
@@ -633,7 +633,7 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
 
   defp usage_bar(assigns) do
     ~H"""
-    <div class="flex items-center gap-2">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 flex items-center gap-2">
       <%= if @limit do %>
         <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden w-20">
           <div

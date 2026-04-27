@@ -41,13 +41,11 @@ defmodule EmakolaWeb.Admin.Content.MediaLive.Index do
     assigns = assign(assigns, :filtered_media, filtered)
 
     ~H"""
-    <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-xl font-bold text-slate-900">Media Library</h1>
-          <p class="text-sm text-slate-500 mt-0.5">{length(@media)} files</p>
-        </div>
-      </div>
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
+      <.admin_page_header
+        title="Media Library"
+        subtitle={"#{length(@media)} #{if length(@media) == 1, do: "file", else: "files"}"}
+      />
 
       <%!-- Filters --%>
       <div class="flex gap-2">
@@ -55,7 +53,7 @@ defmodule EmakolaWeb.Admin.Content.MediaLive.Index do
           :for={type <- [:all, :image, :video, :audio]}
           phx-click="filter_type"
           phx-value-type={type}
-          class={"px-3 py-1.5 rounded-lg text-sm font-medium transition-colors #{if @filter_type == type, do: "bg-slate-900 text-white", else: "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}"}
+          class={"px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer #{if @filter_type == type, do: "bg-emerald-600 text-white shadow-sm", else: "bg-white text-slate-600 hover:bg-slate-50 shadow-sm"}"}
         >
           {type_label(type)}
         </button>
@@ -65,7 +63,7 @@ defmodule EmakolaWeb.Admin.Content.MediaLive.Index do
       <div :if={@filtered_media != []} class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         <div
           :for={item <- @filtered_media}
-          class="bg-white border border-slate-200 rounded-xl overflow-hidden group"
+          class="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden group"
         >
           <div class="aspect-square bg-slate-100 flex items-center justify-center">
             <img
@@ -120,7 +118,7 @@ defmodule EmakolaWeb.Admin.Content.MediaLive.Index do
 
       <div
         :if={@filtered_media == []}
-        class="bg-white border border-slate-200 rounded-xl p-12 text-center"
+        class="bg-white rounded-2xl shadow-sm p-12 text-center"
       >
         <svg
           class="w-12 h-12 text-slate-300 mx-auto mb-3"

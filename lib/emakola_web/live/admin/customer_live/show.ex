@@ -60,7 +60,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <%!-- Back link --%>
       <.link
         navigate={~p"/admin/customers"}
@@ -70,7 +70,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
       </.link>
 
       <%!-- Customer Header --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+      <div class="bg-white rounded-2xl shadow-sm p-6">
         <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div class="flex items-center gap-4">
             <div class="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
@@ -79,7 +79,9 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
               </span>
             </div>
             <div>
-              <h1 class="text-xl font-bold text-slate-900">{@customer.name || "Unnamed"}</h1>
+              <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">
+                {@customer.name || "Unnamed"}
+              </h1>
               <p class="text-sm text-slate-500">{@customer.email}</p>
               <p :if={@customer.phone} class="text-sm text-slate-500">{@customer.phone}</p>
               <p class="text-xs text-slate-400 mt-1">
@@ -137,19 +139,19 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
 
       <%!-- Stats row --%>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
+        <div class="bg-white rounded-2xl shadow-sm p-5">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Total Spent
           </span>
           <p class="text-2xl font-bold text-slate-900 font-mono mt-2">{format_price(@total_spent)}</p>
         </div>
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
+        <div class="bg-white rounded-2xl shadow-sm p-5">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Total Orders
           </span>
           <p class="text-2xl font-bold text-slate-900 font-mono mt-2">{length(@orders)}</p>
         </div>
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
+        <div class="bg-white rounded-2xl shadow-sm p-5">
           <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Avg. Order
           </span>
@@ -160,7 +162,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
       </div>
 
       <%!-- Order History --%>
-      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-100">
           <h2 class="text-base font-bold text-slate-900">Order History</h2>
         </div>
@@ -211,7 +213,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
       </div>
 
       <%!-- Notes Section (placeholder) --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-6">
+      <div class="bg-white rounded-2xl shadow-sm p-6">
         <h2 class="text-base font-bold text-slate-900 mb-4">Notes</h2>
         <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
           <p class="text-sm text-slate-400 italic">No notes yet. Notes feature coming soon.</p>

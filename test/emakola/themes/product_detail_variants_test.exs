@@ -1,64 +1,109 @@
 defmodule Emakola.Themes.ProductDetailVariantsTest do
   @moduledoc """
-  Regression test for the `option_type.values` KeyError that crashed
-  product detail pages on the 5 niche themes (Beauty, Electronics,
-  Fashion, Home Living, Pharmacy). The OptionType resource exposes
-  `option_values` (a relationship), not `values` — themes that
-  iterate `option_type.values` raise KeyError at render time.
+  Renderer-level smoke test: every theme's `ProductDetail.render/1`
+  must handle a product with variants without raising.
 
-  Each test below loads an OptionType with its option_values and
-  renders the theme's `product_detail` template via Phoenix.LiveView's
-  `render_component/3`. Any future breakage of this contract fails fast.
+  Pins the regression caught at /s/kente-kingdom/products/... where
+  five themes wrote `option_type.values` instead of the actual
+  `option_type.option_values` field on `Emakola.Catalog.OptionType`.
+
+  We render against the real Ash struct (with option_values loaded)
+  rather than a hand-rolled map, so any future field rename or
+  relationship change surfaces here too.
   """
   use EmakolaWeb.ConnCase, async: true
 
-  import Phoenix.LiveViewTest
   alias Emakola.Factory
 
   @themes [
-    {Emakola.Themes.Beauty.ProductDetail, "beauty"},
-    {Emakola.Themes.Electronics.ProductDetail, "electronics"},
-    {Emakola.Themes.Fashion.ProductDetail, "fashion"},
-    {Emakola.Themes.Heritage.ProductDetail, "heritage"},
-    {Emakola.Themes.HomeLiving.ProductDetail, "home_living"},
-    {Emakola.Themes.Pharmacy.ProductDetail, "pharmacy"}
+    {Emakola.Themes.Pharmacy, "pharmacy"},
+    {Emakola.Themes.Beauty, "beauty"},
+    {Emakola.Themes.HomeLiving, "home_living"},
+    {Emakola.Themes.Electronics, "electronics"},
+    {Emakola.Themes.Fashion, "fashion"},
+    {Emakola.Themes.Heritage, "heritage"}
   ]
 
-  for {module, name} <- @themes do
-    test "#{name} theme renders product detail with variant options without KeyError" do
-      store =
-        Factory.create_store!(%{
-          name: "Variant Test Store",
-          slug: "variant-test-#{unquote(name)}"
-        })
+  setup do
+    {_merchant, store} = Factory.create_merchant_with_store!()
+    product = Factory.create_product!(store, %{title: "Tee with size"})
 
-      product = Factory.create_product!(store, %{title: "Test Product #{unquote(name)}"})
+    size_option = Factory.create_option_type!(product, store, %{name: "Size", position: 0})
+    Factory.create_option_value!(size_option, store, %{value: "S", position: 0})
+    Factory.create_option_value!(size_option, store, %{value: "M", position: 1})
+    Factory.create_option_value!(size_option, store, %{value: "L", position: 2})
 
-      option_type = Factory.create_option_type!(product, store, %{name: "Size"})
-      ov_small = Factory.create_option_value!(option_type, store, %{value: "Small", position: 0})
-      ov_large = Factory.create_option_value!(option_type, store, %{value: "Large", position: 1})
+    Factory.create_variant!(product, store, %{price: 12_000, stock_quantity: 5})
 
-      option_type_loaded = %{option_type | option_values: [ov_small, ov_large]}
+    require Ash.Query
+
+    loaded_product =
+      Emakola.Catalog.Product
+      |> Ash.Query.filter(id == ^product.id)
+      |> Ash.Query.load([:variants, :images, :min_price, :max_price])
+      |> Ash.read_one!(authorize?: false)
+
+    [option_type] =
+      Emakola.Catalog.OptionType
+      |> Ash.Query.filter(product_id == ^product.id)
+      |> Ash.Query.load(:option_values)
+      |> Ash.read!(authorize?: false)
+
+    %{
+      store: store,
+      product: loaded_product,
+      option_type: option_type,
+      option_values: option_type.option_values
+    }
+  end
+
+  for {theme_module, label} <- @themes do
+    @theme_module theme_module
+    @label label
+
+    test "#{@label} ProductDetail renders product with variants without raising", %{
+      store: store,
+      product: product,
+      option_type: option_type,
+      option_values: option_values
+    } do
+      theme = Emakola.Themes.ThemeResolver.resolve(%{"theme" => @label}, store)
+      product_detail = Module.concat(@theme_module, ProductDetail)
+
+      [first_value | _] = option_values
 
       assigns = %{
+        __changed__: nil,
         store: store,
-        theme: %{},
-        product: %{product | variants: [], images: [], min_price: 5000, max_price: 5000},
-        option_types: [option_type_loaded],
-        selected_options: %{},
-        selected_variant: nil,
-        quantity: 1,
+        theme: theme,
+        product: product,
         related_products: [],
         categories: [],
         cart_count: 0,
-        current_customer: nil,
+        selected_variant: nil,
+        option_types: [option_type],
+        selected_options: %{option_type.id => first_value.id},
+        quantity: 1,
         current_image_index: 0
       }
 
-      html = render_component(&unquote(module).render/1, assigns)
+      rendered = product_detail.render(assigns)
+      html = Phoenix.HTML.Safe.to_iodata(rendered) |> IO.iodata_to_binary()
 
-      assert html =~ "Small"
-      assert html =~ "Large"
+      # Each option value must render its label
+      for option_value <- option_values do
+        assert html =~ option_value.value,
+               "#{@label}: expected option value '#{option_value.value}' in rendered output"
+      end
+
+      # The selected value must show as visually selected via the
+      # phx-value-value=<option_value.id> attribute
+      assert html =~ first_value.id,
+             "#{@label}: selected option_value id should appear in HTML"
+
+      # Defensive: bug-shaped errors leave the field name hanging
+      refute html =~ "option_type.values",
+             "#{@label}: leaked an unrendered template fragment"
     end
   end
 end

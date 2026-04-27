@@ -44,9 +44,9 @@ defmodule EmakolaWeb.AdminComponents do
 
   def admin_page_header(assigns) do
     ~H"""
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 pt-2">
       <div>
-        <h1 class="text-2xl font-bold text-slate-900">{@title}</h1>
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">{@title}</h1>
         <p :if={@subtitle} class="text-sm text-slate-500 mt-1">{@subtitle}</p>
       </div>
 

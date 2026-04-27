@@ -39,7 +39,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <.admin_page_header title="Customers" subtitle="Manage your customer base">
         <button class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer">
           <.icon name="hero-arrow-down-tray" class="size-4" /> Export
@@ -82,7 +82,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
       </div>
 
       <%!-- Filter Bar --%>
-      <div class="bg-white rounded-2xl border border-slate-200 p-4">
+      <div class="bg-white rounded-2xl shadow-sm p-4">
         <div class="flex flex-col lg:flex-row gap-3">
           <form phx-change="search" phx-debounce="300" class="flex-1">
             <div class="relative">
@@ -105,7 +105,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
       <%!-- Customers Table (desktop) --%>
       <%= if @customers == [] do %>
-        <div class="text-center py-16 bg-white rounded-2xl border border-slate-200">
+        <div class="text-center py-16 bg-white rounded-2xl shadow-sm">
           <.icon name="hero-users" class="size-12 mx-auto text-slate-300 mb-3" />
           <p class="text-slate-600 font-medium">No customers found</p>
           <p class="text-sm text-slate-400 mt-1">
@@ -118,7 +118,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         </div>
       <% else %>
         <%!-- Desktop Table --%>
-        <div class="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="hidden md:block bg-white rounded-2xl shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
@@ -191,7 +191,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
           <.link
             :for={customer <- @customers}
             navigate={~p"/admin/customers/#{customer.id}"}
-            class="block bg-white rounded-2xl border border-slate-200 p-4 hover:shadow-md transition-all"
+            class="block bg-white rounded-2xl shadow-sm p-4 hover:shadow-md transition-all"
           >
             <div class="flex items-center gap-3 mb-3">
               <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
@@ -234,7 +234,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
   defp kpi_card(assigns) do
     ~H"""
-    <div class="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
+    <div class="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
       <div class="flex items-center justify-between mb-4">
         <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{@label}</span>
         <div class={"w-9 h-9 #{@icon_bg} rounded-xl flex items-center justify-center"}>

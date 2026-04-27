@@ -152,14 +152,11 @@ defmodule EmakolaWeb.Admin.ReturnLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
-      <%!-- Header --%>
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-bold text-cta-dark">Returns</h1>
-          <p class="text-sm text-stone-500 mt-1">Review and manage customer return requests</p>
-        </div>
-      </div>
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
+      <.admin_page_header
+        title="Returns"
+        subtitle="Review and manage customer return requests"
+      />
 
       <%!-- Status filter tabs --%>
       <div class="flex gap-2 overflow-x-auto pb-1">
@@ -180,7 +177,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
       </div>
 
       <%!-- Returns list --%>
-      <div :if={@returns == []} class="bg-white rounded-xl border border-stone-200 p-12 text-center">
+      <div :if={@returns == []} class="bg-white rounded-2xl shadow-sm p-12 text-center">
         <svg
           class="mx-auto w-12 h-12 text-stone-300 mb-4"
           fill="none"
@@ -204,10 +201,10 @@ defmodule EmakolaWeb.Admin.ReturnLive do
           phx-click="select_return"
           phx-value-id={return.id}
           class={[
-            "bg-white rounded-xl border p-5 cursor-pointer transition-colors hover:border-stone-400",
+            "bg-white rounded-2xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md",
             if(@selected_return && @selected_return.id == return.id,
-              do: "border-[#B45309] ring-1 ring-[#B45309]",
-              else: "border-stone-200"
+              do: "ring-2 ring-[#B45309]",
+              else: ""
             )
           ]}
         >
@@ -253,7 +250,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
       <%!-- Detail panel --%>
       <div
         :if={@selected_return}
-        class="bg-white rounded-xl border border-stone-200 p-6 space-y-6"
+        class="bg-white rounded-2xl shadow-sm p-6 space-y-6"
       >
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-semibold text-cta-dark">Return Details</h2>
@@ -357,7 +354,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
         <div :if={@selected_return.status == :approved} class="border-t border-stone-100 pt-4">
           <button
             phx-click="mark_refunded"
-            class="cursor-pointer bg-blue-600 text-white text-xs font-semibold uppercase tracking-wider px-6 py-2.5 rounded-[20px] hover:bg-blue-700 transition-colors"
+            class="cursor-pointer bg-emerald-600 text-white text-xs font-semibold uppercase tracking-wider px-6 py-2.5 rounded-[20px] hover:bg-emerald-700 transition-colors"
           >
             Mark as Refunded
           </button>

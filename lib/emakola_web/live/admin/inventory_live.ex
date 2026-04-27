@@ -134,7 +134,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <.admin_page_header title="Inventory" subtitle="Monitor stock levels and manage inventory" />
 
       <%!-- Stat Cards --%>
@@ -251,7 +251,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
       <%!-- Stock Table --%>
       <%= if @variants == [] do %>
-        <div class="text-center py-16 bg-white rounded-2xl border border-slate-200">
+        <div class="text-center py-16 bg-white rounded-2xl shadow-sm">
           <svg
             class="w-12 h-12 mx-auto text-slate-300 mb-3"
             fill="none"
@@ -276,7 +276,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         </div>
       <% else %>
         <%!-- Desktop Table --%>
-        <div class="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="hidden md:block bg-white rounded-2xl shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
@@ -432,7 +432,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         <div class="md:hidden space-y-3">
           <div
             :for={variant <- @variants}
-            class="bg-white rounded-2xl border border-slate-200 p-4"
+            class="bg-white rounded-2xl shadow-sm p-4"
           >
             <div class="flex items-start justify-between gap-3 mb-3">
               <div>

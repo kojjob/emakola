@@ -24,12 +24,14 @@ defmodule Emakola.Webhooks do
     |> Ash.read!()
     |> Enum.filter(fn wh -> event_type in wh.events end)
     |> Enum.each(fn webhook ->
+      # Pass webhook_id only — the worker looks up url + secret from
+      # the resource at perform time. Avoids persisting the HMAC
+      # secret in `oban_jobs.args` (plaintext) where it lives until
+      # the job is pruned.
       %{
         webhook_id: webhook.id,
         event_type: event_type,
-        payload: payload,
-        url: webhook.url,
-        secret: webhook.secret
+        payload: payload
       }
       |> Emakola.Webhooks.Workers.WebhookDeliveryWorker.new()
       |> Oban.insert()

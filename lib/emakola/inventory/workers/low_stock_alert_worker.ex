@@ -19,25 +19,29 @@ defmodule Emakola.Inventory.Workers.LowStockAlertWorker do
   require Logger
 
   @low_stock_threshold 5
+  @batch_size 100
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: args}) do
     threshold = Map.get(args, "threshold", @low_stock_threshold)
 
-    stores = list_active_stores()
-
-    Enum.each(stores, fn store ->
-      check_store_inventory(store, threshold)
-    end)
+    # Stream stores in batches so the worker memory stays bounded as
+    # the platform grows. With 10k stores at one row per ~1KB, the
+    # old `Ash.read!/1` would buffer ~10MB in memory and could OOM.
+    stream_stores()
+    |> Enum.each(&check_store_inventory(&1, threshold))
 
     :ok
   end
 
   # ── Private ─────────────────────────────────────────────────
 
-  defp list_active_stores do
+  # Streams stores in batches via Ash.stream!/2. Each batch is read
+  # into memory, processed, then GC'd before the next batch loads.
+  defp stream_stores do
     Emakola.Stores.Store
-    |> Ash.read!(authorize?: false)
+    |> Ash.Query.new()
+    |> Ash.stream!(authorize?: false, batch_size: @batch_size)
   end
 
   defp check_store_inventory(store, threshold) do

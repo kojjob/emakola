@@ -143,7 +143,7 @@ defmodule EmakolaWeb.DashboardLive do
 
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6 pb-8">
       <.dashboard_header period={@period} periods={@periods} />
 
       <%!-- Setup checklist — auto-hides when all steps are done --%>
