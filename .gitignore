@@ -45,7 +45,8 @@
 /deps/
 /doc/
 /log/
-/priv/plts/
+/priv/plts/*.plt
+/priv/plts/*.plt.hash
 /priv/static/assets/
 /priv/static/cache_manifest.json
 /priv/static/uploads/
