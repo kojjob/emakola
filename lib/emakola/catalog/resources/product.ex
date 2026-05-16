@@ -55,6 +55,24 @@ defmodule Emakola.Catalog.Product do
       public?(true)
     end
 
+    attribute :product_type, :atom do
+      constraints(
+        one_of: [
+          :physical,
+          :digital_download,
+          :license_key,
+          :streaming,
+          :course,
+          :auction,
+          :print_on_demand
+        ]
+      )
+
+      default(:physical)
+      allow_nil?(false)
+      public?(true)
+    end
+
     attribute :seo_title, :string do
       public?(true)
       constraints(max_length: 255)
@@ -143,7 +161,16 @@ defmodule Emakola.Catalog.Product do
     defaults([:read, :destroy])
 
     create :create do
-      accept([:title, :description, :category_id, :tags, :seo_title, :seo_description, :store_id])
+      accept([
+        :title,
+        :description,
+        :category_id,
+        :tags,
+        :seo_title,
+        :seo_description,
+        :store_id,
+        :product_type
+      ])
 
       validate({Emakola.Catalog.Validations.NotBlank, attribute: :title})
       change({Emakola.Catalog.Changes.GenerateSlug, from: :title})
@@ -152,7 +179,16 @@ defmodule Emakola.Catalog.Product do
 
     update :update do
       require_atomic?(false)
-      accept([:title, :description, :category_id, :tags, :seo_title, :seo_description])
+
+      accept([
+        :title,
+        :description,
+        :category_id,
+        :tags,
+        :seo_title,
+        :seo_description,
+        :product_type
+      ])
 
       validate({Emakola.Catalog.Validations.NotBlank, attribute: :title})
       change({Emakola.Catalog.Changes.GenerateSlug, from: :title})

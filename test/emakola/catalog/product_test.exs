@@ -348,6 +348,61 @@ defmodule Emakola.Catalog.ProductTest do
     end
   end
 
+  # ── Product type ──────────────────────────────────────────────
+
+  describe "product_type" do
+    test "defaults to :physical when not specified", %{store: store} do
+      product = create_product!(store, title: "Default Type Product")
+      assert product.product_type == :physical
+    end
+
+    test "accepts :physical explicitly", %{store: store} do
+      product = create_product!(store, title: "Physical Item", product_type: :physical)
+      assert product.product_type == :physical
+    end
+
+    test "accepts :digital_download", %{store: store} do
+      product = create_product!(store, title: "E-book", product_type: :digital_download)
+      assert product.product_type == :digital_download
+    end
+
+    test "accepts :license_key", %{store: store} do
+      product = create_product!(store, title: "Software", product_type: :license_key)
+      assert product.product_type == :license_key
+    end
+
+    test "accepts :streaming", %{store: store} do
+      product = create_product!(store, title: "Video Series", product_type: :streaming)
+      assert product.product_type == :streaming
+    end
+
+    test "accepts :course", %{store: store} do
+      product = create_product!(store, title: "Online Course", product_type: :course)
+      assert product.product_type == :course
+    end
+
+    test "accepts :auction", %{store: store} do
+      product = create_product!(store, title: "Auction Lot", product_type: :auction)
+      assert product.product_type == :auction
+    end
+
+    test "accepts :print_on_demand", %{store: store} do
+      product = create_product!(store, title: "Custom Tee", product_type: :print_on_demand)
+      assert product.product_type == :print_on_demand
+    end
+
+    test "rejects unknown product_type", %{store: store} do
+      assert {:error, _} =
+               Emakola.Catalog.Product
+               |> Ash.Changeset.for_create(:create, %{
+                 title: "Bad Type",
+                 store_id: store.id,
+                 product_type: :not_a_real_type
+               })
+               |> Ash.create(authorize?: false)
+    end
+  end
+
   # ── Edge cases ────────────────────────────────────────────────
 
   describe "edge cases" do
