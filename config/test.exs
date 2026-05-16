@@ -72,6 +72,11 @@ config :emakola, Emakola.Payments.PaystackClient,
 config :emakola, :sms_provider, Emakola.SMSProviderMock
 config :emakola, :whatsapp_provider, Emakola.WhatsAppProviderMock
 
+# Storage adapter: route through Mox so individual tests can expect/stub
+# the specific calls they care about. Tests that don't set expectations
+# get a failure from verify_on_exit! — which is what we want.
+config :emakola, :storage, Emakola.StorageMock
+
 # Disable rate limiting globally in tests to avoid flaky 429s in auth/page
 # tests. Tests that specifically exercise the rate limiter (see
 # rate_limiter_test.exs, security_test.exs) re-enable it per-test via
