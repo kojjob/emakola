@@ -173,6 +173,7 @@ defmodule Emakola.Catalog.Product do
       ])
 
       validate({Emakola.Catalog.Validations.NotBlank, attribute: :title})
+      validate(Emakola.Catalog.Validations.ProductTypeAcceptedByStore)
       change({Emakola.Catalog.Changes.GenerateSlug, from: :title})
       change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :upsert})
     end
@@ -191,6 +192,7 @@ defmodule Emakola.Catalog.Product do
       ])
 
       validate({Emakola.Catalog.Validations.NotBlank, attribute: :title})
+      validate(Emakola.Catalog.Validations.ProductTypeAcceptedByStore)
       change({Emakola.Catalog.Changes.GenerateSlug, from: :title})
       change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :upsert})
     end

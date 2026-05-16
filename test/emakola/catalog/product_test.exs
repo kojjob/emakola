@@ -351,6 +351,21 @@ defmodule Emakola.Catalog.ProductTest do
   # ── Product type ──────────────────────────────────────────────
 
   describe "product_type" do
+    # These tests exercise the resource's :product_type one_of constraint —
+    # the store-level capability gate is covered by ProductTypeGateTest. We
+    # opt the store into every type so the gate doesn't shadow the
+    # one_of-only behavior we're verifying here.
+    setup %{store: store} do
+      store =
+        store
+        |> Ash.Changeset.for_update(:update_settings, %{
+          enabled_product_types: Emakola.Fulfillment.Dispatcher.supported_types()
+        })
+        |> Ash.update!(authorize?: false)
+
+      {:ok, store: store}
+    end
+
     test "defaults to :physical when not specified", %{store: store} do
       product = create_product!(store, title: "Default Type Product")
       assert product.product_type == :physical
