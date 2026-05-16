@@ -44,5 +44,7 @@ defmodule Emakola.Catalog do
     resource(Emakola.Catalog.Image)
 
     resource(Emakola.Catalog.Review)
+
+    resource(Emakola.Catalog.DigitalFile)
   end
 end

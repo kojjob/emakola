@@ -120,6 +120,7 @@ defmodule Emakola.Catalog.Product do
     has_many :variants, Emakola.Catalog.Variant
     has_many :images, Emakola.Catalog.Image
     has_many :reviews, Emakola.Catalog.Review
+    has_many :digital_files, Emakola.Catalog.DigitalFile
   end
 
   aggregates do
