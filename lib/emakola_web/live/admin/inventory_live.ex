@@ -681,7 +681,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   defp load_variants(socket) do
     store_id = socket.assigns.store_id
     all_variants = fetch_variants(store_id)
-    stats = compute_stats(all_variants)
+    stats = compute_stats(store_id)
 
     socket
     |> assign(all_variants: all_variants, stats: stats)
@@ -707,6 +707,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
       |> Ash.Query.filter(store_id == ^store_id)
       |> Ash.Query.sort(stock_quantity: :asc)
       |> Ash.Query.load([:product, :supplier])
+      |> Ash.Query.limit(200)
       |> Ash.read!(authorize?: false)
     rescue
       _ -> []
@@ -737,12 +738,21 @@ defmodule EmakolaWeb.Admin.InventoryLive do
     end)
   end
 
-  defp compute_stats(variants) do
+  defp compute_stats(nil) do
+    %{total: 0, in_stock: 0, low_stock: 0, out_of_stock: 0}
+  end
+
+  defp compute_stats(store_id) do
+    base = Emakola.Catalog.Variant |> Ash.Query.filter(store_id == ^store_id)
+
     %{
-      total: length(variants),
-      in_stock: Enum.count(variants, &(&1.stock_quantity >= 10)),
-      low_stock: Enum.count(variants, &(&1.stock_quantity >= 1 and &1.stock_quantity < 10)),
-      out_of_stock: Enum.count(variants, &(&1.stock_quantity == 0))
+      total: base |> Ash.count!(authorize?: false),
+      in_stock: base |> Ash.Query.filter(stock_quantity >= 10) |> Ash.count!(authorize?: false),
+      low_stock:
+        base
+        |> Ash.Query.filter(stock_quantity >= 1 and stock_quantity < 10)
+        |> Ash.count!(authorize?: false),
+      out_of_stock: base |> Ash.Query.filter(stock_quantity == 0) |> Ash.count!(authorize?: false)
     }
   end
 

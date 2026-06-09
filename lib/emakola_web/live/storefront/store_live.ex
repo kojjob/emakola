@@ -186,8 +186,11 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   end
 
   defp search_overlay_products(store_id, query) do
-    Emakola.Catalog.search_products!(query, store_id)
-    |> Enum.filter(&(&1.status == :active))
+    Emakola.Catalog.Product
+    |> Ash.Query.for_read(:search, %{query: query, store_id: store_id})
+    |> Ash.Query.filter(status == :active)
+    |> Ash.Query.limit(10)
+    |> Ash.read!(authorize?: false)
   end
 
   # -- SEO --

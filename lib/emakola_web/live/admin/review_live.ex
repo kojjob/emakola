@@ -230,7 +230,7 @@ defmodule EmakolaWeb.Admin.ReviewLive do
         Ash.Query.filter(query, status == ^status_filter)
       end
 
-    reviews = Ash.read!(query, authorize?: false)
+    reviews = query |> Ash.Query.limit(200) |> Ash.read!(authorize?: false)
     assign(socket, :reviews, reviews)
   end
 

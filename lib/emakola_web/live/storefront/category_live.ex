@@ -137,8 +137,11 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   end
 
   defp load_category_products(store_id, category_id) do
-    Emakola.Catalog.list_products_by_category!(category_id, store_id)
-    |> Enum.filter(&(&1.status == :active))
+    Emakola.Catalog.Product
+    |> Ash.Query.for_read(:list_by_category, %{category_id: category_id, store_id: store_id})
+    |> Ash.Query.filter(status == :active)
+    |> Ash.Query.limit(60)
+    |> Ash.read!(authorize?: false)
   end
 
   defp sort_products(products, :newest) do
