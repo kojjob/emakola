@@ -513,7 +513,12 @@ defmodule EmakolaWeb.StoresLive do
       theme: socket.assigns.active_theme,
       region: socket.assigns.active_region,
       search: socket.assigns.search_query,
-      sort: String.to_existing_atom(socket.assigns.active_sort),
+      sort:
+        Emakola.SafeAtom.to_atom_in(
+          socket.assigns.active_sort,
+          [:featured, :newest, :popular, :name],
+          :featured
+        ),
       limit: per_page,
       offset: offset
     }
