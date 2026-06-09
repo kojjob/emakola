@@ -27,8 +27,11 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         variants: [],
         stats: %{total: 0, in_stock: 0, low_stock: 0, out_of_stock: 0},
         editing_variant_id: nil,
-        edit_stock_value: ""
+        edit_stock_value: "",
+        suppliers: [],
+        dropship_variant: nil
       )
+      |> load_suppliers()
       |> load_variants()
 
     {:ok, socket}
@@ -128,6 +131,45 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
       _ ->
         {:noreply, put_flash(socket, :error, "Please enter a valid non-negative number")}
+    end
+  end
+
+  @impl true
+  def handle_event("edit_dropship", %{"id" => variant_id}, socket) do
+    variant = find_variant(socket.assigns.all_variants, variant_id)
+    {:noreply, assign(socket, dropship_variant: variant)}
+  end
+
+  @impl true
+  def handle_event("cancel_dropship", _params, socket) do
+    {:noreply, assign(socket, dropship_variant: nil)}
+  end
+
+  @impl true
+  def handle_event("save_dropship", %{"variant" => params}, socket) do
+    variant = socket.assigns.dropship_variant
+
+    if variant do
+      attrs = %{
+        supplier_id: blank_to_nil(params["supplier_id"]),
+        cost_price: parse_cost(params["cost_price"]),
+        available: params["available"] == "true"
+      }
+
+      case Ash.Changeset.for_update(variant, :update, attrs)
+           |> Ash.update(authorize?: false) do
+        {:ok, _updated} ->
+          {:noreply,
+           socket
+           |> assign(dropship_variant: nil)
+           |> load_variants()
+           |> put_flash(:info, "Variant updated")}
+
+        {:error, _error} ->
+          {:noreply, put_flash(socket, :error, "Could not update variant")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Variant not found")}
     end
   end
 
@@ -305,6 +347,13 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                 >
                   <td class="px-4 py-3.5 text-slate-700 font-medium">
                     {product_title(variant)}
+                    <span
+                      :if={variant.supplier_id}
+                      class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700"
+                      title={dropship_label(variant)}
+                    >
+                      Dropshipped
+                    </span>
                   </td>
                   <td class="px-4 py-3.5 font-mono text-xs text-slate-500">
                     {variant.sku || "--"}
@@ -420,6 +469,16 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                           />
                         </svg>
                       </button>
+                      <button
+                        phx-click={
+                          JS.push("edit_dropship", value: %{id: variant.id})
+                          |> show_modal("dropship-modal")
+                        }
+                        class="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                        title="Edit supplier / cost / availability"
+                      >
+                        <.icon name="hero-truck" class="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -436,7 +495,15 @@ defmodule EmakolaWeb.Admin.InventoryLive do
           >
             <div class="flex items-start justify-between gap-3 mb-3">
               <div>
-                <p class="text-sm font-medium text-slate-800">{product_title(variant)}</p>
+                <p class="text-sm font-medium text-slate-800">
+                  {product_title(variant)}
+                  <span
+                    :if={variant.supplier_id}
+                    class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700"
+                  >
+                    Dropshipped
+                  </span>
+                </p>
                 <p class="font-mono text-xs text-slate-400 mt-0.5">{variant.sku || "--"}</p>
               </div>
               <.stock_status_badge quantity={variant.stock_quantity} />
@@ -484,14 +551,94 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                     />
                   </svg>
                 </button>
+                <button
+                  phx-click={
+                    JS.push("edit_dropship", value: %{id: variant.id})
+                    |> show_modal("dropship-modal")
+                  }
+                  class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100"
+                  title="Edit supplier / cost / availability"
+                >
+                  <.icon name="hero-truck" class="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>
         </div>
       <% end %>
+
+      <%!-- Dropship editor modal --%>
+      <.modal id="dropship-modal" title="Supplier & Dropshipping" size={:md}>
+        <form :if={@dropship_variant} id="dropship-form" phx-submit="save_dropship" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">Supplier</label>
+            <select
+              name="variant[supplier_id]"
+              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            >
+              <option value="" selected={is_nil(@dropship_variant.supplier_id)}>
+                — Own stock —
+              </option>
+              <option
+                :for={supplier <- @suppliers}
+                value={supplier.id}
+                selected={@dropship_variant.supplier_id == supplier.id}
+              >
+                {supplier.name}
+              </option>
+            </select>
+            <p class="text-xs text-slate-400 mt-1">
+              Assigning a supplier marks this variant as dropshipped (inventory no longer tracked).
+            </p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">
+              Cost Price (GH&#8373;)
+            </label>
+            <input
+              type="number"
+              name="variant[cost_price]"
+              value={cost_in_cedis(@dropship_variant.cost_price)}
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
+          </div>
+          <label class="flex items-center gap-2 text-sm text-slate-700">
+            <input type="hidden" name="variant[available]" value="false" />
+            <input
+              type="checkbox"
+              name="variant[available]"
+              value="true"
+              checked={@dropship_variant.available}
+              class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+            /> Available for sale
+          </label>
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              phx-click={hide_modal("dropship-modal")}
+              class="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              phx-click={hide_modal("dropship-modal")}
+              class="px-4 py-2.5 text-sm font-semibold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors"
+            >
+              Save
+            </button>
+          </div>
+        </form>
+      </.modal>
     </div>
     """
   end
+
+  defp dropship_label(%{supplier: %{name: name}}) when is_binary(name), do: "Supplier: #{name}"
+  defp dropship_label(_), do: "Dropshipped"
 
   # ── Components ──
 
@@ -546,7 +693,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
       Emakola.Catalog.Variant
       |> Ash.Query.filter(store_id == ^store_id)
       |> Ash.Query.sort(stock_quantity: :asc)
-      |> Ash.Query.load(:product)
+      |> Ash.Query.load([:product, :supplier])
       |> Ash.read!(authorize?: false)
     rescue
       _ -> []
@@ -588,12 +735,49 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
   # ── Helpers ──
 
+  defp load_suppliers(socket) do
+    case socket.assigns.store_id do
+      nil ->
+        assign(socket, suppliers: [])
+
+      store_id ->
+        suppliers =
+          Emakola.Suppliers.Supplier
+          |> Ash.Query.filter(store_id == ^store_id and active == true)
+          |> Ash.Query.sort(:name)
+          |> Ash.read!(authorize?: false)
+
+        assign(socket, suppliers: suppliers)
+    end
+  end
+
   defp get_store_id(socket) do
     case socket.assigns[:current_store] do
       %{id: id} -> id
       _ -> nil
     end
   end
+
+  defp parse_cost(value) when is_binary(value) do
+    case Float.parse(String.trim(value)) do
+      {amount, _} -> round(amount * 100)
+      :error -> nil
+    end
+  end
+
+  defp parse_cost(_), do: nil
+
+  defp blank_to_nil(value) when is_binary(value) do
+    trimmed = String.trim(value)
+    if trimmed == "", do: nil, else: trimmed
+  end
+
+  defp blank_to_nil(_), do: nil
+
+  defp cost_in_cedis(nil), do: ""
+
+  defp cost_in_cedis(pesewas) when is_integer(pesewas),
+    do: :erlang.float_to_binary(pesewas / 100, decimals: 2)
 
   defp product_title(%{product: %{title: title}}) when is_binary(title), do: title
   defp product_title(_), do: "Unknown Product"

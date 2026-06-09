@@ -217,6 +217,53 @@ defmodule EmakolaWeb.Admin.InventoryLiveTest do
     end
   end
 
+  describe "dropship / supplier editing" do
+    test "assigns a supplier, cost price and availability to a variant", %{
+      conn: conn,
+      store: store
+    } do
+      product = Factory.create_product!(store)
+      variant = Factory.create_variant!(product, store, %{stock_quantity: 10, sku: "DROP-001"})
+      supplier = Factory.create_supplier!(store, name: "Drop Supplier")
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      # Open the dropship editor for this variant.
+      render_click(view, "edit_dropship", %{"id" => variant.id})
+
+      view
+      |> form("#dropship-form", %{
+        variant: %{supplier_id: supplier.id, cost_price: "12.50", available: "true"}
+      })
+      |> render_submit()
+
+      reloaded = Ash.reload!(variant, authorize?: false)
+      assert reloaded.supplier_id == supplier.id
+      assert reloaded.cost_price == 1250
+      assert reloaded.available == true
+      # Assigning a supplier disables inventory tracking.
+      assert reloaded.track_inventory == false
+    end
+
+    test "shows a Dropshipped indicator for variants with a supplier", %{
+      conn: conn,
+      store: store
+    } do
+      product = Factory.create_product!(store)
+      supplier = Factory.create_supplier!(store, name: "Indicator Supplier")
+
+      Factory.create_variant!(product, store, %{
+        stock_quantity: 5,
+        sku: "IND-001",
+        supplier_id: supplier.id
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/admin/inventory")
+
+      assert html =~ "Dropshipped"
+    end
+  end
+
   describe "tenant isolation" do
     test "does not show variants from other stores", %{conn: conn, store: _store} do
       other_store = Factory.create_store!()
