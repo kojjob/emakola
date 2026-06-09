@@ -122,10 +122,9 @@ defmodule Emakola.Payments.Payment do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
-    # Customer actors: tenant-scoped reads only.
-    policy actor_attribute_equals(:__struct__, Emakola.Customers.Customer) do
-      authorize_if(action_type(:read))
-    end
+    # Customer actors have no direct read grant on Payment — gateway_response and
+    # gateway_reference contain sensitive provider data. All storefront payment
+    # lookups use authorize?: false + explicit filters.
 
     # nil actor falls through to default-deny. Webhook handlers and gateway
     # callbacks use `authorize?: false` since the request originates from the

@@ -118,9 +118,11 @@ defmodule Emakola.Orders.LineItem do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
-    # Customer actors: tenant-scoped reads only.
+    # Customer actors: row-scoped reads — only line items for their own orders within their store.
     policy actor_attribute_equals(:__struct__, Emakola.Customers.Customer) do
-      authorize_if(action_type(:read))
+      authorize_if(
+        expr(exists(order, customer_id == ^actor(:id)) and store_id == ^actor(:store_id))
+      )
     end
 
     # nil actor falls through to default-deny.

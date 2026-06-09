@@ -143,11 +143,10 @@ defmodule Emakola.Customers.Customer do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
-    # Customer actors: scoped by tenant via multitenancy attribute. Customer
-    # row-level scoping (only their own data) belongs in a calculation/filter
-    # at the action level if needed.
+    # Customer actors: self-read only — a customer can only read their own record
+    # within their store. Direct list/search queries use authorize?: false.
     policy actor_attribute_equals(:__struct__, Emakola.Customers.Customer) do
-      authorize_if(action_type(:read))
+      authorize_if(expr(id == ^actor(:id) and store_id == ^actor(:store_id)))
     end
 
     # nil actor on writes falls through to default-deny. System code must
