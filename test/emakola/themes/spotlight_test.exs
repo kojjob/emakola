@@ -244,7 +244,7 @@ defmodule Emakola.Themes.SpotlightTest do
         |> Phoenix.HTML.Safe.to_iodata()
         |> IO.iodata_to_binary()
 
-      assert empty =~ "Demo Store"
+      assert empty =~ "No products yet"
     end
   end
 
