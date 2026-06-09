@@ -78,6 +78,26 @@ defmodule Emakola.Notifications.Templates do
     }
   end
 
+  # ── Supplier-facing templates ──────────────────────────────────
+
+  def supplier_fulfillment_sms(order, supplier, line_items) do
+    "Emakola order #{order.order_number} for #{supplier.name}: " <>
+      "Please ship #{items_summary(line_items)} " <>
+      "to #{format_address(Map.get(order, :shipping_address))}. " <>
+      "Reply to confirm and share a tracking number."
+  end
+
+  def supplier_fulfillment_whatsapp_template, do: "supplier_fulfillment"
+
+  def supplier_fulfillment_whatsapp_params(order, supplier, line_items) do
+    %{
+      order_number: order.order_number,
+      supplier_name: supplier.name,
+      items: items_summary(line_items),
+      ship_to: format_address(Map.get(order, :shipping_address))
+    }
+  end
+
   # ── Low-stock alert templates ────────────────────────────────
 
   def low_stock_realtime_sms(product_title, sku, stock_quantity, store_name) do
@@ -115,9 +135,29 @@ defmodule Emakola.Notifications.Templates do
     "#{major}.#{String.pad_leading(Integer.to_string(minor), 2, "0")}"
   end
 
-  defp item_count_segment(items) when is_list(items) and length(items) > 0 do
-    count = length(items)
-    "#{count} item(s) | "
+  defp items_summary(line_items) when is_list(line_items) and line_items != [] do
+    line_items
+    |> Enum.map_join(", ", fn item -> "#{item.quantity}x #{item.product_title}" end)
+  end
+
+  defp items_summary(_), do: "(no items)"
+
+  # Formats an order's shipping_address map (string keys: "line_1", "city",
+  # "region") into a one-line, comma-joined string. nil → fallback text.
+  defp format_address(nil), do: "(no address provided)"
+
+  defp format_address(address) when is_map(address) do
+    ["line_1", "city", "region"]
+    |> Enum.map(fn key -> Map.get(address, key) end)
+    |> Enum.reject(&(&1 in [nil, ""]))
+    |> case do
+      [] -> "(no address provided)"
+      parts -> Enum.join(parts, ", ")
+    end
+  end
+
+  defp item_count_segment([_ | _] = items) do
+    "#{length(items)} item(s) | "
   end
 
   defp item_count_segment(_), do: ""

@@ -1,0 +1,18 @@
+defmodule Emakola.Suppliers do
+  @moduledoc "Suppliers domain — third-party suppliers for dropshipped products."
+  use Ash.Domain
+
+  resources do
+    resource Emakola.Suppliers.Supplier do
+      define(:create_supplier, action: :create)
+      define(:list_suppliers_by_store, action: :list_by_store, args: [:store_id])
+    end
+
+    resource Emakola.Suppliers.SupplierLedgerEntry do
+      define(:list_ledger_entries_by_supplier,
+        action: :list_by_supplier,
+        args: [:supplier_id]
+      )
+    end
+  end
+end

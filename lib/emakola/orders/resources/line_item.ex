@@ -70,6 +70,15 @@ defmodule Emakola.Orders.LineItem do
       public?(true)
     end
 
+    attribute :fulfillment_id, :uuid do
+      public?(true)
+    end
+
+    # Supplier cost snapshot at order time (minor units). Nil for own-stock.
+    attribute :cost_price, :integer do
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -80,6 +89,11 @@ defmodule Emakola.Orders.LineItem do
     end
 
     belongs_to :variant, Emakola.Catalog.Variant do
+      define_attribute?(false)
+      public?(true)
+    end
+
+    belongs_to :fulfillment, Emakola.Orders.Fulfillment do
       define_attribute?(false)
       public?(true)
     end
@@ -122,12 +136,12 @@ defmodule Emakola.Orders.LineItem do
     defaults([:read])
 
     create :create do
-      accept([:order_id, :store_id, :variant_id, :quantity])
+      accept([:order_id, :store_id, :variant_id, :quantity, :fulfillment_id])
 
       change(fn changeset, _context ->
         variant_id = Ash.Changeset.get_attribute(changeset, :variant_id)
 
-        case Ash.get(Emakola.Catalog.Variant, variant_id, load: [:product]) do
+        case Ash.get(Emakola.Catalog.Variant, variant_id, load: [:product], authorize?: false) do
           {:ok, variant} ->
             quantity = Ash.Changeset.get_attribute(changeset, :quantity)
             line_total = variant.price * (quantity || 0)
@@ -137,6 +151,7 @@ defmodule Emakola.Orders.LineItem do
             |> Ash.Changeset.force_change_attribute(:variant_sku, variant.sku)
             |> Ash.Changeset.force_change_attribute(:unit_price, variant.price)
             |> Ash.Changeset.force_change_attribute(:line_total, line_total)
+            |> Ash.Changeset.force_change_attribute(:cost_price, variant.cost_price)
 
           {:error, _} ->
             Ash.Changeset.add_error(changeset,

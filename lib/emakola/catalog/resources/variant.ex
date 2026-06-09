@@ -91,6 +91,16 @@ defmodule Emakola.Catalog.Variant do
       public?(true)
     end
 
+    attribute :cost_price, :integer do
+      public?(true)
+    end
+
+    attribute :available, :boolean do
+      default(true)
+      allow_nil?(false)
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -102,6 +112,11 @@ defmodule Emakola.Catalog.Variant do
 
     belongs_to :store, Emakola.Stores.Store do
       define_attribute?(false)
+      public?(true)
+    end
+
+    belongs_to :supplier, Emakola.Suppliers.Supplier do
+      attribute_writable?(true)
       public?(true)
     end
   end
@@ -150,8 +165,13 @@ defmodule Emakola.Catalog.Variant do
         :track_inventory,
         :position,
         :product_id,
-        :store_id
+        :store_id,
+        :supplier_id,
+        :cost_price,
+        :available
       ])
+
+      change(Emakola.Catalog.Changes.UntrackDropshippedInventory)
 
       validate(fn changeset, _context ->
         price = Ash.Changeset.get_attribute(changeset, :price)
@@ -180,8 +200,13 @@ defmodule Emakola.Catalog.Variant do
         :weight_grams,
         :barcode,
         :track_inventory,
-        :position
+        :position,
+        :supplier_id,
+        :cost_price,
+        :available
       ])
+
+      change(Emakola.Catalog.Changes.UntrackDropshippedInventory)
 
       validate(fn changeset, _context ->
         price =

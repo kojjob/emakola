@@ -165,4 +165,81 @@ defmodule Emakola.Notifications.TemplatesTest do
       assert params.currency == "GHS"
     end
   end
+
+  # ── Supplier fulfillment templates ─────────────────────────────
+
+  defp supplier do
+    %{id: "supplier-id", name: "Kumasi Wholesale"}
+  end
+
+  defp supplier_order do
+    %{
+      order_number: "ORD-20260322-SUP001",
+      shipping_address: %{
+        "line_1" => "12 Market Road",
+        "city" => "Kumasi",
+        "region" => "Ashanti"
+      }
+    }
+  end
+
+  defp supplier_line_items do
+    [
+      %{quantity: 2, product_title: "Kente Cloth"},
+      %{quantity: 1, product_title: "Beaded Necklace"}
+    ]
+  end
+
+  describe "supplier_fulfillment_sms/3" do
+    test "includes order number, item summary, and address" do
+      msg =
+        Templates.supplier_fulfillment_sms(supplier_order(), supplier(), supplier_line_items())
+
+      assert msg =~ "ORD-20260322-SUP001"
+      assert msg =~ "Kumasi Wholesale"
+      assert msg =~ "2x Kente Cloth"
+      assert msg =~ "1x Beaded Necklace"
+      assert msg =~ "12 Market Road"
+      assert msg =~ "Kumasi"
+      assert msg =~ "tracking"
+    end
+
+    test "handles nil shipping address gracefully" do
+      order = Map.put(supplier_order(), :shipping_address, nil)
+      msg = Templates.supplier_fulfillment_sms(order, supplier(), supplier_line_items())
+      assert msg =~ "(no address provided)"
+      assert msg =~ "ORD-20260322-SUP001"
+    end
+  end
+
+  describe "supplier_fulfillment_whatsapp_template/0" do
+    test "returns the supplier_fulfillment template name" do
+      assert Templates.supplier_fulfillment_whatsapp_template() == "supplier_fulfillment"
+    end
+  end
+
+  describe "supplier_fulfillment_whatsapp_params/3" do
+    test "returns map with supplier and order details" do
+      params =
+        Templates.supplier_fulfillment_whatsapp_params(
+          supplier_order(),
+          supplier(),
+          supplier_line_items()
+        )
+
+      assert params.order_number == "ORD-20260322-SUP001"
+      assert params.supplier_name == "Kumasi Wholesale"
+      assert params.items =~ "2x Kente Cloth"
+      assert params.ship_to =~ "Kumasi"
+    end
+
+    test "handles nil shipping address" do
+      order = Map.put(supplier_order(), :shipping_address, nil)
+
+      params =
+        Templates.supplier_fulfillment_whatsapp_params(order, supplier(), supplier_line_items())
+
+      assert params.ship_to == "(no address provided)"
+    end
+  end
 end

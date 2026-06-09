@@ -23,9 +23,11 @@ defmodule Emakola.Notifications.Dispatcher do
     * `{:error, {:dispatch_raised, message}}` — something unexpected raised
   """
 
+  require Ash.Query
   require Logger
 
   alias Emakola.Notifications.Workers.OrderNotificationWorker
+  alias Emakola.Notifications.Workers.SupplierNotificationWorker
 
   @valid_events ~w(order_placed order_confirmed order_shipped order_delivered order_cancelled)a
 
@@ -65,7 +67,68 @@ defmodule Emakola.Notifications.Dispatcher do
     {:error, :unknown_event}
   end
 
+  @doc """
+  Enqueue a `SupplierNotificationWorker` for every pending supplier-owned
+  fulfillment of `order` (skipping the merchant-owned group where
+  `supplier_id` is nil). Used by the payment-confirmation auto-trigger.
+
+  Never raises — failures are logged. Always returns `:ok`.
+  """
+  @spec dispatch_supplier_fulfillments(map()) :: :ok
+  def dispatch_supplier_fulfillments(%{id: order_id} = order) when not is_nil(order_id) do
+    Emakola.Orders.Fulfillment
+    |> Ash.Query.filter(order_id == ^order_id and not is_nil(supplier_id) and status == :pending)
+    |> Ash.read!(authorize?: false)
+    |> Enum.each(fn fulfillment -> enqueue_supplier_job(fulfillment.id) end)
+
+    :ok
+  rescue
+    exception ->
+      Logger.error(
+        "[notifications] dispatch_supplier_fulfillments raised: " <>
+          Exception.message(exception),
+        order_id: Map.get(order, :id)
+      )
+
+      :ok
+  end
+
+  def dispatch_supplier_fulfillments(_order), do: :ok
+
+  @doc """
+  Enqueue a `SupplierNotificationWorker` for a single fulfillment id. Used by
+  the merchant manual send/resend UI.
+
+  Returns `{:ok, %Oban.Job{}}` or `{:error, reason}`.
+  """
+  @spec dispatch_supplier_fulfillment(binary()) ::
+          {:ok, Oban.Job.t()} | {:error, any()}
+  def dispatch_supplier_fulfillment(fulfillment_id) do
+    %{
+      "fulfillment_id" => fulfillment_id,
+      "resend" => true,
+      "nonce" => System.unique_integer([:positive])
+    }
+    |> SupplierNotificationWorker.new(queue: :notifications)
+    |> Oban.insert()
+  rescue
+    exception ->
+      Logger.error(
+        "[notifications] dispatch_supplier_fulfillment raised: " <>
+          Exception.message(exception),
+        fulfillment_id: fulfillment_id
+      )
+
+      {:error, {:dispatch_raised, Exception.message(exception)}}
+  end
+
   # ── Internal ──────────────────────────────────────────────────────────
+
+  defp enqueue_supplier_job(fulfillment_id) do
+    %{"fulfillment_id" => fulfillment_id}
+    |> SupplierNotificationWorker.new(queue: :notifications)
+    |> Oban.insert()
+  end
 
   defp do_dispatch(%{id: order_id} = order, event) when not is_nil(order_id) do
     case enqueue_job(order_id, event) do

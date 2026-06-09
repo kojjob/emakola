@@ -133,7 +133,9 @@ defmodule Emakola.Orders.CheckoutService do
     insufficient =
       Enum.any?(items, fn %{variant_id: vid, quantity: qty} ->
         variant = Map.fetch!(variants, vid)
-        variant.stock_quantity < qty
+        # Dropshipped / intentionally untracked variants have no numeric stock
+        # to check — only tracked own-stock is gated here.
+        variant.track_inventory and variant.stock_quantity < qty
       end)
 
     if insufficient, do: {:error, :insufficient_stock}, else: :ok
@@ -189,27 +191,38 @@ defmodule Emakola.Orders.CheckoutService do
         })
         |> Ash.create!(authorize?: false)
 
-      # 4. Create line items and decrement stock
+      # Split the order into one fulfillment per distinct supplier_id
+      # (including the nil key for merchant-owned/own-stock items).
+      fulfillment_ids = create_fulfillments(store_id, order.id, items, variants)
+
+      # 4. Create line items and decrement stock for tracked variants only
       line_items =
         Enum.map(items, fn %{variant_id: vid, quantity: qty} ->
+          variant = Map.fetch!(variants, vid)
+
           line_item =
             Emakola.Orders.LineItem
             |> Ash.Changeset.for_create(:create, %{
               order_id: order.id,
               store_id: store_id,
               variant_id: vid,
-              quantity: qty
+              quantity: qty,
+              fulfillment_id: Map.fetch!(fulfillment_ids, variant.supplier_id)
             })
             |> Ash.create!(authorize?: false)
 
-          variant = Map.fetch!(variants, vid)
-
-          variant
-          |> Ash.Changeset.for_update(:adjust_stock, %{delta: -qty})
-          |> Ash.update!(authorize?: false)
+          # Dropshipped / untracked variants carry no numeric stock to decrement.
+          if variant.track_inventory do
+            variant
+            |> Ash.Changeset.for_update(:adjust_stock, %{delta: -qty})
+            |> Ash.update!(authorize?: false)
+          end
 
           line_item
         end)
+
+      # 4a. Record what we owe each supplier for their dropship fulfillment.
+      create_ledger_entries(store_id, items, variants, fulfillment_ids)
 
       # 4b. Check for low-stock threshold crossings and enqueue alerts
       check_low_stock_alerts(store_id, items, variants)
@@ -357,6 +370,65 @@ defmodule Emakola.Orders.CheckoutService do
     }
   end
 
+  # -- Fulfillment split --------------------------------------------------
+
+  # Creates one Fulfillment per distinct supplier_id across the cart's
+  # variants (the nil key is the merchant-owned/own-stock group). Returns a
+  # map of `supplier_id => fulfillment_id` for line-item assignment.
+  defp create_fulfillments(store_id, order_id, items, variants) do
+    items
+    |> Enum.map(fn %{variant_id: vid} -> Map.fetch!(variants, vid).supplier_id end)
+    |> Enum.uniq()
+    |> Map.new(fn supplier_id ->
+      fulfillment =
+        Emakola.Orders.Fulfillment
+        |> Ash.Changeset.for_create(:create, %{
+          store_id: store_id,
+          order_id: order_id,
+          supplier_id: supplier_id,
+          status: :pending
+        })
+        |> Ash.create!(authorize?: false)
+
+      {supplier_id, fulfillment.id}
+    end)
+  end
+
+  # -- Supplier payout ledger ---------------------------------------------
+
+  # Creates one SupplierLedgerEntry per non-nil supplier, recording the total
+  # supplier cost owed for that supplier's fulfillment. The nil-supplier
+  # merchant group is skipped (nothing is owed to an external supplier).
+  defp create_ledger_entries(store_id, items, variants, fulfillment_ids) do
+    items
+    |> Enum.group_by(fn %{variant_id: vid} -> Map.fetch!(variants, vid).supplier_id end)
+    |> Enum.each(fn
+      {nil, _group_items} ->
+        :ok
+
+      {supplier_id, group_items} ->
+        amount_owed =
+          Enum.reduce(group_items, 0, fn %{variant_id: vid, quantity: qty}, acc ->
+            cost = Map.fetch!(variants, vid).cost_price || 0
+            acc + cost * qty
+          end)
+
+        # Skip suppliers with no recorded cost — a zero-amount entry would be
+        # a misleading "owed" record. The fulfillment itself still exists.
+        if amount_owed > 0 do
+          Emakola.Suppliers.SupplierLedgerEntry
+          |> Ash.Changeset.for_create(:create, %{
+            store_id: store_id,
+            supplier_id: supplier_id,
+            fulfillment_id: Map.fetch!(fulfillment_ids, supplier_id),
+            amount_owed: amount_owed,
+            status: :owed
+          })
+          |> Ash.create!(authorize?: false)
+        end
+    end)
+  end
+
   # -- Low-stock alert detection ------------------------------------------
 
   @low_stock_threshold 10
@@ -366,7 +438,8 @@ defmodule Emakola.Orders.CheckoutService do
       variant = Map.fetch!(variants, vid)
       new_stock = variant.stock_quantity - qty
 
-      if new_stock < @low_stock_threshold and not variant.low_stock_alerted do
+      if variant.track_inventory and new_stock < @low_stock_threshold and
+           not variant.low_stock_alerted do
         # Flag the variant so we don't alert again
         variant
         |> Ash.Changeset.for_update(:set_low_stock_alerted, %{})

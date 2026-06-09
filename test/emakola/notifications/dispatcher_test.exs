@@ -2,8 +2,10 @@ defmodule Emakola.Notifications.DispatcherTest do
   use Emakola.DataCase, async: false
   use Oban.Testing, repo: Emakola.Repo
 
+  alias Emakola.Factory
   alias Emakola.Notifications.Dispatcher
   alias Emakola.Notifications.Workers.OrderNotificationWorker
+  alias Emakola.Notifications.Workers.SupplierNotificationWorker
 
   # ── Helpers ────────────────────────────────────────────────────
 
@@ -142,6 +144,91 @@ defmodule Emakola.Notifications.DispatcherTest do
 
       assert match?({:error, _}, result),
              "expected dispatch(nil, valid_event) to return {:error, _}, got: #{inspect(result)}"
+    end
+  end
+
+  # ── Supplier fulfillment dispatch ──────────────────────────────
+
+  describe "dispatch_supplier_fulfillments/1" do
+    test "enqueues one job per pending supplier fulfillment, none for merchant group" do
+      {_merchant, store} = Factory.create_merchant_with_store!()
+      order = Factory.create_order!(store, %{total: 10_000, currency: "GHS"})
+
+      supplier_a = Factory.create_supplier!(store, %{whatsapp_number: "+233200000001"})
+      supplier_b = Factory.create_supplier!(store, %{contact_phone: "+233200000002"})
+
+      f_a = Factory.create_fulfillment!(order, store, %{supplier_id: supplier_a.id})
+      f_b = Factory.create_fulfillment!(order, store, %{supplier_id: supplier_b.id})
+      _merchant_group = Factory.create_fulfillment!(order, store, %{supplier_id: nil})
+
+      assert :ok == Dispatcher.dispatch_supplier_fulfillments(order)
+
+      jobs = all_enqueued(worker: SupplierNotificationWorker)
+      assert length(jobs) == 2
+
+      enqueued_ids = Enum.map(jobs, & &1.args["fulfillment_id"])
+      assert f_a.id in enqueued_ids
+      assert f_b.id in enqueued_ids
+    end
+
+    test "skips non-pending supplier fulfillments" do
+      {_merchant, store} = Factory.create_merchant_with_store!()
+      order = Factory.create_order!(store, %{total: 10_000, currency: "GHS"})
+      supplier = Factory.create_supplier!(store, %{contact_phone: "+233200000003"})
+
+      fulfillment = Factory.create_fulfillment!(order, store, %{supplier_id: supplier.id})
+
+      fulfillment
+      |> Ash.Changeset.for_update(:mark_notified, %{notified_via: :manual})
+      |> Ash.update!(authorize?: false)
+
+      assert :ok == Dispatcher.dispatch_supplier_fulfillments(order)
+      assert all_enqueued(worker: SupplierNotificationWorker) == []
+    end
+
+    test "returns :ok and enqueues nothing for an order with no :id" do
+      assert :ok == Dispatcher.dispatch_supplier_fulfillments(%{store_id: Ash.UUID.generate()})
+      assert all_enqueued(worker: SupplierNotificationWorker) == []
+    end
+  end
+
+  describe "dispatch_supplier_fulfillment/1" do
+    test "enqueues one job for the given fulfillment id" do
+      fulfillment_id = Ash.UUID.generate()
+
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_supplier_fulfillment(fulfillment_id)
+
+      assert_enqueued(
+        worker: SupplierNotificationWorker,
+        args: %{fulfillment_id: fulfillment_id},
+        queue: :notifications
+      )
+    end
+
+    test "two successive manual resends enqueue two distinct (non-deduped) jobs" do
+      fulfillment_id = Ash.UUID.generate()
+
+      assert {:ok, job_a} = Dispatcher.dispatch_supplier_fulfillment(fulfillment_id)
+      assert {:ok, job_b} = Dispatcher.dispatch_supplier_fulfillment(fulfillment_id)
+
+      jobs = all_enqueued(worker: SupplierNotificationWorker)
+      assert length(jobs) == 2
+      assert job_a.id != job_b.id
+      assert job_a.args["nonce"] != job_b.args["nonce"]
+    end
+  end
+
+  describe "auto vs manual dedup" do
+    test "two auto dispatches for the same pending fulfillment dedup to one job" do
+      {_merchant, store} = Factory.create_merchant_with_store!()
+      order = Factory.create_order!(store, %{total: 10_000, currency: "GHS"})
+      supplier = Factory.create_supplier!(store, %{contact_phone: "+233200000009"})
+      _fulfillment = Factory.create_fulfillment!(order, store, %{supplier_id: supplier.id})
+
+      assert :ok == Dispatcher.dispatch_supplier_fulfillments(order)
+      assert :ok == Dispatcher.dispatch_supplier_fulfillments(order)
+
+      assert length(all_enqueued(worker: SupplierNotificationWorker)) == 1
     end
   end
 end
