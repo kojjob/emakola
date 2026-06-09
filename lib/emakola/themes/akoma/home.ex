@@ -8,11 +8,14 @@ defmodule Emakola.Themes.Akoma.Home do
   attr :store, :map, required: true
   attr :theme, :map, required: true
   attr :cart_count, :integer, default: 0
-  attr :featured_products, :list, default: []
+  attr :products, :list, default: []
   attr :categories, :list, default: []
 
   def render(assigns) do
-    assigns = assign(assigns, :hero, get_in(assigns.theme, [:hero]) || %{})
+    assigns =
+      assigns
+      |> assign(:hero, get_in(assigns.theme, [:hero]) || %{})
+      |> assign_new(:featured_products, fn -> Enum.take(Map.get(assigns, :products, []), 8) end)
 
     ~H"""
     <div class="akoma-body min-h-screen">
@@ -35,7 +38,7 @@ defmodule Emakola.Themes.Akoma.Home do
 
       <%!-- Featured --%>
       <section
-        :if={@featured_products != []}
+        :if={section_enabled?(@theme, :featured_products) and @featured_products != []}
         class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10"
       >
         <div class="flex items-baseline justify-between mb-6">
@@ -46,7 +49,7 @@ defmodule Emakola.Themes.Akoma.Home do
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
           <Shared.product_card
-            :for={product <- Enum.take(@featured_products, 8)}
+            :for={product <- @featured_products}
             product={product}
             store={@store}
           />
@@ -54,7 +57,10 @@ defmodule Emakola.Themes.Akoma.Home do
       </section>
 
       <%!-- Trust --%>
-      <section class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-[#E8EAE7]">
+      <section
+        :if={section_enabled?(@theme, :why_us)}
+        class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-[#E8EAE7]"
+      >
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
           <div :for={item <- get_in(@theme, [:trust, :items]) || []}>
             <h3 class="akoma-heading text-base font-semibold text-[#1A1A1A]">{item.title}</h3>
@@ -63,8 +69,32 @@ defmodule Emakola.Themes.Akoma.Home do
         </div>
       </section>
 
+      <%!-- Closing CTA --%>
+      <section
+        :if={section_enabled?(@theme, :closing_cta)}
+        class="bg-[#2F5D50] py-14 sm:py-20 text-center"
+      >
+        <div class="max-w-[640px] mx-auto px-4 sm:px-6">
+          <h2 class="akoma-heading text-2xl sm:text-3xl font-bold text-white">
+            {get_in(@theme, [:closing_cta, :title]) || "Find your next favourite thing"}
+          </h2>
+          <p class="text-sm text-[#C8DDD7] mt-3">
+            {get_in(@theme, [:closing_cta, :subtitle]) || "Thoughtfully made products, fairly priced."}
+          </p>
+          <a
+            href={"/s/#{@store.slug}/products"}
+            class="inline-block mt-8 px-8 py-3.5 rounded-md bg-white text-[#2F5D50] text-sm font-semibold uppercase tracking-wider hover:bg-[#F8F9F7] transition-colors"
+          >
+            {get_in(@theme, [:closing_cta, :button_text]) || "Browse all"}
+          </a>
+        </div>
+      </section>
+
       <%!-- Newsletter --%>
-      <section class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-14 text-center">
+      <section
+        :if={section_enabled?(@theme, :newsletter)}
+        class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-14 text-center"
+      >
         <h2 class="akoma-heading text-2xl font-bold text-[#1A1A1A]">
           {get_in(@theme, [:newsletter, :title]) || "Join the list"}
         </h2>
@@ -87,5 +117,12 @@ defmodule Emakola.Themes.Akoma.Home do
       <Shared.akoma_footer store={@store} />
     </div>
     """
+  end
+
+  defp section_enabled?(theme, key) do
+    case get_in(theme, [:sections, key]) do
+      false -> false
+      _ -> true
+    end
   end
 end

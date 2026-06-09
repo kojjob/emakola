@@ -221,7 +221,7 @@ defmodule Emakola.Themes.AkomaTest do
         store: store,
         theme: theme,
         cart_count: 0,
-        featured_products: [product],
+        products: [product],
         categories: []
       }
 
@@ -233,6 +233,27 @@ defmodule Emakola.Themes.AkomaTest do
       assert out =~ "Demo Store"
       assert out =~ "Cotton Tee"
       assert out =~ "Shop the collection"
+    end
+
+    test "hides the newsletter section when the merchant disables it" do
+      store = %{slug: "demo", name: "Demo Store", description: nil, currency: "GHS"}
+      theme = ThemeResolver.resolve(%{"theme" => "akoma", "sections" => %{"newsletter" => false}})
+
+      assigns = %{
+        __changed__: nil,
+        store: store,
+        theme: theme,
+        cart_count: 0,
+        products: [],
+        categories: []
+      }
+
+      out =
+        Emakola.Themes.Akoma.Home.render(assigns)
+        |> Phoenix.HTML.Safe.to_iodata()
+        |> IO.iodata_to_binary()
+
+      refute out =~ (get_in(theme, [:newsletter, :title]) || "Join the list")
     end
   end
 
