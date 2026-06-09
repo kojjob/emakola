@@ -215,6 +215,10 @@ defmodule EmakolaWeb.Router do
       live "/admin/settings", Admin.SettingsLive
       live "/admin/settings/delivery", Admin.DeliveryLive.Index
 
+      # Suppliers (dropshipping) — management + payout ledger
+      live "/admin/settings/suppliers", Admin.SupplierLive.Index
+      live "/admin/suppliers/:id", Admin.SupplierLive.Show
+
       # Theme customizer
       live "/admin/theme", Admin.ThemeLive
       live "/admin/design", Admin.DesignLive

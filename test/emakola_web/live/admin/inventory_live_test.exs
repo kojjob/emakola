@@ -217,6 +217,115 @@ defmodule EmakolaWeb.Admin.InventoryLiveTest do
     end
   end
 
+  describe "dropship / supplier editing" do
+    test "assigns a supplier, cost price and availability to a variant", %{
+      conn: conn,
+      store: store
+    } do
+      product = Factory.create_product!(store)
+      variant = Factory.create_variant!(product, store, %{stock_quantity: 10, sku: "DROP-001"})
+      supplier = Factory.create_supplier!(store, name: "Drop Supplier")
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      # Open the dropship editor for this variant.
+      render_click(view, "edit_dropship", %{"id" => variant.id})
+
+      view
+      |> form("#dropship-form", %{
+        variant: %{supplier_id: supplier.id, cost_price: "12.50", available: "true"}
+      })
+      |> render_submit()
+
+      reloaded = Ash.reload!(variant, authorize?: false)
+      assert reloaded.supplier_id == supplier.id
+      assert reloaded.cost_price == 1250
+      assert reloaded.available == true
+      # Assigning a supplier disables inventory tracking.
+      assert reloaded.track_inventory == false
+    end
+
+    test "parses a decimal cost price into integer pesewas", %{conn: conn, store: store} do
+      product = Factory.create_product!(store)
+      variant = Factory.create_variant!(product, store, %{stock_quantity: 10, sku: "COST-001"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      render_click(view, "edit_dropship", %{"id" => variant.id})
+
+      view
+      |> form("#dropship-form", %{
+        variant: %{supplier_id: "", cost_price: "12.50", available: "true"}
+      })
+      |> render_submit()
+
+      assert Ash.reload!(variant, authorize?: false).cost_price == 1250
+    end
+
+    test "parses a sub-cedi cost price without float rounding error", %{conn: conn, store: store} do
+      product = Factory.create_product!(store)
+      variant = Factory.create_variant!(product, store, %{stock_quantity: 10, sku: "COST-002"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      render_click(view, "edit_dropship", %{"id" => variant.id})
+
+      view
+      |> form("#dropship-form", %{
+        variant: %{supplier_id: "", cost_price: "0.01", available: "true"}
+      })
+      |> render_submit()
+
+      assert Ash.reload!(variant, authorize?: false).cost_price == 1
+    end
+
+    test "rejects a supplier_id belonging to another store", %{conn: conn, store: store} do
+      product = Factory.create_product!(store)
+      variant = Factory.create_variant!(product, store, %{stock_quantity: 10, sku: "SCOPE-001"})
+
+      other_store = Factory.create_store!()
+      foreign_supplier = Factory.create_supplier!(other_store, name: "Foreign Supplier")
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      render_click(view, "edit_dropship", %{"id" => variant.id})
+
+      # Push a crafted payload directly — a malicious client can bypass the
+      # store-scoped <select> and submit any supplier_id.
+      html =
+        render_submit(view, "save_dropship", %{
+          "variant" => %{
+            "supplier_id" => foreign_supplier.id,
+            "cost_price" => "10.00",
+            "available" => "true"
+          }
+        })
+
+      assert html =~ "Invalid supplier"
+
+      reloaded = Ash.reload!(variant, authorize?: false)
+      assert is_nil(reloaded.supplier_id)
+    end
+
+    test "shows a Dropshipped indicator for variants with a supplier", %{
+      conn: conn,
+      store: store
+    } do
+      product = Factory.create_product!(store)
+      supplier = Factory.create_supplier!(store, name: "Indicator Supplier")
+
+      Factory.create_variant!(product, store, %{
+        stock_quantity: 5,
+        sku: "IND-001",
+        supplier_id: supplier.id
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/admin/inventory")
+
+      assert html =~ "Dropshipped"
+    end
+  end
+
   describe "tenant isolation" do
     test "does not show variants from other stores", %{conn: conn, store: _store} do
       other_store = Factory.create_store!()

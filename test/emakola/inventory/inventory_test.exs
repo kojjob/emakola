@@ -32,6 +32,26 @@ defmodule Emakola.InventoryTest do
       assert :in_stock = Inventory.stock_status(%{stock_quantity: 0, track_inventory: false})
       assert :in_stock = Inventory.stock_status(%{stock_quantity: -100, track_inventory: false})
     end
+
+    test "dropshipped variant returns :out when not available" do
+      assert :out =
+               Inventory.stock_status(%{
+                 supplier_id: Ash.UUID.generate(),
+                 available: false,
+                 stock_quantity: 0,
+                 track_inventory: false
+               })
+    end
+
+    test "dropshipped variant returns :in_stock when available" do
+      assert :in_stock =
+               Inventory.stock_status(%{
+                 supplier_id: Ash.UUID.generate(),
+                 available: true,
+                 stock_quantity: 0,
+                 track_inventory: false
+               })
+    end
   end
 
   describe "out_of_stock?/1" do

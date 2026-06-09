@@ -238,6 +238,109 @@ defmodule Emakola.Catalog.VariantTest do
     end
   end
 
+  # ── Dropshipping ──────────────────────────────────────────────
+
+  describe "dropship fields" do
+    test "accepts cost_price and available", %{store: store, product: product} do
+      supplier = create_supplier!(store)
+
+      variant =
+        create_variant!(product, store,
+          price: 5000,
+          cost_price: 3000,
+          available: false,
+          supplier_id: supplier.id
+        )
+
+      assert variant.cost_price == 3000
+      assert variant.available == false
+      assert variant.supplier_id == supplier.id
+    end
+
+    test "available defaults to true", %{store: store, product: product} do
+      variant = create_variant!(product, store, price: 5000)
+      assert variant.available == true
+    end
+
+    test "supplier_id is nullable for own-stock variants", %{store: store, product: product} do
+      variant = create_variant!(product, store, price: 5000)
+      assert is_nil(variant.supplier_id)
+      assert variant.track_inventory == true
+    end
+
+    test "setting supplier_id on create forces track_inventory to false", %{
+      store: store,
+      product: product
+    } do
+      supplier = create_supplier!(store)
+
+      variant =
+        create_variant!(product, store,
+          price: 5000,
+          supplier_id: supplier.id,
+          track_inventory: true
+        )
+
+      assert variant.supplier_id == supplier.id
+      assert variant.track_inventory == false
+    end
+
+    test "setting supplier_id on update forces track_inventory to false", %{
+      store: store,
+      product: product
+    } do
+      supplier = create_supplier!(store)
+      variant = create_variant!(product, store, price: 5000, track_inventory: true)
+      assert variant.track_inventory == true
+
+      updated =
+        variant
+        |> Ash.Changeset.for_update(:update, %{supplier_id: supplier.id, track_inventory: true})
+        |> Ash.update!(authorize?: false)
+
+      assert updated.supplier_id == supplier.id
+      assert updated.track_inventory == false
+    end
+
+    test "removing supplier_id on update restores track_inventory to true", %{
+      store: store,
+      product: product
+    } do
+      supplier = create_supplier!(store)
+
+      variant =
+        create_variant!(product, store, price: 5000, supplier_id: supplier.id)
+
+      assert variant.track_inventory == false
+
+      updated =
+        variant
+        |> Ash.Changeset.for_update(:update, %{supplier_id: nil})
+        |> Ash.update!(authorize?: false)
+
+      assert is_nil(updated.supplier_id)
+      assert updated.track_inventory == true
+    end
+
+    test "updating an untracked own-stock variant does not force tracking on", %{
+      store: store,
+      product: product
+    } do
+      variant =
+        create_variant!(product, store, price: 5000, track_inventory: false)
+
+      assert is_nil(variant.supplier_id)
+      assert variant.track_inventory == false
+
+      updated =
+        variant
+        |> Ash.Changeset.for_update(:update, %{price: 7500})
+        |> Ash.update!(authorize?: false)
+
+      assert updated.track_inventory == false
+    end
+  end
+
   # ── Multi-tenancy ─────────────────────────────────────────────
 
   describe "multi-tenant isolation" do

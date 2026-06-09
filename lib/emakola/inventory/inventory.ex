@@ -75,8 +75,15 @@ defmodule Emakola.Inventory do
   Untracked variants (`track_inventory == false`) always return
   `:in_stock` since the merchant has signalled they don't manage
   stock for this variant.
+
+  Dropshipped variants (those linked to a supplier via `supplier_id`)
+  don't track numeric stock — availability is driven by the merchant-set
+  `available` flag: `:out` when `available == false`, else `:in_stock`.
   """
   @spec stock_status(map()) :: :in_stock | :low | :out
+  def stock_status(%{supplier_id: sid, available: true}) when not is_nil(sid), do: :in_stock
+  def stock_status(%{supplier_id: sid, available: false}) when not is_nil(sid), do: :out
+
   def stock_status(%{track_inventory: false}), do: :in_stock
   def stock_status(%{stock_quantity: q}) when q <= 0, do: :out
   def stock_status(%{stock_quantity: q}) when q < @low_stock_threshold, do: :low

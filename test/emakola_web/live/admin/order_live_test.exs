@@ -4,6 +4,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
   Tests order listing, filtering, detail view, and status transitions.
   """
   use EmakolaWeb.ConnCase, async: false
+  use Oban.Testing, repo: Emakola.Repo
 
   import Phoenix.LiveViewTest
 
@@ -298,6 +299,135 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       assert has_element?(view, "#shipping-address-card", "Ama Mensah")
       assert has_element?(view, "#shipping-address-card", "House 14, Osu")
       assert has_element?(view, "#shipping-address-card", "+233240000000")
+    end
+  end
+
+  describe "OrderLive.Show fulfillments" do
+    test "renders a supplier fulfillment grouped under the supplier name", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+      supplier = Emakola.Factory.create_supplier!(store, name: "Kumasi Supplier")
+
+      Emakola.Factory.create_fulfillment!(order, store,
+        supplier_id: supplier.id,
+        status: :pending
+      )
+
+      {:ok, _view, html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert html =~ "Fulfillments"
+      assert html =~ "Kumasi Supplier"
+      assert html =~ "Send to supplier"
+    end
+
+    test "renders the merchant's own-stock fulfillment as 'Your stock'", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+      Emakola.Factory.create_fulfillment!(order, store, status: :pending)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert html =~ "Your stock"
+    end
+
+    test "sending to supplier enqueues a SupplierNotificationWorker job", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+      supplier = Emakola.Factory.create_supplier!(store, name: "Send Supplier")
+
+      fulfillment =
+        Emakola.Factory.create_fulfillment!(order, store,
+          supplier_id: supplier.id,
+          status: :pending
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      html =
+        view
+        |> element(
+          "button[phx-click=\"send_supplier_fulfillment\"][phx-value-id=\"#{fulfillment.id}\"]"
+        )
+        |> render_click()
+
+      assert html =~ "Sent to supplier"
+
+      assert_enqueued(
+        worker: Emakola.Notifications.Workers.SupplierNotificationWorker,
+        args: %{"fulfillment_id" => fulfillment.id}
+      )
+    end
+
+    test "does not dispatch when fulfillment id belongs to another store", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+
+      # A second store with its own order, supplier and fulfillment.
+      other_store = Emakola.Factory.create_store!()
+      other_order = Emakola.Factory.create_order!(other_store)
+      other_supplier = Emakola.Factory.create_supplier!(other_store, name: "Foreign Supplier")
+
+      foreign_fulfillment =
+        Emakola.Factory.create_fulfillment!(other_order, other_store,
+          supplier_id: other_supplier.id,
+          status: :pending
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      # Crafted id from another store must be a no-op — no job enqueued, no error.
+      render_click(view, "send_supplier_fulfillment", %{"id" => foreign_fulfillment.id})
+
+      refute_enqueued(
+        worker: Emakola.Notifications.Workers.SupplierNotificationWorker,
+        args: %{"fulfillment_id" => foreign_fulfillment.id}
+      )
+
+      assert Process.alive?(view.pid)
+    end
+
+    test "marking a fulfillment shipped updates its status", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+      supplier = Emakola.Factory.create_supplier!(store, name: "Ship Supplier")
+
+      fulfillment =
+        Emakola.Factory.create_fulfillment!(order, store,
+          supplier_id: supplier.id,
+          status: :pending
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      render_click(view, "select_ship_fulfillment", %{"id" => fulfillment.id})
+      render_submit(view, "submit_ship_fulfillment", %{"tracking_number" => "GH99"})
+
+      reloaded = Ash.reload!(fulfillment, authorize?: false)
+      assert reloaded.status == :shipped
+      assert reloaded.tracking_number == "GH99"
+    end
+
+    test "displays the order margin", %{conn: conn, store: store, customer: customer} do
+      order = create_order!(store.id, customer.id, :pending)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert html =~ "Margin"
     end
   end
 

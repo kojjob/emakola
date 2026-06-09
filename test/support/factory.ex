@@ -397,6 +397,58 @@ defmodule Emakola.Factory do
     |> Ash.create!(authorize?: false)
   end
 
+  # ── Suppliers ─────────────────────────────────────────────────────
+
+  def create_supplier!(store, attrs \\ %{}) do
+    default = %{
+      name: "Supplier #{System.unique_integer([:positive])}",
+      active: true,
+      store_id: store.id
+    }
+
+    params = Map.merge(default, Map.new(attrs))
+
+    Emakola.Suppliers.Supplier
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!(authorize?: false)
+  end
+
+  # ── Supplier Ledger Entries ───────────────────────────────────────
+
+  def create_supplier_ledger_entry!(supplier, fulfillment, store, attrs \\ %{}) do
+    default = %{
+      store_id: store.id,
+      supplier_id: supplier.id,
+      fulfillment_id: fulfillment.id,
+      amount_owed: 1000,
+      status: :owed
+    }
+
+    params = Map.merge(default, Map.new(attrs))
+
+    Emakola.Suppliers.SupplierLedgerEntry
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!(authorize?: false)
+  end
+
+  # ── Fulfillments ──────────────────────────────────────────────────
+
+  def create_fulfillment!(order, store, attrs \\ %{}) do
+    attrs = Map.new(attrs)
+
+    default = %{
+      order_id: order.id,
+      store_id: store.id,
+      status: :pending
+    }
+
+    params = Map.merge(default, attrs)
+
+    Emakola.Orders.Fulfillment
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!(authorize?: false)
+  end
+
   # ── Addresses ──────────────────────────────────────────────────────
 
   def create_address!(customer, store, attrs \\ %{}) do

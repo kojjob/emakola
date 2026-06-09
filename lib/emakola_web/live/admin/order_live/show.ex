@@ -25,10 +25,14 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
         order_id: id,
         order: nil,
         payment: nil,
-        tracking_number: ""
+        tracking_number: "",
+        fulfillments: [],
+        ship_fulfillment_id: nil,
+        fulfillment_tracking: ""
       )
       |> load_order()
       |> load_payment()
+      |> load_fulfillments()
 
     {:ok, socket}
   end
@@ -86,6 +90,57 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to update notes")}
     end
+  end
+
+  @impl true
+  def handle_event("send_supplier_fulfillment", %{"id" => id}, socket) do
+    case Enum.find(socket.assigns.fulfillments, &(&1.id == id)) do
+      nil ->
+        {:noreply, socket}
+
+      fulfillment ->
+        case Emakola.Notifications.Dispatcher.dispatch_supplier_fulfillment(fulfillment.id) do
+          {:ok, _job} ->
+            {:noreply,
+             socket
+             |> load_fulfillments()
+             |> put_flash(:info, "Sent to supplier")}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Could not send to supplier")}
+        end
+    end
+  end
+
+  @impl true
+  def handle_event("select_ship_fulfillment", %{"id" => id}, socket) do
+    {:noreply, assign(socket, ship_fulfillment_id: id, fulfillment_tracking: "")}
+  end
+
+  @impl true
+  def handle_event("update_fulfillment_tracking", %{"tracking_number" => tracking}, socket) do
+    {:noreply, assign(socket, fulfillment_tracking: tracking)}
+  end
+
+  @impl true
+  def handle_event("submit_ship_fulfillment", %{"tracking_number" => tracking}, socket) do
+    transition_fulfillment(
+      socket,
+      socket.assigns.ship_fulfillment_id,
+      :mark_shipped,
+      "Fulfillment marked shipped",
+      params: %{tracking_number: tracking}
+    )
+  end
+
+  @impl true
+  def handle_event("deliver_fulfillment", %{"id" => id}, socket) do
+    transition_fulfillment(socket, id, :mark_delivered, "Fulfillment marked delivered")
+  end
+
+  @impl true
+  def handle_event("cancel_fulfillment", %{"id" => id}, socket) do
+    transition_fulfillment(socket, id, :cancel, "Fulfillment cancelled")
   end
 
   @impl true
@@ -254,6 +309,100 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                   <span class="font-mono font-bold text-slate-900 text-base">
                     {format_price(@order.total, @order.currency)}
                   </span>
+                </div>
+                <div
+                  :if={@order.margin}
+                  id="order-margin"
+                  class="flex items-center justify-between text-sm pt-2 border-t border-slate-100"
+                >
+                  <span class="text-slate-500">Margin</span>
+                  <span class="font-mono font-medium text-emerald-700">
+                    {format_price(@order.margin, @order.currency)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <%!-- Fulfillments --%>
+            <div :if={@fulfillments != []} class="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div class="px-5 py-4 border-b border-slate-100">
+                <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  Fulfillments
+                </h2>
+              </div>
+              <div class="divide-y divide-slate-100">
+                <div :for={f <- @fulfillments} class="p-5 space-y-3">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                      <h3 class="text-sm font-semibold text-slate-900">
+                        {fulfillment_label(f)}
+                      </h3>
+                      <.fulfillment_status_badge status={f.status} />
+                    </div>
+                    <span
+                      :if={f.supplier_id}
+                      class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-700"
+                    >
+                      Supplier
+                    </span>
+                  </div>
+
+                  <div :if={f.supplier_id} class="text-xs text-slate-500 space-y-0.5">
+                    <p :if={f.notified_at}>
+                      Notified {format_datetime(f.notified_at)}
+                      <span :if={f.notified_via}>via {to_string(f.notified_via)}</span>
+                    </p>
+                    <p :if={f.tracking_number}>
+                      Tracking: <span class="font-mono">{f.tracking_number}</span>
+                    </p>
+                  </div>
+
+                  <ul class="text-sm text-slate-600 space-y-1">
+                    <li :for={item <- f.line_items} class="flex items-center justify-between">
+                      <span>{item.product_title}</span>
+                      <span class="text-slate-400">× {item.quantity}</span>
+                    </li>
+                  </ul>
+
+                  <div
+                    :if={not is_nil(f.supplier_id) and f.status not in [:delivered, :cancelled]}
+                    class="flex flex-wrap gap-2 pt-1"
+                  >
+                    <button
+                      :if={f.status in [:pending, :notified]}
+                      phx-click="send_supplier_fulfillment"
+                      phx-value-id={f.id}
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                    >
+                      {if f.status == :notified, do: "Resend", else: "Send to supplier"}
+                    </button>
+                    <button
+                      :if={f.status in [:pending, :notified]}
+                      phx-click={
+                        JS.push("select_ship_fulfillment", value: %{id: f.id})
+                        |> show_modal("ship-fulfillment-modal")
+                      }
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                    >
+                      Mark shipped
+                    </button>
+                    <button
+                      :if={f.status == :shipped}
+                      phx-click="deliver_fulfillment"
+                      phx-value-id={f.id}
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                    >
+                      Mark delivered
+                    </button>
+                    <button
+                      phx-click="cancel_fulfillment"
+                      phx-value-id={f.id}
+                      data-confirm="Cancel this fulfillment?"
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -448,6 +597,52 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
           icon="warning"
           icon_class="text-red-500"
         />
+
+        <%!-- Mark fulfillment shipped modal --%>
+        <.modal id="ship-fulfillment-modal" title="Mark Fulfillment Shipped" size={:md}>
+          <form phx-submit="submit_ship_fulfillment" class="space-y-4">
+            <p class="text-sm text-slate-600">
+              Add an optional tracking number for this fulfillment.
+            </p>
+            <div>
+              <label
+                for="fulfillment-tracking-number"
+                class="block text-sm font-medium text-slate-700 mb-1.5"
+              >
+                Tracking Number (optional)
+              </label>
+              <input
+                type="text"
+                id="fulfillment-tracking-number"
+                name="tracking_number"
+                value={@fulfillment_tracking}
+                phx-change="update_fulfillment_tracking"
+                placeholder="e.g., GH12345678"
+                class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
+                       focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                autocomplete="off"
+              />
+            </div>
+            <div class="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                phx-click={hide_modal("ship-fulfillment-modal")}
+                class="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300
+                       rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                phx-click={hide_modal("ship-fulfillment-modal")}
+                class="px-4 py-2.5 text-sm font-semibold bg-purple-600 text-white
+                       rounded-xl hover:bg-purple-700 transition-colors"
+              >
+                Mark Shipped
+              </button>
+            </div>
+          </form>
+        </.modal>
       <% end %>
     </div>
     """
@@ -464,6 +659,19 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
       status_badge_class(@status)
     ]}>
       {status_label(@status)}
+    </span>
+    """
+  end
+
+  attr :status, :atom, required: true
+
+  defp fulfillment_status_badge(assigns) do
+    ~H"""
+    <span class={[
+      "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+      fulfillment_badge_class(@status)
+    ]}>
+      {to_string(@status) |> String.capitalize()}
     </span>
     """
   end
@@ -520,7 +728,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
       try do
         case Emakola.Orders.Order
              |> Ash.Query.filter(id: id, store_id: store_id)
-             |> Ash.Query.load([:line_items, :customer])
+             |> Ash.Query.load([:line_items, :customer, :margin])
              |> Ash.read(authorize?: false) do
           {:ok, [order]} -> order
           _ -> nil
@@ -560,6 +768,46 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
     end
   end
 
+  defp load_fulfillments(socket) do
+    case socket.assigns.order do
+      nil ->
+        assign(socket, fulfillments: [])
+
+      order ->
+        fulfillments =
+          try do
+            Emakola.Orders.list_fulfillments_by_order!(order.id, authorize?: false)
+          rescue
+            _ -> []
+          end
+
+        assign(socket, fulfillments: fulfillments)
+    end
+  end
+
+  # ── Fulfillment Transition Helper ──
+
+  defp transition_fulfillment(socket, id, action, message, opts \\ []) do
+    params = Keyword.get(opts, :params, %{})
+    fulfillment = Enum.find(socket.assigns.fulfillments, &(&1.id == id))
+
+    if fulfillment do
+      case Ash.update(fulfillment, params, action: action, authorize?: false) do
+        {:ok, _updated} ->
+          {:noreply,
+           socket
+           |> assign(ship_fulfillment_id: nil, fulfillment_tracking: "")
+           |> load_fulfillments()
+           |> put_flash(:info, message)}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Could not update fulfillment")}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
   # ── Transition Helper ──
 
   defp transition_order(socket, action, success_message, opts \\ []) do
@@ -568,7 +816,8 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
 
     case Ash.update(order, params, action: action, authorize?: false) do
       {:ok, updated_order} ->
-        updated_order = Ash.load!(updated_order, [:line_items, :customer], authorize?: false)
+        updated_order =
+          Ash.load!(updated_order, [:line_items, :customer, :margin], authorize?: false)
 
         socket =
           socket
@@ -606,6 +855,16 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   defp status_badge_class(:delivered), do: "bg-emerald-50 text-emerald-700"
   defp status_badge_class(:cancelled), do: "bg-red-50 text-red-700"
   defp status_badge_class(_), do: "bg-slate-50 text-slate-700"
+
+  defp fulfillment_badge_class(:pending), do: "bg-amber-50 text-amber-700"
+  defp fulfillment_badge_class(:notified), do: "bg-blue-50 text-blue-700"
+  defp fulfillment_badge_class(:shipped), do: "bg-purple-50 text-purple-700"
+  defp fulfillment_badge_class(:delivered), do: "bg-emerald-50 text-emerald-700"
+  defp fulfillment_badge_class(:cancelled), do: "bg-red-50 text-red-700"
+  defp fulfillment_badge_class(_), do: "bg-slate-50 text-slate-700"
+
+  defp fulfillment_label(%{supplier: %{name: name}}) when is_binary(name), do: name
+  defp fulfillment_label(_), do: "Your stock"
 
   defp payment_badge_class(:success), do: "bg-emerald-50 text-emerald-700"
   defp payment_badge_class(:pending), do: "bg-amber-50 text-amber-700"
