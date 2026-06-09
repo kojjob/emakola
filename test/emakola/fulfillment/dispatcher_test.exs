@@ -19,7 +19,14 @@ defmodule Emakola.Fulfillment.DispatcherTest do
     end
 
     test "routes :digital_download to the DigitalDownload pipeline" do
-      assert {:error, :not_implemented} = Dispatcher.dispatch(:digital_download, %{}, %{})
+      # DigitalDownload is wired (Phase 1); calling it with a fake/empty
+      # line item now hits real code and returns :line_item_not_found
+      # rather than the old :not_implemented stub. Either error proves
+      # the routing worked — what we're asserting here is *routing*, not
+      # the pipeline's own behavior (that's covered in
+      # Pipelines.DigitalDownloadTest).
+      assert {:error, :line_item_not_found} =
+               Dispatcher.dispatch(:digital_download, %{id: Ecto.UUID.generate()}, %{})
     end
 
     test "routes :license_key to the LicenseKey pipeline" do

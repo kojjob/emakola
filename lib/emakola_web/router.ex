@@ -94,6 +94,11 @@ defmodule EmakolaWeb.Router do
     pipe_through :browser
     delete "/auth/customer-session", CustomerSessionController, :delete
     get "/auth/customer-logout", CustomerSessionController, :logout
+
+    # Digital download delivery (Phase 1). Resolves the customer from
+    # session, validates grant ownership + expiry/limit, redirects to
+    # a presigned URL from Emakola.Storage.
+    get "/downloads/:id", DownloadController, :show
   end
 
   # Customer storefront auth pages (login/register — no customer auth required)
@@ -144,6 +149,7 @@ defmodule EmakolaWeb.Router do
       live "/recipes", RecipeListLive
       live "/recipes/:recipe_slug", RecipeLive
       live "/account", AccountLive
+      live "/account/downloads", AccountDownloadsLive
       live "/wishlist", WishlistLive
       live "/track/:order_number", TrackingLive
       live "/p/:page_slug", PageLive
