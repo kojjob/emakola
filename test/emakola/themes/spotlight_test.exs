@@ -205,4 +205,74 @@ defmodule Emakola.Themes.SpotlightTest do
       assert out =~ "★"
     end
   end
+
+  describe "Home" do
+    test "renders hero from first product and funnels to its page" do
+      store = %{slug: "demo", name: "Demo Store", description: nil, currency: "GHS"}
+      theme = ThemeResolver.resolve(%{"theme" => "spotlight"})
+      product = %{slug: "lively", title: "Lively Drink", min_price: 9900, images: []}
+
+      assigns = %{
+        __changed__: nil,
+        store: store,
+        theme: theme,
+        cart_count: 0,
+        products: [product],
+        categories: []
+      }
+
+      out =
+        Emakola.Themes.Spotlight.Home.render(assigns)
+        |> Phoenix.HTML.Safe.to_iodata()
+        |> IO.iodata_to_binary()
+
+      assert out =~ "Lively Drink"
+      assert out =~ "/s/demo/products/lively"
+    end
+
+    test "empty products renders a coming-soon hero without raising" do
+      store = %{slug: "demo", name: "Demo Store", description: nil, currency: "GHS"}
+      theme = ThemeResolver.resolve(%{"theme" => "spotlight"})
+
+      assigns = %{
+        __changed__: nil,
+        store: store,
+        theme: theme,
+        cart_count: 0,
+        products: [],
+        categories: []
+      }
+
+      out =
+        Emakola.Themes.Spotlight.Home.render(assigns)
+        |> Phoenix.HTML.Safe.to_iodata()
+        |> IO.iodata_to_binary()
+
+      assert is_binary(out)
+      assert out =~ "Demo Store"
+    end
+
+    test "hides newsletter when disabled" do
+      store = %{slug: "demo", name: "Demo Store", description: nil, currency: "GHS"}
+
+      theme =
+        ThemeResolver.resolve(%{"theme" => "spotlight", "sections" => %{"newsletter" => false}})
+
+      assigns = %{
+        __changed__: nil,
+        store: store,
+        theme: theme,
+        cart_count: 0,
+        products: [],
+        categories: []
+      }
+
+      out =
+        Emakola.Themes.Spotlight.Home.render(assigns)
+        |> Phoenix.HTML.Safe.to_iodata()
+        |> IO.iodata_to_binary()
+
+      refute out =~ (get_in(theme, [:newsletter, :title]) || "Stay in the loop")
+    end
+  end
 end
