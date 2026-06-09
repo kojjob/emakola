@@ -77,7 +77,7 @@ defmodule Emakola.MixProject do
       {:bandit, "~> 1.5"},
       {:swoosh, "~> 1.17"},
       {:phoenix_live_dashboard, "~> 0.8"},
-      {:hammer, "~> 6.2"},
+      {:hammer, "~> 7.0"},
 
       # Ash Framework — domain modeling, auth, multitenancy
       {:ash, "~> 3.0"},
