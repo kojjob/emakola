@@ -22,6 +22,10 @@ defmodule Emakola.Orders do
       define(:create_line_item, action: :create)
     end
 
+    resource Emakola.Orders.Fulfillment do
+      define(:list_fulfillments_by_order, action: :list_by_order, args: [:order_id])
+    end
+
     # Coupon resource moved to Emakola.Marketing on 2026-04-26.
     # See docs/PLAN-domain-restructuring-2026-04-26.md
 

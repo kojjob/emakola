@@ -413,6 +413,25 @@ defmodule Emakola.Factory do
     |> Ash.create!(authorize?: false)
   end
 
+  # ── Fulfillments ──────────────────────────────────────────────────
+
+  def create_fulfillment!(order, store, attrs \\ %{}) do
+    attrs = Map.new(attrs)
+
+    default = %{
+      order_id: order.id,
+      store_id: store.id,
+      supplier_id: Map.get(attrs, :supplier_id),
+      status: :pending
+    }
+
+    params = Map.merge(default, attrs)
+
+    Emakola.Orders.Fulfillment
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!(authorize?: false)
+  end
+
   # ── Addresses ──────────────────────────────────────────────────────
 
   def create_address!(customer, store, attrs \\ %{}) do

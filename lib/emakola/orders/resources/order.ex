@@ -147,10 +147,23 @@ defmodule Emakola.Orders.Order do
 
     has_many :line_items, Emakola.Orders.LineItem
 
+    has_many :fulfillments, Emakola.Orders.Fulfillment
+
     belongs_to :coupon, Emakola.Marketing.Coupon do
       attribute_writable?(true)
       public?(true)
     end
+  end
+
+  calculations do
+    # Additive: derives an aggregate status from per-supplier fulfillments
+    # without modifying the stored `status` attribute. Nil for legacy orders
+    # that have no fulfillments.
+    calculate(
+      :fulfillment_status,
+      :atom,
+      Emakola.Orders.Calculations.FulfillmentStatus
+    )
   end
 
   identities do
