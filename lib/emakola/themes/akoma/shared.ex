@@ -195,7 +195,7 @@ defmodule Emakola.Themes.Akoma.Shared do
         nil
 
       digits ->
-        "https://wa.me/#{digits}?text=#{URI.encode("Hi! I'd like to order: #{product_title}")}"
+        "https://wa.me/#{digits}?text=#{URI.encode_www_form("Hi! I'd like to order: #{product_title}")}"
     end
   end
 

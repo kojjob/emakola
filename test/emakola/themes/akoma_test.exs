@@ -62,6 +62,29 @@ defmodule Emakola.Themes.AkomaTest do
       assert Emakola.Themes.Akoma.Shared.whatsapp_link(store, "Cotton Tee") =~
                "https://wa.me/233201234567"
     end
+
+    test "whatsapp_link encodes special characters so the message isn't truncated", %{
+      store: store
+    } do
+      link = Emakola.Themes.Akoma.Shared.whatsapp_link(store, "Salt & Pepper")
+      text_param = link |> String.split("?text=") |> List.last()
+      # The ampersand from the title must be percent-encoded, not a raw query separator
+      refute String.contains?(text_param, "&")
+      assert String.contains?(text_param, "Salt")
+      assert String.contains?(text_param, "Pepper")
+    end
+
+    test "current_image/2 returns the medium url at the given index, falling back to url" do
+      product = %{
+        images: [
+          %{medium_url: "m0.jpg", url: "u0.jpg"},
+          %{medium_url: nil, url: "u1.jpg"}
+        ]
+      }
+
+      assert Emakola.Themes.Akoma.Shared.current_image(product, 0) == "m0.jpg"
+      assert Emakola.Themes.Akoma.Shared.current_image(product, 1) == "u1.jpg"
+    end
   end
 
   describe "registration & contract" do
