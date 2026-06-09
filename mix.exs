@@ -96,7 +96,7 @@ defmodule Emakola.MixProject do
       {:html_sanitize_ex, "~> 1.4"},
 
       # HTTP client (used by webhook delivery, payment gateways)
-      {:req, "~> 0.5"},
+      {:req, "~> 0.6"},
 
       # S3-compatible file storage
       {:ex_aws, "~> 2.5"},
