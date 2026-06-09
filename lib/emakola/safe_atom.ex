@@ -37,6 +37,8 @@ defmodule Emakola.SafeAtom do
   @spec to_atom(String.t() | atom() | nil, atom()) :: atom()
   def to_atom(value, default) when is_atom(default) do
     cond do
+      # nil is an atom in Elixir, so this must come before is_atom/1.
+      is_nil(value) -> default
       is_atom(value) -> value
       is_binary(value) -> safe_existing(value, default)
       true -> default

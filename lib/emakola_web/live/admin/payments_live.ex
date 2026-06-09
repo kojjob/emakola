@@ -277,45 +277,73 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
 
   # ── Data Loading ──
 
+  # Cap the rows materialised for the table; the summary is computed from
+  # DB aggregates so totals stay accurate regardless of this cap.
+  @payments_page_limit 200
+
   defp load_payments(socket) do
     %{store_id: store_id, status_filter: status} = socket.assigns
 
-    all_payments = fetch_payments(store_id)
-
-    filtered =
-      case status do
-        :all -> all_payments
-        filter -> Enum.filter(all_payments, &(&1.status == filter))
-      end
-
-    summary = compute_summary(all_payments)
-
-    assign(socket, payments: filtered, summary: summary)
+    assign(socket,
+      payments: fetch_payments(store_id, status),
+      summary: compute_summary(store_id)
+    )
   end
 
-  defp fetch_payments(store_id) do
-    try do
-      Emakola.Payments.Payment
-      |> Ash.Query.filter(store_id == ^store_id)
-      |> Ash.Query.sort(inserted_at: :desc)
-      |> Ash.Query.load(:order)
-      |> Ash.read!(authorize?: false)
-    rescue
+  defp fetch_payments(store_id, status) do
+    Emakola.Payments.Payment
+    |> Ash.Query.filter(store_id == ^store_id)
+    |> filter_by_status(status)
+    |> Ash.Query.sort(inserted_at: :desc)
+    |> Ash.Query.limit(@payments_page_limit)
+    |> Ash.Query.load(:order)
+    |> Ash.read(authorize?: false)
+    |> case do
+      {:ok, rows} -> rows
       _ -> []
     end
   end
 
-  defp compute_summary(payments) do
+  defp filter_by_status(query, :all), do: query
+  defp filter_by_status(query, status_value), do: Ash.Query.filter(query, status == ^status_value)
+
+  defp compute_summary(store_id) do
     %{
-      total_revenue:
-        payments
-        |> Enum.filter(&(&1.status == :success))
-        |> Enum.reduce(0, &(&1.amount + &2)),
-      success_count: Enum.count(payments, &(&1.status == :success)),
-      pending_count: Enum.count(payments, &(&1.status == :pending)),
-      failed_count: Enum.count(payments, &(&1.status == :failed))
+      total_revenue: success_revenue(store_id),
+      success_count: count_status(store_id, :success),
+      pending_count: count_status(store_id, :pending),
+      failed_count: count_status(store_id, :failed)
     }
   end
+
+  defp count_status(store_id, status_value) do
+    Emakola.Payments.Payment
+    |> Ash.Query.filter(store_id == ^store_id and status == ^status_value)
+    |> Ash.count(authorize?: false)
+    |> case do
+      {:ok, n} -> n
+      _ -> 0
+    end
+  end
+
+  defp success_revenue(store_id) do
+    import Ecto.Query, only: [from: 2]
+
+    from(p in Emakola.Payments.Payment,
+      where: p.store_id == ^store_id and p.status == :success
+    )
+    |> Emakola.Repo.aggregate(:sum, :amount)
+    |> to_integer_amount()
+  rescue
+    _ -> 0
+  end
+
+  # SUM over an integer column comes back as a Decimal from Postgres;
+  # Currency.format_price/2 requires an integer (minor units).
+  defp to_integer_amount(nil), do: 0
+  defp to_integer_amount(%Decimal{} = d), do: Decimal.to_integer(d)
+  defp to_integer_amount(n) when is_integer(n), do: n
+  defp to_integer_amount(n) when is_float(n), do: round(n)
 
   # ── Helpers ──
 

@@ -50,7 +50,8 @@ defmodule Emakola.Themes.ThemeRendererTest do
       assert :blog_post in types
       assert :recipe_list in types
       assert :account in types
-      assert length(types) == 15
+      assert :downloads in types
+      assert length(types) == 16
     end
   end
 end
