@@ -397,6 +397,22 @@ defmodule Emakola.Factory do
     |> Ash.create!(authorize?: false)
   end
 
+  # ── Suppliers ─────────────────────────────────────────────────────
+
+  def create_supplier!(store, attrs \\ %{}) do
+    default = %{
+      name: "Supplier #{System.unique_integer([:positive])}",
+      active: true,
+      store_id: store.id
+    }
+
+    params = Map.merge(default, Map.new(attrs))
+
+    Emakola.Suppliers.Supplier
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!(authorize?: false)
+  end
+
   # ── Addresses ──────────────────────────────────────────────────────
 
   def create_address!(customer, store, attrs \\ %{}) do
