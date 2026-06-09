@@ -17,6 +17,7 @@ defmodule Emakola.Themes.ProductDetailVariantsTest do
 
   @themes [
     {Emakola.Themes.Spotlight, "spotlight"},
+    {Emakola.Themes.Akoma, "akoma"},
     {Emakola.Themes.Pharmacy, "pharmacy"},
     {Emakola.Themes.Beauty, "beauty"},
     {Emakola.Themes.HomeLiving, "home_living"},
