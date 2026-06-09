@@ -30,7 +30,8 @@ defmodule Emakola.Themes.ThemeRenderer do
     tracking: :render_tracking,
     category: :render_category,
     wishlist: :render_wishlist,
-    account: :render_account
+    account: :render_account,
+    downloads: :render_downloads
   }
 
   @doc """
