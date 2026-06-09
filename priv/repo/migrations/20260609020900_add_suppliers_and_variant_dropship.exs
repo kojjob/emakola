@@ -41,5 +41,7 @@ defmodule Emakola.Repo.Migrations.AddSuppliersAndVariantDropship do
       add :supplier_id,
           references(:suppliers, type: :uuid, on_delete: :nilify_all)
     end
+
+    create index(:variants, [:supplier_id])
   end
 end

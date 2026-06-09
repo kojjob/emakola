@@ -118,6 +118,7 @@ defmodule Emakola.Suppliers.Supplier do
       argument(:store_id, :uuid, allow_nil?: false)
 
       filter(expr(store_id == ^arg(:store_id)))
+      prepare(build(sort: [name: :asc]))
     end
   end
 end

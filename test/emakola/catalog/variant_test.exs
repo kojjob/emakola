@@ -301,6 +301,44 @@ defmodule Emakola.Catalog.VariantTest do
       assert updated.supplier_id == supplier.id
       assert updated.track_inventory == false
     end
+
+    test "removing supplier_id on update restores track_inventory to true", %{
+      store: store,
+      product: product
+    } do
+      supplier = create_supplier!(store)
+
+      variant =
+        create_variant!(product, store, price: 5000, supplier_id: supplier.id)
+
+      assert variant.track_inventory == false
+
+      updated =
+        variant
+        |> Ash.Changeset.for_update(:update, %{supplier_id: nil})
+        |> Ash.update!(authorize?: false)
+
+      assert is_nil(updated.supplier_id)
+      assert updated.track_inventory == true
+    end
+
+    test "updating an untracked own-stock variant does not force tracking on", %{
+      store: store,
+      product: product
+    } do
+      variant =
+        create_variant!(product, store, price: 5000, track_inventory: false)
+
+      assert is_nil(variant.supplier_id)
+      assert variant.track_inventory == false
+
+      updated =
+        variant
+        |> Ash.Changeset.for_update(:update, %{price: 7500})
+        |> Ash.update!(authorize?: false)
+
+      assert updated.track_inventory == false
+    end
   end
 
   # ── Multi-tenancy ─────────────────────────────────────────────

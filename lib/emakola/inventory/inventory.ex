@@ -81,10 +81,8 @@ defmodule Emakola.Inventory do
   `available` flag: `:out` when `available == false`, else `:in_stock`.
   """
   @spec stock_status(map()) :: :in_stock | :low | :out
-  def stock_status(%{supplier_id: supplier_id, available: available})
-      when not is_nil(supplier_id) do
-    if available, do: :in_stock, else: :out
-  end
+  def stock_status(%{supplier_id: sid, available: true}) when not is_nil(sid), do: :in_stock
+  def stock_status(%{supplier_id: sid, available: false}) when not is_nil(sid), do: :out
 
   def stock_status(%{track_inventory: false}), do: :in_stock
   def stock_status(%{stock_quantity: q}) when q <= 0, do: :out
