@@ -20,6 +20,7 @@ defmodule Emakola.Themes.ThemeResolver do
     "home_living" => Emakola.Themes.HomeLiving,
     "market" => Emakola.Themes.Market,
     "pharmacy" => Emakola.Themes.Pharmacy,
+    "spotlight" => Emakola.Themes.Spotlight,
     "starter" => Emakola.Themes.Starter,
     "vibrant" => Emakola.Themes.Vibrant
   }
