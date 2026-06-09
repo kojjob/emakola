@@ -104,7 +104,13 @@ defmodule Emakola.Notifications.Dispatcher do
   @spec dispatch_supplier_fulfillment(binary()) ::
           {:ok, Oban.Job.t()} | {:error, any()}
   def dispatch_supplier_fulfillment(fulfillment_id) do
-    enqueue_supplier_job(fulfillment_id)
+    %{
+      "fulfillment_id" => fulfillment_id,
+      "resend" => true,
+      "nonce" => System.unique_integer([:positive])
+    }
+    |> SupplierNotificationWorker.new(queue: :notifications)
+    |> Oban.insert()
   rescue
     exception ->
       Logger.error(
@@ -119,7 +125,7 @@ defmodule Emakola.Notifications.Dispatcher do
   # ── Internal ──────────────────────────────────────────────────────────
 
   defp enqueue_supplier_job(fulfillment_id) do
-    %{fulfillment_id: fulfillment_id}
+    %{"fulfillment_id" => fulfillment_id}
     |> SupplierNotificationWorker.new(queue: :notifications)
     |> Oban.insert()
   end

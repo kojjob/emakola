@@ -104,6 +104,25 @@ defmodule Emakola.Notifications.Workers.SupplierNotificationWorkerTest do
     end
   end
 
+  # ── Failed provider send ───────────────────────────────────────
+
+  describe "provider send failure" do
+    test "returns the error and leaves fulfillment pending (Oban retries)" do
+      store = setup_store()
+      supplier = Factory.create_supplier!(store, %{whatsapp_number: "+233200000004"})
+      order = create_order_with_address(store)
+      fulfillment = Factory.create_fulfillment!(order, store, %{supplier_id: supplier.id})
+      create_line_item!(order, store, fulfillment)
+
+      Emakola.WhatsAppProviderMock
+      |> expect(:send_message, fn _to, _template, _params, _opts -> {:error, :timeout} end)
+
+      assert {:error, :timeout} == perform(fulfillment.id)
+
+      assert reload(fulfillment.id).status == :pending
+    end
+  end
+
   # ── No contact info ────────────────────────────────────────────
 
   describe "supplier with no contact info" do

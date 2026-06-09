@@ -204,5 +204,31 @@ defmodule Emakola.Notifications.DispatcherTest do
         queue: :notifications
       )
     end
+
+    test "two successive manual resends enqueue two distinct (non-deduped) jobs" do
+      fulfillment_id = Ash.UUID.generate()
+
+      assert {:ok, job_a} = Dispatcher.dispatch_supplier_fulfillment(fulfillment_id)
+      assert {:ok, job_b} = Dispatcher.dispatch_supplier_fulfillment(fulfillment_id)
+
+      jobs = all_enqueued(worker: SupplierNotificationWorker)
+      assert length(jobs) == 2
+      assert job_a.id != job_b.id
+      assert job_a.args["nonce"] != job_b.args["nonce"]
+    end
+  end
+
+  describe "auto vs manual dedup" do
+    test "two auto dispatches for the same pending fulfillment dedup to one job" do
+      {_merchant, store} = Factory.create_merchant_with_store!()
+      order = Factory.create_order!(store, %{total: 10_000, currency: "GHS"})
+      supplier = Factory.create_supplier!(store, %{contact_phone: "+233200000009"})
+      _fulfillment = Factory.create_fulfillment!(order, store, %{supplier_id: supplier.id})
+
+      assert :ok == Dispatcher.dispatch_supplier_fulfillments(order)
+      assert :ok == Dispatcher.dispatch_supplier_fulfillments(order)
+
+      assert length(all_enqueued(worker: SupplierNotificationWorker)) == 1
+    end
   end
 end

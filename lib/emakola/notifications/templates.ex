@@ -156,9 +156,8 @@ defmodule Emakola.Notifications.Templates do
     end
   end
 
-  defp item_count_segment(items) when is_list(items) and length(items) > 0 do
-    count = length(items)
-    "#{count} item(s) | "
+  defp item_count_segment([_ | _] = items) do
+    "#{length(items)} item(s) | "
   end
 
   defp item_count_segment(_), do: ""

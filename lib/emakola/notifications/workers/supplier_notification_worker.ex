@@ -27,16 +27,14 @@ defmodule Emakola.Notifications.Workers.SupplierNotificationWorker do
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"fulfillment_id" => fulfillment_id}}) do
     with {:ok, fulfillment} <- load_fulfillment(fulfillment_id) do
-      cond do
-        is_nil(fulfillment.supplier_id) ->
-          Logger.info(
-            "[SupplierNotificationWorker] Fulfillment #{fulfillment_id} is a merchant group, nothing to send"
-          )
+      if is_nil(fulfillment.supplier_id) do
+        Logger.info(
+          "[SupplierNotificationWorker] Fulfillment #{fulfillment_id} is a merchant group, nothing to send"
+        )
 
-          :ok
-
-        true ->
-          notify_supplier(fulfillment)
+        :ok
+      else
+        notify_supplier(fulfillment)
       end
     else
       {:error, reason} ->
@@ -69,23 +67,25 @@ defmodule Emakola.Notifications.Workers.SupplierNotificationWorker do
 
     cond do
       supplier.whatsapp_number ->
-        whatsapp_provider().send_message(
-          supplier.whatsapp_number,
-          Templates.supplier_fulfillment_whatsapp_template(),
-          Templates.supplier_fulfillment_whatsapp_params(order, supplier, line_items),
-          store_id: fulfillment.store_id
-        )
-
-        maybe_mark_notified(fulfillment, :whatsapp)
+        case whatsapp_provider().send_message(
+               supplier.whatsapp_number,
+               Templates.supplier_fulfillment_whatsapp_template(),
+               Templates.supplier_fulfillment_whatsapp_params(order, supplier, line_items),
+               store_id: fulfillment.store_id
+             ) do
+          {:ok, _} -> maybe_mark_notified(fulfillment, :whatsapp)
+          {:error, reason} -> {:error, reason}
+        end
 
       supplier.contact_phone ->
-        sms_provider().send_sms(
-          supplier.contact_phone,
-          Templates.supplier_fulfillment_sms(order, supplier, line_items),
-          store_id: fulfillment.store_id
-        )
-
-        maybe_mark_notified(fulfillment, :sms)
+        case sms_provider().send_sms(
+               supplier.contact_phone,
+               Templates.supplier_fulfillment_sms(order, supplier, line_items),
+               store_id: fulfillment.store_id
+             ) do
+          {:ok, _} -> maybe_mark_notified(fulfillment, :sms)
+          {:error, reason} -> {:error, reason}
+        end
 
       true ->
         Logger.info(
