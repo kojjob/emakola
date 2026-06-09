@@ -21,6 +21,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
     unique: [period: 86_400, fields: [:args]]
 
   require Ash.Query
+  require Logger
 
   alias Emakola.Payments.Payment
 
@@ -107,10 +108,21 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
       :ok
     else
       # Already refunded — idempotent success
-      true -> :ok
-      # Payment not found or not in a refundable state (e.g. :failed, :pending)
-      {:error, %Ash.Error.Invalid{}} -> :ok
-      {:error, reason} -> {:error, reason}
+      true ->
+        :ok
+
+      # Refund rejected by business rules (payment not :success, or amount
+      # exceeds original). The money already moved at the gateway, so log
+      # loudly — retrying won't fix a validation failure.
+      {:error, %Ash.Error.Invalid{} = error} ->
+        Logger.warning(
+          "refund.processed rejected for payment #{reference}: #{Exception.message(error)}"
+        )
+
+        :ok
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
