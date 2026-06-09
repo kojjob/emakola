@@ -206,6 +206,48 @@ defmodule Emakola.Themes.SpotlightTest do
     end
   end
 
+  describe "ProductList" do
+    test "renders product grid + empty state" do
+      store = %{slug: "demo", name: "Demo Store", description: nil, currency: "GHS"}
+      theme = ThemeResolver.resolve(%{"theme" => "spotlight"})
+
+      products = [
+        %{slug: "a", title: "Alpha", min_price: 1000, images: []},
+        %{slug: "b", title: "Beta", min_price: 2000, images: []}
+      ]
+
+      out =
+        Emakola.Themes.Spotlight.ProductList.render(%{
+          __changed__: nil,
+          store: store,
+          theme: theme,
+          cart_count: 0,
+          products: products,
+          categories: []
+        })
+        |> Phoenix.HTML.Safe.to_iodata()
+        |> IO.iodata_to_binary()
+
+      assert out =~ "Alpha"
+      assert out =~ "Beta"
+      assert out =~ "/s/demo/products/a"
+
+      empty =
+        Emakola.Themes.Spotlight.ProductList.render(%{
+          __changed__: nil,
+          store: store,
+          theme: theme,
+          cart_count: 0,
+          products: [],
+          categories: []
+        })
+        |> Phoenix.HTML.Safe.to_iodata()
+        |> IO.iodata_to_binary()
+
+      assert empty =~ "Demo Store"
+    end
+  end
+
   describe "Home" do
     test "renders hero from first product and funnels to its page" do
       store = %{slug: "demo", name: "Demo Store", description: nil, currency: "GHS"}
