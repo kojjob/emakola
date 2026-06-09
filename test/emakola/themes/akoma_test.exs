@@ -203,6 +203,39 @@ defmodule Emakola.Themes.AkomaTest do
     end
   end
 
+  describe "Home" do
+    test "renders hero and featured products" do
+      store = %{slug: "demo", name: "Demo Store", description: nil, currency: "GHS"}
+      theme = ThemeResolver.resolve(%{"theme" => "akoma"})
+
+      product = %{
+        slug: "tee",
+        title: "Cotton Tee",
+        min_price: 12_000,
+        images: [],
+        featured_rank: nil
+      }
+
+      assigns = %{
+        __changed__: nil,
+        store: store,
+        theme: theme,
+        cart_count: 0,
+        featured_products: [product],
+        categories: []
+      }
+
+      out =
+        Emakola.Themes.Akoma.Home.render(assigns)
+        |> Phoenix.HTML.Safe.to_iodata()
+        |> IO.iodata_to_binary()
+
+      assert out =~ "Demo Store"
+      assert out =~ "Cotton Tee"
+      assert out =~ "Shop the collection"
+    end
+  end
+
   describe "registration & contract" do
     test "resolver resolves the akoma theme with Forest colours" do
       config = ThemeResolver.resolve(%{"theme" => "akoma"})
