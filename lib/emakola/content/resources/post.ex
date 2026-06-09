@@ -17,6 +17,12 @@ defmodule Emakola.Content.Post do
 
   require Ash.Query
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("posts")
     repo(Emakola.Repo)
@@ -123,10 +129,6 @@ defmodule Emakola.Content.Post do
   end
 
   policies do
-    bypass action_type(:read) do
-      authorize_if(always())
-    end
-
     bypass always() do
       authorize_unless(actor_present())
     end

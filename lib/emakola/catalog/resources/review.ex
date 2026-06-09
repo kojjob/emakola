@@ -13,6 +13,12 @@ defmodule Emakola.Catalog.Review do
 
   require Ash.Query
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("reviews")
     repo(Emakola.Repo)
@@ -111,10 +117,6 @@ defmodule Emakola.Catalog.Review do
   end
 
   policies do
-    bypass action_type(:read) do
-      authorize_if(always())
-    end
-
     bypass always() do
       authorize_unless(actor_present())
     end

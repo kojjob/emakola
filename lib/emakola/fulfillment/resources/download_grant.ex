@@ -27,6 +27,12 @@ defmodule Emakola.Fulfillment.DownloadGrant do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("download_grants")
     repo(Emakola.Repo)
@@ -110,10 +116,6 @@ defmodule Emakola.Fulfillment.DownloadGrant do
   end
 
   policies do
-    bypass action_type(:read) do
-      authorize_if(always())
-    end
-
     # System / pipeline calls (nil actor) — pipelines run with authorize?: false
     bypass always() do
       authorize_unless(actor_present())

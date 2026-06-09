@@ -31,6 +31,12 @@ defmodule Emakola.Pages.Page do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("storefront_pages")
     repo(Emakola.Repo)
@@ -82,12 +88,12 @@ defmodule Emakola.Pages.Page do
   end
 
   policies do
-    # Reads are open — storefront needs to look up its own page on every
-    # request. Tenant scoping happens via store_id in the query, not policy.
-    bypass action_type(:read) do
-      authorize_if(always())
+    # System/pipeline code opts in with authorize?: false.
+    bypass always() do
+      authorize_unless(actor_present())
     end
 
+    # Reads are open — storefront needs to look up its own page on every
     # Writes require a Merchant actor with access to the store.
     # System code that needs to mutate a Page must opt in with `authorize?: false`.
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do

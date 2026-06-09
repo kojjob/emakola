@@ -198,13 +198,30 @@ defmodule Emakola.Stores.Store do
   end
 
   policies do
-    # Reads are open (needed for storefront resolution, internal lookups)
-    bypass action_type(:read) do
+    # Creates are open (onboarding creates stores without an actor).
+    bypass action_type(:create) do
       authorize_if(always())
     end
 
-    # Creates are open (onboarding creates stores)
-    bypass action_type(:create) do
+    # System/internal reads with no actor — allow. This covers:
+    # - StoreMembership manage_relationship lookups during onboarding (no actor is set)
+    # - Storefront slug resolution and pipeline code using authorize?: false
+    # All nil-actor callers are trusted internal Elixir code, never raw HTTP actors.
+    bypass action_type(:read) do
+      authorize_unless(actor_present())
+    end
+
+    # Merchant reads: filtered to stores the actor has a StoreMembership for.
+    # The expr adds a SQL EXISTS subquery so a merchant only ever sees their own stores.
+    policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
+      authorize_if(expr(exists(store_memberships, merchant_id == ^actor(:id))))
+    end
+
+    # Customer reads: store metadata is publicly visible — storefronts are public
+    # pages and customers browse across the marketplace directory. Sensitive per-tenant
+    # data (orders, payments, PII) is row-scoped on those resources, not on Store.
+    # The update/destroy policy below still forbids Customer mutations.
+    policy actor_attribute_equals(:__struct__, Emakola.Customers.Customer) do
       authorize_if(always())
     end
 

@@ -13,6 +13,12 @@ defmodule Emakola.Content.MediaAttachment do
 
   require Ash.Query
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("media_attachments")
     repo(Emakola.Repo)
@@ -86,10 +92,6 @@ defmodule Emakola.Content.MediaAttachment do
   end
 
   policies do
-    bypass action_type(:read) do
-      authorize_if(always())
-    end
-
     bypass always() do
       authorize_unless(actor_present())
     end
