@@ -28,7 +28,6 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
     assigns =
       assigns
       |> assign(:price, price_for(assigns.product, assigns.selected_variant))
-      |> assign(:compare_at, compare_at(assigns.selected_variant))
       |> assign(:currency, Map.get(assigns.store, :currency, "GHS"))
       |> assign(:wa_link, Shared.whatsapp_link(assigns.store, assigns.product.title))
       |> assign(:trust, get_in(assigns.theme, [:trust]) || %{})
@@ -144,6 +143,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
           <div
             :for={item <- Map.get(@trust, :items, [])}
+            data-reveal
             class="rounded-2xl bg-white border border-[#ECE7DE] p-6 text-center"
           >
             <span class="material-symbols-outlined text-[#7C3AED] text-3xl">
@@ -183,7 +183,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
           Everything that goes in, and why it matters. Nothing superfluous.
         </p>
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-8">
-          <div :for={ing <- @ingredients} class="border-t border-[#ECE7DE] pt-4">
+          <div :for={ing <- @ingredients} data-reveal class="border-t border-[#ECE7DE] pt-4">
             <h3 class="spot-heading text-lg font-semibold">{ing.name}</h3>
             <p class="text-sm text-[#6B675F] mt-1 leading-relaxed">{ing.description}</p>
           </div>
@@ -291,6 +291,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
         <div class="grid md:grid-cols-3 gap-6">
           <figure
             :for={t <- Map.get(@testimonials, :items, [])}
+            data-reveal
             class="rounded-2xl bg-white border border-[#ECE7DE] p-6"
           >
             <div class="text-[#7C3AED]">★★★★★</div>
@@ -333,9 +334,6 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
   defp price_for(_product, %{price: price}) when is_integer(price), do: price
   defp price_for(product, _), do: Map.get(product, :min_price) || 0
 
-  defp compare_at(%{compare_at_price: cap}) when is_integer(cap), do: cap
-  defp compare_at(_), do: nil
-
   defp in_stock?(%{stock_quantity: q}) when is_integer(q), do: q > 0
   defp in_stock?(_), do: true
 
@@ -372,6 +370,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
         _ -> 0
       end
 
+    n = min(max(n, 0), 5)
     String.duplicate("★", n) <> String.duplicate("☆", 5 - n)
   end
 end
