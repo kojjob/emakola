@@ -87,6 +87,114 @@ defmodule Emakola.Themes.AkomaTest do
     end
   end
 
+  describe "ProductDetail" do
+    setup do
+      store = %{
+        slug: "demo",
+        name: "Demo Store",
+        description: nil,
+        currency: "GHS",
+        whatsapp_number: "+233201234567"
+      }
+
+      theme = ThemeResolver.resolve(%{"theme" => "akoma"})
+
+      ot = %{
+        id: "ot1",
+        name: "Size",
+        option_values: [
+          %{id: "ov_s", value: "S"},
+          %{id: "ov_m", value: "M"},
+          %{id: "ov_l", value: "L"}
+        ]
+      }
+
+      product = %{
+        title: "Linen Overshirt",
+        slug: "linen-overshirt",
+        description: "Garment-dyed linen.",
+        images: [],
+        min_price: 42_000,
+        avg_rating: 4.5,
+        review_count: 12,
+        share_count: 0
+      }
+
+      variant = %{price: 42_000, compare_at_price: 52_000, stock_quantity: 3}
+
+      assigns = %{
+        __changed__: nil,
+        store: store,
+        theme: theme,
+        product: product,
+        related_products: [],
+        categories: [],
+        cart_count: 0,
+        selected_variant: variant,
+        option_types: [ot],
+        selected_options: %{"ot1" => "ov_m"},
+        quantity: 1,
+        current_image_index: 0
+      }
+
+      %{assigns: assigns}
+    end
+
+    defp pdp_html(assigns),
+      do:
+        Emakola.Themes.Akoma.ProductDetail.render(assigns)
+        |> Phoenix.HTML.Safe.to_iodata()
+        |> IO.iodata_to_binary()
+
+    test "renders title, formatted price, and the two CTAs", %{assigns: a} do
+      out = pdp_html(a)
+      assert out =~ "Linen Overshirt"
+      assert out =~ "GH₵ 420"
+      assert out =~ "Add to cart"
+      assert out =~ "WhatsApp"
+      assert out =~ "https://wa.me/233201234567"
+    end
+
+    test "renders option pills with the select_option contract", %{assigns: a} do
+      out = pdp_html(a)
+      assert out =~ ~s(phx-click="select_option")
+      assert out =~ ~s(phx-value-option_type_id="ot1")
+      assert out =~ ~s(phx-value-value="ov_m")
+      assert out =~ "S"
+      assert out =~ "M"
+      assert out =~ "L"
+    end
+
+    test "shows sale badge and compare-at price when on sale", %{assigns: a} do
+      out = pdp_html(a)
+      assert out =~ "GH₵ 520"
+      assert out =~ "Save"
+    end
+
+    test "renders without raising when review assigns are absent (variants-test shape)", %{
+      assigns: a
+    } do
+      assert is_binary(pdp_html(a))
+    end
+
+    test "renders the reviews block when review assigns are present", %{assigns: a} do
+      a =
+        Map.merge(a, %{
+          reviews: [],
+          can_review: false,
+          already_reviewed: false,
+          review_form_rating: 0,
+          review_form_title: "",
+          review_form_body: "",
+          review_submitting: false,
+          uploads: nil
+        })
+
+      out = pdp_html(a)
+      assert out =~ "review" or out =~ "Review"
+    end
+  end
+
   describe "registration & contract" do
     test "resolver resolves the akoma theme with Forest colours" do
       config = ThemeResolver.resolve(%{"theme" => "akoma"})
