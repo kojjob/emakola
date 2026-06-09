@@ -16,6 +16,7 @@ defmodule Emakola.Themes.ProductDetailVariantsTest do
   alias Emakola.Factory
 
   @themes [
+    {Emakola.Themes.Spotlight, "spotlight"},
     {Emakola.Themes.Pharmacy, "pharmacy"},
     {Emakola.Themes.Beauty, "beauty"},
     {Emakola.Themes.HomeLiving, "home_living"},

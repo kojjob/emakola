@@ -103,4 +103,106 @@ defmodule Emakola.Themes.SpotlightTest do
       assert Emakola.Themes.Spotlight.Shared.section_enabled?(theme, :testimonials)
     end
   end
+
+  describe "ProductDetail" do
+    setup do
+      store = %{
+        slug: "demo",
+        name: "Demo Store",
+        description: nil,
+        currency: "GHS",
+        whatsapp_number: "+233201234567"
+      }
+
+      theme = ThemeResolver.resolve(%{"theme" => "spotlight"})
+
+      ot = %{
+        id: "ot1",
+        name: "Taste",
+        option_values: [%{id: "ov_b", value: "Blueberry"}, %{id: "ov_m", value: "Mint"}]
+      }
+
+      product = %{
+        title: "Lively Drink",
+        slug: "lively",
+        description: "A sparkling drink.",
+        images: [],
+        min_price: 9900,
+        avg_rating: 4.8,
+        review_count: 18,
+        share_count: 0
+      }
+
+      variant = %{price: 9900, compare_at_price: nil, stock_quantity: 12}
+
+      assigns = %{
+        __changed__: nil,
+        store: store,
+        theme: theme,
+        product: product,
+        related_products: [],
+        categories: [],
+        cart_count: 0,
+        selected_variant: variant,
+        option_types: [ot],
+        selected_options: %{"ot1" => "ov_b"},
+        quantity: 1,
+        current_image_index: 0
+      }
+
+      %{assigns: assigns}
+    end
+
+    defp spdp(assigns),
+      do:
+        Emakola.Themes.Spotlight.ProductDetail.render(assigns)
+        |> Phoenix.HTML.Safe.to_iodata()
+        |> IO.iodata_to_binary()
+
+    test "renders title, price, CTAs, taste pills, sections", %{assigns: a} do
+      out = spdp(a)
+      assert out =~ "Lively Drink"
+      assert out =~ "GH₵ 99"
+      assert out =~ "Add to cart"
+      assert out =~ "https://wa.me/233201234567"
+      assert out =~ ~s(phx-click="select_option")
+      assert out =~ ~s(phx-value-value="ov_b")
+      assert out =~ "Blueberry"
+      assert out =~ "Mint"
+    end
+
+    test "renders ingredients and benefits content", %{assigns: a} do
+      out = spdp(a)
+      # from theme.trust
+      assert out =~ "Radical transparency"
+      assert out =~ hd(Emakola.Themes.Spotlight.ingredients()).name
+    end
+
+    test "no raise when review assigns absent (variants-test shape)", %{assigns: a} do
+      assert is_binary(spdp(a))
+    end
+
+    test "renders reviews block when review assigns present", %{assigns: a} do
+      a =
+        Map.merge(a, %{
+          reviews: [],
+          can_review: false,
+          already_reviewed: false,
+          review_form_rating: 0,
+          review_form_title: "",
+          review_form_body: "",
+          review_submitting: false,
+          uploads: nil
+        })
+
+      assert spdp(a) =~ "review" or spdp(a) =~ "Review"
+    end
+
+    test "handles Decimal avg_rating", %{assigns: a} do
+      a = put_in(a, [:product, :avg_rating], Decimal.new("4.8"))
+      out = spdp(a)
+      assert out =~ "4.8"
+      assert out =~ "★"
+    end
+  end
 end
