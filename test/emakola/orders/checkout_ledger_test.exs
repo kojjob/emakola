@@ -69,4 +69,53 @@ defmodule Emakola.Orders.CheckoutLedgerTest do
     # No ledger entry references the merchant (nil supplier) group
     refute Enum.any?(all_entries, fn e -> e.fulfillment_id == by_supplier[nil] end)
   end
+
+  test "creates no ledger entry for a supplier whose items have nil cost_price", %{
+    store: store,
+    product: product
+  } do
+    no_cost_supplier = create_supplier!(store)
+    priced_supplier = create_supplier!(store)
+
+    no_cost_drop =
+      create_variant!(product, store,
+        price: 10_000,
+        sku: "L-NOCOST",
+        supplier_id: no_cost_supplier.id,
+        cost_price: nil
+      )
+
+    priced_drop =
+      create_variant!(product, store,
+        price: 8_000,
+        sku: "L-PRICED",
+        supplier_id: priced_supplier.id,
+        cost_price: 500
+      )
+
+    items = [
+      %{variant_id: no_cost_drop.id, quantity: 2},
+      %{variant_id: priced_drop.id, quantity: 1}
+    ]
+
+    assert {:ok, order} = Emakola.Orders.CheckoutService.checkout!(store.id, items, [])
+
+    # The supplier fulfillment is still created for the no-cost supplier...
+    fulfillments = Emakola.Orders.list_fulfillments_by_order!(order.id, authorize?: false)
+    assert Enum.any?(fulfillments, fn f -> f.supplier_id == no_cost_supplier.id end)
+
+    # ...but no ledger entry exists for it.
+    {:ok, no_cost_entries} =
+      Emakola.Suppliers.list_ledger_entries_by_supplier(no_cost_supplier.id)
+
+    assert no_cost_entries == []
+
+    # The priced supplier in the same cart still gets its entry.
+    {:ok, priced_entries} =
+      Emakola.Suppliers.list_ledger_entries_by_supplier(priced_supplier.id)
+
+    assert [priced_entry] = priced_entries
+    assert priced_entry.amount_owed == 500
+    assert priced_entry.status == :owed
+  end
 end

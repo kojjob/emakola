@@ -37,6 +37,31 @@ defmodule Emakola.Orders.OrderMarginTest do
     assert loaded.margin == 11_400
   end
 
+  test "margin counts full unit_price for a line whose cost_price is nil", %{
+    store: store,
+    product: product
+  } do
+    supplier = create_supplier!(store)
+
+    # Supplier variant with no recorded cost — exercises the (cost_price || 0)
+    # branch: the whole unit_price counts toward margin.
+    no_cost =
+      create_variant!(product, store,
+        price: 4_000,
+        sku: "M-NOCOST",
+        supplier_id: supplier.id,
+        cost_price: nil
+      )
+
+    items = [%{variant_id: no_cost.id, quantity: 3}]
+
+    assert {:ok, order} = Emakola.Orders.CheckoutService.checkout!(store.id, items, [])
+
+    loaded = Ash.load!(order, :margin, authorize?: false)
+    # (4000 - 0) * 3 = 12000
+    assert loaded.margin == 12_000
+  end
+
   test "margin is zero for an order with no line items", %{store: store} do
     order = create_order!(store)
     loaded = Ash.load!(order, :margin, authorize?: false)

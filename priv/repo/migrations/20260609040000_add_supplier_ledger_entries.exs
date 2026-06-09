@@ -38,5 +38,12 @@ defmodule Emakola.Repo.Migrations.AddSupplierLedgerEntries do
 
     create index(:supplier_ledger_entries, [:supplier_id])
     create index(:supplier_ledger_entries, [:store_id])
+
+    # Partial index backing the `outstanding_balance` aggregate, which sums
+    # amount_owed where supplier_id = $1 AND status = 'owed'.
+    create index(:supplier_ledger_entries, [:supplier_id],
+             where: "status = 'owed'",
+             name: "supplier_ledger_entries_outstanding_balance_index"
+           )
   end
 end

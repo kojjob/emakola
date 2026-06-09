@@ -413,15 +413,19 @@ defmodule Emakola.Orders.CheckoutService do
             acc + cost * qty
           end)
 
-        Emakola.Suppliers.SupplierLedgerEntry
-        |> Ash.Changeset.for_create(:create, %{
-          store_id: store_id,
-          supplier_id: supplier_id,
-          fulfillment_id: Map.fetch!(fulfillment_ids, supplier_id),
-          amount_owed: amount_owed,
-          status: :owed
-        })
-        |> Ash.create!(authorize?: false)
+        # Skip suppliers with no recorded cost — a zero-amount entry would be
+        # a misleading "owed" record. The fulfillment itself still exists.
+        if amount_owed > 0 do
+          Emakola.Suppliers.SupplierLedgerEntry
+          |> Ash.Changeset.for_create(:create, %{
+            store_id: store_id,
+            supplier_id: supplier_id,
+            fulfillment_id: Map.fetch!(fulfillment_ids, supplier_id),
+            amount_owed: amount_owed,
+            status: :owed
+          })
+          |> Ash.create!(authorize?: false)
+        end
     end)
   end
 

@@ -124,6 +124,8 @@ defmodule Emakola.Suppliers.SupplierLedgerEntryTest do
 
       assert length(entries) == 2
       assert Enum.all?(entries, &(&1.supplier_id == supplier.id))
+      # Declared sort is inserted_at: :desc — newest (the 2000 entry) first.
+      assert List.first(entries).amount_owed == 2000
     end
   end
 end
