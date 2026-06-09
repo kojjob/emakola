@@ -267,6 +267,7 @@ defmodule Emakola.Orders.Order do
       change(
         after_action(fn _changeset, order, _context ->
           dispatch_notification(order, :order_confirmed)
+          Emakola.Notifications.Dispatcher.dispatch_supplier_fulfillments(order)
           {:ok, order}
         end)
       )
