@@ -1,10 +1,10 @@
 # Akoma Theme — Design Spec
 
 **Date:** 2026-06-09
-**Status:** Awaiting approval
+**Status:** Approved — ready for implementation planning
 **Goal:** Add a new storefront theme, **Akoma**, whose centerpiece is a beautiful, modern single-item (product detail) page modeled on Shopify's *Be Yours* theme, adapted for Emakola (GHS pricing, WhatsApp ordering, mobile-first / low-bandwidth). The theme is a full, registerable, selectable theme with home, product list, and product detail pages.
 
-> **Name note:** "Akoma" (an Adinkra symbol — the heart; patience, goodwill) is a placeholder identity. Trivially renameable before implementation — say the word.
+> **Name:** "Akoma" (an Adinkra symbol — the heart; patience, goodwill). **Confirmed.** Module `Emakola.Themes.Akoma`, theme key `"akoma"`.
 
 ---
 
@@ -44,9 +44,9 @@ Neutral off-white base + near-black text + a deep-green accent. Primary CTAs sta
 
 `Emakola.Catalog.OptionValue` stores only `value` (string) + `position`; **there is no color/hex attribute**, and no existing theme renders true color swatches. Therefore:
 
-- **Decision (default):** Render **all** option types (Size, Color, Material, …) as **pill buttons**. Selected = forest outline/fill; unavailable/out-of-stock = struck-through & disabled. Universal, clean, matches Be Yours' size-pill treatment.
+- **Decision (confirmed):** Render **all** option types (Size, Color, Material, …) as **pill buttons**. Selected = forest outline/fill; unavailable/out-of-stock = struck-through & disabled. Universal, clean, matches Be Yours' size-pill treatment.
 - The circular color swatches shown in the mockup were illustrative.
-- **Optional enhancement (not in default scope):** a small name→hex heuristic (e.g. "Black", "Sand", "Forest" → swatch circles) for option types named "Colour/Color". Fragile and partial; only worth it if you want it. *Flag for user.*
+- Name→hex swatch heuristic was considered and **declined** — pills ship for all option types.
 
 ---
 
@@ -164,8 +164,9 @@ Target ≥90% coverage on new modules (per project rule). All pure-template, so 
 
 ---
 
-## 10. Open questions for the user
+## 10. Resolved decisions
 
-1. **Theme name** — keep "Akoma", or pick another?
-2. **Color swatches** — pills-for-everything (default), or add the name→hex heuristic for colour options?
-3. **Scope reminder** — "Full theme" confirmed: PDP (full detail) + Home + Product list, all in this style.
+1. **Theme name** — **Akoma** (`Emakola.Themes.Akoma`, key `"akoma"`).
+2. **Option selectors** — **pills for all option types**; no colour-swatch heuristic.
+3. **Scope** — **full theme**: PDP (full detail) + Home + Product list, all in this style.
+4. **Palette** — **Forest** (off-white + near-black + deep-green accent).
