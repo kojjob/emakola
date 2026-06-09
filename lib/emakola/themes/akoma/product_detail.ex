@@ -130,10 +130,6 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
               </span>
             </div>
 
-            <p :if={@product.description} class="text-sm text-[#6B7280] leading-relaxed mt-4">
-              {@product.description}
-            </p>
-
             <%!-- Option pills --%>
             <div :if={@option_types != []} class="space-y-5 mt-6">
               <div :for={option_type <- @option_types}>
@@ -225,7 +221,7 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
                   phx-click={JS.toggle(to: "#akoma-acc-desc")}
                   class="w-full flex items-center justify-between py-3.5 text-sm text-[#1A1A1A]"
                 >
-                  Description <span>+</span>
+                  Description <span>−</span>
                 </button>
                 <div id="akoma-acc-desc" class="pb-4 text-sm text-[#6B7280] leading-relaxed">
                   {@product.description || "A well-made product, fairly priced."}
@@ -357,6 +353,7 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
 
   defp format_rating(product) do
     case Map.get(product, :avg_rating) do
+      %Decimal{} = r -> r |> Decimal.round(1) |> Decimal.to_string()
       r when is_float(r) -> :erlang.float_to_binary(r, decimals: 1)
       r when is_integer(r) -> "#{r}.0"
       _ -> "—"
@@ -366,6 +363,7 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
   defp stars(product) do
     n =
       case Map.get(product, :avg_rating) do
+        %Decimal{} = r -> r |> Decimal.to_float() |> round()
         r when is_number(r) -> round(r)
         _ -> 0
       end

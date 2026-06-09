@@ -171,6 +171,14 @@ defmodule Emakola.Themes.AkomaTest do
       assert out =~ "Save"
     end
 
+    test "renders a Decimal avg_rating correctly (Ash aggregate type)", %{assigns: a} do
+      product = Map.put(a.product, :avg_rating, Decimal.new("4.5"))
+      out = pdp_html(Map.put(a, :product, product))
+      assert out =~ "4.5"
+      refute out =~ "— ·"
+      assert out =~ "★"
+    end
+
     test "renders without raising when review assigns are absent (variants-test shape)", %{
       assigns: a
     } do
