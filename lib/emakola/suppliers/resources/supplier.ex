@@ -68,6 +68,15 @@ defmodule Emakola.Suppliers.Supplier do
       define_attribute?(false)
       source_attribute(:store_id)
     end
+
+    has_many :supplier_ledger_entries, Emakola.Suppliers.SupplierLedgerEntry
+  end
+
+  aggregates do
+    sum :outstanding_balance, :supplier_ledger_entries, :amount_owed do
+      filter(expr(status == :owed))
+      default(0)
+    end
   end
 
   policies do

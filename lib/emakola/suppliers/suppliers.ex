@@ -7,5 +7,12 @@ defmodule Emakola.Suppliers do
       define(:create_supplier, action: :create)
       define(:list_suppliers_by_store, action: :list_by_store, args: [:store_id])
     end
+
+    resource Emakola.Suppliers.SupplierLedgerEntry do
+      define(:list_ledger_entries_by_supplier,
+        action: :list_by_supplier,
+        args: [:supplier_id]
+      )
+    end
   end
 end

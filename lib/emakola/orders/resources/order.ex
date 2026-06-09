@@ -164,6 +164,14 @@ defmodule Emakola.Orders.Order do
       :atom,
       Emakola.Orders.Calculations.FulfillmentStatus
     )
+
+    # Additive: gross margin (minor units) summed from line items, treating
+    # nil cost_price (own-stock) as zero cost. Zero for orders with no items.
+    calculate(
+      :margin,
+      :integer,
+      Emakola.Orders.Calculations.Margin
+    )
   end
 
   identities do

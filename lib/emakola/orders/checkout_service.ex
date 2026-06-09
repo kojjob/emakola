@@ -221,6 +221,9 @@ defmodule Emakola.Orders.CheckoutService do
           line_item
         end)
 
+      # 4a. Record what we owe each supplier for their dropship fulfillment.
+      create_ledger_entries(store_id, items, variants, fulfillment_ids)
+
       # 4b. Check for low-stock threshold crossings and enqueue alerts
       check_low_stock_alerts(store_id, items, variants)
 
@@ -388,6 +391,37 @@ defmodule Emakola.Orders.CheckoutService do
         |> Ash.create!(authorize?: false)
 
       {supplier_id, fulfillment.id}
+    end)
+  end
+
+  # -- Supplier payout ledger ---------------------------------------------
+
+  # Creates one SupplierLedgerEntry per non-nil supplier, recording the total
+  # supplier cost owed for that supplier's fulfillment. The nil-supplier
+  # merchant group is skipped (nothing is owed to an external supplier).
+  defp create_ledger_entries(store_id, items, variants, fulfillment_ids) do
+    items
+    |> Enum.group_by(fn %{variant_id: vid} -> Map.fetch!(variants, vid).supplier_id end)
+    |> Enum.each(fn
+      {nil, _group_items} ->
+        :ok
+
+      {supplier_id, group_items} ->
+        amount_owed =
+          Enum.reduce(group_items, 0, fn %{variant_id: vid, quantity: qty}, acc ->
+            cost = Map.fetch!(variants, vid).cost_price || 0
+            acc + cost * qty
+          end)
+
+        Emakola.Suppliers.SupplierLedgerEntry
+        |> Ash.Changeset.for_create(:create, %{
+          store_id: store_id,
+          supplier_id: supplier_id,
+          fulfillment_id: Map.fetch!(fulfillment_ids, supplier_id),
+          amount_owed: amount_owed,
+          status: :owed
+        })
+        |> Ash.create!(authorize?: false)
     end)
   end
 
