@@ -89,6 +89,7 @@ defmodule Emakola.Themes.Spotlight.Home do
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
           <div
             :for={item <- Map.get(@trust, :items, [])}
+            data-reveal
             class="rounded-2xl bg-white border border-[#ECE7DE] p-6 text-center"
           >
             <span class="material-symbols-outlined text-[#7C3AED] text-3xl">
@@ -107,7 +108,7 @@ defmodule Emakola.Themes.Spotlight.Home do
             {length(@ingredients)} reasons it works
           </h2>
           <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-8">
-            <div :for={ing <- @ingredients} class="border-t border-[#ECE7DE] pt-4">
+            <div :for={ing <- @ingredients} data-reveal class="border-t border-[#ECE7DE] pt-4">
               <h3 class="spot-heading text-lg font-semibold">{ing.name}</h3>
               <p class="text-sm text-[#6B675F] mt-1 leading-relaxed">{ing.description}</p>
             </div>
@@ -128,6 +129,7 @@ defmodule Emakola.Themes.Spotlight.Home do
         <div class="grid md:grid-cols-3 gap-6">
           <figure
             :for={t <- Map.get(@testimonials, :items, [])}
+            data-reveal
             class="rounded-2xl bg-white border border-[#ECE7DE] p-6"
           >
             <div class="text-[#7C3AED]">★★★★★</div>
