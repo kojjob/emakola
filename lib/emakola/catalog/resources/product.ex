@@ -55,6 +55,24 @@ defmodule Emakola.Catalog.Product do
       public?(true)
     end
 
+    attribute :product_type, :atom do
+      constraints(
+        one_of: [
+          :physical,
+          :digital_download,
+          :license_key,
+          :streaming,
+          :course,
+          :auction,
+          :print_on_demand
+        ]
+      )
+
+      default(:physical)
+      allow_nil?(false)
+      public?(true)
+    end
+
     attribute :seo_title, :string do
       public?(true)
       constraints(max_length: 255)
@@ -102,6 +120,7 @@ defmodule Emakola.Catalog.Product do
     has_many :variants, Emakola.Catalog.Variant
     has_many :images, Emakola.Catalog.Image
     has_many :reviews, Emakola.Catalog.Review
+    has_many :digital_files, Emakola.Catalog.DigitalFile
   end
 
   aggregates do
@@ -143,18 +162,38 @@ defmodule Emakola.Catalog.Product do
     defaults([:read, :destroy])
 
     create :create do
-      accept([:title, :description, :category_id, :tags, :seo_title, :seo_description, :store_id])
+      accept([
+        :title,
+        :description,
+        :category_id,
+        :tags,
+        :seo_title,
+        :seo_description,
+        :store_id,
+        :product_type
+      ])
 
       validate({Emakola.Catalog.Validations.NotBlank, attribute: :title})
+      validate(Emakola.Catalog.Validations.ProductTypeAcceptedByStore)
       change({Emakola.Catalog.Changes.GenerateSlug, from: :title})
       change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :upsert})
     end
 
     update :update do
       require_atomic?(false)
-      accept([:title, :description, :category_id, :tags, :seo_title, :seo_description])
+
+      accept([
+        :title,
+        :description,
+        :category_id,
+        :tags,
+        :seo_title,
+        :seo_description,
+        :product_type
+      ])
 
       validate({Emakola.Catalog.Validations.NotBlank, attribute: :title})
+      validate(Emakola.Catalog.Validations.ProductTypeAcceptedByStore)
       change({Emakola.Catalog.Changes.GenerateSlug, from: :title})
       change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :upsert})
     end

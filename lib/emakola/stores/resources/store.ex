@@ -157,6 +157,26 @@ defmodule Emakola.Stores.Store do
       constraints(max_length: 140)
     end
 
+    attribute :enabled_product_types, {:array, :atom} do
+      public?(true)
+      allow_nil?(false)
+      default([:physical])
+
+      constraints(
+        items: [
+          one_of: [
+            :physical,
+            :digital_download,
+            :license_key,
+            :streaming,
+            :course,
+            :auction,
+            :print_on_demand
+          ]
+        ]
+      )
+    end
+
     timestamps()
   end
 
@@ -228,7 +248,8 @@ defmodule Emakola.Stores.Store do
         :x_url,
         :whatsapp_catalog_id,
         :active,
-        :theme_config
+        :theme_config,
+        :enabled_product_types
       ])
     end
 
@@ -320,5 +341,18 @@ defmodule Emakola.Stores.Store do
       accept([])
       change(atomic_update(:view_count, expr(view_count + 1)))
     end
+  end
+
+  @doc """
+  Returns `true` if the store has opted into selling `product_type` —
+  i.e. the type is present in `:enabled_product_types`. Use this to gate
+  the merchant admin's type picker, the storefront's checkout flow, and
+  any feature flag that branches on product type.
+  """
+  @spec accepts?(%{:enabled_product_types => [atom()], optional(any()) => any()}, atom()) ::
+          boolean()
+  def accepts?(%{enabled_product_types: types}, product_type)
+      when is_list(types) and is_atom(product_type) do
+    product_type in types
   end
 end

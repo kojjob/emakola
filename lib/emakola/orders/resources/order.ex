@@ -39,6 +39,28 @@ defmodule Emakola.Orders.Order do
     end
   end
 
+  # Enqueues `Emakola.Workers.FulfillmentWorker` to run the dispatcher on
+  # the order's line items. Like dispatch_notification/2 this runs inside
+  # the Ash transaction via after_action; a raise here would roll back
+  # the successful :confirm, so we swallow enqueue failures with a log.
+  @doc false
+  def enqueue_fulfillment(order) do
+    case %{order_id: order.id}
+         |> Emakola.Workers.FulfillmentWorker.new()
+         |> Oban.insert() do
+      {:ok, _job} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.error(
+          "[orders] fulfillment enqueue failed: #{inspect(reason)}",
+          order_id: order.id
+        )
+
+        :ok
+    end
+  end
+
   multitenancy do
     strategy(:attribute)
     attribute(:store_id)
