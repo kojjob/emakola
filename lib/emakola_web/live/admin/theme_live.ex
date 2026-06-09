@@ -54,7 +54,8 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       name: "Heritage",
       description: "Artisan crafts & heirloom",
       icon: "auto_stories"
-    }
+    },
+    %{id: "spotlight", name: "Spotlight", description: "Single-product showcase", icon: "star"}
   ]
 
   @color_presets [
