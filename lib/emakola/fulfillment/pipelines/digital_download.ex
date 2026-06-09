@@ -42,7 +42,8 @@ defmodule Emakola.Fulfillment.Pipelines.DigitalDownload do
          {:ok, product_id} <- product_id_for(line_item),
          files when is_list(files) <- list_paid_files(line_item.store_id, product_id),
          customer_id <- customer_id_for(line_item) do
-      grants = Enum.map(files, &issue_or_reuse_grant(line_item, &1, customer_id))
+      existing_grants = load_existing_grants(line_item.id)
+      grants = Enum.map(files, &issue_or_reuse_grant(line_item, &1, customer_id, existing_grants))
       {:ok, %{grants: grants}}
     end
   end
@@ -75,17 +76,20 @@ defmodule Emakola.Fulfillment.Pipelines.DigitalDownload do
     end
   end
 
-  defp issue_or_reuse_grant(line_item, file, customer_id) do
-    case existing_grant(line_item.id, file.id) do
+  # Loads all existing grants for a line_item in one query, keyed by digital_file_id,
+  # so the subsequent Enum.map/2 over files needs zero extra round-trips.
+  defp load_existing_grants(line_item_id) do
+    DownloadGrant
+    |> Ash.Query.filter(line_item_id == ^line_item_id)
+    |> Ash.read!(authorize?: false)
+    |> Map.new(&{&1.digital_file_id, &1})
+  end
+
+  defp issue_or_reuse_grant(line_item, file, customer_id, existing_grants) do
+    case Map.get(existing_grants, file.id) do
       nil -> issue_grant!(line_item, file, customer_id)
       grant -> grant
     end
-  end
-
-  defp existing_grant(line_item_id, digital_file_id) do
-    DownloadGrant
-    |> Ash.Query.filter(line_item_id == ^line_item_id and digital_file_id == ^digital_file_id)
-    |> Ash.read_one!(authorize?: false)
   end
 
   defp issue_grant!(line_item, file, customer_id) do

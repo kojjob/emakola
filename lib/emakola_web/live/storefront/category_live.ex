@@ -24,6 +24,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
 
           category ->
             products = load_category_products(store.id, category.id)
+            product_count = count_category_products(store.id, category.id)
             parent = if category.parent_id, do: load_category_by_id(category.parent_id), else: nil
             categories = Emakola.Catalog.list_root_categories!(store.id)
             cart_session_id = session["cart_session_id"]
@@ -42,7 +43,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
                cart_session_id: cart_session_id,
                cart_count: cart_count,
                page_title: "#{category.name} - #{store.name}",
-               meta_description: category_meta_description(category, store, products),
+               meta_description: category_meta_description(category, store, product_count),
                og_image: first_product_image(products),
                og_type: "website",
                og_site_name: store.name
@@ -137,8 +138,11 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   end
 
   defp load_category_products(store_id, category_id) do
-    Emakola.Catalog.list_products_by_category!(category_id, store_id)
-    |> Enum.filter(&(&1.status == :active))
+    Emakola.Catalog.Product
+    |> Ash.Query.for_read(:list_by_category, %{category_id: category_id, store_id: store_id})
+    |> Ash.Query.filter(status == :active)
+    |> Ash.Query.limit(60)
+    |> Ash.read!(authorize?: false)
   end
 
   defp sort_products(products, :newest) do
@@ -161,9 +165,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
 
   # -- SEO --
 
-  defp category_meta_description(category, store, products) do
-    count = length(products)
-
+  defp category_meta_description(category, store, count) do
     raw =
       Map.get(category, :description) ||
         "Shop #{category.name} at #{store.name}. #{count} products available. Fast delivery, mobile money accepted."
@@ -172,6 +174,19 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
     |> to_string()
     |> String.trim()
     |> truncate_at_word(155)
+  end
+
+  defp count_category_products(store_id, category_id) do
+    result =
+      Emakola.Catalog.Product
+      |> Ash.Query.for_read(:list_by_category, %{category_id: category_id, store_id: store_id})
+      |> Ash.Query.filter(status == :active)
+      |> Ash.count(authorize?: false)
+
+    case result do
+      {:ok, n} -> n
+      _ -> 0
+    end
   end
 
   defp first_product_image([first | _]) when is_map(first) do

@@ -61,12 +61,13 @@ defmodule EmakolaWeb.Storefront.StoreLive do
        |> assign(:searching, false)}
     else
       results = search_overlay_products(socket.assigns.store.id, query)
+      total = count_search_results(socket.assigns.store.id, query)
 
       {:noreply,
        socket
        |> assign(:search_overlay_query, query)
        |> assign(:search_overlay_results, Enum.take(results, 6))
-       |> assign(:search_overlay_total, length(results))
+       |> assign(:search_overlay_total, total)
        |> assign(:searching, false)}
     end
   end
@@ -186,8 +187,24 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   end
 
   defp search_overlay_products(store_id, query) do
-    Emakola.Catalog.search_products!(query, store_id)
-    |> Enum.filter(&(&1.status == :active))
+    Emakola.Catalog.Product
+    |> Ash.Query.for_read(:search, %{query: query, store_id: store_id})
+    |> Ash.Query.filter(status == :active)
+    |> Ash.Query.limit(10)
+    |> Ash.read!(authorize?: false)
+  end
+
+  defp count_search_results(store_id, query) do
+    result =
+      Emakola.Catalog.Product
+      |> Ash.Query.for_read(:search, %{query: query, store_id: store_id})
+      |> Ash.Query.filter(status == :active)
+      |> Ash.count(authorize?: false)
+
+    case result do
+      {:ok, n} -> n
+      _ -> 0
+    end
   end
 
   # -- SEO --
