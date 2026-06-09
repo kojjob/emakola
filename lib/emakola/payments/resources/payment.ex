@@ -172,6 +172,12 @@ defmodule Emakola.Payments.Payment do
       require_atomic?(false)
       accept([:refunded_amount])
 
+      validate attribute_equals(:status, :success) do
+        message("can only refund a successful payment")
+      end
+
+      validate({Emakola.Payments.Validations.RefundAmountNotExceeded, []})
+
       change(set_attribute(:status, :refunded))
     end
 

@@ -92,23 +92,25 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
     reference = get_in(data, ["transaction", "reference"])
     refund_amount = data["amount"]
 
-    with {:ok, payment} <- find_payment(reference) do
-      if payment.status == :refunded do
-        :ok
-      else
-        updated =
-          payment
-          |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: refund_amount})
-          |> Ash.update!(authorize?: false)
+    with {:ok, payment} <- find_payment(reference),
+         false <- payment.status == :refunded,
+         {:ok, updated} <-
+           payment
+           |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: refund_amount})
+           |> Ash.update(authorize?: false) do
+      Phoenix.PubSub.broadcast(
+        Emakola.PubSub,
+        "payment:#{reference}",
+        {:payment_refunded, reference, updated}
+      )
 
-        Phoenix.PubSub.broadcast(
-          Emakola.PubSub,
-          "payment:#{reference}",
-          {:payment_refunded, reference, updated}
-        )
-
-        :ok
-      end
+      :ok
+    else
+      # Already refunded — idempotent success
+      true -> :ok
+      # Payment not found or not in a refundable state (e.g. :failed, :pending)
+      {:error, %Ash.Error.Invalid{}} -> :ok
+      {:error, reason} -> {:error, reason}
     end
   end
 
