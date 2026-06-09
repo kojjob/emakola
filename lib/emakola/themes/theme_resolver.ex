@@ -10,6 +10,7 @@ defmodule Emakola.Themes.ThemeResolver do
   """
 
   @theme_modules %{
+    "akoma" => Emakola.Themes.Akoma,
     "atelier" => Emakola.Themes.Atelier,
     "beauty" => Emakola.Themes.Beauty,
     "bold" => Emakola.Themes.Bold,

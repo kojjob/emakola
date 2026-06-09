@@ -13,6 +13,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
   # theme module's defaults() so the picker stays in sync with what
   # `select_theme` actually applies — no hardcoded color duplication.
   @theme_metadata [
+    %{
+      id: "akoma",
+      name: "Akoma",
+      description: "Clean & modern (Be Yours)",
+      icon: "deployed_code"
+    },
     %{id: "market", name: "Market", description: "Simple & clean", icon: "storefront"},
     %{id: "atelier", name: "Atelier", description: "Premium & elegant", icon: "diamond"},
     %{id: "vibrant", name: "Vibrant", description: "Bold & colorful", icon: "palette"},
