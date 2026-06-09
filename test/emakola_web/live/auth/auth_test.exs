@@ -89,7 +89,7 @@ defmodule EmakolaWeb.Auth.AuthTest do
     end
 
     test "registration with duplicate email does not redirect", %{conn: conn} do
-      existing = create_user!(email: "existing@example.com")
+      existing = create_merchant!(email: "existing@example.com")
 
       {:ok, view, _html} = live(conn, "/auth/register")
 
@@ -107,31 +107,42 @@ defmodule EmakolaWeb.Auth.AuthTest do
       assert render(view) =~ "Create your account"
     end
 
-    test "registration does not create organisation (deferred to onboarding)", %{conn: conn} do
+    test "registration creates a merchant with no store yet (deferred to onboarding)", %{
+      conn: conn
+    } do
       {:ok, view, _html} = live(conn, "/auth/register")
 
       view
       |> form("form",
         user: %{
-          name: "Org Creator",
-          email: "orgcreator@example.com",
+          name: "Store Creator",
+          email: "storecreator@example.com",
           password: "Password123!"
         }
       )
       |> render_submit()
 
+      merchants =
+        Emakola.Accounts.Merchant
+        |> Ash.read!(authorize?: false)
+        |> Enum.filter(&(to_string(&1.email) == "storecreator@example.com"))
+
+      assert length(merchants) == 1
+      merchant = hd(merchants)
+
+      # No legacy User is created for a merchant registration
       users =
         Emakola.Accounts.User
         |> Ash.read!(authorize?: false)
-        |> Enum.filter(&(to_string(&1.email) == "orgcreator@example.com"))
+        |> Enum.filter(&(to_string(&1.email) == "storecreator@example.com"))
 
-      assert length(users) == 1
-      user = hd(users)
+      assert users == []
 
+      # Store membership is deferred to onboarding
       memberships =
-        Emakola.Accounts.Membership
+        Emakola.Accounts.StoreMembership
         |> Ash.read!(authorize?: false)
-        |> Enum.filter(&(&1.user_id == user.id))
+        |> Enum.filter(&(&1.merchant_id == merchant.id))
 
       assert memberships == []
     end
