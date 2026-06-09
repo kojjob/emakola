@@ -50,6 +50,29 @@ defmodule EmakolaWeb.Admin.SupplierLiveTest do
       assert html =~ "Tema Imports"
     end
 
+    test "can edit an existing supplier", %{conn: conn, store: store} do
+      supplier = Factory.create_supplier!(store, name: "Old Name", contact_phone: "+233200000000")
+
+      {:ok, view, _html} = live(conn, ~p"/admin/settings/suppliers")
+
+      view
+      |> element("button[phx-click=\"edit_supplier\"][phx-value-id=\"#{supplier.id}\"]")
+      |> render_click()
+
+      html =
+        view
+        |> form("#supplier-form", %{
+          supplier: %{name: "New Name", contact_phone: "+233244444444"}
+        })
+        |> render_submit()
+
+      assert html =~ "New Name"
+
+      reloaded = Ash.reload!(supplier, authorize?: false)
+      assert reloaded.name == "New Name"
+      assert reloaded.contact_phone == "+233244444444"
+    end
+
     test "toggles supplier active status", %{conn: conn, store: store} do
       supplier = Factory.create_supplier!(store, name: "Toggle Co", active: true)
 

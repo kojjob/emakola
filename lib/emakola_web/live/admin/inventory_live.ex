@@ -148,30 +148,43 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   @impl true
   def handle_event("save_dropship", %{"variant" => params}, socket) do
     variant = socket.assigns.dropship_variant
+    supplier_id = blank_to_nil(params["supplier_id"])
 
-    if variant do
-      attrs = %{
-        supplier_id: blank_to_nil(params["supplier_id"]),
-        cost_price: parse_cost(params["cost_price"]),
-        available: params["available"] == "true"
-      }
+    cond do
+      is_nil(variant) ->
+        {:noreply, put_flash(socket, :error, "Variant not found")}
 
-      case Ash.Changeset.for_update(variant, :update, attrs)
-           |> Ash.update(authorize?: false) do
-        {:ok, _updated} ->
-          {:noreply,
-           socket
-           |> assign(dropship_variant: nil)
-           |> load_variants()
-           |> put_flash(:info, "Variant updated")}
+      not valid_supplier?(socket.assigns.suppliers, supplier_id) ->
+        {:noreply, put_flash(socket, :error, "Invalid supplier")}
 
-        {:error, _error} ->
-          {:noreply, put_flash(socket, :error, "Could not update variant")}
-      end
-    else
-      {:noreply, put_flash(socket, :error, "Variant not found")}
+      true ->
+        save_dropship_variant(socket, variant, supplier_id, params)
     end
   end
+
+  defp save_dropship_variant(socket, variant, supplier_id, params) do
+    attrs = %{
+      supplier_id: supplier_id,
+      cost_price: parse_cost(params["cost_price"]),
+      available: params["available"] == "true"
+    }
+
+    case Ash.Changeset.for_update(variant, :update, attrs)
+         |> Ash.update(authorize?: false) do
+      {:ok, _updated} ->
+        {:noreply,
+         socket
+         |> assign(dropship_variant: nil)
+         |> load_variants()
+         |> put_flash(:info, "Variant updated")}
+
+      {:error, _error} ->
+        {:noreply, put_flash(socket, :error, "Could not update variant")}
+    end
+  end
+
+  defp valid_supplier?(_suppliers, nil), do: true
+  defp valid_supplier?(suppliers, supplier_id), do: Enum.any?(suppliers, &(&1.id == supplier_id))
 
   @impl true
   def render(assigns) do
@@ -759,9 +772,15 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   end
 
   defp parse_cost(value) when is_binary(value) do
-    case Float.parse(String.trim(value)) do
-      {amount, _} -> round(amount * 100)
-      :error -> nil
+    case value |> String.trim() |> Decimal.parse() do
+      {%Decimal{} = amount, ""} ->
+        amount
+        |> Decimal.mult(100)
+        |> Decimal.round(0, :down)
+        |> Decimal.to_integer()
+
+      _ ->
+        nil
     end
   end
 

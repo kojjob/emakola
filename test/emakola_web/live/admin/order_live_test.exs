@@ -367,6 +367,37 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       )
     end
 
+    test "does not dispatch when fulfillment id belongs to another store", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+
+      # A second store with its own order, supplier and fulfillment.
+      other_store = Emakola.Factory.create_store!()
+      other_order = Emakola.Factory.create_order!(other_store)
+      other_supplier = Emakola.Factory.create_supplier!(other_store, name: "Foreign Supplier")
+
+      foreign_fulfillment =
+        Emakola.Factory.create_fulfillment!(other_order, other_store,
+          supplier_id: other_supplier.id,
+          status: :pending
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      # Crafted id from another store must be a no-op — no job enqueued, no error.
+      render_click(view, "send_supplier_fulfillment", %{"id" => foreign_fulfillment.id})
+
+      refute_enqueued(
+        worker: Emakola.Notifications.Workers.SupplierNotificationWorker,
+        args: %{"fulfillment_id" => foreign_fulfillment.id}
+      )
+
+      assert Process.alive?(view.pid)
+    end
+
     test "marking a fulfillment shipped updates its status", %{
       conn: conn,
       store: store,

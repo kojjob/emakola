@@ -94,15 +94,21 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
 
   @impl true
   def handle_event("send_supplier_fulfillment", %{"id" => id}, socket) do
-    case Emakola.Notifications.Dispatcher.dispatch_supplier_fulfillment(id) do
-      {:ok, _job} ->
-        {:noreply,
-         socket
-         |> load_fulfillments()
-         |> put_flash(:info, "Sent to supplier")}
+    case Enum.find(socket.assigns.fulfillments, &(&1.id == id)) do
+      nil ->
+        {:noreply, socket}
 
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Could not send to supplier")}
+      fulfillment ->
+        case Emakola.Notifications.Dispatcher.dispatch_supplier_fulfillment(fulfillment.id) do
+          {:ok, _job} ->
+            {:noreply,
+             socket
+             |> load_fulfillments()
+             |> put_flash(:info, "Sent to supplier")}
+
+          {:error, _} ->
+            {:noreply, put_flash(socket, :error, "Could not send to supplier")}
+        end
     end
   end
 
