@@ -41,7 +41,10 @@ defmodule Emakola.Orders.Calculations.FulfillmentStatus do
       true ->
         statuses
         |> Enum.reject(&(&1 == :cancelled))
-        |> Enum.min_by(&Enum.find_index(@progress, fn s -> s == &1 end))
+        |> Enum.min_by(fn status ->
+          Enum.find_index(@progress, &(&1 == status)) ||
+            raise "FulfillmentStatus: unexpected status #{inspect(status)} not in #{inspect(@progress)}"
+        end)
     end
   end
 end

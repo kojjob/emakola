@@ -119,7 +119,7 @@ defmodule Emakola.Orders.Fulfillment do
   end
 
   actions do
-    defaults([:read, :destroy])
+    defaults([:read])
 
     create :create do
       accept([:store_id, :order_id, :supplier_id, :status])

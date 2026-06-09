@@ -141,7 +141,7 @@ defmodule Emakola.Orders.LineItem do
       change(fn changeset, _context ->
         variant_id = Ash.Changeset.get_attribute(changeset, :variant_id)
 
-        case Ash.get(Emakola.Catalog.Variant, variant_id, load: [:product]) do
+        case Ash.get(Emakola.Catalog.Variant, variant_id, load: [:product], authorize?: false) do
           {:ok, variant} ->
             quantity = Ash.Changeset.get_attribute(changeset, :quantity)
             line_total = variant.price * (quantity || 0)

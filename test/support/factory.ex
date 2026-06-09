@@ -421,7 +421,6 @@ defmodule Emakola.Factory do
     default = %{
       order_id: order.id,
       store_id: store.id,
-      supplier_id: Map.get(attrs, :supplier_id),
       status: :pending
     }
 

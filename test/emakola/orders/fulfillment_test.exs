@@ -156,6 +156,44 @@ defmodule Emakola.Orders.FulfillmentTest do
                |> Ash.Changeset.for_update(:cancel, %{})
                |> Ash.update(authorize?: false)
     end
+
+    test "cancel rejects an already-cancelled fulfillment", %{store: store, order: order} do
+      cancelled =
+        create_fulfillment!(order, store)
+        |> Ash.Changeset.for_update(:cancel, %{})
+        |> Ash.update!(authorize?: false)
+
+      assert {:error, _} =
+               cancelled
+               |> Ash.Changeset.for_update(:cancel, %{})
+               |> Ash.update(authorize?: false)
+    end
+
+    test "mark_notified rejects a delivered fulfillment", %{store: store, order: order} do
+      delivered =
+        create_fulfillment!(order, store)
+        |> Ash.Changeset.for_update(:mark_shipped, %{})
+        |> Ash.update!(authorize?: false)
+        |> Ash.Changeset.for_update(:mark_delivered, %{})
+        |> Ash.update!(authorize?: false)
+
+      assert {:error, _} =
+               delivered
+               |> Ash.Changeset.for_update(:mark_notified, %{notified_via: :sms})
+               |> Ash.update(authorize?: false)
+    end
+
+    test "mark_notified rejects a cancelled fulfillment", %{store: store, order: order} do
+      cancelled =
+        create_fulfillment!(order, store)
+        |> Ash.Changeset.for_update(:cancel, %{})
+        |> Ash.update!(authorize?: false)
+
+      assert {:error, _} =
+               cancelled
+               |> Ash.Changeset.for_update(:mark_notified, %{notified_via: :sms})
+               |> Ash.update(authorize?: false)
+    end
   end
 
   describe "list_by_order" do

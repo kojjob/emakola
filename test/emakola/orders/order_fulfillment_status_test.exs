@@ -54,6 +54,18 @@ defmodule Emakola.Orders.OrderFulfillmentStatusTest do
     assert fulfillment_status(order) == :cancelled
   end
 
+  test "mixed notified + shipped → :notified (least progressed)", %{store: store, order: order} do
+    create_fulfillment!(order, store)
+    |> Ash.Changeset.for_update(:mark_notified, %{notified_via: :sms})
+    |> Ash.update!(authorize?: false)
+
+    create_fulfillment!(order, store)
+    |> Ash.Changeset.for_update(:mark_shipped, %{})
+    |> Ash.update!(authorize?: false)
+
+    assert fulfillment_status(order) == :notified
+  end
+
   test "ignores cancelled when computing least-progressed", %{store: store, order: order} do
     # One cancelled, one shipped → :shipped (cancelled ignored)
     create_fulfillment!(order, store)
