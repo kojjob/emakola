@@ -55,7 +55,7 @@ swap_size_mb = 256
       grace_period = "30s"
       interval = "15s"
       method = "GET"
-      path = "/health"
+      path = "/api/health"
       port = 4000
       timeout = "5s"
 

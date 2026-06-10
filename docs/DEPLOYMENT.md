@@ -175,7 +175,7 @@ See `/fly.toml` in the project root. Key settings:
 
 - Primary region: `jnb` (Johannesburg)
 - HTTP service on internal port `4000`
-- Health check at `GET /health`
+- Health check at `GET /api/health`
 - Auto-scaling: 1-10 instances
 - 512MB memory per instance
 - Grace period for safe shutdowns
