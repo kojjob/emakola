@@ -39,6 +39,22 @@ defmodule Emakola.Orders.Order do
     end
   end
 
+  # Returns the IDs of pending supplier-owned fulfillments for `order`.
+  # Used by the :confirm after_action to pass the IDs to the Notifications
+  # Dispatcher so it does not need to query back into Orders.
+  @doc false
+  def load_pending_supplier_ids(order) do
+    case Ash.load(order, :fulfillments, authorize?: false) do
+      {:ok, loaded} ->
+        loaded.fulfillments
+        |> Enum.filter(fn f -> not is_nil(f.supplier_id) and f.status == :pending end)
+        |> Enum.map(& &1.id)
+
+      _ ->
+        []
+    end
+  end
+
   # Enqueues `Emakola.Workers.FulfillmentWorker` to run the dispatcher on
   # the order's line items. Like dispatch_notification/2 this runs inside
   # the Ash transaction via after_action; a raise here would roll back
@@ -297,7 +313,13 @@ defmodule Emakola.Orders.Order do
       change(
         after_action(fn _changeset, order, _context ->
           dispatch_notification(order, :order_confirmed)
-          Emakola.Notifications.Dispatcher.dispatch_supplier_fulfillments(order)
+          pending_supplier_ids = load_pending_supplier_ids(order)
+
+          Emakola.Notifications.Dispatcher.dispatch_supplier_fulfillments(
+            order.id,
+            pending_supplier_ids
+          )
+
           enqueue_fulfillment(order)
           {:ok, order}
         end)
