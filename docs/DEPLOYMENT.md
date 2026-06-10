@@ -38,7 +38,7 @@ Production deployment guide for the Emakola ecommerce platform on Fly.io.
 | CDN & DDoS protection   | Cloudflare                       | Global edge          |
 | DNS                     | Cloudflare                       | Global               |
 | SSL certificates        | Fly.io (auto) + Cloudflare       | -                    |
-| Transactional SMS       | Arkesel / Hubtel SMS API         | -                    |
+| Transactional SMS       | HTTP SMS gateway (SMS_API_URL)   | -                    |
 | Payment processing      | Paystack, Hubtel Payments        | -                    |
 
 ---
@@ -100,45 +100,59 @@ mix phx.gen.secret
 
 ### Set Production Secrets
 
+All of the following are **required** — `config/runtime.exs` raises at boot
+if any is missing (`PHX_HOST`, `PHX_SERVER`, `POOL_SIZE`, `ECTO_IPV6` are
+non-secret and already set in `fly.toml [env]`; `DATABASE_URL` comes from
+`fly postgres attach`):
+
 ```bash
 fly secrets set \
-  SECRET_KEY_BASE="<generated-secret>" \
-  TOKEN_SIGNING_SECRET="<generated-secret>" \
-  PHX_HOST="emakola.com" \
-  PHX_SERVER=true \
-  POOL_SIZE=10 \
-  ECTO_IPV6=true \
+  SECRET_KEY_BASE="<mix phx.gen.secret>" \
+  TOKEN_SIGNING_SECRET="<mix phx.gen.secret 64>" \
   \
-  # Payment Gateways
+  # Email (Swoosh/Resend — transactional email)
+  RESEND_API_KEY="re_xxxxx" \
+  \
+  # Payment gateway
   PAYSTACK_SECRET_KEY="sk_live_xxxxx" \
-  PAYSTACK_PUBLIC_KEY="pk_live_xxxxx" \
-  HUBTEL_CLIENT_ID="xxxxx" \
-  HUBTEL_CLIENT_SECRET="xxxxx" \
-  HUBTEL_MERCHANT_ACCOUNT="xxxxx" \
   \
-  # SMS / WhatsApp — required: the release fails to boot if SMS_API_KEY,
-  # SMS_API_URL, WHATSAPP_API_TOKEN, or WHATSAPP_PHONE_NUMBER_ID is missing
-  # (notifications are business-critical; we raise rather than silently no-op)
+  # SMS / WhatsApp — notifications are business-critical; the release
+  # raises rather than silently no-op if these are missing
   SMS_API_KEY="xxxxx" \
-  SMS_SENDER_ID="Emakola" \
   SMS_API_URL="https://sms.yourprovider.example/v1/messages" \
   WHATSAPP_API_TOKEN="xxxxx" \
   WHATSAPP_PHONE_NUMBER_ID="xxxxx" \
   \
+  --app emakola
+```
+
+Optional secrets, set as applicable:
+
+```bash
+fly secrets set \
+  PAYSTACK_PUBLIC_KEY="pk_live_xxxxx" \
+  SMS_SENDER_ID="Emakola" \
+  WHATSAPP_API_VERSION="v21.0" \
+  \
+  # Hubtel payments (optional at launch). NOTE: Hubtel webhooks are
+  # validated only by source IP — if HUBTEL_WEBHOOK_ALLOWLIST is empty,
+  # /webhooks/hubtel rejects EVERY request (fail closed).
+  HUBTEL_CLIENT_ID="xxxxx" \
+  HUBTEL_CLIENT_SECRET="xxxxx" \
+  HUBTEL_WEBHOOK_ALLOWLIST="203.0.113.5,198.51.100.0/24" \
+  \
+  # Database TLS opt-out — ONLY for Fly 6PN .internal Postgres
+  DATABASE_SSL="false" \
+  \
   # S3-compatible storage. `fly storage create` (Tigris) sets BUCKET_NAME,
   # AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_ENDPOINT_URL_S3 and
   # AWS_REGION automatically — only set these manually for non-Tigris S3.
+  # Missing S3 credentials warn at boot (uploads degrade, app still runs).
   AWS_S3_BUCKET="emakola-uploads" \
   AWS_S3_REGION="auto" \
   AWS_ENDPOINT_URL_S3="https://fly.storage.tigris.dev" \
   AWS_ACCESS_KEY_ID="xxxxx" \
   AWS_SECRET_ACCESS_KEY="xxxxx" \
-  \
-  # Oban
-  OBAN_QUEUES="default,10 payments,5 notifications,5 images,3" \
-  \
-  # Optional: Error tracking
-  SENTRY_DSN="https://xxxxx@sentry.io/xxxxx" \
   \
   --app emakola
 ```
@@ -162,6 +176,17 @@ The app verifies the database server's TLS certificate by default
   AND the server identity is verified. Never set it to `false` for a
   database reached over the public internet.
 
+### WhatsApp Notifications Limitation
+
+WhatsApp credentials are required at boot, but the active provider
+(`:whatsapp_provider`) currently stays on the logging stub
+(`Emakola.Notifications.Providers.LogWhatsApp`): notification workers call
+`send_message/4`, which the real Cloud API channel
+(`Emakola.Notifications.Channels.WhatsApp`) does not implement — it only
+exposes three order-specific methods. Until a `send_message/4` bridge
+exists on the channel, production WhatsApp notifications are logged, not
+delivered. SMS and email notifications are fully live.
+
 ### Non-Secret Environment Variables
 
 These go in `fly.toml` under `[env]`:
@@ -174,6 +199,7 @@ These go in `fly.toml` under `[env]`:
   POOL_SIZE = "10"
   LANG = "en_US.UTF-8"
   ERL_AFLAGS = "-proto_dist inet6_tcp"
+  DNS_CLUSTER_QUERY = "emakola.internal"
 ```
 
 ---
@@ -201,9 +227,10 @@ See `/fly.toml` in the project root. Key settings:
 - Primary region: `jnb` (Johannesburg)
 - HTTP service on internal port `4000`
 - Health check at `GET /api/health`
-- Auto-scaling: 1-10 instances
+- Auto start/suspend with `min_machines_running = 1` (see Scaling — carts
+  are node-local; stay at count 1 for now)
 - 512MB memory per instance
-- Grace period for safe shutdowns
+- `kill_timeout = "60s"` for safe shutdowns
 
 ---
 
