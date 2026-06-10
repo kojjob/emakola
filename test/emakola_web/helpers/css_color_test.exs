@@ -26,6 +26,10 @@ defmodule EmakolaWeb.Helpers.CssColorTest do
       assert CssColor.safe_css_color("", @default) == @default
     end
 
+    test "returns the default for a hex color with a trailing newline" do
+      assert CssColor.safe_css_color("#fff\n", @default) == @default
+    end
+
     test "returns the default for a named color" do
       assert CssColor.safe_css_color("red", @default) == @default
     end

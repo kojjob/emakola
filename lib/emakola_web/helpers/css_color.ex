@@ -4,7 +4,7 @@ defmodule EmakolaWeb.Helpers.CssColor do
   (<style> blocks, style= attributes). Only strict hex passes; anything
   else falls back — defends against CSS injection from theme_config.
   """
-  @hex ~r/^#[0-9a-fA-F]{3,8}$/
+  @hex ~r/^#[0-9a-fA-F]{3,8}\z/
 
   def safe_css_color(value, default) when is_binary(value) do
     if value =~ @hex, do: value, else: default

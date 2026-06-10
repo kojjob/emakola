@@ -82,10 +82,15 @@
 <div
   class="min-h-screen flex flex-col bg-[#FAFAF9] text-[#0C0A09] font-[Inter,system-ui,-apple-system,sans-serif] antialiased"
   style={
-    if assigns[:theme] && assigns[:theme][:fonts],
-      do:
-        "font-family: '#{assigns[:theme][:fonts][:body]}', system-ui, -apple-system, sans-serif",
-      else: nil
+    with %{} <- assigns[:theme],
+         family when family != "inherit" <-
+           Emakola.Themes.DesignTokens.body_font_family(
+             assigns[:theme][:design_tokens][:body_font] || "sans"
+           ) do
+      "font-family: #{family}"
+    else
+      _ -> nil
+    end
   }
 >
   <!-- Top Bar (hidden when theme provides its own nav) -->
