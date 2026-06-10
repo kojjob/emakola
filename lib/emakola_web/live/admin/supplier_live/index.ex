@@ -18,7 +18,7 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
       socket
       |> assign(
         page_title: "Suppliers",
-        active_nav: :settings,
+        active_nav: :suppliers,
         store: store,
         suppliers: [],
         editing_supplier: nil,
