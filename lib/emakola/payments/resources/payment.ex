@@ -207,9 +207,7 @@ defmodule Emakola.Payments.Payment do
         )
       )
 
-      prepare(fn query, _context ->
-        Ash.Query.sort(query, inserted_at: :desc)
-      end)
+      prepare(build(sort: [inserted_at: :desc], load: [:order]))
     end
 
     read :get_by_order do
