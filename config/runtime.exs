@@ -201,12 +201,24 @@ if config_env() == :prod do
            You can generate one by calling: mix phx.gen.secret 64
            """)
 
-  host = System.get_env("PHX_HOST") || "example.com"
+  host =
+    System.get_env("PHX_HOST") ||
+      raise """
+      environment variable PHX_HOST is missing.
+      Set it to the canonical hostname, e.g. PHX_HOST=emakola.com.
+      It is used for URL generation (emails, webhooks) and check_origin —
+      a silent default would generate links to the wrong domain.
+      """
 
   config :emakola, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :emakola, EmakolaWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
+    # WebSocket origin allowlist. The wildcard covers merchant subdomain
+    # storefronts (shopname.emakola.com). NOTE: merchant CUSTOM domains
+    # (www.merchantshop.com) need their origins added here — or a
+    # function-based check_origin — before LiveView will connect for them.
+    check_origin: ["https://#{host}", "https://www.#{host}", "https://*.#{host}"],
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.

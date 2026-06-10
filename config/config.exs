@@ -106,9 +106,17 @@ config :emakola, Oban,
     whatsapp_catalog: 3
   ],
   repo: Emakola.Repo,
-  crontab: [
-    {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker},
-    {"0 */6 * * *", Emakola.Cart.CartCleanupWorker}
+  plugins: [
+    # Prune completed/cancelled/discarded jobs after 7 days — without this
+    # the oban_jobs table grows forever.
+    {Oban.Plugins.Pruner, max_age: 604_800},
+    # Rescue jobs orphaned by node crashes/deploys back to available.
+    {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)},
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker},
+       {"0 */6 * * *", Emakola.Cart.CartCleanupWorker}
+     ]}
   ]
 
 # Demo mode

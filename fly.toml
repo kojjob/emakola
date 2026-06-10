@@ -6,7 +6,8 @@
 app = "emakola"
 primary_region = "jnb"
 kill_signal = "SIGTERM"
-kill_timeout = "30s"
+# Long enough for connection draining + Oban jobs to finish on shutdown.
+kill_timeout = "60s"
 swap_size_mb = 256
 
 # -----------------------------------------------------------------------------
@@ -77,13 +78,6 @@ swap_size_mb = 256
   size = "shared-cpu-1x"
   memory = "512mb"
   cpus = 1
-
-# -----------------------------------------------------------------------------
-# Statics (served by Phoenix, cached by Cloudflare)
-# -----------------------------------------------------------------------------
-[[statics]]
-  guest_path = "/app/lib/emakola-0.1.0/priv/static"
-  url_prefix = "/assets"
 
 # -----------------------------------------------------------------------------
 # Metrics (Fly.io Prometheus integration)
