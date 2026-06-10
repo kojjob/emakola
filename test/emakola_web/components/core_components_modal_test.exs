@@ -110,6 +110,59 @@ defmodule EmakolaWeb.CoreComponentsModalTest do
     end
   end
 
+  describe "modal/1 regressions" do
+    # JS.show sets inline display:block on the -container element, which
+    # overrides Tailwind's flex/flex-col classes. The flex column layout must
+    # therefore live on an inner wrapper, not on the container itself —
+    # otherwise the body stops scrolling and form content (SEO section,
+    # footer buttons) overflows the white panel onto the backdrop.
+    test "slide-over flex layout lives inside the container, not on it" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <CoreComponents.modal id="slide-modal" title="Slide Over" kind={:slide_over}>
+          <p>Slide content</p>
+        </CoreComponents.modal>
+        """)
+
+      [container_tag] = Regex.run(~r/<div[^>]*id="slide-modal-container"[^>]*>/, html)
+      refute container_tag =~ "flex"
+      assert html =~ "flex h-full flex-col"
+    end
+
+    # phx-click-away on the full-screen wrapper never fires (backdrop clicks
+    # are inside it). It must sit on the panel container so clicking the
+    # backdrop closes the modal.
+    test "slide-over container handles click-away" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <CoreComponents.modal id="slide-modal" title="Slide Over" kind={:slide_over}>
+          <p>Slide content</p>
+        </CoreComponents.modal>
+        """)
+
+      [container_tag] = Regex.run(~r/<div[^>]*id="slide-modal-container"[^>]*>/, html)
+      assert container_tag =~ "phx-click-away"
+    end
+
+    test "centered container handles click-away" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <CoreComponents.modal id="center-modal" title="Centered">
+          <p>Content</p>
+        </CoreComponents.modal>
+        """)
+
+      [container_tag] = Regex.run(~r/<div[^>]*id="center-modal-container"[^>]*>/, html)
+      assert container_tag =~ "phx-click-away"
+    end
+  end
+
   describe "confirm_modal/1" do
     test "renders confirmation modal with required attributes" do
       assigns = %{}

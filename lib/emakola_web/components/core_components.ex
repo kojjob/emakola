@@ -510,39 +510,44 @@ defmodule EmakolaWeb.CoreComponents do
         aria-modal="true"
         phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")}
         phx-key="escape"
-        phx-click-away={JS.exec("data-cancel", to: "##{@id}")}
       >
         <%= if @kind == :slide_over do %>
-          <%!-- Slide-over panel --%>
+          <%!-- Slide-over panel. JS.show sets inline display:block on this
+               element, so the flex column layout must live on the inner
+               wrapper — flex classes here would be overridden and the body
+               would overflow the panel instead of scrolling. --%>
           <div
             id={"#{@id}-container"}
-            class="w-full max-w-[480px] h-full bg-white shadow-xl flex flex-col
+            class="w-full max-w-[480px] h-full bg-white shadow-xl
                    sm:max-w-[480px] max-sm:max-w-full"
+            phx-click-away={JS.exec("data-cancel", to: "##{@id}")}
           >
-            <%!-- Header --%>
-            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-              <div class="flex items-center gap-3">
-                <span :if={@icon} class={["material-symbols-outlined text-xl", @icon_class]}>
-                  {@icon}
-                </span>
-                <h2 id={"#{@id}-title"} class="text-lg font-semibold text-slate-900">{@title}</h2>
+            <div class="flex h-full flex-col">
+              <%!-- Header --%>
+              <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                <div class="flex items-center gap-3">
+                  <span :if={@icon} class={["material-symbols-outlined text-xl", @icon_class]}>
+                    {@icon}
+                  </span>
+                  <h2 id={"#{@id}-title"} class="text-lg font-semibold text-slate-900">{@title}</h2>
+                </div>
+                <button
+                  phx-click={JS.exec("data-cancel", to: "##{@id}")}
+                  type="button"
+                  class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                  aria-label={gettext("close")}
+                >
+                  <.icon name="hero-x-mark" class="size-5" />
+                </button>
               </div>
-              <button
-                phx-click={JS.exec("data-cancel", to: "##{@id}")}
-                type="button"
-                class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                aria-label={gettext("close")}
-              >
-                <.icon name="hero-x-mark" class="size-5" />
-              </button>
-            </div>
-            <%!-- Body --%>
-            <div class="flex-1 overflow-y-auto px-6 py-5">
-              {render_slot(@inner_block)}
-            </div>
-            <%!-- Footer --%>
-            <div :if={@footer != []} class="px-6 py-4 border-t border-slate-200 bg-slate-50">
-              {render_slot(@footer)}
+              <%!-- Body --%>
+              <div class="flex-1 overflow-y-auto px-6 py-5">
+                {render_slot(@inner_block)}
+              </div>
+              <%!-- Footer --%>
+              <div :if={@footer != []} class="px-6 py-4 border-t border-slate-200 bg-slate-50">
+                {render_slot(@footer)}
+              </div>
             </div>
           </div>
         <% else %>
@@ -554,6 +559,7 @@ defmodule EmakolaWeb.CoreComponents do
                 "w-full bg-white rounded-2xl shadow-xl max-sm:max-w-full",
                 modal_size_class(@size)
               ]}
+              phx-click-away={JS.exec("data-cancel", to: "##{@id}")}
             >
               <%!-- Header --%>
               <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
