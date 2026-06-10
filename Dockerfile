@@ -48,7 +48,7 @@ RUN mix deps.get --only $MIX_ENV
 
 # Copy compile-time config
 RUN mkdir config
-COPY config/config.exs config/${MIX_ENV}.exs config/
+COPY config/config.exs config/branding.exs config/plans.exs config/${MIX_ENV}.exs config/
 
 # Compile dependencies (cached layer)
 RUN mix deps.compile
