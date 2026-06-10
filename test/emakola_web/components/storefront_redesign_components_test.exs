@@ -22,8 +22,8 @@ defmodule EmakolaWeb.StorefrontComponents.TrustBadgeTest do
       assert html =~ "verified"
       assert html =~ "Verified Artisan"
       assert html =~ "material-symbols-outlined"
-      assert html =~ "bg-[#F1F5F9]"
-      assert html =~ "text-[#475569]"
+      assert html =~ "bg-slate-100"
+      assert html =~ "text-slate-600"
     end
 
     test ":scarcity variant uses amber palette" do
@@ -34,8 +34,8 @@ defmodule EmakolaWeb.StorefrontComponents.TrustBadgeTest do
         <.trust_badge icon="bolt" label="Only 3 left" variant={:scarcity} />
         """)
 
-      assert html =~ "bg-[#FEF3C7]"
-      assert html =~ "text-[#92400E]"
+      assert html =~ "bg-store-accent-light"
+      assert html =~ "text-store-accent"
     end
 
     test ":provenance variant uses emerald palette" do
@@ -46,8 +46,8 @@ defmodule EmakolaWeb.StorefrontComponents.TrustBadgeTest do
         <.trust_badge icon="public" label="Made in Ghana" variant={:provenance} />
         """)
 
-      assert html =~ "bg-[#D1FAE5]"
-      assert html =~ "text-[#065F46]"
+      assert html =~ "bg-emerald-100"
+      assert html =~ "text-emerald-800"
     end
 
     test "merges caller-supplied class" do
@@ -80,9 +80,9 @@ defmodule EmakolaWeb.StorefrontComponents.TrustBadgeTest do
       assert html =~ "Made in Ghana"
       assert html =~ "Limited Edition"
       assert html =~ "Authenticated"
-      assert html =~ "bg-[#D1FAE5]"
-      assert html =~ "bg-[#FEF3C7]"
-      assert html =~ "bg-[#F1F5F9]"
+      assert html =~ "bg-emerald-100"
+      assert html =~ "bg-store-accent-light"
+      assert html =~ "bg-slate-100"
       assert html =~ ~s(role="list")
     end
 
@@ -154,8 +154,8 @@ defmodule EmakolaWeb.StorefrontComponents.OccasionCollectionTileTest do
         <.occasion_collection_tile category={@category} store_slug={@store_slug} />
         """)
 
-      assert html =~ "from-[#B45309]"
-      assert html =~ "to-[#F59E0B]"
+      assert html =~ "from-(--color-store-accent)"
+      assert html =~ "to-(--color-store-accent-bright)"
       refute html =~ "<img"
     end
 
@@ -370,8 +370,8 @@ defmodule EmakolaWeb.StorefrontComponents.PatternDividerTest do
         """)
 
       assert html =~ "<svg"
-      assert html =~ "#B45309"
-      assert html =~ "#F59E0B"
+      assert html =~ "stroke-(--color-store-accent)"
+      assert html =~ "stroke-(--color-store-accent-bright)"
       assert html =~ ~s(aria-hidden="true")
     end
 
@@ -384,8 +384,8 @@ defmodule EmakolaWeb.StorefrontComponents.PatternDividerTest do
         """)
 
       assert html =~ "<circle"
-      assert html =~ "#B45309"
-      assert html =~ "#F59E0B"
+      assert html =~ "fill-(--color-store-accent)"
+      assert html =~ "fill-(--color-store-accent-bright)"
     end
 
     test ":none variant renders only a hairline rule with a single dot" do
@@ -398,7 +398,7 @@ defmodule EmakolaWeb.StorefrontComponents.PatternDividerTest do
 
       refute html =~ "<svg"
       assert html =~ "rounded-full"
-      assert html =~ "bg-[#E7E5E4]"
+      assert html =~ "bg-stone-200"
     end
 
     test "merges caller-supplied class" do

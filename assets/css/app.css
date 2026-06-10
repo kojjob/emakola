@@ -174,6 +174,14 @@
   --color-mtn: #FFC107;                   /* MTN MoMo brand */
   --color-voda: #E60000;                  /* Vodafone Cash brand */
   --color-whatsapp: #25D366;              /* WhatsApp green */
+  --color-whatsapp-dark: #1FAF55;         /* WhatsApp hover */
+  --color-facebook: #1877F2;
+  --color-facebook-dark: #0E62D0;
+  --color-tiktok: #1F1F1F;
+  --color-x-black: #0F1419;
+  --color-instagram-orange: #F58529;      /* Instagram brand gradient stops */
+  --color-instagram-pink: #DD2A7B;
+  --color-instagram-purple: #8134AF;
 
   /* ── Fonts ── */
   --font-headline: 'Manrope', system-ui, sans-serif;

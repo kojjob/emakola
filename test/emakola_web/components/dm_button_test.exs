@@ -99,7 +99,7 @@ defmodule EmakolaWeb.StorefrontComponents.DmButtonTest do
 
       assert html =~ ~s(href="https://ig.me/m/store")
       assert html =~ "Instagram DM"
-      assert html =~ "from-[#F58529]"
+      assert html =~ "from-instagram-orange"
     end
 
     test "TikTok variant uses black bg" do
@@ -111,7 +111,7 @@ defmodule EmakolaWeb.StorefrontComponents.DmButtonTest do
         """)
 
       assert html =~ "TikTok"
-      assert html =~ "bg-[#000000]"
+      assert html =~ "bg-black"
     end
 
     test "WhatsApp variant uses WhatsApp green" do
@@ -122,7 +122,7 @@ defmodule EmakolaWeb.StorefrontComponents.DmButtonTest do
         <.dm_button url="https://wa.me/233241234567" variant={:whatsapp} />
         """)
 
-      assert html =~ "bg-[#25D366]"
+      assert html =~ "bg-whatsapp"
     end
 
     test "label override" do
