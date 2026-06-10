@@ -108,7 +108,7 @@ defmodule Emakola.Suppliers.SupplierLedgerEntry do
       accept([])
 
       validate(
-        {Emakola.Orders.Validations.StatusGuard,
+        {Emakola.Validations.StatusGuard,
          from: [:owed], message: "only an owed entry can be marked paid"}
       )
 

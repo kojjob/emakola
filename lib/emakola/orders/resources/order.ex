@@ -281,14 +281,14 @@ defmodule Emakola.Orders.Order do
 
     # ── Status transitions ──
     # Uses the reusable StatusGuard validation. See
-    # Emakola.Orders.Validations.StatusGuard for docs.
+    # Emakola.Validations.StatusGuard for docs.
 
     update :confirm do
       require_atomic?(false)
       accept([])
 
       validate(
-        {Emakola.Orders.Validations.StatusGuard,
+        {Emakola.Validations.StatusGuard,
          from: [:pending], message: "can only confirm a pending order"}
       )
 
@@ -309,7 +309,7 @@ defmodule Emakola.Orders.Order do
       accept([])
 
       validate(
-        {Emakola.Orders.Validations.StatusGuard,
+        {Emakola.Validations.StatusGuard,
          from: [:confirmed], message: "can only start processing from confirmed"}
       )
 
@@ -321,7 +321,7 @@ defmodule Emakola.Orders.Order do
       accept([:tracking_number])
 
       validate(
-        {Emakola.Orders.Validations.StatusGuard,
+        {Emakola.Validations.StatusGuard,
          from: [:processing], message: "can only mark as shipped from processing"}
       )
 
@@ -340,7 +340,7 @@ defmodule Emakola.Orders.Order do
       accept([])
 
       validate(
-        {Emakola.Orders.Validations.StatusGuard,
+        {Emakola.Validations.StatusGuard,
          from: [:shipped], message: "can only mark as delivered from shipped"}
       )
 
@@ -359,7 +359,7 @@ defmodule Emakola.Orders.Order do
       accept([])
 
       validate(
-        {Emakola.Orders.Validations.StatusGuard,
+        {Emakola.Validations.StatusGuard,
          from: [:pending, :confirmed, :processing, :shipped],
          message: "can only cancel an active order (not delivered or already cancelled)"}
       )

@@ -129,14 +129,14 @@ defmodule Emakola.Orders.Fulfillment do
 
     # ── Status transitions ──
     # Uses the reusable StatusGuard validation. See
-    # Emakola.Orders.Validations.StatusGuard for docs.
+    # Emakola.Validations.StatusGuard for docs.
 
     update :mark_notified do
       require_atomic?(false)
       accept([:notified_via])
 
       validate(
-        {Emakola.Orders.Validations.StatusGuard,
+        {Emakola.Validations.StatusGuard,
          from: [:pending], message: "can only notify a pending fulfillment"}
       )
 
@@ -149,7 +149,7 @@ defmodule Emakola.Orders.Fulfillment do
       accept([:tracking_number])
 
       validate(
-        {Emakola.Orders.Validations.StatusGuard,
+        {Emakola.Validations.StatusGuard,
          from: [:pending, :notified], message: "can only ship a pending or notified fulfillment"}
       )
 
@@ -161,7 +161,7 @@ defmodule Emakola.Orders.Fulfillment do
       accept([])
 
       validate(
-        {Emakola.Orders.Validations.StatusGuard,
+        {Emakola.Validations.StatusGuard,
          from: [:shipped], message: "can only mark as delivered from shipped"}
       )
 
@@ -173,7 +173,7 @@ defmodule Emakola.Orders.Fulfillment do
       accept([])
 
       validate(
-        {Emakola.Orders.Validations.StatusGuard,
+        {Emakola.Validations.StatusGuard,
          from: [:pending, :notified, :shipped],
          message: "can only cancel an active fulfillment (not delivered or already cancelled)"}
       )
