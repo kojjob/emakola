@@ -314,28 +314,6 @@ defmodule EmakolaWeb.DashboardHelpers do
   end
 
   defp build_top_products_chart(store_id, from, to) do
-    import Ecto.Query, only: [from: 2]
-
-    query =
-      from li in Emakola.Orders.LineItem,
-        where:
-          li.store_id == ^store_id and
-            li.inserted_at >= ^from and
-            li.inserted_at < ^to,
-        group_by: li.product_title,
-        order_by: [desc: sum(li.quantity)],
-        limit: 5,
-        select: {fragment("LEFT(?, 20)", li.product_title), sum(li.quantity)}
-
-    results = Emakola.Repo.all(query)
-
-    labels = Enum.map(results, fn {title, _qty} -> title end)
-
-    values =
-      Enum.map(results, fn {_title, qty} ->
-        if is_struct(qty, Decimal), do: Decimal.to_integer(qty), else: qty || 0
-      end)
-
-    %{labels: labels, values: values}
+    Emakola.Dashboard.Stats.top_line_items_chart(store_id, from, to)
   end
 end
