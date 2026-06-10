@@ -145,6 +145,12 @@ defmodule Emakola.Fulfillment.DownloadGrant do
     update :increment_download_count do
       require_atomic?(true)
       accept([])
+
+      # CAS-style atomic limit guard: injects the limit condition into the
+      # UPDATE WHERE clause so the check and the increment happen in one
+      # statement. See Emakola.Fulfillment.Validations.LimitGuard for details.
+      validate(Emakola.Fulfillment.Validations.LimitGuard)
+
       change(atomic_update(:downloaded_count, expr(downloaded_count + 1)))
     end
   end

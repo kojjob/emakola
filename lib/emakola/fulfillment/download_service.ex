@@ -11,16 +11,14 @@ defmodule Emakola.Fulfillment.DownloadService do
         ├─ storage call   → {:error, {:storage, reason}}
         └─ atomic counter increment → {:ok, url}
 
-  ## Limit enforcement is soft
+  ## Limit enforcement is atomic
 
-  The counter check is "read current value, compare, then atomic
-  increment." Under burst clicks a buyer may squeeze 1–2 extra downloads
-  past the configured `:download_limit` (a request that started before
-  the increment lands sees the old count). This is acceptable for
-  digital files. License keys, single-use vouchers, and any
-  hard-limited resource will need a CAS-style update
-  (`SET ... WHERE downloaded_count < download_limit`) that returns 0
-  rows when at limit.
+  The `increment_download_count` action uses a CAS-style WHERE clause:
+  the increment only commits when `downloaded_count < download_limit`
+  (or `download_limit` is nil). If the row is already at its limit the
+  update returns 0 rows and Ash raises an error, which `bump_counter/1`
+  maps to `{:error, :limit_reached}`. This closes the soft-race window
+  that existed when the check was a separate read followed by an update.
 
   ## The counter increments only on storage success
 
@@ -52,8 +50,8 @@ defmodule Emakola.Fulfillment.DownloadService do
 
     with :ok <- check_expiry(grant),
          :ok <- check_limit(grant),
-         {:ok, url} <- call_storage(grant) do
-      _ = bump_counter(grant)
+         {:ok, url} <- call_storage(grant),
+         :ok <- bump_counter(grant) do
       {:ok, url}
     end
   end
@@ -91,8 +89,11 @@ defmodule Emakola.Fulfillment.DownloadService do
   end
 
   defp bump_counter(grant) do
-    grant
-    |> Ash.Changeset.for_update(:increment_download_count, %{})
-    |> Ash.update(authorize?: false)
+    case grant
+         |> Ash.Changeset.for_update(:increment_download_count, %{})
+         |> Ash.update(authorize?: false) do
+      {:ok, _} -> :ok
+      {:error, _} -> {:error, :limit_reached}
+    end
   end
 end
