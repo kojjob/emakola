@@ -116,6 +116,14 @@ defmodule Emakola.Catalog.Category do
       change(Emakola.Catalog.Changes.GenerateSlug)
     end
 
+    read :get_by_slug do
+      get?(true)
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:slug, :string, allow_nil?: false)
+
+      filter(expr(store_id == ^arg(:store_id) and slug == ^arg(:slug)))
+    end
+
     read :list_by_store do
       argument(:store_id, :uuid, allow_nil?: false)
 

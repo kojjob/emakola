@@ -13,6 +13,7 @@ defmodule Emakola.Catalog do
       define(:list_root_categories, action: :list_roots, args: [:store_id])
       define(:list_child_categories, action: :list_children, args: [:parent_id, :store_id])
       define(:get_category, action: :read, get_by: [:id])
+      define(:get_category_by_slug, action: :get_by_slug, args: [:store_id, :slug])
       define(:update_category, action: :update)
       define(:destroy_category, action: :destroy)
     end

@@ -232,10 +232,16 @@ defmodule Emakola.Catalog.Product do
       argument(:query, :string, allow_nil?: false)
       argument(:store_id, :uuid, allow_nil?: false)
 
+      argument(:status, :atom,
+        allow_nil?: true,
+        constraints: [one_of: [:draft, :active, :archived]]
+      )
+
       filter(
         expr(
           store_id == ^arg(:store_id) and
-            contains(fragment("lower(?)", title), fragment("lower(?)", ^arg(:query)))
+            contains(fragment("lower(?)", title), fragment("lower(?)", ^arg(:query))) and
+            (is_nil(^arg(:status)) or status == ^arg(:status))
         )
       )
 
@@ -303,7 +309,18 @@ defmodule Emakola.Catalog.Product do
       argument(:category_id, :uuid, allow_nil?: false)
       argument(:store_id, :uuid, allow_nil?: false)
 
-      filter(expr(category_id == ^arg(:category_id) and store_id == ^arg(:store_id)))
+      argument(:status, :atom,
+        allow_nil?: true,
+        constraints: [one_of: [:draft, :active, :archived]]
+      )
+
+      filter(
+        expr(
+          category_id == ^arg(:category_id) and store_id == ^arg(:store_id) and
+            (is_nil(^arg(:status)) or status == ^arg(:status))
+        )
+      )
+
       prepare(build(load: [:min_price, :max_price, :images, :variant_count]))
     end
 
