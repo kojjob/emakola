@@ -69,7 +69,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
 
       <%!-- Status Filter Tabs --%>
       <div class="flex flex-wrap items-center gap-3">
-        <div class="flex gap-1 bg-slate-100 rounded-xl p-1 overflow-x-auto">
+        <div class="flex gap-1 bg-slate-100 rounded-control p-1 overflow-x-auto">
           <.status_tab :for={status <- @statuses} status={status} current={@status_filter} />
         </div>
 
@@ -93,7 +93,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
             name="search"
             value={@search_query}
             placeholder="Search orders..."
-            class="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700
+            class="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-700
                    placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30
                    focus:border-emerald-500 transition-all"
             autocomplete="off"
@@ -103,32 +103,18 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
 
       <%!-- Orders --%>
       <%= if @orders == [] do %>
-        <div class="text-center py-16 bg-white rounded-2xl shadow-sm">
-          <svg
-            class="w-12 h-12 mx-auto text-slate-300 mb-3"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
-            />
-          </svg>
-          <p class="text-slate-600 font-medium">No orders found</p>
-          <p class="text-sm text-slate-400 mt-1">
-            <%= if @search_query != "" or @status_filter != :all do %>
-              Try adjusting your search or filters
-            <% else %>
-              Orders will appear here when customers place them
-            <% end %>
-          </p>
-        </div>
+        <.empty_state
+          icon="hero-shopping-bag"
+          title="No orders found"
+          description={
+            if @search_query != "" or @status_filter != :all,
+              do: "Try adjusting your search or filters",
+              else: "Orders will appear here when customers place them"
+          }
+        />
       <% else %>
         <%!-- Desktop Table --%>
-        <div class="hidden md:block bg-white rounded-2xl shadow-sm overflow-hidden">
+        <.admin_card padding={:none} class="hidden md:block overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
@@ -159,7 +145,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
                   <td class="px-4 py-3.5">
                     <.link
                       navigate={~p"/admin/orders/#{order.id}"}
-                      class="font-mono text-xs font-medium text-emerald-600 hover:text-emerald-700"
+                      class="font-mono text-xs font-medium text-primary hover:text-primary-hover"
                     >
                       {order.order_number}
                     </.link>
@@ -181,7 +167,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
                     {format_price(order.total, order.currency)}
                   </td>
                   <td class="px-4 py-3.5">
-                    <.order_status_badge status={order.status} />
+                    <.status_pill status={order.status} variant={:order} />
                   </td>
                   <td class="px-4 py-3.5">
                     <.link
@@ -208,26 +194,26 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
               </tbody>
             </table>
           </div>
-        </div>
+        </.admin_card>
 
         <%!-- Mobile Cards --%>
         <div class="md:hidden space-y-3">
           <.link
             :for={order <- @orders}
             navigate={~p"/admin/orders/#{order.id}"}
-            class="block bg-white rounded-2xl shadow-sm p-4 hover:shadow-sm
+            class="block bg-surface rounded-card border border-border shadow-sm p-4 hover:shadow-sm
                    hover:border-slate-300 transition-all"
           >
             <div class="flex items-start justify-between gap-3 mb-3">
               <div>
-                <p class="font-mono text-xs font-medium text-emerald-600">
+                <p class="font-mono text-xs font-medium text-primary">
                   {order.order_number}
                 </p>
                 <p class="text-sm font-medium text-slate-800 mt-1">
                   {customer_name(order)}
                 </p>
               </div>
-              <.order_status_badge status={order.status} />
+              <.status_pill status={order.status} variant={:order} />
             </div>
             <div class="flex items-center justify-between text-sm">
               <span class="text-slate-400">{format_date(order.inserted_at)}</span>
@@ -262,19 +248,6 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
     >
       {status_label(@status)}
     </button>
-    """
-  end
-
-  attr :status, :atom, required: true
-
-  defp order_status_badge(assigns) do
-    ~H"""
-    <span class={[
-      "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold",
-      status_badge_class(@status)
-    ]}>
-      {status_label(@status)}
-    </span>
     """
   end
 
@@ -321,14 +294,6 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
   defp status_label(:shipped), do: "Shipped"
   defp status_label(:delivered), do: "Delivered"
   defp status_label(:cancelled), do: "Cancelled"
-
-  defp status_badge_class(:pending), do: "bg-amber-50 text-amber-700"
-  defp status_badge_class(:confirmed), do: "bg-blue-50 text-blue-700"
-  defp status_badge_class(:processing), do: "bg-indigo-50 text-indigo-700"
-  defp status_badge_class(:shipped), do: "bg-purple-50 text-purple-700"
-  defp status_badge_class(:delivered), do: "bg-emerald-50 text-emerald-700"
-  defp status_badge_class(:cancelled), do: "bg-red-50 text-red-700"
-  defp status_badge_class(_), do: "bg-slate-50 text-slate-700"
 
   defp format_date(nil), do: ""
 

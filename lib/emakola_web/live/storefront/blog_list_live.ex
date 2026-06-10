@@ -14,6 +14,7 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
         {:ok, posts} =
           Emakola.Content.Post
           |> Ash.Query.for_read(:list_published, %{store_id: store.id, type: :blog_post})
+          |> Ash.Query.limit(50)
           |> Ash.read()
 
         cart_session_id = session["cart_session_id"]

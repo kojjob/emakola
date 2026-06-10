@@ -20,9 +20,9 @@ defmodule EmakolaWeb.Layouts do
       class={[
         "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-transform active:scale-95",
         if(@active,
-          do: "text-primary font-semibold bg-surface-container-lowest editorial-shadow",
+          do: "text-emerald-600 font-semibold bg-white editorial-shadow",
           else:
-            "text-on-surface/60 font-medium hover:text-on-surface hover:bg-surface-container-high/50 transition-colors duration-200"
+            "text-slate-900/60 font-medium hover:text-slate-900 hover:bg-slate-200/50 transition-colors duration-200"
         )
       ]}
     >
@@ -144,44 +144,47 @@ defmodule EmakolaWeb.Layouts do
   # --- Notification helpers used by the app layout template ---
 
   @doc "Returns the border color class for a notification type."
-  def notification_border_class(:agent_completed), do: "border-primary bg-primary/[0.03]"
-  def notification_border_class(:agent_failed), do: "border-error bg-error/[0.03]"
-  def notification_border_class(:billing_warning), do: "border-error bg-error/[0.03]"
-  def notification_border_class(:billing_updated), do: "border-secondary bg-secondary/[0.03]"
-  def notification_border_class(:team_invite), do: "border-secondary bg-secondary/[0.03]"
-  def notification_border_class(:team_removed), do: "border-error bg-error/[0.03]"
-  def notification_border_class(:system_announcement), do: "border-primary bg-primary/[0.03]"
-  def notification_border_class(_), do: "border-primary bg-primary/[0.03]"
+  def notification_border_class(:agent_completed), do: "border-emerald-600 bg-emerald-600/[0.03]"
+  def notification_border_class(:agent_failed), do: "border-red-600 bg-red-600/[0.03]"
+  def notification_border_class(:billing_warning), do: "border-red-600 bg-red-600/[0.03]"
+  def notification_border_class(:billing_updated), do: "border-amber-600 bg-amber-600/[0.03]"
+  def notification_border_class(:team_invite), do: "border-amber-600 bg-amber-600/[0.03]"
+  def notification_border_class(:team_removed), do: "border-red-600 bg-red-600/[0.03]"
+
+  def notification_border_class(:system_announcement),
+    do: "border-emerald-600 bg-emerald-600/[0.03]"
+
+  def notification_border_class(_), do: "border-emerald-600 bg-emerald-600/[0.03]"
 
   @doc "Returns the unread dot color class for a notification type."
-  def notification_dot_class(:agent_completed), do: "bg-primary"
-  def notification_dot_class(:agent_failed), do: "bg-error"
-  def notification_dot_class(:billing_warning), do: "bg-error"
-  def notification_dot_class(:billing_updated), do: "bg-secondary"
-  def notification_dot_class(:team_invite), do: "bg-secondary"
-  def notification_dot_class(:team_removed), do: "bg-error"
-  def notification_dot_class(:system_announcement), do: "bg-primary"
-  def notification_dot_class(_), do: "bg-primary"
+  def notification_dot_class(:agent_completed), do: "bg-emerald-600"
+  def notification_dot_class(:agent_failed), do: "bg-red-600"
+  def notification_dot_class(:billing_warning), do: "bg-red-600"
+  def notification_dot_class(:billing_updated), do: "bg-amber-600"
+  def notification_dot_class(:team_invite), do: "bg-amber-600"
+  def notification_dot_class(:team_removed), do: "bg-red-600"
+  def notification_dot_class(:system_announcement), do: "bg-emerald-600"
+  def notification_dot_class(_), do: "bg-emerald-600"
 
   @doc "Returns the icon background gradient class for a notification type."
   def notification_icon_bg_class(:agent_completed), do: "from-emerald-500/20 to-emerald-500/5"
-  def notification_icon_bg_class(:agent_failed), do: "from-error/20 to-error/5"
-  def notification_icon_bg_class(:billing_warning), do: "from-error/20 to-error/5"
-  def notification_icon_bg_class(:billing_updated), do: "from-secondary/20 to-secondary/5"
-  def notification_icon_bg_class(:team_invite), do: "from-secondary/20 to-secondary/5"
-  def notification_icon_bg_class(:team_removed), do: "from-error/20 to-error/5"
-  def notification_icon_bg_class(:system_announcement), do: "from-primary/20 to-primary/5"
-  def notification_icon_bg_class(_), do: "from-primary/20 to-primary/5"
+  def notification_icon_bg_class(:agent_failed), do: "from-red-600/20 to-red-600/5"
+  def notification_icon_bg_class(:billing_warning), do: "from-red-600/20 to-red-600/5"
+  def notification_icon_bg_class(:billing_updated), do: "from-amber-600/20 to-amber-600/5"
+  def notification_icon_bg_class(:team_invite), do: "from-amber-600/20 to-amber-600/5"
+  def notification_icon_bg_class(:team_removed), do: "from-red-600/20 to-red-600/5"
+  def notification_icon_bg_class(:system_announcement), do: "from-emerald-600/20 to-emerald-600/5"
+  def notification_icon_bg_class(_), do: "from-emerald-600/20 to-emerald-600/5"
 
   @doc "Returns the icon color class for a notification type."
   def notification_icon_color_class(:agent_completed), do: "text-emerald-500"
-  def notification_icon_color_class(:agent_failed), do: "text-error"
-  def notification_icon_color_class(:billing_warning), do: "text-error"
-  def notification_icon_color_class(:billing_updated), do: "text-secondary"
-  def notification_icon_color_class(:team_invite), do: "text-secondary"
-  def notification_icon_color_class(:team_removed), do: "text-error"
-  def notification_icon_color_class(:system_announcement), do: "text-primary"
-  def notification_icon_color_class(_), do: "text-primary"
+  def notification_icon_color_class(:agent_failed), do: "text-red-600"
+  def notification_icon_color_class(:billing_warning), do: "text-red-600"
+  def notification_icon_color_class(:billing_updated), do: "text-amber-600"
+  def notification_icon_color_class(:team_invite), do: "text-amber-600"
+  def notification_icon_color_class(:team_removed), do: "text-red-600"
+  def notification_icon_color_class(:system_announcement), do: "text-emerald-600"
+  def notification_icon_color_class(_), do: "text-emerald-600"
 
   @doc "Returns the Material Symbol icon name for a notification type."
   def notification_icon(:agent_completed), do: "check_circle"

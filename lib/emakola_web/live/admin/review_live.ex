@@ -219,6 +219,7 @@ defmodule EmakolaWeb.Admin.ReviewLive do
     reviews =
       Emakola.Catalog.Review
       |> Ash.Query.for_read(:list_admin, %{store_id: store_id, status: status_arg})
+      |> Ash.Query.limit(200)
       |> Ash.read!(authorize?: false)
 
     assign(socket, :reviews, reviews)

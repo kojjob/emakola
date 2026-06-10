@@ -235,22 +235,22 @@ defmodule EmakolaWeb.Auth.RegisterLive do
   end
 
   defp do_register(params, socket) do
-    strategy = AshAuthentication.Info.strategy!(Emakola.Accounts.User, :password)
+    strategy = AshAuthentication.Info.strategy!(Emakola.Accounts.Merchant, :password)
 
     case AshAuthentication.Strategy.action(strategy, :register, %{
            "email" => params["email"],
            "password" => params["password"],
            "password_confirmation" => params["password"]
          }) do
-      {:ok, user} ->
-        # Save the user's name from the registration form
+      {:ok, merchant} ->
+        # Save the merchant's name from the registration form
         name = String.trim(params["name"] || "")
 
         if name != "" do
-          Emakola.Accounts.update_user_profile(user, %{name: name})
+          Emakola.Accounts.update_merchant_profile(merchant, %{name: name}, authorize?: false)
         end
 
-        token = AshAuthentication.user_to_subject(user)
+        token = AshAuthentication.user_to_subject(merchant)
 
         {:noreply,
          socket

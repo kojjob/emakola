@@ -104,7 +104,7 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
       <%= if @supplier do %>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <%!-- Details --%>
-          <div class="bg-white rounded-2xl shadow-sm p-5 space-y-3">
+          <.admin_card padding={:none} class="p-5 space-y-3">
             <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
               Contact
             </h2>
@@ -123,10 +123,10 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
             <p :if={@supplier.notes} class="text-sm text-slate-500 pt-2 border-t border-slate-100">
               {@supplier.notes}
             </p>
-          </div>
+          </.admin_card>
 
           <%!-- Balance --%>
-          <div class="bg-white rounded-2xl shadow-sm p-5 lg:col-span-2">
+          <.admin_card padding={:none} class="p-5 lg:col-span-2">
             <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
               Outstanding Balance
             </h2>
@@ -134,11 +134,11 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
               {format_price(@supplier.outstanding_balance || 0, "GHS")}
             </p>
             <p class="text-sm text-slate-500 mt-1">Total still owed across unpaid ledger entries</p>
-          </div>
+          </.admin_card>
         </div>
 
         <%!-- Ledger --%>
-        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <.admin_card padding={:none} class="overflow-hidden">
           <div class="px-5 py-4 border-b border-slate-100">
             <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide">
               Payout Ledger
@@ -175,8 +175,8 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
                   <span class={[
                     "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold",
                     if(entry.status == :paid,
-                      do: "bg-emerald-50 text-emerald-700",
-                      else: "bg-amber-50 text-amber-700"
+                      do: "bg-success-soft text-success",
+                      else: "bg-warning-soft text-warning"
                     )
                   ]}>
                     {if entry.status == :paid, do: "Paid", else: "Owed"}
@@ -186,19 +186,19 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
                   {format_datetime(entry.paid_at)}
                 </td>
                 <td class="px-6 py-4 text-right">
-                  <button
+                  <.admin_button
                     :if={entry.status == :owed}
+                    size={:sm}
                     phx-click="mark_paid"
                     phx-value-id={entry.id}
-                    class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                   >
                     <.icon name="hero-check" class="size-3.5" /> Mark paid
-                  </button>
+                  </.admin_button>
                 </td>
               </tr>
             </tbody>
           </table>
-        </div>
+        </.admin_card>
       <% end %>
     </div>
     """

@@ -13,6 +13,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
   # theme module's defaults() so the picker stays in sync with what
   # `select_theme` actually applies — no hardcoded color duplication.
   @theme_metadata [
+    %{
+      id: "akoma",
+      name: "Akoma",
+      description: "Clean & modern (Be Yours)",
+      icon: "deployed_code"
+    },
     %{id: "market", name: "Market", description: "Simple & clean", icon: "storefront"},
     %{id: "atelier", name: "Atelier", description: "Premium & elegant", icon: "diamond"},
     %{id: "vibrant", name: "Vibrant", description: "Bold & colorful", icon: "palette"},
@@ -62,7 +68,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
     %{name: "Gold", hex: "#CA8A04", class: "bg-yellow-600"},
     %{name: "Blue", hex: "#2563EB", class: "bg-blue-600"},
     %{name: "Red", hex: "#DC2626", class: "bg-red-600"},
-    %{name: "Green", hex: "#059669", class: "bg-emerald-600"},
+    %{name: "Green", hex: "#059669", class: "bg-primary"},
     %{name: "Purple", hex: "#7C3AED", class: "bg-purple-600"},
     %{name: "Pink", hex: "#DB2777", class: "bg-pink-600"},
     %{name: "Orange", hex: "#EA580C", class: "bg-orange-600"},
@@ -143,7 +149,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
         <a
           href={"/s/#{@store.slug}/"}
           target="_blank"
-          class="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 font-medium self-start sm:self-auto"
+          class="inline-flex items-center gap-2 text-sm text-primary hover:text-primary-hover font-medium self-start sm:self-auto"
         >
           <span class="material-symbols-outlined text-base">open_in_new</span> View live store
         </a>
@@ -153,9 +159,9 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 pb-32">
         <%!-- ═══ LEFT: THEMES ═══ --%>
         <aside class="lg:col-span-3 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:sticky lg:top-4 lg:pr-1">
-          <div class="bg-white rounded-2xl p-4 shadow-sm">
+          <.admin_card padding={:none} class="p-4">
             <div class="flex items-center gap-2 mb-3">
-              <span class="material-symbols-outlined text-xl text-emerald-600">style</span>
+              <span class="material-symbols-outlined text-xl text-primary">style</span>
               <h2 class="text-base font-bold text-slate-800">Themes</h2>
             </div>
             <div class="space-y-3">
@@ -164,7 +170,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                 phx-click="select_theme"
                 phx-value-theme-id={theme.id}
                 class={[
-                  "group relative rounded-xl overflow-hidden transition-all text-left w-full block",
+                  "group relative rounded-control overflow-hidden transition-all text-left w-full block",
                   if(theme.id == @theme_id,
                     do: "ring-2 ring-emerald-500 shadow-md",
                     else: "ring-1 ring-slate-200 hover:ring-slate-300 hover:shadow-sm"
@@ -213,12 +219,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                 </div>
               </button>
             </div>
-          </div>
+          </.admin_card>
 
           <%!-- Design Style CTA --%>
-          <div class="mt-4 bg-white rounded-2xl p-4 shadow-sm">
+          <.admin_card padding={:none} class="mt-4 p-4">
             <div class="flex items-start gap-3">
-              <div class="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
+              <div class="w-9 h-9 rounded-control bg-violet-100 flex items-center justify-center shrink-0">
                 <span class="material-symbols-outlined text-lg text-violet-600">palette</span>
               </div>
               <div class="flex-1 min-w-0">
@@ -234,7 +240,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                 </a>
               </div>
             </div>
-          </div>
+          </.admin_card>
         </aside>
 
         <%!-- ═══ CENTER: LIVE PREVIEW ═══ --%>
@@ -243,10 +249,10 @@ defmodule EmakolaWeb.Admin.ThemeLive do
             <%!-- Preview header --%>
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-emerald-600">preview</span>
+                <span class="material-symbols-outlined text-primary">preview</span>
                 <h2 class="text-base font-bold text-slate-800">Live Preview</h2>
               </div>
-              <span class="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+              <span class="inline-flex items-center gap-1 text-[11px] font-medium text-primary bg-primary-soft px-2 py-1 rounded-full">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 Updates as you edit
               </span>
@@ -254,7 +260,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
 
             <%!-- Storefront mock — uses live values --%>
             <div
-              class="rounded-2xl overflow-hidden shadow-sm ring-1 ring-slate-200"
+              class="rounded-card overflow-hidden shadow-sm ring-1 ring-slate-200"
               style={"background-color: #{@bg_color};"}
             >
               <%!-- Mock browser chrome --%>
@@ -456,9 +462,9 @@ defmodule EmakolaWeb.Admin.ThemeLive do
         <%!-- ═══ RIGHT: CUSTOMIZE ═══ --%>
         <aside class="lg:col-span-3 space-y-4">
           <%!-- Colors --%>
-          <div class="bg-white rounded-2xl p-4 shadow-sm">
+          <.admin_card padding={:none} class="p-4">
             <div class="flex items-center gap-2 mb-3">
-              <span class="material-symbols-outlined text-xl text-emerald-600">palette</span>
+              <span class="material-symbols-outlined text-xl text-primary">palette</span>
               <h2 class="text-base font-bold text-slate-800">Colors</h2>
             </div>
 
@@ -567,12 +573,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                 </div>
               </div>
             </div>
-          </div>
+          </.admin_card>
 
           <%!-- Hero --%>
-          <div class="bg-white rounded-2xl p-4 shadow-sm">
+          <.admin_card padding={:none} class="p-4">
             <div class="flex items-center gap-2 mb-3">
-              <span class="material-symbols-outlined text-xl text-emerald-600">image</span>
+              <span class="material-symbols-outlined text-xl text-primary">image</span>
               <h2 class="text-base font-bold text-slate-800">Hero Banner</h2>
             </div>
 
@@ -643,7 +649,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                   <p class="text-[11px] text-slate-500 mt-1">
                     <label
                       for={@uploads.hero_images.ref}
-                      class="text-emerald-600 font-medium cursor-pointer hover:underline"
+                      class="text-primary font-medium cursor-pointer hover:underline"
                     >
                       Browse
                     </label>
@@ -681,13 +687,14 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                   </p>
                 </div>
 
-                <button
+                <.admin_button
                   :if={@uploads.hero_images.entries != []}
                   type="submit"
-                  class="mt-2 w-full px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+                  size={:sm}
+                  class="mt-2 w-full"
                 >
                   Upload
-                </button>
+                </.admin_button>
               </form>
             </div>
 
@@ -733,17 +740,17 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                 </span>
               </button>
             </div>
-          </div>
+          </.admin_card>
 
           <%!-- Sections — comprehensive panel grouped into Essentials,
                Social Proof, and Engagement so merchants can scan quickly. --%>
-          <div class="bg-white rounded-2xl p-4 shadow-sm">
+          <.admin_card padding={:none} class="p-4">
             <div class="flex items-center justify-between gap-2 mb-1">
               <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-xl text-emerald-600">view_module</span>
+                <span class="material-symbols-outlined text-xl text-primary">view_module</span>
                 <h2 class="text-base font-bold text-slate-800">Sections</h2>
               </div>
-              <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+              <span class="text-[10px] font-bold text-primary uppercase tracking-wider">
                 {Enum.count(@sections, fn {_k, v} -> v end)}/{map_size(@sections)} on
               </span>
             </div>
@@ -826,15 +833,15 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                 field="newsletter"
               />
             </div>
-          </div>
+          </.admin_card>
 
           <%!-- Hand-off CTA → Design Studio --%>
           <.link
             navigate="/admin/design"
-            class="block bg-gradient-to-br from-violet-50 to-violet-100 hover:from-violet-100 hover:to-violet-200 rounded-2xl p-4 transition-colors group"
+            class="block bg-gradient-to-br from-violet-50 to-violet-100 hover:from-violet-100 hover:to-violet-200 rounded-card p-4 transition-colors group"
           >
             <div class="flex items-start gap-3">
-              <div class="w-9 h-9 rounded-xl bg-violet-200 group-hover:bg-violet-300 flex items-center justify-center shrink-0 transition-colors">
+              <div class="w-9 h-9 rounded-control bg-violet-200 group-hover:bg-violet-300 flex items-center justify-center shrink-0 transition-colors">
                 <span class="material-symbols-outlined text-lg text-violet-700">tune</span>
               </div>
               <div class="flex-1 min-w-0">
@@ -862,10 +869,10 @@ defmodule EmakolaWeb.Admin.ThemeLive do
             phx-click="save_theme"
             disabled={@saving}
             class={[
-              "ml-auto px-8 py-3 rounded-xl text-sm font-bold shadow-md transition-all active:scale-[0.98]",
+              "ml-auto px-8 py-3 rounded-control text-sm font-bold shadow-md transition-all active:scale-[0.98]",
               if(@saved,
                 do: "bg-emerald-500 text-white",
-                else: "bg-emerald-600 hover:bg-emerald-700 text-white"
+                else: "bg-primary hover:bg-primary-hover text-white"
               )
             ]}
           >
@@ -895,22 +902,22 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       phx-click="toggle_section"
       phx-value-section={@field}
       class={[
-        "flex flex-col items-center gap-2 p-4 rounded-xl transition-all",
+        "flex flex-col items-center gap-2 p-4 rounded-control transition-all",
         if(@enabled,
-          do: "bg-emerald-50 ring-2 ring-emerald-500",
+          do: "bg-primary-soft ring-2 ring-emerald-500",
           else: "bg-slate-50 ring-1 ring-slate-200 opacity-50"
         )
       ]}
     >
       <span class={[
         "material-symbols-outlined text-2xl",
-        if(@enabled, do: "text-emerald-600", else: "text-slate-400")
+        if(@enabled, do: "text-primary", else: "text-slate-400")
       ]}>
         {@icon}
       </span>
       <span class={[
         "text-xs font-semibold",
-        if(@enabled, do: "text-emerald-700", else: "text-slate-400")
+        if(@enabled, do: "text-primary-hover", else: "text-slate-400")
       ]}>
         {@label}
       </span>

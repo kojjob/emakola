@@ -101,7 +101,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       {:ok, _view, html} = live(conn, ~p"/admin/orders/#{order.id}")
 
       assert html =~ order.order_number
-      assert html =~ "Pending"
+      assert html =~ "pending"
     end
 
     test "displays customer information", %{conn: conn, store: store, customer: customer} do
@@ -182,7 +182,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       # Push the confirm_order event directly (simulates clicking modal confirm button)
       html = render_click(view, "confirm_order")
 
-      assert html =~ "Confirmed"
+      assert html =~ "confirmed"
       assert html =~ "Order confirmed"
     end
 
@@ -240,7 +240,7 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
 
       html = render_click(view, "cancel_order")
 
-      assert html =~ "Cancelled"
+      assert html =~ "cancelled"
       assert html =~ "Order cancelled"
     end
 

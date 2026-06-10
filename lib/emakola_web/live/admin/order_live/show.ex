@@ -149,7 +149,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
       <div class="flex items-center gap-4">
         <.link
           navigate={~p"/admin/orders"}
-          class="p-2 rounded-xl hover:bg-slate-100 transition-colors"
+          class="p-2 rounded-control hover:bg-slate-100 transition-colors"
           aria-label="Back to orders"
         >
           <svg
@@ -167,7 +167,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
             <h1 class="text-xl font-bold text-slate-900">
               {if @order, do: @order.order_number, else: "Loading..."}
             </h1>
-            <.order_status_badge :if={@order} status={@order.status} />
+            <.status_pill :if={@order} status={@order.status} variant={:order} />
           </div>
           <p :if={@order} class="text-sm text-slate-500 mt-0.5">
             Placed {format_datetime(@order.inserted_at)}
@@ -180,23 +180,21 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
           <%!-- Main Column --%>
           <div class="lg:col-span-2 space-y-6">
             <%!-- Status Actions --%>
-            <div class="bg-white rounded-2xl shadow-sm p-5">
+            <.admin_card padding={:none} class="p-5">
               <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
                 Order Actions
               </h2>
               <div class="flex flex-wrap gap-3">
-                <button
+                <.admin_button
                   :if={@order.status == :pending}
                   phx-click={show_modal("confirm-order-modal")}
-                  class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
-                         bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
                 >
                   Confirm Order
-                </button>
+                </.admin_button>
                 <button
                   :if={@order.status == :confirmed}
                   phx-click={show_modal("processing-order-modal")}
-                  class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
+                  class="inline-flex items-center gap-2 px-4 py-2.5 rounded-control text-sm font-semibold
                          bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
                 >
                   Start Processing
@@ -204,24 +202,22 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                 <button
                   :if={@order.status == :processing}
                   phx-click={show_modal("shipped-order-modal")}
-                  class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
+                  class="inline-flex items-center gap-2 px-4 py-2.5 rounded-control text-sm font-semibold
                          bg-purple-600 text-white hover:bg-purple-700 transition-colors"
                 >
                   Mark as Shipped
                 </button>
-                <button
+                <.admin_button
                   :if={@order.status == :shipped}
                   phx-click={show_modal("delivered-order-modal")}
-                  class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
-                         bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
                 >
                   Mark as Delivered
-                </button>
+                </.admin_button>
                 <button
                   :if={@order.status not in [:cancelled, :delivered]}
                   phx-click={show_modal("cancel-order-modal")}
                   class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-red-200
-                         rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                         rounded-control text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                 >
                   <svg
                     class="w-4 h-4"
@@ -239,10 +235,10 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                   Cancel Order
                 </button>
               </div>
-            </div>
+            </.admin_card>
 
             <%!-- Line Items --%>
-            <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <.admin_card padding={:none} class="overflow-hidden">
               <div class="px-5 py-4 border-b border-slate-100">
                 <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   Order Items
@@ -314,15 +310,15 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                   class="flex items-center justify-between text-sm pt-2 border-t border-slate-100"
                 >
                   <span class="text-slate-500">Margin</span>
-                  <span class="font-mono font-medium text-emerald-700">
+                  <span class="font-mono font-medium text-success">
                     {format_price(@order.margin, @order.currency)}
                   </span>
                 </div>
               </div>
-            </div>
+            </.admin_card>
 
             <%!-- Fulfillments --%>
-            <div :if={@fulfillments != []} class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <.admin_card :if={@fulfillments != []} padding={:none} class="overflow-hidden">
               <div class="px-5 py-4 border-b border-slate-100">
                 <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   Fulfillments
@@ -366,14 +362,14 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                     :if={not is_nil(f.supplier_id) and f.status not in [:delivered, :cancelled]}
                     class="flex flex-wrap gap-2 pt-1"
                   >
-                    <button
+                    <.admin_button
                       :if={f.status in [:pending, :notified]}
+                      size={:sm}
                       phx-click="send_supplier_fulfillment"
                       phx-value-id={f.id}
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors"
                     >
                       {if f.status == :notified, do: "Resend", else: "Send to supplier"}
-                    </button>
+                    </.admin_button>
                     <button
                       :if={f.status in [:pending, :notified]}
                       phx-click={
@@ -384,14 +380,14 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                     >
                       Mark shipped
                     </button>
-                    <button
+                    <.admin_button
                       :if={f.status == :shipped}
+                      size={:sm}
                       phx-click="deliver_fulfillment"
                       phx-value-id={f.id}
-                      class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors"
                     >
                       Mark delivered
-                    </button>
+                    </.admin_button>
                     <button
                       phx-click="cancel_fulfillment"
                       phx-value-id={f.id}
@@ -403,10 +399,10 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                   </div>
                 </div>
               </div>
-            </div>
+            </.admin_card>
 
             <%!-- Notes --%>
-            <div class="bg-white rounded-2xl shadow-sm p-5">
+            <.admin_card padding={:none} class="p-5">
               <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
                 Notes
               </h2>
@@ -415,27 +411,23 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                   name="notes"
                   rows="3"
                   placeholder="Add internal notes about this order..."
-                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl
+                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-control
                          focus:outline-none focus:ring-2 focus:ring-emerald-500/30
                          focus:border-emerald-500 placeholder:text-slate-400 resize-none"
                 >{@order.notes || ""}</textarea>
                 <div class="flex justify-end mt-2">
-                  <button
-                    type="submit"
-                    class="px-4 py-2 bg-emerald-600 text-white text-sm font-medium
-                           rounded-xl hover:bg-emerald-700 transition-colors"
-                  >
+                  <.admin_button type="submit">
                     Save Notes
-                  </button>
+                  </.admin_button>
                 </div>
               </form>
-            </div>
+            </.admin_card>
           </div>
 
           <%!-- Sidebar --%>
           <div class="space-y-6">
             <%!-- Customer Info --%>
-            <div class="bg-white rounded-2xl shadow-sm p-5">
+            <.admin_card padding={:none} class="p-5">
               <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
                 Customer
               </h2>
@@ -452,34 +444,36 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
               <% else %>
                 <p class="text-sm text-slate-400">No customer information</p>
               <% end %>
-            </div>
+            </.admin_card>
 
             <%!-- Shipping Address --%>
-            <div
+            <.admin_card
               :if={@order.shipping_address}
               id="shipping-address-card"
-              class="bg-white rounded-2xl shadow-sm p-5"
+              padding={:none}
+              class="p-5"
             >
               <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
                 Shipping Address
               </h2>
               <.address_display address={@order.shipping_address} />
-            </div>
+            </.admin_card>
 
             <%!-- Billing Address --%>
-            <div
+            <.admin_card
               :if={@order.billing_address}
               id="billing-address-card"
-              class="bg-white rounded-2xl shadow-sm p-5"
+              padding={:none}
+              class="p-5"
             >
               <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
                 Billing Address
               </h2>
               <.address_display address={@order.billing_address} />
-            </div>
+            </.admin_card>
 
             <%!-- Payment Info --%>
-            <div :if={@payment} class="bg-white rounded-2xl shadow-sm p-5">
+            <.admin_card :if={@payment} padding={:none} class="p-5">
               <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
                 Payment
               </h2>
@@ -492,7 +486,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                 </div>
                 <div class="flex items-center justify-between text-sm">
                   <span class="text-slate-500">Status</span>
-                  <.payment_status_badge status={@payment.status} />
+                  <.status_pill status={@payment.status} variant={:payment} />
                 </div>
                 <div class="flex items-center justify-between text-sm">
                   <span class="text-slate-500">Amount</span>
@@ -510,7 +504,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                   </span>
                 </div>
               </div>
-            </div>
+            </.admin_card>
           </div>
         </div>
 
@@ -520,7 +514,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
           title="Confirm Order"
           message={"Are you sure you want to confirm order #{@order.order_number}? The customer will be notified."}
           confirm_text="Confirm Order"
-          confirm_class="bg-emerald-600 hover:bg-emerald-700 text-white"
+          confirm_class="bg-primary hover:bg-primary-hover text-white"
           on_confirm="confirm_order"
         />
 
@@ -557,18 +551,13 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
               />
             </div>
             <div class="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                phx-click={hide_modal("shipped-order-modal")}
-                class="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300
-                       rounded-xl hover:bg-slate-50 transition-colors"
-              >
+              <.admin_button variant={:secondary} phx-click={hide_modal("shipped-order-modal")}>
                 Cancel
-              </button>
+              </.admin_button>
               <button
                 type="submit"
                 class="px-4 py-2.5 text-sm font-semibold bg-purple-600 text-white
-                       rounded-xl hover:bg-purple-700 transition-colors"
+                       rounded-control hover:bg-purple-700 transition-colors"
               >
                 Mark as Shipped
               </button>
@@ -581,7 +570,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
           title="Mark as Delivered"
           message={"Confirm that order #{@order.order_number} has been delivered to the customer?"}
           confirm_text="Mark as Delivered"
-          confirm_class="bg-emerald-600 hover:bg-emerald-700 text-white"
+          confirm_class="bg-primary hover:bg-primary-hover text-white"
           on_confirm="mark_delivered"
         />
 
@@ -622,19 +611,14 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
               />
             </div>
             <div class="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                phx-click={hide_modal("ship-fulfillment-modal")}
-                class="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300
-                       rounded-xl hover:bg-slate-50 transition-colors"
-              >
+              <.admin_button variant={:secondary} phx-click={hide_modal("ship-fulfillment-modal")}>
                 Cancel
-              </button>
+              </.admin_button>
               <button
                 type="submit"
                 phx-click={hide_modal("ship-fulfillment-modal")}
                 class="px-4 py-2.5 text-sm font-semibold bg-purple-600 text-white
-                       rounded-xl hover:bg-purple-700 transition-colors"
+                       rounded-control hover:bg-purple-700 transition-colors"
               >
                 Mark Shipped
               </button>
@@ -650,37 +634,11 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
 
   attr :status, :atom, required: true
 
-  defp order_status_badge(assigns) do
-    ~H"""
-    <span class={[
-      "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold",
-      status_badge_class(@status)
-    ]}>
-      {status_label(@status)}
-    </span>
-    """
-  end
-
-  attr :status, :atom, required: true
-
   defp fulfillment_status_badge(assigns) do
     ~H"""
     <span class={[
       "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
       fulfillment_badge_class(@status)
-    ]}>
-      {to_string(@status) |> String.capitalize()}
-    </span>
-    """
-  end
-
-  attr :status, :atom, required: true
-
-  defp payment_status_badge(assigns) do
-    ~H"""
-    <span class={[
-      "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-      payment_badge_class(@status)
     ]}>
       {to_string(@status) |> String.capitalize()}
     </span>
@@ -862,37 +820,15 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
     end
   end
 
-  defp status_label(:pending), do: "Pending"
-  defp status_label(:confirmed), do: "Confirmed"
-  defp status_label(:processing), do: "Processing"
-  defp status_label(:shipped), do: "Shipped"
-  defp status_label(:delivered), do: "Delivered"
-  defp status_label(:cancelled), do: "Cancelled"
-  defp status_label(_), do: "Unknown"
-
-  defp status_badge_class(:pending), do: "bg-amber-50 text-amber-700"
-  defp status_badge_class(:confirmed), do: "bg-blue-50 text-blue-700"
-  defp status_badge_class(:processing), do: "bg-indigo-50 text-indigo-700"
-  defp status_badge_class(:shipped), do: "bg-purple-50 text-purple-700"
-  defp status_badge_class(:delivered), do: "bg-emerald-50 text-emerald-700"
-  defp status_badge_class(:cancelled), do: "bg-red-50 text-red-700"
-  defp status_badge_class(_), do: "bg-slate-50 text-slate-700"
-
-  defp fulfillment_badge_class(:pending), do: "bg-amber-50 text-amber-700"
-  defp fulfillment_badge_class(:notified), do: "bg-blue-50 text-blue-700"
+  defp fulfillment_badge_class(:pending), do: "bg-warning-soft text-warning"
+  defp fulfillment_badge_class(:notified), do: "bg-info-soft text-info"
   defp fulfillment_badge_class(:shipped), do: "bg-purple-50 text-purple-700"
-  defp fulfillment_badge_class(:delivered), do: "bg-emerald-50 text-emerald-700"
-  defp fulfillment_badge_class(:cancelled), do: "bg-red-50 text-red-700"
+  defp fulfillment_badge_class(:delivered), do: "bg-success-soft text-success"
+  defp fulfillment_badge_class(:cancelled), do: "bg-danger-soft text-danger"
   defp fulfillment_badge_class(_), do: "bg-slate-50 text-slate-700"
 
   defp fulfillment_label(%{supplier: %{name: name}}) when is_binary(name), do: name
   defp fulfillment_label(_), do: "Your stock"
-
-  defp payment_badge_class(:success), do: "bg-emerald-50 text-emerald-700"
-  defp payment_badge_class(:pending), do: "bg-amber-50 text-amber-700"
-  defp payment_badge_class(:failed), do: "bg-red-50 text-red-700"
-  defp payment_badge_class(:refunded), do: "bg-purple-50 text-purple-700"
-  defp payment_badge_class(_), do: "bg-slate-50 text-slate-700"
 
   defp address_name(address) do
     address_value(address, ["name", :name]) ||

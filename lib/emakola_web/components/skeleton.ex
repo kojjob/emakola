@@ -22,10 +22,10 @@ defmodule EmakolaWeb.Skeleton do
 
   def card(assigns) do
     ~H"""
-    <div class={["bg-surface-container rounded-xl p-6 animate-pulse", @class]}>
-      <div class="h-3 bg-surface-container-highest rounded w-1/3 mb-4"></div>
-      <div class="h-8 bg-surface-container-highest rounded w-1/2 mb-6"></div>
-      <div class="h-2 bg-surface-container-highest rounded w-full"></div>
+    <div class={["bg-slate-100 rounded-xl p-6 animate-pulse", @class]}>
+      <div class="h-3 bg-slate-200 rounded w-1/3 mb-4"></div>
+      <div class="h-8 bg-slate-200 rounded w-1/2 mb-6"></div>
+      <div class="h-2 bg-slate-200 rounded w-full"></div>
     </div>
     """
   end
@@ -40,12 +40,12 @@ defmodule EmakolaWeb.Skeleton do
   def table_row(assigns) do
     ~H"""
     <div class={["flex items-center gap-4 px-6 py-4 animate-pulse", @class]}>
-      <div class="w-10 h-10 rounded-full bg-surface-container-highest"></div>
+      <div class="w-10 h-10 rounded-full bg-slate-200"></div>
       <div class="flex-1 space-y-2">
-        <div class="h-3 bg-surface-container-highest rounded w-1/4"></div>
-        <div class="h-2 bg-surface-container-highest rounded w-1/3"></div>
+        <div class="h-3 bg-slate-200 rounded w-1/4"></div>
+        <div class="h-2 bg-slate-200 rounded w-1/3"></div>
       </div>
-      <div class="h-4 bg-surface-container-highest rounded w-16"></div>
+      <div class="h-4 bg-slate-200 rounded w-16"></div>
     </div>
     """
   end
@@ -60,9 +60,9 @@ defmodule EmakolaWeb.Skeleton do
   def text_block(assigns) do
     ~H"""
     <div class={["space-y-2 animate-pulse", @class]}>
-      <div class="h-3 bg-surface-container-highest rounded w-3/4"></div>
-      <div class="h-3 bg-surface-container-highest rounded w-1/2"></div>
-      <div class="h-3 bg-surface-container-highest rounded w-2/3"></div>
+      <div class="h-3 bg-slate-200 rounded w-3/4"></div>
+      <div class="h-3 bg-slate-200 rounded w-1/2"></div>
+      <div class="h-3 bg-slate-200 rounded w-2/3"></div>
     </div>
     """
   end

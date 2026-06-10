@@ -69,16 +69,16 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
       <div class="flex items-center gap-4">
         <.link
           navigate={~p"/admin/products"}
-          class="p-2 rounded-lg hover:bg-surface-container transition-colors"
+          class="p-2 rounded-lg hover:bg-slate-100 transition-colors"
           aria-label="Back to products"
         >
-          <.icon name="hero-arrow-left" class="size-5 text-on-surface-variant" />
+          <.icon name="hero-arrow-left" class="size-5 text-slate-500" />
         </.link>
         <div>
           <h1 class="text-2xl font-bold font-headline tracking-tight">
             {if @is_edit, do: "Edit Product", else: "New Product"}
           </h1>
-          <p class="text-sm text-on-surface-variant mt-0.5">
+          <p class="text-sm text-slate-500 mt-0.5">
             {if @is_edit, do: "Update product details", else: "Add a new product to your catalog"}
           </p>
         </div>
@@ -87,7 +87,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
       <%!-- Form --%>
       <form phx-change="validate" phx-submit="save_product" class="space-y-6">
         <%!-- Basic Info --%>
-        <div class="bg-surface-container-lowest rounded-lg p-5 space-y-4">
+        <div class="bg-white rounded-lg p-5 space-y-4">
           <h2 class="text-base font-semibold">Basic Information</h2>
 
           <div>
@@ -104,7 +104,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
                 "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
                 if(@errors[:title],
                   do: "border-red-300 bg-red-50",
-                  else: "border-surface-container-highest bg-white"
+                  else: "border-slate-200 bg-white"
                 )
               ]}
             />
@@ -120,7 +120,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
               name="product[description]"
               rows="4"
               placeholder="Describe your product..."
-              class="w-full px-3 py-2.5 text-sm rounded-lg border border-surface-container-highest
+              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200
                      bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >{@form_data["description"]}</textarea>
           </div>
@@ -132,7 +132,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
             <select
               id="product_category_id"
               name="product[category_id]"
-              class="w-full px-3 py-2.5 text-sm rounded-lg border border-surface-container-highest
+              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200
                      bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >
               <option value="">No category</option>
@@ -156,17 +156,17 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
               name="product[tags]"
               value={@form_data["tags"]}
               placeholder="e.g., ankara, fabric, fashion (comma-separated)"
-              class="w-full px-3 py-2.5 text-sm rounded-lg border border-surface-container-highest
+              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200
                      bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
-            <p class="mt-1 text-xs text-on-surface-variant">Separate tags with commas</p>
+            <p class="mt-1 text-xs text-slate-500">Separate tags with commas</p>
           </div>
         </div>
 
         <%!-- SEO --%>
-        <div class="bg-surface-container-lowest rounded-lg p-5 space-y-4">
+        <div class="bg-white rounded-lg p-5 space-y-4">
           <h2 class="text-base font-semibold">SEO</h2>
-          <p class="text-xs text-on-surface-variant -mt-2">
+          <p class="text-xs text-slate-500 -mt-2">
             Optimize how your product appears in search results
           </p>
 
@@ -181,10 +181,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
               value={@form_data["seo_title"]}
               placeholder="Custom title for search engines"
               maxlength="70"
-              class="w-full px-3 py-2.5 text-sm rounded-lg border border-surface-container-highest
+              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200
                      bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
-            <p class="mt-1 text-xs text-on-surface-variant">
+            <p class="mt-1 text-xs text-slate-500">
               {String.length(@form_data["seo_title"] || "")}/70 characters
             </p>
           </div>
@@ -199,10 +199,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
               rows="2"
               maxlength="160"
               placeholder="Brief description for search results"
-              class="w-full px-3 py-2.5 text-sm rounded-lg border border-surface-container-highest
+              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200
                      bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >{@form_data["seo_description"]}</textarea>
-            <p class="mt-1 text-xs text-on-surface-variant">
+            <p class="mt-1 text-xs text-slate-500">
               {String.length(@form_data["seo_description"] || "")}/160 characters
             </p>
           </div>

@@ -155,16 +155,13 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
           </div>
           <p class="text-sm text-slate-500">Manage dropship suppliers and track what you owe them</p>
         </div>
-        <button
-          phx-click="show_form"
-          class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer"
-        >
+        <.admin_button phx-click="show_form">
           <.icon name="hero-plus" class="size-4" /> Add Supplier
-        </button>
+        </.admin_button>
       </div>
 
       <%!-- Add/Edit form --%>
-      <div :if={@show_form} class="bg-white rounded-2xl shadow-sm p-6">
+      <.admin_card :if={@show_form}>
         <h3 class="text-base font-bold text-slate-900 mb-5">
           {if @editing_supplier, do: "Edit Supplier", else: "New Supplier"}
         </h3>
@@ -178,7 +175,7 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
                 value={@editing_supplier && @editing_supplier.name}
                 placeholder="e.g. Accra Wholesale Ltd"
                 required
-                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
             </div>
             <div>
@@ -188,7 +185,7 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
                 name="supplier[contact_phone]"
                 value={@editing_supplier && @editing_supplier.contact_phone}
                 placeholder="+233 24 000 0000"
-                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
             </div>
             <div>
@@ -198,7 +195,7 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
                 name="supplier[whatsapp_number]"
                 value={@editing_supplier && @editing_supplier.whatsapp_number}
                 placeholder="+233 24 000 0000"
-                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
             </div>
             <div>
@@ -208,7 +205,7 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
                 name="supplier[contact_email]"
                 value={@editing_supplier && @editing_supplier.contact_email}
                 placeholder="supplier@example.com"
-                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
             </div>
             <div>
@@ -220,7 +217,7 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
                 name="supplier[payment_info]"
                 value={@editing_supplier && payment_info(@editing_supplier)}
                 placeholder="e.g. MTN MoMo 024 000 0000"
-                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
             </div>
             <div>
@@ -230,31 +227,24 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
                 name="supplier[notes]"
                 value={@editing_supplier && @editing_supplier.notes}
                 placeholder="Lead times, minimums, etc."
-                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
             </div>
           </div>
           <div class="flex justify-end gap-2 mt-4">
-            <button
-              type="button"
-              phx-click="hide_form"
-              class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-            >
+            <.admin_button variant={:secondary} phx-click="hide_form">
               Cancel
-            </button>
-            <button
-              type="submit"
-              class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer"
-            >
+            </.admin_button>
+            <.admin_button type="submit">
               <.icon name="hero-check" class="size-4" />
               {if @editing_supplier, do: "Update Supplier", else: "Add Supplier"}
-            </button>
+            </.admin_button>
           </div>
         </.form>
-      </div>
+      </.admin_card>
 
       <%!-- Suppliers list --%>
-      <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <.admin_card padding={:none} class="overflow-hidden">
         <div :if={@suppliers == []} class="p-12 text-center">
           <.icon name="hero-truck" class="size-12 text-slate-300 mx-auto mb-4" />
           <p class="text-sm font-medium text-slate-500">No suppliers yet</p>
@@ -288,7 +278,7 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
               <td class="px-6 py-4">
                 <.link
                   navigate={~p"/admin/suppliers/#{supplier.id}"}
-                  class="text-sm font-medium text-slate-900 hover:text-emerald-600"
+                  class="text-sm font-medium text-slate-900 hover:text-primary"
                 >
                   {supplier.name}
                 </.link>
@@ -315,7 +305,7 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
                   phx-value-id={supplier.id}
                   class={[
                     "relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer",
-                    if(supplier.active, do: "bg-emerald-600", else: "bg-slate-300")
+                    if(supplier.active, do: "bg-primary", else: "bg-slate-300")
                   ]}
                   role="switch"
                   aria-checked={to_string(supplier.active)}
@@ -348,7 +338,7 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
             </tr>
           </tbody>
         </table>
-      </div>
+      </.admin_card>
     </div>
     """
   end

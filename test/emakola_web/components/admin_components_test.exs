@@ -86,8 +86,8 @@ defmodule EmakolaWeb.AdminComponentsTest do
       cancelled_html =
         render_component(&AdminComponents.status_pill/1, %{status: :cancelled, variant: :order})
 
-      assert paid_html =~ "emerald"
-      assert cancelled_html =~ "red"
+      assert paid_html =~ "success-soft"
+      assert cancelled_html =~ "danger"
     end
 
     test "accepts atom or string status" do
@@ -98,8 +98,8 @@ defmodule EmakolaWeb.AdminComponentsTest do
         render_component(&AdminComponents.status_pill/1, %{status: "pending", variant: :order})
 
       # Both should produce the same colour class
-      assert atom_html =~ "amber"
-      assert string_html =~ "amber"
+      assert atom_html =~ "warning"
+      assert string_html =~ "warning"
     end
 
     test "falls back to slate for unknown status" do
@@ -119,7 +119,7 @@ defmodule EmakolaWeb.AdminComponentsTest do
           variant: :payment
         })
 
-      assert html =~ "emerald"
+      assert html =~ "success-soft"
     end
 
     test "supports product variant" do
@@ -135,8 +135,105 @@ defmodule EmakolaWeb.AdminComponentsTest do
           variant: :product
         })
 
-      assert published =~ "emerald"
+      assert published =~ "success-soft"
       assert draft =~ "slate"
+    end
+  end
+
+  describe "admin_button/1" do
+    test "primary md renders token classes and content" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.admin_button>Save changes</AdminComponents.admin_button>
+        """)
+
+      assert html =~ "bg-primary"
+      assert html =~ "hover:bg-primary-hover"
+      assert html =~ "rounded-control"
+      assert html =~ "px-4 py-2.5"
+      assert html =~ "Save changes"
+      assert html =~ ~s(type="button")
+    end
+
+    test "secondary variant renders bordered surface button" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.admin_button variant={:secondary}>Cancel</AdminComponents.admin_button>
+        """)
+
+      assert html =~ "bg-surface"
+      assert html =~ "border-border"
+      refute html =~ "bg-primary"
+    end
+
+    test "danger variant renders danger tokens" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.admin_button variant={:danger}>Delete</AdminComponents.admin_button>
+        """)
+
+      assert html =~ "bg-danger"
+    end
+
+    test "sm size renders compact padding" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.admin_button size={:sm}>Edit</AdminComponents.admin_button>
+        """)
+
+      assert html =~ "px-3 py-1.5"
+    end
+
+    test "passes through global attrs (phx-click, disabled, type)" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.admin_button type="submit" phx-click="save" disabled={true}>
+          Go
+        </AdminComponents.admin_button>
+        """)
+
+      assert html =~ ~s(type="submit")
+      assert html =~ ~s(phx-click="save")
+      assert html =~ "disabled"
+    end
+  end
+
+  describe "admin_card/1" do
+    test "renders the canonical container with content" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.admin_card>Card body</AdminComponents.admin_card>
+        """)
+
+      assert html =~ "bg-surface"
+      assert html =~ "rounded-card"
+      assert html =~ "border-border"
+      assert html =~ "shadow-sm"
+      assert html =~ "p-6"
+      assert html =~ "Card body"
+    end
+
+    test "padding: :none drops the default padding" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.admin_card padding={:none}>Table here</AdminComponents.admin_card>
+        """)
+
+      refute html =~ "p-6"
     end
   end
 

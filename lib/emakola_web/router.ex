@@ -150,6 +150,7 @@ defmodule EmakolaWeb.Router do
       live "/recipes/:recipe_slug", RecipeLive
       live "/account", AccountLive
       live "/account/downloads", AccountDownloadsLive
+      live "/saved-stores", SavedStoresLive
       live "/wishlist", WishlistLive
       live "/track/:order_number", TrackingLive
       live "/p/:page_slug", PageLive
@@ -189,6 +190,7 @@ defmodule EmakolaWeb.Router do
       live "/admin/products", Admin.ProductLive.Index
       live "/admin/products/new", Admin.ProductLive.Form, :new
       live "/admin/products/:id/edit", Admin.ProductLive.Form, :edit
+      live "/admin/products/:id/files", Admin.ProductLive.DigitalFiles
       live "/admin/categories", Admin.CategoryLive.Index
 
       # Merchant admin — review management

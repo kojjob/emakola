@@ -284,6 +284,20 @@ defmodule Emakola.Catalog.Variant do
       prepare(build(sort: [stock_quantity: :asc], load: [:product, :supplier]))
     end
 
+    read :by_stock_range do
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:min, :integer, allow_nil?: true)
+      argument(:max, :integer, allow_nil?: true)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            (is_nil(^arg(:min)) or stock_quantity >= ^arg(:min)) and
+            (is_nil(^arg(:max)) or stock_quantity <= ^arg(:max))
+        )
+      )
+    end
+
     read :low_stock do
       argument(:threshold, :integer, allow_nil?: false)
       argument(:store_id, :uuid, allow_nil?: false)

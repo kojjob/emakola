@@ -8,7 +8,6 @@ defmodule Emakola.Accounts do
       define(:sign_in_with_password, args: [:email, :password])
       define(:request_magic_link, args: [:email])
       define(:get_user_by_id, action: :read, get_by: [:id])
-      define(:update_user_profile, action: :update_profile)
     end
 
     resource Emakola.Accounts.Organisation do
@@ -22,7 +21,9 @@ defmodule Emakola.Accounts do
       define(:list_memberships_by_user, action: :by_user, args: [:user_id])
     end
 
-    resource(Emakola.Accounts.Merchant)
+    resource Emakola.Accounts.Merchant do
+      define(:update_merchant_profile, action: :update_profile)
+    end
 
     # Store resource moved to Emakola.Stores on 2026-04-26.
     # See docs/PLAN-domain-restructuring-2026-04-26.md Step 3.
