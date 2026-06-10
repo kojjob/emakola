@@ -24,7 +24,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
            current_user: nil,
            onboarding_complete: false,
            notifications: [],
-           unread_notification_count: 0
+           unread_notification_count: 0,
+           pending_order_count: 0
          )}
 
       token ->
@@ -66,7 +67,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
               unread_notification_count: unread,
               product_count: stats.products,
               order_count: stats.orders,
-              customer_count: stats.customers
+              customer_count: stats.customers,
+              pending_order_count: stats.pending_orders
             )
 
           _ ->
@@ -91,7 +93,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
           unread_notification_count: unread,
           product_count: stats.products,
           order_count: stats.orders,
-          customer_count: stats.customers
+          customer_count: stats.customers,
+          pending_order_count: stats.pending_orders
         )
 
       _ ->
@@ -101,7 +104,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
           current_user: nil,
           onboarding_complete: false,
           notifications: [],
-          unread_notification_count: 0
+          unread_notification_count: 0,
+          pending_order_count: 0
         )
     end
   end
@@ -118,7 +122,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
           current_store: nil,
           onboarding_complete: onboarding_complete,
           notifications: notifs,
-          unread_notification_count: unread
+          unread_notification_count: unread,
+          pending_order_count: 0
         )
 
       _ ->
@@ -128,7 +133,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
           current_store: nil,
           onboarding_complete: false,
           notifications: [],
-          unread_notification_count: 0
+          unread_notification_count: 0,
+          pending_order_count: 0
         )
     end
   end
@@ -171,7 +177,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
 
   defp handle_notification_event(_event, _params, socket), do: {:cont, socket}
 
-  defp load_store_stats(nil), do: %{products: 0, orders: 0, customers: 0}
+  defp load_store_stats(nil), do: %{products: 0, orders: 0, customers: 0, pending_orders: 0}
 
   defp load_store_stats(store) do
     product_count =
@@ -192,9 +198,20 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       |> Ash.read!(authorize?: false)
       |> length()
 
-    %{products: product_count, orders: order_count, customers: customer_count}
+    pending_order_count =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(store_id: store.id, status: :pending)
+      |> Ash.read!(authorize?: false)
+      |> length()
+
+    %{
+      products: product_count,
+      orders: order_count,
+      customers: customer_count,
+      pending_orders: pending_order_count
+    }
   rescue
-    _ -> %{products: 0, orders: 0, customers: 0}
+    _ -> %{products: 0, orders: 0, customers: 0, pending_orders: 0}
   end
 
   defp load_notifications(user_id) do

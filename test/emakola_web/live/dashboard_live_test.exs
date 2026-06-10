@@ -142,6 +142,29 @@ defmodule EmakolaWeb.DashboardLiveTest do
     end
   end
 
+  describe "sidebar badges" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "Orders link shows the real pending-order count", %{conn: conn, store: store} do
+      Factory.create_order!(store, %{status: :pending})
+      Factory.create_order!(store, %{status: :pending})
+      Factory.create_order!(store, %{status: :confirmed})
+
+      {:ok, _view, html} = live(conn, ~p"/dashboard")
+
+      assert html =~ ~s(<span class="sidebar-badge nav-label sidebar-badge-emerald">2</span>)
+    end
+
+    test "no sidebar badge renders when there are no pending orders", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/dashboard")
+
+      refute html =~ "sidebar-badge"
+    end
+  end
+
   describe "empty state" do
     test "handles store with no orders gracefully", %{conn: _conn} do
       {conn, _merchant, _store} = setup_authenticated_merchant(build_conn())
