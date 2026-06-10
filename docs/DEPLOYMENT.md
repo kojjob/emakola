@@ -143,6 +143,23 @@ fly secrets set \
 
 > **Note**: `DATABASE_URL` is set automatically by `fly postgres attach`. Do not set it manually.
 
+### Database TLS (`DATABASE_SSL`)
+
+The app verifies the database server's TLS certificate by default
+(`verify_peer` against the OS trust store, with hostname checking).
+
+- **Fly Postgres over private networking** (`DATABASE_URL` host ends in
+  `.internal`): Fly Postgres does not present a publicly verifiable
+  certificate, and the 6PN private network is already encrypted (WireGuard).
+  Set `DATABASE_SSL=false`:
+  ```bash
+  fly secrets set DATABASE_SSL=false --app emakola
+  ```
+- **External database** (Neon, Supabase, RDS, any public endpoint): keep the
+  default (`DATABASE_SSL` unset or `true`) so the connection is encrypted
+  AND the server identity is verified. Never set it to `false` for a
+  database reached over the public internet.
+
 ### Non-Secret Environment Variables
 
 These go in `fly.toml` under `[env]`:

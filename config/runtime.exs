@@ -29,10 +29,31 @@ if config_env() == :prod do
     System.get_env("DATABASE_URL") ||
       raise "environment variable DATABASE_URL is missing."
 
+  # Database TLS. Defaults to full peer verification against the OS trust
+  # store. Set DATABASE_SSL=false only when the connection is already
+  # private and encrypted at a lower layer — e.g. Fly.io 6PN private
+  # networking to a `.internal` Postgres. For any external/public database
+  # keep the default. See docs/DEPLOYMENT.md "Database TLS".
+  database_ssl =
+    case System.get_env("DATABASE_SSL", "true") do
+      "false" ->
+        false
+
+      _ ->
+        [
+          verify: :verify_peer,
+          cacerts: :public_key.cacerts_get(),
+          server_name_indication: to_charlist(URI.parse(database_url).host || ""),
+          customize_hostname_check: [
+            match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
+          ]
+        ]
+    end
+
   config :emakola, Emakola.Repo,
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
-    ssl: System.get_env("DATABASE_SSL", "true") == "true",
+    ssl: database_ssl,
     socket_options: if(System.get_env("ECTO_IPV6") == "true", do: [:inet6], else: [])
 
   # Swoosh / Resend
