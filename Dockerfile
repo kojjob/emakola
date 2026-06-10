@@ -8,7 +8,7 @@
 # ---------------------------------------------------------------------------
 ARG ELIXIR_VERSION=1.18.3
 ARG OTP_VERSION=27.2.4
-ARG DEBIAN_VERSION=bookworm-20250113-slim
+ARG DEBIAN_VERSION=bookworm-20260518-slim
 
 ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
 ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
