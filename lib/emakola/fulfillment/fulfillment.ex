@@ -16,6 +16,8 @@ defmodule Emakola.Fulfillment do
   use Ash.Domain
 
   resources do
-    resource(Emakola.Fulfillment.DownloadGrant)
+    resource Emakola.Fulfillment.DownloadGrant do
+      define(:list_grants_by_customer, action: :list_by_customer, args: [:customer_id, :store_id])
+    end
   end
 end
