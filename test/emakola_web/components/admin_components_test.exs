@@ -86,7 +86,7 @@ defmodule EmakolaWeb.AdminComponentsTest do
       cancelled_html =
         render_component(&AdminComponents.status_pill/1, %{status: :cancelled, variant: :order})
 
-      assert paid_html =~ "primary-soft"
+      assert paid_html =~ "success-soft"
       assert cancelled_html =~ "danger"
     end
 
@@ -119,7 +119,7 @@ defmodule EmakolaWeb.AdminComponentsTest do
           variant: :payment
         })
 
-      assert html =~ "primary-soft"
+      assert html =~ "success-soft"
     end
 
     test "supports product variant" do
@@ -135,15 +135,19 @@ defmodule EmakolaWeb.AdminComponentsTest do
           variant: :product
         })
 
-      assert published =~ "primary-soft"
+      assert published =~ "success-soft"
       assert draft =~ "slate"
     end
   end
 
   describe "admin_button/1" do
     test "primary md renders token classes and content" do
+      assigns = %{}
+
       html =
-        render_component(&AdminComponents.admin_button/1, %{inner_block: inner("Save changes")})
+        rendered_to_string(~H"""
+        <AdminComponents.admin_button>Save changes</AdminComponents.admin_button>
+        """)
 
       assert html =~ "bg-primary"
       assert html =~ "hover:bg-primary-hover"
@@ -154,11 +158,12 @@ defmodule EmakolaWeb.AdminComponentsTest do
     end
 
     test "secondary variant renders bordered surface button" do
+      assigns = %{}
+
       html =
-        render_component(&AdminComponents.admin_button/1, %{
-          variant: :secondary,
-          inner_block: inner("Cancel")
-        })
+        rendered_to_string(~H"""
+        <AdminComponents.admin_button variant={:secondary}>Cancel</AdminComponents.admin_button>
+        """)
 
       assert html =~ "bg-surface"
       assert html =~ "border-border"
@@ -166,30 +171,36 @@ defmodule EmakolaWeb.AdminComponentsTest do
     end
 
     test "danger variant renders danger tokens" do
+      assigns = %{}
+
       html =
-        render_component(&AdminComponents.admin_button/1, %{
-          variant: :danger,
-          inner_block: inner("Delete")
-        })
+        rendered_to_string(~H"""
+        <AdminComponents.admin_button variant={:danger}>Delete</AdminComponents.admin_button>
+        """)
 
       assert html =~ "bg-danger"
     end
 
     test "sm size renders compact padding" do
+      assigns = %{}
+
       html =
-        render_component(&AdminComponents.admin_button/1, %{size: :sm, inner_block: inner("Edit")})
+        rendered_to_string(~H"""
+        <AdminComponents.admin_button size={:sm}>Edit</AdminComponents.admin_button>
+        """)
 
       assert html =~ "px-3 py-1.5"
     end
 
     test "passes through global attrs (phx-click, disabled, type)" do
+      assigns = %{}
+
       html =
-        render_component(&AdminComponents.admin_button/1, %{
-          type: "submit",
-          "phx-click": "save",
-          disabled: true,
-          inner_block: inner("Go")
-        })
+        rendered_to_string(~H"""
+        <AdminComponents.admin_button type="submit" phx-click="save" disabled={true}>
+          Go
+        </AdminComponents.admin_button>
+        """)
 
       assert html =~ ~s(type="submit")
       assert html =~ ~s(phx-click="save")
@@ -199,7 +210,12 @@ defmodule EmakolaWeb.AdminComponentsTest do
 
   describe "admin_card/1" do
     test "renders the canonical container with content" do
-      html = render_component(&AdminComponents.admin_card/1, %{inner_block: inner("Card body")})
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.admin_card>Card body</AdminComponents.admin_card>
+        """)
 
       assert html =~ "bg-surface"
       assert html =~ "rounded-card"
@@ -210,11 +226,12 @@ defmodule EmakolaWeb.AdminComponentsTest do
     end
 
     test "padding: :none drops the default padding" do
+      assigns = %{}
+
       html =
-        render_component(&AdminComponents.admin_card/1, %{
-          padding: :none,
-          inner_block: inner("Table here")
-        })
+        rendered_to_string(~H"""
+        <AdminComponents.admin_card padding={:none}>Table here</AdminComponents.admin_card>
+        """)
 
       refute html =~ "p-6"
     end
@@ -258,6 +275,4 @@ defmodule EmakolaWeb.AdminComponentsTest do
       refute html =~ ~s|href=|
     end
   end
-
-  defp inner(text), do: [%{inner_block: fn _, _ -> text end, __slot__: :inner_block}]
 end

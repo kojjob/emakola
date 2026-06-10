@@ -54,7 +54,7 @@ defmodule EmakolaWeb.AdminComponents do
         <.link
           :if={@action_label && @action_path}
           href={@action_path}
-          class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-semibold rounded-control hover:bg-primary-hover transition-colors cursor-pointer"
+          class={primary_action_classes()}
         >
           {@action_label}
         </.link>
@@ -122,7 +122,7 @@ defmodule EmakolaWeb.AdminComponents do
   defp button_variant(:secondary),
     do: "bg-surface hover:bg-surface-subtle text-text border border-border"
 
-  defp button_variant(:danger), do: "bg-danger hover:bg-red-700 text-white"
+  defp button_variant(:danger), do: "bg-danger hover:bg-danger-hover text-white"
 
   # ─────────────────────────────────────────────────────────────────────
   # admin_card/1
@@ -242,7 +242,7 @@ defmodule EmakolaWeb.AdminComponents do
       <.link
         :if={@action_label && @action_path}
         href={@action_path}
-        class="inline-flex items-center gap-2 mt-5 px-4 py-2.5 bg-primary text-white text-sm font-semibold rounded-control hover:bg-primary-hover transition-colors cursor-pointer"
+        class={["mt-5", primary_action_classes()]}
       >
         {@action_label}
       </.link>
@@ -253,6 +253,11 @@ defmodule EmakolaWeb.AdminComponents do
   # ─────────────────────────────────────────────────────────────────────
   # Internals
   # ─────────────────────────────────────────────────────────────────────
+
+  defp primary_action_classes,
+    do:
+      "inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-white " <>
+        "text-sm font-semibold rounded-control hover:bg-primary-hover transition-colors cursor-pointer"
 
   # Normalise a status to an atom WITHOUT String.to_atom (Iron Law:
   # never `to_atom` user input — atom-exhaustion DoS). Fall back to the
@@ -274,13 +279,13 @@ defmodule EmakolaWeb.AdminComponents do
   defp status_color(:order, :confirmed), do: "bg-info-soft text-info"
   defp status_color(:order, :processing), do: "bg-indigo-50 text-indigo-700"
   defp status_color(:order, :shipped), do: "bg-purple-50 text-purple-700"
-  defp status_color(:order, :delivered), do: "bg-primary-soft text-primary-hover"
+  defp status_color(:order, :delivered), do: "bg-success-soft text-success"
   defp status_color(:order, :cancelled), do: "bg-danger-soft text-danger"
   defp status_color(:order, :refunded), do: "bg-slate-50 text-slate-600"
 
   # ── Payment statuses ───────────────────────────────────────────────
   defp status_color(:payment, :pending), do: "bg-warning-soft text-warning"
-  defp status_color(:payment, :success), do: "bg-primary-soft text-primary-hover"
+  defp status_color(:payment, :success), do: "bg-success-soft text-success"
   defp status_color(:payment, :failed), do: "bg-danger-soft text-danger"
   defp status_color(:payment, :refunded), do: "bg-slate-50 text-slate-600"
 
@@ -288,8 +293,8 @@ defmodule EmakolaWeb.AdminComponents do
   defp status_color(:delivery, status), do: status_color(:order, status)
 
   # ── Product statuses ───────────────────────────────────────────────
-  defp status_color(:product, :active), do: "bg-primary-soft text-primary-hover"
-  defp status_color(:product, :published), do: "bg-primary-soft text-primary-hover"
+  defp status_color(:product, :active), do: "bg-success-soft text-success"
+  defp status_color(:product, :published), do: "bg-success-soft text-success"
   defp status_color(:product, :draft), do: "bg-slate-100 text-slate-700"
   defp status_color(:product, :archived), do: "bg-slate-200 text-slate-600"
 

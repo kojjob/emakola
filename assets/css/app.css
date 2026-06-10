@@ -152,6 +152,7 @@
   --color-warning: #D97706;
   --color-warning-soft: #FEF3C7;
   --color-danger: #DC2626;
+  --color-danger-hover: #B91C1C;  /* red-700 */
   --color-danger-soft: #FEE2E2;
   --color-info: #2563EB;
   --color-info-soft: #EFF6FF;
