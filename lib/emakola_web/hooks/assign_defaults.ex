@@ -189,7 +189,17 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
       |> Ash.count(authorize?: false)
 
-    %{products: product_count || 0, orders: order_count || 0, customers: customer_count || 0}
+    {:ok, pending_order_count} =
+      Emakola.Orders.Order
+      |> Ash.Query.for_read(:list_by_status, %{store_id: store.id, status: :pending})
+      |> Ash.count(authorize?: false)
+
+    %{
+      products: product_count || 0,
+      orders: order_count || 0,
+      customers: customer_count || 0,
+      pending_orders: pending_order_count || 0
+    }
   rescue
     _ -> %{products: 0, orders: 0, customers: 0, pending_orders: 0}
   end
