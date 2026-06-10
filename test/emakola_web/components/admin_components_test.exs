@@ -86,8 +86,8 @@ defmodule EmakolaWeb.AdminComponentsTest do
       cancelled_html =
         render_component(&AdminComponents.status_pill/1, %{status: :cancelled, variant: :order})
 
-      assert paid_html =~ "emerald"
-      assert cancelled_html =~ "red"
+      assert paid_html =~ "primary-soft"
+      assert cancelled_html =~ "danger"
     end
 
     test "accepts atom or string status" do
@@ -98,8 +98,8 @@ defmodule EmakolaWeb.AdminComponentsTest do
         render_component(&AdminComponents.status_pill/1, %{status: "pending", variant: :order})
 
       # Both should produce the same colour class
-      assert atom_html =~ "amber"
-      assert string_html =~ "amber"
+      assert atom_html =~ "warning"
+      assert string_html =~ "warning"
     end
 
     test "falls back to slate for unknown status" do
@@ -119,7 +119,7 @@ defmodule EmakolaWeb.AdminComponentsTest do
           variant: :payment
         })
 
-      assert html =~ "emerald"
+      assert html =~ "primary-soft"
     end
 
     test "supports product variant" do
@@ -135,7 +135,7 @@ defmodule EmakolaWeb.AdminComponentsTest do
           variant: :product
         })
 
-      assert published =~ "emerald"
+      assert published =~ "primary-soft"
       assert draft =~ "slate"
     end
   end
