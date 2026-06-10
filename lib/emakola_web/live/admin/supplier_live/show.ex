@@ -8,8 +8,6 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
 
   import EmakolaWeb.Helpers.Currency, only: [format_price: 2]
 
-  require Ash.Query
-
   @impl true
   def mount(%{"id" => id}, _session, socket) do
     store = socket.assigns.current_store
@@ -35,9 +33,7 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
     entry = Enum.find(socket.assigns.ledger_entries, &(&1.id == entry_id))
 
     if entry do
-      case entry
-           |> Ash.Changeset.for_update(:mark_paid, %{})
-           |> Ash.update(authorize?: false) do
+      case Emakola.Suppliers.mark_ledger_entry_paid(entry, authorize?: false) do
         {:ok, _} ->
           {:noreply,
            socket
@@ -60,11 +56,9 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
 
     supplier =
       if store do
-        case Emakola.Suppliers.Supplier
-             |> Ash.Query.filter(id == ^id and store_id == ^store.id)
-             |> Ash.Query.load(:outstanding_balance)
-             |> Ash.read(authorize?: false) do
-          {:ok, [supplier]} -> supplier
+        case Emakola.Suppliers.get_supplier_by_store(id, store.id, authorize?: false) do
+          {:ok, nil} -> nil
+          {:ok, s} -> Ash.load!(s, :outstanding_balance, authorize?: false)
           _ -> nil
         end
       end
