@@ -15,9 +15,9 @@ defmodule Emakola.Themes.Akoma.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#1A1A1A" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#2F5D50" %>;
-        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#F8F9F7" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#1A1A1A") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#2F5D50") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#F8F9F7") %>;
       }
       .akoma-body { font-family: 'Inter', sans-serif; color: #1A1A1A; background: var(--theme-bg); }
       .akoma-heading { font-family: 'Manrope', 'Inter', sans-serif; letter-spacing: -0.015em; }

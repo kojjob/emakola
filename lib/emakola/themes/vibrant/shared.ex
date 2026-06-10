@@ -27,10 +27,10 @@ defmodule Emakola.Themes.Vibrant.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#B45309" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#7C2D12" %>;
-        --theme-highlight: <%= get_in(@theme, [:colors, :highlight]) || "#F59E0B" %>;
-        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#FFFBEB" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#B45309") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#7C2D12") %>;
+        --theme-highlight: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :highlight]), "#F59E0B") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#FFFBEB") %>;
       }
     </style>
     """

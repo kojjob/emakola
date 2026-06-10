@@ -15,10 +15,10 @@ defmodule Emakola.Themes.Heritage.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#7A1F1F" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#D4A843" %>;
-        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#FAF6EC" %>;
-        --theme-on-dark: <%= get_in(@theme, [:colors, :on_dark]) || "#F5EFE0" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#7A1F1F") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#D4A843") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#FAF6EC") %>;
+        --theme-on-dark: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :on_dark]), "#F5EFE0") %>;
       }
       .heritage-body { font-family: 'Inter', sans-serif; color: #3D2817; background: var(--theme-bg); }
       .heritage-heading { font-family: 'Playfair Display', serif; letter-spacing: -0.01em; }

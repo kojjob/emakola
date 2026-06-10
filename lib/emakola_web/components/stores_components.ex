@@ -17,6 +17,7 @@ defmodule EmakolaWeb.StoresComponents do
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.ThemeResolver
+  alias EmakolaWeb.Helpers.CssColor
 
   @regions [
     {"", "All regions"},
@@ -80,8 +81,8 @@ defmodule EmakolaWeb.StoresComponents do
           />
         <% else %>
           <div
-            class="absolute inset-0"
-            style={"background: linear-gradient(135deg, #{theme_primary(@store)} 0%, #{theme_accent(@store)} 100%);"}
+            class="absolute inset-0 bg-[linear-gradient(135deg,var(--color-store-accent),var(--color-cta-dark))]"
+            style={card_theme_vars(@store)}
           >
           </div>
           <div class="absolute inset-0 flex items-center justify-center">
@@ -122,8 +123,8 @@ defmodule EmakolaWeb.StoresComponents do
             />
           <% else %>
             <span
-              class="text-base font-bold"
-              style={"color: #{theme_primary(@store)};"}
+              class="text-base font-bold text-store-accent"
+              style={card_theme_vars(@store)}
             >
               {String.first(@store.name) |> String.upcase()}
             </span>
@@ -275,8 +276,8 @@ defmodule EmakolaWeb.StoresComponents do
                     />
                   <% else %>
                     <div
-                      class="absolute inset-0"
-                      style={"background: linear-gradient(135deg, #{theme_primary(store)} 0%, #{theme_accent(store)} 100%);"}
+                      class="absolute inset-0 bg-[linear-gradient(135deg,var(--color-store-accent),var(--color-cta-dark))]"
+                      style={card_theme_vars(store)}
                     >
                     </div>
                     <div class="absolute inset-0 flex items-center justify-center">
@@ -306,8 +307,8 @@ defmodule EmakolaWeb.StoresComponents do
                         />
                       <% else %>
                         <span
-                          class="text-base font-bold"
-                          style={"color: #{theme_primary(store)};"}
+                          class="text-base font-bold text-store-accent"
+                          style={card_theme_vars(store)}
                         >
                           {String.first(store.name) |> String.upcase()}
                         </span>
@@ -461,8 +462,8 @@ defmodule EmakolaWeb.StoresComponents do
                   />
                 <% else %>
                   <div
-                    class="absolute inset-0"
-                    style={"background: linear-gradient(135deg, #{theme_primary(store)} 0%, #{theme_accent(store)} 100%);"}
+                    class="absolute inset-0 bg-[linear-gradient(135deg,var(--color-store-accent),var(--color-cta-dark))]"
+                    style={card_theme_vars(store)}
                   >
                   </div>
                   <%!-- Texture: diagonal lines for richer fallback --%>
@@ -555,8 +556,8 @@ defmodule EmakolaWeb.StoresComponents do
                     />
                   <% else %>
                     <div
-                      class="w-14 h-14 rounded-2xl ring-4 ring-white shadow-xl flex items-center justify-center"
-                      style={"background: linear-gradient(135deg, #{theme_primary(store)} 0%, #{theme_accent(store)} 100%);"}
+                      class="w-14 h-14 rounded-2xl ring-4 ring-white shadow-xl flex items-center justify-center bg-[linear-gradient(135deg,var(--color-store-accent),var(--color-cta-dark))]"
+                      style={card_theme_vars(store)}
                     >
                       <span class="text-xl font-black text-white drop-shadow-sm">
                         {String.first(store.name) |> String.upcase()}
@@ -708,8 +709,8 @@ defmodule EmakolaWeb.StoresComponents do
                 />
               <% else %>
                 <div
-                  class="absolute inset-0"
-                  style={"background: linear-gradient(135deg, #{theme_primary(store)} 0%, #{theme_accent(store)} 100%);"}
+                  class="absolute inset-0 bg-[linear-gradient(135deg,var(--color-store-accent),var(--color-cta-dark))]"
+                  style={card_theme_vars(store)}
                 >
                 </div>
               <% end %>
@@ -944,6 +945,16 @@ defmodule EmakolaWeb.StoresComponents do
       nil -> "#0EA5E9"
       id -> resolve_color(id, :accent, "#0EA5E9")
     end
+  end
+
+  # Scopes the store's theme colors onto a single card element so the
+  # `--color-store-accent` / `--color-cta-dark` utilities resolve per-card.
+  # Setting the color tokens directly is the simplest override: inline
+  # style declarations are unlayered, so they beat the `@layer theme`
+  # :root token declarations for this element and its descendants.
+  defp card_theme_vars(store) do
+    "--color-store-accent: #{CssColor.safe_css_color(theme_primary(store), "#B45309")}; " <>
+      "--color-cta-dark: #{CssColor.safe_css_color(theme_accent(store), "#1C1917")}"
   end
 
   defp resolve_color(theme_id, key, fallback) do

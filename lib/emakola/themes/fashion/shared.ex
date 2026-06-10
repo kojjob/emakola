@@ -14,9 +14,9 @@ defmodule Emakola.Themes.Fashion.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#5B21B6" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#D97706" %>;
-        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#FAF6EE" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#5B21B6") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#D97706") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#FAF6EE") %>;
       }
       .fashion-body { font-family: 'Inter', sans-serif; color: #1C1917; background: var(--theme-bg); }
       .fashion-heading { font-family: 'Playfair Display', serif; letter-spacing: -0.005em; }

@@ -165,18 +165,39 @@
   --color-emakola-emerald-500: #10B981;
   --color-emakola-emerald-600: #059669;
   --color-emakola-gold: #CA8A04;          /* admin accent (atelier gold) */
-  --color-store-accent: #B45309;          /* storefront accent (amber-700) */
+  --color-store-accent: var(--theme-primary, #B45309); /* storefront accent — follows merchant theme */
   --color-store-accent-light: #FEF3C7;
-  --color-cta-dark: #1C1917;              /* storefront dark CTA / nav */
+  --color-store-accent-soft: #FEF3C7;
+  --color-store-accent-bright: #F59E0B;
+  --color-cta-dark: var(--theme-accent, #1C1917);      /* storefront dark CTA / nav — follows merchant theme */
+  --color-store-bg: var(--theme-bg, #FAFAF9);
   --color-mtn: #FFC107;                   /* MTN MoMo brand */
   --color-voda: #E60000;                  /* Vodafone Cash brand */
   --color-whatsapp: #25D366;              /* WhatsApp green */
+  --color-whatsapp-dark: #1FAF55;         /* WhatsApp hover */
+  --color-facebook: #1877F2;
+  --color-facebook-dark: #0E62D0;
+  --color-tiktok: #1F1F1F;
+  --color-x-black: #0F1419;
+  --color-instagram-orange: #F58529;      /* Instagram brand gradient stops */
+  --color-instagram-pink: #DD2A7B;
+  --color-instagram-purple: #8134AF;
 
   /* ── Fonts ── */
   --font-headline: 'Manrope', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
   --font-label: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* Theme-following tints — modern browsers derive them from the accent;
+   older browsers keep the static amber fallbacks declared in @theme. */
+@supports (color: color-mix(in srgb, red, white)) {
+  :root {
+    --color-store-accent-bright: color-mix(in srgb, var(--color-store-accent), white 35%);
+    --color-store-accent-soft: color-mix(in srgb, var(--color-store-accent), white 85%);
+    --color-store-accent-light: color-mix(in srgb, var(--color-store-accent), white 85%);
+  }
 }
 
 /* ── Body base ── */

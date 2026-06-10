@@ -15,10 +15,10 @@ defmodule Emakola.Themes.Beauty.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#6B4423" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#C9925E" %>;
-        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#F5EFE5" %>;
-        --theme-on-dark: <%= get_in(@theme, [:colors, :on_dark]) || "#FAF6EE" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#6B4423") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#C9925E") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#F5EFE5") %>;
+        --theme-on-dark: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :on_dark]), "#FAF6EE") %>;
       }
       .beauty-body { font-family: 'Manrope', sans-serif; color: #3D2F25; background: var(--theme-bg); }
       .beauty-heading { font-family: 'Cormorant Garamond', serif; letter-spacing: -0.005em; }

@@ -62,9 +62,9 @@
   <% end %>
   <style>
     :root {
-      --theme-primary: <%= assigns[:theme][:colors][:primary] || "#2563EB" %>;
-      --theme-accent: <%= assigns[:theme][:colors][:accent] || "#0F172A" %>;
-      --theme-bg: <%= assigns[:theme][:colors][:background] || "#FFFFFF" %>;
+      --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(assigns[:theme][:colors][:primary], "#2563EB") %>;
+      --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(assigns[:theme][:colors][:accent], "#0F172A") %>;
+      --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(assigns[:theme][:colors][:background], "#FFFFFF") %>;
       --dt-heading-font: <%= heading_font %>;
       --dt-body-font: <%= body_font %>;
       --dt-btn-radius: <%= case tokens[:button_style] do "pill" -> "9999px"; "square" -> "0px"; _ -> "0.5rem" end %>;
@@ -82,10 +82,15 @@
 <div
   class="min-h-screen flex flex-col bg-[#FAFAF9] text-[#0C0A09] font-[Inter,system-ui,-apple-system,sans-serif] antialiased"
   style={
-    if assigns[:theme] && assigns[:theme][:fonts],
-      do:
-        "font-family: '#{assigns[:theme][:fonts][:body]}', system-ui, -apple-system, sans-serif",
-      else: nil
+    with %{} <- assigns[:theme],
+         family when family != "inherit" <-
+           Emakola.Themes.DesignTokens.body_font_family(
+             assigns[:theme][:design_tokens][:body_font] || "sans"
+           ) do
+      "font-family: #{family}"
+    else
+      _ -> nil
+    end
   }
 >
   <!-- Top Bar (hidden when theme provides its own nav) -->
