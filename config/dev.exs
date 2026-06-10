@@ -13,6 +13,10 @@ config :emakola, Emakola.Repo,
 # Use local filesystem storage in dev (no S3 needed)
 config :emakola, :storage, Emakola.Storage.Local
 
+# AshAuthentication token signing secret — dev-only value
+config :emakola,
+  token_signing_secret: "dev-only-not-for-production-at-least-32-bytes!!"
+
 # Payment gateway credentials — harmless placeholders for dev (env vars
 # override). Prod credentials are set in runtime.exs.
 config :emakola, Emakola.Payments.PaystackClient,

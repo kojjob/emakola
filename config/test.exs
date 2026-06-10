@@ -19,6 +19,10 @@ config :emakola, Emakola.Repo,
 # Oban: manual mode for assert_enqueued/refute_enqueued in tests
 config :emakola, Oban, testing: :manual
 
+# AshAuthentication token signing secret — test-only value
+config :emakola,
+  token_signing_secret: "dev-only-not-for-production-at-least-32-bytes!!"
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :emakola, EmakolaWeb.Endpoint,

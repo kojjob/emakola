@@ -83,10 +83,8 @@ config :emakola,
     Emakola.Fulfillment
   ]
 
-# Token signing secret — loaded from env var; fallback only for dev/test
-config :emakola,
-  token_signing_secret:
-    System.get_env("TOKEN_SIGNING_SECRET", "dev-only-not-for-production-at-least-32-bytes!!")
+# Token signing secret is set per environment: dev.exs/test.exs use a
+# fixed dev-only value; prod requires TOKEN_SIGNING_SECRET (runtime.exs).
 
 # Database
 config :emakola, Emakola.Repo, migration_primary_key: [name: :id, type: :binary_id]

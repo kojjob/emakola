@@ -115,6 +115,16 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
+  # AshAuthentication token signing secret (User/Merchant/Customer tokens).
+  # Resources read this at runtime via Application.fetch_env/2.
+  config :emakola,
+         :token_signing_secret,
+         System.get_env("TOKEN_SIGNING_SECRET") ||
+           raise("""
+           environment variable TOKEN_SIGNING_SECRET is missing.
+           You can generate one by calling: mix phx.gen.secret 64
+           """)
+
   host = System.get_env("PHX_HOST") || "example.com"
 
   config :emakola, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")

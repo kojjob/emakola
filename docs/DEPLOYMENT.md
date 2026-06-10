@@ -103,6 +103,7 @@ mix phx.gen.secret
 ```bash
 fly secrets set \
   SECRET_KEY_BASE="<generated-secret>" \
+  TOKEN_SIGNING_SECRET="<generated-secret>" \
   PHX_HOST="emakola.com" \
   PHX_SERVER=true \
   POOL_SIZE=10 \
