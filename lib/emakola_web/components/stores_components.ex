@@ -949,9 +949,9 @@ defmodule EmakolaWeb.StoresComponents do
 
   # Scopes the store's theme colors onto a single card element so the
   # `--color-store-accent` / `--color-cta-dark` utilities resolve per-card.
-  # The tokens are set directly (not via `--theme-*`) because the @theme
-  # bridge resolves its var() references at :root, so per-element
-  # `--theme-*` overrides would not propagate through it.
+  # Setting the color tokens directly is the simplest override: inline
+  # style declarations are unlayered, so they beat the `@layer theme`
+  # :root token declarations for this element and its descendants.
   defp card_theme_vars(store) do
     "--color-store-accent: #{CssColor.safe_css_color(theme_primary(store), "#B45309")}; " <>
       "--color-cta-dark: #{CssColor.safe_css_color(theme_accent(store), "#1C1917")}"
