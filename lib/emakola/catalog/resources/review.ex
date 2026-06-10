@@ -152,6 +152,14 @@ defmodule Emakola.Catalog.Review do
       change(set_attribute(:status, :published))
     end
 
+    read :list_published_by_product do
+      argument(:product_id, :uuid, allow_nil?: false)
+
+      filter(expr(product_id == ^arg(:product_id) and status == :published))
+
+      prepare(build(sort: [inserted_at: :desc], load: [:customer]))
+    end
+
     read :list_admin do
       argument(:store_id, :uuid, allow_nil?: false)
       argument(:status, :atom, allow_nil?: true)

@@ -278,6 +278,27 @@ defmodule Emakola.Catalog.Product do
       end)
     end
 
+    read :get_by_slug do
+      get?(true)
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:slug, :string, allow_nil?: false)
+
+      filter(expr(store_id == ^arg(:store_id) and slug == ^arg(:slug) and status == :active))
+
+      prepare(
+        build(load: [:variants, :images, :min_price, :max_price, :avg_rating, :review_count])
+      )
+    end
+
+    read :list_related do
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:product_id, :uuid, allow_nil?: false)
+
+      filter(expr(store_id == ^arg(:store_id) and status == :active and id != ^arg(:product_id)))
+
+      prepare(build(load: [:images, :min_price, :max_price]))
+    end
+
     read :list_by_category do
       argument(:category_id, :uuid, allow_nil?: false)
       argument(:store_id, :uuid, allow_nil?: false)

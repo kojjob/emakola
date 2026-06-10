@@ -15,8 +15,6 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.SEO, as: SEOHelpers
 
-  require Ash.Query
-
   @impl true
   def mount(%{"store_slug" => slug, "product_slug" => product_slug}, session, socket) do
     store = socket.assigns.store
@@ -187,18 +185,19 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
       order_id ->
         images = consume_review_photo_uploads(socket)
 
-        case Emakola.Catalog.Review
-             |> Ash.Changeset.for_create(:create, %{
-               store_id: store.id,
-               product_id: product.id,
-               customer_id: socket.assigns.review_customer_id,
-               order_id: order_id,
-               rating: rating,
-               title: if(title == "", do: nil, else: title),
-               body: body,
-               images: images
-             })
-             |> Ash.create(authorize?: false) do
+        case Emakola.Catalog.create_review(
+               %{
+                 store_id: store.id,
+                 product_id: product.id,
+                 customer_id: socket.assigns.review_customer_id,
+                 order_id: order_id,
+                 rating: rating,
+                 title: if(title == "", do: nil, else: title),
+                 body: body,
+                 images: images
+               },
+               authorize?: false
+             ) do
           {:ok, _} ->
             updated_product =
               product |> Ash.load!([:avg_rating, :review_count], authorize?: false)
@@ -224,9 +223,9 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   def handle_event("share-product", %{"platform" => platform} = _params, socket) do
     # Public/anonymous storefront tracking — no actor required.
     # Atomic SQL UPDATE means concurrent shares can't collide.
-    case socket.assigns.product
-         |> Ash.Changeset.for_update(:increment_share_count, %{})
-         |> Ash.update(authorize?: false) do
+    case Emakola.Catalog.increment_product_share_count(socket.assigns.product,
+           authorize?: false
+         ) do
       {:ok, updated} ->
         require Logger
         Logger.debug("[share] platform=#{platform} product=#{updated.id}")
@@ -254,25 +253,23 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   # -- Helpers --
 
   defp load_product(store_id, product_slug) do
-    Emakola.Catalog.Product
-    |> Ash.Query.filter(store_id == ^store_id and slug == ^product_slug and status == :active)
-    |> Ash.Query.load([:variants, :images, :min_price, :max_price, :avg_rating, :review_count])
-    |> Ash.read_one!()
+    case Emakola.Catalog.get_product_by_slug(store_id, product_slug, authorize?: false) do
+      {:ok, product} -> product
+      _ -> nil
+    end
   end
 
   defp load_option_types(product) do
-    Emakola.Catalog.OptionType
-    |> Ash.Query.filter(product_id == ^product.id)
-    |> Ash.Query.load(:option_values)
-    |> Ash.Query.sort(position: :asc)
-    |> Ash.read!(authorize?: false)
+    case Emakola.Catalog.list_option_types_by_product(product.id, authorize?: false) do
+      {:ok, option_types} -> option_types
+      _ -> []
+    end
   end
 
   defp load_related_products(store, product) do
     Emakola.Catalog.Product
-    |> Ash.Query.filter(store_id == ^store.id and status == :active and id != ^product.id)
+    |> Ash.Query.for_read(:list_related, %{store_id: store.id, product_id: product.id})
     |> Ash.Query.limit(6)
-    |> Ash.Query.load([:images, :min_price, :max_price])
     |> Ash.read!(authorize?: false)
   end
 
@@ -281,11 +278,12 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   defp load_variant_option_values(variants) do
     variant_ids = Enum.map(variants, & &1.id)
 
-    Emakola.Catalog.VariantOptionValue
-    |> Ash.Query.filter(variant_id in ^variant_ids)
-    |> Ash.Query.load(:option_value)
-    |> Ash.read!(authorize?: false)
-    |> Enum.group_by(& &1.variant_id)
+    case Emakola.Catalog.list_variant_option_values_by_variants(variant_ids,
+           authorize?: false
+         ) do
+      {:ok, vovs} -> Enum.group_by(vovs, & &1.variant_id)
+      _ -> %{}
+    end
   end
 
   defp build_initial_options([], _variant, _vov_map), do: %{}
@@ -333,10 +331,8 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
 
   defp load_reviews(product_id) do
     Emakola.Catalog.Review
-    |> Ash.Query.filter(product_id == ^product_id and status == :published)
-    |> Ash.Query.sort(inserted_at: :desc)
+    |> Ash.Query.for_read(:list_published_by_product, %{product_id: product_id})
     |> Ash.Query.limit(20)
-    |> Ash.Query.load([:customer])
     |> Ash.read!(authorize?: false)
   end
 

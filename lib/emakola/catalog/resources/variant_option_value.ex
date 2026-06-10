@@ -79,6 +79,14 @@ defmodule Emakola.Catalog.VariantOptionValue do
   actions do
     defaults([:read, :destroy])
 
+    read :list_by_variants do
+      argument(:variant_ids, {:array, :uuid}, allow_nil?: false)
+
+      filter(expr(variant_id in ^arg(:variant_ids)))
+
+      prepare(build(load: [:option_value]))
+    end
+
     create :create do
       accept([:variant_id, :option_value_id, :store_id])
     end
