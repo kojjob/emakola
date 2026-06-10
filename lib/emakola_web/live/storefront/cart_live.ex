@@ -13,8 +13,6 @@ defmodule EmakolaWeb.Storefront.CartLive do
 
   alias Emakola.Cart.CartStore
 
-  require Ash.Query
-
   @impl true
   def mount(_params, session, socket) do
     store = socket.assigns.store

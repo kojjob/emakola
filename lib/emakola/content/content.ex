@@ -20,6 +20,7 @@ defmodule Emakola.Content do
       define(:list_published_posts, action: :list_published)
       define(:get_post_by_slug, action: :get_by_slug, args: [:slug])
       define(:get_post_for_admin, action: :get_for_admin, args: [:id, :store_id])
+      define(:increment_post_views, action: :increment_views)
     end
 
     resource Emakola.Content.MediaAttachment do

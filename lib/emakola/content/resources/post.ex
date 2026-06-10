@@ -246,6 +246,7 @@ defmodule Emakola.Content.Post do
     read :list_published do
       argument(:store_id, :uuid)
       argument(:type, :atom, constraints: [one_of: [:blog_post, :page, :recipe, :guide]])
+      argument(:exclude_id, :uuid, allow_nil?: true)
 
       filter(expr(status == :published))
 
@@ -261,6 +262,12 @@ defmodule Emakola.Content.Post do
           case Ash.Query.get_argument(q, :type) do
             nil -> q
             type -> Ash.Query.filter(q, type == ^type)
+          end
+        end)
+        |> then(fn q ->
+          case Ash.Query.get_argument(q, :exclude_id) do
+            nil -> q
+            excl_id -> Ash.Query.filter(q, id != ^excl_id)
           end
         end)
         |> Ash.Query.sort(published_at: :desc)

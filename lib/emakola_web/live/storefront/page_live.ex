@@ -13,8 +13,6 @@ defmodule EmakolaWeb.Storefront.PageLive do
   """
   use EmakolaWeb, :live_view
 
-  require Ash.Query
-
   @impl true
   def mount(%{"page_slug" => page_slug}, _session, socket) do
     store = socket.assigns[:store]
