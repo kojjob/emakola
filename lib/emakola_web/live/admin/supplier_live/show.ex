@@ -18,7 +18,7 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
       socket
       |> assign(
         page_title: "Supplier",
-        active_nav: :settings,
+        active_nav: :suppliers,
         store: store,
         supplier_id: id,
         supplier: nil,
