@@ -34,7 +34,7 @@ defmodule EmakolaWeb.Admin.SupplierLiveTest do
     test "can add a new supplier via the form", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/admin/settings/suppliers")
 
-      view |> element("[phx-click=\"show_form\"]") |> render_click()
+      view |> element("#add-supplier-btn") |> render_click()
 
       html =
         view
@@ -73,10 +73,15 @@ defmodule EmakolaWeb.Admin.SupplierLiveTest do
       assert reloaded.contact_phone == "+233244444444"
     end
 
+    # The active toggle lives inside the edit slide-over now.
     test "toggles supplier active status", %{conn: conn, store: store} do
       supplier = Factory.create_supplier!(store, name: "Toggle Co", active: true)
 
       {:ok, view, _html} = live(conn, ~p"/admin/settings/suppliers")
+
+      view
+      |> element("button[phx-click=\"edit_supplier\"][phx-value-id=\"#{supplier.id}\"]")
+      |> render_click()
 
       view
       |> element("button[phx-click=\"toggle_active\"][phx-value-id=\"#{supplier.id}\"]")
@@ -84,6 +89,48 @@ defmodule EmakolaWeb.Admin.SupplierLiveTest do
 
       reloaded = Ash.reload!(supplier, authorize?: false)
       assert reloaded.active == false
+    end
+
+    test "tiles show tap-to-call and WhatsApp links when numbers exist", %{
+      conn: conn,
+      store: store
+    } do
+      Factory.create_supplier!(store,
+        name: "Reachable Co",
+        contact_phone: "+233 24 000 0000",
+        whatsapp_number: "+233 24 111 1111"
+      )
+
+      {:ok, view, _html} = live(conn, ~p"/admin/settings/suppliers")
+
+      assert has_element?(view, ~s{a[href="tel:+233 24 000 0000"]})
+      assert has_element?(view, ~s{a[href="https://wa.me/233241111111"]})
+    end
+
+    test "tiles omit contact links when numbers are missing", %{conn: conn, store: store} do
+      Factory.create_supplier!(store, name: "Silent Co")
+
+      {:ok, view, _html} = live(conn, ~p"/admin/settings/suppliers")
+
+      refute has_element?(view, ~s{a[href^="tel:"]})
+      refute has_element?(view, ~s{a[href^="https://wa.me"]})
+    end
+
+    test "inactive suppliers are labelled", %{conn: conn, store: store} do
+      Factory.create_supplier!(store, name: "Dormant Co", active: false)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/settings/suppliers")
+
+      assert html =~ "Dormant Co"
+      assert html =~ "Inactive"
+    end
+
+    test "grid includes a dashed add-supplier tile", %{conn: conn, store: store} do
+      Factory.create_supplier!(store, name: "Any Co")
+
+      {:ok, view, _html} = live(conn, ~p"/admin/settings/suppliers")
+
+      assert has_element?(view, "#add-supplier-tile")
     end
 
     test "displays outstanding balance for a supplier with owed ledger entries", %{
@@ -117,9 +164,47 @@ defmodule EmakolaWeb.Admin.SupplierLiveTest do
       {:ok, _view, html} = live(conn, ~p"/admin/suppliers/#{supplier.id}")
 
       assert html =~ "Ledger Co"
-      assert html =~ "Outstanding Balance"
+      assert html =~ "You owe"
       assert html =~ "300"
-      assert html =~ "Owed"
+      assert html =~ "Mark Paid"
+    end
+
+    test "shows big metric cards: owed, paid so far, payment count", %{conn: conn, store: store} do
+      supplier = Factory.create_supplier!(store, name: "Metrics Co")
+      order = Factory.create_order!(store)
+      fulfillment = Factory.create_fulfillment!(order, store, supplier_id: supplier.id)
+
+      Factory.create_supplier_ledger_entry!(supplier, fulfillment, store, amount_owed: 30_000)
+
+      order2 = Factory.create_order!(store)
+      fulfillment2 = Factory.create_fulfillment!(order2, store, supplier_id: supplier.id)
+
+      paid =
+        Factory.create_supplier_ledger_entry!(supplier, fulfillment2, store, amount_owed: 20_000)
+
+      Emakola.Suppliers.mark_ledger_entry_paid!(paid, authorize?: false)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/suppliers/#{supplier.id}")
+
+      assert html =~ "You owe"
+      assert html =~ "300"
+      assert html =~ "Paid so far"
+      assert html =~ "200"
+      assert html =~ "Payments"
+    end
+
+    test "header has call and WhatsApp links for the supplier", %{conn: conn, store: store} do
+      supplier =
+        Factory.create_supplier!(store,
+          name: "Contact Co",
+          contact_phone: "+233200000000",
+          whatsapp_number: "+233 20 123 4567"
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/admin/suppliers/#{supplier.id}")
+
+      assert has_element?(view, ~s{a[href="tel:+233200000000"]})
+      assert has_element?(view, ~s{a[href="https://wa.me/233201234567"]})
     end
 
     test "marking an owed entry paid updates the balance", %{conn: conn, store: store} do
