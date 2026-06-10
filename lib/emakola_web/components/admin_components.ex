@@ -130,6 +130,46 @@ defmodule EmakolaWeb.AdminComponents do
   defp button_variant(:danger), do: "bg-danger hover:bg-red-700 text-white"
 
   # ─────────────────────────────────────────────────────────────────────
+  # admin_card/1
+  # ─────────────────────────────────────────────────────────────────────
+
+  @doc """
+  Renders the canonical admin card container on semantic design tokens.
+
+  Use `padding: :none` for flush content such as tables that manage their
+  own cell padding.
+
+  ## Examples
+
+      <.admin_card>
+        <h2>Store details</h2>
+      </.admin_card>
+
+      <.admin_card padding={:none}>
+        <table>...</table>
+      </.admin_card>
+  """
+  attr :padding, :atom, default: :default, values: [:default, :none]
+  attr :class, :string, default: nil
+  attr :rest, :global
+  slot :inner_block, required: true
+
+  def admin_card(assigns) do
+    ~H"""
+    <div
+      class={[
+        "bg-surface rounded-card border border-border shadow-sm",
+        @padding == :default && "p-6",
+        @class
+      ]}
+      {@rest}
+    >
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
+  # ─────────────────────────────────────────────────────────────────────
   # status_pill/1
   # ─────────────────────────────────────────────────────────────────────
 

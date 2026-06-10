@@ -197,6 +197,29 @@ defmodule EmakolaWeb.AdminComponentsTest do
     end
   end
 
+  describe "admin_card/1" do
+    test "renders the canonical container with content" do
+      html = render_component(&AdminComponents.admin_card/1, %{inner_block: inner("Card body")})
+
+      assert html =~ "bg-surface"
+      assert html =~ "rounded-card"
+      assert html =~ "border-border"
+      assert html =~ "shadow-sm"
+      assert html =~ "p-6"
+      assert html =~ "Card body"
+    end
+
+    test "padding: :none drops the default padding" do
+      html =
+        render_component(&AdminComponents.admin_card/1, %{
+          padding: :none,
+          inner_block: inner("Table here")
+        })
+
+      refute html =~ "p-6"
+    end
+  end
+
   describe "empty_state/1" do
     test "renders title" do
       html =
