@@ -35,7 +35,7 @@ jobs:
       DATABASE_URL: ecto://postgres:postgres@localhost:5432/emakola_test
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Elixir
         uses: erlef/setup-beam@v1
@@ -44,7 +44,7 @@ jobs:
           otp-version: "27"
 
       - name: Cache deps
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             deps
