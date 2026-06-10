@@ -18,16 +18,16 @@ IO.puts("🌱 Seeding Emakola database...")
 # =============================================================================
 
 defmodule Seeds do
-  @doc "Create via Ash changeset, raise on failure"
+  @doc "Create via Ash changeset, raise on failure. Seeds are system code: authorize?: false."
   def create!(resource, action, params, opts \\ []) do
     resource
-    |> Ash.Changeset.for_create(action, params, opts)
+    |> Ash.Changeset.for_create(action, params, Keyword.put_new(opts, :authorize?, false))
     |> Ash.create!()
   end
 
   def update!(record, action, params, opts \\ []) do
     record
-    |> Ash.Changeset.for_update(action, params, opts)
+    |> Ash.Changeset.for_update(action, params, Keyword.put_new(opts, :authorize?, false))
     |> Ash.update!()
   end
 
@@ -1983,6 +1983,1174 @@ Seeds.create!(Emakola.Content.MediaAttachment, :create, %{
 IO.puts("    5 blog posts, 2 recipes, 1 page, 10 media attachments created")
 
 # =============================================================================
+# 6. MERCHANT 3: TINY STITCHES (Baby Fashion & Clothing)
+# =============================================================================
+
+IO.puts("  Creating Merchant 3: Tiny Stitches...")
+
+merchant3 =
+  Seeds.create!(Emakola.Accounts.Merchant, :register_with_password, %{
+    email: "efua@tinystitches.com",
+    password: "Password123!",
+    password_confirmation: "Password123!"
+  })
+
+merchant3 =
+  Seeds.update!(merchant3, :update_profile, %{
+    name: "Efua Asamoah",
+    phone: "+233208777111",
+    business_name: "Tiny Stitches"
+  })
+
+org3 =
+  Seeds.create!(Emakola.Accounts.Organisation, :create, %{
+    name: "Tiny Stitches Ltd",
+    billing_email: "billing@tinystitches.com"
+  })
+
+user3 =
+  Seeds.create!(Emakola.Accounts.User, :register_with_password, %{
+    email: "efua@tinystitches.com",
+    password: "Password123!",
+    password_confirmation: "Password123!"
+  })
+
+Seeds.create!(Emakola.Accounts.Membership, :create, %{
+  user_id: user3.id,
+  organisation_id: org3.id,
+  role: :owner
+})
+
+store3 =
+  Seeds.create!(Emakola.Stores.Store, :create, %{
+    name: "Tiny Stitches",
+    slug: "tiny-stitches",
+    currency: "GHS"
+  })
+
+store3 =
+  Seeds.update!(store3, :update_settings, %{
+    description:
+      "Handmade and curated baby clothing from Osu, Accra. Soft organic fabrics, Ankara and Kente accents, and everyday essentials for your little one — stitched with love.",
+    contact_email: "hello@tinystitches.com",
+    contact_phone: "+233208777111",
+    whatsapp_number: "+233208777111",
+    city: "Accra",
+    region: "Greater Accra"
+  })
+
+Seeds.create!(Emakola.Accounts.StoreMembership, :create, %{
+  merchant_id: merchant3.id,
+  store_id: store3.id,
+  role: :owner
+})
+
+Seeds.create!(Emakola.Billing.Subscription, :create, %{
+  stripe_subscription_id: "sub_tiny_seed_001",
+  stripe_customer_id: "cus_tiny_seed_001",
+  status: :active,
+  current_period_start: DateTime.utc_now() |> DateTime.add(-7, :day),
+  current_period_end: DateTime.utc_now() |> DateTime.add(23, :day),
+  organisation_id: org3.id,
+  plan_id: starter_plan.id
+})
+
+# -- Supplier (dropshipping) --
+IO.puts("    Supplier...")
+
+supplier_korle =
+  Seeds.create!(Emakola.Suppliers.Supplier, :create, %{
+    store_id: store3.id,
+    name: "Korle Wholesale Baby Goods",
+    contact_phone: "+233244666222",
+    whatsapp_number: "+233244666222",
+    contact_email: "orders@korlewholesale.com",
+    payment_details: %{
+      "method" => "momo",
+      "provider" => "MTN MoMo",
+      "number" => "+233244666222",
+      "account_name" => "Korle Wholesale Baby Goods"
+    },
+    notes: "Wholesale baby goods from Korle Dudor. Pays out weekly. Delivers within 48 hours."
+  })
+
+# -- Categories --
+IO.puts("    Categories...")
+
+cat_onesies =
+  Seeds.create!(Emakola.Catalog.Category, :create, %{
+    name: "Onesies & Rompers",
+    store_id: store3.id,
+    description: "Everyday onesies, rompers, and bodysuits in soft breathable cotton",
+    position: 0
+  })
+
+cat_baby_dresses =
+  Seeds.create!(Emakola.Catalog.Category, :create, %{
+    name: "Baby Dresses",
+    store_id: store3.id,
+    description: "Special occasion gowns and pretty everyday dresses",
+    position: 1
+  })
+
+cat_sleepwear =
+  Seeds.create!(Emakola.Catalog.Category, :create, %{
+    name: "Sleepwear",
+    store_id: store3.id,
+    description: "Sleepsuits, pyjamas, and sleep sacks for sweet dreams",
+    position: 2
+  })
+
+cat_booties =
+  Seeds.create!(Emakola.Catalog.Category, :create, %{
+    name: "Booties & Shoes",
+    store_id: store3.id,
+    description: "Soft-sole booties and crib shoes for tiny feet",
+    position: 3
+  })
+
+cat_baby_acc =
+  Seeds.create!(Emakola.Catalog.Category, :create, %{
+    name: "Accessories",
+    store_id: store3.id,
+    description: "Bibs, hats, and blankets to complete the look",
+    position: 4
+  })
+
+# -- Products --
+IO.puts("    Products & Variants...")
+
+# Product 1: Ankara Print Romper (own stock)
+tp1 =
+  Seeds.create!(Emakola.Catalog.Product, :create, %{
+    title: "Ankara Print Romper",
+    store_id: store3.id,
+    category_id: cat_onesies.id,
+    description:
+      "A playful romper cut from vibrant Ankara wax print, fully lined with soft cotton jersey so it never scratches delicate skin. Snap buttons at the crotch make nappy changes easy. Sewn in our Osu workshop.",
+    tags: ["ankara", "romper", "baby", "wax-print", "handmade"],
+    seo_title: "Ankara Print Baby Romper | Tiny Stitches",
+    seo_description:
+      "Handmade Ankara wax print baby romper, fully cotton-lined. Sewn in Osu, Accra."
+  })
+
+tp1_size =
+  Seeds.create!(Emakola.Catalog.OptionType, :create, %{
+    name: "Size",
+    product_id: tp1.id,
+    store_id: store3.id
+  })
+
+tp1_variants =
+  for {size, price, stock, pos} <- [
+        {"0-3M", 5_500, 25, 0},
+        {"3-6M", 5_500, 18, 1},
+        {"6-12M", 6_000, 12, 2}
+      ] do
+    ov =
+      Seeds.create!(Emakola.Catalog.OptionValue, :create, %{
+        value: size,
+        option_type_id: tp1_size.id,
+        store_id: store3.id,
+        position: pos
+      })
+
+    v =
+      Seeds.create!(Emakola.Catalog.Variant, :create, %{
+        product_id: tp1.id,
+        store_id: store3.id,
+        price: price,
+        sku: "TS-ANKROM-#{size}",
+        stock_quantity: stock,
+        weight_grams: 120,
+        position: pos
+      })
+
+    Seeds.create!(Emakola.Catalog.VariantOptionValue, :create, %{
+      variant_id: v.id,
+      option_value_id: ov.id,
+      store_id: store3.id
+    })
+
+    v
+  end
+
+tp1_0_3m = Enum.at(tp1_variants, 0)
+
+Seeds.create!(Emakola.Catalog.Image, :create, %{
+  product_id: tp1.id,
+  store_id: store3.id,
+  url: "https://images.unsplash.com/photo-1522771930-78848d9293e8?w=800&q=80",
+  alt_text: "Ankara print baby romper on a hanger",
+  content_type: "image/jpeg",
+  file_size_bytes: 215_000
+})
+
+Seeds.create!(Emakola.Catalog.Image, :create, %{
+  product_id: tp1.id,
+  store_id: store3.id,
+  url: "https://images.unsplash.com/photo-1544126592-807ade215a0b?w=800&q=80",
+  alt_text: "Baby clothes laid out flat showing romper details",
+  content_type: "image/jpeg",
+  file_size_bytes: 198_000
+})
+
+tp1 = Seeds.update!(tp1, :activate, %{})
+
+# Product 2: Kente Trim Christening Gown (own stock, low stock)
+tp2 =
+  Seeds.create!(Emakola.Catalog.Product, :create, %{
+    title: "Kente Trim Christening Gown",
+    store_id: store3.id,
+    category_id: cat_baby_dresses.id,
+    description:
+      "An heirloom-quality christening gown in white cotton voile, finished with a genuine handwoven Kente strip at the hem and matching headband. Made to order touches by our seamstresses for outdoorings, naming ceremonies, and christenings.",
+    tags: ["kente", "christening", "gown", "outdooring", "naming-ceremony", "special-occasion"],
+    seo_title: "Kente Trim Christening Gown | Tiny Stitches",
+    seo_description:
+      "White cotton christening gown with handwoven Kente trim. Perfect for outdoorings and naming ceremonies."
+  })
+
+tp2_size =
+  Seeds.create!(Emakola.Catalog.OptionType, :create, %{
+    name: "Size",
+    product_id: tp2.id,
+    store_id: store3.id
+  })
+
+tp2_variants =
+  for {size, stock, pos} <- [{"3-6M", 4, 0}, {"6-12M", 6, 1}, {"12-24M", 3, 2}] do
+    ov =
+      Seeds.create!(Emakola.Catalog.OptionValue, :create, %{
+        value: size,
+        option_type_id: tp2_size.id,
+        store_id: store3.id,
+        position: pos
+      })
+
+    v =
+      Seeds.create!(Emakola.Catalog.Variant, :create, %{
+        product_id: tp2.id,
+        store_id: store3.id,
+        price: 14_500,
+        compare_at_price: 16_500,
+        sku: "TS-KENGOWN-#{size}",
+        stock_quantity: stock,
+        weight_grams: 220,
+        position: pos
+      })
+
+    Seeds.create!(Emakola.Catalog.VariantOptionValue, :create, %{
+      variant_id: v.id,
+      option_value_id: ov.id,
+      store_id: store3.id
+    })
+
+    v
+  end
+
+tp2_6_12m = Enum.at(tp2_variants, 1)
+
+Seeds.create!(Emakola.Catalog.Image, :create, %{
+  product_id: tp2.id,
+  store_id: store3.id,
+  url: "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?w=800&q=80",
+  alt_text: "Baby girl in a white ceremony dress",
+  content_type: "image/jpeg",
+  file_size_bytes: 240_000
+})
+
+Seeds.create!(Emakola.Catalog.Image, :create, %{
+  product_id: tp2.id,
+  store_id: store3.id,
+  url: "https://images.unsplash.com/photo-1596870230751-ebdfce98ec42?w=800&q=80",
+  alt_text: "Christening gown detail with woven trim",
+  content_type: "image/jpeg",
+  file_size_bytes: 205_000
+})
+
+tp2 = Seeds.update!(tp2, :activate, %{})
+
+# Product 3: Adinkra Sleepsuit (own stock)
+tp3 =
+  Seeds.create!(Emakola.Catalog.Product, :create, %{
+    title: "Adinkra Sleepsuit",
+    store_id: store3.id,
+    category_id: cat_sleepwear.id,
+    description:
+      "Cosy footed sleepsuit printed with Adinkra symbols — Gye Nyame, Sankofa, and Akoma — in warm earth tones. Zip-front with a chin guard for fuss-free bedtime. 100% combed cotton.",
+    tags: ["adinkra", "sleepsuit", "sleepwear", "cotton", "symbols"]
+  })
+
+tp3_size =
+  Seeds.create!(Emakola.Catalog.OptionType, :create, %{
+    name: "Size",
+    product_id: tp3.id,
+    store_id: store3.id
+  })
+
+tp3_variants =
+  for {size, stock, pos} <- [{"0-3M", 30, 0}, {"3-6M", 22, 1}, {"6-12M", 15, 2}] do
+    ov =
+      Seeds.create!(Emakola.Catalog.OptionValue, :create, %{
+        value: size,
+        option_type_id: tp3_size.id,
+        store_id: store3.id,
+        position: pos
+      })
+
+    v =
+      Seeds.create!(Emakola.Catalog.Variant, :create, %{
+        product_id: tp3.id,
+        store_id: store3.id,
+        price: 6_500,
+        sku: "TS-ADISLP-#{size}",
+        stock_quantity: stock,
+        weight_grams: 150,
+        position: pos
+      })
+
+    Seeds.create!(Emakola.Catalog.VariantOptionValue, :create, %{
+      variant_id: v.id,
+      option_value_id: ov.id,
+      store_id: store3.id
+    })
+
+    v
+  end
+
+tp3_3_6m = Enum.at(tp3_variants, 1)
+
+Seeds.create!(Emakola.Catalog.Image, :create, %{
+  product_id: tp3.id,
+  store_id: store3.id,
+  url: "https://images.unsplash.com/photo-1555252333-9f8e92e65df9?w=800&q=80",
+  alt_text: "Baby sleepsuit with symbol print laid flat",
+  content_type: "image/jpeg",
+  file_size_bytes: 188_000
+})
+
+tp3 = Seeds.update!(tp3, :activate, %{})
+
+# Product 4: Organic Cotton Onesie 3-Pack (own stock)
+tp4 =
+  Seeds.create!(Emakola.Catalog.Product, :create, %{
+    title: "Organic Cotton Onesie 3-Pack",
+    store_id: store3.id,
+    category_id: cat_onesies.id,
+    description:
+      "Three everyday short-sleeve onesies in cream, sage, and sand. GOTS-certified organic cotton, envelope necklines for easy dressing, and reinforced snap closures. The nursery staple every Accra mum swears by.",
+    tags: ["organic", "onesie", "3-pack", "essentials", "cotton"]
+  })
+
+tp4_size =
+  Seeds.create!(Emakola.Catalog.OptionType, :create, %{
+    name: "Size",
+    product_id: tp4.id,
+    store_id: store3.id
+  })
+
+tp4_variants =
+  for {size, stock, pos} <- [
+        {"0-3M", 40, 0},
+        {"3-6M", 35, 1},
+        {"6-12M", 28, 2},
+        {"12-24M", 20, 3}
+      ] do
+    ov =
+      Seeds.create!(Emakola.Catalog.OptionValue, :create, %{
+        value: size,
+        option_type_id: tp4_size.id,
+        store_id: store3.id,
+        position: pos
+      })
+
+    v =
+      Seeds.create!(Emakola.Catalog.Variant, :create, %{
+        product_id: tp4.id,
+        store_id: store3.id,
+        price: 4_800,
+        compare_at_price: 5_800,
+        sku: "TS-ORG3PK-#{size}",
+        stock_quantity: stock,
+        weight_grams: 210,
+        position: pos
+      })
+
+    Seeds.create!(Emakola.Catalog.VariantOptionValue, :create, %{
+      variant_id: v.id,
+      option_value_id: ov.id,
+      store_id: store3.id
+    })
+
+    v
+  end
+
+tp4_3_6m = Enum.at(tp4_variants, 1)
+
+Seeds.create!(Emakola.Catalog.Image, :create, %{
+  product_id: tp4.id,
+  store_id: store3.id,
+  url: "https://images.unsplash.com/photo-1622290291468-a28f7a7dc6a8?w=800&q=80",
+  alt_text: "Neutral organic cotton baby onesies folded in a stack",
+  content_type: "image/jpeg",
+  file_size_bytes: 176_000
+})
+
+tp4 = Seeds.update!(tp4, :activate, %{})
+
+# Product 5: Gye Nyame Embroidered Booties (DROPSHIPPED via Korle Wholesale)
+tp5 =
+  Seeds.create!(Emakola.Catalog.Product, :create, %{
+    title: "Gye Nyame Embroidered Booties",
+    store_id: store3.id,
+    category_id: cat_booties.id,
+    description:
+      "Soft fleece-lined booties embroidered with the Gye Nyame symbol. Elasticated ankles keep them on even the kickiest feet. Supplied fresh from our partner workshop at Korle Dudor.",
+    tags: ["gye-nyame", "booties", "embroidered", "adinkra", "dropship"]
+  })
+
+tp5_size =
+  Seeds.create!(Emakola.Catalog.OptionType, :create, %{
+    name: "Size",
+    product_id: tp5.id,
+    store_id: store3.id
+  })
+
+tp5_variants =
+  for {size, pos} <- [{"0-3M", 0}, {"3-6M", 1}, {"6-12M", 2}] do
+    ov =
+      Seeds.create!(Emakola.Catalog.OptionValue, :create, %{
+        value: size,
+        option_type_id: tp5_size.id,
+        store_id: store3.id,
+        position: pos
+      })
+
+    v =
+      Seeds.create!(Emakola.Catalog.Variant, :create, %{
+        product_id: tp5.id,
+        store_id: store3.id,
+        price: 3_800,
+        sku: "TS-GYEBOOT-#{size}",
+        stock_quantity: 0,
+        weight_grams: 80,
+        position: pos,
+        supplier_id: supplier_korle.id,
+        cost_price: 2_300,
+        available: true
+      })
+
+    Seeds.create!(Emakola.Catalog.VariantOptionValue, :create, %{
+      variant_id: v.id,
+      option_value_id: ov.id,
+      store_id: store3.id
+    })
+
+    v
+  end
+
+tp5_3_6m = Enum.at(tp5_variants, 1)
+
+Seeds.create!(Emakola.Catalog.Image, :create, %{
+  product_id: tp5.id,
+  store_id: store3.id,
+  url: "https://images.unsplash.com/photo-1519457431-44ccd64a579b?w=800&q=80",
+  alt_text: "Pair of soft knitted baby booties",
+  content_type: "image/jpeg",
+  file_size_bytes: 162_000
+})
+
+tp5 = Seeds.update!(tp5, :activate, %{})
+
+# Product 6: Batakari Baby Smock (own stock, low stock)
+tp6 =
+  Seeds.create!(Emakola.Catalog.Product, :create, %{
+    title: "Batakari Baby Smock",
+    store_id: store3.id,
+    category_id: cat_baby_dresses.id,
+    description:
+      "A miniature Batakari smock hand-loomed in the Northern Region and softened for baby wear. Perfect for festivals, family durbars, and photoshoots. Each smock's stripe pattern is one of a kind.",
+    tags: ["batakari", "fugu", "smock", "northern", "traditional", "festival"]
+  })
+
+tp6_size =
+  Seeds.create!(Emakola.Catalog.OptionType, :create, %{
+    name: "Size",
+    product_id: tp6.id,
+    store_id: store3.id
+  })
+
+tp6_variants =
+  for {size, stock, pos} <- [{"6-12M", 8, 0}, {"12-24M", 5, 1}] do
+    ov =
+      Seeds.create!(Emakola.Catalog.OptionValue, :create, %{
+        value: size,
+        option_type_id: tp6_size.id,
+        store_id: store3.id,
+        position: pos
+      })
+
+    v =
+      Seeds.create!(Emakola.Catalog.Variant, :create, %{
+        product_id: tp6.id,
+        store_id: store3.id,
+        price: 9_500,
+        sku: "TS-BATSMK-#{size}",
+        stock_quantity: stock,
+        weight_grams: 180,
+        position: pos
+      })
+
+    Seeds.create!(Emakola.Catalog.VariantOptionValue, :create, %{
+      variant_id: v.id,
+      option_value_id: ov.id,
+      store_id: store3.id
+    })
+
+    v
+  end
+
+Seeds.create!(Emakola.Catalog.Image, :create, %{
+  product_id: tp6.id,
+  store_id: store3.id,
+  url: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=800&q=80",
+  alt_text: "Happy baby wearing a woven smock",
+  content_type: "image/jpeg",
+  file_size_bytes: 230_000
+})
+
+tp6 = Seeds.update!(tp6, :activate, %{})
+
+# Product 7: Mudcloth Print Sleep Sack (DROPSHIPPED via Korle Wholesale)
+tp7 =
+  Seeds.create!(Emakola.Catalog.Product, :create, %{
+    title: "Mudcloth Print Sleep Sack",
+    store_id: store3.id,
+    category_id: cat_sleepwear.id,
+    description:
+      "Wearable blanket in a bogolan-inspired mudcloth print. Breathable double-layer muslin keeps baby at the right temperature through harmattan nights. Shoulder snaps and an inverted zip for midnight changes.",
+    tags: ["mudcloth", "sleep-sack", "muslin", "sleepwear", "dropship"]
+  })
+
+tp7_size =
+  Seeds.create!(Emakola.Catalog.OptionType, :create, %{
+    name: "Size",
+    product_id: tp7.id,
+    store_id: store3.id
+  })
+
+tp7_variants =
+  for {size, pos} <- [{"3-6M", 0}, {"6-12M", 1}] do
+    ov =
+      Seeds.create!(Emakola.Catalog.OptionValue, :create, %{
+        value: size,
+        option_type_id: tp7_size.id,
+        store_id: store3.id,
+        position: pos
+      })
+
+    v =
+      Seeds.create!(Emakola.Catalog.Variant, :create, %{
+        product_id: tp7.id,
+        store_id: store3.id,
+        price: 8_500,
+        sku: "TS-MUDSAK-#{size}",
+        stock_quantity: 0,
+        weight_grams: 260,
+        position: pos,
+        supplier_id: supplier_korle.id,
+        cost_price: 5_100,
+        available: true
+      })
+
+    Seeds.create!(Emakola.Catalog.VariantOptionValue, :create, %{
+      variant_id: v.id,
+      option_value_id: ov.id,
+      store_id: store3.id
+    })
+
+    v
+  end
+
+tp7_6_12m = Enum.at(tp7_variants, 1)
+
+Seeds.create!(Emakola.Catalog.Image, :create, %{
+  product_id: tp7.id,
+  store_id: store3.id,
+  url: "https://images.unsplash.com/photo-1518831959646-742c3a14ebf7?w=800&q=80",
+  alt_text: "Sleeping baby wrapped in a patterned sleep sack",
+  content_type: "image/jpeg",
+  file_size_bytes: 195_000
+})
+
+tp7 = Seeds.update!(tp7, :activate, %{})
+
+# Product 8: Akoma Heart Bib Set (own stock)
+tp8 =
+  Seeds.create!(Emakola.Catalog.Product, :create, %{
+    title: "Akoma Heart Bib Set",
+    store_id: store3.id,
+    category_id: cat_baby_acc.id,
+    description:
+      "Bandana dribble bibs appliqued with the Akoma (heart) symbol — patience and tolerance for teething days. Absorbent terry backing with adjustable poppers.",
+    tags: ["akoma", "bib", "set", "teething", "accessories"]
+  })
+
+tp8_set =
+  Seeds.create!(Emakola.Catalog.OptionType, :create, %{
+    name: "Set Size",
+    product_id: tp8.id,
+    store_id: store3.id
+  })
+
+tp8_variants =
+  for {set, price, stock, pos} <- [{"Set of 3", 3_000, 50, 0}, {"Set of 5", 4_500, 35, 1}] do
+    ov =
+      Seeds.create!(Emakola.Catalog.OptionValue, :create, %{
+        value: set,
+        option_type_id: tp8_set.id,
+        store_id: store3.id,
+        position: pos
+      })
+
+    v =
+      Seeds.create!(Emakola.Catalog.Variant, :create, %{
+        product_id: tp8.id,
+        store_id: store3.id,
+        price: price,
+        sku: "TS-AKOBIB-#{pos + 3}",
+        stock_quantity: stock,
+        weight_grams: 90,
+        position: pos
+      })
+
+    Seeds.create!(Emakola.Catalog.VariantOptionValue, :create, %{
+      variant_id: v.id,
+      option_value_id: ov.id,
+      store_id: store3.id
+    })
+
+    v
+  end
+
+tp8_set3 = Enum.at(tp8_variants, 0)
+
+Seeds.create!(Emakola.Catalog.Image, :create, %{
+  product_id: tp8.id,
+  store_id: store3.id,
+  url: "https://images.unsplash.com/photo-1471286174890-9c112ffca5b4?w=800&q=80",
+  alt_text: "Baby wearing a bandana bib",
+  content_type: "image/jpeg",
+  file_size_bytes: 184_000
+})
+
+tp8 = Seeds.update!(tp8, :activate, %{})
+
+# Product 9: Ananse Sun Hat (own stock)
+tp9 =
+  Seeds.create!(Emakola.Catalog.Product, :create, %{
+    title: "Ananse Sun Hat",
+    store_id: store3.id,
+    category_id: cat_baby_acc.id,
+    description:
+      "Wide-brim bucket hat printed with a cheeky Ananse the spider motif. UPF 50+ fabric and a soft chin strap for breezy beach days at Labadi.",
+    tags: ["ananse", "sun-hat", "upf", "beach", "accessories"]
+  })
+
+tp9_size =
+  Seeds.create!(Emakola.Catalog.OptionType, :create, %{
+    name: "Size",
+    product_id: tp9.id,
+    store_id: store3.id
+  })
+
+tp9_variants =
+  for {size, stock, pos} <- [{"3-6M", 22, 0}, {"6-12M", 18, 1}, {"12-24M", 9, 2}] do
+    ov =
+      Seeds.create!(Emakola.Catalog.OptionValue, :create, %{
+        value: size,
+        option_type_id: tp9_size.id,
+        store_id: store3.id,
+        position: pos
+      })
+
+    v =
+      Seeds.create!(Emakola.Catalog.Variant, :create, %{
+        product_id: tp9.id,
+        store_id: store3.id,
+        price: 4_000,
+        sku: "TS-ANAHAT-#{size}",
+        stock_quantity: stock,
+        weight_grams: 60,
+        position: pos
+      })
+
+    Seeds.create!(Emakola.Catalog.VariantOptionValue, :create, %{
+      variant_id: v.id,
+      option_value_id: ov.id,
+      store_id: store3.id
+    })
+
+    v
+  end
+
+tp9_6_12m = Enum.at(tp9_variants, 1)
+
+Seeds.create!(Emakola.Catalog.Image, :create, %{
+  product_id: tp9.id,
+  store_id: store3.id,
+  url: "https://images.unsplash.com/photo-1502781252888-9143ba7f074e?w=800&q=80",
+  alt_text: "Baby in a sun hat outdoors",
+  content_type: "image/jpeg",
+  file_size_bytes: 172_000
+})
+
+tp9 = Seeds.update!(tp9, :activate, %{})
+
+# Product 10: Kente Pattern Baby Blanket (DROPSHIPPED via Korle Wholesale)
+tp10 =
+  Seeds.create!(Emakola.Catalog.Product, :create, %{
+    title: "Kente Pattern Baby Blanket",
+    store_id: store3.id,
+    category_id: cat_baby_acc.id,
+    description:
+      "Jacquard-knit cotton blanket in a classic Kente colourway — gold, green, and deep red. Machine washable and gift-boxed; the favourite outdooring gift in our shop.",
+    tags: ["kente", "blanket", "gift", "outdooring", "dropship"]
+  })
+
+tp10_size =
+  Seeds.create!(Emakola.Catalog.OptionType, :create, %{
+    name: "Size",
+    product_id: tp10.id,
+    store_id: store3.id
+  })
+
+tp10_variants =
+  for {size, price, compare, cost, pos} <- [
+        {"Pram (70x90cm)", 9_500, nil, 5_700, 0},
+        {"Cot (100x140cm)", 12_500, 14_500, 7_500, 1}
+      ] do
+    ov =
+      Seeds.create!(Emakola.Catalog.OptionValue, :create, %{
+        value: size,
+        option_type_id: tp10_size.id,
+        store_id: store3.id,
+        position: pos
+      })
+
+    v =
+      Seeds.create!(Emakola.Catalog.Variant, :create, %{
+        product_id: tp10.id,
+        store_id: store3.id,
+        price: price,
+        compare_at_price: compare,
+        sku: "TS-KENBLK-#{if pos == 0, do: "PRAM", else: "COT"}",
+        stock_quantity: 0,
+        weight_grams: 400 + pos * 250,
+        position: pos,
+        supplier_id: supplier_korle.id,
+        cost_price: cost,
+        available: true
+      })
+
+    Seeds.create!(Emakola.Catalog.VariantOptionValue, :create, %{
+      variant_id: v.id,
+      option_value_id: ov.id,
+      store_id: store3.id
+    })
+
+    v
+  end
+
+tp10_cot = Enum.at(tp10_variants, 1)
+
+Seeds.create!(Emakola.Catalog.Image, :create, %{
+  product_id: tp10.id,
+  store_id: store3.id,
+  url: "https://images.unsplash.com/photo-1612462766564-895ea3388d2b?w=800&q=80",
+  alt_text: "Folded baby blanket in bright woven pattern",
+  content_type: "image/jpeg",
+  file_size_bytes: 210_000
+})
+
+Seeds.create!(Emakola.Catalog.Image, :create, %{
+  product_id: tp10.id,
+  store_id: store3.id,
+  url: "https://images.unsplash.com/photo-1540479859555-17af45c78602?w=800&q=80",
+  alt_text: "Baby blanket draped over a cot",
+  content_type: "image/jpeg",
+  file_size_bytes: 192_000
+})
+
+tp10 = Seeds.update!(tp10, :activate, %{})
+
+# Product 11: Adinkra Print Pyjama Set (own stock)
+tp11 =
+  Seeds.create!(Emakola.Catalog.Product, :create, %{
+    title: "Adinkra Print Pyjama Set",
+    store_id: store3.id,
+    category_id: cat_sleepwear.id,
+    description:
+      "Two-piece long-sleeve pyjama set scattered with Sankofa birds. Ribbed cuffs at wrists and ankles, tagless neckline, pre-washed for zero shrinkage.",
+    tags: ["adinkra", "sankofa", "pyjamas", "sleepwear", "two-piece"]
+  })
+
+tp11_size =
+  Seeds.create!(Emakola.Catalog.OptionType, :create, %{
+    name: "Size",
+    product_id: tp11.id,
+    store_id: store3.id
+  })
+
+tp11_variants =
+  for {size, stock, pos} <- [{"6-12M", 16, 0}, {"12-24M", 11, 1}] do
+    ov =
+      Seeds.create!(Emakola.Catalog.OptionValue, :create, %{
+        value: size,
+        option_type_id: tp11_size.id,
+        store_id: store3.id,
+        position: pos
+      })
+
+    v =
+      Seeds.create!(Emakola.Catalog.Variant, :create, %{
+        product_id: tp11.id,
+        store_id: store3.id,
+        price: 7_500,
+        sku: "TS-ADIPJ-#{size}",
+        stock_quantity: stock,
+        weight_grams: 200,
+        position: pos
+      })
+
+    Seeds.create!(Emakola.Catalog.VariantOptionValue, :create, %{
+      variant_id: v.id,
+      option_value_id: ov.id,
+      store_id: store3.id
+    })
+
+    v
+  end
+
+Seeds.create!(Emakola.Catalog.Image, :create, %{
+  product_id: tp11.id,
+  store_id: store3.id,
+  url: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=800&q=80",
+  alt_text: "Baby in soft pyjamas lying on a blanket",
+  content_type: "image/jpeg",
+  file_size_bytes: 186_000
+})
+
+tp11 = Seeds.update!(tp11, :activate, %{})
+
+# Product 12: Soft Sole Leather Crib Shoes (own stock, some sizes low)
+tp12 =
+  Seeds.create!(Emakola.Catalog.Product, :create, %{
+    title: "Soft Sole Leather Crib Shoes",
+    store_id: store3.id,
+    category_id: cat_booties.id,
+    description:
+      "Buttery-soft genuine leather crib shoes with suede soles that help little toes grip as they learn to cruise. Hand-cut and stitched in Accra in a warm cocoa brown.",
+    tags: ["leather", "crib-shoes", "soft-sole", "first-shoes", "handmade"]
+  })
+
+tp12_size =
+  Seeds.create!(Emakola.Catalog.OptionType, :create, %{
+    name: "Size",
+    product_id: tp12.id,
+    store_id: store3.id
+  })
+
+tp12_variants =
+  for {size, stock, pos} <- [
+        {"0-3M", 14, 0},
+        {"3-6M", 12, 1},
+        {"6-12M", 7, 2},
+        {"12-24M", 4, 3}
+      ] do
+    ov =
+      Seeds.create!(Emakola.Catalog.OptionValue, :create, %{
+        value: size,
+        option_type_id: tp12_size.id,
+        store_id: store3.id,
+        position: pos
+      })
+
+    v =
+      Seeds.create!(Emakola.Catalog.Variant, :create, %{
+        product_id: tp12.id,
+        store_id: store3.id,
+        price: 6_000,
+        sku: "TS-CRIBSH-#{size}",
+        stock_quantity: stock,
+        weight_grams: 110,
+        position: pos
+      })
+
+    Seeds.create!(Emakola.Catalog.VariantOptionValue, :create, %{
+      variant_id: v.id,
+      option_value_id: ov.id,
+      store_id: store3.id
+    })
+
+    v
+  end
+
+tp12_12_24m = Enum.at(tp12_variants, 3)
+
+Seeds.create!(Emakola.Catalog.Image, :create, %{
+  product_id: tp12.id,
+  store_id: store3.id,
+  url: "https://images.unsplash.com/photo-1561049933-c8fbef47b329?w=800&q=80",
+  alt_text: "Pair of small leather baby shoes",
+  content_type: "image/jpeg",
+  file_size_bytes: 158_000
+})
+
+Seeds.create!(Emakola.Catalog.Image, :create, %{
+  product_id: tp12.id,
+  store_id: store3.id,
+  url: "https://images.unsplash.com/photo-1604917877934-07d8d248d396?w=800&q=80",
+  alt_text: "Baby shoes detail showing soft suede sole",
+  content_type: "image/jpeg",
+  file_size_bytes: 149_000
+})
+
+tp12 = Seeds.update!(tp12, :activate, %{})
+
+# -- Delivery Zones --
+IO.puts("    Delivery zones...")
+
+Seeds.create!(Emakola.Shipping.DeliveryZone, :create, %{
+  name: "Greater Accra",
+  fee: 1_500,
+  estimated_days: 1,
+  store_id: store3.id
+})
+
+Seeds.create!(Emakola.Shipping.DeliveryZone, :create, %{
+  name: "Ashanti",
+  fee: 3_000,
+  estimated_days: 3,
+  store_id: store3.id
+})
+
+Seeds.create!(Emakola.Shipping.DeliveryZone, :create, %{
+  name: "Other Regions",
+  fee: 4_500,
+  estimated_days: 5,
+  store_id: store3.id
+})
+
+# -- Customers --
+IO.puts("    Customers...")
+
+cust_t1 =
+  Seeds.create!(Emakola.Customers.Customer, :create, %{
+    email: "maame.serwaa@gmail.com",
+    name: "Maame Serwaa Boakye",
+    phone: "+233209111222",
+    store_id: store3.id
+  })
+
+cust_t2 =
+  Seeds.create!(Emakola.Customers.Customer, :create, %{
+    email: "kobby.annan@yahoo.com",
+    name: "Kobby Annan",
+    phone: "+233244555888",
+    store_id: store3.id
+  })
+
+cust_t3 =
+  Seeds.create!(Emakola.Customers.Customer, :create, %{
+    email: "adwoa.nyarko@gmail.com",
+    name: "Adwoa Nyarko",
+    phone: "+233206333444",
+    store_id: store3.id
+  })
+
+cust_t4 =
+  Seeds.create!(Emakola.Customers.Customer, :create, %{
+    email: "esi.quartey@yahoo.com",
+    name: "Esi Quartey",
+    phone: "+233557999000",
+    store_id: store3.id
+  })
+
+# -- Orders --
+IO.puts("    Orders & Payments...")
+
+# Order 1: Mixed cart — dropshipped booties + own-stock romper.
+# CheckoutService splits this into 2 fulfillments (supplier + merchant)
+# and records a SupplierLedgerEntry for the booties owed to Korle Wholesale.
+{:ok, ord_t1} =
+  Emakola.Orders.CheckoutService.checkout!(
+    store3.id,
+    [
+      %{variant_id: tp5_3_6m.id, quantity: 2},
+      %{variant_id: tp1_0_3m.id, quantity: 1}
+    ],
+    customer_id: cust_t1.id,
+    notes: "Gift for my niece's outdooring — please include a card",
+    delivery_fee: 1_500
+  )
+
+pay_t1 =
+  Seeds.create!(Emakola.Payments.Payment, :create, %{
+    store_id: store3.id,
+    order_id: ord_t1.id,
+    amount: ord_t1.total,
+    currency: "GHS",
+    gateway: :paystack,
+    gateway_reference: "PSK_#{:crypto.strong_rand_bytes(8) |> Base.hex_encode32(case: :lower)}",
+    customer_email: "maame.serwaa@gmail.com"
+  })
+
+Seeds.update!(pay_t1, :mark_success, %{
+  gateway_response: %{"status" => "success", "channel" => "mobile_money", "provider" => "mtn"}
+})
+
+Seeds.update!(ord_t1, :confirm, %{})
+
+# Order 2: Delivered (Kobby — onesie packs + sleepsuit)
+{:ok, ord_t2} =
+  Emakola.Orders.CheckoutService.checkout!(
+    store3.id,
+    [
+      %{variant_id: tp4_3_6m.id, quantity: 2},
+      %{variant_id: tp3_3_6m.id, quantity: 1}
+    ],
+    customer_id: cust_t2.id,
+    delivery_fee: 1_500
+  )
+
+pay_t2 =
+  Seeds.create!(Emakola.Payments.Payment, :create, %{
+    store_id: store3.id,
+    order_id: ord_t2.id,
+    amount: ord_t2.total,
+    currency: "GHS",
+    gateway: :hubtel,
+    gateway_reference: "HBT_#{:crypto.strong_rand_bytes(8) |> Base.hex_encode32(case: :lower)}",
+    customer_email: "kobby.annan@yahoo.com"
+  })
+
+Seeds.update!(pay_t2, :mark_success, %{
+  gateway_response: %{
+    "status" => "success",
+    "channel" => "mobile_money",
+    "provider" => "vodafone"
+  }
+})
+
+Seeds.update!(ord_t2, :confirm, %{})
+ord_t2 = Ash.get!(Emakola.Orders.Order, ord_t2.id, authorize?: false)
+Seeds.update!(ord_t2, :start_processing, %{})
+ord_t2 = Ash.get!(Emakola.Orders.Order, ord_t2.id, authorize?: false)
+Seeds.update!(ord_t2, :mark_shipped, %{})
+ord_t2 = Ash.get!(Emakola.Orders.Order, ord_t2.id, authorize?: false)
+Seeds.update!(ord_t2, :mark_delivered, %{})
+
+# Order 3: Shipped (Adwoa — christening gown + bibs)
+{:ok, ord_t3} =
+  Emakola.Orders.CheckoutService.checkout!(
+    store3.id,
+    [
+      %{variant_id: tp2_6_12m.id, quantity: 1},
+      %{variant_id: tp8_set3.id, quantity: 1}
+    ],
+    customer_id: cust_t3.id,
+    notes: "Christening is on Sunday — needed by Friday please",
+    delivery_fee: 3_000
+  )
+
+pay_t3 =
+  Seeds.create!(Emakola.Payments.Payment, :create, %{
+    store_id: store3.id,
+    order_id: ord_t3.id,
+    amount: ord_t3.total,
+    currency: "GHS",
+    gateway: :paystack,
+    gateway_reference: "PSK_#{:crypto.strong_rand_bytes(8) |> Base.hex_encode32(case: :lower)}",
+    customer_email: "adwoa.nyarko@gmail.com"
+  })
+
+Seeds.update!(pay_t3, :mark_success, %{
+  gateway_response: %{"status" => "success", "channel" => "mobile_money", "provider" => "mtn"}
+})
+
+Seeds.update!(ord_t3, :confirm, %{})
+ord_t3 = Ash.get!(Emakola.Orders.Order, ord_t3.id, authorize?: false)
+Seeds.update!(ord_t3, :start_processing, %{})
+ord_t3 = Ash.get!(Emakola.Orders.Order, ord_t3.id, authorize?: false)
+Seeds.update!(ord_t3, :mark_shipped, %{})
+
+# Order 4: Pending payment (Esi — crib shoes + sun hat, MoMo prompt not approved yet)
+{:ok, ord_t4} =
+  Emakola.Orders.CheckoutService.checkout!(
+    store3.id,
+    [
+      %{variant_id: tp12_12_24m.id, quantity: 1},
+      %{variant_id: tp9_6_12m.id, quantity: 1}
+    ],
+    customer_id: cust_t4.id,
+    delivery_fee: 1_500
+  )
+
+_pay_t4 =
+  Seeds.create!(Emakola.Payments.Payment, :create, %{
+    store_id: store3.id,
+    order_id: ord_t4.id,
+    amount: ord_t4.total,
+    currency: "GHS",
+    gateway: :paystack,
+    gateway_reference: "PSK_#{:crypto.strong_rand_bytes(8) |> Base.hex_encode32(case: :lower)}",
+    customer_email: "esi.quartey@yahoo.com"
+  })
+
+# Payment stays pending (MoMo timeout)
+
+# Order 5: Dropship-only, processing (Maame — kente blanket + sleep sack)
+{:ok, ord_t5} =
+  Emakola.Orders.CheckoutService.checkout!(
+    store3.id,
+    [
+      %{variant_id: tp10_cot.id, quantity: 1},
+      %{variant_id: tp7_6_12m.id, quantity: 1}
+    ],
+    customer_id: cust_t1.id,
+    delivery_fee: 4_500
+  )
+
+pay_t5 =
+  Seeds.create!(Emakola.Payments.Payment, :create, %{
+    store_id: store3.id,
+    order_id: ord_t5.id,
+    amount: ord_t5.total,
+    currency: "GHS",
+    gateway: :hubtel,
+    gateway_reference: "HBT_#{:crypto.strong_rand_bytes(8) |> Base.hex_encode32(case: :lower)}",
+    customer_email: "maame.serwaa@gmail.com"
+  })
+
+Seeds.update!(pay_t5, :mark_success, %{
+  gateway_response: %{
+    "status" => "success",
+    "channel" => "mobile_money",
+    "provider" => "airteltigo"
+  }
+})
+
+Seeds.update!(ord_t5, :confirm, %{})
+ord_t5 = Ash.get!(Emakola.Orders.Order, ord_t5.id, authorize?: false)
+Seeds.update!(ord_t5, :start_processing, %{})
+
+IO.puts(
+  "    Tiny Stitches: 12 products (3 dropshipped via Korle Wholesale), 4 customers, 5 orders, 3 zones"
+)
+
+# =============================================================================
 # DONE
 # =============================================================================
 
@@ -1992,9 +3160,11 @@ IO.puts("")
 IO.puts("  Merchants:")
 IO.puts("    kwame@kentekingdom.com / Password123!  (Kente Kingdom - Kumasi)")
 IO.puts("    adjoa@accrafresh.com   / Password123!  (Accra Fresh Market)")
+IO.puts("    efua@tinystitches.com  / Password123!  (Tiny Stitches - Osu, Accra)")
 IO.puts("")
 IO.puts("  Kente Kingdom: 6 products (5 active, 1 draft), 5 customers, 5 orders")
 IO.puts("  Accra Fresh:   6 products (6 active), 3 customers, 3 orders")
+IO.puts("  Tiny Stitches: 12 products (3 dropshipped), 4 customers, 5 orders, 1 supplier")
 IO.puts("  Content:       5 blog posts (incl. video + audio), 2 recipes, 1 about page")
 IO.puts("  Plans: Free, Starter, Growth, Enterprise")
 IO.puts("  Feature flags: #{length(feature_flags)} configured")
