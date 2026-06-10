@@ -126,14 +126,10 @@ defmodule EmakolaWeb.Admin.CouponLive do
     result =
       case socket.assigns.editing_coupon do
         nil ->
-          Emakola.Marketing.Coupon
-          |> Ash.Changeset.for_create(:create, attrs)
-          |> Ash.create(authorize?: false)
+          Emakola.Marketing.create_coupon(attrs, authorize?: false)
 
         coupon ->
-          coupon
-          |> Ash.Changeset.for_update(:update, Map.delete(attrs, :store_id))
-          |> Ash.update(authorize?: false)
+          Emakola.Marketing.update_coupon(coupon, Map.delete(attrs, :store_id), authorize?: false)
       end
 
     case result do
@@ -162,9 +158,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
 
     if coupon do
       result =
-        coupon
-        |> Ash.Changeset.for_update(:update, %{active: !coupon.active})
-        |> Ash.update(authorize?: false)
+        Emakola.Marketing.update_coupon(coupon, %{active: !coupon.active}, authorize?: false)
 
       case result do
         {:ok, _updated} ->

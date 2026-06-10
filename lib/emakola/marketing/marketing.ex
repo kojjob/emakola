@@ -14,6 +14,7 @@ defmodule Emakola.Marketing do
   resources do
     resource Emakola.Marketing.Coupon do
       define(:create_coupon, action: :create)
+      define(:update_coupon, action: :update)
       define(:list_coupons_by_store, action: :list_by_store, args: [:store_id])
       define(:find_coupon_by_code, action: :find_by_code, args: [:store_id, :code])
       define(:deactivate_coupon, action: :deactivate)

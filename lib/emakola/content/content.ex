@@ -12,9 +12,15 @@ defmodule Emakola.Content do
   resources do
     resource Emakola.Content.Post do
       define(:create_post, action: :create)
+      define(:update_post, action: :update)
+      define(:publish_post, action: :publish)
+      define(:destroy_post, action: :destroy)
       define(:list_posts_by_store, action: :list_by_store, args: [:store_id])
+      define(:list_posts_admin, action: :list_admin, args: [:store_id])
       define(:list_published_posts, action: :list_published)
       define(:get_post_by_slug, action: :get_by_slug, args: [:slug])
+      define(:get_post_for_admin, action: :get_for_admin, args: [:id, :store_id])
+      define(:increment_post_views, action: :increment_views)
     end
 
     resource Emakola.Content.MediaAttachment do

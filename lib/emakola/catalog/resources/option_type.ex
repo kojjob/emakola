@@ -14,6 +14,12 @@ defmodule Emakola.Catalog.OptionType do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("option_types")
     repo(Emakola.Repo)
@@ -66,12 +72,8 @@ defmodule Emakola.Catalog.OptionType do
   end
 
   policies do
+    # Reads are public — storefront accesses option types without an actor.
     bypass action_type(:read) do
-      authorize_if(always())
-    end
-
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
       authorize_unless(actor_present())
     end
 
@@ -83,6 +85,14 @@ defmodule Emakola.Catalog.OptionType do
 
   actions do
     defaults([:read, :destroy])
+
+    read :list_by_product do
+      argument(:product_id, :uuid, allow_nil?: false)
+
+      filter(expr(product_id == ^arg(:product_id)))
+
+      prepare(build(sort: [position: :asc], load: [:option_values]))
+    end
 
     create :create do
       accept([:name, :position, :product_id, :store_id])

@@ -7,8 +7,6 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
 
   import EmakolaWeb.Helpers.Currency, only: [format_price: 2]
 
-  require Ash.Query
-
   @statuses [:all, :pending, :confirmed, :processing, :shipped, :delivered, :cancelled]
 
   @impl true
@@ -258,33 +256,21 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
   @orders_per_page 50
 
   defp load_orders(socket) do
-    require Ash.Query
     %{store_id: store_id, search_query: query, status_filter: status} = socket.assigns
 
     orders =
       try do
-        base =
-          Emakola.Orders.Order
-          |> Ash.Query.filter(store_id == ^store_id)
-          |> Ash.Query.sort(inserted_at: :desc)
-          |> Ash.Query.load([:customer])
-          |> Ash.Query.limit(@orders_per_page)
+        status_arg = if status != :all, do: status, else: nil
+        search_arg = if query != "", do: query, else: nil
 
-        base =
-          if status != :all do
-            Ash.Query.filter(base, status == ^status)
-          else
-            base
-          end
-
-        base =
-          if query != "" do
-            Ash.Query.filter(base, contains(order_number, ^query))
-          else
-            base
-          end
-
-        Ash.read!(base, authorize?: false)
+        Emakola.Orders.Order
+        |> Ash.Query.for_read(:list_admin, %{
+          store_id: store_id,
+          status: status_arg,
+          search: search_arg
+        })
+        |> Ash.read!(authorize?: false)
+        |> Enum.take(@orders_per_page)
       rescue
         _ -> []
       end

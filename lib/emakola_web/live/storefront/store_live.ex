@@ -15,8 +15,6 @@ defmodule EmakolaWeb.Storefront.StoreLive do
 
   import EmakolaWeb.StorefrontComponents, only: [coupon_banner: 1]
 
-  require Ash.Query
-
   @impl true
   def mount(_params, session, socket) do
     store = socket.assigns.store
@@ -74,13 +72,9 @@ defmodule EmakolaWeb.Storefront.StoreLive do
 
   @impl true
   def handle_event("add_to_cart", %{"product-id" => product_id}, socket) do
-    require Ash.Query
-
-    case Emakola.Catalog.Product
-         |> Ash.Query.filter(id == ^product_id)
-         |> Ash.Query.load([:variants, :images])
-         |> Ash.read_one(authorize?: false) do
+    case Emakola.Catalog.get_product(product_id, authorize?: false) do
       {:ok, product} when not is_nil(product) ->
+        product = Ash.load!(product, [:variants, :images], authorize?: false)
         variant = product.variants |> Enum.sort_by(& &1.position) |> List.first()
 
         if variant && variant.stock_quantity > 0 do
@@ -188,8 +182,7 @@ defmodule EmakolaWeb.Storefront.StoreLive do
 
   defp search_overlay_products(store_id, query) do
     Emakola.Catalog.Product
-    |> Ash.Query.for_read(:search, %{query: query, store_id: store_id})
-    |> Ash.Query.filter(status == :active)
+    |> Ash.Query.for_read(:search, %{query: query, store_id: store_id, status: :active})
     |> Ash.Query.limit(10)
     |> Ash.read!(authorize?: false)
   end
@@ -197,8 +190,7 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   defp count_search_results(store_id, query) do
     result =
       Emakola.Catalog.Product
-      |> Ash.Query.for_read(:search, %{query: query, store_id: store_id})
-      |> Ash.Query.filter(status == :active)
+      |> Ash.Query.for_read(:search, %{query: query, store_id: store_id, status: :active})
       |> Ash.count(authorize?: false)
 
     case result do

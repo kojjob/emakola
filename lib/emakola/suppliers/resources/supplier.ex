@@ -11,6 +11,12 @@ defmodule Emakola.Suppliers.Supplier do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("suppliers")
     repo(Emakola.Repo)
@@ -80,16 +86,8 @@ defmodule Emakola.Suppliers.Supplier do
   end
 
   policies do
-    bypass action_type(:read) do
-      authorize_if(always())
-    end
-
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
-      authorize_unless(actor_present())
-    end
-
-    # Merchant actors: verify store membership for writes
+    # Merchant actors: verify store membership for all actions.
+    # System code uses authorize?: false explicitly.
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
@@ -128,6 +126,20 @@ defmodule Emakola.Suppliers.Supplier do
 
       filter(expr(store_id == ^arg(:store_id)))
       prepare(build(sort: [name: :asc]))
+    end
+
+    read :list_active_by_store do
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      filter(expr(store_id == ^arg(:store_id) and active == true))
+      prepare(build(sort: [name: :asc]))
+    end
+
+    read :get_by_store do
+      get?(true)
+      argument(:id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(id == ^arg(:id) and store_id == ^arg(:store_id)))
     end
   end
 end

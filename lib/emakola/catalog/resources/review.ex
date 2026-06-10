@@ -13,6 +13,12 @@ defmodule Emakola.Catalog.Review do
 
   require Ash.Query
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("reviews")
     repo(Emakola.Repo)
@@ -111,14 +117,12 @@ defmodule Emakola.Catalog.Review do
   end
 
   policies do
+    # Reads are public — storefront renders reviews without an actor.
     bypass action_type(:read) do
-      authorize_if(always())
-    end
-
-    bypass always() do
       authorize_unless(actor_present())
     end
 
+    # Merchant actors: verify store membership for writes
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
@@ -149,6 +153,35 @@ defmodule Emakola.Catalog.Review do
       accept([])
       change(set_attribute(:status, :published))
     end
+
+    read :list_published_by_product do
+      argument(:product_id, :uuid, allow_nil?: false)
+
+      filter(expr(product_id == ^arg(:product_id) and status == :published))
+
+      prepare(build(sort: [inserted_at: :desc], load: [:customer]))
+    end
+
+    read :list_admin do
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:status, :atom, allow_nil?: true)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            (is_nil(^arg(:status)) or status == ^arg(:status))
+        )
+      )
+
+      prepare(build(sort: [inserted_at: :desc], load: [:product, :customer]))
+    end
+
+    read :get_by_store do
+      get?(true)
+      argument(:id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(id == ^arg(:id) and store_id == ^arg(:store_id)))
+    end
   end
 
   @doc """
@@ -156,8 +189,6 @@ defmodule Emakola.Catalog.Review do
   Returns `{:ok, order_id}` if eligible, `{:error, reason}` otherwise.
   """
   def eligible?(store_id, product_id, customer_id) do
-    import Ecto.Query, only: [from: 2]
-
     existing =
       __MODULE__
       |> Ash.Query.filter(
@@ -168,24 +199,7 @@ defmodule Emakola.Catalog.Review do
     if existing > 0 do
       {:error, :already_reviewed}
     else
-      query =
-        from o in Emakola.Orders.Order,
-          join: li in Emakola.Orders.LineItem,
-          on: li.order_id == o.id,
-          join: v in Emakola.Catalog.Variant,
-          on: v.id == li.variant_id,
-          where:
-            o.store_id == ^store_id and
-              o.customer_id == ^customer_id and
-              o.status == ^:delivered and
-              v.product_id == ^product_id,
-          select: o.id,
-          limit: 1
-
-      case Emakola.Repo.one(query) do
-        nil -> {:error, :not_eligible}
-        order_id -> {:ok, order_id}
-      end
+      Emakola.Orders.PurchaseVerifier.has_delivered_order?(store_id, product_id, customer_id)
     end
   end
 end

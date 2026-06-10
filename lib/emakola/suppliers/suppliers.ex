@@ -5,7 +5,10 @@ defmodule Emakola.Suppliers do
   resources do
     resource Emakola.Suppliers.Supplier do
       define(:create_supplier, action: :create)
+      define(:update_supplier, action: :update)
       define(:list_suppliers_by_store, action: :list_by_store, args: [:store_id])
+      define(:list_active_suppliers_by_store, action: :list_active_by_store, args: [:store_id])
+      define(:get_supplier_by_store, action: :get_by_store, args: [:id, :store_id])
     end
 
     resource Emakola.Suppliers.SupplierLedgerEntry do
@@ -13,6 +16,8 @@ defmodule Emakola.Suppliers do
         action: :list_by_supplier,
         args: [:supplier_id]
       )
+
+      define(:mark_ledger_entry_paid, action: :mark_paid)
     end
   end
 end

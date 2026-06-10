@@ -116,10 +116,6 @@ config :emakola, Oban,
 # Demo mode
 config :emakola, :demo_mode, System.get_env("DEMO_MODE") == "true"
 
-# Hammer rate limiting (ETS backend)
-config :hammer,
-  backend: {Hammer.Backend.ETS, [expiry_ms: 60_000 * 60 * 4, cleanup_interval_ms: 60_000 * 10]}
-
 # Paystack client defaults (overridden in runtime.exs for prod)
 config :emakola, Emakola.Payments.PaystackClient,
   secret_key: System.get_env("PAYSTACK_SECRET_KEY", "sk_test_placeholder"),

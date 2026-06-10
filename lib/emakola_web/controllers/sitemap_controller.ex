@@ -196,7 +196,7 @@ defmodule EmakolaWeb.SitemapController do
   defp product_urls(store, base_url) do
     products =
       Emakola.Catalog.Product
-      |> Ash.Query.filter(store_id == ^store.id and status == :active)
+      |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
       |> Ash.Query.select([:slug, :updated_at])
       |> Ash.read!(authorize?: false)
 
@@ -214,7 +214,7 @@ defmodule EmakolaWeb.SitemapController do
   defp category_urls(store, base_url) do
     categories =
       Emakola.Catalog.Category
-      |> Ash.Query.filter(store_id == ^store.id)
+      |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
       |> Ash.Query.select([:slug, :updated_at])
       |> Ash.read!(authorize?: false)
 
@@ -233,7 +233,7 @@ defmodule EmakolaWeb.SitemapController do
     try do
       posts =
         Emakola.Content.Post
-        |> Ash.Query.filter(store_id == ^store.id and status == :published)
+        |> Ash.Query.for_read(:list_published, %{store_id: store.id})
         |> Ash.Query.select([:slug, :updated_at])
         |> Ash.read!(authorize?: false)
 
@@ -311,7 +311,7 @@ defmodule EmakolaWeb.SitemapController do
 
   defp load_product_summaries(store) do
     Emakola.Catalog.Product
-    |> Ash.Query.filter(store_id == ^store.id and status == :active)
+    |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
     |> Ash.Query.select([:title, :slug, :description])
     |> Ash.Query.load([:min_price])
     |> Ash.Query.sort(inserted_at: :desc)
@@ -321,7 +321,7 @@ defmodule EmakolaWeb.SitemapController do
 
   defp load_category_names(store) do
     Emakola.Catalog.Category
-    |> Ash.Query.filter(store_id == ^store.id)
+    |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
     |> Ash.Query.select([:name, :slug])
     |> Ash.read!(authorize?: false)
   end

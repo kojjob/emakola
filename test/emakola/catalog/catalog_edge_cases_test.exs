@@ -95,7 +95,7 @@ defmodule Emakola.Catalog.EdgeCasesTest do
       # Run 10 parallel increments of +5 each = +50 total
       tasks =
         for _i <- 1..10 do
-          Task.async(fn ->
+          Emakola.AsyncSandbox.run_async(fn ->
             # Re-fetch to get current state within this task's DB connection
             fresh =
               Emakola.Catalog.Variant
@@ -133,7 +133,7 @@ defmodule Emakola.Catalog.EdgeCasesTest do
       # Try 10 parallel decrements of -1 each. Only 5 should succeed.
       tasks =
         for _i <- 1..10 do
-          Task.async(fn ->
+          Emakola.AsyncSandbox.run_async(fn ->
             fresh =
               Emakola.Catalog.Variant
               |> Ash.Query.filter(id == ^variant.id)

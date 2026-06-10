@@ -55,7 +55,15 @@ defmodule Emakola.Workers.FulfillmentWorker do
   defp fulfill_line_item(order, line_item) do
     product_type = line_item.variant.product.product_type
 
-    case Dispatcher.dispatch(product_type, line_item, %{}) do
+    case Dispatcher.dispatch(product_type, line_item, %{customer_id: order.customer_id}) do
+      {:ok, :deferred} ->
+        # Stub pipeline — not yet wired for this phase. Log at debug to avoid
+        # production noise on physical/license-key orders during phased rollout.
+        Logger.debug(
+          "[fulfillment_worker] order=#{order.id} line_item=#{line_item.id} " <>
+            "type=#{product_type} deferred (stub)"
+        )
+
       {:ok, result} ->
         Logger.info(
           "[fulfillment_worker] order=#{order.id} line_item=#{line_item.id} " <>
@@ -64,8 +72,6 @@ defmodule Emakola.Workers.FulfillmentWorker do
 
       {:error, reason} ->
         # Per-line-item errors are logged but don't fail the job (see moduledoc).
-        # Pipelines that aren't wired yet return :not_implemented; that's
-        # expected during phased rollout.
         Logger.info(
           "[fulfillment_worker] order=#{order.id} line_item=#{line_item.id} " <>
             "type=#{product_type} deferred: #{inspect(reason)}"

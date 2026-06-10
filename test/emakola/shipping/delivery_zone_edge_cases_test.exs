@@ -152,7 +152,7 @@ defmodule Emakola.Shipping.DeliveryZoneEdgeCasesTest do
     test "successfully deletes a zone", %{store: store} do
       zone = create_delivery_zone!(store, name: "Deletable Zone", fee: 1000)
 
-      assert :ok = Ash.destroy!(zone)
+      assert :ok = Ash.destroy!(zone, authorize?: false)
 
       {:ok, zones} =
         DeliveryZone

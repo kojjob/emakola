@@ -22,7 +22,7 @@ defmodule Emakola.Catalog.Validations.HasVariants do
       count =
         Emakola.Catalog.Variant
         |> Ash.Query.filter(product_id == ^product_id)
-        |> Ash.count!()
+        |> Ash.count!(authorize?: false)
 
       if count == 0 do
         {:error,

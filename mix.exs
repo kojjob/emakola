@@ -12,7 +12,7 @@ defmodule Emakola.MixProject do
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
-      test_coverage: [threshold: 50],
+      test_coverage: [summary: [threshold: 55]],
       dialyzer: dialyzer()
     ]
   end
@@ -77,7 +77,7 @@ defmodule Emakola.MixProject do
       {:bandit, "~> 1.5"},
       {:swoosh, "~> 1.17"},
       {:phoenix_live_dashboard, "~> 0.8"},
-      {:hammer, "~> 6.2"},
+      {:hammer, "~> 7.0"},
 
       # Ash Framework — domain modeling, auth, multitenancy
       {:ash, "~> 3.0"},
@@ -96,7 +96,7 @@ defmodule Emakola.MixProject do
       {:html_sanitize_ex, "~> 1.4"},
 
       # HTTP client (used by webhook delivery, payment gateways)
-      {:req, "~> 0.5"},
+      {:req, "~> 0.6"},
 
       # S3-compatible file storage
       {:ex_aws, "~> 2.5"},
@@ -138,7 +138,13 @@ defmodule Emakola.MixProject do
         "esbuild emakola --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: [
+        "compile --warnings-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "deps.audit",
+        "test"
+      ]
     ]
   end
 end

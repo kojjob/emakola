@@ -11,6 +11,12 @@ defmodule Emakola.Shipping.DeliveryZone do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("delivery_zones")
     repo(Emakola.Repo)
@@ -61,12 +67,8 @@ defmodule Emakola.Shipping.DeliveryZone do
   end
 
   policies do
+    # Reads are public — storefront displays delivery zones during checkout.
     bypass action_type(:read) do
-      authorize_if(always())
-    end
-
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
       authorize_unless(actor_present())
     end
 
@@ -91,6 +93,11 @@ defmodule Emakola.Shipping.DeliveryZone do
       argument(:store_id, :uuid, allow_nil?: false)
 
       filter(expr(store_id == ^arg(:store_id)))
+    end
+
+    read :list_active_by_store do
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(store_id == ^arg(:store_id) and active == true))
     end
   end
 end

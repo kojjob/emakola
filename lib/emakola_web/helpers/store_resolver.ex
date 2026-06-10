@@ -6,8 +6,6 @@ defmodule EmakolaWeb.Helpers.StoreResolver do
   from the :store_slug path parameter.
   """
 
-  require Ash.Query
-
   @doc """
   Looks up a store by its slug.
 
@@ -15,9 +13,7 @@ defmodule EmakolaWeb.Helpers.StoreResolver do
   """
   @spec resolve(String.t()) :: {:ok, Emakola.Stores.Store.t()} | {:error, :not_found}
   def resolve(slug) when is_binary(slug) do
-    case Emakola.Stores.Store
-         |> Ash.Query.filter(slug == ^slug)
-         |> Ash.read_one(authorize?: false) do
+    case Emakola.Stores.get_store_by_slug(slug, authorize?: false) do
       {:ok, nil} -> {:error, :not_found}
       {:ok, store} -> {:ok, store}
       {:error, _} -> {:error, :not_found}

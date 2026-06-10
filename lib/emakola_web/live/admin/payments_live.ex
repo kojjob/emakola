@@ -10,8 +10,6 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
 
   import EmakolaWeb.Helpers.Currency, only: [format_price: 2]
 
-  require Ash.Query
-
   @statuses [:all, :success, :pending, :failed]
 
   @impl true
@@ -291,21 +289,18 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
   end
 
   defp fetch_payments(store_id, status) do
-    Emakola.Payments.Payment
-    |> Ash.Query.filter(store_id == ^store_id)
-    |> filter_by_status(status)
-    |> Ash.Query.sort(inserted_at: :desc)
-    |> Ash.Query.limit(@payments_page_limit)
-    |> Ash.Query.load(:order)
-    |> Ash.read(authorize?: false)
-    |> case do
-      {:ok, rows} -> rows
-      _ -> []
-    end
-  end
+    status_arg = if status == :all, do: nil, else: status
 
-  defp filter_by_status(query, :all), do: query
-  defp filter_by_status(query, status_value), do: Ash.Query.filter(query, status == ^status_value)
+    Ash.Query.for_read(
+      Emakola.Payments.Payment,
+      :by_store_with_status,
+      %{store_id: store_id, status: status_arg}
+    )
+    |> Ash.Query.limit(@payments_page_limit)
+    |> Ash.read!(authorize?: false)
+  rescue
+    _ -> []
+  end
 
   defp compute_summary(store_id) do
     %{
@@ -317,8 +312,11 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
   end
 
   defp count_status(store_id, status_value) do
-    Emakola.Payments.Payment
-    |> Ash.Query.filter(store_id == ^store_id and status == ^status_value)
+    Ash.Query.for_read(
+      Emakola.Payments.Payment,
+      :by_store_with_status,
+      %{store_id: store_id, status: status_value}
+    )
     |> Ash.count(authorize?: false)
     |> case do
       {:ok, n} -> n

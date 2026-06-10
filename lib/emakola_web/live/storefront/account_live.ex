@@ -7,8 +7,6 @@ defmodule EmakolaWeb.Storefront.AccountLive do
   """
   use EmakolaWeb, :live_view
 
-  require Ash.Query
-
   alias Emakola.Cart.CartStore
 
   @impl true
@@ -129,8 +127,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
 
   defp load_orders(customer_id, store_id) do
     Emakola.Orders.Order
-    |> Ash.Query.filter(customer_id == ^customer_id and store_id == ^store_id)
-    |> Ash.Query.sort(inserted_at: :desc)
+    |> Ash.Query.for_read(:list_by_customer, %{customer_id: customer_id, store_id: store_id})
     |> Ash.Query.limit(10)
     |> Ash.Query.load([:line_items])
     |> Ash.read!(authorize?: false)
@@ -139,10 +136,11 @@ defmodule EmakolaWeb.Storefront.AccountLive do
   end
 
   defp load_addresses(customer_id, store_id) do
-    Emakola.Customers.Address
-    |> Ash.Query.filter(customer_id == ^customer_id and store_id == ^store_id)
-    |> Ash.read!(authorize?: false)
-  rescue
-    _ -> []
+    case Emakola.Customers.list_addresses_by_customer_and_store(customer_id, store_id,
+           authorize?: false
+         ) do
+      {:ok, addresses} -> addresses
+      _ -> []
+    end
   end
 end

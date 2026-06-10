@@ -1,17 +1,13 @@
 defmodule EmakolaWeb.Admin.Content.MediaLive.Index do
   use EmakolaWeb, :live_view
 
-  require Ash.Query
-
   @impl true
   def mount(_params, _session, socket) do
     store = socket.assigns[:current_store]
 
     media =
       if store do
-        Emakola.Content.MediaAttachment
-        |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
-        |> Ash.read!(authorize?: false)
+        Emakola.Content.list_media_by_store!(store.id, authorize?: false)
       else
         []
       end

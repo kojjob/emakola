@@ -39,25 +39,19 @@ defmodule Emakola.Orders.Order do
     end
   end
 
-  # Enqueues `Emakola.Workers.FulfillmentWorker` to run the dispatcher on
-  # the order's line items. Like dispatch_notification/2 this runs inside
-  # the Ash transaction via after_action; a raise here would roll back
-  # the successful :confirm, so we swallow enqueue failures with a log.
+  # Returns the IDs of pending supplier-owned fulfillments for `order`.
+  # Used by the :confirm after_action to pass the IDs to the Notifications
+  # Dispatcher so it does not need to query back into Orders.
   @doc false
-  def enqueue_fulfillment(order) do
-    case %{order_id: order.id}
-         |> Emakola.Workers.FulfillmentWorker.new()
-         |> Oban.insert() do
-      {:ok, _job} ->
-        :ok
+  def load_pending_supplier_ids(order) do
+    case Ash.load(order, :fulfillments, authorize?: false) do
+      {:ok, loaded} ->
+        loaded.fulfillments
+        |> Enum.filter(fn f -> not is_nil(f.supplier_id) and f.status == :pending end)
+        |> Enum.map(& &1.id)
 
-      {:error, reason} ->
-        Logger.error(
-          "[orders] fulfillment enqueue failed: #{inspect(reason)}",
-          order_id: order.id
-        )
-
-        :ok
+      _ ->
+        []
     end
   end
 
@@ -220,9 +214,9 @@ defmodule Emakola.Orders.Order do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
-    # Customer actors: tenant-scoped reads (row scoping by customer_id is a follow-up)
+    # Customer actors: row-scoped reads — only their own orders within their store.
     policy actor_attribute_equals(:__struct__, Emakola.Customers.Customer) do
-      authorize_if(action_type(:read))
+      authorize_if(expr(customer_id == ^actor(:id) and store_id == ^actor(:store_id)))
     end
 
     # nil actor falls through to default-deny. System code uses `authorize?: false`.
@@ -281,14 +275,14 @@ defmodule Emakola.Orders.Order do
 
     # ── Status transitions ──
     # Uses the reusable StatusGuard validation. See
-    # Emakola.Orders.Validations.StatusGuard for docs.
+    # Emakola.Validations.StatusGuard for docs.
 
     update :confirm do
       require_atomic?(false)
       accept([])
 
       validate(
-        {Emakola.Orders.Validations.StatusGuard,
+        {Emakola.Validations.StatusGuard,
          from: [:pending], message: "can only confirm a pending order"}
       )
 
@@ -297,11 +291,18 @@ defmodule Emakola.Orders.Order do
       change(
         after_action(fn _changeset, order, _context ->
           dispatch_notification(order, :order_confirmed)
-          Emakola.Notifications.Dispatcher.dispatch_supplier_fulfillments(order)
-          enqueue_fulfillment(order)
+          pending_supplier_ids = load_pending_supplier_ids(order)
+
+          Emakola.Notifications.Dispatcher.dispatch_supplier_fulfillments(
+            order.id,
+            pending_supplier_ids
+          )
+
           {:ok, order}
         end)
       )
+
+      change(Emakola.Orders.Changes.EnqueueFulfillment)
     end
 
     update :start_processing do
@@ -309,7 +310,7 @@ defmodule Emakola.Orders.Order do
       accept([])
 
       validate(
-        {Emakola.Orders.Validations.StatusGuard,
+        {Emakola.Validations.StatusGuard,
          from: [:confirmed], message: "can only start processing from confirmed"}
       )
 
@@ -321,7 +322,7 @@ defmodule Emakola.Orders.Order do
       accept([:tracking_number])
 
       validate(
-        {Emakola.Orders.Validations.StatusGuard,
+        {Emakola.Validations.StatusGuard,
          from: [:processing], message: "can only mark as shipped from processing"}
       )
 
@@ -340,7 +341,7 @@ defmodule Emakola.Orders.Order do
       accept([])
 
       validate(
-        {Emakola.Orders.Validations.StatusGuard,
+        {Emakola.Validations.StatusGuard,
          from: [:shipped], message: "can only mark as delivered from shipped"}
       )
 
@@ -359,7 +360,7 @@ defmodule Emakola.Orders.Order do
       accept([])
 
       validate(
-        {Emakola.Orders.Validations.StatusGuard,
+        {Emakola.Validations.StatusGuard,
          from: [:pending, :confirmed, :processing, :shipped],
          message: "can only cancel an active order (not delivered or already cancelled)"}
       )
@@ -418,6 +419,69 @@ defmodule Emakola.Orders.Order do
         |> Ash.Query.sort(inserted_at: :desc)
         |> Ash.Query.load([:customer])
       end)
+    end
+
+    read :list_admin do
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      argument(:status, :atom,
+        allow_nil?: true,
+        constraints: [
+          one_of: [:pending, :confirmed, :processing, :shipped, :delivered, :cancelled]
+        ]
+      )
+
+      argument(:search, :string, allow_nil?: true)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            (is_nil(^arg(:status)) or status == ^arg(:status)) and
+            (is_nil(^arg(:search)) or contains(order_number, ^arg(:search)))
+        )
+      )
+
+      prepare(fn query, _context ->
+        query
+        |> Ash.Query.sort(inserted_at: :desc)
+        |> Ash.Query.load([:customer])
+      end)
+    end
+
+    read :get_for_admin do
+      get?(true)
+      argument(:id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(id == ^arg(:id) and store_id == ^arg(:store_id)))
+    end
+
+    read :list_by_customer do
+      argument(:customer_id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(customer_id == ^arg(:customer_id) and store_id == ^arg(:store_id)))
+      prepare(fn query, _ -> Ash.Query.sort(query, inserted_at: :desc) end)
+    end
+
+    read :get_by_order_number do
+      argument(:order_number, :string, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      filter(expr(order_number == ^arg(:order_number) and store_id == ^arg(:store_id)))
+    end
+
+    read :by_store_non_cancelled_in_period do
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:from, :utc_datetime, allow_nil?: false)
+      argument(:to, :utc_datetime, allow_nil?: false)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            status != :cancelled and
+            inserted_at >= ^arg(:from) and
+            inserted_at < ^arg(:to)
+        )
+      )
     end
   end
 end

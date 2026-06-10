@@ -740,11 +740,11 @@ Seeds.update!(pay1, :mark_success, %{
 })
 
 Seeds.update!(order1, :confirm, %{})
-order1 = Ash.get!(Emakola.Orders.Order, order1.id)
+order1 = Ash.get!(Emakola.Orders.Order, order1.id, authorize?: false)
 Seeds.update!(order1, :start_processing, %{})
-order1 = Ash.get!(Emakola.Orders.Order, order1.id)
+order1 = Ash.get!(Emakola.Orders.Order, order1.id, authorize?: false)
 Seeds.update!(order1, :mark_shipped, %{})
-order1 = Ash.get!(Emakola.Orders.Order, order1.id)
+order1 = Ash.get!(Emakola.Orders.Order, order1.id, authorize?: false)
 Seeds.update!(order1, :mark_delivered, %{})
 
 # Order 2: Shipped (Kofi bought Fugu + Stole)
@@ -781,9 +781,9 @@ Seeds.update!(pay2, :mark_success, %{
 })
 
 Seeds.update!(order2, :confirm, %{})
-order2 = Ash.get!(Emakola.Orders.Order, order2.id)
+order2 = Ash.get!(Emakola.Orders.Order, order2.id, authorize?: false)
 Seeds.update!(order2, :start_processing, %{})
-order2 = Ash.get!(Emakola.Orders.Order, order2.id)
+order2 = Ash.get!(Emakola.Orders.Order, order2.id, authorize?: false)
 Seeds.update!(order2, :mark_shipped, %{})
 
 # Order 3: Confirmed/Processing (Abena bought Fusion Dress)
@@ -820,7 +820,7 @@ Seeds.update!(pay3, :mark_success, %{
 })
 
 Seeds.update!(order3, :confirm, %{})
-order3 = Ash.get!(Emakola.Orders.Order, order3.id)
+order3 = Ash.get!(Emakola.Orders.Order, order3.id, authorize?: false)
 Seeds.update!(order3, :start_processing, %{})
 
 # Order 4: Pending payment (Yaw's order)
@@ -1318,11 +1318,11 @@ Seeds.update!(pay_a1, :mark_success, %{
 })
 
 Seeds.update!(ord_a1, :confirm, %{})
-ord_a1 = Ash.get!(Emakola.Orders.Order, ord_a1.id)
+ord_a1 = Ash.get!(Emakola.Orders.Order, ord_a1.id, authorize?: false)
 Seeds.update!(ord_a1, :start_processing, %{})
-ord_a1 = Ash.get!(Emakola.Orders.Order, ord_a1.id)
+ord_a1 = Ash.get!(Emakola.Orders.Order, ord_a1.id, authorize?: false)
 Seeds.update!(ord_a1, :mark_shipped, %{})
-ord_a1 = Ash.get!(Emakola.Orders.Order, ord_a1.id)
+ord_a1 = Ash.get!(Emakola.Orders.Order, ord_a1.id, authorize?: false)
 Seeds.update!(ord_a1, :mark_delivered, %{})
 
 # Order: Confirmed (Kweku bought snacks)

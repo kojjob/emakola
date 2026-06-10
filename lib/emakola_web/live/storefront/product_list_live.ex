@@ -15,8 +15,6 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
 
   alias Emakola.Cart.CartStore
 
-  require Ash.Query
-
   @products_per_page 12
 
   @impl true
@@ -188,8 +186,11 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
 
   defp load_active_products(store_id, category_id, _page) do
     Emakola.Catalog.Product
-    |> Ash.Query.for_read(:list_by_category, %{category_id: category_id, store_id: store_id})
-    |> Ash.Query.filter(status == :active)
+    |> Ash.Query.for_read(:list_by_category, %{
+      category_id: category_id,
+      store_id: store_id,
+      status: :active
+    })
     |> Ash.Query.limit(@products_per_page)
     |> Ash.read!(authorize?: false)
   end
@@ -204,8 +205,7 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
 
   defp search_active_products(store_id, query) do
     Emakola.Catalog.Product
-    |> Ash.Query.for_read(:search, %{query: query, store_id: store_id})
-    |> Ash.Query.filter(status == :active)
+    |> Ash.Query.for_read(:search, %{query: query, store_id: store_id, status: :active})
     |> Ash.Query.limit(@products_per_page)
     |> Ash.read!(authorize?: false)
   end

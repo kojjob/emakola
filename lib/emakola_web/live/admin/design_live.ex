@@ -86,9 +86,11 @@ defmodule EmakolaWeb.Admin.DesignLive do
 
     actor = socket.assigns[:current_user] || socket.assigns[:current_merchant]
 
-    case socket.assigns.store
-         |> Ash.Changeset.for_update(:update_settings, %{theme_config: theme_config})
-         |> Ash.update(actor: actor) do
+    case Emakola.Stores.update_store_settings(
+           socket.assigns.store,
+           %{theme_config: theme_config},
+           actor: actor
+         ) do
       {:ok, updated_store} ->
         try do
           Emakola.Cache.StoreCache.invalidate(updated_store.slug)

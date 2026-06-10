@@ -21,6 +21,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
     unique: [period: 86_400, fields: [:args]]
 
   require Ash.Query
+  require Logger
 
   alias Emakola.Payments.Payment
 
@@ -92,23 +93,36 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
     reference = get_in(data, ["transaction", "reference"])
     refund_amount = data["amount"]
 
-    with {:ok, payment} <- find_payment(reference) do
-      if payment.status == :refunded do
-        :ok
-      else
-        updated =
-          payment
-          |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: refund_amount})
-          |> Ash.update!(authorize?: false)
+    with {:ok, payment} <- find_payment(reference),
+         false <- payment.status == :refunded,
+         {:ok, updated} <-
+           payment
+           |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: refund_amount})
+           |> Ash.update(authorize?: false) do
+      Phoenix.PubSub.broadcast(
+        Emakola.PubSub,
+        "payment:#{reference}",
+        {:payment_refunded, reference, updated}
+      )
 
-        Phoenix.PubSub.broadcast(
-          Emakola.PubSub,
-          "payment:#{reference}",
-          {:payment_refunded, reference, updated}
+      :ok
+    else
+      # Already refunded — idempotent success
+      true ->
+        :ok
+
+      # Refund rejected by business rules (payment not :success, or amount
+      # exceeds original). The money already moved at the gateway, so log
+      # loudly — retrying won't fix a validation failure.
+      {:error, %Ash.Error.Invalid{} = error} ->
+        Logger.warning(
+          "refund.processed rejected for payment #{reference}: #{Exception.message(error)}"
         )
 
         :ok
-      end
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

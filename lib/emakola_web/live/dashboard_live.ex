@@ -127,7 +127,7 @@ defmodule EmakolaWeb.DashboardLive do
 
   defp count_products(store_id) do
     Emakola.Catalog.Product
-    |> Ash.Query.filter(store_id == ^store_id and status == :active)
+    |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store_id, status: :active})
     |> Ash.count!(authorize?: false)
   rescue
     _ -> 0
@@ -135,7 +135,7 @@ defmodule EmakolaWeb.DashboardLive do
 
   defp count_delivery_zones(store_id) do
     Emakola.Shipping.DeliveryZone
-    |> Ash.Query.filter(store_id == ^store_id and active == true)
+    |> Ash.Query.for_read(:list_active_by_store, %{store_id: store_id})
     |> Ash.count!(authorize?: false)
   rescue
     _ -> 0

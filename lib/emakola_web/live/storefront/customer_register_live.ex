@@ -43,9 +43,7 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
       phone: params["phone"]
     }
 
-    case Emakola.Customers.Customer
-         |> Ash.Changeset.for_create(:register_with_password, create_params)
-         |> Ash.create(authorize?: false) do
+    case Emakola.Customers.register_customer(create_params, authorize?: false) do
       {:ok, customer} ->
         token = AshAuthentication.user_to_subject(customer)
         {:noreply, redirect(socket, to: "/s/#{store.slug}/auth/customer-session?token=#{token}")}

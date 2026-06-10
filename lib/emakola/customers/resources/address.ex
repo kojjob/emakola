@@ -119,9 +119,9 @@ defmodule Emakola.Customers.Address do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
-    # Customer actors: scoped by tenant via multitenancy attribute.
+    # Customer actors: row-scoped reads — only their own addresses within their store.
     policy actor_attribute_equals(:__struct__, Emakola.Customers.Customer) do
-      authorize_if(action_type(:read))
+      authorize_if(expr(customer_id == ^actor(:id) and store_id == ^actor(:store_id)))
     end
 
     # nil actor on writes falls through to default-deny. System code must

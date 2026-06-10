@@ -40,7 +40,6 @@ defmodule EmakolaWeb.Storefront.DownloadController do
   """
   use EmakolaWeb, :controller
 
-  alias Emakola.Fulfillment.DownloadGrant
   alias Emakola.Fulfillment.DownloadService
 
   def show(conn, %{"id" => id}) do
@@ -80,9 +79,15 @@ defmodule EmakolaWeb.Storefront.DownloadController do
   end
 
   defp load_grant(id) do
-    case Ash.get(DownloadGrant, id, load: [:digital_file], authorize?: false) do
-      {:ok, grant} -> {:ok, grant}
-      {:error, _} -> {:error, :not_found}
+    case Emakola.Fulfillment.get_download_grant(id, authorize?: false) do
+      {:ok, nil} ->
+        {:error, :not_found}
+
+      {:ok, grant} ->
+        {:ok, Ash.load!(grant, :digital_file, authorize?: false)}
+
+      {:error, _} ->
+        {:error, :not_found}
     end
   end
 

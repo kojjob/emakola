@@ -67,6 +67,9 @@ jobs:
       - name: Security scan
         run: mix sobelow --config
 
+      - name: CVE audit
+        run: mix deps.audit
+
       - name: Setup database
         run: mix ecto.create && mix ecto.migrate
 

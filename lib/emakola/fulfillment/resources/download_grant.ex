@@ -27,6 +27,12 @@ defmodule Emakola.Fulfillment.DownloadGrant do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("download_grants")
     repo(Emakola.Repo)
@@ -110,16 +116,8 @@ defmodule Emakola.Fulfillment.DownloadGrant do
   end
 
   policies do
-    bypass action_type(:read) do
-      authorize_if(always())
-    end
-
-    # System / pipeline calls (nil actor) — pipelines run with authorize?: false
-    bypass always() do
-      authorize_unless(actor_present())
-    end
-
-    # Merchants with store access can manage grants (e.g. revoke)
+    # Merchants with store access can manage grants (e.g. revoke).
+    # System/pipeline code uses authorize?: false explicitly.
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
@@ -127,6 +125,21 @@ defmodule Emakola.Fulfillment.DownloadGrant do
 
   actions do
     defaults([:read, :destroy])
+
+    read :get_by_id do
+      argument(:id, :uuid, allow_nil?: false)
+      filter(expr(id == ^arg(:id)))
+      get?(true)
+    end
+
+    read :list_by_customer do
+      argument(:customer_id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      filter(expr(customer_id == ^arg(:customer_id) and store_id == ^arg(:store_id)))
+
+      prepare(build(sort: [inserted_at: :desc], load: [:digital_file]))
+    end
 
     create :issue do
       accept([
@@ -143,6 +156,12 @@ defmodule Emakola.Fulfillment.DownloadGrant do
     update :increment_download_count do
       require_atomic?(true)
       accept([])
+
+      # CAS-style atomic limit guard: injects the limit condition into the
+      # UPDATE WHERE clause so the check and the increment happen in one
+      # statement. See Emakola.Fulfillment.Validations.LimitGuard for details.
+      validate(Emakola.Fulfillment.Validations.LimitGuard)
+
       change(atomic_update(:downloaded_count, expr(downloaded_count + 1)))
     end
   end
