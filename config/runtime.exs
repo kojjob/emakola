@@ -162,14 +162,13 @@ if config_env() == :prod do
         raise("environment variable SMS_API_URL is missing.")
 
   # WhatsApp Business Cloud API — credentials required in prod.
-  # NOTE: :whatsapp_provider intentionally stays on the default
-  # Emakola.Notifications.Providers.LogWhatsApp — workers call
-  # send_message/4, which Emakola.Notifications.Channels.WhatsApp does
-  # not implement (it exposes send_order_confirmation/2 etc.). Wiring it
-  # here would crash every notification worker.
+  # Workers resolve :whatsapp_provider and call send_message/4, which the
+  # channel implements (map params -> positional template parameters).
   # api_version is overridable via WHATSAPP_API_VERSION env var so we
   # can roll forward when Meta deprecates a Graph API version without
   # a redeploy. See https://developers.facebook.com/docs/graph-api/changelog
+  config :emakola, :whatsapp_provider, Emakola.Notifications.Channels.WhatsApp
+
   config :emakola, Emakola.Notifications.Channels.WhatsApp,
     api_token:
       System.get_env("WHATSAPP_API_TOKEN") ||

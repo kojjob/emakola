@@ -176,16 +176,17 @@ The app verifies the database server's TLS certificate by default
   AND the server identity is verified. Never set it to `false` for a
   database reached over the public internet.
 
-### WhatsApp Notifications Limitation
+### WhatsApp Notifications
 
-WhatsApp credentials are required at boot, but the active provider
-(`:whatsapp_provider`) currently stays on the logging stub
-(`Emakola.Notifications.Providers.LogWhatsApp`): notification workers call
-`send_message/4`, which the real Cloud API channel
-(`Emakola.Notifications.Channels.WhatsApp`) does not implement — it only
-exposes three order-specific methods. Until a `send_message/4` bridge
-exists on the channel, production WhatsApp notifications are logged, not
-delivered. SMS and email notifications are fully live.
+In prod, `:whatsapp_provider` is wired to the real Cloud API channel
+(`Emakola.Notifications.Channels.WhatsApp`), which implements the
+`send_message/4` provider bridge. Template messages are positional: the
+templates registered in the WhatsApp Business Manager console
+(`order_placed`, `order_confirmed`, `order_shipped`, `order_delivered`,
+`order_cancelled`, `supplier_fulfillment`) must declare their `{{n}}`
+placeholders in the parameter order defined in the channel's
+`@template_param_order` — adding a new template requires registering it
+with Meta AND adding its parameter order there.
 
 ### Non-Secret Environment Variables
 
