@@ -86,8 +86,8 @@ defmodule Emakola.Catalog.Category do
   end
 
   policies do
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
+    # Reads are public — storefront renders categories without an actor.
+    bypass action_type(:read) do
       authorize_unless(actor_present())
     end
 

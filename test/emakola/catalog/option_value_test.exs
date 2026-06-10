@@ -131,7 +131,7 @@ defmodule Emakola.Catalog.OptionValueTest do
   describe "destroy" do
     test "deletes an option value", %{store: store, option_type: option_type} do
       value = create_option_value!(option_type, store, value: "Small")
-      assert :ok = Ash.destroy!(value)
+      assert :ok = Ash.destroy!(value, authorize?: false)
     end
   end
 

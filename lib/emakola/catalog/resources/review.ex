@@ -117,10 +117,12 @@ defmodule Emakola.Catalog.Review do
   end
 
   policies do
-    bypass always() do
+    # Reads are public — storefront renders reviews without an actor.
+    bypass action_type(:read) do
       authorize_unless(actor_present())
     end
 
+    # Merchant actors: verify store membership for writes
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
