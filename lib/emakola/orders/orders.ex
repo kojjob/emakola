@@ -13,6 +13,7 @@ defmodule Emakola.Orders do
       define(:get_order_by_id, action: :get_by_id, args: [:id])
       define(:get_order_for_admin, action: :get_for_admin, args: [:id, :store_id])
       define(:list_orders_by_customer, action: :list_by_customer, args: [:customer_id, :store_id])
+      define(:get_order_by_number, action: :get_by_order_number, args: [:order_number, :store_id])
       define(:confirm_order, action: :confirm)
       define(:start_processing_order, action: :start_processing)
       define(:mark_order_shipped, action: :mark_shipped)

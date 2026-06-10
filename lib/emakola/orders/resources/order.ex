@@ -461,5 +461,12 @@ defmodule Emakola.Orders.Order do
       filter(expr(customer_id == ^arg(:customer_id) and store_id == ^arg(:store_id)))
       prepare(fn query, _ -> Ash.Query.sort(query, inserted_at: :desc) end)
     end
+
+    read :get_by_order_number do
+      argument(:order_number, :string, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      filter(expr(order_number == ^arg(:order_number) and store_id == ^arg(:store_id)))
+    end
   end
 end

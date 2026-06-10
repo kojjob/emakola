@@ -10,8 +10,6 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
 
   alias EmakolaWeb.Helpers.StoreResolver
 
-  require Ash.Query
-
   @impl true
   def mount(%{"store_slug" => slug, "order_number" => order_number}, _session, socket) do
     case StoreResolver.resolve(slug) do
@@ -64,7 +62,10 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
 
   defp load_order(store, order_number) do
     case Emakola.Orders.Order
-         |> Ash.Query.filter(store_id == ^store.id and order_number == ^order_number)
+         |> Ash.Query.for_read(:get_by_order_number, %{
+           order_number: order_number,
+           store_id: store.id
+         })
          |> Ash.Query.load([:line_items])
          |> Ash.read_one(authorize?: false) do
       {:ok, nil} -> {:error, :not_found}
