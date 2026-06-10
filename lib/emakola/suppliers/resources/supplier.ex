@@ -131,5 +131,19 @@ defmodule Emakola.Suppliers.Supplier do
       filter(expr(store_id == ^arg(:store_id)))
       prepare(build(sort: [name: :asc]))
     end
+
+    read :list_active_by_store do
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      filter(expr(store_id == ^arg(:store_id) and active == true))
+      prepare(build(sort: [name: :asc]))
+    end
+
+    read :get_by_store do
+      get?(true)
+      argument(:id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(id == ^arg(:id) and store_id == ^arg(:store_id)))
+    end
   end
 end

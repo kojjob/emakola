@@ -5,8 +5,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
   """
   use EmakolaWeb, :live_view
 
-  require Ash.Query
-
   @impl true
   def mount(params, _session, socket) do
     store_id = get_store_id(socket)
@@ -284,7 +282,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
     case Emakola.Catalog.create_product(attrs) do
       {:ok, product} ->
         # Try to activate — will fail if no variants (expected for new products)
-        case Ash.Changeset.for_update(product, :activate) |> Ash.update(authorize?: false) do
+        case Emakola.Catalog.activate_product(product, authorize?: false) do
           {:ok, activated} -> {:ok, activated}
           {:error, _} -> {:ok, product}
         end
@@ -295,15 +293,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
   end
 
   defp update_product(product, attrs, :draft) do
-    product
-    |> Ash.Changeset.for_update(:update, attrs)
-    |> Ash.update()
+    Emakola.Catalog.update_product(product, attrs)
   end
 
   defp update_product(product, attrs, :active) do
-    case product |> Ash.Changeset.for_update(:update, attrs) |> Ash.update(authorize?: false) do
+    case Emakola.Catalog.update_product(product, attrs, authorize?: false) do
       {:ok, updated} ->
-        case updated |> Ash.Changeset.for_update(:activate) |> Ash.update(authorize?: false) do
+        case Emakola.Catalog.activate_product(updated, authorize?: false) do
           {:ok, activated} -> {:ok, activated}
           {:error, _} -> {:ok, updated}
         end
@@ -352,7 +348,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
   end
 
   defp load_product(id) do
-    case Ash.get(Emakola.Catalog.Product, id) do
+    case Emakola.Catalog.get_product(id) do
       {:ok, product} -> product
       _ -> nil
     end

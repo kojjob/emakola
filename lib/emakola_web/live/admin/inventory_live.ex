@@ -10,8 +10,6 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
   import EmakolaWeb.InventoryComponents
 
-  require Ash.Query
-
   @impl true
   def mount(_params, _session, socket) do
     store_id = get_store_id(socket)
@@ -75,8 +73,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         {:noreply, put_flash(socket, :error, "Variant not found")}
 
       variant ->
-        case Ash.Changeset.for_update(variant, :adjust_stock, %{delta: delta})
-             |> Ash.update(authorize?: false) do
+        case Emakola.Catalog.adjust_variant_stock(variant, %{delta: delta}, authorize?: false) do
           {:ok, _updated} ->
             {:noreply, load_variants(socket)}
 
@@ -112,8 +109,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         if variant do
           delta = new_stock - variant.stock_quantity
 
-          case Ash.Changeset.for_update(variant, :adjust_stock, %{delta: delta})
-               |> Ash.update(authorize?: false) do
+          case Emakola.Catalog.adjust_variant_stock(variant, %{delta: delta}, authorize?: false) do
             {:ok, _updated} ->
               socket =
                 socket
@@ -169,8 +165,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
       available: params["available"] == "true"
     }
 
-    case Ash.Changeset.for_update(variant, :update, attrs)
-         |> Ash.update(authorize?: false) do
+    case Emakola.Catalog.update_variant(variant, attrs, authorize?: false) do
       {:ok, _updated} ->
         {:noreply,
          socket
@@ -703,11 +698,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
   defp fetch_variants(store_id) do
     try do
-      Emakola.Catalog.Variant
-      |> Ash.Query.filter(store_id == ^store_id)
-      |> Ash.Query.sort(stock_quantity: :asc)
-      |> Ash.Query.load([:product, :supplier])
-      |> Ash.read!(authorize?: false)
+      Emakola.Catalog.list_variants_admin!(store_id, authorize?: false)
     rescue
       _ -> []
     end
@@ -755,10 +746,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
       store_id ->
         suppliers =
-          Emakola.Suppliers.Supplier
-          |> Ash.Query.filter(store_id == ^store_id and active == true)
-          |> Ash.Query.sort(:name)
-          |> Ash.read!(authorize?: false)
+          Emakola.Suppliers.list_active_suppliers_by_store!(store_id, authorize?: false)
 
         assign(socket, suppliers: suppliers)
     end

@@ -277,6 +277,13 @@ defmodule Emakola.Catalog.Variant do
       prepare(build(sort: [stock_quantity: :asc], load: [:product]))
     end
 
+    read :list_admin do
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(store_id == ^arg(:store_id)))
+
+      prepare(build(sort: [stock_quantity: :asc], load: [:product, :supplier]))
+    end
+
     read :low_stock do
       argument(:threshold, :integer, allow_nil?: false)
       argument(:store_id, :uuid, allow_nil?: false)

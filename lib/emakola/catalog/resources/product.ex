@@ -285,5 +285,28 @@ defmodule Emakola.Catalog.Product do
       filter(expr(category_id == ^arg(:category_id) and store_id == ^arg(:store_id)))
       prepare(build(load: [:min_price, :max_price, :images, :variant_count]))
     end
+
+    read :list_admin do
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:search, :string, allow_nil?: true)
+
+      argument(:status, :atom,
+        allow_nil?: true,
+        constraints: [one_of: [:draft, :active, :archived]]
+      )
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            (is_nil(^arg(:search)) or
+               contains(fragment("lower(?)", title), fragment("lower(?)", ^arg(:search)))) and
+            (is_nil(^arg(:status)) or status == ^arg(:status))
+        )
+      )
+
+      prepare(
+        build(sort: [inserted_at: :desc], load: [:variant_count, :min_price, :max_price, :images])
+      )
+    end
   end
 end

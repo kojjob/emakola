@@ -151,6 +151,27 @@ defmodule Emakola.Catalog.Review do
       accept([])
       change(set_attribute(:status, :published))
     end
+
+    read :list_admin do
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:status, :atom, allow_nil?: true)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            (is_nil(^arg(:status)) or status == ^arg(:status))
+        )
+      )
+
+      prepare(build(sort: [inserted_at: :desc], load: [:product, :customer]))
+    end
+
+    read :get_by_store do
+      get?(true)
+      argument(:id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(id == ^arg(:id) and store_id == ^arg(:store_id)))
+    end
   end
 
   @doc """
