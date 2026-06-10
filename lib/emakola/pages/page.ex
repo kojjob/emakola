@@ -88,14 +88,13 @@ defmodule Emakola.Pages.Page do
   end
 
   policies do
-    # System/pipeline code opts in with authorize?: false.
-    bypass always() do
+    # Reads are open — storefront reads pages without an actor.
+    # Writes require a Merchant actor with store access.
+    # System code that needs to mutate a Page must opt in with `authorize?: false`.
+    bypass action_type(:read) do
       authorize_unless(actor_present())
     end
 
-    # Reads are open — storefront needs to look up its own page on every
-    # Writes require a Merchant actor with access to the store.
-    # System code that needs to mutate a Page must opt in with `authorize?: false`.
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end

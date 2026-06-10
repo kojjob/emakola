@@ -67,8 +67,8 @@ defmodule Emakola.Shipping.DeliveryZone do
   end
 
   policies do
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
+    # Reads are public — storefront displays delivery zones during checkout.
+    bypass action_type(:read) do
       authorize_unless(actor_present())
     end
 
