@@ -560,7 +560,7 @@ defmodule EmakolaWeb.StoresLive do
 
   defp count_active_stores do
     Store
-    |> Ash.Query.filter(active == true)
+    |> Ash.Query.for_read(:list_active)
     |> Ash.count!(authorize?: false)
   rescue
     _ -> 0
@@ -647,7 +647,7 @@ defmodule EmakolaWeb.StoresLive do
   defp load_stores_by_slug(slugs) when is_list(slugs) do
     stores =
       Store
-      |> Ash.Query.filter(active == true and slug in ^slugs)
+      |> Ash.Query.for_read(:list_by_slugs, %{slugs: slugs})
       |> Ash.Query.load([:product_count])
       |> Ash.read!(authorize?: false)
 
@@ -662,11 +662,8 @@ defmodule EmakolaWeb.StoresLive do
   end
 
   defp find_store_by_slug(slug) when is_binary(slug) do
-    Store
-    |> Ash.Query.filter(active == true and slug == ^slug)
-    |> Ash.read_one(authorize?: false)
-    |> case do
-      {:ok, store} -> store
+    case Emakola.Stores.get_store_by_slug(slug, authorize?: false) do
+      {:ok, %{active: true} = store} -> store
       _ -> nil
     end
   rescue

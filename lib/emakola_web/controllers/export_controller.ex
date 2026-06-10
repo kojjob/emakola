@@ -8,8 +8,6 @@ defmodule EmakolaWeb.ExportController do
   """
   use EmakolaWeb, :controller
 
-  require Ash.Query
-
   @doc """
   Generates and sends a PDF analytics report for the authenticated
   merchant's store.
@@ -73,12 +71,9 @@ defmodule EmakolaWeb.ExportController do
   end
 
   defp resolve_store(merchant) do
-    case Emakola.Accounts.StoreMembership
-         |> Ash.Query.filter(merchant_id: merchant.id)
-         |> Ash.Query.load(:store)
-         |> Ash.Query.limit(1)
-         |> Ash.read(authorize?: false) do
-      {:ok, [membership | _]} -> {:ok, membership.store}
+    case Emakola.Accounts.get_merchant_store_membership(merchant.id, authorize?: false) do
+      {:ok, nil} -> {:error, :no_store}
+      {:ok, membership} -> {:ok, Ash.load!(membership, :store, authorize?: false).store}
       _ -> {:error, :no_store}
     end
   end

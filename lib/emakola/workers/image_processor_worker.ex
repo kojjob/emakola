@@ -45,7 +45,7 @@ defmodule Emakola.Workers.ImageProcessorWorker do
            thumbnail_url: thumbnail_url,
            medium_url: medium_url
          })
-         |> Ash.update() do
+         |> Ash.update(authorize?: false) do
       {:ok, _updated} ->
         Logger.info("Image #{image.id} processed successfully")
         :ok
@@ -60,7 +60,7 @@ defmodule Emakola.Workers.ImageProcessorWorker do
   defp mark_failed(image) do
     image
     |> Ash.Changeset.for_update(:mark_failed, %{})
-    |> Ash.update()
+    |> Ash.update(authorize?: false)
   end
 
   defp generate_variant_urls(original_url) do

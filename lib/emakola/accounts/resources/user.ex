@@ -93,10 +93,6 @@ defmodule Emakola.Accounts.User do
       authorize_if(always())
     end
 
-    bypass always() do
-      authorize_unless(actor_present())
-    end
-
     policy action_type([:update, :destroy]) do
       authorize_if(expr(id == ^actor(:id)))
     end

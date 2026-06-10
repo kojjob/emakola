@@ -387,20 +387,16 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
         }
       }
 
-      # The handler checks terminal state for charge events but refund has
-      # its own logic — it checks if already refunded.
-      # A failed payment receiving a refund event is an edge case.
-      perform_job(PaystackWebhookHandler, refund_event)
+      # mark_refunded validates status == :success, so the handler logs the
+      # rejection and returns :ok (no Oban retries for a validation failure).
+      assert :ok = perform_job(PaystackWebhookHandler, refund_event)
 
       final =
         Payment
         |> Ash.Query.filter(id == ^payment.id)
         |> Ash.read_one!(authorize?: false)
 
-      # The refund handler only skips if already :refunded, so a failed payment
-      # that receives a refund event will be marked refunded at the resource level.
-      # This is a known limitation — the resource actions don't guard prior status.
-      assert final.status in [:failed, :refunded]
+      assert final.status == :failed
     end
   end
 

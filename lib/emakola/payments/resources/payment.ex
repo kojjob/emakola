@@ -122,10 +122,9 @@ defmodule Emakola.Payments.Payment do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
-    # Customer actors: tenant-scoped reads only.
-    policy actor_attribute_equals(:__struct__, Emakola.Customers.Customer) do
-      authorize_if(action_type(:read))
-    end
+    # Customer actors have no direct read grant on Payment — gateway_response and
+    # gateway_reference contain sensitive provider data. All storefront payment
+    # lookups use authorize?: false + explicit filters.
 
     # nil actor falls through to default-deny. Webhook handlers and gateway
     # callbacks use `authorize?: false` since the request originates from the
@@ -172,6 +171,12 @@ defmodule Emakola.Payments.Payment do
       require_atomic?(false)
       accept([:refunded_amount])
 
+      validate attribute_equals(:status, :success) do
+        message("can only refund a successful payment")
+      end
+
+      validate({Emakola.Payments.Validations.RefundAmountNotExceeded, []})
+
       change(set_attribute(:status, :refunded))
     end
 
@@ -189,6 +194,41 @@ defmodule Emakola.Payments.Payment do
       prepare(fn query, _context ->
         Ash.Query.sort(query, inserted_at: :desc)
       end)
+    end
+
+    read :by_store_with_status do
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:status, :atom, allow_nil?: true)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            (is_nil(^arg(:status)) or status == ^arg(:status))
+        )
+      )
+
+      prepare(build(sort: [inserted_at: :desc], load: [:order]))
+    end
+
+    read :get_by_order do
+      get?(true)
+      argument(:order_id, :uuid, allow_nil?: false)
+      filter(expr(order_id == ^arg(:order_id)))
+    end
+
+    read :failed_in_period do
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:from, :utc_datetime, allow_nil?: false)
+      argument(:to, :utc_datetime, allow_nil?: false)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            status == :failed and
+            inserted_at >= ^arg(:from) and
+            inserted_at < ^arg(:to)
+        )
+      )
     end
   end
 end

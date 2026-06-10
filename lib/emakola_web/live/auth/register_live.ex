@@ -247,9 +247,7 @@ defmodule EmakolaWeb.Auth.RegisterLive do
         name = String.trim(params["name"] || "")
 
         if name != "" do
-          merchant
-          |> Ash.Changeset.for_update(:update_profile, %{name: name})
-          |> Ash.update()
+          Emakola.Accounts.update_merchant_profile(merchant, %{name: name}, authorize?: false)
         end
 
         token = AshAuthentication.user_to_subject(merchant)

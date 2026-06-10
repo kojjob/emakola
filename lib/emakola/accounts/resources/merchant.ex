@@ -94,11 +94,6 @@ defmodule Emakola.Accounts.Merchant do
       authorize_if(always())
     end
 
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
-      authorize_unless(actor_present())
-    end
-
     # Merchants can update/destroy only their own records
     policy action_type([:update, :destroy]) do
       authorize_if(expr(id == ^actor(:id)))

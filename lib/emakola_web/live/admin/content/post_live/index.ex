@@ -4,8 +4,6 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Index do
   """
   use EmakolaWeb, :live_view
 
-  require Ash.Query
-
   @impl true
   def mount(_params, _session, socket) do
     store_id = get_store_id(socket)
@@ -67,9 +65,14 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Index do
 
   @impl true
   def handle_event("delete_post", %{"id" => id}, socket) do
-    case Emakola.Content.Post |> Ash.get(id) do
+    store_id = socket.assigns.store_id
+
+    case Emakola.Content.get_post_for_admin(id, store_id, authorize?: false) do
+      {:ok, nil} ->
+        {:noreply, put_flash(socket, :error, "Post not found")}
+
       {:ok, post} ->
-        case Ash.destroy(post) do
+        case Emakola.Content.destroy_post(post, authorize?: false) do
           :ok ->
             {:noreply,
              socket
@@ -301,29 +304,23 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Index do
     if is_nil(store_id) do
       assign(socket, :posts, [])
     else
-      query =
-        Emakola.Content.Post
-        |> Ash.Query.for_read(:list_by_store, %{store_id: store_id})
+      type_arg = if socket.assigns.filter_type == :all, do: nil, else: socket.assigns.filter_type
 
-      query =
-        if socket.assigns.filter_type != :all do
-          Ash.Query.filter(query, type == ^socket.assigns.filter_type)
-        else
-          query
-        end
+      status_arg =
+        if socket.assigns.filter_status == :all, do: nil, else: socket.assigns.filter_status
 
-      query =
-        if socket.assigns.filter_status != :all do
-          Ash.Query.filter(query, status == ^socket.assigns.filter_status)
-        else
-          query
-        end
+      posts =
+        Ash.Query.for_read(
+          Emakola.Content.Post,
+          :list_admin,
+          %{store_id: store_id, type: type_arg, status: status_arg}
+        )
+        |> Ash.read!(authorize?: false)
 
-      case Ash.read(query) do
-        {:ok, posts} -> assign(socket, :posts, posts)
-        {:error, _} -> assign(socket, :posts, [])
-      end
+      assign(socket, :posts, posts)
     end
+  rescue
+    _ -> assign(socket, :posts, [])
   end
 
   defp get_store_id(socket) do

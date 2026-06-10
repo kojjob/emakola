@@ -128,11 +128,9 @@ defmodule Emakola.Marketing.Coupon do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
-    # Customer actors at checkout can read public coupons by code (action handles
-    # the public flag); for now permit tenant-scoped reads.
-    policy actor_attribute_equals(:__struct__, Emakola.Customers.Customer) do
-      authorize_if(action_type(:read))
-    end
+    # Customer actors have no blanket read grant on Coupon. Public coupon lookup
+    # is handled by the list_active_public and find_by_code action bypasses above.
+    # Default-deny applies for all other Customer reads.
 
     # nil actor falls through to default-deny.
   end

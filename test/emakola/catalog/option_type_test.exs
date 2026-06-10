@@ -118,7 +118,7 @@ defmodule Emakola.Catalog.OptionTypeTest do
   describe "destroy" do
     test "deletes an option type", %{store: store, product: product} do
       option_type = create_option_type!(product, store, name: "Size")
-      assert :ok = Ash.destroy!(option_type)
+      assert :ok = Ash.destroy!(option_type, authorize?: false)
     end
   end
 

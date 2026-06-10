@@ -18,10 +18,6 @@ defmodule EmakolaWeb.Storefront.AccountDownloadsLive do
   """
   use EmakolaWeb, :live_view
 
-  require Ash.Query
-
-  alias Emakola.Fulfillment.DownloadGrant
-
   @max_grants 50
 
   @impl true
@@ -55,11 +51,9 @@ defmodule EmakolaWeb.Storefront.AccountDownloadsLive do
   # ── Data loading ────────────────────────────────────────────────
 
   defp load_grants(customer_id, store_id) do
-    DownloadGrant
-    |> Ash.Query.filter(customer_id == ^customer_id and store_id == ^store_id)
-    |> Ash.Query.sort(inserted_at: :desc)
+    Emakola.Fulfillment.DownloadGrant
+    |> Ash.Query.for_read(:list_by_customer, %{customer_id: customer_id, store_id: store_id})
     |> Ash.Query.limit(@max_grants)
-    |> Ash.Query.load([:digital_file])
     |> Ash.read!(authorize?: false)
   rescue
     _ -> []

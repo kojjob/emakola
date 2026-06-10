@@ -7,8 +7,6 @@ defmodule EmakolaWeb.Admin.ReviewLive do
   """
   use EmakolaWeb, :live_view
 
-  require Ash.Query
-
   @statuses [:all, :published, :hidden]
 
   @impl true
@@ -55,7 +53,7 @@ defmodule EmakolaWeb.Admin.ReviewLive do
         {:noreply, put_flash(socket, :error, "Review not found")}
 
       review ->
-        case review |> Ash.Changeset.for_update(:hide, %{}) |> Ash.update(authorize?: false) do
+        case Emakola.Catalog.hide_review(review, authorize?: false) do
           {:ok, _} ->
             {:noreply,
              socket
@@ -75,7 +73,7 @@ defmodule EmakolaWeb.Admin.ReviewLive do
         {:noreply, put_flash(socket, :error, "Review not found")}
 
       review ->
-        case review |> Ash.Changeset.for_update(:unhide, %{}) |> Ash.update(authorize?: false) do
+        case Emakola.Catalog.unhide_review(review, authorize?: false) do
           {:ok, _} ->
             {:noreply,
              socket
@@ -216,28 +214,22 @@ defmodule EmakolaWeb.Admin.ReviewLive do
   defp load_reviews(socket) do
     store_id = socket.assigns.store_id
     status_filter = socket.assigns.status_filter
+    status_arg = if status_filter == :all, do: nil, else: status_filter
 
-    query =
+    reviews =
       Emakola.Catalog.Review
-      |> Ash.Query.filter(store_id == ^store_id)
-      |> Ash.Query.sort(inserted_at: :desc)
-      |> Ash.Query.load([:product, :customer])
+      |> Ash.Query.for_read(:list_admin, %{store_id: store_id, status: status_arg})
+      |> Ash.Query.limit(200)
+      |> Ash.read!(authorize?: false)
 
-    query =
-      if status_filter == :all do
-        query
-      else
-        Ash.Query.filter(query, status == ^status_filter)
-      end
-
-    reviews = query |> Ash.Query.limit(200) |> Ash.read!(authorize?: false)
     assign(socket, :reviews, reviews)
   end
 
   defp find_review(id, store_id) do
-    Emakola.Catalog.Review
-    |> Ash.Query.filter(id == ^id and store_id == ^store_id)
-    |> Ash.read_one!(authorize?: false)
+    case Emakola.Catalog.get_review_by_store(id, store_id, authorize?: false) do
+      {:ok, review} -> review
+      _ -> nil
+    end
   end
 
   defp product_name(%{product: %{title: title}}) when is_binary(title), do: title

@@ -90,12 +90,11 @@ defmodule EmakolaWeb.Admin.ReturnLive do
         :error -> nil
       end
 
-    case return
-         |> Ash.Changeset.for_update(:approve, %{
-           admin_notes: socket.assigns.action_notes,
-           refund_amount: refund_amount
-         })
-         |> Ash.update(authorize?: false) do
+    case Emakola.Orders.approve_return(
+           return,
+           %{admin_notes: socket.assigns.action_notes, refund_amount: refund_amount},
+           authorize?: false
+         ) do
       {:ok, _updated} ->
         returns = load_returns(socket.assigns.store.id, socket.assigns.status_filter)
 
@@ -113,9 +112,11 @@ defmodule EmakolaWeb.Admin.ReturnLive do
   def handle_event("deny_return", _params, socket) do
     return = socket.assigns.selected_return
 
-    case return
-         |> Ash.Changeset.for_update(:deny, %{admin_notes: socket.assigns.action_notes})
-         |> Ash.update(authorize?: false) do
+    case Emakola.Orders.deny_return(
+           return,
+           %{admin_notes: socket.assigns.action_notes},
+           authorize?: false
+         ) do
       {:ok, _updated} ->
         returns = load_returns(socket.assigns.store.id, socket.assigns.status_filter)
 
@@ -133,9 +134,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
   def handle_event("mark_refunded", _params, socket) do
     return = socket.assigns.selected_return
 
-    case return
-         |> Ash.Changeset.for_update(:mark_refunded, %{})
-         |> Ash.update(authorize?: false) do
+    case Emakola.Orders.mark_return_refunded(return, authorize?: false) do
       {:ok, _updated} ->
         returns = load_returns(socket.assigns.store.id, socket.assigns.status_filter)
 
@@ -367,10 +366,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
   # -- Private --
 
   defp load_returns(store_id, status_filter \\ "all") do
-    returns =
-      Emakola.Orders.Return
-      |> Ash.Query.for_read(:list_by_store, %{store_id: store_id})
-      |> Ash.read!(authorize?: false)
+    returns = Emakola.Orders.list_returns_by_store!(store_id, authorize?: false)
 
     case status_filter do
       "all" -> returns

@@ -19,6 +19,12 @@ defmodule Emakola.Catalog.Variant do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("variants")
     repo(Emakola.Repo)
@@ -126,12 +132,8 @@ defmodule Emakola.Catalog.Variant do
   end
 
   policies do
+    # Reads are public — storefront renders variant prices/stock without an actor.
     bypass action_type(:read) do
-      authorize_if(always())
-    end
-
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
       authorize_unless(actor_present())
     end
 
@@ -273,6 +275,27 @@ defmodule Emakola.Catalog.Variant do
       argument(:store_id, :uuid, allow_nil?: false)
       filter(expr(store_id == ^arg(:store_id)))
       prepare(build(sort: [stock_quantity: :asc], load: [:product]))
+    end
+
+    read :list_admin do
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(store_id == ^arg(:store_id)))
+
+      prepare(build(sort: [stock_quantity: :asc], load: [:product, :supplier]))
+    end
+
+    read :by_stock_range do
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:min, :integer, allow_nil?: true)
+      argument(:max, :integer, allow_nil?: true)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            (is_nil(^arg(:min)) or stock_quantity >= ^arg(:min)) and
+            (is_nil(^arg(:max)) or stock_quantity <= ^arg(:max))
+        )
+      )
     end
 
     read :low_stock do

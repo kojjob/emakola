@@ -13,8 +13,6 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   alias Emakola.Cart.CartStore
   alias Emakola.Orders.CheckoutService
 
-  require Ash.Query
-
   @payment_poll_interval_ms 3_000
   @payment_poll_max_attempts 60
 
@@ -412,17 +410,18 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
     case gateway.initiate_payment(params) do
       {:ok, %{reference: reference} = resp} ->
-        case Emakola.Payments.Payment
-             |> Ash.Changeset.for_create(:create, %{
-               store_id: store.id,
-               order_id: order.id,
-               amount: order.total,
-               currency: store.currency || "GHS",
-               gateway: :paystack,
-               gateway_reference: reference,
-               metadata: %{payment_method: method}
-             })
-             |> Ash.create(authorize?: false) do
+        case Emakola.Payments.create_payment(
+               %{
+                 store_id: store.id,
+                 order_id: order.id,
+                 amount: order.total,
+                 currency: store.currency || "GHS",
+                 gateway: :paystack,
+                 gateway_reference: reference,
+                 metadata: %{payment_method: method}
+               },
+               authorize?: false
+             ) do
           {:ok, _payment} ->
             :ok
 

@@ -118,9 +118,11 @@ defmodule Emakola.Orders.LineItem do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
-    # Customer actors: tenant-scoped reads only.
+    # Customer actors: row-scoped reads — only line items for their own orders within their store.
     policy actor_attribute_equals(:__struct__, Emakola.Customers.Customer) do
-      authorize_if(action_type(:read))
+      authorize_if(
+        expr(exists(order, customer_id == ^actor(:id)) and store_id == ^actor(:store_id))
+      )
     end
 
     # nil actor falls through to default-deny.
@@ -138,28 +140,7 @@ defmodule Emakola.Orders.LineItem do
     create :create do
       accept([:order_id, :store_id, :variant_id, :quantity, :fulfillment_id])
 
-      change(fn changeset, _context ->
-        variant_id = Ash.Changeset.get_attribute(changeset, :variant_id)
-
-        case Ash.get(Emakola.Catalog.Variant, variant_id, load: [:product], authorize?: false) do
-          {:ok, variant} ->
-            quantity = Ash.Changeset.get_attribute(changeset, :quantity)
-            line_total = variant.price * (quantity || 0)
-
-            changeset
-            |> Ash.Changeset.force_change_attribute(:product_title, variant.product.title)
-            |> Ash.Changeset.force_change_attribute(:variant_sku, variant.sku)
-            |> Ash.Changeset.force_change_attribute(:unit_price, variant.price)
-            |> Ash.Changeset.force_change_attribute(:line_total, line_total)
-            |> Ash.Changeset.force_change_attribute(:cost_price, variant.cost_price)
-
-          {:error, _} ->
-            Ash.Changeset.add_error(changeset,
-              field: :variant_id,
-              message: "variant not found"
-            )
-        end
-      end)
+      change(Emakola.Orders.Changes.DenormalizeVariant)
     end
   end
 end

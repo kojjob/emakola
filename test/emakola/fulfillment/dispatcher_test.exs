@@ -15,7 +15,7 @@ defmodule Emakola.Fulfillment.DispatcherTest do
 
   describe "dispatch/3" do
     test "routes :physical to the Physical pipeline" do
-      assert {:error, :not_implemented} = Dispatcher.dispatch(:physical, %{}, %{})
+      assert {:ok, :deferred} = Dispatcher.dispatch(:physical, %{}, %{})
     end
 
     test "routes :digital_download to the DigitalDownload pipeline" do
@@ -30,23 +30,23 @@ defmodule Emakola.Fulfillment.DispatcherTest do
     end
 
     test "routes :license_key to the LicenseKey pipeline" do
-      assert {:error, :not_implemented} = Dispatcher.dispatch(:license_key, %{}, %{})
+      assert {:ok, :deferred} = Dispatcher.dispatch(:license_key, %{}, %{})
     end
 
     test "routes :streaming to the Streaming pipeline" do
-      assert {:error, :not_implemented} = Dispatcher.dispatch(:streaming, %{}, %{})
+      assert {:ok, :deferred} = Dispatcher.dispatch(:streaming, %{}, %{})
     end
 
     test "routes :course to the Course pipeline" do
-      assert {:error, :not_implemented} = Dispatcher.dispatch(:course, %{}, %{})
+      assert {:ok, :deferred} = Dispatcher.dispatch(:course, %{}, %{})
     end
 
     test "routes :auction to the Auction pipeline" do
-      assert {:error, :not_implemented} = Dispatcher.dispatch(:auction, %{}, %{})
+      assert {:ok, :deferred} = Dispatcher.dispatch(:auction, %{}, %{})
     end
 
     test "routes :print_on_demand to the PrintOnDemand pipeline" do
-      assert {:error, :not_implemented} = Dispatcher.dispatch(:print_on_demand, %{}, %{})
+      assert {:ok, :deferred} = Dispatcher.dispatch(:print_on_demand, %{}, %{})
     end
 
     test "returns {:error, {:unknown_product_type, atom}} for an unknown type" do
@@ -55,7 +55,7 @@ defmodule Emakola.Fulfillment.DispatcherTest do
     end
 
     test "context argument is optional and defaults to an empty map" do
-      assert {:error, :not_implemented} = Dispatcher.dispatch(:physical, %{})
+      assert {:ok, :deferred} = Dispatcher.dispatch(:physical, %{})
     end
   end
 

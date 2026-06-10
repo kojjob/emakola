@@ -130,6 +130,7 @@ defmodule Emakola.Customers.WishlistItem do
     end
 
     action :remove, :struct do
+      allow_nil?(true)
       constraints(instance_of: __MODULE__)
 
       argument :customer_id, :uuid do

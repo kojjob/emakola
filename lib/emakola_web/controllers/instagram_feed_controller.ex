@@ -93,7 +93,7 @@ defmodule EmakolaWeb.InstagramFeedController do
 
   defp load_products(store) do
     Emakola.Catalog.Product
-    |> Ash.Query.filter(store_id == ^store.id and status == :active)
+    |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
     |> Ash.Query.load([:variants, :images])
     |> Ash.Query.sort(updated_at: :desc)
     |> Ash.Query.limit(1000)

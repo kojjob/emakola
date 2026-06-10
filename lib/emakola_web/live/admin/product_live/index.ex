@@ -9,8 +9,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
   import EmakolaWeb.Admin.ProductLive.BulkUploadModal, only: [bulk_upload_modal: 1]
 
-  require Ash.Query
-
   @impl true
   def mount(_params, _session, socket) do
     store_id = get_store_id(socket)
@@ -114,7 +112,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     product = socket.assigns.action_product
 
     if product do
-      case product |> Ash.Changeset.for_update(:archive) |> Ash.update(authorize?: false) do
+      case Emakola.Catalog.archive_product(product, authorize?: false) do
         {:ok, _} ->
           Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 
@@ -137,7 +135,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     product = socket.assigns.action_product
 
     if product do
-      case product |> Ash.Changeset.for_update(:activate) |> Ash.update(authorize?: false) do
+      case Emakola.Catalog.activate_product(product, authorize?: false) do
         {:ok, _} ->
           Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 
@@ -256,9 +254,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
   @impl true
   def handle_event("delete_image", %{"id" => image_id}, socket) do
-    case Ash.get(Emakola.Catalog.Image, image_id) do
+    case Emakola.Catalog.get_image(image_id) do
       {:ok, image} ->
-        Ash.destroy!(image)
+        Emakola.Catalog.destroy_image!(image, authorize?: false)
 
         # Reload the editing product with fresh images
         updated =
@@ -1007,33 +1005,21 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   end
 
   defp load_products(socket) do
-    require Ash.Query
     %{store_id: store_id, search_query: query, status_filter: status} = socket.assigns
 
     products =
       try do
-        base =
-          Emakola.Catalog.Product
-          |> Ash.Query.filter(store_id == ^store_id)
-          |> Ash.Query.sort(inserted_at: :desc)
-          |> Ash.Query.load([:variant_count, :min_price, :max_price, :images])
-          |> Ash.Query.limit(@admin_products_limit)
+        search = if query != "", do: query, else: nil
+        status_arg = if status != :all, do: status, else: nil
 
-        base =
-          if query != "" do
-            Ash.Query.filter(base, contains(title, ^query))
-          else
-            base
-          end
-
-        base =
-          if status != :all do
-            Ash.Query.filter(base, status == ^status)
-          else
-            base
-          end
-
-        Ash.read!(base, authorize?: false)
+        Emakola.Catalog.Product
+        |> Ash.Query.for_read(:list_admin, %{
+          store_id: store_id,
+          search: search,
+          status: status_arg
+        })
+        |> Ash.read!(authorize?: false)
+        |> Enum.take(@admin_products_limit)
       rescue
         _ -> []
       end
@@ -1061,13 +1047,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   # ── Product CRUD ──
 
   defp create_product(attrs, :draft) do
-    Emakola.Catalog.create_product(attrs)
+    Emakola.Catalog.create_product(attrs, authorize?: false)
   end
 
   defp create_product(attrs, :active) do
-    case Emakola.Catalog.create_product(attrs) do
+    case Emakola.Catalog.create_product(attrs, authorize?: false) do
       {:ok, product} ->
-        case Ash.Changeset.for_update(product, :activate) |> Ash.update(authorize?: false) do
+        case Emakola.Catalog.activate_product(product, authorize?: false) do
           {:ok, activated} -> {:ok, activated}
           {:error, _} -> {:ok, product}
         end
@@ -1078,15 +1064,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   end
 
   defp update_product(product, attrs, :draft) do
-    product
-    |> Ash.Changeset.for_update(:update, attrs)
-    |> Ash.update()
+    Emakola.Catalog.update_product(product, attrs, authorize?: false)
   end
 
   defp update_product(product, attrs, :active) do
-    case product |> Ash.Changeset.for_update(:update, attrs) |> Ash.update(authorize?: false) do
+    case Emakola.Catalog.update_product(product, attrs, authorize?: false) do
       {:ok, updated} ->
-        case updated |> Ash.Changeset.for_update(:activate) |> Ash.update(authorize?: false) do
+        case Emakola.Catalog.activate_product(updated, authorize?: false) do
           {:ok, activated} -> {:ok, activated}
           {:error, _} -> {:ok, updated}
         end
@@ -1097,7 +1081,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   end
 
   defp load_product(id) do
-    case Ash.get(Emakola.Catalog.Product, id) do
+    case Emakola.Catalog.get_product(id) do
       {:ok, product} -> product
       _ -> nil
     end
@@ -1259,16 +1243,17 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       {:ok, url} =
         Emakola.Storage.upload(binary, s3_path, content_type: entry.client_type)
 
-      Emakola.Catalog.Image
-      |> Ash.Changeset.for_create(:create, %{
-        url: url,
-        product_id: product.id,
-        store_id: store_id,
-        content_type: entry.client_type,
-        file_size_bytes: entry.client_size,
-        alt_text: Path.rootname(entry.client_name)
-      })
-      |> Ash.create()
+      Emakola.Catalog.create_image(
+        %{
+          url: url,
+          product_id: product.id,
+          store_id: store_id,
+          content_type: entry.client_type,
+          file_size_bytes: entry.client_size,
+          alt_text: Path.rootname(entry.client_name)
+        },
+        authorize?: false
+      )
 
       {:ok, url}
     end)

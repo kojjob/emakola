@@ -14,6 +14,12 @@ defmodule Emakola.Suppliers.SupplierLedgerEntry do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("supplier_ledger_entries")
     repo(Emakola.Repo)
@@ -79,16 +85,8 @@ defmodule Emakola.Suppliers.SupplierLedgerEntry do
   end
 
   policies do
-    bypass action_type(:read) do
-      authorize_if(always())
-    end
-
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
-      authorize_unless(actor_present())
-    end
-
-    # Merchant actors: verify store membership for writes
+    # Merchant actors: verify store membership for all actions.
+    # System code uses authorize?: false explicitly.
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
@@ -106,7 +104,7 @@ defmodule Emakola.Suppliers.SupplierLedgerEntry do
       accept([])
 
       validate(
-        {Emakola.Orders.Validations.StatusGuard,
+        {Emakola.Validations.StatusGuard,
          from: [:owed], message: "only an owed entry can be marked paid"}
       )
 

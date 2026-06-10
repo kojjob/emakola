@@ -5,8 +5,6 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
   """
   use EmakolaWeb, :live_view
 
-  require Ash.Query
-
   @impl true
   def mount(_params, _session, socket) do
     store_id = get_store_id(socket)
@@ -97,9 +95,9 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
 
   @impl true
   def handle_event("delete_category", %{"id" => id}, socket) do
-    case Ash.get(Emakola.Catalog.Category, id) do
+    case Emakola.Catalog.get_category(id) do
       {:ok, category} ->
-        case Ash.destroy(category) do
+        case Emakola.Catalog.destroy_category(category, authorize?: false) do
           :ok ->
             Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 
@@ -131,7 +129,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
   end
 
   defp do_create_category(socket, attrs) do
-    case Emakola.Catalog.create_category(attrs) do
+    case Emakola.Catalog.create_category(attrs, authorize?: false) do
       {:ok, _category} ->
         Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 
@@ -147,13 +145,11 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
   end
 
   defp do_update_category(socket, id, attrs) do
-    case Ash.get(Emakola.Catalog.Category, id) do
+    case Emakola.Catalog.get_category(id) do
       {:ok, category} ->
         update_attrs = Map.take(attrs, [:name, :description, :parent_id])
 
-        case category
-             |> Ash.Changeset.for_update(:update, update_attrs)
-             |> Ash.update(authorize?: false) do
+        case Emakola.Catalog.update_category(category, update_attrs, authorize?: false) do
           {:ok, _updated} ->
             Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 

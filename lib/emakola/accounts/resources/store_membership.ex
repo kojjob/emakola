@@ -56,11 +56,6 @@ defmodule Emakola.Accounts.StoreMembership do
       authorize_if(always())
     end
 
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
-      authorize_unless(actor_present())
-    end
-
     # Merchant actors: verify store membership for writes
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
@@ -82,6 +77,13 @@ defmodule Emakola.Accounts.StoreMembership do
 
     update :change_role do
       accept([:role])
+    end
+
+    read :by_merchant do
+      argument(:merchant_id, :uuid, allow_nil?: false)
+      filter(expr(merchant_id == ^arg(:merchant_id)))
+      prepare(build(limit: 1))
+      get?(true)
     end
   end
 end

@@ -13,6 +13,12 @@ defmodule Emakola.Catalog.VariantOptionValue do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("variant_option_values")
     repo(Emakola.Repo)
@@ -59,12 +65,8 @@ defmodule Emakola.Catalog.VariantOptionValue do
   end
 
   policies do
+    # Reads are public — storefront reads variant-option links without an actor.
     bypass action_type(:read) do
-      authorize_if(always())
-    end
-
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
       authorize_unless(actor_present())
     end
 
@@ -76,6 +78,14 @@ defmodule Emakola.Catalog.VariantOptionValue do
 
   actions do
     defaults([:read, :destroy])
+
+    read :list_by_variants do
+      argument(:variant_ids, {:array, :uuid}, allow_nil?: false)
+
+      filter(expr(variant_id in ^arg(:variant_ids)))
+
+      prepare(build(load: [:option_value]))
+    end
 
     create :create do
       accept([:variant_id, :option_value_id, :store_id])

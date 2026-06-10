@@ -7,8 +7,6 @@ defmodule EmakolaWeb.Storefront.RecipeListLive do
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.StoreResolver
 
-  require Ash.Query
-
   @impl true
   def mount(%{"store_slug" => slug}, session, socket) do
     case StoreResolver.resolve(slug) do

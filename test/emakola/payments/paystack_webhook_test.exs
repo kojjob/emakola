@@ -241,11 +241,12 @@ defmodule Emakola.Payments.PaystackWebhookTest do
     test "refund.processed is idempotent for already-refunded payment", %{store: store} do
       payment = create_payment!(store)
 
-      payment
-      |> Ash.Changeset.for_update(:mark_success, %{gateway_response: %{}})
-      |> Ash.update!(authorize?: false)
+      {:ok, successful_payment} =
+        payment
+        |> Ash.Changeset.for_update(:mark_success, %{gateway_response: %{}})
+        |> Ash.update(authorize?: false)
 
-      payment
+      successful_payment
       |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 250_000})
       |> Ash.update!(authorize?: false)
 

@@ -14,6 +14,12 @@ defmodule Emakola.Catalog.Product do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("products")
     repo(Emakola.Repo)
@@ -142,13 +148,8 @@ defmodule Emakola.Catalog.Product do
   end
 
   policies do
-    # Reads are always allowed (storefront + internal)
+    # Reads are public — storefront renders products without an actor.
     bypass action_type(:read) do
-      authorize_if(always())
-    end
-
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
       authorize_unless(actor_present())
     end
 
@@ -231,10 +232,16 @@ defmodule Emakola.Catalog.Product do
       argument(:query, :string, allow_nil?: false)
       argument(:store_id, :uuid, allow_nil?: false)
 
+      argument(:status, :atom,
+        allow_nil?: true,
+        constraints: [one_of: [:draft, :active, :archived]]
+      )
+
       filter(
         expr(
           store_id == ^arg(:store_id) and
-            contains(fragment("lower(?)", title), fragment("lower(?)", ^arg(:query)))
+            contains(fragment("lower(?)", title), fragment("lower(?)", ^arg(:query))) and
+            (is_nil(^arg(:status)) or status == ^arg(:status))
         )
       )
 
@@ -277,12 +284,67 @@ defmodule Emakola.Catalog.Product do
       end)
     end
 
+    read :get_by_slug do
+      get?(true)
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:slug, :string, allow_nil?: false)
+
+      filter(expr(store_id == ^arg(:store_id) and slug == ^arg(:slug) and status == :active))
+
+      prepare(
+        build(load: [:variants, :images, :min_price, :max_price, :avg_rating, :review_count])
+      )
+    end
+
+    read :list_related do
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:product_id, :uuid, allow_nil?: false)
+
+      filter(expr(store_id == ^arg(:store_id) and status == :active and id != ^arg(:product_id)))
+
+      prepare(build(load: [:images, :min_price, :max_price]))
+    end
+
     read :list_by_category do
       argument(:category_id, :uuid, allow_nil?: false)
       argument(:store_id, :uuid, allow_nil?: false)
 
-      filter(expr(category_id == ^arg(:category_id) and store_id == ^arg(:store_id)))
+      argument(:status, :atom,
+        allow_nil?: true,
+        constraints: [one_of: [:draft, :active, :archived]]
+      )
+
+      filter(
+        expr(
+          category_id == ^arg(:category_id) and store_id == ^arg(:store_id) and
+            (is_nil(^arg(:status)) or status == ^arg(:status))
+        )
+      )
+
       prepare(build(load: [:min_price, :max_price, :images, :variant_count]))
+    end
+
+    read :list_admin do
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:search, :string, allow_nil?: true)
+
+      argument(:status, :atom,
+        allow_nil?: true,
+        constraints: [one_of: [:draft, :active, :archived]]
+      )
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            (is_nil(^arg(:search)) or
+               contains(fragment("lower(?)", title), fragment("lower(?)", ^arg(:search)))) and
+            (is_nil(^arg(:status)) or status == ^arg(:status))
+        )
+      )
+
+      prepare(
+        build(sort: [inserted_at: :desc], load: [:variant_count, :min_price, :max_price, :images])
+      )
     end
   end
 end

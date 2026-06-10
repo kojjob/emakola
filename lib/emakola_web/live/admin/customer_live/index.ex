@@ -5,7 +5,6 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   """
   use EmakolaWeb, :live_view
 
-  require Ash.Query
   import EmakolaWeb.Helpers.Currency, only: [format_price: 1]
 
   @impl true
@@ -251,35 +250,26 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   @customers_limit 100
 
   defp load_customers(socket) do
-    require Ash.Query
     store_id = socket.assigns.store_id
     search_query = socket.assigns.search_query
 
     customers =
       if store_id do
-        base =
-          Emakola.Customers.Customer
-          |> Ash.Query.filter(store_id == ^store_id)
-          |> Ash.Query.sort(inserted_at: :desc)
-          |> Ash.Query.limit(@customers_limit)
-
-        base =
+        results =
           if search_query != "" do
-            base
-            |> Ash.Query.filter(contains(name, ^search_query) or contains(email, ^search_query))
+            Emakola.Customers.search_customers!(store_id, search_query, authorize?: false)
           else
-            base
+            Emakola.Customers.list_customers_by_store!(store_id, authorize?: false)
           end
 
-        case Ash.read(base, authorize?: false) do
-          {:ok, customers} -> customers
-          _ -> []
-        end
+        Enum.take(results, @customers_limit)
       else
         []
       end
 
     assign(socket, customers: customers)
+  rescue
+    _ -> assign(socket, customers: [])
   end
 
   # ── Helpers ──

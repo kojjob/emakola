@@ -2,8 +2,6 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   @moduledoc "Platform admin listing of all stores with search filtering."
   use EmakolaWeb, :live_view
 
-  require Ash.Query
-
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
@@ -46,9 +44,9 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
         {:noreply, socket}
 
       store ->
-        case store
-             |> Ash.Changeset.for_update(:update_directory_meta, attrs_fn.(store))
-             |> Ash.update(authorize?: false) do
+        case Emakola.Stores.update_store_directory_meta(store, attrs_fn.(store),
+               authorize?: false
+             ) do
           {:ok, updated} ->
             stores =
               Enum.map(socket.assigns.stores, fn s -> if s.id == id, do: updated, else: s end)
@@ -62,18 +60,12 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   end
 
   defp load_stores(socket, query) do
-    stores =
-      if String.trim(query) == "" do
-        Emakola.Stores.Store
-        |> Ash.Query.sort(inserted_at: :desc)
-        |> Ash.read!(authorize?: false)
-      else
-        q = "%#{String.trim(query)}%"
+    search = if String.trim(query) == "", do: "", else: "%#{String.trim(query)}%"
 
-        Emakola.Stores.Store
-        |> Ash.Query.filter(ilike(name, ^q) or ilike(slug, ^q))
-        |> Ash.Query.sort(inserted_at: :desc)
-        |> Ash.read!(authorize?: false)
+    stores =
+      case Emakola.Stores.list_stores_for_admin(search, authorize?: false) do
+        {:ok, list} -> list
+        _ -> []
       end
 
     assign(socket, :stores, stores)

@@ -10,8 +10,6 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   """
   import Phoenix.Component, only: [assign: 2]
 
-  require Ash.Query
-
   def on_mount(:default, _params, session, socket) do
     socket = assign(socket, active_nav: :dashboard, setup_banner_dismissed: false)
 
@@ -144,12 +142,9 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   end
 
   defp load_merchant_store(merchant_id) do
-    case Emakola.Accounts.StoreMembership
-         |> Ash.Query.filter(merchant_id: merchant_id)
-         |> Ash.Query.load(:store)
-         |> Ash.Query.limit(1)
-         |> Ash.read(authorize?: false) do
-      {:ok, [membership | _]} -> membership.store
+    case Emakola.Accounts.get_merchant_store_membership(merchant_id, authorize?: false) do
+      {:ok, nil} -> nil
+      {:ok, membership} -> Ash.load!(membership, :store, authorize?: false).store
       _ -> nil
     end
   end
@@ -160,8 +155,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
     updated =
       Enum.map(notifs, fn notif ->
         if is_nil(notif.read_at) do
-          case Ash.Changeset.for_update(notif, :mark_read, %{})
-               |> Ash.update(authorize?: false) do
+          case Emakola.Notifications.mark_as_read(notif, authorize?: false) do
             {:ok, updated} -> updated
             _ -> notif
           end
@@ -180,36 +174,22 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   defp load_store_stats(nil), do: %{products: 0, orders: 0, customers: 0, pending_orders: 0}
 
   defp load_store_stats(store) do
-    product_count =
+    {:ok, product_count} =
       Emakola.Catalog.Product
-      |> Ash.Query.filter(store_id: store.id)
-      |> Ash.read!(authorize?: false)
-      |> length()
+      |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
+      |> Ash.count(authorize?: false)
 
-    order_count =
+    {:ok, order_count} =
       Emakola.Orders.Order
-      |> Ash.Query.filter(store_id: store.id)
-      |> Ash.read!(authorize?: false)
-      |> length()
+      |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
+      |> Ash.count(authorize?: false)
 
-    customer_count =
+    {:ok, customer_count} =
       Emakola.Customers.Customer
-      |> Ash.Query.filter(store_id: store.id)
-      |> Ash.read!(authorize?: false)
-      |> length()
+      |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
+      |> Ash.count(authorize?: false)
 
-    pending_order_count =
-      Emakola.Orders.Order
-      |> Ash.Query.filter(store_id: store.id, status: :pending)
-      |> Ash.read!(authorize?: false)
-      |> length()
-
-    %{
-      products: product_count,
-      orders: order_count,
-      customers: customer_count,
-      pending_orders: pending_order_count
-    }
+    %{products: product_count || 0, orders: order_count || 0, customers: customer_count || 0}
   rescue
     _ -> %{products: 0, orders: 0, customers: 0, pending_orders: 0}
   end
@@ -220,25 +200,21 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
         {[], 0}
 
       uid ->
-        notifs =
-          Emakola.Notifications.Notification
-          |> Ash.Query.filter(user_id: uid)
-          |> Ash.Query.sort(inserted_at: :desc)
-          |> Ash.Query.limit(20)
-          |> Ash.read!(authorize?: false)
+        case Emakola.Notifications.list_notifications_by_user(uid, authorize?: false) do
+          {:ok, notifs} ->
+            unread = Enum.count(notifs, &is_nil(&1.read_at))
+            {notifs, unread}
 
-        unread = Enum.count(notifs, &is_nil(&1.read_at))
-        {notifs, unread}
+          _ ->
+            {[], 0}
+        end
     end
   rescue
     _ -> {[], 0}
   end
 
   defp has_membership?(user_id) do
-    case Emakola.Accounts.Membership
-         |> Ash.Query.filter(user_id: user_id)
-         |> Ash.Query.limit(1)
-         |> Ash.read(authorize?: false) do
+    case Emakola.Accounts.list_memberships_by_user(user_id, authorize?: false) do
       {:ok, [_ | _]} -> true
       _ -> false
     end

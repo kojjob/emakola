@@ -7,8 +7,6 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.StoreResolver
 
-  require Ash.Query
-
   @impl true
   def mount(%{"store_slug" => slug, "recipe_slug" => recipe_slug}, session, socket) do
     case StoreResolver.resolve(slug) do
@@ -22,7 +20,7 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
              |> Ash.read_one(authorize?: false) do
           {:ok, %{} = post} ->
             try do
-              post |> Ash.Changeset.for_update(:increment_views) |> Ash.update()
+              Emakola.Content.increment_post_views!(post, authorize?: false)
             rescue
               _ -> :ok
             end
@@ -64,9 +62,7 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
   end
 
   defp load_recipe_meta(post_id) do
-    case Emakola.Content.RecipeMeta
-         |> Ash.Query.for_read(:get_by_post, %{post_id: post_id})
-         |> Ash.read(authorize?: false) do
+    case Emakola.Content.get_recipe_meta_by_post(post_id, authorize?: false) do
       {:ok, [meta | _]} -> meta
       _ -> nil
     end

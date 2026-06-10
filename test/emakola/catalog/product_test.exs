@@ -278,7 +278,7 @@ defmodule Emakola.Catalog.ProductTest do
     test "deletes a product", %{store: store} do
       product = create_product!(store, title: "To Delete")
 
-      assert :ok = Ash.destroy!(product)
+      assert :ok = Ash.destroy!(product, authorize?: false)
 
       assert [] =
                Emakola.Catalog.Product

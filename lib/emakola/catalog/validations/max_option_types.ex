@@ -20,7 +20,7 @@ defmodule Emakola.Catalog.Validations.MaxOptionTypes do
       count =
         Emakola.Catalog.OptionType
         |> Ash.Query.filter(product_id == ^product_id)
-        |> Ash.count!()
+        |> Ash.count!(authorize?: false)
 
       if count >= @max_option_types do
         {:error,
