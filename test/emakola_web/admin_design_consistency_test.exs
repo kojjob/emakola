@@ -9,7 +9,7 @@ defmodule EmakolaWeb.AdminDesignConsistencyTest do
   @admin_dir "lib/emakola_web/live"
 
   # Page files converted to the design system (paths relative to @admin_dir)
-  @swept ~w(dashboard_live.ex admin/product_live/index.ex admin/order_live/index.ex admin/order_live/show.ex admin/inventory_live.ex admin/supplier_live/index.ex admin/supplier_live/show.ex)
+  @swept ~w(dashboard_live.ex admin/product_live/index.ex admin/order_live/index.ex admin/order_live/show.ex admin/inventory_live.ex admin/supplier_live/index.ex admin/supplier_live/show.ex admin/settings_live.ex)
 
   # Raw classes forbidden in swept files — use canonical components/tokens.
   @forbidden ~w(bg-emerald-600 bg-emerald-700 bg-emakola-gold rounded-2xl rounded-xl)
