@@ -116,9 +116,14 @@ fly secrets set \
   HUBTEL_CLIENT_SECRET="xxxxx" \
   HUBTEL_MERCHANT_ACCOUNT="xxxxx" \
   \
-  # SMS / WhatsApp
-  ARKESEL_API_KEY="xxxxx" \
-  ARKESEL_SENDER_ID="Emakola" \
+  # SMS / WhatsApp — required: the release fails to boot if SMS_API_KEY,
+  # SMS_API_URL, WHATSAPP_API_TOKEN, or WHATSAPP_PHONE_NUMBER_ID is missing
+  # (notifications are business-critical; we raise rather than silently no-op)
+  SMS_API_KEY="xxxxx" \
+  SMS_SENDER_ID="Emakola" \
+  SMS_API_URL="https://sms.yourprovider.example/v1/messages" \
+  WHATSAPP_API_TOKEN="xxxxx" \
+  WHATSAPP_PHONE_NUMBER_ID="xxxxx" \
   \
   # S3-compatible storage (if not using Tigris auto-config)
   S3_BUCKET="emakola-uploads" \

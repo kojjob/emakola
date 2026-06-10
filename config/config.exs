@@ -118,19 +118,8 @@ config :emakola, :demo_mode, System.get_env("DEMO_MODE") == "true"
 # environment: dev.exs (placeholders), test.exs, runtime.exs (prod).
 config :emakola, Emakola.Payments.PaystackClient, base_url: "https://api.paystack.co"
 
-# WhatsApp Business API (Cloud API)
-# api_version is overridable via WHATSAPP_API_VERSION env var so we
-# can roll forward when Meta deprecates a Graph API version without
-# a redeploy. See https://developers.facebook.com/docs/graph-api/changelog
-config :emakola, Emakola.Notifications.Channels.WhatsApp,
-  api_token: System.get_env("WHATSAPP_API_TOKEN"),
-  phone_number_id: System.get_env("WHATSAPP_PHONE_NUMBER_ID"),
-  api_version: System.get_env("WHATSAPP_API_VERSION") || "v21.0"
-
-# SMS Gateway
-config :emakola, Emakola.Notifications.Channels.SMS,
-  api_key: System.get_env("SMS_API_KEY"),
-  sender_id: System.get_env("SMS_SENDER_ID") || "Emakola"
+# SMS/WhatsApp channel credentials are runtime concerns — configured in
+# runtime.exs for prod. Dev/test default to Log providers / Mox mocks.
 
 # Hubtel client — non-secret structure only. Credentials are set per
 # environment: dev.exs (env passthrough), test.exs (flat keys), runtime.exs (prod).

@@ -91,17 +91,38 @@ if config_env() == :prod do
   # Bypass flag is never set in prod — keeping fail-closed semantics.
   config :emakola, :hubtel_webhook_allowlist_disabled, false
 
-  # SMS notifications
-  if sms_key = System.get_env("SMS_API_KEY") do
-    config :emakola, :sms_api_key, sms_key
-    config :emakola, :sms_sender_id, System.get_env("SMS_SENDER_ID") || "Emakola"
-  end
+  # SMS notifications — required in prod (order/stock notifications are
+  # business-critical, so missing credentials fail the boot, not silently
+  # no-op). Workers resolve :sms_provider; the channel reads its own
+  # keyword config.
+  config :emakola, :sms_provider, Emakola.Notifications.Channels.SMS
 
-  # WhatsApp Business API
-  if wa_token = System.get_env("WHATSAPP_API_TOKEN") do
-    config :emakola, :whatsapp_api_token, wa_token
-    config :emakola, :whatsapp_phone_number_id, System.get_env("WHATSAPP_PHONE_NUMBER_ID") || ""
-  end
+  config :emakola, Emakola.Notifications.Channels.SMS,
+    api_key:
+      System.get_env("SMS_API_KEY") ||
+        raise("environment variable SMS_API_KEY is missing."),
+    sender_id: System.get_env("SMS_SENDER_ID") || "Emakola",
+    api_url:
+      System.get_env("SMS_API_URL") ||
+        raise("environment variable SMS_API_URL is missing.")
+
+  # WhatsApp Business Cloud API — credentials required in prod.
+  # NOTE: :whatsapp_provider intentionally stays on the default
+  # Emakola.Notifications.Providers.LogWhatsApp — workers call
+  # send_message/4, which Emakola.Notifications.Channels.WhatsApp does
+  # not implement (it exposes send_order_confirmation/2 etc.). Wiring it
+  # here would crash every notification worker.
+  # api_version is overridable via WHATSAPP_API_VERSION env var so we
+  # can roll forward when Meta deprecates a Graph API version without
+  # a redeploy. See https://developers.facebook.com/docs/graph-api/changelog
+  config :emakola, Emakola.Notifications.Channels.WhatsApp,
+    api_token:
+      System.get_env("WHATSAPP_API_TOKEN") ||
+        raise("environment variable WHATSAPP_API_TOKEN is missing."),
+    phone_number_id:
+      System.get_env("WHATSAPP_PHONE_NUMBER_ID") ||
+        raise("environment variable WHATSAPP_PHONE_NUMBER_ID is missing."),
+    api_version: System.get_env("WHATSAPP_API_VERSION") || "v21.0"
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
