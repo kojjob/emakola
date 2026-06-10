@@ -385,28 +385,25 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
           </p>
         </div>
         <div class="flex items-center gap-2">
-          <button
+          <.admin_button
+            variant={:secondary}
+            size={:sm}
             phx-click={
               JS.push("open_bulk_upload")
               |> show_modal("bulk-upload-modal")
             }
-            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold
-                   border border-slate-300 text-slate-600 hover:bg-slate-50
-                   active:scale-95 transition-all"
           >
             <.icon name="hero-arrow-up-tray" class="size-3.5" /> Bulk
-          </button>
-          <button
+          </.admin_button>
+          <.admin_button
+            size={:sm}
             phx-click={
               JS.push("open_new_product")
               |> show_modal("product-form-modal")
             }
-            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold
-                   bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all
-                   shadow-sm"
           >
             <.icon name="hero-plus" class="size-3.5" /> New Product
-          </button>
+          </.admin_button>
         </div>
       </div>
 
@@ -488,7 +485,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                   </div>
                 </td>
                 <td class="px-4 py-3">
-                  <.status_badge status={product.status} />
+                  <.status_pill status={product.status} variant={:product} />
                 </td>
                 <td class="px-4 py-3 text-sm text-slate-500">
                   {category_name(product.category_id, @categories)}
@@ -516,7 +513,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                         JS.push("open_edit_product", value: %{id: product.id})
                         |> show_modal("product-form-modal")
                       }
-                      class="text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+                      class="text-primary hover:text-primary-hover text-sm font-medium"
                     >
                       Edit
                     </button>
@@ -537,7 +534,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                         JS.push("open_activate", value: %{id: product.id})
                         |> show_modal("product-action-modal")
                       }
-                      class="text-emerald-500 hover:text-emerald-700 text-xs font-medium px-2 py-1 rounded hover:bg-emerald-50"
+                      class="text-primary hover:text-primary-hover text-xs font-medium px-2 py-1 rounded hover:bg-primary-soft"
                       title="Activate"
                     >
                       Activate
@@ -575,7 +572,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                   </p>
                 </div>
               </div>
-              <.status_badge status={product.status} />
+              <.status_pill status={product.status} variant={:product} />
             </div>
             <div class="flex items-center justify-between text-sm">
               <span class="text-slate-500 font-mono">
@@ -599,8 +596,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                   JS.push("open_edit_product", value: %{id: product.id})
                   |> show_modal("product-form-modal")
                 }
-                class="flex-1 text-center py-2 rounded-lg border border-emerald-200 text-emerald-700
-                       text-sm font-medium hover:bg-emerald-50 transition-colors"
+                class="flex-1 text-center py-2 rounded-lg border border-emerald-200 text-primary
+                       text-sm font-medium hover:bg-primary-soft transition-colors"
               >
                 Edit
               </button>
@@ -614,7 +611,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         <%= if @quick_view_product do %>
           <div class="space-y-4">
             <div class="flex items-start gap-4">
-              <div class="w-16 h-16 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <div class="w-16 h-16 rounded-control bg-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
                 <%= if first_image_url(@quick_view_product) do %>
                   <img
                     src={first_image_url(@quick_view_product)}
@@ -630,7 +627,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                   {@quick_view_product.title}
                 </h3>
                 <div class="flex items-center gap-2 mt-1">
-                  <.status_badge status={@quick_view_product.status} />
+                  <.status_pill status={@quick_view_product.status} variant={:product} />
                   <span class="text-xs text-slate-500">
                     {category_name(@quick_view_product.category_id, @categories)}
                   </span>
@@ -667,26 +664,19 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         <% end %>
         <:footer>
           <div class="flex items-center justify-end gap-3">
-            <button
-              type="button"
-              phx-click={hide_modal("quick-view-modal")}
-              class="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300
-                     rounded-xl hover:bg-slate-50 transition-colors"
-            >
+            <.admin_button variant={:secondary} phx-click={hide_modal("quick-view-modal")}>
               Close
-            </button>
-            <button
+            </.admin_button>
+            <.admin_button
               :if={@quick_view_product}
               phx-click={
                 JS.push("open_edit_product", value: %{id: @quick_view_product.id})
                 |> hide_modal("quick-view-modal")
                 |> show_modal("product-form-modal")
               }
-              class="px-4 py-2.5 text-sm font-semibold bg-emerald-600 text-white
-                     rounded-xl hover:bg-emerald-700 transition-colors"
             >
               Edit Product
-            </button>
+            </.admin_button>
           </div>
         </:footer>
       </.modal>
@@ -711,7 +701,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
           title="Activate Product"
           message={"Activate \"#{@action_product.title}\"? It must have at least one variant to be published. It will become visible in your storefront."}
           confirm_text="Activate"
-          confirm_class="bg-emerald-600 hover:bg-emerald-700 text-white"
+          confirm_class="bg-primary hover:bg-primary-hover text-white"
           on_confirm="activate_product"
         />
       <% end %>
@@ -880,7 +870,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                     <%!-- Progress bar --%>
                     <div class="absolute bottom-0 left-0 right-0 h-1 bg-slate-200">
                       <div
-                        class="h-full bg-emerald-500 transition-all"
+                        class="h-full bg-primary transition-all"
                         style={"width: #{entry.progress}%"}
                       >
                       </div>
@@ -957,20 +947,19 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
               type="submit"
               form="product-slide-over-form"
               phx-click={JS.set_attribute({"value", "draft"}, to: "#pf_action_field")}
-              class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold border-2 border-emerald-600
-                     text-emerald-700 hover:bg-emerald-50 active:scale-95 transition-all"
+              class="flex-1 px-4 py-2.5 rounded-control text-sm font-semibold border-2 border-primary
+                     text-primary hover:bg-primary-soft active:scale-95 transition-all"
             >
               Save as Draft
             </button>
-            <button
+            <.admin_button
               type="submit"
               form="product-slide-over-form"
               phx-click={JS.set_attribute({"value", "activate"}, to: "#pf_action_field")}
-              class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold bg-emerald-600 text-white
-                     hover:bg-emerald-700 active:scale-95 transition-all shadow-sm"
+              class="flex-1"
             >
               Save &amp; Activate
-            </button>
+            </.admin_button>
           </div>
         </:footer>
       </.modal>
@@ -1006,19 +995,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     >
       {@label}
     </button>
-    """
-  end
-
-  attr :status, :atom, required: true
-
-  defp status_badge(assigns) do
-    ~H"""
-    <span class={[
-      "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-      status_badge_class(@status)
-    ]}>
-      {@status |> to_string() |> String.capitalize()}
-    </span>
     """
   end
 
@@ -1207,11 +1183,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       _ -> nil
     end
   end
-
-  defp status_badge_class(:draft), do: "bg-gray-100 text-gray-700"
-  defp status_badge_class(:active), do: "bg-green-100 text-green-700"
-  defp status_badge_class(:archived), do: "bg-red-100 text-red-700"
-  defp status_badge_class(_), do: "bg-gray-100 text-gray-700"
 
   defp category_name(nil, _categories), do: "Uncategorized"
   defp category_name(id, categories), do: Map.get(categories, id, "Uncategorized")
