@@ -17,11 +17,8 @@ config :emakola, EmakolaWeb.Endpoint,
     # 1 year max-age, include subdomains for full coverage
     expires: 31_536_000,
     subdomains: true,
-    preload: true
-  ],
-  exclude: [
-    # paths: ["/health"],
-    hosts: ["localhost", "127.0.0.1"]
+    preload: true,
+    exclude: ["localhost", "127.0.0.1"]
   ]
 
 # Configure Swoosh API Client

@@ -59,6 +59,12 @@ swap_size_mb = 256
       port = 4000
       timeout = "5s"
 
+      # Plug.SSL (force_ssl) sees rewrite_on: [:x_forwarded_proto]; sending
+      # this header makes internal health probes look like HTTPS so they
+      # are not 301-redirected.
+      [http_service.checks.health.headers]
+        X-Forwarded-Proto = "https"
+
 # -----------------------------------------------------------------------------
 # VM Resources
 # -----------------------------------------------------------------------------
