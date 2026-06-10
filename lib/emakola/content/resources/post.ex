@@ -212,6 +212,37 @@ defmodule Emakola.Content.Post do
       end)
     end
 
+    read :list_admin do
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      argument(:type, :atom,
+        allow_nil?: true,
+        constraints: [one_of: [:blog_post, :page, :recipe, :guide]]
+      )
+
+      argument(:status, :atom,
+        allow_nil?: true,
+        constraints: [one_of: [:draft, :ai_draft, :published, :archived]]
+      )
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            (is_nil(^arg(:type)) or type == ^arg(:type)) and
+            (is_nil(^arg(:status)) or status == ^arg(:status))
+        )
+      )
+
+      prepare(build(sort: [inserted_at: :desc]))
+    end
+
+    read :get_for_admin do
+      get?(true)
+      argument(:id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(id == ^arg(:id) and store_id == ^arg(:store_id)))
+    end
+
     read :list_published do
       argument(:store_id, :uuid)
       argument(:type, :atom, constraints: [one_of: [:blog_post, :page, :recipe, :guide]])

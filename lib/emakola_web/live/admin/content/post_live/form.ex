@@ -1,8 +1,6 @@
 defmodule EmakolaWeb.Admin.Content.PostLive.Form do
   use EmakolaWeb, :live_view
 
-  require Ash.Query
-
   @impl true
   def mount(params, _session, socket) do
     store = socket.assigns[:current_store]
@@ -93,13 +91,12 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
 
     result =
       if socket.assigns.post do
-        socket.assigns.post
-        |> Ash.Changeset.for_update(:update, Map.drop(attrs, [:store_id, :author_id, :type]))
-        |> Ash.update()
+        Emakola.Content.update_post(
+          socket.assigns.post,
+          Map.drop(attrs, [:store_id, :author_id, :type])
+        )
       else
-        Emakola.Content.Post
-        |> Ash.Changeset.for_create(:create, attrs)
-        |> Ash.create()
+        Emakola.Content.create_post(attrs)
       end
 
     case result do
@@ -130,9 +127,7 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
   @impl true
   def handle_event("publish", _params, socket) do
     if socket.assigns.post do
-      case socket.assigns.post
-           |> Ash.Changeset.for_update(:publish)
-           |> Ash.update(authorize?: false) do
+      case Emakola.Content.publish_post(socket.assigns.post, authorize?: false) do
         {:ok, post} ->
           {:noreply,
            socket
@@ -318,11 +313,9 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
   end
 
   defp load_post(id, store) when is_binary(id) and not is_nil(store) do
-    case Emakola.Content.Post
-         |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
-         |> Ash.Query.filter(id == ^id)
-         |> Ash.read(authorize?: false) do
-      {:ok, [post]} -> {:ok, post}
+    case Emakola.Content.get_post_for_admin(id, store.id, authorize?: false) do
+      {:ok, nil} -> {:error, :not_found}
+      {:ok, post} -> {:ok, post}
       _ -> {:error, :not_found}
     end
   end
