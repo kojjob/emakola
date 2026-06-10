@@ -215,5 +215,20 @@ defmodule Emakola.Payments.Payment do
       argument(:order_id, :uuid, allow_nil?: false)
       filter(expr(order_id == ^arg(:order_id)))
     end
+
+    read :failed_in_period do
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:from, :utc_datetime, allow_nil?: false)
+      argument(:to, :utc_datetime, allow_nil?: false)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            status == :failed and
+            inserted_at >= ^arg(:from) and
+            inserted_at < ^arg(:to)
+        )
+      )
+    end
   end
 end

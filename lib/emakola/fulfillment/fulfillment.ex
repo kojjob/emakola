@@ -17,6 +17,7 @@ defmodule Emakola.Fulfillment do
 
   resources do
     resource Emakola.Fulfillment.DownloadGrant do
+      define(:get_download_grant, action: :get_by_id, args: [:id])
       define(:list_grants_by_customer, action: :list_by_customer, args: [:customer_id, :store_id])
     end
   end

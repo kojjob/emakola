@@ -234,5 +234,19 @@ defmodule Emakola.Customers.Customer do
 
       filter(expr(id == ^arg(:id)))
     end
+
+    read :by_store_in_period do
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:from, :utc_datetime, allow_nil?: false)
+      argument(:to, :utc_datetime, allow_nil?: false)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            inserted_at >= ^arg(:from) and
+            inserted_at < ^arg(:to)
+        )
+      )
+    end
   end
 end

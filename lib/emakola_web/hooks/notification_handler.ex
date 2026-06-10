@@ -8,7 +8,6 @@ defmodule EmakolaWeb.Hooks.NotificationHandler do
   import Phoenix.Component
   import Phoenix.LiveView
 
-  require Ash.Query
   require Logger
 
   def on_mount(:default, _params, _session, socket) do
@@ -40,7 +39,7 @@ defmodule EmakolaWeb.Hooks.NotificationHandler do
 
   defp handle_notification_event("mark_all_read", _params, socket) do
     for notif <- socket.assigns.notifications do
-      notif |> Ash.Changeset.for_update(:mark_read) |> Ash.update()
+      Emakola.Notifications.mark_as_read(notif, authorize?: false)
     end
 
     {:halt, assign(socket, notifications: [], notification_count: 0)}
@@ -50,7 +49,7 @@ defmodule EmakolaWeb.Hooks.NotificationHandler do
     notif = Enum.find(socket.assigns.notifications, &(&1.id == id))
 
     if notif do
-      notif |> Ash.Changeset.for_update(:mark_read) |> Ash.update()
+      Emakola.Notifications.mark_as_read(notif, authorize?: false)
       notifications = Enum.reject(socket.assigns.notifications, &(&1.id == id))
 
       {:halt,
@@ -99,11 +98,7 @@ defmodule EmakolaWeb.Hooks.NotificationHandler do
   defp load_unread_notifications(nil), do: []
 
   defp load_unread_notifications(user) do
-    case Emakola.Notifications.Notification
-         |> Ash.Query.filter(user_id == ^user.id and is_nil(read_at))
-         |> Ash.Query.sort(inserted_at: :desc)
-         |> Ash.Query.limit(10)
-         |> Ash.read(authorize?: false) do
+    case Emakola.Notifications.list_unread_notifications(user.id, authorize?: false) do
       {:ok, notifs} ->
         notifs
 

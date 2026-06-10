@@ -25,6 +25,11 @@ defmodule Emakola.Pages do
       define(:get_page, action: :read, get_by: [:id])
       define(:list_pages_for_store, action: :list_for_store, args: [:store_id])
 
+      define(:list_published_pages_for_store,
+        action: :list_published_for_store,
+        args: [:store_id]
+      )
+
       define(:get_published_page,
         action: :get_published_for_store,
         args: [:store_id, :slug]

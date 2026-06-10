@@ -1317,12 +1317,10 @@ defmodule EmakolaWeb.StorefrontComponents do
   end
 
   defp safe_list_pages(store_id) do
-    require Ash.Query
-
-    Emakola.Pages.Page
-    |> Ash.Query.for_read(:list_for_store, %{store_id: store_id})
-    |> Ash.Query.filter(published == true)
-    |> Ash.read!(authorize?: false)
+    case Emakola.Pages.list_published_pages_for_store(store_id, authorize?: false) do
+      {:ok, pages} -> pages
+      _ -> []
+    end
   rescue
     _ -> []
   end

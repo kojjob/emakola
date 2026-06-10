@@ -247,9 +247,7 @@ defmodule EmakolaWeb.Auth.RegisterLive do
         name = String.trim(params["name"] || "")
 
         if name != "" do
-          user
-          |> Ash.Changeset.for_update(:update_profile, %{name: name})
-          |> Ash.update()
+          Emakola.Accounts.update_user_profile(user, %{name: name})
         end
 
         token = AshAuthentication.user_to_subject(user)

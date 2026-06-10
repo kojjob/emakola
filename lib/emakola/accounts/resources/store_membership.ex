@@ -83,5 +83,12 @@ defmodule Emakola.Accounts.StoreMembership do
     update :change_role do
       accept([:role])
     end
+
+    read :by_merchant do
+      argument(:merchant_id, :uuid, allow_nil?: false)
+      filter(expr(merchant_id == ^arg(:merchant_id)))
+      prepare(build(limit: 1))
+      get?(true)
+    end
   end
 end

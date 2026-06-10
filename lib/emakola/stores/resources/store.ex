@@ -270,6 +270,32 @@ defmodule Emakola.Stores.Store do
       ])
     end
 
+    # ── Lookup read actions ──
+
+    read :get_by_slug do
+      argument(:slug, :string, allow_nil?: false)
+      filter(expr(slug == ^arg(:slug)))
+      get?(true)
+    end
+
+    read :list_by_slugs do
+      argument(:slugs, {:array, :string}, allow_nil?: false)
+      filter(expr(active == true and slug in ^arg(:slugs)))
+    end
+
+    read :list_for_admin do
+      argument(:search, :string, default: "")
+
+      filter(
+        expr(
+          is_nil(^arg(:search)) or ^arg(:search) == "" or
+            ilike(name, ^arg(:search)) or ilike(slug, ^arg(:search))
+        )
+      )
+
+      prepare(build(sort: [inserted_at: :desc]))
+    end
+
     # ── Directory read actions ──
 
     read :list_active do

@@ -182,12 +182,11 @@ defmodule EmakolaWeb.DashboardHelpers do
   defp revenue_and_count(store_id, from, to) do
     base =
       Emakola.Orders.Order
-      |> Ash.Query.filter(
-        store_id == ^store_id and
-          status != :cancelled and
-          inserted_at >= ^from and
-          inserted_at < ^to
-      )
+      |> Ash.Query.for_read(:by_store_non_cancelled_in_period, %{
+        store_id: store_id,
+        from: from,
+        to: to
+      })
 
     {:ok, revenue} = Ash.sum(base, :total, authorize?: false)
     {:ok, count} = Ash.count(base, authorize?: false)
@@ -196,23 +195,18 @@ defmodule EmakolaWeb.DashboardHelpers do
 
   defp load_non_cancelled_orders(store_id, from, to) do
     Emakola.Orders.Order
-    |> Ash.Query.filter(
-      store_id == ^store_id and
-        status != :cancelled and
-        inserted_at >= ^from and
-        inserted_at < ^to
-    )
+    |> Ash.Query.for_read(:by_store_non_cancelled_in_period, %{
+      store_id: store_id,
+      from: from,
+      to: to
+    })
     |> Ash.Query.select([:id, :total, :inserted_at])
     |> Ash.read!(authorize?: false)
   end
 
   defp load_customers_in_range(store_id, from, to) do
     Emakola.Customers.Customer
-    |> Ash.Query.filter(
-      store_id == ^store_id and
-        inserted_at >= ^from and
-        inserted_at < ^to
-    )
+    |> Ash.Query.for_read(:by_store_in_period, %{store_id: store_id, from: from, to: to})
     |> Ash.Query.select([:id, :inserted_at])
     |> Ash.read!(authorize?: false)
   end
@@ -220,11 +214,7 @@ defmodule EmakolaWeb.DashboardHelpers do
   defp count_customers(store_id, from, to) do
     {:ok, count} =
       Emakola.Customers.Customer
-      |> Ash.Query.filter(
-        store_id == ^store_id and
-          inserted_at >= ^from and
-          inserted_at < ^to
-      )
+      |> Ash.Query.for_read(:by_store_in_period, %{store_id: store_id, from: from, to: to})
       |> Ash.count(authorize?: false)
 
     count
@@ -233,7 +223,7 @@ defmodule EmakolaWeb.DashboardHelpers do
   defp count_pending_orders(store_id) do
     {:ok, count} =
       Emakola.Orders.Order
-      |> Ash.Query.filter(store_id == ^store_id and status == :pending)
+      |> Ash.Query.for_read(:list_by_status, %{store_id: store_id, status: :pending})
       |> Ash.count(authorize?: false)
 
     count
@@ -242,11 +232,7 @@ defmodule EmakolaWeb.DashboardHelpers do
   defp count_low_stock(store_id) do
     {:ok, count} =
       Emakola.Catalog.Variant
-      |> Ash.Query.filter(
-        store_id == ^store_id and
-          track_inventory == true and
-          stock_quantity < 10
-      )
+      |> Ash.Query.for_read(:low_stock, %{threshold: 10, store_id: store_id})
       |> Ash.count(authorize?: false)
 
     count
@@ -255,12 +241,7 @@ defmodule EmakolaWeb.DashboardHelpers do
   defp count_failed_payments(store_id, from, to) do
     {:ok, count} =
       Emakola.Payments.Payment
-      |> Ash.Query.filter(
-        store_id == ^store_id and
-          status == :failed and
-          inserted_at >= ^from and
-          inserted_at < ^to
-      )
+      |> Ash.Query.for_read(:failed_in_period, %{store_id: store_id, from: from, to: to})
       |> Ash.count(authorize?: false)
 
     count
@@ -268,7 +249,7 @@ defmodule EmakolaWeb.DashboardHelpers do
 
   defp load_recent_orders(store_id) do
     Emakola.Orders.Order
-    |> Ash.Query.filter(store_id == ^store_id)
+    |> Ash.Query.for_read(:list_by_store, %{store_id: store_id})
     |> Ash.Query.sort(inserted_at: :desc)
     |> Ash.Query.limit(5)
     |> Ash.Query.load([:customer])

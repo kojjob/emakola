@@ -94,5 +94,10 @@ defmodule Emakola.Shipping.DeliveryZone do
 
       filter(expr(store_id == ^arg(:store_id)))
     end
+
+    read :list_active_by_store do
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(store_id == ^arg(:store_id) and active == true))
+    end
   end
 end

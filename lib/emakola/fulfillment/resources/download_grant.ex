@@ -130,6 +130,12 @@ defmodule Emakola.Fulfillment.DownloadGrant do
   actions do
     defaults([:read, :destroy])
 
+    read :get_by_id do
+      argument(:id, :uuid, allow_nil?: false)
+      filter(expr(id == ^arg(:id)))
+      get?(true)
+    end
+
     read :list_by_customer do
       argument(:customer_id, :uuid, allow_nil?: false)
       argument(:store_id, :uuid, allow_nil?: false)

@@ -77,5 +77,10 @@ defmodule Emakola.Accounts.Membership do
     update :change_role do
       accept([:role])
     end
+
+    read :by_user do
+      argument(:user_id, :uuid, allow_nil?: false)
+      filter(expr(user_id == ^arg(:user_id)))
+    end
   end
 end

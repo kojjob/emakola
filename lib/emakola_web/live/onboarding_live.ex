@@ -10,8 +10,6 @@ defmodule EmakolaWeb.OnboardingLive do
 
   use EmakolaWeb, :live_view
 
-  require Ash.Query
-
   @currencies [
     %{code: "GHS", label: "GHS — Ghana Cedi", flag: "\u{1F1EC}\u{1F1ED}"},
     %{code: "NGN", label: "NGN — Nigerian Naira", flag: "\u{1F1F3}\u{1F1EC}"},
@@ -536,19 +534,13 @@ defmodule EmakolaWeb.OnboardingLive do
   defp has_store_membership?(user) do
     case user_type(user) do
       :merchant ->
-        case Emakola.Accounts.StoreMembership
-             |> Ash.Query.filter(merchant_id: user.id)
-             |> Ash.Query.limit(1)
-             |> Ash.read(authorize?: false) do
-          {:ok, [_ | _]} -> true
+        case Emakola.Accounts.get_merchant_store_membership(user.id, authorize?: false) do
+          {:ok, membership} when not is_nil(membership) -> true
           _ -> false
         end
 
       :user ->
-        case Emakola.Accounts.Membership
-             |> Ash.Query.filter(user_id: user.id)
-             |> Ash.Query.limit(1)
-             |> Ash.read(authorize?: false) do
+        case Emakola.Accounts.list_memberships_by_user(user.id, authorize?: false) do
           {:ok, [_ | _]} -> true
           _ -> false
         end
@@ -587,13 +579,7 @@ defmodule EmakolaWeb.OnboardingLive do
       currency = assigns.currency
 
       with {:ok, store} <-
-             Emakola.Stores.Store
-             |> Ash.Changeset.for_create(:create, %{
-               name: store_name,
-               slug: slug,
-               currency: currency
-             })
-             |> Ash.create(),
+             Emakola.Stores.create_store(%{name: store_name, slug: slug, currency: currency}),
            {:ok, _membership} <- create_membership_for_user(user, store) do
         maybe_create_product(assigns, store)
         store = maybe_save_theme(assigns, store)
@@ -612,30 +598,21 @@ defmodule EmakolaWeb.OnboardingLive do
   end
 
   defp create_membership_for_user(%Emakola.Accounts.Merchant{} = merchant, store) do
-    Emakola.Accounts.StoreMembership
-    |> Ash.Changeset.for_create(:create, %{
-      role: :owner,
-      merchant_id: merchant.id,
-      store_id: store.id
-    })
-    |> Ash.create()
+    Emakola.Accounts.create_store_membership(
+      %{role: :owner, merchant_id: merchant.id, store_id: store.id},
+      authorize?: false
+    )
   end
 
   defp create_membership_for_user(%Emakola.Accounts.User{} = user, store) do
     # For legacy User accounts, create an Organisation membership
     # as the current system still uses Org-based membership for Users
-    with {:ok, org} <-
-           Emakola.Accounts.Organisation
-           |> Ash.Changeset.for_create(:create, %{name: store.name})
-           |> Ash.create(),
+    with {:ok, org} <- Emakola.Accounts.create_organisation(store.name),
          {:ok, membership} <-
-           Emakola.Accounts.Membership
-           |> Ash.Changeset.for_create(:create, %{
-             role: :owner,
-             user_id: user.id,
-             organisation_id: org.id
-           })
-           |> Ash.create(authorize?: false) do
+           Emakola.Accounts.create_membership(
+             %{role: :owner, user_id: user.id, organisation_id: org.id},
+             authorize?: false
+           ) do
       {:ok, membership}
     end
   end
@@ -646,22 +623,15 @@ defmodule EmakolaWeb.OnboardingLive do
     if product_name != "" do
       price = parse_price(assigns.product_price)
 
-      Emakola.Catalog.Product
-      |> Ash.Changeset.for_create(:create, %{
-        title: product_name,
-        store_id: store.id
-      })
-      |> Ash.create()
+      Emakola.Catalog.create_product(%{title: product_name, store_id: store.id})
       |> case do
         {:ok, product} when price > 0 ->
           # Create a default variant with the price
-          Emakola.Catalog.Variant
-          |> Ash.Changeset.for_create(:create, %{
+          Emakola.Catalog.create_variant(%{
             price: price,
             product_id: product.id,
             store_id: store.id
           })
-          |> Ash.create()
 
         _ ->
           :ok
@@ -673,11 +643,11 @@ defmodule EmakolaWeb.OnboardingLive do
     selected_theme = Map.get(assigns, :selected_theme, "market")
     actor = Map.get(assigns, :current_user)
 
-    case store
-         |> Ash.Changeset.for_update(:update_settings, %{
-           theme_config: %{"theme" => selected_theme}
-         })
-         |> Ash.update(actor: actor) do
+    case Emakola.Stores.update_store_settings(
+           store,
+           %{theme_config: %{"theme" => selected_theme}},
+           actor: actor
+         ) do
       {:ok, updated_store} -> updated_store
       {:error, _} -> store
     end

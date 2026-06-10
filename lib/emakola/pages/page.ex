@@ -126,5 +126,11 @@ defmodule Emakola.Pages.Page do
       filter(expr(store_id == ^arg(:store_id)))
       prepare(build(sort: [slug: :asc]))
     end
+
+    read :list_published_for_store do
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(store_id == ^arg(:store_id) and published == true))
+      prepare(build(sort: [slug: :asc]))
+    end
   end
 end

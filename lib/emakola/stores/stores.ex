@@ -19,7 +19,11 @@ defmodule Emakola.Stores do
     resource Emakola.Stores.Store do
       define(:create_store, action: :create)
       define(:get_store, action: :read, get_by: [:id])
+      define(:get_store_by_slug, action: :get_by_slug, args: [:slug])
       define(:update_store_settings, action: :update_settings)
+      define(:update_store_directory_meta, action: :update_directory_meta)
+      define(:list_stores_by_slugs, action: :list_by_slugs, args: [:slugs])
+      define(:list_stores_for_admin, action: :list_for_admin, args: [:search])
     end
   end
 end

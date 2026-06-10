@@ -8,6 +8,7 @@ defmodule Emakola.Accounts do
       define(:sign_in_with_password, args: [:email, :password])
       define(:request_magic_link, args: [:email])
       define(:get_user_by_id, action: :read, get_by: [:id])
+      define(:update_user_profile, action: :update_profile)
     end
 
     resource Emakola.Accounts.Organisation do
@@ -18,6 +19,7 @@ defmodule Emakola.Accounts do
     resource Emakola.Accounts.Membership do
       define(:create_membership, action: :create)
       define(:list_memberships, action: :read)
+      define(:list_memberships_by_user, action: :by_user, args: [:user_id])
     end
 
     resource(Emakola.Accounts.Merchant)
@@ -27,6 +29,7 @@ defmodule Emakola.Accounts do
 
     resource Emakola.Accounts.StoreMembership do
       define(:create_store_membership, action: :create)
+      define(:get_merchant_store_membership, action: :by_merchant, args: [:merchant_id])
     end
 
     resource(Emakola.Accounts.Token)
