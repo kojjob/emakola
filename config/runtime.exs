@@ -23,6 +23,10 @@ end
 config :emakola, EmakolaWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+# Runtime knob (all envs) — compile-time evaluation would bake the
+# builder's (unset) value into release builds permanently.
+config :emakola, :demo_mode, System.get_env("DEMO_MODE") == "true"
+
 if config_env() == :prod do
   # Database
   database_url =
@@ -43,7 +47,11 @@ if config_env() == :prod do
         [
           verify: :verify_peer,
           cacerts: :public_key.cacerts_get(),
-          server_name_indication: to_charlist(URI.parse(database_url).host || ""),
+          server_name_indication:
+            case URI.parse(database_url).host do
+              nil -> :disable
+              host -> to_charlist(host)
+            end,
           customize_hostname_check: [
             match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
           ]

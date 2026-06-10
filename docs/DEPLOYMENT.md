@@ -65,6 +65,14 @@ fly postgres create --name emakola-db --region jnb --vm-size shared-cpu-1x --vol
 
 # Attach the database (sets DATABASE_URL automatically)
 fly postgres attach emakola-db --app emakola
+
+# REQUIRED with Fly Postgres: the attached *.internal database uses Fly's
+# private network (already isolated) with an internal CA that is NOT in the
+# system trust store — the default DATABASE_SSL=true (verify_peer) would
+# fail the TLS handshake during the migration release_command and block the
+# very first deploy. Skip ONLY if you use an external database with a
+# publicly-trusted certificate (then keep the verify_peer default).
+fly secrets set DATABASE_SSL=false --app emakola
 ```
 
 ### 2. Create Tigris Storage Bucket

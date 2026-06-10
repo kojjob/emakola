@@ -119,8 +119,8 @@ config :emakola, Oban,
      ]}
   ]
 
-# Demo mode
-config :emakola, :demo_mode, System.get_env("DEMO_MODE") == "true"
+# Demo mode is a runtime knob — set in config/runtime.exs (compile-time
+# evaluation here would bake `false` into release builds permanently).
 
 # Paystack client — non-secret structure only. Credentials are set per
 # environment: dev.exs (placeholders), test.exs, runtime.exs (prod).
