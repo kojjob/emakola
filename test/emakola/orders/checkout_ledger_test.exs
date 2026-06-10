@@ -45,8 +45,11 @@ defmodule Emakola.Orders.CheckoutLedgerTest do
     fulfillments = Emakola.Orders.list_fulfillments_by_order!(order.id, authorize?: false)
     by_supplier = Map.new(fulfillments, fn f -> {f.supplier_id, f.id} end)
 
-    {:ok, entries_a} = Emakola.Suppliers.list_ledger_entries_by_supplier(supplier_a.id)
-    {:ok, entries_b} = Emakola.Suppliers.list_ledger_entries_by_supplier(supplier_b.id)
+    {:ok, entries_a} =
+      Emakola.Suppliers.list_ledger_entries_by_supplier(supplier_a.id, authorize?: false)
+
+    {:ok, entries_b} =
+      Emakola.Suppliers.list_ledger_entries_by_supplier(supplier_b.id, authorize?: false)
 
     all_entries =
       Emakola.Suppliers.SupplierLedgerEntry
@@ -106,13 +109,13 @@ defmodule Emakola.Orders.CheckoutLedgerTest do
 
     # ...but no ledger entry exists for it.
     {:ok, no_cost_entries} =
-      Emakola.Suppliers.list_ledger_entries_by_supplier(no_cost_supplier.id)
+      Emakola.Suppliers.list_ledger_entries_by_supplier(no_cost_supplier.id, authorize?: false)
 
     assert no_cost_entries == []
 
     # The priced supplier in the same cart still gets its entry.
     {:ok, priced_entries} =
-      Emakola.Suppliers.list_ledger_entries_by_supplier(priced_supplier.id)
+      Emakola.Suppliers.list_ledger_entries_by_supplier(priced_supplier.id, authorize?: false)
 
     assert [priced_entry] = priced_entries
     assert priced_entry.amount_owed == 500

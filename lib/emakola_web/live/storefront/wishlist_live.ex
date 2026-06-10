@@ -61,11 +61,14 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
       customer ->
         store = socket.assigns.store
 
-        Emakola.Customers.add_to_wishlist(%{
-          customer_id: customer.id,
-          product_id: params["product_id"],
-          store_id: store.id
-        })
+        Emakola.Customers.add_to_wishlist(
+          %{
+            customer_id: customer.id,
+            product_id: params["product_id"],
+            store_id: store.id
+          },
+          authorize?: false
+        )
 
         {:noreply, load_wishlist(socket)}
     end
@@ -82,13 +85,18 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
         wishlisted_ids = socket.assigns.wishlisted_product_ids
 
         if MapSet.member?(wishlisted_ids, product_id) do
-          Emakola.Customers.remove_from_wishlist(customer.id, product_id, store.id)
+          Emakola.Customers.remove_from_wishlist(customer.id, product_id, store.id,
+            authorize?: false
+          )
         else
-          Emakola.Customers.add_to_wishlist(%{
-            customer_id: customer.id,
-            product_id: product_id,
-            store_id: store.id
-          })
+          Emakola.Customers.add_to_wishlist(
+            %{
+              customer_id: customer.id,
+              product_id: product_id,
+              store_id: store.id
+            },
+            authorize?: false
+          )
         end
 
         {:noreply, load_wishlist(socket)}
@@ -104,7 +112,11 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
 
       customer ->
         store = socket.assigns.store
-        Emakola.Customers.remove_from_wishlist(customer.id, product_id, store.id)
+
+        Emakola.Customers.remove_from_wishlist(customer.id, product_id, store.id,
+          authorize?: false
+        )
+
         {:noreply, load_wishlist(socket)}
     end
   end

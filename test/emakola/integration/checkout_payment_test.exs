@@ -209,7 +209,7 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
       assert abs(payment.amount - reloaded_order.total) == 2000
     end
 
-    test "refund exceeding original payment amount is stored but detectable" do
+    test "refund exceeding original payment amount is rejected" do
       store = create_store!()
 
       payment =
@@ -224,17 +224,17 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
         |> Ash.Changeset.for_update(:mark_success, %{})
         |> Ash.update(authorize?: false)
 
-      # Attempt refund exceeding original amount
-      {:ok, refunded} =
-        payment
-        |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 10_000})
-        |> Ash.update(authorize?: false)
+      # Attempt refund exceeding original amount — must be rejected
+      assert {:error, error} =
+               payment
+               |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 10_000})
+               |> Ash.update(authorize?: false)
 
-      assert refunded.status == :refunded
-      assert refunded.refunded_amount > refunded.amount
-      # Detectable: refunded_amount > amount means over-refund
-      assert refunded.refunded_amount == 10_000
-      assert refunded.amount == 5000
+      assert %Ash.Error.Invalid{} = error
+
+      assert Enum.any?(error.errors, fn e ->
+               match?(%Ash.Error.Changes.InvalidAttribute{field: :refunded_amount}, e)
+             end)
     end
   end
 

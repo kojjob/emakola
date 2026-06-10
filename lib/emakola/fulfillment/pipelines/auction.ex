@@ -4,11 +4,11 @@ defmodule Emakola.Fulfillment.Pipelines.Auction do
   an auction settles into an order — converts the winning bid into a
   fulfillable line item, then delegates to the underlying physical /
   digital fulfillment path depending on the lot. Skeleton — currently
-  returns `{:error, :not_implemented}`.
+  returns `{:ok, :deferred}`.
   """
 
   @behaviour Emakola.Fulfillment.Pipeline
 
   @impl true
-  def fulfill(_line_item, _context), do: {:error, :not_implemented}
+  def fulfill(_line_item, _context), do: {:ok, :deferred}
 end

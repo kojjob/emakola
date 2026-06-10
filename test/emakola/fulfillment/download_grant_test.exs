@@ -160,6 +160,57 @@ defmodule Emakola.Fulfillment.DownloadGrantTest do
 
       assert after_second.downloaded_count == 2
     end
+
+    test "refuses increment when already at download_limit", ctx do
+      {:ok, grant} = issue(ctx, %{download_limit: 1})
+
+      # First increment: count 0 → 1, at limit now
+      assert {:ok, at_limit} =
+               grant
+               |> Ash.Changeset.for_update(:increment_download_count, %{})
+               |> Ash.update(authorize?: false)
+
+      assert at_limit.downloaded_count == 1
+
+      # Second increment: count is 1, limit is 1 — must fail
+      assert {:error, _} =
+               at_limit
+               |> Ash.Changeset.for_update(:increment_download_count, %{})
+               |> Ash.update(authorize?: false)
+    end
+
+    test "allows increment when below download_limit", ctx do
+      {:ok, grant} = issue(ctx, %{download_limit: 3})
+
+      assert {:ok, g1} =
+               grant
+               |> Ash.Changeset.for_update(:increment_download_count, %{})
+               |> Ash.update(authorize?: false)
+
+      assert {:ok, g2} =
+               g1
+               |> Ash.Changeset.for_update(:increment_download_count, %{})
+               |> Ash.update(authorize?: false)
+
+      assert {:ok, _g3} =
+               g2
+               |> Ash.Changeset.for_update(:increment_download_count, %{})
+               |> Ash.update(authorize?: false)
+    end
+
+    test "increment succeeds when download_limit is nil (unlimited)", ctx do
+      {:ok, grant} = issue(ctx)
+      assert grant.download_limit == nil
+
+      for _ <- 1..5 do
+        grant
+        |> Ash.Changeset.for_update(:increment_download_count, %{})
+        |> Ash.update(authorize?: false)
+      end
+
+      {:ok, reloaded} = Ash.get(DownloadGrant, grant.id, authorize?: false)
+      assert reloaded.downloaded_count == 5
+    end
   end
 
   describe "relationships" do

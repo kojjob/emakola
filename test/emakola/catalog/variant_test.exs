@@ -365,7 +365,7 @@ defmodule Emakola.Catalog.VariantTest do
   describe "destroy" do
     test "deletes a variant", %{store: store, product: product} do
       variant = create_variant!(product, store, price: 5000)
-      assert :ok = Ash.destroy!(variant)
+      assert :ok = Ash.destroy!(variant, authorize?: false)
     end
   end
 end

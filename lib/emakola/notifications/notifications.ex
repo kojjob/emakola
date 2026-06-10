@@ -8,6 +8,8 @@ defmodule Emakola.Notifications do
       define(:list_notifications, action: :read)
       define(:mark_as_read, action: :mark_read)
       define(:mark_all_read, action: :mark_all_read)
+      define(:list_unread_notifications, action: :unread, args: [:user_id])
+      define(:list_notifications_by_user, action: :list_by_user, args: [:user_id])
     end
 
     resource Emakola.Notifications.EmailLog do

@@ -37,11 +37,11 @@ defmodule Emakola.Fulfillment.Pipelines.DigitalDownload do
   alias Emakola.Orders.LineItem
 
   @impl true
-  def fulfill(%{id: line_item_id}, _context) when is_binary(line_item_id) do
+  def fulfill(%{id: line_item_id}, context) when is_binary(line_item_id) do
     with {:ok, line_item} <- load_line_item(line_item_id),
          {:ok, product_id} <- product_id_for(line_item),
-         files when is_list(files) <- list_paid_files(line_item.store_id, product_id),
-         customer_id <- customer_id_for(line_item) do
+         files when is_list(files) <- list_paid_files(line_item.store_id, product_id) do
+      customer_id = Map.get(context, :customer_id) || customer_id_for(line_item)
       existing_grants = load_existing_grants(line_item.id)
       grants = Enum.map(files, &issue_or_reuse_grant(line_item, &1, customer_id, existing_grants))
       {:ok, %{grants: grants}}

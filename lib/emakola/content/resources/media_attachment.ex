@@ -13,6 +13,12 @@ defmodule Emakola.Content.MediaAttachment do
 
   require Ash.Query
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("media_attachments")
     repo(Emakola.Repo)
@@ -86,14 +92,12 @@ defmodule Emakola.Content.MediaAttachment do
   end
 
   policies do
+    # Reads are public — storefront renders post media without an actor.
     bypass action_type(:read) do
-      authorize_if(always())
-    end
-
-    bypass always() do
       authorize_unless(actor_present())
     end
 
+    # Merchant actors: verify store membership for writes
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end

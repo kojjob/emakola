@@ -23,7 +23,6 @@ defmodule Emakola.Notifications.Dispatcher do
     * `{:error, {:dispatch_raised, message}}` — something unexpected raised
   """
 
-  require Ash.Query
   require Logger
 
   alias Emakola.Notifications.Workers.OrderNotificationWorker
@@ -68,32 +67,32 @@ defmodule Emakola.Notifications.Dispatcher do
   end
 
   @doc """
-  Enqueue a `SupplierNotificationWorker` for every pending supplier-owned
-  fulfillment of `order` (skipping the merchant-owned group where
-  `supplier_id` is nil). Used by the payment-confirmation auto-trigger.
+  Enqueue a `SupplierNotificationWorker` for each fulfillment ID in
+  `fulfillment_ids`. The caller (Orders.Order confirm action) is responsible
+  for filtering to pending supplier-owned fulfillments before calling this.
+
+  Accepting explicit IDs removes the need for the Notifications context to
+  query back into the Orders context, eliminating the bidirectional coupling.
 
   Never raises — failures are logged. Always returns `:ok`.
   """
-  @spec dispatch_supplier_fulfillments(map()) :: :ok
-  def dispatch_supplier_fulfillments(%{id: order_id} = order) when not is_nil(order_id) do
-    Emakola.Orders.Fulfillment
-    |> Ash.Query.filter(order_id == ^order_id and not is_nil(supplier_id) and status == :pending)
-    |> Ash.read!(authorize?: false)
-    |> Enum.each(fn fulfillment -> enqueue_supplier_job(fulfillment.id) end)
-
+  @spec dispatch_supplier_fulfillments(binary(), [binary()]) :: :ok
+  def dispatch_supplier_fulfillments(order_id, fulfillment_ids)
+      when is_binary(order_id) and is_list(fulfillment_ids) do
+    Enum.each(fulfillment_ids, &enqueue_supplier_job/1)
     :ok
   rescue
     exception ->
       Logger.error(
         "[notifications] dispatch_supplier_fulfillments raised: " <>
           Exception.message(exception),
-        order_id: Map.get(order, :id)
+        order_id: order_id
       )
 
       :ok
   end
 
-  def dispatch_supplier_fulfillments(_order), do: :ok
+  def dispatch_supplier_fulfillments(_order_id, _fulfillment_ids), do: :ok
 
   @doc """
   Enqueue a `SupplierNotificationWorker` for a single fulfillment id. Used by

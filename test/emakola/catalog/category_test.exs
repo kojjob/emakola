@@ -204,7 +204,7 @@ defmodule Emakola.Catalog.CategoryTest do
     test "deletes a leaf category", %{store: store} do
       category = create_category!(store, name: "To Delete")
 
-      assert :ok = Ash.destroy!(category)
+      assert :ok = Ash.destroy!(category, authorize?: false)
 
       assert [] =
                Emakola.Catalog.Category

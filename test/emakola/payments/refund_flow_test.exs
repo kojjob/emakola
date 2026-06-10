@@ -13,9 +13,6 @@ defmodule Emakola.Payments.RefundFlowTest do
   use Emakola.DataCase, async: true
   use Oban.Testing, repo: Emakola.Repo
 
-  # TODO: Update to use PaystackClientMock instead of HTTPClientMock
-  @moduletag :pending
-
   import Mox
   import Emakola.Factory
 
@@ -240,7 +237,6 @@ defmodule Emakola.Payments.RefundFlowTest do
   # ── Refund Business Rules (Domain Level) ───────────────────────────
 
   describe "refund business rules" do
-    @tag :pending
     test "cannot refund more than the original payment amount", %{store: store} do
       payment = create_payment!(store, %{amount: 100_000})
 
@@ -260,7 +256,6 @@ defmodule Emakola.Payments.RefundFlowTest do
                |> Ash.update(authorize?: false)
     end
 
-    @tag :pending
     test "cannot refund an already refunded payment", %{store: store} do
       payment = create_payment!(store, %{amount: 500_000})
 
@@ -287,7 +282,6 @@ defmodule Emakola.Payments.RefundFlowTest do
                |> Ash.update(authorize?: false)
     end
 
-    @tag :pending
     test "cannot refund a pending payment", %{store: store} do
       payment = create_payment!(store, %{amount: 500_000})
       assert payment.status == :pending
@@ -300,7 +294,6 @@ defmodule Emakola.Payments.RefundFlowTest do
                |> Ash.update(authorize?: false)
     end
 
-    @tag :pending
     test "cannot refund a failed payment", %{store: store} do
       payment = create_payment!(store, %{amount: 500_000})
 
@@ -325,6 +318,9 @@ defmodule Emakola.Payments.RefundFlowTest do
   # ── Refund + Order Status Integration ──────────────────────────────
 
   describe "refund and order status" do
+    # TODO(audit): enforce order cancellation on full refund — requires
+    # PaystackWebhookHandler to call Orders.cancel/1 after mark_refunded.
+    # Deferred: cross-domain webhook change with its own migration risk.
     @tag :pending
     test "full refund cancels the associated order", %{store: store} do
       order = create_order!(store)

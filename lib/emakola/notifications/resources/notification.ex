@@ -76,5 +76,11 @@ defmodule Emakola.Notifications.Notification do
       argument(:user_id, :uuid, allow_nil?: false)
       filter(expr(user_id == ^arg(:user_id) and is_nil(read_at)))
     end
+
+    read :list_by_user do
+      argument(:user_id, :uuid, allow_nil?: false)
+      filter(expr(user_id == ^arg(:user_id)))
+      prepare(build(sort: [inserted_at: :desc], limit: 20))
+    end
   end
 end

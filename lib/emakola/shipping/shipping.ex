@@ -7,6 +7,8 @@ defmodule Emakola.Shipping do
   resources do
     resource Emakola.Shipping.DeliveryZone do
       define(:create_delivery_zone, action: :create)
+      define(:update_delivery_zone, action: :update)
+      define(:destroy_delivery_zone, action: :destroy)
       define(:list_delivery_zones, action: :list_by_store, args: [:store_id])
     end
   end

@@ -6,8 +6,6 @@ defmodule EmakolaWeb.Admin.PageLive.Index do
   """
   use EmakolaWeb, :live_view
 
-  require Ash.Query
-
   @impl true
   def mount(_params, _session, socket) do
     store_id = get_store_id(socket)
@@ -28,9 +26,7 @@ defmodule EmakolaWeb.Admin.PageLive.Index do
   @impl true
   def handle_event("toggle_publish", %{"id" => id}, socket) do
     with {:ok, page} <- fetch_owned_page(socket, id) do
-      page
-      |> Ash.Changeset.for_update(:update, %{published: !page.published})
-      |> Ash.update(authorize?: false)
+      Emakola.Pages.update_page(page, %{published: !page.published}, authorize?: false)
       |> case do
         {:ok, _updated} ->
           {:noreply, socket |> put_flash(:info, "Page updated") |> load_pages()}
@@ -48,7 +44,7 @@ defmodule EmakolaWeb.Admin.PageLive.Index do
   def handle_event("delete_page", %{"id" => id}, socket) do
     case fetch_owned_page(socket, id) do
       {:ok, page} ->
-        case Ash.destroy(page, authorize?: false) do
+        case Emakola.Pages.destroy_page(page, authorize?: false) do
           :ok ->
             {:noreply, socket |> put_flash(:info, "Page deleted") |> load_pages()}
 
@@ -69,7 +65,7 @@ defmodule EmakolaWeb.Admin.PageLive.Index do
         :forbidden
 
       store_id ->
-        case Ash.get(Emakola.Pages.Page, id, authorize?: false) do
+        case Emakola.Pages.get_page(id, authorize?: false) do
           {:ok, %{store_id: ^store_id} = page} -> {:ok, page}
           {:ok, _other_store_page} -> :forbidden
           err -> err
@@ -184,11 +180,7 @@ defmodule EmakolaWeb.Admin.PageLive.Index do
         assign(socket, :pages, [])
 
       store_id ->
-        pages =
-          Emakola.Pages.Page
-          |> Ash.Query.for_read(:list_for_store, %{store_id: store_id})
-          |> Ash.read!(authorize?: false)
-
+        pages = Emakola.Pages.list_pages_for_store!(store_id, authorize?: false)
         assign(socket, :pages, pages)
     end
   end

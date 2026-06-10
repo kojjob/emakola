@@ -5,8 +5,6 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
   """
   use EmakolaWeb, :live_view
 
-  require Ash.Query
-
   @ghana_defaults [
     %{name: "Greater Accra", fee: 1500, estimated_days: 1},
     %{name: "Kumasi/Ashanti", fee: 2500, estimated_days: 2},
@@ -57,9 +55,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
 
     case socket.assigns.editing_zone do
       nil ->
-        case Emakola.Shipping.DeliveryZone
-             |> Ash.Changeset.for_create(:create, zone_params)
-             |> Ash.create(authorize?: false) do
+        case Emakola.Shipping.create_delivery_zone(zone_params, authorize?: false) do
           {:ok, _zone} ->
             {:noreply,
              socket
@@ -74,9 +70,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
       zone ->
         update_params = Map.drop(zone_params, [:store_id])
 
-        case zone
-             |> Ash.Changeset.for_update(:update, update_params)
-             |> Ash.update(authorize?: false) do
+        case Emakola.Shipping.update_delivery_zone(zone, update_params, authorize?: false) do
           {:ok, _zone} ->
             {:noreply,
              socket
@@ -106,9 +100,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
     zone = Enum.find(socket.assigns.zones, &(&1.id == id))
 
     if zone do
-      case zone
-           |> Ash.Changeset.for_update(:update, %{active: !zone.active})
-           |> Ash.update(authorize?: false) do
+      case Emakola.Shipping.update_delivery_zone(zone, %{active: !zone.active}, authorize?: false) do
         {:ok, _} -> {:noreply, load_zones(socket)}
         {:error, _} -> {:noreply, put_flash(socket, :error, "Could not update zone")}
       end
@@ -122,7 +114,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
     zone = Enum.find(socket.assigns.zones, &(&1.id == id))
 
     if zone do
-      case Ash.destroy(zone) do
+      case Emakola.Shipping.destroy_delivery_zone(zone, authorize?: false) do
         :ok ->
           {:noreply,
            socket
@@ -143,10 +135,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
 
     Enum.each(@ghana_defaults, fn zone_attrs ->
       params = Map.put(zone_attrs, :store_id, store.id)
-
-      Emakola.Shipping.DeliveryZone
-      |> Ash.Changeset.for_create(:create, params)
-      |> Ash.create()
+      Emakola.Shipping.create_delivery_zone(params, authorize?: false)
     end)
 
     {:noreply,
@@ -161,12 +150,7 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
     store = socket.assigns.store
 
     if store do
-      {:ok, zones} =
-        Emakola.Shipping.DeliveryZone
-        |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.Query.sort(:name)
-        |> Ash.read()
-
+      zones = Emakola.Shipping.list_delivery_zones!(store.id, authorize?: false)
       assign(socket, zones: zones)
     else
       assign(socket, zones: [])

@@ -17,10 +17,7 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
 
   use EmakolaWeb, :live_view
 
-  require Ash.Query
-
   alias Emakola.PageBuilder
-  alias Emakola.Pages.Page
 
   @upload_dir_segment "pages"
 
@@ -297,9 +294,7 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
       :new ->
         attrs = Map.put(attrs, :store_id, socket.assigns.store.id)
 
-        case Page
-             |> Ash.Changeset.for_create(:create, attrs)
-             |> Ash.create(authorize?: false) do
+        case Emakola.Pages.create_page(attrs, authorize?: false) do
           {:ok, page} ->
             {:noreply,
              socket
@@ -314,11 +309,9 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
         end
 
       :edit ->
-        case Ash.get(Page, socket.assigns.page_id, authorize?: false) do
+        case Emakola.Pages.get_page(socket.assigns.page_id, authorize?: false) do
           {:ok, %{store_id: store_id} = page} when store_id == socket.assigns.store.id ->
-            page
-            |> Ash.Changeset.for_update(:update, attrs)
-            |> Ash.update(authorize?: false)
+            Emakola.Pages.update_page(page, attrs, authorize?: false)
             |> case do
               {:ok, _} ->
                 {:noreply,
@@ -1004,7 +997,7 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
   end
 
   defp fetch_owned_page(store, id) when is_binary(id) do
-    case Ash.get(Page, id, authorize?: false) do
+    case Emakola.Pages.get_page(id, authorize?: false) do
       {:ok, %{store_id: store_id} = page} when store_id == store.id -> {:ok, page}
       {:ok, _} -> :forbidden
       err -> err

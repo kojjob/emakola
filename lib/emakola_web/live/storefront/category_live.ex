@@ -8,8 +8,6 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.StoreResolver
 
-  require Ash.Query
-
   @impl true
   def mount(%{"store_slug" => slug, "category_slug" => category_slug}, session, socket) do
     case StoreResolver.resolve(slug) do
@@ -75,11 +73,9 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
 
   @impl true
   def handle_event("add_to_cart", %{"product-id" => product_id}, socket) do
-    case Emakola.Catalog.Product
-         |> Ash.Query.filter(id == ^product_id)
-         |> Ash.Query.load([:variants, :images])
-         |> Ash.read_one(authorize?: false) do
+    case Emakola.Catalog.get_product(product_id, authorize?: false) do
       {:ok, product} when not is_nil(product) ->
+        product = Ash.load!(product, [:variants, :images], authorize?: false)
         variant = product.variants |> Enum.sort_by(& &1.position) |> List.first()
 
         if variant && variant.stock_quantity > 0 do
@@ -125,13 +121,14 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   # ── Data Loading ──
 
   defp load_category(store_id, category_slug) do
-    Emakola.Catalog.Category
-    |> Ash.Query.filter(store_id == ^store_id and slug == ^category_slug)
-    |> Ash.read_one!()
+    case Emakola.Catalog.get_category_by_slug(store_id, category_slug) do
+      {:ok, category} -> category
+      _ -> nil
+    end
   end
 
   defp load_category_by_id(category_id) do
-    case Ash.get(Emakola.Catalog.Category, category_id) do
+    case Emakola.Catalog.get_category(category_id) do
       {:ok, cat} -> cat
       _ -> nil
     end
@@ -139,8 +136,11 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
 
   defp load_category_products(store_id, category_id) do
     Emakola.Catalog.Product
-    |> Ash.Query.for_read(:list_by_category, %{category_id: category_id, store_id: store_id})
-    |> Ash.Query.filter(status == :active)
+    |> Ash.Query.for_read(:list_by_category, %{
+      category_id: category_id,
+      store_id: store_id,
+      status: :active
+    })
     |> Ash.Query.limit(60)
     |> Ash.read!(authorize?: false)
   end
@@ -179,8 +179,11 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   defp count_category_products(store_id, category_id) do
     result =
       Emakola.Catalog.Product
-      |> Ash.Query.for_read(:list_by_category, %{category_id: category_id, store_id: store_id})
-      |> Ash.Query.filter(status == :active)
+      |> Ash.Query.for_read(:list_by_category, %{
+        category_id: category_id,
+        store_id: store_id,
+        status: :active
+      })
       |> Ash.count(authorize?: false)
 
     case result do

@@ -14,6 +14,12 @@ defmodule Emakola.Catalog.OptionValue do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("option_values")
     repo(Emakola.Repo)
@@ -64,12 +70,8 @@ defmodule Emakola.Catalog.OptionValue do
   end
 
   policies do
+    # Reads are public — storefront accesses option values without an actor.
     bypass action_type(:read) do
-      authorize_if(always())
-    end
-
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
       authorize_unless(actor_present())
     end
 

@@ -13,6 +13,7 @@ defmodule Emakola.Application do
       {DNSCluster, query: Application.get_env(:emakola, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Emakola.PubSub},
       {Finch, name: Emakola.Finch},
+      {Emakola.RateLimit, clean_period: :timer.minutes(10)},
       {Oban, Application.fetch_env!(:emakola, Oban)},
       # PDF generation via headless Chrome
       ChromicPDF,

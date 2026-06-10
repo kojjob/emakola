@@ -17,6 +17,12 @@ defmodule Emakola.Content.Post do
 
   require Ash.Query
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("posts")
     repo(Emakola.Repo)
@@ -123,14 +129,12 @@ defmodule Emakola.Content.Post do
   end
 
   policies do
+    # Reads are public — storefront renders blog/recipe posts without an actor.
     bypass action_type(:read) do
-      authorize_if(always())
-    end
-
-    bypass always() do
       authorize_unless(actor_present())
     end
 
+    # Merchant actors: verify store membership for writes
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
@@ -210,9 +214,41 @@ defmodule Emakola.Content.Post do
       end)
     end
 
+    read :list_admin do
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      argument(:type, :atom,
+        allow_nil?: true,
+        constraints: [one_of: [:blog_post, :page, :recipe, :guide]]
+      )
+
+      argument(:status, :atom,
+        allow_nil?: true,
+        constraints: [one_of: [:draft, :ai_draft, :published, :archived]]
+      )
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            (is_nil(^arg(:type)) or type == ^arg(:type)) and
+            (is_nil(^arg(:status)) or status == ^arg(:status))
+        )
+      )
+
+      prepare(build(sort: [inserted_at: :desc]))
+    end
+
+    read :get_for_admin do
+      get?(true)
+      argument(:id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(id == ^arg(:id) and store_id == ^arg(:store_id)))
+    end
+
     read :list_published do
       argument(:store_id, :uuid)
       argument(:type, :atom, constraints: [one_of: [:blog_post, :page, :recipe, :guide]])
+      argument(:exclude_id, :uuid, allow_nil?: true)
 
       filter(expr(status == :published))
 
@@ -228,6 +264,12 @@ defmodule Emakola.Content.Post do
           case Ash.Query.get_argument(q, :type) do
             nil -> q
             type -> Ash.Query.filter(q, type == ^type)
+          end
+        end)
+        |> then(fn q ->
+          case Ash.Query.get_argument(q, :exclude_id) do
+            nil -> q
+            excl_id -> Ash.Query.filter(q, id != ^excl_id)
           end
         end)
         |> Ash.Query.sort(published_at: :desc)

@@ -32,11 +32,11 @@ defmodule Emakola.Policies.Checks.ActorHasStoreAccess do
   def match?(actor, %{subject: %Ash.Query{} = query}, _opts) do
     # For reads with multitenancy, the tenant is set on the query.
     # Check that the actor has a store membership for the tenant store.
-    # If no tenant is set, fall back to checking if the actor is a known struct
-    # (to preserve backward-compatibility with non-tenant-scoped queries).
+    # Reads without an explicit tenant are denied: callers must either use
+    # authorize?: false (system/pipeline code) or Ash.Query.set_tenant/2.
     case query.tenant do
       nil ->
-        is_struct(actor)
+        false
 
       store_id ->
         actor_has_store?(actor, store_id)

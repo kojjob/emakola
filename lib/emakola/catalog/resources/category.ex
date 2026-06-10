@@ -14,6 +14,12 @@ defmodule Emakola.Catalog.Category do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("categories")
     repo(Emakola.Repo)
@@ -80,12 +86,8 @@ defmodule Emakola.Catalog.Category do
   end
 
   policies do
+    # Reads are public — storefront renders categories without an actor.
     bypass action_type(:read) do
-      authorize_if(always())
-    end
-
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
       authorize_unless(actor_present())
     end
 
@@ -112,6 +114,14 @@ defmodule Emakola.Catalog.Category do
       validate({Emakola.Catalog.Validations.NotBlank, attribute: :name})
       validate(Emakola.Catalog.Validations.NoSelfParent)
       change(Emakola.Catalog.Changes.GenerateSlug)
+    end
+
+    read :get_by_slug do
+      get?(true)
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:slug, :string, allow_nil?: false)
+
+      filter(expr(store_id == ^arg(:store_id) and slug == ^arg(:slug)))
     end
 
     read :list_by_store do

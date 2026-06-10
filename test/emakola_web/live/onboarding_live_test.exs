@@ -198,6 +198,51 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       assert hd(memberships).role == :owner
     end
 
+    test "creates the sample product and variant on complete", %{conn: conn} do
+      # Regression: nil-actor writes were silently denied after the H2 policy
+      # tightening because maybe_create_product called the domain interface
+      # without authorize?: false.
+      user = create_user!()
+      conn = auth_conn(conn, user)
+
+      {:ok, view, _html} = live(conn, "/onboarding")
+
+      render_change(view, "update_store_name", %{"store_name" => "Sample Product Store"})
+      render_click(view, "next_step")
+
+      # Step 2: Theme (continue with default)
+      render_click(view, "next_step")
+
+      # Step 3: Product details
+      render_change(view, "update_product", %{
+        "product_name" => "Kente Scarf",
+        "product_price" => "50"
+      })
+
+      render_click(view, "next_step")
+      render_click(view, "complete")
+      assert_redirect(view, "/dashboard")
+
+      store =
+        Emakola.Stores.Store
+        |> Ash.Query.filter(name: "Sample Product Store")
+        |> Ash.read_one!(authorize?: false)
+
+      product =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(store_id: store.id)
+        |> Ash.read_one!(authorize?: false)
+
+      assert product.title == "Kente Scarf"
+
+      variants =
+        Emakola.Catalog.Variant
+        |> Ash.Query.filter(product_id: product.id)
+        |> Ash.read!(authorize?: false)
+
+      assert [%{price: 5000}] = variants
+    end
+
     test "creates store and membership for Merchant on complete", %{conn: conn} do
       merchant = create_merchant!()
       conn = auth_conn(conn, merchant)

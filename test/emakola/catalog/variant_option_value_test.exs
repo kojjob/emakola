@@ -129,7 +129,7 @@ defmodule Emakola.Catalog.VariantOptionValueTest do
   describe "destroy" do
     test "deletes a variant-option-value link", %{store: store, variant: variant, small: small} do
       vov = create_variant_option_value!(variant, small, store)
-      assert :ok = Ash.destroy!(vov)
+      assert :ok = Ash.destroy!(vov, authorize?: false)
 
       links =
         Emakola.Catalog.VariantOptionValue

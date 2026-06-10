@@ -55,11 +55,6 @@ defmodule Emakola.Accounts.Organisation do
       authorize_if(always())
     end
 
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
-      authorize_unless(actor_present())
-    end
-
     # Users can only modify organisations they belong to
     policy action_type([:update, :destroy]) do
       authorize_if(expr(exists(memberships, user_id == ^actor(:id))))

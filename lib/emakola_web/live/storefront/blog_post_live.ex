@@ -8,8 +8,6 @@ defmodule EmakolaWeb.Storefront.BlogPostLive do
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.StoreResolver
 
-  require Ash.Query
-
   @impl true
   def mount(%{"store_slug" => slug, "post_slug" => post_slug}, session, socket) do
     case StoreResolver.resolve(slug) do
@@ -23,15 +21,18 @@ defmodule EmakolaWeb.Storefront.BlogPostLive do
              |> Ash.read(authorize?: false) do
           {:ok, [post | _]} ->
             try do
-              post |> Ash.Changeset.for_update(:increment_views) |> Ash.update()
+              Emakola.Content.increment_post_views!(post, authorize?: false)
             rescue
               _ -> :ok
             end
 
             {:ok, related} =
               Emakola.Content.Post
-              |> Ash.Query.for_read(:list_published, %{store_id: store.id, type: :blog_post})
-              |> Ash.Query.filter(id != ^post.id)
+              |> Ash.Query.for_read(:list_published, %{
+                store_id: store.id,
+                type: :blog_post,
+                exclude_id: post.id
+              })
               |> Ash.Query.limit(3)
               |> Ash.read()
 

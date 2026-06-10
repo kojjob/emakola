@@ -72,10 +72,6 @@ defmodule Emakola.Content.RecipeMeta do
       authorize_if(always())
     end
 
-    bypass always() do
-      authorize_unless(actor_present())
-    end
-
     policy always() do
       authorize_if(always())
     end

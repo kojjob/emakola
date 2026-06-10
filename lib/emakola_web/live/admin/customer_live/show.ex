@@ -5,7 +5,6 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
   """
   use EmakolaWeb, :live_view
 
-  require Ash.Query
   import EmakolaWeb.Helpers.Currency, only: [format_price: 1]
 
   @impl true
@@ -43,9 +42,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
 
   @impl true
   def handle_event("save_customer", %{"customer" => params}, socket) do
-    case socket.assigns.customer
-         |> Ash.Changeset.for_update(:update, params)
-         |> Ash.update(authorize?: false) do
+    case Emakola.Customers.update_customer(socket.assigns.customer, params, authorize?: false) do
       {:ok, updated} ->
         {:noreply,
          socket
@@ -250,10 +247,7 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
   end
 
   defp load_orders(customer_id, store_id) do
-    Emakola.Orders.Order
-    |> Ash.Query.filter(customer_id == ^customer_id and store_id == ^store_id)
-    |> Ash.Query.sort(inserted_at: :desc)
-    |> Ash.read!(authorize?: false)
+    Emakola.Orders.list_orders_by_customer!(customer_id, store_id, authorize?: false)
   rescue
     _ -> []
   end

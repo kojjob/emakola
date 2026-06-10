@@ -16,6 +16,12 @@ defmodule Emakola.Catalog.Image do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("images")
     repo(Emakola.Repo)
@@ -97,12 +103,8 @@ defmodule Emakola.Catalog.Image do
   end
 
   policies do
+    # Reads are public — storefront renders images without an actor.
     bypass action_type(:read) do
-      authorize_if(always())
-    end
-
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
       authorize_unless(actor_present())
     end
 

@@ -8,6 +8,7 @@ defmodule Emakola.Dashboard.Stats do
   """
 
   require Ash.Query
+  import Ecto.Query, only: [from: 2]
 
   alias Emakola.AsyncSandbox
 
@@ -129,5 +130,39 @@ defmodule Emakola.Dashboard.Stats do
       {:ok, products} -> products
       _ -> []
     end
+  end
+
+  @doc """
+  Returns the top-5 products by units sold in the given datetime window,
+  formatted as `%{labels: [String.t()], values: [non_neg_integer()]}` for
+  chart rendering.
+
+  Query is scoped to `store_id` via the WHERE clause on `li.store_id`.
+  Product titles are truncated to 20 characters to fit chart labels.
+  """
+  @spec top_line_items_chart(Ash.UUID.t(), DateTime.t(), DateTime.t()) ::
+          %{labels: [String.t()], values: [non_neg_integer()]}
+  def top_line_items_chart(store_id, from, to) do
+    query =
+      from li in Emakola.Orders.LineItem,
+        where:
+          li.store_id == ^store_id and
+            li.inserted_at >= ^from and
+            li.inserted_at < ^to,
+        group_by: li.product_title,
+        order_by: [desc: sum(li.quantity)],
+        limit: 5,
+        select: {fragment("LEFT(?, 20)", li.product_title), sum(li.quantity)}
+
+    results = Emakola.Repo.all(query)
+
+    labels = Enum.map(results, fn {title, _qty} -> title end)
+
+    values =
+      Enum.map(results, fn {_title, qty} ->
+        if is_struct(qty, Decimal), do: Decimal.to_integer(qty), else: qty || 0
+      end)
+
+    %{labels: labels, values: values}
   end
 end

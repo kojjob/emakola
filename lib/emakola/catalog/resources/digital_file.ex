@@ -26,6 +26,12 @@ defmodule Emakola.Catalog.DigitalFile do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  multitenancy do
+    strategy(:attribute)
+    attribute(:store_id)
+    global?(true)
+  end
+
   postgres do
     table("digital_files")
     repo(Emakola.Repo)
@@ -100,12 +106,8 @@ defmodule Emakola.Catalog.DigitalFile do
   end
 
   policies do
+    # Reads are public — storefront reads digital file metadata without an actor.
     bypass action_type(:read) do
-      authorize_if(always())
-    end
-
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
       authorize_unless(actor_present())
     end
 

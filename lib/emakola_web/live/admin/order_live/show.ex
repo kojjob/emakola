@@ -10,8 +10,6 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
 
   import EmakolaWeb.Helpers.Currency, only: [format_price: 2]
 
-  require Ash.Query
-
   @impl true
   def mount(%{"id" => id}, _session, socket) do
     store_id = get_store_id(socket)
@@ -78,7 +76,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   def handle_event("update_notes", %{"notes" => notes}, socket) do
     order = socket.assigns.order
 
-    case Ash.update(order, %{notes: notes}, action: :update_notes, authorize?: false) do
+    case Emakola.Orders.update_order_notes(order, %{notes: notes}, authorize?: false) do
       {:ok, updated_order} ->
         socket =
           socket
@@ -684,12 +682,15 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
 
     order =
       try do
-        case Emakola.Orders.Order
-             |> Ash.Query.filter(id: id, store_id: store_id)
-             |> Ash.Query.load([:line_items, :customer, :margin])
-             |> Ash.read(authorize?: false) do
-          {:ok, [order]} -> order
-          _ -> nil
+        case Emakola.Orders.get_order_for_admin(id, store_id, authorize?: false) do
+          {:ok, nil} ->
+            nil
+
+          {:ok, order} ->
+            Ash.load!(order, [:line_items, :customer, :margin], authorize?: false)
+
+          _ ->
+            nil
         end
       rescue
         _ -> nil
@@ -711,11 +712,8 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
       order ->
         payment =
           try do
-            case Emakola.Payments.Payment
-                 |> Ash.Query.filter(order_id: order.id)
-                 |> Ash.Query.limit(1)
-                 |> Ash.read(authorize?: false) do
-              {:ok, [payment]} -> payment
+            case Emakola.Payments.get_payment_by_order(order.id, authorize?: false) do
+              {:ok, payment} -> payment
               _ -> nil
             end
           rescue
@@ -750,7 +748,22 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
     fulfillment = Enum.find(socket.assigns.fulfillments, &(&1.id == id))
 
     if fulfillment do
-      case Ash.update(fulfillment, params, action: action, authorize?: false) do
+      result =
+        case action do
+          :mark_notified ->
+            Emakola.Orders.mark_fulfillment_notified(fulfillment, params, authorize?: false)
+
+          :mark_shipped ->
+            Emakola.Orders.mark_fulfillment_shipped(fulfillment, params, authorize?: false)
+
+          :mark_delivered ->
+            Emakola.Orders.mark_fulfillment_delivered(fulfillment, authorize?: false)
+
+          :cancel ->
+            Emakola.Orders.cancel_fulfillment(fulfillment, authorize?: false)
+        end
+
+      case result do
         {:ok, _updated} ->
           {:noreply,
            socket
@@ -772,7 +785,16 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
     order = socket.assigns.order
     params = Keyword.get(opts, :params, %{})
 
-    case Ash.update(order, params, action: action, authorize?: false) do
+    result =
+      case action do
+        :confirm -> Emakola.Orders.confirm_order(order, authorize?: false)
+        :start_processing -> Emakola.Orders.start_processing_order(order, authorize?: false)
+        :mark_shipped -> Emakola.Orders.mark_order_shipped(order, params, authorize?: false)
+        :mark_delivered -> Emakola.Orders.mark_order_delivered(order, authorize?: false)
+        :cancel -> Emakola.Orders.cancel_order(order, authorize?: false)
+      end
+
+    case result do
       {:ok, updated_order} ->
         updated_order =
           Ash.load!(updated_order, [:line_items, :customer, :margin], authorize?: false)

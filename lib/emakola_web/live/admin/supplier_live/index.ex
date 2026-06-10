@@ -8,8 +8,6 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
 
   import EmakolaWeb.Helpers.Currency, only: [format_price: 2]
 
-  require Ash.Query
-
   @impl true
   def mount(_params, _session, socket) do
     store = socket.assigns.current_store
@@ -70,9 +68,7 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
         end
 
       supplier ->
-        case supplier
-             |> Ash.Changeset.for_update(:update, attrs)
-             |> Ash.update(authorize?: false) do
+        case Emakola.Suppliers.update_supplier(supplier, attrs, authorize?: false) do
           {:ok, _supplier} ->
             {:noreply,
              socket
@@ -102,9 +98,9 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
     supplier = Enum.find(socket.assigns.suppliers, &(&1.id == id))
 
     if supplier do
-      case supplier
-           |> Ash.Changeset.for_update(:update, %{active: !supplier.active})
-           |> Ash.update(authorize?: false) do
+      case Emakola.Suppliers.update_supplier(supplier, %{active: !supplier.active},
+             authorize?: false
+           ) do
         {:ok, _} -> {:noreply, load_suppliers(socket)}
         {:error, _} -> {:noreply, put_flash(socket, :error, "Could not update supplier")}
       end
@@ -119,13 +115,8 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
     store = socket.assigns.store
 
     if store do
-      {:ok, suppliers} =
-        Emakola.Suppliers.Supplier
-        |> Ash.Query.filter(store_id == ^store.id)
-        |> Ash.Query.load(:outstanding_balance)
-        |> Ash.Query.sort(:name)
-        |> Ash.read(authorize?: false)
-
+      suppliers = Emakola.Suppliers.list_suppliers_by_store!(store.id, authorize?: false)
+      suppliers = Ash.load!(suppliers, :outstanding_balance, authorize?: false)
       assign(socket, suppliers: suppliers)
     else
       assign(socket, suppliers: [])

@@ -7,8 +7,6 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
   """
   use EmakolaWeb, :live_view
 
-  require Ash.Query
-
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
