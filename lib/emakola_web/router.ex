@@ -150,6 +150,7 @@ defmodule EmakolaWeb.Router do
       live "/recipes/:recipe_slug", RecipeLive
       live "/account", AccountLive
       live "/account/downloads", AccountDownloadsLive
+      live "/saved-stores", SavedStoresLive
       live "/wishlist", WishlistLive
       live "/track/:order_number", TrackingLive
       live "/p/:page_slug", PageLive

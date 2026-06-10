@@ -95,6 +95,7 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
       about_live.ex
       page_live.ex
       account_downloads_live.ex
+      saved_stores_live.ex
     )
 
     defp storefront_lv_files do
