@@ -120,7 +120,8 @@ defmodule Emakola.Suppliers.SupplierLedgerEntryTest do
       fulfillment3 = create_fulfillment!(order3, store, supplier_id: other_supplier.id)
       create_supplier_ledger_entry!(other_supplier, fulfillment3, store, amount_owed: 9999)
 
-      {:ok, entries} = Emakola.Suppliers.list_ledger_entries_by_supplier(supplier.id)
+      {:ok, entries} =
+        Emakola.Suppliers.list_ledger_entries_by_supplier(supplier.id, authorize?: false)
 
       assert length(entries) == 2
       assert Enum.all?(entries, &(&1.supplier_id == supplier.id))

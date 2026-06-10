@@ -86,12 +86,8 @@ defmodule Emakola.Suppliers.Supplier do
   end
 
   policies do
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
-      authorize_unless(actor_present())
-    end
-
-    # Merchant actors: verify store membership for writes
+    # Merchant actors: verify store membership for all actions.
+    # System code uses authorize?: false explicitly.
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end

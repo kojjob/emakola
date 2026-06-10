@@ -82,7 +82,7 @@ defmodule Emakola.Suppliers.SupplierTest do
       create_supplier!(store, name: "Supplier B")
       create_supplier!(store2, name: "Supplier C")
 
-      {:ok, suppliers} = Emakola.Suppliers.list_suppliers_by_store(store.id)
+      {:ok, suppliers} = Emakola.Suppliers.list_suppliers_by_store(store.id, authorize?: false)
 
       assert length(suppliers) == 2
       names = suppliers |> Enum.map(& &1.name) |> Enum.sort()

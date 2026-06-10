@@ -116,12 +116,8 @@ defmodule Emakola.Fulfillment.DownloadGrant do
   end
 
   policies do
-    # System / pipeline calls (nil actor) — pipelines run with authorize?: false
-    bypass always() do
-      authorize_unless(actor_present())
-    end
-
-    # Merchants with store access can manage grants (e.g. revoke)
+    # Merchants with store access can manage grants (e.g. revoke).
+    # System/pipeline code uses authorize?: false explicitly.
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
