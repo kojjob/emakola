@@ -116,11 +116,9 @@ config :emakola, Oban,
 # Demo mode
 config :emakola, :demo_mode, System.get_env("DEMO_MODE") == "true"
 
-# Paystack client defaults (overridden in runtime.exs for prod)
-config :emakola, Emakola.Payments.PaystackClient,
-  secret_key: System.get_env("PAYSTACK_SECRET_KEY", "sk_test_placeholder"),
-  public_key: System.get_env("PAYSTACK_PUBLIC_KEY", "pk_test_placeholder"),
-  base_url: "https://api.paystack.co"
+# Paystack client — non-secret structure only. Credentials are set per
+# environment: dev.exs (placeholders), test.exs, runtime.exs (prod).
+config :emakola, Emakola.Payments.PaystackClient, base_url: "https://api.paystack.co"
 
 # WhatsApp Business API (Cloud API)
 # api_version is overridable via WHATSAPP_API_VERSION env var so we
@@ -136,11 +134,9 @@ config :emakola, Emakola.Notifications.Channels.SMS,
   api_key: System.get_env("SMS_API_KEY"),
   sender_id: System.get_env("SMS_SENDER_ID") || "Emakola"
 
-# Hubtel client defaults (overridden in runtime.exs for prod)
-config :emakola, Emakola.Payments.HubtelClient,
-  client_id: System.get_env("HUBTEL_CLIENT_ID"),
-  client_secret: System.get_env("HUBTEL_CLIENT_SECRET"),
-  base_url: "https://api.hubtel.com"
+# Hubtel client — non-secret structure only. Credentials are set per
+# environment: dev.exs (env passthrough), test.exs (flat keys), runtime.exs (prod).
+config :emakola, Emakola.Payments.HubtelClient, base_url: "https://api.hubtel.com"
 
 # Import branding and plans config
 import_config "branding.exs"

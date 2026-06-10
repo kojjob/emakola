@@ -60,13 +60,20 @@ if config_env() == :prod do
     System.get_env("PAYSTACK_SECRET_KEY") ||
       raise "environment variable PAYSTACK_SECRET_KEY is missing."
 
+  # Flat key — read by Emakola.Payments.Gateways.Paystack (webhook HMAC)
+  # and Emakola.Payments.PaystackWebhook.
   config :emakola, :paystack_secret_key, paystack_secret_key
-  config :emakola, :paystack_public_key, System.get_env("PAYSTACK_PUBLIC_KEY") || ""
 
-  # Hubtel (optional at launch)
+  # Nested keyword config — read by Emakola.Payments.PaystackClient.
+  config :emakola, Emakola.Payments.PaystackClient,
+    secret_key: paystack_secret_key,
+    public_key: System.get_env("PAYSTACK_PUBLIC_KEY") || ""
+
+  # Hubtel (optional at launch) — read by Emakola.Payments.HubtelClient.
   if hubtel_id = System.get_env("HUBTEL_CLIENT_ID") do
-    config :emakola, :hubtel_client_id, hubtel_id
-    config :emakola, :hubtel_client_secret, System.get_env("HUBTEL_CLIENT_SECRET") || ""
+    config :emakola, Emakola.Payments.HubtelClient,
+      client_id: hubtel_id,
+      client_secret: System.get_env("HUBTEL_CLIENT_SECRET") || ""
   end
 
   # Hubtel webhook source-IP allowlist. Hubtel does not sign webhooks, so
