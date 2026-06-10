@@ -494,6 +494,60 @@ defmodule Emakola.Policies.TenantReadIsolationTest do
     end
   end
 
+  # =========================================================================
+  # FINDING H2 — Nil-actor write bypass regression
+  # Verify that a nil actor with authorize?: true is DENIED for create/update
+  # on representative resources. These tests are RED before the nil-actor
+  # bypass is removed (the bypass currently allows nil-actor writes) and
+  # GREEN after the bypass blocks are deleted.
+  # =========================================================================
+
+  describe "H2 — nil-actor write bypass: Product" do
+    setup :setup_two_stores
+
+    test "nil actor cannot create a Product with authorize?: true", %{store_a: store_a} do
+      result =
+        Emakola.Catalog.Product
+        |> Ash.Changeset.for_create(:create, %{
+          title: "Malicious Product",
+          store_id: store_a.id
+        })
+        |> Ash.create(authorize?: true)
+
+      assert {:error, %Ash.Error.Forbidden{}} = result,
+             "nil-actor create must be forbidden, got: #{inspect(result)}"
+    end
+
+    test "nil actor cannot update a Product with authorize?: true", %{store_a: store_a} do
+      product = create_product!(store_a)
+
+      result =
+        product
+        |> Ash.Changeset.for_update(:update, %{title: "Tampered Title"})
+        |> Ash.update(authorize?: true)
+
+      assert {:error, %Ash.Error.Forbidden{}} = result,
+             "nil-actor update must be forbidden, got: #{inspect(result)}"
+    end
+  end
+
+  describe "H2 — nil-actor write bypass: Supplier" do
+    setup :setup_two_stores
+
+    test "nil actor cannot create a Supplier with authorize?: true", %{store_a: store_a} do
+      result =
+        Emakola.Suppliers.Supplier
+        |> Ash.Changeset.for_create(:create, %{
+          name: "Injected Supplier",
+          store_id: store_a.id
+        })
+        |> Ash.create(authorize?: true)
+
+      assert {:error, %Ash.Error.Forbidden{}} = result,
+             "nil-actor create must be forbidden, got: #{inspect(result)}"
+    end
+  end
+
   # ---------------------------------------------------------------------------
   # Coupon — customer actor must not have blanket coupon reads
   # (public coupons are accessible only via specific action bypasses)
