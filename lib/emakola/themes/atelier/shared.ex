@@ -27,12 +27,12 @@ defmodule Emakola.Themes.Atelier.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#16A34A" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#16A34A") %>;
         --theme-primary-light: #22C55E;
-        --theme-primary-dark: <%= get_in(@theme, [:colors, :accent]) || "#166534" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#166534" %>;
+        --theme-primary-dark: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#166534") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#166534") %>;
         --theme-accent-secondary: #4B5563;
-        --theme-surface: <%= get_in(@theme, [:colors, :background]) || "#FFFFFF" %>;
+        --theme-surface: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#FFFFFF") %>;
         --theme-ink: #1a1a1a;
         --theme-gold: #CA8A04;
         --theme-bg: var(--theme-surface);

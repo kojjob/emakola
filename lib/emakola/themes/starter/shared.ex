@@ -26,9 +26,9 @@ defmodule Emakola.Themes.Starter.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#6366F1" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#1E293B" %>;
-        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#FFFFFF" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#6366F1") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#1E293B") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#FFFFFF") %>;
       }
     </style>
     """

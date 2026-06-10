@@ -19,9 +19,9 @@ defmodule Emakola.Themes.Market.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#1C1917" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#B45309" %>;
-        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#FAFAF9" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#1C1917") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#B45309") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#FAFAF9") %>;
       }
     </style>
     """

@@ -14,11 +14,11 @@ defmodule Emakola.Themes.Spotlight.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#16130F" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#7C3AED" %>;
-        --theme-accent-dark: <%= get_in(@theme, [:colors, :accent_dark]) || "#6D28D9" %>;
-        --theme-accent-soft: <%= get_in(@theme, [:colors, :accent_soft]) || "#EDE7FB" %>;
-        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#FBF9F5" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#16130F") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#7C3AED") %>;
+        --theme-accent-dark: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent_dark]), "#6D28D9") %>;
+        --theme-accent-soft: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent_soft]), "#EDE7FB") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#FBF9F5") %>;
       }
       .spot-body { font-family: 'Inter', sans-serif; color: #16130F; background: var(--theme-bg); }
       .spot-display { font-family: 'Archivo', 'Inter', sans-serif; font-weight: 800; letter-spacing: -0.02em; line-height: 0.95; }

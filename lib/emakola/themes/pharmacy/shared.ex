@@ -17,10 +17,10 @@ defmodule Emakola.Themes.Pharmacy.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#14543E" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#A7E5C5" %>;
-        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#F9F6F0" %>;
-        --theme-surface: <%= get_in(@theme, [:colors, :surface]) || "#FFFFFF" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#14543E") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#A7E5C5") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#F9F6F0") %>;
+        --theme-surface: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :surface]), "#FFFFFF") %>;
       }
       .pharmacy-body { font-family: 'Inter', sans-serif; color: #1F2937; background: var(--theme-bg); }
       .pharmacy-heading { font-family: 'Fraunces', serif; letter-spacing: -0.01em; }

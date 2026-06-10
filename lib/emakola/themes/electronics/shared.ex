@@ -14,9 +14,9 @@ defmodule Emakola.Themes.Electronics.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#134E4A" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#0EA5E9" %>;
-        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#F5EFE5" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#134E4A") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#0EA5E9") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#F5EFE5") %>;
       }
       .electronics-body { font-family: 'Inter', sans-serif; color: #1F2937; background: var(--theme-bg); }
       .electronics-heading { font-family: 'Outfit', sans-serif; letter-spacing: -0.015em; }

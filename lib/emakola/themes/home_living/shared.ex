@@ -14,10 +14,10 @@ defmodule Emakola.Themes.HomeLiving.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#1F2937" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#84CC16" %>;
-        --theme-secondary: <%= get_in(@theme, [:colors, :secondary]) || "#C2410C" %>;
-        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#FAF7F2" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#1F2937") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#84CC16") %>;
+        --theme-secondary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :secondary]), "#C2410C") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#FAF7F2") %>;
       }
       .home-living-body { font-family: 'Inter', sans-serif; color: #1F2937; background: var(--theme-bg); }
       .home-living-heading { font-family: 'DM Sans', sans-serif; letter-spacing: -0.02em; }

@@ -62,9 +62,9 @@
   <% end %>
   <style>
     :root {
-      --theme-primary: <%= assigns[:theme][:colors][:primary] || "#2563EB" %>;
-      --theme-accent: <%= assigns[:theme][:colors][:accent] || "#0F172A" %>;
-      --theme-bg: <%= assigns[:theme][:colors][:background] || "#FFFFFF" %>;
+      --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(assigns[:theme][:colors][:primary], "#2563EB") %>;
+      --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(assigns[:theme][:colors][:accent], "#0F172A") %>;
+      --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(assigns[:theme][:colors][:background], "#FFFFFF") %>;
       --dt-heading-font: <%= heading_font %>;
       --dt-body-font: <%= body_font %>;
       --dt-btn-radius: <%= case tokens[:button_style] do "pill" -> "9999px"; "square" -> "0px"; _ -> "0.5rem" end %>;
