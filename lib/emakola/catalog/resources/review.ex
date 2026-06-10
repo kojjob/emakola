@@ -158,8 +158,6 @@ defmodule Emakola.Catalog.Review do
   Returns `{:ok, order_id}` if eligible, `{:error, reason}` otherwise.
   """
   def eligible?(store_id, product_id, customer_id) do
-    import Ecto.Query, only: [from: 2]
-
     existing =
       __MODULE__
       |> Ash.Query.filter(
@@ -170,24 +168,7 @@ defmodule Emakola.Catalog.Review do
     if existing > 0 do
       {:error, :already_reviewed}
     else
-      query =
-        from o in Emakola.Orders.Order,
-          join: li in Emakola.Orders.LineItem,
-          on: li.order_id == o.id,
-          join: v in Emakola.Catalog.Variant,
-          on: v.id == li.variant_id,
-          where:
-            o.store_id == ^store_id and
-              o.customer_id == ^customer_id and
-              o.status == ^:delivered and
-              v.product_id == ^product_id,
-          select: o.id,
-          limit: 1
-
-      case Emakola.Repo.one(query) do
-        nil -> {:error, :not_eligible}
-        order_id -> {:ok, order_id}
-      end
+      Emakola.Orders.PurchaseVerifier.has_delivered_order?(store_id, product_id, customer_id)
     end
   end
 end
