@@ -89,6 +89,47 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
     end
   end
 
+  describe "ProductLive.Index edit (authenticated merchant)" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    # Regression: open_edit_product crashed the LiveView with
+    # Protocol.UndefinedError because get_product did not load :images,
+    # and the slide-over template enumerates @editing_product.images.
+    test "clicking Edit opens the slide-over with the product loaded",
+         %{conn: conn, store: store} do
+      product = Factory.create_product!(store, %{title: "Kente Stole"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      html =
+        view
+        |> element(~s{tr button[phx-click*="open_edit_product"][phx-click*="#{product.id}"]})
+        |> render_click()
+
+      assert html =~ "Edit Product"
+      assert html =~ "Kente Stole"
+    end
+
+    test "clicking Edit on a product with images shows the image grid",
+         %{conn: conn, store: store} do
+      product = Factory.create_product!(store, %{title: "Fugu Smock"})
+      image = Factory.create_image!(product, store)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      html =
+        view
+        |> element(~s{tr button[phx-click*="open_edit_product"][phx-click*="#{product.id}"]})
+        |> render_click()
+
+      assert html =~ "Edit Product"
+      assert html =~ (image.thumbnail_url || image.url)
+    end
+  end
+
   # Uses the pattern from LiveViewHelpers — creates user, org, membership
   defp setup_authenticated_user(conn) do
     user = Factory.create_user!()

@@ -1081,7 +1081,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   end
 
   defp load_product(id) do
-    case Emakola.Catalog.get_product(id) do
+    # The edit slide-over renders @editing_product.images — load it here
+    # or the render crashes with Enumerable not implemented for Ash.NotLoaded.
+    case Emakola.Catalog.get_product(id, load: [:images]) do
       {:ok, product} -> product
       _ -> nil
     end
