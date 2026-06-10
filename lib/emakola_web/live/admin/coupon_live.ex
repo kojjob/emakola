@@ -197,14 +197,17 @@ defmodule EmakolaWeb.Admin.CouponLive do
 
       <%!-- Summary Cards --%>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div class="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
+        <.admin_card
+          padding={:none}
+          class="p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300"
+        >
           <div class="flex items-center justify-between mb-4">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Active Coupons
             </span>
-            <div class="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center">
+            <div class="w-9 h-9 bg-primary-soft rounded-control flex items-center justify-center">
               <svg
-                class="w-[18px] h-[18px] text-emerald-600"
+                class="w-[18px] h-[18px] text-primary"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
@@ -225,14 +228,17 @@ defmodule EmakolaWeb.Admin.CouponLive do
           <p class="text-xs text-slate-400 mt-2">
             {length(@coupons)} total coupons
           </p>
-        </div>
+        </.admin_card>
 
-        <div class="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
+        <.admin_card
+          padding={:none}
+          class="p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300"
+        >
           <div class="flex items-center justify-between mb-4">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Total Uses
             </span>
-            <div class="w-9 h-9 bg-violet-50 rounded-xl flex items-center justify-center">
+            <div class="w-9 h-9 bg-violet-50 rounded-control flex items-center justify-center">
               <svg
                 class="w-[18px] h-[18px] text-violet-600"
                 fill="none"
@@ -254,14 +260,17 @@ defmodule EmakolaWeb.Admin.CouponLive do
           <p class="text-xs text-slate-400 mt-2">
             Across all coupons
           </p>
-        </div>
+        </.admin_card>
 
-        <div class="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
+        <.admin_card
+          padding={:none}
+          class="p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300"
+        >
           <div class="flex items-center justify-between mb-4">
             <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               Expired / Maxed
             </span>
-            <div class="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center">
+            <div class="w-9 h-9 bg-amber-50 rounded-control flex items-center justify-center">
               <svg
                 class="w-[18px] h-[18px] text-amber-600"
                 fill="none"
@@ -283,11 +292,11 @@ defmodule EmakolaWeb.Admin.CouponLive do
           <p class="text-xs text-slate-400 mt-2">
             Inactive coupons
           </p>
-        </div>
+        </.admin_card>
       </div>
 
       <%!-- Create/Edit Form --%>
-      <div :if={@show_form} class="bg-white rounded-2xl shadow-sm p-6 mb-8">
+      <.admin_card :if={@show_form} class="mb-8">
         <div class="flex items-center justify-between mb-6">
           <div>
             <h2 class="text-lg font-bold text-slate-900">
@@ -323,7 +332,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
                 name="coupon[code]"
                 value={@form_changeset["code"]}
                 placeholder="e.g. WELCOME10"
-                class={"w-full px-3.5 py-2.5 rounded-xl border text-sm transition-colors uppercase placeholder:normal-case #{if @form_errors[:code], do: "border-red-300 focus:border-red-500 focus:ring-red-500", else: "border-slate-200 focus:border-emerald-500 focus:ring-emerald-500"}"}
+                class={"w-full px-3.5 py-2.5 rounded-control border text-sm transition-colors uppercase placeholder:normal-case #{if @form_errors[:code], do: "border-red-300 focus:border-red-500 focus:ring-red-500", else: "border-slate-200 focus:border-emerald-500 focus:ring-emerald-500"}"}
               />
               <p :if={@form_errors[:code]} class="mt-1 text-xs text-red-600">
                 {@form_errors[:code]}
@@ -340,7 +349,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
                 name="coupon[description]"
                 value={@form_changeset["description"]}
                 placeholder="Internal note (not shown to customers)"
-                class="w-full px-3.5 py-2.5 rounded-2xl shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 transition-colors"
+                class="w-full px-3.5 py-2.5 rounded-control shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 transition-colors"
               />
             </div>
           </div>
@@ -355,7 +364,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
                 type="button"
                 phx-click="set_discount_type"
                 phx-value-type="percentage"
-                class={"flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer #{if @discount_type == "percentage", do: "border-emerald-500 bg-emerald-50", else: "border-slate-200 hover:border-slate-300"}"}
+                class={"flex items-center gap-3 p-3.5 rounded-control border-2 text-left transition-all cursor-pointer #{if @discount_type == "percentage", do: "border-emerald-500 bg-emerald-50", else: "border-slate-200 hover:border-slate-300"}"}
               >
                 <div class={"w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold #{if @discount_type == "percentage", do: "bg-emerald-100 text-emerald-700", else: "bg-slate-100 text-slate-500"}"}>
                   %
@@ -370,7 +379,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
                 type="button"
                 phx-click="set_discount_type"
                 phx-value-type="fixed_amount"
-                class={"flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer #{if @discount_type == "fixed_amount", do: "border-emerald-500 bg-emerald-50", else: "border-slate-200 hover:border-slate-300"}"}
+                class={"flex items-center gap-3 p-3.5 rounded-control border-2 text-left transition-all cursor-pointer #{if @discount_type == "fixed_amount", do: "border-emerald-500 bg-emerald-50", else: "border-slate-200 hover:border-slate-300"}"}
               >
                 <div class={"w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold #{if @discount_type == "fixed_amount", do: "bg-emerald-100 text-emerald-700", else: "bg-slate-100 text-slate-500"}"}>
                   GH
@@ -385,7 +394,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
                 type="button"
                 phx-click="set_discount_type"
                 phx-value-type="free_shipping"
-                class={"flex items-center gap-3 p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer #{if @discount_type == "free_shipping", do: "border-emerald-500 bg-emerald-50", else: "border-slate-200 hover:border-slate-300"}"}
+                class={"flex items-center gap-3 p-3.5 rounded-control border-2 text-left transition-all cursor-pointer #{if @discount_type == "free_shipping", do: "border-emerald-500 bg-emerald-50", else: "border-slate-200 hover:border-slate-300"}"}
               >
                 <div class={"w-8 h-8 rounded-lg flex items-center justify-center #{if @discount_type == "free_shipping", do: "bg-emerald-100 text-emerald-700", else: "bg-slate-100 text-slate-500"}"}>
                   <svg
@@ -426,7 +435,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
                   step={if @discount_type == "percentage", do: "1", else: "0.01"}
                   min="0"
                   max={if @discount_type == "percentage", do: "100", else: nil}
-                  class={"w-full px-3.5 py-2.5 rounded-xl border text-sm transition-colors #{if @form_errors[:discount_value], do: "border-red-300 focus:border-red-500 focus:ring-red-500", else: "border-slate-200 focus:border-emerald-500 focus:ring-emerald-500"}"}
+                  class={"w-full px-3.5 py-2.5 rounded-control border text-sm transition-colors #{if @form_errors[:discount_value], do: "border-red-300 focus:border-red-500 focus:ring-red-500", else: "border-slate-200 focus:border-emerald-500 focus:ring-emerald-500"}"}
                 />
                 <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
                   {if @discount_type == "percentage", do: "%", else: "GHS"}
@@ -455,7 +464,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
                   placeholder="No limit"
                   step="0.01"
                   min="0"
-                  class="w-full px-3.5 py-2.5 rounded-2xl shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 transition-colors"
+                  class="w-full px-3.5 py-2.5 rounded-control shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 transition-colors"
                 />
                 <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
                   GHS
@@ -481,7 +490,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
                   placeholder="No minimum"
                   step="0.01"
                   min="0"
-                  class="w-full px-3.5 py-2.5 rounded-2xl shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 transition-colors"
+                  class="w-full px-3.5 py-2.5 rounded-control shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 transition-colors"
                 />
                 <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">
                   GHS
@@ -503,7 +512,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
                 placeholder="Unlimited"
                 min="1"
                 step="1"
-                class="w-full px-3.5 py-2.5 rounded-2xl shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 transition-colors"
+                class="w-full px-3.5 py-2.5 rounded-control shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 transition-colors"
               />
               <p class="mt-1 text-xs text-slate-400">
                 Leave empty for unlimited uses
@@ -521,7 +530,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
                 type="datetime-local"
                 name="coupon[starts_at]"
                 value={@form_changeset["starts_at"]}
-                class="w-full px-3.5 py-2.5 rounded-2xl shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 transition-colors"
+                class="w-full px-3.5 py-2.5 rounded-control shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 transition-colors"
               />
               <p class="mt-1 text-xs text-slate-400">
                 Leave empty to start immediately
@@ -536,7 +545,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
                 type="datetime-local"
                 name="coupon[expires_at]"
                 value={@form_changeset["expires_at"]}
-                class="w-full px-3.5 py-2.5 rounded-2xl shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 transition-colors"
+                class="w-full px-3.5 py-2.5 rounded-control shadow-sm text-sm focus:border-emerald-500 focus:ring-emerald-500 transition-colors"
               />
               <p class="mt-1 text-xs text-slate-400">
                 Leave empty for no expiration
@@ -555,7 +564,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
                   checked={@form_changeset["active"] == "true"}
                   class="sr-only peer"
                 />
-                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600">
+                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary">
                 </div>
               </label>
               <span class="text-sm font-medium text-slate-700">Active</span>
@@ -582,32 +591,32 @@ defmodule EmakolaWeb.Admin.CouponLive do
 
           <%!-- Submit --%>
           <div class="flex items-center gap-3 pt-4 border-t border-slate-100">
-            <button
+            <.admin_button
               type="submit"
-              class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+              class="focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
             >
               {if @editing_coupon, do: "Update Coupon", else: "Create Coupon"}
-            </button>
+            </.admin_button>
             <button
               type="button"
               phx-click="close_form"
-              class="px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              class="px-5 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-control transition-colors cursor-pointer"
             >
               Cancel
             </button>
           </div>
         </form>
-      </div>
+      </.admin_card>
 
       <%!-- Coupons Table --%>
-      <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <.admin_card padding={:none} class="overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-100">
           <h2 class="text-base font-bold text-slate-900">All Coupons</h2>
           <p class="text-xs text-slate-500 mt-0.5">{length(@coupons)} coupon codes</p>
         </div>
 
         <div :if={@coupons == []} class="px-6 py-16 text-center">
-          <div class="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div class="w-16 h-16 bg-slate-100 rounded-card flex items-center justify-center mx-auto mb-4">
             <svg
               class="w-8 h-8 text-slate-400"
               fill="none"
@@ -627,10 +636,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
           <p class="text-sm text-slate-500 mb-4">
             Create your first coupon code to offer discounts to your customers.
           </p>
-          <button
-            phx-click="show_create_form"
-            class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer"
-          >
+          <.admin_button phx-click="show_create_form">
             <svg
               class="w-4 h-4"
               fill="none"
@@ -641,7 +647,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
             Create Your First Coupon
-          </button>
+          </.admin_button>
         </div>
 
         <%!-- Table (desktop) / Cards (mobile) --%>
@@ -702,7 +708,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
                       <button
                         phx-click="toggle_active"
                         phx-value-id={coupon.id}
-                        class={"inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer #{if coupon.active, do: "bg-amber-50 text-amber-700 hover:bg-amber-100", else: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}"}
+                        class={"inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer #{if coupon.active, do: "bg-warning-soft text-warning hover:bg-amber-100", else: "bg-primary-soft text-primary hover:bg-emerald-100"}"}
                       >
                         {if coupon.active, do: "Deactivate", else: "Activate"}
                       </button>
@@ -746,7 +752,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
                 <button
                   phx-click="toggle_active"
                   phx-value-id={coupon.id}
-                  class={"inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer #{if coupon.active, do: "bg-amber-50 text-amber-700 hover:bg-amber-100", else: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}"}
+                  class={"inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer #{if coupon.active, do: "bg-warning-soft text-warning hover:bg-amber-100", else: "bg-primary-soft text-primary hover:bg-emerald-100"}"}
                 >
                   {if coupon.active, do: "Deactivate", else: "Activate"}
                 </button>
@@ -761,7 +767,7 @@ defmodule EmakolaWeb.Admin.CouponLive do
             </div>
           </div>
         </div>
-      </div>
+      </.admin_card>
     </div>
     """
   end
@@ -934,11 +940,11 @@ defmodule EmakolaWeb.Admin.CouponLive do
     end
   end
 
-  defp status_badge_class(:active), do: "bg-emerald-50 text-emerald-700"
+  defp status_badge_class(:active), do: "bg-success-soft text-success"
   defp status_badge_class(:inactive), do: "bg-slate-100 text-slate-600"
-  defp status_badge_class(:expired), do: "bg-red-50 text-red-600"
-  defp status_badge_class(:maxed), do: "bg-amber-50 text-amber-700"
-  defp status_badge_class(:scheduled), do: "bg-blue-50 text-blue-600"
+  defp status_badge_class(:expired), do: "bg-danger-soft text-danger"
+  defp status_badge_class(:maxed), do: "bg-warning-soft text-warning"
+  defp status_badge_class(:scheduled), do: "bg-info-soft text-info"
 
   defp count_active(coupons) do
     Enum.count(coupons, fn c -> coupon_status(c) == :active end)
