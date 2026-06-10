@@ -6,6 +6,8 @@ defmodule EmakolaWeb.DashboardComponents do
 
   use Phoenix.Component
 
+  import EmakolaWeb.AdminComponents, only: [admin_card: 1, status_pill: 1]
+
   attr :period, :string, required: true
   attr :periods, :list, required: true
 
@@ -18,7 +20,7 @@ defmodule EmakolaWeb.DashboardComponents do
       </div>
 
       <div class="flex items-center gap-2">
-        <div class="flex items-center rounded-xl bg-white shadow-sm p-1">
+        <div class="flex items-center rounded-control bg-surface shadow-sm p-1">
           <button
             :for={p <- @periods}
             phx-click="change_period"
@@ -26,7 +28,7 @@ defmodule EmakolaWeb.DashboardComponents do
             class={[
               "px-3 py-1.5 text-sm font-medium rounded-lg transition-colors",
               if(p == @period,
-                do: "bg-emerald-600 text-white shadow-sm",
+                do: "bg-primary text-white shadow-sm",
                 else: "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
               )
             ]}
@@ -37,7 +39,7 @@ defmodule EmakolaWeb.DashboardComponents do
 
         <button
           phx-click="refresh_data"
-          class="p-2 text-slate-400 hover:text-emerald-600 hover:bg-white hover:shadow-sm rounded-xl transition-all"
+          class="p-2 text-slate-400 hover:text-primary hover:bg-surface hover:shadow-sm rounded-control transition-all"
           title="Refresh dashboard"
         >
           <span class="material-symbols-outlined text-xl">refresh</span>
@@ -59,9 +61,9 @@ defmodule EmakolaWeb.DashboardComponents do
 
   def alerts_panel(assigns) do
     ~H"""
-    <div class="bg-white rounded-2xl shadow-sm p-5">
+    <.admin_card padding={:none} class="p-5">
       <div class="flex items-center gap-2 mb-4">
-        <span class="material-symbols-outlined text-xl text-emerald-600">notifications_active</span>
+        <span class="material-symbols-outlined text-xl text-primary">notifications_active</span>
         <h3 class="text-base font-bold text-slate-800">Needs Attention</h3>
       </div>
 
@@ -88,7 +90,7 @@ defmodule EmakolaWeb.DashboardComponents do
           color="rose"
         />
       </div>
-    </div>
+    </.admin_card>
     """
   end
 
@@ -138,15 +140,15 @@ defmodule EmakolaWeb.DashboardComponents do
 
   def recent_orders_table(assigns) do
     ~H"""
-    <section class="bg-white rounded-2xl shadow-sm overflow-hidden">
+    <.admin_card padding={:none} class="overflow-hidden">
       <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
         <div class="flex items-center gap-2">
-          <span class="material-symbols-outlined text-xl text-emerald-600">receipt_long</span>
+          <span class="material-symbols-outlined text-xl text-primary">receipt_long</span>
           <h2 class="text-base font-bold text-slate-800">Recent Orders</h2>
         </div>
         <.link
           navigate="/admin/orders"
-          class="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700"
+          class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-hover"
         >
           View all <span class="material-symbols-outlined text-base">arrow_forward</span>
         </.link>
@@ -196,19 +198,14 @@ defmodule EmakolaWeb.DashboardComponents do
                   {format_money(order.total)}
                 </td>
                 <td class="px-6 py-3 text-right">
-                  <span class={[
-                    "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-                    status_badge_classes(order.status)
-                  ]}>
-                    {Phoenix.Naming.humanize(order.status)}
-                  </span>
+                  <.status_pill status={order.status} variant={:order} />
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
       <% end %>
-    </section>
+    </.admin_card>
     """
   end
 
@@ -219,14 +216,6 @@ defmodule EmakolaWeb.DashboardComponents do
       _ -> "Guest"
     end
   end
-
-  defp status_badge_classes(:pending), do: "bg-amber-50 text-amber-700"
-  defp status_badge_classes(:confirmed), do: "bg-blue-50 text-blue-700"
-  defp status_badge_classes(:processing), do: "bg-indigo-50 text-indigo-700"
-  defp status_badge_classes(:shipped), do: "bg-purple-50 text-purple-700"
-  defp status_badge_classes(:delivered), do: "bg-green-50 text-green-700"
-  defp status_badge_classes(:cancelled), do: "bg-red-50 text-red-700"
-  defp status_badge_classes(_), do: "bg-slate-50 text-slate-700"
 
   defp format_money(amount_pesewas, currency \\ "GHS") do
     major = div(amount_pesewas, 100)

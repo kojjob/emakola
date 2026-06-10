@@ -5,6 +5,8 @@ defmodule EmakolaWeb.DashboardMetricComponents do
 
   use Phoenix.Component
 
+  import EmakolaWeb.AdminComponents, only: [admin_card: 1]
+
   attr :total_revenue, :integer, required: true
   attr :revenue_change, :float, default: nil
   attr :order_count, :integer, required: true
@@ -52,16 +54,16 @@ defmodule EmakolaWeb.DashboardMetricComponents do
 
   defp kpi_card(assigns) do
     ~H"""
-    <div class="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md transition-shadow">
+    <.admin_card padding={:none} class="p-5 hover:shadow-md transition-shadow">
       <div class="flex items-center justify-between mb-3">
         <span class="text-sm font-medium text-slate-500">{@label}</span>
-        <div class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
-          <span class="material-symbols-outlined text-lg text-emerald-600">{@icon}</span>
+        <div class="w-9 h-9 rounded-control bg-primary-soft flex items-center justify-center">
+          <span class="material-symbols-outlined text-lg text-primary">{@icon}</span>
         </div>
       </div>
       <p class="text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums">{@value}</p>
       <.change_indicator change={@change} />
-    </div>
+    </.admin_card>
     """
   end
 
@@ -101,9 +103,9 @@ defmodule EmakolaWeb.DashboardMetricComponents do
 
   def chart_card(assigns) do
     ~H"""
-    <div class="bg-white rounded-2xl shadow-sm p-5">
+    <.admin_card padding={:none} class="p-5">
       <div class="flex items-center gap-2 mb-4">
-        <span class="material-symbols-outlined text-xl text-emerald-600">analytics</span>
+        <span class="material-symbols-outlined text-xl text-primary">analytics</span>
         <h3 class="text-base font-bold text-slate-800">{@title}</h3>
       </div>
       <div class={@height}>
@@ -116,7 +118,7 @@ defmodule EmakolaWeb.DashboardMetricComponents do
           class="w-full h-full"
         />
       </div>
-    </div>
+    </.admin_card>
     """
   end
 
