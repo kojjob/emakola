@@ -2,7 +2,6 @@ defmodule Emakola.Notifications.DispatcherTest do
   use Emakola.DataCase, async: false
   use Oban.Testing, repo: Emakola.Repo
 
-  alias Emakola.Factory
   alias Emakola.Notifications.Dispatcher
   alias Emakola.Notifications.Workers.OrderNotificationWorker
   alias Emakola.Notifications.Workers.SupplierNotificationWorker

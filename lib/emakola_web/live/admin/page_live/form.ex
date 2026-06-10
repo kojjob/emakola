@@ -18,7 +18,6 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
   use EmakolaWeb, :live_view
 
   alias Emakola.PageBuilder
-  alias Emakola.Pages.Page
 
   @upload_dir_segment "pages"
 
