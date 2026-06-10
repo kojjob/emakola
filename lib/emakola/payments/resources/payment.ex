@@ -195,5 +195,27 @@ defmodule Emakola.Payments.Payment do
         Ash.Query.sort(query, inserted_at: :desc)
       end)
     end
+
+    read :by_store_with_status do
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:status, :atom, allow_nil?: true)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            (is_nil(^arg(:status)) or status == ^arg(:status))
+        )
+      )
+
+      prepare(fn query, _context ->
+        Ash.Query.sort(query, inserted_at: :desc)
+      end)
+    end
+
+    read :get_by_order do
+      get?(true)
+      argument(:order_id, :uuid, allow_nil?: false)
+      filter(expr(order_id == ^arg(:order_id)))
+    end
   end
 end

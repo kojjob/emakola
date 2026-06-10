@@ -420,5 +420,46 @@ defmodule Emakola.Orders.Order do
         |> Ash.Query.load([:customer])
       end)
     end
+
+    read :list_admin do
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      argument(:status, :atom,
+        allow_nil?: true,
+        constraints: [
+          one_of: [:pending, :confirmed, :processing, :shipped, :delivered, :cancelled]
+        ]
+      )
+
+      argument(:search, :string, allow_nil?: true)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and
+            (is_nil(^arg(:status)) or status == ^arg(:status)) and
+            (is_nil(^arg(:search)) or contains(order_number, ^arg(:search)))
+        )
+      )
+
+      prepare(fn query, _context ->
+        query
+        |> Ash.Query.sort(inserted_at: :desc)
+        |> Ash.Query.load([:customer])
+      end)
+    end
+
+    read :get_for_admin do
+      get?(true)
+      argument(:id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(id == ^arg(:id) and store_id == ^arg(:store_id)))
+    end
+
+    read :list_by_customer do
+      argument(:customer_id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(customer_id == ^arg(:customer_id) and store_id == ^arg(:store_id)))
+      prepare(fn query, _ -> Ash.Query.sort(query, inserted_at: :desc) end)
+    end
   end
 end
