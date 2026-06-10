@@ -125,12 +125,14 @@ fly secrets set \
   WHATSAPP_API_TOKEN="xxxxx" \
   WHATSAPP_PHONE_NUMBER_ID="xxxxx" \
   \
-  # S3-compatible storage (if not using Tigris auto-config)
-  S3_BUCKET="emakola-uploads" \
-  S3_REGION="auto" \
-  S3_ENDPOINT="https://fly.storage.tigris.dev" \
-  S3_ACCESS_KEY_ID="xxxxx" \
-  S3_SECRET_ACCESS_KEY="xxxxx" \
+  # S3-compatible storage. `fly storage create` (Tigris) sets BUCKET_NAME,
+  # AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_ENDPOINT_URL_S3 and
+  # AWS_REGION automatically — only set these manually for non-Tigris S3.
+  AWS_S3_BUCKET="emakola-uploads" \
+  AWS_S3_REGION="auto" \
+  AWS_ENDPOINT_URL_S3="https://fly.storage.tigris.dev" \
+  AWS_ACCESS_KEY_ID="xxxxx" \
+  AWS_SECRET_ACCESS_KEY="xxxxx" \
   \
   # Oban
   OBAN_QUEUES="default,10 payments,5 notifications,5 images,3" \

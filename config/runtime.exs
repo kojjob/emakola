@@ -68,13 +68,47 @@ if config_env() == :prod do
   # S3-compatible storage for product images, media uploads
   config :emakola, :storage, Emakola.Storage.S3
 
+  # Bucket/region: AWS_S3_* take precedence; BUCKET_NAME / AWS_REGION are
+  # what `fly storage create` (Tigris) sets automatically.
   config :emakola,
          :s3_bucket,
-         System.get_env("AWS_S3_BUCKET") || "emakola-uploads"
+         System.get_env("AWS_S3_BUCKET") || System.get_env("BUCKET_NAME") ||
+           "emakola-uploads"
 
-  config :emakola,
-         :s3_region,
-         System.get_env("AWS_S3_REGION") || "eu-west-1"
+  s3_region =
+    System.get_env("AWS_S3_REGION") || System.get_env("AWS_REGION") || "auto"
+
+  config :emakola, :s3_region, s3_region
+
+  # ExAws credentials. Warn loudly but don't raise — image upload is a
+  # degradable feature and must not block boot.
+  s3_access_key_id = System.get_env("AWS_ACCESS_KEY_ID")
+  s3_secret_access_key = System.get_env("AWS_SECRET_ACCESS_KEY")
+
+  if is_nil(s3_access_key_id) or is_nil(s3_secret_access_key) do
+    IO.puts(
+      :stderr,
+      "WARNING: AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY not set — " <>
+        "S3 uploads (product images, media) WILL FAIL until configured."
+    )
+  end
+
+  config :ex_aws,
+    access_key_id: s3_access_key_id,
+    secret_access_key: s3_secret_access_key,
+    region: s3_region
+
+  # Tigris / non-AWS S3 endpoint. ExAws does not read AWS_ENDPOINT_URL_S3
+  # (the var `fly storage create` sets) — parse it into the scheme/host/port
+  # keys ExAws actually uses.
+  if endpoint_url = System.get_env("AWS_ENDPOINT_URL_S3") do
+    endpoint = URI.parse(endpoint_url)
+
+    config :ex_aws, :s3,
+      scheme: "#{endpoint.scheme}://",
+      host: endpoint.host,
+      port: endpoint.port
+  end
 
   # Payment gateways (required in prod)
   paystack_secret_key =
