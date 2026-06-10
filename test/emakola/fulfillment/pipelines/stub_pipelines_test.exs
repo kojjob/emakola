@@ -2,9 +2,10 @@ defmodule Emakola.Fulfillment.Pipelines.StubPipelinesTest do
   @moduledoc """
   Regression baseline for the six Phase-2+ fulfillment pipeline stubs.
 
-  Each pipeline currently returns `{:error, :not_implemented}`. These tests
-  will fail the moment a developer changes that contract without also
-  adding real tests — preventing silent regressions.
+  Each stub returns `{:ok, :deferred}` to signal that fulfillment is pending
+  a future phase without producing log noise at INFO level. These tests will
+  fail the moment a developer changes that contract without also adding real
+  tests — preventing silent regressions.
   """
 
   use ExUnit.Case, async: true
@@ -17,38 +18,38 @@ defmodule Emakola.Fulfillment.Pipelines.StubPipelinesTest do
   alias Emakola.Fulfillment.Pipelines.Streaming
 
   describe "Physical" do
-    test "returns {:error, :not_implemented} (stub — Phase 2)" do
-      assert {:error, :not_implemented} = Physical.fulfill(%{}, %{})
+    test "returns {:ok, :deferred} (stub — Phase 2)" do
+      assert {:ok, :deferred} = Physical.fulfill(%{}, %{})
     end
   end
 
   describe "LicenseKey" do
-    test "returns {:error, :not_implemented} (stub — Phase 2)" do
-      assert {:error, :not_implemented} = LicenseKey.fulfill(%{}, %{})
+    test "returns {:ok, :deferred} (stub — Phase 2)" do
+      assert {:ok, :deferred} = LicenseKey.fulfill(%{}, %{})
     end
   end
 
   describe "Course" do
-    test "returns {:error, :not_implemented} (stub — Phase 5)" do
-      assert {:error, :not_implemented} = Course.fulfill(%{}, %{})
+    test "returns {:ok, :deferred} (stub — Phase 5)" do
+      assert {:ok, :deferred} = Course.fulfill(%{}, %{})
     end
   end
 
   describe "Streaming" do
-    test "returns {:error, :not_implemented} (stub — Phase 3)" do
-      assert {:error, :not_implemented} = Streaming.fulfill(%{}, %{})
+    test "returns {:ok, :deferred} (stub — Phase 3)" do
+      assert {:ok, :deferred} = Streaming.fulfill(%{}, %{})
     end
   end
 
   describe "Auction" do
-    test "returns {:error, :not_implemented} (stub — Phase 3/4)" do
-      assert {:error, :not_implemented} = Auction.fulfill(%{}, %{})
+    test "returns {:ok, :deferred} (stub — Phase 3/4)" do
+      assert {:ok, :deferred} = Auction.fulfill(%{}, %{})
     end
   end
 
   describe "PrintOnDemand" do
-    test "returns {:error, :not_implemented} (stub — Phase 4)" do
-      assert {:error, :not_implemented} = PrintOnDemand.fulfill(%{}, %{})
+    test "returns {:ok, :deferred} (stub — Phase 4)" do
+      assert {:ok, :deferred} = PrintOnDemand.fulfill(%{}, %{})
     end
   end
 end
