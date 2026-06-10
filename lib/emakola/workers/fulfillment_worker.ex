@@ -55,7 +55,7 @@ defmodule Emakola.Workers.FulfillmentWorker do
   defp fulfill_line_item(order, line_item) do
     product_type = line_item.variant.product.product_type
 
-    case Dispatcher.dispatch(product_type, line_item, %{}) do
+    case Dispatcher.dispatch(product_type, line_item, %{customer_id: order.customer_id}) do
       {:ok, result} ->
         Logger.info(
           "[fulfillment_worker] order=#{order.id} line_item=#{line_item.id} " <>
