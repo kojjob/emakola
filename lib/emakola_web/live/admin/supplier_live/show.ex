@@ -123,10 +123,19 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
             >
               <.icon name="hero-arrow-left" class="size-5" />
             </.link>
-            <div class={[
-              "w-12 h-12 rounded-full text-white flex items-center justify-center font-bold text-lg",
-              avatar_color(@supplier.name)
-            ]}>
+            <img
+              :if={@supplier.logo_url}
+              src={@supplier.logo_url}
+              alt={"#{@supplier.name} logo"}
+              class="w-12 h-12 rounded-full object-cover border border-slate-200"
+            />
+            <div
+              :if={!@supplier.logo_url}
+              class={[
+                "w-12 h-12 rounded-full text-white flex items-center justify-center font-bold text-lg",
+                avatar_color(@supplier.name)
+              ]}
+            >
               {initial(@supplier.name)}
             </div>
             <div>

@@ -125,6 +125,29 @@ defmodule EmakolaWeb.Admin.SupplierLiveTest do
       assert html =~ "Inactive"
     end
 
+    test "tile shows the supplier logo when one is set", %{conn: conn, store: store} do
+      Factory.create_supplier!(store,
+        name: "Branded Co",
+        logo_url: "https://cdn.example.com/logos/branded.png"
+      )
+
+      {:ok, view, _html} = live(conn, ~p"/admin/settings/suppliers")
+
+      assert has_element?(view, ~s{img[src="https://cdn.example.com/logos/branded.png"]})
+    end
+
+    test "edit slide-over offers a logo upload", %{conn: conn, store: store} do
+      supplier = Factory.create_supplier!(store, name: "Logo Co")
+
+      {:ok, view, _html} = live(conn, ~p"/admin/settings/suppliers")
+
+      view
+      |> element("button[phx-click=\"edit_supplier\"][phx-value-id=\"#{supplier.id}\"]")
+      |> render_click()
+
+      assert has_element?(view, ~s{#supplier-form input[type="file"]})
+    end
+
     test "grid includes a dashed add-supplier tile", %{conn: conn, store: store} do
       Factory.create_supplier!(store, name: "Any Co")
 
@@ -191,6 +214,18 @@ defmodule EmakolaWeb.Admin.SupplierLiveTest do
       assert html =~ "Paid so far"
       assert html =~ "200"
       assert html =~ "Payments"
+    end
+
+    test "header shows the supplier logo when one is set", %{conn: conn, store: store} do
+      supplier =
+        Factory.create_supplier!(store,
+          name: "Branded Co",
+          logo_url: "https://cdn.example.com/logos/branded.png"
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/admin/suppliers/#{supplier.id}")
+
+      assert has_element?(view, ~s{img[src="https://cdn.example.com/logos/branded.png"]})
     end
 
     test "header has call and WhatsApp links for the supplier", %{conn: conn, store: store} do

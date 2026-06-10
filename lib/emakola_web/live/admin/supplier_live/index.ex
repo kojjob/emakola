@@ -26,9 +26,21 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
         editing_supplier: nil,
         show_form: false
       )
+      |> allow_upload(:logo,
+        accept: ~w(.jpg .jpeg .png .webp),
+        max_entries: 1,
+        max_file_size: 5_000_000
+      )
       |> load_suppliers()
 
     {:ok, socket}
+  end
+
+  @impl true
+  def handle_event("validate_supplier", _params, socket) do
+    # No server-side validation on change — this exists so the logo
+    # upload entries register with LiveView.
+    {:noreply, socket}
   end
 
   @impl true
@@ -53,6 +65,12 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
       payment_details: payment_details(params["payment_info"]),
       notes: blank_to_nil(params["notes"])
     }
+
+    attrs =
+      case consume_logo_upload(socket) do
+        nil -> attrs
+        url -> Map.put(attrs, :logo_url, url)
+      end
 
     case socket.assigns.editing_supplier do
       nil ->
@@ -167,6 +185,27 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
 
   defp wa_link(number), do: "https://wa.me/" <> String.replace(number, ~r/\D/, "")
 
+  defp upload_error_message(:too_large), do: "Image is too large (max 5MB)"
+  defp upload_error_message(:not_accepted), do: "Use a JPG, PNG or WebP image"
+  defp upload_error_message(:too_many_files), do: "Choose one image"
+  defp upload_error_message(_), do: "Could not upload image"
+
+  defp consume_logo_upload(socket) do
+    store = socket.assigns.store
+
+    socket
+    |> consume_uploaded_entries(:logo, fn %{path: tmp_path}, entry ->
+      ext = Path.extname(entry.client_name)
+      path = "stores/#{store.id}/suppliers/#{Ecto.UUID.generate()}#{ext}"
+
+      {:ok, url} =
+        Emakola.Storage.upload(File.read!(tmp_path), path, content_type: entry.client_type)
+
+      {:ok, url}
+    end)
+    |> List.first()
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -227,11 +266,20 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
           </button>
 
           <.link navigate={~p"/admin/suppliers/#{supplier.id}"} class="block group">
-            <div class={[
-              "w-12 h-12 rounded-full text-white flex items-center justify-center",
-              "font-bold text-lg mx-auto mb-2",
-              avatar_color(supplier.name)
-            ]}>
+            <img
+              :if={supplier.logo_url}
+              src={supplier.logo_url}
+              alt={"#{supplier.name} logo"}
+              class="w-12 h-12 rounded-full object-cover border border-slate-200 mx-auto mb-2"
+            />
+            <div
+              :if={!supplier.logo_url}
+              class={[
+                "w-12 h-12 rounded-full text-white flex items-center justify-center",
+                "font-bold text-lg mx-auto mb-2",
+                avatar_color(supplier.name)
+              ]}
+            >
               {initial(supplier.name)}
             </div>
             <p class="font-semibold text-sm text-slate-900 truncate group-hover:text-primary">
@@ -300,7 +348,13 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
         show
         on_cancel={JS.push("hide_form")}
       >
-        <.form for={%{}} as={:supplier} id="supplier-form" phx-submit="save_supplier">
+        <.form
+          for={%{}}
+          as={:supplier}
+          id="supplier-form"
+          phx-submit="save_supplier"
+          phx-change="validate_supplier"
+        >
           <div class="space-y-4">
             <div>
               <label for="sf_name" class="block text-sm font-medium text-slate-700 mb-1.5">
@@ -378,6 +432,34 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
                        focus:border-emerald-500 transition-all"
               />
             </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                Logo <span class="text-slate-400 font-normal">(optional)</span>
+              </label>
+              <div class="flex items-center gap-3">
+                <img
+                  :if={@editing_supplier && @editing_supplier.logo_url && @uploads.logo.entries == []}
+                  src={@editing_supplier.logo_url}
+                  alt="Current logo"
+                  class="w-12 h-12 rounded-full object-cover border border-slate-200"
+                />
+                <.live_img_preview
+                  :for={entry <- @uploads.logo.entries}
+                  entry={entry}
+                  class="w-12 h-12 rounded-full object-cover border border-slate-200"
+                />
+                <label class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold
+                              bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-control
+                              cursor-pointer transition-colors">
+                  <.icon name="hero-photo" class="size-4" /> Choose image
+                  <.live_file_input upload={@uploads.logo} class="sr-only" />
+                </label>
+              </div>
+              <p :for={err <- upload_errors(@uploads.logo)} class="mt-1 text-xs text-red-600">
+                {upload_error_message(err)}
+              </p>
+            </div>
+
             <div>
               <label for="sf_notes" class="block text-sm font-medium text-slate-700 mb-1.5">
                 Notes
