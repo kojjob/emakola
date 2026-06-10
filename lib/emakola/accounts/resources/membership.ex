@@ -50,11 +50,6 @@ defmodule Emakola.Accounts.Membership do
       authorize_if(always())
     end
 
-    # Internal/system calls (nil actor) are allowed
-    bypass always() do
-      authorize_unless(actor_present())
-    end
-
     # Users can only modify their own memberships
     policy action_type([:update, :destroy]) do
       authorize_if(expr(user_id == ^actor(:id)))
