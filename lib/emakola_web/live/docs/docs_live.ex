@@ -15,7 +15,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-background text-on-surface font-body selection:bg-primary/30 selection:text-primary">
+    <div class="min-h-screen bg-slate-50 text-slate-900 font-body selection:bg-indigo-600/30 selection:text-indigo-600">
       <.docs_nav active="docs" />
 
       <div class="pt-20 max-w-7xl mx-auto px-6">
@@ -23,7 +23,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
           <%!-- Sticky side TOC --%>
           <aside class="hidden lg:block w-[200px] shrink-0">
             <nav class="sticky top-24 space-y-1">
-              <p class="text-[10px] uppercase tracking-[0.2em] text-on-surface-variant/50 font-semibold mb-4">
+              <p class="text-[10px] uppercase tracking-[0.2em] text-slate-500/50 font-semibold mb-4">
                 On this page
               </p>
               <.toc_link section="getting-started" label="Getting Started" active={@active_section} />
@@ -41,13 +41,13 @@ defmodule EmakolaWeb.Docs.DocsLive do
             <%!-- Search bar --%>
             <div class="mb-16">
               <div class="relative max-w-xl">
-                <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 text-lg">
+                <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500/40 text-lg">
                   search
                 </span>
                 <input
                   type="text"
                   placeholder="Search documentation..."
-                  class="w-full bg-surface-container rounded-xl pl-12 pr-4 py-3.5 text-sm focus:ring-2 focus:ring-primary/30 text-on-surface placeholder:text-on-surface-variant/40 outline-none"
+                  class="w-full bg-slate-100 rounded-xl pl-12 pr-4 py-3.5 text-sm focus:ring-2 focus:ring-indigo-600/30 text-slate-900 placeholder:text-slate-500/40 outline-none"
                 />
               </div>
             </div>
@@ -57,15 +57,15 @@ defmodule EmakolaWeb.Docs.DocsLive do
               <h2 class="text-3xl font-extrabold font-headline tracking-tight mb-3">
                 Getting Started
               </h2>
-              <p class="text-on-surface-variant text-lg leading-relaxed mb-8 max-w-2xl">
+              <p class="text-slate-500 text-lg leading-relaxed mb-8 max-w-2xl">
                 Get Emakola running locally in three simple steps. You will have a fully
                 functional SaaS boilerplate with AI agents, billing, and auth in under five minutes.
               </p>
 
               <div class="space-y-6">
-                <div class="bg-surface-container rounded-xl p-6">
+                <div class="bg-slate-100 rounded-xl p-6">
                   <div class="flex items-center gap-3 mb-4">
-                    <span class="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary font-mono">
+                    <span class="w-7 h-7 rounded-lg bg-indigo-600/10 flex items-center justify-center text-xs font-bold text-indigo-600 font-mono">
                       1
                     </span>
                     <h3 class="text-base font-semibold font-headline">
@@ -75,9 +75,9 @@ defmodule EmakolaWeb.Docs.DocsLive do
                   <.code_block code="git clone https://github.com/founderpad/founderpad.git\ncd founderpad\nmix deps.get && mix deps.compile" />
                 </div>
 
-                <div class="bg-surface-container rounded-xl p-6">
+                <div class="bg-slate-100 rounded-xl p-6">
                   <div class="flex items-center gap-3 mb-4">
-                    <span class="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary font-mono">
+                    <span class="w-7 h-7 rounded-lg bg-indigo-600/10 flex items-center justify-center text-xs font-bold text-indigo-600 font-mono">
                       2
                     </span>
                     <h3 class="text-base font-semibold font-headline">
@@ -87,9 +87,9 @@ defmodule EmakolaWeb.Docs.DocsLive do
                   <.code_block code="cp .env.example .env            # configure API keys\nmix ecto.setup                  # create & migrate DB\nmix run priv/repo/seeds.exs     # seed demo data" />
                 </div>
 
-                <div class="bg-surface-container rounded-xl p-6">
+                <div class="bg-slate-100 rounded-xl p-6">
                   <div class="flex items-center gap-3 mb-4">
-                    <span class="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary font-mono">
+                    <span class="w-7 h-7 rounded-lg bg-indigo-600/10 flex items-center justify-center text-xs font-bold text-indigo-600 font-mono">
                       3
                     </span>
                     <h3 class="text-base font-semibold font-headline">Start the server</h3>
@@ -104,7 +104,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
               <h2 class="text-3xl font-extrabold font-headline tracking-tight mb-3">
                 Authentication
               </h2>
-              <p class="text-on-surface-variant text-lg leading-relaxed mb-8 max-w-2xl">
+              <p class="text-slate-500 text-lg leading-relaxed mb-8 max-w-2xl">
                 Emakola ships with AshAuthentication supporting multiple strategies
                 out of the box. Password, magic link, and OAuth2 are all pre-configured.
               </p>
@@ -112,7 +112,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
               <div class="space-y-8">
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">Password Authentication</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     Secure password-based auth with bcrypt hashing, configurable password
                     policies, and built-in reset flows via email.
                   </p>
@@ -121,7 +121,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
 
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">Magic Link</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     Passwordless authentication via email. Users receive a secure, time-limited
                     link that signs them in instantly.
                   </p>
@@ -130,7 +130,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
 
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">OAuth2</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     Ready for Google, GitHub, and any OAuth2 provider. Configure your
                     client credentials and callback URLs in the environment.
                   </p>
@@ -142,7 +142,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
             <%!-- ════════ AI Agents ════════ --%>
             <section id="ai-agents" class="mb-24">
               <h2 class="text-3xl font-extrabold font-headline tracking-tight mb-3">AI Agents</h2>
-              <p class="text-on-surface-variant text-lg leading-relaxed mb-8 max-w-2xl">
+              <p class="text-slate-500 text-lg leading-relaxed mb-8 max-w-2xl">
                 Create and manage AI agents powered by Anthropic Claude and OpenAI GPT-4o.
                 Supports real-time streaming, tool calls, and conversation memory.
               </p>
@@ -150,7 +150,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
               <div class="space-y-8">
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">Creating an Agent</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     Agents are Ash resources with configurable providers, models, system prompts,
                     and temperature settings.
                   </p>
@@ -159,7 +159,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
 
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">Streaming Responses</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     Stream AI responses in real-time via PubSub. Each token is broadcast
                     as it arrives, enabling live typing indicators in the UI.
                   </p>
@@ -168,7 +168,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
 
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">Provider Configuration</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     Switch between providers seamlessly. Each provider is configured via
                     environment variables.
                   </p>
@@ -180,7 +180,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
             <%!-- ════════ Billing ════════ --%>
             <section id="billing" class="mb-24">
               <h2 class="text-3xl font-extrabold font-headline tracking-tight mb-3">Billing</h2>
-              <p class="text-on-surface-variant text-lg leading-relaxed mb-8 max-w-2xl">
+              <p class="text-slate-500 text-lg leading-relaxed mb-8 max-w-2xl">
                 Stripe-powered billing with four pre-configured tiers, usage metering,
                 webhook processing, and graceful degradation when Stripe is unavailable.
               </p>
@@ -188,7 +188,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
               <div class="space-y-8">
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">Plans and Subscriptions</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     Four tiers ship out of the box: Free, Starter ($29/mo), Pro ($79/mo),
                     and Enterprise ($199/mo). Each with configurable feature limits.
                   </p>
@@ -197,7 +197,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
 
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">Usage Metering</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     Track API calls, token usage, and agent runs per billing period.
                     Usage data syncs to Stripe for metered billing.
                   </p>
@@ -206,7 +206,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
 
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">Webhook Processing</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     Stripe webhooks are verified and processed automatically. Handles
                     subscription lifecycle events, payment failures, and invoice updates.
                   </p>
@@ -218,7 +218,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
             <%!-- ════════ API ════════ --%>
             <section id="api" class="mb-24">
               <h2 class="text-3xl font-extrabold font-headline tracking-tight mb-3">API</h2>
-              <p class="text-on-surface-variant text-lg leading-relaxed mb-8 max-w-2xl">
+              <p class="text-slate-500 text-lg leading-relaxed mb-8 max-w-2xl">
                 Auto-derived REST (JSON:API) and GraphQL endpoints from Ash resources.
                 Rate limiting, authentication, and OpenAPI specs included.
               </p>
@@ -226,15 +226,15 @@ defmodule EmakolaWeb.Docs.DocsLive do
               <div class="space-y-8">
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">REST Endpoints</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
-                    All resources expose JSON:API-compliant endpoints under <code class="text-primary font-mono text-sm">/api/v1</code>.
+                  <p class="text-slate-500 leading-relaxed mb-4">
+                    All resources expose JSON:API-compliant endpoints under <code class="text-indigo-600 font-mono text-sm">/api/v1</code>.
                   </p>
                   <.code_block code="GET    /api/v1/agents          # List agents\nGET    /api/v1/agents/:id      # Get agent by ID\nGET    /api/v1/plans           # List billing plans\nGET    /api/v1/plans/:id       # Get plan details\nGET    /api/v1/open_api        # OpenAPI specification" />
                 </div>
 
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">GraphQL</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     A full GraphQL schema is auto-generated from your Ash resources.
                     Use the built-in GraphiQL explorer in development.
                   </p>
@@ -243,7 +243,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
 
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">Rate Limiting</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     Built-in rate limiting protects your API. Configurable per-endpoint
                     with sliding window counters.
                   </p>
@@ -255,7 +255,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
             <%!-- ════════ Deployment ════════ --%>
             <section id="deployment" class="mb-24">
               <h2 class="text-3xl font-extrabold font-headline tracking-tight mb-3">Deployment</h2>
-              <p class="text-on-surface-variant text-lg leading-relaxed mb-8 max-w-2xl">
+              <p class="text-slate-500 text-lg leading-relaxed mb-8 max-w-2xl">
                 Deploy to Fly.io with a single command, or use Docker for any platform.
                 Production-ready configs ship out of the box.
               </p>
@@ -263,9 +263,9 @@ defmodule EmakolaWeb.Docs.DocsLive do
               <div class="space-y-8">
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">Fly.io</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     The fastest path to production. Emakola includes a complete
-                    <code class="text-primary font-mono text-sm">fly.toml</code>
+                    <code class="text-indigo-600 font-mono text-sm">fly.toml</code>
                     configuration.
                   </p>
                   <.code_block code="fly launch --name my-saas\nfly secrets set ANTHROPIC_API_KEY=sk-ant-...\nfly secrets set STRIPE_SECRET_KEY=sk_live_...\nfly deploy" />
@@ -273,7 +273,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
 
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">Docker</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     Multi-stage Dockerfile optimized for small image size and fast builds.
                   </p>
                   <.code_block code="docker build -t founderpad .\ndocker run -p 4000:4000 \\\n  -e DATABASE_URL=postgres://... \\\n  -e SECRET_KEY_BASE=... \\\n  -e ANTHROPIC_API_KEY=... \\\n  founderpad" />
@@ -281,7 +281,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
 
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">Environment Variables</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     All secrets and configuration are managed via environment variables.
                   </p>
                   <.code_block code="# Required\nDATABASE_URL=postgres://user:pass@host/db\nSECRET_KEY_BASE=super-secret-64-char-key\nPHX_HOST=yourapp.com\n\n# AI Providers\nANTHROPIC_API_KEY=sk-ant-...\nOPENAI_API_KEY=sk-...\n\n# Billing\nSTRIPE_SECRET_KEY=sk_live_...\nSTRIPE_WEBHOOK_SECRET=whsec_..." />
@@ -292,7 +292,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
             <%!-- ════════ Configuration ════════ --%>
             <section id="configuration" class="mb-24">
               <h2 class="text-3xl font-extrabold font-headline tracking-tight mb-3">Configuration</h2>
-              <p class="text-on-surface-variant text-lg leading-relaxed mb-8 max-w-2xl">
+              <p class="text-slate-500 text-lg leading-relaxed mb-8 max-w-2xl">
                 Customize branding, feature flags, and demo mode through simple
                 configuration files.
               </p>
@@ -300,7 +300,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
               <div class="space-y-8">
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">Branding</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     Customize the app name, tagline, and logo from your config files.
                   </p>
                   <.code_block code={"# config/config.exs\nconfig :emakola, :branding,\n  app_name: \"My SaaS\",\n  tagline: \"Ship faster\",\n  logo_url: \"/images/logo.svg\",\n  primary_color: \"#6366f1\""} />
@@ -308,7 +308,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
 
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">Feature Flags</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     Toggle features on and off without deployments. Built on the
                     FeatureFlags Ash domain.
                   </p>
@@ -317,7 +317,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
 
                 <div>
                   <h3 class="text-xl font-bold font-headline mb-3">Demo Mode</h3>
-                  <p class="text-on-surface-variant leading-relaxed mb-4">
+                  <p class="text-slate-500 leading-relaxed mb-4">
                     Enable demo mode for showcasing the app without real API keys or
                     payment processing.
                   </p>
@@ -344,8 +344,8 @@ defmodule EmakolaWeb.Docs.DocsLive do
       phx-value-section={@section}
       class={"block py-1.5 pl-3 text-sm transition-colors " <>
         if(@active == @section,
-          do: "text-primary font-medium bg-primary/5 rounded-lg",
-          else: "text-on-surface-variant hover:text-on-surface"
+          do: "text-indigo-600 font-medium bg-indigo-600/5 rounded-lg",
+          else: "text-slate-500 hover:text-slate-900"
         )}
     >
       {@label}
@@ -427,37 +427,37 @@ defmodule EmakolaWeb.Docs.DocsLive do
   # -- Shared nav --
   defp docs_nav(assigns) do
     ~H"""
-    <nav class="fixed top-0 inset-x-0 z-50 bg-background/60 backdrop-blur-md">
+    <nav class="fixed top-0 inset-x-0 z-50 bg-slate-50/60 backdrop-blur-md">
       <div class="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
         <a href="/" class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <span class="material-symbols-outlined text-on-primary text-lg">architecture</span>
+          <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+            <span class="material-symbols-outlined text-white text-lg">architecture</span>
           </div>
-          <span class="text-xl font-extrabold font-headline tracking-tight text-on-surface">
+          <span class="text-xl font-extrabold font-headline tracking-tight text-slate-900">
             Emakola
           </span>
         </a>
 
-        <div class="hidden md:flex items-center gap-8 text-sm font-medium text-on-surface-variant">
+        <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-500">
           <a
             href="/docs"
-            class={"hover:text-on-surface transition-colors " <> if(@active == "docs", do: "text-primary", else: "")}
+            class={"hover:text-slate-900 transition-colors " <> if(@active == "docs", do: "text-indigo-600", else: "")}
           >
             Docs
           </a>
           <a
             href="/docs/api"
-            class={"hover:text-on-surface transition-colors " <> if(@active == "api", do: "text-primary", else: "")}
+            class={"hover:text-slate-900 transition-colors " <> if(@active == "api", do: "text-indigo-600", else: "")}
           >
             API
           </a>
           <a
             href="/docs/changelog"
-            class={"hover:text-on-surface transition-colors " <> if(@active == "changelog", do: "text-primary", else: "")}
+            class={"hover:text-slate-900 transition-colors " <> if(@active == "changelog", do: "text-indigo-600", else: "")}
           >
             Changelog
           </a>
-          <a href="/auth/login" class="hover:text-on-surface transition-colors">Login</a>
+          <a href="/auth/login" class="hover:text-slate-900 transition-colors">Login</a>
         </div>
 
         <div class="flex items-center gap-3">
@@ -470,7 +470,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
           <button
             id="theme-toggle-docs"
             phx-hook="ThemeToggle"
-            class="p-2 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer rounded-lg hover:bg-surface-container-high/50"
+            class="p-2 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer rounded-lg hover:bg-slate-200/50"
           >
             <span class="material-symbols-outlined text-xl">dark_mode</span>
           </button>
