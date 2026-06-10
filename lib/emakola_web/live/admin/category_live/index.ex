@@ -97,7 +97,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
   def handle_event("delete_category", %{"id" => id}, socket) do
     case Emakola.Catalog.get_category(id) do
       {:ok, category} ->
-        case Emakola.Catalog.destroy_category(category) do
+        case Emakola.Catalog.destroy_category(category, authorize?: false) do
           :ok ->
             Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 
@@ -129,7 +129,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
   end
 
   defp do_create_category(socket, attrs) do
-    case Emakola.Catalog.create_category(attrs) do
+    case Emakola.Catalog.create_category(attrs, authorize?: false) do
       {:ok, _category} ->
         Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 

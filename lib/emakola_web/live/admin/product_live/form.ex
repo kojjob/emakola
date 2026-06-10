@@ -275,11 +275,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
   end
 
   defp create_product(attrs, :draft) do
-    Emakola.Catalog.create_product(attrs)
+    Emakola.Catalog.create_product(attrs, authorize?: false)
   end
 
   defp create_product(attrs, :active) do
-    case Emakola.Catalog.create_product(attrs) do
+    case Emakola.Catalog.create_product(attrs, authorize?: false) do
       {:ok, product} ->
         # Try to activate — will fail if no variants (expected for new products)
         case Emakola.Catalog.activate_product(product, authorize?: false) do
@@ -293,7 +293,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
   end
 
   defp update_product(product, attrs, :draft) do
-    Emakola.Catalog.update_product(product, attrs)
+    Emakola.Catalog.update_product(product, attrs, authorize?: false)
   end
 
   defp update_product(product, attrs, :active) do

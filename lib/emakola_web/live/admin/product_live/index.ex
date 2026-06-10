@@ -256,7 +256,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   def handle_event("delete_image", %{"id" => image_id}, socket) do
     case Emakola.Catalog.get_image(image_id) do
       {:ok, image} ->
-        Emakola.Catalog.destroy_image!(image)
+        Emakola.Catalog.destroy_image!(image, authorize?: false)
 
         # Reload the editing product with fresh images
         updated =
@@ -1047,11 +1047,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   # ── Product CRUD ──
 
   defp create_product(attrs, :draft) do
-    Emakola.Catalog.create_product(attrs)
+    Emakola.Catalog.create_product(attrs, authorize?: false)
   end
 
   defp create_product(attrs, :active) do
-    case Emakola.Catalog.create_product(attrs) do
+    case Emakola.Catalog.create_product(attrs, authorize?: false) do
       {:ok, product} ->
         case Emakola.Catalog.activate_product(product, authorize?: false) do
           {:ok, activated} -> {:ok, activated}
@@ -1064,7 +1064,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   end
 
   defp update_product(product, attrs, :draft) do
-    Emakola.Catalog.update_product(product, attrs)
+    Emakola.Catalog.update_product(product, attrs, authorize?: false)
   end
 
   defp update_product(product, attrs, :active) do
@@ -1243,14 +1243,17 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       {:ok, url} =
         Emakola.Storage.upload(binary, s3_path, content_type: entry.client_type)
 
-      Emakola.Catalog.create_image(%{
-        url: url,
-        product_id: product.id,
-        store_id: store_id,
-        content_type: entry.client_type,
-        file_size_bytes: entry.client_size,
-        alt_text: Path.rootname(entry.client_name)
-      })
+      Emakola.Catalog.create_image(
+        %{
+          url: url,
+          product_id: product.id,
+          store_id: store_id,
+          content_type: entry.client_type,
+          file_size_bytes: entry.client_size,
+          alt_text: Path.rootname(entry.client_name)
+        },
+        authorize?: false
+      )
 
       {:ok, url}
     end)

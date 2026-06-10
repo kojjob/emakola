@@ -20,7 +20,7 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
              |> Ash.read_one(authorize?: false) do
           {:ok, %{} = post} ->
             try do
-              Emakola.Content.increment_post_views!(post)
+              Emakola.Content.increment_post_views!(post, authorize?: false)
             rescue
               _ -> :ok
             end

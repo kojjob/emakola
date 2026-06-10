@@ -134,7 +134,7 @@ defmodule Emakola.Catalog.CsvImporter do
     Enum.reduce(rows, {0, 0, []}, fn row, {success, errors, error_msgs} ->
       attrs = build_product_attrs(row, store_id)
 
-      case Emakola.Catalog.create_product(attrs) do
+      case Emakola.Catalog.create_product(attrs, authorize?: false) do
         {:ok, product} ->
           maybe_create_variant(product, row, store_id)
           {success + 1, errors, error_msgs}

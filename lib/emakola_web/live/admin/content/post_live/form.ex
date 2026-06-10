@@ -93,10 +93,11 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
       if socket.assigns.post do
         Emakola.Content.update_post(
           socket.assigns.post,
-          Map.drop(attrs, [:store_id, :author_id, :type])
+          Map.drop(attrs, [:store_id, :author_id, :type]),
+          authorize?: false
         )
       else
-        Emakola.Content.create_post(attrs)
+        Emakola.Content.create_post(attrs, authorize?: false)
       end
 
     case result do

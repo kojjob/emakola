@@ -579,7 +579,9 @@ defmodule EmakolaWeb.OnboardingLive do
       currency = assigns.currency
 
       with {:ok, store} <-
-             Emakola.Stores.create_store(%{name: store_name, slug: slug, currency: currency}),
+             Emakola.Stores.create_store(%{name: store_name, slug: slug, currency: currency},
+               authorize?: false
+             ),
            {:ok, _membership} <- create_membership_for_user(user, store) do
         maybe_create_product(assigns, store)
         store = maybe_save_theme(assigns, store)
@@ -607,7 +609,7 @@ defmodule EmakolaWeb.OnboardingLive do
   defp create_membership_for_user(%Emakola.Accounts.User{} = user, store) do
     # For legacy User accounts, create an Organisation membership
     # as the current system still uses Org-based membership for Users
-    with {:ok, org} <- Emakola.Accounts.create_organisation(store.name),
+    with {:ok, org} <- Emakola.Accounts.create_organisation(store.name, authorize?: false),
          {:ok, membership} <-
            Emakola.Accounts.create_membership(
              %{role: :owner, user_id: user.id, organisation_id: org.id},
@@ -623,15 +625,20 @@ defmodule EmakolaWeb.OnboardingLive do
     if product_name != "" do
       price = parse_price(assigns.product_price)
 
-      Emakola.Catalog.create_product(%{title: product_name, store_id: store.id})
+      Emakola.Catalog.create_product(%{title: product_name, store_id: store.id},
+        authorize?: false
+      )
       |> case do
         {:ok, product} when price > 0 ->
           # Create a default variant with the price
-          Emakola.Catalog.create_variant(%{
-            price: price,
-            product_id: product.id,
-            store_id: store.id
-          })
+          Emakola.Catalog.create_variant(
+            %{
+              price: price,
+              product_id: product.id,
+              store_id: store.id
+            },
+            authorize?: false
+          )
 
         _ ->
           :ok

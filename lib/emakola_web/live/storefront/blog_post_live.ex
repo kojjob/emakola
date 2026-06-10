@@ -21,7 +21,7 @@ defmodule EmakolaWeb.Storefront.BlogPostLive do
              |> Ash.read(authorize?: false) do
           {:ok, [post | _]} ->
             try do
-              Emakola.Content.increment_post_views!(post)
+              Emakola.Content.increment_post_views!(post, authorize?: false)
             rescue
               _ -> :ok
             end
