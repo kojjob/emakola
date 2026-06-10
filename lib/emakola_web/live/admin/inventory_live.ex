@@ -270,7 +270,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
       <%!-- Filter Bar --%>
       <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div class="flex gap-1 bg-slate-100 rounded-xl p-1">
+        <div class="flex gap-1 bg-slate-100 rounded-control p-1">
           <.filter_button
             :for={status <- [:all, :in_stock, :low_stock, :out_of_stock]}
             status={status}
@@ -298,7 +298,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
               value={@search_query}
               placeholder="Search by product or SKU..."
               phx-debounce="300"
-              class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300"
+              class="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-control bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-300"
             />
           </form>
         </div>
@@ -306,32 +306,18 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
       <%!-- Stock Table --%>
       <%= if @variants == [] do %>
-        <div class="text-center py-16 bg-white rounded-2xl shadow-sm">
-          <svg
-            class="w-12 h-12 mx-auto text-slate-300 mb-3"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
-            />
-          </svg>
-          <p class="text-slate-600 font-medium">No variants found</p>
-          <p class="text-sm text-slate-400 mt-1">
-            <%= if @status_filter != :all or @search_query != "" do %>
-              Try adjusting your filters or search query
-            <% else %>
-              Add products with variants to start tracking inventory
-            <% end %>
-          </p>
-        </div>
+        <.empty_state
+          icon="hero-archive-box"
+          title="No variants found"
+          description={
+            if @status_filter != :all or @search_query != "",
+              do: "Try adjusting your filters or search query",
+              else: "Add products with variants to start tracking inventory"
+          }
+        />
       <% else %>
         <%!-- Desktop Table --%>
-        <div class="hidden md:block bg-white rounded-2xl shadow-sm overflow-hidden">
+        <.admin_card padding={:none} class="hidden md:block overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
@@ -389,7 +375,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                         />
                         <button
                           type="submit"
-                          class="text-emerald-600 hover:text-emerald-700"
+                          class="text-primary hover:text-primary-hover"
                           title="Save"
                         >
                           <svg
@@ -498,14 +484,11 @@ defmodule EmakolaWeb.Admin.InventoryLive do
               </tbody>
             </table>
           </div>
-        </div>
+        </.admin_card>
 
         <%!-- Mobile Cards --%>
         <div class="md:hidden space-y-3">
-          <div
-            :for={variant <- @variants}
-            class="bg-white rounded-2xl shadow-sm p-4"
-          >
+          <.admin_card :for={variant <- @variants} padding={:none} class="p-4">
             <div class="flex items-start justify-between gap-3 mb-3">
               <div>
                 <p class="text-sm font-medium text-slate-800">
@@ -576,7 +559,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                 </button>
               </div>
             </div>
-          </div>
+          </.admin_card>
         </div>
       <% end %>
 
@@ -625,24 +608,16 @@ defmodule EmakolaWeb.Admin.InventoryLive do
               name="variant[available]"
               value="true"
               checked={@dropship_variant.available}
-              class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+              class="rounded border-slate-300 text-primary focus:ring-emerald-500"
             /> Available for sale
           </label>
           <div class="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              phx-click={hide_modal("dropship-modal")}
-              class="px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
-            >
+            <.admin_button variant={:secondary} phx-click={hide_modal("dropship-modal")}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              phx-click={hide_modal("dropship-modal")}
-              class="px-4 py-2.5 text-sm font-semibold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors"
-            >
+            </.admin_button>
+            <.admin_button type="submit" phx-click={hide_modal("dropship-modal")}>
               Save
-            </button>
+            </.admin_button>
           </div>
         </form>
       </.modal>
