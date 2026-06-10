@@ -147,7 +147,7 @@
         title="Orders"
         icon="bag"
         active={@active_nav == :orders}
-        badge="12"
+        badge={if @pending_order_count > 0, do: to_string(@pending_order_count)}
       />
       <.sidebar_link
         href="/admin/settings/suppliers"
@@ -196,8 +196,6 @@
         title="Campaigns"
         icon="megaphone"
         active={@active_nav == :campaigns}
-        badge="3"
-        badge_color="amber"
       />
       <.sidebar_link
         href="/admin/theme"
