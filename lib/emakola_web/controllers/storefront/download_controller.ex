@@ -40,7 +40,6 @@ defmodule EmakolaWeb.Storefront.DownloadController do
   """
   use EmakolaWeb, :controller
 
-  alias Emakola.Fulfillment.DownloadGrant
   alias Emakola.Fulfillment.DownloadService
 
   def show(conn, %{"id" => id}) do
