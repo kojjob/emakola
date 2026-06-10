@@ -424,15 +424,31 @@ For merchants who bring their own domain (e.g., `www.merchantshop.com`):
 
 ## Scaling
 
+> **⚠️ Scaling constraint: carts are node-local.**
+>
+> Shopping carts live in an ETS table owned by a single in-app GenServer
+> (`lib/emakola/cart/`). They are NOT shared between machines and NOT
+> persisted across machine stops. Consequences:
+>
+> - **Safe today: `fly scale count 1`.** One machine, all carts on it.
+> - **`count > 1` is NOT safe yet**: a customer's requests can land on a
+>   machine that doesn't hold their cart. Going multi-machine requires
+>   sticky sessions (e.g. `fly-replay`/consistent routing) or moving carts
+>   to a shared store (Postgres/Redis) first.
+> - BEAM clustering itself IS handled (`rel/env.sh.eex` +
+>   `DNS_CLUSTER_QUERY` + DNSCluster), so PubSub/LiveView updates work
+>   across machines — carts are the only thing blocking horizontal scale.
+> - `fly.toml` sets `auto_stop_machines = "suspend"` and
+>   `min_machines_running = 1` so Fly's idle-stop doesn't wipe carts.
+>   Do not change these to "stop"/0 while carts are in-memory.
+
 ### Horizontal Auto-Scaling
 
-Configured in `fly.toml`:
+Configured in `fly.toml` (`[http_service]` section):
 ```toml
-[http_service.auto_stop_machines]
-  min_machines_running = 1
-
-[http_service.auto_start_machines]
-  enabled = true
+auto_stop_machines = "suspend"
+auto_start_machines = true
+min_machines_running = 1
 ```
 
 ### Manual Scaling

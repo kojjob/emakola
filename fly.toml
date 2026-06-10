@@ -25,7 +25,10 @@ swap_size_mb = 256
   POOL_SIZE = "10"
   LANG = "en_US.UTF-8"
   ERL_AFLAGS = "-proto_dist inet6_tcp"
-  RELEASE_DISTRIBUTION = "none"
+  # BEAM clustering: rel/env.sh.eex sets RELEASE_DISTRIBUTION=name and
+  # RELEASE_NODE from FLY_PRIVATE_IP; DNSCluster (lib/emakola/application.ex)
+  # discovers peers via this 6PN DNS query.
+  DNS_CLUSTER_QUERY = "emakola.internal"
 
 # -----------------------------------------------------------------------------
 # Deploy configuration
@@ -40,7 +43,9 @@ swap_size_mb = 256
 [http_service]
   internal_port = 4000
   force_https = true
-  auto_stop_machines = "stop"
+  # "suspend" (not "stop"): carts live in node-local ETS, so a stopped
+  # machine loses every in-progress cart. Suspend keeps memory intact.
+  auto_stop_machines = "suspend"
   auto_start_machines = true
   min_machines_running = 1
   processes = ["app"]
