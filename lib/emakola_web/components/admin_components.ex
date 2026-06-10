@@ -75,6 +75,61 @@ defmodule EmakolaWeb.AdminComponents do
   end
 
   # ─────────────────────────────────────────────────────────────────────
+  # admin_button/1
+  # ─────────────────────────────────────────────────────────────────────
+
+  @doc """
+  Renders the canonical admin button on semantic design tokens.
+
+  Variants:
+
+  - `:primary`   — emerald action button (default)
+  - `:secondary` — bordered surface button for neutral actions
+  - `:danger`    — destructive actions
+
+  ## Examples
+
+      <.admin_button phx-click="save">Save changes</.admin_button>
+      <.admin_button variant={:secondary} phx-click="cancel">Cancel</.admin_button>
+      <.admin_button variant={:danger} size={:sm} phx-click="delete">Delete</.admin_button>
+      <.admin_button type="submit" disabled={!@form.source.valid?}>Create</.admin_button>
+  """
+  attr :variant, :atom, default: :primary, values: [:primary, :secondary, :danger]
+  attr :size, :atom, default: :md, values: [:md, :sm]
+  attr :type, :string, default: "button"
+  attr :class, :string, default: nil
+  attr :rest, :global, include: ~w(disabled form name value)
+  slot :inner_block, required: true
+
+  def admin_button(assigns) do
+    ~H"""
+    <button
+      type={@type}
+      class={[
+        "inline-flex items-center justify-center gap-2 font-semibold transition-colors",
+        "rounded-control disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
+        button_size(@size),
+        button_variant(@variant),
+        @class
+      ]}
+      {@rest}
+    >
+      {render_slot(@inner_block)}
+    </button>
+    """
+  end
+
+  defp button_size(:md), do: "px-4 py-2.5 text-sm"
+  defp button_size(:sm), do: "px-3 py-1.5 text-xs"
+
+  defp button_variant(:primary), do: "bg-primary hover:bg-primary-hover text-white"
+
+  defp button_variant(:secondary),
+    do: "bg-surface hover:bg-surface-subtle text-text border border-border"
+
+  defp button_variant(:danger), do: "bg-danger hover:bg-red-700 text-white"
+
+  # ─────────────────────────────────────────────────────────────────────
   # status_pill/1
   # ─────────────────────────────────────────────────────────────────────
 

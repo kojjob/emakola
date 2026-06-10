@@ -140,6 +140,63 @@ defmodule EmakolaWeb.AdminComponentsTest do
     end
   end
 
+  describe "admin_button/1" do
+    test "primary md renders token classes and content" do
+      html =
+        render_component(&AdminComponents.admin_button/1, %{inner_block: inner("Save changes")})
+
+      assert html =~ "bg-primary"
+      assert html =~ "hover:bg-primary-hover"
+      assert html =~ "rounded-control"
+      assert html =~ "px-4 py-2.5"
+      assert html =~ "Save changes"
+      assert html =~ ~s(type="button")
+    end
+
+    test "secondary variant renders bordered surface button" do
+      html =
+        render_component(&AdminComponents.admin_button/1, %{
+          variant: :secondary,
+          inner_block: inner("Cancel")
+        })
+
+      assert html =~ "bg-surface"
+      assert html =~ "border-border"
+      refute html =~ "bg-primary"
+    end
+
+    test "danger variant renders danger tokens" do
+      html =
+        render_component(&AdminComponents.admin_button/1, %{
+          variant: :danger,
+          inner_block: inner("Delete")
+        })
+
+      assert html =~ "bg-danger"
+    end
+
+    test "sm size renders compact padding" do
+      html =
+        render_component(&AdminComponents.admin_button/1, %{size: :sm, inner_block: inner("Edit")})
+
+      assert html =~ "px-3 py-1.5"
+    end
+
+    test "passes through global attrs (phx-click, disabled, type)" do
+      html =
+        render_component(&AdminComponents.admin_button/1, %{
+          type: "submit",
+          "phx-click": "save",
+          disabled: true,
+          inner_block: inner("Go")
+        })
+
+      assert html =~ ~s(type="submit")
+      assert html =~ ~s(phx-click="save")
+      assert html =~ "disabled"
+    end
+  end
+
   describe "empty_state/1" do
     test "renders title" do
       html =
@@ -178,4 +235,6 @@ defmodule EmakolaWeb.AdminComponentsTest do
       refute html =~ ~s|href=|
     end
   end
+
+  defp inner(text), do: [%{inner_block: fn _, _ -> text end, __slot__: :inner_block}]
 end
