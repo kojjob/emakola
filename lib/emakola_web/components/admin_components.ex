@@ -46,30 +46,120 @@ defmodule EmakolaWeb.AdminComponents do
     ~H"""
     <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6 pt-2">
       <div>
-        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">{@title}</h1>
-        <p :if={@subtitle} class="text-sm text-slate-500 mt-1">{@subtitle}</p>
+        <h1 class="text-2xl sm:text-3xl font-bold text-text">{@title}</h1>
+        <p :if={@subtitle} class="text-sm text-text-muted mt-1">{@subtitle}</p>
       </div>
 
       <div class="flex items-center gap-3">
         <.link
           :if={@action_label && @action_path}
           href={@action_path}
-          class="inline-flex items-center gap-2 px-4 py-2.5 bg-emakola-gold text-white text-sm font-semibold rounded-xl hover:bg-amber-600 transition-colors cursor-pointer"
+          class={primary_action_classes()}
         >
           {@action_label}
         </.link>
 
-        <button
-          :if={@action_label && @action_event && !@action_path}
-          type="button"
-          phx-click={@action_event}
-          class="inline-flex items-center gap-2 px-4 py-2.5 bg-emakola-gold text-white text-sm font-semibold rounded-xl hover:bg-amber-600 transition-colors cursor-pointer"
-        >
+        <.admin_button :if={@action_label && @action_event && !@action_path} phx-click={@action_event}>
           {@action_label}
-        </button>
+        </.admin_button>
 
         {render_slot(@inner_block)}
       </div>
+    </div>
+    """
+  end
+
+  # ─────────────────────────────────────────────────────────────────────
+  # admin_button/1
+  # ─────────────────────────────────────────────────────────────────────
+
+  @doc """
+  Renders the canonical admin button on semantic design tokens.
+
+  Variants:
+
+  - `:primary`   — emerald action button (default)
+  - `:secondary` — bordered surface button for neutral actions
+  - `:danger`    — destructive actions
+
+  ## Examples
+
+      <.admin_button phx-click="save">Save changes</.admin_button>
+      <.admin_button variant={:secondary} phx-click="cancel">Cancel</.admin_button>
+      <.admin_button variant={:danger} size={:sm} phx-click="delete">Delete</.admin_button>
+      <.admin_button type="submit" disabled={!@form.source.valid?}>Create</.admin_button>
+  """
+  attr :variant, :atom, default: :primary, values: [:primary, :secondary, :danger]
+  attr :size, :atom, default: :md, values: [:md, :sm]
+  attr :type, :string, default: "button"
+  attr :class, :string, default: nil
+  attr :rest, :global, include: ~w(disabled form name value)
+  slot :inner_block, required: true
+
+  def admin_button(assigns) do
+    ~H"""
+    <button
+      type={@type}
+      class={[
+        "inline-flex items-center justify-center gap-2 font-semibold transition-colors",
+        "rounded-control disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
+        button_size(@size),
+        button_variant(@variant),
+        @class
+      ]}
+      {@rest}
+    >
+      {render_slot(@inner_block)}
+    </button>
+    """
+  end
+
+  defp button_size(:md), do: "px-4 py-2.5 text-sm"
+  defp button_size(:sm), do: "px-3 py-1.5 text-xs"
+
+  defp button_variant(:primary), do: "bg-primary hover:bg-primary-hover text-white"
+
+  defp button_variant(:secondary),
+    do: "bg-surface hover:bg-surface-subtle text-text border border-border"
+
+  defp button_variant(:danger), do: "bg-danger hover:bg-danger-hover text-white"
+
+  # ─────────────────────────────────────────────────────────────────────
+  # admin_card/1
+  # ─────────────────────────────────────────────────────────────────────
+
+  @doc """
+  Renders the canonical admin card container on semantic design tokens.
+
+  Use `padding: :none` for flush content such as tables that manage their
+  own cell padding.
+
+  ## Examples
+
+      <.admin_card>
+        <h2>Store details</h2>
+      </.admin_card>
+
+      <.admin_card padding={:none}>
+        <table>...</table>
+      </.admin_card>
+  """
+  attr :padding, :atom, default: :default, values: [:default, :none]
+  attr :class, :string, default: nil
+  attr :rest, :global
+  slot :inner_block, required: true
+
+  def admin_card(assigns) do
+    ~H"""
+    <div
+      class={[
+        "bg-surface rounded-card border border-border shadow-sm",
+        @padding == :default && "p-6",
+        @class
+      ]}
+      {@rest}
+    >
+      {render_slot(@inner_block)}
     </div>
     """
   end
@@ -143,16 +233,16 @@ defmodule EmakolaWeb.AdminComponents do
 
   def empty_state(assigns) do
     ~H"""
-    <div class="flex flex-col items-center justify-center text-center py-16 px-6 bg-white border border-dashed border-slate-200 rounded-2xl">
-      <div class="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mb-4">
+    <div class="flex flex-col items-center justify-center text-center py-16 px-6 bg-surface border border-dashed border-border rounded-card">
+      <div class="w-16 h-16 rounded-card bg-surface-subtle flex items-center justify-center mb-4">
         <.icon name={@icon} class="w-8 h-8 text-slate-400" />
       </div>
-      <h3 class="text-base font-semibold text-slate-900">{@title}</h3>
-      <p :if={@description} class="text-sm text-slate-500 mt-1 max-w-md">{@description}</p>
+      <h3 class="text-base font-semibold text-text">{@title}</h3>
+      <p :if={@description} class="text-sm text-text-muted mt-1 max-w-md">{@description}</p>
       <.link
         :if={@action_label && @action_path}
         href={@action_path}
-        class="inline-flex items-center gap-2 mt-5 px-4 py-2.5 bg-emakola-gold text-white text-sm font-semibold rounded-xl hover:bg-amber-600 transition-colors cursor-pointer"
+        class={["mt-5", primary_action_classes()]}
       >
         {@action_label}
       </.link>
@@ -163,6 +253,11 @@ defmodule EmakolaWeb.AdminComponents do
   # ─────────────────────────────────────────────────────────────────────
   # Internals
   # ─────────────────────────────────────────────────────────────────────
+
+  defp primary_action_classes,
+    do:
+      "inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-white " <>
+        "text-sm font-semibold rounded-control hover:bg-primary-hover transition-colors cursor-pointer"
 
   # Normalise a status to an atom WITHOUT String.to_atom (Iron Law:
   # never `to_atom` user input — atom-exhaustion DoS). Fall back to the
@@ -178,26 +273,28 @@ defmodule EmakolaWeb.AdminComponents do
   defp normalise_status(other), do: other
 
   # ── Order statuses ─────────────────────────────────────────────────
-  defp status_color(:order, :pending), do: "bg-amber-50 text-amber-700"
-  defp status_color(:order, :confirmed), do: "bg-blue-50 text-blue-700"
+  # :processing/:shipped use indigo/purple — outside the semantic token
+  # set, kept as literal Tailwind classes intentionally.
+  defp status_color(:order, :pending), do: "bg-warning-soft text-warning"
+  defp status_color(:order, :confirmed), do: "bg-info-soft text-info"
   defp status_color(:order, :processing), do: "bg-indigo-50 text-indigo-700"
   defp status_color(:order, :shipped), do: "bg-purple-50 text-purple-700"
-  defp status_color(:order, :delivered), do: "bg-emerald-50 text-emerald-700"
-  defp status_color(:order, :cancelled), do: "bg-red-50 text-red-700"
+  defp status_color(:order, :delivered), do: "bg-success-soft text-success"
+  defp status_color(:order, :cancelled), do: "bg-danger-soft text-danger"
   defp status_color(:order, :refunded), do: "bg-slate-50 text-slate-600"
 
   # ── Payment statuses ───────────────────────────────────────────────
-  defp status_color(:payment, :pending), do: "bg-amber-50 text-amber-700"
-  defp status_color(:payment, :success), do: "bg-emerald-50 text-emerald-700"
-  defp status_color(:payment, :failed), do: "bg-red-50 text-red-700"
+  defp status_color(:payment, :pending), do: "bg-warning-soft text-warning"
+  defp status_color(:payment, :success), do: "bg-success-soft text-success"
+  defp status_color(:payment, :failed), do: "bg-danger-soft text-danger"
   defp status_color(:payment, :refunded), do: "bg-slate-50 text-slate-600"
 
   # ── Delivery statuses (alias of order) ─────────────────────────────
   defp status_color(:delivery, status), do: status_color(:order, status)
 
   # ── Product statuses ───────────────────────────────────────────────
-  defp status_color(:product, :active), do: "bg-emerald-50 text-emerald-700"
-  defp status_color(:product, :published), do: "bg-emerald-50 text-emerald-700"
+  defp status_color(:product, :active), do: "bg-success-soft text-success"
+  defp status_color(:product, :published), do: "bg-success-soft text-success"
   defp status_color(:product, :draft), do: "bg-slate-100 text-slate-700"
   defp status_color(:product, :archived), do: "bg-slate-200 text-slate-600"
 

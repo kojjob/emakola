@@ -149,9 +149,9 @@ defmodule EmakolaWeb.Admin.SettingsLive do
       phx-click="switch_tab"
       phx-value-tab={@tab}
       class={[
-        "flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap cursor-pointer transition-all",
+        "flex items-center gap-2.5 px-4 py-2.5 rounded-control text-sm font-medium whitespace-nowrap cursor-pointer transition-all",
         if(@tab == @active_tab,
-          do: "bg-emerald-50 text-emerald-700 font-semibold",
+          do: "bg-primary-soft text-primary font-semibold",
           else: "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
         )
       ]}
@@ -169,7 +169,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   defp general_tab(assigns) do
     ~H"""
     <div class="space-y-6">
-      <div class="bg-white rounded-2xl shadow-sm p-6">
+      <.admin_card>
         <h3 class="text-base font-bold text-slate-900 mb-5">Store Information</h3>
         <.form for={%{}} as={:store} id="general-form" phx-submit="save_general" class="space-y-5">
           <div>
@@ -178,14 +178,14 @@ defmodule EmakolaWeb.Admin.SettingsLive do
               type="text"
               name="store[name]"
               value={@store && @store.name}
-              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
             />
           </div>
 
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1.5">Store URL</label>
             <div class="flex items-center gap-2">
-              <div class="flex-1 flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+              <div class="flex-1 flex items-center bg-slate-50 border border-slate-200 rounded-control overflow-hidden">
                 <span class="px-4 py-2.5 text-sm text-slate-400 bg-slate-50 border-r border-slate-200 shrink-0">
                   https://
                 </span>
@@ -210,7 +210,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
               value={@store && @store.tagline}
               maxlength="140"
               placeholder="One line that captures your shop in 140 characters"
-              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
             />
           </div>
 
@@ -219,7 +219,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
             <textarea
               name="store[description]"
               rows="3"
-              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all resize-none"
+              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all resize-none"
             >{@store && @store.description}</textarea>
           </div>
 
@@ -236,13 +236,13 @@ defmodule EmakolaWeb.Admin.SettingsLive do
               value={@store && @store.cover_image_url}
               placeholder="https://your-cdn.com/cover.jpg"
               inputmode="url"
-              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
             />
             <p :if={@store && @store.cover_image_url && @store.cover_image_url != ""} class="mt-2">
               <img
                 src={@store.cover_image_url}
                 alt="Cover preview"
-                class="w-full max-w-md aspect-[16/9] object-cover rounded-xl border border-slate-200"
+                class="w-full max-w-md aspect-[16/9] object-cover rounded-control border border-slate-200"
                 loading="lazy"
               />
             </p>
@@ -251,17 +251,14 @@ defmodule EmakolaWeb.Admin.SettingsLive do
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1.5">Store Logo</label>
             <div class="flex items-center gap-4">
-              <div class="w-20 h-20 rounded-xl bg-emerald-600 flex items-center justify-center">
+              <div class="w-20 h-20 rounded-control bg-primary flex items-center justify-center">
                 <span class="text-2xl font-bold text-white">
                   {logo_initials(@store)}
                 </span>
               </div>
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-              >
+              <.admin_button variant={:secondary}>
                 <.icon name="hero-arrow-up-tray" class="size-4" /> Change Logo
-              </button>
+              </.admin_button>
             </div>
           </div>
 
@@ -271,22 +268,19 @@ defmodule EmakolaWeb.Admin.SettingsLive do
               <input
                 type="text"
                 value={format_currency(@store && @store.currency)}
-                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-500"
+                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-control text-sm text-slate-500"
                 disabled
               />
             </div>
           </div>
 
           <div class="flex justify-end pt-2">
-            <button
-              type="submit"
-              class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer"
-            >
+            <.admin_button type="submit">
               <.icon name="hero-check" class="size-4" /> Save Changes
-            </button>
+            </.admin_button>
           </div>
         </.form>
-      </div>
+      </.admin_card>
     </div>
     """
   end
@@ -299,7 +293,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   defp contact_tab(assigns) do
     ~H"""
     <div class="space-y-6">
-      <div class="bg-white rounded-2xl shadow-sm p-6">
+      <.admin_card>
         <h3 class="text-base font-bold text-slate-900 mb-5">Contact Information</h3>
         <.form for={%{}} as={:store} id="contact-form" phx-submit="save_contact" class="space-y-5">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -310,7 +304,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
                 name="store[contact_email]"
                 value={@store && @store.contact_email}
                 placeholder="store@example.com"
-                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
             </div>
             <div>
@@ -320,7 +314,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
                 name="store[contact_phone]"
                 value={@store && @store.contact_phone}
                 placeholder="+233 24 123 4567"
-                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
             </div>
             <div>
@@ -330,7 +324,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
                 name="store[whatsapp_number]"
                 value={@store && @store.whatsapp_number}
                 placeholder="+233 24 123 4567"
-                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
             </div>
             <div>
@@ -340,7 +334,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
                 name="store[address]"
                 value={@store && @store.address}
                 placeholder="15 Oxford Street, Osu"
-                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
             </div>
             <div>
@@ -350,14 +344,14 @@ defmodule EmakolaWeb.Admin.SettingsLive do
                 name="store[city]"
                 value={@store && @store.city}
                 placeholder="Accra"
-                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
             </div>
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1.5">Region</label>
               <select
                 name="store[region]"
-                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all cursor-pointer"
+                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all cursor-pointer"
               >
                 <option value="">Select region</option>
                 <option
@@ -372,15 +366,12 @@ defmodule EmakolaWeb.Admin.SettingsLive do
           </div>
 
           <div class="flex justify-end pt-2">
-            <button
-              type="submit"
-              class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer"
-            >
+            <.admin_button type="submit">
               <.icon name="hero-check" class="size-4" /> Save Changes
-            </button>
+            </.admin_button>
           </div>
         </.form>
-      </div>
+      </.admin_card>
     </div>
     """
   end
@@ -392,7 +383,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   defp social_tab(assigns) do
     ~H"""
     <div class="space-y-6">
-      <div class="bg-white rounded-2xl shadow-sm p-6">
+      <.admin_card>
         <h3 class="text-base font-bold text-slate-900 mb-1">Social media</h3>
         <p class="text-sm text-slate-500 mb-5">
           These appear as icons in your storefront footer and help shoppers verify
@@ -438,18 +429,15 @@ defmodule EmakolaWeb.Admin.SettingsLive do
           </div>
 
           <div class="flex justify-end pt-2">
-            <button
-              type="submit"
-              class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer"
-            >
+            <.admin_button type="submit">
               <.icon name="hero-check" class="size-4" /> Save changes
-            </button>
+            </.admin_button>
           </div>
         </.form>
-      </div>
+      </.admin_card>
 
       <%!-- WhatsApp Catalog connection (Phase 2) --%>
-      <div class="bg-white rounded-2xl shadow-sm p-6">
+      <.admin_card>
         <h3 class="text-base font-bold text-slate-900 mb-1">WhatsApp Catalog</h3>
         <p class="text-sm text-slate-500 mb-5">
           Mirror your products to your WhatsApp Business Catalog so customers can browse
@@ -458,7 +446,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
             href="https://business.whatsapp.com/products/whatsapp-catalog"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-emerald-700 hover:underline"
+            class="text-primary-hover hover:underline"
           >
             Learn how to create a catalog →
           </a>
@@ -479,22 +467,19 @@ defmodule EmakolaWeb.Admin.SettingsLive do
               name="store[whatsapp_catalog_id]"
               value={@store && @store.whatsapp_catalog_id}
               placeholder="e.g. 1234567890123456"
-              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+              class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
             />
             <p class="mt-1.5 text-xs text-slate-500">
               Found in Meta Commerce Manager → Catalog → Settings. Leave blank to disable sync.
             </p>
           </div>
           <div class="flex justify-end pt-2">
-            <button
-              type="submit"
-              class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer"
-            >
+            <.admin_button type="submit">
               <.icon name="hero-check" class="size-4" /> Save catalog connection
-            </button>
+            </.admin_button>
           </div>
         </.form>
-      </div>
+      </.admin_card>
     </div>
     """
   end
@@ -517,7 +502,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
         value={@value}
         placeholder={@placeholder}
         inputmode="url"
-        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
       />
     </div>
     """
@@ -528,7 +513,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   defp delivery_tab(assigns) do
     ~H"""
     <div class="space-y-6">
-      <div class="bg-white rounded-2xl shadow-sm p-6">
+      <.admin_card>
         <div class="flex items-center justify-between mb-5">
           <div>
             <h3 class="text-base font-bold text-slate-900">Delivery Zones</h3>
@@ -536,7 +521,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
           </div>
           <.link
             navigate={~p"/admin/settings/delivery"}
-            class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors"
+            class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-control text-sm font-semibold transition-colors"
           >
             <.icon name="hero-truck" class="size-4" /> Manage Zones
           </.link>
@@ -545,7 +530,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
           Set up delivery zones with fees for different geographic areas.
           Customers will see these options during checkout.
         </p>
-      </div>
+      </.admin_card>
     </div>
     """
   end
@@ -555,13 +540,13 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   defp notifications_tab(assigns) do
     ~H"""
     <div class="space-y-6">
-      <div class="bg-white rounded-2xl shadow-sm p-6">
+      <.admin_card>
         <h3 class="text-base font-bold text-slate-900 mb-5">Notification Preferences</h3>
         <p class="text-sm text-slate-500">
           Notification settings will be available soon. You will be able to configure
           SMS, WhatsApp, and email notifications for orders and inventory alerts.
         </p>
-      </div>
+      </.admin_card>
     </div>
     """
   end
