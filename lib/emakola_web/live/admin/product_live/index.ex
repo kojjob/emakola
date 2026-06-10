@@ -380,7 +380,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 class="text-2xl sm:text-3xl font-bold font-headline tracking-tight">Products</h1>
-          <p class="text-sm text-on-surface-variant mt-1">
+          <p class="text-sm text-slate-500 mt-1">
             Manage your store catalog
           </p>
         </div>
@@ -416,22 +416,22 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
           <div class="relative">
             <.icon
               name="hero-magnifying-glass"
-              class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-on-surface-variant"
+              class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500"
             />
             <input
               type="text"
               name="search"
               value={@search_query}
               placeholder="Search products..."
-              class="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg border border-surface-container-highest
-                     bg-surface-container-lowest focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
-                     placeholder:text-on-surface-variant/50"
+              class="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg border border-slate-200
+                     bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
+                     placeholder:text-slate-500/50"
               autocomplete="off"
             />
           </div>
         </form>
 
-        <div class="flex gap-1 bg-surface-container rounded-lg p-1 overflow-x-auto">
+        <div class="flex gap-1 bg-slate-100 rounded-lg p-1 overflow-x-auto">
           <.status_tab status={:all} current={@status_filter} label="All" />
           <.status_tab status={:draft} current={@status_filter} label="Draft" />
           <.status_tab status={:active} current={@status_filter} label="Active" />
@@ -441,10 +441,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
       <%!-- Product List --%>
       <%= if @products == [] do %>
-        <div id="product-empty-state" class="text-center py-16 bg-surface-container-lowest rounded-lg">
-          <.icon name="hero-cube" class="size-12 mx-auto text-on-surface-variant/30 mb-3" />
-          <p class="text-on-surface-variant font-medium">No products found</p>
-          <p class="text-sm text-on-surface-variant/60 mt-1">
+        <div id="product-empty-state" class="text-center py-16 bg-white rounded-lg">
+          <.icon name="hero-cube" class="size-12 mx-auto text-slate-500/30 mb-3" />
+          <p class="text-slate-500 font-medium">No products found</p>
+          <p class="text-sm text-slate-500/60 mt-1">
             <%= if @search_query != "" or @status_filter != :all do %>
               Try adjusting your search or filters
             <% else %>
@@ -454,10 +454,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         </div>
       <% else %>
         <%!-- Desktop Table (hidden on mobile) --%>
-        <div class="hidden md:block bg-surface-container-lowest rounded-lg overflow-hidden">
+        <div class="hidden md:block bg-white rounded-lg overflow-hidden">
           <table class="w-full">
             <thead>
-              <tr class="border-b border-surface-container text-left text-xs font-mono uppercase tracking-wider text-on-surface-variant">
+              <tr class="border-b border-slate-100 text-left text-xs font-mono uppercase tracking-wider text-slate-500">
                 <th class="px-4 py-3">Product</th>
                 <th class="px-4 py-3">Status</th>
                 <th class="px-4 py-3">Category</th>
@@ -469,11 +469,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
             <tbody>
               <tr
                 :for={product <- @products}
-                class="border-b border-surface-container/50 hover:bg-surface-container-high/30 transition-colors"
+                class="border-b border-slate-100/50 hover:bg-slate-200/30 transition-colors"
               >
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
                       <%= if first_image_url(product) do %>
                         <img
                           src={first_image_url(product)}
@@ -481,7 +481,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                           class="w-full h-full object-cover"
                         />
                       <% else %>
-                        <.icon name="hero-photo" class="size-5 text-on-surface-variant/40" />
+                        <.icon name="hero-photo" class="size-5 text-slate-500/40" />
                       <% end %>
                     </div>
                     <span class="font-medium text-sm truncate max-w-[200px]">{product.title}</span>
@@ -490,10 +490,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                 <td class="px-4 py-3">
                   <.status_badge status={product.status} />
                 </td>
-                <td class="px-4 py-3 text-sm text-on-surface-variant">
+                <td class="px-4 py-3 text-sm text-slate-500">
                   {category_name(product.category_id, @categories)}
                 </td>
-                <td class="px-4 py-3 text-sm text-right font-mono text-on-surface-variant">
+                <td class="px-4 py-3 text-sm text-right font-mono text-slate-500">
                   {variant_count(product)} variants
                 </td>
                 <td class="px-4 py-3 text-sm text-right font-mono font-medium">
@@ -553,11 +553,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         <div class="md:hidden space-y-3">
           <div
             :for={product <- @products}
-            class="bg-surface-container-lowest rounded-lg p-4 space-y-3"
+            class="bg-white rounded-lg p-4 space-y-3"
           >
             <div class="flex items-start justify-between gap-3">
               <div class="flex items-center gap-3 min-w-0">
-                <div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <div class="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
                   <%= if first_image_url(product) do %>
                     <img
                       src={first_image_url(product)}
@@ -565,12 +565,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                       class="w-full h-full object-cover"
                     />
                   <% else %>
-                    <.icon name="hero-photo" class="size-6 text-on-surface-variant/40" />
+                    <.icon name="hero-photo" class="size-6 text-slate-500/40" />
                   <% end %>
                 </div>
                 <div class="min-w-0">
                   <p class="font-medium text-sm truncate">{product.title}</p>
-                  <p class="text-xs text-on-surface-variant">
+                  <p class="text-xs text-slate-500">
                     {category_name(product.category_id, @categories)}
                   </p>
                 </div>
@@ -578,7 +578,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
               <.status_badge status={product.status} />
             </div>
             <div class="flex items-center justify-between text-sm">
-              <span class="text-on-surface-variant font-mono">
+              <span class="text-slate-500 font-mono">
                 {variant_count(product)} variants
               </span>
               <span class="font-mono font-medium">{price_range(product)}</span>
@@ -614,7 +614,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         <%= if @quick_view_product do %>
           <div class="space-y-4">
             <div class="flex items-start gap-4">
-              <div class="w-16 h-16 rounded-xl bg-surface-container flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <div class="w-16 h-16 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
                 <%= if first_image_url(@quick_view_product) do %>
                   <img
                     src={first_image_url(@quick_view_product)}
@@ -622,7 +622,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                     class="w-full h-full object-cover"
                   />
                 <% else %>
-                  <.icon name="hero-photo" class="size-8 text-on-surface-variant/40" />
+                  <.icon name="hero-photo" class="size-8 text-slate-500/40" />
                 <% end %>
               </div>
               <div class="min-w-0 flex-1">
@@ -999,8 +999,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       class={[
         "px-3 py-1.5 text-sm font-medium rounded-md transition-colors whitespace-nowrap",
         if(@status == @current,
-          do: "bg-surface-container-lowest text-on-surface shadow-sm",
-          else: "text-on-surface-variant hover:text-on-surface"
+          do: "bg-white text-slate-900 shadow-sm",
+          else: "text-slate-500 hover:text-slate-900"
         )
       ]}
     >
