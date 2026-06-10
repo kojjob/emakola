@@ -206,7 +206,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
       result =
         if socket.assigns.editing_product do
-          update_product(socket.assigns.editing_product, attrs, action)
+          # The :update action does not accept :store_id (tenancy is fixed
+          # at creation) — passing it fails the whole save with NoSuchInput.
+          update_product(socket.assigns.editing_product, Map.delete(attrs, :store_id), action)
         else
           create_product(attrs, action)
         end
@@ -215,6 +217,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         {:ok, product} ->
           # Upload images for the product
           save_uploaded_images(socket, product)
+
+          if socket.assigns.editing_product do
+            save_variant_prices(socket.assigns.editing_product, params["variant_prices"] || %{})
+          end
 
           {:noreply,
            socket
@@ -804,6 +810,53 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
             </div>
           </div>
 
+          <%!-- Pricing (edit mode — prices live on variants) --%>
+          <div :if={@editing_product} class="space-y-4 border-t border-slate-200 pt-5">
+            <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wide">
+              Pricing
+            </h3>
+            <%= if sorted_variants(@editing_product) == [] do %>
+              <p class="text-xs text-slate-400 -mt-2">
+                This product has no variants yet — it needs at least one variant
+                before it can be priced and activated.
+              </p>
+            <% else %>
+              <p class="text-xs text-slate-400 -mt-2">Amounts in GH&#8373;</p>
+              <div :for={{variant, idx} <- Enum.with_index(sorted_variants(@editing_product))}>
+                <label
+                  for={"pf_price_#{variant.id}"}
+                  class="block text-sm font-medium text-slate-700 mb-1.5"
+                >
+                  {variant.sku || "Variant #{idx + 1}"}
+                </label>
+                <input
+                  type="text"
+                  inputmode="decimal"
+                  id={"pf_price_#{variant.id}"}
+                  name={"product[variant_prices][#{variant.id}]"}
+                  value={
+                    get_in(@form_data, ["variant_prices", variant.id]) ||
+                      format_price_input(variant.price)
+                  }
+                  placeholder="0.00"
+                  class={[
+                    "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
+                    if(@form_errors[{:variant_price, variant.id}],
+                      do: "border-red-300 bg-red-50",
+                      else: "border-slate-300 bg-white"
+                    )
+                  ]}
+                />
+                <p
+                  :if={@form_errors[{:variant_price, variant.id}]}
+                  class="mt-1 text-xs text-red-600"
+                >
+                  {@form_errors[{:variant_price, variant.id}]}
+                </p>
+              </div>
+            <% end %>
+          </div>
+
           <%!-- Images --%>
           <div class="space-y-4 border-t border-slate-200 pt-5">
             <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wide">
@@ -1081,9 +1134,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   end
 
   defp load_product(id) do
-    # The edit slide-over renders @editing_product.images — load it here
-    # or the render crashes with Enumerable not implemented for Ash.NotLoaded.
-    case Emakola.Catalog.get_product(id, load: [:images]) do
+    # The edit slide-over renders @editing_product.images and .variants —
+    # load them here or the render crashes with Enumerable not implemented
+    # for Ash.NotLoaded.
+    case Emakola.Catalog.get_product(id, load: [:images, :variants]) do
       {:ok, product} -> product
       _ -> nil
     end
@@ -1109,7 +1163,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       "category_id" => "",
       "tags" => "",
       "seo_title" => "",
-      "seo_description" => ""
+      "seo_description" => "",
+      "variant_prices" => %{}
     }
   end
 
@@ -1122,18 +1177,70 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       "category_id" => if(product.category_id, do: to_string(product.category_id), else: ""),
       "tags" => Enum.join(product.tags || [], ", "),
       "seo_title" => product.seo_title || "",
-      "seo_description" => product.seo_description || ""
+      "seo_description" => product.seo_description || "",
+      "variant_prices" =>
+        Map.new(sorted_variants(product), &{&1.id, format_price_input(&1.price)})
     }
   end
 
   defp validate_form(params) do
     errors = %{}
 
-    if String.trim(params["title"] || "") == "" do
-      Map.put(errors, :title, "Title is required")
-    else
-      errors
+    errors =
+      if String.trim(params["title"] || "") == "" do
+        Map.put(errors, :title, "Title is required")
+      else
+        errors
+      end
+
+    Enum.reduce(params["variant_prices"] || %{}, errors, fn {variant_id, value}, acc ->
+      case parse_price_input(value) do
+        :error -> Map.put(acc, {:variant_price, variant_id}, "must be a valid amount")
+        _ -> acc
+      end
+    end)
+  end
+
+  defp sorted_variants(product) do
+    case product.variants do
+      %Ash.NotLoaded{} -> []
+      variants -> Enum.sort_by(variants, & &1.position)
     end
+  end
+
+  # "150.50" <-> 15050 pesewas. Conversion happens only here, at the
+  # presentation boundary — storage stays integer minor units.
+  defp format_price_input(pesewas) do
+    "#{div(pesewas, 100)}.#{pesewas |> rem(100) |> Integer.to_string() |> String.pad_leading(2, "0")}"
+  end
+
+  defp parse_price_input(value) do
+    case Regex.run(~r/^\s*(\d+)(?:\.(\d{1,2}))?\s*$/, value || "") do
+      [_, major] ->
+        {:ok, String.to_integer(major) * 100}
+
+      [_, major, minor] ->
+        {:ok,
+         String.to_integer(major) * 100 + String.to_integer(String.pad_trailing(minor, 2, "0"))}
+
+      nil ->
+        if String.trim(value || "") == "", do: :skip, else: :error
+    end
+  end
+
+  # Only the editing product's own variants are updated — submitted ids
+  # that don't belong to it are ignored (no cross-product/tenant writes).
+  defp save_variant_prices(product, submitted) do
+    product
+    |> sorted_variants()
+    |> Enum.each(fn variant ->
+      with {:ok, pesewas} <- parse_price_input(submitted[variant.id]),
+           true <- pesewas != variant.price do
+        Emakola.Catalog.update_variant(variant, %{price: pesewas}, authorize?: false)
+      else
+        _ -> :ok
+      end
+    end)
   end
 
   defp build_product_attrs(params, store_id) do
