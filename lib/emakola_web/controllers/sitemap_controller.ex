@@ -1,6 +1,7 @@
 defmodule EmakolaWeb.SitemapController do
   @moduledoc """
   Generates per-store sitemap.xml for Google and other search engine crawlers.
+  It also serves the platform-level (apex) sitemap at `/sitemap.xml` for Emakola's own marketing pages.
 
   Each Emakola storefront gets its own sitemap at `/s/:store_slug/sitemap.xml`.
   The sitemap lists all indexable public pages: store home, product list,
@@ -35,7 +36,9 @@ defmodule EmakolaWeb.SitemapController do
 
     entries =
       ["/", "/pricing", "/stores", "/docs"]
-      |> Enum.map_join("\n", fn path -> "  <url><loc>#{base}#{path}</loc></url>" end)
+      |> Enum.map_join("\n", fn path ->
+        "  <url><loc>#{xml_escape(base <> path)}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>"
+      end)
 
     xml = """
     <?xml version="1.0" encoding="UTF-8"?>
