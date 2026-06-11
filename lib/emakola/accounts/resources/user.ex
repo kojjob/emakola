@@ -175,16 +175,26 @@ defmodule Emakola.Accounts.User do
     end
 
     update :record_totp_use do
+      # Call with authorize?: false during login — no actor is established
+      # until after TOTP succeeds. The update policy requires id == actor.id.
       accept([])
 
       change(set_attribute(:totp_last_used_at, &DateTime.utc_now/0))
     end
 
     update :clear_totp do
+      require_atomic?(false)
       accept([])
 
       change(set_attribute(:totp_secret, nil))
       change(set_attribute(:totp_last_used_at, nil))
+
+      change(
+        after_action(fn _changeset, user, _ctx ->
+          Emakola.Accounts.PlatformAudit.log(:totp_disabled, user)
+          {:ok, user}
+        end)
+      )
     end
 
     update :change_password do

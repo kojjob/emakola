@@ -71,6 +71,10 @@ defmodule Emakola.Accounts.TOTPTest do
       refute TOTP.valid_code?(secret, "12345678")
     end
 
+    test "returns false (no raise) when secret is nil" do
+      refute TOTP.valid_code?(nil, "123456")
+    end
+
     test "blocks reuse via since:", %{secret: secret} do
       code = NimbleTOTP.verification_code(secret)
 

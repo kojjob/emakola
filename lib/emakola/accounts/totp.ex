@@ -18,7 +18,12 @@ defmodule Emakola.Accounts.TOTP do
     NimbleTOTP.otpauth_uri("#{@issuer}:#{email}", secret, issuer: @issuer)
   end
 
-  @doc "Renders an otpauth URI as an inline SVG QR code (#{@qr_width}px viewBox)."
+  @doc """
+  Renders an otpauth URI as an inline SVG QR code (#{@qr_width}px viewBox).
+
+  Safe to render with Phoenix.HTML.raw/1 — EQRCode generates pure geometry;
+  no user text is interpolated into the SVG markup.
+  """
   def qr_svg(uri) do
     uri |> EQRCode.encode() |> EQRCode.svg(width: @qr_width, viewbox: true)
   end
@@ -33,7 +38,7 @@ defmodule Emakola.Accounts.TOTP do
   """
   def valid_code?(secret, code, opts \\ [])
 
-  def valid_code?(secret, code, opts) when is_binary(code) do
+  def valid_code?(secret, code, opts) when is_binary(secret) and is_binary(code) do
     since = Keyword.get(opts, :since)
     now = System.os_time(:second)
 

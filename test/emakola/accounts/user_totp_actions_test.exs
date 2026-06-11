@@ -81,5 +81,30 @@ defmodule Emakola.Accounts.UserTotpActionsTest do
       assert is_nil(cleared.totp_secret)
       assert is_nil(cleared.totp_last_used_at)
     end
+
+    test "writes a :totp_disabled audit row" do
+      user = setup_totp!(create_user!())
+
+      assert [] = audit_rows(user, :totp_disabled)
+
+      user
+      |> Ash.Changeset.for_update(:clear_totp, %{})
+      |> Ash.update!(authorize?: false)
+
+      assert [_log] = audit_rows(user, :totp_disabled)
+    end
+  end
+
+  describe "update :setup_totp with nil secret" do
+    test "returns {:error, _} without raising" do
+      user = create_user!()
+
+      result =
+        user
+        |> Ash.Changeset.for_update(:setup_totp, %{secret: nil, code: "123456"})
+        |> Ash.update(authorize?: false)
+
+      assert {:error, _} = result
+    end
   end
 end

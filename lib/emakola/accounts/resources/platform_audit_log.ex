@@ -39,6 +39,7 @@ defmodule Emakola.Accounts.PlatformAuditLog do
           :sign_in_failed,
           :totp_failed,
           :totp_enabled,
+          :totp_disabled,
           :invite_created,
           :invite_accepted,
           :invite_revoked,
