@@ -56,20 +56,20 @@ swap_size_mb = 256
     hard_limit = 1000
     soft_limit = 800
 
-  [http_service.checks]
-    [http_service.checks.health]
-      grace_period = "30s"
-      interval = "15s"
-      method = "GET"
-      path = "/api/health"
-      port = 4000
-      timeout = "5s"
+  # NOTE: http_service.checks is an ARRAY of tables ([[...]]), not named
+  # tables — fly rejects the config otherwise.
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "15s"
+    method = "GET"
+    path = "/api/health"
+    timeout = "5s"
 
-      # Plug.SSL (force_ssl) sees rewrite_on: [:x_forwarded_proto]; sending
-      # this header makes internal health probes look like HTTPS so they
-      # are not 301-redirected.
-      [http_service.checks.health.headers]
-        X-Forwarded-Proto = "https"
+    # Plug.SSL (force_ssl) sees rewrite_on: [:x_forwarded_proto]; sending
+    # this header makes internal health probes look like HTTPS so they
+    # are not 301-redirected.
+    [http_service.checks.headers]
+      X-Forwarded-Proto = "https"
 
 # -----------------------------------------------------------------------------
 # VM Resources
