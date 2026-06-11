@@ -44,10 +44,13 @@ defmodule EmakolaWeb.Platform.AuditLogLive do
   @impl true
   def handle_event("load_more", _params, socket) do
     # Assigns are stale — re-check the permission against a reloaded user.
+    # The reload fails closed (nil) on lookup errors, so the message stays
+    # neutral: a transient DB error is not a permission denial.
     if PlatformPermissions.allowed?(reload_current_user(socket), :view_audit_log) do
       {:noreply, load_page(socket)}
     else
-      {:noreply, put_flash(socket, :error, "You don't have permission to view the audit log.")}
+      {:noreply,
+       put_flash(socket, :error, "Could not verify your access. Refresh and try again.")}
     end
   end
 

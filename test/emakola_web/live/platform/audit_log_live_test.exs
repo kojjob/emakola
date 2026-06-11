@@ -138,7 +138,7 @@ defmodule EmakolaWeb.Platform.AuditLogLiveTest do
       html = view |> element("#load-more") |> render_click()
 
       refute html =~ "row-01"
-      assert html =~ "permission"
+      assert html =~ "Could not verify your access"
     end
   end
 end

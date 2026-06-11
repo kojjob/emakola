@@ -98,6 +98,7 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
     Map.get(actors, actor_id) || String.slice(actor_id, 0, 8) <> "…"
   end
 
+  defp chip_value(value) when is_map(value), do: inspect(value)
   defp chip_value(value) when is_list(value), do: Enum.map_join(value, ", ", &to_string/1)
   defp chip_value(value), do: to_string(value)
 end
