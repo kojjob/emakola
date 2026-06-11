@@ -348,6 +348,47 @@ flowchart TD
     G --> H(("🎉 LIVE"))
 ```
 
+## 9️⃣ Custom domain — Cloudflare DNS + Fly certificates
+
+Optional for the smoke deploy (`emakola.fly.dev` works out of the box);
+required for the real launch (`emakola.com` + merchant subdomains).
+
+```mermaid
+flowchart TD
+    A["🌐 Buy/hold the domain<br/>(registrar of choice)"] --> B["cloudflare.com → Add Site →<br/>point registrar nameservers at Cloudflare"]
+    B --> C["Cloudflare DNS records:<br/>A     @    66.241.124.228  (your fly IPv4)<br/>AAAA  @    &lt;your fly IPv6&gt;<br/>CNAME www  emakola.fly.dev<br/>CNAME *    emakola.fly.dev  (merchant subdomains)"]
+    C --> D["⚠️ set each record to<br/><b>DNS only</b> (grey cloud) first —<br/>Fly must issue its certs"]
+    D --> E["fly certs add emakola.com --app emakola<br/>fly certs add '*.emakola.com' --app emakola"]
+    E --> F["fly certs show emakola.com<br/>wait for: <b>Ready</b> ✅<br/>(wildcard needs the ACME<br/>DNS challenge CNAME it prints)"]
+    F --> G["fly secrets set PHX_HOST=emakola.com"]
+    G --> H["optional: flip Cloudflare records<br/>to Proxied 🟠 (Full-strict SSL)<br/>for CDN + DDoS protection"]
+    H --> I(("✅ live on your domain"))
+```
+
+Notes:
+- `check_origin` already allows `https://emakola.com`, `www.` and `*.emakola.com`
+  (set from `PHX_HOST` at runtime) — no code change needed.
+- Until DNS is done, everything below works on `https://emakola.fly.dev`.
+
+---
+
+## 🚫 Integrations you do NOT need to set up
+
+So you don't chase credentials nothing consumes:
+
+| Integration | Status | Why no setup |
+|---|---|---|
+| **Stripe** | ❌ Not wired | No Stripe SDK dependency, **no `/webhooks/stripe` route**, no `STRIPE_*` env var read anywhere. The `stripe_*` fields on Billing resources and the `StripeHandler` worker are dormant scaffolding for a future merchant-subscription feature; the Stripe mentions on the `/docs` page are leftover boilerplate copy. Customer payments run on **Paystack/Hubtel** (§1). |
+| **Mailgun** | ❌ Not wired | Only a commented-out example in `runtime.exs`; email runs on **Resend** (§2). |
+| **Sentry** | ❌ Not a dependency | Mentioned in old docs only; nothing to configure. |
+| **Chrome/PDF** | ✅ Built into the image | Receipt/report PDFs use ChromicPDF; Chromium ships in the Docker image and spawns on-demand — zero setup, no env vars. |
+
+> If/when merchant subscription billing launches for real, Stripe gets its own
+> section here — account → API keys → webhook endpoint + `STRIPE_WEBHOOK_SECRET`.
+> Today that would document a fiction.
+
+---
+
 ## ✅ Master checklist
 
 - [ ] **Day 1:** WhatsApp templates submitted to Meta (the 1–3 day item)
@@ -360,3 +401,4 @@ flowchart TD
 - [ ] Infra: `fly launch` ▸ postgres (+`DATABASE_SSL=false`) (DEPLOYMENT.md)
 - [ ] Section 7 `fly secrets set`
 - [ ] `fly deploy` ▸ section 8 smoke flow green
+- [ ] Custom domain: Cloudflare DNS ▸ `fly certs` Ready ▸ `PHX_HOST` updated (§9 — post-smoke)
