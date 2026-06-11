@@ -154,6 +154,39 @@ defmodule Emakola.Accounts.User do
       change(set_attribute(:deactivated_at, nil))
     end
 
+    update :setup_totp do
+      require_atomic?(false)
+      accept([])
+
+      argument(:secret, :binary, allow_nil?: false, sensitive?: true)
+      argument(:code, :string, allow_nil?: false, sensitive?: true)
+
+      validate(Emakola.Accounts.Validations.ValidateTotpCode)
+
+      change(set_attribute(:totp_secret, arg(:secret)))
+      change(set_attribute(:totp_last_used_at, &DateTime.utc_now/0))
+
+      change(
+        after_action(fn _changeset, user, _ctx ->
+          Emakola.Accounts.PlatformAudit.log(:totp_enabled, user)
+          {:ok, user}
+        end)
+      )
+    end
+
+    update :record_totp_use do
+      accept([])
+
+      change(set_attribute(:totp_last_used_at, &DateTime.utc_now/0))
+    end
+
+    update :clear_totp do
+      accept([])
+
+      change(set_attribute(:totp_secret, nil))
+      change(set_attribute(:totp_last_used_at, nil))
+    end
+
     update :change_password do
       require_atomic?(false)
       accept([])

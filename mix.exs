@@ -111,6 +111,10 @@ defmodule Emakola.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
 
+      # TOTP two-factor auth + QR code rendering for enrolment
+      {:nimble_totp, "~> 1.0"},
+      {:eqrcode, "~> 0.2"},
+
       # SAT solver for Ash policy checks
       {:simple_sat, "~> 0.1"},
 
