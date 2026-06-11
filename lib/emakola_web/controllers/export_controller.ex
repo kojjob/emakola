@@ -71,9 +71,11 @@ defmodule EmakolaWeb.ExportController do
   end
 
   defp resolve_store(merchant) do
-    case Emakola.Accounts.get_merchant_store_membership(merchant.id, authorize?: false) do
-      {:ok, nil} -> {:error, :no_store}
-      {:ok, membership} -> {:ok, Ash.load!(membership, :store, authorize?: false).store}
+    with {:ok, membership} when not is_nil(membership) <-
+           Emakola.Accounts.get_merchant_store_membership(merchant.id, authorize?: false),
+         {:ok, loaded} <- Ash.load(membership, :store, authorize?: false) do
+      {:ok, loaded.store}
+    else
       _ -> {:error, :no_store}
     end
   end

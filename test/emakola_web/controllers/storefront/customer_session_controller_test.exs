@@ -56,6 +56,7 @@ defmodule EmakolaWeb.Storefront.CustomerSessionControllerTest do
       conn = get(conn, "/s/#{store.slug}/auth/customer-session?token=garbage")
 
       assert redirected_to(conn) == "/s/#{store.slug}/login"
+      assert Phoenix.Flash.get(conn.assigns.flash, :error)
       refute get_session(conn, :customer_token)
     end
 

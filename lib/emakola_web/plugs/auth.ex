@@ -1,5 +1,10 @@
 defmodule EmakolaWeb.Plugs.Auth do
-  @moduledoc "Loads current user from signed session token."
+  @moduledoc """
+  Loads current user from signed session token.
+
+  Not currently mounted in the router — updated and kept for the upcoming
+  platform-session work (Phase 4 of the auth hardening plan).
+  """
   import Plug.Conn
 
   def init(opts), do: opts
