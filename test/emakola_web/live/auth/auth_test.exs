@@ -17,19 +17,34 @@ defmodule EmakolaWeb.Auth.AuthTest do
       assert html =~ "Password"
     end
 
-    test "login with valid credentials redirects to session endpoint", %{conn: conn} do
+    test "login with valid merchant credentials redirects to session endpoint", %{conn: conn} do
       password = "Password123!"
-      user = create_user!(password: password)
+      merchant = create_merchant!(password: password)
 
       {:ok, view, _html} = live(conn, "/auth/login")
 
       view
-      |> form("form", user: %{email: to_string(user.email), password: password})
+      |> form("form", user: %{email: to_string(merchant.email), password: password})
       |> render_submit()
 
       {path, _flash} = assert_redirect(view)
       assert path =~ "/auth/session"
       assert path =~ "token="
+    end
+
+    test "legacy User credentials no longer log in at /auth/login", %{conn: conn} do
+      password = "Password123!"
+      user = create_user!(password: password)
+
+      {:ok, view, _html} = live(conn, "/auth/login")
+
+      html =
+        view
+        |> form("form", user: %{email: to_string(user.email), password: password})
+        |> render_submit()
+
+      assert html =~ "Invalid email or password"
+      assert render(view) =~ "Welcome back"
     end
 
     test "login with invalid credentials does not redirect", %{conn: conn} do

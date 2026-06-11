@@ -222,14 +222,9 @@ defmodule EmakolaWeb.Auth.LoginLive do
   end
 
   defp do_login(params, socket, ip) do
-    # Try Merchant auth first (ecommerce merchants), fall back to User (legacy)
-    {auth_result, _resource} =
-      case try_merchant_login(params) do
-        {:ok, merchant} -> {{:ok, merchant}, :merchant}
-        _ -> {try_user_login(params), :user}
-      end
-
-    case auth_result do
+    # Merchant auth only — legacy User accounts authenticate exclusively
+    # via the platform session flow (/platform/login).
+    case try_merchant_login(params) do
       {:ok, user} ->
         token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
 
@@ -267,15 +262,6 @@ defmodule EmakolaWeb.Auth.LoginLive do
     })
   rescue
     _ -> {:error, :not_found}
-  end
-
-  defp try_user_login(params) do
-    strategy = AshAuthentication.Info.strategy!(Emakola.Accounts.User, :password)
-
-    AshAuthentication.Strategy.action(strategy, :sign_in, %{
-      "email" => params["email"],
-      "password" => params["password"]
-    })
   end
 
   # Must be called during mount — get_connect_info is only available then

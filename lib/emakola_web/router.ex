@@ -191,7 +191,11 @@ defmodule EmakolaWeb.Router do
     live "/stores", StoresLive
     live "/docs", Docs.DocsLive
 
-    # Platform admin routes (platform staff only)
+    # Platform admin routes (platform staff only). Pages gate themselves with
+    # a module-level {Hooks.RequirePermission, permission} on_mount:
+    #   stores → :manage_stores, team → :manage_team, audit-log → :view_audit_log
+    # Future pages: merchants → :manage_merchants, billing → :manage_billing,
+    # settings → :manage_settings. Dashboard and security are any-staff.
     live_session :platform,
       layout: {EmakolaWeb.Layouts, :platform},
       on_mount: [

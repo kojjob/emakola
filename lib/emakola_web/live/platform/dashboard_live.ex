@@ -65,6 +65,7 @@ defmodule EmakolaWeb.Platform.DashboardLive do
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 class="text-lg font-semibold text-gray-900">Recent Stores</h2>
           <.link
+            :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_stores)}
             navigate="/platform/stores"
             class="text-sm text-blue-600 hover:text-blue-700 font-medium"
           >

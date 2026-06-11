@@ -2,6 +2,8 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   @moduledoc "Platform admin listing of all stores with search filtering."
   use EmakolaWeb, :live_view
 
+  on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_stores}
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
