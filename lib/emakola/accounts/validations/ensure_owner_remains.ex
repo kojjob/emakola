@@ -5,6 +5,20 @@ defmodule Emakola.Accounts.Validations.EnsureOwnerRemains do
   An "active owner" is a user with `is_owner: true` and `deactivated_at: nil`.
   The change is rejected when it would strip ownership or deactivate the
   user and no other active owner exists.
+
+  ## Known limitation — TOCTOU under READ COMMITTED
+
+  Two concurrent owner-demotion requests can both pass this check: each
+  reads the count of active owners before either write is committed, so
+  both see "another owner exists" and proceed. The window is narrow
+  (milliseconds between the `Ash.exists?` read and the UPDATE commit), but
+  theoretically possible under PostgreSQL's default READ COMMITTED isolation.
+
+  Recovery: `mix emakola.bootstrap_platform_owner` to re-promote a user.
+
+  Tracked for a future hardening pass: replace the `Ash.exists?` probe with
+  a `SELECT ... FOR UPDATE` advisory lock or a serialisable transaction so
+  that only one demotion can win the race.
   """
 
   use Ash.Resource.Validation

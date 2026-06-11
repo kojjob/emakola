@@ -49,6 +49,12 @@ defmodule Emakola.Accounts.PlatformPermissionsTest do
 
       refute PlatformPermissions.allowed?(user, :manage_stores)
     end
+
+    test "partial map with nil platform_permissions returns false without raising" do
+      user = %{is_owner: false, deactivated_at: nil, platform_permissions: nil}
+
+      refute PlatformPermissions.allowed?(user, :manage_stores)
+    end
   end
 
   describe "valid?/1" do

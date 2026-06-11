@@ -31,6 +31,8 @@ defmodule Emakola.Accounts.PlatformPermissions do
   def allowed?(%{platform_permissions: permissions}, permission) when is_list(permissions),
     do: permission in permissions
 
+  def allowed?(_user, _permission), do: false
+
   @spec valid?(term()) :: boolean()
   def valid?(permission), do: permission in @permissions
 
