@@ -492,6 +492,21 @@ fly scale memory 1024 --app emakola
 fly scale vm shared-cpu-2x --app emakola
 ```
 
+> ⚠️ **Size the DATABASE before adding app machines.** Each app machine opens
+> `POOL_SIZE` (default 10) Postgres backends; postgres-flex also runs
+> repmgr/exporter sidecars. Fly's default 256MB Postgres machine OOM-kills
+> its own backends past ~1 app machine — this took production down for ~4
+> minutes on 2026-06-11 when scaling 1→2 machines (app logs:
+> `Postgrex … handshaking for longer than 15000ms`; DB logs: kernel
+> `Out of memory: Killed process … (postgres)`).
+>
+> Rule of thumb: `machines × POOL_SIZE + 10` backends → **1GB DB memory
+> minimum for 2+ app machines** (more past ~40 backends):
+>
+> ```bash
+> fly machine update <db-machine-id> --vm-memory 1024 --app emakola-db-lhr
+> ```
+
 ### Database Scaling
 
 ```bash
