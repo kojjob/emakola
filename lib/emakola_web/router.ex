@@ -96,6 +96,20 @@ defmodule EmakolaWeb.Router do
     delete "/session", PlatformSessionController, :delete
   end
 
+  # Platform staff login (two-step: password + TOTP). Root layout only —
+  # no platform sidebar. Staff with a live session skip straight to /platform.
+  scope "/platform", EmakolaWeb do
+    pipe_through [:browser, :auth_rate_limit]
+
+    live_session :platform_auth,
+      on_mount: [
+        {EmakolaWeb.Hooks.AssignDefaults, :default},
+        {EmakolaWeb.Hooks.RedirectIfPlatformStaff, :default}
+      ] do
+      live "/login", Platform.LoginLive
+    end
+  end
+
   # Customer storefront session controller (sets/clears customer token cookie)
   scope "/s/:store_slug", EmakolaWeb.Storefront do
     pipe_through [:browser, :auth_rate_limit]
