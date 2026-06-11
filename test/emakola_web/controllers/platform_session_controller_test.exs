@@ -10,8 +10,7 @@ defmodule EmakolaWeb.PlatformSessionControllerTest do
 
   setup %{conn: conn} do
     # Unique remote_ip per test to avoid Hammer rate limit collisions
-    unique_ip = {10, 98, :rand.uniform(255), :rand.uniform(255)}
-    {:ok, conn: %{conn | remote_ip: unique_ip}}
+    {:ok, conn: put_unique_peer_ip(conn)}
   end
 
   defp audit_entries(action) do

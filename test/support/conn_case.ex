@@ -35,4 +35,23 @@ defmodule EmakolaWeb.ConnCase do
     Emakola.DataCase.setup_sandbox(tags)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
+
+  @doc """
+  Assigns a peer IP that is unique for the whole test run, isolating per-IP
+  rate-limit buckets (Hammer's ETS table is global and never reset between
+  tests). Sets both `remote_ip` (plugs/controllers) and the Plug.Test peer
+  data (LiveView `get_connect_info(:peer_data)`).
+
+  Do NOT build "unique" IPs from `:rand` — ExUnit seeds `:rand`
+  deterministically per test from the suite seed, so two tests can draw the
+  same IP and share a rate-limit bucket (flaky for ~1 in 5000 seeds).
+  """
+  def put_unique_peer_ip(conn) do
+    n = System.unique_integer([:positive])
+    ip = {10, rem(div(n, 65_536), 256), rem(div(n, 256), 256), rem(n, 256)}
+
+    conn
+    |> Map.replace!(:remote_ip, ip)
+    |> Plug.Test.put_peer_data(%{address: ip, port: 54321, ssl_cert: nil})
+  end
 end

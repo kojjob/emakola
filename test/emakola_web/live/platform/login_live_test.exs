@@ -27,14 +27,7 @@ defmodule EmakolaWeb.Platform.LoginLiveTest do
     # Unique peer ip per test — Emakola.RateLimit keys on the client ip.
     # The LiveView reads it from get_connect_info(:peer_data), which comes
     # from the Plug.Test adapter's peer data, NOT conn.remote_ip.
-    unique_ip = {10, 96, :rand.uniform(255), :rand.uniform(255)}
-
-    conn =
-      conn
-      |> Map.replace!(:remote_ip, unique_ip)
-      |> Plug.Test.put_peer_data(%{address: unique_ip, port: 54321, ssl_cert: nil})
-
-    {:ok, conn: conn}
+    {:ok, conn: put_unique_peer_ip(conn)}
   end
 
   describe "credentials step" do
