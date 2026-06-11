@@ -114,6 +114,12 @@ defmodule EmakolaWeb.Router do
     end
   end
 
+  # Platform-level sitemap (apex domain marketing pages)
+  scope "/", EmakolaWeb do
+    pipe_through :seo
+    get "/sitemap.xml", SitemapController, :platform
+  end
+
   # Sitemap + AI-readable files — uses :seo pipeline (accepts XML/text),
   # NOT :api (which enforces JSON-only and would 406 crawlers).
   scope "/s/:store_slug", EmakolaWeb do

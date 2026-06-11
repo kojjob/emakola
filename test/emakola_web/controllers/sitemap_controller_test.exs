@@ -186,4 +186,16 @@ defmodule EmakolaWeb.SitemapControllerTest do
       assert conn.status == 404
     end
   end
+
+  describe "platform sitemap" do
+    test "GET /sitemap.xml lists the marketing pages", %{conn: conn} do
+      conn = get(conn, "/sitemap.xml")
+      body = response(conn, 200)
+
+      assert response_content_type(conn, :xml)
+      assert body =~ "<urlset"
+      assert body =~ "/pricing</loc>"
+      assert body =~ "/stores</loc>"
+    end
+  end
 end

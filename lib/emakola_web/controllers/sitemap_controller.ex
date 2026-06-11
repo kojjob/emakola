@@ -29,6 +29,26 @@ defmodule EmakolaWeb.SitemapController do
 
   require Ash.Query
 
+  @doc "Platform-level sitemap for the apex domain (marketing pages only)."
+  def platform(conn, _params) do
+    base = EmakolaWeb.Endpoint.url()
+
+    entries =
+      ["/", "/pricing", "/stores", "/docs"]
+      |> Enum.map_join("\n", fn path -> "  <url><loc>#{base}#{path}</loc></url>" end)
+
+    xml = """
+    <?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    #{entries}
+    </urlset>
+    """
+
+    conn
+    |> put_resp_content_type("application/xml")
+    |> send_resp(200, xml)
+  end
+
   @doc "Serves the sitemap.xml for a store — lists all indexable URLs."
   def show(conn, %{"store_slug" => slug}) do
     case StoreResolver.resolve(slug) do
