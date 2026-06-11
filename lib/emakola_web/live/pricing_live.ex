@@ -10,7 +10,7 @@ defmodule EmakolaWeb.PricingLive do
        page_title: "Pricing — Emakola | Free to Start, Pay as You Grow",
        meta_description:
          "Emakola pricing: start free with 3.5% per sale, or grow with plans from GHS 29/month. Mobile money payments and WhatsApp notifications on every plan.",
-       og_image: "/images/og-image.png",
+       og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/pricing"),
        json_ld: pricing_json_ld(),
        mobile_menu_open: false
@@ -49,25 +49,37 @@ defmodule EmakolaWeb.PricingLive do
                 </span>
                 <ul class="space-y-2 mb-8 flex-1">
                   <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                    <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#2563eb] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     1 store
                   </li>
                   <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                    <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#2563eb] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     25 products
                   </li>
                   <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                    <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#2563eb] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     Basic dashboard
                   </li>
                   <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                    <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#2563eb] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     Email support
@@ -90,25 +102,37 @@ defmodule EmakolaWeb.PricingLive do
                 <p class="text-sm text-[#d4a843] font-medium mb-6">2.0% per sale</p>
                 <ul class="space-y-2 mb-8 flex-1">
                   <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                    <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#2563eb] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     1 store
                   </li>
                   <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                    <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#2563eb] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     250 products
                   </li>
                   <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                    <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#2563eb] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     WhatsApp notifications
                   </li>
                   <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                    <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#2563eb] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     Priority support
@@ -134,31 +158,46 @@ defmodule EmakolaWeb.PricingLive do
                 <p class="text-sm text-[#d4a843] font-medium mb-6">1.2% per sale</p>
                 <ul class="space-y-2 mb-8 flex-1">
                   <li class="flex items-start gap-2 text-sm text-[#8896ab]">
-                    <span class="material-symbols-outlined text-base text-[#d4a843] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#d4a843] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     3 stores
                   </li>
                   <li class="flex items-start gap-2 text-sm text-[#8896ab]">
-                    <span class="material-symbols-outlined text-base text-[#d4a843] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#d4a843] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     Unlimited products
                   </li>
                   <li class="flex items-start gap-2 text-sm text-[#8896ab]">
-                    <span class="material-symbols-outlined text-base text-[#d4a843] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#d4a843] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     Custom domain
                   </li>
                   <li class="flex items-start gap-2 text-sm text-[#8896ab]">
-                    <span class="material-symbols-outlined text-base text-[#d4a843] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#d4a843] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     Analytics
                   </li>
                   <li class="flex items-start gap-2 text-sm text-[#8896ab]">
-                    <span class="material-symbols-outlined text-base text-[#d4a843] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#d4a843] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     Phone support
@@ -180,25 +219,37 @@ defmodule EmakolaWeb.PricingLive do
                 <p class="text-sm text-[#d4a843] font-medium mb-6">Custom rate</p>
                 <ul class="space-y-2 mb-8 flex-1">
                   <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                    <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#2563eb] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     Unlimited stores
                   </li>
                   <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                    <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#2563eb] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     Dedicated account manager
                   </li>
                   <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                    <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#2563eb] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     SLA
                   </li>
                   <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                    <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">
+                    <span
+                      class="material-symbols-outlined text-base text-[#2563eb] mt-0.5"
+                      aria-hidden="true"
+                    >
                       check
                     </span>
                     API access

@@ -121,9 +121,9 @@ defmodule EmakolaWeb.LandingComponents do
       <div class="max-w-5xl mx-auto">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
           <.footer_column title="Product">
-            <:link href="#features">Features</:link>
+            <:link href="/#features">Features</:link>
             <:link href="/pricing">Pricing</:link>
-            <:link href="#features">Demo</:link>
+            <:link href="/#features">Demo</:link>
             <:link href="/docs">API</:link>
           </.footer_column>
 
