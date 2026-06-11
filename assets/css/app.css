@@ -559,3 +559,33 @@ html.high-contrast {
   }
 
 }
+
+/* Hero rotating word (landing page). Pure CSS so LiveView DOM diffing
+   cannot lose the state. @layer components so Tailwind utilities win. */
+@layer components {
+  .hero-rotator {
+    display: inline-block;
+    height: 1.15em;
+    overflow: hidden;
+    vertical-align: bottom;
+  }
+  .hero-rotator-list {
+    display: flex;
+    flex-direction: column;
+    animation: hero-rotate 9s infinite;
+  }
+  .hero-rotator-list > span {
+    height: 1.15em;
+    line-height: 1.15em;
+  }
+  @keyframes hero-rotate {
+    0%, 18% { transform: translateY(0); }
+    25%, 43% { transform: translateY(-1.15em); }
+    50%, 68% { transform: translateY(-2.3em); }
+    75%, 93% { transform: translateY(-3.45em); }
+    100% { transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-rotator-list { animation: none; }
+  }
+}
