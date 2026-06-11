@@ -38,7 +38,7 @@ Production deployment guide for the Emakola ecommerce platform on Fly.io.
 | CDN & DDoS protection   | Cloudflare                       | Global edge          |
 | DNS                     | Cloudflare                       | Global               |
 | SSL certificates        | Fly.io (auto) + Cloudflare       | -                    |
-| Transactional SMS       | Arkesel / Hubtel SMS API         | -                    |
+| Transactional SMS       | HTTP SMS gateway (SMS_API_URL)   | -                    |
 | Payment processing      | Paystack, Hubtel Payments        | -                    |
 
 ---
@@ -65,6 +65,14 @@ fly postgres create --name emakola-db --region jnb --vm-size shared-cpu-1x --vol
 
 # Attach the database (sets DATABASE_URL automatically)
 fly postgres attach emakola-db --app emakola
+
+# REQUIRED with Fly Postgres: the attached *.internal database uses Fly's
+# private network (already isolated) with an internal CA that is NOT in the
+# system trust store — the default DATABASE_SSL=true (verify_peer) would
+# fail the TLS handshake during the migration release_command and block the
+# very first deploy. Skip ONLY if you use an external database with a
+# publicly-trusted certificate (then keep the verify_peer default).
+fly secrets set DATABASE_SSL=false --app emakola
 ```
 
 ### 2. Create Tigris Storage Bucket
@@ -100,42 +108,93 @@ mix phx.gen.secret
 
 ### Set Production Secrets
 
+All of the following are **required** — `config/runtime.exs` raises at boot
+if any is missing (`PHX_HOST`, `PHX_SERVER`, `POOL_SIZE`, `ECTO_IPV6` are
+non-secret and already set in `fly.toml [env]`; `DATABASE_URL` comes from
+`fly postgres attach`):
+
 ```bash
 fly secrets set \
-  SECRET_KEY_BASE="<generated-secret>" \
-  PHX_HOST="emakola.com" \
-  PHX_SERVER=true \
-  POOL_SIZE=10 \
-  ECTO_IPV6=true \
+  SECRET_KEY_BASE="<mix phx.gen.secret>" \
+  TOKEN_SIGNING_SECRET="<mix phx.gen.secret 64>" \
   \
-  # Payment Gateways
+  # Email (Swoosh/Resend — transactional email)
+  RESEND_API_KEY="re_xxxxx" \
+  \
+  # Payment gateway
   PAYSTACK_SECRET_KEY="sk_live_xxxxx" \
+  \
+  # SMS / WhatsApp — notifications are business-critical; the release
+  # raises rather than silently no-op if these are missing
+  SMS_API_KEY="xxxxx" \
+  SMS_API_URL="https://sms.yourprovider.example/v1/messages" \
+  WHATSAPP_API_TOKEN="xxxxx" \
+  WHATSAPP_PHONE_NUMBER_ID="xxxxx" \
+  \
+  --app emakola
+```
+
+Optional secrets, set as applicable:
+
+```bash
+fly secrets set \
   PAYSTACK_PUBLIC_KEY="pk_live_xxxxx" \
+  SMS_SENDER_ID="Emakola" \
+  WHATSAPP_API_VERSION="v21.0" \
+  \
+  # Hubtel payments (optional at launch). NOTE: Hubtel webhooks are
+  # validated only by source IP — if HUBTEL_WEBHOOK_ALLOWLIST is empty,
+  # /webhooks/hubtel rejects EVERY request (fail closed).
   HUBTEL_CLIENT_ID="xxxxx" \
   HUBTEL_CLIENT_SECRET="xxxxx" \
-  HUBTEL_MERCHANT_ACCOUNT="xxxxx" \
+  HUBTEL_WEBHOOK_ALLOWLIST="203.0.113.5,198.51.100.0/24" \
   \
-  # SMS / WhatsApp
-  ARKESEL_API_KEY="xxxxx" \
-  ARKESEL_SENDER_ID="Emakola" \
+  # Database TLS opt-out — ONLY for Fly 6PN .internal Postgres
+  DATABASE_SSL="false" \
   \
-  # S3-compatible storage (if not using Tigris auto-config)
-  S3_BUCKET="emakola-uploads" \
-  S3_REGION="auto" \
-  S3_ENDPOINT="https://fly.storage.tigris.dev" \
-  S3_ACCESS_KEY_ID="xxxxx" \
-  S3_SECRET_ACCESS_KEY="xxxxx" \
-  \
-  # Oban
-  OBAN_QUEUES="default,10 payments,5 notifications,5 images,3" \
-  \
-  # Optional: Error tracking
-  SENTRY_DSN="https://xxxxx@sentry.io/xxxxx" \
+  # S3-compatible storage. `fly storage create` (Tigris) sets BUCKET_NAME,
+  # AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_ENDPOINT_URL_S3 and
+  # AWS_REGION automatically — only set these manually for non-Tigris S3.
+  # Missing S3 credentials warn at boot (uploads degrade, app still runs).
+  AWS_S3_BUCKET="emakola-uploads" \
+  AWS_S3_REGION="auto" \
+  AWS_ENDPOINT_URL_S3="https://fly.storage.tigris.dev" \
+  AWS_ACCESS_KEY_ID="xxxxx" \
+  AWS_SECRET_ACCESS_KEY="xxxxx" \
   \
   --app emakola
 ```
 
 > **Note**: `DATABASE_URL` is set automatically by `fly postgres attach`. Do not set it manually.
+
+### Database TLS (`DATABASE_SSL`)
+
+The app verifies the database server's TLS certificate by default
+(`verify_peer` against the OS trust store, with hostname checking).
+
+- **Fly Postgres over private networking** (`DATABASE_URL` host ends in
+  `.internal`): Fly Postgres does not present a publicly verifiable
+  certificate, and the 6PN private network is already encrypted (WireGuard).
+  Set `DATABASE_SSL=false`:
+  ```bash
+  fly secrets set DATABASE_SSL=false --app emakola
+  ```
+- **External database** (Neon, Supabase, RDS, any public endpoint): keep the
+  default (`DATABASE_SSL` unset or `true`) so the connection is encrypted
+  AND the server identity is verified. Never set it to `false` for a
+  database reached over the public internet.
+
+### WhatsApp Notifications
+
+In prod, `:whatsapp_provider` is wired to the real Cloud API channel
+(`Emakola.Notifications.Channels.WhatsApp`), which implements the
+`send_message/4` provider bridge. Template messages are positional: the
+templates registered in the WhatsApp Business Manager console
+(`order_placed`, `order_confirmed`, `order_shipped`, `order_delivered`,
+`order_cancelled`, `supplier_fulfillment`) must declare their `{{n}}`
+placeholders in the parameter order defined in the channel's
+`@template_param_order` — adding a new template requires registering it
+with Meta AND adding its parameter order there.
 
 ### Non-Secret Environment Variables
 
@@ -149,6 +208,7 @@ These go in `fly.toml` under `[env]`:
   POOL_SIZE = "10"
   LANG = "en_US.UTF-8"
   ERL_AFLAGS = "-proto_dist inet6_tcp"
+  DNS_CLUSTER_QUERY = "emakola.internal"
 ```
 
 ---
@@ -175,10 +235,11 @@ See `/fly.toml` in the project root. Key settings:
 
 - Primary region: `jnb` (Johannesburg)
 - HTTP service on internal port `4000`
-- Health check at `GET /health`
-- Auto-scaling: 1-10 instances
+- Health check at `GET /api/health`
+- Auto start/suspend with `min_machines_running = 1` (see Scaling — carts
+  are node-local; stay at count 1 for now)
 - 512MB memory per instance
-- Grace period for safe shutdowns
+- `kill_timeout = "60s"` for safe shutdowns
 
 ---
 
@@ -399,15 +460,31 @@ For merchants who bring their own domain (e.g., `www.merchantshop.com`):
 
 ## Scaling
 
+> **⚠️ Scaling constraint: carts are node-local.**
+>
+> Shopping carts live in an ETS table owned by a single in-app GenServer
+> (`lib/emakola/cart/`). They are NOT shared between machines and NOT
+> persisted across machine stops. Consequences:
+>
+> - **Safe today: `fly scale count 1`.** One machine, all carts on it.
+> - **`count > 1` is NOT safe yet**: a customer's requests can land on a
+>   machine that doesn't hold their cart. Going multi-machine requires
+>   sticky sessions (e.g. `fly-replay`/consistent routing) or moving carts
+>   to a shared store (Postgres/Redis) first.
+> - BEAM clustering itself IS handled (`rel/env.sh.eex` +
+>   `DNS_CLUSTER_QUERY` + DNSCluster), so PubSub/LiveView updates work
+>   across machines — carts are the only thing blocking horizontal scale.
+> - `fly.toml` sets `auto_stop_machines = "suspend"` and
+>   `min_machines_running = 1` so Fly's idle-stop doesn't wipe carts.
+>   Do not change these to "stop"/0 while carts are in-memory.
+
 ### Horizontal Auto-Scaling
 
-Configured in `fly.toml`:
+Configured in `fly.toml` (`[http_service]` section):
 ```toml
-[http_service.auto_stop_machines]
-  min_machines_running = 1
-
-[http_service.auto_start_machines]
-  enabled = true
+auto_stop_machines = "suspend"
+auto_start_machines = true
+min_machines_running = 1
 ```
 
 ### Manual Scaling

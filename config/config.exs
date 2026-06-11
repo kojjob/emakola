@@ -83,10 +83,8 @@ config :emakola,
     Emakola.Fulfillment
   ]
 
-# Token signing secret — loaded from env var; fallback only for dev/test
-config :emakola,
-  token_signing_secret:
-    System.get_env("TOKEN_SIGNING_SECRET", "dev-only-not-for-production-at-least-32-bytes!!")
+# Token signing secret is set per environment: dev.exs/test.exs use a
+# fixed dev-only value; prod requires TOKEN_SIGNING_SECRET (runtime.exs).
 
 # Database
 config :emakola, Emakola.Repo, migration_primary_key: [name: :id, type: :binary_id]
@@ -108,39 +106,32 @@ config :emakola, Oban,
     whatsapp_catalog: 3
   ],
   repo: Emakola.Repo,
-  crontab: [
-    {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker},
-    {"0 */6 * * *", Emakola.Cart.CartCleanupWorker}
+  plugins: [
+    # Prune completed/cancelled/discarded jobs after 7 days — without this
+    # the oban_jobs table grows forever.
+    {Oban.Plugins.Pruner, max_age: 604_800},
+    # Rescue jobs orphaned by node crashes/deploys back to available.
+    {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)},
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker},
+       {"0 */6 * * *", Emakola.Cart.CartCleanupWorker}
+     ]}
   ]
 
-# Demo mode
-config :emakola, :demo_mode, System.get_env("DEMO_MODE") == "true"
+# Demo mode is a runtime knob — set in config/runtime.exs (compile-time
+# evaluation here would bake `false` into release builds permanently).
 
-# Paystack client defaults (overridden in runtime.exs for prod)
-config :emakola, Emakola.Payments.PaystackClient,
-  secret_key: System.get_env("PAYSTACK_SECRET_KEY", "sk_test_placeholder"),
-  public_key: System.get_env("PAYSTACK_PUBLIC_KEY", "pk_test_placeholder"),
-  base_url: "https://api.paystack.co"
+# Paystack client — non-secret structure only. Credentials are set per
+# environment: dev.exs (placeholders), test.exs, runtime.exs (prod).
+config :emakola, Emakola.Payments.PaystackClient, base_url: "https://api.paystack.co"
 
-# WhatsApp Business API (Cloud API)
-# api_version is overridable via WHATSAPP_API_VERSION env var so we
-# can roll forward when Meta deprecates a Graph API version without
-# a redeploy. See https://developers.facebook.com/docs/graph-api/changelog
-config :emakola, Emakola.Notifications.Channels.WhatsApp,
-  api_token: System.get_env("WHATSAPP_API_TOKEN"),
-  phone_number_id: System.get_env("WHATSAPP_PHONE_NUMBER_ID"),
-  api_version: System.get_env("WHATSAPP_API_VERSION") || "v21.0"
+# SMS/WhatsApp channel credentials are runtime concerns — configured in
+# runtime.exs for prod. Dev/test default to Log providers / Mox mocks.
 
-# SMS Gateway
-config :emakola, Emakola.Notifications.Channels.SMS,
-  api_key: System.get_env("SMS_API_KEY"),
-  sender_id: System.get_env("SMS_SENDER_ID") || "Emakola"
-
-# Hubtel client defaults (overridden in runtime.exs for prod)
-config :emakola, Emakola.Payments.HubtelClient,
-  client_id: System.get_env("HUBTEL_CLIENT_ID"),
-  client_secret: System.get_env("HUBTEL_CLIENT_SECRET"),
-  base_url: "https://api.hubtel.com"
+# Hubtel client — non-secret structure only. Credentials are set per
+# environment: dev.exs (env passthrough), test.exs (flat keys), runtime.exs (prod).
+config :emakola, Emakola.Payments.HubtelClient, base_url: "https://api.hubtel.com"
 
 # Import branding and plans config
 import_config "branding.exs"

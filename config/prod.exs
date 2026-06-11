@@ -17,11 +17,11 @@ config :emakola, EmakolaWeb.Endpoint,
     # 1 year max-age, include subdomains for full coverage
     expires: 31_536_000,
     subdomains: true,
-    preload: true
-  ],
-  exclude: [
-    # paths: ["/health"],
-    hosts: ["localhost", "127.0.0.1"]
+    preload: true,
+    # Keyword conditions (bare host strings are deprecated, removed in
+    # Plug 1.20). Health checks are excluded by path so probes work even
+    # without the X-Forwarded-Proto header fly.toml sends.
+    exclude: [hosts: ["localhost", "127.0.0.1"], paths: ["/api/health"]]
   ]
 
 # Configure Swoosh API Client

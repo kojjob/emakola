@@ -62,6 +62,11 @@ defmodule Emakola.Storage.S3 do
   end
 
   defp public_url(path) do
-    "https://#{bucket()}.s3.#{region()}.amazonaws.com/#{path}"
+    # When a custom endpoint is configured (Tigris, MinIO, etc.), build a
+    # virtual-hosted URL against it; otherwise fall back to AWS S3.
+    case Application.get_env(:ex_aws, :s3, [])[:host] do
+      nil -> "https://#{bucket()}.s3.#{region()}.amazonaws.com/#{path}"
+      host -> "https://#{bucket()}.#{host}/#{path}"
+    end
   end
 end

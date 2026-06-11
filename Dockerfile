@@ -8,7 +8,7 @@
 # ---------------------------------------------------------------------------
 ARG ELIXIR_VERSION=1.18.3
 ARG OTP_VERSION=27.2.4
-ARG DEBIAN_VERSION=bookworm-20250113-slim
+ARG DEBIAN_VERSION=bookworm-20260518-slim
 
 ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
 ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
@@ -48,7 +48,7 @@ RUN mix deps.get --only $MIX_ENV
 
 # Copy compile-time config
 RUN mkdir config
-COPY config/config.exs config/${MIX_ENV}.exs config/
+COPY config/config.exs config/branding.exs config/plans.exs config/${MIX_ENV}.exs config/
 
 # Compile dependencies (cached layer)
 RUN mix deps.compile
@@ -133,7 +133,7 @@ EXPOSE 4000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:4000/health || exit 1
+  CMD curl -f http://localhost:4000/api/health || exit 1
 
 # Use tini as init system for proper signal handling (SIGTERM, etc.)
 ENTRYPOINT ["/usr/bin/tini", "--"]

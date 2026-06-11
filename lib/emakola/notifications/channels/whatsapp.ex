@@ -26,6 +26,7 @@ defmodule Emakola.Notifications.Channels.WhatsApp do
   """
 
   @behaviour Emakola.Notifications.Channels.WhatsAppBehaviour
+  @behaviour Emakola.Notifications.WhatsAppProvider
 
   require Logger
 
@@ -39,7 +40,54 @@ defmodule Emakola.Notifications.Channels.WhatsApp do
   @rate_limit 200
   @rate_window_ms :timer.hours(1)
 
+  # Positional body-parameter order for each Meta-registered template.
+  # Cloud API placeholders ({{1}}..{{n}}) are positional, but the
+  # WhatsAppProvider behaviour hands us a params MAP — so every template
+  # needs an explicit key order. Keep in sync with the params built in
+  # Emakola.Notifications.Templates and with the templates registered in
+  # the WhatsApp Business Manager console.
+  @order_param_order [:order_number, :store_name, :total, :currency]
+
+  @template_param_order %{
+    "order_placed" => @order_param_order,
+    "order_confirmed" => @order_param_order,
+    "order_shipped" => @order_param_order,
+    "order_delivered" => @order_param_order,
+    "order_cancelled" => @order_param_order,
+    "supplier_fulfillment" => [:order_number, :supplier_name, :items, :ship_to]
+  }
+
   # ── Public API ─────────────────────────────────────────────────
+
+  @doc """
+  Sends a template message from a params map (WhatsAppProvider bridge).
+
+  Notification workers call `whatsapp_provider().send_message/4` with the
+  param maps built by `Emakola.Notifications.Templates`. The map is
+  converted to the Cloud API's positional body parameters using the
+  template's declared key order; unknown templates are rejected rather
+  than sent with a guessed parameter order, and a missing key raises.
+  """
+  @impl Emakola.Notifications.WhatsAppProvider
+  def send_message(to, template_name, params, opts) when is_map(params) do
+    case Map.fetch(@template_param_order, template_name) do
+      {:ok, keys} ->
+        parameters =
+          Enum.map(keys, fn key ->
+            %{type: "text", text: to_string(Map.fetch!(params, key))}
+          end)
+
+        send_template(to, template_name, parameters, opts)
+
+      :error ->
+        Logger.error(
+          "[WhatsApp] unknown template '#{template_name}'; " <>
+            "no declared parameter order — not sending"
+        )
+
+        {:error, {:unknown_template, template_name}}
+    end
+  end
 
   @impl true
   def send_order_confirmation(order, opts \\ []) do

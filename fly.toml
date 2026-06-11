@@ -6,7 +6,8 @@
 app = "emakola"
 primary_region = "jnb"
 kill_signal = "SIGTERM"
-kill_timeout = "30s"
+# Long enough for connection draining + Oban jobs to finish on shutdown.
+kill_timeout = "60s"
 swap_size_mb = 256
 
 # -----------------------------------------------------------------------------
@@ -25,7 +26,10 @@ swap_size_mb = 256
   POOL_SIZE = "10"
   LANG = "en_US.UTF-8"
   ERL_AFLAGS = "-proto_dist inet6_tcp"
-  RELEASE_DISTRIBUTION = "none"
+  # BEAM clustering: rel/env.sh.eex sets RELEASE_DISTRIBUTION=name and
+  # RELEASE_NODE from FLY_PRIVATE_IP; DNSCluster (lib/emakola/application.ex)
+  # discovers peers via this 6PN DNS query.
+  DNS_CLUSTER_QUERY = "emakola.internal"
 
 # -----------------------------------------------------------------------------
 # Deploy configuration
@@ -40,7 +44,9 @@ swap_size_mb = 256
 [http_service]
   internal_port = 4000
   force_https = true
-  auto_stop_machines = "stop"
+  # "suspend" (not "stop"): carts live in node-local ETS, so a stopped
+  # machine loses every in-progress cart. Suspend keeps memory intact.
+  auto_stop_machines = "suspend"
   auto_start_machines = true
   min_machines_running = 1
   processes = ["app"]
@@ -55,9 +61,15 @@ swap_size_mb = 256
       grace_period = "30s"
       interval = "15s"
       method = "GET"
-      path = "/health"
+      path = "/api/health"
       port = 4000
       timeout = "5s"
+
+      # Plug.SSL (force_ssl) sees rewrite_on: [:x_forwarded_proto]; sending
+      # this header makes internal health probes look like HTTPS so they
+      # are not 301-redirected.
+      [http_service.checks.health.headers]
+        X-Forwarded-Proto = "https"
 
 # -----------------------------------------------------------------------------
 # VM Resources
@@ -66,13 +78,6 @@ swap_size_mb = 256
   size = "shared-cpu-1x"
   memory = "512mb"
   cpus = 1
-
-# -----------------------------------------------------------------------------
-# Statics (served by Phoenix, cached by Cloudflare)
-# -----------------------------------------------------------------------------
-[[statics]]
-  guest_path = "/app/lib/emakola-0.1.0/priv/static"
-  url_prefix = "/assets"
 
 # -----------------------------------------------------------------------------
 # Metrics (Fly.io Prometheus integration)

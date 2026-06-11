@@ -13,6 +13,20 @@ config :emakola, Emakola.Repo,
 # Use local filesystem storage in dev (no S3 needed)
 config :emakola, :storage, Emakola.Storage.Local
 
+# AshAuthentication token signing secret — dev-only value
+config :emakola,
+  token_signing_secret: "dev-only-not-for-production-at-least-32-bytes!!"
+
+# Payment gateway credentials — harmless placeholders for dev (env vars
+# override). Prod credentials are set in runtime.exs.
+config :emakola, Emakola.Payments.PaystackClient,
+  secret_key: System.get_env("PAYSTACK_SECRET_KEY", "sk_test_placeholder"),
+  public_key: System.get_env("PAYSTACK_PUBLIC_KEY", "pk_test_placeholder")
+
+config :emakola, Emakola.Payments.HubtelClient,
+  client_id: System.get_env("HUBTEL_CLIENT_ID"),
+  client_secret: System.get_env("HUBTEL_CLIENT_SECRET")
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #
