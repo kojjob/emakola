@@ -43,6 +43,9 @@ defmodule EmakolaWeb.PlatformSessionControllerTest do
       assert verified_user.id == user.id
       assert session.ip == format_ip(conn.remote_ip)
 
+      # The LiveView socket id is tracked so revocation can disconnect it
+      assert get_session(conn, :live_socket_id) == "platform_sessions:#{session_id}"
+
       assert [entry | _] = audit_entries(:sign_in_succeeded)
       assert entry.actor_id == user.id
       assert entry.ip == format_ip(conn.remote_ip)
@@ -154,11 +157,13 @@ defmodule EmakolaWeb.PlatformSessionControllerTest do
         conn
         |> Phoenix.ConnTest.init_test_session(%{})
         |> Plug.Conn.put_session(:platform_session_token, signed)
+        |> Plug.Conn.put_session(:live_socket_id, "platform_sessions:#{session.id}")
         |> Plug.Conn.put_session(:user_token, merchant_token)
         |> delete("/platform/session")
 
       assert redirected_to(conn) == "/platform/login"
       refute get_session(conn, :platform_session_token)
+      refute get_session(conn, :live_socket_id)
 
       # Coexisting merchant session survives logout
       assert get_session(conn, :user_token) == merchant_token

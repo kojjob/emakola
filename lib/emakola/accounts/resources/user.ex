@@ -274,8 +274,14 @@ defmodule Emakola.Accounts.User do
       change(set_attribute(:totp_last_used_at, nil))
 
       change(
-        after_action(fn _changeset, user, _ctx ->
-          Emakola.Accounts.PlatformAudit.log(:totp_disabled, user)
+        after_action(fn _changeset, user, ctx ->
+          # Actor is the acting admin when set (team-page reset); fall back
+          # to the target for self-service / mix-task paths with no actor.
+          Emakola.Accounts.PlatformAudit.log(:totp_disabled, ctx.actor || user, %{
+            target_user_id: user.id,
+            target_email: to_string(user.email)
+          })
+
           {:ok, user}
         end)
       )

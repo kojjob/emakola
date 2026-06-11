@@ -20,6 +20,20 @@ defmodule Emakola.Accounts.SessionsTest do
     |> Enum.map(& &1.action)
   end
 
+  defp audit_entries(action) do
+    PlatformAuditLog
+    |> Ash.Query.for_read(:list)
+    |> Ash.read!(authorize?: false)
+    |> Map.fetch!(:results)
+    |> Enum.filter(&(&1.action == action))
+  end
+
+  defp subscribe_to_session(session) do
+    topic = "platform_sessions:#{session.id}"
+    :ok = Phoenix.PubSub.subscribe(Emakola.PubSub, topic)
+    topic
+  end
+
   describe "create/3" do
     test "creates an active session with ip, user agent, and last_seen_at" do
       user = create_platform_owner!()
@@ -126,9 +140,19 @@ defmodule Emakola.Accounts.SessionsTest do
     test "returns :not_found for an unknown id" do
       assert {:error, :not_found} = Sessions.revoke(Ash.UUID.generate())
     end
+
+    test "broadcasts a disconnect on the session's live socket topic" do
+      user = create_platform_owner!()
+      {:ok, session} = Sessions.create(user, "10.0.0.1", "TestAgent/1.0")
+      topic = subscribe_to_session(session)
+
+      assert {:ok, _revoked} = Sessions.revoke(session)
+
+      assert_receive %Phoenix.Socket.Broadcast{topic: ^topic, event: "disconnect"}
+    end
   end
 
-  describe "revoke_all_for_user/1" do
+  describe "revoke_all_for_user/2" do
     test "revokes all active sessions, leaves already-revoked rows untouched, and audits" do
       user = create_platform_owner!()
       {:ok, s1} = Sessions.create(user, "10.0.0.1", "A")
@@ -145,7 +169,37 @@ defmodule Emakola.Accounts.SessionsTest do
       {:ok, reloaded} = Ash.get(Emakola.Accounts.UserSession, s3.id, authorize?: false)
       assert reloaded.revoked_at == already_revoked.revoked_at
 
-      assert :sessions_force_revoked in audit_actions()
+      # Back-compat: without an actor, the target user is logged as actor
+      assert [entry] = audit_entries(:sessions_force_revoked)
+      assert entry.actor_id == user.id
+      assert entry.metadata["user_id"] == user.id
+      assert entry.metadata["count"] == 2
+    end
+
+    test "audits the acting admin when an actor is given" do
+      admin = create_platform_owner!()
+      user = create_staff!()
+      {:ok, _session} = Sessions.create(user, "10.0.0.1", "A")
+
+      assert {:ok, 1} = Sessions.revoke_all_for_user(user.id, admin)
+
+      assert [entry] = audit_entries(:sessions_force_revoked)
+      assert entry.actor_id == admin.id
+      assert entry.metadata["user_id"] == user.id
+      assert entry.metadata["count"] == 1
+    end
+
+    test "broadcasts a disconnect for each revoked session" do
+      user = create_platform_owner!()
+      {:ok, s1} = Sessions.create(user, "10.0.0.1", "A")
+      {:ok, s2} = Sessions.create(user, "10.0.0.2", "B")
+      t1 = subscribe_to_session(s1)
+      t2 = subscribe_to_session(s2)
+
+      assert {:ok, 2} = Sessions.revoke_all_for_user(user.id)
+
+      assert_receive %Phoenix.Socket.Broadcast{topic: ^t1, event: "disconnect"}
+      assert_receive %Phoenix.Socket.Broadcast{topic: ^t2, event: "disconnect"}
     end
 
     test "does not revoke sessions belonging to other users" do

@@ -3,10 +3,11 @@ defmodule EmakolaWeb.Platform.TeamLive do
   Platform team management: staff roster with permission editing, owner
   controls, force logout, 2FA reset, deactivation, and invite lifecycle.
 
-  Mount is gated by RequirePermission (:manage_team) and EVERY
+  Mount is gated by RequirePermission (:manage_team) and every mutating
   handle_event re-checks the permission — mount-time auth is never
-  trusted. Owner-only operations are additionally enforced in the
-  service. Team lists are tiny, so plain assigns are used, not streams.
+  trusted (close_*_modal events are UI-only). Owner-only operations are
+  additionally enforced in the service. Team lists are tiny, so plain
+  assigns are used, not streams.
   """
   use EmakolaWeb, :live_view
 

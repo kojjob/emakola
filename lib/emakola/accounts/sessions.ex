@@ -5,7 +5,9 @@ defmodule Emakola.Accounts.Sessions do
   Verification rejects revoked sessions, sessions idle longer than 24
   hours (revoking them as a side effect), and sessions belonging to
   deactivated users. `touch/1` rate-limits last-seen writes to one per
-  5 minutes. Revocations are recorded in the platform audit log.
+  5 minutes. Revocations are recorded in the platform audit log and
+  broadcast a `"disconnect"` to the session's live socket topic so open
+  LiveViews drop immediately.
   """
 
   require Ash.Query
@@ -51,13 +53,20 @@ defmodule Emakola.Accounts.Sessions do
     end
   end
 
-  @doc "Revokes a session (by struct or id) and audits it."
+  @doc """
+  The pubsub topic a platform session's LiveView socket subscribes to
+  (stored in the `:live_socket_id` session key at login).
+  """
+  def live_socket_id(session_id), do: "platform_sessions:#{session_id}"
+
+  @doc "Revokes a session (by struct or id), audits it, and disconnects its live socket."
   def revoke(%UserSession{} = session) do
     with {:ok, revoked} <-
            session
            |> Ash.Changeset.for_update(:revoke, %{})
            |> Ash.update(authorize?: false) do
       PlatformAudit.log(:session_revoked, revoked.user_id, %{session_id: revoked.id})
+      broadcast_disconnect(revoked.id)
       {:ok, revoked}
     end
   end
@@ -68,8 +77,14 @@ defmodule Emakola.Accounts.Sessions do
     end
   end
 
-  @doc "Revokes all active sessions for a user; returns `{:ok, count}` and audits."
-  def revoke_all_for_user(user_id) do
+  @doc """
+  Revokes all active sessions for a user; returns `{:ok, count}`,
+  audits, and disconnects each session's live socket.
+
+  `actor` is the acting admin for force-logout/deactivation flows; when
+  nil (self-service or system flows) the target user is logged as actor.
+  """
+  def revoke_all_for_user(user_id, actor \\ nil) do
     result =
       UserSession
       |> Ash.Query.filter(user_id == ^user_id and is_nil(revoked_at))
@@ -85,10 +100,12 @@ defmodule Emakola.Accounts.Sessions do
       when status in [:success, :partial_success] ->
         count = length(records)
 
-        PlatformAudit.log(:sessions_force_revoked, user_id, %{
+        PlatformAudit.log(:sessions_force_revoked, actor || user_id, %{
           user_id: user_id,
           count: count
         })
+
+        Enum.each(records, &broadcast_disconnect(&1.id))
 
         {:ok, count}
 
@@ -102,6 +119,20 @@ defmodule Emakola.Accounts.Sessions do
     UserSession
     |> Ash.Query.for_read(:list_active_for_user, %{user_id: user_id})
     |> Ash.read(authorize?: false)
+  end
+
+  # Equivalent to EmakolaWeb.Endpoint.broadcast(topic, "disconnect", %{})
+  # without a core-layer dependency on the web endpoint: the endpoint
+  # subscribes its sockets to `:live_socket_id` on Emakola.PubSub, and
+  # Phoenix.Socket stops on a %Phoenix.Socket.Broadcast{event: "disconnect"}.
+  defp broadcast_disconnect(session_id) do
+    topic = live_socket_id(session_id)
+
+    Phoenix.PubSub.broadcast(Emakola.PubSub, topic, %Phoenix.Socket.Broadcast{
+      topic: topic,
+      event: "disconnect",
+      payload: %{}
+    })
   end
 
   defp get_session(session_id, opts \\ []) do

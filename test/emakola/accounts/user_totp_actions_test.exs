@@ -82,7 +82,7 @@ defmodule Emakola.Accounts.UserTotpActionsTest do
       assert is_nil(cleared.totp_last_used_at)
     end
 
-    test "writes a :totp_disabled audit row" do
+    test "without an actor writes a :totp_disabled audit row attributed to the target" do
       user = setup_totp!(create_user!())
 
       assert [] = audit_rows(user, :totp_disabled)
@@ -91,7 +91,23 @@ defmodule Emakola.Accounts.UserTotpActionsTest do
       |> Ash.Changeset.for_update(:clear_totp, %{})
       |> Ash.update!(authorize?: false)
 
-      assert [_log] = audit_rows(user, :totp_disabled)
+      assert [log] = audit_rows(user, :totp_disabled)
+      assert log.metadata["target_user_id"] == user.id
+      assert log.metadata["target_email"] == to_string(user.email)
+    end
+
+    test "with an actor attributes :totp_disabled to the actor, target in metadata" do
+      admin = create_user!()
+      user = setup_totp!(create_user!())
+
+      user
+      |> Ash.Changeset.for_update(:clear_totp, %{}, actor: admin)
+      |> Ash.update!(authorize?: false)
+
+      assert [] = audit_rows(user, :totp_disabled)
+      assert [log] = audit_rows(admin, :totp_disabled)
+      assert log.metadata["target_user_id"] == user.id
+      assert log.metadata["target_email"] == to_string(user.email)
     end
   end
 

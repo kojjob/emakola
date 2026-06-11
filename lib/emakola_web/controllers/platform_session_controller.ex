@@ -25,6 +25,7 @@ defmodule EmakolaWeb.PlatformSessionController do
 
       conn
       |> put_session(:platform_session_token, AuthTokens.sign_platform_session(session.id))
+      |> put_session(:live_socket_id, Sessions.live_socket_id(session.id))
       |> configure_session(renew: true)
       |> redirect(to: "/platform")
     else
@@ -45,6 +46,7 @@ defmodule EmakolaWeb.PlatformSessionController do
     # delete_session (not configure_session(drop: true)) so a coexisting
     # merchant :user_token session survives platform logout.
     |> delete_session(:platform_session_token)
+    |> delete_session(:live_socket_id)
     |> redirect(to: "/platform/login")
   end
 

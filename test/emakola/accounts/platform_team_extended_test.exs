@@ -170,7 +170,9 @@ defmodule Emakola.Accounts.PlatformTeamExtendedTest do
 
       assert [log] = audit_rows(:staff_deactivated, owner)
       assert log.metadata["user_id"] == target.id
-      assert [_log] = audit_rows(:sessions_force_revoked, target)
+
+      assert [revoked_log] = audit_rows(:sessions_force_revoked, owner)
+      assert revoked_log.metadata["user_id"] == target.id
     end
 
     test "non-owner with manage_team gets :owner_required" do
@@ -230,7 +232,10 @@ defmodule Emakola.Accounts.PlatformTeamExtendedTest do
 
       assert {:ok, 2} = PlatformTeam.force_logout(target, actor)
       assert {:ok, []} = Sessions.list_active_for_user(target.id)
-      assert [_log] = audit_rows(:sessions_force_revoked, target)
+
+      assert [log] = audit_rows(:sessions_force_revoked, actor)
+      assert log.metadata["user_id"] == target.id
+      assert log.metadata["count"] == 2
     end
 
     test "actor without manage_team gets :unauthorized" do
@@ -296,7 +301,11 @@ defmodule Emakola.Accounts.PlatformTeamExtendedTest do
 
       assert is_nil(cleared.totp_secret)
       assert is_nil(cleared.totp_last_used_at)
-      assert [_log] = audit_rows(:totp_disabled, target)
+
+      # The acting admin is the audit actor; the target lives in metadata.
+      assert [log] = audit_rows(:totp_disabled, actor)
+      assert log.metadata["target_user_id"] == target.id
+      assert log.metadata["target_email"] == to_string(target.email)
     end
 
     test "actor without manage_team gets :unauthorized" do

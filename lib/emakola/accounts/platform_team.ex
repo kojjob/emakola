@@ -72,7 +72,7 @@ defmodule Emakola.Accounts.PlatformTeam do
     with :ok <- require_manage_team(actor),
          :ok <- require_owner(actor),
          {:ok, deactivated} <- run_update(user, :deactivate_staff, actor),
-         {:ok, _count} <- Sessions.revoke_all_for_user(user.id) do
+         {:ok, _count} <- Sessions.revoke_all_for_user(user.id, actor) do
       {:ok, deactivated}
     end
   end
@@ -88,7 +88,7 @@ defmodule Emakola.Accounts.PlatformTeam do
   @doc "Revoke all of a staff member's active sessions; returns `{:ok, count}`."
   def force_logout(%User{} = user, actor) do
     with :ok <- require_manage_team(actor) do
-      Sessions.revoke_all_for_user(user.id)
+      Sessions.revoke_all_for_user(user.id, actor)
     end
   end
 

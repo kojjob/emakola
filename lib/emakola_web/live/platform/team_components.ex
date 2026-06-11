@@ -253,6 +253,7 @@ defmodule EmakolaWeb.Platform.TeamComponents do
                   id={"resend-invite-#{invite.id}"}
                   phx-click="resend_invite"
                   phx-value-id={invite.id}
+                  data-confirm="This will invalidate the previous invite link. Resend?"
                   class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium text-blue-600 hover:bg-blue-50 ml-1"
                 >
                   Resend
