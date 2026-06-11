@@ -43,6 +43,20 @@ defmodule Emakola.Accounts.PlatformAuditTest do
         end)
 
       assert log_output =~ "platform audit log failed"
+      assert log_output =~ "action="
+    end
+
+    test "with an unexpected actor struct logs a warning and uses nil actor_id" do
+      merchant = create_merchant!()
+
+      log_output =
+        capture_log(fn ->
+          assert {:ok, log} = PlatformAudit.log(:sign_in_succeeded, merchant)
+          assert log.actor_id == nil
+        end)
+
+      assert log_output =~ "unexpected actor"
+      assert log_output =~ "treating as nil"
     end
   end
 end

@@ -81,12 +81,17 @@
       "all_tenants?": false,
       "concurrently": false,
       "error_fields": [
-        "inserted_at"
+        "inserted_at",
+        "id"
       ],
       "fields": [
         {
           "type": "atom",
           "value": "inserted_at"
+        },
+        {
+          "type": "atom",
+          "value": "id"
         }
       ],
       "include": null,

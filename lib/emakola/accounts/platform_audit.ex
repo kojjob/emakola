@@ -35,7 +35,10 @@ defmodule Emakola.Accounts.PlatformAudit do
         result
 
       {:error, reason} ->
-        Logger.warning("platform audit log failed: #{inspect(reason)}")
+        Logger.warning(
+          "platform audit log failed action=#{inspect(action)} reason=#{inspect(reason)}"
+        )
+
         result
     end
   end
@@ -43,4 +46,9 @@ defmodule Emakola.Accounts.PlatformAudit do
   defp actor_id(%User{id: id}), do: id
   defp actor_id(id) when is_binary(id), do: id
   defp actor_id(nil), do: nil
+
+  defp actor_id(other) do
+    Logger.warning("platform_audit: unexpected actor #{inspect(other)}, treating as nil")
+    nil
+  end
 end

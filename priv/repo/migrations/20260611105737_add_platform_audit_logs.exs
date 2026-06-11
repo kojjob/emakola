@@ -20,11 +20,11 @@ defmodule Emakola.Repo.Migrations.AddPlatformAuditLogs do
         default: fragment("(now() AT TIME ZONE 'utc')")
     end
 
-    create index(:platform_audit_logs, [:inserted_at])
+    create index(:platform_audit_logs, [:inserted_at, :id])
   end
 
   def down do
-    drop_if_exists index(:platform_audit_logs, [:inserted_at])
+    drop_if_exists index(:platform_audit_logs, [:inserted_at, :id])
 
     drop table(:platform_audit_logs)
   end

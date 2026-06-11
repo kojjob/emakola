@@ -20,7 +20,7 @@ defmodule Emakola.Accounts.PlatformAuditLog do
     repo(Emakola.Repo)
 
     custom_indexes do
-      index([:inserted_at])
+      index([:inserted_at, :id])
     end
   end
 
@@ -64,6 +64,7 @@ defmodule Emakola.Accounts.PlatformAuditLog do
     attribute :ip, :string do
       allow_nil?(true)
       public?(true)
+      constraints(max_length: 45)
     end
 
     create_timestamp(:inserted_at)
