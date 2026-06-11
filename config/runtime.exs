@@ -73,6 +73,18 @@ if config_env() == :prod do
     adapter: Swoosh.Adapters.Resend,
     api_key: resend_api_key
 
+  # ChromicPDF (analytics PDF export) — the Docker runner installs Debian's
+  # chromium package and runs as a non-root user. Chrome's sandbox needs
+  # privileges unavailable in the container, so we follow ChromicPDF's
+  # documented Docker pattern: explicit binary + no_sandbox. on_demand
+  # spawns Chrome lazily per PDF request, so a broken Chrome install breaks
+  # PDF export instead of crashing the app at boot.
+  config :emakola, ChromicPDF,
+    chrome_executable: System.get_env("CHROME_EXECUTABLE", "/usr/bin/chromium"),
+    no_sandbox: System.get_env("CHROME_NO_SANDBOX", "true") == "true",
+    discard_stderr: true,
+    on_demand: true
+
   # S3-compatible storage for product images, media uploads
   config :emakola, :storage, Emakola.Storage.S3
 
