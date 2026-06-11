@@ -81,7 +81,10 @@ defmodule EmakolaWeb.LandingLive do
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-headline font-extrabold leading-[1.1] [text-shadow:0_2px_18px_rgba(12,21,38,0.6)]">
           Be the next<br />
           <span class="sr-only">big name in Accra</span>
-          <span class="hero-rotator whitespace-nowrap" aria-hidden="true">
+          <span
+            class="hero-rotator whitespace-nowrap text-[1.75rem] sm:text-5xl lg:text-6xl"
+            aria-hidden="true"
+          >
             <span class="hero-rotator-list">
               <span :for={word <- rotating_words()} class="text-[#d4a843]">{word}</span>
             </span>
