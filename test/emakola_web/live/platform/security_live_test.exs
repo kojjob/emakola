@@ -129,6 +129,23 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
       assert reload_user!(user).totp_secret == secret
     end
 
+    test "more than 5 wrong rotation codes within a minute are rate limited",
+         %{conn: conn} do
+      {conn, user, _session} = setup_platform_staff(conn)
+      {_user, _secret} = enable_totp!(user)
+
+      {:ok, view, _html} = live(conn, "/platform/security")
+      view |> element("#rotate-totp") |> render_click()
+
+      for _ <- 1..5 do
+        assert submit_verify(view, "000000") =~ "Invalid code"
+      end
+
+      html = submit_verify(view, "000000")
+      refute html =~ "Invalid code"
+      assert html =~ "Too many attempts"
+    end
+
     test "a verified current code cannot start a second rotation (replay)",
          %{conn: conn} do
       {conn, user, _session} = setup_platform_staff(conn)

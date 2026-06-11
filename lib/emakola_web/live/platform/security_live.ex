@@ -18,6 +18,10 @@ defmodule EmakolaWeb.Platform.SecurityLive do
   alias Emakola.Accounts.TOTP
   alias Emakola.Accounts.UserSession
 
+  @rate_limit 5
+  @rate_window_ms 60_000
+  @rate_limited_error "Too many attempts. Please try again in a minute."
+
   @impl true
   def mount(_params, _session, socket) do
     socket =
@@ -53,33 +57,17 @@ defmodule EmakolaWeb.Platform.SecurityLive do
   end
 
   def handle_event("verify_rotation_code", %{"totp" => %{"code" => code}}, socket) do
-    # Re-fetch the user: totp_last_used_at must be fresh for the since:
-    # replay guard to hold across events and tabs.
-    user = reload_current_user(socket)
+    # Shared bucket with login — caps total guesses against one user's TOTP secret.
+    case Emakola.RateLimit.check_rate(
+           "platform_totp:#{socket.assigns.current_user.id}",
+           @rate_limit,
+           @rate_window_ms
+         ) do
+      {:deny, _retry_after} ->
+        {:noreply, assign(socket, rotation_step: :verify, rotation_error: @rate_limited_error)}
 
-    if TOTP.valid_code?(user.totp_secret, code, since: user.totp_last_used_at) do
-      # Consume the code BEFORE showing the new secret — the same current
-      # code must not be able to start a second rotation.
-      {:ok, user} =
-        user
-        |> Ash.Changeset.for_update(:record_totp_use, %{}, actor: user)
-        |> Ash.update(authorize?: false)
-
-      secret = TOTP.generate_secret()
-      uri = TOTP.otpauth_uri(to_string(user.email), secret)
-
-      {:noreply,
-       assign(socket,
-         current_user: user,
-         rotation_step: :confirm,
-         rotation_error: nil,
-         pending_secret: secret,
-         # Safe to mark raw: EQRCode emits pure geometry; no user text in the markup
-         qr_svg: Phoenix.HTML.raw(TOTP.qr_svg(uri)),
-         otpauth_secret_base32: Base.encode32(secret, padding: false)
-       )}
-    else
-      {:noreply, assign(socket, :rotation_error, "Invalid code")}
+      {:allow, _count} ->
+        verify_rotation_code(code, socket)
     end
   end
 
@@ -127,6 +115,37 @@ defmodule EmakolaWeb.Platform.SecurityLive do
   end
 
   # ── Helpers ─────────────────────────────────────────────────────
+
+  defp verify_rotation_code(code, socket) do
+    # Re-fetch the user: totp_last_used_at must be fresh for the since:
+    # replay guard to hold across events and tabs.
+    user = reload_current_user(socket)
+
+    if TOTP.valid_code?(user.totp_secret, code, since: user.totp_last_used_at) do
+      # Consume the code BEFORE showing the new secret — the same current
+      # code must not be able to start a second rotation.
+      {:ok, user} =
+        user
+        |> Ash.Changeset.for_update(:record_totp_use, %{}, actor: user)
+        |> Ash.update(authorize?: false)
+
+      secret = TOTP.generate_secret()
+      uri = TOTP.otpauth_uri(to_string(user.email), secret)
+
+      {:noreply,
+       assign(socket,
+         current_user: user,
+         rotation_step: :confirm,
+         rotation_error: nil,
+         pending_secret: secret,
+         # Safe to mark raw: EQRCode emits pure geometry; no user text in the markup
+         qr_svg: Phoenix.HTML.raw(TOTP.qr_svg(uri)),
+         otpauth_secret_base32: Base.encode32(secret, padding: false)
+       )}
+    else
+      {:noreply, assign(socket, :rotation_error, "Invalid code")}
+    end
+  end
 
   defp load_sessions(socket) do
     case Sessions.list_active_for_user(socket.assigns.current_user.id) do
