@@ -3,6 +3,7 @@ defmodule EmakolaWeb.LandingLive do
 
   import EmakolaWeb.LandingComponents, only: [landing_nav: 1, landing_footer: 1]
 
+  # Mirrored by the hero-rotate keyframes in assets/css/app.css — update both if word count changes.
   @rotating_words ["big name in Accra", "household brand", "MoMo success story", "market leader"]
 
   @faqs [
@@ -29,8 +30,7 @@ defmodule EmakolaWeb.LandingLive do
        page_title: "Emakola — Start Selling Online in Ghana | Mobile Money & Dropshipping",
        meta_description:
          "Create your online store in Ghana. Accept MTN MoMo and Vodafone Cash, dropship from local suppliers, and send WhatsApp order updates. Free to start.",
-       og_image: "/images/og-image.png",
-       twitter_card: "summary_large_image",
+       og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/"),
        preload_image: "/images/landing/hero-market-woman.jpg",
        json_ld: json_ld(),
@@ -80,7 +80,8 @@ defmodule EmakolaWeb.LandingLive do
         </span>
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-headline font-extrabold leading-[1.1] [text-shadow:0_2px_18px_rgba(12,21,38,0.6)]">
           Be the next<br />
-          <span class="hero-rotator">
+          <span class="sr-only">big name in Accra</span>
+          <span class="hero-rotator whitespace-nowrap" aria-hidden="true">
             <span class="hero-rotator-list">
               <span :for={word <- rotating_words()} class="text-[#d4a843]">{word}</span>
             </span>
@@ -164,7 +165,10 @@ defmodule EmakolaWeb.LandingLive do
               height="533"
               class="w-full h-[240px] object-cover rounded-2xl"
             />
-            <div class="absolute bottom-3 left-3 lg:-bottom-4 lg:-left-4 bg-white rounded-xl shadow-xl p-4">
+            <div
+              aria-hidden="true"
+              class="absolute bottom-3 left-3 lg:-bottom-4 lg:-left-4 bg-white rounded-xl shadow-xl p-4"
+            >
               <p class="text-[10px] text-[#5f6b7a]">Payment received</p>
               <p class="text-sm font-extrabold text-[#0c1526]">+ GHS 85.00 · MoMo</p>
               <p class="text-[10px] font-bold text-[#16a34a]">✓ In your wallet</p>
@@ -191,7 +195,10 @@ defmodule EmakolaWeb.LandingLive do
               height="533"
               class="w-full h-[240px] object-cover rounded-2xl"
             />
-            <div class="absolute bottom-3 right-3 lg:-bottom-4 lg:-right-4 bg-[#dcf8c6] rounded-xl rounded-br-sm shadow-xl p-3 max-w-[70%]">
+            <div
+              aria-hidden="true"
+              class="absolute bottom-3 right-3 lg:-bottom-4 lg:-right-4 bg-[#dcf8c6] rounded-xl rounded-br-sm shadow-xl p-3 max-w-[70%]"
+            >
               <p class="text-xs text-[#0c1526]">
                 🛍️ <b>Order #1042 confirmed!</b> <br />Hi Akosua — your order ships today.
               </p>
@@ -219,7 +226,10 @@ defmodule EmakolaWeb.LandingLive do
               height="533"
               class="w-full h-[240px] object-cover rounded-2xl"
             />
-            <div class="absolute top-3 right-3 bg-white rounded-xl shadow-xl px-3 py-2">
+            <div
+              aria-hidden="true"
+              class="absolute top-3 right-3 bg-white rounded-xl shadow-xl px-3 py-2"
+            >
               <p class="text-[10px] text-[#5f6b7a]">🔒 amas-fashion.emakola.com</p>
               <p class="text-xs font-extrabold text-[#16a34a]">Loads in 1.2s on 3G</p>
             </div>
@@ -242,7 +252,7 @@ defmodule EmakolaWeb.LandingLive do
         </p>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <div :for={feature <- features()} class="bg-[#f7f8fa] rounded-2xl p-6" data-reveal>
-            <span class="material-symbols-outlined text-2xl text-[#d4a843] mb-3">
+            <span class="material-symbols-outlined text-2xl text-[#d4a843] mb-3" aria-hidden="true">
               {feature.icon}
             </span>
             <h3 class="text-base font-bold text-[#0c1526] mb-1">{feature.title}</h3>
@@ -351,15 +361,15 @@ defmodule EmakolaWeb.LandingLive do
         <p class="text-base text-[#5f6b7a] mb-12">Most merchants go live in under an hour.</p>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5 text-left">
           <div class="bg-white rounded-2xl p-6 shadow-sm" data-reveal>
-            <p class="text-2xl font-headline font-black text-[#d4a843] mb-2">01</p>
+            <p class="text-2xl font-headline font-extrabold text-[#d4a843] mb-2">01</p>
             <h3 class="text-base font-bold text-[#0c1526]">Add your first product</h3>
           </div>
           <div class="bg-white rounded-2xl p-6 shadow-sm" data-reveal>
-            <p class="text-2xl font-headline font-black text-[#d4a843] mb-2">02</p>
+            <p class="text-2xl font-headline font-extrabold text-[#d4a843] mb-2">02</p>
             <h3 class="text-base font-bold text-[#0c1526]">Share your store link</h3>
           </div>
           <div class="bg-white rounded-2xl p-6 shadow-sm" data-reveal>
-            <p class="text-2xl font-headline font-black text-[#d4a843] mb-2">03</p>
+            <p class="text-2xl font-headline font-extrabold text-[#d4a843] mb-2">03</p>
             <h3 class="text-base font-bold text-[#0c1526]">Get paid with MoMo</h3>
           </div>
         </div>
@@ -381,7 +391,10 @@ defmodule EmakolaWeb.LandingLive do
           <details :for={{question, answer} <- @faqs} class="group bg-[#f7f8fa] rounded-xl p-5">
             <summary class="cursor-pointer text-base font-semibold text-[#0c1526] list-none flex items-center justify-between gap-3">
               {question}
-              <span class="material-symbols-outlined text-[#8896ab] group-open:rotate-180 transition-transform">
+              <span
+                class="material-symbols-outlined text-[#8896ab] group-open:rotate-180 transition-transform"
+                aria-hidden="true"
+              >
                 expand_more
               </span>
             </summary>

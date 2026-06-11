@@ -145,7 +145,14 @@ defmodule EmakolaWeb.LandingLiveTest do
 
       assert html =~ "Who can sell on Emakola?"
       assert html =~ "What is dropshipping on Emakola?"
-      assert length(String.split(html, "<details")) - 1 == 7
+
+      faq_html =
+        html
+        |> String.split(~s(id="faq"))
+        |> List.last()
+        |> then(&String.slice(&1, 0, :binary.match(&1, "</section>") |> elem(0)))
+
+      assert length(String.split(faq_html, "<details")) - 1 == 7
     end
   end
 
@@ -168,6 +175,21 @@ defmodule EmakolaWeb.LandingLiveTest do
       assert html =~ "FAQPage"
       assert html =~ "SoftwareApplication"
       assert html =~ "Organization"
+    end
+
+    test "JSON-LD graph decodes with offers and FAQ entries", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+
+      [_, payload] =
+        Regex.run(~r{<script type="application/ld\+json">\s*(.*?)\s*</script>}s, html)
+
+      %{"@graph" => graph} = Jason.decode!(payload)
+
+      software_app = Enum.find(graph, &(&1["@type"] == "SoftwareApplication"))
+      faq_page = Enum.find(graph, &(&1["@type"] == "FAQPage"))
+
+      assert length(software_app["offers"]) == 3
+      assert length(faq_page["mainEntity"]) == 7
     end
   end
 
