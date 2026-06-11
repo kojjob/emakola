@@ -23,6 +23,13 @@ defmodule Emakola.Factory do
     |> Ash.create!(authorize?: false)
   end
 
+  def create_platform_owner!(attrs \\ %{}) do
+    attrs
+    |> create_user!()
+    |> Ash.Changeset.for_update(:set_platform_permissions, %{is_owner: true})
+    |> Ash.update!(authorize?: false)
+  end
+
   def build_organisation(attrs \\ %{}) do
     default = %{
       name: "Test Org #{System.unique_integer([:positive])}"

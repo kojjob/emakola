@@ -5,7 +5,7 @@ defmodule EmakolaWeb.Hooks.RequirePlatformAdmin do
   def on_mount(:default, _params, _session, socket) do
     user = socket.assigns[:current_user]
 
-    if user && Map.get(user, :is_platform_admin, false) == true do
+    if user && Map.get(user, :is_owner, false) == true do
       {:cont, socket}
     else
       {:halt,

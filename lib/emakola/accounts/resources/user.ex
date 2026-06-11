@@ -59,11 +59,27 @@ defmodule Emakola.Accounts.User do
 
     attribute(:confirmed_at, :utc_datetime_usec, public?: true)
 
-    attribute :is_platform_admin, :boolean do
+    attribute :is_owner, :boolean do
       default(false)
       allow_nil?(false)
       public?(true)
     end
+
+    attribute :platform_permissions, {:array, :atom} do
+      default([])
+      allow_nil?(false)
+      public?(true)
+      constraints(items: [one_of: Emakola.Accounts.PlatformPermissions.all()])
+    end
+
+    attribute :totp_secret, :binary do
+      allow_nil?(true)
+      sensitive?(true)
+    end
+
+    attribute(:totp_last_used_at, :utc_datetime_usec)
+
+    attribute(:deactivated_at, :utc_datetime_usec, public?: true)
 
     timestamps()
   end
@@ -108,8 +124,34 @@ defmodule Emakola.Accounts.User do
   actions do
     defaults([:read])
 
+    read :platform_staff do
+      filter(expr(is_owner == true or platform_permissions != []))
+    end
+
     update :update_profile do
       accept([:name, :avatar_url, :preferences])
+    end
+
+    update :set_platform_permissions do
+      require_atomic?(false)
+      accept([:is_owner, :platform_permissions])
+
+      validate(Emakola.Accounts.Validations.EnsureOwnerRemains)
+    end
+
+    update :deactivate_staff do
+      require_atomic?(false)
+      accept([])
+
+      change(set_attribute(:deactivated_at, &DateTime.utc_now/0))
+      validate(Emakola.Accounts.Validations.EnsureOwnerRemains)
+    end
+
+    update :reactivate_staff do
+      require_atomic?(false)
+      accept([])
+
+      change(set_attribute(:deactivated_at, nil))
     end
 
     update :change_password do
