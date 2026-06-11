@@ -22,8 +22,12 @@ strong SEO/AI-SEO, and a single conversion goal — merchant signup.
 4. **Pricing moves to a new `/pricing` page** reusing the existing 4-plan grid.
 5. **Image-led.** High-fidelity photography carries the page (curated Unsplash
    photos, downloaded and optimized — not hotlinked).
-6. **Women-forward imagery.** More women than men (7 women / 2 men across the
-   page), reflecting Ghanaian market commerce.
+6. **Women-forward imagery.** Women outnumber men roughly 2:1 across the page,
+   reflecting Ghanaian market commerce.
+6a. **Trades and beauty verticals are explicitly represented.** Seamstresses/
+    tailors, hair stylists, beauticians/cosmetics sellers, barbers, and
+    tradesmen appear in the store wall and FAQ — the platform serves them
+    (e.g., `beauty` and `fashion` themes exist in `Emakola.Themes`).
 7. **Tall image cards.** Store wall images ~170px, feature-story photos ~240px,
    growth-arc portraits ~180px (desktop).
 8. **Fully responsive, mobile-first** — explicit per-section behavior below.
@@ -56,12 +60,17 @@ Started (`/auth/register`). Mobile: hamburger + full-screen overlay (existing
   stays visible).
 
 ### 3. Store wall — "Stores built on Emakola"
-Four CSS-composed store cards (header with colored dot + store name, tall photo,
-price chip), staggered vertical offsets on desktop:
+Subcopy under the heading: "Market traders, seamstresses, hair stylists,
+beauticians, barbers — if you sell it, Emakola handles it."
+
+Six CSS-composed store cards (header with colored dot + store name, tall photo,
+price chip), covering the verticals the platform serves:
 - Mansa Fresh — fruit vendor photo — "Fruit Basket · GHS 75"
-- Adwoa Spices — spice seller photo — "Spice Mix Set · GHS 55"
+- Yaa Braids — salon client photo — "Braiding Bundle · GHS 150"
+- Adwoa Glow — beautician at work photo — "Shea Glow Set · GHS 95"
 - Efua's Kitchen — egg seller photo — "Fresh Eggs · GHS 40"
 - Kojo the Tailor — tailor at sewing machine — "Custom Kaftan · GHS 320"
+- Kwaku Cuts — barber at work photo — "Grooming Kit · GHS 120"
 
 These are illustrative example stores (same convention as the current page's
 testimonial names), not real merchant data. No backend query.
@@ -119,21 +128,25 @@ Subcopy: "Most merchants go live in under an hour."
 01 Add your first product · 02 Share your store link · 03 Get paid with MoMo.
 
 ### 9. FAQ (`#faq`) — also feeds FAQPage structured data
-Six questions, accordion on mobile, two-column on desktop. Answers are 2-3
+Seven questions, accordion on mobile, two-column on desktop. Answers are 2-3
 plain-language sentences written to be quotable by search/AI engines:
 1. **What is Emakola?** — Emakola is an ecommerce platform for West African
    merchants. You create an online store, accept mobile money payments, and
    manage orders from one dashboard.
-2. **How much does Emakola cost?** — Free to start (3.5% per sale), paid plans
+2. **Who can sell on Emakola?** — Anyone with something to sell: market
+   traders, seamstresses and tailors, hair stylists, beauticians and cosmetics
+   sellers, barbers, tradesmen, food vendors, and electronics shops. Themed
+   storefronts fit each trade.
+3. **How much does Emakola cost?** — Free to start (3.5% per sale), paid plans
    from GHS 29/month with lower rates. Link to `/pricing`.
-3. **Can I accept MTN MoMo and Vodafone Cash?** — Yes. MTN MoMo, Vodafone Cash,
+4. **Can I accept MTN MoMo and Vodafone Cash?** — Yes. MTN MoMo, Vodafone Cash,
    AirtelTigo, and card payments via Paystack and Hubtel.
-4. **What is dropshipping on Emakola?** — Sell products your suppliers hold;
+5. **What is dropshipping on Emakola?** — Sell products your suppliers hold;
    when an order comes in, the supplier fulfills it and Emakola tracks supplier
    costs and settlements automatically.
-5. **Can I sell digital products?** — Yes. Upload files; customers get automatic
+6. **Can I sell digital products?** — Yes. Upload files; customers get automatic
    download access after payment.
-6. **Do customers get order updates?** — Yes, automatically on WhatsApp and SMS:
+7. **Do customers get order updates?** — Yes, automatically on WhatsApp and SMS:
    confirmations, shipping, and delivery updates.
 
 Accordion uses `<details>/<summary>` (native, no JS, LiveView-safe).
@@ -162,7 +175,9 @@ Reuse existing `landing_footer` component unchanged.
   ("Market woman in Accra taking an order on her phone", not "hero image").
 - Title: "Emakola — Start Selling Online in Ghana | Mobile Money & Dropshipping".
 - Meta description mentioning: online store Ghana, MTN MoMo, dropshipping,
-  WhatsApp notifications (≤160 chars).
+  WhatsApp notifications (≤160 chars). Trades/beauty verticals appear in
+  on-page copy (store wall subcopy + FAQ) for long-tail queries like
+  "online store for hairdressers in Ghana".
 - Canonical URL on `/` and `/pricing`; OG + Twitter card assigns kept.
 - Verify `/` and `/pricing` are emitted by the existing `SitemapController`
   (add `/pricing` if missing).
@@ -185,7 +200,7 @@ Reuse existing `landing_footer` component unchanged.
 |---|---|---|
 | Nav | Hamburger + overlay menu | Inline links + CTAs |
 | Hero | `text-4xl` headline, photo `bg-cover` with overlay | `text-6xl`, same photo |
-| Store wall | Horizontal scroll-snap row (`overflow-x-auto snap-x`), cards `w-64 shrink-0` | 4-column grid with staggered `lg:mt-*` offsets |
+| Store wall | Horizontal scroll-snap row (`overflow-x-auto snap-x`), cards `w-64 shrink-0` | 3-column grid (6 cards, 2 rows) with staggered `lg:mt-*` offsets |
 | Feature stories | Stacked: photo above text, full width | Alternating 2-column rows (`lg:flex-row` / `lg:flex-row-reverse`) |
 | Features grid | 1 column | 3-column grid (`sm:grid-cols-2 lg:grid-cols-3`) |
 | Growth arc | Vertical stack | 3-column grid |
@@ -208,9 +223,11 @@ and commit to `priv/static/images/landing/`. Target ≤ 150 KB per card image,
 |---|---|---|---|
 | `hero-market-woman.jpg` | `1641422162969-3a3d177124d5` | Hero background | 1600px |
 | `store-fruit.jpg` | `1773858441336-7a8652acbaf1` | Mansa Fresh | 600px |
-| `store-spices.jpg` | `1778079247396-9c0e01c83c8b` | Adwoa Spices | 600px |
 | `store-eggs.jpg` | `1762945274836-4c2cbb75e20e` | Efua's Kitchen | 600px |
 | `store-tailor.jpg` | `1687422809069-0fa3546b8471` | Kojo the Tailor | 600px |
+| `store-hair.jpg` | `1702236240794-58dc4c6895e5` | Yaa Braids | 600px |
+| `store-beauty.jpg` | `1647957902397-de1bd309fc21` | Adwoa Glow | 600px |
+| `store-barber.jpg` | `1653758265969-b048bb0b328a` | Kwaku Cuts | 600px |
 | `story-momo.jpg` | `1573497019418-b400bb3ab074` | Get paid story | 800px |
 | `story-whatsapp.jpg` | `1655720357872-ce227e4164ba` | WhatsApp story | 800px |
 | `story-storefront.jpg` | `1773858438654-08abe8814620` | Storefront story | 800px |
@@ -262,13 +279,15 @@ loading. Nothing beyond LiveView defaults.
      single registration CTA, no shopper hero.
    - Nav: links to `/pricing`, `/stores`, `/auth/login`, `/auth/register`;
      ScrollGlass hook present.
-   - Store wall: 4 store names + GHS prices; images referenced.
+   - Store wall: 6 store names + GHS prices (incl. Yaa Braids, Adwoa Glow,
+     Kwaku Cuts); images referenced.
    - Feature stories: 3 headlines + floating-card copy.
    - Features grid: all 9 feature titles render, including "Dropshipping".
    - Growth arc: START/GROW/SCALE + merchant names.
    - Stats band: "500+", "3", payout copy.
    - 3 steps + final CTA copy.
-   - FAQ: 6 questions render inside `<details>` elements.
+   - FAQ: 7 questions render inside `<details>` elements (incl. "Who can sell
+     on Emakola?").
    - JSON-LD: page contains `application/ld+json` scripts for Organization,
      SoftwareApplication, and FAQPage (assert key substrings).
    - **No pricing section on `/`** (refute plan names like "Starter" pricing grid).
