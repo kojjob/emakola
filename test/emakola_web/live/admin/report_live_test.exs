@@ -7,8 +7,6 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Emakola.Factory
-
   describe "ReportLive.Index (unauthenticated)" do
     test "redirects to login when not authenticated", %{conn: conn} do
       assert {:error, {:live_redirect, %{to: "/auth/login"}}} =

@@ -19,7 +19,7 @@ defmodule Emakola.Accounts.PlatformTeamExtendedTest do
   alias Emakola.Accounts.TOTP
   alias Emakola.Accounts.User
 
-  defp create_staff!(permissions \\ [:manage_team]) do
+  defp create_staff!(permissions) do
     create_user!()
     |> Ash.Changeset.for_update(:set_platform_permissions, %{platform_permissions: permissions})
     |> Ash.update!(authorize?: false)

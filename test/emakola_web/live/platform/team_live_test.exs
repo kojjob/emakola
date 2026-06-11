@@ -18,7 +18,7 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
   alias Emakola.Accounts.User
   alias Emakola.Factory
 
-  defp create_staff!(permissions \\ [:manage_stores]) do
+  defp create_staff!(permissions) do
     Factory.create_user!()
     |> Ash.Changeset.for_update(:set_platform_permissions, %{platform_permissions: permissions})
     |> Ash.update!(authorize?: false)
