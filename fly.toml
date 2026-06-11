@@ -4,7 +4,7 @@
 # =============================================================================
 
 app = "emakola"
-primary_region = "jnb"
+primary_region = "lhr"
 kill_signal = "SIGTERM"
 # Long enough for connection draining + Oban jobs to finish on shutdown.
 kill_timeout = "60s"
