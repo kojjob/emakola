@@ -46,5 +46,14 @@ defmodule EmakolaWeb.PricingLiveTest do
       assert html =~ "SoftwareApplication"
       assert html =~ ~s("priceCurrency":"GHS")
     end
+
+    test "mobile menu toggles", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/pricing")
+
+      refute render(view) =~ "animate-slide-down"
+
+      assert view |> element("button[phx-click=toggle_mobile_menu]") |> render_click() =~
+               "animate-slide-down"
+    end
   end
 end

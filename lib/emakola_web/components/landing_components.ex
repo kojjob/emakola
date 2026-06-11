@@ -1,11 +1,8 @@
 defmodule EmakolaWeb.LandingComponents do
   @moduledoc """
-  Function components extracted from `EmakolaWeb.LandingLive`.
-
-  These are stateless markup helpers — the landing LiveView itself
-  remains a process for the mobile-menu toggle interaction, but the
-  large static sections (footer today, navbar/hero/features over time)
-  live here so the LV's `render/1` is comprehensible.
+  Shared marketing/landing components (nav and footer) used by
+  `EmakolaWeb.LandingLive` and `EmakolaWeb.PricingLive`.
+  Stateless markup helpers; mobile-menu state lives in the parent LiveView.
   """
 
   use Phoenix.Component
@@ -74,6 +71,7 @@ defmodule EmakolaWeb.LandingComponents do
             phx-click="toggle_mobile_menu"
             class="md:hidden p-2 text-[#8896ab] hover:text-[#f1f5f9]"
             aria-label="Toggle menu"
+            aria-expanded={to_string(@mobile_menu_open)}
           >
             <span class="material-symbols-outlined text-2xl">
               {if @mobile_menu_open, do: "close", else: "menu"}
@@ -92,7 +90,7 @@ defmodule EmakolaWeb.LandingComponents do
           Features
         </a>
         <a href="/#faq" phx-click="toggle_mobile_menu" class="text-lg text-[#8896ab]">FAQ</a>
-        <a href="/pricing" class="text-lg text-[#8896ab]">Pricing</a>
+        <a href="/pricing" phx-click="toggle_mobile_menu" class="text-lg text-[#8896ab]">Pricing</a>
         <a href="/stores" class="text-lg text-[#8896ab]">Browse stores</a>
         <hr class="w-24 border-[#1a2744]" />
         <a href="/auth/login" class="text-lg text-[#8896ab]">Login</a>

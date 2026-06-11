@@ -39,7 +39,7 @@ defmodule EmakolaWeb.PricingLive do
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <%!-- Starter --%>
               <div class="bg-[#f7f8fa] rounded-xl shadow-sm p-6 flex flex-col">
-                <h3 class="text-lg font-semibold text-[#0c1526] mb-1">Starter</h3>
+                <h2 class="text-lg font-semibold text-[#0c1526] mb-1">Starter</h2>
                 <div class="flex items-baseline gap-1 mb-1">
                   <span class="text-3xl font-bold text-[#0c1526]">Free</span>
                 </div>
@@ -82,7 +82,7 @@ defmodule EmakolaWeb.PricingLive do
               </div>
               <%!-- Growth --%>
               <div class="bg-[#f7f8fa] rounded-xl shadow-sm p-6 flex flex-col">
-                <h3 class="text-lg font-semibold text-[#0c1526] mb-1">Growth</h3>
+                <h2 class="text-lg font-semibold text-[#0c1526] mb-1">Growth</h2>
                 <div class="flex items-baseline gap-1 mb-1">
                   <span class="text-3xl font-bold text-[#0c1526]">GHS 29</span>
                   <span class="text-sm text-[#5f6b7a]">/mo</span>
@@ -126,7 +126,7 @@ defmodule EmakolaWeb.PricingLive do
                 <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#d4a843] text-[#0c1526] text-xs font-bold px-3 py-0.5 rounded-full">
                   Most Popular
                 </span>
-                <h3 class="text-lg font-semibold text-[#f1f5f9] mb-1">Pro</h3>
+                <h2 class="text-lg font-semibold text-[#f1f5f9] mb-1">Pro</h2>
                 <div class="flex items-baseline gap-1 mb-1">
                   <span class="text-3xl font-bold text-[#f1f5f9]">GHS 79</span>
                   <span class="text-sm text-[#8896ab]">/mo</span>
@@ -173,7 +173,7 @@ defmodule EmakolaWeb.PricingLive do
               </div>
               <%!-- Enterprise --%>
               <div class="bg-[#f7f8fa] rounded-xl shadow-sm p-6 flex flex-col">
-                <h3 class="text-lg font-semibold text-[#0c1526] mb-1">Enterprise</h3>
+                <h2 class="text-lg font-semibold text-[#0c1526] mb-1">Enterprise</h2>
                 <div class="flex items-baseline gap-1 mb-1">
                   <span class="text-3xl font-bold text-[#0c1526]">Custom</span>
                 </div>
@@ -230,7 +230,13 @@ defmodule EmakolaWeb.PricingLive do
       "offers" => [
         %{"@type" => "Offer", "name" => "Starter", "price" => "0", "priceCurrency" => "GHS"},
         %{"@type" => "Offer", "name" => "Growth", "price" => "29", "priceCurrency" => "GHS"},
-        %{"@type" => "Offer", "name" => "Pro", "price" => "79", "priceCurrency" => "GHS"}
+        %{"@type" => "Offer", "name" => "Pro", "price" => "79", "priceCurrency" => "GHS"},
+        %{
+          "@type" => "Offer",
+          "name" => "Enterprise",
+          "priceCurrency" => "GHS",
+          "description" => "Custom pricing"
+        }
       ]
     }
   end
