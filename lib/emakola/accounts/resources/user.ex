@@ -179,6 +179,26 @@ defmodule Emakola.Accounts.User do
       accept([:is_owner, :platform_permissions])
 
       validate(Emakola.Accounts.Validations.EnsureOwnerRemains)
+
+      change(
+        after_action(fn changeset, user, ctx ->
+          Emakola.Accounts.PlatformAudit.log(:permissions_changed, ctx.actor, %{
+            user_id: user.id,
+            email: to_string(user.email),
+            permissions: user.platform_permissions
+          })
+
+          if changeset.data.is_owner != user.is_owner do
+            Emakola.Accounts.PlatformAudit.log(:owner_changed, ctx.actor, %{
+              user_id: user.id,
+              email: to_string(user.email),
+              is_owner: user.is_owner
+            })
+          end
+
+          {:ok, user}
+        end)
+      )
     end
 
     update :deactivate_staff do
@@ -187,6 +207,17 @@ defmodule Emakola.Accounts.User do
 
       change(set_attribute(:deactivated_at, &DateTime.utc_now/0))
       validate(Emakola.Accounts.Validations.EnsureOwnerRemains)
+
+      change(
+        after_action(fn _changeset, user, ctx ->
+          Emakola.Accounts.PlatformAudit.log(:staff_deactivated, ctx.actor, %{
+            user_id: user.id,
+            email: to_string(user.email)
+          })
+
+          {:ok, user}
+        end)
+      )
     end
 
     update :reactivate_staff do
@@ -194,6 +225,17 @@ defmodule Emakola.Accounts.User do
       accept([])
 
       change(set_attribute(:deactivated_at, nil))
+
+      change(
+        after_action(fn _changeset, user, ctx ->
+          Emakola.Accounts.PlatformAudit.log(:staff_reactivated, ctx.actor, %{
+            user_id: user.id,
+            email: to_string(user.email)
+          })
+
+          {:ok, user}
+        end)
+      )
     end
 
     update :setup_totp do
