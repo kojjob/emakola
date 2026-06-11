@@ -2,6 +2,8 @@
 
 Production deployment guide for the Emakola ecommerce platform on Fly.io.
 
+> **Credential setup:** step-by-step provider configuration (Paystack, Resend, SMS, WhatsApp templates, generated secrets) lives in [PROVIDER_SETUP.md](PROVIDER_SETUP.md). Start the WhatsApp section first — Meta approval takes days.
+
 ---
 
 ## Infrastructure Overview
