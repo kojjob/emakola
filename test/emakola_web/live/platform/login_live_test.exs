@@ -160,6 +160,21 @@ defmodule EmakolaWeb.Platform.LoginLiveTest do
       {:ok, reloaded} = Emakola.Accounts.get_user_by_id(user.id, authorize?: false)
       assert is_nil(reloaded.totp_secret)
     end
+
+    test "more than 5 setup attempts within a minute are rate limited", %{conn: conn} do
+      user = create_platform_owner!()
+
+      {:ok, view, _html} = live(conn, "/platform/login")
+      submit_credentials(view, user.email, @password)
+
+      for _ <- 1..5 do
+        assert submit_totp_setup(view, "000000") =~ "Invalid code"
+      end
+
+      html = submit_totp_setup(view, "000000")
+      refute html =~ "Invalid code"
+      assert html =~ "Too many attempts"
+    end
   end
 
   describe "TOTP verify step (staff with TOTP)" do

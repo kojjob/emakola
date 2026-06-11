@@ -15,6 +15,8 @@ defmodule EmakolaWeb.Platform.LoginLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.Platform.LoginComponents
+
   alias Emakola.Accounts.PlatformAudit
   alias Emakola.Accounts.PlatformPermissions
   alias Emakola.Accounts.TOTP
@@ -54,16 +56,26 @@ defmodule EmakolaWeb.Platform.LoginLive do
   def handle_event("submit_totp_setup", %{"totp" => %{"code" => code}}, socket) do
     case load_pending_staff(socket) do
       {:ok, user} ->
-        user
-        |> Ash.Changeset.for_update(:setup_totp, %{
-          secret: socket.assigns.pending_secret,
-          code: code
-        })
-        |> Ash.update(authorize?: false)
-        |> case do
-          # setup_totp already set totp_last_used_at — no record_totp_use
-          {:ok, user} -> {:noreply, redirect_to_exchange(socket, user)}
-          {:error, _} -> {:noreply, assign(socket, error: "Invalid code")}
+        case Emakola.RateLimit.check_rate(
+               "platform_totp:#{user.id}",
+               @rate_limit,
+               @rate_window_ms
+             ) do
+          {:deny, _retry_after} ->
+            {:noreply, assign(socket, error: @rate_limited_error)}
+
+          {:allow, _count} ->
+            user
+            |> Ash.Changeset.for_update(:setup_totp, %{
+              secret: socket.assigns.pending_secret,
+              code: code
+            })
+            |> Ash.update(authorize?: false)
+            |> case do
+              # setup_totp already set totp_last_used_at — no record_totp_use
+              {:ok, user} -> {:noreply, redirect_to_exchange(socket, user)}
+              {:error, _} -> {:noreply, assign(socket, error: "Invalid code")}
+            end
         end
 
       {:reset, socket} ->
@@ -154,9 +166,11 @@ defmodule EmakolaWeb.Platform.LoginLive do
 
   defp verify_totp(socket, user, code) do
     if TOTP.valid_code?(user.totp_secret, code, since: user.totp_last_used_at) do
-      user
-      |> Ash.Changeset.for_update(:record_totp_use, %{})
-      |> Ash.update!(authorize?: false)
+      # Best-effort: user already proved identity; recording use is non-critical
+      _ =
+        user
+        |> Ash.Changeset.for_update(:record_totp_use, %{})
+        |> Ash.update(authorize?: false)
 
       {:noreply, redirect_to_exchange(socket, user)}
     else
@@ -255,132 +269,4 @@ defmodule EmakolaWeb.Platform.LoginLive do
   defp subtitle(:credentials), do: "Restricted to Emakola platform staff"
   defp subtitle(:totp_setup), do: "Set up two-factor authentication to continue"
   defp subtitle(:totp), do: "Enter the code from your authenticator app"
-
-  defp credentials_form(assigns) do
-    ~H"""
-    <.form
-      for={@form}
-      id="platform-credentials-form"
-      phx-submit="submit_credentials"
-      class="space-y-4"
-    >
-      <div>
-        <label class="block text-sm font-medium text-[#0c1526] mb-1.5">Email</label>
-        <input
-          type="email"
-          name="user[email]"
-          value={@form[:email].value}
-          placeholder="you@emakola.com"
-          required
-          class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0c1526] placeholder:text-[#8896ab] focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] transition-colors"
-        />
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-[#0c1526] mb-1.5">Password</label>
-        <input
-          type="password"
-          name="user[password]"
-          placeholder="Enter your password"
-          required
-          class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0c1526] placeholder:text-[#8896ab] focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] transition-colors"
-        />
-      </div>
-      <button
-        type="submit"
-        class="w-full bg-[#0c1526] hover:bg-[#1a2744] text-[#f1f5f9] font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm"
-      >
-        Continue
-      </button>
-    </.form>
-    """
-  end
-
-  defp totp_setup_form(assigns) do
-    ~H"""
-    <div class="space-y-4">
-      <p class="text-sm text-[#5f6b7a]">
-        Scan this QR code with your authenticator app (Google Authenticator, 1Password, …),
-        then enter the 6-digit code it shows.
-      </p>
-      <%!-- @qr_svg is already marked safe at assign time (pure QR geometry) --%>
-      <div class="flex justify-center rounded-xl border border-gray-200 p-4">
-        {@qr_svg}
-      </div>
-      <p class="text-xs text-[#5f6b7a]">
-        Can't scan? Enter this key manually:
-        <code
-          id="totp-manual-secret"
-          class="block mt-1 break-all rounded-lg bg-gray-50 px-3 py-2 font-mono text-[#0c1526]"
-        >
-          {@otpauth_secret_base32}
-        </code>
-      </p>
-      <.form
-        for={%{}}
-        as={:totp}
-        id="platform-totp-setup-form"
-        phx-submit="submit_totp_setup"
-        class="space-y-4"
-      >
-        <.code_input />
-        <button
-          type="submit"
-          class="w-full bg-[#0c1526] hover:bg-[#1a2744] text-[#f1f5f9] font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm"
-        >
-          Verify and sign in
-        </button>
-      </.form>
-      <.back_link />
-    </div>
-    """
-  end
-
-  defp totp_form(assigns) do
-    ~H"""
-    <div class="space-y-4">
-      <.form for={%{}} as={:totp} id="platform-totp-form" phx-submit="submit_totp" class="space-y-4">
-        <.code_input />
-        <button
-          type="submit"
-          class="w-full bg-[#0c1526] hover:bg-[#1a2744] text-[#f1f5f9] font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm"
-        >
-          Verify and sign in
-        </button>
-      </.form>
-      <.back_link />
-    </div>
-    """
-  end
-
-  defp code_input(assigns) do
-    ~H"""
-    <div>
-      <label class="block text-sm font-medium text-[#0c1526] mb-1.5">6-digit code</label>
-      <input
-        type="text"
-        name="totp[code]"
-        inputmode="numeric"
-        autocomplete="one-time-code"
-        pattern="[0-9]{6}"
-        maxlength="6"
-        placeholder="123456"
-        required
-        class="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-center text-lg tracking-[0.5em] text-[#0c1526] placeholder:text-[#8896ab] focus:ring-2 focus:ring-[#2563eb] focus:border-[#2563eb] transition-colors"
-      />
-    </div>
-    """
-  end
-
-  defp back_link(assigns) do
-    ~H"""
-    <button
-      type="button"
-      id="totp-back"
-      phx-click="back"
-      class="w-full text-center text-sm font-medium text-[#5f6b7a] hover:text-[#0c1526] transition-colors"
-    >
-      Back
-    </button>
-    """
-  end
 end

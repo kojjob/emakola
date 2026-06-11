@@ -26,7 +26,6 @@ defmodule EmakolaWeb.PlatformSessionController do
       conn
       |> put_session(:platform_session_token, AuthTokens.sign_platform_session(session.id))
       |> configure_session(renew: true)
-      # Route defined in Phase 6 of this branch; lands on 404 in dev until then.
       |> redirect(to: "/platform")
     else
       _ -> reject(conn)
@@ -46,14 +45,12 @@ defmodule EmakolaWeb.PlatformSessionController do
     # delete_session (not configure_session(drop: true)) so a coexisting
     # merchant :user_token session survives platform logout.
     |> delete_session(:platform_session_token)
-    # Route defined in Phase 6 of this branch; lands on 404 in dev until then.
     |> redirect(to: "/platform/login")
   end
 
   defp reject(conn) do
     conn
     |> put_flash(:error, "Sign-in failed. Please log in again.")
-    # Route defined in Phase 6 of this branch; lands on 404 in dev until then.
     |> redirect(to: "/platform/login")
   end
 
