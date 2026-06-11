@@ -33,6 +33,11 @@ defmodule Emakola.Accounts do
       define(:get_merchant_store_membership, action: :by_merchant, args: [:merchant_id])
     end
 
+    resource Emakola.Accounts.PlatformAuditLog do
+      define(:create_platform_audit_log, action: :create)
+      define(:list_platform_audit_logs, action: :list)
+    end
+
     resource(Emakola.Accounts.Token)
   end
 end
