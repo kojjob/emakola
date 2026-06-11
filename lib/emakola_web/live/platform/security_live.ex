@@ -123,25 +123,29 @@ defmodule EmakolaWeb.Platform.SecurityLive do
 
     if TOTP.valid_code?(user.totp_secret, code, since: user.totp_last_used_at) do
       # Consume the code BEFORE showing the new secret — the same current
-      # code must not be able to start a second rotation.
-      {:ok, user} =
-        user
-        |> Ash.Changeset.for_update(:record_totp_use, %{}, actor: user)
-        |> Ash.update(authorize?: false)
+      # code must not be able to start a second rotation. Consumption is
+      # load-bearing for the replay guard, so a failure aborts the rotation.
+      case user
+           |> Ash.Changeset.for_update(:record_totp_use, %{}, actor: user)
+           |> Ash.update(authorize?: false) do
+        {:ok, user} ->
+          secret = TOTP.generate_secret()
+          uri = TOTP.otpauth_uri(to_string(user.email), secret)
 
-      secret = TOTP.generate_secret()
-      uri = TOTP.otpauth_uri(to_string(user.email), secret)
+          {:noreply,
+           assign(socket,
+             current_user: user,
+             rotation_step: :confirm,
+             rotation_error: nil,
+             pending_secret: secret,
+             # Safe to mark raw: EQRCode emits pure geometry; no user text in the markup
+             qr_svg: Phoenix.HTML.raw(TOTP.qr_svg(uri)),
+             otpauth_secret_base32: Base.encode32(secret, padding: false)
+           )}
 
-      {:noreply,
-       assign(socket,
-         current_user: user,
-         rotation_step: :confirm,
-         rotation_error: nil,
-         pending_secret: secret,
-         # Safe to mark raw: EQRCode emits pure geometry; no user text in the markup
-         qr_svg: Phoenix.HTML.raw(TOTP.qr_svg(uri)),
-         otpauth_secret_base32: Base.encode32(secret, padding: false)
-       )}
+        {:error, _} ->
+          {:noreply, assign(socket, :rotation_error, "Something went wrong. Please try again.")}
+      end
     else
       {:noreply, assign(socket, :rotation_error, "Invalid code")}
     end
