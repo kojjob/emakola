@@ -1,8 +1,7 @@
 ExUnit.start(exclude: [:pending, :pdf])
 Ecto.Adapters.SQL.Sandbox.mode(Emakola.Repo, :manual)
 
-# Initialize ETS table for cart storage (used by session-based cart tests)
-Emakola.Cart.CartStore.init()
+# Note: carts are now Postgres-backed (cart_items table) — no ETS init needed.
 
 # Mox mocks
 Mox.defmock(Emakola.HTTPClientMock, for: Emakola.HTTPClient)

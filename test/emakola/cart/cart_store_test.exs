@@ -1,6 +1,7 @@
 defmodule Emakola.Cart.CartStoreTest do
-  use ExUnit.Case, async: true
+  use Emakola.DataCase, async: true
 
+  alias Emakola.Cart.CartItem
   alias Emakola.Cart.CartStore
 
   setup do
@@ -56,6 +57,37 @@ defmodule Emakola.Cart.CartStoreTest do
       [stored] = CartStore.get_cart(session_id)
       assert stored.quantity == 10
     end
+
+    test "same variant added twice stays a single row with summed quantity", %{
+      session_id: session_id
+    } do
+      item = build_item(quantity: 4)
+
+      CartStore.add_item(session_id, item)
+      CartStore.add_item(session_id, %{item | quantity: 3})
+
+      rows = Repo.all(from c in CartItem, where: c.session_id == ^session_id)
+      assert [%CartItem{quantity: 7}] = rows
+    end
+
+    test "dedup row is capped at exactly 10", %{session_id: session_id} do
+      item = build_item(quantity: 9)
+
+      CartStore.add_item(session_id, item)
+      CartStore.add_item(session_id, %{item | quantity: 9})
+
+      rows = Repo.all(from c in CartItem, where: c.session_id == ^session_id)
+      assert [%CartItem{quantity: 10}] = rows
+    end
+
+    test "increment refreshes snapshot fields from the new item map", %{session_id: session_id} do
+      item = build_item(product_title: "Old Title", unit_price: 5000)
+
+      CartStore.add_item(session_id, item)
+      CartStore.add_item(session_id, %{item | product_title: "New Title", unit_price: 6000})
+
+      assert [%{product_title: "New Title", unit_price: 6000}] = CartStore.get_cart(session_id)
+    end
   end
 
   describe "update_quantity/3" do
@@ -97,8 +129,33 @@ defmodule Emakola.Cart.CartStoreTest do
       assert stored.quantity == 10
     end
 
+    test "setting quantity to exactly 10 keeps 10", %{session_id: session_id} do
+      item = build_item()
+      CartStore.add_item(session_id, item)
+
+      CartStore.update_quantity(session_id, item.variant_id, 10)
+
+      [stored] = CartStore.get_cart(session_id)
+      assert stored.quantity == 10
+    end
+
     test "returns :ok even for non-existent variant_id", %{session_id: session_id} do
       assert :ok = CartStore.update_quantity(session_id, Ecto.UUID.generate(), 5)
+    end
+
+    test "preserves insertion order after a quantity update", %{session_id: session_id} do
+      item_a = build_item(variant_id: Ecto.UUID.generate(), product_title: "First")
+      item_b = build_item(variant_id: Ecto.UUID.generate(), product_title: "Second")
+
+      CartStore.add_item(session_id, item_a)
+      CartStore.add_item(session_id, item_b)
+
+      # Updating the first item bumps its updated_at; ordering must follow
+      # inserted_at, so "First" stays first.
+      CartStore.update_quantity(session_id, item_a.variant_id, 5)
+
+      assert [%{product_title: "First"}, %{product_title: "Second"}] =
+               CartStore.get_cart(session_id)
     end
   end
 
@@ -149,6 +206,10 @@ defmodule Emakola.Cart.CartStoreTest do
       assert CartStore.cart_count(session_id) == 0
     end
 
+    test "returns 0 for a session that was never seen" do
+      assert CartStore.cart_count(Ecto.UUID.generate()) == 0
+    end
+
     test "returns total quantity across all items", %{session_id: session_id} do
       CartStore.add_item(session_id, build_item(variant_id: Ecto.UUID.generate(), quantity: 2))
       CartStore.add_item(session_id, build_item(variant_id: Ecto.UUID.generate(), quantity: 3))
@@ -195,15 +256,7 @@ defmodule Emakola.Cart.CartStoreTest do
     test "cleanup_expired/1 removes carts older than given seconds", %{session_id: session_id} do
       CartStore.add_item(session_id, build_item())
 
-      # Force the stored_at to be old by directly manipulating ETS
-      [{^session_id, items}] = :ets.lookup(:cart_store, session_id)
-
-      old_items =
-        Enum.map(items, fn item ->
-          %{item | stored_at: DateTime.add(DateTime.utc_now(), -90_000, :second)}
-        end)
-
-      :ets.insert(:cart_store, {session_id, old_items})
+      backdate_session(session_id, 90_000)
 
       # Cleanup carts older than 24 hours (86400 seconds)
       CartStore.cleanup_expired(86_400)
@@ -218,6 +271,41 @@ defmodule Emakola.Cart.CartStoreTest do
       CartStore.cleanup_expired(86_400)
 
       assert length(CartStore.get_cart(fresh_session)) == 1
+    end
+
+    test "cleanup_expired/1 keeps the whole cart when its newest item is fresh", %{
+      session_id: session_id
+    } do
+      old_item = build_item(variant_id: Ecto.UUID.generate())
+      CartStore.add_item(session_id, old_item)
+      backdate_session(session_id, 90_000)
+
+      fresh_item = build_item(variant_id: Ecto.UUID.generate())
+      CartStore.add_item(session_id, fresh_item)
+
+      CartStore.cleanup_expired(86_400)
+
+      # Newest-item semantics: one fresh item keeps the old one alive too
+      assert length(CartStore.get_cart(session_id)) == 2
+    end
+
+    test "cleanup_expired/1 leaves other sessions untouched", %{session_id: stale_session} do
+      fresh_session = Ecto.UUID.generate()
+
+      CartStore.add_item(stale_session, build_item())
+      backdate_session(stale_session, 90_000)
+      CartStore.add_item(fresh_session, build_item())
+
+      CartStore.cleanup_expired(86_400)
+
+      assert CartStore.get_cart(stale_session) == []
+      assert length(CartStore.get_cart(fresh_session)) == 1
+    end
+  end
+
+  describe "init/0" do
+    test "is a compatibility no-op returning :ok" do
+      assert CartStore.init() == :ok
     end
   end
 
@@ -234,5 +322,15 @@ defmodule Emakola.Cart.CartStoreTest do
     }
 
     defaults
+  end
+
+  # Force a session's items to look old (replaces the old direct ETS write)
+  defp backdate_session(session_id, seconds_ago) do
+    old = DateTime.add(DateTime.utc_now(), -seconds_ago, :second)
+
+    Repo.update_all(
+      from(c in CartItem, where: c.session_id == ^session_id),
+      set: [inserted_at: old, updated_at: old]
+    )
   end
 end
