@@ -170,8 +170,11 @@ defmodule EmakolaWeb.PlatformSessionControllerTest do
 
       assert {:error, :revoked} = Sessions.verify_session_id(session.id)
 
-      assert [entry | _] = audit_entries(:sign_out)
+      # Exactly one audit row for a voluntary logout: :sign_out, with no
+      # accompanying :session_revoked double-entry.
+      assert [entry] = audit_entries(:sign_out)
       assert entry.actor_id == user.id
+      assert audit_entries(:session_revoked) == []
     end
 
     test "logout without a platform session still redirects", %{conn: conn} do

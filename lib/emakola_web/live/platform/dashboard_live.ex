@@ -6,11 +6,29 @@ defmodule EmakolaWeb.Platform.DashboardLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok,
-     socket
-     |> assign(:page_title, "Platform Dashboard")
-     |> assign(:active_nav, :dashboard)
-     |> load_stats()}
+    socket =
+      socket
+      |> assign(:page_title, "Platform Dashboard")
+      |> assign(:active_nav, :dashboard)
+
+    # No DB queries in disconnected mount — render a loading shell first.
+    socket =
+      if connected?(socket) do
+        load_stats(socket)
+      else
+        assign(socket,
+          total_stores: 0,
+          active_stores: 0,
+          total_merchants: 0,
+          total_orders: 0,
+          total_gmv: 0,
+          total_products: 0,
+          total_customers: 0,
+          recent_stores: nil
+        )
+      end
+
+    {:ok, socket}
   end
 
   defp load_stats(socket) do
@@ -83,7 +101,12 @@ defmodule EmakolaWeb.Platform.DashboardLive do
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-              <tr :for={store <- @recent_stores} class="hover:bg-gray-50 transition-colors">
+              <tr :if={is_nil(@recent_stores)}>
+                <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-400">
+                  Loading stores…
+                </td>
+              </tr>
+              <tr :for={store <- @recent_stores || []} class="hover:bg-gray-50 transition-colors">
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold shrink-0">

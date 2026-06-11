@@ -30,8 +30,8 @@ defmodule EmakolaWeb.Hooks.RequirePlatformStaffTest do
   end
 
   describe "access denied" do
-    test "unauthenticated visitor is redirected home", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/platform")
+    test "unauthenticated visitor is redirected to the platform login", %{conn: conn} do
+      assert {:error, {:redirect, %{to: "/platform/login"}}} = live(conn, "/platform")
     end
 
     test "plain user with a session row but no permissions is redirected", %{conn: conn} do
@@ -44,7 +44,7 @@ defmodule EmakolaWeb.Hooks.RequirePlatformStaffTest do
         |> Phoenix.ConnTest.init_test_session(%{})
         |> Plug.Conn.put_session(:platform_session_token, signed)
 
-      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/platform")
+      assert {:error, {:redirect, %{to: "/platform/login"}}} = live(conn, "/platform")
     end
 
     test "deactivated staff is redirected", %{conn: conn} do
@@ -54,20 +54,20 @@ defmodule EmakolaWeb.Hooks.RequirePlatformStaffTest do
       |> Ash.Changeset.for_update(:deactivate_staff, %{})
       |> Ash.update!(authorize?: false)
 
-      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/platform")
+      assert {:error, {:redirect, %{to: "/platform/login"}}} = live(conn, "/platform")
     end
 
     test "merchant session does not grant platform access", %{conn: conn} do
       {conn, _merchant, _store} = setup_authenticated_merchant(conn)
 
-      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/platform")
+      assert {:error, {:redirect, %{to: "/platform/login"}}} = live(conn, "/platform")
     end
 
     test "revoked platform session is redirected", %{conn: conn} do
       {conn, _user, session} = setup_platform_staff(conn)
       {:ok, _} = Emakola.Accounts.Sessions.revoke(session)
 
-      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/platform")
+      assert {:error, {:redirect, %{to: "/platform/login"}}} = live(conn, "/platform")
     end
   end
 end

@@ -14,6 +14,7 @@ defmodule EmakolaWeb.Platform.SecurityLive do
 
   import EmakolaWeb.Platform.SecurityComponents
 
+  alias Emakola.Accounts.PlatformAudit
   alias Emakola.Accounts.Sessions
   alias Emakola.Accounts.TOTP
   alias Emakola.Accounts.UserSession
@@ -107,7 +108,8 @@ defmodule EmakolaWeb.Platform.SecurityLive do
     # /platform/login on the reconnect attempt.
     with {:ok, %UserSession{} = session} <- Ash.get(UserSession, id, authorize?: false),
          true <- session.user_id == socket.assigns.current_user.id,
-         {:ok, _revoked} <- Sessions.revoke(session) do
+         {:ok, revoked} <- Sessions.revoke(session) do
+      PlatformAudit.log(:session_revoked, revoked.user_id, %{session_id: revoked.id})
       {:noreply, socket |> load_sessions() |> put_flash(:info, "Session signed out.")}
     else
       _ -> {:noreply, socket}

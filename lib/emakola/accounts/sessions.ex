@@ -5,9 +5,11 @@ defmodule Emakola.Accounts.Sessions do
   Verification rejects revoked sessions, sessions idle longer than 24
   hours (revoking them as a side effect), and sessions belonging to
   deactivated users. `touch/1` rate-limits last-seen writes to one per
-  5 minutes. Revocations are recorded in the platform audit log and
-  broadcast a `"disconnect"` to the session's live socket topic so open
-  LiveViews drop immediately.
+  5 minutes. Revocations broadcast a `"disconnect"` to the session's
+  live socket topic so open LiveViews drop immediately. Auditing a
+  single revocation is the caller's responsibility (a voluntary logout
+  already writes `:sign_out`); the idle-expiry auto-revocation audits
+  itself, and `revoke_all_for_user/2` audits `:sessions_force_revoked`.
   """
 
   require Ash.Query
@@ -59,13 +61,17 @@ defmodule Emakola.Accounts.Sessions do
   """
   def live_socket_id(session_id), do: "platform_sessions:#{session_id}"
 
-  @doc "Revokes a session (by struct or id), audits it, and disconnects its live socket."
+  @doc """
+  Revokes a session (by struct or id) and disconnects its live socket.
+
+  Does NOT write an audit row — callers that semantically want one
+  (e.g. a per-session sign-out) log `:session_revoked` themselves.
+  """
   def revoke(%UserSession{} = session) do
     with {:ok, revoked} <-
            session
            |> Ash.Changeset.for_update(:revoke, %{})
            |> Ash.update(authorize?: false) do
-      PlatformAudit.log(:session_revoked, revoked.user_id, %{session_id: revoked.id})
       broadcast_disconnect(revoked.id)
       {:ok, revoked}
     end
@@ -150,7 +156,10 @@ defmodule Emakola.Accounts.Sessions do
         {:error, :revoked}
 
       DateTime.before?(session.last_seen_at, idle_threshold) ->
+        # An auto-revocation worth its own audit trail — there is no
+        # voluntary :sign_out row for an idle expiry.
         _ = revoke(session)
+        PlatformAudit.log(:session_revoked, session.user_id, %{session_id: session.id})
         {:error, :idle_expired}
 
       not is_nil(session.user.deactivated_at) ->

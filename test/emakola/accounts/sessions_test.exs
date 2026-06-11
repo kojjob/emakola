@@ -77,6 +77,18 @@ defmodule Emakola.Accounts.SessionsTest do
       assert {:error, :revoked} = Sessions.verify_session_id(session.id)
     end
 
+    test "idle expiry audits the auto-revocation" do
+      user = create_platform_owner!()
+      stale = DateTime.add(DateTime.utc_now(), -25, :hour)
+      session = create_user_session!(user, %{last_seen_at: stale})
+
+      assert {:error, :idle_expired} = Sessions.verify_session_id(session.id)
+
+      assert [entry] = audit_entries(:session_revoked)
+      assert entry.actor_id == user.id
+      assert entry.metadata["session_id"] == session.id
+    end
+
     test "returns :deactivated for a deactivated user" do
       user = create_staff!()
       {:ok, session} = Sessions.create(user, "10.0.0.1", "TestAgent/1.0")
@@ -120,13 +132,16 @@ defmodule Emakola.Accounts.SessionsTest do
   end
 
   describe "revoke/1" do
-    test "revokes a session struct and writes an audit row" do
+    test "revokes a session struct without writing an audit row" do
       user = create_platform_owner!()
       {:ok, session} = Sessions.create(user, "10.0.0.1", "TestAgent/1.0")
 
       assert {:ok, revoked} = Sessions.revoke(session)
       assert %DateTime{} = revoked.revoked_at
-      assert :session_revoked in audit_actions()
+
+      # Auditing is the caller's responsibility — a voluntary logout
+      # already writes :sign_out and must not double-audit.
+      refute :session_revoked in audit_actions()
     end
 
     test "revokes by session id" do

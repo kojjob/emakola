@@ -131,13 +131,24 @@ defmodule EmakolaWeb.Platform.TeamLive do
     invite_action(socket, id, &PlatformTeam.resend_invite/2, "Invite resent.")
   end
 
-  # Every event re-checks :manage_team against the current user; the
-  # service layer checks again (belt and braces).
+  # Assigns are stale — every event re-checks :manage_team against a
+  # freshly reloaded user so a post-mount revocation is caught, and the
+  # fresh user is assigned back so service-layer actor checks see
+  # current permissions too (belt and braces).
   defp authorized(socket, fun) do
-    if PlatformPermissions.allowed?(socket.assigns.current_user, :manage_team) do
-      fun.(socket)
+    user = reload_current_user(socket)
+
+    if PlatformPermissions.allowed?(user, :manage_team) do
+      fun.(assign(socket, :current_user, user))
     else
       {:noreply, put_flash(socket, :error, error_message(:unauthorized))}
+    end
+  end
+
+  defp reload_current_user(socket) do
+    case Emakola.Accounts.get_user_by_id(socket.assigns.current_user.id, authorize?: false) do
+      {:ok, user} -> user
+      {:error, _} -> nil
     end
   end
 

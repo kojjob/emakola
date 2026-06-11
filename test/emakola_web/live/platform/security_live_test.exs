@@ -29,7 +29,7 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
     test "a merchant (non-staff) is bounced", %{conn: conn} do
       {conn, _merchant, _store} = setup_authenticated_merchant(conn)
 
-      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/platform/security")
+      assert {:error, {:redirect, %{to: "/platform/login"}}} = live(conn, "/platform/security")
     end
   end
 
@@ -198,7 +198,7 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
       refute view |> element("#session-#{other.id}") |> render() =~ "Current session"
     end
 
-    test "revoking another of one's own sessions revokes and broadcasts disconnect",
+    test "revoking another of one's own sessions revokes, audits, and broadcasts disconnect",
          %{conn: conn} do
       {conn, user, _session} = setup_platform_staff(conn)
       other = Factory.create_user_session!(user, %{ip: "10.0.0.5"})
@@ -212,6 +212,10 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
       refute html =~ "session-#{other.id}"
       assert %DateTime{} = reload_session!(other).revoked_at
       assert_receive %Phoenix.Socket.Broadcast{event: "disconnect"}
+
+      assert [entry] = audit_entries(:session_revoked)
+      assert entry.actor_id == user.id
+      assert entry.metadata["session_id"] == other.id
     end
 
     test "a crafted revoke event with another user's session id is a no-op",

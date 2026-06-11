@@ -13,8 +13,8 @@ defmodule EmakolaWeb.Hooks.RequirePlatformStaff do
     else
       {:halt,
        socket
-       |> put_flash(:error, "You don't have access to the platform admin.")
-       |> redirect(to: "/")}
+       |> put_flash(:error, "Please sign in to the platform admin.")
+       |> redirect(to: "/platform/login")}
     end
   end
 end

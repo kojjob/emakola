@@ -183,6 +183,51 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
     end
   end
 
+  describe "event re-authorization after permission revocation" do
+    defp set_permissions!(user, attrs) do
+      user
+      |> Ash.Changeset.for_update(:set_platform_permissions, attrs)
+      |> Ash.update!(authorize?: false)
+    end
+
+    test "a crafted send_invite is rejected when :manage_team is revoked after mount",
+         %{conn: conn} do
+      {conn, user, _session} = setup_platform_staff(conn, permissions: [:manage_team])
+      email = Factory.unique_email()
+
+      {:ok, view, _html} = live(conn, "/platform/team")
+
+      # Revoke the permission in the DB after the socket is already mounted.
+      set_permissions!(user, %{platform_permissions: [:manage_stores]})
+
+      html =
+        render_submit(view, "send_invite", %{
+          "email" => email,
+          "permissions" => ["manage_stores"]
+        })
+
+      assert html =~ "don&#39;t have permission to manage the team"
+      assert open_invites() == []
+    end
+
+    test "a crafted deactivate is rejected when ownership is revoked after mount",
+         %{conn: conn} do
+      {conn, owner, _session} = setup_platform_staff(conn)
+      _remaining_owner = Factory.create_platform_owner!()
+      staff = create_staff!([:manage_stores])
+
+      {:ok, view, _html} = live(conn, "/platform/team")
+
+      # Demote the mounted owner in the DB after mount (another owner remains).
+      set_permissions!(owner, %{is_owner: false, platform_permissions: []})
+
+      html = render_click(view, "deactivate", %{"id" => staff.id})
+
+      assert html =~ "don&#39;t have permission to manage the team"
+      assert is_nil(reload_user!(staff).deactivated_at)
+    end
+  end
+
   describe "session and 2FA controls" do
     test "force logout revokes the target's sessions", %{conn: conn} do
       {conn, _owner, _session} = setup_platform_staff(conn)
