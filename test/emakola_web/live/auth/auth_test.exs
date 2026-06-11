@@ -155,7 +155,7 @@ defmodule EmakolaWeb.Auth.AuthTest do
 
     test "authenticated user can access dashboard", %{conn: conn} do
       user = create_user!()
-      token = AshAuthentication.user_to_subject(user)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
 
       conn =
         conn
@@ -170,7 +170,7 @@ defmodule EmakolaWeb.Auth.AuthTest do
   describe "Session management" do
     test "session controller creates session and redirects to dashboard", %{conn: conn} do
       user = create_user!()
-      token = AshAuthentication.user_to_subject(user)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
 
       conn =
         conn
@@ -183,7 +183,7 @@ defmodule EmakolaWeb.Auth.AuthTest do
 
     test "session controller supports custom redirect_to", %{conn: conn} do
       user = create_user!()
-      token = AshAuthentication.user_to_subject(user)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
 
       conn =
         conn
@@ -195,7 +195,7 @@ defmodule EmakolaWeb.Auth.AuthTest do
 
     test "logout clears session and redirects to login", %{conn: conn} do
       user = create_user!()
-      token = AshAuthentication.user_to_subject(user)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
 
       conn =
         conn
@@ -217,7 +217,7 @@ defmodule EmakolaWeb.Auth.AuthTest do
         |> Ash.Changeset.for_update(:update_profile, %{name: "Ada Lovelace"})
         |> Ash.update!(authorize?: false)
 
-      token = AshAuthentication.user_to_subject(user)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
 
       conn =
         conn

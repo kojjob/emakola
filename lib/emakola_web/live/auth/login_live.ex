@@ -231,7 +231,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
 
     case auth_result do
       {:ok, user} ->
-        token = AshAuthentication.user_to_subject(user)
+        token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
 
         # Log the login to audit trail (safely — connect_info may not be available)
         try do

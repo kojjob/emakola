@@ -508,18 +508,18 @@ defmodule EmakolaWeb.OnboardingLive do
   # ── Private helpers ──
 
   defp resolve_user(session) do
-    case session["user_token"] do
-      nil ->
+    case EmakolaWeb.AuthTokens.verify_subject(session["user_token"]) do
+      {:error, _reason} ->
         nil
 
-      token ->
+      {:ok, subject} ->
         # Try Merchant first (primary auth for ecommerce), fall back to User
-        case AshAuthentication.subject_to_user(token, Emakola.Accounts.Merchant) do
+        case AshAuthentication.subject_to_user(subject, Emakola.Accounts.Merchant) do
           {:ok, merchant} ->
             merchant
 
           _ ->
-            case AshAuthentication.subject_to_user(token, Emakola.Accounts.User) do
+            case AshAuthentication.subject_to_user(subject, Emakola.Accounts.User) do
               {:ok, user} -> user
               _ -> nil
             end

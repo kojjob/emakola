@@ -45,7 +45,7 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
 
     case Emakola.Customers.register_customer(create_params, authorize?: false) do
       {:ok, customer} ->
-        token = AshAuthentication.user_to_subject(customer)
+        token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(customer))
         {:noreply, redirect(socket, to: "/s/#{store.slug}/auth/customer-session?token=#{token}")}
 
       {:error, %Ash.Error.Invalid{} = error} ->

@@ -6,7 +6,7 @@ defmodule EmakolaWeb.OnboardingLiveTest do
   require Ash.Query
 
   defp auth_conn(conn, user) do
-    token = AshAuthentication.user_to_subject(user)
+    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
 
     conn
     |> Phoenix.ConnTest.init_test_session(%{})

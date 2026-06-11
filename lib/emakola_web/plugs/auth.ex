@@ -1,5 +1,5 @@
 defmodule EmakolaWeb.Plugs.Auth do
-  @moduledoc "Loads current user from session token."
+  @moduledoc "Loads current user from signed session token."
   import Plug.Conn
 
   def init(opts), do: opts
@@ -7,13 +7,11 @@ defmodule EmakolaWeb.Plugs.Auth do
   def call(conn, _opts) do
     token = get_session(conn, :user_token)
 
-    if token do
-      case AshAuthentication.subject_to_user(token, Emakola.Accounts.User) do
-        {:ok, user} -> assign(conn, :current_user, user)
-        _ -> assign(conn, :current_user, nil)
-      end
+    with {:ok, subject} <- EmakolaWeb.AuthTokens.verify_subject(token),
+         {:ok, user} <- AshAuthentication.subject_to_user(subject, Emakola.Accounts.User) do
+      assign(conn, :current_user, user)
     else
-      assign(conn, :current_user, nil)
+      _ -> assign(conn, :current_user, nil)
     end
   end
 end

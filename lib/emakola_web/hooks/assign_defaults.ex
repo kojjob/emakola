@@ -13,8 +13,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   def on_mount(:default, _params, session, socket) do
     socket = assign(socket, active_nav: :dashboard, setup_banner_dismissed: false)
 
-    case session["user_token"] do
-      nil ->
+    case EmakolaWeb.AuthTokens.verify_subject(session["user_token"]) do
+      {:error, _reason} ->
         {:cont,
          assign(socket,
            current_merchant: nil,
@@ -26,10 +26,10 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
            pending_order_count: 0
          )}
 
-      token ->
+      {:ok, subject} ->
         socket =
           socket
-          |> resolve_auth(token)
+          |> resolve_auth(subject)
           |> Phoenix.LiveView.attach_hook(
             :notification_actions,
             :handle_event,

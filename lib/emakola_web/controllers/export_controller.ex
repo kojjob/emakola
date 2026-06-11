@@ -58,12 +58,12 @@ defmodule EmakolaWeb.ExportController do
   # ── Private helpers ──────────────────────────────────────────────
 
   defp resolve_merchant(conn) do
-    case get_session(conn, "user_token") do
-      nil ->
+    case EmakolaWeb.AuthTokens.verify_subject(get_session(conn, "user_token")) do
+      {:error, _reason} ->
         {:error, :unauthenticated}
 
-      token ->
-        case AshAuthentication.subject_to_user(token, Emakola.Accounts.Merchant) do
+      {:ok, subject} ->
+        case AshAuthentication.subject_to_user(subject, Emakola.Accounts.Merchant) do
           {:ok, merchant} -> {:ok, merchant}
           _ -> {:error, :unauthenticated}
         end

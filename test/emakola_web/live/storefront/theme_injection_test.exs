@@ -71,7 +71,7 @@ defmodule EmakolaWeb.Storefront.ThemeInjectionTest do
         })
         |> Ash.create!(authorize?: false)
 
-      token = AshAuthentication.user_to_subject(customer)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(customer))
       conn = Phoenix.ConnTest.init_test_session(conn, %{"customer_token" => token})
 
       {:ok, _view, html} = live(conn, "/s/#{store.slug}/account")

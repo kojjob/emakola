@@ -20,7 +20,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaultsTest do
 
     test "merchant without store gets nil current_store", %{conn: conn} do
       merchant = Factory.create_merchant!()
-      token = AshAuthentication.user_to_subject(merchant)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn
@@ -41,7 +41,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaultsTest do
       org = Factory.create_organisation!()
       Factory.create_membership!(user, org, :owner)
 
-      token = AshAuthentication.user_to_subject(user)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
 
       conn =
         conn
@@ -74,7 +74,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaultsTest do
 
   defp setup_authenticated_merchant(conn, store_attrs \\ %{}) do
     {merchant, store} = Factory.create_merchant_with_store!(store_attrs)
-    token = AshAuthentication.user_to_subject(merchant)
+    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
     conn =
       conn

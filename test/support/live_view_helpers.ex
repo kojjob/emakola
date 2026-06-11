@@ -23,7 +23,7 @@ defmodule Emakola.LiveViewHelpers do
     org = Factory.create_organisation!()
     Factory.create_membership!(user, org, :owner)
 
-    token = AshAuthentication.user_to_subject(user)
+    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
 
     conn =
       conn
@@ -36,7 +36,7 @@ defmodule Emakola.LiveViewHelpers do
   @doc "Create a merchant, store, and membership, returning {conn, merchant, store}."
   def setup_authenticated_merchant(conn, store_attrs \\ %{}) do
     {merchant, store} = Factory.create_merchant_with_store!(store_attrs)
-    token = AshAuthentication.user_to_subject(merchant)
+    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
     conn =
       conn

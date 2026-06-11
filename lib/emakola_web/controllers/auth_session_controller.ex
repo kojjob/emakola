@@ -3,21 +3,27 @@ defmodule EmakolaWeb.AuthSessionController do
   Handles session creation and destruction for authentication.
   LiveView cannot set session directly, so auth forms redirect here
   to persist the user token in the session.
+
+  Tokens are Phoenix.Token-signed subjects (see `EmakolaWeb.AuthTokens`);
+  the signature is verified before anything is written to the session.
   """
   use EmakolaWeb, :controller
 
-  def create(conn, %{"token" => token, "redirect_to" => redirect_to}) do
-    conn
-    |> put_session(:user_token, token)
-    |> configure_session(renew: true)
-    |> redirect(to: safe_redirect(redirect_to))
-  end
+  alias EmakolaWeb.AuthTokens
 
-  def create(conn, %{"token" => token}) do
-    conn
-    |> put_session(:user_token, token)
-    |> configure_session(renew: true)
-    |> redirect(to: "/dashboard")
+  def create(conn, %{"token" => token} = params) do
+    case AuthTokens.verify_subject(token) do
+      {:ok, _subject} ->
+        conn
+        |> put_session(:user_token, token)
+        |> configure_session(renew: true)
+        |> redirect(to: safe_redirect(params["redirect_to"]))
+
+      {:error, _reason} ->
+        conn
+        |> put_flash(:error, "Invalid or expired sign-in link. Please log in again.")
+        |> redirect(to: "/auth/login")
+    end
   end
 
   # Fallback: GET /auth/session with no token — redirect to login
@@ -31,6 +37,8 @@ defmodule EmakolaWeb.AuthSessionController do
     |> configure_session(drop: true)
     |> redirect(to: "/auth/login")
   end
+
+  defp safe_redirect(nil), do: "/dashboard"
 
   defp safe_redirect(path) do
     uri = URI.parse(path)
