@@ -44,8 +44,9 @@ swap_size_mb = 256
 [http_service]
   internal_port = 4000
   force_https = true
-  # "suspend" (not "stop"): carts live in node-local ETS, so a stopped
-  # machine loses every in-progress cart. Suspend keeps memory intact.
+  # Carts are Postgres-backed (cart_items table), so a stopped or suspended
+  # machine no longer wipes carts and multi-machine scaling is safe.
+  # "suspend" is kept purely for faster wake-ups.
   auto_stop_machines = "suspend"
   auto_start_machines = true
   min_machines_running = 1

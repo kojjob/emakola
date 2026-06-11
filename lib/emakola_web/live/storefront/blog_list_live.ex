@@ -18,7 +18,11 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
           |> Ash.read()
 
         cart_session_id = session["cart_session_id"]
-        cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+
+        cart_count =
+          if connected?(socket) && cart_session_id,
+            do: CartStore.cart_count(cart_session_id),
+            else: 0
 
         {featured, rest} =
           case posts do

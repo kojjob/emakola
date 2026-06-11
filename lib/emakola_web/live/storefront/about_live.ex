@@ -11,7 +11,11 @@ defmodule EmakolaWeb.Storefront.AboutLive do
     store = socket.assigns.store
     categories = load_root_categories(store)
     cart_session_id = session["cart_session_id"]
-    cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+
+    cart_count =
+      if connected?(socket) && cart_session_id,
+        do: CartStore.cart_count(cart_session_id),
+        else: 0
 
     {:ok,
      socket
