@@ -107,6 +107,7 @@ defmodule EmakolaWeb.Router do
         {EmakolaWeb.Hooks.RedirectIfPlatformStaff, :default}
       ] do
       live "/login", Platform.LoginLive
+      live "/invite/accept/:token", Platform.InviteAcceptLive
     end
   end
 

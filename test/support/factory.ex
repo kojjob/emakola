@@ -30,6 +30,26 @@ defmodule Emakola.Factory do
     |> Ash.update!(authorize?: false)
   end
 
+  def create_platform_invite!(attrs \\ %{}) do
+    attrs = Map.new(attrs)
+    {expires_at, attrs} = Map.pop(attrs, :expires_at)
+
+    params =
+      Map.merge(
+        %{email: unique_email(), invited_by_id: Ash.UUID.generate()},
+        attrs
+      )
+
+    changeset = Ash.Changeset.for_create(Emakola.Accounts.PlatformInvite, :create, params)
+
+    changeset =
+      if expires_at,
+        do: Ash.Changeset.force_change_attribute(changeset, :expires_at, expires_at),
+        else: changeset
+
+    Ash.create!(changeset)
+  end
+
   def create_user_session!(user, attrs \\ %{}) do
     attrs = Map.new(attrs)
     {last_seen_at, attrs} = Map.pop(attrs, :last_seen_at)

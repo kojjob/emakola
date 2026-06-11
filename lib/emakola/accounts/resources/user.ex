@@ -128,6 +128,48 @@ defmodule Emakola.Accounts.User do
       filter(expr(is_owner == true or platform_permissions != []))
     end
 
+    create :accept_platform_invite do
+      # Internal-only: invoked by Emakola.Accounts.PlatformTeam.accept_invite/2
+      # after verifying a pending invite token. Never grants ownership —
+      # is_owner keeps its false default.
+      accept([:email, :name])
+
+      argument :password, :string do
+        allow_nil?(false)
+        sensitive?(true)
+        constraints(min_length: 8, max_length: 72)
+      end
+
+      argument :password_confirmation, :string do
+        allow_nil?(false)
+        sensitive?(true)
+      end
+
+      argument :platform_permissions, {:array, :atom} do
+        default([])
+        constraints(items: [one_of: Emakola.Accounts.PlatformPermissions.all()])
+      end
+
+      validate(confirm(:password, :password_confirmation))
+
+      change(set_attribute(:confirmed_at, &DateTime.utc_now/0))
+      change(set_attribute(:platform_permissions, arg(:platform_permissions)))
+
+      change(fn changeset, _ctx ->
+        case Ash.Changeset.fetch_argument(changeset, :password) do
+          {:ok, password} when is_binary(password) ->
+            Ash.Changeset.force_change_attribute(
+              changeset,
+              :hashed_password,
+              Bcrypt.hash_pwd_salt(password)
+            )
+
+          _ ->
+            changeset
+        end
+      end)
+    end
+
     update :update_profile do
       accept([:name, :avatar_url, :preferences])
     end

@@ -35,6 +35,8 @@ defmodule Emakola.Accounts do
 
     resource(Emakola.Accounts.UserSession)
 
+    resource(Emakola.Accounts.PlatformInvite)
+
     resource Emakola.Accounts.PlatformAuditLog do
       define(:create_platform_audit_log, action: :create)
       define(:list_platform_audit_logs, action: :list)
