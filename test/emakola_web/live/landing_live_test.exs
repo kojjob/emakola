@@ -3,172 +3,180 @@ defmodule EmakolaWeb.LandingLiveTest do
 
   import Phoenix.LiveViewTest
 
-  describe "landing page" do
-    test "renders with Emakola branding and key content", %{conn: conn} do
+  describe "hero" do
+    test "renders merchant-first hero with rotating words", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/")
 
-      assert html =~ "Emakola"
-      assert html =~ "Launch Your Online Store in Ghana"
-      assert html =~ "Shop Trusted Local Businesses"
+      assert html =~ "For Ghana&#39;s Merchants" or html =~ "For Ghana's Merchants"
+      assert html =~ "Be the next"
+      assert html =~ "big name in Accra"
+      assert html =~ "household brand"
+      assert html =~ "MoMo success story"
+      assert html =~ "market leader"
+      assert html =~ "Start selling — free"
+      assert html =~ "No credit card needed"
     end
 
-    test "renders navigation with correct links", %{conn: conn} do
+    test "has no shopper hero", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/")
-
-      assert html =~ "Features"
-      assert html =~ "Pricing"
-      assert html =~ "How It Works"
-      assert html =~ "Get Started"
-      assert html =~ "Login"
+      refute html =~ "Shop Trusted Local Businesses"
     end
 
-    test "nav has ScrollGlass hook attached", %{conn: conn} do
+    test "hero image is preloaded", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+      assert html =~ ~s(rel="preload")
+      assert html =~ "hero-market-woman.jpg"
+    end
+  end
+
+  describe "nav" do
+    test "renders marketing nav with correct links", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/")
 
       assert html =~ ~s(id="main-nav")
       assert html =~ ~s(phx-hook="ScrollGlass")
+      assert html =~ ~s(href="/pricing")
+      assert html =~ ~s(href="/stores")
+      assert html =~ ~s(href="/auth/login")
+      assert html =~ ~s(href="/auth/register")
+      assert html =~ ~s(href="/#faq")
     end
 
-    test "page has ScrollReveal hook attached", %{conn: conn} do
+    test "mobile menu toggles", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/")
+
+      refute render(view) =~ "animate-slide-down"
+
+      assert view |> element("button[phx-click=toggle_mobile_menu]") |> render_click() =~
+               "animate-slide-down"
+    end
+  end
+
+  describe "store wall" do
+    test "renders six vertical-diverse example stores", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+
+      assert html =~ "Stores built on Emakola"
+      assert html =~ "Mansa Fresh"
+      assert html =~ "Yaa Braids"
+      assert html =~ "Adwoa Glow"
+      assert html =~ "Efua&#39;s Kitchen" or html =~ "Efua's Kitchen"
+      assert html =~ "Kojo the Tailor"
+      assert html =~ "Kwaku Cuts"
+      assert html =~ "GHS 150"
+      assert html =~ "store-hair.jpg"
+      assert html =~ "store-barber.jpg"
+      assert html =~ "seamstresses"
+    end
+  end
+
+  describe "feature stories" do
+    test "renders three stories with floating UI copy", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+
+      assert html =~ "Get paid in seconds"
+      assert html =~ "Customers kept in the loop"
+      assert html =~ "A storefront that loads fast everywhere"
+      assert html =~ "GHS 85.00"
+      assert html =~ "Order #1042 confirmed!"
+      assert html =~ "story-momo.jpg"
+    end
+  end
+
+  describe "features grid" do
+    test "renders all nine features including dropshipping", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+
+      assert html =~ "Everything you need to sell"
+
+      for title <- [
+            "Dropshipping &amp; suppliers",
+            "Storefront themes",
+            "Digital products",
+            "Inventory tracking",
+            "Shipping &amp; delivery",
+            "Coupons &amp; discounts",
+            "Analytics &amp; reports",
+            "Blog &amp; recipes",
+            "Multi-store"
+          ] do
+        assert html =~ title
+      end
+    end
+  end
+
+  describe "growth arc" do
+    test "renders start/grow/scale cards", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+
+      assert html =~ "From first sale to household name"
+      assert html =~ "START"
+      assert html =~ "GROW"
+      assert html =~ "SCALE"
+      assert html =~ "Makola Market"
+      assert html =~ "all 16 regions"
+    end
+  end
+
+  describe "stats band" do
+    test "renders cited stats", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+
+      assert html =~ "500+"
+      assert html =~ "mobile money networks"
+      assert html =~ "from checkout to payout"
+    end
+  end
+
+  describe "launch steps" do
+    test "renders the three launch steps", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+
+      assert html =~ "Launch before lunch"
+      assert html =~ "Add your first product"
+      assert html =~ "Share your store link"
+      assert html =~ "Get paid with MoMo"
+    end
+  end
+
+  describe "faq" do
+    test "renders seven FAQ entries as details elements", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+
+      assert html =~ "Who can sell on Emakola?"
+      assert html =~ "What is dropshipping on Emakola?"
+      assert length(String.split(html, "<details")) - 1 == 7
+    end
+  end
+
+  describe "no pricing on landing" do
+    test "pricing grid lives on /pricing, not here", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+
+      refute html =~ "Most Popular"
+      refute html =~ "GHS 79"
+    end
+  end
+
+  describe "seo" do
+    test "sets merchant-first SEO meta and JSON-LD", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+
+      assert html =~ "Start Selling Online in Ghana"
+      assert html =~ ~s(rel="canonical")
+      assert html =~ "application/ld+json"
+      assert html =~ "FAQPage"
+      assert html =~ "SoftwareApplication"
+      assert html =~ "Organization"
+    end
+  end
+
+  describe "page chrome" do
+    test "ScrollReveal hook and footer render", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/")
 
       assert html =~ ~s(phx-hook="ScrollReveal")
-    end
-
-    test "does NOT have ThemeToggle hook", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
-
-      refute html =~ ~s(phx-hook="ThemeToggle")
-    end
-
-    test "renders hero section with dual CTAs", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
-
-      assert html =~ "Start Selling"
-      assert html =~ "Browse Stores"
-      assert html =~ "FOR MERCHANTS"
-      assert html =~ "FOR SHOPPERS"
-    end
-
-    test "renders trust bar with payment partners", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
-
-      assert html =~ "Trusted by"
-      assert html =~ "MTN MoMo"
-      assert html =~ "Vodafone Cash"
-      assert html =~ "Paystack"
-      assert html =~ "Hubtel"
-      assert html =~ "AirtelTigo"
-    end
-
-    test "renders how it works section", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
-
-      assert html =~ "How It Works"
-      assert html =~ "Sign Up"
-      assert html =~ "Add Products"
-      assert html =~ "Get Paid"
-      assert html =~ "Browse"
-      assert html =~ "Pay with MoMo"
-      assert html =~ "Receive"
-      assert html =~ "Sell on Emakola"
-      assert html =~ "Buy on Emakola"
-    end
-
-    test "renders features section with Emakola features", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
-
-      assert html =~ "Mobile Money"
-      assert html =~ "WhatsApp Notifications"
-      assert html =~ "Merchant Dashboard"
-      assert html =~ "Multi-Store Management"
-      assert html =~ "Inventory Tracking"
-      assert html =~ "Shipping"
-    end
-
-    test "renders pricing section with GHS amounts", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
-
-      assert html =~ "Starter"
-      assert html =~ "Growth"
-      assert html =~ "Pro"
-      assert html =~ "Enterprise"
-      assert html =~ "GHS 29"
-      assert html =~ "GHS 79"
-      assert html =~ "3.5%"
-      assert html =~ "Most Popular"
-    end
-
-    test "renders testimonials section with 6 merchant stories", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
-
-      assert html =~ "Ama Mensah"
-      assert html =~ "Kwame Asante"
-      assert html =~ "Efua Owusu"
-      assert html =~ "Kofi Mensah"
-      assert html =~ "Abena Darko"
-      assert html =~ "Yaw Boateng"
-      assert html =~ "Accra"
-      assert html =~ "Kumasi"
-      assert html =~ "Takoradi"
-      assert html =~ "Cape Coast"
-      assert html =~ "Tamale"
-    end
-
-    test "renders footer with Emakola links", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
-
-      assert html =~ "Privacy Policy"
-      assert html =~ "Terms of Service"
-      assert html =~ "Help Center"
-    end
-
-    test "sets correct SEO meta tags", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
-
-      assert html =~ "Emakola"
-      assert html =~ "Online Stores for Ghana"
-    end
-
-    test "hero sections have solid gradient backgrounds", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
-
-      assert html =~ "FOR MERCHANTS"
-      assert html =~ "FOR SHOPPERS"
-      assert html =~ "bg-gradient-to-br"
-      assert html =~ "bg-gradient-to-bl"
-    end
-
-    test "testimonial images are referenced", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
-
-      assert html =~ "testimonial-1.jpg"
-      assert html =~ "testimonial-2.jpg"
-      assert html =~ "testimonial-3.jpg"
-      assert html =~ "testimonial-4.jpg"
-      assert html =~ "testimonial-5.jpg"
-      assert html =~ "testimonial-6.jpg"
-    end
-
-    test "product card images are referenced", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
-
-      assert html =~ "product-kente.jpg"
-      assert html =~ "product-shea.jpg"
-      assert html =~ "product-ankara.jpg"
-    end
-
-    test "feature and how-it-works images are referenced", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
-
-      assert html =~ "feature-mobile-money.jpg"
-      assert html =~ "feature-multi-store.jpg"
-      assert html =~ "step-sell-1.jpg"
-      assert html =~ "step-sell-2.jpg"
-      assert html =~ "step-sell-3.jpg"
-      assert html =~ "step-buy-1.jpg"
-      assert html =~ "step-buy-2.jpg"
-      assert html =~ "step-buy-3.jpg"
+      assert html =~ ~s(href="/pricing")
     end
   end
 end
