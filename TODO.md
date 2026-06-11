@@ -1,5 +1,11 @@
 # Emakola — Project TODO
 
+> ⚠️ **STALE (2026-04-25)** — this dev backlog predates the May–June cycle
+> (dropshipping, design system, deployment readiness, production launch);
+> many entries below are already done. **Launch setups live in
+> [`LAUNCH_TODO.md`](LAUNCH_TODO.md)** — use that for go-live work. This
+> file needs a re-audit (tracked there).
+
 **Last updated:** 2026-04-25 (post-audit refresh + multitenancy hardening pass)
 
 > This list reflects the 2026-04-25 codebase audit. Items previously listed as P0
