@@ -67,7 +67,10 @@ defmodule EmakolaWeb.Platform.InviteAcceptLiveTest do
       assert {:error, {:redirect, %{to: "/platform/login", flash: flash}}} =
                live(conn, "/platform/invite/accept/#{raw}")
 
-      assert flash["info"] =~ "already been used"
+      # The redirect fires from the connected mount, so flash arrives as a
+      # signed Phoenix token over WebSocket — decode it before asserting.
+      decoded = Phoenix.LiveView.Utils.verify_flash(EmakolaWeb.Endpoint, flash)
+      assert decoded["info"] =~ "already been used"
     end
 
     test "pending invite shows the form with the email read-only", %{conn: conn} do

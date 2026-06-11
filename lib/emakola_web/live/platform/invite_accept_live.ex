@@ -14,25 +14,36 @@ defmodule EmakolaWeb.Platform.InviteAcceptLive do
   @accepted_flash "This invite has already been used — sign in instead."
 
   def mount(%{"token" => raw_token}, _session, socket) do
-    case PlatformTeam.invite_status(raw_token) do
-      {:ok, invite} ->
-        {:ok,
-         assign(socket,
-           state: :form,
-           raw_token: raw_token,
-           invite_email: to_string(invite.email),
-           form: to_form(%{"name" => ""}, as: :user),
-           error: nil
-         )}
+    if connected?(socket) do
+      case PlatformTeam.invite_status(raw_token) do
+        {:ok, invite} ->
+          {:ok,
+           assign(socket,
+             state: :form,
+             raw_token: raw_token,
+             invite_email: to_string(invite.email),
+             form: to_form(%{"name" => ""}, as: :user),
+             error: nil
+           )}
 
-      {:error, :already_accepted} ->
-        {:ok, socket |> put_flash(:info, @accepted_flash) |> redirect(to: "/platform/login")}
+        {:error, :already_accepted} ->
+          {:ok, socket |> put_flash(:info, @accepted_flash) |> redirect(to: "/platform/login")}
 
-      {:error, :expired} ->
-        {:ok, assign(socket, state: :expired)}
+        {:error, :expired} ->
+          {:ok, assign(socket, state: :expired)}
 
-      {:error, status} when status in [:invalid, :revoked] ->
-        {:ok, assign(socket, state: :invalid)}
+        {:error, status} when status in [:invalid, :revoked] ->
+          {:ok, assign(socket, state: :invalid)}
+      end
+    else
+      {:ok,
+       assign(socket,
+         state: :loading,
+         raw_token: raw_token,
+         invite_email: nil,
+         form: to_form(%{"name" => ""}, as: :user),
+         error: nil
+       )}
     end
   end
 
@@ -84,8 +95,8 @@ defmodule EmakolaWeb.Platform.InviteAcceptLive do
       %{message: message} ->
         message
 
-      other ->
-        inspect(other)
+      _other ->
+        "Something went wrong. Please try again."
     end)
   end
 
@@ -103,6 +114,10 @@ defmodule EmakolaWeb.Platform.InviteAcceptLive do
         </div>
 
         <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
+          <div :if={@state == :loading} class="py-8 text-center text-sm text-[#8896ab]">
+            Checking invite…
+          </div>
+
           <.dead_end :if={@state == :invalid} title="Invite not valid">
             This invite link is invalid or has been revoked.
           </.dead_end>

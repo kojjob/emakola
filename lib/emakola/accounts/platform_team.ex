@@ -24,7 +24,9 @@ defmodule Emakola.Accounts.PlatformTeam do
   """
   def create_invite(_email, _permissions, nil), do: {:error, :actor_required}
 
-  def create_invite(email, permissions, %User{} = actor) do
+  def create_invite(email, permissions, %User{} = actor, opts \\ []) do
+    mailer = Keyword.get(opts, :mailer, PlatformInviteMailer)
+
     changeset =
       Ash.Changeset.for_create(PlatformInvite, :create, %{
         email: email,
@@ -33,13 +35,21 @@ defmodule Emakola.Accounts.PlatformTeam do
       })
 
     with {:ok, invite} <- Ash.create(changeset) do
-      PlatformInviteMailer.invite(
-        to_string(invite.email),
-        invite.__metadata__.raw_token,
-        actor.name || to_string(actor.email)
-      )
+      case mailer.invite(
+             to_string(invite.email),
+             invite.__metadata__.raw_token,
+             actor.name || to_string(actor.email)
+           ) do
+        {:ok, _} ->
+          {:ok, invite}
 
-      {:ok, invite}
+        {:error, _reason} ->
+          invite
+          |> Ash.Changeset.for_update(:revoke, %{})
+          |> Ash.update(authorize?: false, actor: actor)
+
+          {:error, :email_delivery_failed}
+      end
     end
   end
 

@@ -10,6 +10,10 @@ defmodule Emakola.Accounts.PlatformTeamTest do
   alias Emakola.Accounts.PlatformTeam
   alias Emakola.Accounts.User
 
+  defmodule FailingMailer do
+    def invite(_email, _raw_token, _inviter_name), do: {:error, :connection_refused}
+  end
+
   @password "Password123!"
 
   defp reload_invite(invite), do: Ash.get!(PlatformInvite, invite.id)
@@ -54,6 +58,24 @@ defmodule Emakola.Accounts.PlatformTeamTest do
 
     test "requires an actor" do
       assert {:error, :actor_required} = PlatformTeam.create_invite(unique_email(), [], nil)
+    end
+
+    test "revokes the invite and returns :email_delivery_failed when mailer fails" do
+      owner = create_platform_owner!()
+      email = unique_email()
+      flush_emails()
+
+      assert {:error, :email_delivery_failed} =
+               PlatformTeam.create_invite(email, [], owner, mailer: FailingMailer)
+
+      assert_no_email_sent()
+
+      invite =
+        PlatformInvite
+        |> Ash.Query.filter(email == ^email)
+        |> Ash.read_one!(authorize?: false)
+
+      assert %DateTime{} = invite.revoked_at
     end
 
     test "returns validation errors without sending an email" do
