@@ -18,6 +18,7 @@ defmodule Emakola.Accounts.PlatformTeam do
   """
 
   require Ash.Query
+  require Logger
 
   alias Emakola.Accounts.PlatformInvite
   alias Emakola.Accounts.PlatformPermissions
@@ -150,6 +151,16 @@ defmodule Emakola.Accounts.PlatformTeam do
           invite
           |> Ash.Changeset.for_update(:revoke, %{})
           |> Ash.update(authorize?: false, actor: actor)
+          |> case do
+            {:error, revoke_error} ->
+              Logger.warning(
+                "invite revoke failed after mailer failure id=#{invite.id} " <>
+                  "reason=#{inspect(revoke_error)}"
+              )
+
+            _ ->
+              :ok
+          end
 
           {:error, :email_delivery_failed}
       end
