@@ -28,7 +28,11 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
             recipe_meta = load_recipe_meta(post.id)
 
             cart_session_id = session["cart_session_id"]
-            cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+
+            cart_count =
+              if connected?(socket) && cart_session_id,
+                do: CartStore.cart_count(cart_session_id),
+                else: 0
 
             {:ok,
              socket

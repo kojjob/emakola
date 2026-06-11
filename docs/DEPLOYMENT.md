@@ -14,7 +14,7 @@ Production deployment guide for the Emakola ecommerce platform on Fly.io.
                      DDoS protection + caching
                               |
                          Fly.io Edge
-                        (jnb region)
+                        (lhr region)
                               |
               +---------------+---------------+
               |               |               |
@@ -24,7 +24,7 @@ Production deployment guide for the Emakola ecommerce platform on Fly.io.
               +-------+-------+
                       |
                Fly Postgres 15+
-               (jnb region)
+               (lhr region)
                       |
               Oban (background jobs)
 
@@ -33,9 +33,9 @@ Production deployment guide for the Emakola ecommerce platform on Fly.io.
 
 | Component               | Service                          | Region              |
 |-------------------------|----------------------------------|----------------------|
-| Application hosting     | Fly.io                           | jnb (Johannesburg)   |
-| PostgreSQL database     | Fly Postgres (or Neon/Supabase)  | jnb                  |
-| Background jobs         | Oban (in-app, backed by Postgres)| jnb                  |
+| Application hosting     | Fly.io                           | lhr (London; West African routes via Europe are faster than jnb) |
+| PostgreSQL database     | Fly Postgres (or Neon/Supabase)  | lhr                  |
+| Background jobs         | Oban (in-app, backed by Postgres)| lhr                  |
 | Image/file storage      | Tigris (S3-compatible on Fly.io) | auto (global CDN)    |
 | CDN & DDoS protection   | Cloudflare                       | Global edge          |
 | DNS                     | Cloudflare                       | Global               |
@@ -60,10 +60,10 @@ Production deployment guide for the Emakola ecommerce platform on Fly.io.
 
 ```bash
 # From the project root
-fly launch --name emakola --region jnb --no-deploy
+fly launch --name emakola --region lhr --no-deploy
 
 # Create the PostgreSQL database
-fly postgres create --name emakola-db --region jnb --vm-size shared-cpu-1x --volume-size 10
+fly postgres create --name emakola-db --region lhr --vm-size shared-cpu-1x --volume-size 10
 
 # Attach the database (sets DATABASE_URL automatically)
 fly postgres attach emakola-db --app emakola
@@ -80,7 +80,7 @@ fly secrets set DATABASE_SSL=false --app emakola
 ### 2. Create Tigris Storage Bucket
 
 ```bash
-fly storage create --name emakola-uploads --region jnb --app emakola
+fly storage create --name emakola-uploads --region lhr --app emakola
 ```
 
 This sets the following secrets automatically:
@@ -235,7 +235,7 @@ See `/Dockerfile` in the project root. Multi-stage build:
 
 See `/fly.toml` in the project root. Key settings:
 
-- Primary region: `jnb` (Johannesburg)
+- Primary region: `lhr` (London)
 - HTTP service on internal port `4000`
 - Health check at `GET /api/health`
 - Auto start/suspend with `min_machines_running = 1` (carts are

@@ -20,7 +20,11 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   def mount(_params, session, socket) do
     store = socket.assigns.store
     cart_session_id = session["cart_session_id"]
-    cart = if cart_session_id, do: CartStore.get_cart(cart_session_id), else: []
+
+    cart =
+      if connected?(socket) && cart_session_id,
+        do: CartStore.get_cart(cart_session_id),
+        else: []
 
     cart_total =
       Enum.reduce(cart, 0, fn item, acc -> acc + item.unit_price * item.quantity end)
