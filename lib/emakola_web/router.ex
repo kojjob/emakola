@@ -201,6 +201,7 @@ defmodule EmakolaWeb.Router do
       live "/platform", Platform.DashboardLive
       live "/platform/stores", Platform.StoreLive.Index
       live "/platform/team", Platform.TeamLive
+      live "/platform/security", Platform.SecurityLive
     end
 
     # Authenticated app routes with sidebar layout
