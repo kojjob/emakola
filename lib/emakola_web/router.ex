@@ -161,6 +161,7 @@ defmodule EmakolaWeb.Router do
     pipe_through :browser
 
     live "/", LandingLive
+    live "/pricing", PricingLive
     live "/stores", StoresLive
     live "/docs", Docs.DocsLive
 

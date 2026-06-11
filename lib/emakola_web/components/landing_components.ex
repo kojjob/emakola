@@ -11,6 +11,103 @@ defmodule EmakolaWeb.LandingComponents do
   use Phoenix.Component
 
   # ─────────────────────────────────────────────────────────────────────
+  # landing_nav/1
+  # ─────────────────────────────────────────────────────────────────────
+
+  @doc """
+  Marketing nav shared by the landing and pricing pages.
+
+  Anchor links use absolute paths ("/#features") so they work from /pricing too.
+  The parent LiveView must handle the "toggle_mobile_menu" event and pass
+  `mobile_menu_open`.
+  """
+  attr :mobile_menu_open, :boolean, default: false
+
+  def landing_nav(assigns) do
+    ~H"""
+    <nav
+      id="main-nav"
+      phx-hook="ScrollGlass"
+      class="fixed top-0 left-0 right-0 z-50 bg-[#0c1526]/80 backdrop-blur-md border-b border-transparent transition-all duration-300"
+    >
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <a href="/" class="flex items-center gap-2">
+            <img src="/images/emakola-logo.svg" alt="Emakola" class="h-8 w-auto" />
+            <span class="text-xl font-headline font-bold text-[#f1f5f9]">Emakola</span>
+          </a>
+          <div class="hidden md:flex items-center gap-6">
+            <a
+              href="/#how-it-works"
+              class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors"
+            >
+              How it works
+            </a>
+            <a href="/#features" class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors">
+              Features
+            </a>
+            <a href="/#faq" class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors">
+              FAQ
+            </a>
+            <a href="/pricing" class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors">
+              Pricing
+            </a>
+            <a href="/stores" class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors">
+              Browse stores
+            </a>
+          </div>
+          <div class="hidden md:flex items-center gap-4">
+            <a
+              href="/auth/login"
+              class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors"
+            >
+              Login
+            </a>
+            <a
+              href="/auth/register"
+              class="inline-flex items-center px-4 py-2 text-sm font-semibold text-[#0c1526] bg-[#d4a843] rounded-lg hover:bg-[#c49a3a] transition-colors focus-visible:ring-2 focus-visible:ring-[#d4a843] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1526]"
+            >
+              Get Started
+            </a>
+          </div>
+          <button
+            phx-click="toggle_mobile_menu"
+            class="md:hidden p-2 text-[#8896ab] hover:text-[#f1f5f9]"
+            aria-label="Toggle menu"
+          >
+            <span class="material-symbols-outlined text-2xl">
+              {if @mobile_menu_open, do: "close", else: "menu"}
+            </span>
+          </button>
+        </div>
+      </div>
+      <div
+        :if={@mobile_menu_open}
+        class="md:hidden fixed inset-0 top-16 bg-[#0c1526] z-40 flex flex-col items-center justify-start pt-12 gap-6 animate-slide-down"
+      >
+        <a href="/#how-it-works" phx-click="toggle_mobile_menu" class="text-lg text-[#8896ab]">
+          How it works
+        </a>
+        <a href="/#features" phx-click="toggle_mobile_menu" class="text-lg text-[#8896ab]">
+          Features
+        </a>
+        <a href="/#faq" phx-click="toggle_mobile_menu" class="text-lg text-[#8896ab]">FAQ</a>
+        <a href="/pricing" class="text-lg text-[#8896ab]">Pricing</a>
+        <a href="/stores" class="text-lg text-[#8896ab]">Browse stores</a>
+        <hr class="w-24 border-[#1a2744]" />
+        <a href="/auth/login" class="text-lg text-[#8896ab]">Login</a>
+        <a
+          href="/auth/register"
+          class="inline-flex items-center px-6 py-3 text-base font-semibold text-[#0c1526] bg-[#d4a843] rounded-lg"
+        >
+          Get Started
+        </a>
+      </div>
+    </nav>
+    """
+  end
+
+  # ─────────────────────────────────────────────────────────────────────
   # landing_footer/1
   # ─────────────────────────────────────────────────────────────────────
 
@@ -27,7 +124,7 @@ defmodule EmakolaWeb.LandingComponents do
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
           <.footer_column title="Product">
             <:link href="#features">Features</:link>
-            <:link href="#pricing">Pricing</:link>
+            <:link href="/pricing">Pricing</:link>
             <:link href="#features">Demo</:link>
             <:link href="/docs">API</:link>
           </.footer_column>
