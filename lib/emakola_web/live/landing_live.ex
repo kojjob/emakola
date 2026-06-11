@@ -539,7 +539,11 @@ defmodule EmakolaWeb.LandingLive do
           "operatingSystem" => "Web",
           "description" =>
             "Ecommerce platform for West African merchants with mobile money payments, dropshipping, and WhatsApp notifications.",
-          "offers" => %{"@type" => "Offer", "price" => "0", "priceCurrency" => "GHS"}
+          "offers" => [
+            %{"@type" => "Offer", "name" => "Starter", "price" => "0", "priceCurrency" => "GHS"},
+            %{"@type" => "Offer", "name" => "Growth", "price" => "29", "priceCurrency" => "GHS"},
+            %{"@type" => "Offer", "name" => "Pro", "price" => "79", "priceCurrency" => "GHS"}
+          ]
         },
         %{
           "@type" => "FAQPage",
