@@ -5,8 +5,6 @@ defmodule Emakola.Accounts do
   resources do
     resource Emakola.Accounts.User do
       define(:register_with_password, args: [:email, :password, :password_confirmation])
-      define(:sign_in_with_password, args: [:email, :password])
-      define(:request_magic_link, args: [:email])
       define(:get_user_by_id, action: :read, get_by: [:id])
     end
 

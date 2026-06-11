@@ -1,5 +1,5 @@
 defmodule Emakola.Accounts.User do
-  @moduledoc "User resource with AshAuthentication supporting email/password and magic-link sign-in."
+  @moduledoc "Platform staff user resource with AshAuthentication password sign-in (TOTP enforced at the web layer)."
   use Ash.Resource,
     domain: Emakola.Accounts,
     data_layer: AshPostgres.DataLayer,
@@ -26,13 +26,6 @@ defmodule Emakola.Accounts.User do
       password :password do
         identity_field(:email)
         hashed_password_field(:hashed_password)
-      end
-
-      magic_link do
-        identity_field(:email)
-        require_interaction?(true)
-
-        sender(Emakola.Accounts.Senders.MagicLinkSender)
       end
     end
   end
