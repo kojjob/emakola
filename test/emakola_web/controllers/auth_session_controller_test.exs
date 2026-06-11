@@ -34,8 +34,8 @@ defmodule EmakolaWeb.AuthSessionControllerTest do
 
   describe "GET /auth/session with a signed subject" do
     test "establishes a session and redirects to dashboard", %{conn: conn} do
-      user = create_user!()
-      signed = user |> AshAuthentication.user_to_subject() |> AuthTokens.sign_subject()
+      {merchant, _store} = create_merchant_with_store!()
+      signed = merchant |> AshAuthentication.user_to_subject() |> AuthTokens.sign_subject()
 
       conn = get(conn, "/auth/session?token=#{URI.encode_www_form(signed)}")
 

@@ -30,6 +30,28 @@ defmodule Emakola.Factory do
     |> Ash.update!(authorize?: false)
   end
 
+  def create_user_session!(user, attrs \\ %{}) do
+    attrs = Map.new(attrs)
+    {last_seen_at, attrs} = Map.pop(attrs, :last_seen_at)
+
+    params =
+      Map.merge(
+        %{user_id: user.id, ip: "127.0.0.1", user_agent: "TestAgent/1.0"},
+        attrs
+      )
+
+    changeset = Ash.Changeset.for_create(Emakola.Accounts.UserSession, :create, params)
+
+    changeset =
+      if last_seen_at do
+        Ash.Changeset.force_change_attribute(changeset, :last_seen_at, last_seen_at)
+      else
+        changeset
+      end
+
+    Ash.create!(changeset, authorize?: false)
+  end
+
   def build_organisation(attrs \\ %{}) do
     default = %{
       name: "Test Org #{System.unique_integer([:positive])}"

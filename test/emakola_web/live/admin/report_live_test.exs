@@ -18,8 +18,8 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
 
   describe "ReportLive.Index (authenticated)" do
     setup %{conn: conn} do
-      {conn, user, org} = setup_authenticated_user(conn)
-      %{conn: conn, user: user, org: org}
+      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
     end
 
     test "renders reports page heading", %{conn: conn} do
@@ -148,21 +148,5 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
 
       assert html =~ "vs previous period"
     end
-  end
-
-  # Uses the pattern from LiveViewHelpers — creates user, org, membership
-  defp setup_authenticated_user(conn) do
-    user = Factory.create_user!()
-    org = Factory.create_organisation!()
-    Factory.create_membership!(user, org, :owner)
-
-    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
-
-    conn =
-      conn
-      |> Phoenix.ConnTest.init_test_session(%{})
-      |> Plug.Conn.put_session(:user_token, token)
-
-    {conn, user, org}
   end
 end

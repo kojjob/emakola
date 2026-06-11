@@ -84,6 +84,18 @@ defmodule EmakolaWeb.Router do
     live "/register", RegisterLive
   end
 
+  # Platform staff session controller (exchanges a short-lived signed login
+  # token for a DB-backed session). GET is rate limited (brute-force vector).
+  scope "/platform", EmakolaWeb do
+    pipe_through [:browser, :auth_rate_limit]
+    get "/session", PlatformSessionController, :create
+  end
+
+  scope "/platform", EmakolaWeb do
+    pipe_through :browser
+    delete "/session", PlatformSessionController, :delete
+  end
+
   # Customer storefront session controller (sets/clears customer token cookie)
   scope "/s/:store_slug", EmakolaWeb.Storefront do
     pipe_through [:browser, :auth_rate_limit]
@@ -164,13 +176,12 @@ defmodule EmakolaWeb.Router do
     live "/stores", StoresLive
     live "/docs", Docs.DocsLive
 
-    # Platform admin routes (project owner only)
+    # Platform admin routes (platform staff only)
     live_session :platform,
       layout: {EmakolaWeb.Layouts, :platform},
       on_mount: [
         {EmakolaWeb.Hooks.AssignDefaults, :default},
-        {EmakolaWeb.Hooks.RequireAuth, :default},
-        {EmakolaWeb.Hooks.RequirePlatformAdmin, :default}
+        {EmakolaWeb.Hooks.RequirePlatformStaff, :default}
       ] do
       live "/platform", Platform.DashboardLive
       live "/platform/stores", Platform.StoreLive.Index

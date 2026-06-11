@@ -7,8 +7,8 @@ defmodule EmakolaWeb.Admin.ThemeLiveTest do
 
   describe "Theme customizer without store" do
     test "redirects to onboarding when no store", %{conn: conn} do
-      user = create_user!(password: "Password123!")
-      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
+      merchant = create_merchant!()
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn

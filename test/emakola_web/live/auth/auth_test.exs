@@ -153,9 +153,9 @@ defmodule EmakolaWeb.Auth.AuthTest do
       assert {:error, {:live_redirect, %{to: "/auth/login"}}} = live(conn, "/dashboard")
     end
 
-    test "authenticated user can access dashboard", %{conn: conn} do
-      user = create_user!()
-      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
+    test "authenticated merchant can access dashboard", %{conn: conn} do
+      {merchant, _store} = create_merchant_with_store!()
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn
@@ -164,6 +164,18 @@ defmodule EmakolaWeb.Auth.AuthTest do
 
       {:ok, _view, html} = live(conn, "/dashboard")
       assert html =~ "Dashboard" or html =~ "dashboard"
+    end
+
+    test "legacy User subject no longer grants dashboard access", %{conn: conn} do
+      user = create_user!()
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
+
+      conn =
+        conn
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:user_token, token)
+
+      assert {:error, {:live_redirect, %{to: "/auth/login"}}} = live(conn, "/dashboard")
     end
   end
 
@@ -208,16 +220,16 @@ defmodule EmakolaWeb.Auth.AuthTest do
   end
 
   describe "AssignDefaults hook" do
-    test "loads current_user into dashboard layout", %{conn: conn} do
-      user = create_user!()
+    test "loads current_merchant into dashboard layout", %{conn: conn} do
+      {merchant, _store} = create_merchant_with_store!()
 
-      # Update user name via update_profile action
-      user =
-        user
+      # Update merchant name via update_profile action
+      merchant =
+        merchant
         |> Ash.Changeset.for_update(:update_profile, %{name: "Ada Lovelace"})
         |> Ash.update!(authorize?: false)
 
-      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn
