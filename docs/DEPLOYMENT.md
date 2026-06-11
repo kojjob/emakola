@@ -238,8 +238,8 @@ See `/fly.toml` in the project root. Key settings:
 - Primary region: `jnb` (Johannesburg)
 - HTTP service on internal port `4000`
 - Health check at `GET /api/health`
-- Auto start/suspend with `min_machines_running = 1` (see Scaling — carts
-  are node-local; stay at count 1 for now)
+- Auto start/suspend with `min_machines_running = 1` (carts are
+  Postgres-backed, so stop/suspend and multi-machine are both safe)
 - 512MB memory per instance
 - `kill_timeout = "60s"` for safe shutdowns
 
@@ -462,23 +462,13 @@ For merchants who bring their own domain (e.g., `www.merchantshop.com`):
 
 ## Scaling
 
-> **⚠️ Scaling constraint: carts are node-local.**
+> **Carts are Postgres-backed — horizontal scaling is safe.**
 >
-> Shopping carts live in an ETS table owned by a single in-app GenServer
-> (`lib/emakola/cart/`). They are NOT shared between machines and NOT
-> persisted across machine stops. Consequences:
->
-> - **Safe today: `fly scale count 1`.** One machine, all carts on it.
-> - **`count > 1` is NOT safe yet**: a customer's requests can land on a
->   machine that doesn't hold their cart. Going multi-machine requires
->   sticky sessions (e.g. `fly-replay`/consistent routing) or moving carts
->   to a shared store (Postgres/Redis) first.
-> - BEAM clustering itself IS handled (`rel/env.sh.eex` +
->   `DNS_CLUSTER_QUERY` + DNSCluster), so PubSub/LiveView updates work
->   across machines — carts are the only thing blocking horizontal scale.
-> - `fly.toml` sets `auto_stop_machines = "suspend"` and
->   `min_machines_running = 1` so Fly's idle-stop doesn't wipe carts.
->   Do not change these to "stop"/0 while carts are in-memory.
+> Shopping carts live in the `cart_items` table (`lib/emakola/cart/`), so
+> every machine sees every cart and machine stops/suspends lose nothing.
+> Scale freely with `fly scale count N` — BEAM clustering is already wired
+> (`rel/env.sh.eex` + `DNS_CLUSTER_QUERY` + DNSCluster), so PubSub/LiveView
+> updates work across machines too.
 
 ### Horizontal Auto-Scaling
 
