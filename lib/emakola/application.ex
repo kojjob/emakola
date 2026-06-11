@@ -15,8 +15,8 @@ defmodule Emakola.Application do
       {Finch, name: Emakola.Finch},
       {Emakola.RateLimit, clean_period: :timer.minutes(10)},
       {Oban, Application.fetch_env!(:emakola, Oban)},
-      # PDF generation via headless Chrome
-      ChromicPDF,
+      # PDF generation via headless Chrome (opts set per-env in config/runtime.exs)
+      {ChromicPDF, Application.get_env(:emakola, ChromicPDF, [])},
       # ETS cache for storefront product/category queries
       Emakola.Cache.StoreCache,
       # Cart ETS table owned by supervised GenServer

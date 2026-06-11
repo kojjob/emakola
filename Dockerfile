@@ -88,7 +88,9 @@ RUN mix release
 # ---------------------------------------------------------------------------
 FROM ${RUNNER_IMAGE} AS runner
 
-# Install runtime dependencies
+# Install runtime dependencies.
+# chromium + fonts-liberation power ChromicPDF (analytics PDF export);
+# they add ~280MB to the image, which is acceptable for this feature.
 RUN apt-get update -y && \
     apt-get install -y \
       libstdc++6 \
@@ -98,6 +100,8 @@ RUN apt-get update -y && \
       ca-certificates \
       curl \
       tini \
+      chromium \
+      fonts-liberation \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set locale
