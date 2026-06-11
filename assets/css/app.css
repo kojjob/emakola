@@ -572,12 +572,13 @@ html.high-contrast {
   .hero-rotator-list {
     display: flex;
     flex-direction: column;
-    animation: hero-rotate 9s infinite;
+    animation: hero-rotate 9s ease-in-out infinite;
   }
   .hero-rotator-list > span {
     height: 1.15em;
     line-height: 1.15em;
   }
+  /* 4 words — mirrors @rotating_words in LandingLive. Update both if word count changes. */
   @keyframes hero-rotate {
     0%, 18% { transform: translateY(0); }
     25%, 43% { transform: translateY(-1.15em); }

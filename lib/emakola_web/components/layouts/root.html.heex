@@ -16,7 +16,7 @@
       robots={assigns[:robots] || "index, follow"}
       json_ld={assigns[:json_ld]}
     />
-    <link :if={assigns[:preload_image]} rel="preload" as="image" href={assigns[:preload_image]} />
+    <link :if={assigns[:preload_image]} rel="preload" as="image" href={assigns[:preload_image]} fetchpriority="high" />
     <.live_title default="Emakola">
       {assigns[:page_title]}
     </.live_title>
