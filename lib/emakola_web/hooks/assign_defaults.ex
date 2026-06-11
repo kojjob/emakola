@@ -39,7 +39,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
          current_session_id: user_session.id,
          current_merchant: nil,
          current_store: nil,
-         onboarding_complete: has_membership?(user.id),
+         onboarding_complete: true,
          notifications: notifs,
          unread_notification_count: unread,
          pending_order_count: 0
@@ -190,12 +190,5 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
     end
   rescue
     _ -> {[], 0}
-  end
-
-  defp has_membership?(user_id) do
-    case Emakola.Accounts.list_memberships_by_user(user_id, authorize?: false) do
-      {:ok, [_ | _]} -> true
-      _ -> false
-    end
   end
 end

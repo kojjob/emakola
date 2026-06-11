@@ -19,6 +19,13 @@ defmodule Emakola.Accounts.PlatformPermissions do
   @spec all() :: [atom()]
   def all, do: @permissions
 
+  @spec staff?(map() | nil) :: boolean()
+  def staff?(nil), do: false
+  def staff?(%{deactivated_at: d}) when not is_nil(d), do: false
+  def staff?(%{is_owner: true}), do: true
+  def staff?(%{platform_permissions: p}) when is_list(p) and p != [], do: true
+  def staff?(_), do: false
+
   @spec allowed?(map() | nil, atom()) :: boolean()
   def allowed?(nil, _permission), do: false
 

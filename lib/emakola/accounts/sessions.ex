@@ -81,7 +81,8 @@ defmodule Emakola.Accounts.Sessions do
       )
 
     case result do
-      %Ash.BulkResult{status: :success, records: records} ->
+      %Ash.BulkResult{status: status, records: records}
+      when status in [:success, :partial_success] ->
         count = length(records)
 
         PlatformAudit.log(:sessions_force_revoked, user_id, %{

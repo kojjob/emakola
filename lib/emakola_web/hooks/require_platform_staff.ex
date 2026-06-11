@@ -8,7 +8,7 @@ defmodule EmakolaWeb.Hooks.RequirePlatformStaff do
   import Phoenix.LiveView
 
   def on_mount(:default, _params, _session, socket) do
-    if staff?(socket.assigns[:current_user]) do
+    if Emakola.Accounts.PlatformPermissions.staff?(socket.assigns[:current_user]) do
       {:cont, socket}
     else
       {:halt,
@@ -16,11 +16,5 @@ defmodule EmakolaWeb.Hooks.RequirePlatformStaff do
        |> put_flash(:error, "You don't have access to the platform admin.")
        |> redirect(to: "/")}
     end
-  end
-
-  defp staff?(nil), do: false
-
-  defp staff?(user) do
-    is_nil(user.deactivated_at) and (user.is_owner or user.platform_permissions != [])
   end
 end

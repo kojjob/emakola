@@ -16,6 +16,36 @@ defmodule Emakola.Accounts.PlatformPermissionsTest do
     end
   end
 
+  describe "staff?/1" do
+    test "nil is not staff" do
+      refute PlatformPermissions.staff?(nil)
+    end
+
+    test "deactivated owner is not staff" do
+      user = %{is_owner: true, deactivated_at: DateTime.utc_now(), platform_permissions: []}
+      refute PlatformPermissions.staff?(user)
+    end
+
+    test "active owner is staff" do
+      user = %{is_owner: true, deactivated_at: nil, platform_permissions: []}
+      assert PlatformPermissions.staff?(user)
+    end
+
+    test "active user with at least one permission is staff" do
+      user = %{is_owner: false, deactivated_at: nil, platform_permissions: [:manage_stores]}
+      assert PlatformPermissions.staff?(user)
+    end
+
+    test "plain active user with no permissions is not staff" do
+      user = %{is_owner: false, deactivated_at: nil, platform_permissions: []}
+      refute PlatformPermissions.staff?(user)
+    end
+
+    test "partial map with no known staff fields is not staff" do
+      refute PlatformPermissions.staff?(%{name: "Alice"})
+    end
+  end
+
   describe "allowed?/2" do
     test "owner bypasses permission checks" do
       user = %{is_owner: true, deactivated_at: nil, platform_permissions: []}

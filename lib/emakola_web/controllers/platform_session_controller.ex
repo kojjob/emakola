@@ -12,19 +12,21 @@ defmodule EmakolaWeb.PlatformSessionController do
   use EmakolaWeb, :controller
 
   alias Emakola.Accounts.PlatformAudit
+  alias Emakola.Accounts.PlatformPermissions
   alias Emakola.Accounts.Sessions
   alias EmakolaWeb.AuthTokens
 
   def create(conn, %{"t" => exchange_token}) do
     with {:ok, user_id} <- AuthTokens.verify_login_exchange(exchange_token),
          {:ok, user} <- Emakola.Accounts.get_user_by_id(user_id, authorize?: false),
-         true <- active_staff?(user),
+         true <- PlatformPermissions.staff?(user),
          {:ok, session} <- Sessions.create(user, ip(conn), user_agent(conn)) do
       PlatformAudit.log(:sign_in_succeeded, user, %{}, ip(conn))
 
       conn
       |> put_session(:platform_session_token, AuthTokens.sign_platform_session(session.id))
       |> configure_session(renew: true)
+      # Route defined in Phase 6 of this branch; lands on 404 in dev until then.
       |> redirect(to: "/platform")
     else
       _ -> reject(conn)
@@ -44,17 +46,15 @@ defmodule EmakolaWeb.PlatformSessionController do
     # delete_session (not configure_session(drop: true)) so a coexisting
     # merchant :user_token session survives platform logout.
     |> delete_session(:platform_session_token)
+    # Route defined in Phase 6 of this branch; lands on 404 in dev until then.
     |> redirect(to: "/platform/login")
   end
 
   defp reject(conn) do
     conn
     |> put_flash(:error, "Sign-in failed. Please log in again.")
+    # Route defined in Phase 6 of this branch; lands on 404 in dev until then.
     |> redirect(to: "/platform/login")
-  end
-
-  defp active_staff?(user) do
-    is_nil(user.deactivated_at) and (user.is_owner or user.platform_permissions != [])
   end
 
   defp ip(conn), do: conn.remote_ip |> :inet.ntoa() |> to_string()
