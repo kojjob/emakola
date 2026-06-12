@@ -11,6 +11,7 @@ defmodule EmakolaWeb.Api.StoreController do
     memberships =
       StoreMembership
       |> Ash.Query.filter(merchant_id == ^merchant.id)
+      |> Ash.Query.sort(inserted_at: :asc)
       |> Ash.Query.load(:store)
       |> Ash.read!(authorize?: false)
 

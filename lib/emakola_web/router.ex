@@ -94,6 +94,9 @@ defmodule EmakolaWeb.Router do
   end
 
   # Authenticated, NOT tenant-scoped — used to discover/pick a store.
+  # MUST stay above the /api/v1 JSON:API forward: `forward` matches every
+  # path under its prefix, so a forward declared earlier would swallow
+  # /api/v1/stores silently.
   scope "/api/v1", EmakolaWeb.Api do
     pipe_through [:api, :api_bearer]
 
