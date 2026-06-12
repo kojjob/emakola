@@ -13,7 +13,8 @@ A bearer-token-authenticated, tenant-scoped JSON:API under `/api/v1` exposing me
 1. **`ash_json_api` for resource endpoints; hand-rolled controllers only for auth.** Generated JSON:API + OpenAPI from existing Ash resources; policies and multitenancy enforced at the resource layer we already trust. Hand-rolled-everything was rejected (duplicates serialization/pagination/spec and drifts); GraphQL was rejected in the research doc.
 2. **The API authenticates `Merchant`, not `User`.** The research doc predates PR #127's split: `User` is now platform staff; merchants are `Emakola.Accounts.Merchant` (password strategy + `Emakola.Accounts.Token` already configured). Platform-staff features stay web-only.
 3. **Order status transitions are in scope** (user decision): `confirm`, `start_processing`, `mark_shipped`, `mark_delivered`, `cancel` — the existing Ash actions with StatusGuard validations and notification dispatch.
-4. **Push is built fully but verified with mocks** (user decision): Pigeon v2 FCM v1 adapter behind a `PushProvider` behaviour; real-device delivery is a follow-up once a Firebase project + service-account JSON exist. Flutter's `firebase_messaging` uses FCM tokens on iOS too, so FCM-only covers both platforms — no direct APNs integration.
+4. **Push is built fully but verified with mocks** (user decision): FCM HTTP v1 behind a `PushProvider` behaviour; real-device delivery is a follow-up once a Firebase project + service-account JSON exist. Flutter's `firebase_messaging` uses FCM tokens on iOS too, so FCM-only covers both platforms — no direct APNs integration.
+   - *Amendment (Task 1 finding):* Pigeon v2 (the research doc's pick) is **unresolvable** in this dependency graph — pigeon → httpoison → hackney `~> 1.x` conflicts with ex_aws 2.7.0's `hackney ~> 4.0` constraint, and no newer pigeon release exists. FCM HTTP v1 is a single authenticated POST, so the production provider is a thin client on `req` (already a dep) + Goth for OAuth2. Same behaviour boundary, same tests, one less supervision dependency.
 5. **Refresh tokens are hand-rolled with rotation.** AshAuthentication has no built-in refresh flow. Access token ~15 min; refresh token ~30 days, stored via the existing token resource, revoked-on-use (rotation) to limit replay.
 
 ## Architecture
@@ -65,9 +66,9 @@ Registration is an upsert: re-registering an existing token updates `merchant_id
 ### Push pipeline
 
 - `Emakola.Notifications.PushProvider` behaviour: `send_push(token, title, body, data) :: {:ok, map()} | {:error, term()}` (final signature may carry a struct; behaviour mirrors existing `SMSProvider` conventions).
-- Implementations: `Pigeon` (prod, FCM v1 + Goth), `Log` (dev), Mox mock (test) — config-selected like SMS/WhatsApp providers.
+- Implementations: `FcmPush` (prod, FCM HTTP v1 via Req + Goth), `Log` (dev), Mox mock (test) — config-selected like SMS/WhatsApp providers.
 - `Emakola.Notifications.Workers.PushNotificationWorker` (Oban): enqueued by the existing `Dispatcher` on `:order_placed`, alongside the current SMS/WhatsApp jobs. Unique window to dedupe. Looks up the store's merchants' device tokens, sends via the provider, prunes tokens FCM reports as `UNREGISTERED`.
-- Pigeon's FCM dispatcher only starts when Firebase credentials are configured (runtime.exs, env-gated) — boots cleanly without them.
+- Goth (FCM OAuth2 token server) only starts when Firebase credentials are configured (runtime.exs, env-gated) — boots cleanly without them.
 
 ### OpenAPI
 
@@ -87,7 +88,7 @@ Registration is an upsert: re-registering an existing token updates `merchant_id
 - **Unit:** bearer plug (valid/expired/garbage/wrong-purpose tokens), tenant plug (member/non-member/missing header), refresh rotation logic, DeviceToken upsert.
 - **Integration (`@tag :integration`):** full auth flow (sign in → call API → refresh → old refresh token rejected → sign out → token rejected); order list/detail/transition through real HTTP; push worker end-to-end with Mox (order placed → job → provider called with right tokens; UNREGISTERED pruning).
 - **Multi-tenant isolation (mandatory):** merchant A with a valid token + forged `X-Store-ID` for store B → 403; order IDs from store B → 404; device tokens scoped per store.
-- Never hit real FCM — Pigeon is always behind the behaviour in tests.
+- Never hit real FCM — the provider is always behind the behaviour in tests.
 
 ## Out of scope (deferred)
 

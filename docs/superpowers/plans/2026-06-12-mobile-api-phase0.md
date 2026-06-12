@@ -6,7 +6,9 @@
 
 **Architecture:** `ash_json_api` exposes existing Ash resources (Orders, new DeviceToken) through an `AshJsonApi.Router` forwarded from the Phoenix router behind two new plugs (bearer auth → Ash actor; `X-Store-ID` → Ash tenant). Auth endpoints (sign-in / refresh / sign-out) are hand-rolled controllers on AshAuthentication's `Merchant` password strategy with custom-purpose refresh tokens and rotation. Push reuses the existing provider-behaviour + Oban-worker conventions.
 
-**Tech Stack:** Elixir/Phoenix 1.8, Ash 3.x, AshAuthentication 4.x, ash_json_api, open_api_spex, Pigeon v2 + Goth (FCM), Oban, Mox.
+**Tech Stack:** Elixir/Phoenix 1.8, Ash 3.x, AshAuthentication 4.x, ash_json_api, open_api_spex, Req + Goth (FCM HTTP v1), Oban, Mox.
+
+> **Amendment after Task 1:** pigeon 2.x is unresolvable in this dep graph (pigeon → httpoison → hackney `~> 1.x` vs ex_aws 2.7.0's `hackney ~> 4.0`). The production push provider is therefore a thin FCM HTTP v1 client on `req` + Goth — Task 12 below was rewritten accordingly; no `pigeon` dep, no `Emakola.FCM` dispatcher module.
 
 **Spec:** `docs/superpowers/specs/2026-06-12-mobile-api-phase0-design.md`
 
@@ -1657,17 +1659,17 @@ git commit -m "feat(notifications): DeviceToken resource + registration endpoint
 
 ---
 
-### Task 12: PushProvider behaviour + Log/Pigeon implementations
+### Task 12: PushProvider behaviour + Log/FCM implementations
 
 **Files:**
 - Create: `lib/emakola/notifications/push_provider.ex`
 - Create: `lib/emakola/notifications/providers/log_push.ex`
-- Create: `lib/emakola/notifications/providers/pigeon_push.ex`
-- Create: `lib/emakola/fcm.ex`
-- Modify: `test/test_helper.exs` (defmock), `config/test.exs` (mock provider), `config/runtime.exs` (prod provider, env-gated), `lib/emakola/application.ex` (conditional FCM children)
+- Create: `lib/emakola/notifications/providers/fcm_push.ex`
+- Modify: `mix.exs` (remove the "pigeon deferred" NOTE comment left by Task 1 — goth stays)
+- Modify: `test/test_helper.exs` (defmock), `config/test.exs` (mock provider), `config/runtime.exs` (prod provider, env-gated), `lib/emakola/application.ex` (conditional Goth child)
 - Test: `test/emakola/notifications/providers/log_push_test.exs`
 
-**Before coding:** consult pigeon v2 docs (context7: "pigeon" → "FCM dispatcher Goth configuration") to confirm the dispatcher/Goth wiring below.
+**Before coding:** consult Goth docs if needed (context7: "goth" → "service account source Goth.fetch"). FCM HTTP v1 contract: `POST https://fcm.googleapis.com/v1/projects/{project_id}/messages:send` with `Authorization: Bearer <oauth token>`; dead tokens return 404, or 400 with `UNREGISTERED` in the error details.
 
 - [ ] **Step 1: Write the behaviour**
 
@@ -1676,7 +1678,7 @@ defmodule Emakola.Notifications.PushProvider do
   @moduledoc """
   Behaviour for mobile push delivery (FCM). Implementations:
 
-    * `Emakola.Notifications.Providers.PigeonPush` — production (FCM HTTP v1)
+    * `Emakola.Notifications.Providers.FcmPush` — production (FCM HTTP v1)
     * `Emakola.Notifications.Providers.LogPush` — dev default (logs only)
     * `Emakola.PushProviderMock` — test (Mox)
 
@@ -1749,43 +1751,64 @@ end
 Run: `mix test test/emakola/notifications/providers/log_push_test.exs`
 Expected: PASS.
 
-- [ ] **Step 6: Implement the Pigeon pieces** (no unit test — exercised only in prod; the behaviour boundary is what tests rely on):
+- [ ] **Step 6: Implement the FCM client** (no unit test — exercised only in prod; the behaviour boundary is what tests rely on):
 
-`lib/emakola/fcm.ex`:
+`lib/emakola/notifications/providers/fcm_push.ex`:
 
 ```elixir
-defmodule Emakola.FCM do
+defmodule Emakola.Notifications.Providers.FcmPush do
   @moduledoc """
-  Pigeon FCM dispatcher. Only started when FCM credentials are configured
-  (see Application.fcm_children/0) — dev/test boot without it.
+  Production push provider — FCM HTTP v1 via Req, authenticated with an
+  OAuth2 token from Goth (`Emakola.Goth`, started only when
+  FCM_SERVICE_ACCOUNT_JSON is configured).
   """
-  use Pigeon.Dispatcher, otp_app: :emakola
-end
-```
-
-`lib/emakola/notifications/providers/pigeon_push.ex`:
-
-```elixir
-defmodule Emakola.Notifications.Providers.PigeonPush do
-  @moduledoc "Production push provider — FCM HTTP v1 via Pigeon."
 
   @behaviour Emakola.Notifications.PushProvider
 
-  alias Pigeon.FCM.Notification
+  @fcm_base "https://fcm.googleapis.com/v1/projects"
 
   @impl true
   def send_push(device_token, %{title: title, body: body, data: data}) do
-    notification =
-      Notification.new({:token, device_token}, %{"title" => title, "body" => body}, data)
+    project_id = Application.fetch_env!(:emakola, :fcm_project_id)
 
-    case Emakola.FCM.push(notification) do
-      %Notification{response: :success} = n -> {:ok, %{name: n.name}}
-      %Notification{response: :unregistered} -> {:error, :unregistered}
-      %Notification{response: :not_found} -> {:error, :unregistered}
-      %Notification{response: other} -> {:error, other}
-      other -> {:error, other}
+    payload = %{
+      "message" => %{
+        "token" => device_token,
+        "notification" => %{"title" => title, "body" => body},
+        "data" => data
+      }
+    }
+
+    with {:ok, %{token: oauth_token}} <- Goth.fetch(Emakola.Goth),
+         {:ok, response} <-
+           Req.post("#{@fcm_base}/#{project_id}/messages:send",
+             json: payload,
+             auth: {:bearer, oauth_token}
+           ) do
+      handle_response(response)
+    else
+      {:error, reason} -> {:error, reason}
     end
   end
+
+  defp handle_response(%Req.Response{status: 200, body: body}), do: {:ok, body}
+  defp handle_response(%Req.Response{status: 404}), do: {:error, :unregistered}
+
+  defp handle_response(%Req.Response{status: status, body: body}) do
+    if unregistered?(body) do
+      {:error, :unregistered}
+    else
+      {:error, {:fcm_error, status, body}}
+    end
+  end
+
+  defp unregistered?(%{"error" => error}) do
+    error
+    |> Map.get("details", [])
+    |> Enum.any?(&(Map.get(&1, "errorCode") == "UNREGISTERED"))
+  end
+
+  defp unregistered?(_body), do: false
 end
 ```
 
@@ -1806,16 +1829,12 @@ Mox.defmock(Emakola.PushProviderMock, for: Emakola.Notifications.PushProvider)
 `config/runtime.exs` (in the prod section, near the sms/whatsapp provider config ~line 171):
 
 ```elixir
-  # Mobile push (FCM HTTP v1 via Pigeon). Only active when a Firebase
+  # Mobile push (FCM HTTP v1 via Req + Goth). Only active when a Firebase
   # service account is configured; otherwise the Log provider keeps the
   # pipeline observable without sending anything.
   if System.get_env("FCM_SERVICE_ACCOUNT_JSON") do
-    config :emakola, :push_provider, Emakola.Notifications.Providers.PigeonPush
-
-    config :emakola, Emakola.FCM,
-      adapter: Pigeon.FCM,
-      project_id: System.fetch_env!("FCM_PROJECT_ID"),
-      auth: Emakola.Goth
+    config :emakola, :push_provider, Emakola.Notifications.Providers.FcmPush
+    config :emakola, :fcm_project_id, System.fetch_env!("FCM_PROJECT_ID")
   else
     config :emakola, :push_provider, Emakola.Notifications.Providers.LogPush
   end
@@ -1830,8 +1849,8 @@ Mox.defmock(Emakola.PushProviderMock, for: Emakola.Notifications.PushProvider)
 (adapt to however the children list is built — if it's a plain list literal, change to `children = [...] ++ fcm_children()`), and add the private function:
 
 ```elixir
-  # Pigeon FCM dispatcher + Goth token server — only when FCM is configured
-  # (FCM_SERVICE_ACCOUNT_JSON in prod). Dev/test boot without them.
+  # Goth OAuth2 token server for FCM — only when FCM is configured
+  # (FCM_SERVICE_ACCOUNT_JSON in prod). Dev/test boot without it.
   defp fcm_children do
     case System.get_env("FCM_SERVICE_ACCOUNT_JSON") do
       nil ->
@@ -1840,10 +1859,7 @@ Mox.defmock(Emakola.PushProviderMock, for: Emakola.Notifications.PushProvider)
       json ->
         credentials = Jason.decode!(json)
 
-        [
-          {Goth, name: Emakola.Goth, source: {:service_account, credentials}},
-          Emakola.FCM
-        ]
+        [{Goth, name: Emakola.Goth, source: {:service_account, credentials}}]
     end
   end
 ```
@@ -1863,8 +1879,8 @@ Expected: compiles clean, notifications tests pass (FCM children absent without 
 - [ ] **Step 10: Commit**
 
 ```bash
-git add lib/emakola/notifications/push_provider.ex lib/emakola/notifications/providers/ lib/emakola/fcm.ex lib/emakola/application.ex config/ test/test_helper.exs test/emakola/notifications/providers/log_push_test.exs CLAUDE.md .env.example
-git commit -m "feat(notifications): PushProvider behaviour with Log + Pigeon FCM implementations"
+git add mix.exs lib/emakola/notifications/push_provider.ex lib/emakola/notifications/providers/ lib/emakola/application.ex config/ test/test_helper.exs test/emakola/notifications/providers/log_push_test.exs CLAUDE.md .env.example
+git commit -m "feat(notifications): PushProvider behaviour with Log + FCM (Req/Goth) implementations"
 ```
 
 ---
