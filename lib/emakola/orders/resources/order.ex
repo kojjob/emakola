@@ -13,7 +13,8 @@ defmodule Emakola.Orders.Order do
   use Ash.Resource,
     domain: Emakola.Orders,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    extensions: [AshJsonApi.Resource]
 
   require Logger
 
@@ -192,6 +193,21 @@ defmodule Emakola.Orders.Order do
 
   identities do
     identity(:unique_store_order_number, [:store_id, :order_number])
+  end
+
+  json_api do
+    type("order")
+
+    routes do
+      base("/orders")
+
+      # index: returns list; filter[status]=confirmed maps to the public status
+      # attribute via ash_json_api's default derive_filter? behavior.
+      index(:api_list)
+
+      # get: fetches a single order by primary key from the URL :id segment.
+      get(:api_get)
+    end
   end
 
   policies do
@@ -482,6 +498,26 @@ defmodule Emakola.Orders.Order do
             inserted_at < ^arg(:to)
         )
       )
+    end
+
+    # Mobile API — list orders for the authenticated merchant's store.
+    # filter[status]=confirmed is handled by ash_json_api's derive_filter?
+    # on the public status attribute (no action argument required).
+    read :api_list do
+      description("Mobile API order list — tenant-scoped, newest first.")
+
+      prepare(fn query, _context ->
+        Ash.Query.sort(query, inserted_at: :desc)
+      end)
+
+      pagination(offset?: true, keyset?: true, countable: true, default_limit: 25)
+    end
+
+    # Mobile API — fetch a single order by primary key.
+    # ash_json_api routes to this via the :id path segment using Ash.get!.
+    read :api_get do
+      description("Mobile API order get by primary key.")
+      get?(true)
     end
   end
 end

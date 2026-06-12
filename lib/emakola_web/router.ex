@@ -103,6 +103,15 @@ defmodule EmakolaWeb.Router do
     get "/stores", StoreController, :index
   end
 
+  # Tenant-scoped JSON:API resources (orders; device tokens in a later task).
+  # Declared below /api/v1/stores deliberately — forward matches everything
+  # under /api/v1, so the stores route above must be declared first.
+  scope "/api/v1" do
+    pipe_through [:api, :api_bearer, :api_tenant]
+
+    forward "/", EmakolaWeb.ApiRouter
+  end
+
   # Auth session controller (sets/clears session cookie)
   # GET /session creates a session from a token — rate limited (brute-force vector)
   scope "/auth", EmakolaWeb do
