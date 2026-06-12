@@ -81,6 +81,59 @@ defmodule EmakolaWeb.OnboardingLiveTest do
     end
   end
 
+  describe "change bindings are form-wrapped (browser-faithful)" do
+    # phx-change on a bare input is silently dead in real browsers
+    # ("form events require the input to be inside a form" — LiveView JS),
+    # while view-level render_change/3 bypasses the DOM entirely. These
+    # tests target the actual <form> elements so the binding structure a
+    # real browser needs is what gets verified.
+    test "typing a store name through its form enables Continue", %{conn: conn} do
+      conn = Phoenix.ConnTest.init_test_session(conn, %{})
+      {:ok, view, html} = live(conn, "/onboarding")
+
+      assert html =~ "cursor-not-allowed"
+
+      html =
+        view
+        |> element("#store-name-form")
+        |> render_change(%{"store_name" => "Kojo Fashion"})
+
+      refute html =~ "cursor-not-allowed"
+      assert html =~ "kojo-fashion"
+    end
+
+    test "currency select is inside a change form", %{conn: conn} do
+      conn = Phoenix.ConnTest.init_test_session(conn, %{})
+      {:ok, view, _html} = live(conn, "/onboarding")
+
+      html =
+        view
+        |> element("#currency-form")
+        |> render_change(%{"currency" => "NGN"})
+
+      assert html =~ ~s(value="NGN" selected)
+    end
+
+    test "product name and price inputs are inside change forms", %{conn: conn} do
+      conn = Phoenix.ConnTest.init_test_session(conn, %{})
+      {:ok, view, _html} = live(conn, "/onboarding")
+
+      view |> element("#store-name-form") |> render_change(%{"store_name" => "Shop"})
+      render_click(view, "next_step")
+      render_click(view, "next_step")
+
+      view |> element("#product-name-form") |> render_change(%{"product_name" => "Ankara Dress"})
+
+      html =
+        view
+        |> element("#product-price-form")
+        |> render_change(%{"product_price" => "150"})
+
+      assert html =~ "Ankara Dress"
+      assert html =~ "150"
+    end
+  end
+
   describe "step 2 (theme selection)" do
     test "shows theme selection with three themes", %{conn: conn} do
       merchant = create_merchant!()
