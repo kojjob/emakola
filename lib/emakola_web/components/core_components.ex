@@ -770,7 +770,7 @@ defmodule EmakolaWeb.CoreComponents do
               <li>
                 <a href="/#features" class="hover:text-slate-900 transition-colors">Features</a>
               </li>
-              <li><a href="/#pricing" class="hover:text-slate-900 transition-colors">Pricing</a></li>
+              <li><a href="/pricing" class="hover:text-slate-900 transition-colors">Pricing</a></li>
               <li>
                 <a href="/dashboard" class="hover:text-slate-900 transition-colors">Dashboard</a>
               </li>

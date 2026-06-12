@@ -141,6 +141,14 @@ defmodule EmakolaWeb.Router do
     end
   end
 
+  # Platform-level sitemap (apex domain marketing pages).
+  # TODO: when store subdomain routing lands, add a host guard here so
+  # mystore.emakola.com/sitemap.xml serves the store sitemap instead.
+  scope "/", EmakolaWeb do
+    pipe_through :seo
+    get "/sitemap.xml", SitemapController, :platform
+  end
+
   # Sitemap + AI-readable files — uses :seo pipeline (accepts XML/text),
   # NOT :api (which enforces JSON-only and would 406 crawlers).
   scope "/s/:store_slug", EmakolaWeb do
@@ -188,6 +196,7 @@ defmodule EmakolaWeb.Router do
     pipe_through :browser
 
     live "/", LandingLive
+    live "/pricing", PricingLive
     live "/stores", StoresLive
     live "/docs", Docs.DocsLive
 

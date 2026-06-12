@@ -559,3 +559,90 @@ html.high-contrast {
   }
 
 }
+
+/* Hero rotating word (landing page). Pure CSS so LiveView DOM diffing
+   cannot lose the state. @layer components so Tailwind utilities win. */
+@layer components {
+  .hero-rotator {
+    display: inline-block;
+    height: 1.15em;
+    overflow: hidden;
+    vertical-align: bottom;
+  }
+  .hero-rotator-list {
+    display: flex;
+    flex-direction: column;
+    animation: hero-rotate 9s ease-in-out infinite;
+  }
+  .hero-rotator-list > span {
+    height: 1.15em;
+    line-height: 1.15em;
+  }
+  /* 4 words — mirrors @rotating_words in LandingLive. Update both if word count changes. */
+  @keyframes hero-rotate {
+    0%, 18% { transform: translateY(0); }
+    25%, 43% { transform: translateY(-1.15em); }
+    50%, 68% { transform: translateY(-2.3em); }
+    75%, 93% { transform: translateY(-3.45em); }
+    100% { transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-rotator-list { animation: none; }
+  }
+}
+
+/* Shared section entrance stagger (landing page): features grid +
+   launch steps. ScrollReveal adds .reveal-hidden then .revealed to the grid container;
+   children animate in with per-card delays. Keyframe animation (not
+   transition-delay) so card hover transitions are never delayed.
+   Without JS, .reveal-hidden is never added and cards stay visible.
+   `to` deliberately omits transform — a filled transform would override hover lifts.
+   Arrow <span> connectors are covered too — otherwise they float between invisible cards during reveal. */
+@layer components {
+  .stagger-grid.reveal-hidden > div,
+  .stagger-grid.reveal-hidden > span {
+    opacity: 0;
+  }
+  .stagger-grid.reveal-hidden.revealed > div {
+    animation: feature-rise 0.55s ease-out both;
+  }
+  .stagger-grid.reveal-hidden.revealed > div:nth-child(2) { animation-delay: 70ms; }
+  .stagger-grid.reveal-hidden.revealed > div:nth-child(3) { animation-delay: 140ms; }
+  .stagger-grid.reveal-hidden.revealed > div:nth-child(4) { animation-delay: 210ms; }
+  .stagger-grid.reveal-hidden.revealed > div:nth-child(5) { animation-delay: 280ms; }
+  .stagger-grid.reveal-hidden.revealed > div:nth-child(6) { animation-delay: 350ms; }
+  .stagger-grid.reveal-hidden.revealed > div:nth-child(7) { animation-delay: 420ms; }
+  .stagger-grid.reveal-hidden.revealed > div:nth-child(8) { animation-delay: 490ms; }
+  .stagger-grid.reveal-hidden.revealed > div:nth-child(9) { animation-delay: 560ms; }
+  .stagger-grid.reveal-hidden.revealed > span {
+    animation: feature-rise 0.55s ease-out both;
+  }
+  .stagger-grid.reveal-hidden.revealed > span:nth-child(2) { animation-delay: 70ms; }
+  .stagger-grid.reveal-hidden.revealed > span:nth-child(4) { animation-delay: 210ms; }
+  @keyframes feature-rise {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .stagger-grid.reveal-hidden > div,
+    .stagger-grid.reveal-hidden > span { opacity: 1; }
+    .stagger-grid.reveal-hidden.revealed > div,
+    .stagger-grid.reveal-hidden.revealed > span { animation: none; }
+  }
+}
+
+/* Launch-steps arrow connectors (landing page): gentle forward nudge.
+   Tailwind v4 rotate-* uses the standalone `rotate` property, so the
+   mobile rotate-90 composes with this transform animation. */
+@layer components {
+  .step-arrow {
+    animation: step-arrow-nudge 1.6s ease-in-out infinite;
+  }
+  @keyframes step-arrow-nudge {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(5px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .step-arrow { animation: none; }
+  }
+}
