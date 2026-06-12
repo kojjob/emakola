@@ -136,17 +136,18 @@ defmodule EmakolaWeb.OnboardingLive do
               <label for="store_name" class="block text-sm font-medium text-gray-700 mb-1">
                 Store name
               </label>
-              <input
-                type="text"
-                id="store_name"
-                name="store_name"
-                value={@store_name}
-                placeholder="e.g. Kojo's Fashion"
-                phx-change="update_store_name"
-                phx-debounce="300"
-                autofocus
-                class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              />
+              <form id="store-name-form" phx-change="update_store_name">
+                <input
+                  type="text"
+                  id="store_name"
+                  name="store_name"
+                  value={@store_name}
+                  placeholder="e.g. Kojo's Fashion"
+                  phx-debounce="300"
+                  autofocus
+                  class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </form>
               <p :if={@store_slug != ""} class="mt-1.5 text-xs text-gray-400">
                 Your store URL: <span class="font-mono text-emerald-600">{@store_slug}</span>.emakola.com
               </p>
@@ -156,20 +157,21 @@ defmodule EmakolaWeb.OnboardingLive do
               <label for="currency" class="block text-sm font-medium text-gray-700 mb-1">
                 Currency
               </label>
-              <select
-                id="currency"
-                name="currency"
-                phx-change="update_currency"
-                class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              >
-                <option
-                  :for={c <- @currencies}
-                  value={c.code}
-                  selected={c.code == @currency}
+              <form id="currency-form" phx-change="update_currency">
+                <select
+                  id="currency"
+                  name="currency"
+                  class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 >
-                  {c.flag} {c.label}
-                </option>
-              </select>
+                  <option
+                    :for={c <- @currencies}
+                    value={c.code}
+                    selected={c.code == @currency}
+                  >
+                    {c.flag} {c.label}
+                  </option>
+                </select>
+              </form>
             </div>
           </div>
         </div>
@@ -265,34 +267,36 @@ defmodule EmakolaWeb.OnboardingLive do
               <label for="product_name" class="block text-sm font-medium text-gray-700 mb-1">
                 Product name
               </label>
-              <input
-                type="text"
-                id="product_name"
-                name="product_name"
-                value={@product_name}
-                placeholder="e.g. Ankara Dress"
-                phx-change="update_product"
-                phx-debounce="300"
-                class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              />
+              <form id="product-name-form" phx-change="update_product">
+                <input
+                  type="text"
+                  id="product_name"
+                  name="product_name"
+                  value={@product_name}
+                  placeholder="e.g. Ankara Dress"
+                  phx-debounce="300"
+                  class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </form>
             </div>
 
             <div>
               <label for="product_price" class="block text-sm font-medium text-gray-700 mb-1">
                 Price ({@currency})
               </label>
-              <input
-                type="number"
-                id="product_price"
-                name="product_price"
-                value={@product_price}
-                placeholder="e.g. 150"
-                min="0"
-                step="0.01"
-                phx-change="update_product"
-                phx-debounce="300"
-                class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              />
+              <form id="product-price-form" phx-change="update_product">
+                <input
+                  type="number"
+                  id="product_price"
+                  name="product_price"
+                  value={@product_price}
+                  placeholder="e.g. 150"
+                  min="0"
+                  step="0.01"
+                  phx-debounce="300"
+                  class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </form>
             </div>
           </div>
 
