@@ -325,6 +325,42 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
       assert images == []
     end
 
+    test "storage client RAISING during upload → product saved, no crash, failure flash",
+         %{conn: conn, store: store} do
+      # Regression: ExAws raised UndefinedFunctionError in production (missing
+      # HTTP client) and crashed the upload channel — raises must be contained
+      # like error tuples.
+      stub(Emakola.StorageMock, :upload, fn _binary, _path, _opts ->
+        raise "boom from storage client"
+      end)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      Mox.allow(Emakola.StorageMock, self(), view.pid)
+
+      upload =
+        file_input(view, "#product-form", :product_images, [
+          %{name: "shirt.png", content: @small_png, type: "image/png"}
+        ])
+
+      render_upload(upload, "shirt.png")
+
+      {:ok, _rview, html} =
+        view
+        |> element("#product-form")
+        |> render_submit(%{
+          "product" => %{"title" => "Upload Raise", "price" => "10.00", "_action" => "draft"}
+        })
+        |> follow_redirect(conn)
+
+      product =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read_one!(authorize?: false)
+
+      assert product != nil
+      assert html =~ "Some images failed to upload"
+    end
+
     test "edit: existing image renders; delete_image removes it",
          %{conn: conn, store: store} do
       product = create_product!(store)

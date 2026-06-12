@@ -137,24 +137,34 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
         s3_path = "stores/#{store_id}/products/#{filename}"
         binary = File.read!(tmp_path)
 
-        case Emakola.Storage.upload(binary, s3_path, content_type: entry.client_type) do
-          {:ok, url} ->
-            case Emakola.Catalog.create_image(
-                   %{
-                     url: url,
-                     product_id: product.id,
-                     store_id: store_id,
-                     content_type: entry.client_type,
-                     file_size_bytes: entry.client_size,
-                     alt_text: Path.rootname(entry.client_name)
-                   },
-                   authorize?: false
-                 ) do
-              {:ok, _image} -> {:ok, :ok}
-              {:error, _} -> {:ok, :error}
-            end
+        # A raising storage client must not crash the upload channel — the
+        # product is already saved at this point (seen in production when
+        # ExAws lacked an HTTP client). Contain raises like error tuples.
+        try do
+          case Emakola.Storage.upload(binary, s3_path, content_type: entry.client_type) do
+            {:ok, url} ->
+              case Emakola.Catalog.create_image(
+                     %{
+                       url: url,
+                       product_id: product.id,
+                       store_id: store_id,
+                       content_type: entry.client_type,
+                       file_size_bytes: entry.client_size,
+                       alt_text: Path.rootname(entry.client_name)
+                     },
+                     authorize?: false
+                   ) do
+                {:ok, _image} -> {:ok, :ok}
+                {:error, _} -> {:ok, :error}
+              end
 
-          {:error, _reason} ->
+            {:error, _reason} ->
+              {:ok, :error}
+          end
+        rescue
+          exception ->
+            require Logger
+            Logger.error("Product image upload failed: #{Exception.message(exception)}")
             {:ok, :error}
         end
       end)
