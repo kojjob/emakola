@@ -1,9 +1,17 @@
 defmodule Emakola.Notifications.Providers.LogPushTest do
-  use ExUnit.Case, async: true
+  # async: false — the test temporarily raises the global Logger level so
+  # capture_log can see the provider's info-level output (test env runs at
+  # :warning).
+  use ExUnit.Case, async: false
 
   import ExUnit.CaptureLog
 
   alias Emakola.Notifications.Providers.LogPush
+
+  setup do
+    Logger.configure(level: :info)
+    on_exit(fn -> Logger.configure(level: :warning) end)
+  end
 
   test "logs and succeeds without leaking the token" do
     log =

@@ -7,7 +7,7 @@ defmodule Emakola.Notifications.Providers.LogPush do
 
   @impl true
   def send_push(device_token, %{title: title, body: body}) do
-    Logger.warning(
+    Logger.info(
       "[push] (log provider) to #{String.slice(device_token, 0, 8)}…: #{title} — #{body}"
     )
 
