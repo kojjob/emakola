@@ -26,6 +26,7 @@ defmodule Emakola.Notifications.Dispatcher do
   require Logger
 
   alias Emakola.Notifications.Workers.OrderNotificationWorker
+  alias Emakola.Notifications.Workers.PushNotificationWorker
   alias Emakola.Notifications.Workers.SupplierNotificationWorker
 
   @valid_events ~w(order_placed order_confirmed order_shipped order_delivered order_cancelled)a
@@ -132,6 +133,7 @@ defmodule Emakola.Notifications.Dispatcher do
   defp do_dispatch(%{id: order_id} = order, event) when not is_nil(order_id) do
     case enqueue_job(order_id, event) do
       {:ok, job} ->
+        enqueue_push(order_id, event)
         maybe_broadcast(order, event)
         {:ok, job}
 
@@ -150,6 +152,27 @@ defmodule Emakola.Notifications.Dispatcher do
     Logger.error("[notifications] cannot dispatch #{inspect(event)}: order has no :id")
     {:error, :missing_order_id}
   end
+
+  # Mobile push fires only on new orders (Phase 0). Failures are logged and
+  # swallowed — push must never break the primary notification path.
+  defp enqueue_push(order_id, :order_placed) do
+    %{order_id: order_id, event: "order_placed"}
+    |> PushNotificationWorker.new(queue: :notifications)
+    |> Oban.insert()
+    |> case do
+      {:ok, _job} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.error("[notifications] push enqueue failed: #{inspect(reason)}",
+          order_id: order_id
+        )
+
+        :ok
+    end
+  end
+
+  defp enqueue_push(_order_id, _event), do: :ok
 
   defp enqueue_job(order_id, event) do
     %{order_id: order_id, event: Atom.to_string(event)}
