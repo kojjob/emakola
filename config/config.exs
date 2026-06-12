@@ -138,6 +138,12 @@ config :emakola, Emakola.Payments.PaystackClient, base_url: "https://api.paystac
 # environment: dev.exs (env passthrough), test.exs (flat keys), runtime.exs (prod).
 config :emakola, Emakola.Payments.HubtelClient, base_url: "https://api.hubtel.com"
 
+# ExAws ships configured for a hackney HTTP client that is NOT one of our
+# dependencies — without this, every S3/Tigris call raises
+# UndefinedFunctionError (ExAws.Request.Hackney) at runtime. Use the Req
+# adapter (req is already a dependency).
+config :ex_aws, http_client: ExAws.Request.Req
+
 # Import branding and plans config
 import_config "branding.exs"
 import_config "plans.exs"
