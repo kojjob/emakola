@@ -246,7 +246,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
   def update_product_with_price(product, attrs, pesewas, action) do
     clean_attrs = Map.delete(attrs, :store_id)
 
-    with {:ok, updated} <- Emakola.Catalog.update_product(product, clean_attrs, authorize?: false),
+    with {:ok, updated} <-
+           Emakola.Catalog.update_product(product, clean_attrs, authorize?: false),
          :ok <- maybe_create_default_variant(updated, pesewas) do
       attempt_update_activation(updated, action)
     end
