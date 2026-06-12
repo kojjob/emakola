@@ -54,7 +54,7 @@ Content-Type: application/json
 ```json
 {
   "errors": [
-    { "status": "422", "code": "required", "detail": "email is required" }
+    { "status": "422", "code": "missing_params", "detail": "email and password are required" }
   ]
 }
 ```
@@ -90,7 +90,7 @@ Content-Type: application/json
 ```json
 {
   "errors": [
-    { "status": "401", "code": "invalid_token", "detail": "Refresh token is invalid or expired" }
+    { "status": "401", "code": "invalid_refresh_token", "detail": "Refresh token is invalid or expired" }
   ]
 }
 ```
@@ -204,9 +204,19 @@ Orders use **keyset pagination**. The cursor for the next page is in `links.next
       "attributes": {
         "order_number": "ORD-00042",
         "status": "pending",
-        "total_amount": 15000,
+        "subtotal": 14000,
+        "total": 15000,
+        "delivery_fee": 1000,
+        "discount_amount": 0,
         "currency": "GHS",
-        "inserted_at": "2026-06-10T08:00:00Z"
+        "notes": null,
+        "tracking_number": null,
+        "store_id": "uuid",
+        "customer_id": "uuid",
+        "coupon_id": null,
+        "shipping_address": {},
+        "billing_address": {},
+        "attribution": null
       }
     }
   ],
@@ -215,6 +225,8 @@ Orders use **keyset pagination**. The cursor for the next page is in `links.next
   }
 }
 ```
+
+All monetary fields (`subtotal`, `total`, `delivery_fee`, `discount_amount`) are integers in minor units — pesewas for GHS, kobo for NGN.
 
 Available `filter[status]` values: `pending`, `confirmed`, `processing`, `shipped`,
 `delivered`, `cancelled`.
@@ -268,6 +280,22 @@ State machine:
 pending → confirmed → processing → shipped → delivered
 pending → cancelled
 confirmed → cancelled
+processing → cancelled
+shipped → cancelled
+```
+
+`mark_shipped` accepts an optional `tracking_number` in `attributes`; it is persisted and returned on the updated order:
+
+```json
+{
+  "data": {
+    "type": "order",
+    "id": "<order-uuid>",
+    "attributes": {
+      "tracking_number": "TRK-12345"
+    }
+  }
+}
 ```
 
 ---
@@ -276,7 +304,7 @@ confirmed → cancelled
 
 #### Register (upsert)
 
-Re-registering an existing token is safe — the server upserts on `(merchant_id, store_id, token)`.
+Re-registering an existing token is safe — the server upserts on `token` alone (globally unique across stores). If the token already exists under a different merchant or store, it is **reassigned**: `merchant_id`, `store_id`, `platform`, and `last_seen_at` are refreshed to the current request's values.
 
 ```
 POST /api/v1/device_tokens
@@ -303,7 +331,8 @@ Content-Type: application/vnd.api+json
     "id": "uuid",
     "attributes": {
       "platform": "android",
-      "token": "fcm-abc-123"
+      "token": "fcm-abc-123",
+      "last_seen_at": "2026-06-12T10:00:00Z"
     }
   }
 }
@@ -328,8 +357,8 @@ All errors follow the JSON:API errors shape:
   "errors": [
     {
       "status": "401",
-      "code": "invalid_token",
-      "detail": "Bearer token is missing or revoked"
+      "code": "unauthorized",
+      "detail": "Invalid or expired access token"
     }
   ]
 }
@@ -394,6 +423,11 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 ```
 
 Token refresh:
+
+> **Superseded:** The Authorization-header-based refresh below is a legacy/aspirational
+> description that does not reflect the implemented API. The canonical Mobile API v1 refresh
+> endpoint is documented at the top of this file: it is body-based (`{"refresh_token": "..."}`)
+> and single-use — the old token is immediately revoked. See [POST /api/v1/auth/refresh](#post-apiv1authrefresh).
 
 ```
 POST /api/v1/auth/refresh
@@ -1018,7 +1052,7 @@ Most CRUD endpoints are auto-generated from Ash resource definitions:
 defmodule EmakolaWeb.Api.Router do
   use AshJsonApi.Router,
     domains: [Emakola.Catalog, Emakola.Orders, Emakola.Accounts],
-    open_api: "/api/v1/openapi"
+    open_api: "/api/v1/open_api"
 end
 ```
 
