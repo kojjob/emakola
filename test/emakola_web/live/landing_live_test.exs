@@ -84,24 +84,41 @@ defmodule EmakolaWeb.LandingLiveTest do
   end
 
   describe "features grid" do
-    test "renders all nine features including dropshipping", %{conn: conn} do
+    test "renders nine photo-led features with short titles", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/")
 
       assert html =~ "Everything you need to sell"
 
       for title <- [
-            "Dropshipping &amp; suppliers",
-            "Storefront themes",
-            "Digital products",
-            "Inventory tracking",
-            "Shipping &amp; delivery",
-            "Coupons &amp; discounts",
-            "Analytics &amp; reports",
+            "Dropshipping",
+            "Themes",
+            "Digital goods",
+            "Stock",
+            "Delivery",
+            "Discounts",
+            "Reports",
             "Blog &amp; recipes",
-            "Multi-store"
+            "Many stores"
           ] do
         assert html =~ title
       end
+    end
+
+    test "features carry photos and color badges", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/")
+
+      for img <- [
+            "feature-dropship.jpg",
+            "feature-digital.jpg",
+            "feature-stock.jpg",
+            "feature-delivery.jpg",
+            "feature-reports.jpg"
+          ] do
+        assert html =~ img
+      end
+
+      assert html =~ "bg-violet-500"
+      assert html =~ "features-grid"
     end
   end
 

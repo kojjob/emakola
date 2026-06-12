@@ -253,13 +253,36 @@ defmodule EmakolaWeb.LandingLive do
         <p class="text-base text-[#5f6b7a] text-center mb-12">
           The full toolkit, built for Ghana
         </p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <div :for={feature <- features()} class="bg-[#f7f8fa] rounded-2xl p-6" data-reveal>
-            <span class="material-symbols-outlined text-2xl text-[#d4a843] mb-3" aria-hidden="true">
-              {feature.icon}
-            </span>
-            <h3 class="text-base font-bold text-[#0c1526] mb-1">{feature.title}</h3>
-            <p class="text-sm text-[#5f6b7a]">{feature.blurb}</p>
+        <div
+          class="features-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+          data-reveal
+        >
+          <div
+            :for={feature <- features()}
+            class="group bg-[#f7f8fa] rounded-2xl overflow-hidden transition duration-300 hover:-translate-y-1.5 hover:shadow-xl"
+          >
+            <div class="h-36 overflow-hidden">
+              <img
+                src={feature.img}
+                alt={feature.alt}
+                loading="lazy"
+                width="600"
+                height="360"
+                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+            </div>
+            <div class="px-4 pb-5">
+              <span class={[
+                "relative -mt-6 inline-flex w-12 h-12 items-center justify-center rounded-xl text-white shadow-lg",
+                feature.badge
+              ]}>
+                <span class="material-symbols-outlined text-2xl" aria-hidden="true">
+                  {feature.icon}
+                </span>
+              </span>
+              <h3 class="text-base font-bold text-[#0c1526] mt-2 mb-1">{feature.title}</h3>
+              <p class="text-sm text-[#5f6b7a]">{feature.blurb}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -487,50 +510,76 @@ defmodule EmakolaWeb.LandingLive do
   defp features do
     [
       %{
+        title: "Dropshipping",
+        blurb: "Suppliers hold it, you sell it",
         icon: "warehouse",
-        title: "Dropshipping & suppliers",
-        blurb:
-          "Sell products you don't stock — suppliers fulfill, Emakola tracks costs and settlements."
+        badge: "bg-violet-500 shadow-violet-500/40",
+        img: "/images/landing/feature-dropship.jpg",
+        alt: "Man pushing a cart stacked with boxes through the street"
       },
       %{
+        title: "Themes",
+        blurb: "14 beautiful looks for your store",
         icon: "palette",
-        title: "Storefront themes",
-        blurb: "14 professional themes, from fashion to pharmacy. Switch anytime."
+        badge: "bg-rose-500 shadow-rose-500/40",
+        img: "/images/landing/store-tailor.jpg",
+        alt: "Tailor smiling as he works at his sewing machine"
       },
       %{
+        title: "Digital goods",
+        blurb: "Files delivered after payment",
         icon: "download",
-        title: "Digital products",
-        blurb: "Sell downloads — files delivered automatically after payment."
+        badge: "bg-sky-500 shadow-sky-500/40",
+        img: "/images/landing/feature-digital.jpg",
+        alt: "Woman working at a laptop"
       },
       %{
+        title: "Stock",
+        blurb: "Always know what is left",
         icon: "inventory_2",
-        title: "Inventory tracking",
-        blurb: "Know your stock levels across locations, always."
+        badge: "bg-amber-500 shadow-amber-500/40",
+        img: "/images/landing/feature-stock.jpg",
+        alt: "Stacked yellow crates ready for sale"
       },
       %{
+        title: "Delivery",
+        blurb: "Across all of Ghana",
         icon: "local_shipping",
-        title: "Shipping & delivery",
-        blurb: "Zones, rates, and live order tracking across Ghana."
+        badge: "bg-orange-500 shadow-orange-500/40",
+        img: "/images/landing/feature-delivery.jpg",
+        alt: "Cargo motorcycle loaded with goods on the road"
       },
       %{
+        title: "Discounts",
+        blurb: "Bring customers back",
         icon: "percent",
-        title: "Coupons & discounts",
-        blurb: "Run promotions that bring customers back."
+        badge: "bg-emerald-500 shadow-emerald-500/40",
+        img: "/images/landing/store-fruit.jpg",
+        alt: "Market woman in an orange dress arranging fruit at her stall"
       },
       %{
+        title: "Reports",
+        blurb: "See your sales clearly",
         icon: "monitoring",
-        title: "Analytics & reports",
-        blurb: "See sales, customers, and trends — export PDF reports."
+        badge: "bg-indigo-500 shadow-indigo-500/40",
+        img: "/images/landing/feature-reports.jpg",
+        alt: "Smiling woman checking her sales on a laptop"
       },
       %{
-        icon: "article",
         title: "Blog & recipes",
-        blurb: "Built-in content marketing — publish posts and recipes on your store."
+        blurb: "Share posts and recipes",
+        icon: "article",
+        badge: "bg-teal-500 shadow-teal-500/40",
+        img: "/images/landing/store-eggs.jpg",
+        alt: "Woman selling a pyramid of fresh eggs at the market"
       },
       %{
+        title: "Many stores",
+        blurb: "One account, one dashboard",
         icon: "storefront",
-        title: "Multi-store",
-        blurb: "Run several stores from one account and dashboard."
+        badge: "bg-pink-500 shadow-pink-500/40",
+        img: "/images/landing/cta-market.jpg",
+        alt: "Bustling market street with many stalls"
       }
     ]
   end
