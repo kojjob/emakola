@@ -235,7 +235,41 @@ Available `filter[status]` values: `pending`, `confirmed`, `processing`, `shippe
 
 ```
 GET /api/v1/orders/:id
+GET /api/v1/orders/:id?include=line_items
 ```
+
+Pass `?include=line_items` to receive the order's line items in the top-level `included` array (JSON:API compound document):
+
+```json
+{
+  "data": {
+    "type": "order",
+    "id": "uuid",
+    "attributes": { "...": "..." }
+  },
+  "included": [
+    {
+      "type": "line_item",
+      "id": "uuid",
+      "attributes": {
+        "order_id": "uuid",
+        "store_id": "uuid",
+        "variant_id": "uuid",
+        "product_title": "Ankara Print Dress",
+        "variant_sku": "APD-M-BLU",
+        "quantity": 2,
+        "unit_price": 15000,
+        "line_total": 30000,
+        "fulfillment_id": null
+      }
+    }
+  ]
+}
+```
+
+`include=line_items` is also accepted on the list endpoint (`GET /api/v1/orders?include=line_items`); included line items appear for every order returned.
+
+All monetary fields (`unit_price`, `line_total`) are integers in minor currency units (pesewas / kobo). `cost_price` (supplier cost snapshot) is not exposed via the API.
 
 #### Order status transitions
 

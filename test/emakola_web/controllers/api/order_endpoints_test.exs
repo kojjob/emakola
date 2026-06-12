@@ -115,6 +115,34 @@ defmodule EmakolaWeb.Api.OrderEndpointsTest do
       assert attrs["currency"] == "GHS"
     end
 
+    test "detail includes line items on request", %{conn: conn, store: store} do
+      order = create_order!(store)
+      product = create_product!(store)
+      variant = create_variant!(product, store)
+
+      line_item =
+        Emakola.Orders.LineItem
+        |> Ash.Changeset.for_create(
+          :create,
+          %{
+            order_id: order.id,
+            variant_id: variant.id,
+            store_id: store.id,
+            quantity: 2
+          },
+          tenant: store.id
+        )
+        |> Ash.create!(authorize?: false)
+
+      conn = get(conn, "/api/v1/orders/#{order.id}?include=line_items")
+
+      assert %{"data" => %{"id" => _}, "included" => [included]} = json_response(conn, 200)
+      assert included["type"] == "line_item"
+      assert included["id"] == line_item.id
+      assert included["attributes"]["quantity"] == 2
+      assert included["attributes"]["line_total"] == variant.price * 2
+    end
+
     test "404 for unknown id", %{conn: conn} do
       conn = get(conn, "/api/v1/orders/#{Ash.UUID.generate()}")
       assert conn.status == 404
@@ -123,6 +151,16 @@ defmodule EmakolaWeb.Api.OrderEndpointsTest do
     test "400 for invalid uuid", %{conn: conn} do
       conn = get(conn, "/api/v1/orders/not-a-uuid")
       assert conn.status == 400
+    end
+  end
+
+  describe "GET /api/v1/orders with include" do
+    test "list endpoint accepts include=line_items without 400", %{conn: conn, store: store} do
+      _order = create_order!(store)
+
+      conn = get(conn, "/api/v1/orders?include=line_items")
+
+      assert conn.status == 200
     end
   end
 end

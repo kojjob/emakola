@@ -166,7 +166,9 @@ defmodule Emakola.Orders.Order do
       public?(true)
     end
 
-    has_many :line_items, Emakola.Orders.LineItem
+    has_many :line_items, Emakola.Orders.LineItem do
+      public?(true)
+    end
 
     has_many :fulfillments, Emakola.Orders.Fulfillment
 
@@ -201,6 +203,7 @@ defmodule Emakola.Orders.Order do
 
   json_api do
     type("order")
+    includes(line_items: [])
 
     routes do
       base("/orders")

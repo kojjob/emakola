@@ -11,7 +11,8 @@ defmodule Emakola.Orders.LineItem do
   use Ash.Resource,
     domain: Emakola.Orders,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    extensions: [AshJsonApi.Resource]
 
   require Ash.Query
 
@@ -24,6 +25,10 @@ defmodule Emakola.Orders.LineItem do
   postgres do
     table("line_items")
     repo(Emakola.Repo)
+  end
+
+  json_api do
+    type("line_item")
   end
 
   attributes do
@@ -75,8 +80,10 @@ defmodule Emakola.Orders.LineItem do
     end
 
     # Supplier cost snapshot at order time (minor units). Nil for own-stock.
+    # Not exposed via the JSON:API — this is dropship-internal margin data,
+    # not shown in the merchant admin UI per-line-item (only aggregated as order margin).
     attribute :cost_price, :integer do
-      public?(true)
+      public?(false)
     end
 
     timestamps()
