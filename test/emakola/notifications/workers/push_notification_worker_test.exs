@@ -80,6 +80,26 @@ defmodule Emakola.Notifications.Workers.PushNotificationWorkerTest do
              Ash.read!(Emakola.Notifications.DeviceToken, authorize?: false, tenant: store.id)
   end
 
+  test "pruning a token already deleted by a concurrent job still succeeds" do
+    {merchant, store} = create_merchant_with_store!()
+    dt = register_device!(merchant, store, "fcm-gone")
+    order = create_order!(store)
+
+    # Simulate the race: another job (or the device re-registering) deletes
+    # the row between this worker's read and its prune attempt. The mock
+    # callback runs exactly in that window.
+    expect(Emakola.PushProviderMock, :send_push, fn "fcm-gone", _ ->
+      Ash.destroy!(dt, authorize?: false, tenant: store.id)
+      {:error, :unregistered}
+    end)
+
+    assert :ok =
+             perform_job(PushNotificationWorker, %{
+               "order_id" => order.id,
+               "event" => "order_placed"
+             })
+  end
+
   test "transient provider error does not prune and still succeeds" do
     {merchant, store} = create_merchant_with_store!()
     register_device!(merchant, store, "fcm-flaky")

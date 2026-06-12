@@ -59,14 +59,53 @@ defmodule Emakola.Notifications.Workers.PushNotificationWorker do
         :ok
 
       {:error, :unregistered} ->
-        Logger.info("[PushNotificationWorker] pruning unregistered device token")
-        Ash.destroy!(device_token, authorize?: false, tenant: device_token.store_id)
+        Logger.info("[PushNotificationWorker] pruning unregistered device token",
+          order_id: order.id,
+          store_id: order.store_id
+        )
+
+        prune(device_token)
 
       {:error, reason} ->
-        Logger.error("[PushNotificationWorker] push failed: #{inspect(reason)}")
+        Logger.error("[PushNotificationWorker] push failed: #{inspect(reason)}",
+          order_id: order.id,
+          store_id: order.store_id
+        )
+
         :ok
     end
   end
+
+  # A concurrent job (two near-simultaneous orders share dead tokens) or the
+  # device re-registering may have deleted the row already — that's success,
+  # not a failure worth crashing the remaining fan-out for.
+  defp prune(device_token) do
+    case Ash.destroy(device_token, authorize?: false, tenant: device_token.store_id) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        if stale_or_not_found?(reason) do
+          :ok
+        else
+          Logger.error("[PushNotificationWorker] prune failed: #{inspect(reason)}",
+            store_id: device_token.store_id
+          )
+
+          :ok
+        end
+    end
+  end
+
+  defp stale_or_not_found?(%Ash.Error.Invalid{errors: errors}) do
+    Enum.any?(errors, fn
+      %Ash.Error.Changes.StaleRecord{} -> true
+      %Ash.Error.Query.NotFound{} -> true
+      _ -> false
+    end)
+  end
+
+  defp stale_or_not_found?(_reason), do: false
 
   defp push_body(order) do
     currency = order.currency || "GHS"
