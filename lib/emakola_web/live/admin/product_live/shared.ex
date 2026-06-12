@@ -9,8 +9,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
     `"delete_image"` and `"cancel_image_upload"` events; the parent LiveView
     keeps the handlers.
   - `save_uploaded_images/2` — consume pipeline: uploads → Tigris → Catalog.Image.
+    Returns `{ok_count, failed_count}`; callers flash a warning when failed > 0.
   - `parse_price_input/1` / `format_pesewas/1` — GHS ↔ pesewas conversions at
     the presentation boundary.
+  - `create_product_with_price/3` — canonical create sequence (Form + Index).
+  - `update_product_with_price/4` — canonical update sequence for the Form page.
   """
 
   use Phoenix.Component
@@ -117,59 +120,80 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
   Consumes uploaded product-image entries: uploads each to Tigris storage and
   creates a `Catalog.Image` record linked to the product.
 
-  Returns the list of `{:ok, url}` values from `consume_uploaded_entries/3`.
+  Returns `{ok_count, failed_count}`. Errors from storage or image creation are
+  caught per-entry so a single failure does not crash the LiveView or abort
+  remaining uploads. Callers should flash a warning when `failed_count > 0`.
+
   Call after a successful product save; a no-op when there are no pending entries.
   """
   def save_uploaded_images(socket, product) do
     store_id = socket.assigns.store_id
 
-    Phoenix.LiveView.consume_uploaded_entries(socket, :product_images, fn %{path: tmp_path},
-                                                                          entry ->
-      ext = Path.extname(entry.client_name)
-      filename = "#{Ecto.UUID.generate()}#{ext}"
-      s3_path = "stores/#{store_id}/products/#{filename}"
-      binary = File.read!(tmp_path)
+    results =
+      Phoenix.LiveView.consume_uploaded_entries(socket, :product_images, fn %{path: tmp_path},
+                                                                            entry ->
+        ext = Path.extname(entry.client_name)
+        filename = "#{Ecto.UUID.generate()}#{ext}"
+        s3_path = "stores/#{store_id}/products/#{filename}"
+        binary = File.read!(tmp_path)
 
-      {:ok, url} =
-        Emakola.Storage.upload(binary, s3_path, content_type: entry.client_type)
+        case Emakola.Storage.upload(binary, s3_path, content_type: entry.client_type) do
+          {:ok, url} ->
+            case Emakola.Catalog.create_image(
+                   %{
+                     url: url,
+                     product_id: product.id,
+                     store_id: store_id,
+                     content_type: entry.client_type,
+                     file_size_bytes: entry.client_size,
+                     alt_text: Path.rootname(entry.client_name)
+                   },
+                   authorize?: false
+                 ) do
+              {:ok, _image} -> {:ok, :ok}
+              {:error, _} -> {:ok, :error}
+            end
 
-      Emakola.Catalog.create_image(
-        %{
-          url: url,
-          product_id: product.id,
-          store_id: store_id,
-          content_type: entry.client_type,
-          file_size_bytes: entry.client_size,
-          alt_text: Path.rootname(entry.client_name)
-        },
-        authorize?: false
-      )
+          {:error, _reason} ->
+            {:ok, :error}
+        end
+      end)
 
-      {:ok, url}
-    end)
+    failed_count = Enum.count(results, &(&1 == :error))
+    ok_count = length(results) - failed_count
+    {ok_count, failed_count}
   end
 
   @doc """
   Parses a GHS decimal string into integer pesewas.
 
-  Returns `{:ok, pesewas}` on success, `:skip` for blank input,
+  Returns `{:ok, pesewas}` on success (pesewas > 0), `:skip` for blank input,
+  `:zero` for a parseable but zero amount (rejected as invalid),
   `:error` for non-empty but unparseable input.
 
       iex> parse_price_input("25.00")
       {:ok, 2500}
       iex> parse_price_input("")
       :skip
+      iex> parse_price_input("0")
+      :zero
+      iex> parse_price_input("0.00")
+      :zero
       iex> parse_price_input("abc")
       :error
   """
   def parse_price_input(value) do
     case Regex.run(~r/^\s*(\d+)(?:\.(\d{1,2}))?\s*$/, value || "") do
       [_, major] ->
-        {:ok, String.to_integer(major) * 100}
+        pesewas = String.to_integer(major) * 100
+        if pesewas == 0, do: :zero, else: {:ok, pesewas}
 
       [_, major, minor] ->
-        {:ok,
-         String.to_integer(major) * 100 + String.to_integer(String.pad_trailing(minor, 2, "0"))}
+        pesewas =
+          String.to_integer(major) * 100 +
+            String.to_integer(String.pad_trailing(minor, 2, "0"))
+
+        if pesewas == 0, do: :zero, else: {:ok, pesewas}
 
       nil ->
         if String.trim(value || "") == "", do: :skip, else: :error
@@ -204,7 +228,27 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
   def create_product_with_price(attrs, pesewas, action) do
     with {:ok, product} <- Emakola.Catalog.create_product(attrs, authorize?: false),
          :ok <- maybe_create_default_variant(product, pesewas) do
-      attempt_activation(product, action, pesewas)
+      attempt_create_activation(product, action, pesewas)
+    end
+  end
+
+  @doc """
+  Updates a product with an optional default variant, then attempts activation.
+
+  Strips `:store_id` from attrs (the `:update` action does not accept it — tenancy
+  is fixed at creation). When `pesewas` is non-nil and the product currently has
+  no variants, a default variant is created (edit-rescue path for products with no
+  pricing yet). Activation is always attempted when `action == :active` (the product
+  may already have variants from a previous save).
+
+  Returns the same result atoms as `create_product_with_price/3`.
+  """
+  def update_product_with_price(product, attrs, pesewas, action) do
+    clean_attrs = Map.delete(attrs, :store_id)
+
+    with {:ok, updated} <- Emakola.Catalog.update_product(product, clean_attrs, authorize?: false),
+         :ok <- maybe_create_default_variant(updated, pesewas) do
+      attempt_update_activation(updated, action)
     end
   end
 
@@ -230,18 +274,34 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
     end
   end
 
-  defp attempt_activation(product, :active, pesewas) when not is_nil(pesewas) do
+  # For the create path: only attempt activation when a variant was just
+  # created (pesewas non-nil). Without a variant, activation would fail —
+  # skip the call and report :activation_failed directly.
+  defp attempt_create_activation(product, :active, pesewas) when not is_nil(pesewas) do
     case Emakola.Catalog.activate_product(product, authorize?: false) do
       {:ok, activated} -> {:ok, activated, :activated}
       {:error, _} -> {:ok, product, :activation_failed}
     end
   end
 
-  defp attempt_activation(product, :active, _nil_pesewas) do
+  defp attempt_create_activation(product, :active, _nil_pesewas) do
     {:ok, product, :activation_failed}
   end
 
-  defp attempt_activation(product, :draft, _pesewas) do
+  defp attempt_create_activation(product, :draft, _pesewas) do
+    {:ok, product, :draft_requested}
+  end
+
+  # For the update path: always call activate_product when action is :active
+  # because the product may already have variants from a previous save.
+  defp attempt_update_activation(product, :active) do
+    case Emakola.Catalog.activate_product(product, authorize?: false) do
+      {:ok, activated} -> {:ok, activated, :activated}
+      {:error, _} -> {:ok, product, :activation_failed}
+    end
+  end
+
+  defp attempt_update_activation(product, :draft) do
     {:ok, product, :draft_requested}
   end
 
@@ -250,6 +310,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
   defp upload_error_to_string(:not_accepted),
     do: "Only image files are accepted (.jpg, .png, .webp)"
 
-  defp upload_error_to_string(:too_many_files), do: "Only one file at a time"
+  defp upload_error_to_string(:too_many_files), do: "Up to 5 images at a time"
   defp upload_error_to_string(err), do: "Upload error: #{inspect(err)}"
 end

@@ -7,30 +7,50 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
 
   alias EmakolaWeb.Admin.ProductLive.Shared
 
+  @upload_opts [
+    accept: ~w(.jpg .jpeg .png .webp),
+    max_entries: 5,
+    max_file_size: 10_000_000
+  ]
+
   @impl true
   def mount(params, _session, socket) do
     store_id = get_store_id(socket)
-    categories = load_store_categories(store_id)
 
-    socket =
-      case socket.assigns.live_action do
-        :edit ->
-          product = load_product(params["id"])
+    case socket.assigns.live_action do
+      :edit ->
+        product = load_product(params["id"])
 
-          socket
-          |> assign(
-            page_title: "Edit Product",
-            product: product,
-            form_data: product_to_form_data(product),
-            errors: %{},
-            categories: categories,
-            store_id: store_id,
-            is_edit: true,
-            show_price_field: product != nil && product.variants == [],
-            existing_images: if(product, do: product.images, else: [])
-          )
+        if is_nil(product) || product.store_id != store_id do
+          {:ok,
+           socket
+           |> put_flash(:error, "Product not found.")
+           |> redirect(to: ~p"/admin/products")}
+        else
+          categories = load_store_categories(store_id)
 
-        :new ->
+          socket =
+            socket
+            |> assign(
+              page_title: "Edit Product",
+              product: product,
+              form_data: product_to_form_data(product),
+              errors: %{},
+              categories: categories,
+              store_id: store_id,
+              is_edit: true,
+              show_price_field: product.variants == [],
+              existing_images: product.images
+            )
+            |> allow_upload(:product_images, @upload_opts)
+
+          {:ok, socket}
+        end
+
+      :new ->
+        categories = load_store_categories(store_id)
+
+        socket =
           socket
           |> assign(
             page_title: "New Product",
@@ -51,16 +71,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
             show_price_field: true,
             existing_images: []
           )
-      end
+          |> allow_upload(:product_images, @upload_opts)
 
-    socket =
-      allow_upload(socket, :product_images,
-        accept: ~w(.jpg .jpeg .png .webp),
-        max_entries: 5,
-        max_file_size: 10_000_000
-      )
-
-    {:ok, socket}
+        {:ok, socket}
+    end
   end
 
   @impl true
@@ -315,61 +329,32 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
   defp save_product(socket, params, action) do
     {price_str, product_params} = Map.pop(params, "price")
     price_result = Shared.parse_price_input(price_str)
-
-    base_errors = validate_form(product_params)
-
-    errors =
-      if price_result == :error do
-        Map.put(base_errors, :price, "must be a valid amount, e.g. 25.00")
-      else
-        base_errors
-      end
+    errors = validate_form(product_params) |> apply_price_error(price_result)
 
     if map_size(errors) > 0 do
       {:noreply, assign(socket, form_data: params, errors: errors)}
     else
-      pesewas =
-        case price_result do
-          {:ok, p} -> p
-          :skip -> nil
-        end
-
       attrs = build_attrs(product_params, socket.assigns.store_id)
+      pesewas = pesewas_from_price_result(price_result)
 
       result =
         if socket.assigns.is_edit do
-          update_and_maybe_variant(socket.assigns.product, attrs, action, pesewas)
+          Shared.update_product_with_price(socket.assigns.product, attrs, pesewas, action)
         else
           Shared.create_product_with_price(attrs, pesewas, action)
         end
 
       case result do
-        {:ok, product, :activated} ->
-          Shared.save_uploaded_images(socket, product)
+        {:ok, product, result_atom} ->
+          {_ok, upload_failed} = Shared.save_uploaded_images(socket, product)
           Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 
-          {:noreply,
-           socket
-           |> put_flash(:info, "Product published — it's live on your store.")
-           |> push_navigate(to: ~p"/admin/products")}
+          socket =
+            socket
+            |> put_flash(:info, save_success_msg(result_atom))
+            |> maybe_flash_upload_failure(upload_failed)
 
-        {:ok, product, :activation_failed} ->
-          Shared.save_uploaded_images(socket, product)
-          Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
-
-          {:noreply,
-           socket
-           |> put_flash(:info, "Saved as draft — add a price to publish it.")
-           |> push_navigate(to: ~p"/admin/products")}
-
-        {:ok, product, :draft_requested} ->
-          Shared.save_uploaded_images(socket, product)
-          Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
-
-          {:noreply,
-           socket
-           |> put_flash(:info, "Product saved successfully")
-           |> push_navigate(to: ~p"/admin/products")}
+          {:noreply, push_navigate(socket, to: ~p"/admin/products")}
 
         {:error, error} ->
           {:noreply,
@@ -380,46 +365,29 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
     end
   end
 
-  defp update_and_maybe_variant(product, attrs, action, pesewas) do
-    with {:ok, updated} <- Emakola.Catalog.update_product(product, attrs, authorize?: false),
-         :ok <- maybe_create_variant(updated, pesewas) do
-      attempt_activation(updated, action, pesewas)
-    end
-  end
+  defp apply_price_error(errors, :error),
+    do: Map.put(errors, :price, "must be a valid amount, e.g. 25.00")
 
-  defp maybe_create_variant(_product, nil), do: :ok
+  defp apply_price_error(errors, :zero),
+    do: Map.put(errors, :price, "must be greater than 0.00")
 
-  defp maybe_create_variant(product, pesewas) do
-    sku = "SKU-" <> String.slice(Ecto.UUID.generate(), 0, 8)
+  defp apply_price_error(errors, _), do: errors
 
-    case Emakola.Catalog.create_variant(
-           %{
-             product_id: product.id,
-             store_id: product.store_id,
-             price: pesewas,
-             sku: sku,
-             position: 0
-           },
-           authorize?: false
-         ) do
-      {:ok, _variant} -> :ok
-      {:error, err} -> {:error, err}
-    end
-  end
+  defp pesewas_from_price_result({:ok, p}), do: p
+  defp pesewas_from_price_result(_), do: nil
 
-  defp attempt_activation(product, :active, pesewas) when not is_nil(pesewas) do
-    case Emakola.Catalog.activate_product(product, authorize?: false) do
-      {:ok, activated} -> {:ok, activated, :activated}
-      {:error, _} -> {:ok, product, :activation_failed}
-    end
-  end
+  defp save_success_msg(:activated), do: "Product published — it's live on your store."
+  defp save_success_msg(:activation_failed), do: "Saved as draft — add a price to publish it."
+  defp save_success_msg(:draft_requested), do: "Product saved successfully"
 
-  defp attempt_activation(product, :active, _nil_pesewas) do
-    {:ok, product, :activation_failed}
-  end
+  defp maybe_flash_upload_failure(socket, 0), do: socket
 
-  defp attempt_activation(product, :draft, _pesewas) do
-    {:ok, product, :draft_requested}
+  defp maybe_flash_upload_failure(socket, _failed) do
+    put_flash(
+      socket,
+      :error,
+      "Some images failed to upload — you can add them by editing the product."
+    )
   end
 
   defp build_attrs(params, store_id) do
@@ -500,10 +468,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
     errors
     |> Enum.map(fn
       %{message: msg} -> msg
-      other -> inspect(other)
+      _other -> "Something went wrong. Please try again."
     end)
     |> Enum.join(", ")
   end
 
-  defp format_error(error), do: inspect(error)
+  defp format_error(_error), do: "Something went wrong. Please try again."
 end

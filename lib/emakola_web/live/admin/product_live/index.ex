@@ -210,25 +210,15 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         {:skip, params}
       end
 
-    base_errors = validate_form(Map.delete(product_params, "_action"))
-
     errors =
-      if price_result == :error do
-        Map.put(base_errors, :price, "must be a valid amount, e.g. 25.00")
-      else
-        base_errors
-      end
+      validate_form(Map.delete(product_params, "_action"))
+      |> apply_price_error(price_result)
 
     if map_size(errors) > 0 do
       {:noreply, assign(socket, form_data: params, form_errors: errors)}
     else
-      pesewas =
-        case price_result do
-          {:ok, p} -> p
-          :skip -> nil
-        end
-
       attrs = build_product_attrs(Map.delete(product_params, "_action"), socket.assigns.store_id)
+      pesewas = pesewas_from_price_result(price_result)
 
       result =
         if editing do
@@ -240,23 +230,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         end
 
       case result do
-        {:ok, product, :activated} ->
+        {:ok, product, result_atom} ->
           {:noreply,
            socket
            |> finalize_product_save(product, editing, params)
-           |> put_flash(:info, "Product published — it's live on your store.")}
-
-        {:ok, product, :activation_failed} ->
-          {:noreply,
-           socket
-           |> finalize_product_save(product, editing, params)
-           |> put_flash(:info, "Saved as draft — add a price to publish it.")}
-
-        {:ok, product, :draft_requested} ->
-          {:noreply,
-           socket
-           |> finalize_product_save(product, editing, params)
-           |> put_flash(:info, "Product saved successfully")}
+           |> put_flash(:info, save_success_msg(result_atom))}
 
         {:error, error} ->
           {:noreply,
@@ -285,8 +263,10 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
   @impl true
   def handle_event("delete_image", %{"id" => image_id}, socket) do
+    store_id = socket.assigns.store_id
+
     case Emakola.Catalog.get_image(image_id) do
-      {:ok, image} ->
+      {:ok, image} when image.store_id == store_id ->
         Emakola.Catalog.destroy_image!(image, authorize?: false)
 
         # Reload the editing product with fresh images
@@ -1100,18 +1080,29 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   end
 
   defp finalize_product_save(socket, product, editing, params) do
-    Shared.save_uploaded_images(socket, product)
+    {_ok, upload_failed} = Shared.save_uploaded_images(socket, product)
     if editing, do: save_variant_prices(editing, params["variant_prices"] || %{})
     Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 
-    socket
-    |> assign(
-      show_product_form: false,
-      editing_product: nil,
-      form_data: empty_form_data(),
-      form_errors: %{}
-    )
-    |> load_products()
+    socket =
+      socket
+      |> assign(
+        show_product_form: false,
+        editing_product: nil,
+        form_data: empty_form_data(),
+        form_errors: %{}
+      )
+      |> load_products()
+
+    if upload_failed > 0 do
+      put_flash(
+        socket,
+        :error,
+        "Some images failed to upload — you can add them by editing the product."
+      )
+    else
+      socket
+    end
   end
 
   defp load_product(id) do
@@ -1178,6 +1169,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     Enum.reduce(params["variant_prices"] || %{}, errors, fn {variant_id, value}, acc ->
       case Shared.parse_price_input(value) do
         :error -> Map.put(acc, {:variant_price, variant_id}, "must be a valid amount")
+        :zero -> Map.put(acc, {:variant_price, variant_id}, "must be greater than 0.00")
         _ -> acc
       end
     end)
@@ -1204,6 +1196,21 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       end
     end)
   end
+
+  defp apply_price_error(errors, :error),
+    do: Map.put(errors, :price, "must be a valid amount, e.g. 25.00")
+
+  defp apply_price_error(errors, :zero),
+    do: Map.put(errors, :price, "must be greater than 0.00")
+
+  defp apply_price_error(errors, _), do: errors
+
+  defp pesewas_from_price_result({:ok, p}), do: p
+  defp pesewas_from_price_result(_), do: nil
+
+  defp save_success_msg(:activated), do: "Product published — it's live on your store."
+  defp save_success_msg(:activation_failed), do: "Saved as draft — add a price to publish it."
+  defp save_success_msg(:draft_requested), do: "Product saved successfully"
 
   defp build_product_attrs(params, store_id) do
     tags =
@@ -1274,12 +1281,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     errors
     |> Enum.map(fn
       %{message: msg} -> msg
-      other -> inspect(other)
+      _other -> "Something went wrong. Please try again."
     end)
     |> Enum.join(", ")
   end
 
-  defp format_error(error), do: inspect(error)
+  defp format_error(_error), do: "Something went wrong. Please try again."
 
   defp cancel_uploads(socket, upload_name) do
     Enum.reduce(socket.assigns.uploads[upload_name].entries, socket, fn entry, sock ->
