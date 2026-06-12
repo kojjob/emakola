@@ -9,6 +9,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
   import EmakolaWeb.Admin.ProductLive.BulkUploadModal, only: [bulk_upload_modal: 1]
 
+  alias EmakolaWeb.Admin.ProductLive.Shared
+
   @impl true
   def mount(_params, _session, socket) do
     store_id = get_store_id(socket)
@@ -216,7 +218,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       case result do
         {:ok, product} ->
           # Upload images for the product
-          save_uploaded_images(socket, product)
+          Shared.save_uploaded_images(socket, product)
 
           if socket.assigns.editing_product do
             save_variant_prices(socket.assigns.editing_product, params["variant_prices"] || %{})
@@ -836,7 +838,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                   name={"product[variant_prices][#{variant.id}]"}
                   value={
                     get_in(@form_data, ["variant_prices", variant.id]) ||
-                      format_price_input(variant.price)
+                      Shared.format_pesewas(variant.price)
                   }
                   placeholder="0.00"
                   class={[
@@ -858,85 +860,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
           </div>
 
           <%!-- Images --%>
-          <div class="space-y-4 border-t border-slate-200 pt-5">
-            <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wide">
-              Images
-            </h3>
-            <p class="text-xs text-slate-400 -mt-2">
-              Upload up to 5 images (JPG, PNG, WebP, max 10MB each)
-            </p>
-
-            <%!-- Existing images (edit mode) --%>
-            <%= if @editing_product && Map.get(@editing_product, :images, []) != [] do %>
-              <div class="grid grid-cols-3 gap-2">
-                <%= for img <- @editing_product.images do %>
-                  <div class="relative group rounded-lg overflow-hidden bg-slate-100 aspect-square">
-                    <img
-                      src={img.thumbnail_url || img.url}
-                      alt={img.alt_text || ""}
-                      class="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      phx-click="delete_image"
-                      phx-value-id={img.id}
-                      class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                    >
-                      <.icon name="hero-x-mark" class="size-3.5" />
-                    </button>
-                  </div>
-                <% end %>
-              </div>
-            <% end %>
-
-            <%!-- Upload area --%>
-            <div
-              class="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-emerald-400 transition-colors"
-              phx-drop-target={@uploads.product_images.ref}
-            >
-              <.icon name="hero-cloud-arrow-up" class="size-8 mx-auto text-slate-400 mb-2" />
-              <p class="text-sm text-slate-600 font-medium">
-                Drag & drop images here
-              </p>
-              <p class="text-xs text-slate-400 mt-1">or</p>
-              <label class="inline-block mt-2 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer transition-colors">
-                Browse files <.live_file_input upload={@uploads.product_images} class="sr-only" />
-              </label>
-            </div>
-
-            <%!-- Upload previews --%>
-            <%= if @uploads.product_images.entries != [] do %>
-              <div class="grid grid-cols-3 gap-2">
-                <%= for entry <- @uploads.product_images.entries do %>
-                  <div class="relative rounded-lg overflow-hidden bg-slate-100 aspect-square">
-                    <.live_img_preview entry={entry} class="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      phx-click="cancel_image_upload"
-                      phx-value-ref={entry.ref}
-                      class="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs"
-                    >
-                      <.icon name="hero-x-mark" class="size-3.5" />
-                    </button>
-                    <%!-- Progress bar --%>
-                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-slate-200">
-                      <div
-                        class="h-full bg-primary transition-all"
-                        style={"width: #{entry.progress}%"}
-                      >
-                      </div>
-                    </div>
-                    <%!-- Errors --%>
-                    <%= for err <- upload_errors(@uploads.product_images, entry) do %>
-                      <p class="absolute bottom-1 left-1 right-1 text-[9px] text-red-500 bg-white/90 px-1 rounded">
-                        {upload_error_to_string(err)}
-                      </p>
-                    <% end %>
-                  </div>
-                <% end %>
-              </div>
-            <% end %>
-          </div>
+          <Shared.upload_area
+            uploads={@uploads}
+            existing_images={
+              if @editing_product, do: Map.get(@editing_product, :images, []), else: []
+            }
+          />
 
           <%!-- SEO --%>
           <div class="space-y-4 border-t border-slate-200 pt-5">
@@ -1179,7 +1108,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       "seo_title" => product.seo_title || "",
       "seo_description" => product.seo_description || "",
       "variant_prices" =>
-        Map.new(sorted_variants(product), &{&1.id, format_price_input(&1.price)})
+        Map.new(sorted_variants(product), &{&1.id, Shared.format_pesewas(&1.price)})
     }
   end
 
@@ -1194,7 +1123,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       end
 
     Enum.reduce(params["variant_prices"] || %{}, errors, fn {variant_id, value}, acc ->
-      case parse_price_input(value) do
+      case Shared.parse_price_input(value) do
         :error -> Map.put(acc, {:variant_price, variant_id}, "must be a valid amount")
         _ -> acc
       end
@@ -1208,33 +1137,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     end
   end
 
-  # "150.50" <-> 15050 pesewas. Conversion happens only here, at the
-  # presentation boundary — storage stays integer minor units.
-  defp format_price_input(pesewas) do
-    "#{div(pesewas, 100)}.#{pesewas |> rem(100) |> Integer.to_string() |> String.pad_leading(2, "0")}"
-  end
-
-  defp parse_price_input(value) do
-    case Regex.run(~r/^\s*(\d+)(?:\.(\d{1,2}))?\s*$/, value || "") do
-      [_, major] ->
-        {:ok, String.to_integer(major) * 100}
-
-      [_, major, minor] ->
-        {:ok,
-         String.to_integer(major) * 100 + String.to_integer(String.pad_trailing(minor, 2, "0"))}
-
-      nil ->
-        if String.trim(value || "") == "", do: :skip, else: :error
-    end
-  end
-
   # Only the editing product's own variants are updated — submitted ids
   # that don't belong to it are ignored (no cross-product/tenant writes).
   defp save_variant_prices(product, submitted) do
     product
     |> sorted_variants()
     |> Enum.each(fn variant ->
-      with {:ok, pesewas} <- parse_price_input(submitted[variant.id]),
+      with {:ok, pesewas} <- Shared.parse_price_input(submitted[variant.id]),
            true <- pesewas != variant.price do
         Emakola.Catalog.update_variant(variant, %{price: pesewas}, authorize?: false)
       else
@@ -1319,11 +1228,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
   defp format_error(error), do: inspect(error)
 
-  defp upload_error_to_string(:too_large), do: "File is too large"
-  defp upload_error_to_string(:not_accepted), do: "Only .csv files are accepted"
-  defp upload_error_to_string(:too_many_files), do: "Only one file at a time"
-  defp upload_error_to_string(err), do: "Upload error: #{inspect(err)}"
-
   defp cancel_uploads(socket, upload_name) do
     Enum.reduce(socket.assigns.uploads[upload_name].entries, socket, fn entry, sock ->
       Phoenix.LiveView.cancel_upload(sock, upload_name, entry.ref)
@@ -1338,33 +1242,5 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       [%{url: url} | _] when is_binary(url) and url != "" -> url
       _ -> nil
     end
-  end
-
-  defp save_uploaded_images(socket, product) do
-    store_id = socket.assigns.store_id
-
-    consume_uploaded_entries(socket, :product_images, fn %{path: tmp_path}, entry ->
-      ext = Path.extname(entry.client_name)
-      filename = "#{Ecto.UUID.generate()}#{ext}"
-      s3_path = "stores/#{store_id}/products/#{filename}"
-      binary = File.read!(tmp_path)
-
-      {:ok, url} =
-        Emakola.Storage.upload(binary, s3_path, content_type: entry.client_type)
-
-      Emakola.Catalog.create_image(
-        %{
-          url: url,
-          product_id: product.id,
-          store_id: store_id,
-          content_type: entry.client_type,
-          file_size_bytes: entry.client_size,
-          alt_text: Path.rootname(entry.client_name)
-        },
-        authorize?: false
-      )
-
-      {:ok, url}
-    end)
   end
 end
