@@ -1,5 +1,350 @@
 # Emakola API Documentation
 
+---
+
+## Mobile API v1 (Phase 0)
+
+This section documents the mobile merchant API used by the Flutter merchant app. All
+endpoints are under `/api/v1`.
+
+### Authentication
+
+The mobile API uses a short-lived access token / long-lived refresh token pair. Tokens
+are opaque strings (not JWTs).
+
+#### POST /api/v1/auth/sign_in
+
+Sign in with email and password. Returns a token pair.
+
+```
+POST /api/v1/auth/sign_in
+Content-Type: application/json
+
+{
+  "email": "merchant@example.com",
+  "password": "Password123!"
+}
+```
+
+**200 OK:**
+```json
+{
+  "data": {
+    "access_token": "AXFq...",
+    "refresh_token": "RTkZ...",
+    "expires_in": 900,
+    "merchant": {
+      "id": "uuid",
+      "email": "merchant@example.com"
+    }
+  }
+}
+```
+
+**401 — wrong credentials (identical response for unknown email; no account enumeration):**
+```json
+{
+  "errors": [
+    { "status": "401", "code": "invalid_credentials", "detail": "Invalid email or password" }
+  ]
+}
+```
+
+**422 — missing params:**
+```json
+{
+  "errors": [
+    { "status": "422", "code": "required", "detail": "email is required" }
+  ]
+}
+```
+
+---
+
+#### POST /api/v1/auth/refresh
+
+Exchange a refresh token for a new pair. The old refresh token is immediately revoked
+(single-use). On reuse of an already-consumed refresh token the server returns 401.
+
+```
+POST /api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "RTkZ..."
+}
+```
+
+**200 OK:**
+```json
+{
+  "data": {
+    "access_token": "BYGr...",
+    "refresh_token": "SUmH...",
+    "expires_in": 900
+  }
+}
+```
+
+**401 — token already used or garbage:**
+```json
+{
+  "errors": [
+    { "status": "401", "code": "invalid_token", "detail": "Refresh token is invalid or expired" }
+  ]
+}
+```
+
+---
+
+#### DELETE /api/v1/auth/sign_out
+
+Revoke the session. Pass the refresh token in the body. If an `Authorization: Bearer
+<access_token>` header is also present, the access token is revoked too. Returns 204 even
+when no token is provided (idempotent sign-out).
+
+```
+DELETE /api/v1/auth/sign_out
+Content-Type: application/json
+Authorization: Bearer AXFq...   (optional — revokes the access token too)
+
+{
+  "refresh_token": "RTkZ..."
+}
+```
+
+**204 No Content** (empty body)
+
+---
+
+### Required headers for all JSON:API endpoints
+
+Every request to the JSON:API endpoints (`/api/v1/orders`, `/api/v1/device_tokens`, …)
+must include:
+
+```
+Authorization: Bearer <access_token>
+X-Store-ID: <store-uuid>
+Accept: application/vnd.api+json
+Content-Type: application/vnd.api+json   (write requests only)
+```
+
+`X-Store-ID` must be a store the authenticated merchant belongs to. Use
+`GET /api/v1/stores` (see below) to obtain the UUID. That endpoint requires
+`Authorization` but **not** `X-Store-ID`.
+
+---
+
+### GET /api/v1/stores
+
+List the authenticated merchant's stores. No `X-Store-ID` header needed.
+
+```
+GET /api/v1/stores
+Authorization: Bearer <access_token>
+```
+
+**200 OK:**
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "name": "Kwame Fashion",
+      "slug": "kwame-fashion",
+      "currency": "GHS",
+      "role": "owner"
+    }
+  ]
+}
+```
+
+`role` is `"owner"` or `"staff"`.
+
+---
+
+### JSON:API resources — OpenAPI spec
+
+Machine-readable spec (requires auth headers):
+
+```
+GET /api/v1/open_api
+Authorization: Bearer <access_token>
+X-Store-ID: <store-uuid>
+```
+
+Generate the spec file locally (no HTTP needed):
+
+```bash
+mix openapi.spec.json --spec EmakolaWeb.ApiRouter --pretty=true
+```
+
+Outputs `openapi.json` in the project root. This file is gitignored; regenerate on demand.
+
+---
+
+### Orders
+
+#### List orders
+
+```
+GET /api/v1/orders
+GET /api/v1/orders?filter[status]=confirmed
+GET /api/v1/orders?page[limit]=20&page[after]=<cursor>
+```
+
+Orders use **keyset pagination**. The cursor for the next page is in `links.next`:
+
+```json
+{
+  "data": [
+    {
+      "type": "order",
+      "id": "uuid",
+      "attributes": {
+        "order_number": "ORD-00042",
+        "status": "pending",
+        "total_amount": 15000,
+        "currency": "GHS",
+        "inserted_at": "2026-06-10T08:00:00Z"
+      }
+    }
+  ],
+  "links": {
+    "next": "/api/v1/orders?page[limit]=20&page[after]=eyJ..."
+  }
+}
+```
+
+Available `filter[status]` values: `pending`, `confirmed`, `processing`, `shipped`,
+`delivered`, `cancelled`.
+
+#### Get order
+
+```
+GET /api/v1/orders/:id
+```
+
+#### Order status transitions
+
+```
+PATCH /api/v1/orders/:id/confirm
+PATCH /api/v1/orders/:id/start_processing
+PATCH /api/v1/orders/:id/mark_shipped
+PATCH /api/v1/orders/:id/mark_delivered
+PATCH /api/v1/orders/:id/cancel
+```
+
+Request body (JSON:API):
+
+```json
+{
+  "data": {
+    "type": "order",
+    "id": "<order-uuid>",
+    "attributes": {}
+  }
+}
+```
+
+**200 OK** — returns the updated order with the new `status`.
+
+**400 — invalid transition** (`code: "invalid_attribute"`):
+
+```json
+{
+  "errors": [
+    { "status": "400", "code": "invalid_attribute", "detail": "Cannot confirm an order in state delivered" }
+  ]
+}
+```
+
+Mobile clients should treat a 400 on a transition as "already applied or not applicable"
+and re-fetch the order rather than surfacing an error.
+
+State machine:
+
+```
+pending → confirmed → processing → shipped → delivered
+pending → cancelled
+confirmed → cancelled
+```
+
+---
+
+### Device tokens (push notifications)
+
+#### Register (upsert)
+
+Re-registering an existing token is safe — the server upserts on `(merchant_id, store_id, token)`.
+
+```
+POST /api/v1/device_tokens
+Content-Type: application/vnd.api+json
+
+{
+  "data": {
+    "type": "device_token",
+    "attributes": {
+      "platform": "android",
+      "token": "fcm-abc-123"
+    }
+  }
+}
+```
+
+`platform` must be `"android"` or `"ios"`.
+
+**201 Created:**
+```json
+{
+  "data": {
+    "type": "device_token",
+    "id": "uuid",
+    "attributes": {
+      "platform": "android",
+      "token": "fcm-abc-123"
+    }
+  }
+}
+```
+
+#### Unregister
+
+```
+DELETE /api/v1/device_tokens/:id
+```
+
+**200 OK** (returns the deleted record body).
+
+---
+
+### Error envelope
+
+All errors follow the JSON:API errors shape:
+
+```json
+{
+  "errors": [
+    {
+      "status": "401",
+      "code": "invalid_token",
+      "detail": "Bearer token is missing or revoked"
+    }
+  ]
+}
+```
+
+| HTTP status | Meaning for mobile clients |
+|-------------|---------------------------|
+| 401 | Token problem — try refresh; if refresh also 401, force re-login |
+| 403 | Store access problem — `X-Store-ID` missing, wrong store, or merchant not a member |
+| 400 | Invalid request or invalid transition (re-fetch resource and retry) |
+| 404 | Resource not found or not visible to this merchant/store |
+| 422 | Validation failure — inspect `detail` per error object |
+
+---
+
 ## Overview
 
 Emakola exposes three API layers:
