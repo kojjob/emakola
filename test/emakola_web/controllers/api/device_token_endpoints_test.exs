@@ -42,11 +42,12 @@ defmodule EmakolaWeb.Api.DeviceTokenEndpointsTest do
     }
 
     resp1 = post(conn, "/api/v1/device_tokens", body)
-    assert resp1.status in [200, 201]
+    # AshJsonApi post controller always returns 201 regardless of insert vs upsert
+    assert resp1.status == 201
     %{"data" => %{"id" => id1}} = Jason.decode!(resp1.resp_body)
 
     resp2 = post(conn, "/api/v1/device_tokens", body)
-    assert resp2.status in [200, 201]
+    assert resp2.status == 201
     %{"data" => %{"id" => id2}} = Jason.decode!(resp2.resp_body)
 
     assert id1 == id2
@@ -64,7 +65,8 @@ defmodule EmakolaWeb.Api.DeviceTokenEndpointsTest do
     %{"data" => %{"id" => id}} = Jason.decode!(resp.resp_body)
 
     del_conn = delete(conn, "/api/v1/device_tokens/#{id}")
-    assert del_conn.status in [200, 204]
+    # AshJsonApi delete controller renders 200 with the deleted record body
+    assert del_conn.status == 200
   end
 
   test "merchant cannot delete another merchant's device token", %{conn: conn, store: store} do
@@ -80,11 +82,43 @@ defmodule EmakolaWeb.Api.DeviceTokenEndpointsTest do
       |> Ash.create!()
 
     del_conn = delete(conn, "/api/v1/device_tokens/#{dt.id}")
-    assert del_conn.status in [403, 404]
+    # bulk_destroy silently skips unauthorized rows -> empty BulkResult ->
+    # AshJsonApi treats empty result as not-found -> 404
+    assert del_conn.status == 404
 
     assert Ash.get!(Emakola.Notifications.DeviceToken, dt.id,
              authorize?: false,
              tenant: store.id
            )
+  end
+
+  test "invalid platform value returns 400", %{conn: conn} do
+    conn =
+      post(conn, "/api/v1/device_tokens", %{
+        "data" => %{
+          "type" => "device_token",
+          "attributes" => %{"platform" => "windows", "token" => "fcm-bad-platform"}
+        }
+      })
+
+    # Ash atom cast fails for unknown atoms; AshJsonApi maps :invalid -> 400
+    assert conn.status == 400
+  end
+
+  test "POST without x-store-id header returns 403", %{conn: conn} do
+    bare_conn =
+      conn
+      |> delete_req_header("x-store-id")
+
+    bare_conn =
+      post(bare_conn, "/api/v1/device_tokens", %{
+        "data" => %{
+          "type" => "device_token",
+          "attributes" => %{"platform" => "android", "token" => "fcm-no-tenant"}
+        }
+      })
+
+    # ApiTenant plug halts with 403 when x-store-id is absent
+    assert bare_conn.status == 403
   end
 end

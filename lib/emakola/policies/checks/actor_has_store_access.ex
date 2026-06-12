@@ -49,23 +49,36 @@ defmodule Emakola.Policies.Checks.ActorHasStoreAccess do
     if changeset.resource == Emakola.Stores.Store do
       Map.get(changeset.data || %{}, :id)
     else
-      # For attribute-strategy multitenant resources, `changeset.tenant` is
-      # always the store_id and is available even on atomic destroys (where
-      # `changeset.data` is not loaded). Use it as the primary source.
-      changeset.tenant || safe_get_attribute(changeset, :store_id)
+      # For attribute-strategy multitenant resources, tenant == store_id by
+      # construction, so it is safe (and necessary for atomic destroys where
+      # changeset.data is unavailable) to prefer the caller-supplied tenant.
+      #
+      # For NON-multitenant resources (e.g. StoreMembership), we must ignore
+      # any caller-supplied tenant and read store_id from the row itself.
+      # Trusting the tenant here would let an attacker supply their own store's
+      # tenant and pass the membership check against a row in a different store
+      # (fail-open).
+      if Ash.Resource.Info.multitenancy_strategy(changeset.resource) == :attribute do
+        changeset.tenant || safe_get_attribute(changeset, :store_id)
+      else
+        safe_get_attribute(changeset, :store_id)
+      end
     end
   end
 
   defp get_store_id(_), do: nil
 
-  # Ash.Changeset.get_attribute/2 internally calls get_data/2, which raises
-  # ArgumentError on atomic changesets. Rescue and return nil so callers can
-  # fall back gracefully.
-  defp safe_get_attribute(changeset, attr) do
-    Ash.Changeset.get_attribute(changeset, attr)
-  rescue
-    ArgumentError -> nil
-  end
+  # Ash.Changeset.get_attribute/2 calls get_data/2 for the original value,
+  # which raises ArgumentError when changeset.data is OriginalDataNotAvailable
+  # (atomic bulk operations). Match on that sentinel instead of rescuing so
+  # the guard is explicit and zero-cost in the normal path.
+  defp safe_get_attribute(
+         %Ash.Changeset{data: %Ash.Changeset.OriginalDataNotAvailable{}} = cs,
+         attr
+       ),
+       do: Map.get(cs.attributes, attr)
+
+  defp safe_get_attribute(cs, attr), do: Ash.Changeset.get_attribute(cs, attr)
 
   defp actor_has_store?(_actor, nil), do: false
 
