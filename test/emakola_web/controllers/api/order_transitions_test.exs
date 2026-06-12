@@ -55,12 +55,26 @@ defmodule EmakolaWeb.Api.OrderTransitionsTest do
     assert %{"data" => %{"attributes" => %{"status" => "cancelled"}}} = json_response(conn, 200)
   end
 
-  test "invalid transition (deliver a pending order) → 4xx error, status unchanged",
+  test "mark_shipped accepts and persists tracking_number", %{conn: conn, store: store} do
+    order = create_order!(store, %{status: :processing})
+
+    conn = patch_transition(conn, order, "mark_shipped", %{"tracking_number" => "TRK-12345"})
+
+    assert %{
+             "data" => %{
+               "attributes" => %{"status" => "shipped", "tracking_number" => "TRK-12345"}
+             }
+           } = json_response(conn, 200)
+  end
+
+  # The 400 + "invalid_attribute" pair is the API contract the mobile client
+  # branches on when a retried transition has already been applied — pin it.
+  test "invalid transition (deliver a pending order) → 400, status unchanged",
        %{conn: conn, store: store} do
     order = create_order!(store)
 
     conn = patch_transition(conn, order, "mark_delivered")
-    assert conn.status in [400, 409, 422]
+    assert %{"errors" => [%{"code" => "invalid_attribute"}]} = json_response(conn, 400)
 
     reloaded = Ash.get!(Emakola.Orders.Order, order.id, authorize?: false, tenant: store.id)
     assert reloaded.status == :pending
