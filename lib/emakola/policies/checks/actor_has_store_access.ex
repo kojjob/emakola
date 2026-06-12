@@ -46,17 +46,26 @@ defmodule Emakola.Policies.Checks.ActorHasStoreAccess do
   def match?(_actor, _context, _opts), do: false
 
   defp get_store_id(%Ash.Changeset{} = changeset) do
-    # For the Store resource itself, the resource's id IS the store_id
     if changeset.resource == Emakola.Stores.Store do
       Map.get(changeset.data || %{}, :id)
     else
-      # Try the changeset data first (for updates), then arguments/attributes (for creates)
-      Ash.Changeset.get_attribute(changeset, :store_id) ||
-        Map.get(changeset.data || %{}, :store_id)
+      # For attribute-strategy multitenant resources, `changeset.tenant` is
+      # always the store_id and is available even on atomic destroys (where
+      # `changeset.data` is not loaded). Use it as the primary source.
+      changeset.tenant || safe_get_attribute(changeset, :store_id)
     end
   end
 
   defp get_store_id(_), do: nil
+
+  # Ash.Changeset.get_attribute/2 internally calls get_data/2, which raises
+  # ArgumentError on atomic changesets. Rescue and return nil so callers can
+  # fall back gracefully.
+  defp safe_get_attribute(changeset, attr) do
+    Ash.Changeset.get_attribute(changeset, attr)
+  rescue
+    ArgumentError -> nil
+  end
 
   defp actor_has_store?(_actor, nil), do: false
 

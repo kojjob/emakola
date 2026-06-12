@@ -6,6 +6,6 @@ defmodule EmakolaWeb.ApiRouter do
   """
 
   use AshJsonApi.Router,
-    domains: [Emakola.Orders],
+    domains: [Emakola.Orders, Emakola.Notifications],
     open_api: "/open_api"
 end
