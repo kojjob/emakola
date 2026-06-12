@@ -30,9 +30,19 @@ defmodule EmakolaWeb.Router do
     plug :accepts, ["xml", "text", "html", "json"]
   end
 
-  # Stricter rate limiting for authentication endpoints to prevent brute-force attacks
+  # Stricter per-IP rate limiting for authentication endpoints to prevent brute-force attacks.
+  # key: :ip forces IP-only keying so attacker-controlled headers (Bearer/X-Org-ID) cannot
+  # mint a fresh bucket per request and bypass the limit.
   pipeline :auth_rate_limit do
-    plug EmakolaWeb.Plugs.RateLimiter, limit: 10, window_ms: 60_000
+    plug EmakolaWeb.Plugs.RateLimiter, limit: 10, window_ms: 60_000, key: :ip
+  end
+
+  # Unauthenticated mobile-API auth endpoints: JSON + strict per-IP limit.
+  # Deliberately NOT stacked on :api — two RateLimiter plugs with the same
+  # key share one Hammer bucket and double-count every request.
+  pipeline :api_auth do
+    plug :accepts, ["json"]
+    plug EmakolaWeb.Plugs.RateLimiter, limit: 10, window_ms: 60_000, key: :ip
   end
 
   # Source-IP allowlist for the Hubtel webhook endpoint. Hubtel does not
@@ -64,10 +74,10 @@ defmodule EmakolaWeb.Router do
     post "/paystack", WebhookController, :paystack
   end
 
-  # Mobile/JSON API auth — bearer token pair lifecycle. Strict rate limit:
+  # Mobile/JSON API auth — bearer token pair lifecycle. Strict per-IP rate limit:
   # sign_in is a brute-force vector, refresh a replay-probe vector.
   scope "/api/v1/auth", EmakolaWeb.Api do
-    pipe_through [:api, :auth_rate_limit]
+    pipe_through :api_auth
 
     post "/sign_in", AuthController, :sign_in
     post "/refresh", AuthController, :refresh

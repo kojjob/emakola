@@ -1,6 +1,8 @@
 defmodule EmakolaWeb.Api.AuthController do
   use EmakolaWeb, :controller
 
+  require Logger
+
   alias AshAuthentication.{Info, Strategy}
   alias Emakola.Accounts.{ApiTokens, Merchant}
 
@@ -28,7 +30,11 @@ defmodule EmakolaWeb.Api.AuthController do
       {:error, :token_generation_failed} ->
         error(conn, 500, "token_generation_failed", "Could not issue tokens; try again")
 
-      _ ->
+      {:error, reason} ->
+        unless is_struct(reason, AshAuthentication.Errors.AuthenticationFailed) do
+          Logger.warning("sign_in: unexpected failure: #{inspect(reason)}")
+        end
+
         error(conn, 401, "invalid_credentials", "Invalid email or password")
     end
   end
@@ -55,6 +61,11 @@ defmodule EmakolaWeb.Api.AuthController do
   def sign_out(conn, params) do
     case params["refresh_token"] do
       token when is_binary(token) -> ApiTokens.revoke(token)
+      _ -> :ok
+    end
+
+    case get_req_header(conn, "authorization") do
+      ["Bearer " <> access_token] -> ApiTokens.revoke(access_token)
       _ -> :ok
     end
 

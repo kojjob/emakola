@@ -106,9 +106,57 @@ defmodule EmakolaWeb.Api.AuthControllerTest do
       assert json_response(conn2, 401)
     end
 
+    test "revokes the bearer access token from the Authorization header", %{
+      conn: conn,
+      merchant: merchant
+    } do
+      {:ok, pair} = Emakola.Accounts.ApiTokens.issue_pair(merchant)
+
+      conn
+      |> put_req_header("authorization", "Bearer #{pair.access_token}")
+      |> delete(~p"/api/v1/auth/sign_out", %{"refresh_token" => pair.refresh_token})
+      |> response(204)
+
+      assert AshAuthentication.TokenResource.Actions.token_revoked?(
+               Emakola.Accounts.Token,
+               pair.access_token
+             )
+    end
+
     test "204 even without a token", %{conn: conn} do
       conn = delete(conn, ~p"/api/v1/auth/sign_out", %{})
       assert response(conn, 204)
+    end
+  end
+
+  describe "sign_in then refresh (end-to-end)" do
+    test "sign_in response refresh_token can be exchanged for a new pair", %{
+      conn: conn,
+      merchant: merchant
+    } do
+      sign_in_conn =
+        post(conn, ~p"/api/v1/auth/sign_in", %{
+          "email" => to_string(merchant.email),
+          "password" => "Password123!"
+        })
+
+      assert %{"data" => %{"refresh_token" => refresh}} = json_response(sign_in_conn, 200)
+
+      refresh_conn =
+        build_conn()
+        |> put_unique_peer_ip()
+        |> post(~p"/api/v1/auth/refresh", %{"refresh_token" => refresh})
+
+      assert %{
+               "data" => %{
+                 "access_token" => access,
+                 "refresh_token" => new_refresh,
+                 "expires_in" => 900
+               }
+             } = json_response(refresh_conn, 200)
+
+      assert is_binary(access)
+      assert is_binary(new_refresh)
     end
   end
 end
