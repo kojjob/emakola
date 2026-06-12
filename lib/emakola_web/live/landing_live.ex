@@ -406,13 +406,18 @@ defmodule EmakolaWeb.LandingLive do
                 />
               </div>
               <div class="px-4 pb-5">
-                <span class={[
-                  "relative -mt-6 inline-flex w-12 h-12 items-center justify-center rounded-xl text-white shadow-lg font-headline font-extrabold",
-                  step.badge
-                ]}>
+                <span
+                  aria-hidden="true"
+                  class={[
+                    "relative -mt-6 inline-flex w-12 h-12 items-center justify-center rounded-xl text-white shadow-lg font-headline font-extrabold",
+                    step.badge
+                  ]}
+                >
                   {step.number}
                 </span>
-                <h3 class="text-base font-bold text-[#0c1526] mt-2 mb-1">{step.title}</h3>
+                <h3 class="text-base font-bold text-[#0c1526] mt-2 mb-1">
+                  <span class="sr-only">Step {i + 1}: </span>{step.title}
+                </h3>
                 <p class="text-sm text-[#5f6b7a]">{step.blurb}</p>
               </div>
             </div>

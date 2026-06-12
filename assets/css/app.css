@@ -596,9 +596,11 @@ html.high-contrast {
    children animate in with per-card delays. Keyframe animation (not
    transition-delay) so card hover transitions are never delayed.
    Without JS, .reveal-hidden is never added and cards stay visible.
-   `to` deliberately omits transform — a filled transform would override hover lifts. */
+   `to` deliberately omits transform — a filled transform would override hover lifts.
+   Arrow <span> connectors are covered too — otherwise they float between invisible cards during reveal. */
 @layer components {
-  .stagger-grid.reveal-hidden > div {
+  .stagger-grid.reveal-hidden > div,
+  .stagger-grid.reveal-hidden > span {
     opacity: 0;
   }
   .stagger-grid.reveal-hidden.revealed > div {
@@ -612,13 +614,20 @@ html.high-contrast {
   .stagger-grid.reveal-hidden.revealed > div:nth-child(7) { animation-delay: 420ms; }
   .stagger-grid.reveal-hidden.revealed > div:nth-child(8) { animation-delay: 490ms; }
   .stagger-grid.reveal-hidden.revealed > div:nth-child(9) { animation-delay: 560ms; }
+  .stagger-grid.reveal-hidden.revealed > span {
+    animation: feature-rise 0.55s ease-out both;
+  }
+  .stagger-grid.reveal-hidden.revealed > span:nth-child(2) { animation-delay: 70ms; }
+  .stagger-grid.reveal-hidden.revealed > span:nth-child(4) { animation-delay: 210ms; }
   @keyframes feature-rise {
     from { opacity: 0; transform: translateY(18px); }
     to { opacity: 1; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .stagger-grid.reveal-hidden > div { opacity: 1; }
-    .stagger-grid.reveal-hidden.revealed > div { animation: none; }
+    .stagger-grid.reveal-hidden > div,
+    .stagger-grid.reveal-hidden > span { opacity: 1; }
+    .stagger-grid.reveal-hidden.revealed > div,
+    .stagger-grid.reveal-hidden.revealed > span { animation: none; }
   }
 }
 
