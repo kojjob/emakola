@@ -45,6 +45,52 @@ defmodule Emakola.Accounts.ApiTokensTest do
     test "rejects garbage" do
       assert {:error, :invalid_refresh_token} = ApiTokens.exchange_refresh("not-a-jwt")
     end
+
+    test "rejects a refresh-purpose token signed for a different resource (User)" do
+      user = create_user!()
+
+      {:ok, foreign_refresh, _claims} =
+        AshAuthentication.Jwt.token_for_user(user, %{"purpose" => "emakola_api_refresh"},
+          purpose: :emakola_api_refresh,
+          token_lifetime: {30, :days}
+        )
+
+      assert {:error, :invalid_refresh_token} = ApiTokens.exchange_refresh(foreign_refresh)
+    end
+  end
+
+  describe "concurrent exchange of the same refresh token" do
+    setup do
+      # Set shared sandbox mode so spawned processes can access the same DB state
+      # without needing explicit Sandbox.allow calls on each one.
+      Ecto.Adapters.SQL.Sandbox.mode(Emakola.Repo, {:shared, self()})
+      :ok
+    end
+
+    test "yields exactly one success" do
+      merchant = create_merchant!()
+      {:ok, pair} = ApiTokens.issue_pair(merchant)
+      parent = self()
+
+      for i <- 1..2 do
+        spawn_link(fn ->
+          Ecto.Adapters.SQL.Sandbox.allow(Emakola.Repo, parent, self())
+          send(parent, {:result, i, ApiTokens.exchange_refresh(pair.refresh_token)})
+        end)
+      end
+
+      results =
+        Enum.map(1..2, fn _ ->
+          receive do
+            {:result, _i, r} -> r
+          after
+            5_000 -> :timeout
+          end
+        end)
+
+      successes = Enum.count(results, &match?({:ok, _}, &1))
+      assert successes == 1, "expected exactly 1 success, got: #{inspect(results)}"
+    end
   end
 
   describe "revoke/1" do
