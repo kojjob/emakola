@@ -15,6 +15,7 @@ defmodule Emakola.Accounts.Merchant do
     tokens do
       enabled?(true)
       token_resource(Emakola.Accounts.Token)
+      store_all_tokens?(true)
       require_token_presence_for_authentication?(true)
 
       signing_secret(fn _, _ ->
