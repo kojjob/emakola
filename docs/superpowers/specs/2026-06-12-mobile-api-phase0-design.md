@@ -80,7 +80,7 @@ Registration is an upsert: re-registering an existing token updates `merchant_id
 - 401: missing/expired/invalid bearer token; bad credentials; reused refresh token.
 - 403: valid token but no membership in the `X-Store-ID` store; policy denials.
 - 404: order not found *or not visible under tenant* (no existence leak across stores).
-- 422: invalid status transition (StatusGuard) or validation errors.
+- 400: invalid status transition (StatusGuard surfaces as `invalid_attribute`; ash_json_api maps Ash's `:invalid` class to 400, not the 422 originally sketched here — pinned by tests and documented in docs/API.md) and other validation errors.
 - Rate limiting: existing `:api` (100/min) and `:auth_rate_limit` (10/min) plugs unchanged.
 
 ## Testing (TDD, minimum 90% coverage on new code)
@@ -89,6 +89,11 @@ Registration is an upsert: re-registering an existing token updates `merchant_id
 - **Integration (`@tag :integration`):** full auth flow (sign in → call API → refresh → old refresh token rejected → sign out → token rejected); order list/detail/transition through real HTTP; push worker end-to-end with Mox (order placed → job → provider called with right tokens; UNREGISTERED pruning).
 - **Multi-tenant isolation (mandatory):** merchant A with a valid token + forged `X-Store-ID` for store B → 403; order IDs from store B → 404; device tokens scoped per store.
 - Never hit real FCM — the provider is always behind the behaviour in tests.
+
+## Known limitations (accepted)
+
+- **Any purpose-"user" Merchant token passes the bearer plug**, including the default-lifetime (~14-day) token AshAuthentication stores on every web sign-in now that `store_all_tokens?` is enabled. The 15-minute window is a property of tokens the API *issues*, not of every token it *accepts*. Risk-equivalent to web session theft (same storage, same revocation path); revisit if API tokens need a dedicated purpose claim.
+- Invalid-transition responses are 400 (see Error handling above), treated by clients as "already applied / not applicable".
 
 ## Out of scope (deferred)
 
