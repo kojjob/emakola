@@ -26,7 +26,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
             categories: categories,
             store_id: store_id,
             is_edit: true,
-            show_price_field: product != nil && product.variants == []
+            show_price_field: product != nil && product.variants == [],
+            existing_images: if(product, do: product.images, else: [])
           )
 
         :new ->
@@ -47,9 +48,17 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
             categories: categories,
             store_id: store_id,
             is_edit: false,
-            show_price_field: true
+            show_price_field: true,
+            existing_images: []
           )
       end
+
+    socket =
+      allow_upload(socket, :product_images,
+        accept: ~w(.jpg .jpeg .png .webp),
+        max_entries: 5,
+        max_file_size: 10_000_000
+      )
 
     {:ok, socket}
   end
@@ -64,6 +73,33 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
   def handle_event("save_product", %{"product" => params}, socket) do
     action = if params["_action"] == "activate", do: :active, else: :draft
     save_product(socket, Map.delete(params, "_action"), action)
+  end
+
+  @impl true
+  def handle_event("cancel_image_upload", %{"ref" => ref}, socket) do
+    {:noreply, cancel_upload(socket, :product_images, ref)}
+  end
+
+  @impl true
+  def handle_event("delete_image", %{"id" => image_id}, socket) do
+    store_id = socket.assigns.store_id
+
+    case Emakola.Catalog.get_image(image_id) do
+      {:ok, image} when image.store_id == store_id ->
+        Emakola.Catalog.destroy_image!(image, authorize?: false)
+
+        updated_images =
+          if product = socket.assigns.product do
+            Ash.load!(product, [:images], authorize?: false).images
+          else
+            []
+          end
+
+        {:noreply, assign(socket, existing_images: updated_images)}
+
+      _ ->
+        {:noreply, socket}
+    end
   end
 
   @impl true
@@ -238,6 +274,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
           </div>
         </div>
 
+        <%!-- Images --%>
+        <div class="bg-white rounded-lg p-5">
+          <Shared.upload_area uploads={@uploads} existing_images={@existing_images} />
+        </div>
+
         <%!-- Actions --%>
         <div class="flex flex-col sm:flex-row gap-3 pt-2">
           <button
@@ -303,7 +344,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
         end
 
       case result do
-        {:ok, _product, :activated} ->
+        {:ok, product, :activated} ->
+          Shared.save_uploaded_images(socket, product)
           Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 
           {:noreply,
@@ -311,7 +353,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
            |> put_flash(:info, "Product published — it's live on your store.")
            |> push_navigate(to: ~p"/admin/products")}
 
-        {:ok, _product, :activation_failed} ->
+        {:ok, product, :activation_failed} ->
+          Shared.save_uploaded_images(socket, product)
           Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 
           {:noreply,
@@ -319,7 +362,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
            |> put_flash(:info, "Saved as draft — add a price to publish it.")
            |> push_navigate(to: ~p"/admin/products")}
 
-        {:ok, _product, :draft_requested} ->
+        {:ok, product, :draft_requested} ->
+          Shared.save_uploaded_images(socket, product)
           Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 
           {:noreply,
@@ -425,7 +469,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
 
   defp load_product(id) do
     case Emakola.Catalog.get_product(id) do
-      {:ok, product} -> Ash.load!(product, [:variants], authorize?: false)
+      {:ok, product} -> Ash.load!(product, [:variants, :images], authorize?: false)
       _ -> nil
     end
   end

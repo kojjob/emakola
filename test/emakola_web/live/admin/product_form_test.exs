@@ -2,8 +2,16 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
   use EmakolaWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
+  import Mox
 
   require Ash.Query
+
+  import Emakola.Factory
+
+  # Minimal 1×1 transparent PNG for upload tests
+  @small_png Base.decode64!(
+               "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+             )
 
   describe "Form — price field, variant creation, honest publish" do
     setup %{conn: conn} do
@@ -95,6 +103,72 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
         |> Ash.read!(authorize?: false)
 
       assert products == []
+    end
+  end
+
+  describe "Form — image upload" do
+    setup %{conn: conn} do
+      {conn, _merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, store: store}
+    end
+
+    test "uploading an image on create → Image record linked to product",
+         %{conn: conn, store: store} do
+      stub(Emakola.StorageMock, :upload, fn _binary, _path, _opts ->
+        {:ok, "https://s3.example.com/test/shirt.png"}
+      end)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products/new")
+      Mox.allow(Emakola.StorageMock, self(), view.pid)
+
+      upload =
+        file_input(view, "#product-form", :product_images, [
+          %{name: "shirt.png", content: @small_png, type: "image/png"}
+        ])
+
+      render_upload(upload, "shirt.png")
+
+      view
+      |> element("#product-form")
+      |> render_submit(%{
+        "product" => %{"title" => "Image Product", "price" => "10.00", "_action" => "draft"}
+      })
+
+      product =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read_one!(authorize?: false)
+
+      assert product != nil
+
+      images =
+        Emakola.Catalog.Image
+        |> Ash.Query.filter(product_id == ^product.id)
+        |> Ash.read!(authorize?: false)
+
+      assert length(images) == 1
+      assert hd(images).url == "https://s3.example.com/test/shirt.png"
+    end
+
+    test "edit: existing image renders; delete_image removes it",
+         %{conn: conn, store: store} do
+      product = create_product!(store)
+      image = create_image!(product, store)
+
+      {:ok, view, html} = live(conn, ~p"/admin/products/#{product.id}/edit")
+
+      assert html =~ image.url
+
+      view
+      |> element("[phx-click='delete_image'][phx-value-id='#{image.id}']")
+      |> render_click()
+
+      images =
+        Emakola.Catalog.Image
+        |> Ash.Query.filter(product_id == ^product.id)
+        |> Ash.read!(authorize?: false)
+
+      assert images == []
     end
   end
 end
