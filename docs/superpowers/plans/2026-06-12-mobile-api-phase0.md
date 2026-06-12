@@ -2231,6 +2231,8 @@ Expected: token pair → store list → order list (and a `[push] (log provider)
 
 - [ ] **Step 5: Update CLAUDE.md** — add a short "Mobile API (Phase 0)" subsection under Important Patterns documenting: bearer auth via `ApiTokens` (15-min access / 30-day rotating refresh), `X-Store-ID` tenant convention, DeviceToken + push provider config, and the `/api/v1/open_api` contract endpoint.
 
+- [ ] **Step 5b: Deployment follow-up note (from Task 4 review)** — rate limiting now keys pre-auth endpoints by `conn.remote_ip`. Behind the Fly proxy, verify `remote_ip` reflects the real client IP (Fly sets it via proxy protocol/fly-client-ip); if it's the edge IP, all mobile clients share one 10/min sign-in bucket. Add this check to `docs/LAUNCH_TODO.md` or the deploy runbook rather than fixing blind.
+
 - [ ] **Step 6: Commit any fixes + docs**
 
 ```bash
