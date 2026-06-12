@@ -60,13 +60,6 @@ defmodule Emakola.Accounts.ApiTokensTest do
   end
 
   describe "concurrent exchange of the same refresh token" do
-    setup do
-      # Set shared sandbox mode so spawned processes can access the same DB state
-      # without needing explicit Sandbox.allow calls on each one.
-      Ecto.Adapters.SQL.Sandbox.mode(Emakola.Repo, {:shared, self()})
-      :ok
-    end
-
     test "yields exactly one success" do
       merchant = create_merchant!()
       {:ok, pair} = ApiTokens.issue_pair(merchant)
