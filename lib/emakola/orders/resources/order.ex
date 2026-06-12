@@ -123,6 +123,7 @@ defmodule Emakola.Orders.Order do
 
     attribute :notes, :string do
       public?(true)
+      filterable?(false)
       constraints(max_length: 5_000)
     end
 
@@ -133,10 +134,12 @@ defmodule Emakola.Orders.Order do
 
     attribute :shipping_address, :map do
       public?(true)
+      filterable?(false)
     end
 
     attribute :billing_address, :map do
       public?(true)
+      filterable?(false)
     end
 
     # UTM and click-source attribution captured during the customer's
@@ -145,6 +148,7 @@ defmodule Emakola.Orders.Order do
     # can pattern-match safely.
     attribute :attribution, :map do
       public?(true)
+      filterable?(false)
       default(%{})
     end
 
@@ -203,7 +207,8 @@ defmodule Emakola.Orders.Order do
 
       # index: returns list; filter[status]=confirmed maps to the public status
       # attribute via ash_json_api's default derive_filter? behavior.
-      index(:api_list)
+      # derive_sort?: false — no arbitrary column sorts from the mobile client.
+      index(:api_list, derive_sort?: false)
 
       # get: fetches a single order by primary key from the URL :id segment.
       get(:api_get)
@@ -510,7 +515,7 @@ defmodule Emakola.Orders.Order do
         Ash.Query.sort(query, inserted_at: :desc)
       end)
 
-      pagination(offset?: true, keyset?: true, countable: true, default_limit: 25)
+      pagination(keyset?: true, countable: true, default_limit: 25)
     end
 
     # Mobile API — fetch a single order by primary key.
