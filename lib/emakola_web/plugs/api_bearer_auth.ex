@@ -20,7 +20,12 @@ defmodule EmakolaWeb.Plugs.ApiBearerAuth do
 
   @impl true
   def call(conn, _opts) do
-    conn = Helpers.retrieve_from_bearer(conn, :emakola)
+    # Clear any pre-existing assign so the plug's verdict never depends on
+    # what earlier pipeline plugs may have loaded (e.g. session identity).
+    conn =
+      conn
+      |> assign(:current_merchant, nil)
+      |> Helpers.retrieve_from_bearer(:emakola)
 
     case conn.assigns[:current_merchant] do
       %Emakola.Accounts.Merchant{} = merchant ->
@@ -28,7 +33,7 @@ defmodule EmakolaWeb.Plugs.ApiBearerAuth do
 
       _ ->
         conn
-        |> put_resp_content_type("application/vnd.api+json")
+        |> put_resp_content_type("application/vnd.api+json", nil)
         |> send_resp(
           401,
           Jason.encode!(%{

@@ -62,10 +62,11 @@ defmodule EmakolaWeb.Plugs.ApiBearerAuthTest do
   end
 
   test "token signed for a platform User (not Merchant) → 401", %{conn: conn} do
-    # User lacks store_all_tokens?/require_token_presence_for_authentication?, so even
-    # if the JWT signature verifies, retrieve_from_bearer sets current_user (not
-    # current_merchant). The plug rejects it because conn.assigns[:current_merchant]
-    # is nil.
+    # User HAS require_token_presence_for_authentication? but lacks
+    # store_all_tokens?, so this ad-hoc token is never stored and the presence
+    # check inside retrieve_from_bearer fails — current_user is never assigned.
+    # Even if it were, the plug only promotes current_merchant, so a User
+    # token can never satisfy merchant bearer auth.
     user = create_user!()
 
     {:ok, user_token, _claims} =
