@@ -435,7 +435,10 @@
       <%!-- Right actions --%>
       <div class="flex items-center gap-2">
         <%!-- Quick add --%>
-        <button class="hidden md:flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-3.5 py-2 rounded-xl transition-colors shadow-sm shadow-emerald-600/20 cursor-pointer">
+        <.link
+          navigate={~p"/admin/products/new"}
+          class="hidden md:flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-3.5 py-2 rounded-xl transition-colors shadow-sm shadow-emerald-600/20 cursor-pointer"
+        >
           <svg
             class="w-4 h-4"
             fill="none"
@@ -446,7 +449,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
           <span>New</span>
-        </button>
+        </.link>
 
         <div class="hidden md:block w-px h-8 bg-slate-200/60"></div>
 
