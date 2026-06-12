@@ -212,6 +212,12 @@ defmodule Emakola.Orders.Order do
 
       # get: fetches a single order by primary key from the URL :id segment.
       get(:api_get)
+
+      patch(:confirm, route: "/:id/confirm")
+      patch(:start_processing, route: "/:id/start_processing")
+      patch(:mark_shipped, route: "/:id/mark_shipped")
+      patch(:mark_delivered, route: "/:id/mark_delivered")
+      patch(:cancel, route: "/:id/cancel")
     end
   end
 
