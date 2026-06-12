@@ -595,7 +595,8 @@ html.high-contrast {
    ScrollReveal adds .reveal-hidden then .revealed to the grid container;
    children animate in with per-card delays. Keyframe animation (not
    transition-delay) so card hover transitions are never delayed.
-   Without JS, .reveal-hidden is never added and cards stay visible. */
+   Without JS, .reveal-hidden is never added and cards stay visible.
+   `to` deliberately omits transform — a filled transform would override hover lifts. */
 @layer components {
   .features-grid.reveal-hidden > div {
     opacity: 0;
@@ -613,7 +614,7 @@ html.high-contrast {
   .features-grid.reveal-hidden.revealed > div:nth-child(9) { animation-delay: 560ms; }
   @keyframes feature-rise {
     from { opacity: 0; transform: translateY(18px); }
-    to { opacity: 1; transform: translateY(0); }
+    to { opacity: 1; }
   }
   @media (prefers-reduced-motion: reduce) {
     .features-grid.reveal-hidden > div { opacity: 1; }

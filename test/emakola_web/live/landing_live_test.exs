@@ -117,6 +117,7 @@ defmodule EmakolaWeb.LandingLiveTest do
         assert html =~ img
       end
 
+      assert html =~ ~s(alt="Man pushing a cart stacked with boxes through the street")
       assert html =~ "bg-violet-500"
       assert html =~ "features-grid"
     end

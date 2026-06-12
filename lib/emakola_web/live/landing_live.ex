@@ -531,13 +531,13 @@ defmodule EmakolaWeb.LandingLive do
         icon: "download",
         badge: "bg-sky-500 shadow-sky-500/40",
         img: "/images/landing/feature-digital.jpg",
-        alt: "Woman working at a laptop"
+        alt: "Woman browsing digital files on her laptop"
       },
       %{
         title: "Stock",
         blurb: "Always know what is left",
         icon: "inventory_2",
-        badge: "bg-amber-500 shadow-amber-500/40",
+        badge: "bg-amber-600 shadow-amber-600/40",
         img: "/images/landing/feature-stock.jpg",
         alt: "Stacked yellow crates ready for sale"
       },
@@ -545,7 +545,7 @@ defmodule EmakolaWeb.LandingLive do
         title: "Delivery",
         blurb: "Across all of Ghana",
         icon: "local_shipping",
-        badge: "bg-orange-500 shadow-orange-500/40",
+        badge: "bg-orange-600 shadow-orange-600/40",
         img: "/images/landing/feature-delivery.jpg",
         alt: "Cargo motorcycle loaded with goods on the road"
       },
