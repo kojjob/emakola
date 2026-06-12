@@ -237,7 +237,16 @@ if config_env() == :prod do
     # storefronts (shopname.emakola.com). NOTE: merchant CUSTOM domains
     # (www.merchantshop.com) need their origins added here — or a
     # function-based check_origin — before LiveView will connect for them.
-    check_origin: ["https://#{host}", "https://www.#{host}", "https://*.#{host}"],
+    check_origin: [
+      "https://#{host}",
+      "https://www.#{host}",
+      "https://*.#{host}",
+      # Fly's default hostname — the app is reachable here until (and after)
+      # the emakola.com DNS cutover. Without it, LiveView websockets from
+      # emakola.fly.dev are rejected and clients degrade to long-polling,
+      # which breaks across multiple machines (reconnect/error loops).
+      "https://emakola.fly.dev"
+    ],
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
