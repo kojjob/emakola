@@ -12,3 +12,4 @@ Mox.defmock(Emakola.WhatsAppProviderMock, for: Emakola.Notifications.WhatsAppPro
 Mox.defmock(Emakola.WhatsAppChannelMock, for: Emakola.Notifications.Channels.WhatsAppBehaviour)
 Mox.defmock(Emakola.SMSChannelMock, for: Emakola.Notifications.Channels.SMSBehaviour)
 Mox.defmock(Emakola.StorageMock, for: Emakola.Storage)
+Mox.defmock(Emakola.PushProviderMock, for: Emakola.Notifications.PushProvider)

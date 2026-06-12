@@ -266,6 +266,8 @@ Required environment variables (see `.env.example` for full list):
 | `SMS_API_KEY` | SMS gateway API key |
 | `SMS_SENDER_ID` | SMS sender ID (e.g., "Emakola") |
 | `OBAN_QUEUE_DEFAULT` | Oban default queue concurrency |
+| `FCM_SERVICE_ACCOUNT_JSON` | Firebase service account JSON (enables FCM push; omit to use LogPush) |
+| `FCM_PROJECT_ID` | Firebase project ID (required when FCM_SERVICE_ACCOUNT_JSON is set) |
 
 ---
 

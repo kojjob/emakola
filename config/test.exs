@@ -82,6 +82,7 @@ config :emakola, Emakola.Payments.PaystackClient,
 # Notification providers: use Mox mocks in tests
 config :emakola, :sms_provider, Emakola.SMSProviderMock
 config :emakola, :whatsapp_provider, Emakola.WhatsAppProviderMock
+config :emakola, :push_provider, Emakola.PushProviderMock
 
 # Storage adapter: route through Mox so individual tests can expect/stub
 # the specific calls they care about. Tests that don't set expectations

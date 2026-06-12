@@ -88,10 +88,7 @@ defmodule Emakola.MixProject do
       {:ash_json_api, "~> 1.4"},
       {:open_api_spex, "~> 3.16"},
 
-      # Mobile push notifications (FCM HTTP v1)
-      # NOTE: pigeon ~> 2.0 is deferred — it requires httpoison which needs
-      # hackney ~> 1.x, conflicting with ex_aws 2.7.0's optional hackney ~> 4.0
-      # constraint. Resolution needed before task 12.
+      # Mobile push notifications (FCM HTTP v1 via Req + Goth)
       {:goth, "~> 1.4"},
 
       # Background jobs
