@@ -17,7 +17,11 @@ defmodule EmakolaWeb.Storefront.CartLive do
   def mount(_params, session, socket) do
     store = socket.assigns.store
     cart_session_id = session["cart_session_id"]
-    cart = if cart_session_id, do: CartStore.get_cart(cart_session_id), else: []
+
+    cart =
+      if connected?(socket) && cart_session_id,
+        do: CartStore.get_cart(cart_session_id),
+        else: []
 
     categories =
       try do

@@ -1,6 +1,6 @@
 defmodule Emakola.Cart.CartCleanupWorker do
   @moduledoc """
-  Oban cron worker that cleans up expired cart sessions from ETS.
+  Oban cron worker that cleans up expired cart sessions from the cart_items table in Postgres.
   Runs every 6 hours. Carts older than 72 hours are removed.
   """
   use Oban.Worker, queue: :default, max_attempts: 1

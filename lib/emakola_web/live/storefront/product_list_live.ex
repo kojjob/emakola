@@ -23,7 +23,11 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
     categories = Emakola.Catalog.list_root_categories!(store.id)
     products = load_active_products(store.id, nil, nil)
     cart_session_id = session["cart_session_id"]
-    cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+
+    cart_count =
+      if connected?(socket) && cart_session_id,
+        do: CartStore.cart_count(cart_session_id),
+        else: 0
 
     {:ok,
      socket

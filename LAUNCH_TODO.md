@@ -74,9 +74,9 @@
 - [ ] **Decommission the legacy User/Organisation auth path** — dead since
       the registration fix (#108); `resolve_user`'s `current_store: nil`
       stub is a trap.
-- [ ] **Cart re-architecture before scaling past 1 machine** — carts are
-      node-local ETS; >1 machine needs sticky sessions or a shared store.
-      (BEAM clustering itself is already wired.)
+- [x] **Cart re-architecture before scaling past 1 machine** — DONE:
+      carts moved from node-local ETS to Postgres (`cart_items`);
+      `fly scale count N` is now safe.
 - [ ] **Design system sub-project 3** — DesignTokens/FontLoader across all
       14 themes; remaining ~17 admin pages join the consistency-test
       `@swept` list opportunistically.

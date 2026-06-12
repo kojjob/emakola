@@ -23,7 +23,11 @@ defmodule EmakolaWeb.Storefront.StoreLive do
     public_coupons = load_public_coupons(store)
     delivery_zones = load_delivery_zones(store)
     cart_session_id = session["cart_session_id"]
-    cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+
+    cart_count =
+      if connected?(socket) && cart_session_id,
+        do: CartStore.cart_count(cart_session_id),
+        else: 0
 
     {:ok,
      socket
