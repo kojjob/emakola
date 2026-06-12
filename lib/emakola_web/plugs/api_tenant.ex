@@ -23,8 +23,11 @@ defmodule EmakolaWeb.Plugs.ApiTenant do
   @impl true
   def call(conn, _opts) do
     with %Merchant{} = merchant <- Ash.PlugHelpers.get_actor(conn),
-         [store_id] <- get_req_header(conn, "x-store-id"),
-         {:ok, _uuid} <- Ecto.UUID.cast(store_id),
+         [raw_store_id] <- get_req_header(conn, "x-store-id"),
+         # Rebind to the cast result: Ecto.UUID.cast normalizes to lowercase,
+         # and only the canonical form may exist past this point (policy
+         # checks and PubSub topics compare tenant ids as strings).
+         {:ok, store_id} <- Ecto.UUID.cast(raw_store_id),
          true <- member?(merchant, store_id) do
       Ash.PlugHelpers.set_tenant(conn, store_id)
     else

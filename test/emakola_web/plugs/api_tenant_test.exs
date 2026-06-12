@@ -68,4 +68,44 @@ defmodule EmakolaWeb.Plugs.ApiTenantTest do
     assert conn.halted
     assert conn.status == 403
   end
+
+  test "uppercase UUID of a member store sets the canonical lowercase tenant", %{conn: conn} do
+    {merchant, store} = create_merchant_with_store!()
+
+    conn =
+      conn
+      |> put_req_header("x-store-id", String.upcase(store.id))
+      |> call_with_actor(merchant)
+
+    refute conn.halted
+    assert Ash.PlugHelpers.get_tenant(conn) == store.id
+  end
+
+  test "duplicate x-store-id headers → 403", %{conn: conn} do
+    {merchant, store} = create_merchant_with_store!()
+
+    conn =
+      conn
+      |> Plug.Conn.prepend_req_headers([
+        {"x-store-id", store.id},
+        {"x-store-id", store.id}
+      ])
+      |> call_with_actor(merchant)
+
+    assert conn.halted
+    assert conn.status == 403
+  end
+
+  test "non-Merchant actor (Customer) → 403", %{conn: conn} do
+    {_merchant, store} = create_merchant_with_store!()
+    customer = create_customer!(store)
+
+    conn =
+      conn
+      |> put_req_header("x-store-id", store.id)
+      |> call_with_actor(customer)
+
+    assert conn.halted
+    assert conn.status == 403
+  end
 end
