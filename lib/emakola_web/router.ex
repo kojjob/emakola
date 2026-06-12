@@ -45,6 +45,15 @@ defmodule EmakolaWeb.Router do
     plug EmakolaWeb.Plugs.RateLimiter, limit: 10, window_ms: 60_000, key: :ip
   end
 
+  # Mobile/JSON API: bearer-token merchant auth, then X-Store-ID tenant.
+  pipeline :api_bearer do
+    plug EmakolaWeb.Plugs.ApiBearerAuth
+  end
+
+  pipeline :api_tenant do
+    plug EmakolaWeb.Plugs.ApiTenant
+  end
+
   # Source-IP allowlist for the Hubtel webhook endpoint. Hubtel does not
   # sign webhooks, so remote_ip is the only trust boundary. The plug fails
   # closed on any misconfiguration.
@@ -82,6 +91,13 @@ defmodule EmakolaWeb.Router do
     post "/sign_in", AuthController, :sign_in
     post "/refresh", AuthController, :refresh
     delete "/sign_out", AuthController, :sign_out
+  end
+
+  # Authenticated, NOT tenant-scoped — used to discover/pick a store.
+  scope "/api/v1", EmakolaWeb.Api do
+    pipe_through [:api, :api_bearer]
+
+    get "/stores", StoreController, :index
   end
 
   # Auth session controller (sets/clears session cookie)
