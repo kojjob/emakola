@@ -54,7 +54,7 @@ defmodule EmakolaWeb.Admin.Content.PostLiveTest do
 
   defp setup_authenticated_merchant(conn, store_attrs \\ %{}) do
     {merchant, store} = Factory.create_merchant_with_store!(store_attrs)
-    token = AshAuthentication.user_to_subject(merchant)
+    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
     conn =
       conn

@@ -228,6 +228,14 @@ Implementations: `Emakola.Payments.Gateways.Paystack`, `Emakola.Payments.Gateway
 - Admin: resolve store from authenticated user's store association
 - API: resolve store from `X-Store-ID` header or auth token
 
+### Platform Admin Auth
+- Platform staff sign in only via `/platform/login` — password then mandatory TOTP (two-step)
+- Registration is invite-only (team page sends invites; no public staff signup)
+- Sessions are DB-backed (`Emakola.Accounts.UserSession`): 14-day absolute cookie expiry, 24-hour idle timeout
+- Bootstrap the first owner: `mix emakola.bootstrap_platform_owner <email>`
+- Reset a locked-out admin's TOTP: `mix emakola.reset_platform_totp <email>`
+- Staff auth events are recorded in the platform audit log (`Emakola.Accounts.PlatformAudit`)
+
 ### Currency Support
 - GHS (Ghana Cedi) — default for Ghana stores
 - NGN (Nigerian Naira) — for Nigeria expansion

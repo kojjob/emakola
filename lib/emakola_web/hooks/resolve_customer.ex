@@ -10,18 +10,11 @@ defmodule EmakolaWeb.Hooks.ResolveCustomer do
   import Phoenix.Component
 
   def on_mount(:default, _params, session, socket) do
-    customer_token = session["customer_token"]
-
-    if customer_token do
-      case AshAuthentication.subject_to_user(customer_token, Emakola.Customers.Customer) do
-        {:ok, customer} ->
-          {:cont, assign(socket, :current_customer, customer)}
-
-        _ ->
-          {:cont, assign(socket, :current_customer, nil)}
-      end
+    with {:ok, subject} <- EmakolaWeb.AuthTokens.verify_subject(session["customer_token"]),
+         {:ok, customer} <- AshAuthentication.subject_to_user(subject, Emakola.Customers.Customer) do
+      {:cont, assign(socket, :current_customer, customer)}
     else
-      {:cont, assign(socket, :current_customer, nil)}
+      _ -> {:cont, assign(socket, :current_customer, nil)}
     end
   end
 end

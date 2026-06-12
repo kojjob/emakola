@@ -176,7 +176,7 @@ defmodule EmakolaWeb.Admin.PaymentsLiveTest do
   end
 
   defp authenticate_conn(conn, merchant) do
-    subject = AshAuthentication.user_to_subject(merchant)
+    subject = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
     conn
     |> init_test_session(%{"user_token" => subject})

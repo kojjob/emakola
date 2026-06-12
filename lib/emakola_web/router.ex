@@ -84,6 +84,33 @@ defmodule EmakolaWeb.Router do
     live "/register", RegisterLive
   end
 
+  # Platform staff session controller (exchanges a short-lived signed login
+  # token for a DB-backed session). GET is rate limited (brute-force vector).
+  scope "/platform", EmakolaWeb do
+    pipe_through [:browser, :auth_rate_limit]
+    get "/session", PlatformSessionController, :create
+  end
+
+  scope "/platform", EmakolaWeb do
+    pipe_through :browser
+    delete "/session", PlatformSessionController, :delete
+  end
+
+  # Platform staff login (two-step: password + TOTP). Root layout only —
+  # no platform sidebar. Staff with a live session skip straight to /platform.
+  scope "/platform", EmakolaWeb do
+    pipe_through [:browser, :auth_rate_limit]
+
+    live_session :platform_auth,
+      on_mount: [
+        {EmakolaWeb.Hooks.AssignDefaults, :default},
+        {EmakolaWeb.Hooks.RedirectIfPlatformStaff, :default}
+      ] do
+      live "/login", Platform.LoginLive
+      live "/invite/accept/:token", Platform.InviteAcceptLive
+    end
+  end
+
   # Customer storefront session controller (sets/clears customer token cookie)
   scope "/s/:store_slug", EmakolaWeb.Storefront do
     pipe_through [:browser, :auth_rate_limit]
@@ -164,16 +191,22 @@ defmodule EmakolaWeb.Router do
     live "/stores", StoresLive
     live "/docs", Docs.DocsLive
 
-    # Platform admin routes (project owner only)
+    # Platform admin routes (platform staff only). Pages gate themselves with
+    # a module-level {Hooks.RequirePermission, permission} on_mount:
+    #   stores → :manage_stores, team → :manage_team, audit-log → :view_audit_log
+    # Future pages: merchants → :manage_merchants, billing → :manage_billing,
+    # settings → :manage_settings. Dashboard and security are any-staff.
     live_session :platform,
       layout: {EmakolaWeb.Layouts, :platform},
       on_mount: [
         {EmakolaWeb.Hooks.AssignDefaults, :default},
-        {EmakolaWeb.Hooks.RequireAuth, :default},
-        {EmakolaWeb.Hooks.RequirePlatformAdmin, :default}
+        {EmakolaWeb.Hooks.RequirePlatformStaff, :default}
       ] do
       live "/platform", Platform.DashboardLive
       live "/platform/stores", Platform.StoreLive.Index
+      live "/platform/team", Platform.TeamLive
+      live "/platform/security", Platform.SecurityLive
+      live "/platform/audit-log", Platform.AuditLogLive
     end
 
     # Authenticated app routes with sidebar layout

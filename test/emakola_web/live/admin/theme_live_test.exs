@@ -7,8 +7,8 @@ defmodule EmakolaWeb.Admin.ThemeLiveTest do
 
   describe "Theme customizer without store" do
     test "redirects to onboarding when no store", %{conn: conn} do
-      user = create_user!(password: "Password123!")
-      token = AshAuthentication.user_to_subject(user)
+      merchant = create_merchant!()
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn
@@ -22,7 +22,7 @@ defmodule EmakolaWeb.Admin.ThemeLiveTest do
   describe "Theme customizer (authenticated merchant)" do
     setup %{conn: conn} do
       {merchant, store} = Factory.create_merchant_with_store!()
-      token = AshAuthentication.user_to_subject(merchant)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn
@@ -203,7 +203,7 @@ defmodule EmakolaWeb.Admin.ThemeLiveTest do
   describe "Live preview uses real store data (no hardcoded values)" do
     setup %{conn: conn} do
       {merchant, store} = Factory.create_merchant_with_store!()
-      token = AshAuthentication.user_to_subject(merchant)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn

@@ -113,7 +113,7 @@
     "global": null,
     "strategy": null
   },
-  "repo": "Elixir.FounderPad.Repo",
+  "repo": "Elixir.Emakola.Repo",
   "schema": null,
   "table": "organisations"
 }

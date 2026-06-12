@@ -507,28 +507,22 @@ defmodule EmakolaWeb.OnboardingLive do
 
   # ── Private helpers ──
 
+  # Merchant-only resolution — legacy User subjects no longer authenticate
+  # here (User accounts use the platform session flow exclusively).
   defp resolve_user(session) do
-    case session["user_token"] do
-      nil ->
+    case EmakolaWeb.AuthTokens.verify_subject(session["user_token"]) do
+      {:error, _reason} ->
         nil
 
-      token ->
-        # Try Merchant first (primary auth for ecommerce), fall back to User
-        case AshAuthentication.subject_to_user(token, Emakola.Accounts.Merchant) do
-          {:ok, merchant} ->
-            merchant
-
-          _ ->
-            case AshAuthentication.subject_to_user(token, Emakola.Accounts.User) do
-              {:ok, user} -> user
-              _ -> nil
-            end
+      {:ok, subject} ->
+        case AshAuthentication.subject_to_user(subject, Emakola.Accounts.Merchant) do
+          {:ok, merchant} -> merchant
+          _ -> nil
         end
     end
   end
 
   defp user_type(%Emakola.Accounts.Merchant{}), do: :merchant
-  defp user_type(%Emakola.Accounts.User{}), do: :user
   defp user_type(_), do: nil
 
   defp has_store_membership?(user) do
@@ -536,12 +530,6 @@ defmodule EmakolaWeb.OnboardingLive do
       :merchant ->
         case Emakola.Accounts.get_merchant_store_membership(user.id, authorize?: false) do
           {:ok, membership} when not is_nil(membership) -> true
-          _ -> false
-        end
-
-      :user ->
-        case Emakola.Accounts.list_memberships_by_user(user.id, authorize?: false) do
-          {:ok, [_ | _]} -> true
           _ -> false
         end
 
@@ -604,19 +592,6 @@ defmodule EmakolaWeb.OnboardingLive do
       %{role: :owner, merchant_id: merchant.id, store_id: store.id},
       authorize?: false
     )
-  end
-
-  defp create_membership_for_user(%Emakola.Accounts.User{} = user, store) do
-    # For legacy User accounts, create an Organisation membership
-    # as the current system still uses Org-based membership for Users
-    with {:ok, org} <- Emakola.Accounts.create_organisation(store.name, authorize?: false),
-         {:ok, membership} <-
-           Emakola.Accounts.create_membership(
-             %{role: :owner, user_id: user.id, organisation_id: org.id},
-             authorize?: false
-           ) do
-      {:ok, membership}
-    end
   end
 
   defp maybe_create_product(assigns, store) do

@@ -145,6 +145,7 @@
   "create_table_options": null,
   "custom_indexes": [],
   "custom_statements": [],
+  "drop_table_opted_out": true,
   "has_create_action": true,
   "hash": "4EA69B3117C3C34C46AD617DCD0D942DE03440A0917DFF040AEFE8463D635BC3",
   "identities": [],
@@ -153,7 +154,7 @@
     "global": null,
     "strategy": null
   },
-  "repo": "Elixir.FounderPad.Repo",
+  "repo": "Elixir.Emakola.Repo",
   "schema": null,
   "table": "tool_calls"
 }

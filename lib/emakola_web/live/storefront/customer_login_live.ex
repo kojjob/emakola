@@ -27,7 +27,8 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
       {:ok, customer} when not is_nil(customer) ->
         # Verify customer belongs to this store
         if to_string(customer.store_id) == to_string(store.id) do
-          token = AshAuthentication.user_to_subject(customer)
+          token =
+            EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(customer))
 
           {:noreply,
            redirect(socket, to: "/s/#{store.slug}/auth/customer-session?token=#{token}")}
