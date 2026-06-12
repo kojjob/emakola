@@ -236,6 +236,13 @@ Implementations: `Emakola.Payments.Gateways.Paystack`, `Emakola.Payments.Gateway
 - Reset a locked-out admin's TOTP: `mix emakola.reset_platform_totp <email>`
 - Staff auth events are recorded in the platform audit log (`Emakola.Accounts.PlatformAudit`)
 
+### Mobile API (Phase 0)
+- Merchant bearer auth: `POST /api/v1/auth/sign_in` → 15-min access token + 30-day rotating single-use refresh token (`Emakola.Accounts.ApiTokens`); revocation via the shared tokens table
+- Tenant: every JSON:API request requires `X-Store-ID` (validated against StoreMembership); `GET /api/v1/stores` lists the merchant's stores
+- Resources via ash_json_api (`EmakolaWeb.ApiRouter`, forwarded at `/api/v1`): orders list/detail/transitions, device_tokens; contract at `/api/v1/open_api` or `mix openapi.spec.json --spec EmakolaWeb.ApiRouter`
+- Push: `Emakola.Notifications.PushProvider` behaviour (FcmPush prod / LogPush dev / Mox test, selected via `:push_provider` config); `PushNotificationWorker` fires on order_placed; FCM env vars optional (push disabled without them)
+- Full endpoint contract: docs/API.md "Mobile API v1"
+
 ### Currency Support
 - GHS (Ghana Cedi) — default for Ghana stores
 - NGN (Nigerian Naira) — for Nigeria expansion

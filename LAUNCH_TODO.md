@@ -65,6 +65,9 @@
 - [ ] **Monitoring** — nothing is wired (Sentry in old docs is not a
       dependency). Until something is chosen, `fly logs` is the only window;
       pick Sentry/AppSignal once real traffic starts.
+- [ ] **Verify `conn.remote_ip` reflects the real client IP behind the Fly
+      proxy** — mobile API pre-auth rate limits key on it (10/min sign-in
+      per IP). If it's the edge IP, all mobile clients share one bucket.
 
 ## 🧰 Engineering backlog (post-launch, rough priority)
 
