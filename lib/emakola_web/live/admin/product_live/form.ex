@@ -5,6 +5,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
   """
   use EmakolaWeb, :live_view
 
+  alias EmakolaWeb.Admin.ProductLive.Shared
+
   @impl true
   def mount(params, _session, socket) do
     store_id = get_store_id(socket)
@@ -23,7 +25,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
             errors: %{},
             categories: categories,
             store_id: store_id,
-            is_edit: true
+            is_edit: true,
+            show_price_field: product != nil && product.variants == []
           )
 
         :new ->
@@ -37,12 +40,14 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
               "category_id" => "",
               "tags" => "",
               "seo_title" => "",
-              "seo_description" => ""
+              "seo_description" => "",
+              "price" => ""
             },
             errors: %{},
             categories: categories,
             store_id: store_id,
-            is_edit: false
+            is_edit: false,
+            show_price_field: true
           )
       end
 
@@ -85,7 +90,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
       </div>
 
       <%!-- Form --%>
-      <form phx-change="validate" phx-submit="save_product" class="space-y-6">
+      <form id="product-form" phx-change="validate" phx-submit="save_product" class="space-y-6">
         <%!-- Basic Info --%>
         <div class="bg-white rounded-lg p-5 space-y-4">
           <h2 class="text-base font-semibold">Basic Information</h2>
@@ -160,6 +165,31 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
                      bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             />
             <p class="mt-1 text-xs text-slate-500">Separate tags with commas</p>
+          </div>
+
+          <%!-- Price field: always on :new; on :edit only when no variants yet --%>
+          <div :if={@show_price_field}>
+            <label for="product_price" class="block text-sm font-medium mb-1.5">
+              Price (GHS)
+            </label>
+            <input
+              type="text"
+              id="product_price"
+              name="product[price]"
+              value={@form_data["price"]}
+              placeholder="e.g. 25.00"
+              class={[
+                "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
+                if(@errors[:price],
+                  do: "border-red-300 bg-red-50",
+                  else: "border-slate-200 bg-white"
+                )
+              ]}
+            />
+            <p :if={@errors[:price]} class="mt-1 text-xs text-red-600">{@errors[:price]}</p>
+            <p :if={!@errors[:price]} class="mt-1 text-xs text-slate-500">
+              Required to publish. You can add more pricing options later.
+            </p>
           </div>
         </div>
 
@@ -242,22 +272,54 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
   # ── Private ──
 
   defp save_product(socket, params, action) do
-    errors = validate_form(params)
+    {price_str, product_params} = Map.pop(params, "price")
+    price_result = Shared.parse_price_input(price_str)
+
+    base_errors = validate_form(product_params)
+
+    errors =
+      if price_result == :error do
+        Map.put(base_errors, :price, "must be a valid amount, e.g. 25.00")
+      else
+        base_errors
+      end
 
     if map_size(errors) > 0 do
       {:noreply, assign(socket, form_data: params, errors: errors)}
     else
-      attrs = build_attrs(params, socket.assigns.store_id)
+      pesewas =
+        case price_result do
+          {:ok, p} -> p
+          :skip -> nil
+        end
+
+      attrs = build_attrs(product_params, socket.assigns.store_id)
 
       result =
         if socket.assigns.is_edit do
-          update_product(socket.assigns.product, attrs, action)
+          update_and_maybe_variant(socket.assigns.product, attrs, action, pesewas)
         else
-          create_product(attrs, action)
+          create_and_maybe_variant(attrs, action, pesewas)
         end
 
       case result do
-        {:ok, _product} ->
+        {:ok, _product, :activated} ->
+          Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
+
+          {:noreply,
+           socket
+           |> put_flash(:info, "Product published — it's live on your store.")
+           |> push_navigate(to: ~p"/admin/products")}
+
+        {:ok, _product, :activation_failed} ->
+          Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
+
+          {:noreply,
+           socket
+           |> put_flash(:info, "Saved as draft — add a price to publish it.")
+           |> push_navigate(to: ~p"/admin/products")}
+
+        {:ok, _product, :draft_requested} ->
           Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 
           {:noreply,
@@ -274,39 +336,53 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
     end
   end
 
-  defp create_product(attrs, :draft) do
-    Emakola.Catalog.create_product(attrs, authorize?: false)
-  end
-
-  defp create_product(attrs, :active) do
-    case Emakola.Catalog.create_product(attrs, authorize?: false) do
-      {:ok, product} ->
-        # Try to activate — will fail if no variants (expected for new products)
-        case Emakola.Catalog.activate_product(product, authorize?: false) do
-          {:ok, activated} -> {:ok, activated}
-          {:error, _} -> {:ok, product}
-        end
-
-      error ->
-        error
+  defp create_and_maybe_variant(attrs, action, pesewas) do
+    with {:ok, product} <- Emakola.Catalog.create_product(attrs, authorize?: false),
+         :ok <- maybe_create_variant(product, pesewas) do
+      attempt_activation(product, action, pesewas)
     end
   end
 
-  defp update_product(product, attrs, :draft) do
-    Emakola.Catalog.update_product(product, attrs, authorize?: false)
+  defp update_and_maybe_variant(product, attrs, action, pesewas) do
+    with {:ok, updated} <- Emakola.Catalog.update_product(product, attrs, authorize?: false),
+         :ok <- maybe_create_variant(updated, pesewas) do
+      attempt_activation(updated, action, pesewas)
+    end
   end
 
-  defp update_product(product, attrs, :active) do
-    case Emakola.Catalog.update_product(product, attrs, authorize?: false) do
-      {:ok, updated} ->
-        case Emakola.Catalog.activate_product(updated, authorize?: false) do
-          {:ok, activated} -> {:ok, activated}
-          {:error, _} -> {:ok, updated}
-        end
+  defp maybe_create_variant(_product, nil), do: :ok
 
-      error ->
-        error
+  defp maybe_create_variant(product, pesewas) do
+    sku = "SKU-" <> String.slice(Ecto.UUID.generate(), 0, 8)
+
+    case Emakola.Catalog.create_variant(
+           %{
+             product_id: product.id,
+             store_id: product.store_id,
+             price: pesewas,
+             sku: sku,
+             position: 0
+           },
+           authorize?: false
+         ) do
+      {:ok, _variant} -> :ok
+      {:error, err} -> {:error, err}
     end
+  end
+
+  defp attempt_activation(product, :active, pesewas) when not is_nil(pesewas) do
+    case Emakola.Catalog.activate_product(product, authorize?: false) do
+      {:ok, activated} -> {:ok, activated, :activated}
+      {:error, _} -> {:ok, product, :activation_failed}
+    end
+  end
+
+  defp attempt_activation(product, :active, _nil_pesewas) do
+    {:ok, product, :activation_failed}
+  end
+
+  defp attempt_activation(product, :draft, _pesewas) do
+    {:ok, product, :draft_requested}
   end
 
   defp build_attrs(params, store_id) do
@@ -349,7 +425,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
 
   defp load_product(id) do
     case Emakola.Catalog.get_product(id) do
-      {:ok, product} -> product
+      {:ok, product} -> Ash.load!(product, [:variants], authorize?: false)
       _ -> nil
     end
   end
@@ -371,7 +447,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
       "category_id" => if(product.category_id, do: to_string(product.category_id), else: ""),
       "tags" => Enum.join(product.tags || [], ", "),
       "seo_title" => product.seo_title || "",
-      "seo_description" => product.seo_description || ""
+      "seo_description" => product.seo_description || "",
+      "price" => ""
     }
   end
 
