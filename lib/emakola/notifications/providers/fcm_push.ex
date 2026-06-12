@@ -10,14 +10,14 @@ defmodule Emakola.Notifications.Providers.FcmPush do
   @fcm_base "https://fcm.googleapis.com/v1/projects"
 
   @impl true
-  def send_push(device_token, %{title: title, body: body, data: data}) do
+  def send_push(device_token, %{title: title, body: body} = notification) do
     project_id = Application.fetch_env!(:emakola, :fcm_project_id)
 
     payload = %{
       "message" => %{
         "token" => device_token,
         "notification" => %{"title" => title, "body" => body},
-        "data" => stringify_values(data)
+        "data" => stringify_values(Map.get(notification, :data, %{}))
       }
     }
 
@@ -39,8 +39,11 @@ defmodule Emakola.Notifications.Providers.FcmPush do
   end
 
   defp handle_response(%Req.Response{status: 200, body: body}), do: {:ok, body}
-  defp handle_response(%Req.Response{status: 404}), do: {:error, :unregistered}
 
+  # Deliberately NO status-only 404 clause: a typo'd FCM_PROJECT_ID also
+  # yields 404s, and classifying those as :unregistered would let the push
+  # worker mass-prune every device token after one bad deploy. Dead tokens
+  # are identified by the UNREGISTERED errorCode in the body instead.
   defp handle_response(%Req.Response{status: status, body: body}) do
     if unregistered?(body) do
       {:error, :unregistered}
