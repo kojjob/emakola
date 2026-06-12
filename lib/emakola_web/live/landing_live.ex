@@ -254,7 +254,7 @@ defmodule EmakolaWeb.LandingLive do
           The full toolkit, built for Ghana
         </p>
         <div
-          class="features-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+          class="stagger-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
           data-reveal
         >
           <div
@@ -385,19 +385,38 @@ defmodule EmakolaWeb.LandingLive do
           Launch before lunch
         </h2>
         <p class="text-base text-[#5f6b7a] mb-12">Most merchants go live in under an hour.</p>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 text-left">
-          <div class="bg-white rounded-2xl p-6 shadow-sm" data-reveal>
-            <p class="text-2xl font-headline font-extrabold text-[#d4a843] mb-2">01</p>
-            <h3 class="text-base font-bold text-[#0c1526]">Add your first product</h3>
-          </div>
-          <div class="bg-white rounded-2xl p-6 shadow-sm" data-reveal>
-            <p class="text-2xl font-headline font-extrabold text-[#d4a843] mb-2">02</p>
-            <h3 class="text-base font-bold text-[#0c1526]">Share your store link</h3>
-          </div>
-          <div class="bg-white rounded-2xl p-6 shadow-sm" data-reveal>
-            <p class="text-2xl font-headline font-extrabold text-[#d4a843] mb-2">03</p>
-            <h3 class="text-base font-bold text-[#0c1526]">Get paid with MoMo</h3>
-          </div>
+        <div class="stagger-grid flex flex-col md:flex-row items-stretch gap-4 text-left" data-reveal>
+          <%= for {step, i} <- Enum.with_index(steps()) do %>
+            <span
+              :if={i > 0}
+              class="step-arrow self-center shrink-0 rotate-90 md:rotate-0 text-[#d4a843]"
+              aria-hidden="true"
+            >
+              <span class="material-symbols-outlined text-3xl">arrow_forward</span>
+            </span>
+            <div class="group flex-1 bg-white rounded-2xl overflow-hidden shadow-sm transition duration-300 hover:-translate-y-1.5 hover:shadow-xl">
+              <div class="h-36 overflow-hidden">
+                <img
+                  src={step.img}
+                  alt={step.alt}
+                  loading="lazy"
+                  width="600"
+                  height="360"
+                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
+              <div class="px-4 pb-5">
+                <span class={[
+                  "relative -mt-6 inline-flex w-12 h-12 items-center justify-center rounded-xl text-white shadow-lg font-headline font-extrabold",
+                  step.badge
+                ]}>
+                  {step.number}
+                </span>
+                <h3 class="text-base font-bold text-[#0c1526] mt-2 mb-1">{step.title}</h3>
+                <p class="text-sm text-[#5f6b7a]">{step.blurb}</p>
+              </div>
+            </div>
+          <% end %>
         </div>
       </div>
     </section>
@@ -459,6 +478,35 @@ defmodule EmakolaWeb.LandingLive do
 
   defp rotating_words, do: @rotating_words
   defp faqs, do: @faqs
+
+  defp steps do
+    [
+      %{
+        number: "01",
+        title: "Add your first product",
+        blurb: "Snap it, price it, done",
+        badge: "bg-sky-500 shadow-sky-500/40",
+        img: "/images/landing/step-add-product.jpg",
+        alt: "Market woman arranging the goods on her stall"
+      },
+      %{
+        number: "02",
+        title: "Share your store link",
+        blurb: "WhatsApp it to your customers",
+        badge: "bg-violet-500 shadow-violet-500/40",
+        img: "/images/landing/step-share-link.jpg",
+        alt: "Man and woman smiling at a phone screen together"
+      },
+      %{
+        number: "03",
+        title: "Get paid with MoMo",
+        blurb: "Money straight to your wallet",
+        badge: "bg-emerald-500 shadow-emerald-500/40",
+        img: "/images/landing/step-get-paid.jpg",
+        alt: "Woman smiling at the mobile money payment on her phone"
+      }
+    ]
+  end
 
   defp stores do
     [

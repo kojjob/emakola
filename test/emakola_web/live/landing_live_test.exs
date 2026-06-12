@@ -119,7 +119,7 @@ defmodule EmakolaWeb.LandingLiveTest do
 
       assert html =~ ~s(alt="Man pushing a cart stacked with boxes through the street")
       assert html =~ "bg-violet-500"
-      assert html =~ "features-grid"
+      assert html =~ "stagger-grid"
     end
   end
 
@@ -147,13 +147,21 @@ defmodule EmakolaWeb.LandingLiveTest do
   end
 
   describe "launch steps" do
-    test "renders the three launch steps", %{conn: conn} do
+    test "renders the three photo step cards with number badges", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/")
 
       assert html =~ "Launch before lunch"
+      assert html =~ "Most merchants go live in under an hour."
       assert html =~ "Add your first product"
       assert html =~ "Share your store link"
       assert html =~ "Get paid with MoMo"
+      assert html =~ "Snap it, price it, done"
+      assert html =~ "WhatsApp it to your customers"
+      assert html =~ "Money straight to your wallet"
+      assert html =~ "step-add-product.jpg"
+      assert html =~ "step-share-link.jpg"
+      assert html =~ "step-get-paid.jpg"
+      assert html =~ "bg-sky-500"
     end
   end
 

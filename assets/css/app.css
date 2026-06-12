@@ -591,34 +591,34 @@ html.high-contrast {
   }
 }
 
-/* Features grid entrance stagger (landing page).
-   ScrollReveal adds .reveal-hidden then .revealed to the grid container;
+/* Shared section entrance stagger (landing page): features grid +
+   launch steps. ScrollReveal adds .reveal-hidden then .revealed to the grid container;
    children animate in with per-card delays. Keyframe animation (not
    transition-delay) so card hover transitions are never delayed.
    Without JS, .reveal-hidden is never added and cards stay visible.
    `to` deliberately omits transform — a filled transform would override hover lifts. */
 @layer components {
-  .features-grid.reveal-hidden > div {
+  .stagger-grid.reveal-hidden > div {
     opacity: 0;
   }
-  .features-grid.reveal-hidden.revealed > div {
+  .stagger-grid.reveal-hidden.revealed > div {
     animation: feature-rise 0.55s ease-out both;
   }
-  .features-grid.reveal-hidden.revealed > div:nth-child(2) { animation-delay: 70ms; }
-  .features-grid.reveal-hidden.revealed > div:nth-child(3) { animation-delay: 140ms; }
-  .features-grid.reveal-hidden.revealed > div:nth-child(4) { animation-delay: 210ms; }
-  .features-grid.reveal-hidden.revealed > div:nth-child(5) { animation-delay: 280ms; }
-  .features-grid.reveal-hidden.revealed > div:nth-child(6) { animation-delay: 350ms; }
-  .features-grid.reveal-hidden.revealed > div:nth-child(7) { animation-delay: 420ms; }
-  .features-grid.reveal-hidden.revealed > div:nth-child(8) { animation-delay: 490ms; }
-  .features-grid.reveal-hidden.revealed > div:nth-child(9) { animation-delay: 560ms; }
+  .stagger-grid.reveal-hidden.revealed > div:nth-child(2) { animation-delay: 70ms; }
+  .stagger-grid.reveal-hidden.revealed > div:nth-child(3) { animation-delay: 140ms; }
+  .stagger-grid.reveal-hidden.revealed > div:nth-child(4) { animation-delay: 210ms; }
+  .stagger-grid.reveal-hidden.revealed > div:nth-child(5) { animation-delay: 280ms; }
+  .stagger-grid.reveal-hidden.revealed > div:nth-child(6) { animation-delay: 350ms; }
+  .stagger-grid.reveal-hidden.revealed > div:nth-child(7) { animation-delay: 420ms; }
+  .stagger-grid.reveal-hidden.revealed > div:nth-child(8) { animation-delay: 490ms; }
+  .stagger-grid.reveal-hidden.revealed > div:nth-child(9) { animation-delay: 560ms; }
   @keyframes feature-rise {
     from { opacity: 0; transform: translateY(18px); }
     to { opacity: 1; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .features-grid.reveal-hidden > div { opacity: 1; }
-    .features-grid.reveal-hidden.revealed > div { animation: none; }
+    .stagger-grid.reveal-hidden > div { opacity: 1; }
+    .stagger-grid.reveal-hidden.revealed > div { animation: none; }
   }
 }
 
