@@ -340,7 +340,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
         if socket.assigns.is_edit do
           update_and_maybe_variant(socket.assigns.product, attrs, action, pesewas)
         else
-          create_and_maybe_variant(attrs, action, pesewas)
+          Shared.create_product_with_price(attrs, pesewas, action)
         end
 
       case result do
@@ -377,13 +377,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
            |> assign(form_data: params)
            |> put_flash(:error, format_error(error))}
       end
-    end
-  end
-
-  defp create_and_maybe_variant(attrs, action, pesewas) do
-    with {:ok, product} <- Emakola.Catalog.create_product(attrs, authorize?: false),
-         :ok <- maybe_create_variant(product, pesewas) do
-      attempt_activation(product, action, pesewas)
     end
   end
 

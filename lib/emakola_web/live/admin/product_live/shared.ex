@@ -188,7 +188,62 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
     "#{div(pesewas, 100)}.#{pesewas |> rem(100) |> Integer.to_string() |> String.pad_leading(2, "0")}"
   end
 
+  @doc """
+  Creates a product with an optional default variant, then attempts activation.
+
+  This is the canonical create sequence shared by the Form page and the Index
+  slide-over to ensure consistent result-atom handling and flash feedback.
+
+  Returns:
+  - `{:ok, product, :activated}` — product created, default variant set, activated
+  - `{:ok, product, :activation_failed}` — created (+ variant when price given), but
+    activation failed; product remains draft
+  - `{:ok, product, :draft_requested}` — created (+ variant when price given), draft action
+  - `{:error, error}` — product or variant creation failed
+  """
+  def create_product_with_price(attrs, pesewas, action) do
+    with {:ok, product} <- Emakola.Catalog.create_product(attrs, authorize?: false),
+         :ok <- maybe_create_default_variant(product, pesewas) do
+      attempt_activation(product, action, pesewas)
+    end
+  end
+
   # ── Private ────────────────────────────────────────────────────────────────
+
+  defp maybe_create_default_variant(_product, nil), do: :ok
+
+  defp maybe_create_default_variant(product, pesewas) do
+    sku = "SKU-" <> String.slice(Ecto.UUID.generate(), 0, 8)
+
+    case Emakola.Catalog.create_variant(
+           %{
+             product_id: product.id,
+             store_id: product.store_id,
+             price: pesewas,
+             sku: sku,
+             position: 0
+           },
+           authorize?: false
+         ) do
+      {:ok, _} -> :ok
+      {:error, err} -> {:error, err}
+    end
+  end
+
+  defp attempt_activation(product, :active, pesewas) when not is_nil(pesewas) do
+    case Emakola.Catalog.activate_product(product, authorize?: false) do
+      {:ok, activated} -> {:ok, activated, :activated}
+      {:error, _} -> {:ok, product, :activation_failed}
+    end
+  end
+
+  defp attempt_activation(product, :active, _nil_pesewas) do
+    {:ok, product, :activation_failed}
+  end
+
+  defp attempt_activation(product, :draft, _pesewas) do
+    {:ok, product, :draft_requested}
+  end
 
   defp upload_error_to_string(:too_large), do: "File is too large"
 

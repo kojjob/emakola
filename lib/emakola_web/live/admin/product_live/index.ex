@@ -199,40 +199,63 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   @impl true
   def handle_event("save_product", %{"product" => params}, socket) do
     action = if params["_action"] == "activate", do: :active, else: :draft
-    errors = validate_form(Map.delete(params, "_action"))
+    editing = socket.assigns.editing_product
+
+    # Pop price on the create path; edit path uses variant_prices instead
+    {price_result, product_params} =
+      if is_nil(editing) do
+        {price_str, rest} = Map.pop(params, "price")
+        {Shared.parse_price_input(price_str), rest}
+      else
+        {:skip, params}
+      end
+
+    base_errors = validate_form(Map.delete(product_params, "_action"))
+
+    errors =
+      if price_result == :error do
+        Map.put(base_errors, :price, "must be a valid amount, e.g. 25.00")
+      else
+        base_errors
+      end
 
     if map_size(errors) > 0 do
       {:noreply, assign(socket, form_data: params, form_errors: errors)}
     else
-      attrs = build_product_attrs(Map.delete(params, "_action"), socket.assigns.store_id)
+      pesewas =
+        case price_result do
+          {:ok, p} -> p
+          :skip -> nil
+        end
+
+      attrs = build_product_attrs(Map.delete(product_params, "_action"), socket.assigns.store_id)
 
       result =
-        if socket.assigns.editing_product do
+        if editing do
           # The :update action does not accept :store_id (tenancy is fixed
           # at creation) — passing it fails the whole save with NoSuchInput.
-          update_product(socket.assigns.editing_product, Map.delete(attrs, :store_id), action)
+          update_product_with_result(editing, Map.delete(attrs, :store_id), action)
         else
-          create_product(attrs, action)
+          Shared.create_product_with_price(attrs, pesewas, action)
         end
 
       case result do
-        {:ok, product} ->
-          # Upload images for the product
-          Shared.save_uploaded_images(socket, product)
-
-          if socket.assigns.editing_product do
-            save_variant_prices(socket.assigns.editing_product, params["variant_prices"] || %{})
-          end
-
+        {:ok, product, :activated} ->
           {:noreply,
            socket
-           |> assign(
-             show_product_form: false,
-             editing_product: nil,
-             form_data: empty_form_data(),
-             form_errors: %{}
-           )
-           |> load_products()
+           |> finalize_product_save(product, editing, params)
+           |> put_flash(:info, "Product published — it's live on your store.")}
+
+        {:ok, product, :activation_failed} ->
+          {:noreply,
+           socket
+           |> finalize_product_save(product, editing, params)
+           |> put_flash(:info, "Saved as draft — add a price to publish it.")}
+
+        {:ok, product, :draft_requested} ->
+          {:noreply,
+           socket
+           |> finalize_product_save(product, editing, params)
            |> put_flash(:info, "Product saved successfully")}
 
         {:error, error} ->
@@ -810,6 +833,34 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
               />
               <p class="mt-1 text-xs text-slate-500">Separate tags with commas</p>
             </div>
+
+            <%!-- Price field: only when creating a new product --%>
+            <div :if={is_nil(@editing_product)}>
+              <label for="pf_price" class="block text-sm font-medium text-slate-700 mb-1.5">
+                Price (GHS)
+              </label>
+              <input
+                type="text"
+                inputmode="decimal"
+                id="pf_price"
+                name="product[price]"
+                value={@form_data["price"]}
+                placeholder="e.g. 25.00"
+                class={[
+                  "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
+                  if(@form_errors[:price],
+                    do: "border-red-300 bg-red-50",
+                    else: "border-slate-300 bg-white"
+                  )
+                ]}
+              />
+              <p :if={@form_errors[:price]} class="mt-1 text-xs text-red-600">
+                {@form_errors[:price]}
+              </p>
+              <p :if={!@form_errors[:price]} class="mt-1 text-xs text-slate-500">
+                Required to publish. You can add more pricing options later.
+              </p>
+            </div>
           </div>
 
           <%!-- Pricing (edit mode — prices live on variants) --%>
@@ -1028,38 +1079,39 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
   # ── Product CRUD ──
 
-  defp create_product(attrs, :draft) do
-    Emakola.Catalog.create_product(attrs, authorize?: false)
-  end
-
-  defp create_product(attrs, :active) do
-    case Emakola.Catalog.create_product(attrs, authorize?: false) do
-      {:ok, product} ->
-        case Emakola.Catalog.activate_product(product, authorize?: false) do
-          {:ok, activated} -> {:ok, activated}
-          {:error, _} -> {:ok, product}
-        end
-
-      error ->
-        error
+  defp update_product_with_result(product, attrs, :draft) do
+    case Emakola.Catalog.update_product(product, attrs, authorize?: false) do
+      {:ok, updated} -> {:ok, updated, :draft_requested}
+      error -> error
     end
   end
 
-  defp update_product(product, attrs, :draft) do
-    Emakola.Catalog.update_product(product, attrs, authorize?: false)
-  end
-
-  defp update_product(product, attrs, :active) do
+  defp update_product_with_result(product, attrs, :active) do
     case Emakola.Catalog.update_product(product, attrs, authorize?: false) do
       {:ok, updated} ->
         case Emakola.Catalog.activate_product(updated, authorize?: false) do
-          {:ok, activated} -> {:ok, activated}
-          {:error, _} -> {:ok, updated}
+          {:ok, activated} -> {:ok, activated, :activated}
+          {:error, _} -> {:ok, updated, :activation_failed}
         end
 
       error ->
         error
     end
+  end
+
+  defp finalize_product_save(socket, product, editing, params) do
+    Shared.save_uploaded_images(socket, product)
+    if editing, do: save_variant_prices(editing, params["variant_prices"] || %{})
+    Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
+
+    socket
+    |> assign(
+      show_product_form: false,
+      editing_product: nil,
+      form_data: empty_form_data(),
+      form_errors: %{}
+    )
+    |> load_products()
   end
 
   defp load_product(id) do
@@ -1091,6 +1143,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       "description" => "",
       "category_id" => "",
       "tags" => "",
+      "price" => "",
       "seo_title" => "",
       "seo_description" => "",
       "variant_prices" => %{}
