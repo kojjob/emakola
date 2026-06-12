@@ -26,7 +26,7 @@ defmodule EmakolaWeb.Admin.CustomerLiveTest do
   describe "CustomerLive.Index (authenticated)" do
     setup %{conn: conn} do
       {merchant, store} = Factory.create_merchant_with_store!()
-      token = AshAuthentication.user_to_subject(merchant)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn
@@ -130,7 +130,7 @@ defmodule EmakolaWeb.Admin.CustomerLiveTest do
   describe "CustomerLive.Show (authenticated)" do
     setup %{conn: conn} do
       {merchant, store} = Factory.create_merchant_with_store!()
-      token = AshAuthentication.user_to_subject(merchant)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn

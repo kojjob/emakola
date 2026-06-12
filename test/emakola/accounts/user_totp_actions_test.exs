@@ -1,0 +1,126 @@
+defmodule Emakola.Accounts.UserTotpActionsTest do
+  use Emakola.DataCase, async: true
+
+  import Emakola.Factory
+
+  alias Emakola.Accounts.PlatformAuditLog
+  alias Emakola.Accounts.TOTP
+  alias Emakola.Accounts.User
+
+  require Ash.Query
+
+  defp setup_totp(user, secret, code) do
+    user
+    |> Ash.Changeset.for_update(:setup_totp, %{secret: secret, code: code})
+    |> Ash.update(authorize?: false)
+  end
+
+  defp setup_totp!(user) do
+    secret = TOTP.generate_secret()
+
+    {:ok, user} = setup_totp(user, secret, NimbleTOTP.verification_code(secret))
+    user
+  end
+
+  defp audit_rows(user, action) do
+    PlatformAuditLog
+    |> Ash.Query.for_read(:list)
+    |> Ash.Query.filter(action == ^action and actor_id == ^user.id)
+    |> Ash.read!(authorize?: false)
+    |> Map.fetch!(:results)
+  end
+
+  describe "update :setup_totp" do
+    test "with a valid code persists secret + last-used and audits :totp_enabled" do
+      user = create_user!()
+      secret = TOTP.generate_secret()
+
+      assert {:ok, updated} = setup_totp(user, secret, NimbleTOTP.verification_code(secret))
+
+      assert updated.totp_secret == secret
+      assert %DateTime{} = updated.totp_last_used_at
+      assert [_log] = audit_rows(user, :totp_enabled)
+    end
+
+    test "with an invalid code errors and does not set the secret" do
+      user = create_user!()
+      secret = TOTP.generate_secret()
+
+      assert {:error, %Ash.Error.Invalid{}} = setup_totp(user, secret, "000000")
+
+      reloaded = Ash.get!(User, user.id, authorize?: false)
+      assert is_nil(reloaded.totp_secret)
+      assert is_nil(reloaded.totp_last_used_at)
+      assert [] = audit_rows(user, :totp_enabled)
+    end
+  end
+
+  describe "update :record_totp_use" do
+    test "bumps totp_last_used_at" do
+      user = setup_totp!(create_user!())
+      previous = user.totp_last_used_at
+
+      bumped =
+        user
+        |> Ash.Changeset.for_update(:record_totp_use, %{})
+        |> Ash.update!(authorize?: false)
+
+      assert DateTime.compare(bumped.totp_last_used_at, previous) == :gt
+    end
+  end
+
+  describe "update :clear_totp" do
+    test "clears totp_secret and totp_last_used_at" do
+      user = setup_totp!(create_user!())
+
+      cleared =
+        user
+        |> Ash.Changeset.for_update(:clear_totp, %{})
+        |> Ash.update!(authorize?: false)
+
+      assert is_nil(cleared.totp_secret)
+      assert is_nil(cleared.totp_last_used_at)
+    end
+
+    test "without an actor writes a :totp_disabled audit row attributed to the target" do
+      user = setup_totp!(create_user!())
+
+      assert [] = audit_rows(user, :totp_disabled)
+
+      user
+      |> Ash.Changeset.for_update(:clear_totp, %{})
+      |> Ash.update!(authorize?: false)
+
+      assert [log] = audit_rows(user, :totp_disabled)
+      assert log.metadata["target_user_id"] == user.id
+      assert log.metadata["target_email"] == to_string(user.email)
+    end
+
+    test "with an actor attributes :totp_disabled to the actor, target in metadata" do
+      admin = create_user!()
+      user = setup_totp!(create_user!())
+
+      user
+      |> Ash.Changeset.for_update(:clear_totp, %{}, actor: admin)
+      |> Ash.update!(authorize?: false)
+
+      assert [] = audit_rows(user, :totp_disabled)
+      assert [log] = audit_rows(admin, :totp_disabled)
+      assert log.metadata["target_user_id"] == user.id
+      assert log.metadata["target_email"] == to_string(user.email)
+    end
+  end
+
+  describe "update :setup_totp with nil secret" do
+    test "returns {:error, _} without raising" do
+      user = create_user!()
+
+      result =
+        user
+        |> Ash.Changeset.for_update(:setup_totp, %{secret: nil, code: "123456"})
+        |> Ash.update(authorize?: false)
+
+      assert {:error, _} = result
+    end
+  end
+end

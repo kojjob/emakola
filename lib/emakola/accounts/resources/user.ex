@@ -1,5 +1,5 @@
 defmodule Emakola.Accounts.User do
-  @moduledoc "User resource with AshAuthentication supporting email/password and magic-link sign-in."
+  @moduledoc "Platform staff user resource with AshAuthentication password sign-in (TOTP enforced at the web layer)."
   use Ash.Resource,
     domain: Emakola.Accounts,
     data_layer: AshPostgres.DataLayer,
@@ -27,13 +27,6 @@ defmodule Emakola.Accounts.User do
         identity_field(:email)
         hashed_password_field(:hashed_password)
       end
-
-      magic_link do
-        identity_field(:email)
-        require_interaction?(true)
-
-        sender(Emakola.Accounts.Senders.MagicLinkSender)
-      end
     end
   end
 
@@ -59,11 +52,27 @@ defmodule Emakola.Accounts.User do
 
     attribute(:confirmed_at, :utc_datetime_usec, public?: true)
 
-    attribute :is_platform_admin, :boolean do
+    attribute :is_owner, :boolean do
       default(false)
       allow_nil?(false)
       public?(true)
     end
+
+    attribute :platform_permissions, {:array, :atom} do
+      default([])
+      allow_nil?(false)
+      public?(true)
+      constraints(items: [one_of: Emakola.Accounts.PlatformPermissions.all()])
+    end
+
+    attribute :totp_secret, :binary do
+      allow_nil?(true)
+      sensitive?(true)
+    end
+
+    attribute(:totp_last_used_at, :utc_datetime_usec)
+
+    attribute(:deactivated_at, :utc_datetime_usec, public?: true)
 
     timestamps()
   end
@@ -108,8 +117,167 @@ defmodule Emakola.Accounts.User do
   actions do
     defaults([:read])
 
+    read :platform_staff do
+      filter(expr(is_owner == true or platform_permissions != []))
+    end
+
+    create :accept_platform_invite do
+      # Internal-only: invoked by Emakola.Accounts.PlatformTeam.accept_invite/2
+      # after verifying a pending invite token. Never grants ownership —
+      # is_owner keeps its false default.
+      accept([:email, :name])
+
+      argument :password, :string do
+        allow_nil?(false)
+        sensitive?(true)
+        constraints(min_length: 8, max_length: 72)
+      end
+
+      argument :password_confirmation, :string do
+        allow_nil?(false)
+        sensitive?(true)
+      end
+
+      argument :platform_permissions, {:array, :atom} do
+        default([])
+        constraints(items: [one_of: Emakola.Accounts.PlatformPermissions.all()])
+      end
+
+      validate(confirm(:password, :password_confirmation))
+
+      change(set_attribute(:confirmed_at, &DateTime.utc_now/0))
+      change(set_attribute(:platform_permissions, arg(:platform_permissions)))
+
+      change(fn changeset, _ctx ->
+        case Ash.Changeset.fetch_argument(changeset, :password) do
+          {:ok, password} when is_binary(password) ->
+            Ash.Changeset.force_change_attribute(
+              changeset,
+              :hashed_password,
+              Bcrypt.hash_pwd_salt(password)
+            )
+
+          _ ->
+            changeset
+        end
+      end)
+    end
+
     update :update_profile do
       accept([:name, :avatar_url, :preferences])
+    end
+
+    update :set_platform_permissions do
+      require_atomic?(false)
+      accept([:is_owner, :platform_permissions])
+
+      validate(Emakola.Accounts.Validations.EnsureOwnerRemains)
+
+      change(
+        after_action(fn changeset, user, ctx ->
+          Emakola.Accounts.PlatformAudit.log(:permissions_changed, ctx.actor, %{
+            user_id: user.id,
+            email: to_string(user.email),
+            permissions: user.platform_permissions
+          })
+
+          if changeset.data.is_owner != user.is_owner do
+            Emakola.Accounts.PlatformAudit.log(:owner_changed, ctx.actor, %{
+              user_id: user.id,
+              email: to_string(user.email),
+              is_owner: user.is_owner
+            })
+          end
+
+          {:ok, user}
+        end)
+      )
+    end
+
+    update :deactivate_staff do
+      require_atomic?(false)
+      accept([])
+
+      change(set_attribute(:deactivated_at, &DateTime.utc_now/0))
+      validate(Emakola.Accounts.Validations.EnsureOwnerRemains)
+
+      change(
+        after_action(fn _changeset, user, ctx ->
+          Emakola.Accounts.PlatformAudit.log(:staff_deactivated, ctx.actor, %{
+            user_id: user.id,
+            email: to_string(user.email)
+          })
+
+          {:ok, user}
+        end)
+      )
+    end
+
+    update :reactivate_staff do
+      require_atomic?(false)
+      accept([])
+
+      change(set_attribute(:deactivated_at, nil))
+
+      change(
+        after_action(fn _changeset, user, ctx ->
+          Emakola.Accounts.PlatformAudit.log(:staff_reactivated, ctx.actor, %{
+            user_id: user.id,
+            email: to_string(user.email)
+          })
+
+          {:ok, user}
+        end)
+      )
+    end
+
+    update :setup_totp do
+      require_atomic?(false)
+      accept([])
+
+      argument(:secret, :binary, allow_nil?: false, sensitive?: true)
+      argument(:code, :string, allow_nil?: false, sensitive?: true)
+
+      validate(Emakola.Accounts.Validations.ValidateTotpCode)
+
+      change(set_attribute(:totp_secret, arg(:secret)))
+      change(set_attribute(:totp_last_used_at, &DateTime.utc_now/0))
+
+      change(
+        after_action(fn _changeset, user, _ctx ->
+          Emakola.Accounts.PlatformAudit.log(:totp_enabled, user)
+          {:ok, user}
+        end)
+      )
+    end
+
+    update :record_totp_use do
+      # Call with authorize?: false during login — no actor is established
+      # until after TOTP succeeds. The update policy requires id == actor.id.
+      accept([])
+
+      change(set_attribute(:totp_last_used_at, &DateTime.utc_now/0))
+    end
+
+    update :clear_totp do
+      require_atomic?(false)
+      accept([])
+
+      change(set_attribute(:totp_secret, nil))
+      change(set_attribute(:totp_last_used_at, nil))
+
+      change(
+        after_action(fn _changeset, user, ctx ->
+          # Actor is the acting admin when set (team-page reset); fall back
+          # to the target for self-service / mix-task paths with no actor.
+          Emakola.Accounts.PlatformAudit.log(:totp_disabled, ctx.actor || user, %{
+            target_user_id: user.id,
+            target_email: to_string(user.email)
+          })
+
+          {:ok, user}
+        end)
+      )
     end
 
     update :change_password do

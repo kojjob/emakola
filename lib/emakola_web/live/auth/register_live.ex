@@ -250,7 +250,7 @@ defmodule EmakolaWeb.Auth.RegisterLive do
           Emakola.Accounts.update_merchant_profile(merchant, %{name: name}, authorize?: false)
         end
 
-        token = AshAuthentication.user_to_subject(merchant)
+        token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
         {:noreply,
          socket

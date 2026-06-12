@@ -66,12 +66,12 @@ defmodule EmakolaWeb.Storefront.DownloadController do
     do: send_resp(conn, 503, "Download temporarily unavailable. Please try again.")
 
   defp current_customer(conn) do
-    case get_session(conn, "customer_token") do
-      nil ->
+    case EmakolaWeb.AuthTokens.verify_subject(get_session(conn, "customer_token")) do
+      {:error, _reason} ->
         :no_session
 
-      token ->
-        case AshAuthentication.subject_to_user(token, Emakola.Customers.Customer) do
+      {:ok, subject} ->
+        case AshAuthentication.subject_to_user(subject, Emakola.Customers.Customer) do
           {:ok, customer} -> {:ok, customer}
           _ -> :no_session
         end

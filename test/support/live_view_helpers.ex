@@ -17,26 +17,42 @@ defmodule Emakola.LiveViewHelpers do
 
   alias Emakola.Factory
 
-  @doc "Create a user, org, and membership, returning {conn, user, org}."
-  def setup_authenticated_user(conn) do
-    user = Factory.create_user!()
-    org = Factory.create_organisation!()
-    Factory.create_membership!(user, org, :owner)
+  @doc """
+  Create platform staff with a DB-backed session, returning {conn, user, session}.
 
-    token = AshAuthentication.user_to_subject(user)
+  Creates an owner by default; pass `permissions: [...]` for a non-owner
+  staff user with those platform permissions. The signed session id is
+  stored under :platform_session_token.
+  """
+  def setup_platform_staff(conn, opts \\ []) do
+    user =
+      case opts[:permissions] do
+        nil ->
+          Factory.create_platform_owner!()
+
+        permissions ->
+          Factory.create_user!()
+          |> Ash.Changeset.for_update(:set_platform_permissions, %{
+            platform_permissions: permissions
+          })
+          |> Ash.update!(authorize?: false)
+      end
+
+    session = Factory.create_user_session!(user)
+    signed = EmakolaWeb.AuthTokens.sign_platform_session(session.id)
 
     conn =
       conn
       |> Phoenix.ConnTest.init_test_session(%{})
-      |> Plug.Conn.put_session(:user_token, token)
+      |> Plug.Conn.put_session(:platform_session_token, signed)
 
-    {conn, user, org}
+    {conn, user, session}
   end
 
   @doc "Create a merchant, store, and membership, returning {conn, merchant, store}."
   def setup_authenticated_merchant(conn, store_attrs \\ %{}) do
     {merchant, store} = Factory.create_merchant_with_store!(store_attrs)
-    token = AshAuthentication.user_to_subject(merchant)
+    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
     conn =
       conn

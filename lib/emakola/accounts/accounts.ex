@@ -5,8 +5,6 @@ defmodule Emakola.Accounts do
   resources do
     resource Emakola.Accounts.User do
       define(:register_with_password, args: [:email, :password, :password_confirmation])
-      define(:sign_in_with_password, args: [:email, :password])
-      define(:request_magic_link, args: [:email])
       define(:get_user_by_id, action: :read, get_by: [:id])
     end
 
@@ -31,6 +29,15 @@ defmodule Emakola.Accounts do
     resource Emakola.Accounts.StoreMembership do
       define(:create_store_membership, action: :create)
       define(:get_merchant_store_membership, action: :by_merchant, args: [:merchant_id])
+    end
+
+    resource(Emakola.Accounts.UserSession)
+
+    resource(Emakola.Accounts.PlatformInvite)
+
+    resource Emakola.Accounts.PlatformAuditLog do
+      define(:create_platform_audit_log, action: :create)
+      define(:list_platform_audit_logs, action: :list)
     end
 
     resource(Emakola.Accounts.Token)

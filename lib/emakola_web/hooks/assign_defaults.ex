@@ -3,80 +3,69 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   LiveView on_mount hook that assigns default values needed by the app layout.
 
   Authentication strategy:
-  1. Try to resolve session token as a Merchant (ecommerce user)
-  2. If merchant found, load their first store via StoreMembership
-  3. Fall back to User auth (legacy FounderPad) if not a merchant subject
-  4. Assign current_merchant, current_store, current_user accordingly
+  1. Try to resolve a platform-staff session from :platform_session_token
+     (signed DB-backed session id — see `Emakola.Accounts.Sessions`)
+  2. Otherwise resolve :user_token as a Merchant (ecommerce user) and load
+     their first store via StoreMembership
+  3. Assign current_user, current_session_id, current_merchant,
+     current_store accordingly
   """
   import Phoenix.Component, only: [assign: 2]
 
   def on_mount(:default, _params, session, socket) do
     socket = assign(socket, active_nav: :dashboard, setup_banner_dismissed: false)
 
-    case session["user_token"] do
-      nil ->
-        {:cont,
-         assign(socket,
-           current_merchant: nil,
-           current_store: nil,
-           current_user: nil,
-           onboarding_complete: false,
-           notifications: [],
-           unread_notification_count: 0,
-           pending_order_count: 0
-         )}
+    case resolve_platform_session(socket, session["platform_session_token"]) do
+      {:ok, socket} ->
+        {:cont, attach_notification_hook(socket)}
 
-      token ->
+      :error ->
+        resolve_merchant_token(socket, session["user_token"])
+    end
+  end
+
+  defp resolve_platform_session(socket, signed_token) do
+    with {:ok, session_id} <- EmakolaWeb.AuthTokens.verify_platform_session(signed_token),
+         {:ok, user, user_session} <- Emakola.Accounts.Sessions.verify_session_id(session_id) do
+      if Phoenix.LiveView.connected?(socket) do
+        Emakola.Accounts.Sessions.touch(user_session)
+      end
+
+      {notifs, unread} = load_notifications(user.id)
+
+      {:ok,
+       assign(socket,
+         current_user: user,
+         current_session_id: user_session.id,
+         current_merchant: nil,
+         current_store: nil,
+         onboarding_complete: true,
+         notifications: notifs,
+         unread_notification_count: unread,
+         pending_order_count: 0
+       )}
+    else
+      _ -> :error
+    end
+  end
+
+  defp resolve_merchant_token(socket, signed_token) do
+    case EmakolaWeb.AuthTokens.verify_subject(signed_token) do
+      {:error, _reason} ->
+        {:cont, assign_unauthenticated(socket)}
+
+      {:ok, subject} ->
         socket =
           socket
-          |> resolve_auth(token)
-          |> Phoenix.LiveView.attach_hook(
-            :notification_actions,
-            :handle_event,
-            &handle_notification_event/3
-          )
+          |> resolve_merchant(subject)
+          |> attach_notification_hook()
 
         {:cont, socket}
     end
   end
 
-  defp resolve_auth(socket, token) do
-    cond do
-      String.starts_with?(token, "merchant?") ->
-        resolve_merchant(socket, token)
-
-      String.starts_with?(token, "user?") ->
-        resolve_user(socket, token)
-
-      true ->
-        # Unknown subject format — try merchant first, then user
-        case try_merchant(token) do
-          {:ok, merchant} ->
-            store = load_merchant_store(merchant.id)
-            {notifs, unread} = load_notifications(nil)
-            stats = load_store_stats(store)
-
-            assign(socket,
-              current_merchant: merchant,
-              current_store: store,
-              current_user: nil,
-              onboarding_complete: true,
-              notifications: notifs,
-              unread_notification_count: unread,
-              product_count: stats.products,
-              order_count: stats.orders,
-              customer_count: stats.customers,
-              pending_order_count: stats.pending_orders
-            )
-
-          _ ->
-            resolve_user(socket, token)
-        end
-    end
-  end
-
   defp resolve_merchant(socket, token) do
-    case try_merchant(token) do
+    case AshAuthentication.subject_to_user(token, Emakola.Accounts.Merchant) do
       {:ok, merchant} ->
         store = load_merchant_store(merchant.id)
         {notifs, unread} = load_notifications(nil)
@@ -96,49 +85,29 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
         )
 
       _ ->
-        assign(socket,
-          current_merchant: nil,
-          current_store: nil,
-          current_user: nil,
-          onboarding_complete: false,
-          notifications: [],
-          unread_notification_count: 0,
-          pending_order_count: 0
-        )
+        assign_unauthenticated(socket)
     end
   end
 
-  defp resolve_user(socket, token) do
-    case AshAuthentication.subject_to_user(token, Emakola.Accounts.User) do
-      {:ok, user} ->
-        onboarding_complete = has_membership?(user.id)
-        {notifs, unread} = load_notifications(user.id)
-
-        assign(socket,
-          current_user: user,
-          current_merchant: nil,
-          current_store: nil,
-          onboarding_complete: onboarding_complete,
-          notifications: notifs,
-          unread_notification_count: unread,
-          pending_order_count: 0
-        )
-
-      _ ->
-        assign(socket,
-          current_user: nil,
-          current_merchant: nil,
-          current_store: nil,
-          onboarding_complete: false,
-          notifications: [],
-          unread_notification_count: 0,
-          pending_order_count: 0
-        )
-    end
+  defp assign_unauthenticated(socket) do
+    assign(socket,
+      current_merchant: nil,
+      current_store: nil,
+      current_user: nil,
+      onboarding_complete: false,
+      notifications: [],
+      unread_notification_count: 0,
+      pending_order_count: 0
+    )
   end
 
-  defp try_merchant(token) do
-    AshAuthentication.subject_to_user(token, Emakola.Accounts.Merchant)
+  defp attach_notification_hook(socket) do
+    Phoenix.LiveView.attach_hook(
+      socket,
+      :notification_actions,
+      :handle_event,
+      &handle_notification_event/3
+    )
   end
 
   defp load_merchant_store(merchant_id) do
@@ -221,12 +190,5 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
     end
   rescue
     _ -> {[], 0}
-  end
-
-  defp has_membership?(user_id) do
-    case Emakola.Accounts.list_memberships_by_user(user_id, authorize?: false) do
-      {:ok, [_ | _]} -> true
-      _ -> false
-    end
   end
 end

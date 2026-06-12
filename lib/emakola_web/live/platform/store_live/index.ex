@@ -1,15 +1,36 @@
 defmodule EmakolaWeb.Platform.StoreLive.Index do
-  @moduledoc "Platform admin listing of all stores with search filtering."
+  @moduledoc """
+  Platform admin listing of all stores with search filtering.
+
+  Mount is gated by RequirePermission (:manage_stores). No DB queries are
+  issued during the disconnected render — a nil stores state is assigned
+  and the template renders a loading shell. Every mutating handle_event
+  re-checks the permission against a freshly reloaded user so that a
+  permission revocation after mount is caught before the write.
+  """
   use EmakolaWeb, :live_view
+
+  on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_stores}
+
+  alias Emakola.Accounts.PlatformPermissions
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok,
-     socket
-     |> assign(:page_title, "Stores")
-     |> assign(:active_nav, :stores)
-     |> assign(:search, "")
-     |> load_stores("")}
+    # No DB queries in disconnected mount — render a loading shell first.
+    socket =
+      socket
+      |> assign(:page_title, "Stores")
+      |> assign(:active_nav, :stores)
+      |> assign(:search, "")
+
+    socket =
+      if connected?(socket) do
+        load_stores(socket, "")
+      else
+        assign(socket, :stores, nil)
+      end
+
+    {:ok, socket}
   end
 
   @impl true
@@ -21,21 +42,44 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   end
 
   def handle_event("toggle_featured", %{"id" => id}, socket) do
-    update_directory_meta(socket, id, fn s -> %{featured: !Map.get(s, :featured, false)} end)
+    authorized(socket, fn socket ->
+      update_directory_meta(socket, id, fn s -> %{featured: !Map.get(s, :featured, false)} end)
+    end)
   end
 
   def handle_event("toggle_verified", %{"id" => id}, socket) do
-    update_directory_meta(socket, id, fn s -> %{verified: !Map.get(s, :verified, false)} end)
+    authorized(socket, fn socket ->
+      update_directory_meta(socket, id, fn s -> %{verified: !Map.get(s, :verified, false)} end)
+    end)
   end
 
   def handle_event("update_rank", %{"store_id" => id, "value" => value}, socket) do
-    rank =
-      case Integer.parse(value || "") do
-        {n, _} when n > 0 -> n
-        _ -> nil
-      end
+    authorized(socket, fn socket ->
+      rank =
+        case Integer.parse(value || "") do
+          {n, _} when n > 0 -> n
+          _ -> nil
+        end
 
-    update_directory_meta(socket, id, fn _ -> %{featured_rank: rank} end)
+      update_directory_meta(socket, id, fn _ -> %{featured_rank: rank} end)
+    end)
+  end
+
+  # Assigns are stale — re-check permission against a freshly reloaded user
+  # so that a post-mount revocation is caught before any write is issued.
+  defp authorized(socket, fun) do
+    if PlatformPermissions.allowed?(reload_current_user(socket), :manage_stores) do
+      fun.(socket)
+    else
+      {:noreply, put_flash(socket, :error, "You don't have permission to manage stores.")}
+    end
+  end
+
+  defp reload_current_user(socket) do
+    case Emakola.Accounts.get_user_by_id(socket.assigns.current_user.id, authorize?: false) do
+      {:ok, user} -> user
+      {:error, _} -> nil
+    end
   end
 
   defp update_directory_meta(socket, id, attrs_fn) do
@@ -82,7 +126,9 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
         <div>
           <h1 class="text-2xl font-bold text-gray-900">Stores</h1>
           <p class="text-sm text-gray-500 mt-1">
-            All stores on the Emakola platform ({length(@stores)} shown)
+            {if @stores,
+              do: "All stores on the Emakola platform (#{length(@stores)} shown)",
+              else: "All stores on the Emakola platform — loading…"}
           </p>
         </div>
       </div>
@@ -129,12 +175,17 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
+              <tr :if={is_nil(@stores)} class="hover:bg-gray-50">
+                <td colspan="7" class="px-6 py-12 text-center text-sm text-gray-400">
+                  Loading stores…
+                </td>
+              </tr>
               <tr :if={@stores == []} class="hover:bg-gray-50">
                 <td colspan="7" class="px-6 py-12 text-center text-sm text-gray-400">
                   No stores found
                 </td>
               </tr>
-              <tr :for={store <- @stores} class="hover:bg-gray-50 transition-colors">
+              <tr :for={store <- @stores || []} class="hover:bg-gray-50 transition-colors">
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-3">
                     <div class="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold shrink-0">

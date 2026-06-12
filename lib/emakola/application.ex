@@ -12,6 +12,8 @@ defmodule Emakola.Application do
       Emakola.Repo,
       {DNSCluster, query: Application.get_env(:emakola, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Emakola.PubSub},
+      # Expunges expired token rows (see Emakola.Accounts.Token)
+      {AshAuthentication.Supervisor, otp_app: :emakola},
       {Finch, name: Emakola.Finch},
       {Emakola.RateLimit, clean_period: :timer.minutes(10)},
       {Oban, Application.fetch_env!(:emakola, Oban)},
