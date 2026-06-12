@@ -64,6 +64,16 @@ defmodule EmakolaWeb.Router do
     post "/paystack", WebhookController, :paystack
   end
 
+  # Mobile/JSON API auth — bearer token pair lifecycle. Strict rate limit:
+  # sign_in is a brute-force vector, refresh a replay-probe vector.
+  scope "/api/v1/auth", EmakolaWeb.Api do
+    pipe_through [:api, :auth_rate_limit]
+
+    post "/sign_in", AuthController, :sign_in
+    post "/refresh", AuthController, :refresh
+    delete "/sign_out", AuthController, :sign_out
+  end
+
   # Auth session controller (sets/clears session cookie)
   # GET /session creates a session from a token — rate limited (brute-force vector)
   scope "/auth", EmakolaWeb do
