@@ -621,3 +621,19 @@ html.high-contrast {
     .features-grid.reveal-hidden.revealed > div { animation: none; }
   }
 }
+
+/* Launch-steps arrow connectors (landing page): gentle forward nudge.
+   Tailwind v4 rotate-* uses the standalone `rotate` property, so the
+   mobile rotate-90 composes with this transform animation. */
+@layer components {
+  .step-arrow {
+    animation: step-arrow-nudge 1.6s ease-in-out infinite;
+  }
+  @keyframes step-arrow-nudge {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(5px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .step-arrow { animation: none; }
+  }
+}
