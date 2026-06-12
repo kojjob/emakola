@@ -91,7 +91,7 @@ defmodule EmakolaWeb.Api.TenantIsolationTest do
     assert conn.status == 403
   end
 
-  test "expired-session hygiene: revoked token cannot list orders even with valid membership",
+  test "revoked token cannot list orders even with valid membership",
        %{conn: _conn, merchant_a: merchant_a, store_a: store_a} do
     {:ok, pair} = Emakola.Accounts.ApiTokens.issue_pair(merchant_a)
     :ok = Emakola.Accounts.ApiTokens.revoke(pair.access_token)
