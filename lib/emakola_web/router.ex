@@ -30,9 +30,28 @@ defmodule EmakolaWeb.Router do
     plug :accepts, ["xml", "text", "html", "json"]
   end
 
-  # Stricter rate limiting for authentication endpoints to prevent brute-force attacks
+  # Stricter per-IP rate limiting for authentication endpoints to prevent brute-force attacks.
+  # key: :ip forces IP-only keying so attacker-controlled headers (Bearer/X-Org-ID) cannot
+  # mint a fresh bucket per request and bypass the limit.
   pipeline :auth_rate_limit do
-    plug EmakolaWeb.Plugs.RateLimiter, limit: 10, window_ms: 60_000
+    plug EmakolaWeb.Plugs.RateLimiter, limit: 10, window_ms: 60_000, key: :ip
+  end
+
+  # Unauthenticated mobile-API auth endpoints: JSON + strict per-IP limit.
+  # Deliberately NOT stacked on :api — two RateLimiter plugs with the same
+  # key share one Hammer bucket and double-count every request.
+  pipeline :api_auth do
+    plug :accepts, ["json"]
+    plug EmakolaWeb.Plugs.RateLimiter, limit: 10, window_ms: 60_000, key: :ip
+  end
+
+  # Mobile/JSON API: bearer-token merchant auth, then X-Store-ID tenant.
+  pipeline :api_bearer do
+    plug EmakolaWeb.Plugs.ApiBearerAuth
+  end
+
+  pipeline :api_tenant do
+    plug EmakolaWeb.Plugs.ApiTenant
   end
 
   # Source-IP allowlist for the Hubtel webhook endpoint. Hubtel does not
@@ -62,6 +81,35 @@ defmodule EmakolaWeb.Router do
   scope "/webhooks", EmakolaWeb do
     pipe_through :api
     post "/paystack", WebhookController, :paystack
+  end
+
+  # Mobile/JSON API auth — bearer token pair lifecycle. Strict per-IP rate limit:
+  # sign_in is a brute-force vector, refresh a replay-probe vector.
+  scope "/api/v1/auth", EmakolaWeb.Api do
+    pipe_through :api_auth
+
+    post "/sign_in", AuthController, :sign_in
+    post "/refresh", AuthController, :refresh
+    delete "/sign_out", AuthController, :sign_out
+  end
+
+  # Authenticated, NOT tenant-scoped — used to discover/pick a store.
+  # MUST stay above the /api/v1 JSON:API forward: `forward` matches every
+  # path under its prefix, so a forward declared earlier would swallow
+  # /api/v1/stores silently.
+  scope "/api/v1", EmakolaWeb.Api do
+    pipe_through [:api, :api_bearer]
+
+    get "/stores", StoreController, :index
+  end
+
+  # Tenant-scoped JSON:API resources (orders; device tokens in a later task).
+  # Declared below /api/v1/stores deliberately — forward matches everything
+  # under /api/v1, so the stores route above must be declared first.
+  scope "/api/v1" do
+    pipe_through [:api, :api_bearer, :api_tenant]
+
+    forward "/", EmakolaWeb.ApiRouter
   end
 
   # Auth session controller (sets/clears session cookie)

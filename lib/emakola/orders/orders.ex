@@ -2,7 +2,11 @@ defmodule Emakola.Orders do
   @moduledoc """
   The Orders domain — orders, line items, fulfillments, and refunds.
   """
-  use Ash.Domain
+  use Ash.Domain, extensions: [AshJsonApi.Domain]
+
+  json_api do
+    prefix("/api/v1")
+  end
 
   resources do
     resource Emakola.Orders.Order do

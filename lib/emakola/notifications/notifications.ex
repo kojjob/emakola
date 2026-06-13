@@ -1,8 +1,14 @@
 defmodule Emakola.Notifications do
   @moduledoc "Notifications domain — SMS, WhatsApp, and email delivery with notification and email log resources."
-  use Ash.Domain
+  use Ash.Domain, extensions: [AshJsonApi.Domain]
+
+  json_api do
+    prefix("/api/v1")
+  end
 
   resources do
+    resource(Emakola.Notifications.DeviceToken)
+
     resource Emakola.Notifications.Notification do
       define(:create_notification, action: :create)
       define(:list_notifications, action: :read)
