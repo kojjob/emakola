@@ -14,7 +14,14 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
      |> allow_upload(:photos,
        accept: ~w(.jpg .jpeg .png .webp),
        max_entries: @max_photos,
-       max_file_size: 10_000_000
+       max_file_size: 10_000_000,
+       # Upload each photo to the server as soon as it's picked, so the
+       # cards' progress reaches 100% while the merchant types names/prices.
+       # Without this the entries stay at 0% until submit — but the publish
+       # button is gated on `progress < 100`, so it would never enable
+       # (deadlock). Background upload is also the intended "upload as she
+       # types" UX from the spec.
+       auto_upload: true
      )}
   end
 
