@@ -49,7 +49,67 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
           {bulk_upload_error(err)}
         </div>
 
-        <%!-- cards render here in Task 2 --%>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+          <div
+            :for={entry <- @uploads.photos.entries}
+            class={[
+              "border rounded-2xl overflow-hidden bg-white",
+              card_incomplete?(@cards, entry.ref) && "border-amber-400",
+              !card_incomplete?(@cards, entry.ref) && "border-slate-200"
+            ]}
+          >
+            <div class="relative">
+              <.live_img_preview entry={entry} class="w-full h-40 object-cover" />
+              <button
+                type="button"
+                phx-click="remove_photo"
+                phx-value-ref={entry.ref}
+                class="absolute top-2 right-2 w-7 h-7 bg-black/60 text-white rounded-full text-sm"
+                aria-label="Remove photo"
+              >
+                ✕
+              </button>
+              <div
+                :if={entry.progress < 100}
+                class="absolute bottom-0 left-0 right-0 h-1 bg-slate-200"
+              >
+                <div class="h-full bg-emerald-500" style={"width: #{entry.progress}%"}></div>
+              </div>
+            </div>
+            <div class="p-3 space-y-2">
+              <label class="block">
+                <span class="text-[10px] uppercase tracking-wide text-slate-400">Name</span>
+                <input
+                  type="text"
+                  name="card_name"
+                  value={card_value(@cards, entry.ref, :name)}
+                  phx-blur="set_card"
+                  phx-value-ref={entry.ref}
+                  phx-value-field="name"
+                  placeholder="e.g. Fresh tomatoes"
+                  class="block w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold"
+                />
+              </label>
+              <label class="block">
+                <span class="text-[10px] uppercase tracking-wide text-slate-400">Price (GHS)</span>
+                <input
+                  type="text"
+                  name="card_price"
+                  value={card_value(@cards, entry.ref, :price)}
+                  phx-blur="set_card"
+                  phx-value-ref={entry.ref}
+                  phx-value-field="price"
+                  inputmode="decimal"
+                  placeholder="e.g. 20"
+                  class="block w-full border border-slate-300 rounded-lg px-3 py-2 text-sm font-semibold"
+                />
+              </label>
+              <p :for={err <- upload_errors(@uploads.photos, entry)} class="text-xs text-red-600">
+                {bulk_upload_error(err)}
+              </p>
+            </div>
+          </div>
+        </div>
 
         <div
           :if={@uploads.photos.entries != []}
@@ -68,6 +128,34 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
       </form>
     </div>
     """
+  end
+
+  @impl true
+  def handle_event("validate", _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("set_card", %{"ref" => ref, "field" => field, "value" => value}, socket) do
+    key = Emakola.SafeAtom.to_atom_in(field, [:name, :price], :name)
+    card = Map.get(socket.assigns.cards, ref, %{name: "", price: ""})
+    cards = Map.put(socket.assigns.cards, ref, Map.put(card, key, value))
+    {:noreply, assign(socket, :cards, cards)}
+  end
+
+  @impl true
+  def handle_event("remove_photo", %{"ref" => ref}, socket) do
+    {:noreply,
+     socket
+     |> cancel_upload(:photos, ref)
+     |> update(:cards, &Map.delete(&1, ref))}
+  end
+
+  defp card_value(cards, ref, field), do: cards |> Map.get(ref, %{}) |> Map.get(field, "")
+
+  defp card_incomplete?(cards, ref) do
+    card = Map.get(cards, ref, %{})
+    name = String.trim(Map.get(card, :name, ""))
+    price = EmakolaWeb.Admin.ProductLive.Shared.parse_price_input(Map.get(card, :price, ""))
+    name == "" or not match?({:ok, _}, price)
   end
 
   defp bulk_upload_error(:too_large), do: "One photo is too large (max 10 MB)."
