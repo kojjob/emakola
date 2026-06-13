@@ -394,6 +394,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
           </p>
         </div>
         <div class="flex items-center gap-2">
+          <.link
+            navigate={~p"/admin/products/bulk"}
+            class="inline-flex items-center justify-center gap-2 font-semibold transition-colors rounded-control cursor-pointer px-3 py-1.5 text-xs bg-primary hover:bg-primary-hover text-white"
+          >
+            <.icon name="hero-photo" class="size-3.5" /> Add many products
+          </.link>
           <.admin_button
             variant={:secondary}
             size={:sm}
