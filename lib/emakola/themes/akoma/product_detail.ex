@@ -329,9 +329,10 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
 
   defp discount_pct(_, _), do: 0
 
-  defp in_stock?(%{stock_quantity: q}) when is_integer(q), do: q > 0
+  defp in_stock?(%{track_inventory: _} = variant), do: Emakola.Catalog.Variant.in_stock?(variant)
   defp in_stock?(_), do: true
 
+  defp stock_label(%{track_inventory: false}), do: "In stock"
   defp stock_label(%{stock_quantity: q}) when is_integer(q) and q <= 0, do: "Out of stock"
 
   defp stock_label(%{stock_quantity: q}) when is_integer(q) and q <= 5,
@@ -339,6 +340,7 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
 
   defp stock_label(_), do: "In stock"
 
+  defp stock_color(%{track_inventory: false}), do: "#16A34A"
   defp stock_color(%{stock_quantity: q}) when is_integer(q) and q <= 0, do: "#B91C1C"
   defp stock_color(_), do: "#16A34A"
 

@@ -134,8 +134,8 @@ defmodule Emakola.Orders.CheckoutService do
       Enum.any?(items, fn %{variant_id: vid, quantity: qty} ->
         variant = Map.fetch!(variants, vid)
         # Dropshipped / intentionally untracked variants have no numeric stock
-        # to check — only tracked own-stock is gated here.
-        variant.track_inventory and variant.stock_quantity < qty
+        # to check — Variant.in_stock?/2 encodes that rule in one place.
+        not Emakola.Catalog.Variant.in_stock?(variant, qty)
       end)
 
     if insufficient, do: {:error, :insufficient_stock}, else: :ok

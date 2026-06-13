@@ -279,10 +279,15 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
             <%!-- Add to Cart CTA --%>
             <button
               phx-click="add_to_cart"
-              disabled={is_nil(@selected_variant) || @selected_variant.stock_quantity <= 0}
+              disabled={
+                is_nil(@selected_variant) ||
+                  not Emakola.Catalog.Variant.in_stock?(@selected_variant)
+              }
               class={[
                 "w-full h-14 rounded-2xl text-base font-bold flex items-center justify-center gap-2.5 transition-all",
-                if(is_nil(@selected_variant) || @selected_variant.stock_quantity <= 0,
+                if(
+                  is_nil(@selected_variant) ||
+                    not Emakola.Catalog.Variant.in_stock?(@selected_variant),
                   do: "bg-[#D9F99D]/50 text-[#059669]/40 cursor-not-allowed",
                   else:
                     "bg-[#059669] text-white hover:bg-[#047857] active:scale-[0.97] cursor-pointer shadow-lg shadow-emerald-200"
@@ -303,7 +308,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
                   d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121 0 2.002-.881 2.002-2.003V6.75m-14.22 0h14.22m-14.22 0L5.106 5.272M7.5 14.25L5.106 5.272m0 0a1.125 1.125 0 00-1.091-.852H2.25"
                 />
               </svg>
-              <%= if is_nil(@selected_variant) || @selected_variant.stock_quantity <= 0 do %>
+              <%= if is_nil(@selected_variant) || not Emakola.Catalog.Variant.in_stock?(@selected_variant) do %>
                 Out of Stock
               <% else %>
                 Add to Cart
@@ -544,11 +549,11 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
         <span class="text-sm text-[#92400E]" style="font-family: 'Inter', sans-serif;">
           Select options
         </span>
-      <% @variant.stock_quantity <= 0 -> %>
+      <% @variant.track_inventory and @variant.stock_quantity <= 0 -> %>
         <span class="inline-flex items-center gap-1.5 text-sm font-bold text-[#DC2626]">
           <span class="w-2 h-2 rounded-full bg-[#DC2626]"></span> Out of Stock
         </span>
-      <% @variant.stock_quantity < 5 -> %>
+      <% @variant.track_inventory and @variant.stock_quantity < 5 -> %>
         <span class="inline-flex items-center gap-1.5 text-sm font-bold text-[#D97706]">
           <span class="w-2 h-2 rounded-full bg-[#D97706]"></span>
           Low Stock ({@variant.stock_quantity} left)

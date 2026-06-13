@@ -49,7 +49,9 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
         |> Ash.Query.filter(product_id == ^product.id)
         |> Ash.read!(authorize?: false)
 
-      assert [%{price: 2500}] = variants
+      # Sellable by default — the default variant is untracked, so the product
+      # is immediately purchasable without the merchant setting a stock count.
+      assert [%{price: 2500, track_inventory: false}] = variants
 
       active_products =
         Emakola.Catalog.Product

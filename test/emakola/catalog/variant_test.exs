@@ -368,4 +368,33 @@ defmodule Emakola.Catalog.VariantTest do
       assert :ok = Ash.destroy!(variant, authorize?: false)
     end
   end
+
+  # ── in_stock?/2 (the one canonical purchasability gate) ───────
+
+  describe "in_stock?/2" do
+    test "tracked variant with stock is in stock", %{store: store, product: product} do
+      v = create_variant!(product, store, track_inventory: true, stock_quantity: 5)
+      assert Emakola.Catalog.Variant.in_stock?(v)
+      assert Emakola.Catalog.Variant.in_stock?(v, 5)
+    end
+
+    test "tracked variant at zero stock is out of stock", %{store: store, product: product} do
+      v = create_variant!(product, store, track_inventory: true, stock_quantity: 0)
+      refute Emakola.Catalog.Variant.in_stock?(v)
+    end
+
+    test "tracked variant below requested quantity is out of stock", %{
+      store: store,
+      product: product
+    } do
+      v = create_variant!(product, store, track_inventory: true, stock_quantity: 2)
+      refute Emakola.Catalog.Variant.in_stock?(v, 3)
+    end
+
+    test "untracked variant is always in stock, even at zero", %{store: store, product: product} do
+      v = create_variant!(product, store, track_inventory: false, stock_quantity: 0)
+      assert Emakola.Catalog.Variant.in_stock?(v)
+      assert Emakola.Catalog.Variant.in_stock?(v, 99)
+    end
+  end
 end
