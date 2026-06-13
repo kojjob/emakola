@@ -48,6 +48,16 @@ defmodule EmakolaWeb.DashboardLiveTest do
       assert html =~ "Avg Order"
     end
 
+    test "topbar New button links to the product create page", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard")
+
+      # The quick-add "New" in the admin topbar must be a real navigation,
+      # not a decorative button (it shipped dead — no handler, no href).
+      assert view
+             |> element(~s{a[href="/admin/products/new"]}, "New")
+             |> has_element?()
+    end
+
     test "renders period toggle", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/dashboard")
 
