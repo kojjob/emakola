@@ -69,6 +69,44 @@
       proxy** — mobile API pre-auth rate limits key on it (10/min sign-in
       per IP). If it's the edge IP, all mobile clients share one bucket.
 
+## 📱 Mobile push (FCM) — enables real-device delivery (PR #134)
+
+The push pipeline (DeviceToken → Oban worker → FCM HTTP v1) is built and
+mock-tested. It stays in **LogPush** (logs only, never sends) until two
+secrets are set; `FCM_SERVICE_ACCOUNT_JSON` is the master switch
+(`config/runtime.exs:204`, `lib/emakola/application.ex:46`). Full delivery
+also needs a real device token, which only the Phase 1 Flutter client mints
+— so Stage A below is verifiable now; Stage B waits on the app.
+
+- [ ] **Create the Firebase project** — console.firebase.google.com →
+      Add project (use a **work** Google account; this key can push to every
+      user). The generated **Project ID** (e.g. `emakola-prod-a1b2c`, may
+      carry a random suffix) is `FCM_PROJECT_ID`. Confirm **Cloud Messaging
+      API (V1)** is Enabled (Project settings → Cloud Messaging); ignore the
+      deprecated Legacy API.
+- [ ] **Generate the service-account key** — Project settings → Service
+      accounts → **Generate new private key** → downloads a JSON file with
+      FCM-send perms baked in (no IAM fiddling). That whole file is
+      `FCM_SERVICE_ACCOUNT_JSON`. ⚠️ Credential-grade — gitignore it; to
+      revoke, delete the key in that tab and regenerate.
+- [ ] **Set both secrets** — flatten the JSON to one line with `jq`
+      (preserves the `private_key`'s `\n` escapes; a hand-edit mangles them
+      and crashes boot via `Jason.decode!`):
+      `fly secrets set FCM_PROJECT_ID=emakola-prod-a1b2c FCM_SERVICE_ACCOUNT_JSON="$(jq -c . path/to/service-account.json)" --app emakola`
+      (set both together — `runtime.exs` does `System.fetch_env!("FCM_PROJECT_ID")` and boot fails fast if the JSON is present but the id is missing.)
+- [ ] **Stage A — verify the credential now (no phone needed):** with the
+      vars set, `iex -S mix` → `Goth.fetch(Emakola.Goth)` → `{:ok, %Goth.Token{}}`
+      proves the OAuth2 handshake works. This isolates *your* job (valid
+      creds) from Phase 1's (a real device token).
+- [ ] **Stage B — end-to-end delivery (gated on Phase 1):** once the Flutter
+      app registers an FCM token via `POST /api/v1/device_tokens`, placing an
+      order fires `PushNotificationWorker` → `FcmPush` → the device. This is
+      the deferred Phase 0 exit criterion.
+- [ ] **iOS only, later:** FCM can't reach Apple's APNs alone — create an
+      **APNs auth key (.p8)** in the Apple Developer account and upload it in
+      the same Cloud Messaging tab. Not needed for the backend secrets above
+      or for Android; a Phase 1 iOS prerequisite.
+
 ## 🧰 Engineering backlog (post-launch, rough priority)
 
 - [ ] **Regenerate Ash resource snapshots** — `mix ash.codegen` is unusable
