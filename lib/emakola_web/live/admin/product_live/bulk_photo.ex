@@ -149,6 +149,91 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
      |> update(:cards, &Map.delete(&1, ref))}
   end
 
+  @impl true
+  def handle_event("publish_all", _params, socket) do
+    store_id = socket.assigns.store_id
+    cards = socket.assigns.cards
+
+    # Authorization: store_id comes from socket.assigns.current_store.id (set by
+    # RequireAuth on_mount hook), never from user-controlled params.
+
+    # 1. Create a product for each card that has a name AND a valid (>0) price.
+    ref_to_product =
+      Enum.reduce(socket.assigns.uploads.photos.entries, %{}, fn entry, acc ->
+        card = Map.get(cards, entry.ref, %{})
+        name = String.trim(Map.get(card, :name, ""))
+        price = EmakolaWeb.Admin.ProductLive.Shared.parse_price_input(Map.get(card, :price, ""))
+
+        case {name, price} do
+          {n, {:ok, pesewas}} when n != "" ->
+            case EmakolaWeb.Admin.ProductLive.Shared.create_product_with_price(
+                   %{title: n, store_id: store_id},
+                   pesewas,
+                   :active
+                 ) do
+              {:ok, product, _} -> Map.put(acc, entry.ref, product.id)
+              {:error, _} -> acc
+            end
+
+          _ ->
+            acc
+        end
+      end)
+
+    # 2. Attach each valid card's photo to its product; postpone (keep) skipped cards.
+    consume_uploaded_entries(socket, :photos, fn %{path: tmp}, entry ->
+      case Map.get(ref_to_product, entry.ref) do
+        nil ->
+          {:postpone, :skipped}
+
+        product_id ->
+          EmakolaWeb.Admin.ProductLive.Shared.store_product_image(
+            store_id,
+            product_id,
+            tmp,
+            entry
+          )
+
+          {:ok, :attached}
+      end
+    end)
+
+    Emakola.Catalog.CachedCatalog.invalidate_store(store_id)
+
+    published = map_size(ref_to_product)
+
+    # Remaining entries are those not in ref_to_product (postponed/skipped).
+    remaining =
+      Enum.reject(socket.assigns.uploads.photos.entries, &Map.has_key?(ref_to_product, &1.ref))
+
+    socket = update(socket, :cards, &Map.drop(&1, Map.keys(ref_to_product)))
+
+    cond do
+      published == 0 ->
+        {:noreply, put_flash(socket, :error, "Add a name and price to at least one product.")}
+
+      remaining == [] ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :info,
+           "#{published} #{pluralize(published)} published — live on your store."
+         )
+         |> push_navigate(to: ~p"/admin/products")}
+
+      true ->
+        {:noreply,
+         put_flash(
+           socket,
+           :info,
+           "#{published} published. #{length(remaining)} still need a name and price."
+         )}
+    end
+  end
+
+  defp pluralize(1), do: "product"
+  defp pluralize(_), do: "products"
+
   defp card_value(cards, ref, field), do: cards |> Map.get(ref, %{}) |> Map.get(field, "")
 
   defp card_incomplete?(cards, ref) do

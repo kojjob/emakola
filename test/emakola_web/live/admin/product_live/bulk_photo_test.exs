@@ -2,6 +2,9 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhotoTest do
   use EmakolaWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
+  import Mox
+
+  require Ash.Query
 
   setup %{conn: conn} do
     {conn, _merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
@@ -44,5 +47,83 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhotoTest do
       assert view |> element("#bulk-photo-form") |> render() =~ "Price (GHS)"
       assert length(view |> render() |> String.split(~s(name="card_name"))) - 1 == 2
     end
+  end
+
+  describe "publish_all" do
+    @png Base.decode64!(
+           "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+         )
+
+    setup :verify_on_exit!
+
+    test "publishes complete cards as active products with priced variant + image",
+         %{conn: conn, store: store} do
+      stub(Emakola.StorageMock, :upload, fn _b, path, _o ->
+        {:ok, "https://s3.example.com/#{path}"}
+      end)
+
+      {:ok, view, _html} = live(conn, "/admin/products/bulk")
+      Mox.allow(Emakola.StorageMock, self(), view.pid)
+
+      photos =
+        file_input(view, "#bulk-photo-form", :photos, [
+          %{name: "tomato.png", content: @png, type: "image/png"}
+        ])
+
+      render_upload(photos, "tomato.png")
+
+      # Extract the entry ref from the remove button markup
+      ref = view |> element("button[phx-click=remove_photo]") |> render() |> extract_ref()
+
+      view |> render_hook("set_card", %{"ref" => ref, "field" => "name", "value" => "Tomatoes"})
+      view |> render_hook("set_card", %{"ref" => ref, "field" => "price", "value" => "20"})
+
+      view |> element("#bulk-photo-form") |> render_submit()
+
+      product =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(store_id == ^store.id and title == "Tomatoes")
+        |> Ash.read_one!(authorize?: false, load: [:variants, :images])
+
+      assert product.status == :active
+      assert [%{price: 2000, track_inventory: false}] = product.variants
+      assert length(product.images) == 1
+    end
+
+    test "a card with no price is skipped and stays on the page",
+         %{conn: conn, store: store} do
+      stub(Emakola.StorageMock, :upload, fn _b, p, _o ->
+        {:ok, "https://s3.example.com/#{p}"}
+      end)
+
+      {:ok, view, _html} = live(conn, "/admin/products/bulk")
+      Mox.allow(Emakola.StorageMock, self(), view.pid)
+
+      photos =
+        file_input(view, "#bulk-photo-form", :photos, [
+          %{name: "x.png", content: @png, type: "image/png"}
+        ])
+
+      render_upload(photos, "x.png")
+
+      ref = view |> element("button[phx-click=remove_photo]") |> render() |> extract_ref()
+
+      view
+      |> render_hook("set_card", %{"ref" => ref, "field" => "name", "value" => "No Price Item"})
+
+      html = view |> element("#bulk-photo-form") |> render_submit()
+
+      assert html =~ "No Price Item" or html =~ "card_name"
+
+      assert Emakola.Catalog.Product
+             |> Ash.Query.filter(store_id == ^store.id and title == "No Price Item")
+             |> Ash.read!(authorize?: false) == []
+    end
+  end
+
+  # Extracts the entry ref from the remove button's phx-value-ref attribute
+  defp extract_ref(markup) do
+    [_, ref] = Regex.run(~r/phx-value-ref="([^"]+)"/, markup)
+    ref
   end
 end
