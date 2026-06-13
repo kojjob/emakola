@@ -113,7 +113,8 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhotoTest do
 
       html = view |> element("#bulk-photo-form") |> render_submit()
 
-      assert html =~ "No Price Item" or html =~ "card_name"
+      assert html =~ "card_price"
+      assert html =~ "No Price Item"
 
       assert Emakola.Catalog.Product
              |> Ash.Query.filter(store_id == ^store.id and title == "No Price Item")

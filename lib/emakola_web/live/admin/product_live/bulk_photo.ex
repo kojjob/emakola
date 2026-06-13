@@ -117,7 +117,7 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
         >
           <button
             type="submit"
-            disabled={@publishing}
+            disabled={@publishing or Enum.any?(@uploads.photos.entries, &(&1.progress < 100))}
             class="px-6 py-3 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 disabled:opacity-50"
           >
             {if @publishing,
@@ -151,6 +151,20 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
 
   @impl true
   def handle_event("publish_all", _params, socket) do
+    cond do
+      socket.assigns.publishing ->
+        {:noreply, socket}
+
+      Enum.any?(socket.assigns.uploads.photos.entries, &(&1.progress < 100)) ->
+        {:noreply, put_flash(socket, :error, "Please wait for all photos to finish uploading.")}
+
+      true ->
+        do_publish_all(socket)
+    end
+  end
+
+  defp do_publish_all(socket) do
+    socket = assign(socket, :publishing, true)
     store_id = socket.assigns.store_id
     cards = socket.assigns.cards
 
@@ -210,7 +224,10 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
 
     cond do
       published == 0 ->
-        {:noreply, put_flash(socket, :error, "Add a name and price to at least one product.")}
+        {:noreply,
+         socket
+         |> assign(:publishing, false)
+         |> put_flash(:error, "Add a name and price to at least one product.")}
 
       remaining == [] ->
         {:noreply,
@@ -223,8 +240,9 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
 
       true ->
         {:noreply,
-         put_flash(
-           socket,
+         socket
+         |> assign(:publishing, false)
+         |> put_flash(
            :info,
            "#{published} published. #{length(remaining)} still need a name and price."
          )}

@@ -179,7 +179,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
     rescue
       exception ->
         require Logger
-        Logger.error("Bulk image upload failed: #{Exception.message(exception)}")
+        Logger.error("Product image upload failed: #{Exception.message(exception)}")
         :error
     end
   end
