@@ -132,46 +132,56 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
     results =
       Phoenix.LiveView.consume_uploaded_entries(socket, :product_images, fn %{path: tmp_path},
                                                                             entry ->
-        ext = Path.extname(entry.client_name)
-        filename = "#{Ecto.UUID.generate()}#{ext}"
-        s3_path = "stores/#{store_id}/products/#{filename}"
-        binary = File.read!(tmp_path)
-
-        # A raising storage client must not crash the upload channel — the
-        # product is already saved at this point (seen in production when
-        # ExAws lacked an HTTP client). Contain raises like error tuples.
-        try do
-          case Emakola.Storage.upload(binary, s3_path, content_type: entry.client_type) do
-            {:ok, url} ->
-              case Emakola.Catalog.create_image(
-                     %{
-                       url: url,
-                       product_id: product.id,
-                       store_id: store_id,
-                       content_type: entry.client_type,
-                       file_size_bytes: entry.client_size,
-                       alt_text: Path.rootname(entry.client_name)
-                     },
-                     authorize?: false
-                   ) do
-                {:ok, _image} -> {:ok, :ok}
-                {:error, _} -> {:ok, :error}
-              end
-
-            {:error, _reason} ->
-              {:ok, :error}
-          end
-        rescue
-          exception ->
-            require Logger
-            Logger.error("Product image upload failed: #{Exception.message(exception)}")
-            {:ok, :error}
+        case store_product_image(store_id, product.id, tmp_path, entry) do
+          :ok -> {:ok, :ok}
+          :error -> {:ok, :error}
         end
       end)
 
     failed_count = Enum.count(results, &(&1 == :error))
     ok_count = length(results) - failed_count
     {ok_count, failed_count}
+  end
+
+  @doc """
+  Uploads one entry's binary to storage and creates a `Catalog.Image` for the
+  given product.
+
+  Returns `:ok` on success, `:error` on any failure. Raises from the storage
+  client are contained so a flaky client does not crash the upload channel.
+  """
+  def store_product_image(store_id, product_id, tmp_path, entry) do
+    ext = Path.extname(entry.client_name)
+    filename = "#{Ecto.UUID.generate()}#{ext}"
+    s3_path = "stores/#{store_id}/products/#{filename}"
+
+    try do
+      with {:ok, url} <-
+             Emakola.Storage.upload(File.read!(tmp_path), s3_path,
+               content_type: entry.client_type
+             ),
+           {:ok, _img} <-
+             Emakola.Catalog.create_image(
+               %{
+                 url: url,
+                 product_id: product_id,
+                 store_id: store_id,
+                 content_type: entry.client_type,
+                 file_size_bytes: entry.client_size,
+                 alt_text: Path.rootname(entry.client_name)
+               },
+               authorize?: false
+             ) do
+        :ok
+      else
+        _ -> :error
+      end
+    rescue
+      exception ->
+        require Logger
+        Logger.error("Product image upload failed: #{Exception.message(exception)}")
+        :error
+    end
   end
 
   @doc """
