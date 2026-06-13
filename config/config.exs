@@ -83,6 +83,11 @@ config :emakola,
     Emakola.Fulfillment
   ]
 
+# JSON:API content type (ash_json_api)
+config :mime,
+  types: %{"application/vnd.api+json" => ["json"]},
+  extensions: %{"json" => "application/vnd.api+json"}
+
 # Token signing secret is set per environment: dev.exs/test.exs use a
 # fixed dev-only value; prod requires TOKEN_SIGNING_SECRET (runtime.exs).
 

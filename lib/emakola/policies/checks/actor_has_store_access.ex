@@ -46,17 +46,39 @@ defmodule Emakola.Policies.Checks.ActorHasStoreAccess do
   def match?(_actor, _context, _opts), do: false
 
   defp get_store_id(%Ash.Changeset{} = changeset) do
-    # For the Store resource itself, the resource's id IS the store_id
     if changeset.resource == Emakola.Stores.Store do
       Map.get(changeset.data || %{}, :id)
     else
-      # Try the changeset data first (for updates), then arguments/attributes (for creates)
-      Ash.Changeset.get_attribute(changeset, :store_id) ||
-        Map.get(changeset.data || %{}, :store_id)
+      # For attribute-strategy multitenant resources, tenant == store_id by
+      # construction, so it is safe (and necessary for atomic destroys where
+      # changeset.data is unavailable) to prefer the caller-supplied tenant.
+      #
+      # For NON-multitenant resources (e.g. StoreMembership), we must ignore
+      # any caller-supplied tenant and read store_id from the row itself.
+      # Trusting the tenant here would let an attacker supply their own store's
+      # tenant and pass the membership check against a row in a different store
+      # (fail-open).
+      if Ash.Resource.Info.multitenancy_strategy(changeset.resource) == :attribute do
+        changeset.tenant || safe_get_attribute(changeset, :store_id)
+      else
+        safe_get_attribute(changeset, :store_id)
+      end
     end
   end
 
   defp get_store_id(_), do: nil
+
+  # Ash.Changeset.get_attribute/2 calls get_data/2 for the original value,
+  # which raises ArgumentError when changeset.data is OriginalDataNotAvailable
+  # (atomic bulk operations). Match on that sentinel instead of rescuing so
+  # the guard is explicit and zero-cost in the normal path.
+  defp safe_get_attribute(
+         %Ash.Changeset{data: %Ash.Changeset.OriginalDataNotAvailable{}} = cs,
+         attr
+       ),
+       do: Map.get(cs.attributes, attr)
+
+  defp safe_get_attribute(cs, attr), do: Ash.Changeset.get_attribute(cs, attr)
 
   defp actor_has_store?(_actor, nil), do: false
 

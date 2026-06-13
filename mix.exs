@@ -85,6 +85,11 @@ defmodule Emakola.MixProject do
       {:ash_phoenix, "~> 2.0"},
       {:ash_authentication, "~> 4.0"},
       {:ash_authentication_phoenix, "~> 2.0"},
+      {:ash_json_api, "~> 1.4"},
+      {:open_api_spex, "~> 3.16"},
+
+      # Mobile push notifications (FCM HTTP v1 via Req + Goth)
+      {:goth, "~> 1.4"},
 
       # Background jobs
       {:oban, "~> 2.18"},

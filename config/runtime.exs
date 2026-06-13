@@ -198,6 +198,16 @@ if config_env() == :prod do
         raise("environment variable WHATSAPP_PHONE_NUMBER_ID is missing."),
     api_version: System.get_env("WHATSAPP_API_VERSION") || "v21.0"
 
+  # Mobile push (FCM HTTP v1 via Req + Goth). Only active when a Firebase
+  # service account is configured; otherwise the Log provider keeps the
+  # pipeline observable without sending anything.
+  if System.get_env("FCM_SERVICE_ACCOUNT_JSON") do
+    config :emakola, :push_provider, Emakola.Notifications.Providers.FcmPush
+    config :emakola, :fcm_project_id, System.fetch_env!("FCM_PROJECT_ID")
+  else
+    config :emakola, :push_provider, Emakola.Notifications.Providers.LogPush
+  end
+
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
   # want to use a different value for prod and you most likely don't want

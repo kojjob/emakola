@@ -139,3 +139,6 @@ stitch-store-preview.png
 .playwright-mcp/
 
 .firecrawl/
+
+# Generated OpenAPI spec (run: mix openapi.spec.json --spec EmakolaWeb.ApiRouter --pretty=true)
+/openapi.json
