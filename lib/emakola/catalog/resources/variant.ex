@@ -311,4 +311,18 @@ defmodule Emakola.Catalog.Variant do
       )
     end
   end
+
+  @doc """
+  The single source of truth for whether a variant can be purchased right now.
+
+  An untracked variant (`track_inventory: false` — own-stock made-to-order,
+  digital goods, or supplier-fulfilled dropship) is always purchasable. A
+  tracked variant is purchasable only while it holds at least `qty` in stock.
+
+  Used by every storefront add-to-cart gate and by checkout stock validation,
+  so the rule lives in exactly one place.
+  """
+  def in_stock?(variant, qty \\ 1) do
+    not variant.track_inventory or variant.stock_quantity >= qty
+  end
 end
