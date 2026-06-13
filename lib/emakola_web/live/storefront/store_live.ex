@@ -81,7 +81,7 @@ defmodule EmakolaWeb.Storefront.StoreLive do
         product = Ash.load!(product, [:variants, :images], authorize?: false)
         variant = product.variants |> Enum.sort_by(& &1.position) |> List.first()
 
-        if variant && variant.stock_quantity > 0 do
+        if variant && Emakola.Catalog.Variant.in_stock?(variant) do
           image_url =
             case product.images do
               [img | _] -> img.thumbnail_url || img.url

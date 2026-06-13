@@ -135,7 +135,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   def handle_event("add_to_cart", _params, socket) do
     variant = socket.assigns.selected_variant
 
-    if is_nil(variant) || variant.stock_quantity <= 0 do
+    if is_nil(variant) || not Emakola.Catalog.Variant.in_stock?(variant, socket.assigns.quantity) do
       {:noreply, put_flash(socket, :error, "This variant is out of stock")}
     else
       cart_session_id = socket.assigns.cart_session_id

@@ -17,6 +17,7 @@ defmodule Emakola.Themes.Bold.ProductDetail do
 
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
+  alias Emakola.Catalog.Variant
   alias Emakola.Themes.Bold.Shared
   alias EmakolaWeb.Helpers.Currency
 
@@ -260,10 +261,10 @@ defmodule Emakola.Themes.Bold.ProductDetail do
           <%!-- Add to Cart — Dark, Full Width, Uppercase --%>
           <button
             phx-click="add_to_cart"
-            disabled={is_nil(@selected_variant) || @selected_variant.stock_quantity <= 0}
+            disabled={is_nil(@selected_variant) || not Variant.in_stock?(@selected_variant)}
             class={[
               "w-full h-14 text-sm font-bold tracking-[0.15em] uppercase flex items-center justify-center gap-3 transition-all",
-              if(is_nil(@selected_variant) || @selected_variant.stock_quantity <= 0,
+              if(is_nil(@selected_variant) || not Variant.in_stock?(@selected_variant),
                 do: "bg-[#E2E8F0] text-[#94A3B8] cursor-not-allowed",
                 else: "bg-[#0F172A] text-white hover:bg-[#1E293B] active:scale-[0.98] cursor-pointer"
               )
@@ -283,7 +284,7 @@ defmodule Emakola.Themes.Bold.ProductDetail do
                 d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
               />
             </svg>
-            <%= if is_nil(@selected_variant) || @selected_variant.stock_quantity <= 0 do %>
+            <%= if is_nil(@selected_variant) || not Variant.in_stock?(@selected_variant) do %>
               Out of Stock
             <% else %>
               Add to Cart

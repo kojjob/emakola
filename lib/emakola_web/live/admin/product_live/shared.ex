@@ -275,8 +275,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
              product_id: product.id,
              store_id: product.store_id,
              price: pesewas,
-             sku: sku,
-             position: 0
+             # Sellable by default: new merchants just want to list and sell.
+             # Inventory tracking is an opt-in toggle they can enable later.
+             track_inventory: false,
+             position: 0,
+             sku: sku
            },
            authorize?: false
          ) do
