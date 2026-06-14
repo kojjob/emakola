@@ -123,9 +123,25 @@ The reusable layer everything else stands on.
 2. Login (email + password → tokens, secure storage), store context display.
 3. Orders list + order detail + status updates (the existing `Admin.OrderLive` flows, reshaped for mobile).
 4. Push notifications for new orders — the killer feature; deep-link from notification to order detail.
-5. Ship to Play (internal track) and TestFlight; then store listings.
+5. **Product management — add/edit + bulk add.** Build mobile parity for the web product flows
+   (shipped on web 2026-06, all live in prod):
+   - **Photo-first bulk add — port this first; it was designed for the phone.** Pick many photos
+     from the gallery at once → a card per photo with big Name + Price inputs → publish all as
+     live, sellable products. For low-literacy merchants this is the natural way to stock a store
+     from a phone. Web: `EmakolaWeb.Admin.ProductLive.BulkPhoto`; spec
+     `docs/superpowers/specs/2026-06-13-bulk-photo-upload-design.md` (PRs #137, #138).
+   - **Single product add** — title + price (→ a `track_inventory:false` default variant, sellable
+     immediately) + image upload. Web: `Admin.ProductLive.Form`.
+   - **CSV bulk import with images** — desktop-oriented (a spreadsheet + filename-matched photos);
+     the API should expose it but the Flutter UI can defer past MVP. Web: `Catalog.CsvImporter`;
+     spec `docs/superpowers/specs/2026-06-14-csv-bulk-import-design.md` (PR #139).
+   - ⚠️ **API dependency:** the Phase 0 API is currently order-centric — the merchant app needs
+     **product-create + variant + multipart image-upload endpoints** before this can be built.
+     Add them to the Phase 0 API scope (or a Phase 0.5) ahead of this sprint item.
+6. Ship to Play (internal track) and TestFlight; then store listings.
 
-**Exit criteria:** a merchant can hear about, view, and action a new order from their phone within seconds of checkout.
+**Exit criteria:** a merchant can hear about, view, and action a new order from their phone within
+seconds of checkout, **and stock their store by snapping product photos** (photo-first bulk add).
 
 ### Phase 2 — Customer answer (PWA upgrade, ~2–3 weeks)
 1. Web push for order status updates (`web_push_ex` + service-worker push handler).
