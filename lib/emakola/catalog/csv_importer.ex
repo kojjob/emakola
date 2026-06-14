@@ -129,74 +129,111 @@ defmodule Emakola.Catalog.CsvImporter do
   end
 
   @doc """
-  Writes parsed rows to the database. Each row creates a Product and a
-  default Variant with the SKU/price/stock from the CSV.
+  Writes parsed rows to the database. `image_urls` is
+  `%{"filename_downcased" => %{url: String.t(), content_type: String.t()}}` —
+  images already uploaded to storage by the web layer.
 
-  ## Returns
-
-      {success_count, error_count, error_messages}
+  Per row: create product → (if a valid price) create a priced variant with the
+  inventory policy and activate → attach matched images. Returns
+  `{imported_count, skipped_count, warnings}`. `imported` counts rows whose product
+  was created (a row with no valid price imports as a draft with a warning);
+  `skipped` counts rows whose product create failed outright.
   """
-  @spec import_rows(list(map()), binary()) :: {integer(), integer(), list(binary())}
-  def import_rows(rows, store_id) when is_list(rows) and is_binary(store_id) do
-    Enum.reduce(rows, {0, 0, []}, fn row, {success, errors, error_msgs} ->
-      attrs = build_product_attrs(row, store_id)
-
-      case Emakola.Catalog.create_product(attrs, authorize?: false) do
+  @spec import_rows(list(map()), binary(), map()) :: {integer(), integer(), list(binary())}
+  def import_rows(rows, store_id, image_urls \\ %{}) when is_list(rows) and is_binary(store_id) do
+    Enum.reduce(rows, {0, 0, []}, fn row, {imported, skipped, warns} ->
+      case Emakola.Catalog.create_product(build_product_attrs(row, store_id), authorize?: false) do
         {:ok, product} ->
-          maybe_create_variant(product, row, store_id)
-          {success + 1, errors, error_msgs}
+          warns = warns ++ create_variant_and_activate(product, row, store_id)
+          warns = warns ++ attach_images(product, row, store_id, image_urls)
+          {imported + 1, skipped, warns}
 
         {:error, error} ->
-          msg = "\"#{row["title"]}\": #{format_error(error)}"
-          {success, errors + 1, [msg | error_msgs]}
+          {imported, skipped + 1, warns ++ ["\"#{row["title"]}\": #{format_error(error)}"]}
       end
     end)
   end
 
   defp build_product_attrs(row, store_id) do
-    tags =
-      (row["tags"] || "")
-      |> String.split(",", trim: true)
-      |> Enum.map(&String.trim/1)
-      |> Enum.reject(&(&1 == ""))
-
     %{
       title: row["title"],
       description: row["description"],
       category_id: row["category_id"],
-      tags: tags,
+      tags: row["tags"] || [],
       store_id: store_id
     }
   end
 
-  defp maybe_create_variant(product, row, store_id) do
-    variant_attrs = %{
-      product_id: product.id,
-      sku: row["sku"],
-      price: parse_int(row["price"]),
-      stock_quantity: parse_int(row["stock_quantity"]),
-      store_id: store_id
-    }
+  # Creates a priced variant + activates, or warns if the price is missing/invalid.
+  defp create_variant_and_activate(product, row, store_id) do
+    case Emakola.Money.parse_price(row["price"]) do
+      {:ok, pesewas} ->
+        {track, stock} = inventory_policy(row["stock_quantity"])
 
-    Emakola.Catalog.Variant
-    |> Ash.Changeset.for_create(:create, variant_attrs)
-    |> Ash.create(authorize?: false)
-  rescue
-    _ -> :ok
-  end
+        variant_attrs = %{
+          product_id: product.id,
+          store_id: store_id,
+          price: pesewas,
+          sku: blank_to_nil(row["sku"]),
+          position: 0,
+          track_inventory: track,
+          stock_quantity: stock
+        }
 
-  defp parse_int(value) do
-    case Integer.parse(value || "0") do
-      {val, _} -> val
-      :error -> 0
+        case Emakola.Catalog.create_variant(variant_attrs, authorize?: false) do
+          {:ok, _v} ->
+            Emakola.Catalog.activate_product(product, authorize?: false)
+            []
+
+          {:error, error} ->
+            ["\"#{row["title"]}\": variant not created — #{format_error(error)}"]
+        end
+
+      _ ->
+        ["\"#{row["title"]}\": add a price to publish (imported as draft)"]
     end
   end
 
-  defp format_error(%Ash.Error.Invalid{errors: errors}) do
-    errors
-    |> Enum.map(fn err -> Map.get(err, :message, inspect(err)) end)
-    |> Enum.join(", ")
+  # stock_quantity a positive integer → track with that count; blank/0/invalid → untracked.
+  defp inventory_policy(stock_str) do
+    case Integer.parse(stock_str || "") do
+      {n, _} when n > 0 -> {true, n}
+      _ -> {false, 0}
+    end
   end
 
-  defp format_error(error), do: inspect(error)
+  defp attach_images(_product, %{"images" => []}, _store_id, _urls), do: []
+  defp attach_images(_product, %{"images" => nil}, _store_id, _urls), do: []
+
+  # Attaches matched images in listed order. Unmatched filenames and
+  # create_image failures both warn; neither aborts the row.
+  defp attach_images(product, %{"images" => filenames, "title" => title}, store_id, urls) do
+    Enum.reduce(filenames, [], fn filename, warns ->
+      case Map.get(urls, String.downcase(filename)) do
+        %{url: url, content_type: ct} ->
+          case Emakola.Catalog.create_image(
+                 %{url: url, product_id: product.id, store_id: store_id, content_type: ct},
+                 authorize?: false
+               ) do
+            {:ok, _} ->
+              warns
+
+            {:error, error} ->
+              warns ++ ["\"#{title}\": image #{filename} not saved — #{format_error(error)}"]
+          end
+
+        nil ->
+          warns ++ ["\"#{title}\": image #{filename} not found in your uploads"]
+      end
+    end)
+  end
+
+  defp blank_to_nil(""), do: nil
+  defp blank_to_nil(v), do: v
+
+  defp format_error(%Ash.Error.Invalid{errors: errors}) do
+    errors |> Enum.map(&Map.get(&1, :message, "invalid")) |> Enum.join(", ")
+  end
+
+  defp format_error(_), do: "could not be saved"
 end
