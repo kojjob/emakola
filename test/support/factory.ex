@@ -583,6 +583,8 @@ defmodule Emakola.Factory do
     |> Ash.create!(authorize?: false)
   end
 
+  # ── Platform Admin ──────────────────────────────────────
+
   def create_platform_admin!(attrs \\ %{}) do
     create_user!(attrs)
     |> Ash.Changeset.for_update(:update_profile, %{})

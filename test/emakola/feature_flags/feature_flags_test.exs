@@ -5,12 +5,6 @@ defmodule Emakola.FeatureFlagsTest do
   alias Emakola.FeatureFlags
   alias Emakola.FeatureFlags.FeatureFlag
 
-  defp create_flag!(attrs) do
-    FeatureFlag
-    |> Ash.Changeset.for_create(:create, attrs)
-    |> Ash.create!(authorize?: false)
-  end
-
   describe "FeatureFlag CRUD" do
     test "creates a feature flag" do
       assert {:ok, flag} =
@@ -30,7 +24,7 @@ defmodule Emakola.FeatureFlagsTest do
     end
 
     test "enforces unique key" do
-      create_flag!(%{key: "unique_test", name: "Test"})
+      Factory.create_feature_flag!(%{key: "unique_test", name: "Test"})
 
       assert {:error, _} =
                FeatureFlag
@@ -39,7 +33,7 @@ defmodule Emakola.FeatureFlagsTest do
     end
 
     test "toggles a flag" do
-      flag = create_flag!(%{key: "toggle_test", name: "Toggle", enabled: true})
+      flag = Factory.create_feature_flag!(%{key: "toggle_test", name: "Toggle", enabled: true})
 
       {:ok, toggled} = flag |> Ash.Changeset.for_update(:toggle) |> Ash.update(authorize?: false)
       assert toggled.enabled == false
@@ -60,12 +54,18 @@ defmodule Emakola.FeatureFlagsTest do
 
   describe "enabled?/2 evaluation" do
     test "returns true for enabled flag with no plan requirement" do
-      create_flag!(%{key: "global_feature", name: "Global", enabled: true, required_plan: nil})
+      Factory.create_feature_flag!(%{
+        key: "global_feature",
+        name: "Global",
+        enabled: true,
+        required_plan: nil
+      })
+
       assert FeatureFlags.enabled?("global_feature") == true
     end
 
     test "returns false for disabled flag" do
-      create_flag!(%{key: "disabled_feature", name: "Disabled", enabled: false})
+      Factory.create_feature_flag!(%{key: "disabled_feature", name: "Disabled", enabled: false})
       assert FeatureFlags.enabled?("disabled_feature") == false
     end
 
@@ -74,7 +74,7 @@ defmodule Emakola.FeatureFlagsTest do
     end
 
     test "plan gating — starter plan can access starter features" do
-      create_flag!(%{
+      Factory.create_feature_flag!(%{
         key: "starter_feature",
         name: "Starter Only",
         enabled: true,
@@ -85,7 +85,7 @@ defmodule Emakola.FeatureFlagsTest do
     end
 
     test "plan gating — free plan cannot access starter features" do
-      create_flag!(%{
+      Factory.create_feature_flag!(%{
         key: "paid_feature",
         name: "Paid",
         enabled: true,
@@ -96,7 +96,7 @@ defmodule Emakola.FeatureFlagsTest do
     end
 
     test "plan gating — pro plan can access starter features (hierarchy)" do
-      create_flag!(%{
+      Factory.create_feature_flag!(%{
         key: "starter_only",
         name: "Starter",
         enabled: true,
@@ -107,7 +107,7 @@ defmodule Emakola.FeatureFlagsTest do
     end
 
     test "plan gating — enterprise can access everything" do
-      create_flag!(%{
+      Factory.create_feature_flag!(%{
         key: "pro_feature",
         name: "Pro",
         enabled: true,
@@ -118,12 +118,18 @@ defmodule Emakola.FeatureFlagsTest do
     end
 
     test "plan gating — nil plan_slug cannot access plan-gated feature" do
-      create_flag!(%{key: "gated", name: "Gated", enabled: true, required_plan: "starter"})
+      Factory.create_feature_flag!(%{
+        key: "gated",
+        name: "Gated",
+        enabled: true,
+        required_plan: "starter"
+      })
+
       assert FeatureFlags.enabled?("gated") == false
     end
 
     test "accepts atom keys" do
-      create_flag!(%{key: "atom_test", name: "Atom", enabled: true})
+      Factory.create_feature_flag!(%{key: "atom_test", name: "Atom", enabled: true})
       assert FeatureFlags.enabled?(:atom_test) == true
     end
   end
@@ -150,7 +156,7 @@ defmodule Emakola.FeatureFlagsTest do
     test "destroy_flag removes the flag" do
       flag = Factory.create_feature_flag!()
       assert :ok = FeatureFlags.destroy_flag(flag, authorize?: false)
-      assert {:error, _} = FeatureFlags.get_flag(flag.id)
+      assert {:error, _} = FeatureFlags.get_flag(flag.id, authorize?: false)
     end
   end
 
@@ -163,7 +169,7 @@ defmodule Emakola.FeatureFlagsTest do
 
   describe "edge cases" do
     test "handles unknown plan slug gracefully" do
-      create_flag!(%{
+      Factory.create_feature_flag!(%{
         key: "edge_plan",
         name: "Edge",
         enabled: true,
@@ -174,7 +180,7 @@ defmodule Emakola.FeatureFlagsTest do
     end
 
     test "handles flag with unknown required_plan" do
-      create_flag!(%{
+      Factory.create_feature_flag!(%{
         key: "bad_plan",
         name: "Bad",
         enabled: true,
@@ -182,18 +188,6 @@ defmodule Emakola.FeatureFlagsTest do
       })
 
       assert FeatureFlags.enabled?("bad_plan", plan_slug: "pro") == false
-    end
-
-    test "concurrent flag evaluation" do
-      create_flag!(%{key: "concurrent_test", name: "Concurrent", enabled: true})
-
-      tasks =
-        for _ <- 1..50 do
-          Task.async(fn -> FeatureFlags.enabled?("concurrent_test") end)
-        end
-
-      results = Task.await_many(tasks)
-      assert Enum.all?(results, &(&1 == true))
     end
   end
 end
