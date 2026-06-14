@@ -212,7 +212,6 @@ defmodule EmakolaWeb.Platform.SettingsLive do
 
     all
     |> Enum.filter(&(matches_search?(&1, q) and matches_filter?(&1, filter)))
-    |> Enum.sort_by(& &1.name)
   end
 
   defp matches?(flag, search, filter),
@@ -363,7 +362,6 @@ defmodule EmakolaWeb.Platform.SettingsLive do
 
       <%!-- Card grid --%>
       <div
-        :if={@filtered_count > 0}
         id="flags"
         phx-update="stream"
         class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"
@@ -455,11 +453,12 @@ defmodule EmakolaWeb.Platform.SettingsLive do
       >
         <form id="flag-form" phx-submit="save" phx-change="validate" class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1.5">
+            <label for="flag-key" class="block text-sm font-medium text-slate-700 mb-1.5">
               Key <span class="text-red-500">*</span>
             </label>
             <input
               type="text"
+              id="flag-key"
               name="key"
               value={@form_key}
               disabled={@edit_flag_id != nil}
@@ -477,11 +476,12 @@ defmodule EmakolaWeb.Platform.SettingsLive do
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1.5">
+            <label for="flag-name" class="block text-sm font-medium text-slate-700 mb-1.5">
               Name <span class="text-red-500">*</span>
             </label>
             <input
               type="text"
+              id="flag-name"
               name="name"
               value={@form_name}
               placeholder="New checkout"
@@ -495,8 +495,11 @@ defmodule EmakolaWeb.Platform.SettingsLive do
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1.5">Description</label>
+            <label for="flag-description" class="block text-sm font-medium text-slate-700 mb-1.5">
+              Description
+            </label>
             <textarea
+              id="flag-description"
               name="description"
               rows="3"
               placeholder="Optional description"
@@ -505,8 +508,11 @@ defmodule EmakolaWeb.Platform.SettingsLive do
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1.5">Required plan</label>
+            <label for="flag-plan" class="block text-sm font-medium text-slate-700 mb-1.5">
+              Required plan
+            </label>
             <select
+              id="flag-plan"
               name="required_plan"
               class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
