@@ -583,6 +583,29 @@ defmodule Emakola.Factory do
     |> Ash.create!(authorize?: false)
   end
 
+  def create_platform_admin!(attrs \\ %{}) do
+    create_user!(attrs)
+    |> Ash.Changeset.for_update(:update_profile, %{})
+    |> Ash.Changeset.force_change_attribute(:is_platform_admin, true)
+    |> Ash.update!(authorize?: false)
+  end
+
+  def create_feature_flag!(attrs \\ %{}) do
+    params =
+      Map.merge(
+        %{
+          key: "flag_#{System.unique_integer([:positive])}",
+          name: "Test Flag",
+          enabled: true
+        },
+        Map.new(attrs)
+      )
+
+    Emakola.FeatureFlags.FeatureFlag
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!(authorize?: false)
+  end
+
   def create_platform_post!(attrs \\ %{}) do
     attrs = Map.new(attrs)
 

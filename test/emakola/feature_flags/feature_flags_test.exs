@@ -1,6 +1,7 @@
 defmodule Emakola.FeatureFlagsTest do
   use Emakola.DataCase, async: true
 
+  alias Emakola.Factory
   alias Emakola.FeatureFlags
   alias Emakola.FeatureFlags.FeatureFlag
 
@@ -124,6 +125,39 @@ defmodule Emakola.FeatureFlagsTest do
     test "accepts atom keys" do
       create_flag!(%{key: "atom_test", name: "Atom", enabled: true})
       assert FeatureFlags.enabled?(:atom_test) == true
+    end
+  end
+
+  describe "code interfaces" do
+    test "toggle_flag flips enabled" do
+      flag = Factory.create_feature_flag!(%{enabled: true})
+      assert {:ok, updated} = FeatureFlags.toggle_flag(flag, authorize?: false)
+      refute updated.enabled
+    end
+
+    test "update_flag changes name and required_plan" do
+      flag = Factory.create_feature_flag!(%{name: "Old", required_plan: nil})
+
+      assert {:ok, updated} =
+               FeatureFlags.update_flag(flag, %{name: "New", required_plan: "pro"},
+                 authorize?: false
+               )
+
+      assert updated.name == "New"
+      assert updated.required_plan == "pro"
+    end
+
+    test "destroy_flag removes the flag" do
+      flag = Factory.create_feature_flag!()
+      assert :ok = FeatureFlags.destroy_flag(flag, authorize?: false)
+      assert {:error, _} = FeatureFlags.get_flag(flag.id)
+    end
+  end
+
+  describe "create_platform_admin! factory" do
+    test "creates a user flagged as platform admin" do
+      admin = Factory.create_platform_admin!()
+      assert admin.is_platform_admin == true
     end
   end
 
