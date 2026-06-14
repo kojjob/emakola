@@ -2,6 +2,7 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
   use EmakolaWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
+  import Mox
   alias Emakola.Factory
 
   require Ash.Query
@@ -356,6 +357,62 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
 
       assert %Emakola.Catalog.Image{} =
                Ash.get!(Emakola.Catalog.Image, image_a.id, authorize?: false)
+    end
+  end
+
+  describe "bulk CSV import with images" do
+    @png Base.decode64!(
+           "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+         )
+
+    setup %{conn: conn} do
+      {conn, _merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, store: store}
+    end
+
+    setup :verify_on_exit!
+
+    test "the bulk modal exposes an image drop zone and the new template header", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+      html = render(view)
+      assert html =~ "stock_quantity,tags,images"
+      assert html =~ "Product images"
+    end
+
+    test "importing a CSV with a matched image publishes a product with that image",
+         %{conn: conn, store: store} do
+      stub(Emakola.StorageMock, :upload, fn _b, path, _o ->
+        {:ok, "https://s3.example.com/#{path}"}
+      end)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+      Mox.allow(Emakola.StorageMock, self(), view.pid)
+
+      csv =
+        Emakola.Catalog.CsvImporter.template_header() <>
+          "\nOkra,Fresh,,OKRA-1,15,5,fresh,okra.png"
+
+      file_input(view, "#csv-upload-form", :csv_file, [
+        %{name: "p.csv", content: csv, type: "text/csv"}
+      ])
+      |> render_upload("p.csv")
+
+      file_input(view, "#csv-upload-form", :bulk_images, [
+        %{name: "okra.png", content: @png, type: "image/png"}
+      ])
+      |> render_upload("okra.png")
+
+      view |> element("#csv-upload-form") |> render_submit()
+      view |> element("button[phx-click=import_products]") |> render_click()
+
+      p =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(store_id == ^store.id and title == "Okra")
+        |> Ash.read_one!(authorize?: false, load: [:images, :variants])
+
+      assert p.status == :active
+      assert [%{price: 1500}] = p.variants
+      assert length(p.images) == 1
     end
   end
 end
