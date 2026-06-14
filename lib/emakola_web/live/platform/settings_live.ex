@@ -123,7 +123,7 @@ defmodule EmakolaWeb.Platform.SettingsLive do
          |> reset_form()
          |> load_flags()
          |> put_flash(:info, "Feature flag created")
-         |> push_event("js-exec", %{to: "#flag-modal", attr: "phx-remove"})}
+         |> push_event("close-modal", %{id: "flag-modal"})}
 
       {:error, error} ->
         {:noreply, put_flash(socket, :error, format_error(error))}
@@ -151,7 +151,7 @@ defmodule EmakolaWeb.Platform.SettingsLive do
              |> reset_form()
              |> load_flags()
              |> put_flash(:info, "Feature flag updated")
-             |> push_event("js-exec", %{to: "#flag-modal", attr: "phx-remove"})}
+             |> push_event("close-modal", %{id: "flag-modal"})}
 
           {:error, error} ->
             {:noreply, put_flash(socket, :error, format_error(error))}
@@ -555,14 +555,17 @@ defmodule EmakolaWeb.Platform.SettingsLive do
 
       <%!-- Delete confirmation --%>
       <.confirm_modal
-        :if={@delete_flag}
         id="delete-flag-modal"
         title="Delete feature flag"
-        message={"Delete \"#{@delete_flag.name}\"? This action cannot be undone."}
+        message={
+          if @delete_flag,
+            do: "Delete \"#{@delete_flag.name}\"? This action cannot be undone.",
+            else: "Delete this feature flag? This action cannot be undone."
+        }
         confirm_text="Delete"
         confirm_class="bg-rose-600 hover:bg-rose-700 text-white"
         on_confirm="delete"
-        value={@delete_flag.id}
+        value={@delete_flag && @delete_flag.id}
         icon="warning"
         icon_class="text-rose-500"
       />
