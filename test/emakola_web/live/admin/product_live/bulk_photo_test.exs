@@ -17,6 +17,23 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhotoTest do
       assert html =~ "Add many products"
       assert html =~ ~s(id="bulk-photo-form")
     end
+
+    test "tap-to-choose control renders the file input as a tappable overlay, not clipped sr-only",
+         %{conn: conn} do
+      # iOS Safari fails to open the file picker for a 1px `sr-only`-clipped
+      # input triggered only through its wrapping label. The input must be a
+      # full-size transparent overlay so the tap lands on it directly.
+      {:ok, _view, html} = live(conn, "/admin/products/bulk")
+      input_tag = Regex.run(~r/<input[^>]*name="photos"[^>]*>/, html) |> List.first()
+
+      assert input_tag, "expected a photos file input on the bulk page"
+
+      refute input_tag =~ "sr-only",
+             "file input must not be hidden via clipped sr-only (iOS Safari won't open the picker)"
+
+      assert input_tag =~ "opacity-0",
+             "file input should be a transparent full-size tap overlay"
+    end
   end
 
   describe "entry point" do
