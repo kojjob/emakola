@@ -251,6 +251,24 @@ defmodule EmakolaWeb.Admin.ProductFormTest do
       %{conn: conn, store: store}
     end
 
+    test "browse-files control renders the file input as a tappable overlay, not clipped sr-only",
+         %{conn: conn} do
+      # iOS Safari fails to open the file picker for an input that is hidden by
+      # clipping it to 1px (`sr-only`) and triggered only through its wrapping
+      # label. The input must instead be a full-size transparent overlay so the
+      # tap lands on the <input type="file"> directly.
+      {:ok, _view, html} = live(conn, ~p"/admin/products/new")
+      input_tag = Regex.run(~r/<input[^>]*name="product_images"[^>]*>/, html) |> List.first()
+
+      assert input_tag, "expected a product_images file input on the form"
+
+      refute input_tag =~ "sr-only",
+             "file input must not be hidden via clipped sr-only (iOS Safari won't open the picker)"
+
+      assert input_tag =~ "opacity-0",
+             "file input should be a transparent full-size tap overlay"
+    end
+
     test "uploading an image on create → Image record linked to product",
          %{conn: conn, store: store} do
       stub(Emakola.StorageMock, :upload, fn _binary, _path, _opts ->

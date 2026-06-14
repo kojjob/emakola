@@ -43,13 +43,16 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
 
       <form id="bulk-photo-form" phx-change="validate" phx-submit="publish_all">
         <label
-          class="block border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center cursor-pointer hover:border-emerald-400 transition-colors"
+          class="relative block border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center cursor-pointer hover:border-emerald-400 transition-colors"
           phx-drop-target={@uploads.photos.ref}
         >
           <.icon name="hero-photo" class="size-10 mx-auto text-slate-400 mb-2" />
           <p class="text-sm font-medium text-slate-700">Tap to choose product photos</p>
           <p class="text-xs text-slate-400 mt-1">Up to {@max_photos} photos at once</p>
-          <.live_file_input upload={@uploads.photos} class="sr-only" />
+          <.live_file_input
+            upload={@uploads.photos}
+            class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
         </label>
 
         <div :for={err <- upload_errors(@uploads.photos)} class="text-sm text-red-600 mt-2">

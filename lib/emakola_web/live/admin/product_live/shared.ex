@@ -73,8 +73,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
           Drag & drop images here
         </p>
         <p class="text-xs text-slate-400 mt-1">or</p>
-        <label class="inline-block mt-2 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer transition-colors">
-          Browse files <.live_file_input upload={@uploads.product_images} class="sr-only" />
+        <label class="relative inline-block mt-2 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer transition-colors">
+          Browse files
+          <.live_file_input
+            upload={@uploads.product_images}
+            class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
         </label>
       </div>
 
