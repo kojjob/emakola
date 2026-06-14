@@ -11,7 +11,7 @@
 > the Flutter merchant app — see `docs/mobile-app-research.md` Phase 1 item 5.** Build the
 > photo-first flow first; it was designed for the phone.
 
-- [x] **Single add** — `Admin.ProductLive.Form`: price (→ sellable `track_inventory:false` default
+- [x] **Single add** — `Admin.ProductLive.Form`: price (→ sellable `track_inventory: false` default
       variant) + image upload. (PRs #132, #133)
 - [x] **Photo-first bulk** — `Admin.ProductLive.BulkPhoto` at `/admin/products/bulk`: pick many
       phone photos → name + price per card → publish all as live products.

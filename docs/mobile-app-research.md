@@ -115,8 +115,9 @@ The reusable layer everything else stands on.
 3. `DeviceToken` resource (user_id, platform, fcm_token, last_seen_at) + registration endpoint.
 4. Push pipeline: Pigeon + Goth; an Oban worker (idempotent, per existing worker conventions) that fires FCM/APNs on order creation alongside the existing WhatsApp/SMS notifications.
 5. OpenAPI spec generation wired up (`mix openapi.spec.json`) — this becomes the contract for the Flutter client.
+6. **Product-write endpoints** (required by Phase 1 item 5 — the merchant app cannot add products without these): `POST /api/v1/products` (create → default `track_inventory: false` variant + activate, mirroring `Admin.ProductLive.Form` / `Catalog.CsvImporter`), `POST /api/v1/products/:id/variants`, and **multipart `POST /api/v1/products/:id/images`** (stream to Tigris via `Emakola.Storage`, create `Catalog.Image`). Tenant-scoped, behind the rate limiter. The photo-first bulk flow is N calls to these per batch — no separate bulk endpoint needed for MVP.
 
-**Exit criteria:** integration-tested API (multi-tenant isolation tests mandatory), push notification demonstrably delivered to a test device on new-order creation.
+**Exit criteria:** integration-tested API (multi-tenant isolation tests mandatory); push notification demonstrably delivered to a test device on new-order creation; **a product created via the API with an uploaded image appears live, sellable, with its image on the storefront** (the same end-to-end check used for the web flows).
 
 ### Phase 1 — Merchant app MVP (Flutter, ~6–8 weeks)
 1. Flutter project + CI (build, test; store delivery via fastlane or Codemagic — decide then).
@@ -128,16 +129,17 @@ The reusable layer everything else stands on.
    - **Photo-first bulk add — port this first; it was designed for the phone.** Pick many photos
      from the gallery at once → a card per photo with big Name + Price inputs → publish all as
      live, sellable products. For low-literacy merchants this is the natural way to stock a store
-     from a phone. Web: `EmakolaWeb.Admin.ProductLive.BulkPhoto`; spec
+     from a phone. Web: `Admin.ProductLive.BulkPhoto`; spec
      `docs/superpowers/specs/2026-06-13-bulk-photo-upload-design.md` (PRs #137, #138).
-   - **Single product add** — title + price (→ a `track_inventory:false` default variant, sellable
+   - **Single product add** — title + price (→ a `track_inventory: false` default variant, sellable
      immediately) + image upload. Web: `Admin.ProductLive.Form`.
    - **CSV bulk import with images** — desktop-oriented (a spreadsheet + filename-matched photos);
      the API should expose it but the Flutter UI can defer past MVP. Web: `Catalog.CsvImporter`;
      spec `docs/superpowers/specs/2026-06-14-csv-bulk-import-design.md` (PR #139).
-   - ⚠️ **API dependency:** the Phase 0 API is currently order-centric — the merchant app needs
-     **product-create + variant + multipart image-upload endpoints** before this can be built.
-     Add them to the Phase 0 API scope (or a Phase 0.5) ahead of this sprint item.
+   - ⚠️ **API dependency — now a concrete Phase 0 task (item 6 above):** the merchant app needs
+     product-create + variant + multipart image-upload endpoints, which the order-centric Phase 0
+     API does not yet have. They are sequenced ahead of this item and gated by the Phase 0 exit
+     criteria.
 6. Ship to Play (internal track) and TestFlight; then store listings.
 
 **Exit criteria:** a merchant can hear about, view, and action a new order from their phone within
