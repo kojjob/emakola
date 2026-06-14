@@ -21,7 +21,10 @@ defmodule Emakola.Catalog.CsvImporter do
   error.
   """
 
-  @csv_template_header "title,description,category,sku,price,stock_quantity,tags"
+  NimbleCSV.define(Emakola.Catalog.CsvParser, separator: ",", escape: "\"")
+
+  @columns 8
+  @csv_template_header "title,description,category,sku,price,stock_quantity,tags,images"
 
   @doc """
   Returns the canonical CSV header string for the import template.
@@ -42,56 +45,60 @@ defmodule Emakola.Catalog.CsvImporter do
   @spec parse(binary(), %{optional(any()) => binary()}) ::
           {list(map()), list(binary())}
   def parse(content, categories_map) when is_binary(content) do
-    trimmed = String.trim(content)
-
-    cond do
-      trimmed == "" ->
+    case String.trim(content) do
+      "" ->
         {[], ["CSV file is empty"]}
 
-      true ->
-        case String.split(trimmed, ~r/\r?\n/) do
-          [_header | []] ->
+      trimmed ->
+        case Emakola.Catalog.CsvParser.parse_string(trimmed, skip_headers: false) do
+          [_header] ->
             {[], ["CSV file contains only a header row, no data"]}
 
-          [_header | data_lines] ->
-            data_lines
+          [_header | data_rows] ->
+            data_rows
             |> Enum.with_index(2)
-            |> Enum.reduce({[], []}, &reduce_row(&1, &2, categories_map))
+            |> Enum.reduce({[], []}, fn {fields, row_num}, acc ->
+              reduce_row(fields, row_num, acc, categories_map)
+            end)
             |> finalise_parse()
+
+          [] ->
+            {[], ["CSV file is empty"]}
         end
     end
   end
 
-  defp reduce_row({line, row_num}, {rows_acc, errors_acc}, categories_map) do
-    fields =
-      line
-      |> String.split(",")
-      |> Enum.map(&String.trim/1)
-
+  defp reduce_row(fields, row_num, {rows_acc, errors_acc}, categories_map) do
     case fields do
-      [title, description, category, sku, price, stock_quantity | rest] ->
-        tags = Enum.join(rest, ",")
-
+      [title, description, category, sku, price, stock, tags, images] ->
         if String.trim(title) == "" do
           {rows_acc, ["Row #{row_num}: title is required" | errors_acc]}
         else
           row = %{
-            "title" => title,
+            "title" => String.trim(title),
             "description" => description,
             "category" => category,
             "category_id" => resolve_category_id(category, categories_map),
-            "sku" => sku,
-            "price" => price,
-            "stock_quantity" => stock_quantity,
-            "tags" => tags
+            "sku" => String.trim(sku),
+            "price" => String.trim(price),
+            "stock_quantity" => String.trim(stock),
+            "tags" => split_multi(tags),
+            "images" => split_multi(images)
           }
 
           {[row | rows_acc], errors_acc}
         end
 
       _ ->
-        {rows_acc, ["Row #{row_num}: invalid format, expected at least 6 columns" | errors_acc]}
+        {rows_acc, ["Row #{row_num}: expected #{@columns} columns" | errors_acc]}
     end
+  end
+
+  defp split_multi(value) do
+    (value || "")
+    |> String.split(";", trim: true)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
   end
 
   defp finalise_parse({rows, errors}) do
