@@ -116,6 +116,9 @@ defmodule Emakola.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
 
+      # CSV parsing for bulk product import
+      {:nimble_csv, "~> 1.0"},
+
       # TOTP two-factor auth + QR code rendering for enrolment
       {:nimble_totp, "~> 1.0"},
       {:eqrcode, "~> 0.2"},

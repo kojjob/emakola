@@ -50,6 +50,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         max_entries: 5,
         max_file_size: 10_000_000
       )
+      |> allow_upload(:bulk_images,
+        accept: ~w(.jpg .jpeg .png .webp),
+        max_entries: 50,
+        max_file_size: 10_000_000
+      )
       |> load_products()
       |> load_categories()
 
@@ -308,7 +313,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
        csv_errors: [],
        bulk_importing: false
      )
-     |> cancel_uploads(:csv_file)}
+     |> cancel_uploads(:csv_file)
+     |> cancel_uploads(:bulk_images)}
+  end
+
+  @impl true
+  def handle_event("cancel_bulk_image", %{"ref" => ref}, socket) do
+    {:noreply, Phoenix.LiveView.cancel_upload(socket, :bulk_images, ref)}
   end
 
   @impl true
@@ -345,37 +356,26 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       socket = assign(socket, bulk_importing: true)
       store_id = socket.assigns.store_id
 
-      {success_count, error_count, errors} =
-        Emakola.Catalog.CsvImporter.import_rows(rows, store_id)
+      referenced =
+        rows
+        |> Enum.flat_map(&(&1["images"] || []))
+        |> Enum.map(&String.downcase/1)
+        |> MapSet.new()
 
-      if success_count > 0 do
-        Emakola.Catalog.CachedCatalog.invalidate_store(store_id)
-      end
+      {image_urls, socket} = upload_referenced_images(socket, referenced, store_id)
+
+      {imported, skipped, warnings} =
+        Emakola.Catalog.CsvImporter.import_rows(rows, store_id, image_urls)
+
+      if imported > 0, do: Emakola.Catalog.CachedCatalog.invalidate_store(store_id)
 
       socket =
         socket
-        |> assign(bulk_importing: false)
+        |> assign(bulk_importing: false, csv_errors: warnings, csv_preview: [])
         |> load_products()
+        |> put_flash(:info, bulk_summary(imported, skipped))
 
-      if error_count > 0 do
-        {:noreply,
-         socket
-         |> assign(csv_errors: errors)
-         |> put_flash(
-           :info,
-           "Imported #{success_count} product(s). #{error_count} failed."
-         )}
-      else
-        {:noreply,
-         socket
-         |> assign(
-           show_bulk_upload: false,
-           csv_preview: [],
-           csv_errors: [],
-           bulk_importing: false
-         )
-         |> put_flash(:info, "Successfully imported #{success_count} product(s).")}
-      end
+      {:noreply, socket}
     end
   end
 
@@ -1131,6 +1131,31 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       [] -> {nil, socket}
     end
   end
+
+  defp upload_referenced_images(socket, referenced, store_id) do
+    urls =
+      Phoenix.LiveView.consume_uploaded_entries(socket, :bulk_images, fn %{path: tmp}, entry ->
+        name = String.downcase(entry.client_name)
+
+        if MapSet.member?(referenced, name) do
+          s3_path =
+            "stores/#{store_id}/products/#{Ecto.UUID.generate()}#{Path.extname(entry.client_name)}"
+
+          case Emakola.Storage.upload(File.read!(tmp), s3_path, content_type: entry.client_type) do
+            {:ok, url} -> {:ok, {name, %{url: url, content_type: entry.client_type}}}
+            {:error, _} -> {:ok, nil}
+          end
+        else
+          {:postpone, nil}
+        end
+      end)
+
+    map = urls |> Enum.reject(&is_nil/1) |> Map.new()
+    {map, socket}
+  end
+
+  defp bulk_summary(imported, 0), do: "Imported #{imported} product(s)."
+  defp bulk_summary(imported, skipped), do: "Imported #{imported} product(s). #{skipped} skipped."
 
   # ── Form Helpers ──
 
