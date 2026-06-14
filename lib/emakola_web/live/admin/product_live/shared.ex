@@ -202,23 +202,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
       iex> parse_price_input("abc")
       :error
   """
-  def parse_price_input(value) do
-    case Regex.run(~r/^\s*(\d+)(?:\.(\d{1,2}))?\s*$/, value || "") do
-      [_, major] ->
-        pesewas = String.to_integer(major) * 100
-        if pesewas == 0, do: :zero, else: {:ok, pesewas}
-
-      [_, major, minor] ->
-        pesewas =
-          String.to_integer(major) * 100 +
-            String.to_integer(String.pad_trailing(minor, 2, "0"))
-
-        if pesewas == 0, do: :zero, else: {:ok, pesewas}
-
-      nil ->
-        if String.trim(value || "") == "", do: :skip, else: :error
-    end
-  end
+  def parse_price_input(value), do: Emakola.Money.parse_price(value)
 
   @doc """
   Formats integer pesewas as a GHS decimal string for display in price inputs.
