@@ -182,8 +182,15 @@ defmodule Emakola.Catalog.CsvImporter do
 
         case Emakola.Catalog.create_variant(variant_attrs, authorize?: false) do
           {:ok, _v} ->
-            Emakola.Catalog.activate_product(product, authorize?: false)
-            []
+            case Emakola.Catalog.activate_product(product, authorize?: false) do
+              {:ok, _} ->
+                []
+
+              {:error, error} ->
+                [
+                  "\"#{row["title"]}\": variant created but not published — #{format_error(error)}"
+                ]
+            end
 
           {:error, error} ->
             ["\"#{row["title"]}\": variant not created — #{format_error(error)}"]

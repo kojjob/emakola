@@ -74,6 +74,14 @@ defmodule Emakola.Catalog.CsvImporterTest do
       {[], errors} = CsvImporter.parse(csv, @cats)
       assert Enum.any?(errors, &String.contains?(&1, "title is required"))
     end
+
+    test "handles CRLF line endings and a UTF-8 BOM (Excel exports)" do
+      bom = "﻿"
+      csv = bom <> CsvImporter.template_header() <> "\r\nOkra,Fresh,,OKRA,15,5,fresh,okra.jpg\r\n"
+      {[row], []} = CsvImporter.parse(csv, %{})
+      assert row["title"] == "Okra"
+      assert row["images"] == ["okra.jpg"]
+    end
   end
 
   describe "resolve_category_id/2" do

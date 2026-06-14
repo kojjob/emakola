@@ -94,6 +94,17 @@ defmodule Emakola.Catalog.CsvImporterDbTest do
     assert Enum.any?(warnings, &String.contains?(&1, "add a price"))
   end
 
+  test "a row that fails to create is counted as skipped with a warning" do
+    store = create_store!()
+    # Same title → same generated slug → unique_store_slug identity violation on the 2nd row
+    {imported, skipped, warnings} =
+      CsvImporter.import_rows([row(%{}), row(%{})], store.id, %{})
+
+    assert imported == 1
+    assert skipped == 1
+    assert warnings != []
+  end
+
   test "matched image filename attaches; unmatched warns but still imports" do
     store = create_store!()
 
