@@ -371,7 +371,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
       socket =
         socket
-        |> assign(bulk_importing: false, csv_errors: warnings)
+        |> assign(bulk_importing: false, csv_errors: warnings, csv_preview: [])
         |> load_products()
         |> put_flash(:info, bulk_summary(imported, skipped))
 

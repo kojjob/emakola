@@ -414,5 +414,38 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
       assert [%{price: 1500}] = p.variants
       assert length(p.images) == 1
     end
+
+    test "after import the preview is cleared (no accidental re-import)", %{
+      conn: conn,
+      store: store
+    } do
+      stub(Emakola.StorageMock, :upload, fn _b, path, _o ->
+        {:ok, "https://s3.example.com/#{path}"}
+      end)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+      Mox.allow(Emakola.StorageMock, self(), view.pid)
+
+      csv = Emakola.Catalog.CsvImporter.template_header() <> "\nOkra,Fresh,,OKRA-1,15,5,fresh,"
+
+      file_input(view, "#csv-upload-form", :csv_file, [
+        %{name: "p.csv", content: csv, type: "text/csv"}
+      ])
+      |> render_upload("p.csv")
+
+      view |> element("#csv-upload-form") |> render_submit()
+      view |> element("button[phx-click=import_products]") |> render_click()
+
+      # after import the preview is cleared — button is disabled, second click can't re-import
+      assert has_element?(view, "button[phx-click=import_products][disabled]")
+
+      count =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(store_id == ^store.id and title == "Okra")
+        |> Ash.read!(authorize?: false)
+        |> length()
+
+      assert count == 1
+    end
   end
 end
