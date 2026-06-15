@@ -116,12 +116,12 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
       assert html =~ ~s(href="/platform/stores")
     end
 
-    test "Merchants is a disabled Soon entry, not a dead link", %{conn: conn} do
+    test "Merchants links to /platform/merchants for staff with :manage_merchants", %{conn: conn} do
       {conn, _user, _session} = setup_platform_staff(conn)
 
       {:ok, _view, html} = live(conn, "/platform")
 
-      refute html =~ "/platform/merchants"
+      assert html =~ ~s(href="/platform/merchants")
       assert html =~ "Merchants"
     end
 
