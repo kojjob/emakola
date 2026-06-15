@@ -1,24 +1,62 @@
 defmodule EmakolaWeb.Platform.SettingsLive do
-  @moduledoc "Platform-level feature flag management (project owner only)."
+  @moduledoc """
+  Platform-level feature flag management.
+
+  Mount is gated by RequirePermission (:manage_settings). No DB queries run
+  during the disconnected render — a nil flags state is assigned and the
+  template renders a loading shell. Every mutating handle_event (toggle,
+  save, delete) re-checks the permission against a freshly reloaded user so a
+  post-mount revocation is caught before the write.
+  """
   use EmakolaWeb, :live_view
 
+  on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_settings}
+
+  alias Emakola.Accounts.PlatformPermissions
   alias Emakola.FeatureFlags
 
   @plans ~w(free starter pro enterprise)
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok,
-     socket
-     |> assign(:page_title, "Settings")
-     |> assign(:active_nav, :settings)
-     |> assign(:search, "")
-     |> assign(:filter, :all)
-     |> assign(:plans, @plans)
-     |> assign(:edit_flag_id, nil)
-     |> assign(:delete_flag, nil)
-     |> reset_form()
-     |> load_flags()}
+    socket =
+      socket
+      |> assign(:page_title, "Settings")
+      |> assign(:active_nav, :settings)
+      |> assign(:search, "")
+      |> assign(:filter, :all)
+      |> assign(:plans, @plans)
+      |> assign(:edit_flag_id, nil)
+      |> assign(:delete_flag, nil)
+      |> reset_form()
+
+    socket =
+      if connected?(socket) do
+        load_flags(socket)
+      else
+        socket
+        |> assign(all_flags: nil, stats: nil, filtered_count: 0)
+        |> stream(:flags, [])
+      end
+
+    {:ok, socket}
+  end
+
+  # Re-check :manage_settings against a freshly reloaded user so a post-mount
+  # permission revocation is caught before any write.
+  defp authorized(socket, fun) do
+    if PlatformPermissions.allowed?(reload_current_user(socket), :manage_settings) do
+      fun.(socket)
+    else
+      {:noreply, put_flash(socket, :error, "You don't have permission to manage settings.")}
+    end
+  end
+
+  defp reload_current_user(socket) do
+    case Emakola.Accounts.get_user_by_id(socket.assigns.current_user.id, authorize?: false) do
+      {:ok, user} -> user
+      {:error, _} -> nil
+    end
   end
 
   # ── Events ─────────────────────────────────────────────
@@ -63,46 +101,52 @@ defmodule EmakolaWeb.Platform.SettingsLive do
   end
 
   def handle_event("save", params, socket) do
-    errors = validate_params(params)
+    authorized(socket, fn socket ->
+      errors = validate_params(params)
 
-    if errors == %{} do
-      case socket.assigns.edit_flag_id do
-        nil -> create_flag(socket, params)
-        id -> do_update_flag(socket, id, params)
+      if errors == %{} do
+        case socket.assigns.edit_flag_id do
+          nil -> create_flag(socket, params)
+          id -> do_update_flag(socket, id, params)
+        end
+      else
+        {:noreply, assign(socket, :form_errors, errors)}
       end
-    else
-      {:noreply, assign(socket, :form_errors, errors)}
-    end
+    end)
   end
 
   def handle_event("toggle", %{"id" => id}, socket) do
-    with flag when not is_nil(flag) <- Enum.find(socket.assigns.all_flags, &(&1.id == id)),
-         {:ok, updated} <- FeatureFlags.toggle_flag(flag, authorize?: false) do
-      {:noreply, sync_flag(socket, updated)}
-    else
-      _ -> {:noreply, put_flash(socket, :error, "Could not update flag")}
-    end
+    authorized(socket, fn socket ->
+      with flag when not is_nil(flag) <- Enum.find(socket.assigns.all_flags, &(&1.id == id)),
+           {:ok, updated} <- FeatureFlags.toggle_flag(flag, authorize?: false) do
+        {:noreply, sync_flag(socket, updated)}
+      else
+        _ -> {:noreply, put_flash(socket, :error, "Could not update flag")}
+      end
+    end)
   end
 
   def handle_event("delete", %{"id" => id}, socket) do
-    with flag when not is_nil(flag) <- Enum.find(socket.assigns.all_flags, &(&1.id == id)),
-         :ok <- FeatureFlags.destroy_flag(flag, authorize?: false) do
-      all = Enum.reject(socket.assigns.all_flags, &(&1.id == id))
+    authorized(socket, fn socket ->
+      with flag when not is_nil(flag) <- Enum.find(socket.assigns.all_flags, &(&1.id == id)),
+           :ok <- FeatureFlags.destroy_flag(flag, authorize?: false) do
+        all = Enum.reject(socket.assigns.all_flags, &(&1.id == id))
 
-      {:noreply,
-       socket
-       |> assign(:all_flags, all)
-       |> assign(:stats, compute_stats(all))
-       |> assign(:delete_flag, nil)
-       |> assign(
-         :filtered_count,
-         length(filtered(all, socket.assigns.search, socket.assigns.filter))
-       )
-       |> stream_delete(:flags, flag)
-       |> put_flash(:info, "Feature flag deleted")}
-    else
-      _ -> {:noreply, put_flash(socket, :error, "Could not delete flag")}
-    end
+        {:noreply,
+         socket
+         |> assign(:all_flags, all)
+         |> assign(:stats, compute_stats(all))
+         |> assign(:delete_flag, nil)
+         |> assign(
+           :filtered_count,
+           length(filtered(all, socket.assigns.search, socket.assigns.filter))
+         )
+         |> stream_delete(:flags, flag)
+         |> put_flash(:info, "Feature flag deleted")}
+      else
+        _ -> {:noreply, put_flash(socket, :error, "Could not delete flag")}
+      end
+    end)
   end
 
   # ── Create / Update ────────────────────────────────────
@@ -294,10 +338,13 @@ defmodule EmakolaWeb.Platform.SettingsLive do
         <div>
           <h1 class="text-2xl font-bold text-gray-900">Settings</h1>
           <p class="text-sm text-gray-500 mt-1">
-            Platform feature flags ({@stats.total} total)
+            {if @stats,
+              do: "Platform feature flags (#{@stats.total} total)",
+              else: "Loading feature flags…"}
           </p>
         </div>
         <button
+          :if={@all_flags}
           type="button"
           phx-click={JS.push("open_add_modal") |> show_modal("flag-modal")}
           class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
@@ -306,140 +353,154 @@ defmodule EmakolaWeb.Platform.SettingsLive do
         </button>
       </div>
 
-      <%!-- Stat strip --%>
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <.stat label="Total" value={@stats.total} icon="flag" color="blue" />
-        <.stat label="Enabled" value={@stats.enabled} icon="check_circle" color="emerald" />
-        <.stat label="Plan-gated" value={@stats.gated} icon="workspace_premium" color="amber" />
-        <.stat label="Disabled" value={@stats.disabled} icon="cancel" color="slate" />
-      </div>
-
-      <%!-- Toolbar --%>
-      <div class="mb-5 flex items-center gap-3 flex-wrap">
-        <form id="flag-search-form" phx-change="search" class="relative flex-1 min-w-[200px] max-w-sm">
-          <span class="material-symbols-outlined text-base text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-            search
-          </span>
-          <input
-            type="search"
-            name="search"
-            value={@search}
-            placeholder="Search by name or key..."
-            phx-debounce="300"
-            class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
-          />
-        </form>
-        <div class="flex items-center gap-1.5">
-          <.chip filter="all" active={@filter} label="All" />
-          <.chip filter="enabled" active={@filter} label="Enabled" />
-          <.chip filter="disabled" active={@filter} label="Disabled" />
-        </div>
-      </div>
-
-      <%!-- Empty states --%>
+      <%!-- Loading shell (disconnected mount — no DB) --%>
       <div
-        :if={@stats.total == 0}
-        class="bg-white rounded-xl border border-gray-200 px-6 py-16 text-center"
-      >
-        <span class="material-symbols-outlined text-4xl text-gray-300">flag</span>
-        <p class="mt-2 text-sm font-medium text-gray-900">No feature flags yet</p>
-        <p class="text-sm text-gray-400 mb-4">Create your first flag to start gating features.</p>
-        <button
-          type="button"
-          phx-click={JS.push("open_add_modal") |> show_modal("flag-modal")}
-          class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
-        >
-          <span class="material-symbols-outlined text-base">add</span> New flag
-        </button>
-      </div>
-
-      <div
-        :if={@stats.total > 0 and @filtered_count == 0}
+        :if={is_nil(@all_flags)}
         class="bg-white rounded-xl border border-gray-200 px-6 py-16 text-center text-sm text-gray-400"
       >
-        No flags match your filters
+        Loading feature flags…
       </div>
 
-      <%!-- Card grid --%>
-      <div
-        id="flags"
-        phx-update="stream"
-        class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"
-      >
+      <div :if={@all_flags}>
+        <%!-- Stat strip --%>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <.stat label="Total" value={@stats.total} icon="flag" color="blue" />
+          <.stat label="Enabled" value={@stats.enabled} icon="check_circle" color="emerald" />
+          <.stat label="Plan-gated" value={@stats.gated} icon="workspace_premium" color="amber" />
+          <.stat label="Disabled" value={@stats.disabled} icon="cancel" color="slate" />
+        </div>
+
+        <%!-- Toolbar --%>
+        <div class="mb-5 flex items-center gap-3 flex-wrap">
+          <form
+            id="flag-search-form"
+            phx-change="search"
+            class="relative flex-1 min-w-[200px] max-w-sm"
+          >
+            <span class="material-symbols-outlined text-base text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+              search
+            </span>
+            <input
+              type="search"
+              name="search"
+              value={@search}
+              placeholder="Search by name or key..."
+              phx-debounce="300"
+              class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+            />
+          </form>
+          <div class="flex items-center gap-1.5">
+            <.chip filter="all" active={@filter} label="All" />
+            <.chip filter="enabled" active={@filter} label="Enabled" />
+            <.chip filter="disabled" active={@filter} label="Disabled" />
+          </div>
+        </div>
+
+        <%!-- Empty states --%>
         <div
-          :for={{dom_id, flag} <- @streams.flags}
-          id={dom_id}
-          class={[
-            "bg-white rounded-xl border border-gray-200 border-l-4 p-5 flex flex-col",
-            if(flag.enabled, do: "border-l-blue-500", else: "border-l-slate-300 opacity-75")
-          ]}
+          :if={@stats.total == 0}
+          class="bg-white rounded-xl border border-gray-200 px-6 py-16 text-center"
         >
-          <div class="flex items-start justify-between gap-3">
-            <h3 class="font-semibold text-gray-900 leading-tight">{flag.name}</h3>
-            <button
-              type="button"
-              phx-click="toggle"
-              phx-value-id={flag.id}
-              role="switch"
-              aria-checked={to_string(flag.enabled)}
-              aria-label="Toggle flag"
-              class={[
-                "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
-                if(flag.enabled, do: "bg-blue-600", else: "bg-slate-300")
-              ]}
-            >
-              <span class={[
-                "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                if(flag.enabled, do: "translate-x-6", else: "translate-x-1")
-              ]}>
-              </span>
-            </button>
-          </div>
+          <span class="material-symbols-outlined text-4xl text-gray-300">flag</span>
+          <p class="mt-2 text-sm font-medium text-gray-900">No feature flags yet</p>
+          <p class="text-sm text-gray-400 mb-4">Create your first flag to start gating features.</p>
+          <button
+            type="button"
+            phx-click={JS.push("open_add_modal") |> show_modal("flag-modal")}
+            class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+          >
+            <span class="material-symbols-outlined text-base">add</span> New flag
+          </button>
+        </div>
 
-          <div class="flex items-center gap-2 mt-2 flex-wrap">
-            <span class="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-              {flag.key}
-            </span>
-            <span
-              :if={flag.required_plan}
-              class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium"
-            >
-              <span class="material-symbols-outlined" style="font-size: 12px;">
-                workspace_premium
-              </span>
-              {String.capitalize(flag.required_plan)}
-            </span>
-            <span :if={is_nil(flag.required_plan)} class="text-xs text-slate-400">All plans</span>
-          </div>
+        <div
+          :if={@stats.total > 0 and @filtered_count == 0}
+          class="bg-white rounded-xl border border-gray-200 px-6 py-16 text-center text-sm text-gray-400"
+        >
+          No flags match your filters
+        </div>
 
-          <p class="text-sm text-slate-500 mt-2 line-clamp-2">
-            {if flag.description in [nil, ""], do: "No description", else: flag.description}
-          </p>
-
-          <div class="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-            <span class="text-xs text-slate-400">
-              Updated {Calendar.strftime(flag.updated_at, "%b %d, %Y")}
-            </span>
-            <div class="flex items-center gap-3">
+        <%!-- Card grid --%>
+        <div
+          id="flags"
+          phx-update="stream"
+          class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"
+        >
+          <div
+            :for={{dom_id, flag} <- @streams.flags}
+            id={dom_id}
+            class={[
+              "bg-white rounded-xl border border-gray-200 border-l-4 p-5 flex flex-col",
+              if(flag.enabled, do: "border-l-blue-500", else: "border-l-slate-300 opacity-75")
+            ]}
+          >
+            <div class="flex items-start justify-between gap-3">
+              <h3 class="font-semibold text-gray-900 leading-tight">{flag.name}</h3>
               <button
                 type="button"
-                phx-click={
-                  JS.push("open_edit_modal", value: %{id: flag.id}) |> show_modal("flag-modal")
-                }
-                class="text-xs font-medium text-blue-600 hover:text-blue-700"
+                phx-click="toggle"
+                phx-value-id={flag.id}
+                role="switch"
+                aria-checked={to_string(flag.enabled)}
+                aria-label="Toggle flag"
+                class={[
+                  "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
+                  if(flag.enabled, do: "bg-blue-600", else: "bg-slate-300")
+                ]}
               >
-                Edit
+                <span class={[
+                  "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                  if(flag.enabled, do: "translate-x-6", else: "translate-x-1")
+                ]}>
+                </span>
               </button>
-              <button
-                type="button"
-                phx-click={
-                  JS.push("open_delete_modal", value: %{id: flag.id})
-                  |> show_modal("delete-flag-modal")
-                }
-                class="text-xs font-medium text-rose-600 hover:text-rose-700"
+            </div>
+
+            <div class="flex items-center gap-2 mt-2 flex-wrap">
+              <span class="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                {flag.key}
+              </span>
+              <span
+                :if={flag.required_plan}
+                class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium"
               >
-                Delete
-              </button>
+                <span class="material-symbols-outlined" style="font-size: 12px;">
+                  workspace_premium
+                </span>
+                {String.capitalize(flag.required_plan)}
+              </span>
+              <span :if={is_nil(flag.required_plan)} class="text-xs text-slate-400">All plans</span>
+            </div>
+
+            <p class="text-sm text-slate-500 mt-2 line-clamp-2">
+              {if flag.description in [nil, ""], do: "No description", else: flag.description}
+            </p>
+
+            <div class="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+              <span class="text-xs text-slate-400">
+                Updated {Calendar.strftime(flag.updated_at, "%b %d, %Y")}
+              </span>
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  phx-click={
+                    JS.push("open_edit_modal", value: %{id: flag.id}) |> show_modal("flag-modal")
+                  }
+                  class="text-xs font-medium text-blue-600 hover:text-blue-700"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  phx-click={
+                    JS.push("open_delete_modal", value: %{id: flag.id})
+                    |> show_modal("delete-flag-modal")
+                  }
+                  class="text-xs font-medium text-rose-600 hover:text-rose-700"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         </div>

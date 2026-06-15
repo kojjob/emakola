@@ -1,36 +1,37 @@
 defmodule EmakolaWeb.Platform.SettingsLiveTest do
   use EmakolaWeb.ConnCase, async: true
 
-  import Phoenix.LiveViewTest
+  use Emakola.LiveViewHelpers
+
   alias Emakola.Factory
 
+  # Log in a platform staff member (owner by default) and return the conn.
   defp log_in_platform_admin(conn) do
-    admin = Factory.create_platform_admin!()
-    token = AshAuthentication.user_to_subject(admin)
-
+    {conn, _user, _session} = setup_platform_staff(conn)
     conn
-    |> Phoenix.ConnTest.init_test_session(%{})
-    |> Plug.Conn.put_session(:user_token, token)
   end
 
-  describe "access control" do
-    test "platform admin can load the page", %{conn: conn} do
+  describe "permission gating" do
+    test "owner can load the page", %{conn: conn} do
       conn = log_in_platform_admin(conn)
       {:ok, _view, html} = live(conn, ~p"/platform/settings")
       assert html =~ "Settings"
       assert html =~ "feature flags"
     end
 
-    test "a non-admin merchant is redirected", %{conn: conn} do
-      {merchant, _store} = Factory.create_merchant_with_store!()
-      token = AshAuthentication.user_to_subject(merchant)
+    test "staff with :manage_settings can load the page", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_settings])
+      {:ok, _view, html} = live(conn, ~p"/platform/settings")
+      assert html =~ "Settings"
+    end
 
-      conn =
-        conn
-        |> Phoenix.ConnTest.init_test_session(%{})
-        |> Plug.Conn.put_session(:user_token, token)
+    test "staff without :manage_settings is bounced to /platform", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_team])
 
-      assert {:error, {:redirect, %{to: "/"}}} = live(conn, ~p"/platform/settings")
+      assert {:error, {:redirect, %{to: "/platform", flash: flash}}} =
+               live(conn, ~p"/platform/settings")
+
+      assert flash["error"] =~ "permission"
     end
   end
 

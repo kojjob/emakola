@@ -583,15 +583,6 @@ defmodule Emakola.Factory do
     |> Ash.create!(authorize?: false)
   end
 
-  # ── Platform Admin ──────────────────────────────────────
-
-  def create_platform_admin!(attrs \\ %{}) do
-    create_user!(attrs)
-    |> Ash.Changeset.for_update(:update_profile, %{})
-    |> Ash.Changeset.force_change_attribute(:is_platform_admin, true)
-    |> Ash.update!(authorize?: false)
-  end
-
   def create_feature_flag!(attrs \\ %{}) do
     params =
       Map.merge(

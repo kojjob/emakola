@@ -160,13 +160,6 @@ defmodule Emakola.FeatureFlagsTest do
     end
   end
 
-  describe "create_platform_admin! factory" do
-    test "creates a user flagged as platform admin" do
-      admin = Factory.create_platform_admin!()
-      assert admin.is_platform_admin == true
-    end
-  end
-
   describe "edge cases" do
     test "handles unknown plan slug gracefully" do
       Factory.create_feature_flag!(%{

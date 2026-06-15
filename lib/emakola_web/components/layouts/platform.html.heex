@@ -187,6 +187,7 @@
       </p>
 
       <.sidebar_link
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_settings)}
         href="/platform/settings"
         title="Settings"
         icon="gear"
