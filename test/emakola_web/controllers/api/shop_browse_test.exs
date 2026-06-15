@@ -81,6 +81,11 @@ defmodule EmakolaWeb.Api.ShopBrowseTest do
     end
   end
 
+  test "GET /api/v1/shop with no slug → 404 (fail-closed, no tenantless leak)", %{conn: conn} do
+    conn = conn |> put_unique_peer_ip() |> get("/api/v1/shop")
+    assert conn.status in [404]
+  end
+
   describe "GET /api/v1/shop/:store_slug" do
     test "returns the store info", %{conn: conn} do
       store = create_store!(%{slug: "pilot", name: "Pilot Store", currency: "GHS"})
