@@ -164,6 +164,14 @@
         active={@active_nav == :billing}
       />
 
+      <.sidebar_link
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_billing)}
+        href="/platform/payments"
+        title="Payments"
+        icon="payments"
+        active={@active_nav == :payments}
+      />
+
       <%!-- Config --%>
       <p class="nav-section-label px-3 text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em] mt-6 mb-1.5">
         Config
