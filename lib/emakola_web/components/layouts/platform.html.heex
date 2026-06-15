@@ -156,6 +156,14 @@
         Finance
       </p>
 
+      <.sidebar_link
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_billing)}
+        href="/platform/payments"
+        title="Payments"
+        icon="payments"
+        active={@active_nav == :payments}
+      />
+
       <a
         href="#"
         title="Billing"
