@@ -12,7 +12,7 @@ defmodule Emakola.Notifications.ContactMailer do
     new()
     |> to(to_address)
     |> from(@from)
-    |> reply_to([email])
+    |> reply_to(email)
     |> subject("[Contact] #{subject}")
     |> text_body("""
     New contact form submission
