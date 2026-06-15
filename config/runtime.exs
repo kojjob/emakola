@@ -73,6 +73,13 @@ if config_env() == :prod do
     adapter: Swoosh.Adapters.Resend,
     api_key: resend_api_key
 
+  config :emakola,
+    contact_email: System.get_env("CONTACT_EMAIL", "support@emakola.com"),
+    careers_email: System.get_env("CAREERS_EMAIL", "careers@emakola.com"),
+    press_email: System.get_env("PRESS_EMAIL", "press@emakola.com"),
+    support_whatsapp: System.get_env("SUPPORT_WHATSAPP", "233200000000"),
+    support_phone: System.get_env("SUPPORT_PHONE", "+233 20 000 0000")
+
   # ChromicPDF (analytics PDF export) — the Docker runner installs Debian's
   # chromium package and runs as a non-root user. Chrome's sandbox needs
   # privileges unavailable in the container, so we follow ChromicPDF's

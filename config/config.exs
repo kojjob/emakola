@@ -31,6 +31,14 @@ config :emakola, EmakolaWeb.Endpoint,
 # at the `config/runtime.exs`.
 config :emakola, Emakola.Mailer, adapter: Swoosh.Adapters.Local
 
+# Company/contact page channels (env-overridable in runtime.exs)
+config :emakola,
+  contact_email: "support@emakola.com",
+  careers_email: "careers@emakola.com",
+  press_email: "press@emakola.com",
+  support_whatsapp: "233200000000",
+  support_phone: "+233 20 000 0000"
+
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.4",

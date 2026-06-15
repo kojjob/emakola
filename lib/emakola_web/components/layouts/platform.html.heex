@@ -139,30 +139,13 @@
         Finance
       </p>
 
-      <a
-        href="#"
+      <.sidebar_link
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_billing)}
+        href="/platform/billing"
         title="Billing"
-        class="sidebar-link opacity-50 cursor-not-allowed pointer-events-none"
-        aria-disabled="true"
-      >
-        <svg
-          class="link-icon w-5 h-5 shrink-0"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.8"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        <span class="nav-label flex-1">Billing</span>
-        <span class="nav-label sidebar-badge sidebar-badge-coming text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white/10 text-white/40">
-          Soon
-        </span>
-      </a>
+        icon="currency"
+        active={@active_nav == :billing}
+      />
 
       <%!-- Config --%>
       <p class="nav-section-label px-3 text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em] mt-6 mb-1.5">

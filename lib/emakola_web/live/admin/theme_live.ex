@@ -639,10 +639,13 @@ defmodule EmakolaWeb.Admin.ThemeLive do
             <div :if={length(@hero_images) < 5} id="hero-upload-section" class="mb-3">
               <form id="hero-upload-form" phx-change="validate_upload" phx-submit="save_hero_image">
                 <div
-                  class="border-2 border-dashed border-slate-300 rounded-lg p-3 text-center hover:border-emerald-400 transition-colors cursor-pointer"
+                  class="relative border-2 border-dashed border-slate-300 rounded-lg p-3 text-center hover:border-emerald-400 transition-colors cursor-pointer"
                   phx-drop-target={@uploads.hero_images.ref}
                 >
-                  <.live_file_input upload={@uploads.hero_images} class="sr-only" />
+                  <.live_file_input
+                    upload={@uploads.hero_images}
+                    class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  />
                   <span class="material-symbols-outlined text-xl text-slate-400">
                     add_photo_alternate
                   </span>
