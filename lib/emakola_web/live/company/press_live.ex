@@ -14,7 +14,7 @@ defmodule EmakolaWeb.Company.PressLive do
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/press"),
        mobile_menu_open: false,
-       press_email: Application.get_env(:emakola, :press_email)
+       press_email: Application.get_env(:emakola, :press_email, "press@emakola.com")
      ), layout: false}
   end
 

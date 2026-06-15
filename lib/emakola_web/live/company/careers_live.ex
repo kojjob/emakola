@@ -14,7 +14,7 @@ defmodule EmakolaWeb.Company.CareersLive do
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/careers"),
        mobile_menu_open: false,
-       careers_email: Application.get_env(:emakola, :careers_email)
+       careers_email: Application.get_env(:emakola, :careers_email, "careers@emakola.com")
      ), layout: false}
   end
 
