@@ -61,7 +61,10 @@ defmodule EmakolaWeb.Platform.PaymentLiveTest do
     test "staff without :manage_billing is bounced to /platform", %{conn: conn} do
       {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_team])
 
-      assert {:error, {:redirect, %{to: "/platform"}}} = live(conn, "/platform/payments")
+      assert {:error, {:redirect, %{to: "/platform", flash: flash}}} =
+               live(conn, "/platform/payments")
+
+      assert flash["error"] =~ "permission"
     end
   end
 

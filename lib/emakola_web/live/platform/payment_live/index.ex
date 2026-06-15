@@ -226,6 +226,11 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
 
   # ── Private components ──────────────────────────────────────────────
 
+  attr :label, :string, required: true
+  attr :value, :any, required: true
+  attr :icon, :string, required: true
+  attr :color, :string, required: true
+
   defp stat(assigns) do
     color_classes = @stat_colors
 
@@ -251,9 +256,13 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
 
   # ── Private helpers ─────────────────────────────────────────────────
 
-  defp format_amount(nil), do: "GHS 0"
-  defp format_amount(cents) when is_integer(cents), do: "GHS #{div(cents, 100)}"
-  defp format_amount(_), do: "GHS 0"
+  defp format_amount(nil), do: "GHS 0.00"
+
+  defp format_amount(cents) when is_integer(cents) do
+    "GHS #{div(cents, 100)}.#{String.pad_leading(to_string(rem(cents, 100)), 2, "0")}"
+  end
+
+  defp format_amount(_), do: "GHS 0.00"
 
   defp format_rate(nil), do: "—"
   defp format_rate(rate), do: "#{round(rate * 100)}%"

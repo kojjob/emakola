@@ -1,6 +1,7 @@
 defmodule Emakola.Platform.Stats do
   @moduledoc "Platform-wide aggregate statistics for the admin dashboard."
   require Ash.Query
+  require Logger
 
   def total_stores do
     Emakola.Stores.Store
@@ -105,6 +106,7 @@ defmodule Emakola.Platform.Stats do
 
   def total_refunded do
     case Emakola.Payments.Payment
+         |> Ash.Query.filter(status == :refunded)
          |> Ash.sum(:refunded_amount, authorize?: false) do
       {:ok, s} -> s || 0
       _ -> 0
@@ -152,8 +154,14 @@ defmodule Emakola.Platform.Stats do
     |> Ash.Query.sort(inserted_at: :desc)
     |> Ash.Query.limit(limit)
     |> Ash.Query.load([:store])
-    |> Ash.read!(authorize?: false)
-  rescue
-    _ -> []
+    |> Ash.read(authorize?: false)
+    |> case do
+      {:ok, results} ->
+        results
+
+      {:error, error} ->
+        Logger.error("[Platform.Stats] recent_by_status/2 failed: #{inspect(error)}")
+        []
+    end
   end
 end
