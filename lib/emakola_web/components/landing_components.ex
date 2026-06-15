@@ -135,16 +135,16 @@ defmodule EmakolaWeb.LandingComponents do
           </.footer_column>
 
           <.footer_column title="Company">
-            <:link href="#">About</:link>
-            <:link href="#">Careers</:link>
-            <:link href="#">Press</:link>
-            <:link href="#">Contact</:link>
+            <:link href="/about">About</:link>
+            <:link href="/careers">Careers</:link>
+            <:link href="/press">Press</:link>
+            <:link href="/contact">Contact</:link>
           </.footer_column>
 
           <.footer_column title="Legal">
-            <:link href="#">Privacy Policy</:link>
-            <:link href="#">Terms of Service</:link>
-            <:link href="#">Cookie Policy</:link>
+            <:link href="/privacy">Privacy Policy</:link>
+            <:link href="/terms">Terms of Service</:link>
+            <:link href="/cookies">Cookie Policy</:link>
           </.footer_column>
         </div>
 
