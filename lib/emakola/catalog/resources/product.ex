@@ -174,14 +174,28 @@ defmodule Emakola.Catalog.Product do
     defaults([:read, :destroy])
 
     read :public_list do
-      description("Public storefront product list — active only, tenant-scoped, newest first.")
+      description("""
+      Public storefront product list — active only, tenant-scoped, newest first.
+      SECURITY: Product is global?(true) multitenant. A call WITHOUT `tenant:` set
+      returns EVERY store's active products (no store_id filter). The public shop
+      API MUST set the Ash tenant (PublicStoreTenant plug) before invoking this —
+      fail-closed if the store slug is unknown; never call tenantless.
+      """)
+
       filter(expr(status == :active))
       prepare(build(sort: [inserted_at: :desc], load: [:min_price, :max_price, :images]))
       pagination(keyset?: true, countable: true, default_limit: 20)
     end
 
     read :public_get do
-      description("Public storefront product fetch — active only, by primary key.")
+      description("""
+      Public storefront product fetch — active only, by primary key.
+      SECURITY: Product is global?(true) multitenant. A call WITHOUT `tenant:` set
+      returns EVERY store's active products (no store_id filter). The public shop
+      API MUST set the Ash tenant (PublicStoreTenant plug) before invoking this —
+      fail-closed if the store slug is unknown; never call tenantless.
+      """)
+
       get?(true)
       filter(expr(status == :active))
       prepare(build(load: [:variants, :images, :min_price, :max_price]))

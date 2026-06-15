@@ -14,6 +14,7 @@ defmodule Emakola.Catalog.PublicBrowseTest do
       p1 = active_product!(store)
       p2 = active_product!(store)
       draft = create_product!(store, %{status: :draft})
+      archived = create_product!(store, %{status: :archived})
       foreign = active_product!(other)
 
       page =
@@ -26,6 +27,7 @@ defmodule Emakola.Catalog.PublicBrowseTest do
       assert p1.id in ids
       assert p2.id in ids
       refute draft.id in ids
+      refute archived.id in ids
       refute foreign.id in ids
       assert length(ids) == 2
     end
@@ -92,6 +94,18 @@ defmodule Emakola.Catalog.PublicBrowseTest do
                )
     end
 
+    test "does not return an archived product" do
+      {_m, store} = create_merchant_with_store!()
+      archived = create_product!(store, %{status: :archived})
+
+      assert {:error, _} =
+               Ash.get(Emakola.Catalog.Product, archived.id,
+                 action: :public_get,
+                 authorize?: false,
+                 tenant: store.id
+               )
+    end
+
     test "does not return a product from another store" do
       {_m, store} = create_merchant_with_store!()
       other = create_store!()
@@ -103,6 +117,26 @@ defmodule Emakola.Catalog.PublicBrowseTest do
                  authorize?: false,
                  tenant: store.id
                )
+    end
+  end
+
+  describe "tenantless-call hazard" do
+    test "DANGER: public_list WITHOUT a tenant returns products across stores (global? true) — A3 plug must always set tenant" do
+      {_m, store_a} = create_merchant_with_store!()
+      store_b = create_store!()
+      create_product!(store_a, %{status: :active})
+      create_product!(store_b, %{status: :active})
+
+      # No tenant: → both stores' products leak. This documents WHY the plug is mandatory.
+      page =
+        Emakola.Catalog.Product
+        |> Ash.Query.for_read(:public_list)
+        |> Ash.read!(authorize?: false)
+
+      store_ids = page.results |> Enum.map(& &1.store_id) |> Enum.uniq()
+
+      assert length(store_ids) >= 2,
+             "tenantless public_list spans stores — the plug is the only guard"
     end
   end
 end
