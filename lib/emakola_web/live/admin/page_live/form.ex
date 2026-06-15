@@ -856,8 +856,11 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
         phx-value-id={@block["id"]}
         phx-value-key={@key}
       >
-        <label class="flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-lg cursor-pointer text-xs text-slate-600 transition-colors">
-          <.live_file_input upload={@uploads.block_media} class="sr-only" />
+        <label class="relative flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 rounded-lg cursor-pointer text-xs text-slate-600 transition-colors">
+          <.live_file_input
+            upload={@uploads.block_media}
+            class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
           <span class="material-symbols-outlined text-base">upload</span>
           {accept_label(@accept)}
         </label>
