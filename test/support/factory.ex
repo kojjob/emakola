@@ -271,6 +271,24 @@ defmodule Emakola.Factory do
     |> Ash.create!(authorize?: false)
   end
 
+  def create_subscription!(org, plan, attrs \\ %{}) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    default = %{
+      organisation_id: org.id,
+      plan_id: plan.id,
+      stripe_subscription_id: "sub_test_#{System.unique_integer([:positive])}",
+      stripe_customer_id: "cus_test_#{System.unique_integer([:positive])}",
+      status: :active,
+      current_period_start: now,
+      current_period_end: DateTime.add(now, 30 * 24 * 3600, :second)
+    }
+
+    Emakola.Billing.Subscription
+    |> Ash.Changeset.for_create(:create, Map.merge(default, Map.new(attrs)))
+    |> Ash.create!(authorize?: false)
+  end
+
   def create_agent!(org, attrs \\ %{}) do
     default = %{
       name: "Test Agent #{System.unique_integer([:positive])}",
