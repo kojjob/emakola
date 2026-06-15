@@ -258,7 +258,8 @@ defmodule EmakolaWeb.Router do
 
     # Platform admin routes (platform staff only). Pages gate themselves with
     # a module-level {Hooks.RequirePermission, permission} on_mount:
-    #   stores → :manage_stores, team → :manage_team, audit-log → :view_audit_log
+    #   stores → :manage_stores, team → :manage_team, audit-log → :view_audit_log,
+    #   billing → :manage_billing, payments → :manage_billing
     # Future pages: merchants → :manage_merchants, settings → :manage_settings.
     live_session :platform,
       layout: {EmakolaWeb.Layouts, :platform},
@@ -273,6 +274,7 @@ defmodule EmakolaWeb.Router do
       live "/platform/security", Platform.SecurityLive
       live "/platform/audit-log", Platform.AuditLogLive
       live "/platform/billing", Platform.BillingLive
+      live "/platform/payments", Platform.PaymentLive.Index
     end
 
     # Authenticated app routes with sidebar layout
