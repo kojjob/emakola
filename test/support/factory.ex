@@ -97,13 +97,38 @@ defmodule Emakola.Factory do
   # ── Merchant (ecommerce auth) ──────────────────────────────────
 
   def create_merchant!(attrs \\ %{}) do
-    Emakola.Accounts.Merchant
-    |> Ash.Changeset.for_create(:register_with_password, %{
-      email: attrs[:email] || unique_email(),
-      password: attrs[:password] || "Password123!",
-      password_confirmation: attrs[:password_confirmation] || attrs[:password] || "Password123!"
-    })
-    |> Ash.create!(authorize?: false)
+    attrs = Map.new(attrs)
+
+    merchant =
+      Emakola.Accounts.Merchant
+      |> Ash.Changeset.for_create(:register_with_password, %{
+        email: attrs[:email] || unique_email(),
+        password: attrs[:password] || "Password123!",
+        password_confirmation: attrs[:password_confirmation] || attrs[:password] || "Password123!"
+      })
+      |> Ash.create!(authorize?: false)
+
+    profile = Map.take(attrs, [:name, :business_name, :phone, :avatar_url])
+
+    merchant =
+      if profile == %{} do
+        merchant
+      else
+        merchant
+        |> Ash.Changeset.for_update(:update_profile, profile)
+        |> Ash.update!(authorize?: false)
+      end
+
+    case attrs[:confirmed_at] do
+      nil ->
+        merchant
+
+      ts ->
+        merchant
+        |> Ash.Changeset.for_update(:update_profile, %{})
+        |> Ash.Changeset.force_change_attribute(:confirmed_at, ts)
+        |> Ash.update!(authorize?: false)
+    end
   end
 
   # ── Store ─────────────────────────────────────────────────────

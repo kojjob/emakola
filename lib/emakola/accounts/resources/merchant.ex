@@ -111,6 +111,20 @@ defmodule Emakola.Accounts.Merchant do
   actions do
     defaults([:read])
 
+    read :list_for_admin do
+      argument(:search, :string, default: "")
+
+      filter(
+        expr(
+          is_nil(^arg(:search)) or ^arg(:search) == "" or
+            ilike(name, ^arg(:search)) or ilike(email, ^arg(:search)) or
+            ilike(business_name, ^arg(:search)) or ilike(phone, ^arg(:search))
+        )
+      )
+
+      prepare(build(sort: [inserted_at: :desc], load: [:stores]))
+    end
+
     update :update_profile do
       accept([:name, :avatar_url, :preferences, :phone, :business_name])
     end
