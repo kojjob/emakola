@@ -14,6 +14,13 @@ defmodule EmakolaWeb.Platform.BillingLive do
 
   alias Emakola.Billing
 
+  @stat_colors %{
+    "blue" => "bg-blue-50 text-blue-600",
+    "emerald" => "bg-emerald-50 text-emerald-600",
+    "violet" => "bg-violet-50 text-violet-600",
+    "amber" => "bg-amber-50 text-amber-600"
+  }
+
   @impl true
   def mount(_params, _session, socket) do
     socket =
@@ -88,6 +95,9 @@ defmodule EmakolaWeb.Platform.BillingLive do
 
   defp interval_suffix(:yearly), do: "/yr"
   defp interval_suffix(_), do: "/mo"
+
+  defp humanize(status),
+    do: status |> to_string() |> String.replace("_", " ") |> String.capitalize()
 
   defp status_class(:active), do: "bg-green-100 text-green-700"
   defp status_class(:trialing), do: "bg-blue-100 text-blue-700"
@@ -217,7 +227,7 @@ defmodule EmakolaWeb.Platform.BillingLive do
                       "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
                       status_class(sub.status)
                     ]}>
-                      {sub.status}
+                      {humanize(sub.status)}
                     </span>
                   </td>
                   <td class="px-6 py-4 text-sm text-gray-500">{date_str(sub.current_period_end)}</td>
@@ -258,7 +268,7 @@ defmodule EmakolaWeb.Platform.BillingLive do
                       "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
                       status_class(inv.status)
                     ]}>
-                      {inv.status}
+                      {humanize(inv.status)}
                     </span>
                   </td>
                   <td class="px-6 py-4 text-sm text-gray-500">
@@ -280,18 +290,11 @@ defmodule EmakolaWeb.Platform.BillingLive do
   attr :color, :string, required: true
 
   defp stat(assigns) do
-    color_classes = %{
-      "blue" => "bg-blue-50 text-blue-600",
-      "emerald" => "bg-emerald-50 text-emerald-600",
-      "violet" => "bg-violet-50 text-violet-600",
-      "amber" => "bg-amber-50 text-amber-600"
-    }
-
     assigns =
       assign(
         assigns,
         :color_class,
-        Map.get(color_classes, assigns.color, "bg-gray-50 text-gray-600")
+        Map.get(@stat_colors, assigns.color, "bg-gray-50 text-gray-600")
       )
 
     ~H"""

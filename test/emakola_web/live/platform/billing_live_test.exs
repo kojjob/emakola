@@ -72,6 +72,7 @@ defmodule EmakolaWeb.Platform.BillingLiveTest do
       {:ok, _view, html} = live(conn, ~p"/platform/billing")
       assert html =~ "No plans configured"
       assert html =~ "No subscriptions yet"
+      assert html =~ "No invoices yet"
     end
   end
 end
