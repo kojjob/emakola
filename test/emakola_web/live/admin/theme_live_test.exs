@@ -53,6 +53,21 @@ defmodule EmakolaWeb.Admin.ThemeLiveTest do
       end
     end
 
+    test "hero image upload renders a tappable overlay input, not clipped sr-only", %{conn: conn} do
+      # iOS Safari fails to open the file picker for a 1px sr-only-clipped input
+      # triggered via a label. The input must be a full-size transparent overlay.
+      {:ok, _view, html} = live(conn, ~p"/admin/theme")
+      input_tag = Regex.run(~r/<input[^>]*name="hero_images"[^>]*>/, html) |> List.first()
+
+      assert input_tag, "expected a hero_images file input on the theme page"
+
+      refute input_tag =~ "sr-only",
+             "file input must not be hidden via clipped sr-only (iOS Safari won't open the picker)"
+
+      assert input_tag =~ "opacity-0",
+             "file input should be a transparent full-size tap overlay"
+    end
+
     test "select_theme switches active theme and applies palette from theme module", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/admin/theme")
 
