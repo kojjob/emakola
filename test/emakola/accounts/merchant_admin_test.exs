@@ -55,4 +55,16 @@ defmodule Emakola.Accounts.MerchantAdminTest do
       refute is_nil(m.confirmed_at)
     end
   end
+
+  describe "get_merchant/1" do
+    test "returns merchant by id" do
+      merchant = Factory.create_merchant!()
+      assert {:ok, found} = Accounts.get_merchant(merchant.id, authorize?: false)
+      assert found.id == merchant.id
+    end
+
+    test "returns error for unknown id" do
+      assert {:error, _} = Accounts.get_merchant(Ecto.UUID.generate(), authorize?: false)
+    end
+  end
 end

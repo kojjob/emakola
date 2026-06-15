@@ -109,25 +109,19 @@ defmodule Emakola.Factory do
       |> Ash.create!(authorize?: false)
 
     profile = Map.take(attrs, [:name, :business_name, :phone, :avatar_url])
+    confirmed_at = attrs[:confirmed_at]
 
-    merchant =
-      if profile == %{} do
-        merchant
-      else
-        merchant
-        |> Ash.Changeset.for_update(:update_profile, profile)
-        |> Ash.update!(authorize?: false)
-      end
+    if profile == %{} and is_nil(confirmed_at) do
+      merchant
+    else
+      changeset = Ash.Changeset.for_update(merchant, :update_profile, profile)
 
-    case attrs[:confirmed_at] do
-      nil ->
-        merchant
+      changeset =
+        if confirmed_at,
+          do: Ash.Changeset.force_change_attribute(changeset, :confirmed_at, confirmed_at),
+          else: changeset
 
-      ts ->
-        merchant
-        |> Ash.Changeset.for_update(:update_profile, %{})
-        |> Ash.Changeset.force_change_attribute(:confirmed_at, ts)
-        |> Ash.update!(authorize?: false)
+      Ash.update!(changeset, authorize?: false)
     end
   end
 
