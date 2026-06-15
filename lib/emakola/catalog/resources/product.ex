@@ -17,6 +17,13 @@ defmodule Emakola.Catalog.Product do
 
   json_api do
     type("product")
+    includes(variants: [], images: [])
+
+    routes do
+      base("/products")
+      index(:public_list)
+      get(:public_get)
+    end
   end
 
   multitenancy do
@@ -128,8 +135,14 @@ defmodule Emakola.Catalog.Product do
       public?(true)
     end
 
-    has_many :variants, Emakola.Catalog.Variant
-    has_many :images, Emakola.Catalog.Image
+    has_many :variants, Emakola.Catalog.Variant do
+      public?(true)
+    end
+
+    has_many :images, Emakola.Catalog.Image do
+      public?(true)
+    end
+
     has_many :reviews, Emakola.Catalog.Review
     has_many :digital_files, Emakola.Catalog.DigitalFile
   end
