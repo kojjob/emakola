@@ -4,7 +4,11 @@ defmodule Emakola.Catalog do
 
   All resources are multi-tenant, scoped to a store via store_id.
   """
-  use Ash.Domain
+  use Ash.Domain, extensions: [AshJsonApi.Domain]
+
+  json_api do
+    prefix("/api/v1/shop")
+  end
 
   resources do
     resource Emakola.Catalog.Category do

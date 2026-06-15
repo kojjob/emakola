@@ -12,7 +12,12 @@ defmodule Emakola.Catalog.Product do
   use Ash.Resource,
     domain: Emakola.Catalog,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    extensions: [AshJsonApi.Resource]
+
+  json_api do
+    type("product")
+  end
 
   multitenancy do
     strategy(:attribute)
@@ -131,8 +136,14 @@ defmodule Emakola.Catalog.Product do
 
   aggregates do
     count(:variant_count, :variants)
-    min(:min_price, :variants, :price)
-    max(:max_price, :variants, :price)
+
+    min :min_price, :variants, :price do
+      public?(true)
+    end
+
+    max :max_price, :variants, :price do
+      public?(true)
+    end
 
     count :review_count, :reviews do
       filter(expr(status == :published))

@@ -17,7 +17,12 @@ defmodule Emakola.Catalog.Variant do
   use Ash.Resource,
     domain: Emakola.Catalog,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    extensions: [AshJsonApi.Resource]
+
+  json_api do
+    type("variant")
+  end
 
   multitenancy do
     strategy(:attribute)
