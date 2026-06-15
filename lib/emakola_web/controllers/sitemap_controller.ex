@@ -35,7 +35,20 @@ defmodule EmakolaWeb.SitemapController do
     base = EmakolaWeb.Endpoint.url()
 
     entries =
-      ["/", "/pricing", "/stores", "/docs"]
+      [
+        "/",
+        "/pricing",
+        "/stores",
+        "/docs",
+        "/about",
+        "/careers",
+        "/press",
+        "/contact",
+        "/legal",
+        "/privacy",
+        "/terms",
+        "/cookies"
+      ]
       |> Enum.map_join("\n", fn path ->
         "  <url><loc>#{xml_escape(base <> path)}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>"
       end)
