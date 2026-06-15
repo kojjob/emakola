@@ -249,6 +249,7 @@ defmodule EmakolaWeb.Router do
     live "/docs", Docs.DocsLive
     live "/about", Company.AboutLive
     live "/careers", Company.CareersLive
+    live "/press", Company.PressLive
 
     # Platform admin routes (platform staff only). Pages gate themselves with
     # a module-level {Hooks.RequirePermission, permission} on_mount:
