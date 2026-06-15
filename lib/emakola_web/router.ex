@@ -275,6 +275,7 @@ defmodule EmakolaWeb.Router do
       live "/platform/audit-log", Platform.AuditLogLive
       live "/platform/billing", Platform.BillingLive
       live "/platform/payments", Platform.PaymentLive.Index
+      live "/platform/settings", Platform.SettingsLive
     end
 
     # Authenticated app routes with sidebar layout
