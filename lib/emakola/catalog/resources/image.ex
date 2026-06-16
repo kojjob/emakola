@@ -115,7 +115,13 @@ defmodule Emakola.Catalog.Image do
   end
 
   actions do
-    defaults([:read, :destroy])
+    defaults([:read])
+
+    destroy :destroy do
+      primary?(true)
+      # Enqueue object-storage cleanup so the deleted row's files aren't orphaned.
+      change(Emakola.Catalog.Changes.DeleteImageFiles)
+    end
 
     create :create do
       accept([
