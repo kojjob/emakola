@@ -87,6 +87,39 @@ defmodule EmakolaWeb.Helpers.SEO do
   end
 
   @doc """
+  Generates schema.org Organization JSON-LD for the Emakola brand.
+
+  Used on the apex marketing pages (About, Contact) to describe the
+  company entity to search engines. URLs are derived from the endpoint.
+  """
+  @spec json_ld_organization() :: map()
+  def json_ld_organization do
+    base = EmakolaWeb.Endpoint.url()
+
+    %{
+      "@context" => "https://schema.org",
+      "@type" => "Organization",
+      "name" => "Emakola",
+      "url" => base,
+      "logo" => base <> "/images/emakola-logo.svg",
+      "description" =>
+        "Emakola is a multi-tenant commerce platform for West Africa — " <>
+          "mobile money payments, WhatsApp order alerts, and storefronts " <>
+          "built for low-bandwidth phones.",
+      "areaServed" => [
+        %{"@type" => "Country", "name" => "Ghana"},
+        %{"@type" => "Country", "name" => "Nigeria"}
+      ],
+      "contactPoint" => %{
+        "@type" => "ContactPoint",
+        "contactType" => "customer support",
+        "email" => "support@emakola.com",
+        "availableLanguage" => ["English"]
+      }
+    }
+  end
+
+  @doc """
   Generates schema.org BreadcrumbList JSON-LD structured data.
 
   Each crumb should be a map with `:name` and `:url` keys.

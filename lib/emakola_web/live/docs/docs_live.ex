@@ -308,17 +308,6 @@ defmodule EmakolaWeb.Docs.DocsLive do
           Everything you need to launch a storefront — multi-tenant stores, mobile money
           payments, WhatsApp order alerts, and the merchant mobile API.
         </p>
-
-        <div class="about-rise relative max-w-xl mt-8" style="animation-delay: 0.3s">
-          <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#8896ab] text-lg">
-            search
-          </span>
-          <input
-            type="text"
-            placeholder="Search documentation…"
-            class="w-full rounded-xl border border-white/10 bg-white/5 pl-12 pr-4 py-3.5 text-sm text-[#f1f5f9] placeholder:text-[#8896ab] outline-none transition-all focus:border-[#d4a843]/50 focus:ring-4 focus:ring-[#d4a843]/15"
-          />
-        </div>
       </div>
     </section>
     """

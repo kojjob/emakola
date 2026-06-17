@@ -2,7 +2,7 @@ defmodule EmakolaWeb.Company.AboutLive do
   use EmakolaWeb, :live_view
 
   import EmakolaWeb.LandingComponents, only: [landing_nav: 1, landing_footer: 1]
-  import EmakolaWeb.CompanyComponents, only: [cta_band: 1]
+  import EmakolaWeb.CompanyComponents, only: [cta_band: 1, marketing_hero: 1]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -13,6 +13,7 @@ defmodule EmakolaWeb.Company.AboutLive do
          "Emakola helps West African merchants sell online with mobile money, WhatsApp orders, and storefronts built for low-bandwidth phones.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/about"),
+       json_ld: EmakolaWeb.Helpers.SEO.json_ld_organization(),
        mobile_menu_open: false
      ), layout: false}
   end
@@ -32,7 +33,12 @@ defmodule EmakolaWeb.Company.AboutLive do
     >
       <.landing_nav mobile_menu_open={@mobile_menu_open} />
       <main>
-        <.hero />
+        <.marketing_hero
+          eyebrow="Our story"
+          title="Building commerce for"
+          highlight="West Africa"
+          subtitle="Emakola gives every merchant the tools to sell online — mobile money, WhatsApp orders, and storefronts that load on any phone, on any network."
+        />
         <.mission />
         <.beliefs />
         <.footprint />
@@ -47,62 +53,6 @@ defmodule EmakolaWeb.Company.AboutLive do
       </main>
       <.landing_footer />
     </div>
-    """
-  end
-
-  # ─────────────────────────────────────────────────────────────────────
-  # Hero — dark, cinematic, with atmospheric glow + dot grid, closed off by
-  # a kente-cloth divider that hands off to the light editorial body.
-  # ─────────────────────────────────────────────────────────────────────
-  defp hero(assigns) do
-    ~H"""
-    <section class="relative isolate overflow-hidden bg-[#0c1526] text-[#f1f5f9] pt-16">
-      <div
-        aria-hidden="true"
-        class="absolute inset-0 -z-10"
-        style="background:
-          radial-gradient(60rem 32rem at 86% -12%, rgba(212,168,67,0.22), transparent 60%),
-          radial-gradient(48rem 30rem at -4% 112%, rgba(181,83,46,0.18), transparent 55%);"
-      >
-      </div>
-
-      <div class="relative max-w-5xl mx-auto px-4 sm:px-6 py-24 lg:py-36 text-center">
-        <span class="about-rise inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#d4a843]/30 bg-[#d4a843]/10 text-xs font-semibold uppercase tracking-[0.22em] text-[#d4a843]">
-          <span class="w-1.5 h-1.5 rounded-full bg-[#d4a843] animate-pulse"></span> Our story
-        </span>
-        <h1
-          class="about-rise mt-7 text-4xl sm:text-5xl lg:text-6xl font-headline font-extrabold leading-[1.08] [text-shadow:0_2px_20px_rgba(12,21,38,0.55)]"
-          style="animation-delay: 0.12s"
-        >
-          Building commerce for
-          <span class="relative whitespace-nowrap text-[#d4a843]">
-            West Africa
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 300 14"
-              preserveAspectRatio="none"
-              class="absolute -bottom-2 left-0 w-full h-2.5 text-[#d4a843]/70"
-            >
-              <path
-                class="about-underline"
-                d="M2 9 C 60 3, 110 3, 150 7 S 250 11, 298 5"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-                stroke-linecap="round"
-              />
-            </svg>
-          </span>
-        </h1>
-        <p
-          class="about-rise mt-8 text-base lg:text-xl text-[#cbd5e1] max-w-2xl mx-auto leading-relaxed"
-          style="animation-delay: 0.24s"
-        >
-          Emakola gives every merchant the tools to sell online — mobile money, WhatsApp
-          orders, and storefronts that load on any phone, on any network.
-        </p>
-      </div>
-    </section>
     """
   end
 

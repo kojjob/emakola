@@ -6,6 +6,74 @@ defmodule EmakolaWeb.CompanyComponents do
   """
   use Phoenix.Component
 
+  @doc """
+  Dark cinematic marketing hero shared by the company pages: gold eyebrow
+  pill, headline with an optional gold-underlined trailing word, and subtitle.
+  Entrance animation via the `about-rise` utility; reduced-motion safe.
+
+  The full "title highlight" string is rendered once as `sr-only` for screen
+  readers, with the visual (split) copy marked `aria-hidden`.
+  """
+  attr :eyebrow, :string, required: true
+  attr :title, :string, required: true
+  attr :highlight, :string, default: nil
+  attr :subtitle, :string, default: nil
+  attr :padding, :string, default: "py-24 lg:py-32"
+
+  def marketing_hero(assigns) do
+    ~H"""
+    <section class="relative isolate overflow-hidden bg-[#0c1526] text-[#f1f5f9] pt-16">
+      <div
+        aria-hidden="true"
+        class="absolute inset-0 -z-10"
+        style="background:
+          radial-gradient(58rem 30rem at 85% -12%, rgba(212,168,67,0.20), transparent 60%),
+          radial-gradient(46rem 28rem at -4% 110%, rgba(181,83,46,0.16), transparent 55%);"
+      >
+      </div>
+
+      <div class={["relative max-w-4xl mx-auto px-4 sm:px-6 text-center", @padding]}>
+        <span class="about-rise inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#d4a843]/30 bg-[#d4a843]/10 text-xs font-semibold uppercase tracking-[0.22em] text-[#d4a843]">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#d4a843] animate-pulse"></span> {@eyebrow}
+        </span>
+        <h1
+          class="about-rise mt-7 text-4xl sm:text-5xl lg:text-6xl font-headline font-extrabold leading-[1.08] [text-shadow:0_2px_20px_rgba(12,21,38,0.55)]"
+          style="animation-delay: 0.12s"
+        >
+          <span :if={@highlight} class="sr-only">{@title} {@highlight}</span>
+          <span aria-hidden={@highlight && "true"}>
+            {@title}
+            <span :if={@highlight} class="relative whitespace-nowrap text-[#d4a843]">
+              {@highlight}
+              <svg
+                viewBox="0 0 200 14"
+                preserveAspectRatio="none"
+                class="absolute -bottom-2 left-0 w-full h-2.5 text-[#d4a843]/70"
+              >
+                <path
+                  class="about-underline"
+                  d="M2 9 C 50 3, 100 3, 135 7 S 188 11, 198 5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </span>
+          </span>
+        </h1>
+        <p
+          :if={@subtitle}
+          class="about-rise mt-8 text-base lg:text-xl text-[#cbd5e1] max-w-2xl mx-auto leading-relaxed"
+          style="animation-delay: 0.24s"
+        >
+          {@subtitle}
+        </p>
+      </div>
+    </section>
+    """
+  end
+
   attr :eyebrow, :string, default: nil
   attr :title, :string, required: true
   attr :subtitle, :string, default: nil
