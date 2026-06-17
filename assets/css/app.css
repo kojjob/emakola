@@ -646,3 +646,30 @@ html.high-contrast {
     .step-arrow { animation: none; }
   }
 }
+
+/* About page: hero entrance (staggered fade-up) + headline underline draw.
+   Apply animation-delay inline for the stagger; respects reduced-motion. */
+@layer components {
+  @keyframes about-rise {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .about-rise {
+    opacity: 0;
+    animation: about-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes about-underline {
+    to { stroke-dashoffset: 0; }
+  }
+  .about-underline {
+    stroke-dasharray: 320;
+    stroke-dashoffset: 320;
+    animation: about-underline 0.9s ease-out 0.55s forwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .about-rise { opacity: 1; animation: none; }
+    .about-underline { stroke-dashoffset: 0; animation: none; }
+  }
+}

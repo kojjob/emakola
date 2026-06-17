@@ -26,14 +26,12 @@ defmodule EmakolaWeb.Company.TermsLive do
     ~H"""
     <div class="min-h-screen bg-white font-body antialiased">
       <.landing_nav mobile_menu_open={@mobile_menu_open} />
-      <main class="pt-16">
-        <.page_hero
-          eyebrow="Legal"
+      <main>
+        <.legal_layout
           title="Terms of Service"
           subtitle="The rules and agreements that govern your use of Emakola."
-        />
-
-        <.legal_layout title="Terms of Service" last_updated="June 15, 2026">
+          last_updated="June 15, 2026"
+        >
           <:section id="acceptance" title="Acceptance of terms">
             <p class="text-[#5f6b7a] leading-relaxed">
               By creating an account, accessing, or using the Emakola platform (the "Service"),

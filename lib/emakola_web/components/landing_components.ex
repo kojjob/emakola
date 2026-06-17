@@ -79,29 +79,33 @@ defmodule EmakolaWeb.LandingComponents do
           </button>
         </div>
       </div>
-      <div
-        :if={@mobile_menu_open}
-        class="md:hidden fixed inset-0 top-16 bg-[#0c1526] z-40 flex flex-col items-center justify-start pt-12 gap-6 animate-slide-down"
-      >
-        <a href="/#how-it-works" phx-click="toggle_mobile_menu" class="text-lg text-[#8896ab]">
-          How it works
-        </a>
-        <a href="/#features" phx-click="toggle_mobile_menu" class="text-lg text-[#8896ab]">
-          Features
-        </a>
-        <a href="/#faq" phx-click="toggle_mobile_menu" class="text-lg text-[#8896ab]">FAQ</a>
-        <a href="/pricing" phx-click="toggle_mobile_menu" class="text-lg text-[#8896ab]">Pricing</a>
-        <a href="/stores" class="text-lg text-[#8896ab]">Browse stores</a>
-        <hr class="w-24 border-[#1a2744]" />
-        <a href="/auth/login" class="text-lg text-[#8896ab]">Login</a>
-        <a
-          href="/auth/register"
-          class="inline-flex items-center px-6 py-3 text-base font-semibold text-[#0c1526] bg-[#d4a843] rounded-lg"
-        >
-          Get Started
-        </a>
-      </div>
     </nav>
+
+    <%!-- Mobile menu lives OUTSIDE <nav>: the nav's backdrop-blur would
+          otherwise become the containing block for this fixed overlay and
+          collapse its height. --%>
+    <div
+      :if={@mobile_menu_open}
+      class="md:hidden fixed inset-0 top-16 z-40 bg-[#0c1526] flex flex-col items-center justify-start pt-12 gap-6 animate-slide-down"
+    >
+      <a href="/#how-it-works" phx-click="toggle_mobile_menu" class="text-lg text-[#e2e8f0]">
+        How it works
+      </a>
+      <a href="/#features" phx-click="toggle_mobile_menu" class="text-lg text-[#e2e8f0]">
+        Features
+      </a>
+      <a href="/#faq" phx-click="toggle_mobile_menu" class="text-lg text-[#e2e8f0]">FAQ</a>
+      <a href="/pricing" phx-click="toggle_mobile_menu" class="text-lg text-[#e2e8f0]">Pricing</a>
+      <a href="/stores" class="text-lg text-[#e2e8f0]">Browse stores</a>
+      <hr class="w-24 border-[#1a2744]" />
+      <a href="/auth/login" class="text-lg text-[#e2e8f0]">Login</a>
+      <a
+        href="/auth/register"
+        class="inline-flex items-center px-6 py-3 text-base font-semibold text-[#0c1526] bg-[#d4a843] rounded-lg"
+      >
+        Get Started
+      </a>
+    </div>
     """
   end
 

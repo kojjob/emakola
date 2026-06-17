@@ -26,14 +26,12 @@ defmodule EmakolaWeb.Company.CookiesLive do
     ~H"""
     <div class="min-h-screen bg-white font-body antialiased">
       <.landing_nav mobile_menu_open={@mobile_menu_open} />
-      <main class="pt-16">
-        <.page_hero
-          eyebrow="Legal"
+      <main>
+        <.legal_layout
           title="Cookie Policy"
           subtitle="How and why we use cookies and similar technologies on the Emakola platform."
-        />
-
-        <.legal_layout title="Cookie Policy" last_updated="June 15, 2026">
+          last_updated="June 15, 2026"
+        >
           <:section id="what-cookies-are" title="What cookies are">
             <p class="text-[#5f6b7a] leading-relaxed">
               Cookies are small text files placed on your device by a website when you visit it.
