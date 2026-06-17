@@ -15,6 +15,7 @@ defmodule EmakolaWeb.Company.ContactLive do
          "Get in touch with the Emakola team — contact form, WhatsApp, email, and phone.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/contact"),
+       json_ld: EmakolaWeb.Helpers.SEO.json_ld_organization(),
        mobile_menu_open: false,
        form: empty_form(),
        sent: false,

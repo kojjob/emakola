@@ -13,6 +13,7 @@ defmodule EmakolaWeb.Company.AboutLive do
          "Emakola helps West African merchants sell online with mobile money, WhatsApp orders, and storefronts built for low-bandwidth phones.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/about"),
+       json_ld: EmakolaWeb.Helpers.SEO.json_ld_organization(),
        mobile_menu_open: false
      ), layout: false}
   end
