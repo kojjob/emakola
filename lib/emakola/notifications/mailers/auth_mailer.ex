@@ -4,7 +4,7 @@ defmodule Emakola.Notifications.AuthMailer do
 
   alias Emakola.Mailer
 
-  @from {"Emakola", "noreply@founderpad.io"}
+  @from {"Emakola", "noreply@emakola.com"}
 
   def welcome(user) do
     new()
