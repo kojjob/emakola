@@ -4,7 +4,7 @@ defmodule Emakola.Notifications.BillingMailer do
 
   alias Emakola.Mailer
 
-  @from {"Emakola", "billing@founderpad.io"}
+  @from {"Emakola", "billing@emakola.com"}
 
   def subscription_created(user, plan) do
     new()

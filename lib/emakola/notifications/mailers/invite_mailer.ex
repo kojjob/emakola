@@ -4,7 +4,7 @@ defmodule Emakola.Notifications.InviteMailer do
 
   alias Emakola.Mailer
 
-  @from {"Emakola", "noreply@founderpad.io"}
+  @from {"Emakola", "noreply@emakola.com"}
 
   def invite(email, org_name) do
     register_url = "#{EmakolaWeb.Endpoint.url()}/auth/register"
