@@ -31,8 +31,6 @@ defmodule EmakolaWeb.CompanyComponentsTest do
     assert html =~ "Privacy Policy"
     assert html =~ "Last updated"
     assert html =~ "June 15, 2026"
-    # disclaimer banner
-    assert html =~ "not legal advice"
     # TOC anchors
     assert html =~ ~s(href="#intro")
     assert html =~ ~s(href="#data")

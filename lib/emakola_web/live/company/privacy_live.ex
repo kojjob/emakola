@@ -26,14 +26,12 @@ defmodule EmakolaWeb.Company.PrivacyLive do
     ~H"""
     <div class="min-h-screen bg-white font-body antialiased">
       <.landing_nav mobile_menu_open={@mobile_menu_open} />
-      <main class="pt-16">
-        <.page_hero
-          eyebrow="Legal"
+      <main>
+        <.legal_layout
           title="Privacy Policy"
           subtitle="How we collect, use, and protect your information."
-        />
-
-        <.legal_layout title="Privacy Policy" last_updated="June 15, 2026">
+          last_updated="June 15, 2026"
+        >
           <:section id="introduction" title="Introduction">
             <p class="text-[#5f6b7a] leading-relaxed">
               This Privacy Policy explains how Emakola ("we", "us", "our") collects, uses, and
