@@ -161,15 +161,7 @@ defmodule EmakolaWeb.CompanyComponents do
     <%!-- Document body --%>
     <section class="px-4 sm:px-6 py-12 lg:py-16">
       <div class="max-w-5xl mx-auto">
-        <div class="flex gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-900">
-          <span class="material-symbols-outlined text-lg shrink-0">info</span>
-          <p>
-            This document is a template provided for information only and is <strong>not legal advice</strong>. Have it reviewed by qualified counsel before
-            relying on it.
-          </p>
-        </div>
-
-        <div class="mt-10 grid lg:grid-cols-[240px_1fr] gap-10 lg:gap-14">
+        <div class="grid lg:grid-cols-[240px_1fr] gap-10 lg:gap-14">
           <%!-- Table of contents --%>
           <nav class="lg:sticky lg:top-24 lg:self-start">
             <details open>
