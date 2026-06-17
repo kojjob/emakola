@@ -4,7 +4,7 @@ defmodule Emakola.Notifications.Mailers.PlatformInviteMailer do
 
   alias Emakola.Mailer
 
-  @from {"Emakola", "noreply@founderpad.io"}
+  @from {"Emakola", "noreply@emakola.com"}
 
   def invite(email, raw_token, inviter_name) do
     url = "#{EmakolaWeb.Endpoint.url()}/platform/invite/accept/#{raw_token}"
