@@ -142,3 +142,6 @@ stitch-store-preview.png
 
 # Generated OpenAPI spec (run: mix openapi.spec.json --spec EmakolaWeb.ApiRouter --pretty=true)
 /openapi.json
+
+# Claude tooling
+.claire/
