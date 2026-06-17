@@ -118,6 +118,7 @@ defmodule EmakolaWeb.CompanyComponents do
   """
   attr :title, :string, required: true
   attr :last_updated, :string, required: true
+  attr :subtitle, :string, default: nil
 
   slot :section, required: true do
     attr :id, :string, required: true
@@ -126,31 +127,63 @@ defmodule EmakolaWeb.CompanyComponents do
 
   def legal_layout(assigns) do
     ~H"""
-    <section class="px-4 py-12 lg:py-16">
-      <div class="max-w-5xl mx-auto">
-        <h1 class="text-3xl lg:text-4xl font-headline font-bold text-[#0c1526]">{@title}</h1>
-        <p class="mt-2 text-sm text-[#8896ab]">Last updated {@last_updated}</p>
+    <%!-- Dark brand hero --%>
+    <section class="relative isolate overflow-hidden bg-[#0c1526] text-[#f1f5f9] pt-16">
+      <div
+        aria-hidden="true"
+        class="absolute inset-0 -z-10"
+        style="background:
+          radial-gradient(54rem 26rem at 86% -20%, rgba(212,168,67,0.18), transparent 60%),
+          radial-gradient(40rem 24rem at -4% 120%, rgba(181,83,46,0.12), transparent 55%);"
+      >
+      </div>
 
-        <div class="mt-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-900">
-          This document is a template provided for information only and is <strong>not legal advice</strong>. Have it reviewed by qualified counsel
-          before relying on it.
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 py-16 lg:py-20">
+        <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#d4a843]/30 bg-[#d4a843]/10 text-xs font-semibold uppercase tracking-[0.22em] text-[#d4a843]">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#d4a843]"></span> Legal
+        </span>
+        <h1 class="mt-6 text-4xl lg:text-5xl font-headline font-extrabold leading-[1.08] [text-shadow:0_2px_20px_rgba(12,21,38,0.55)]">
+          {@title}
+        </h1>
+        <p
+          :if={@subtitle}
+          class="mt-4 text-base lg:text-lg text-[#cbd5e1] max-w-2xl leading-relaxed"
+        >
+          {@subtitle}
+        </p>
+        <span class="mt-6 inline-flex items-center gap-2 text-sm text-[#8896ab]">
+          <span class="material-symbols-outlined text-base text-[#d4a843]">update</span>
+          Last updated {@last_updated}
+        </span>
+      </div>
+    </section>
+
+    <%!-- Document body --%>
+    <section class="px-4 sm:px-6 py-12 lg:py-16">
+      <div class="max-w-5xl mx-auto">
+        <div class="flex gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200 text-sm text-amber-900">
+          <span class="material-symbols-outlined text-lg shrink-0">info</span>
+          <p>
+            This document is a template provided for information only and is <strong>not legal advice</strong>. Have it reviewed by qualified counsel before
+            relying on it.
+          </p>
         </div>
 
-        <div class="mt-10 grid lg:grid-cols-[240px_1fr] gap-10">
+        <div class="mt-10 grid lg:grid-cols-[240px_1fr] gap-10 lg:gap-14">
           <%!-- Table of contents --%>
           <nav class="lg:sticky lg:top-24 lg:self-start">
             <details open>
-              <summary class="lg:hidden cursor-pointer text-sm font-semibold text-[#0c1526] mb-2">
+              <summary class="lg:hidden cursor-pointer text-sm font-semibold text-[#0c1526] mb-3">
                 On this page
               </summary>
-              <p class="hidden lg:block text-xs font-semibold uppercase tracking-wider text-[#8896ab] mb-3">
+              <p class="hidden lg:block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8896ab] mb-4">
                 On this page
               </p>
-              <ul class="space-y-2">
+              <ul class="space-y-1">
                 <li :for={s <- @section}>
                   <a
                     href={"#" <> s.id}
-                    class="text-sm text-[#5f6b7a] hover:text-[#0c1526] transition-colors"
+                    class="block py-1.5 pl-3 text-sm border-l-2 border-transparent text-[#5f6b7a] hover:text-[#0c1526] hover:border-[#d4a843] transition-colors"
                   >
                     {s.title}
                   </a>
@@ -160,9 +193,11 @@ defmodule EmakolaWeb.CompanyComponents do
           </nav>
 
           <%!-- Prose --%>
-          <article class="min-w-0">
-            <section :for={s <- @section} id={s.id} class="mb-10 scroll-mt-24">
-              <h2 class="text-xl font-headline font-semibold text-[#0c1526] mb-4">{s.title}</h2>
+          <article class="min-w-0 max-w-2xl">
+            <section :for={s <- @section} id={s.id} class="mb-12 scroll-mt-24">
+              <h2 class="text-xl lg:text-2xl font-headline font-bold text-[#0c1526] mb-4">
+                {s.title}
+              </h2>
               <div class="space-y-4">{render_slot(s)}</div>
             </section>
           </article>

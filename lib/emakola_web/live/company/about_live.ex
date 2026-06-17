@@ -2,7 +2,7 @@ defmodule EmakolaWeb.Company.AboutLive do
   use EmakolaWeb, :live_view
 
   import EmakolaWeb.LandingComponents, only: [landing_nav: 1, landing_footer: 1]
-  import EmakolaWeb.CompanyComponents
+  import EmakolaWeb.CompanyComponents, only: [cta_band: 1]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -25,66 +25,17 @@ defmodule EmakolaWeb.Company.AboutLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-white font-body antialiased">
+    <div
+      id="about-scroll"
+      phx-hook="ScrollReveal"
+      class="min-h-screen bg-white font-body antialiased"
+    >
       <.landing_nav mobile_menu_open={@mobile_menu_open} />
-      <main class="pt-16">
-        <.page_hero
-          eyebrow="Our story"
-          title="Building commerce for West Africa"
-          subtitle="Emakola gives every merchant the tools to sell online — mobile money, WhatsApp orders, and storefronts that load on any phone."
-        />
-
-        <section class="px-4 py-12">
-          <div class="max-w-3xl mx-auto">
-            <h2 class="text-2xl font-headline font-bold text-[#0c1526] mb-4">Our mission</h2>
-            <p class="text-[#5f6b7a] leading-relaxed mb-4">
-              Across Ghana and Nigeria, millions of merchants sell on WhatsApp, in markets,
-              and from their phones — but the tools built for them assume fast internet,
-              cards, and addresses that don't match how commerce actually works here.
-            </p>
-            <p class="text-[#5f6b7a] leading-relaxed mb-4">
-              Emakola is online retail rebuilt for West Africa: mobile money first
-              (MTN MoMo, Vodafone Cash, AirtelTigo), WhatsApp and SMS order alerts, and
-              storefronts optimized for low-bandwidth devices. We handle the technology so
-              merchants can focus on selling.
-            </p>
-            <p class="text-[#5f6b7a] leading-relaxed">
-              We started in Ghana and are expanding across the region, one merchant at a time.
-            </p>
-          </div>
-        </section>
-
-        <section class="px-4 py-12 bg-[#f8fafc]">
-          <div class="max-w-5xl mx-auto">
-            <h2 class="text-2xl font-headline font-bold text-[#0c1526] text-center mb-10">
-              What we believe
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <.value_card icon="smartphone" title="Mobile money first">
-                Payments built around how West Africa actually pays — not cards bolted on later.
-              </.value_card>
-              <.value_card icon="bolt" title="Low-bandwidth ready">
-                Fast on any phone and any network, because that's what our merchants use.
-              </.value_card>
-              <.value_card icon="storefront" title="Merchant-obsessed">
-                Every decision starts with the person running the store, not the spreadsheet.
-              </.value_card>
-              <.value_card icon="public" title="Built for the region">
-                Local languages, local payments, local logistics — designed for here.
-              </.value_card>
-            </div>
-          </div>
-        </section>
-
-        <section class="px-4 py-12">
-          <div class="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-6">
-            <.stat value="Ghana" label="Where we started" />
-            <.stat value="Nigeria" label="Expanding next" />
-            <.stat value="Mobile money" label="Payments, first-class" />
-            <.stat value="WhatsApp" label="Orders & alerts" />
-          </div>
-        </section>
-
+      <main>
+        <.hero />
+        <.mission />
+        <.beliefs />
+        <.footprint />
         <.cta_band
           title="Want to build the future of commerce with us?"
           subtitle="We're a small team with a big mission. Come help merchants across the region grow."
@@ -95,6 +46,233 @@ defmodule EmakolaWeb.Company.AboutLive do
         />
       </main>
       <.landing_footer />
+    </div>
+    """
+  end
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Hero — dark, cinematic, with atmospheric glow + dot grid, closed off by
+  # a kente-cloth divider that hands off to the light editorial body.
+  # ─────────────────────────────────────────────────────────────────────
+  defp hero(assigns) do
+    ~H"""
+    <section class="relative isolate overflow-hidden bg-[#0c1526] text-[#f1f5f9] pt-16">
+      <div
+        aria-hidden="true"
+        class="absolute inset-0 -z-10"
+        style="background:
+          radial-gradient(60rem 32rem at 86% -12%, rgba(212,168,67,0.22), transparent 60%),
+          radial-gradient(48rem 30rem at -4% 112%, rgba(181,83,46,0.18), transparent 55%);"
+      >
+      </div>
+
+      <div class="relative max-w-5xl mx-auto px-4 sm:px-6 py-24 lg:py-36 text-center">
+        <span class="about-rise inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#d4a843]/30 bg-[#d4a843]/10 text-xs font-semibold uppercase tracking-[0.22em] text-[#d4a843]">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#d4a843] animate-pulse"></span> Our story
+        </span>
+        <h1
+          class="about-rise mt-7 text-4xl sm:text-5xl lg:text-6xl font-headline font-extrabold leading-[1.08] [text-shadow:0_2px_20px_rgba(12,21,38,0.55)]"
+          style="animation-delay: 0.12s"
+        >
+          Building commerce for
+          <span class="relative whitespace-nowrap text-[#d4a843]">
+            West Africa
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 300 14"
+              preserveAspectRatio="none"
+              class="absolute -bottom-2 left-0 w-full h-2.5 text-[#d4a843]/70"
+            >
+              <path
+                class="about-underline"
+                d="M2 9 C 60 3, 110 3, 150 7 S 250 11, 298 5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+              />
+            </svg>
+          </span>
+        </h1>
+        <p
+          class="about-rise mt-8 text-base lg:text-xl text-[#cbd5e1] max-w-2xl mx-auto leading-relaxed"
+          style="animation-delay: 0.24s"
+        >
+          Emakola gives every merchant the tools to sell online — mobile money, WhatsApp
+          orders, and storefronts that load on any phone, on any network.
+        </p>
+      </div>
+    </section>
+    """
+  end
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Mission — asymmetric editorial: a sticky-feeling label column beside a
+  # generous lead-paragraph column.
+  # ─────────────────────────────────────────────────────────────────────
+  defp mission(assigns) do
+    ~H"""
+    <section class="bg-white px-4 sm:px-6 py-20 lg:py-28">
+      <div class="max-w-6xl mx-auto grid lg:grid-cols-[0.75fr_1.45fr] gap-10 lg:gap-20">
+        <div data-reveal>
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#d4a843]">
+            01 — Our mission
+          </p>
+          <div class="mt-4 h-px w-14 bg-[#d4a843]"></div>
+          <h2 class="mt-6 text-3xl lg:text-4xl font-headline font-bold text-[#0c1526] leading-[1.15]">
+            Commerce, rebuilt for how West Africa actually sells.
+          </h2>
+        </div>
+
+        <div class="space-y-6" data-reveal style="transition-delay: 0.12s">
+          <p class="text-lg lg:text-xl text-[#3a4658] leading-relaxed font-medium">
+            Across Ghana and Nigeria, millions of merchants sell on WhatsApp, in markets,
+            and from their phones — but the tools built for them assume fast internet, cards,
+            and addresses that don't match how commerce actually works here.
+          </p>
+          <p class="text-base text-[#5f6b7a] leading-relaxed">
+            Emakola is online retail rebuilt for West Africa: mobile money first
+            (MTN MoMo, Vodafone Cash, AirtelTigo), WhatsApp and SMS order alerts, and
+            storefronts optimized for low-bandwidth devices. We handle the technology so
+            merchants can focus on selling.
+          </p>
+          <p class="text-base text-[#5f6b7a] leading-relaxed">
+            We started in Ghana and are expanding across the region, one merchant at a time.
+          </p>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Beliefs — premium floating cards: ghost-number watermark, gold-gradient
+  # icon tile that flips on hover, lift + shadow + gradient underline.
+  # ─────────────────────────────────────────────────────────────────────
+  defp beliefs(assigns) do
+    ~H"""
+    <section class="relative isolate overflow-hidden bg-[#f8fafc] px-4 sm:px-6 py-20 lg:py-28">
+      <div
+        aria-hidden="true"
+        class="absolute inset-0 -z-10"
+        style="background: radial-gradient(42rem 24rem at 100% 0%, rgba(212,168,67,0.12), transparent 60%);"
+      >
+      </div>
+
+      <div class="max-w-6xl mx-auto">
+        <div class="max-w-2xl" data-reveal>
+          <p class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-[#d4a843]">
+            <span class="h-px w-8 bg-[#d4a843]"></span> 02 — What we believe
+          </p>
+          <h2 class="mt-4 text-3xl lg:text-4xl font-headline font-bold text-[#0c1526] leading-[1.15]">
+            The principles behind every decision
+          </h2>
+          <p class="mt-4 text-base text-[#5f6b7a] leading-relaxed">
+            Four convictions that shape every feature we ship — and every merchant we serve.
+          </p>
+        </div>
+
+        <div class="mt-14 grid sm:grid-cols-2 gap-5 lg:gap-6">
+          <.belief index="01" icon="smartphone" title="Mobile money first" delay="0.0s">
+            Payments built around how West Africa actually pays — not cards bolted on later.
+          </.belief>
+          <.belief index="02" icon="bolt" title="Low-bandwidth ready" delay="0.08s">
+            Fast on any phone and any network, because that's what our merchants use.
+          </.belief>
+          <.belief index="03" icon="storefront" title="Merchant-obsessed" delay="0.16s">
+            Every decision starts with the person running the store, not the spreadsheet.
+          </.belief>
+          <.belief index="04" icon="public" title="Built for the region" delay="0.24s">
+            Local languages, local payments, local logistics — designed for here.
+          </.belief>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  attr :index, :string, required: true
+  attr :icon, :string, required: true
+  attr :title, :string, required: true
+  attr :delay, :string, default: "0s"
+  slot :inner_block, required: true
+
+  defp belief(assigns) do
+    ~H"""
+    <div
+      data-reveal
+      style={"transition-delay: #{@delay}"}
+      class="group relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-8 lg:p-10 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-[#d4a843]/40 hover:shadow-xl hover:shadow-[#0c1526]/[0.06]"
+    >
+      <span
+        aria-hidden="true"
+        class="pointer-events-none absolute -top-5 right-1 select-none font-headline text-8xl font-extrabold leading-none text-slate-100 transition-colors duration-500 group-hover:text-[#d4a843]/15"
+      >
+        {@index}
+      </span>
+
+      <span class="relative inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0c1526] to-[#1a2744] text-[#d4a843] shadow-lg ring-1 ring-white/5 transition-all duration-300 group-hover:scale-105 group-hover:from-[#d4a843] group-hover:to-[#c2643c] group-hover:text-[#0c1526]">
+        <span class="material-symbols-outlined text-2xl">{@icon}</span>
+      </span>
+
+      <h3 class="relative mt-6 text-xl font-headline font-bold text-[#0c1526]">{@title}</h3>
+      <p class="relative mt-3 text-[15px] leading-relaxed text-[#5f6b7a]">
+        {render_slot(@inner_block)}
+      </p>
+
+      <span class="absolute bottom-0 left-0 h-1 w-full origin-left scale-x-0 bg-gradient-to-r from-[#d4a843] to-[#c2643c] transition-transform duration-300 ease-out group-hover:scale-x-100">
+      </span>
+    </div>
+    """
+  end
+
+  # ─────────────────────────────────────────────────────────────────────
+  # Footprint — dark band echoing the hero, the facts presented as bold
+  # gold-accented tiles split by hairline dividers.
+  # ─────────────────────────────────────────────────────────────────────
+  defp footprint(assigns) do
+    ~H"""
+    <section class="relative isolate overflow-hidden bg-[#0c1526] text-[#f1f5f9] px-4 sm:px-6 py-20 lg:py-24">
+      <div
+        aria-hidden="true"
+        class="absolute inset-0 -z-10"
+        style="background: radial-gradient(46rem 26rem at 50% -20%, rgba(212,168,67,0.16), transparent 60%);"
+      >
+      </div>
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center max-w-2xl mx-auto" data-reveal>
+          <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#d4a843]">
+            03 — Our footprint
+          </p>
+          <h2 class="mt-4 text-3xl lg:text-4xl font-headline font-bold">
+            Live where it matters, headed where it's growing
+          </h2>
+        </div>
+
+        <div class="mt-14 grid grid-cols-2 md:grid-cols-4 gap-y-10 divide-[#1a2744] md:divide-x">
+          <.footprint_stat value="Ghana" label="Where we started" delay="0.0s" />
+          <.footprint_stat value="Nigeria" label="Expanding next" delay="0.08s" />
+          <.footprint_stat value="Mobile money" label="Payments, first-class" delay="0.16s" />
+          <.footprint_stat value="WhatsApp" label="Orders & alerts" delay="0.24s" />
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  attr :value, :string, required: true
+  attr :label, :string, required: true
+  attr :delay, :string, default: "0s"
+
+  defp footprint_stat(assigns) do
+    ~H"""
+    <div data-reveal style={"transition-delay: #{@delay}"} class="group px-2 md:px-6 text-center">
+      <p class="inline-block text-2xl lg:text-3xl font-headline font-bold text-[#d4a843]">
+        {@value}
+        <span class="block h-0.5 mt-1 bg-[#d4a843]/60 origin-center scale-x-0 transition-transform duration-300 ease-out group-hover:scale-x-100">
+        </span>
+      </p>
+      <p class="mt-2 text-sm text-[#8896ab]">{@label}</p>
     </div>
     """
   end
