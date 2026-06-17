@@ -2,6 +2,7 @@ defmodule EmakolaWeb.Company.ContactLive do
   use EmakolaWeb, :live_view
 
   import EmakolaWeb.LandingComponents, only: [landing_nav: 1, landing_footer: 1]
+  import EmakolaWeb.CompanyComponents, only: [marketing_hero: 1]
 
   alias Emakola.Notifications.ContactMailer
 
@@ -82,7 +83,13 @@ defmodule EmakolaWeb.Company.ContactLive do
     >
       <.landing_nav mobile_menu_open={@mobile_menu_open} />
       <main>
-        <.hero />
+        <.marketing_hero
+          eyebrow="We're here to help"
+          title="Contact"
+          highlight="us"
+          subtitle="Questions, feedback, or need a hand? Send us a note and we'll get back to you, usually within a day."
+          padding="pt-20 pb-16 lg:pt-28 lg:pb-40"
+        />
 
         <section class="relative z-10 px-4 sm:px-6 pt-10 lg:pt-0 pb-20 lg:pb-28 lg:-mt-24">
           <div class="max-w-5xl mx-auto grid lg:grid-cols-2 gap-6 lg:gap-8 items-stretch">
@@ -97,64 +104,6 @@ defmodule EmakolaWeb.Company.ContactLive do
       </main>
       <.landing_footer />
     </div>
-    """
-  end
-
-  # ─────────────────────────────────────────────────────────────────────
-  # Hero — dark, with atmospheric glow + animated underline; extra bottom
-  # padding so the form/channel cards can float over its lower edge.
-  # ─────────────────────────────────────────────────────────────────────
-  defp hero(assigns) do
-    ~H"""
-    <section class="relative isolate overflow-hidden bg-[#0c1526] text-[#f1f5f9] pt-16">
-      <div
-        aria-hidden="true"
-        class="absolute inset-0 -z-10"
-        style="background:
-          radial-gradient(58rem 30rem at 85% -12%, rgba(212,168,67,0.20), transparent 60%),
-          radial-gradient(46rem 28rem at -4% 110%, rgba(181,83,46,0.16), transparent 55%);"
-      >
-      </div>
-
-      <div class="relative max-w-4xl mx-auto px-4 sm:px-6 pt-20 pb-16 lg:pt-28 lg:pb-40 text-center">
-        <span class="about-rise inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#d4a843]/30 bg-[#d4a843]/10 text-xs font-semibold uppercase tracking-[0.22em] text-[#d4a843]">
-          <span class="w-1.5 h-1.5 rounded-full bg-[#d4a843] animate-pulse"></span> We're here to help
-        </span>
-        <h1
-          class="about-rise mt-7 text-4xl sm:text-5xl lg:text-6xl font-headline font-extrabold leading-[1.08] [text-shadow:0_2px_20px_rgba(12,21,38,0.55)]"
-          style="animation-delay: 0.12s"
-        >
-          <span class="sr-only">Contact us</span>
-          <span aria-hidden="true">
-            Contact
-            <span class="relative whitespace-nowrap text-[#d4a843]">
-              us
-              <svg
-                viewBox="0 0 120 14"
-                preserveAspectRatio="none"
-                class="absolute -bottom-2 left-0 w-full h-2.5 text-[#d4a843]/70"
-              >
-                <path
-                  class="about-underline"
-                  d="M2 9 C 30 3, 60 3, 80 7 S 110 11, 118 5"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="3"
-                  stroke-linecap="round"
-                />
-              </svg>
-            </span>
-          </span>
-        </h1>
-        <p
-          class="about-rise mt-7 text-base lg:text-xl text-[#cbd5e1] max-w-xl mx-auto leading-relaxed"
-          style="animation-delay: 0.24s"
-        >
-          Questions, feedback, or need a hand? Send us a note and we'll get back to you,
-          usually within a day.
-        </p>
-      </div>
-    </section>
     """
   end
 

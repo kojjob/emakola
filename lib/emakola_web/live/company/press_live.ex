@@ -2,6 +2,7 @@ defmodule EmakolaWeb.Company.PressLive do
   use EmakolaWeb, :live_view
 
   import EmakolaWeb.LandingComponents, only: [landing_nav: 1, landing_footer: 1]
+  import EmakolaWeb.CompanyComponents, only: [marketing_hero: 1]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -32,7 +33,12 @@ defmodule EmakolaWeb.Company.PressLive do
     >
       <.landing_nav mobile_menu_open={@mobile_menu_open} />
       <main>
-        <.hero />
+        <.marketing_hero
+          eyebrow="Press & media"
+          title="Press"
+          highlight="resources"
+          subtitle="Everything you need to write about Emakola. For interviews or anything else, reach out below."
+        />
         <.about />
         <.facts />
         <.assets />
@@ -40,59 +46,6 @@ defmodule EmakolaWeb.Company.PressLive do
       </main>
       <.landing_footer />
     </div>
-    """
-  end
-
-  # ── Hero ──────────────────────────────────────────────────────────────
-  defp hero(assigns) do
-    ~H"""
-    <section class="relative isolate overflow-hidden bg-[#0c1526] text-[#f1f5f9] pt-16">
-      <div
-        aria-hidden="true"
-        class="absolute inset-0 -z-10"
-        style="background:
-          radial-gradient(58rem 30rem at 85% -12%, rgba(212,168,67,0.20), transparent 60%),
-          radial-gradient(46rem 28rem at -4% 110%, rgba(181,83,46,0.16), transparent 55%);"
-      >
-      </div>
-
-      <div class="relative max-w-4xl mx-auto px-4 sm:px-6 py-24 lg:py-32 text-center">
-        <span class="about-rise inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#d4a843]/30 bg-[#d4a843]/10 text-xs font-semibold uppercase tracking-[0.22em] text-[#d4a843]">
-          <span class="w-1.5 h-1.5 rounded-full bg-[#d4a843] animate-pulse"></span> Press &amp; media
-        </span>
-        <h1
-          class="about-rise mt-7 text-4xl sm:text-5xl lg:text-6xl font-headline font-extrabold leading-[1.08] [text-shadow:0_2px_20px_rgba(12,21,38,0.55)]"
-          style="animation-delay: 0.12s"
-        >
-          Press
-          <span class="relative whitespace-nowrap text-[#d4a843]">
-            resources
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 220 14"
-              preserveAspectRatio="none"
-              class="absolute -bottom-2 left-0 w-full h-2.5 text-[#d4a843]/70"
-            >
-              <path
-                class="about-underline"
-                d="M2 9 C 55 3, 110 3, 150 7 S 205 11, 218 5"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-                stroke-linecap="round"
-              />
-            </svg>
-          </span>
-        </h1>
-        <p
-          class="about-rise mt-8 text-base lg:text-xl text-[#cbd5e1] max-w-2xl mx-auto leading-relaxed"
-          style="animation-delay: 0.24s"
-        >
-          Everything you need to write about Emakola. For interviews or anything else,
-          reach out below.
-        </p>
-      </div>
-    </section>
     """
   end
 
