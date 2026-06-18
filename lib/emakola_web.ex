@@ -54,6 +54,9 @@ defmodule EmakolaWeb do
     quote do
       use Phoenix.LiveView
 
+      # Capture errors raised in mount/handle_event/handle_info and report to Sentry.
+      on_mount(Sentry.LiveViewHook)
+
       unquote(html_helpers())
     end
   end

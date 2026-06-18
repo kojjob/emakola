@@ -7,6 +7,9 @@ defmodule Emakola.Application do
 
   @impl true
   def start(_type, _args) do
+    # Activate the Sentry logger handler (configured under `config :emakola, :logger`).
+    Logger.add_handlers(:emakola)
+
     children =
       [
         EmakolaWeb.Telemetry,
