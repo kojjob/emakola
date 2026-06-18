@@ -22,7 +22,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
   defp setup_cart_session(conn, variant) do
     session_id = Ecto.UUID.generate()
 
-    CartStore.add_item(session_id, %{
+    CartStore.add_item(session_id, variant.store_id, %{
       variant_id: variant.id,
       product_title: "Test Shirt",
       variant_info: "TS-001",

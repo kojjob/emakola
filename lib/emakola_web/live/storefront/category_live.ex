@@ -29,7 +29,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
 
             cart_count =
               if connected?(socket) && cart_session_id,
-                do: CartStore.cart_count(cart_session_id),
+                do: CartStore.cart_count(cart_session_id, store.id),
                 else: 0
 
             {:ok,
@@ -89,17 +89,25 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
               _ -> nil
             end
 
-          Emakola.Cart.CartStore.add_item(socket.assigns.cart_session_id, %{
-            variant_id: variant.id,
-            quantity: 1,
-            product_title: product.title,
-            variant_info: variant.sku || "",
-            unit_price: variant.price,
-            sku: variant.sku,
-            image_url: image_url
-          })
+          Emakola.Cart.CartStore.add_item(
+            socket.assigns.cart_session_id,
+            socket.assigns.store.id,
+            %{
+              variant_id: variant.id,
+              quantity: 1,
+              product_title: product.title,
+              variant_info: variant.sku || "",
+              unit_price: variant.price,
+              sku: variant.sku,
+              image_url: image_url
+            }
+          )
 
-          cart_count = Emakola.Cart.CartStore.cart_count(socket.assigns.cart_session_id)
+          cart_count =
+            Emakola.Cart.CartStore.cart_count(
+              socket.assigns.cart_session_id,
+              socket.assigns.store.id
+            )
 
           {:noreply,
            socket

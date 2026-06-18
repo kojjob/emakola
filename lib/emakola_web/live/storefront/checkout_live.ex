@@ -23,7 +23,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
     cart =
       if connected?(socket) && cart_session_id,
-        do: CartStore.get_cart(cart_session_id),
+        do: CartStore.get_cart(cart_session_id, store.id),
         else: []
 
     cart_total =
@@ -238,7 +238,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       case verify_payment_status(socket) do
         :success ->
           if socket.assigns[:cart_session_id],
-            do: CartStore.clear_cart(socket.assigns.cart_session_id)
+            do: CartStore.clear_cart(socket.assigns.cart_session_id, socket.assigns.store.id)
 
           {:noreply,
            socket
@@ -280,7 +280,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
     if order && socket.assigns.payment_status == :awaiting_payment do
       if socket.assigns[:cart_session_id],
-        do: CartStore.clear_cart(socket.assigns.cart_session_id)
+        do: CartStore.clear_cart(socket.assigns.cart_session_id, socket.assigns.store.id)
 
       {:noreply,
        socket
@@ -375,7 +375,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     case socket.assigns.payment_method do
       "cod" ->
         if socket.assigns[:cart_session_id],
-          do: CartStore.clear_cart(socket.assigns.cart_session_id)
+          do: CartStore.clear_cart(socket.assigns.cart_session_id, socket.assigns.store.id)
 
         {:noreply,
          socket

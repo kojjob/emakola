@@ -26,7 +26,7 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
 
     cart_count =
       if connected?(socket) && cart_session_id,
-        do: CartStore.cart_count(cart_session_id),
+        do: CartStore.cart_count(cart_session_id, store.id),
         else: 0
 
     {:ok,
