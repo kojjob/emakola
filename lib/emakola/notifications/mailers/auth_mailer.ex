@@ -4,12 +4,10 @@ defmodule Emakola.Notifications.AuthMailer do
 
   alias Emakola.Mailer
 
-  @from {"Emakola", "noreply@emakola.com"}
-
   def welcome(user) do
     new()
     |> to({user.name || "User", to_string(user.email)})
-    |> from(@from)
+    |> from(Mailer.from_address("Emakola"))
     |> subject("Welcome to Emakola!")
     |> html_body("""
     <h1>Welcome to Emakola!</h1>
@@ -25,7 +23,7 @@ defmodule Emakola.Notifications.AuthMailer do
 
     new()
     |> to(email)
-    |> from(@from)
+    |> from(Mailer.from_address("Emakola"))
     |> subject("Your Emakola sign-in link")
     |> html_body("""
     <h2>Sign in to Emakola</h2>
@@ -41,7 +39,7 @@ defmodule Emakola.Notifications.AuthMailer do
 
     new()
     |> to({user.name || "User", to_string(user.email)})
-    |> from(@from)
+    |> from(Mailer.from_address("Emakola"))
     |> subject("Reset your Emakola password")
     |> html_body("""
     <h2>Password Reset</h2>

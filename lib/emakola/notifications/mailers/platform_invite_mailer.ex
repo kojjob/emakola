@@ -4,15 +4,13 @@ defmodule Emakola.Notifications.Mailers.PlatformInviteMailer do
 
   alias Emakola.Mailer
 
-  @from {"Emakola", "noreply@emakola.com"}
-
   def invite(email, raw_token, inviter_name) do
     url = "#{EmakolaWeb.Endpoint.url()}/platform/invite/accept/#{raw_token}"
     safe_inviter = Plug.HTML.html_escape(inviter_name)
 
     new()
     |> to(email)
-    |> from(@from)
+    |> from(Mailer.from_address("Emakola"))
     |> subject("You've been invited to the Emakola platform team")
     |> html_body("""
     <h2>Join the Emakola platform team</h2>

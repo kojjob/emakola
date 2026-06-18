@@ -86,6 +86,10 @@ if config_env() == :prod do
     support_whatsapp: System.get_env("SUPPORT_WHATSAPP", "233200000000"),
     support_phone: System.get_env("SUPPORT_PHONE", "+233 20 000 0000")
 
+  # Outbound mail "from" domain (noreply@/billing@). Flip the whole sending
+  # domain by setting MAIL_FROM_DOMAIN — no code change needed.
+  config :emakola, :mail_from_domain, System.get_env("MAIL_FROM_DOMAIN", "emakola.com")
+
   # ChromicPDF (analytics PDF export) — the Docker runner installs Debian's
   # chromium package and runs as a non-root user. Chrome's sandbox needs
   # privileges unavailable in the container, so we follow ChromicPDF's

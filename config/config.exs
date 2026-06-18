@@ -31,6 +31,10 @@ config :emakola, EmakolaWeb.Endpoint,
 # at the `config/runtime.exs`.
 config :emakola, Emakola.Mailer, adapter: Swoosh.Adapters.Local
 
+# Sending domain for outbound mail "from" addresses (noreply@, billing@).
+# Single source of truth; overridable at runtime via MAIL_FROM_DOMAIN.
+config :emakola, :mail_from_domain, "emakola.com"
+
 # Company/contact page channels (env-overridable in runtime.exs)
 config :emakola,
   contact_email: "support@emakola.com",
