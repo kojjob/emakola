@@ -30,7 +30,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLiveTest do
       html = view |> element("button[phx-click=add_to_cart]") |> render_click()
 
       assert html =~ "Added to cart"
-      assert CartStore.cart_count(session_id) == 1
+      assert CartStore.cart_count(session_id, store.id) == 1
     end
 
     test "tracked variant at zero stock disables the add-to-cart button", %{conn: conn} do

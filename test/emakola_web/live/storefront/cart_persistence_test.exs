@@ -41,7 +41,7 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
       render_click(view, "add_to_cart")
 
       # Verify item is in CartStore
-      assert [%{variant_id: vid}] = CartStore.get_cart(session_id)
+      assert [%{variant_id: vid}] = CartStore.get_cart(session_id, store.id)
       assert vid == variant.id
 
       # Second visit: navigate to cart page (simulates page refresh/navigation)
@@ -67,7 +67,7 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
       # Pre-populate the cart via CartStore using a known session id
       session_id = Ecto.UUID.generate()
 
-      CartStore.add_item(session_id, %{
+      CartStore.add_item(session_id, store.id, %{
         variant_id: variant.id,
         product_title: "Pre-loaded Item",
         variant_info: "Default",
@@ -94,7 +94,7 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
     } do
       session_id = Ecto.UUID.generate()
 
-      CartStore.add_item(session_id, %{
+      CartStore.add_item(session_id, store.id, %{
         variant_id: variant.id,
         product_title: "Removable Item",
         variant_info: "Default",
@@ -115,7 +115,7 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
     test "updating quantity persists to CartStore", %{conn: conn, store: store, variant: variant} do
       session_id = Ecto.UUID.generate()
 
-      CartStore.add_item(session_id, %{
+      CartStore.add_item(session_id, store.id, %{
         variant_id: variant.id,
         product_title: "Qty Item",
         variant_info: "Default",
@@ -132,7 +132,7 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
       render_click(view, "update_quantity", %{"index" => "0", "delta" => "1"})
 
       # Verify in CartStore
-      cart = CartStore.get_cart(session_id)
+      cart = CartStore.get_cart(session_id, store.id)
       assert [%{quantity: 2}] = cart
     end
 
@@ -143,7 +143,7 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
     } do
       session_id = Ecto.UUID.generate()
 
-      CartStore.add_item(session_id, %{
+      CartStore.add_item(session_id, store.id, %{
         variant_id: variant.id,
         product_title: "Checkout Item",
         variant_info: "Default",
@@ -159,7 +159,7 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
       assert {:error, {:live_redirect, %{to: "/s/" <> _}}} = render_click(view, "checkout")
 
       # Cart is NOT cleared yet — preserved until payment confirms
-      assert CartStore.get_cart(session_id) != []
+      assert CartStore.get_cart(session_id, store.id) != []
     end
   end
 
