@@ -94,6 +94,9 @@ defmodule Emakola.MixProject do
       # Background jobs
       {:oban, "~> 2.18"},
 
+      # Error monitoring (uses Finch — already a dep — not hackney)
+      {:sentry, "~> 13.0"},
+
       # URL-safe slug generation (Unicode-aware)
       {:slugify, "~> 1.3"},
 
