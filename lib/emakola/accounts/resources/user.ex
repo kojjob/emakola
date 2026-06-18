@@ -163,6 +163,38 @@ defmodule Emakola.Accounts.User do
       end)
     end
 
+    create :bootstrap_owner do
+      # First platform owner, created out-of-band by
+      # `mix emakola.bootstrap_platform_owner`. The generated
+      # `register_with_password` action neither confirms the account nor
+      # produces a sign-in-ready password for platform staff, so we hash the
+      # password, confirm immediately, and grant ownership here.
+      accept([:email])
+
+      argument :password, :string do
+        allow_nil?(false)
+        sensitive?(true)
+        constraints(min_length: 8, max_length: 72)
+      end
+
+      change(set_attribute(:is_owner, true))
+      change(set_attribute(:confirmed_at, &DateTime.utc_now/0))
+
+      change(fn changeset, _ctx ->
+        case Ash.Changeset.fetch_argument(changeset, :password) do
+          {:ok, password} when is_binary(password) ->
+            Ash.Changeset.force_change_attribute(
+              changeset,
+              :hashed_password,
+              Bcrypt.hash_pwd_salt(password)
+            )
+
+          _ ->
+            changeset
+        end
+      end)
+    end
+
     update :update_profile do
       accept([:name, :avatar_url, :preferences])
     end

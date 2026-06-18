@@ -44,14 +44,9 @@ defmodule Mix.Tasks.Emakola.BootstrapPlatformOwner do
     password = generate_password()
 
     case Emakola.Accounts.User
-         |> Ash.Changeset.for_create(:register_with_password, %{
-           email: email,
-           password: password,
-           password_confirmation: password
-         })
+         |> Ash.Changeset.for_create(:bootstrap_owner, %{email: email, password: password})
          |> Ash.create(authorize?: false) do
-      {:ok, user} ->
-        promote(user)
+      {:ok, _user} ->
         Mix.shell().info("Created platform owner #{email}")
         Mix.shell().info("Temporary password (shown once): #{password}")
 
