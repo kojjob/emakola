@@ -20,6 +20,12 @@ if System.get_env("PHX_SERVER") do
   config :emakola, EmakolaWeb.Endpoint, server: true
 end
 
+# Sentry DSN is read at runtime so the same release works with or without it.
+# Without SENTRY_DSN set, Sentry stays inert (no events sent).
+config :sentry,
+  dsn: System.get_env("SENTRY_DSN"),
+  release: System.get_env("SENTRY_RELEASE")
+
 config :emakola, EmakolaWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
