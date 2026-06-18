@@ -4,14 +4,12 @@ defmodule Emakola.Notifications.InviteMailer do
 
   alias Emakola.Mailer
 
-  @from {"Emakola", "noreply@emakola.com"}
-
   def invite(email, org_name) do
     register_url = "#{EmakolaWeb.Endpoint.url()}/auth/register"
 
     new()
     |> to(email)
-    |> from(@from)
+    |> from(Mailer.from_address("Emakola"))
     |> subject("You've been invited to join #{org_name} on Emakola")
     |> html_body("""
     <h2>You're invited!</h2>
