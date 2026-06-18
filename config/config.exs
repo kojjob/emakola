@@ -156,6 +156,22 @@ config :emakola, Emakola.Payments.HubtelClient, base_url: "https://api.hubtel.co
 # adapter (req is already a dependency).
 config :ex_aws, http_client: ExAws.Request.Req
 
+# Error monitoring (Sentry). The DSN is supplied at runtime (SENTRY_DSN in
+# runtime.exs); with no DSN, Sentry initialises but sends nothing. Uses Finch
+# (Sentry's default HTTP client) — no hackney needed.
+config :sentry,
+  environment_name: config_env(),
+  enable_source_code_context: true,
+  root_source_code_paths: [File.cwd!()],
+  in_app_otp_apps: [:emakola]
+
+# Forward crash reports and error-level logs to Sentry. Activated by
+# `Logger.add_handlers(:emakola)` in Emakola.Application.
+config :emakola, :logger, [
+  {:handler, :sentry_handler, Sentry.LoggerHandler,
+   %{config: %{metadata: [:request_id], capture_log_messages: true, level: :error}}}
+]
+
 # Import branding and plans config
 import_config "branding.exs"
 import_config "plans.exs"

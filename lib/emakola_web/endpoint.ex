@@ -48,6 +48,9 @@ defmodule EmakolaWeb.Endpoint do
     body_reader: {EmakolaWeb.Plugs.RawBodyReader, :read_body, []},
     json_decoder: Phoenix.json_library()
 
+  # Enrich Sentry events with HTTP request context (after body parsing).
+  plug Sentry.PlugContext
+
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
