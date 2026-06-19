@@ -11,4 +11,5 @@ defmodule Emakola.Payments.PaystackClientBehaviour do
   @callback verify_transaction(String.t()) :: {:ok, map()} | {:error, term()}
   @callback create_refund(map()) :: {:ok, map()} | {:error, term()}
   @callback create_subaccount(map()) :: {:ok, map()} | {:error, term()}
+  @callback list_banks(keyword() | map()) :: {:ok, map()} | {:error, term()}
 end

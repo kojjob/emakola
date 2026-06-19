@@ -12,10 +12,8 @@ defmodule Emakola.Stores.PayoutOnboarding do
   configured payment gateway.
   """
 
+  alias Emakola.Payments.SettlementBanks
   alias Emakola.Stores.StorePayoutAccount
-
-  # Paystack Ghana Mobile Money settlement-bank codes.
-  @provider_bank_codes %{"mtn" => "MTN", "vodafone" => "VOD", "airteltigo" => "ATL"}
 
   def connect_momo(store, params, opts \\ []) do
     gateway = Keyword.get(opts, :gateway, configured_gateway())
@@ -62,7 +60,7 @@ defmodule Emakola.Stores.PayoutOnboarding do
   defp subaccount_params(store, params) do
     %{
       business_name: params.account_name || store.name,
-      settlement_bank: Map.get(@provider_bank_codes, params.provider, params.provider),
+      settlement_bank: SettlementBanks.settlement_code(params.provider),
       account_number: params.number,
       percentage_charge: 0
     }

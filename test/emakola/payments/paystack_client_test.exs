@@ -96,4 +96,26 @@ defmodule Emakola.Payments.PaystackClientTest do
       assert {:error, _} = PaystackClient.create_refund(%{transaction: "ref", amount: 100})
     end
   end
+
+  describe "list_banks/1" do
+    test "GETs /bank with the params as a query string and auth headers" do
+      Emakola.HTTPClientMock
+      |> expect(:get, fn url, opts ->
+        assert url == "https://api.paystack.co/bank?currency=GHS&type=mobile_money"
+        assert {"Authorization", "Bearer sk_test_default_secret"} in opts[:headers]
+
+        {:ok, %{"status" => true, "data" => [%{"code" => "MTN", "type" => "mobile_money"}]}}
+      end)
+
+      assert {:ok, %{"status" => true}} =
+               PaystackClient.list_banks(currency: "GHS", type: "mobile_money")
+    end
+
+    test "returns error on network failure" do
+      Emakola.HTTPClientMock
+      |> expect(:get, fn _url, _opts -> {:error, :timeout} end)
+
+      assert {:error, :timeout} = PaystackClient.list_banks(currency: "GHS")
+    end
+  end
 end

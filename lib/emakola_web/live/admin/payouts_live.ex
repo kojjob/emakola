@@ -6,9 +6,12 @@ defmodule EmakolaWeb.Admin.PayoutsLive do
   """
   use EmakolaWeb, :live_view
 
+  # Display labels are customer-facing; the internal key drives settlement-bank
+  # resolution. "vodafone" still resolves to Paystack code VOD after the Telecel
+  # rebrand — see Emakola.Payments.SettlementBanks.
   @providers [
     {"MTN MoMo", "mtn"},
-    {"Vodafone Cash", "vodafone"},
+    {"Telecel Cash", "vodafone"},
     {"AirtelTigo Money", "airteltigo"}
   ]
 

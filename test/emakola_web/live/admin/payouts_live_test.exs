@@ -3,6 +3,7 @@ defmodule EmakolaWeb.Admin.PayoutsLiveTest do
   use Emakola.LiveViewHelpers
 
   import Phoenix.LiveViewTest
+  import Mox
 
   describe "PayoutsLive (unauthenticated)" do
     test "redirects to login when not authenticated", %{conn: conn} do
@@ -26,6 +27,13 @@ defmodule EmakolaWeb.Admin.PayoutsLiveTest do
 
     test "connecting a MoMo destination verifies the payout account", %{conn: conn, store: store} do
       {:ok, view, _html} = live(conn, ~p"/admin/settings/payouts")
+
+      # connect_momo resolves settlement_bank via List Banks inside the LiveView
+      # process; share a stub with it so the lookup falls back to static codes
+      # (this test asserts verification, not the bank code value).
+      Emakola.Payments.PaystackClientMock
+      |> stub(:list_banks, fn _params -> {:error, :unset} end)
+      |> allow(self(), view.pid)
 
       html =
         view

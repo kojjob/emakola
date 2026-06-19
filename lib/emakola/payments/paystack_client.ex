@@ -50,6 +50,16 @@ defmodule Emakola.Payments.PaystackClient do
     )
   end
 
+  @impl true
+  def list_banks(params) do
+    query = URI.encode_query(params)
+
+    http_client().get(
+      "#{base_url()}/bank?#{query}",
+      headers: auth_headers()
+    )
+  end
+
   # -- Private helpers -------------------------------------------------------
 
   defp auth_headers do
