@@ -2,8 +2,8 @@ defmodule Emakola.Payments.SettlementBanksTest do
   @moduledoc """
   Resolves a mobile-money provider to its Paystack settlement_bank code via a
   live List Banks lookup, falling back to last-known-good static codes when the
-  API is unavailable (no keys / network / provider absent). The function is
-  total — it always returns a code so payout onboarding never breaks.
+  API is unavailable (no keys / network / provider absent). It never raises, so
+  payout onboarding keeps working with or without keys.
   """
   use ExUnit.Case, async: true
   import Mox
@@ -61,6 +61,45 @@ defmodule Emakola.Payments.SettlementBanksTest do
       end)
 
       assert SettlementBanks.settlement_code("airteltigo") == "ATL9"
+    end
+
+    test "skips junk entries with nil slug/name without crashing" do
+      Emakola.Payments.PaystackClientMock
+      |> expect(:list_banks, fn _params ->
+        ok([
+          %{"slug" => nil, "name" => nil, "code" => nil, "type" => "mobile_money"},
+          %{
+            "slug" => "mtn-mobile-money",
+            "name" => "MTN",
+            "code" => "MTN_OK",
+            "type" => "mobile_money"
+          }
+        ])
+      end)
+
+      assert SettlementBanks.settlement_code("mtn") == "MTN_OK"
+    end
+
+    test "prefers a slug match over a competing name-only match" do
+      Emakola.Payments.PaystackClientMock
+      |> expect(:list_banks, fn _params ->
+        ok([
+          %{
+            "slug" => "other",
+            "name" => "MTN Wallet",
+            "code" => "BY_NAME",
+            "type" => "mobile_money"
+          },
+          %{
+            "slug" => "mtn-mobile-money",
+            "name" => "Z",
+            "code" => "BY_SLUG",
+            "type" => "mobile_money"
+          }
+        ])
+      end)
+
+      assert SettlementBanks.settlement_code("mtn") == "BY_SLUG"
     end
 
     test "ignores non-mobile-money entries when matching" do

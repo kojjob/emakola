@@ -8,10 +8,11 @@ defmodule Emakola.Payments.SettlementBanks do
   module fetches that list live and returns the authoritative `code`, so we
   track Paystack's data (e.g. the Vodafone→Telecel rebrand) instead of guessing.
 
-  `settlement_code/1` is **total**: any live failure (missing keys, network
+  `settlement_code/1` never raises: any live failure (missing keys, network
   error, status false, provider absent) degrades silently to a last-known-good
-  static code so payout onboarding never breaks. An unknown provider is returned
-  unchanged and never triggers an API call.
+  static code so payout onboarding never breaks. A known provider always yields
+  a code; an unknown provider string is returned verbatim and never triggers an
+  API call.
   """
 
   require Logger
@@ -49,14 +50,27 @@ defmodule Emakola.Payments.SettlementBanks do
   end
 
   defp resolve(provider, %{code: fallback} = config) do
-    with {:ok, banks} <- fetch_banks(),
-         code when is_binary(code) <- match_code(banks, config) do
-      code
-    else
-      other ->
+    case fetch_banks() do
+      {:ok, banks} ->
+        case match_code(banks, config) do
+          code when is_binary(code) ->
+            code
+
+          _ ->
+            # Lookup succeeded but the provider was not in Paystack's list — a
+            # data-drift signal, distinct from an outright failure.
+            Logger.warning(
+              "[settlement_banks] #{provider} not found in live List Banks; " <>
+                "using static code #{fallback}"
+            )
+
+            fallback
+        end
+
+      {:error, reason} ->
         Logger.warning(
-          "[settlement_banks] live lookup unavailable for #{provider} (#{inspect(other)}); " <>
-            "using static code #{fallback}"
+          "[settlement_banks] List Banks lookup failed for #{provider} " <>
+            "(#{inspect(reason)}); using static code #{fallback}"
         )
 
         fallback
