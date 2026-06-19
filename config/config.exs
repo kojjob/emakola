@@ -35,6 +35,11 @@ config :emakola, Emakola.Mailer, adapter: Swoosh.Adapters.Local
 # Single source of truth; overridable at runtime via MAIL_FROM_DOMAIN.
 config :emakola, :mail_from_domain, "emakola.com"
 
+# Platform fee on dropship margin, in basis points (1000 = 10%). Routed to the
+# platform main account by the gateway split. Must exceed the gateway's
+# effective transaction fee (~1.95% Paystack) or thin-margin orders net negative.
+config :emakola, :dropship_fee_rate_bps, 1000
+
 # Company/contact page channels (env-overridable in runtime.exs)
 config :emakola,
   contact_email: "support@emakola.com",

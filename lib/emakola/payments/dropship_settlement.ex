@@ -32,15 +32,18 @@ defmodule Emakola.Payments.DropshipSettlement do
 
     with {:dropship, [_ | _]} <- {:dropship, supplier_ids},
          {:ok, dropshipper_code} <- verified_subaccount(dropshipper_store_id),
-         {:ok, subaccounts} <- resolve_subaccounts(supplier_ids, dropshipper_store_id) do
-      result =
+         {:ok, resolved} <- resolve_subaccounts(supplier_ids, dropshipper_store_id) do
+      subaccounts = Map.new(resolved, fn {sid, %{code: code}} -> {sid, code} end)
+
+      %{total: total, allocations: allocations} =
         SplitCalculator.calculate(line_items,
           fee_rate_bps: fee_rate_bps,
           subaccounts: subaccounts,
           dropshipper_subaccount: dropshipper_code
         )
 
-      {:split, result}
+      enriched = Enum.map(allocations, &add_recipient(&1, resolved, dropshipper_store_id))
+      {:split, %{total: total, allocations: enriched}}
     else
       {:dropship, []} -> {:no_split, :no_dropship_items}
       {:error, :payout_unverified} -> {:no_split, :dropshipper_payout_unverified}
@@ -48,12 +51,12 @@ defmodule Emakola.Payments.DropshipSettlement do
     end
   end
 
-  # Builds a supplier_id => subaccount_code map, short-circuiting on the first
+  # Builds a supplier_id => %{code, store_id} map, short-circuiting on the first
   # supplier that cannot be resolved to a verified wholesaler payout account.
   defp resolve_subaccounts(supplier_ids, dropshipper_store_id) do
     Enum.reduce_while(supplier_ids, {:ok, %{}}, fn supplier_id, {:ok, acc} ->
       case resolve_supplier(supplier_id, dropshipper_store_id) do
-        {:ok, code} -> {:cont, {:ok, Map.put(acc, supplier_id, code)}}
+        {:ok, resolution} -> {:cont, {:ok, Map.put(acc, supplier_id, resolution)}}
         {:error, reason} -> {:halt, {:error, reason}}
       end
     end)
@@ -66,13 +69,28 @@ defmodule Emakola.Payments.DropshipSettlement do
 
       {:ok, %{linked_store_id: linked_store_id}} ->
         case verified_subaccount(linked_store_id) do
-          {:ok, code} -> {:ok, code}
+          {:ok, code} -> {:ok, %{code: code, store_id: linked_store_id}}
           {:error, :payout_unverified} -> {:error, :wholesaler_payout_unverified}
         end
 
       {:error, _} ->
         {:error, :supplier_not_linked}
     end
+  end
+
+  # Adds recipient_store_id to each allocation: the wholesaler's linked store,
+  # the dropshipper's own store, or nil for the platform (its cut stays in the
+  # platform main account).
+  defp add_recipient(%{role: :wholesaler, supplier_id: supplier_id} = alloc, resolved, _drop) do
+    Map.put(alloc, :recipient_store_id, resolved[supplier_id].store_id)
+  end
+
+  defp add_recipient(%{role: :dropshipper} = alloc, _resolved, dropshipper_store_id) do
+    Map.put(alloc, :recipient_store_id, dropshipper_store_id)
+  end
+
+  defp add_recipient(%{role: :platform} = alloc, _resolved, _drop) do
+    Map.put(alloc, :recipient_store_id, nil)
   end
 
   # A store's payout subaccount, only if the account is verified and has a code.

@@ -42,7 +42,7 @@ defmodule Emakola.Payments.DropshipSettlementTest do
         %{unit_price: 3_000, cost_price: nil, quantity: 1, supplier_id: nil}
       ]
 
-      {:ok, supplier: supplier, items: items}
+      {:ok, supplier: supplier, items: items, wholesaler: wholesaler}
     end
 
     test "produces a split routing each party to its verified subaccount", %{
@@ -62,6 +62,19 @@ defmodule Emakola.Payments.DropshipSettlementTest do
                Enum.find(allocs, &(&1.role == :dropshipper))
 
       assert %{amount: 840} = Enum.find(allocs, &(&1.role == :platform))
+    end
+
+    test "enriches allocations with the recipient store for crediting/clawback", %{
+      dropshipper: dropshipper,
+      wholesaler: wholesaler,
+      items: items
+    } do
+      {:split, %{allocations: allocs}} =
+        DropshipSettlement.prepare(items, dropshipper.id, fee_rate_bps: 1_000)
+
+      assert Enum.find(allocs, &(&1.role == :wholesaler)).recipient_store_id == wholesaler.id
+      assert Enum.find(allocs, &(&1.role == :dropshipper)).recipient_store_id == dropshipper.id
+      assert is_nil(Enum.find(allocs, &(&1.role == :platform)).recipient_store_id)
     end
   end
 
