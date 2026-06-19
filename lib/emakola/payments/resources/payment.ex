@@ -81,6 +81,19 @@ defmodule Emakola.Payments.Payment do
       public?(true)
     end
 
+    # Whether this charge is split across dropship parties at the gateway.
+    attribute :split_mode, :atom do
+      constraints(one_of: [:none, :dropship_split])
+      default(:none)
+      allow_nil?(false)
+      public?(true)
+    end
+
+    # The Paystack split code used to route this charge, when split_mode is :dropship_split.
+    attribute :split_code, :string do
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -144,7 +157,9 @@ defmodule Emakola.Payments.Payment do
         :gateway_reference,
         :gateway_response,
         :customer_email,
-        :metadata
+        :metadata,
+        :split_mode,
+        :split_code
       ])
     end
 

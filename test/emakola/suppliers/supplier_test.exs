@@ -90,6 +90,38 @@ defmodule Emakola.Suppliers.SupplierTest do
     end
   end
 
+  # -- Linked wholesaler store (dropship settlement bridge) -------------------
+
+  describe "linked_store_id" do
+    test "links a supplier to a wholesaler store and loads the relationship", %{store: store} do
+      wholesaler = create_store!(name: "Wholesaler Co")
+
+      supplier = create_supplier!(store, name: "Bridged Supplier", linked_store_id: wholesaler.id)
+
+      assert supplier.linked_store_id == wholesaler.id
+
+      loaded = Ash.load!(supplier, :linked_store, authorize?: false)
+      assert loaded.linked_store.id == wholesaler.id
+    end
+
+    test "defaults to nil for an ordinary external supplier", %{store: store} do
+      supplier = create_supplier!(store, name: "External Supplier")
+      assert is_nil(supplier.linked_store_id)
+    end
+
+    test "can be set on update", %{store: store} do
+      wholesaler = create_store!(name: "Later Wholesaler")
+      supplier = create_supplier!(store, name: "Upgradable Supplier")
+
+      {:ok, updated} =
+        supplier
+        |> Ash.Changeset.for_update(:update, %{linked_store_id: wholesaler.id})
+        |> Ash.update(authorize?: false)
+
+      assert updated.linked_store_id == wholesaler.id
+    end
+  end
+
   # -- Update -----------------------------------------------------------------
 
   describe "update" do
