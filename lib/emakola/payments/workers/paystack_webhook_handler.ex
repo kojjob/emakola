@@ -50,6 +50,10 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
       # Confirm the associated order if present
       maybe_confirm_order(payment.order_id)
 
+      # Settle any dropship split allocations — the gateway has applied the
+      # split, so record each as settled.
+      settle_splits(payment)
+
       # Notify any LiveView still polling on this reference so the
       # customer sees confirmation immediately rather than waiting up
       # to 3s for the next poll cycle.
@@ -99,6 +103,10 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
            payment
            |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: refund_amount})
            |> Ash.update(authorize?: false) do
+      # Reverse the split allocations so a clawback can recover each party's
+      # share against future payouts.
+      reverse_splits(payment)
+
       Phoenix.PubSub.broadcast(
         Emakola.PubSub,
         "payment:#{reference}",
@@ -124,6 +132,33 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp settle_splits(payment) do
+    payment
+    |> payment_splits()
+    |> Enum.filter(&(&1.status == :pending))
+    |> Enum.each(fn split ->
+      split
+      |> Ash.Changeset.for_update(:mark_settled, %{})
+      |> Ash.update!(authorize?: false)
+    end)
+  end
+
+  defp reverse_splits(payment) do
+    payment
+    |> payment_splits()
+    |> Enum.reject(&(&1.status == :reversed))
+    |> Enum.each(fn split ->
+      split
+      |> Ash.Changeset.for_update(:mark_reversed, %{})
+      |> Ash.update!(authorize?: false)
+    end)
+  end
+
+  defp payment_splits(payment) do
+    {:ok, splits} = Emakola.Payments.list_payment_splits(payment.id, authorize?: false)
+    splits
   end
 
   defp find_payment(reference) do

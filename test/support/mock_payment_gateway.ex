@@ -49,4 +49,9 @@ defmodule Emakola.Payments.Gateways.Mock do
   def verify_webhook(_body, _headers) do
     :ok
   end
+
+  @impl true
+  def create_subaccount(_params) do
+    {:ok, %{subaccount_code: "ACCT_mock_#{System.unique_integer([:positive])}", raw: %{}}}
+  end
 end

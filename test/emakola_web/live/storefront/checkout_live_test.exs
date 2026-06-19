@@ -3,6 +3,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
 
   import Phoenix.LiveViewTest
   import Emakola.Factory
+  require Ash.Query
 
   alias Emakola.Cart.CartStore
 
@@ -167,6 +168,80 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
         })
 
       assert html =~ "cart is empty" or html =~ "empty"
+    end
+  end
+
+  # -- Dropship split settlement --
+
+  describe "dropship split settlement" do
+    defp verified_payout!(store, code) do
+      Emakola.Stores.StorePayoutAccount
+      |> Ash.Changeset.for_create(:create, %{store_id: store.id})
+      |> Ash.create!(authorize?: false)
+      |> Ash.Changeset.for_update(:record_subaccount, %{subaccount_code: code})
+      |> Ash.update!(authorize?: false)
+    end
+
+    test "places a dropship order with a split-routed payment", %{conn: conn} do
+      dropshipper = create_store!(%{name: "Drop Shop", slug: "drop-shop", currency: "GHS"})
+      verified_payout!(dropshipper, "ACCT_drop")
+      wholesaler = create_store!(%{name: "Whole Co", slug: "whole-co"})
+      verified_payout!(wholesaler, "ACCT_whole")
+      supplier = create_supplier!(dropshipper, name: "Linked", linked_store_id: wholesaler.id)
+
+      product = create_product!(dropshipper, %{title: "Dropship Item"})
+
+      variant =
+        create_variant!(product, dropshipper,
+          price: 5_000,
+          sku: "DS-1",
+          supplier_id: supplier.id,
+          cost_price: 800
+        )
+
+      product |> Ash.Changeset.for_update(:activate, %{}) |> Ash.update!(authorize?: false)
+
+      session_id = Ecto.UUID.generate()
+
+      CartStore.add_item(session_id, dropshipper.id, %{
+        variant_id: variant.id,
+        product_title: "Dropship Item",
+        variant_info: "DS-1",
+        unit_price: 5_000,
+        quantity: 2,
+        sku: "DS-1"
+      })
+
+      conn = init_test_session(conn, %{"cart_session_id" => session_id})
+      {:ok, view, _html} = live(conn, "/s/#{dropshipper.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "241234567",
+        "fullname" => "Ama Mensah",
+        "address" => "House 14, Osu",
+        "region" => "greater_accra",
+        "notes" => ""
+      })
+
+      payment =
+        Emakola.Payments.Payment
+        |> Ash.Query.filter(store_id == ^dropshipper.id)
+        |> Ash.read!(authorize?: false, tenant: dropshipper.id)
+        |> List.first()
+
+      assert payment.split_mode == :dropship_split
+
+      {:ok, splits} =
+        Emakola.Payments.PaymentSplit
+        |> Ash.Query.for_read(:by_payment, %{payment_id: payment.id})
+        |> Ash.read(authorize?: false)
+
+      by_role = Map.new(splits, &{&1.role, &1})
+      assert by_role[:wholesaler].amount == 1_600
+      assert by_role[:wholesaler].subaccount_code == "ACCT_whole"
+      assert by_role[:platform].amount == 840
+      # dropshipper margin 7560 + Greater Accra delivery 1500 = 9060
+      assert by_role[:dropshipper].amount == 9_060
     end
   end
 

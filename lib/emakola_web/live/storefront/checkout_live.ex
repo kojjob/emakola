@@ -397,20 +397,28 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     store = socket.assigns.store
     gateway = Application.get_env(:emakola, :payment_gateway, Emakola.Payments.Gateways.Paystack)
 
-    params = %{
-      amount: order.total,
-      email: paystack_email(socket.assigns, store),
-      currency: store.currency || "GHS",
-      order_id: order.id,
-      store_id: store.id,
-      order_reference: order.order_number,
-      callback_url:
-        "#{EmakolaWeb.Endpoint.url()}/s/#{store.slug}/orders/#{order.order_number}/confirmation",
-      return_url:
-        "#{EmakolaWeb.Endpoint.url()}/s/#{store.slug}/orders/#{order.order_number}/confirmation",
-      channel: paystack_channel(method),
-      metadata: %{payment_method: method}
-    }
+    # Resolve a trustless dropship split: when every wholesaler and the
+    # dropshipper have a verified payout subaccount, the customer's charge is
+    # split at the gateway so each party is paid directly. Otherwise the order
+    # settles normally and suppliers are paid via the manual ledger.
+    settlement = Emakola.Payments.OrderSettlement.prepare(order.id, store.id)
+
+    params =
+      %{
+        amount: order.total,
+        email: paystack_email(socket.assigns, store),
+        currency: store.currency || "GHS",
+        order_id: order.id,
+        store_id: store.id,
+        order_reference: order.order_number,
+        callback_url:
+          "#{EmakolaWeb.Endpoint.url()}/s/#{store.slug}/orders/#{order.order_number}/confirmation",
+        return_url:
+          "#{EmakolaWeb.Endpoint.url()}/s/#{store.slug}/orders/#{order.order_number}/confirmation",
+        channel: paystack_channel(method),
+        metadata: %{payment_method: method}
+      }
+      |> maybe_attach_split(settlement)
 
     case gateway.initiate_payment(params) do
       {:ok, %{reference: reference} = resp} ->
@@ -422,11 +430,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                  currency: store.currency || "GHS",
                  gateway: :paystack,
                  gateway_reference: reference,
-                 metadata: %{payment_method: method}
+                 metadata: %{payment_method: method},
+                 split_mode: split_mode(settlement)
                },
                authorize?: false
              ) do
-          {:ok, _payment} ->
+          {:ok, payment} ->
+            record_splits(payment, settlement)
             :ok
 
           {:error, reason} ->
@@ -477,6 +487,21 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
          |> put_flash(:error, "Payment error: #{inspect(reason)}")}
     end
   end
+
+  # -- Dropship split helpers ----------------------------------------------
+
+  defp maybe_attach_split(params, {:split, %{shares: shares}}),
+    do: Map.put(params, :split, shares)
+
+  defp maybe_attach_split(params, {:no_split, _reason}), do: params
+
+  defp split_mode({:split, _}), do: :dropship_split
+  defp split_mode({:no_split, _}), do: :none
+
+  defp record_splits(payment, {:split, %{allocations: allocations}}),
+    do: Emakola.Payments.OrderSettlement.record_splits!(payment, allocations)
+
+  defp record_splits(_payment, {:no_split, _}), do: :ok
 
   defp verify_payment_status(socket) do
     ref = socket.assigns[:gateway_reference]

@@ -79,6 +79,107 @@ defmodule Emakola.Payments.Gateways.PaystackTest do
     end
   end
 
+  describe "initiate_payment/1 with a dropship split" do
+    test "includes a flat Paystack split when :split shares are given" do
+      Emakola.Payments.PaystackClientMock
+      |> expect(:initialize_transaction, fn params ->
+        assert params.split == %{
+                 type: "flat",
+                 bearer_type: "account",
+                 subaccounts: [
+                   %{subaccount: "ACCT_whole", share: 1_600},
+                   %{subaccount: "ACCT_drop", share: 10_560}
+                 ]
+               }
+
+        {:ok,
+         %{
+           "status" => true,
+           "data" => %{
+             "authorization_url" => "https://checkout.paystack.com/split",
+             "access_code" => "split123",
+             "reference" => params.reference
+           }
+         }}
+      end)
+
+      params = %{
+        amount: 13_000,
+        email: "customer@example.com",
+        currency: "GHS",
+        store_id: "store-uuid-123",
+        split: [
+          %{subaccount: "ACCT_whole", share: 1_600},
+          %{subaccount: "ACCT_drop", share: 10_560}
+        ]
+      }
+
+      assert {:ok, result} = Paystack.initiate_payment(params)
+      assert result.authorization_url == "https://checkout.paystack.com/split"
+    end
+
+    test "omits the split key entirely when no split is given" do
+      Emakola.Payments.PaystackClientMock
+      |> expect(:initialize_transaction, fn params ->
+        refute Map.has_key?(params, :split)
+
+        {:ok,
+         %{
+           "status" => true,
+           "data" => %{
+             "authorization_url" => "https://checkout.paystack.com/nosplit",
+             "access_code" => "nosplit",
+             "reference" => params.reference
+           }
+         }}
+      end)
+
+      params = %{amount: 13_000, email: "c@example.com", currency: "GHS", store_id: "s-1"}
+      assert {:ok, _result} = Paystack.initiate_payment(params)
+    end
+  end
+
+  describe "create_subaccount/1" do
+    test "returns the subaccount code on success" do
+      Emakola.Payments.PaystackClientMock
+      |> expect(:create_subaccount, fn params ->
+        assert params.business_name == "Wholesaler Co"
+        assert params.settlement_bank == "MTN"
+        assert params.account_number == "0240000000"
+        assert params.percentage_charge == 0
+
+        {:ok, %{"status" => true, "data" => %{"subaccount_code" => "ACCT_new123"}}}
+      end)
+
+      params = %{
+        business_name: "Wholesaler Co",
+        settlement_bank: "MTN",
+        account_number: "0240000000",
+        percentage_charge: 0
+      }
+
+      assert {:ok, %{subaccount_code: "ACCT_new123"}} = Paystack.create_subaccount(params)
+    end
+
+    test "returns a paystack_error when Paystack rejects it" do
+      Emakola.Payments.PaystackClientMock
+      |> expect(:create_subaccount, fn _params ->
+        {:ok, %{"status" => false, "message" => "Invalid bank code"}}
+      end)
+
+      assert {:error, {:paystack_error, "Invalid bank code"}} =
+               Paystack.create_subaccount(%{business_name: "X"})
+    end
+
+    test "returns a gateway_error on network failure" do
+      Emakola.Payments.PaystackClientMock
+      |> expect(:create_subaccount, fn _params -> {:error, :timeout} end)
+
+      assert {:error, {:gateway_error, :timeout}} =
+               Paystack.create_subaccount(%{business_name: "X"})
+    end
+  end
+
   # -- verify_payment/1 ----------------------------------------------------
 
   describe "verify_payment/1" do
