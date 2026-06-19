@@ -320,6 +320,9 @@ defmodule EmakolaWeb.Router do
       live "/admin/settings", Admin.SettingsLive
       live "/admin/settings/delivery", Admin.DeliveryLive.Index
 
+      # Payouts — connect a MoMo payout subaccount for dropship split settlement
+      live "/admin/settings/payouts", Admin.PayoutsLive
+
       # Suppliers (dropshipping) — management + payout ledger
       live "/admin/settings/suppliers", Admin.SupplierLive.Index
       live "/admin/suppliers/:id", Admin.SupplierLive.Show

@@ -168,6 +168,12 @@
         active={@active_nav == :payments}
       />
       <.sidebar_link
+        href="/admin/settings/payouts"
+        title="Payouts"
+        icon="currency"
+        active={@active_nav == :payouts}
+      />
+      <.sidebar_link
         href="/admin/customers"
         title="Customers"
         icon="users"
