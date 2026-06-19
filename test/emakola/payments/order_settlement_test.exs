@@ -88,6 +88,43 @@ defmodule Emakola.Payments.OrderSettlementTest do
     end
   end
 
+  describe "prepare/2 — reconciles to order total" do
+    test "adds delivery fee to the dropshipper share so shares sum to order.total", %{
+      dropshipper: dropshipper,
+      product: product
+    } do
+      wholesaler = create_store!(name: "Wholesaler 2")
+      verified_payout!(wholesaler, "ACCT_whole2")
+      supplier = create_supplier!(dropshipper, name: "Linked2", linked_store_id: wholesaler.id)
+
+      drop =
+        create_variant!(product, dropshipper,
+          price: 5_000,
+          sku: "S-DEL",
+          supplier_id: supplier.id,
+          cost_price: 800
+        )
+
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout!(
+          dropshipper.id,
+          [%{variant_id: drop.id, quantity: 2}],
+          delivery_fee: 1_500
+        )
+
+      assert {:split, %{total: total, shares: shares, allocations: allocs}} =
+               OrderSettlement.prepare(order.id, dropshipper.id)
+
+      # subtotal 10000 + delivery 1500 = 11500 = order.total
+      assert total == 11_500
+      # dropshipper margin 7560 + delivery 1500 = 9060
+      assert %{role: :dropshipper, amount: 9_060} = Enum.find(allocs, &(&1.role == :dropshipper))
+      assert %{subaccount: "ACCT_drop", share: 9_060} in shares
+      # Wholesaler cost + dropshipper share + platform fee == the actual charge.
+      assert total == Enum.sum(Enum.map(allocs, & &1.amount))
+    end
+  end
+
   describe "prepare/2 — fallback" do
     test "external (unlinked) supplier yields no split", %{
       dropshipper: dropshipper,

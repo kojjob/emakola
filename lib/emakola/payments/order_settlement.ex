@@ -18,11 +18,24 @@ defmodule Emakola.Payments.OrderSettlement do
   alias Emakola.Payments.DropshipSettlement
 
   def prepare(order_id, store_id) do
+    order = Ash.get!(Emakola.Orders.Order, order_id, authorize?: false, tenant: store_id)
     line_items = load_line_items(order_id, store_id)
 
     case DropshipSettlement.prepare(line_items, store_id, fee_rate_bps: fee_rate_bps()) do
-      {:split, %{total: total, allocations: allocations}} ->
-        {:split, %{total: total, allocations: allocations, shares: gateway_shares(allocations)}}
+      {:split, %{allocations: allocations}} ->
+        # The split is computed on the subtotal; the customer is charged the
+        # order total. Delivery (minus any discount) belongs to the dropshipper,
+        # so fold it into their share — otherwise that money would fall to the
+        # platform's main account as the split remainder.
+        adjustment = (order.delivery_fee || 0) - (order.discount_amount || 0)
+        allocations = adjust_dropshipper(allocations, adjustment)
+
+        if valid_shares?(allocations) do
+          {:split,
+           %{total: order.total, allocations: allocations, shares: gateway_shares(allocations)}}
+        else
+          {:no_split, :unrepresentable_split}
+        end
 
       {:no_split, reason} ->
         {:no_split, reason}
@@ -44,6 +57,23 @@ defmodule Emakola.Payments.OrderSettlement do
         authorize?: false
       )
     end)
+  end
+
+  defp adjust_dropshipper(allocations, 0), do: allocations
+
+  defp adjust_dropshipper(allocations, adjustment) do
+    Enum.map(allocations, fn
+      %{role: :dropshipper} = alloc -> %{alloc | amount: alloc.amount + adjustment}
+      alloc -> alloc
+    end)
+  end
+
+  # Paystack rejects negative or zero flat shares; if an aggressive discount
+  # drives the dropshipper's share non-positive, fall back to the manual ledger.
+  defp valid_shares?(allocations) do
+    allocations
+    |> Enum.filter(& &1[:subaccount_code])
+    |> Enum.all?(&(&1.amount > 0))
   end
 
   # Only allocations with a subaccount become gateway shares. The platform's
