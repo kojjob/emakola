@@ -15,5 +15,10 @@ defmodule Emakola.Payments do
 
       define(:get_payment_by_order, action: :get_by_order, args: [:order_id])
     end
+
+    resource Emakola.Payments.PaymentSplit do
+      define(:create_payment_split, action: :create)
+      define(:list_payment_splits, action: :by_payment, args: [:payment_id])
+    end
   end
 end
