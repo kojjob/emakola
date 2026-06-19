@@ -38,7 +38,7 @@ defmodule EmakolaWeb.SEO do
       |> assign(:meta_description, product.seo_description || product.description)
       |> assign(:og_image, first_product_image_url(product))
       |> assign(:og_type, "product")
-      |> assign(:canonical_url, "https://\#{store.slug}.emakola.com/products/\#{product.slug}")
+      |> assign(:canonical_url, EmakolaWeb.SEO.Canonical.product_url(store, product))
       |> assign(:json_ld, Emakola.SEO.product_json_ld(product, variants, store))
   """
   use Phoenix.Component

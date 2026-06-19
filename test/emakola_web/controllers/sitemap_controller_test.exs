@@ -37,6 +37,21 @@ defmodule EmakolaWeb.SitemapControllerTest do
       assert body =~ "/s/#{store.slug}</loc>"
     end
 
+    test "<loc> URLs use the canonical apex host, not the request host", %{
+      conn: conn,
+      store: store
+    } do
+      apex = EmakolaWeb.SEO.Canonical.base()
+
+      body =
+        %{conn | host: "tenant-subdomain.example.com"}
+        |> get("/s/#{store.slug}/sitemap.xml")
+        |> response(200)
+
+      assert body =~ "#{apex}/s/#{store.slug}</loc>"
+      refute body =~ "tenant-subdomain.example.com"
+    end
+
     test "includes active product URLs", %{conn: conn, store: store} do
       product = create_product!(store, title: "Kente Cloth", status: :active)
 

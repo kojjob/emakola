@@ -72,13 +72,13 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   end
 
   @impl true
-  def handle_params(_params, uri, socket) do
-    # Capture the absolute URL on first mount so SEO tags have a canonical
-    # URL. handle_params runs after mount and on every live navigation, so
-    # this also covers the case where the user re-enters the page via
-    # push_patch (variant selection doesn't patch, but it's the right hook
-    # regardless).
-    {:noreply, assign(socket, :canonical_url, uri)}
+  def handle_params(_params, _uri, socket) do
+    # Pin the canonical to the apex + /s/:slug subfolder (never the request host)
+    # so subdomains/custom domains all canonicalize to one indexed URL.
+    canonical =
+      EmakolaWeb.SEO.Canonical.product_url(socket.assigns.store, socket.assigns.product)
+
+    {:noreply, assign(socket, :canonical_url, canonical)}
   end
 
   @impl true

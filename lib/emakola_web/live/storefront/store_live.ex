@@ -46,8 +46,10 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   end
 
   @impl true
-  def handle_params(_params, uri, socket) do
-    {:noreply, assign(socket, :canonical_url, uri)}
+  def handle_params(_params, _uri, socket) do
+    # Canonical pinned to the apex /s/:slug (never the request host).
+    {:noreply,
+     assign(socket, :canonical_url, EmakolaWeb.SEO.Canonical.store_url(socket.assigns.store))}
   end
 
   @impl true
