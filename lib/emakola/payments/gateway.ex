@@ -8,4 +8,11 @@ defmodule Emakola.Payments.Gateway do
   @callback verify_payment(String.t()) :: {:ok, map()} | {:error, term()}
   @callback process_refund(String.t(), integer()) :: {:ok, map()} | {:error, term()}
   @callback verify_webhook(binary(), map()) :: :ok | {:error, :invalid_signature}
+
+  @doc """
+  Create a payout subaccount for a merchant. Used by dropship split settlement
+  so a charge can be routed directly to a wholesaler/dropshipper. Gateways
+  without split support may return `{:error, :not_supported}`.
+  """
+  @callback create_subaccount(map()) :: {:ok, map()} | {:error, term()}
 end

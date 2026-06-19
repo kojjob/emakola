@@ -245,6 +245,29 @@ image-upload endpoints must be added before the Flutter merchant app can build t
 
 ---
 
+## 🟡 Dropship Trustless Settlement (SP-series) — IN REVIEW (2026-06)
+
+> Split a customer charge **at the gateway** so the wholesaler's cut never lands in the
+> dropshipper's account first — solving the manual-ledger fraud gap and unlocking
+> zero-capital dropshipping. PRs #158 (core) + #159 (integration), stacked. Full detail in
+> [`ROADMAP-dropshipping.md`](ROADMAP-dropshipping.md) § Trustless Split Settlement.
+
+**Built (TDD, full suite green — 3097 passing):**
+- [x] `SplitCalculator` — pure 3-way split off margin (wholesaler cost / platform fee / dropshipper), integer minor units, reconciles exactly
+- [x] `StorePayoutAccount` + `Supplier.linked_store_id` — per-store payout subaccount + verification
+- [x] `PaymentSplit` (`pending→settled→reversed`) + `Payment.split_mode/split_code`
+- [x] Gateway `create_subaccount/1` + `:split` on `initiate_payment/1` (Paystack flat split; Hubtel falls back)
+- [x] `DropshipSettlement` / `OrderSettlement` — resolve→split or manual-ledger fallback; reconciles to `order.total`
+- [x] `CheckoutLive` wired + `PaystackWebhookHandler` settle-on-success / reverse-on-refund
+
+**Remaining:**
+- [ ] SP1 merchant payout-onboarding UI (calls `create_subaccount`)
+- [ ] Refund clawback against future payouts (splits currently only flip to `:reversed`)
+- [ ] SP2–SP4 supplier-network marketplace (connections, catalog sourcing, cross-store fulfillment)
+- [ ] Ops: Paystack fee bearer; verify Paystack Ghana MoMo-as-subaccount support
+
+---
+
 ## 📊 Progress Summary
 
 | Phase | Status | Tests | Key Deliverables |
@@ -258,6 +281,7 @@ image-upload endpoints must be added before the Flutter merchant app can build t
 | Phase 1.6 | ✅ Complete | +106 | Order admin, notifications, customers |
 | Phase 1.7 | ✅ Complete | +48 | Dashboard, settings, delivery zones |
 | Phase 1.8 | ✅ Complete | +6 | All pages prototype-matched, modals, checkout |
+| Dropship Settlement (SP) | 🟡 In review | #158/#159 | Gateway split, PaymentSplit, OrderSettlement, webhook reconcile |
 | **Total** | **8/9 phases** | **618** | **17 Ash resources, 21 LiveViews** |
 
 ---
