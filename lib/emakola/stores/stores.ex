@@ -25,5 +25,9 @@ defmodule Emakola.Stores do
       define(:list_stores_by_slugs, action: :list_by_slugs, args: [:slugs])
       define(:list_stores_for_admin, action: :list_for_admin, args: [:search])
     end
+
+    resource Emakola.Stores.StorePayoutAccount do
+      define(:get_payout_account, action: :get_by_store, args: [:store_id])
+    end
   end
 end
