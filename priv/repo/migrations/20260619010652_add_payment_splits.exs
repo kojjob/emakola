@@ -23,7 +23,8 @@ defmodule Emakola.Repo.Migrations.AddPaymentSplits do
             name: "payment_splits_payment_id_fkey",
             type: :uuid,
             prefix: "public"
-          ), null: false
+          ),
+          null: false
 
       add :role, :text, null: false
       add :recipient_store_id, :uuid

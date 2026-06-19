@@ -17,7 +17,8 @@ defmodule Emakola.Repo.Migrations.AddStorePayoutAccount do
             name: "store_payout_accounts_store_id_fkey",
             type: :uuid,
             prefix: "public"
-          ), null: false
+          ),
+          null: false
 
       add :payout_provider, :text, null: false, default: "paystack"
       add :subaccount_code, :text
