@@ -51,6 +51,14 @@ defmodule Emakola.Suppliers.Supplier do
       public?(true)
     end
 
+    # Bridges an external supplier to a wholesaler that is itself an Emakola
+    # store. When set, the dropship split routes this supplier's cut to the
+    # linked store's payout subaccount instead of the manual ledger. Nil for
+    # ordinary off-platform suppliers.
+    attribute :linked_store_id, :uuid do
+      public?(true)
+    end
+
     attribute :notes, :string do
       public?(true)
     end
@@ -76,6 +84,11 @@ defmodule Emakola.Suppliers.Supplier do
     end
 
     has_many :supplier_ledger_entries, Emakola.Suppliers.SupplierLedgerEntry
+
+    belongs_to :linked_store, Emakola.Stores.Store do
+      source_attribute(:linked_store_id)
+      define_attribute?(false)
+    end
   end
 
   aggregates do
@@ -104,6 +117,7 @@ defmodule Emakola.Suppliers.Supplier do
         :whatsapp_number,
         :contact_email,
         :payment_details,
+        :linked_store_id,
         :notes,
         :active
       ])
@@ -116,6 +130,7 @@ defmodule Emakola.Suppliers.Supplier do
         :whatsapp_number,
         :contact_email,
         :payment_details,
+        :linked_store_id,
         :notes,
         :active
       ])
