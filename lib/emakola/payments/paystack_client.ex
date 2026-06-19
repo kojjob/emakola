@@ -41,6 +41,15 @@ defmodule Emakola.Payments.PaystackClient do
     )
   end
 
+  @impl true
+  def create_subaccount(params) do
+    http_client().post(
+      "#{base_url()}/subaccount",
+      json: params,
+      headers: auth_headers()
+    )
+  end
+
   # -- Private helpers -------------------------------------------------------
 
   defp auth_headers do

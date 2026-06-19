@@ -32,6 +32,8 @@ defmodule Emakola.Payments.Gateways.Paystack do
       }
     }
 
+    body = maybe_put_split(body, params[:split])
+
     case paystack_client().initialize_transaction(body) do
       {:ok, %{"status" => true, "data" => data}} ->
         {:ok,
@@ -100,6 +102,20 @@ defmodule Emakola.Payments.Gateways.Paystack do
   end
 
   @impl true
+  def create_subaccount(params) do
+    case paystack_client().create_subaccount(params) do
+      {:ok, %{"status" => true, "data" => data}} ->
+        {:ok, %{subaccount_code: data["subaccount_code"], raw: data}}
+
+      {:ok, %{"status" => false, "message" => message}} ->
+        {:error, {:paystack_error, message}}
+
+      {:error, reason} ->
+        {:error, {:gateway_error, reason}}
+    end
+  end
+
+  @impl true
   def verify_webhook(body, headers) do
     secret = secret_key()
     provided_signature = headers["x-paystack-signature"]
@@ -120,6 +136,16 @@ defmodule Emakola.Payments.Gateways.Paystack do
   end
 
   # -- Private helpers -------------------------------------------------------
+
+  # Wraps caller-supplied flat shares into Paystack's split structure. The
+  # platform main account keeps whatever is not assigned to a subaccount
+  # (= the platform fee). No split key is added when shares are absent.
+  defp maybe_put_split(body, nil), do: body
+  defp maybe_put_split(body, []), do: body
+
+  defp maybe_put_split(body, subaccounts) when is_list(subaccounts) do
+    Map.put(body, :split, %{type: "flat", bearer_type: "account", subaccounts: subaccounts})
+  end
 
   defp generate_reference(store_id) do
     prefix = if store_id, do: String.slice(to_string(store_id), 0..7), else: "noid"
