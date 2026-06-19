@@ -8,8 +8,8 @@ defmodule EmakolaWeb.Company.CookiesLive do
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket,
-       page_title: "Cookie Policy — Emakola",
-       meta_description: "How and why Emakola uses cookies and similar technologies.",
+       page_title: "Cookie Policy — Makola",
+       meta_description: "How and why Makola uses cookies and similar technologies.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/cookies"),
        mobile_menu_open: false
@@ -29,7 +29,7 @@ defmodule EmakolaWeb.Company.CookiesLive do
       <main>
         <.legal_layout
           title="Cookie Policy"
-          subtitle="How and why we use cookies and similar technologies on the Emakola platform."
+          subtitle="How and why we use cookies and similar technologies on the Makola platform."
           last_updated="June 15, 2026"
         >
           <:section id="what-cookies-are" title="What cookies are">
@@ -81,7 +81,7 @@ defmodule EmakolaWeb.Company.CookiesLive do
               </li>
             </ul>
             <p class="text-[#5f6b7a] leading-relaxed">
-              The Emakola platform is also installable as a Progressive Web App (PWA). When
+              The Makola platform is also installable as a Progressive Web App (PWA). When
               installed, a service-worker cache stores a limited set of static assets (app shell,
               fonts, icons) to enable offline access and faster load times on low-bandwidth
               connections. This cache is local to your device and does not transmit personal data.
@@ -112,7 +112,7 @@ defmodule EmakolaWeb.Company.CookiesLive do
               you to review.
             </p>
             <p class="text-[#5f6b7a] leading-relaxed">
-              We do not permit third-party advertising cookies on the Emakola platform. Any
+              We do not permit third-party advertising cookies on the Makola platform. Any
               third-party integrations are reviewed to ensure they meet our data minimisation
               standards.
             </p>

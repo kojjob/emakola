@@ -78,7 +78,7 @@ defmodule Emakola.ToolingTest do
   describe "Branding config" do
     test "branding defaults are set" do
       branding = Application.get_env(:emakola, :branding)
-      assert branding[:app_name] == "Emakola"
+      assert branding[:app_name] == "Makola"
       assert branding[:primary_color] == "#0c1526"
       assert is_binary(branding[:support_email])
     end

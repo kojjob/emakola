@@ -7,12 +7,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
     <EmakolaWeb.SEO.meta_tags
-      title={assigns[:page_title] || "Emakola"}
-      description={assigns[:meta_description] || "Your online store powered by Emakola"}
+      title={assigns[:page_title] || "Makola"}
+      description={assigns[:meta_description] || "Your online store powered by Makola"}
       canonical_url={assigns[:canonical_url]}
       og_image={assigns[:og_image]}
       og_type={assigns[:og_type] || "website"}
-      site_name={assigns[:og_site_name] || "Emakola"}
+      site_name={assigns[:og_site_name] || "Makola"}
       robots={assigns[:robots] || "index, follow"}
       json_ld={assigns[:json_ld]}
     />
@@ -23,7 +23,7 @@
       href={assigns[:preload_image]}
       fetchpriority="high"
     />
-    <.live_title default="Emakola">
+    <.live_title default="Makola">
       {assigns[:page_title]}
     </.live_title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />

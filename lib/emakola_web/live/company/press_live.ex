@@ -8,9 +8,9 @@ defmodule EmakolaWeb.Company.PressLive do
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket,
-       page_title: "Press — Emakola",
+       page_title: "Press — Makola",
        meta_description:
-         "Press resources, brand assets, and media contact for Emakola — the commerce platform for West African merchants.",
+         "Press resources, brand assets, and media contact for Makola — the commerce platform for West African merchants.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/press"),
        mobile_menu_open: false,
@@ -37,7 +37,7 @@ defmodule EmakolaWeb.Company.PressLive do
           eyebrow="Press & media"
           title="Press"
           highlight="resources"
-          subtitle="Everything you need to write about Emakola. For interviews or anything else, reach out below."
+          subtitle="Everything you need to write about Makola. For interviews or anything else, reach out below."
         />
         <.about />
         <.facts />
@@ -56,7 +56,7 @@ defmodule EmakolaWeb.Company.PressLive do
       <div class="max-w-6xl mx-auto grid lg:grid-cols-[0.75fr_1.45fr] gap-10 lg:gap-20">
         <div data-reveal>
           <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#d4a843]">
-            01 — About Emakola
+            01 — About Makola
           </p>
           <div class="mt-4 h-px w-14 bg-[#d4a843]"></div>
           <h2 class="mt-6 text-3xl lg:text-4xl font-headline font-bold text-[#0c1526] leading-[1.15]">
@@ -70,7 +70,7 @@ defmodule EmakolaWeb.Company.PressLive do
               Short version
             </p>
             <p class="text-base text-[#3a4658] leading-relaxed">
-              Emakola is a multi-tenant commerce platform for West Africa — Shopify localized
+              Makola is a multi-tenant commerce platform for West Africa — Shopify localized
               for the region, with mobile money payments and WhatsApp order alerts.
             </p>
           </div>
@@ -79,7 +79,7 @@ defmodule EmakolaWeb.Company.PressLive do
               Long version
             </p>
             <p class="text-base text-[#5f6b7a] leading-relaxed">
-              Emakola lets merchants in Ghana and Nigeria launch online stores built for how
+              Makola lets merchants in Ghana and Nigeria launch online stores built for how
               commerce actually works here: mobile money first (MTN MoMo, Vodafone Cash,
               AirtelTigo), local payment gateways (Paystack, Hubtel), WhatsApp and SMS
               notifications, and storefronts optimized for low-bandwidth phones.

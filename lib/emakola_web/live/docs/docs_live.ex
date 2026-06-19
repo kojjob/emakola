@@ -6,9 +6,9 @@ defmodule EmakolaWeb.Docs.DocsLive do
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket,
-       page_title: "Documentation — Emakola",
+       page_title: "Documentation — Makola",
        meta_description:
-         "Build on Emakola — multi-tenant storefronts, mobile money payments, WhatsApp order alerts, and the merchant mobile API.",
+         "Build on Makola — multi-tenant storefronts, mobile money payments, WhatsApp order alerts, and the merchant mobile API.",
        canonical_url: url(~p"/docs"),
        active_section: "getting-started",
        mobile_menu_open: false
@@ -58,7 +58,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
                   Getting Started
                 </h2>
                 <p class="text-[#5f6b7a] text-lg leading-relaxed mb-8 max-w-2xl">
-                  Get Emakola running locally in a few minutes. You'll need <strong class="text-[#0c1526]">Elixir 1.18+</strong>, <strong class="text-[#0c1526]">Erlang OTP 27+</strong>, and <strong class="text-[#0c1526]">PostgreSQL 15+</strong>.
+                  Get Makola running locally in a few minutes. You'll need <strong class="text-[#0c1526]">Elixir 1.18+</strong>, <strong class="text-[#0c1526]">Erlang OTP 27+</strong>, and <strong class="text-[#0c1526]">PostgreSQL 15+</strong>.
                 </p>
 
                 <div class="space-y-6">
@@ -83,7 +83,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
                   Multi-Tenancy
                 </h2>
                 <p class="text-[#5f6b7a] text-lg leading-relaxed mb-8 max-w-2xl">
-                  Every store is an isolated tenant. Emakola uses Ash attribute-based
+                  Every store is an isolated tenant. Makola uses Ash attribute-based
                   multitenancy keyed on
                   <.inline_code>store_id</.inline_code>
                   — store data
@@ -114,7 +114,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
                 <.section_eyebrow>03 — Commerce</.section_eyebrow>
                 <h2 class="text-3xl font-extrabold font-headline tracking-tight mb-3">Payments</h2>
                 <p class="text-[#5f6b7a] text-lg leading-relaxed mb-8 max-w-2xl">
-                  Mobile money first. Emakola routes payments through a
+                  Mobile money first. Makola routes payments through a
                   <.inline_code>Gateway</.inline_code>
                   behaviour with Paystack and Hubtel
                   implementations — covering MTN MoMo, Vodafone Cash, and AirtelTigo.
@@ -202,7 +202,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
                     WhatsApp Business API and the SMS gateway are configured via environment
                     variables.
                     <:code>
-                      <.code_block code="WHATSAPP_API_TOKEN=...\nWHATSAPP_PHONE_NUMBER_ID=...\nSMS_API_KEY=...\nSMS_SENDER_ID=Emakola" />
+                      <.code_block code="WHATSAPP_API_TOKEN=...\nWHATSAPP_PHONE_NUMBER_ID=...\nSMS_API_KEY=...\nSMS_SENDER_ID=Makola" />
                     </:code>
                   </.doc_block>
                 </div>
@@ -246,7 +246,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
                   Deployment
                 </h2>
                 <p class="text-[#5f6b7a] text-lg leading-relaxed mb-8 max-w-2xl">
-                  Emakola ships with a production
+                  Makola ships with a production
                   <.inline_code>Dockerfile</.inline_code>
                   and
                   Fly.io config. Deploy in a single command.
@@ -299,7 +299,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
           class="about-rise mt-6 text-4xl sm:text-5xl font-headline font-extrabold tracking-tight"
           style="animation-delay: 0.1s"
         >
-          Build on Emakola
+          Build on Makola
         </h1>
         <p
           class="about-rise mt-4 text-base lg:text-lg text-[#cbd5e1] max-w-2xl leading-relaxed"

@@ -200,7 +200,7 @@ defmodule Emakola.Themes.Pharmacy.Shared do
 
         <div class="border-t border-[#F9F6F0]/15 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#F9F6F0]/60">
           <p>&copy; {DateTime.utc_now().year} {@store.name}. All rights reserved.</p>
-          <p>Designed by Emakola</p>
+          <p>Designed by Makola</p>
         </div>
       </div>
     </footer>

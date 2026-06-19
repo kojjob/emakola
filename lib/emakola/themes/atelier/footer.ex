@@ -207,7 +207,7 @@ defmodule Emakola.Themes.Atelier.Footer do
             </p>
             <p class="text-gray-600 text-[10px] mt-1">
               Powered by
-              <span class="font-semibold" style="color: var(--theme-primary);">Emakola</span>
+              <span class="font-semibold" style="color: var(--theme-primary);">Makola</span>
             </p>
           </div>
         </div>
@@ -422,7 +422,7 @@ defmodule Emakola.Themes.Atelier.Footer do
             &copy; {Date.utc_today().year} {@store.name}. All rights reserved.
           </p>
           <p class="text-gray-600 text-[10px]">
-            Powered by <span class="font-semibold" style="color: var(--theme-primary);">Emakola</span>
+            Powered by <span class="font-semibold" style="color: var(--theme-primary);">Makola</span>
           </p>
         </div>
       </div>
@@ -701,7 +701,7 @@ defmodule Emakola.Themes.Atelier.Footer do
             &copy; {Date.utc_today().year} {@store.name}. All rights reserved.
           </p>
           <p class="text-gray-600 text-[10px]">
-            Powered by <span class="font-semibold" style="color: var(--theme-primary);">Emakola</span>
+            Powered by <span class="font-semibold" style="color: var(--theme-primary);">Makola</span>
           </p>
         </div>
       </div>

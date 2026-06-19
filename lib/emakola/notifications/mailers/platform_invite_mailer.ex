@@ -10,16 +10,16 @@ defmodule Emakola.Notifications.Mailers.PlatformInviteMailer do
 
     new()
     |> to(email)
-    |> from(Mailer.from_address("Emakola"))
-    |> subject("You've been invited to the Emakola platform team")
+    |> from(Mailer.from_address("Makola"))
+    |> subject("You've been invited to the Makola platform team")
     |> html_body("""
-    <h2>Join the Emakola platform team</h2>
-    <p>#{safe_inviter} has invited you to the Emakola platform team.</p>
+    <h2>Join the Makola platform team</h2>
+    <p>#{safe_inviter} has invited you to the Makola platform team.</p>
     <p>Click the link below to create your account. This link expires in 7 days.</p>
     <a href="#{url}">Accept invitation</a>
     """)
     |> text_body(
-      "#{inviter_name} has invited you to the Emakola platform team. " <>
+      "#{inviter_name} has invited you to the Makola platform team. " <>
         "Accept the invitation (expires in 7 days): #{url}"
     )
     |> Mailer.deliver()

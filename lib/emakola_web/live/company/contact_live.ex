@@ -10,9 +10,9 @@ defmodule EmakolaWeb.Company.ContactLive do
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket,
-       page_title: "Contact — Emakola",
+       page_title: "Contact — Makola",
        meta_description:
-         "Get in touch with the Emakola team — contact form, WhatsApp, email, and phone.",
+         "Get in touch with the Makola team — contact form, WhatsApp, email, and phone.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/contact"),
        json_ld: EmakolaWeb.Helpers.SEO.json_ld_organization(),

@@ -370,10 +370,10 @@ defmodule EmakolaWeb.StoresComponents do
     """
   end
 
-  # ── New-on-Emakola strip (compact horizontal) ──
+  # ── New-on-Makola strip (compact horizontal) ──
 
   attr :stores, :list, required: true
-  attr :title, :string, default: "New on Emakola"
+  attr :title, :string, default: "New on Makola"
   attr :subtitle, :string, default: "Just joined the marketplace"
 
   def recent_strip(assigns) do

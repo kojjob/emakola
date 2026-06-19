@@ -11,8 +11,8 @@ defmodule EmakolaWeb.PWATest do
       assert response_content_type(conn, :json) || conn.status == 200
 
       body = json_response(conn, 200)
-      assert body["name"] == "Emakola"
-      assert body["short_name"] == "Emakola"
+      assert body["name"] == "Makola"
+      assert body["short_name"] == "Makola"
       assert body["display"] == "standalone"
       assert body["start_url"] == "/"
       assert body["theme_color"] == "#0C1F17"
@@ -77,7 +77,7 @@ defmodule EmakolaWeb.PWATest do
 
       body = conn.resp_body
       assert body =~ "offline"
-      assert body =~ "Emakola"
+      assert body =~ "Makola"
     end
 
     test "contains a retry mechanism", %{conn: conn} do

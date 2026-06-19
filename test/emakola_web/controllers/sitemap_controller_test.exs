@@ -3,7 +3,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
   Tests for the per-store sitemap.xml endpoint.
 
   The sitemap is the primary mechanism for Google to discover all product
-  and content pages for each Emakola storefront. Without it, products
+  and content pages for each Makola storefront. Without it, products
   that are only reachable via JS-driven pagination or search may never
   be indexed.
   """
@@ -153,7 +153,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
 
       body = response(conn, 200)
       assert body =~ "# #{store.name}"
-      assert body =~ "Emakola"
+      assert body =~ "Makola"
     end
 
     test "lists active products", %{conn: conn, store: store} do

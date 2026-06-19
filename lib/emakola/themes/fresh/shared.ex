@@ -431,7 +431,7 @@ defmodule Emakola.Themes.Fresh.Shared do
             </span>
           </div>
           <p class="text-xs text-[#78350F]/60" style="font-family: 'Inter', sans-serif;">
-            {@store.name} -- Powered by Emakola
+            {@store.name} -- Powered by Makola
           </p>
         </div>
       </div>

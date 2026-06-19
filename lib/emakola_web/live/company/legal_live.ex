@@ -8,8 +8,8 @@ defmodule EmakolaWeb.Company.LegalLive do
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket,
-       page_title: "Legal — Emakola",
-       meta_description: "Emakola legal policies: privacy, terms of service, and cookie policy.",
+       page_title: "Legal — Makola",
+       meta_description: "Makola legal policies: privacy, terms of service, and cookie policy.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/legal"),
        mobile_menu_open: false
@@ -35,7 +35,7 @@ defmodule EmakolaWeb.Company.LegalLive do
           eyebrow="Legal"
           title="Legal &"
           highlight="policies"
-          subtitle="The agreements and policies that govern how Emakola works."
+          subtitle="The agreements and policies that govern how Makola works."
         />
 
         <section class="px-4 sm:px-6 py-16 lg:py-24">
@@ -49,7 +49,7 @@ defmodule EmakolaWeb.Company.LegalLive do
               How we collect, use, and protect data.
             </.policy_card>
             <.policy_card href="/terms" icon="gavel" title="Terms of Service" delay="0.08s">
-              The rules for using Emakola.
+              The rules for using Makola.
             </.policy_card>
             <.policy_card href="/cookies" icon="cookie" title="Cookie Policy" delay="0.16s">
               How and why we use cookies.

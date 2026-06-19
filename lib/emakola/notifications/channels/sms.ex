@@ -9,7 +9,7 @@ defmodule Emakola.Notifications.Channels.SMS do
 
       config :emakola, Emakola.Notifications.Channels.SMS,
         api_key: System.get_env("SMS_API_KEY"),
-        sender_id: System.get_env("SMS_SENDER_ID") || "Emakola",
+        sender_id: System.get_env("SMS_SENDER_ID") || "Makola",
         api_url: System.get_env("SMS_API_URL") || "https://api.sms-gateway.example.com/v1/messages"
 
   ## Usage
@@ -152,7 +152,7 @@ defmodule Emakola.Notifications.Channels.SMS do
   end
 
   defp sender_id do
-    config()[:sender_id] || "Emakola"
+    config()[:sender_id] || "Makola"
   end
 
   defp api_url do

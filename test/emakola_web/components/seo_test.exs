@@ -8,7 +8,7 @@ defmodule EmakolaWeb.SEOTest do
     - Twitter Card tags
     - JSON-LD structured data (Google rich results)
 
-  Critical for WhatsApp share previews — the Emakola primary marketing
+  Critical for WhatsApp share previews — the Makola primary marketing
   channel for West African merchants. A missing og:image means shared
   product links appear as plain text URLs with no preview.
   """
@@ -33,7 +33,7 @@ defmodule EmakolaWeb.SEOTest do
       assert html =~ ~s(<meta name="twitter:title" content="Kente Shirt - Amara Studio")
     end
 
-    test "defaults og:type to website and site_name to Emakola" do
+    test "defaults og:type to website and site_name to Makola" do
       assigns = %{}
 
       html =
@@ -42,7 +42,7 @@ defmodule EmakolaWeb.SEOTest do
         """)
 
       assert html =~ ~s(<meta property="og:type" content="website")
-      assert html =~ ~s(<meta property="og:site_name" content="Emakola")
+      assert html =~ ~s(<meta property="og:site_name" content="Makola")
     end
 
     test "defaults twitter:card to summary_large_image" do

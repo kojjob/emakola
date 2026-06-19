@@ -9,7 +9,7 @@ defmodule Emakola.Notifications.ContactMailer do
 
     new()
     |> to(to_address)
-    |> from(Mailer.from_address("Emakola Contact Form"))
+    |> from(Mailer.from_address("Makola Contact Form"))
     |> reply_to(email)
     |> subject("[Contact] #{subject}")
     |> text_body("""

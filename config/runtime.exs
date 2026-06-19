@@ -193,7 +193,7 @@ if config_env() == :prod do
     api_key:
       System.get_env("SMS_API_KEY") ||
         raise("environment variable SMS_API_KEY is missing."),
-    sender_id: System.get_env("SMS_SENDER_ID") || "Emakola",
+    sender_id: System.get_env("SMS_SENDER_ID") || "Makola",
     api_url:
       System.get_env("SMS_API_URL") ||
         raise("environment variable SMS_API_URL is missing.")
