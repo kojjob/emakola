@@ -25,6 +25,8 @@ defmodule Emakola.Application do
         {ChromicPDF, Application.get_env(:emakola, ChromicPDF, [])},
         # ETS cache for storefront product/category queries
         Emakola.Cache.StoreCache,
+        # Per-store daily AI-generation cap (SEO Phase 3 cost guard)
+        Emakola.Content.RateLimiter,
         # Start to serve requests, typically the last entry
         EmakolaWeb.Endpoint
       ] ++ fcm_children()
