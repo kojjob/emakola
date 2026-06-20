@@ -9,12 +9,19 @@ defmodule Emakola.Content.Generators.ClaudeTest do
   setup :verify_on_exit!
 
   setup do
-    prev = Application.get_env(:emakola, :anthropic_api_key)
+    # Pin the mock HTTP client explicitly. Other (async) channel tests mutate the
+    # global :http_client and on_exit delete it, which under CI parallelism can
+    # leave it unset — falling back to the real Req client and hitting the live
+    # Anthropic API. Setting it here guarantees this test never makes a real call.
+    Application.put_env(:emakola, :http_client, Emakola.HTTPClientMock)
+    prev_key = Application.get_env(:emakola, :anthropic_api_key)
     Application.put_env(:emakola, :anthropic_api_key, "test-key")
 
     on_exit(fn ->
-      if prev,
-        do: Application.put_env(:emakola, :anthropic_api_key, prev),
+      Application.put_env(:emakola, :http_client, Emakola.HTTPClientMock)
+
+      if prev_key,
+        do: Application.put_env(:emakola, :anthropic_api_key, prev_key),
         else: Application.delete_env(:emakola, :anthropic_api_key)
     end)
 
