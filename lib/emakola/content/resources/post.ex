@@ -161,6 +161,28 @@ defmodule Emakola.Content.Post do
       change(Emakola.Content.Changes.GenerateSlug)
     end
 
+    # AI-drafted posts (SEO Phase 3b): land as :ai_draft (not public, distinct
+    # from human :draft) and flagged ai_generated, so the admin can surface
+    # "AI suggestions awaiting review". A human publishes before anything goes live.
+    create :create_ai_draft do
+      accept([
+        :store_id,
+        :author_id,
+        :type,
+        :title,
+        :body,
+        :excerpt,
+        :featured_image_url,
+        :seo_title,
+        :seo_description,
+        :tags
+      ])
+
+      change(set_attribute(:status, :ai_draft))
+      change(set_attribute(:ai_generated, true))
+      change(Emakola.Content.Changes.GenerateSlug)
+    end
+
     update :update do
       require_atomic?(false)
 

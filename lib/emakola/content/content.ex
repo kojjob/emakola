@@ -12,6 +12,7 @@ defmodule Emakola.Content do
   resources do
     resource Emakola.Content.Post do
       define(:create_post, action: :create)
+      define(:create_ai_draft_post, action: :create_ai_draft)
       define(:update_post, action: :update)
       define(:publish_post, action: :publish)
       define(:destroy_post, action: :destroy)
