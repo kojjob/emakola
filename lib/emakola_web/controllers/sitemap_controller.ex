@@ -306,20 +306,9 @@ defmodule EmakolaWeb.SitemapController do
 
   # ── Helpers ────────────────────────────────────────────────────────
 
-  defp base_url(conn, _store) do
-    scheme = to_string(conn.scheme)
-    host = conn.host
-    port = conn.port
-
-    port_suffix =
-      case {conn.scheme, port} do
-        {:https, 443} -> ""
-        {:http, 80} -> ""
-        {_, p} -> ":#{p}"
-      end
-
-    "#{scheme}://#{host}#{port_suffix}"
-  end
+  # Always the canonical apex — sitemap <loc> URLs must point to the one indexed
+  # host regardless of which host (apex, subdomain, custom domain) the crawler hit.
+  defp base_url(_conn, _store), do: EmakolaWeb.SEO.Canonical.base()
 
   defp format_date(%DateTime{} = dt), do: DateTime.to_date(dt) |> Date.to_iso8601()
   defp format_date(%NaiveDateTime{} = ndt), do: NaiveDateTime.to_date(ndt) |> Date.to_iso8601()

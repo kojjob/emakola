@@ -50,8 +50,14 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
   end
 
   @impl true
-  def handle_params(params, uri, socket) do
-    socket = assign(socket, :canonical_url, uri)
+  def handle_params(params, _uri, socket) do
+    # Canonical pinned to the apex /s/:slug/products (never the request host).
+    socket =
+      assign(
+        socket,
+        :canonical_url,
+        EmakolaWeb.SEO.Canonical.path(socket.assigns.store, "/products")
+      )
 
     case params do
       %{"q" => query} when query != "" ->

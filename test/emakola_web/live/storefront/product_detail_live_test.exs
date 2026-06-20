@@ -17,6 +17,25 @@ defmodule EmakolaWeb.Storefront.ProductDetailLiveTest do
     {init_test_session(conn, %{"cart_session_id" => session_id}), session_id}
   end
 
+  describe "SEO canonical" do
+    test "canonical + og:url use the apex host, not the request host", %{conn: conn} do
+      store = create_store!(%{slug: "seo-canon-shop"})
+      product = create_product!(store, %{title: "Canonical Bowl"})
+      create_variant!(product, store, %{price: 4500, track_inventory: false, stock_quantity: 0})
+      activate!(product)
+
+      canonical = EmakolaWeb.SEO.Canonical.product_url(store, product)
+
+      html =
+        %{conn | host: "evil.example.com"}
+        |> get("/s/#{store.slug}/products/#{product.slug}")
+        |> html_response(200)
+
+      assert html =~ ~s(rel="canonical" href="#{canonical}")
+      refute html =~ "evil.example.com"
+    end
+  end
+
   describe "add_to_cart stock gate" do
     test "untracked variant adds to cart even at zero stock", %{conn: conn} do
       store = create_store!(%{slug: "untracked-shop"})

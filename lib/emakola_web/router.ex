@@ -3,6 +3,9 @@ defmodule EmakolaWeb.Router do
 
   pipeline :browser do
     plug :accepts, ["html"]
+    # Redirects alias hosts (emakola.com/www/fly default) to the canonical apex.
+    # No-op until `:canonical_redirect_hosts` is configured (post emakola.io cutover).
+    plug EmakolaWeb.Plugs.CanonicalHost
     plug :fetch_session
     plug :fetch_live_flash
     plug :put_root_layout, html: {EmakolaWeb.Layouts, :root}
