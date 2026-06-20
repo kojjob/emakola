@@ -249,6 +249,9 @@ defmodule EmakolaWeb.Router do
     live "/", LandingLive
     live "/pricing", PricingLive
     live "/stores", StoresLive
+    # Programmatic SEO: per-region shop directories + sell-online pages (Phase 4)
+    live "/shops/:region", ShopsLive
+    live "/sell-online/:region", SellOnlineLive
     live "/docs", Docs.DocsLive
     live "/about", Company.AboutLive
     live "/careers", Company.CareersLive
