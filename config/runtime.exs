@@ -287,6 +287,12 @@ if config_env() == :prod do
     ],
     secret_key_base: secret_key_base
 
+  # Branded merchant subdomains (yourshop.makola.io). Ships dark: until this is
+  # set, EmakolaWeb.Plugs.ResolveStoreByHost is a pure pass-through. Set it to
+  # the apex (e.g. "makola.io") only AFTER wildcard *.makola.io DNS + TLS exist,
+  # or branded hosts would resolve to a cert error.
+  config :emakola, :store_subdomain_base, System.get_env("STORE_SUBDOMAIN_BASE")
+
   # ## SSL Support
   #
   # To get SSL working, you will need to add the `https` key
