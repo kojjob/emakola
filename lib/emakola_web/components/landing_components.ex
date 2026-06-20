@@ -151,6 +151,21 @@ defmodule EmakolaWeb.LandingComponents do
           </.footer_column>
         </div>
 
+        <div class="border-t border-[#1a2744] pt-6 pb-6">
+          <p class="text-xs font-semibold uppercase tracking-wide text-[#8896ab]">
+            Shop by region
+          </p>
+          <div class="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+            <a
+              :for={region <- EmakolaWeb.SEO.Regions.names()}
+              href={"/shops/#{EmakolaWeb.SEO.Regions.slug(region)}"}
+              class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors"
+            >
+              {region}
+            </a>
+          </div>
+        </div>
+
         <div class="border-t border-[#1a2744] pt-6 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-4">
           <p class="text-sm text-[#8896ab]">
             &copy; {@year} Makola. All rights reserved.
