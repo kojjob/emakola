@@ -1,6 +1,6 @@
 defmodule EmakolaWeb.OnboardingLive do
   @moduledoc """
-  Onboarding flow for new Emakola merchants.
+  Onboarding flow for new Makola merchants.
 
   3-step flow:
   1. Name Your Store — store name, currency, auto-generated slug
@@ -505,7 +505,7 @@ defmodule EmakolaWeb.OnboardingLive do
   def handle_event("complete", _, socket) do
     {:noreply,
      socket
-     |> put_flash(:info, "Welcome to Emakola! Your store is ready.")
+     |> put_flash(:info, "Welcome to Makola! Your store is ready.")
      |> push_navigate(to: "/dashboard")}
   end
 

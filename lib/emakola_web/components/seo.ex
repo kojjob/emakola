@@ -11,7 +11,7 @@ defmodule EmakolaWeb.SEO do
       `twitter:description`, `twitter:image`)
     * Optional JSON-LD structured data (Product, Store, BreadcrumbList, etc.)
 
-  ## Why this component matters for Emakola
+  ## Why this component matters for Makola
 
   West African customers share product links **primarily via WhatsApp**.
   When a merchant sends `https://store.emakola.com/products/kente-shirt`
@@ -45,8 +45,8 @@ defmodule EmakolaWeb.SEO do
 
   import Phoenix.HTML, only: [raw: 1]
 
-  @default_description "Your online store powered by Emakola"
-  @default_site_name "Emakola"
+  @default_description "Your online store powered by Makola"
+  @default_site_name "Makola"
 
   @doc """
   Renders the full SEO / Open Graph / Twitter Card / JSON-LD metadata
@@ -80,7 +80,7 @@ defmodule EmakolaWeb.SEO do
 
   attr :site_name, :string,
     default: @default_site_name,
-    doc: "Site name shown in link previews (e.g., \"Emakola\")."
+    doc: "Site name shown in link previews (e.g., \"Makola\")."
 
   attr :robots, :string,
     default: "index, follow",

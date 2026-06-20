@@ -27,8 +27,8 @@ defmodule EmakolaWeb.Helpers.SEOTest do
     test "uses defaults when fields are missing" do
       result = SEO.meta_tags(%{})
 
-      assert result.page_title == "Emakola"
-      assert result.meta_description == "Your online store powered by Emakola"
+      assert result.page_title == "Makola"
+      assert result.meta_description == "Your online store powered by Makola"
       assert result.og_image == nil
       assert result.canonical_url == nil
       assert result.robots == "index, follow"

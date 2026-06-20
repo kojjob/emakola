@@ -715,7 +715,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
               <span class="text-sm font-semibold text-white">{@store.name}</span>
             </div>
             <p class="text-xs text-white/40">
-              &copy; {Date.utc_today().year} {@store.name} · Powered by Emakola
+              &copy; {Date.utc_today().year} {@store.name} · Powered by Makola
             </p>
           </div>
         </div>

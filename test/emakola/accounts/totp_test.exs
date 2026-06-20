@@ -18,8 +18,8 @@ defmodule Emakola.Accounts.TOTPTest do
       uri = TOTP.otpauth_uri("admin@example.com", TOTP.generate_secret())
 
       assert uri =~ "otpauth://totp/"
-      assert uri =~ "issuer=Emakola%20Platform"
-      assert uri =~ "Emakola%20Platform:admin@example.com"
+      assert uri =~ "issuer=Makola%20Platform"
+      assert uri =~ "Makola%20Platform:admin@example.com"
     end
   end
 

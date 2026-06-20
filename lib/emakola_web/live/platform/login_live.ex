@@ -225,8 +225,8 @@ defmodule EmakolaWeb.Platform.LoginLive do
     <div class="min-h-screen flex items-center justify-center bg-[#0c1526] px-6 py-12">
       <div class="w-full max-w-md">
         <div class="flex items-center justify-center gap-2 mb-8">
-          <img src={~p"/images/emakola-logo.svg"} alt="Emakola" class="h-8 w-auto" />
-          <span class="text-[#f1f5f9] text-lg font-bold tracking-tight">Emakola</span>
+          <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-8 w-auto" />
+          <span class="text-[#f1f5f9] text-lg font-bold tracking-tight">Makola</span>
         </div>
 
         <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
@@ -266,7 +266,7 @@ defmodule EmakolaWeb.Platform.LoginLive do
     """
   end
 
-  defp subtitle(:credentials), do: "Restricted to Emakola platform staff"
+  defp subtitle(:credentials), do: "Restricted to Makola platform staff"
   defp subtitle(:totp_setup), do: "Set up two-factor authentication to continue"
   defp subtitle(:totp), do: "Enter the code from your authenticator app"
 end

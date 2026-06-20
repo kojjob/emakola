@@ -7,8 +7,8 @@ defmodule EmakolaWeb.Helpers.SEO do
   and converted to major units for schema.org output.
   """
 
-  @default_title "Emakola"
-  @default_description "Your online store powered by Emakola"
+  @default_title "Makola"
+  @default_description "Your online store powered by Makola"
 
   @doc """
   Generates a map of SEO assigns for a page from the given assigns map.
@@ -87,7 +87,7 @@ defmodule EmakolaWeb.Helpers.SEO do
   end
 
   @doc """
-  Generates schema.org Organization JSON-LD for the Emakola brand.
+  Generates schema.org Organization JSON-LD for the Makola brand.
 
   Used on the apex marketing pages (About, Contact) to describe the
   company entity to search engines. URLs are derived from the endpoint.
@@ -99,11 +99,11 @@ defmodule EmakolaWeb.Helpers.SEO do
     %{
       "@context" => "https://schema.org",
       "@type" => "Organization",
-      "name" => "Emakola",
+      "name" => "Makola",
       "url" => base,
       "logo" => base <> "/images/emakola-logo.svg",
       "description" =>
-        "Emakola is a multi-tenant commerce platform for West Africa — " <>
+        "Makola is a multi-tenant commerce platform for West Africa — " <>
           "mobile money payments, WhatsApp order alerts, and storefronts " <>
           "built for low-bandwidth phones.",
       "areaServed" => [

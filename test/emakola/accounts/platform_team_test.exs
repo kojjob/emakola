@@ -50,7 +50,7 @@ defmodule Emakola.Accounts.PlatformTeamTest do
 
       assert_email_sent(fn sent ->
         assert {_, ^email} = hd(sent.to)
-        assert sent.subject =~ "invited to the Emakola platform team"
+        assert sent.subject =~ "invited to the Makola platform team"
         assert sent.html_body =~ "/platform/invite/accept/#{raw}"
         assert sent.text_body =~ "/platform/invite/accept/#{raw}"
       end)

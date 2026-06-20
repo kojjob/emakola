@@ -109,8 +109,8 @@ defmodule EmakolaWeb.Platform.InviteAcceptLive do
     <div class="min-h-screen flex items-center justify-center bg-[#0c1526] px-6 py-12">
       <div class="w-full max-w-md">
         <div class="flex items-center justify-center gap-2 mb-8">
-          <img src={~p"/images/emakola-logo.svg"} alt="Emakola" class="h-8 w-auto" />
-          <span class="text-[#f1f5f9] text-lg font-bold tracking-tight">Emakola</span>
+          <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-8 w-auto" />
+          <span class="text-[#f1f5f9] text-lg font-bold tracking-tight">Makola</span>
         </div>
 
         <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
@@ -130,7 +130,7 @@ defmodule EmakolaWeb.Platform.InviteAcceptLive do
             <div class="mb-6">
               <h1 class="text-2xl font-bold text-[#0c1526]">Join the platform team</h1>
               <p class="text-[#5f6b7a] mt-1 text-sm">
-                Create your Emakola staff account to accept the invite.
+                Create your Makola staff account to accept the invite.
               </p>
             </div>
 

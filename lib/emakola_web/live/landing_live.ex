@@ -7,16 +7,16 @@ defmodule EmakolaWeb.LandingLive do
   @rotating_words ["big name in Accra", "household brand", "MoMo success story", "market leader"]
 
   @faqs [
-    {"What is Emakola?",
-     "Emakola is an ecommerce platform for West African merchants. You create an online store, accept mobile money payments, and manage orders from one dashboard."},
-    {"Who can sell on Emakola?",
+    {"What is Makola?",
+     "Makola is an ecommerce platform for West African merchants. You create an online store, accept mobile money payments, and manage orders from one dashboard."},
+    {"Who can sell on Makola?",
      "Anyone with something to sell: market traders, seamstresses and tailors, hair stylists, beauticians and cosmetics sellers, barbers, tradesmen, food vendors, and electronics shops. Themed storefronts fit each trade."},
-    {"How much does Emakola cost?",
-     "Emakola is free to start — you pay 3.5% per sale on the Starter plan. Paid plans start at GHS 29 per month with lower transaction rates."},
+    {"How much does Makola cost?",
+     "Makola is free to start — you pay 3.5% per sale on the Starter plan. Paid plans start at GHS 29 per month with lower transaction rates."},
     {"Can I accept MTN MoMo and Vodafone Cash?",
-     "Yes. Emakola supports MTN MoMo, Vodafone Cash, AirtelTigo, and card payments through Paystack and Hubtel."},
-    {"What is dropshipping on Emakola?",
-     "Dropshipping lets you sell products your suppliers hold. When an order comes in, the supplier fulfills it and Emakola tracks supplier costs and settlements automatically."},
+     "Yes. Makola supports MTN MoMo, Vodafone Cash, AirtelTigo, and card payments through Paystack and Hubtel."},
+    {"What is dropshipping on Makola?",
+     "Dropshipping lets you sell products your suppliers hold. When an order comes in, the supplier fulfills it and Makola tracks supplier costs and settlements automatically."},
     {"Can I sell digital products?",
      "Yes. Upload files to a product and customers get automatic download access after payment."},
     {"Do customers get order updates?",
@@ -27,7 +27,7 @@ defmodule EmakolaWeb.LandingLive do
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket,
-       page_title: "Emakola — Start Selling Online in Ghana | Mobile Money & Dropshipping",
+       page_title: "Makola — Start Selling Online in Ghana | Mobile Money & Dropshipping",
        meta_description:
          "Create your online store in Ghana. Accept MTN MoMo and Vodafone Cash, dropship from local suppliers, and send WhatsApp order updates. Free to start.",
        og_image: url(~p"/images/og-image.png"),
@@ -91,7 +91,7 @@ defmodule EmakolaWeb.LandingLive do
           </span>
         </h1>
         <p class="text-base lg:text-lg text-[#e2e8f0] mt-6 mb-8 max-w-xl mx-auto">
-          Dream big and sell fast on Emakola. Mobile money payments, WhatsApp updates,
+          Dream big and sell fast on Makola. Mobile money payments, WhatsApp updates,
           and a storefront built for Ghana.
         </p>
         <a
@@ -111,11 +111,11 @@ defmodule EmakolaWeb.LandingLive do
     <section class="py-16 px-4 sm:px-6" data-reveal>
       <div class="max-w-6xl mx-auto">
         <h2 class="text-center text-2xl lg:text-3xl font-headline font-bold mb-2">
-          Stores built on Emakola
+          Stores built on Makola
         </h2>
         <p class="text-center text-sm text-[#8896ab] mb-10 max-w-xl mx-auto">
           Market traders, seamstresses, hair stylists, beauticians, barbers —
-          if you sell it, Emakola handles it.
+          if you sell it, Makola handles it.
         </p>
         <div class="flex gap-4 overflow-x-auto snap-x pb-4 lg:grid lg:grid-cols-3 lg:overflow-visible lg:pb-0">
           <div
@@ -297,7 +297,7 @@ defmodule EmakolaWeb.LandingLive do
         <h2 class="text-2xl lg:text-3xl font-headline font-bold text-center mb-2">
           From first sale to household name
         </h2>
-        <p class="text-base text-[#8896ab] text-center mb-12">Wherever you are, Emakola fits.</p>
+        <p class="text-base text-[#8896ab] text-center mb-12">Wherever you are, Makola fits.</p>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div class="bg-[#13203a] rounded-2xl overflow-hidden" data-reveal>
             <img
@@ -362,7 +362,7 @@ defmodule EmakolaWeb.LandingLive do
       <div class="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
         <div>
           <p class="text-4xl font-headline font-extrabold text-[#d4a843]">500+</p>
-          <p class="text-sm text-[#8896ab] mt-1">merchants on Emakola</p>
+          <p class="text-sm text-[#8896ab] mt-1">merchants on Makola</p>
         </div>
         <div>
           <p class="text-4xl font-headline font-extrabold text-[#d4a843]">3</p>
@@ -645,14 +645,14 @@ defmodule EmakolaWeb.LandingLive do
       "@graph" => [
         %{
           "@type" => "Organization",
-          "name" => "Emakola",
+          "name" => "Makola",
           "url" => base,
           "logo" => base <> "/images/emakola-logo.svg"
         },
-        %{"@type" => "WebSite", "name" => "Emakola", "url" => base},
+        %{"@type" => "WebSite", "name" => "Makola", "url" => base},
         %{
           "@type" => "SoftwareApplication",
-          "name" => "Emakola",
+          "name" => "Makola",
           "applicationCategory" => "BusinessApplication",
           "operatingSystem" => "Web",
           "description" =>

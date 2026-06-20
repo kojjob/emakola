@@ -8,9 +8,9 @@ defmodule EmakolaWeb.Company.CareersLive do
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket,
-       page_title: "Careers — Emakola",
+       page_title: "Careers — Makola",
        meta_description:
-         "Join Emakola and help build commerce tools for West African merchants. Remote-friendly, mission-driven, early-stage.",
+         "Join Makola and help build commerce tools for West African merchants. Remote-friendly, mission-driven, early-stage.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/careers"),
        mobile_menu_open: false,
@@ -49,7 +49,7 @@ defmodule EmakolaWeb.Company.CareersLive do
   end
 
   # ─────────────────────────────────────────────────────────────────────
-  # Life at Emakola — asymmetric editorial: label column beside a lead.
+  # Life at Makola — asymmetric editorial: label column beside a lead.
   # ─────────────────────────────────────────────────────────────────────
   defp life(assigns) do
     ~H"""
@@ -57,7 +57,7 @@ defmodule EmakolaWeb.Company.CareersLive do
       <div class="max-w-6xl mx-auto grid lg:grid-cols-[0.75fr_1.45fr] gap-10 lg:gap-20">
         <div data-reveal>
           <p class="text-xs font-semibold uppercase tracking-[0.22em] text-[#d4a843]">
-            01 — Life at Emakola
+            01 — Life at Makola
           </p>
           <div class="mt-4 h-px w-14 bg-[#d4a843]"></div>
           <h2 class="mt-6 text-3xl lg:text-4xl font-headline font-bold text-[#0c1526] leading-[1.15]">

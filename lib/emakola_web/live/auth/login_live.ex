@@ -23,8 +23,8 @@ defmodule EmakolaWeb.Auth.LoginLive do
         <!-- Top: Brand -->
         <div class="relative z-10">
           <div class="flex items-center gap-2">
-            <img src={~p"/images/emakola-logo.svg"} alt="Emakola" class="h-9 w-auto" />
-            <span class="text-[#f1f5f9] text-xl font-bold tracking-tight">Emakola</span>
+            <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-9 w-auto" />
+            <span class="text-[#f1f5f9] text-xl font-bold tracking-tight">Makola</span>
           </div>
         </div>
         <!-- Middle: Headline + Photo -->
@@ -45,7 +45,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
                 Authentic Growth
               </p>
               <p class="text-[#f1f5f9] text-sm leading-relaxed">
-                Join over 500+ merchants building their businesses on Emakola.
+                Join over 500+ merchants building their businesses on Makola.
               </p>
             </div>
           </div>
@@ -62,8 +62,8 @@ defmodule EmakolaWeb.Auth.LoginLive do
         <div class="w-full max-w-md">
           <!-- Mobile brand (visible on small screens) -->
           <div class="lg:hidden flex items-center justify-center gap-2 mb-8">
-            <img src={~p"/images/emakola-logo.svg"} alt="Emakola" class="h-8 w-auto" />
-            <span class="text-[#0c1526] text-lg font-bold tracking-tight">Emakola</span>
+            <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-8 w-auto" />
+            <span class="text-[#0c1526] text-lg font-bold tracking-tight">Makola</span>
           </div>
           <!-- Heading -->
           <div class="mb-8">

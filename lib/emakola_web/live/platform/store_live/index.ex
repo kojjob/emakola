@@ -127,8 +127,8 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
           <h1 class="text-2xl font-bold text-gray-900">Stores</h1>
           <p class="text-sm text-gray-500 mt-1">
             {if @stores,
-              do: "All stores on the Emakola platform (#{length(@stores)} shown)",
-              else: "All stores on the Emakola platform — loading…"}
+              do: "All stores on the Makola platform (#{length(@stores)} shown)",
+              else: "All stores on the Makola platform — loading…"}
           </p>
         </div>
       </div>

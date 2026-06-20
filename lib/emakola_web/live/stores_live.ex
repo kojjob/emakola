@@ -3,7 +3,7 @@ defmodule EmakolaWeb.StoresLive do
   Public marketplace directory at `/stores`.
 
   Phase 1 sections:
-  - Sticky header (logo + search + Sell-on-Emakola CTA)
+  - Sticky header (logo + search + Sell-on-Makola CTA)
   - Hero with prominent search input
   - Theme filter chips + region dropdown + sort dropdown
   - Paginated main grid via `Store.list_with_filters` (cursor-style
@@ -31,7 +31,7 @@ defmodule EmakolaWeb.StoresLive do
     socket =
       socket
       |> assign(
-        page_title: "Browse Stores — Emakola",
+        page_title: "Browse Stores — Makola",
         active_theme: "all",
         active_region: "",
         active_sort: "featured",
@@ -201,7 +201,7 @@ defmodule EmakolaWeb.StoresLive do
               href="/"
               class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 text-white text-sm font-semibold hover:bg-slate-700 transition-colors shadow-sm"
             >
-              Sell on Emakola
+              Sell on Makola
             </a>
           </div>
         </div>
@@ -448,7 +448,7 @@ defmodule EmakolaWeb.StoresLive do
         <StoresComponents.recent_strip
           stores={@favorite_stores}
           title="Your saved stores"
-          subtitle="Stores you've hearted on Emakola"
+          subtitle="Stores you've hearted on Makola"
         />
       </div>
 
@@ -464,7 +464,7 @@ defmodule EmakolaWeb.StoresLive do
         />
       </div>
 
-      <%!-- New on Emakola strip (light section) — hidden when filtering --%>
+      <%!-- New on Makola strip (light section) — hidden when filtering --%>
       <div :if={!filters_active?(assigns)} class="bg-slate-50">
         <StoresComponents.recent_strip stores={@recent_stores} />
       </div>
@@ -486,7 +486,7 @@ defmodule EmakolaWeb.StoresLive do
       <footer class="bg-slate-900 text-slate-300 text-sm py-10 text-center">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <p>
-            &copy; {DateTime.utc_now().year} Emakola — A marketplace for West Africa
+            &copy; {DateTime.utc_now().year} Makola — A marketplace for West Africa
           </p>
         </div>
       </footer>
