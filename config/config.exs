@@ -149,6 +149,10 @@ config :emakola,
   content_generator: Emakola.Content.Generators.Claude,
   ai_rate_limit_per_day: 50
 
+# Google Search Console fetcher (SEO Phase 5). Ships dark until :gsc_credentials
+# is set (runtime.exs) — both this and the worker's stub no-op when dark.
+config :emakola, :gsc_fetcher, Emakola.Analytics.GscFetcher
+
 # Demo mode is a runtime knob — set in config/runtime.exs (compile-time
 # evaluation here would bake `false` into release builds permanently).
 
