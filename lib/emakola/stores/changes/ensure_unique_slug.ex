@@ -11,11 +11,22 @@ defmodule Emakola.Stores.Changes.EnsureUniqueSlug do
   Runs in a `before_action` hook so the lookup happens inside the create
   transaction, narrowing the window for a concurrent collision. The `:unique_slug`
   identity (and its DB index) remains the final backstop for that rare race.
+
+  The suffixed slug is kept within the `:slug` attribute's `max_length`: a forced
+  change is still constraint-validated, so without trimming, suffixing a near-max
+  base would fail the insert — re-introducing the onboarding dead-end this change
+  exists to remove.
   """
 
   use Ash.Resource.Change
 
   require Ash.Query
+
+  # Mirrors the Store `:slug` attribute's max_length. force_change_attribute
+  # values are still validated, so the suffix must not push the slug past this.
+  @max_slug_length 255
+  # Room reserved for the "-N" suffix (covers up to "-99999").
+  @suffix_reserve 6
 
   @impl true
   def change(changeset, _opts, _context) do
@@ -33,12 +44,15 @@ defmodule Emakola.Stores.Changes.EnsureUniqueSlug do
   end
 
   defp unique_slug(base) do
-    taken = taken_slugs(base)
+    if taken?(base) do
+      # Trim the base so "<stem>-<n>" never exceeds the column's max_length. A
+      # short base (the normal case) is left untouched: stem == base.
+      stem = String.slice(base, 0, @max_slug_length - @suffix_reserve)
+      taken = suffixed_slugs(stem)
 
-    if base in taken do
       Stream.iterate(2, &(&1 + 1))
       |> Enum.find_value(fn n ->
-        candidate = "#{base}-#{n}"
+        candidate = "#{stem}-#{n}"
         if candidate not in taken, do: candidate
       end)
     else
@@ -46,11 +60,18 @@ defmodule Emakola.Stores.Changes.EnsureUniqueSlug do
     end
   end
 
-  # Existing slugs equal to `base` or shaped like `base-<suffix>`, fetched in one
-  # query so the first free numeric suffix can be chosen without N round-trips.
-  defp taken_slugs(base) do
+  defp taken?(slug) do
     Emakola.Stores.Store
-    |> Ash.Query.filter(slug == ^base or like(slug, ^(base <> "-%")))
+    |> Ash.Query.filter(slug == ^slug)
+    |> Ash.read!(authorize?: false)
+    |> Enum.any?()
+  end
+
+  # Existing slugs shaped like `stem-<suffix>`, fetched in one query so the first
+  # free numeric suffix can be chosen without N round-trips.
+  defp suffixed_slugs(stem) do
+    Emakola.Stores.Store
+    |> Ash.Query.filter(like(slug, ^(stem <> "-%")))
     |> Ash.read!(authorize?: false)
     |> Enum.map(& &1.slug)
   end

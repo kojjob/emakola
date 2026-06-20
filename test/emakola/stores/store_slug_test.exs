@@ -34,5 +34,15 @@ defmodule Emakola.Stores.StoreSlugTest do
       assert {:ok, third} = create("glow")
       assert third.slug == "glow-3"
     end
+
+    test "a colliding near-max-length slug stays within the 255-char column limit" do
+      long = String.duplicate("a", 255)
+      assert {:ok, first} = create(long)
+      assert String.length(first.slug) == 255
+
+      assert {:ok, second} = create(long)
+      assert String.length(second.slug) <= 255
+      assert String.ends_with?(second.slug, "-2")
+    end
   end
 end
