@@ -322,6 +322,7 @@ defmodule EmakolaWeb.Router do
       # Store settings & delivery zones
       live "/admin/settings", Admin.SettingsLive
       live "/admin/settings/delivery", Admin.DeliveryLive.Index
+      live "/admin/settings/address", Admin.StoreAddressLive
 
       # Suppliers (dropshipping) — management + payout ledger
       live "/admin/settings/suppliers", Admin.SupplierLive.Index

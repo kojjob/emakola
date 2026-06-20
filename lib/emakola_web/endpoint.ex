@@ -54,5 +54,9 @@ defmodule EmakolaWeb.Endpoint do
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options
+  # Resolve branded merchant hosts (yourshop.makola.io) before routing: 301 to
+  # the /s/:slug subfolder by default, or rewrite the path for serve-in-place.
+  # Ships dark until :store_subdomain_base is configured (post-DNS cutover).
+  plug EmakolaWeb.Plugs.ResolveStoreByHost
   plug EmakolaWeb.Router
 end
