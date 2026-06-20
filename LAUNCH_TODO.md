@@ -5,6 +5,10 @@
 > database**. This file tracks every remaining setup, in order.
 > How-tos: `docs/PROVIDER_SETUP.md` (credentials, illustrated) ·
 > `docs/DEPLOYMENT.md` (infra mechanics).
+>
+> **SEO roadmap** (built through Phase 5, ship-dark): remaining tasks in
+> `docs/SEO_ROADMAP_FOLLOWUPS.md`; plain-English step-by-step how-tos (activation
+> switches, backlinks/social, custom domains) in `docs/SEO_PLAYBOOK.md`.
 
 ---
 
