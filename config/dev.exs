@@ -36,6 +36,8 @@ config :emakola, :oauth,
     private_key_path: System.get_env("APPLE_PRIVATE_KEY_PATH")
   }
 
+config :emakola, :oauth_redirect_base, "http://localhost:4000/oauth"
+
 # Payment gateway credentials — harmless placeholders for dev (env vars
 # override). Prod credentials are set in runtime.exs.
 config :emakola, Emakola.Payments.PaystackClient,

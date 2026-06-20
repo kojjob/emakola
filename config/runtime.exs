@@ -281,6 +281,11 @@ if config_env() == :prod do
       a silent default would generate links to the wrong domain.
       """
 
+  # OAuth callback base — providers redirect back to
+  # "<base>/<subject>/<strategy>/callback" (e.g. .../oauth/merchant/google/callback).
+  # Derived from PHX_HOST so it follows the canonical host automatically.
+  config :emakola, :oauth_redirect_base, "https://#{host}/oauth"
+
   config :emakola, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :emakola, EmakolaWeb.Endpoint,
