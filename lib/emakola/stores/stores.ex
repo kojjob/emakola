@@ -29,5 +29,13 @@ defmodule Emakola.Stores do
     resource Emakola.Stores.StorePayoutAccount do
       define(:get_payout_account, action: :get_by_store, args: [:store_id])
     end
+
+    resource Emakola.Stores.StoreDomain do
+      define(:create_store_domain, action: :create)
+      define(:get_store_domain_by_host, action: :get_by_host, args: [:host])
+      define(:list_store_domains, action: :list_for_store, args: [:store_id])
+      define(:update_store_domain, action: :update)
+      define(:destroy_store_domain, action: :destroy)
+    end
   end
 end
