@@ -18,6 +18,31 @@ defmodule EmakolaWeb.SitemapControllerTest do
     {:ok, store: store}
   end
 
+  describe "GET /sitemap.xml (platform) — programmatic region pages" do
+    defp region_store!(region) do
+      create_store!(%{
+        name: "Shop #{System.unique_integer([:positive])}",
+        slug: "shop-#{System.unique_integer([:positive])}",
+        region: region,
+        active: true
+      })
+    end
+
+    test "lists indexable region pages and omits thin ones", %{conn: conn} do
+      for _ <- 1..3, do: region_store!("Greater Accra")
+      region_store!("Ashanti")
+
+      body = conn |> get("/sitemap.xml") |> response(200)
+
+      assert body =~ "/shops/greater-accra"
+      refute body =~ "/shops/ashanti"
+
+      # sell-online pages are listed for every region, regardless of shop count
+      assert body =~ "/sell-online/greater-accra"
+      assert body =~ "/sell-online/ashanti"
+    end
+  end
+
   describe "GET /s/:store_slug/sitemap.xml" do
     test "returns valid XML with correct content type", %{conn: conn, store: store} do
       conn = get(conn, "/s/#{store.slug}/sitemap.xml")
