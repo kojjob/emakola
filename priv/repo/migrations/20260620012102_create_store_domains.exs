@@ -17,7 +17,8 @@ defmodule Emakola.Repo.Migrations.CreateStoreDomains do
             name: "store_domains_store_id_fkey",
             type: :uuid,
             prefix: "public"
-          ), null: false
+          ),
+          null: false
 
       add :host, :text, null: false
       add :type, :text, null: false, default: "subdomain"
