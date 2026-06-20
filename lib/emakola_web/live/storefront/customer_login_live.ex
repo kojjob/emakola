@@ -7,6 +7,8 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.OAuthComponents
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
@@ -62,6 +64,8 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
           >
             {@error_message}
           </div>
+
+          <.oauth_buttons subject="customer" store_slug={@store.slug} class="mb-6" />
 
           <.form for={@form} id="login-form" phx-submit="login" class="space-y-6">
             <div>

@@ -41,6 +41,12 @@ defmodule EmakolaWeb.Router do
     plug EmakolaWeb.Plugs.RateLimiter, limit: 10, window_ms: 60_000, key: :ip
   end
 
+  # Resolves + sets the store tenant for storefront (customer) OAuth. No-op for
+  # merchant OAuth routes, so it can sit in the shared /oauth pipeline.
+  pipeline :customer_oauth_tenant do
+    plug EmakolaWeb.Plugs.CustomerOAuthTenant
+  end
+
   # Unauthenticated mobile-API auth endpoints: JSON + strict per-IP limit.
   # Deliberately NOT stacked on :api — two RateLimiter plugs with the same
   # key share one Hammer bucket and double-count every request.
@@ -143,8 +149,9 @@ defmodule EmakolaWeb.Router do
   # stay hidden (EmakolaWeb.OAuth). Callback URL to register with each provider:
   # https://<host>/oauth/merchant/<provider>/callback
   scope "/", EmakolaWeb do
-    pipe_through [:browser, :auth_rate_limit]
+    pipe_through [:browser, :auth_rate_limit, :customer_oauth_tenant]
     auth_routes(AuthController, Emakola.Accounts.Merchant, path: "/oauth")
+    auth_routes(AuthController, Emakola.Customers.Customer, path: "/oauth")
   end
 
   # Platform staff session controller (exchanges a short-lived signed login
