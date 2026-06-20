@@ -20,6 +20,10 @@ if System.get_env("PHX_SERVER") do
   config :emakola, EmakolaWeb.Endpoint, server: true
 end
 
+# AI content generation (SEO Phase 3). All environments: nil = ships dark, so the
+# Claude generator returns {:error, :not_configured} and nothing is spent.
+config :emakola, :anthropic_api_key, System.get_env("ANTHROPIC_API_KEY")
+
 # Sentry DSN is read at runtime so the same release works with or without it.
 # Without SENTRY_DSN set, Sentry stays inert (no events sent).
 config :sentry,
