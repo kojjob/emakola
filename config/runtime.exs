@@ -298,17 +298,18 @@ if config_env() == :prod do
   # consolidate onto the brand apex, and www -> apex. Override with
   # CANONICAL_REDIRECT_HOSTS (comma-separated) for any other host setup, or set it
   # to an empty string to disable the redirects entirely.
-  config :emakola,
-         :canonical_redirect_hosts,
-         case(System.get_env("CANONICAL_REDIRECT_HOSTS")) do
-    nil ->
-      if host == "makola.io",
-        do: ["www.makola.io", "emakola.fly.dev", "emakola.com", "www.emakola.com"],
-        else: []
+  canonical_redirect_hosts =
+    case System.get_env("CANONICAL_REDIRECT_HOSTS") do
+      nil ->
+        if host == "makola.io",
+          do: ["www.makola.io", "emakola.fly.dev", "emakola.com", "www.emakola.com"],
+          else: []
 
-    csv ->
-      csv |> String.split(",", trim: true) |> Enum.map(&String.trim/1)
-  end
+      csv ->
+        csv |> String.split(",", trim: true) |> Enum.map(&String.trim/1)
+    end
+
+  config :emakola, :canonical_redirect_hosts, canonical_redirect_hosts
 
   # ## SSL Support
   #
