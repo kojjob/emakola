@@ -14,32 +14,11 @@ defmodule EmakolaWeb.ShopsLive do
 
   alias Emakola.Stores.Store
   alias EmakolaWeb.Helpers.SEO
-  alias EmakolaWeb.SEO.Canonical
-
-  # Ghana's 16 regions — the indexable programmatic surface.
-  @regions [
-    "Greater Accra",
-    "Ashanti",
-    "Western",
-    "Central",
-    "Eastern",
-    "Northern",
-    "Volta",
-    "Upper East",
-    "Upper West",
-    "Bono",
-    "Bono East",
-    "Ahafo",
-    "Savannah",
-    "North East",
-    "Western North",
-    "Oti"
-  ]
-  @min_for_index 3
+  alias EmakolaWeb.SEO.{Canonical, Regions}
 
   @impl true
   def mount(%{"region" => slug}, _session, socket) do
-    case region_from_slug(slug) do
+    case Regions.from_slug(slug) do
       nil ->
         {:ok, push_navigate(socket, to: "/stores")}
 
@@ -64,7 +43,10 @@ defmodule EmakolaWeb.ShopsLive do
         "Buy from local sellers and pay with MTN MoMo, Vodafone Cash and more on Makola."
     )
     |> assign(:canonical_url, Canonical.url("/shops/#{slug}"))
-    |> assign(:robots, if(count >= @min_for_index, do: "index, follow", else: "noindex, follow"))
+    |> assign(
+      :robots,
+      if(count >= Regions.min_for_index(), do: "index, follow", else: "noindex, follow")
+    )
     |> assign(:og_type, "website")
     |> assign(:json_ld, [
       SEO.json_ld_breadcrumb([
@@ -99,16 +81,10 @@ defmodule EmakolaWeb.ShopsLive do
     ]
   end
 
-  defp region_from_slug(slug), do: Enum.find(@regions, fn r -> slugify(r) == slug end)
-
   defp region_links(current_slug) do
-    @regions
-    |> Enum.map(fn r -> {r, slugify(r)} end)
+    Regions.names()
+    |> Enum.map(fn r -> {r, Regions.slug(r)} end)
     |> Enum.reject(fn {_r, s} -> s == current_slug end)
-  end
-
-  defp slugify(name) do
-    name |> String.downcase() |> String.replace(~r/[^a-z0-9]+/, "-") |> String.trim("-")
   end
 
   defp plural(word, 1), do: word

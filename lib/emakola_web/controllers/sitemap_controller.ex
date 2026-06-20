@@ -34,7 +34,7 @@ defmodule EmakolaWeb.SitemapController do
   def platform(conn, _params) do
     base = EmakolaWeb.Endpoint.url()
 
-    entries =
+    marketing_entries =
       [
         "/",
         "/pricing",
@@ -52,6 +52,21 @@ defmodule EmakolaWeb.SitemapController do
       |> Enum.map_join("\n", fn path ->
         "  <url><loc>#{xml_escape(base <> path)}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>"
       end)
+
+    # Programmatic /shops/:region pages — only regions with enough active shops
+    # to be indexable (matches ShopsLive's noindex guardrail, so we never list a
+    # noindex page in the sitemap).
+    region_entries =
+      EmakolaWeb.SEO.Regions.indexable()
+      |> Enum.map_join("\n", fn {_name, slug} ->
+        loc = xml_escape(base <> "/shops/" <> slug)
+        "  <url><loc>#{loc}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>"
+      end)
+
+    entries =
+      [marketing_entries, region_entries]
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.join("\n")
 
     xml = """
     <?xml version="1.0" encoding="UTF-8"?>
