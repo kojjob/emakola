@@ -299,4 +299,228 @@ defmodule EmakolaWeb.Helpers.SEOTest do
       assert SEO.json_ld_to_script(nil) == nil
     end
   end
+
+  # -- json_ld_article/2 --
+
+  describe "json_ld_article/2" do
+    setup do
+      store = %{slug: "ama-kitchen", name: "Ama's Kitchen"}
+
+      post = %{
+        type: :blog_post,
+        title: "5 Jollof Tips",
+        slug: "5-jollof-tips",
+        excerpt: "Make better jollof.",
+        seo_description: "The secret to smoky party jollof, step by step.",
+        featured_image_url: "https://cdn.example.com/jollof.jpg",
+        published_at: ~U[2026-06-01 09:00:00.000000Z]
+      }
+
+      %{store: store, post: post}
+    end
+
+    test "builds BlogPosting structured data", %{store: store, post: post} do
+      result = SEO.json_ld_article(post, store)
+
+      assert result["@context"] == "https://schema.org"
+      assert result["@type"] == "BlogPosting"
+      assert result["headline"] == "5 Jollof Tips"
+      assert result["url"] == "http://localhost:4000/s/ama-kitchen/blog/5-jollof-tips"
+      assert result["image"] == "https://cdn.example.com/jollof.jpg"
+      assert result["datePublished"] == "2026-06-01T09:00:00.000000Z"
+    end
+
+    test "prefers seo_description over excerpt", %{store: store, post: post} do
+      assert SEO.json_ld_article(post, store)["description"] ==
+               "The secret to smoky party jollof, step by step."
+    end
+
+    test "falls back to excerpt when seo_description is nil", %{store: store, post: post} do
+      result = SEO.json_ld_article(%{post | seo_description: nil}, store)
+      assert result["description"] == "Make better jollof."
+    end
+
+    test "names the store as author", %{store: store, post: post} do
+      assert SEO.json_ld_article(post, store)["author"] ==
+               %{"@type" => "Organization", "name" => "Ama's Kitchen"}
+    end
+
+    test "omits image and datePublished when absent", %{store: store, post: post} do
+      bare = %{post | featured_image_url: nil, published_at: nil}
+      result = SEO.json_ld_article(bare, store)
+      refute Map.has_key?(result, "image")
+      refute Map.has_key?(result, "datePublished")
+    end
+  end
+
+  # -- json_ld_recipe/2 --
+
+  describe "json_ld_recipe/2" do
+    setup do
+      store = %{slug: "ama-kitchen", name: "Ama's Kitchen"}
+
+      post = %{
+        type: :recipe,
+        title: "Ghana Jollof Rice",
+        slug: "ghana-jollof-rice",
+        seo_description: "Authentic smoky Ghana jollof.",
+        excerpt: "Party jollof.",
+        featured_image_url: "https://cdn.example.com/jollof.jpg",
+        published_at: ~U[2026-06-01 09:00:00.000000Z],
+        recipe_meta: %{
+          prep_time: 20,
+          cook_time: 40,
+          servings: 6,
+          ingredients: [
+            %{item: "Rice", quantity: "2 cups"},
+            %{item: "Tomatoes", quantity: "4 large"}
+          ],
+          instructions: ["Blend the tomatoes.", "Fry the paste.", "Add rice and stock."]
+        }
+      }
+
+      %{store: store, post: post}
+    end
+
+    test "builds Recipe structured data", %{store: store, post: post} do
+      result = SEO.json_ld_recipe(post, store)
+
+      assert result["@context"] == "https://schema.org"
+      assert result["@type"] == "Recipe"
+      assert result["name"] == "Ghana Jollof Rice"
+      assert result["url"] == "http://localhost:4000/s/ama-kitchen/recipes/ghana-jollof-rice"
+      assert result["image"] == "https://cdn.example.com/jollof.jpg"
+      assert result["description"] == "Authentic smoky Ghana jollof."
+    end
+
+    test "maps quantity and item into recipeIngredient strings", %{store: store, post: post} do
+      assert SEO.json_ld_recipe(post, store)["recipeIngredient"] ==
+               ["2 cups Rice", "4 large Tomatoes"]
+    end
+
+    test "maps instructions into HowToStep list", %{store: store, post: post} do
+      assert SEO.json_ld_recipe(post, store)["recipeInstructions"] == [
+               %{"@type" => "HowToStep", "text" => "Blend the tomatoes."},
+               %{"@type" => "HowToStep", "text" => "Fry the paste."},
+               %{"@type" => "HowToStep", "text" => "Add rice and stock."}
+             ]
+    end
+
+    test "encodes durations as ISO-8601 and yield as a string", %{store: store, post: post} do
+      result = SEO.json_ld_recipe(post, store)
+      assert result["prepTime"] == "PT20M"
+      assert result["cookTime"] == "PT40M"
+      assert result["totalTime"] == "PT60M"
+      assert result["recipeYield"] == "6"
+    end
+
+    test "omits timing fields when recipe_meta lacks them", %{store: store, post: post} do
+      sparse = %{post | recipe_meta: %{ingredients: [], instructions: []}}
+      result = SEO.json_ld_recipe(sparse, store)
+      refute Map.has_key?(result, "prepTime")
+      refute Map.has_key?(result, "totalTime")
+      refute Map.has_key?(result, "recipeYield")
+    end
+  end
+
+  # -- json_ld_faq/1 --
+
+  describe "json_ld_faq/1" do
+    test "builds FAQPage with question/answer entities" do
+      faqs = [
+        %{question: "Do you deliver?", answer: "Yes, across Accra."},
+        %{question: "What payments?", answer: "MTN MoMo and cards."}
+      ]
+
+      result = SEO.json_ld_faq(faqs)
+
+      assert result["@context"] == "https://schema.org"
+      assert result["@type"] == "FAQPage"
+
+      assert result["mainEntity"] == [
+               %{
+                 "@type" => "Question",
+                 "name" => "Do you deliver?",
+                 "acceptedAnswer" => %{"@type" => "Answer", "text" => "Yes, across Accra."}
+               },
+               %{
+                 "@type" => "Question",
+                 "name" => "What payments?",
+                 "acceptedAnswer" => %{"@type" => "Answer", "text" => "MTN MoMo and cards."}
+               }
+             ]
+    end
+
+    test "accepts string keys too" do
+      faqs = [%{"question" => "Q?", "answer" => "A."}]
+      [entity] = SEO.json_ld_faq(faqs)["mainEntity"]
+      assert entity["name"] == "Q?"
+      assert entity["acceptedAnswer"]["text"] == "A."
+    end
+  end
+
+  # -- json_ld_local_business/1 --
+
+  describe "json_ld_local_business/1" do
+    setup do
+      store = %{
+        slug: "ama-kitchen",
+        name: "Ama's Kitchen",
+        currency: "GHS",
+        description: "Home-cooked Ghanaian meals.",
+        logo_url: "https://cdn.example.com/logo.png",
+        contact_phone: "+233200000000",
+        contact_email: "hello@ama.example",
+        address: "12 Oxford St",
+        city: "Accra",
+        region: "Greater Accra",
+        instagram_url: "https://instagram.com/amakitchen",
+        facebook_url: "https://facebook.com/amakitchen"
+      }
+
+      %{store: store}
+    end
+
+    test "builds LocalBusiness with core identity", %{store: store} do
+      result = SEO.json_ld_local_business(store)
+
+      assert result["@context"] == "https://schema.org"
+      assert result["@type"] == "LocalBusiness"
+      assert result["name"] == "Ama's Kitchen"
+      assert result["url"] == "http://localhost:4000/s/ama-kitchen"
+      assert result["image"] == "https://cdn.example.com/logo.png"
+      assert result["telephone"] == "+233200000000"
+      assert result["email"] == "hello@ama.example"
+    end
+
+    test "builds a PostalAddress with country derived from currency", %{store: store} do
+      assert SEO.json_ld_local_business(store)["address"] == %{
+               "@type" => "PostalAddress",
+               "streetAddress" => "12 Oxford St",
+               "addressLocality" => "Accra",
+               "addressRegion" => "Greater Accra",
+               "addressCountry" => "GH"
+             }
+    end
+
+    test "derives Nigeria country code from NGN currency", %{store: store} do
+      result = SEO.json_ld_local_business(%{store | currency: "NGN"})
+      assert result["address"]["addressCountry"] == "NG"
+    end
+
+    test "collects social profiles into sameAs", %{store: store} do
+      assert SEO.json_ld_local_business(store)["sameAs"] == [
+               "https://instagram.com/amakitchen",
+               "https://facebook.com/amakitchen"
+             ]
+    end
+
+    test "omits address, sameAs, and telephone when no data present", %{store: _store} do
+      bare = %{slug: "x", name: "X", currency: "GHS"}
+      result = SEO.json_ld_local_business(bare)
+      refute Map.has_key?(result, "address")
+      refute Map.has_key?(result, "sameAs")
+      refute Map.has_key?(result, "telephone")
+    end
+  end
 end
