@@ -322,6 +322,9 @@ defmodule EmakolaWeb.Router do
       live "/admin/customers", Admin.CustomerLive.Index
       live "/admin/customers/:id", Admin.CustomerLive.Show
 
+      # SEO quick-wins dashboard (AI content gaps)
+      live "/admin/seo", Admin.SEODashboardLive
+
       # Store settings & delivery zones
       live "/admin/settings", Admin.SettingsLive
       live "/admin/settings/delivery", Admin.DeliveryLive.Index
