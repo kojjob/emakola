@@ -8,9 +8,9 @@ defmodule EmakolaWeb.Company.AboutLive do
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket,
-       page_title: "About — Emakola | Commerce for West Africa",
+       page_title: "About — Makola | Commerce for West Africa",
        meta_description:
-         "Emakola helps West African merchants sell online with mobile money, WhatsApp orders, and storefronts built for low-bandwidth phones.",
+         "Makola helps West African merchants sell online with mobile money, WhatsApp orders, and storefronts built for low-bandwidth phones.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/about"),
        json_ld: EmakolaWeb.Helpers.SEO.json_ld_organization(),
@@ -37,7 +37,7 @@ defmodule EmakolaWeb.Company.AboutLive do
           eyebrow="Our story"
           title="Building commerce for"
           highlight="West Africa"
-          subtitle="Emakola gives every merchant the tools to sell online — mobile money, WhatsApp orders, and storefronts that load on any phone, on any network."
+          subtitle="Makola gives every merchant the tools to sell online — mobile money, WhatsApp orders, and storefronts that load on any phone, on any network."
         />
         <.mission />
         <.beliefs />
@@ -81,7 +81,7 @@ defmodule EmakolaWeb.Company.AboutLive do
             and addresses that don't match how commerce actually works here.
           </p>
           <p class="text-base text-[#5f6b7a] leading-relaxed">
-            Emakola is online retail rebuilt for West Africa: mobile money first
+            Makola is online retail rebuilt for West Africa: mobile money first
             (MTN MoMo, Vodafone Cash, AirtelTigo), WhatsApp and SMS order alerts, and
             storefronts optimized for low-bandwidth devices. We handle the technology so
             merchants can focus on selling.

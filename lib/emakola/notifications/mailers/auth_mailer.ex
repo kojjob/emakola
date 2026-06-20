@@ -7,14 +7,14 @@ defmodule Emakola.Notifications.AuthMailer do
   def welcome(user) do
     new()
     |> to({user.name || "User", to_string(user.email)})
-    |> from(Mailer.from_address("Emakola"))
-    |> subject("Welcome to Emakola!")
+    |> from(Mailer.from_address("Makola"))
+    |> subject("Welcome to Makola!")
     |> html_body("""
-    <h1>Welcome to Emakola!</h1>
+    <h1>Welcome to Makola!</h1>
     <p>Hi #{user.name || "there"},</p>
     <p>Your account has been created. Get started by creating your first workspace.</p>
     """)
-    |> text_body("Welcome to Emakola! Your account has been created.")
+    |> text_body("Welcome to Makola! Your account has been created.")
     |> Mailer.deliver()
   end
 
@@ -23,14 +23,14 @@ defmodule Emakola.Notifications.AuthMailer do
 
     new()
     |> to(email)
-    |> from(Mailer.from_address("Emakola"))
-    |> subject("Your Emakola sign-in link")
+    |> from(Mailer.from_address("Makola"))
+    |> subject("Your Makola sign-in link")
     |> html_body("""
-    <h2>Sign in to Emakola</h2>
+    <h2>Sign in to Makola</h2>
     <p>Click the link below to sign in. This link expires in 10 minutes.</p>
-    <a href="#{url}">Sign in to Emakola</a>
+    <a href="#{url}">Sign in to Makola</a>
     """)
-    |> text_body("Sign in to Emakola: #{url}")
+    |> text_body("Sign in to Makola: #{url}")
     |> Mailer.deliver()
   end
 
@@ -39,8 +39,8 @@ defmodule Emakola.Notifications.AuthMailer do
 
     new()
     |> to({user.name || "User", to_string(user.email)})
-    |> from(Mailer.from_address("Emakola"))
-    |> subject("Reset your Emakola password")
+    |> from(Mailer.from_address("Makola"))
+    |> subject("Reset your Makola password")
     |> html_body("""
     <h2>Password Reset</h2>
     <p>Click the link below to reset your password. This link expires in 1 hour.</p>

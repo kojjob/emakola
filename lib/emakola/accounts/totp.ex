@@ -6,7 +6,7 @@ defmodule Emakola.Accounts.TOTP do
   libraries directly.
   """
 
-  @issuer "Emakola Platform"
+  @issuer "Makola Platform"
   @period 30
   @qr_width 220
 

@@ -7,7 +7,7 @@ defmodule EmakolaWeb.ScreensTest do
   describe "Landing page" do
     test "renders landing page", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/")
-      assert html =~ "Emakola"
+      assert html =~ "Makola"
     end
   end
 

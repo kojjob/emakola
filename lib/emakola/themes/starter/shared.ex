@@ -270,7 +270,7 @@ defmodule Emakola.Themes.Starter.Shared do
         <%!-- Bottom bar --%>
         <div class="pt-6 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p class="text-xs text-[#94A3B8]" style="font-family: 'Inter', sans-serif;">
-            Powered by Emakola
+            Powered by Makola
           </p>
           <p class="text-xs text-[#94A3B8]" style="font-family: 'Inter', sans-serif;">
             &copy; {DateTime.utc_now().year} {@store.name}. All rights reserved.

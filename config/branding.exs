@@ -3,9 +3,9 @@ import Config
 # White-label branding configuration
 # Override these values to customize the app for different brands
 config :emakola, :branding,
-  app_name: "Emakola",
+  app_name: "Makola",
   tagline: "Commerce for West Africa",
-  company_name: "Emakola Inc.",
+  company_name: "Makola Inc.",
   support_email: "support@emakola.com",
   marketing_url: "https://emakola.com",
   logo_path: "/images/logo.svg",

@@ -1,9 +1,9 @@
 defmodule EmakolaWeb.SitemapController do
   @moduledoc """
   Generates per-store sitemap.xml for Google and other search engine crawlers.
-  It also serves the platform-level (apex) sitemap at `/sitemap.xml` for Emakola's own marketing pages.
+  It also serves the platform-level (apex) sitemap at `/sitemap.xml` for Makola's own marketing pages.
 
-  Each Emakola storefront gets its own sitemap at `/s/:store_slug/sitemap.xml`.
+  Each Makola storefront gets its own sitemap at `/s/:store_slug/sitemap.xml`.
   The sitemap lists all indexable public pages: store home, product list,
   individual active products, categories, about, blog posts, and recipes.
 
@@ -86,7 +86,7 @@ defmodule EmakolaWeb.SitemapController do
   Serves a per-store robots.txt that references the sitemap and explicitly
   allows AI crawlers (GPTBot, Google-Extended, Anthropic, etc.).
 
-  Most sites block AI crawlers by default. Emakola merchants WANT their
+  Most sites block AI crawlers by default. Makola merchants WANT their
   products to appear in AI-powered search (Google SGE, Perplexity,
   ChatGPT Browse) — it's a customer acquisition channel. So we allow
   all AI crawlers with a specific directive, rather than relying on the
@@ -101,7 +101,7 @@ defmodule EmakolaWeb.SitemapController do
         disallows = build_disallow_rules(store.slug)
 
         body = """
-        # Emakola storefront robots.txt for #{store.name}
+        # Makola storefront robots.txt for #{store.name}
         # Generated dynamically — do not edit
 
         User-Agent: *
@@ -371,15 +371,15 @@ defmodule EmakolaWeb.SitemapController do
     """
     # #{store.name}
 
-    > #{Map.get(store, :description) || Map.get(store, :tagline) || "Online store powered by Emakola"}
+    > #{Map.get(store, :description) || Map.get(store, :tagline) || "Online store powered by Makola"}
 
     ## About
 
-    #{store.name} is an online store on the Emakola platform, serving customers primarily in Ghana and West Africa. The store accepts mobile money payments (MTN MoMo, Vodafone Cash, AirtelTigo) via Paystack and Hubtel, as well as card payments.
+    #{store.name} is an online store on the Makola platform, serving customers primarily in Ghana and West Africa. The store accepts mobile money payments (MTN MoMo, Vodafone Cash, AirtelTigo) via Paystack and Hubtel, as well as card payments.
 
     - Store URL: #{store_url}
     - Currency: #{currency}
-    - Platform: Emakola (https://emakola.com)
+    - Platform: Makola (https://emakola.com)
 
     ## Categories
 
@@ -404,7 +404,7 @@ defmodule EmakolaWeb.SitemapController do
     - All prices include VAT where applicable
     - Delivery is available across Ghana; delivery zones and fees vary by location
     - Mobile money is the primary payment method for most customers
-    - The store is operated by a merchant on the Emakola ecommerce platform
+    - The store is operated by a merchant on the Makola ecommerce platform
     """
   end
 

@@ -50,7 +50,7 @@ defmodule EmakolaWeb.Platform.DashboardLive do
       <%!-- Page header --%>
       <div class="mb-8">
         <h1 class="text-2xl font-bold text-gray-900">Platform Overview</h1>
-        <p class="text-sm text-gray-500 mt-1">All stores and merchants across Emakola</p>
+        <p class="text-sm text-gray-500 mt-1">All stores and merchants across Makola</p>
       </div>
 
       <%!-- Metric cards — row 1 --%>

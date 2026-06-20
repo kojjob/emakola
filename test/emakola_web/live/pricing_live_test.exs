@@ -40,7 +40,7 @@ defmodule EmakolaWeb.PricingLiveTest do
     test "sets SEO title, canonical URL, and Offer JSON-LD", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/pricing")
 
-      assert html =~ "Pricing — Emakola"
+      assert html =~ "Pricing — Makola"
       assert html =~ ~s(rel="canonical")
       assert html =~ "application/ld+json"
       assert html =~ "SoftwareApplication"

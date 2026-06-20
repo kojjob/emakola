@@ -56,7 +56,7 @@ defmodule EmakolaWeb.LandingLiveTest do
     test "renders six vertical-diverse example stores", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/")
 
-      assert html =~ "Stores built on Emakola"
+      assert html =~ "Stores built on Makola"
       assert html =~ "Mansa Fresh"
       assert html =~ "Yaa Braids"
       assert html =~ "Adwoa Glow"
@@ -169,8 +169,8 @@ defmodule EmakolaWeb.LandingLiveTest do
     test "renders seven FAQ entries as details elements", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/")
 
-      assert html =~ "Who can sell on Emakola?"
-      assert html =~ "What is dropshipping on Emakola?"
+      assert html =~ "Who can sell on Makola?"
+      assert html =~ "What is dropshipping on Makola?"
 
       faq_html =
         html

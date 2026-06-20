@@ -81,7 +81,7 @@ defmodule Emakola.Notifications.Templates do
   # ── Supplier-facing templates ──────────────────────────────────
 
   def supplier_fulfillment_sms(order, supplier, line_items) do
-    "Emakola order #{order.order_number} for #{supplier.name}: " <>
+    "Makola order #{order.order_number} for #{supplier.name}: " <>
       "Please ship #{items_summary(line_items)} " <>
       "to #{format_address(Map.get(order, :shipping_address))}. " <>
       "Reply to confirm and share a tracking number."

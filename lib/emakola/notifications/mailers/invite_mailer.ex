@@ -9,17 +9,15 @@ defmodule Emakola.Notifications.InviteMailer do
 
     new()
     |> to(email)
-    |> from(Mailer.from_address("Emakola"))
-    |> subject("You've been invited to join #{org_name} on Emakola")
+    |> from(Mailer.from_address("Makola"))
+    |> subject("You've been invited to join #{org_name} on Makola")
     |> html_body("""
     <h2>You're invited!</h2>
-    <p>You've been invited to join <strong>#{org_name}</strong> on Emakola.</p>
+    <p>You've been invited to join <strong>#{org_name}</strong> on Makola.</p>
     <p>Create your account to get started:</p>
     <a href="#{register_url}">Join #{org_name}</a>
     """)
-    |> text_body(
-      "You've been invited to join #{org_name} on Emakola. Sign up at: #{register_url}"
-    )
+    |> text_body("You've been invited to join #{org_name} on Makola. Sign up at: #{register_url}")
     |> Mailer.deliver()
   end
 end
