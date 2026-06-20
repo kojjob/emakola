@@ -215,7 +215,7 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   defp assign_seo_metadata(socket, store, products) do
     description = store_description_for_seo(store)
     og_image = first_featured_product_image(products) || store_logo_url(store)
-    json_ld = SEOHelpers.json_ld_store(store)
+    json_ld = SEOHelpers.json_ld_local_business(store)
 
     socket
     |> assign(:meta_description, description)

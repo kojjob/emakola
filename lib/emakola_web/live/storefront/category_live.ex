@@ -6,7 +6,9 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   use EmakolaWeb, :live_view
 
   alias Emakola.Cart.CartStore
+  alias EmakolaWeb.Helpers.SEO
   alias EmakolaWeb.Helpers.StoreResolver
+  alias EmakolaWeb.SEO.Canonical
 
   @impl true
   def mount(%{"store_slug" => slug, "category_slug" => category_slug}, session, socket) do
@@ -48,7 +50,13 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
                meta_description: category_meta_description(category, store, product_count),
                og_image: first_product_image(products),
                og_type: "website",
-               og_site_name: store.name
+               og_site_name: store.name,
+               canonical_url: Canonical.category_url(store, category),
+               json_ld:
+                 SEO.json_ld_breadcrumb([
+                   %{name: store.name, url: Canonical.store_url(store)},
+                   %{name: category.name, url: Canonical.category_url(store, category)}
+                 ])
              )}
         end
 
