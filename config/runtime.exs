@@ -251,6 +251,27 @@ if config_env() == :prod do
            You can generate one by calling: mix phx.gen.secret 64
            """)
 
+  # Social login (OAuth) — ship-dark: each provider activates only when its
+  # credentials are present (see EmakolaWeb.OAuth). Leaving the env vars unset
+  # keeps that provider's button hidden and its routes inert, so this deploys
+  # safely before any provider is set up. Apple uses a .p8 signing key, not a
+  # client secret.
+  config :emakola, :oauth,
+    google: %{
+      client_id: System.get_env("GOOGLE_CLIENT_ID"),
+      client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
+    },
+    facebook: %{
+      client_id: System.get_env("FACEBOOK_CLIENT_ID"),
+      client_secret: System.get_env("FACEBOOK_CLIENT_SECRET")
+    },
+    apple: %{
+      client_id: System.get_env("APPLE_CLIENT_ID"),
+      team_id: System.get_env("APPLE_TEAM_ID"),
+      private_key_id: System.get_env("APPLE_KEY_ID"),
+      private_key_path: System.get_env("APPLE_PRIVATE_KEY_PATH")
+    }
+
   host =
     System.get_env("PHX_HOST") ||
       raise """
@@ -259,6 +280,11 @@ if config_env() == :prod do
       It is used for URL generation (emails, webhooks) and check_origin —
       a silent default would generate links to the wrong domain.
       """
+
+  # OAuth callback base — providers redirect back to
+  # "<base>/<subject>/<strategy>/callback" (e.g. .../oauth/merchant/google/callback).
+  # Derived from PHX_HOST so it follows the canonical host automatically.
+  config :emakola, :oauth_redirect_base, "https://#{host}/oauth"
 
   config :emakola, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
