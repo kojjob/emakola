@@ -125,7 +125,9 @@ config :emakola, Oban,
     webhooks: 5,
     images: 3,
     orders: 5,
-    whatsapp_catalog: 3
+    whatsapp_catalog: 3,
+    # Low concurrency bounds AI spend + respects Anthropic rate limits.
+    ai_content: 3
   ],
   repo: Emakola.Repo,
   plugins: [
@@ -140,6 +142,12 @@ config :emakola, Oban,
        {"0 */6 * * *", Emakola.Cart.CartCleanupWorker}
      ]}
   ]
+
+# AI content generation (SEO Phase 3). The Claude generator ships dark until
+# ANTHROPIC_API_KEY is set (runtime.exs); tests swap in GeneratorMock (test.exs).
+config :emakola,
+  content_generator: Emakola.Content.Generators.Claude,
+  ai_rate_limit_per_day: 50
 
 # Demo mode is a runtime knob — set in config/runtime.exs (compile-time
 # evaluation here would bake `false` into release builds permanently).
