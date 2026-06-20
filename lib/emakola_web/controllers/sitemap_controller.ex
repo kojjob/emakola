@@ -63,8 +63,17 @@ defmodule EmakolaWeb.SitemapController do
         "  <url><loc>#{loc}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>"
       end)
 
+    # "Sell online in {region}" merchant-acquisition pages — one per region,
+    # always index-worthy (templated marketing, not listings-gated).
+    sell_online_entries =
+      EmakolaWeb.SEO.Regions.names()
+      |> Enum.map_join("\n", fn name ->
+        loc = xml_escape(base <> "/sell-online/" <> EmakolaWeb.SEO.Regions.slug(name))
+        "  <url><loc>#{loc}</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>"
+      end)
+
     entries =
-      [marketing_entries, region_entries]
+      [marketing_entries, region_entries, sell_online_entries]
       |> Enum.reject(&(&1 == ""))
       |> Enum.join("\n")
 

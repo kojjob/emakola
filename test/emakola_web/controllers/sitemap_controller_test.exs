@@ -36,6 +36,10 @@ defmodule EmakolaWeb.SitemapControllerTest do
 
       assert body =~ "/shops/greater-accra"
       refute body =~ "/shops/ashanti"
+
+      # sell-online pages are listed for every region, regardless of shop count
+      assert body =~ "/sell-online/greater-accra"
+      assert body =~ "/sell-online/ashanti"
     end
   end
 
