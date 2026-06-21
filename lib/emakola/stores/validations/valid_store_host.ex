@@ -47,7 +47,13 @@ defmodule Emakola.Stores.Validations.ValidStoreHost do
   defp normalize(nil), do: nil
   defp normalize(host), do: host |> to_string() |> String.trim() |> String.downcase()
 
-  defp reserved_label?(host) do
+  @doc """
+  Returns true if the host's first label is a reserved platform word
+  (`admin`, `api`, `www`, …). Accepts a bare label too. Shared with
+  `EmakolaWeb.Plugs.ResolveStoreByHost` so an implicit `<slug>.<base>` subdomain
+  can never shadow a reserved name.
+  """
+  def reserved_label?(host) do
     host |> String.split(".") |> List.first() |> Kernel.in(@reserved)
   end
 

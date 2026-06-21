@@ -22,6 +22,7 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
   import Plug.Conn
 
   alias Emakola.Stores
+  alias Emakola.Stores.Validations.ValidStoreHost
 
   @impl true
   def init(opts), do: opts
@@ -59,11 +60,11 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
     if host == base or host == "www." <> base do
       :passthrough
     else
-      resolve_host(conn)
+      resolve_host(conn, base)
     end
   end
 
-  defp resolve_host(conn) do
+  defp resolve_host(conn, base) do
     case Stores.get_store_domain_by_host(conn.host,
            load: [:store],
            authorize?: false,
@@ -76,9 +77,27 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
         {:redirect, EmakolaWeb.SEO.Canonical.store_url(%{slug: slug}) <> subpath(conn)}
 
       _ ->
-        :passthrough
+        resolve_implicit_subdomain(conn.host, base)
     end
   end
+
+  # No explicit StoreDomain row: a bare `<slug>.<base>` serves that store in place,
+  # so every store gets its slug subdomain for free (no provisioning). Reserved
+  # labels, multi-label hosts, and unknown slugs fall through to apex routing.
+  defp resolve_implicit_subdomain(host, base) do
+    suffix = "." <> base
+
+    with true <- String.ends_with?(host, suffix),
+         label = String.replace_suffix(host, suffix, ""),
+         true <- valid_subdomain_label?(label) and not ValidStoreHost.reserved_label?(label),
+         {:ok, _store} <- Stores.get_store_by_slug(label, authorize?: false) do
+      {:serve_in_place, label}
+    else
+      _ -> :passthrough
+    end
+  end
+
+  defp valid_subdomain_label?(label), do: label != "" and not String.contains?(label, ".")
 
   # The request path + query, mapped under /s/:slug. Root ("/") maps to the
   # bare store URL with no trailing slash.
