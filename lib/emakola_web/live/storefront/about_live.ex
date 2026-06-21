@@ -22,6 +22,7 @@ defmodule EmakolaWeb.Storefront.AboutLive do
      |> assign(:categories, categories)
      |> assign(:cart_session_id, cart_session_id)
      |> assign(:cart_count, cart_count)
+     |> assign(:page_content, EmakolaWeb.Storefront.ContentLoader.load(store.id))
      |> assign(:page_title, "About - #{store.name}")}
   end
 

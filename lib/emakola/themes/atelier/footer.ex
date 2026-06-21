@@ -43,15 +43,19 @@ defmodule Emakola.Themes.Atelier.Footer do
         )
       )
 
-    # Company links with sensible defaults that work for any merchant
+    # Company links with sensible defaults that work for any merchant.
+    # All routes flow through store_path/2 so they stay correct on both the
+    # apex (/s/:slug/...) and a store subdomain (<slug>.<base>/...).
     company_links =
       Map.get(footer_config, :company_links, [
         %{label: "Our Story", url: store_path(slug, "/about")},
+        %{label: "Contact", url: store_path(slug, "/contact")},
+        %{label: "FAQ", url: store_path(slug, "/faq")},
         %{label: "Blog", url: store_path(slug, "/blog")},
         %{label: "Recipes", url: store_path(slug, "/recipes")},
-        %{label: "Shipping & Returns", url: nil},
-        %{label: "Privacy Policy", url: nil},
-        %{label: "Terms of Service", url: nil}
+        %{label: "Shipping & Returns", url: store_path(slug, "/policies#shipping")},
+        %{label: "Privacy Policy", url: store_path(slug, "/policies#privacy")},
+        %{label: "Terms of Service", url: store_path(slug, "/policies#terms")}
       ])
 
     social_links =

@@ -15,12 +15,49 @@ defmodule Emakola.Themes.Atelier.About do
 
   alias Emakola.Themes.Atelier.Shared
 
+  @step_icons ["search", "hands", "package"]
+  @value_icons ["shield", "heart", "leaf", "globe"]
+
+  @default_steps [
+    {"Browse", "Explore our collection and find the pieces you love."},
+    {"Order", "Add to cart and check out securely in just a few taps."},
+    {"Delivered", "We carefully pack your order and get it safely to your door."}
+  ]
+
+  @default_values [
+    {"Quality", "We stand behind every item we sell."},
+    {"Fair Prices", "Honest pricing with no surprises at checkout."},
+    {"Customer Care", "Real people ready to help, before and after your order."},
+    {"Trust", "Secure payments and reliable delivery you can count on."}
+  ]
+
   attr :store, :map, required: true
   attr :theme, :map, required: true
   attr :categories, :list, default: []
   attr :cart_count, :integer, default: 0
+  attr :page_content, :map, default: %{}
 
   def render(assigns) do
+    store = assigns.store
+    pc = Map.get(assigns, :page_content) || %{}
+
+    assigns =
+      assigns
+      |> assign(
+        :about_headline,
+        blank_to_nil(Map.get(pc, :about_headline)) || "About #{store.name}"
+      )
+      |> assign(:about_intro, about_intro(pc, store))
+      |> assign(:story_paragraphs, build_story(pc, store))
+      |> assign(:process_steps, build_steps(pc))
+      |> assign(:value_cards, build_values(pc))
+      |> assign(:cta_heading, blank_to_nil(Map.get(pc, :about_cta_heading)) || "Ready to shop?")
+      |> assign(
+        :cta_text,
+        blank_to_nil(Map.get(pc, :about_cta_text)) ||
+          "Explore our collection — we'd love to have you."
+      )
+
     ~H"""
     <div class="atelier-body">
       <Shared.theme_styles theme={@theme} />
@@ -42,16 +79,10 @@ defmodule Emakola.Themes.Atelier.About do
               Our Story
             </span>
             <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.1] mb-6">
-              Preserving Heritage.<br />
-              <span class="italic" style="color: var(--theme-primary-light, #22C55E);">
-                Crafting the Future.
-              </span>
+              {@about_headline}
             </h1>
             <p class="text-lg sm:text-xl text-white/80 leading-relaxed max-w-2xl">
-              {if @store.description,
-                do: @store.description,
-                else:
-                  "We believe in the power of artisan craft to connect communities, preserve traditions, and create beauty that transcends borders."}
+              {@about_intro}
             </p>
           </div>
         </div>
@@ -79,18 +110,13 @@ defmodule Emakola.Themes.Atelier.About do
                 class="text-xs font-semibold uppercase tracking-[0.2em] mb-3 block"
                 style="color: var(--theme-primary);"
               >
-                Heritage & Mission
+                Who We Are
               </span>
               <h2 class="text-3xl sm:text-4xl font-black text-gray-900 leading-tight mb-6">
-                Every Thread Tells a Story
+                Our Story
               </h2>
               <div class="space-y-4 text-gray-600 leading-relaxed">
-                <p>
-                  For generations, West African artisans have woven stories into fabric, carved wisdom into wood, and shaped beauty from the earth beneath their feet. Their craft is more than technique - it is a living conversation between past and present.
-                </p>
-                <p>
-                  {@store.name} was founded to ensure these traditions not only survive but flourish. We partner directly with master artisans, providing fair prices and global reach while preserving the authenticity that makes each piece extraordinary.
-                </p>
+                <p :for={paragraph <- @story_paragraphs}>{paragraph}</p>
               </div>
             </div>
             <div class="rounded-2xl overflow-hidden bg-gray-100 aspect-[4/5]">
@@ -118,28 +144,17 @@ defmodule Emakola.Themes.Atelier.About do
               The Process
             </span>
             <h2 class="text-3xl sm:text-4xl font-black text-gray-900">
-              From Artisan Hands to Yours
+              How It Works
             </h2>
           </div>
 
           <div class="atelier-about-3col">
             <.process_step
-              number="01"
-              title="Sourced with Intention"
-              description="We work directly with artisan communities across Ghana and West Africa, selecting master craftspeople whose work embodies generations of skill and cultural significance."
-              icon="search"
-            />
-            <.process_step
-              number="02"
-              title="Crafted with Care"
-              description="Each piece is handmade using traditional techniques passed down through generations. Natural materials, organic dyes, and time-honored methods ensure unmatched quality."
-              icon="hands"
-            />
-            <.process_step
-              number="03"
-              title="Delivered with Pride"
-              description="Every order is carefully inspected, beautifully packaged, and shipped with a certificate of authenticity. Your purchase directly supports the artisan who created it."
-              icon="package"
+              :for={step <- @process_steps}
+              number={step.number}
+              title={step.title}
+              description={step.description}
+              icon={step.icon}
             />
           </div>
         </div>
@@ -162,24 +177,10 @@ defmodule Emakola.Themes.Atelier.About do
 
           <div class="atelier-about-4col">
             <.value_card
-              icon="shield"
-              title="Authenticity"
-              description="Every piece is verified authentic, handcrafted by skilled artisans using traditional methods."
-            />
-            <.value_card
-              icon="heart"
-              title="Fair Trade"
-              description="Artisans receive fair compensation. Your purchase directly supports families and communities."
-            />
-            <.value_card
-              icon="leaf"
-              title="Sustainability"
-              description="Natural materials, organic dyes, and eco-conscious practices protect our shared environment."
-            />
-            <.value_card
-              icon="globe"
-              title="Cultural Preservation"
-              description="We document and celebrate the stories, techniques, and heritage behind every creation."
+              :for={value <- @value_cards}
+              icon={value.icon}
+              title={value.title}
+              description={value.description}
             />
           </div>
         </div>
@@ -189,10 +190,10 @@ defmodule Emakola.Themes.Atelier.About do
       <section style="background: var(--theme-accent);">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 text-center">
           <h2 class="text-3xl sm:text-4xl font-black text-white mb-4">
-            Ready to Discover?
+            {@cta_heading}
           </h2>
           <p class="text-white/70 text-lg mb-8 max-w-xl mx-auto">
-            Explore our curated collection of handcrafted pieces, each with a story waiting to be told.
+            {@cta_text}
           </p>
           <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
@@ -430,4 +431,93 @@ defmodule Emakola.Themes.Atelier.About do
     </svg>
     """
   end
+
+  # ── Content helpers ──
+  #
+  # Every text slot reads from the store's `StorePageContent` and falls back to
+  # NEUTRAL, store-name-driven copy — never the old shared artisan/heritage prose.
+
+  defp about_intro(pc, store) do
+    blank_to_nil(Map.get(pc, :about_intro)) ||
+      blank_to_nil(Map.get(store, :description)) ||
+      "Welcome to #{store.name}. Here's a little more about who we are and what we offer."
+  end
+
+  defp build_story(pc, store) do
+    case blank_to_nil(Map.get(pc, :about_story)) do
+      nil ->
+        [
+          "#{store.name} is dedicated to bringing you quality products and a shopping experience you can trust. Thanks for taking a moment to learn more about us."
+        ]
+
+      story ->
+        story
+        |> String.split(~r/\n{2,}/, trim: true)
+        |> Enum.map(&String.trim/1)
+        |> Enum.reject(&(&1 == ""))
+    end
+  end
+
+  defp build_steps(pc) do
+    rows =
+      case custom_pairs(pc, :about_steps) do
+        [] -> @default_steps
+        rows -> rows
+      end
+
+    rows
+    |> Enum.with_index()
+    |> Enum.map(fn {{title, description}, index} ->
+      %{
+        number: number(index),
+        title: title,
+        description: description || "",
+        icon: Enum.at(@step_icons, rem(index, length(@step_icons)))
+      }
+    end)
+  end
+
+  defp build_values(pc) do
+    rows =
+      case custom_pairs(pc, :about_values) do
+        [] -> @default_values
+        rows -> rows
+      end
+
+    rows
+    |> Enum.with_index()
+    |> Enum.map(fn {{title, description}, index} ->
+      %{
+        title: title,
+        description: description || "",
+        icon: Enum.at(@value_icons, rem(index, length(@value_icons)))
+      }
+    end)
+  end
+
+  # Non-blank {title, description} pairs from a stored list field. Rows whose
+  # title is blank are dropped so a half-filled admin form never renders gaps.
+  defp custom_pairs(pc, key) do
+    pc
+    |> Map.get(key)
+    |> List.wrap()
+    |> Enum.filter(&is_map/1)
+    |> Enum.map(fn row ->
+      {blank_to_nil(Map.get(row, "title")), blank_to_nil(Map.get(row, "description"))}
+    end)
+    |> Enum.filter(fn {title, _description} -> title end)
+  end
+
+  defp number(index) do
+    index
+    |> Kernel.+(1)
+    |> Integer.to_string()
+    |> String.pad_leading(2, "0")
+  end
+
+  defp blank_to_nil(value) when is_binary(value) do
+    if String.trim(value) == "", do: nil, else: value
+  end
+
+  defp blank_to_nil(_), do: nil
 end
