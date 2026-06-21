@@ -270,7 +270,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
               Order on WhatsApp
             </a>
             <a
-              href={"/s/#{@store.slug}/cart"}
+              href={"/@#{@store.slug}/cart"}
               class="block mt-4 text-sm text-[#7C3AED] hover:underline"
             >
               View cart ({@cart_count}) →

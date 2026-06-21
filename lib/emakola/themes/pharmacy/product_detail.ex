@@ -33,9 +33,9 @@ defmodule Emakola.Themes.Pharmacy.ProductDetail do
       <div class="bg-[#F9F6F0] border-b border-[#E5E7EB]">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <nav class="flex items-center gap-2 text-xs text-[#6B7280]">
-            <a href={"/s/#{@store.slug}"} class="hover:text-[#14543E]">Home</a>
+            <a href={"/@#{@store.slug}"} class="hover:text-[#14543E]">Home</a>
             <span>/</span>
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-[#14543E]">Products</a>
+            <a href={"/@#{@store.slug}/products"} class="hover:text-[#14543E]">Products</a>
             <span>/</span>
             <span class="text-[#14543E] font-medium truncate max-w-[200px]">{@product.title}</span>
           </nav>

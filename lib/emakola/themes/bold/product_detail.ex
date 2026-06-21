@@ -57,7 +57,7 @@ defmodule Emakola.Themes.Bold.ProductDetail do
       <%!-- Breadcrumb --%>
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <a
-          href={"/s/#{@store.slug}/products"}
+          href={"/@#{@store.slug}/products"}
           class="text-sm text-[#64748B] hover:text-[#0F172A] transition-colors inline-flex items-center gap-1.5"
           style="font-family: 'Inter', sans-serif;"
         >

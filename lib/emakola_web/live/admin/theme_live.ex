@@ -147,7 +147,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
           <p class="text-sm text-slate-500 mt-1">Pick a theme, customize colors, and preview live</p>
         </div>
         <a
-          href={"/s/#{@store.slug}/"}
+          href={"/@#{@store.slug}/"}
           target="_blank"
           class="inline-flex items-center gap-2 text-sm text-primary hover:text-primary-hover font-medium self-start sm:self-auto"
         >
@@ -355,7 +355,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                     Featured Products
                   </p>
                   <a
-                    href={"/s/#{@store.slug}/products"}
+                    href={"/@#{@store.slug}/products"}
                     target="_blank"
                     rel="noopener"
                     class="text-xs font-medium hover:underline"

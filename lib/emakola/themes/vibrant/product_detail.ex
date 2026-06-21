@@ -270,7 +270,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
 
             <%!-- Share Strip — fires share-product event for atomic count tracking --%>
             <EmakolaWeb.StorefrontComponents.share_strip
-              url={@canonical_url || "/s/#{@store.slug}/products/#{@product.slug}"}
+              url={@canonical_url || "/@#{@store.slug}/products/#{@product.slug}"}
               title={@product.title}
               on_share="share-product"
               share_value={@product.id}
@@ -390,7 +390,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
           <div class="flex gap-4 overflow-x-auto px-4 sm:px-6 lg:px-8 pb-2 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <a
               :for={rp <- @related_products}
-              href={"/s/#{@store.slug}/products/#{rp.slug}"}
+              href={"/@#{@store.slug}/products/#{rp.slug}"}
               class="flex-[0_0_160px] snap-start group"
             >
               <div class="rounded-2xl overflow-hidden bg-store-accent-light/30 shadow-md shadow-amber-100 group-hover:shadow-xl group-hover:shadow-amber-200/60 transition-all duration-300 mb-2.5">

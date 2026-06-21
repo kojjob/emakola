@@ -33,7 +33,7 @@ defmodule Emakola.Themes.Market.Home do
         >
           <a
             :for={category <- @categories}
-            href={"/s/#{@store.slug}/category/#{category.slug}"}
+            href={"/@#{@store.slug}/category/#{category.slug}"}
             class="flex flex-col items-center gap-1.5 flex-shrink-0 group"
             role="listitem"
           >

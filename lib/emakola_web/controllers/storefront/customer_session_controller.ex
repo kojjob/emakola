@@ -18,29 +18,29 @@ defmodule EmakolaWeb.Storefront.CustomerSessionController do
         conn
         |> put_session(:customer_token, token)
         |> configure_session(renew: true)
-        |> redirect(to: "/s/#{slug}/account")
+        |> redirect(to: "/@#{slug}/account")
 
       {:error, _reason} ->
         conn
         |> put_flash(:error, "Invalid or expired sign-in link. Please log in again.")
-        |> redirect(to: "/s/#{slug}/login")
+        |> redirect(to: "/@#{slug}/login")
     end
   end
 
   def create(conn, %{"store_slug" => slug}) do
     conn
-    |> redirect(to: "/s/#{slug}/login")
+    |> redirect(to: "/@#{slug}/login")
   end
 
   def delete(conn, %{"store_slug" => slug}) do
     conn
     |> delete_session(:customer_token)
-    |> redirect(to: "/s/#{slug}")
+    |> redirect(to: "/@#{slug}")
   end
 
   def logout(conn, %{"store_slug" => slug}) do
     conn
     |> delete_session(:customer_token)
-    |> redirect(to: "/s/#{slug}")
+    |> redirect(to: "/@#{slug}")
   end
 end

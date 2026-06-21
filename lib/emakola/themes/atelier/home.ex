@@ -211,7 +211,7 @@ defmodule Emakola.Themes.Atelier.Home do
           <%!-- CTA Buttons --%>
           <div class="flex flex-col sm:flex-row gap-4">
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="inline-flex items-center justify-center gap-2 px-8 py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-300 hover:opacity-90 min-h-[48px]"
               style="background: var(--theme-primary);"
             >
@@ -231,7 +231,7 @@ defmodule Emakola.Themes.Atelier.Home do
               </svg>
             </a>
             <a
-              href={"/s/#{@store.slug}/about"}
+              href={"/@#{@store.slug}/about"}
               class="inline-flex items-center justify-center px-8 py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white border-2 border-white/40 hover:bg-white/10 transition-all duration-300 min-h-[48px]"
             >
               {@cta_secondary_text}
@@ -292,7 +292,7 @@ defmodule Emakola.Themes.Atelier.Home do
             Shop by Category
           </h2>
           <a
-            href={"/s/#{@store.slug}/products"}
+            href={"/@#{@store.slug}/products"}
             class="text-xs sm:text-sm font-medium text-[#A8A29E] hover:text-cta-dark transition-colors"
           >
             Browse all
@@ -302,7 +302,7 @@ defmodule Emakola.Themes.Atelier.Home do
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <a
             :for={item <- @categories_with_colors}
-            href={"/s/#{@store.slug}/category/#{item.category.slug}"}
+            href={"/@#{@store.slug}/category/#{item.category.slug}"}
             class={"group relative overflow-hidden rounded-2xl bg-gradient-to-br #{item.gradient} border border-[#E7E5E4] p-6 sm:p-8 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"}
           >
             <%!-- Decorative accent --%>
@@ -372,7 +372,7 @@ defmodule Emakola.Themes.Atelier.Home do
           <p class="text-sm text-[#A8A29E] mt-1 hidden sm:block">Handpicked by our artisans</p>
         </div>
         <a
-          href={"/s/#{@store.slug}/products"}
+          href={"/@#{@store.slug}/products"}
           class="group inline-flex items-center gap-1.5 text-sm font-semibold transition-colors hover:opacity-80"
           style="color: var(--theme-primary);"
         >
@@ -435,7 +435,7 @@ defmodule Emakola.Themes.Atelier.Home do
       <div class="flex items-center justify-between mb-8">
         <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-cta-dark">New Arrivals</h2>
         <a
-          href={"/s/#{@store.slug}/products"}
+          href={"/@#{@store.slug}/products"}
           class="group inline-flex items-center gap-1.5 text-sm font-semibold transition-colors hover:opacity-80"
           style="color: var(--theme-primary);"
         >

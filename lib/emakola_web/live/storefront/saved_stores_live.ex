@@ -21,7 +21,7 @@ defmodule EmakolaWeb.Storefront.SavedStoresLive do
         {:ok,
          socket
          |> put_flash(:info, "Please sign in to view your saved stores")
-         |> redirect(to: "/s/#{slug}/login")}
+         |> redirect(to: "/@#{slug}/login")}
 
       customer ->
         {:ok,

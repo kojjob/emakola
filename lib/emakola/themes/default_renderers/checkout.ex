@@ -26,7 +26,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between h-16">
             <a
-              href={"/s/#{@store.slug}/cart"}
+              href={"/@#{@store.slug}/cart"}
               class="cursor-pointer flex items-center gap-2 text-stone-600 hover:text-stone-900 transition-colors text-sm font-medium rounded-lg px-2 py-1 -ml-2"
             >
               <svg
@@ -707,7 +707,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                       Order Summary
                     </h2>
                     <a
-                      href={"/s/#{@store.slug}/cart"}
+                      href={"/@#{@store.slug}/cart"}
                       class="text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors"
                     >
                       Edit

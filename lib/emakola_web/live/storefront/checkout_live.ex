@@ -244,7 +244,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
            socket
            |> assign(:processing, false)
            |> redirect(
-             to: "/s/#{socket.assigns.store.slug}/orders/#{order.order_number}/confirmation"
+             to: "/@#{socket.assigns.store.slug}/orders/#{order.order_number}/confirmation"
            )}
 
         :failed ->
@@ -286,7 +286,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
        socket
        |> assign(:processing, false)
        |> redirect(
-         to: "/s/#{socket.assigns.store.slug}/orders/#{order.order_number}/confirmation"
+         to: "/@#{socket.assigns.store.slug}/orders/#{order.order_number}/confirmation"
        )}
     else
       {:noreply, socket}
@@ -381,7 +381,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
          socket
          |> assign(:processing, false)
          |> redirect(
-           to: "/s/#{socket.assigns.store.slug}/orders/#{order.order_number}/confirmation"
+           to: "/@#{socket.assigns.store.slug}/orders/#{order.order_number}/confirmation"
          )}
 
       method when method in ["momo", "vodafone", "card"] ->
@@ -456,7 +456,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
               {:noreply,
                socket
                |> assign(:processing, false)
-               |> redirect(to: "/s/#{store.slug}/orders/#{order.order_number}/confirmation")}
+               |> redirect(to: "/@#{store.slug}/orders/#{order.order_number}/confirmation")}
         else
           # Guard against disconnected static render — without this, the
           # timer/poll messages leak into a process that has no client to

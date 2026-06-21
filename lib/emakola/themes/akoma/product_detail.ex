@@ -40,9 +40,9 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
       <%!-- Breadcrumb --%>
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         <nav class="flex items-center gap-2 text-xs text-[#9CA3AF]">
-          <a href={"/s/#{@store.slug}"} class="hover:text-[#1A1A1A]">Home</a>
+          <a href={"/@#{@store.slug}"} class="hover:text-[#1A1A1A]">Home</a>
           <span>/</span>
-          <a href={"/s/#{@store.slug}/products"} class="hover:text-[#1A1A1A]">Shop</a>
+          <a href={"/@#{@store.slug}/products"} class="hover:text-[#1A1A1A]">Shop</a>
           <span>/</span>
           <span class="text-[#1A1A1A] truncate max-w-[180px]">{@product.title}</span>
         </nav>

@@ -24,7 +24,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
         {:ok,
          socket
          |> put_flash(:error, "Product not found")
-         |> redirect(to: "/s/#{slug}/products")}
+         |> redirect(to: "/@#{slug}/products")}
 
       product ->
         option_types = load_option_types(product)
@@ -389,9 +389,9 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
 
     breadcrumb_json_ld =
       SEOHelpers.json_ld_breadcrumb([
-        %{name: store.name, url: "/s/#{store.slug}"},
-        %{name: "Products", url: "/s/#{store.slug}/products"},
-        %{name: product.title, url: "/s/#{store.slug}/products/#{product.slug}"}
+        %{name: store.name, url: "/@#{store.slug}"},
+        %{name: "Products", url: "/@#{store.slug}/products"},
+        %{name: product.title, url: "/@#{store.slug}/products/#{product.slug}"}
       ])
 
     combined_json_ld = [product_json_ld, breadcrumb_json_ld]

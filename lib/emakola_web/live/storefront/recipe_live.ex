@@ -52,7 +52,7 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
             {:ok,
              socket
              |> put_flash(:error, "Recipe not found")
-             |> redirect(to: "/s/#{slug}/recipes")}
+             |> redirect(to: "/@#{slug}/recipes")}
         end
 
       {:error, :not_found} ->

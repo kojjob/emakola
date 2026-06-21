@@ -32,9 +32,9 @@ defmodule Emakola.Themes.HomeLiving.ProductDetail do
       <div class="bg-[#FAF7F2] border-b border-[#E8DBC8]">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <nav class="flex items-center gap-2 text-xs text-[#92400E]/60">
-            <a href={"/s/#{@store.slug}"} class="hover:text-[#C2410C]">Home</a>
+            <a href={"/@#{@store.slug}"} class="hover:text-[#C2410C]">Home</a>
             <span>/</span>
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-[#C2410C]">Shop</a>
+            <a href={"/@#{@store.slug}/products"} class="hover:text-[#C2410C]">Shop</a>
             <span>/</span>
             <span class="text-[#3F2D1A] font-medium truncate max-w-[200px]">{@product.title}</span>
           </nav>

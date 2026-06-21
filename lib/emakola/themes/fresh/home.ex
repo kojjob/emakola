@@ -104,7 +104,7 @@ defmodule Emakola.Themes.Fresh.Home do
               </p>
               <div class="flex flex-wrap gap-3">
                 <a
-                  href={"/s/#{@store.slug}/products"}
+                  href={"/@#{@store.slug}/products"}
                   class="inline-flex items-center gap-2 px-8 py-4 bg-white text-[#059669] rounded-full text-base font-bold hover:bg-[#ECFDF5] active:scale-[0.97] transition-all shadow-lg shadow-black/20"
                   style="font-family: 'Inter', sans-serif;"
                 >
@@ -191,7 +191,7 @@ defmodule Emakola.Themes.Fresh.Home do
               </h2>
             </div>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="text-sm font-semibold text-[#059669] hover:text-[#047857] transition-colors flex items-center gap-1"
               style="font-family: 'Inter', sans-serif;"
             >
@@ -371,7 +371,7 @@ defmodule Emakola.Themes.Fresh.Home do
               </h2>
             </div>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="text-sm font-semibold text-[#059669] hover:text-[#047857] transition-colors flex items-center gap-1"
               style="font-family: 'Inter', sans-serif;"
             >

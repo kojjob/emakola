@@ -26,7 +26,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
       <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#E2E8F0]/80 transition-all">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between h-14 sm:h-16">
-            <a href={"/s/#{@store.slug}"} class="flex items-center gap-2.5 min-w-0">
+            <a href={"/@#{@store.slug}"} class="flex items-center gap-2.5 min-w-0">
               <div class="w-9 h-9 rounded-full bg-gradient-to-br from-[#B45309] to-[#D97706] flex items-center justify-center flex-shrink-0">
                 <span class="text-sm font-bold text-white">
                   {String.first(@store.name)}
@@ -41,7 +41,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
 
             <div class="flex items-center gap-1">
               <a
-                href={"/s/#{@store.slug}/products"}
+                href={"/@#{@store.slug}/products"}
                 class="p-2.5 rounded-xl hover:bg-[#F1F5F9] transition-colors"
                 aria-label="Search products"
               >
@@ -60,7 +60,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 </svg>
               </a>
               <a
-                href={"/s/#{@store.slug}/wishlist"}
+                href={"/@#{@store.slug}/wishlist"}
                 class="p-2.5 rounded-xl hover:bg-[#F1F5F9] transition-colors hidden sm:flex"
                 aria-label="Wishlist"
               >
@@ -79,7 +79,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 </svg>
               </a>
               <a
-                href={"/s/#{@store.slug}/cart"}
+                href={"/@#{@store.slug}/cart"}
                 class="relative p-2.5 rounded-xl hover:bg-[#F1F5F9] transition-colors"
                 aria-label={"Shopping cart, #{@cart_count} items"}
               >
@@ -115,7 +115,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
       >
         <ol class="flex items-center gap-2 text-sm text-[#94A3B8]">
           <li>
-            <a href={"/s/#{@store.slug}"} class="hover:text-[#475569] transition-colors">
+            <a href={"/@#{@store.slug}"} class="hover:text-[#475569] transition-colors">
               {@store.name}
             </a>
           </li>
@@ -131,7 +131,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
             </svg>
           </li>
           <li>
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-[#475569] transition-colors">
+            <a href={"/@#{@store.slug}/products"} class="hover:text-[#475569] transition-colors">
               Products
             </a>
           </li>
@@ -608,7 +608,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
           <div class="flex items-center justify-between px-4 sm:px-6 lg:px-8 mb-6 lg:mb-8">
             <h2 class="text-xl lg:text-2xl font-bold text-[#0F172A]">You May Also Like</h2>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="text-sm font-medium text-store-accent hover:text-[#92400E] transition-colors flex items-center gap-1"
             >
               View All
@@ -628,7 +628,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
           <div class="flex gap-3.5 overflow-x-auto px-4 sm:px-6 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden lg:hidden">
             <a
               :for={rp <- @related_products}
-              href={"/s/#{@store.slug}/products/#{rp.slug}"}
+              href={"/@#{@store.slug}/products/#{rp.slug}"}
               class="flex-[0_0_160px] snap-start bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden hover:shadow-md transition-all duration-200 group"
             >
               <div class="w-full aspect-square bg-[#F1F5F9] overflow-hidden">
@@ -659,7 +659,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
           <div class="hidden lg:grid lg:grid-cols-4 gap-5 px-8">
             <a
               :for={rp <- Enum.take(@related_products, 4)}
-              href={"/s/#{@store.slug}/products/#{rp.slug}"}
+              href={"/@#{@store.slug}/products/#{rp.slug}"}
               class="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden hover:shadow-lg hover:border-[#CBD5E1] transition-all duration-300 group"
             >
               <div class="w-full aspect-[3/4] bg-[#F1F5F9] overflow-hidden">

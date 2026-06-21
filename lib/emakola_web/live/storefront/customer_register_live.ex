@@ -48,7 +48,7 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
     case Emakola.Customers.register_customer(create_params, authorize?: false) do
       {:ok, customer} ->
         token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(customer))
-        {:noreply, redirect(socket, to: "/s/#{store.slug}/auth/customer-session?token=#{token}")}
+        {:noreply, redirect(socket, to: "/@#{store.slug}/auth/customer-session?token=#{token}")}
 
       {:error, %Ash.Error.Invalid{} = error} ->
         field_errors = extract_field_errors(error)
@@ -227,7 +227,7 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
             <p class="text-sm text-[#44403C]">
               Already have an account?
               <.link
-                navigate={"/s/#{@store.slug}/login"}
+                navigate={"/@#{@store.slug}/login"}
                 class="font-medium text-cta-dark hover:underline"
               >
                 Sign in
@@ -235,7 +235,7 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
             </p>
             <p>
               <.link
-                navigate={"/s/#{@store.slug}"}
+                navigate={"/@#{@store.slug}"}
                 class="text-sm text-[#78716C] hover:text-[#44403C] transition-colors"
               >
                 Continue shopping

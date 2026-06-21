@@ -18,7 +18,7 @@ defmodule Emakola.Themes.Market.ProductList do
         <nav aria-label="Breadcrumb" class="py-5">
           <ol class="flex items-center gap-2 text-xs text-[#64748B] font-medium tracking-wide">
             <li>
-              <a href={"/s/#{@store.slug}"} class="hover:text-[#0F172A] transition-colors">Home</a>
+              <a href={"/@#{@store.slug}"} class="hover:text-[#0F172A] transition-colors">Home</a>
             </li>
             <li>
               <svg

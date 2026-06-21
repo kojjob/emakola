@@ -15,7 +15,7 @@ defmodule EmakolaWeb.Hooks.ResolveStore do
 
   alias EmakolaWeb.Helpers.StoreResolver
 
-  def on_mount(:default, %{"store_slug" => slug}, _session, socket) do
+  def on_mount(:default, %{"store_slug" => "@" <> slug}, _session, socket) do
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{}, store)

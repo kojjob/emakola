@@ -122,7 +122,7 @@ defmodule EmakolaWeb.StorefrontComponents do
     <header class="sticky top-0 z-50 bg-white border-b border-slate-200">
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-14 sm:h-16">
-          <a href={"/s/#{@store.slug}"} class="flex items-center gap-2.5 min-w-0">
+          <a href={"/@#{@store.slug}"} class="flex items-center gap-2.5 min-w-0">
             <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 border-2 border-slate-200 overflow-hidden">
               <span class="text-sm font-bold text-slate-600">
                 {String.first(@store.name)}
@@ -161,7 +161,7 @@ defmodule EmakolaWeb.StorefrontComponents do
               </svg>
             </button>
             <a
-              href={"/s/#{@store.slug}/wishlist"}
+              href={"/@#{@store.slug}/wishlist"}
               class="p-2.5 rounded-xl hover:bg-slate-100 transition-colors"
               aria-label="Wishlist"
             >
@@ -180,7 +180,7 @@ defmodule EmakolaWeb.StorefrontComponents do
               </svg>
             </a>
             <a
-              href={"/s/#{@store.slug}/cart"}
+              href={"/@#{@store.slug}/cart"}
               class="relative p-2.5 rounded-xl hover:bg-slate-100 transition-colors"
               aria-label={"Shopping cart, #{@cart_count} items"}
             >
@@ -233,7 +233,7 @@ defmodule EmakolaWeb.StorefrontComponents do
       >
         <a
           :for={category <- @categories}
-          href={"/s/#{@store_slug}/category/#{category.slug}"}
+          href={"/@#{@store_slug}/category/#{category.slug}"}
           class="flex flex-col items-center gap-1.5 flex-shrink-0 group"
           role="listitem"
         >
@@ -266,7 +266,7 @@ defmodule EmakolaWeb.StorefrontComponents do
 
     ~H"""
     <a
-      href={"/s/#{@store.slug}/products/#{@product.slug}"}
+      href={"/@#{@store.slug}/products/#{@product.slug}"}
       class="block bg-white rounded-[20px] overflow-hidden border border-slate-200 mb-8 hover:shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-shadow md:grid md:grid-cols-2"
       aria-label={"Featured product: #{@product.title}"}
     >
@@ -317,7 +317,7 @@ defmodule EmakolaWeb.StorefrontComponents do
 
     ~H"""
     <div class="group relative">
-      <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="block">
+      <a href={"/@#{@store.slug}/products/#{@product.slug}"} class="block">
         <div class="relative rounded-[16px] overflow-hidden mb-3.5 bg-slate-100">
           <img
             :if={@image}
@@ -402,25 +402,25 @@ defmodule EmakolaWeb.StorefrontComponents do
     <nav class="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 sm:hidden safe-area-inset-bottom">
       <div class="flex items-center justify-around h-14">
         <.bottom_nav_item
-          href={"/s/#{@store_slug}"}
+          href={"/@#{@store_slug}"}
           icon="home"
           label="Home"
           active={@active_tab == :home}
         />
         <.bottom_nav_item
-          href={"/s/#{@store_slug}/products"}
+          href={"/@#{@store_slug}/products"}
           icon="search"
           label="Search"
           active={@active_tab == :search}
         />
         <.bottom_nav_item
-          href={"/s/#{@store_slug}/wishlist"}
+          href={"/@#{@store_slug}/wishlist"}
           icon="heart"
           label="Saved"
           active={@active_tab == :saved}
         />
         <.bottom_nav_item
-          href={"/s/#{@store_slug}/cart"}
+          href={"/@#{@store_slug}/cart"}
           icon="bag"
           label="Cart"
           active={@active_tab == :cart}
@@ -762,7 +762,7 @@ defmodule EmakolaWeb.StorefrontComponents do
 
     ~H"""
     <a
-      href={"/s/#{@store_slug}/category/#{@category.slug}"}
+      href={"/@#{@store_slug}/category/#{@category.slug}"}
       class="group relative block aspect-[4/5] sm:aspect-[5/6] rounded-[20px] overflow-hidden bg-cta-dark focus-visible:ring-2 focus-visible:ring-(--color-store-accent) focus-visible:ring-offset-2"
     >
       <%= if Map.get(@category, :image_url) do %>
@@ -1323,7 +1323,7 @@ defmodule EmakolaWeb.StorefrontComponents do
       </h4>
       <ul class="space-y-3 text-sm opacity-75">
         <li :for={page <- @pages}>
-          <a href={"/s/#{@store.slug}/p/#{page.slug}"} class={@link_class}>
+          <a href={"/@#{@store.slug}/p/#{page.slug}"} class={@link_class}>
             {page.title}
           </a>
         </li>

@@ -68,7 +68,7 @@ defmodule Emakola.PageBuilder.Blocks.ProductGrid do
         <div class={["grid gap-4 sm:gap-5 lg:gap-6", @grid_class]}>
           <a
             :for={product <- @products_to_show}
-            href={"/s/#{@store.slug}/products/#{product.slug}"}
+            href={"/@#{@store.slug}/products/#{product.slug}"}
             class="group block"
           >
             <div class="relative rounded-2xl overflow-hidden mb-3 bg-[#FEF3C7]/40 aspect-[3/4]">

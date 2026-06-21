@@ -57,7 +57,7 @@ defmodule Emakola.Themes.Pharmacy.Home do
               </p>
               <div class="flex flex-col sm:flex-row gap-3">
                 <a
-                  href={"/s/#{@store.slug}/products"}
+                  href={"/@#{@store.slug}/products"}
                   class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-white text-[#14543E] text-sm font-semibold hover:bg-[#A7E5C5] transition-colors min-h-[48px]"
                 >
                   {@theme.hero.cta_text || "Explore Now"}
@@ -66,7 +66,7 @@ defmodule Emakola.Themes.Pharmacy.Home do
                   </span>
                 </a>
                 <a
-                  href={"/s/#{@store.slug}/about"}
+                  href={"/@#{@store.slug}/about"}
                   class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full border border-[#A7E5C5]/40 text-white text-sm font-semibold hover:bg-white/5 transition-colors min-h-[48px]"
                 >
                   Learn more
@@ -167,7 +167,7 @@ defmodule Emakola.Themes.Pharmacy.Home do
               </h2>
             </div>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-[#14543E] hover:gap-2 transition-all"
             >
               See all
@@ -210,14 +210,14 @@ defmodule Emakola.Themes.Pharmacy.Home do
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex flex-wrap items-center gap-2 sm:gap-3">
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="inline-flex items-center px-4 py-2 rounded-full bg-[#14543E] text-white text-sm font-semibold"
             >
               All Products
             </a>
             <a
               :for={category <- Enum.take(@categories, 7)}
-              href={"/s/#{@store.slug}/category/#{category.slug}"}
+              href={"/@#{@store.slug}/category/#{category.slug}"}
               class="inline-flex items-center px-4 py-2 rounded-full bg-[#A7E5C5]/40 text-[#14543E] text-sm font-medium hover:bg-[#A7E5C5] transition-colors"
             >
               {category.name}
@@ -331,7 +331,7 @@ defmodule Emakola.Themes.Pharmacy.Home do
   defp highlight_card(assigns) do
     ~H"""
     <a
-      href={"/s/#{@store.slug}/products/#{@product.slug}"}
+      href={"/@#{@store.slug}/products/#{@product.slug}"}
       class="relative block rounded-2xl p-6 sm:p-8 overflow-hidden group"
       style={"background-color: #{@palette.bg};"}
     >

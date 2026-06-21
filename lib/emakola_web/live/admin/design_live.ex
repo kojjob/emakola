@@ -134,7 +134,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
           </p>
         </div>
         <a
-          href={"/s/#{@store.slug}/"}
+          href={"/@#{@store.slug}/"}
           target="_blank"
           class="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 font-medium self-start sm:self-auto"
         >

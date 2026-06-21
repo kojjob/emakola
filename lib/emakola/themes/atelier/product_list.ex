@@ -118,7 +118,7 @@ defmodule Emakola.Themes.Atelier.ProductList do
                 Try adjusting your search or browse all categories.
               </p>
               <a
-                href={"/s/#{@store.slug}/products"}
+                href={"/@#{@store.slug}/products"}
                 class="inline-block mt-6 text-xs font-semibold uppercase tracking-widest border-b-2 pb-1 transition-colors duration-300"
                 style="color: var(--theme-ink); border-color: var(--theme-ink);"
               >
@@ -158,7 +158,7 @@ defmodule Emakola.Themes.Atelier.ProductList do
         <ul class="space-y-2">
           <li>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class={"text-sm transition-colors duration-200 " <> if(is_nil(@active_category), do: "font-semibold", else: "")}
               style={"color: " <> if(is_nil(@active_category), do: "var(--theme-ink)", else: "var(--theme-accent-secondary, #44403C)") <> ";"}
             >
@@ -167,7 +167,7 @@ defmodule Emakola.Themes.Atelier.ProductList do
           </li>
           <li :for={category <- @categories}>
             <a
-              href={"/s/#{@store.slug}/category/#{category.slug}"}
+              href={"/@#{@store.slug}/category/#{category.slug}"}
               class={"text-sm transition-colors duration-200 " <> if(@active_category == category.slug, do: "font-semibold", else: "")}
               style={"color: " <> if(@active_category == category.slug, do: "var(--theme-ink)", else: "var(--theme-accent-secondary, #44403C)") <> ";"}
             >
@@ -187,7 +187,7 @@ defmodule Emakola.Themes.Atelier.ProductList do
 
   defp search_bar(assigns) do
     ~H"""
-    <form action={"/s/#{@store.slug}/products"} method="get" class="relative">
+    <form action={"/@#{@store.slug}/products"} method="get" class="relative">
       <input
         type="search"
         name="q"
@@ -220,7 +220,7 @@ defmodule Emakola.Themes.Atelier.ProductList do
     ~H"""
     <div class="flex gap-2 overflow-x-auto py-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
       <a
-        href={"/s/#{@store.slug}/products"}
+        href={"/@#{@store.slug}/products"}
         class={"px-4 py-2 text-xs font-medium uppercase tracking-wider whitespace-nowrap border transition-colors " <>
           if(is_nil(@active_category),
             do: "border-current font-semibold",
@@ -232,7 +232,7 @@ defmodule Emakola.Themes.Atelier.ProductList do
       </a>
       <a
         :for={category <- @categories}
-        href={"/s/#{@store.slug}/category/#{category.slug}"}
+        href={"/@#{@store.slug}/category/#{category.slug}"}
         class={"px-4 py-2 text-xs font-medium uppercase tracking-wider whitespace-nowrap border transition-colors " <>
           if(@active_category == category.slug,
             do: "border-current font-semibold",

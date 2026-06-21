@@ -84,7 +84,7 @@ defmodule EmakolaWeb.Plugs.RecentlyViewedStores do
   @spec cookie_name() :: String.t()
   def cookie_name, do: @cookie_name
 
-  defp extract_slug("/s/" <> rest) do
+  defp extract_slug("/@" <> rest) do
     rest
     |> String.split("/", parts: 2)
     |> List.first()

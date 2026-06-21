@@ -43,7 +43,7 @@ defmodule Emakola.Themes.Vibrant.ProductList do
           <nav aria-label="Breadcrumb" class="mb-4">
             <ol class="flex items-center gap-2 text-xs text-white/60">
               <li>
-                <a href={"/s/#{@store.slug}"} class="hover:text-white transition-colors">Home</a>
+                <a href={"/@#{@store.slug}"} class="hover:text-white transition-colors">Home</a>
               </li>
               <li>
                 <svg

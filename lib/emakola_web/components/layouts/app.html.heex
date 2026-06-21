@@ -344,7 +344,7 @@
       </a>
       <%= if @current_store do %>
         <a
-          href={"/s/#{@current_store.slug}"}
+          href={"/@#{@current_store.slug}"}
           target="_blank"
           class="flex items-center gap-2.5 px-4 py-2 text-[12px] text-white/70 hover:text-white hover:bg-white/[0.06] transition-colors"
         >
@@ -739,7 +739,7 @@
               </a>
               <%= if @current_store do %>
                 <a
-                  href={"/s/#{@current_store.slug}"}
+                  href={"/@#{@current_store.slug}"}
                   target="_blank"
                   class="flex items-center gap-3 px-5 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                 >

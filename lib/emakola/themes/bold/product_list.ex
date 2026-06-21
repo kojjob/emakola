@@ -44,7 +44,7 @@ defmodule Emakola.Themes.Bold.ProductList do
       <div class="bg-[#F8FAFC] border-b border-[#E2E8F0]">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
           <a
-            href={"/s/#{@store.slug}"}
+            href={"/@#{@store.slug}"}
             class="text-sm text-[#64748B] hover:text-[#0F172A] transition-colors mb-4 inline-block"
             style="font-family: 'Inter', sans-serif;"
           >

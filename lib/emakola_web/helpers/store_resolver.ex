@@ -12,6 +12,10 @@ defmodule EmakolaWeb.Helpers.StoreResolver do
   Returns `{:ok, store}` or `{:error, :not_found}`.
   """
   @spec resolve(String.t()) :: {:ok, Emakola.Stores.Store.t()} | {:error, :not_found}
+  # URLs carry the `@handle` form (e.g. `/@tiny-stitches`); strip the prefix so
+  # callers can pass the raw `store_slug` param through unchanged.
+  def resolve("@" <> slug), do: resolve(slug)
+
   def resolve(slug) when is_binary(slug) do
     case Emakola.Stores.get_store_by_slug(slug, authorize?: false) do
       {:ok, nil} -> {:error, :not_found}

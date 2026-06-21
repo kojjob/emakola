@@ -153,7 +153,7 @@ defmodule Emakola.Themes.Atelier.Shared do
 
     ~H"""
     <div class="atelier-product-card group">
-      <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="block">
+      <a href={"/@#{@store.slug}/products/#{@product.slug}"} class="block">
         <div class="relative overflow-hidden bg-gray-100 rounded-lg aspect-square mb-3">
           <.optimized_image
             :if={@image}
@@ -167,7 +167,7 @@ defmodule Emakola.Themes.Atelier.Shared do
 
           <%!-- Quick View icon button (top-right, visible on hover) --%>
           <a
-            href={"/s/#{@store.slug}/products/#{@product.slug}"}
+            href={"/@#{@store.slug}/products/#{@product.slug}"}
             class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-gray-50"
             aria-label={"View #{@product.title}"}
           >
@@ -206,7 +206,7 @@ defmodule Emakola.Themes.Atelier.Shared do
         </div>
       </a>
 
-      <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="block">
+      <a href={"/@#{@store.slug}/products/#{@product.slug}"} class="block">
         <h3 class="text-sm font-medium text-gray-900 leading-snug mb-1 line-clamp-2">
           {@product.title}
         </h3>
@@ -259,7 +259,7 @@ defmodule Emakola.Themes.Atelier.Shared do
 
     ~H"""
     <a
-      href={"/s/#{@store.slug}/products/#{@product.slug}"}
+      href={"/@#{@store.slug}/products/#{@product.slug}"}
       class="group block relative overflow-hidden rounded-xl bg-gray-100 aspect-[4/5] sm:aspect-[3/4] cursor-pointer"
     >
       <.optimized_image
@@ -307,7 +307,7 @@ defmodule Emakola.Themes.Atelier.Shared do
 
     ~H"""
     <a
-      href={"/s/#{@store.slug}/category/#{@category.slug}"}
+      href={"/@#{@store.slug}/category/#{@category.slug}"}
       class="atelier-category-circle flex flex-col items-center gap-2.5 flex-shrink-0 group"
     >
       <div class="atelier-cat-ring w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-2 border-gray-200 transition-colors duration-200">

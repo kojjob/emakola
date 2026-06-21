@@ -41,14 +41,14 @@ defmodule Emakola.Themes.Electronics.ProductList do
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <div class="flex flex-wrap items-center gap-2 sm:gap-3">
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class={pill_class(@active_category_slug == nil)}
             >
               All
             </a>
             <a
               :for={category <- @categories}
-              href={"/s/#{@store.slug}/category/#{category.slug}"}
+              href={"/@#{@store.slug}/category/#{category.slug}"}
               class={pill_class(@active_category_slug == category.slug)}
             >
               {category.name}
@@ -74,7 +74,7 @@ defmodule Emakola.Themes.Electronics.ProductList do
             </h2>
             <p class="text-sm text-[#4B5563]">Try a different category.</p>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="inline-flex items-center mt-6 px-6 py-3 rounded-full bg-[#0EA5E9] text-white text-sm font-bold hover:bg-[#0284C7] transition-colors"
             >
               Browse all

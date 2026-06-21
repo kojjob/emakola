@@ -41,14 +41,14 @@ defmodule Emakola.Themes.Pharmacy.ProductList do
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <div class="flex flex-wrap items-center gap-2 sm:gap-3">
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class={category_pill_class(@active_category_slug == nil)}
             >
               All
             </a>
             <a
               :for={category <- @categories}
-              href={"/s/#{@store.slug}/category/#{category.slug}"}
+              href={"/@#{@store.slug}/category/#{category.slug}"}
               class={category_pill_class(@active_category_slug == category.slug)}
             >
               {category.name}
@@ -78,7 +78,7 @@ defmodule Emakola.Themes.Pharmacy.ProductList do
               Try a different category or search term.
             </p>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="inline-flex items-center mt-6 px-6 py-3 rounded-full bg-[#14543E] text-white text-sm font-semibold hover:bg-[#0F3F2E] transition-colors"
             >
               Browse all products

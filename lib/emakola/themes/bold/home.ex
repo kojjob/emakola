@@ -102,7 +102,7 @@ defmodule Emakola.Themes.Bold.Home do
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-center gap-4 sm:gap-6 flex-wrap">
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="text-xs sm:text-sm font-semibold tracking-[0.15em] uppercase text-[#0F172A] hover:text-[#F59E0B] transition-colors"
               style="font-family: 'Inter', sans-serif;"
             >
@@ -114,7 +114,7 @@ defmodule Emakola.Themes.Bold.Home do
             >
               <span class="text-[#CBD5E1]" aria-hidden="true">|</span>
               <a
-                href={"/s/#{@store.slug}/category/#{cat.slug}"}
+                href={"/@#{@store.slug}/category/#{cat.slug}"}
                 class="text-xs sm:text-sm font-semibold tracking-[0.15em] uppercase text-[#64748B] hover:text-[#0F172A] transition-colors"
                 style="font-family: 'Inter', sans-serif;"
               >
@@ -142,7 +142,7 @@ defmodule Emakola.Themes.Bold.Home do
             <%= if Enum.at(@featured_products, 0) do %>
               <% product = Enum.at(@featured_products, 0) %>
               <a
-                href={"/s/#{@store.slug}/products/#{product.slug}"}
+                href={"/@#{@store.slug}/products/#{product.slug}"}
                 class="group block md:row-span-2"
               >
                 <div class="relative overflow-hidden bg-[#F1F5F9] h-full min-h-[400px] md:min-h-0">
@@ -192,7 +192,7 @@ defmodule Emakola.Themes.Bold.Home do
             <%!-- Two smaller cards stacked --%>
             <%= for product <- Enum.slice(@featured_products, 1, 2) do %>
               <a
-                href={"/s/#{@store.slug}/products/#{product.slug}"}
+                href={"/@#{@store.slug}/products/#{product.slug}"}
                 class="group block"
               >
                 <div class="relative overflow-hidden bg-[#F1F5F9]">
@@ -275,7 +275,7 @@ defmodule Emakola.Themes.Bold.Home do
               The Collection
             </h2>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="text-sm font-medium text-[#64748B] hover:text-[#0F172A] transition-colors border-b border-[#64748B] hover:border-[#0F172A] pb-0.5"
               style="font-family: 'Inter', sans-serif;"
             >
@@ -357,7 +357,7 @@ defmodule Emakola.Themes.Bold.Home do
         {@theme.hero.subtitle || "Curated goods for the discerning eye"}
       </p>
       <a
-        href={"/s/#{@store.slug}/products"}
+        href={"/@#{@store.slug}/products"}
         class="inline-flex items-center gap-3 px-8 py-4 bg-[#F59E0B] text-[#0F172A] text-sm font-bold tracking-wide uppercase hover:bg-[#D97706] active:scale-[0.97] transition-all"
         style="font-family: 'Inter', sans-serif;"
       >

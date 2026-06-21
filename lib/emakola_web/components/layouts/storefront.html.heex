@@ -103,7 +103,7 @@
         <!-- Store info -->
         <a
           :if={assigns[:store]}
-          href={"/s/#{@store.slug}"}
+          href={"/@#{@store.slug}"}
           class="flex items-center gap-2.5 min-w-0"
         >
           <div class="w-10 h-10 rounded-full bg-[#E2E8F0] flex items-center justify-center flex-shrink-0 border-2 border-[#E2E8F0] overflow-hidden">
@@ -150,7 +150,7 @@
           <!-- Cart -->
           <a
             :if={assigns[:store]}
-            href={"/s/#{@store.slug}/cart"}
+            href={"/@#{@store.slug}/cart"}
             class="flex items-center justify-center w-10 h-10 rounded-full text-[#0F172A] hover:bg-[#F1F5F9] transition-colors relative"
             aria-label={"Shopping bag#{if assigns[:cart_count] && @cart_count > 0, do: ", #{@cart_count} items", else: ""}"}
           >
@@ -257,8 +257,8 @@
   >
     <div class="flex items-center justify-around h-16">
       <a
-        href={"/s/#{@store.slug}"}
-        class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] == "/s/#{@store.slug}", do: "text-store-accent", else: "text-[#94A3B8]"}"}
+        href={"/@#{@store.slug}"}
+        class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] == "/@#{@store.slug}", do: "text-store-accent", else: "text-[#94A3B8]"}"}
       >
         <svg
           class="w-6 h-6"
@@ -276,7 +276,7 @@
         <span class="text-[0.625rem] font-medium">Home</span>
       </a>
       <a
-        href={"/s/#{@store.slug}/products"}
+        href={"/@#{@store.slug}/products"}
         class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/products"), do: "text-store-accent", else: "text-[#94A3B8]"}"}
       >
         <svg
@@ -295,7 +295,7 @@
         <span class="text-[0.625rem] font-medium">Shop</span>
       </a>
       <a
-        href={"/s/#{@store.slug}/cart"}
+        href={"/@#{@store.slug}/cart"}
         class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 relative #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/cart"), do: "text-store-accent", else: "text-[#94A3B8]"}"}
       >
         <div class="relative">
@@ -322,7 +322,7 @@
         <span class="text-[0.625rem] font-medium">Cart</span>
       </a>
       <a
-        href={"/s/#{@store.slug}/account"}
+        href={"/@#{@store.slug}/account"}
         class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/account"), do: "text-store-accent", else: "text-[#94A3B8]"}"}
       >
         <svg

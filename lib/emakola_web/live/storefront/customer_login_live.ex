@@ -33,7 +33,7 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
             EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(customer))
 
           {:noreply,
-           redirect(socket, to: "/s/#{store.slug}/auth/customer-session?token=#{token}")}
+           redirect(socket, to: "/@#{store.slug}/auth/customer-session?token=#{token}")}
         else
           {:noreply, assign(socket, :error_message, "Invalid email or password.")}
         end
@@ -118,7 +118,7 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
             <p class="text-sm text-[#44403C]">
               Don't have an account?
               <.link
-                navigate={"/s/#{@store.slug}/register"}
+                navigate={"/@#{@store.slug}/register"}
                 class="font-medium text-cta-dark hover:underline"
               >
                 Create one
@@ -126,7 +126,7 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
             </p>
             <p>
               <.link
-                navigate={"/s/#{@store.slug}"}
+                navigate={"/@#{@store.slug}"}
                 class="text-sm text-[#78716C] hover:text-[#44403C] transition-colors"
               >
                 Continue shopping

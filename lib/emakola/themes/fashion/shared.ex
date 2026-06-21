@@ -37,13 +37,13 @@ defmodule Emakola.Themes.Fashion.Shared do
         <div class="grid grid-cols-3 items-center h-16 sm:h-20">
           <%!-- Left: nav links --%>
           <nav class={"hidden md:flex items-center gap-7 text-xs font-medium uppercase tracking-[0.18em] " <> if(@on_dark, do: "text-white/85", else: "text-[#1C1917]/80")}>
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-[#D97706] transition-colors">
+            <a href={"/@#{@store.slug}/products"} class="hover:text-[#D97706] transition-colors">
               Shop
             </a>
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-[#D97706] transition-colors">
+            <a href={"/@#{@store.slug}/products"} class="hover:text-[#D97706] transition-colors">
               Lookbook
             </a>
-            <a href={"/s/#{@store.slug}/blog"} class="hover:text-[#D97706] transition-colors">
+            <a href={"/@#{@store.slug}/blog"} class="hover:text-[#D97706] transition-colors">
               Journal
             </a>
           </nav>
@@ -51,7 +51,7 @@ defmodule Emakola.Themes.Fashion.Shared do
 
           <%!-- Center: logo (magazine masthead) --%>
           <a
-            href={"/s/#{@store.slug}"}
+            href={"/@#{@store.slug}"}
             class={"text-center fashion-display text-xl sm:text-2xl tracking-[0.25em] uppercase truncate " <> if(@on_dark, do: "text-white", else: "text-[#1C1917]")}
           >
             {@store.name}
@@ -60,7 +60,7 @@ defmodule Emakola.Themes.Fashion.Shared do
           <%!-- Right: cart + cta --%>
           <div class="flex items-center justify-end gap-2 sm:gap-3">
             <a
-              href={"/s/#{@store.slug}/account"}
+              href={"/@#{@store.slug}/account"}
               class={"hidden sm:flex w-11 h-11 rounded-full items-center justify-center transition-colors " <> if(@on_dark, do: "hover:bg-white/10", else: "hover:bg-[#E7E5E4]/50")}
               aria-label="Account"
             >
@@ -72,7 +72,7 @@ defmodule Emakola.Themes.Fashion.Shared do
               </span>
             </a>
             <a
-              href={"/s/#{@store.slug}/cart"}
+              href={"/@#{@store.slug}/cart"}
               class={"relative w-11 h-11 rounded-full flex items-center justify-center transition-colors " <> if(@on_dark, do: "hover:bg-white/10", else: "hover:bg-[#E7E5E4]/50")}
               aria-label={"Cart, #{@cart_count} items"}
             >
@@ -119,7 +119,7 @@ defmodule Emakola.Themes.Fashion.Shared do
             <ul class="space-y-2 text-sm text-[#FAF6EE]/75">
               <li :for={link <- col.links}>
                 <a
-                  href={"/s/#{@store.slug}#{link.path}"}
+                  href={"/@#{@store.slug}#{link.path}"}
                   class="hover:text-white transition-colors"
                 >
                   {link.label}
@@ -198,7 +198,7 @@ defmodule Emakola.Themes.Fashion.Shared do
   def product_card(assigns) do
     ~H"""
     <a
-      href={"/s/#{@store.slug}/products/#{@product.slug}"}
+      href={"/@#{@store.slug}/products/#{@product.slug}"}
       class="group block"
     >
       <div class="relative aspect-[3/4] bg-white overflow-hidden mb-3">

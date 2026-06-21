@@ -78,7 +78,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
               {@theme.hero.subtitle}
             </p>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="inline-flex items-center gap-2 px-7 py-4 rounded-full bg-[#1F2937] text-white text-sm font-semibold border border-white/20 hover:bg-white hover:text-[#1F2937] transition-colors min-h-[48px]"
             >
               {@theme.hero.cta_text || "Explore More"}
@@ -93,7 +93,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
           >
             <a
               :for={{product, idx} <- Enum.with_index(@tile_products)}
-              href={"/s/#{@store.slug}/products/#{product.slug}"}
+              href={"/@#{@store.slug}/products/#{product.slug}"}
               class="block w-40 h-40 rounded-2xl overflow-hidden bg-white/10 backdrop-blur-md ring-1 ring-white/20 group hover:ring-[#84CC16] transition-all"
             >
               <div class="relative w-full h-full">
@@ -145,7 +145,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
             <div class="lg:col-span-9 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               <a
                 :for={room <- rooms_items(@theme)}
-                href={"/s/#{@store.slug}/products"}
+                href={"/@#{@store.slug}/products"}
                 class="group bg-[#F3F4F6] rounded-2xl p-4 sm:p-5 hover:bg-[#1F2937] hover:text-white transition-colors min-h-[120px] flex flex-col justify-between"
               >
                 <span
@@ -199,7 +199,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
               </h2>
             </div>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-[#1F2937] hover:gap-2 transition-all"
             >
               View all
@@ -249,7 +249,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
                 </span>
               </div>
               <a
-                href={"/s/#{@store.slug}/products/#{@editor_pick.slug}"}
+                href={"/@#{@store.slug}/products/#{@editor_pick.slug}"}
                 class="inline-flex items-center gap-2 px-7 py-4 rounded-full bg-[#84CC16] text-[#1F2937] text-sm font-bold hover:bg-white transition-colors min-h-[48px] self-start"
               >
                 Shop now
@@ -319,7 +319,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
                   "We work with local craftspeople to bring you furniture that lasts. Solid wood, natural fibres, no fast-furniture shortcuts. Delivered across all 16 regions of Ghana."}
               </p>
               <a
-                href={"/s/#{@store.slug}/about"}
+                href={"/@#{@store.slug}/about"}
                 class="inline-flex items-center gap-1 mt-4 text-sm font-semibold text-[#1F2937] hover:gap-2 transition-all"
               >
                 Read more

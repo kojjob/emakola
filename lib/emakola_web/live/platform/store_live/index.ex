@@ -274,7 +274,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                 </td>
                 <td class="px-6 py-4 text-right">
                   <a
-                    href={"/s/#{store.slug}"}
+                    href={"/@#{store.slug}"}
                     target="_blank"
                     class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
                   >

@@ -40,7 +40,7 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
           <%!-- Breadcrumb --%>
           <nav class="flex items-center gap-2 text-xs sm:text-sm font-medium mb-6">
             <a
-              href={"/s/#{@store.slug}"}
+              href={"/@#{@store.slug}"}
               class="text-[#94A3B8] hover:text-[#475569] uppercase tracking-wider transition-colors"
             >
               Shop
@@ -58,7 +58,7 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
                 </svg>
               </span>
               <a
-                href={"/s/#{@store.slug}/category/#{@parent_category.slug}"}
+                href={"/@#{@store.slug}/category/#{@parent_category.slug}"}
                 class="text-[#94A3B8] hover:text-[#475569] uppercase tracking-wider transition-colors"
               >
                 {@parent_category.name}
@@ -159,7 +159,7 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
               Check back soon for new arrivals in this category.
             </p>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="inline-flex items-center gap-2 px-6 py-3 bg-cta-dark text-white text-sm font-semibold rounded-xl hover:bg-[#292524] transition-colors"
             >
               Browse All Products
@@ -262,7 +262,7 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
 
     ~H"""
     <div class="group">
-      <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="block">
+      <a href={"/@#{@store.slug}/products/#{@product.slug}"} class="block">
         <div class="relative rounded-xl overflow-hidden mb-3 bg-[#F5F5F4]">
           <img
             :if={@image}
@@ -308,7 +308,7 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
         </div>
       </a>
 
-      <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="block px-0.5">
+      <a href={"/@#{@store.slug}/products/#{@product.slug}"} class="block px-0.5">
         <h3 class="text-sm font-medium text-cta-dark leading-snug mb-1 line-clamp-1 group-hover:text-store-accent transition-colors">
           {@product.title}
         </h3>

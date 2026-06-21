@@ -40,7 +40,7 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLive do
             {:ok,
              socket
              |> put_flash(:error, "Order not found")
-             |> redirect(to: "/s/#{slug}")}
+             |> redirect(to: "/@#{slug}")}
         end
 
       {:error, :not_found} ->

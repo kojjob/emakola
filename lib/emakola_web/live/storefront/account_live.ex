@@ -18,7 +18,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
         {:ok,
          socket
          |> put_flash(:info, "Please sign in to view your account")
-         |> redirect(to: "/s/#{slug}/login")}
+         |> redirect(to: "/@#{slug}/login")}
 
       customer ->
         cart_session_id = session["cart_session_id"]

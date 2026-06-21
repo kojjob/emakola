@@ -43,7 +43,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
           </div>
           <div class="flex items-center gap-4">
             <a
-              href={"/s/#{@store.slug}/auth/customer-logout"}
+              href={"/@#{@store.slug}/auth/customer-logout"}
               class="inline-flex items-center gap-2 text-sm font-medium transition-colors cursor-pointer text-rose-600 hover:text-rose-800"
             >
               <svg
@@ -62,7 +62,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
               Sign Out
             </a>
             <.link
-              navigate={"/s/#{@store.slug}"}
+              navigate={"/@#{@store.slug}"}
               class="inline-flex items-center gap-2 text-sm font-medium transition-colors cursor-pointer group text-[#44403C] hover:text-cta-dark"
             >
               <svg
@@ -417,7 +417,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
       </svg>
       <p class="text-sm text-[#44403C]">No orders yet</p>
       <.link
-        navigate={"/s/#{@store.slug}/products"}
+        navigate={"/@#{@store.slug}/products"}
         class="inline-block mt-3 text-sm font-medium transition-colors hover:opacity-70"
         style={"color: #{CssColor.safe_css_color(@theme && @theme.colors.primary, "#B45309")}"}
       >

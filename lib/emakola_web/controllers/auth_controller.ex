@@ -50,5 +50,5 @@ defmodule EmakolaWeb.AuthController do
   end
 
   defp customer_landing(nil), do: "/"
-  defp customer_landing(slug), do: "/s/#{slug}/account"
+  defp customer_landing(slug), do: "/@#{slug}/account"
 end

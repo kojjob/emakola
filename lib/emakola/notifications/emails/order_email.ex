@@ -49,7 +49,7 @@ defmodule Emakola.Notifications.Emails.OrderEmail do
   defp confirmation_html(order, customer, store) do
     line_items_html = build_line_items_html(order.line_items, order.currency)
     address_html = build_address_html(order.shipping_address)
-    track_url = "/s/#{store.slug}/track/#{order.order_number}"
+    track_url = "/@#{store.slug}/track/#{order.order_number}"
     whatsapp_url = EmailHelpers.whatsapp_link(store.whatsapp_number)
     order_date = EmailHelpers.format_date(order.inserted_at)
 
@@ -180,7 +180,7 @@ defmodule Emakola.Notifications.Emails.OrderEmail do
   defp confirmation_text(order, customer, store) do
     line_items_text = build_line_items_text(order.line_items, order.currency)
     address_text = build_address_text(order.shipping_address)
-    track_url = "/s/#{store.slug}/track/#{order.order_number}"
+    track_url = "/@#{store.slug}/track/#{order.order_number}"
     whatsapp_url = EmailHelpers.whatsapp_link(store.whatsapp_number)
 
     """

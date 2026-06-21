@@ -121,7 +121,7 @@ defmodule EmakolaWeb.ShopsLive do
         <div :if={@stores != []} class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <.link
             :for={store <- @stores}
-            navigate={"/s/#{store.slug}"}
+            navigate={"/@#{store.slug}"}
             class="block rounded-xl border border-stone-200 p-5 transition hover:border-emerald-400 hover:shadow-sm"
           >
             <p class="font-semibold text-stone-900">{store.name}</p>

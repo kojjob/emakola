@@ -61,7 +61,7 @@ defmodule Emakola.Themes.Electronics.Home do
               </p>
               <div class="flex flex-col sm:flex-row gap-3">
                 <a
-                  href={"/s/#{@store.slug}/products"}
+                  href={"/@#{@store.slug}/products"}
                   class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[#0EA5E9] text-white text-sm font-bold hover:bg-[#0284C7] transition-colors min-h-[48px]"
                 >
                   {@theme.hero.cta_text || "Shop Now"}
@@ -70,7 +70,7 @@ defmodule Emakola.Themes.Electronics.Home do
                   </span>
                 </a>
                 <a
-                  href={"/s/#{@store.slug}/about"}
+                  href={"/@#{@store.slug}/about"}
                   class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full border border-white/20 text-white text-sm font-semibold hover:bg-white/5 transition-colors min-h-[48px]"
                 >
                   Learn more
@@ -113,14 +113,14 @@ defmodule Emakola.Themes.Electronics.Home do
           <div class="flex flex-wrap items-center gap-2 sm:gap-3">
             <a
               :for={item <- categories_strip_items(@theme)}
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class={"inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold transition-colors min-h-[40px] " <>
                 if(Map.get(item, :active), do: "bg-[#0EA5E9] text-white", else: "bg-white border border-[#E5E7EB] text-[#1F2937] hover:border-[#0EA5E9] hover:text-[#0EA5E9]")}
             >
               {item.label}
             </a>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="inline-flex items-center gap-1 ml-auto text-xs font-semibold text-[#134E4A] hover:gap-2 transition-all"
             >
               See all
@@ -167,7 +167,7 @@ defmodule Emakola.Themes.Electronics.Home do
                   Hand-picked for clarity, comfort, and battery life.
                 </p>
                 <a
-                  href={"/s/#{@store.slug}/products"}
+                  href={"/@#{@store.slug}/products"}
                   class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0EA5E9] text-white text-xs font-bold hover:bg-[#0284C7] transition-colors"
                 >
                   Learn More
@@ -192,7 +192,7 @@ defmodule Emakola.Themes.Electronics.Home do
               Popular product
             </h2>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-[#134E4A] hover:gap-2 transition-all"
             >
               See all
@@ -250,7 +250,7 @@ defmodule Emakola.Themes.Electronics.Home do
                   )}
                 </span>
                 <a
-                  href={"/s/#{@store.slug}/products/#{@featured_deal.slug}"}
+                  href={"/@#{@store.slug}/products/#{@featured_deal.slug}"}
                   class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#0EA5E9] text-white text-sm font-bold hover:bg-[#0284C7] transition-colors"
                 >
                   Add to Cart
@@ -284,7 +284,7 @@ defmodule Emakola.Themes.Electronics.Home do
               Best selling product
             </h2>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-[#134E4A] hover:gap-2 transition-all"
             >
               See all
@@ -334,7 +334,7 @@ defmodule Emakola.Themes.Electronics.Home do
           </h2>
           <p class="text-base text-white/80 mb-7">{cta_band_subtitle(@theme)}</p>
           <a
-            href={"/s/#{@store.slug}/products"}
+            href={"/@#{@store.slug}/products"}
             class="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-[#0EA5E9] text-white text-sm font-bold hover:bg-[#0284C7] transition-colors min-h-[48px]"
           >
             {cta_band_button(@theme)}

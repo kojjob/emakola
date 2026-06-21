@@ -36,7 +36,7 @@ defmodule EmakolaWeb.Storefront.PageLive do
         {:ok,
          socket
          |> put_flash(:error, "Page not found")
-         |> redirect(to: "/s/#{store.slug}")}
+         |> redirect(to: "/@#{store.slug}")}
     end
   end
 

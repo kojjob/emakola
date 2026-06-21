@@ -20,9 +20,9 @@ defmodule EmakolaWeb.SEO.Canonical do
   def url("/" <> _ = path), do: base() <> path
 
   @doc "A store-scoped canonical URL for an arbitrary sub-path (e.g. `\"/products\"`)."
-  def path(%{slug: slug}, "/" <> _ = subpath), do: base() <> "/s/" <> slug <> subpath
+  def path(%{slug: slug}, "/" <> _ = subpath), do: base() <> "/@" <> slug <> subpath
 
-  def store_url(%{slug: slug}), do: base() <> "/s/" <> slug
+  def store_url(%{slug: slug}), do: base() <> "/@" <> slug
   def product_url(store, %{slug: slug}), do: path(store, "/products/" <> slug)
   def category_url(store, %{slug: slug}), do: path(store, "/category/" <> slug)
   def blog_url(store, %{slug: slug}), do: path(store, "/blog/" <> slug)

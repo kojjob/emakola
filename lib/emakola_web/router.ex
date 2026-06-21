@@ -185,36 +185,6 @@ defmodule EmakolaWeb.Router do
     end
   end
 
-  # Customer storefront session controller (sets/clears customer token cookie)
-  scope "/s/:store_slug", EmakolaWeb.Storefront do
-    pipe_through [:browser, :auth_rate_limit]
-    get "/auth/customer-session", CustomerSessionController, :create
-  end
-
-  scope "/s/:store_slug", EmakolaWeb.Storefront do
-    pipe_through :browser
-    delete "/auth/customer-session", CustomerSessionController, :delete
-    get "/auth/customer-logout", CustomerSessionController, :logout
-
-    # Digital download delivery (Phase 1). Resolves the customer from
-    # session, validates grant ownership + expiry/limit, redirects to
-    # a presigned URL from Emakola.Storage.
-    get "/downloads/:id", DownloadController, :show
-  end
-
-  # Customer storefront auth pages (login/register — no customer auth required)
-  scope "/s/:store_slug", EmakolaWeb.Storefront do
-    pipe_through [:browser, :auth_rate_limit]
-
-    live_session :storefront_auth,
-      layout: {EmakolaWeb.Layouts, :storefront},
-      on_mount: [{EmakolaWeb.Hooks.ResolveStore, :default}],
-      session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
-      live "/login", CustomerLoginLive
-      live "/register", CustomerRegisterLive
-    end
-  end
-
   # Platform-level sitemap (apex domain marketing pages).
   # TODO: when store subdomain routing lands, add a host guard here so
   # mystore.emakola.com/sitemap.xml serves the store sitemap instead.
@@ -223,48 +193,6 @@ defmodule EmakolaWeb.Router do
     get "/sitemap.xml", SitemapController, :platform
   end
 
-  # Sitemap + AI-readable files — uses :seo pipeline (accepts XML/text),
-  # NOT :api (which enforces JSON-only and would 406 crawlers).
-  scope "/s/:store_slug", EmakolaWeb do
-    pipe_through :seo
-    get "/sitemap.xml", SitemapController, :show
-    get "/robots.txt", SitemapController, :robots
-    get "/llms.txt", SitemapController, :llms
-    get "/feed/instagram.xml", InstagramFeedController, :show
-  end
-
-  # Customer storefront (public — no auth required)
-  # In production, store is resolved from subdomain. For now, use store slug in URL.
-  scope "/s/:store_slug", EmakolaWeb.Storefront do
-    pipe_through :browser
-
-    live_session :storefront,
-      layout: {EmakolaWeb.Layouts, :storefront},
-      on_mount: [
-        {EmakolaWeb.Hooks.ResolveStore, :default},
-        {EmakolaWeb.Hooks.ResolveCustomer, :default}
-      ],
-      session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
-      live "/", StoreLive
-      live "/products", ProductListLive
-      live "/products/:product_slug", ProductDetailLive
-      live "/cart", CartLive
-      live "/checkout", CheckoutLive
-      live "/orders/:order_number/confirmation", OrderConfirmationLive
-      live "/category/:category_slug", CategoryLive
-      live "/about", AboutLive
-      live "/blog", BlogListLive
-      live "/blog/:post_slug", BlogPostLive
-      live "/recipes", RecipeListLive
-      live "/recipes/:recipe_slug", RecipeLive
-      live "/account", AccountLive
-      live "/account/downloads", AccountDownloadsLive
-      live "/saved-stores", SavedStoresLive
-      live "/wishlist", WishlistLive
-      live "/track/:order_number", TrackingLive
-      live "/p/:page_slug", PageLive
-    end
-  end
 
   scope "/", EmakolaWeb do
     pipe_through :browser
@@ -386,6 +314,80 @@ defmodule EmakolaWeb.Router do
     get "/admin/export/analytics.pdf", ExportController, :analytics_pdf
 
     live "/onboarding", OnboardingLive
+  end
+
+  # ── Storefront (LAST on purpose: /:store_slug is a catch-all, so it must
+  # follow every reserved route above. ResolveStore requires the @ prefix and
+  # 404s non-@ segments, e.g. makola.io/@tiny-stitches/cart).
+  # Customer storefront session controller (sets/clears customer token cookie)
+  scope "/:store_slug", EmakolaWeb.Storefront do
+    pipe_through [:browser, :auth_rate_limit]
+    get "/auth/customer-session", CustomerSessionController, :create
+  end
+
+  scope "/:store_slug", EmakolaWeb.Storefront do
+    pipe_through :browser
+    delete "/auth/customer-session", CustomerSessionController, :delete
+    get "/auth/customer-logout", CustomerSessionController, :logout
+
+    # Digital download delivery (Phase 1). Resolves the customer from
+    # session, validates grant ownership + expiry/limit, redirects to
+    # a presigned URL from Emakola.Storage.
+    get "/downloads/:id", DownloadController, :show
+  end
+
+  # Customer storefront auth pages (login/register — no customer auth required)
+  scope "/:store_slug", EmakolaWeb.Storefront do
+    pipe_through [:browser, :auth_rate_limit]
+
+    live_session :storefront_auth,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [{EmakolaWeb.Hooks.ResolveStore, :default}],
+      session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
+      live "/login", CustomerLoginLive
+      live "/register", CustomerRegisterLive
+    end
+  end
+  # Sitemap + AI-readable files — uses :seo pipeline (accepts XML/text),
+  # NOT :api (which enforces JSON-only and would 406 crawlers).
+  scope "/:store_slug", EmakolaWeb do
+    pipe_through :seo
+    get "/sitemap.xml", SitemapController, :show
+    get "/robots.txt", SitemapController, :robots
+    get "/llms.txt", SitemapController, :llms
+    get "/feed/instagram.xml", InstagramFeedController, :show
+  end
+  # Customer storefront (public — no auth required)
+  # In production, store is resolved from subdomain. For now, use store slug in URL.
+  scope "/:store_slug", EmakolaWeb.Storefront do
+    pipe_through :browser
+
+    live_session :storefront,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [
+        {EmakolaWeb.Hooks.ResolveStore, :default},
+        {EmakolaWeb.Hooks.ResolveCustomer, :default}
+      ],
+      session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
+      live "/", StoreLive
+      live "/products", ProductListLive
+      live "/products/:product_slug", ProductDetailLive
+      live "/cart", CartLive
+      live "/checkout", CheckoutLive
+      live "/orders/:order_number/confirmation", OrderConfirmationLive
+      live "/category/:category_slug", CategoryLive
+      live "/about", AboutLive
+      live "/blog", BlogListLive
+      live "/blog/:post_slug", BlogPostLive
+      live "/recipes", RecipeListLive
+      live "/recipes/:recipe_slug", RecipeLive
+      live "/account", AccountLive
+      live "/account/downloads", AccountDownloadsLive
+      live "/saved-stores", SavedStoresLive
+      live "/wishlist", WishlistLive
+      live "/track/:order_number", TrackingLive
+      live "/p/:page_slug", PageLive
+    end
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

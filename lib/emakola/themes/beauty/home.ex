@@ -55,7 +55,7 @@ defmodule Emakola.Themes.Beauty.Home do
               </p>
               <div class="flex flex-col sm:flex-row gap-3">
                 <a
-                  href={"/s/#{@store.slug}/products"}
+                  href={"/@#{@store.slug}/products"}
                   class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[#FAF6EE] text-[#6B4423] text-sm font-semibold hover:bg-white transition-colors min-h-[48px]"
                 >
                   {@theme.hero.cta_text || "Shop the Collection"}
@@ -64,7 +64,7 @@ defmodule Emakola.Themes.Beauty.Home do
                   </span>
                 </a>
                 <a
-                  href={"/s/#{@store.slug}/about"}
+                  href={"/@#{@store.slug}/about"}
                   class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full border border-[#C9925E]/40 text-[#FAF6EE] text-sm font-semibold hover:bg-white/5 transition-colors min-h-[48px]"
                 >
                   Our Story
@@ -137,7 +137,7 @@ defmodule Emakola.Themes.Beauty.Home do
           </div>
           <div class="text-center mt-12">
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#6B4423] text-[#FAF6EE] text-sm font-semibold hover:bg-[#5A381D] transition-colors min-h-[48px]"
             >
               See all products
@@ -260,7 +260,7 @@ defmodule Emakola.Themes.Beauty.Home do
             {closing_subtitle(@theme)}
           </p>
           <a
-            href={"/s/#{@store.slug}/products"}
+            href={"/@#{@store.slug}/products"}
             class="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-[#C9925E] text-[#3D2F25] text-sm font-bold hover:bg-[#FAF6EE] transition-colors min-h-[48px]"
           >
             {closing_button(@theme)}

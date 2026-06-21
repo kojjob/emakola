@@ -33,7 +33,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
         <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-10 lg:p-16">
           <div class="max-w-3xl mx-auto">
             <a
-              href={"/s/#{@store.slug}/blog"}
+              href={"/@#{@store.slug}/blog"}
               class="cursor-pointer inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors mb-4"
             >
               <svg
@@ -67,7 +67,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
       <div :if={!@post.featured_image_url} class="bg-stone-900 py-16 sm:py-20">
         <div class="max-w-3xl mx-auto px-4 sm:px-6">
           <a
-            href={"/s/#{@store.slug}/blog"}
+            href={"/@#{@store.slug}/blog"}
             class="cursor-pointer inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-white transition-colors mb-6"
           >
             <svg
@@ -179,7 +179,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
                 {@store.description}
               </p>
               <a
-                href={"/s/#{@store.slug}/blog"}
+                href={"/@#{@store.slug}/blog"}
                 class="cursor-pointer inline-flex items-center gap-1 text-sm text-amber-700 font-medium mt-3 hover:text-amber-800"
               >
                 View all posts
@@ -207,7 +207,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             <a
               :for={rp <- @related}
-              href={"/s/#{@store.slug}/blog/#{rp.slug}"}
+              href={"/@#{@store.slug}/blog/#{rp.slug}"}
               class="cursor-pointer group block bg-white rounded-2xl shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden"
             >
               <div class="aspect-[16/10] overflow-hidden">

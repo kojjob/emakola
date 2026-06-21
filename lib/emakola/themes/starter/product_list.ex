@@ -46,7 +46,7 @@ defmodule Emakola.Themes.Starter.ProductList do
             <ol class="flex items-center gap-2 text-xs text-[#94A3B8]">
               <li>
                 <a
-                  href={"/s/#{@store.slug}"}
+                  href={"/@#{@store.slug}"}
                   class="hover:text-[var(--theme-primary,#6366F1)] transition-colors"
                   style="font-family: 'Inter', sans-serif;"
                 >

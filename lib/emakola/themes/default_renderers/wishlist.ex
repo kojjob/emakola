@@ -36,7 +36,7 @@ defmodule Emakola.Themes.DefaultRenderers.Wishlist do
           </div>
           <div class="mt-4 sm:mt-0">
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="text-sm font-medium text-store-accent hover:text-amber-800 transition-colors flex items-center gap-1"
             >
               Continue Shopping
@@ -155,7 +155,7 @@ defmodule Emakola.Themes.DefaultRenderers.Wishlist do
           <h2 class="text-2xl font-semibold text-cta-dark mb-2">Your wishlist is empty</h2>
           <p class="text-[#44403C] text-sm mb-8">Save items you love to find them later</p>
           <a
-            href={"/s/#{@store.slug}/products"}
+            href={"/@#{@store.slug}/products"}
             class="inline-block cursor-pointer bg-cta-dark text-white text-xs font-semibold uppercase tracking-wider px-8 py-3 rounded-[20px] hover:bg-stone-800 transition-colors"
           >
             Browse Products

@@ -48,7 +48,7 @@ defmodule Emakola.Themes.Starter.Shared do
     <header class="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-14 sm:h-16">
-          <a href={"/s/#{@store.slug}"} class="flex items-center gap-2.5 min-w-0">
+          <a href={"/@#{@store.slug}"} class="flex items-center gap-2.5 min-w-0">
             <span
               class="text-base sm:text-lg font-semibold text-[#0F172A] truncate"
               style="font-family: 'Inter', sans-serif;"
@@ -59,7 +59,7 @@ defmodule Emakola.Themes.Starter.Shared do
 
           <div class="flex items-center gap-1">
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={"/@#{@store.slug}/products"}
               class="p-2.5 rounded-xl hover:bg-gray-50 transition-colors"
               aria-label="Search products"
             >
@@ -78,7 +78,7 @@ defmodule Emakola.Themes.Starter.Shared do
               </svg>
             </a>
             <a
-              href={"/s/#{@store.slug}/cart"}
+              href={"/@#{@store.slug}/cart"}
               class="relative p-2.5 rounded-xl hover:bg-gray-50 transition-colors"
               aria-label={"Shopping cart, #{@cart_count} items"}
             >
@@ -122,7 +122,7 @@ defmodule Emakola.Themes.Starter.Shared do
     assigns = assign(assigns, :image, first_image(assigns.product))
 
     ~H"""
-    <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
+    <a href={"/@#{@store.slug}/products/#{@product.slug}"} class="group block">
       <div class="relative rounded-2xl overflow-hidden mb-3 bg-gray-50 shadow-sm group-hover:shadow-md group-hover:-translate-y-0.5 transition-all duration-300">
         <.optimized_image
           :if={@image}
@@ -169,7 +169,7 @@ defmodule Emakola.Themes.Starter.Shared do
   def category_pill(assigns) do
     ~H"""
     <a
-      href={"/s/#{@store_slug}/category/#{@category.slug}"}
+      href={"/@#{@store_slug}/category/#{@category.slug}"}
       class={[
         "flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all",
         if(@active,
@@ -226,7 +226,7 @@ defmodule Emakola.Themes.Starter.Shared do
             <ul class="space-y-2">
               <li>
                 <a
-                  href={"/s/#{@store.slug}/products"}
+                  href={"/@#{@store.slug}/products"}
                   class="text-sm text-[#64748B] hover:text-[var(--theme-primary,#6366F1)] transition-colors"
                   style="font-family: 'Inter', sans-serif;"
                 >
@@ -235,7 +235,7 @@ defmodule Emakola.Themes.Starter.Shared do
               </li>
               <li :for={cat <- Enum.take(@categories, 4)}>
                 <a
-                  href={"/s/#{@store.slug}/category/#{cat.slug}"}
+                  href={"/@#{@store.slug}/category/#{cat.slug}"}
                   class="text-sm text-[#64748B] hover:text-[var(--theme-primary,#6366F1)] transition-colors"
                   style="font-family: 'Inter', sans-serif;"
                 >
