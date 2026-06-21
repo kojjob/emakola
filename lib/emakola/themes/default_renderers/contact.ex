@@ -14,6 +14,9 @@ defmodule Emakola.Themes.DefaultRenderers.Contact do
 
   def render(assigns) do
     pc = Map.get(assigns, :page_content) || %{}
+    store = assigns.store
+    address = store_address(store)
+    contact_hours = ContentLoader.field(pc, :contact_hours)
 
     assigns =
       assigns
@@ -22,8 +25,21 @@ defmodule Emakola.Themes.DefaultRenderers.Contact do
         ContentLoader.field(pc, :contact_note) ||
           "Have a question, or just want to say hello? We'd love to hear from you."
       )
-      |> assign(:contact_hours, ContentLoader.field(pc, :contact_hours))
-      |> assign(:address, store_address(assigns.store))
+      |> assign(:contact_hours, contact_hours)
+      |> assign(:address, address)
+      |> assign(
+        :has_contact_methods?,
+        Enum.any?(
+          [
+            store.contact_email,
+            store.contact_phone,
+            store.whatsapp_number,
+            address,
+            contact_hours
+          ],
+          &present?/1
+        )
+      )
 
     ~H"""
     <Emakola.Themes.Atelier.Shared.navbar
@@ -45,21 +61,21 @@ defmodule Emakola.Themes.DefaultRenderers.Contact do
 
       <div class="grid gap-4 sm:grid-cols-2">
         <.contact_row
-          :if={@store.contact_email}
+          :if={present?(@store.contact_email)}
           icon="mail"
           label="Email"
           value={@store.contact_email}
           href={"mailto:#{@store.contact_email}"}
         />
         <.contact_row
-          :if={@store.contact_phone}
+          :if={present?(@store.contact_phone)}
           icon="call"
           label="Phone"
           value={@store.contact_phone}
           href={"tel:#{@store.contact_phone}"}
         />
         <.contact_row
-          :if={@store.whatsapp_number}
+          :if={present?(@store.whatsapp_number)}
           icon="chat"
           label="WhatsApp"
           value={@store.whatsapp_number}
@@ -75,13 +91,7 @@ defmodule Emakola.Themes.DefaultRenderers.Contact do
         />
       </div>
 
-      <div
-        :if={
-          @store.contact_email == nil and @store.contact_phone == nil and
-            @store.whatsapp_number == nil
-        }
-        class="text-stone-500 text-sm"
-      >
+      <div :if={not @has_contact_methods?} class="text-stone-500 text-sm">
         Contact details for this store are coming soon.
       </div>
     </div>
@@ -128,4 +138,6 @@ defmodule Emakola.Themes.DefaultRenderers.Contact do
       address -> address
     end
   end
+
+  defp present?(value), do: value not in [nil, ""]
 end

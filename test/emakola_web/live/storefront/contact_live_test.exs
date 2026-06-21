@@ -40,5 +40,40 @@ defmodule EmakolaWeb.Storefront.ContactLiveTest do
       assert html =~ "We reply within 24 hours."
       assert html =~ "Mon-Fri 8am-5pm"
     end
+
+    test "does not show the coming-soon empty state when only an address is set", %{conn: conn} do
+      store =
+        Factory.create_store!(%{
+          name: "Location Only",
+          slug: "location-only",
+          address: "15 Oxford Street",
+          city: "Accra"
+        })
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/contact")
+
+      assert html =~ "15 Oxford Street"
+      refute html =~ "coming soon"
+    end
+
+    test "does not show the coming-soon empty state when only opening hours are set",
+         %{conn: conn} do
+      store = Factory.create_store!(%{name: "Hours Only", slug: "hours-only"})
+      Factory.create_page_content!(store, %{contact_hours: "Mon-Sat, 10am - 7pm"})
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/contact")
+
+      assert html =~ "Mon-Sat, 10am - 7pm"
+      refute html =~ "coming soon"
+    end
+
+    test "shows the coming-soon empty state when the store has no contact methods",
+         %{conn: conn} do
+      store = Factory.create_store!(%{name: "Bare Store", slug: "bare-store"})
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/contact")
+
+      assert html =~ "coming soon"
+    end
   end
 end
