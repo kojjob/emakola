@@ -33,6 +33,47 @@ defmodule Emakola.Customers.Customer do
         register_action_name(:register_with_password)
         sign_in_action_name(:sign_in_with_password)
       end
+
+      # Storefront social login. No identity_resource on purpose: the per-store
+      # Customer is found/created by the upsert action keyed on
+      # :unique_store_email (store_id from the request tenant).
+      # AshAuthentication.UserIdentity has no multitenancy support, so an
+      # identity table would make the same social account ambiguous across
+      # stores. prevent_hijacking? false — same debt as the merchant strategies
+      # (no email-confirmation flow yet).
+      google :google do
+        client_id(fn _, _ -> Emakola.OAuthConfig.fetch(:google, :client_id) end)
+        client_secret(fn _, _ -> Emakola.OAuthConfig.fetch(:google, :client_secret) end)
+        redirect_uri(fn _, _ -> Emakola.OAuthConfig.redirect_uri() end)
+        register_action_name(:register_with_oauth2)
+        sign_in_action_name(:sign_in_with_oauth2)
+        prevent_hijacking?(false)
+      end
+
+      oauth2 :facebook do
+        client_id(fn _, _ -> Emakola.OAuthConfig.fetch(:facebook, :client_id) end)
+        client_secret(fn _, _ -> Emakola.OAuthConfig.fetch(:facebook, :client_secret) end)
+        redirect_uri(fn _, _ -> Emakola.OAuthConfig.redirect_uri() end)
+        base_url("https://graph.facebook.com/v18.0")
+        authorize_url("https://www.facebook.com/v18.0/dialog/oauth")
+        token_url("https://graph.facebook.com/v18.0/oauth/access_token")
+        user_url("https://graph.facebook.com/me?fields=id,name,email")
+        authorization_params(scope: "email public_profile")
+        register_action_name(:register_with_oauth2)
+        sign_in_action_name(:sign_in_with_oauth2)
+        prevent_hijacking?(false)
+      end
+
+      apple :apple do
+        client_id(fn _, _ -> Emakola.OAuthConfig.fetch(:apple, :client_id) end)
+        team_id(fn _, _ -> Emakola.OAuthConfig.fetch(:apple, :team_id) end)
+        private_key_id(fn _, _ -> Emakola.OAuthConfig.fetch(:apple, :private_key_id) end)
+        private_key_path(fn _, _ -> Emakola.OAuthConfig.fetch(:apple, :private_key_path) end)
+        redirect_uri(fn _, _ -> Emakola.OAuthConfig.redirect_uri() end)
+        register_action_name(:register_with_oauth2)
+        sign_in_action_name(:sign_in_with_oauth2)
+        prevent_hijacking?(false)
+      end
     end
   end
 
@@ -177,6 +218,39 @@ defmodule Emakola.Customers.Customer do
       validate(AshAuthentication.Strategy.Password.PasswordConfirmationValidation)
       change(AshAuthentication.Strategy.Password.HashPasswordChange)
       change(AshAuthentication.GenerateTokenChange)
+    end
+
+    # Shared by all storefront OAuth strategies. store_id is set from the request
+    # tenant (multitenancy :attribute), so the upsert on :unique_store_email
+    # finds-or-creates the customer within the right store. The provider comes
+    # from the auth context. registration_enabled? defaults true, so this upsert
+    # handles both new and returning customers (sign_in_with_oauth2 is required
+    # to exist but unused).
+    create :register_with_oauth2 do
+      upsert?(true)
+      upsert_identity(:unique_store_email)
+      upsert_fields([])
+      accept([])
+
+      argument(:user_info, :map, allow_nil?: false)
+      argument(:oauth_tokens, :map, allow_nil?: false)
+
+      change(AshAuthentication.GenerateTokenChange)
+
+      change(fn changeset, _context ->
+        user_info = Ash.Changeset.get_argument(changeset, :user_info) || %{}
+
+        changeset
+        |> Ash.Changeset.change_attribute(:email, user_info["email"])
+        |> Ash.Changeset.change_attribute(:name, user_info["name"])
+      end)
+    end
+
+    read :sign_in_with_oauth2 do
+      argument(:user_info, :map, allow_nil?: false)
+      argument(:oauth_tokens, :map, allow_nil?: false)
+
+      prepare(AshAuthentication.Strategy.OAuth2.SignInPreparation)
     end
 
     update :update do

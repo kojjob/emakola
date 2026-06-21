@@ -25,6 +25,10 @@ defmodule Emakola.Accounts do
       define(:get_merchant, action: :read, get_by: [:id])
     end
 
+    # OAuth identity links for merchant social login (managed by
+    # AshAuthentication.UserIdentity).
+    resource(Emakola.Accounts.MerchantIdentity)
+
     # Store resource moved to Emakola.Stores on 2026-04-26.
     # See docs/PLAN-domain-restructuring-2026-04-26.md Step 3.
 

@@ -101,6 +101,7 @@ defmodule EmakolaWeb.SEO do
     <meta property="og:title" content={@title} />
     <meta property="og:description" content={@description} />
     <meta :if={@og_image} property="og:image" content={@og_image} />
+    <meta :if={@og_image} property="og:image:alt" content={@title} />
     <meta :if={@canonical_url} property="og:url" content={@canonical_url} />
     <meta property="og:site_name" content={@site_name} />
 
@@ -108,6 +109,7 @@ defmodule EmakolaWeb.SEO do
     <meta name="twitter:title" content={@title} />
     <meta name="twitter:description" content={@description} />
     <meta :if={@og_image} name="twitter:image" content={@og_image} />
+    <meta :if={@og_image} name="twitter:image:alt" content={@title} />
 
     <%!--
       HEEx treats <script> tag content as raw text — curly-brace

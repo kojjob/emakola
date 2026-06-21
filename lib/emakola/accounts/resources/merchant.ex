@@ -35,6 +35,60 @@ defmodule Emakola.Accounts.Merchant do
 
         sender(Emakola.Accounts.Senders.MagicLinkSender)
       end
+
+      # Social login. Secrets resolve at runtime from Emakola.OAuthConfig, so a
+      # provider stays inert (ship-dark) until its credentials are set — the
+      # matching button is hidden by EmakolaWeb.OAuth in the meantime.
+      google :google do
+        client_id(fn _, _ -> Emakola.OAuthConfig.fetch(:google, :client_id) end)
+        client_secret(fn _, _ -> Emakola.OAuthConfig.fetch(:google, :client_secret) end)
+        redirect_uri(fn _, _ -> Emakola.OAuthConfig.redirect_uri() end)
+        identity_resource(Emakola.Accounts.MerchantIdentity)
+        register_action_name(:register_with_oauth2)
+        sign_in_action_name(:sign_in_with_oauth2)
+        # See the prevent_hijacking? note on :facebook — same debt applies here.
+        prevent_hijacking?(false)
+      end
+
+      # Facebook has no built-in strategy — generic oauth2 against the Graph API.
+      # The exact endpoints/scopes should be confirmed against the Meta app
+      # during setup; this stays dark until FACEBOOK_* is configured.
+      oauth2 :facebook do
+        client_id(fn _, _ -> Emakola.OAuthConfig.fetch(:facebook, :client_id) end)
+        client_secret(fn _, _ -> Emakola.OAuthConfig.fetch(:facebook, :client_secret) end)
+        redirect_uri(fn _, _ -> Emakola.OAuthConfig.redirect_uri() end)
+        base_url("https://graph.facebook.com/v18.0")
+        authorize_url("https://www.facebook.com/v18.0/dialog/oauth")
+        token_url("https://graph.facebook.com/v18.0/oauth/access_token")
+        user_url("https://graph.facebook.com/me?fields=id,name,email")
+        authorization_params(scope: "email public_profile")
+        identity_resource(Emakola.Accounts.MerchantIdentity)
+        # SECURITY DEBT (applies to all 3 OAuth strategies here): with a password
+        # strategy on the email field, ash_authentication wants an email
+        # confirmation add-on so an *unverified* password account can't be
+        # hijacked by linking an OAuth login to it by email. The app has no
+        # confirmation flow yet (and prod email is on dummy keys), so we accept
+        # linking-by-provider-verified-email for now. MUST add a confirmation
+        # add-on before activating OAuth for real users.
+        prevent_hijacking?(false)
+        register_action_name(:register_with_oauth2)
+        sign_in_action_name(:sign_in_with_oauth2)
+      end
+
+      # Apple needs a paid Apple Developer account + a .p8 signing key on disk
+      # (APPLE_PRIVATE_KEY_PATH); stays dark until those exist.
+      apple :apple do
+        client_id(fn _, _ -> Emakola.OAuthConfig.fetch(:apple, :client_id) end)
+        team_id(fn _, _ -> Emakola.OAuthConfig.fetch(:apple, :team_id) end)
+        private_key_id(fn _, _ -> Emakola.OAuthConfig.fetch(:apple, :private_key_id) end)
+        private_key_path(fn _, _ -> Emakola.OAuthConfig.fetch(:apple, :private_key_path) end)
+        redirect_uri(fn _, _ -> Emakola.OAuthConfig.redirect_uri() end)
+        identity_resource(Emakola.Accounts.MerchantIdentity)
+        register_action_name(:register_with_oauth2)
+        sign_in_action_name(:sign_in_with_oauth2)
+        # See the prevent_hijacking? note on :facebook — same debt applies here.
+        prevent_hijacking?(false)
+      end
     end
   end
 
@@ -110,6 +164,38 @@ defmodule Emakola.Accounts.Merchant do
 
   actions do
     defaults([:read])
+
+    # Shared by all OAuth strategies (google/facebook/apple). ash_authentication
+    # passes the provider in the action context, so OAuth2.IdentityChange records
+    # the right strategy. Links to an existing merchant by verified email.
+    create :register_with_oauth2 do
+      description("Register or link a merchant from a social-login provider.")
+      upsert?(true)
+      upsert_identity(:unique_email)
+      upsert_fields([])
+      accept([])
+
+      argument(:user_info, :map, allow_nil?: false)
+      argument(:oauth_tokens, :map, allow_nil?: false)
+
+      change(AshAuthentication.GenerateTokenChange)
+      change(AshAuthentication.Strategy.OAuth2.IdentityChange)
+
+      change(fn changeset, _context ->
+        user_info = Ash.Changeset.get_argument(changeset, :user_info) || %{}
+
+        changeset
+        |> Ash.Changeset.change_attribute(:email, user_info["email"])
+        |> Ash.Changeset.change_attribute(:name, user_info["name"])
+      end)
+    end
+
+    read :sign_in_with_oauth2 do
+      argument(:user_info, :map, allow_nil?: false)
+      argument(:oauth_tokens, :map, allow_nil?: false)
+
+      prepare(AshAuthentication.Strategy.OAuth2.SignInPreparation)
+    end
 
     read :list_for_admin do
       argument(:search, :string, default: "")

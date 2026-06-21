@@ -17,6 +17,27 @@ config :emakola, :storage, Emakola.Storage.Local
 config :emakola,
   token_signing_secret: "dev-only-not-for-production-at-least-32-bytes!!"
 
+# Social login (OAuth) — set provider creds via env to test locally; unset = off
+# (ship-dark, see EmakolaWeb.OAuth). Google permits http://localhost redirect
+# URIs for dev; Facebook/Apple need the deployed host or a tunnel.
+config :emakola, :oauth,
+  google: %{
+    client_id: System.get_env("GOOGLE_CLIENT_ID"),
+    client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
+  },
+  facebook: %{
+    client_id: System.get_env("FACEBOOK_CLIENT_ID"),
+    client_secret: System.get_env("FACEBOOK_CLIENT_SECRET")
+  },
+  apple: %{
+    client_id: System.get_env("APPLE_CLIENT_ID"),
+    team_id: System.get_env("APPLE_TEAM_ID"),
+    private_key_id: System.get_env("APPLE_KEY_ID"),
+    private_key_path: System.get_env("APPLE_PRIVATE_KEY_PATH")
+  }
+
+config :emakola, :oauth_redirect_base, "http://localhost:4000/oauth"
+
 # Payment gateway credentials — harmless placeholders for dev (env vars
 # override). Prod credentials are set in runtime.exs.
 config :emakola, Emakola.Payments.PaystackClient,

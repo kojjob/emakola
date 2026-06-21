@@ -1,6 +1,8 @@
 defmodule EmakolaWeb.Auth.RegisterLive do
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.OAuthComponents
+
   require Logger
 
   @register_limit 5
@@ -92,6 +94,7 @@ defmodule EmakolaWeb.Auth.RegisterLive do
             <span class="material-symbols-outlined text-xl">chat</span>
             Continue with WhatsApp (Coming Soon)
           </button>
+          <.oauth_buttons subject="merchant" class="mb-6" />
           <!-- OR EMAIL Divider -->
           <div class="relative mb-6">
             <div class="absolute inset-0 flex items-center">

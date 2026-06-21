@@ -251,6 +251,27 @@ if config_env() == :prod do
            You can generate one by calling: mix phx.gen.secret 64
            """)
 
+  # Social login (OAuth) — ship-dark: each provider activates only when its
+  # credentials are present (see EmakolaWeb.OAuth). Leaving the env vars unset
+  # keeps that provider's button hidden and its routes inert, so this deploys
+  # safely before any provider is set up. Apple uses a .p8 signing key, not a
+  # client secret.
+  config :emakola, :oauth,
+    google: %{
+      client_id: System.get_env("GOOGLE_CLIENT_ID"),
+      client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
+    },
+    facebook: %{
+      client_id: System.get_env("FACEBOOK_CLIENT_ID"),
+      client_secret: System.get_env("FACEBOOK_CLIENT_SECRET")
+    },
+    apple: %{
+      client_id: System.get_env("APPLE_CLIENT_ID"),
+      team_id: System.get_env("APPLE_TEAM_ID"),
+      private_key_id: System.get_env("APPLE_KEY_ID"),
+      private_key_path: System.get_env("APPLE_PRIVATE_KEY_PATH")
+    }
+
   host =
     System.get_env("PHX_HOST") ||
       raise """
@@ -259,6 +280,11 @@ if config_env() == :prod do
       It is used for URL generation (emails, webhooks) and check_origin —
       a silent default would generate links to the wrong domain.
       """
+
+  # OAuth callback base — providers redirect back to
+  # "<base>/<subject>/<strategy>/callback" (e.g. .../oauth/merchant/google/callback).
+  # Derived from PHX_HOST so it follows the canonical host automatically.
+  config :emakola, :oauth_redirect_base, "https://#{host}/oauth"
 
   config :emakola, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
@@ -292,6 +318,24 @@ if config_env() == :prod do
   # the apex (e.g. "makola.io") only AFTER wildcard *.makola.io DNS + TLS exist,
   # or branded hosts would resolve to a cert error.
   config :emakola, :store_subdomain_base, System.get_env("STORE_SUBDOMAIN_BASE")
+
+  # Hosts that 301-redirect to the canonical apex (EmakolaWeb.Plugs.CanonicalHost).
+  # Auto-activates once PHX_HOST is makola.io: the Fly default + emakola.* aliases
+  # consolidate onto the brand apex, and www -> apex. Override with
+  # CANONICAL_REDIRECT_HOSTS (comma-separated) for any other host setup, or set it
+  # to an empty string to disable the redirects entirely.
+  canonical_redirect_hosts =
+    case System.get_env("CANONICAL_REDIRECT_HOSTS") do
+      nil ->
+        if host == "makola.io",
+          do: ["www.makola.io", "emakola.fly.dev", "emakola.com", "www.emakola.com"],
+          else: []
+
+      csv ->
+        csv |> String.split(",", trim: true) |> Enum.map(&String.trim/1)
+    end
+
+  config :emakola, :canonical_redirect_hosts, canonical_redirect_hosts
 
   # ## SSL Support
   #
