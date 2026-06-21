@@ -219,6 +219,11 @@ if config_env() == :prod do
         raise("environment variable WHATSAPP_PHONE_NUMBER_ID is missing."),
     api_version: System.get_env("WHATSAPP_API_VERSION") || "v21.0"
 
+  # Phone (WhatsApp/SMS) OTP auth — ship-dark. Reveal the WhatsApp sign-in
+  # button only once SMS (now) or the approved WhatsApp auth_code template can
+  # deliver codes: set PHONE_AUTH_ENABLED=true. See docs/PROVIDER_SETUP.md.
+  config :emakola, :phone_auth_enabled, System.get_env("PHONE_AUTH_ENABLED") == "true"
+
   # Mobile push (FCM HTTP v1 via Req + Goth). Only active when a Firebase
   # service account is configured; otherwise the Log provider keeps the
   # pipeline observable without sending anything.
