@@ -239,6 +239,7 @@ defmodule Emakola.Stores.Store do
 
     create :create do
       accept([:name, :slug, :currency])
+      change(Emakola.Stores.Changes.EnsureUniqueSlug)
     end
 
     update :update do
