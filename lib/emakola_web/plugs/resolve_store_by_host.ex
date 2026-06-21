@@ -39,7 +39,9 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
         |> halt()
 
       {:serve_in_place, slug} ->
-        rewrite_to_subfolder(conn, slug)
+        conn
+        |> put_session(:on_store_subdomain?, true)
+        |> rewrite_to_subfolder(slug)
     end
   end
 
