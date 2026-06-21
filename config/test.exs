@@ -87,6 +87,9 @@ config :emakola, :sms_provider, Emakola.SMSProviderMock
 config :emakola, :whatsapp_provider, Emakola.WhatsAppProviderMock
 config :emakola, :push_provider, Emakola.PushProviderMock
 
+# Phone (WhatsApp/SMS) OTP auth enabled in tests.
+config :emakola, :phone_auth_enabled, true
+
 # Storage adapter: route through Mox so individual tests can expect/stub
 # the specific calls they care about. Tests that don't set expectations
 # get a failure from verify_on_exit! — which is what we want.

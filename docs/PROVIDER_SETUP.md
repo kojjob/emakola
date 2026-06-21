@@ -192,6 +192,29 @@ flowchart LR
 | `order_cancelled` | Order {{1}} at {{2}} ({{4}} {{3}}) has been cancelled. Contact us with any questions. |
 | `supplier_fulfillment` | New order {{1}} for {{2}}. Items: {{3}}. Ship to: {{4}}. Please confirm and share a tracking number. |
 
+### 4d. WhatsApp / phone OTP sign-in (`auth_code` template)
+
+Phone sign-in (WhatsApp/SMS one-time codes) needs **one more template**, in a
+different category from the five order templates above:
+
+- **Name:** `auth_code`
+- **Category:** **Authentication** (NOT Utility — Meta requires the
+  authentication category for one-time passcodes)
+- **Language:** English
+- **Body:** a single parameter `{{1}}` = the 6-digit code (e.g. `{{1}} is your
+  Makola verification code.`). The code (`Emakola.Accounts.PhoneAuth`) sends the
+  code as the template's one positional body parameter.
+
+Activation is **ship-dark** behind `PHONE_AUTH_ENABLED`:
+
+- The WhatsApp sign-in button stays hidden until you set
+  `PHONE_AUTH_ENABLED=true` (prod reads it from the env var; dev/test are on by
+  default).
+- You can flip it on **before** the `auth_code` template is approved: delivery
+  falls back to **SMS** (your configured SMS provider) and carries the OTP in
+  the meantime. Once Meta approves `auth_code`, codes go out over WhatsApp first
+  and fall back to SMS only on failure.
+
 ---
 
 ## 5️⃣ Generated secrets — no signup, 30 seconds

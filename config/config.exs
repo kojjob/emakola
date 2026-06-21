@@ -139,7 +139,8 @@ config :emakola, Oban,
     {Oban.Plugins.Cron,
      crontab: [
        {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker},
-       {"0 */6 * * *", Emakola.Cart.CartCleanupWorker}
+       {"0 */6 * * *", Emakola.Cart.CartCleanupWorker},
+       {"30 3 * * *", Emakola.Accounts.Workers.PhoneOtpPruneWorker}
      ]}
   ]
 

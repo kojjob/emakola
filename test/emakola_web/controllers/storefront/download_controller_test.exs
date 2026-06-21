@@ -22,7 +22,7 @@ defmodule EmakolaWeb.Storefront.DownloadControllerTest do
     |> Ash.Changeset.for_create(:register_with_password, %{
       email: email || "buyer-#{System.unique_integer([:positive])}@example.com",
       name: "Buyer",
-      phone: "+233240000000",
+      phone: "+23324#{System.unique_integer([:positive])}",
       store_id: store.id,
       password: "password123",
       password_confirmation: "password123"

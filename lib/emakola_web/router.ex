@@ -140,6 +140,7 @@ defmodule EmakolaWeb.Router do
     pipe_through [:browser, :auth_rate_limit]
     live "/login", LoginLive
     live "/register", RegisterLive
+    live "/whatsapp", WhatsAppLive
   end
 
   # Social-login (OAuth) request + callback routes for merchants AND customers,
@@ -212,6 +213,7 @@ defmodule EmakolaWeb.Router do
       session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
       live "/login", CustomerLoginLive
       live "/register", CustomerRegisterLive
+      live "/whatsapp", CustomerWhatsAppLive
     end
   end
 
