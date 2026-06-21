@@ -26,13 +26,16 @@ defmodule EmakolaWeb.Hooks.ResolveStore do
           Phoenix.PubSub.subscribe(Emakola.PubSub, "store:#{store.id}:theme")
         end
 
+        on_store_subdomain? = Map.get(session, "on_store_subdomain?", false)
+        EmakolaWeb.Storefront.Path.put_on_store_subdomain(on_store_subdomain?)
+
         {:cont,
          socket
          |> assign(:store, store)
          |> assign(:theme, theme)
          |> assign(:theme_module, theme_module)
          |> assign(:theme_fonts, theme_module.fonts())
-         |> assign(:on_store_subdomain?, Map.get(session, "on_store_subdomain?", false))
+         |> assign(:on_store_subdomain?, on_store_subdomain?)
          |> attach_hook(:theme_update, :handle_info, &handle_theme_update/2)}
 
       {:error, :not_found} ->
