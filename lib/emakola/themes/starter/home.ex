@@ -12,6 +12,8 @@ defmodule Emakola.Themes.Starter.Home do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.Starter.Shared
 
   @doc """
@@ -59,7 +61,7 @@ defmodule Emakola.Themes.Starter.Home do
               </p>
               <div class="flex flex-wrap gap-3">
                 <a
-                  href={"/s/#{@store.slug}/products"}
+                  href={store_path(@store.slug, "/products")}
                   class="inline-flex items-center gap-2 px-8 py-4 bg-white text-[var(--theme-primary,#6366F1)] rounded-full text-base font-semibold hover:bg-gray-50 active:scale-[0.97] transition-all shadow-lg shadow-black/10"
                   style="font-family: 'Inter', sans-serif;"
                 >
@@ -139,7 +141,7 @@ defmodule Emakola.Themes.Starter.Home do
               Featured Products
             </h2>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="text-sm font-medium text-[var(--theme-primary,#6366F1)] hover:text-[#4F46E5] transition-colors flex items-center gap-1"
               style="font-family: 'Inter', sans-serif;"
             >

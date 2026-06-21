@@ -11,6 +11,8 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias EmakolaWeb.Helpers.Currency
 
   def render(assigns) do
@@ -32,7 +34,7 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
               <p class="text-xs text-stone-400 font-mono mt-0.5">Order #{@order_number}</p>
             </div>
             <a
-              href={"/s/#{@store.slug}"}
+              href={store_path(@store.slug, "/")}
               class="text-xs font-semibold text-store-accent cursor-pointer"
               aria-label="Go back"
             >
@@ -459,7 +461,7 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
       <%!-- Contact store button --%>
       <div class="flex gap-3 mt-4">
         <a
-          href={"/s/#{@store.slug}/about"}
+          href={store_path(@store.slug, "/about")}
           class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-store-accent hover:bg-amber-800 text-white rounded-xl text-sm font-semibold transition-colors"
         >
           <svg

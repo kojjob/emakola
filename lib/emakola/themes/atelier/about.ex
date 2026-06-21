@@ -11,6 +11,8 @@ defmodule Emakola.Themes.Atelier.About do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.Atelier.Shared
 
   attr :store, :map, required: true
@@ -194,7 +196,7 @@ defmodule Emakola.Themes.Atelier.About do
           </p>
           <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="inline-flex items-center px-8 py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-300 hover:opacity-90 min-h-[48px]"
               style="background: var(--theme-primary);"
             >

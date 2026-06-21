@@ -11,6 +11,8 @@ defmodule Emakola.Themes.Starter.ProductList do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.Starter.Shared
 
   @doc """
@@ -46,7 +48,7 @@ defmodule Emakola.Themes.Starter.ProductList do
             <ol class="flex items-center gap-2 text-xs text-[#94A3B8]">
               <li>
                 <a
-                  href={"/s/#{@store.slug}"}
+                  href={store_path(@store.slug, "/")}
                   class="hover:text-[var(--theme-primary,#6366F1)] transition-colors"
                   style="font-family: 'Inter', sans-serif;"
                 >

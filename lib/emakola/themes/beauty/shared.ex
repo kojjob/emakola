@@ -7,6 +7,7 @@ defmodule Emakola.Themes.Beauty.Shared do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   attr :theme, :map, required: true
@@ -40,7 +41,7 @@ defmodule Emakola.Themes.Beauty.Shared do
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16 sm:h-20">
           <%!-- Brand --%>
-          <a href={"/s/#{@store.slug}"} class="flex items-center gap-2 min-w-0">
+          <a href={store_path(@store.slug, "/")} class="flex items-center gap-2 min-w-0">
             <span class={"text-lg sm:text-xl font-bold tracking-[0.2em] uppercase " <> if(@on_dark, do: "text-[#FAF6EE]", else: "text-[#6B4423]")}>
               {@store.name}
             </span>
@@ -58,7 +59,7 @@ defmodule Emakola.Themes.Beauty.Shared do
                   {"Contact", "/contact"}
                 ]
               }
-              href={"/s/#{@store.slug}#{path}"}
+              href={store_path(@store.slug, "#{path}")}
               class={"px-4 py-2 rounded-full text-sm font-medium transition-colors " <> if(@on_dark, do: "text-[#FAF6EE]/80 hover:bg-white/10 hover:text-[#FAF6EE]", else: "text-[#3D2F25] hover:bg-[#F5EFE5]")}
             >
               {label}
@@ -68,7 +69,7 @@ defmodule Emakola.Themes.Beauty.Shared do
           <%!-- Right cluster --%>
           <div class="flex items-center gap-2 sm:gap-3">
             <a
-              href={"/s/#{@store.slug}/cart"}
+              href={store_path(@store.slug, "/cart")}
               class={"relative w-11 h-11 rounded-full flex items-center justify-center transition-colors " <> if(@on_dark, do: "hover:bg-white/10", else: "hover:bg-[#E8DBC8]/50")}
               aria-label={"Cart, #{@cart_count} items"}
             >
@@ -86,7 +87,7 @@ defmodule Emakola.Themes.Beauty.Shared do
               </span>
             </a>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class={"hidden sm:inline-flex items-center px-5 py-2.5 rounded-full text-sm font-semibold transition-colors min-h-[44px] " <> if(@on_dark, do: "bg-[#FAF6EE] text-[#6B4423] hover:bg-white", else: "bg-[#6B4423] text-[#FAF6EE] hover:bg-[#5A381D]")}
             >
               Book Now
@@ -121,22 +122,34 @@ defmodule Emakola.Themes.Beauty.Shared do
             </h4>
             <ul class="space-y-3 text-sm text-[#FAF6EE]/70">
               <li>
-                <a href={"/s/#{@store.slug}/products"} class="hover:text-white transition-colors">
+                <a
+                  href={store_path(@store.slug, "/products")}
+                  class="hover:text-white transition-colors"
+                >
                   All products
                 </a>
               </li>
               <li>
-                <a href={"/s/#{@store.slug}/products"} class="hover:text-white transition-colors">
+                <a
+                  href={store_path(@store.slug, "/products")}
+                  class="hover:text-white transition-colors"
+                >
                   Skincare
                 </a>
               </li>
               <li>
-                <a href={"/s/#{@store.slug}/products"} class="hover:text-white transition-colors">
+                <a
+                  href={store_path(@store.slug, "/products")}
+                  class="hover:text-white transition-colors"
+                >
                   Hair
                 </a>
               </li>
               <li>
-                <a href={"/s/#{@store.slug}/products"} class="hover:text-white transition-colors">
+                <a
+                  href={store_path(@store.slug, "/products")}
+                  class="hover:text-white transition-colors"
+                >
                   Body
                 </a>
               </li>
@@ -149,17 +162,20 @@ defmodule Emakola.Themes.Beauty.Shared do
             </h4>
             <ul class="space-y-3 text-sm text-[#FAF6EE]/70">
               <li>
-                <a href={"/s/#{@store.slug}/about"} class="hover:text-white transition-colors">
+                <a href={store_path(@store.slug, "/about")} class="hover:text-white transition-colors">
                   Our story
                 </a>
               </li>
               <li>
-                <a href={"/s/#{@store.slug}/contact"} class="hover:text-white transition-colors">
+                <a
+                  href={store_path(@store.slug, "/contact")}
+                  class="hover:text-white transition-colors"
+                >
                   Contact
                 </a>
               </li>
               <li>
-                <a href={"/s/#{@store.slug}/blog"} class="hover:text-white transition-colors">
+                <a href={store_path(@store.slug, "/blog")} class="hover:text-white transition-colors">
                   Journal
                 </a>
               </li>
@@ -202,7 +218,7 @@ defmodule Emakola.Themes.Beauty.Shared do
   def product_card(assigns) do
     ~H"""
     <a
-      href={"/s/#{@store.slug}/products/#{@product.slug}"}
+      href={store_path(@store.slug, "/products/#{@product.slug}")}
       class="beauty-card group block overflow-hidden hover:shadow-md transition-shadow"
     >
       <div class="aspect-[4/5] bg-[#F5EFE5] flex items-center justify-center overflow-hidden">

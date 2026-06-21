@@ -34,6 +34,8 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   import EmakolaWeb.StorefrontComponents
 
   alias EmakolaWeb.Helpers.Currency
@@ -57,7 +59,7 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
           </p>
         </div>
         <.link
-          navigate={"/s/#{@store.slug}"}
+          navigate={store_path(@store.slug, "/")}
           class="inline-flex items-center gap-2 text-sm font-medium text-[#44403C] hover:text-store-accent transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none rounded px-1 py-0.5 group"
         >
           <svg
@@ -104,7 +106,7 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
                 Discover our curated collection and find something you love.
               </p>
               <.link
-                navigate={"/s/#{@store.slug}"}
+                navigate={store_path(@store.slug, "/")}
                 class="inline-flex items-center gap-2 px-8 py-3 bg-cta-dark text-white text-sm font-semibold tracking-wider uppercase rounded-lg hover:bg-[#44403C] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none"
               >
                 Start Shopping
@@ -131,7 +133,7 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
             >
               <div class="flex gap-4 sm:gap-6">
                 <.link
-                  navigate={"/s/#{@store.slug}/products/#{item.variant_id}"}
+                  navigate={store_path(@store.slug, "/products/#{item.variant_id}")}
                   class="flex-shrink-0 cursor-pointer focus-visible:ring-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none rounded-xl overflow-hidden"
                   aria-label={"View #{item.product_title}"}
                 >
@@ -165,7 +167,7 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
                 <div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:justify-between gap-4">
                   <div class="flex-1 min-w-0">
                     <.link
-                      navigate={"/s/#{@store.slug}/products/#{item.variant_id}"}
+                      navigate={store_path(@store.slug, "/products/#{item.variant_id}")}
                       class="font-serif text-lg sm:text-xl font-semibold text-cta-dark hover:text-store-accent transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none rounded leading-tight"
                     >
                       {item.product_title}
@@ -372,7 +374,7 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
               
     <!-- Checkout Button -->
               <.link
-                navigate={"/s/#{@store.slug}/checkout"}
+                navigate={store_path(@store.slug, "/checkout")}
                 id="checkout-btn"
                 class="flex items-center justify-center gap-2 w-full h-14 bg-store-accent text-white text-sm font-semibold tracking-widest uppercase rounded-xl hover:bg-[#A16207] transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none shadow-lg shadow-[#CA8A04]/20"
               >
@@ -466,7 +468,7 @@ defmodule Emakola.Themes.DefaultRenderers.Cart do
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <a
           :for={product <- @recommended_products}
-          href={"/s/#{@store.slug}/products/#{product.slug}"}
+          href={store_path(@store.slug, "/products/#{product.slug}")}
           class="group cursor-pointer focus-visible:ring-2 focus-visible:ring-[#CA8A04] focus-visible:outline-none rounded-xl"
         >
           <div class="relative overflow-hidden rounded-xl bg-white border border-[#E7E5E4] aspect-[3/4]">

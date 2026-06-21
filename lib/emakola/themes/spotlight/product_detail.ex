@@ -8,6 +8,8 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.Spotlight.Shared
 
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
@@ -270,7 +272,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
               Order on WhatsApp
             </a>
             <a
-              href={"/s/#{@store.slug}/cart"}
+              href={store_path(@store.slug, "/cart")}
               class="block mt-4 text-sm text-[#7C3AED] hover:underline"
             >
               View cart ({@cart_count}) →

@@ -14,7 +14,7 @@ defmodule Emakola.Themes.DefaultRenderers.Downloads do
 
   use Phoenix.Component
 
-  use EmakolaWeb, :verified_routes
+  import EmakolaWeb.Storefront.Path
 
   def render(assigns) do
     ~H"""
@@ -33,7 +33,7 @@ defmodule Emakola.Themes.DefaultRenderers.Downloads do
             When you purchase a digital product, it will appear here.
           </p>
           <.link
-            navigate={~p"/s/#{@store.slug}/products"}
+            navigate={store_path(@store.slug, "/products")}
             class="mt-4 inline-block text-amber-700 underline"
           >
             Browse the store
@@ -65,7 +65,7 @@ defmodule Emakola.Themes.DefaultRenderers.Downloads do
               <%= case grant_state(grant) do %>
                 <% :active -> %>
                   <.link
-                    href={~p"/s/#{@store.slug}/downloads/#{grant.id}"}
+                    href={store_path(@store.slug, "/downloads/#{grant.id}")}
                     class="rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700"
                   >
                     Download

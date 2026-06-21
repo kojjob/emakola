@@ -16,6 +16,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Fresh.Shared
@@ -60,7 +61,9 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
       >
         <ol class="flex items-center gap-2 text-xs text-[#78350F]/60">
           <li>
-            <a href={"/s/#{@store.slug}"} class="hover:text-[#059669] transition-colors">Home</a>
+            <a href={store_path(@store.slug, "/")} class="hover:text-[#059669] transition-colors">
+              Home
+            </a>
           </li>
           <li>
             <svg
@@ -74,7 +77,10 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
             </svg>
           </li>
           <li>
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-[#059669] transition-colors">
+            <a
+              href={store_path(@store.slug, "/products")}
+              class="hover:text-[#059669] transition-colors"
+            >
               Products
             </a>
           </li>
@@ -475,7 +481,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
           <div class="flex gap-4 overflow-x-auto px-4 sm:px-6 lg:px-8 pb-2 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <a
               :for={rp <- @related_products}
-              href={"/s/#{@store.slug}/products/#{rp.slug}"}
+              href={store_path(@store.slug, "/products/#{rp.slug}")}
               class="flex-[0_0_160px] snap-start group"
             >
               <div class="rounded-2xl overflow-hidden bg-[#ECFDF5]/30 shadow-sm group-hover:shadow-lg group-hover:shadow-emerald-100/60 transition-all duration-300 mb-2.5">

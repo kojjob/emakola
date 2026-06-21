@@ -6,6 +6,7 @@ defmodule Emakola.Themes.Heritage.ProductDetail do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Heritage.Shared
@@ -32,9 +33,9 @@ defmodule Emakola.Themes.Heritage.ProductDetail do
       <div class="bg-[#FAF6EC] border-b border-[#E8DBC2]">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <nav class="flex items-center gap-2 text-xs text-[#6B4423]/60">
-            <a href={"/s/#{@store.slug}"} class="hover:text-[#7A1F1F]">Marketplace</a>
+            <a href={store_path(@store.slug, "/")} class="hover:text-[#7A1F1F]">Marketplace</a>
             <span>/</span>
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-[#7A1F1F]">Collection</a>
+            <a href={store_path(@store.slug, "/products")} class="hover:text-[#7A1F1F]">Collection</a>
             <span>/</span>
             <span class="text-[#7A1F1F] font-semibold truncate max-w-[200px]">
               {@product.title}

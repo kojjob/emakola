@@ -12,6 +12,8 @@ defmodule Emakola.Themes.DefaultRenderers.RecipeDetail do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   def render(assigns) do
     ~H"""
     <Emakola.Themes.Atelier.Shared.navbar
@@ -23,7 +25,7 @@ defmodule Emakola.Themes.DefaultRenderers.RecipeDetail do
 
     <article class="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
       <a
-        href={"/s/#{@store.slug}/recipes"}
+        href={store_path(@store.slug, "/recipes")}
         class="inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-700 mb-6"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

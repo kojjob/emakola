@@ -3,6 +3,8 @@ defmodule Emakola.Themes.Akoma.Home do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.Akoma.Shared
 
   attr :store, :map, required: true
@@ -29,7 +31,7 @@ defmodule Emakola.Themes.Akoma.Home do
           <span class="block text-[#2F5D50]">{Map.get(@hero, :subtitle, "made to last.")}</span>
         </h1>
         <a
-          href={"/s/#{@store.slug}/products"}
+          href={store_path(@store.slug, "/products")}
           class="inline-block mt-8 px-8 py-3.5 rounded-md bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-wider hover:bg-[#2F5D50] transition-colors"
         >
           {Map.get(@hero, :cta_text, "Shop the collection")}
@@ -43,7 +45,10 @@ defmodule Emakola.Themes.Akoma.Home do
       >
         <div class="flex items-baseline justify-between mb-6">
           <h2 class="akoma-heading text-xl font-bold text-[#1A1A1A]">Featured</h2>
-          <a href={"/s/#{@store.slug}/products"} class="text-sm text-[#2F5D50] hover:underline">
+          <a
+            href={store_path(@store.slug, "/products")}
+            class="text-sm text-[#2F5D50] hover:underline"
+          >
             View all →
           </a>
         </div>
@@ -82,7 +87,7 @@ defmodule Emakola.Themes.Akoma.Home do
             {get_in(@theme, [:closing_cta, :subtitle]) || "Thoughtfully made products, fairly priced."}
           </p>
           <a
-            href={"/s/#{@store.slug}/products"}
+            href={store_path(@store.slug, "/products")}
             class="inline-block mt-8 px-8 py-3.5 rounded-md bg-white text-[#2F5D50] text-sm font-semibold uppercase tracking-wider hover:bg-[#F8F9F7] transition-colors"
           >
             {get_in(@theme, [:closing_cta, :button_text]) || "Browse all"}

@@ -6,6 +6,7 @@ defmodule Emakola.Themes.Spotlight.Shared do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   attr :theme, :map, required: true
@@ -38,17 +39,20 @@ defmodule Emakola.Themes.Spotlight.Shared do
     ~H"""
     <header class="sticky top-0 z-50 bg-[#FBF9F5]/85 backdrop-blur border-b border-[#ECE7DE]">
       <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-        <a href={"/s/#{@store.slug}"} class="spot-heading text-lg font-extrabold tracking-tight">
+        <a
+          href={store_path(@store.slug, "/")}
+          class="spot-heading text-lg font-extrabold tracking-tight"
+        >
           {@store.name}
         </a>
         <nav class="hidden md:flex items-center gap-7 text-sm text-[#6B675F]">
-          <a href={"/s/#{@store.slug}/products"} class="hover:text-[#16130F]">Product</a>
+          <a href={store_path(@store.slug, "/products")} class="hover:text-[#16130F]">Product</a>
           <a href="#benefits" class="hover:text-[#16130F]">Benefits</a>
           <a href="#ingredients" class="hover:text-[#16130F]">Ingredients</a>
           <a href="#reviews" class="hover:text-[#16130F]">Reviews</a>
         </nav>
         <a
-          href={"/s/#{@store.slug}/cart"}
+          href={store_path(@store.slug, "/cart")}
           class="relative inline-flex items-center gap-2 spot-cta rounded-full px-4 py-2 text-sm font-semibold"
           aria-label={"Cart, #{@cart_count} items"}
         >
@@ -80,16 +84,22 @@ defmodule Emakola.Themes.Spotlight.Shared do
           <h4 class="text-xs font-semibold uppercase tracking-wider mb-3">Shop</h4>
           <ul class="space-y-2 text-sm text-[#6B675F]">
             <li>
-              <a href={"/s/#{@store.slug}/products"} class="hover:text-[#16130F]">The product</a>
+              <a href={store_path(@store.slug, "/products")} class="hover:text-[#16130F]">
+                The product
+              </a>
             </li>
-            <li><a href={"/s/#{@store.slug}/cart"} class="hover:text-[#16130F]">Cart</a></li>
+            <li><a href={store_path(@store.slug, "/cart")} class="hover:text-[#16130F]">Cart</a></li>
           </ul>
         </div>
         <div>
           <h4 class="text-xs font-semibold uppercase tracking-wider mb-3">More</h4>
           <ul class="space-y-2 text-sm text-[#6B675F]">
-            <li><a href={"/s/#{@store.slug}/about"} class="hover:text-[#16130F]">About</a></li>
-            <li><a href={"/s/#{@store.slug}/track"} class="hover:text-[#16130F]">Track order</a></li>
+            <li>
+              <a href={store_path(@store.slug, "/about")} class="hover:text-[#16130F]">About</a>
+            </li>
+            <li>
+              <a href={store_path(@store.slug, "/track")} class="hover:text-[#16130F]">Track order</a>
+            </li>
           </ul>
         </div>
       </div>
@@ -154,7 +164,7 @@ defmodule Emakola.Themes.Spotlight.Shared do
 
   def product_card(assigns) do
     ~H"""
-    <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
+    <a href={store_path(@store.slug, "/products/#{@product.slug}")} class="group block">
       <div class="rounded-2xl overflow-hidden bg-white border border-[#ECE7DE] aspect-square relative">
         <.optimized_image
           :if={first_image(@product)}

@@ -6,6 +6,8 @@ defmodule Emakola.Themes.Heritage.ProductList do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.Heritage.Shared
 
   attr :store, :map, required: true
@@ -42,14 +44,14 @@ defmodule Emakola.Themes.Heritage.ProductList do
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class={pill_class(@active_category_slug == nil)}
             >
               All Crafts
             </a>
             <a
               :for={category <- @categories}
-              href={"/s/#{@store.slug}/category/#{category.slug}"}
+              href={store_path(@store.slug, "/category/#{category.slug}")}
               class={pill_class(@active_category_slug == category.slug)}
             >
               {category.name}
@@ -81,7 +83,7 @@ defmodule Emakola.Themes.Heritage.ProductList do
             </h2>
             <p class="text-sm text-[#6B4423]/70">Try a different collection.</p>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="inline-flex items-center mt-6 px-6 py-3 rounded-full bg-[#7A1F1F] text-[#F5EFE0] text-sm font-bold hover:bg-[#5A1717] transition-colors"
             >
               Browse all

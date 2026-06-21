@@ -19,6 +19,8 @@ defmodule Emakola.Themes.Heritage.Home do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.Heritage.Shared
 
   attr :store, :map, required: true
@@ -93,7 +95,7 @@ defmodule Emakola.Themes.Heritage.Home do
 
               <%!-- Search + Explore CTA --%>
               <form
-                action={"/s/#{@store.slug}/products"}
+                action={store_path(@store.slug, "/products")}
                 method="get"
                 class="flex flex-col sm:flex-row gap-2 sm:gap-0 w-full max-w-xl bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-full p-2 shadow-2xl"
               >
@@ -161,7 +163,7 @@ defmodule Emakola.Themes.Heritage.Home do
               </p>
             </div>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-[#E8DBC2] text-sm font-semibold text-[#3D2817] hover:bg-[#F5EFE0] transition-colors"
             >
               <svg
@@ -264,7 +266,7 @@ defmodule Emakola.Themes.Heritage.Home do
               </p>
 
               <a
-                href={"/s/#{@store.slug}/blog"}
+                href={store_path(@store.slug, "/blog")}
                 class="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-[0.18em] text-[#D4A843] hover:text-[#F5EFE0] transition-colors group"
               >
                 Read all stories

@@ -7,6 +7,8 @@ defmodule Emakola.Themes.Market.Home do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   import EmakolaWeb.StorefrontComponents,
     only: [
       featured_product_card: 1,
@@ -33,7 +35,7 @@ defmodule Emakola.Themes.Market.Home do
         >
           <a
             :for={category <- @categories}
-            href={"/s/#{@store.slug}/category/#{category.slug}"}
+            href={store_path(@store.slug, "/category/#{category.slug}")}
             class="flex flex-col items-center gap-1.5 flex-shrink-0 group"
             role="listitem"
           >
