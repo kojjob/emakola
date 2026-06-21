@@ -174,6 +174,14 @@ defmodule Emakola.Factory do
     |> Ash.create!(authorize?: false)
   end
 
+  def create_page_content!(store, attrs \\ %{}) do
+    params = Map.merge(%{store_id: store.id}, Map.new(attrs))
+
+    Emakola.Stores.StorePageContent
+    |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!(authorize?: false)
+  end
+
   # ── Catalog ───────────────────────────────────────────────────
 
   def create_category!(store, attrs \\ %{}) do

@@ -40,4 +40,23 @@ defmodule EmakolaWeb.Storefront.SubdomainLinksTest do
     {:ok, _v, html} = live(conn, "/s/#{store.slug}")
     assert html =~ ~s(href="/s/#{store.slug}/products")
   end
+
+  test "footer contact/faq/policy links keep /s/:slug on the apex", %{conn: conn, store: store} do
+    {:ok, _v, html} = live(conn, "/s/#{store.slug}/about")
+    assert html =~ ~s(href="/s/#{store.slug}/contact")
+    assert html =~ ~s(href="/s/#{store.slug}/faq")
+    assert html =~ ~s(href="/s/#{store.slug}/policies#shipping")
+  end
+
+  test "footer contact/faq/policy links omit /s/:slug on the subdomain", %{
+    conn: conn,
+    store: store
+  } do
+    conn = Plug.Conn.put_private(conn, :emakola_on_store_subdomain?, true)
+    {:ok, _v, html} = live(conn, "/s/#{store.slug}/about")
+    assert html =~ ~s(href="/contact")
+    assert html =~ ~s(href="/faq")
+    assert html =~ ~s(href="/policies#shipping")
+    refute html =~ ~s(href="/s/#{store.slug}/policies#shipping")
+  end
 end

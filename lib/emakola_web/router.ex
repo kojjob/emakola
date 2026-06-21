@@ -256,6 +256,9 @@ defmodule EmakolaWeb.Router do
       live "/orders/:order_number/confirmation", OrderConfirmationLive
       live "/category/:category_slug", CategoryLive
       live "/about", AboutLive
+      live "/contact", ContactLive
+      live "/faq", FaqLive
+      live "/policies", PoliciesLive
       live "/blog", BlogListLive
       live "/blog/:post_slug", BlogPostLive
       live "/recipes", RecipeListLive
@@ -374,6 +377,7 @@ defmodule EmakolaWeb.Router do
       live "/admin/content/posts/new", Admin.Content.PostLive.Form, :new
       live "/admin/content/posts/:id/edit", Admin.Content.PostLive.Form, :edit
       live "/admin/content/media", Admin.Content.MediaLive.Index
+      live "/admin/content/pages", Admin.Content.PageContentLive
 
       # Pages (block-based merchant pages with images/audio/video)
       live "/admin/pages", Admin.PageLive.Index
