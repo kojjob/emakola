@@ -36,4 +36,28 @@ defmodule EmakolaWeb.AuthControllerTest do
       assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "didn't work"
     end
   end
+
+  describe "success/4 — customer OAuth → storefront session" do
+    test "stores :customer_token and redirects to the store's account page",
+         %{conn: conn} do
+      {_merchant, store} = Emakola.Factory.create_merchant_with_store!()
+
+      {:ok, customer} =
+        Emakola.Customers.Customer
+        |> Ash.Changeset.for_create(
+          :register_with_oauth2,
+          %{user_info: %{"email" => "shopper@example.com", "name" => "Ama"}, oauth_tokens: %{}},
+          tenant: store.id
+        )
+        |> Ash.create(authorize?: false)
+
+      conn =
+        conn
+        |> put_session("customer_oauth_store_slug", store.slug)
+        |> AuthController.success({:google, :callback}, customer, "tok")
+
+      assert redirected_to(conn) == "/s/#{store.slug}/account"
+      assert {:ok, _subject} = AuthTokens.verify_subject(get_session(conn, :customer_token))
+    end
+  end
 end

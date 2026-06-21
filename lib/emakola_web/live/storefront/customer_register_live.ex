@@ -8,6 +8,8 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.OAuthComponents
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
@@ -97,6 +99,8 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
           >
             {@error_message}
           </div>
+
+          <.oauth_buttons subject="customer" store_slug={@store.slug} class="mb-6" />
 
           <.form for={@form} id="register-form" phx-submit="register" class="space-y-5">
             <div>

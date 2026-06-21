@@ -25,6 +25,16 @@ defmodule EmakolaWeb.AuthController do
     |> redirect(to: "/dashboard")
   end
 
+  def success(conn, _activity, %Emakola.Customers.Customer{} = customer, _token) do
+    subject_token = AuthTokens.sign_subject(AshAuthentication.user_to_subject(customer))
+    slug = EmakolaWeb.Plugs.CustomerOAuthTenant.store_slug(conn)
+
+    conn
+    |> put_session(:customer_token, subject_token)
+    |> configure_session(renew: true)
+    |> redirect(to: customer_landing(slug))
+  end
+
   def failure(conn, activity, reason) do
     Logger.warning("[oauth] sign-in failed for #{inspect(activity)}: #{inspect(reason)}")
 
@@ -38,4 +48,7 @@ defmodule EmakolaWeb.AuthController do
     |> configure_session(drop: true)
     |> redirect(to: "/auth/login")
   end
+
+  defp customer_landing(nil), do: "/"
+  defp customer_landing(slug), do: "/s/#{slug}/account"
 end
