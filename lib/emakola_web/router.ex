@@ -140,6 +140,7 @@ defmodule EmakolaWeb.Router do
     pipe_through [:browser, :auth_rate_limit]
     live "/login", LoginLive
     live "/register", RegisterLive
+    live "/whatsapp", WhatsAppLive
   end
 
   # Social-login (OAuth) request + callback routes for merchants AND customers,
@@ -182,6 +183,37 @@ defmodule EmakolaWeb.Router do
       ] do
       live "/login", Platform.LoginLive
       live "/invite/accept/:token", Platform.InviteAcceptLive
+    end
+  end
+
+  # Customer storefront session controller (sets/clears customer token cookie)
+  scope "/s/:store_slug", EmakolaWeb.Storefront do
+    pipe_through [:browser, :auth_rate_limit]
+    get "/auth/customer-session", CustomerSessionController, :create
+  end
+
+  scope "/s/:store_slug", EmakolaWeb.Storefront do
+    pipe_through :browser
+    delete "/auth/customer-session", CustomerSessionController, :delete
+    get "/auth/customer-logout", CustomerSessionController, :logout
+
+    # Digital download delivery (Phase 1). Resolves the customer from
+    # session, validates grant ownership + expiry/limit, redirects to
+    # a presigned URL from Emakola.Storage.
+    get "/downloads/:id", DownloadController, :show
+  end
+
+  # Customer storefront auth pages (login/register — no customer auth required)
+  scope "/s/:store_slug", EmakolaWeb.Storefront do
+    pipe_through [:browser, :auth_rate_limit]
+
+    live_session :storefront_auth,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [{EmakolaWeb.Hooks.ResolveStore, :default}],
+      session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
+      live "/login", CustomerLoginLive
+      live "/register", CustomerRegisterLive
+      live "/whatsapp", CustomerWhatsAppLive
     end
   end
 

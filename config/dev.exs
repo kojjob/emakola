@@ -38,6 +38,9 @@ config :emakola, :oauth,
 
 config :emakola, :oauth_redirect_base, "http://localhost:4000/oauth"
 
+# Phone (WhatsApp/SMS) OTP auth enabled in dev (codes go to the Log providers).
+config :emakola, :phone_auth_enabled, true
+
 # Payment gateway credentials — harmless placeholders for dev (env vars
 # override). Prod credentials are set in runtime.exs.
 config :emakola, Emakola.Payments.PaystackClient,
