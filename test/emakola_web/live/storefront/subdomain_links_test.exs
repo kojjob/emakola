@@ -52,7 +52,7 @@ defmodule EmakolaWeb.Storefront.SubdomainLinksTest do
     conn: conn,
     store: store
   } do
-    conn = Plug.Conn.put_private(conn, :emakola_on_store_subdomain?, true)
+    conn = Phoenix.ConnTest.init_test_session(conn, %{"on_store_subdomain?" => true})
     {:ok, _v, html} = live(conn, "/s/#{store.slug}/about")
     assert html =~ ~s(href="/contact")
     assert html =~ ~s(href="/faq")

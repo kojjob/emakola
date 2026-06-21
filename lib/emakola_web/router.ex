@@ -471,6 +471,9 @@ defmodule EmakolaWeb.Router do
       live "/orders/:order_number/confirmation", OrderConfirmationLive
       live "/category/:category_slug", CategoryLive
       live "/about", AboutLive
+      live "/contact", ContactLive
+      live "/faq", FaqLive
+      live "/policies", PoliciesLive
       live "/blog", BlogListLive
       live "/blog/:post_slug", BlogPostLive
       live "/recipes", RecipeListLive
