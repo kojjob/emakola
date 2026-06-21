@@ -11,6 +11,8 @@ defmodule EmakolaWeb.Storefront.CartLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Cart.CartStore
 
   @impl true
@@ -130,7 +132,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
     if socket.assigns.cart == [] do
       {:noreply, put_flash(socket, :error, "Your cart is empty")}
     else
-      {:noreply, push_navigate(socket, to: "/s/#{socket.assigns.store.slug}/checkout")}
+      {:noreply, push_navigate(socket, to: store_path(socket.assigns.store.slug, "/checkout"))}
     end
   end
 

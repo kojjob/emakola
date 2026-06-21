@@ -8,6 +8,8 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.Storefront.Path
+
   alias EmakolaWeb.Helpers.StoreResolver
 
   @impl true
@@ -34,7 +36,7 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
             {:ok,
              socket
              |> put_flash(:error, "Order not found")
-             |> redirect(to: "/s/#{slug}")}
+             |> redirect(to: store_path(slug, "/"))}
         end
 
       {:error, :not_found} ->

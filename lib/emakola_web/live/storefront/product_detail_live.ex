@@ -12,6 +12,9 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   - Related products horizontal scroll
   """
   use EmakolaWeb, :live_view
+
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.SEO, as: SEOHelpers
 
@@ -24,7 +27,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
         {:ok,
          socket
          |> put_flash(:error, "Product not found")
-         |> redirect(to: "/s/#{slug}/products")}
+         |> redirect(to: store_path(slug, "/products"))}
 
       product ->
         option_types = load_option_types(product)

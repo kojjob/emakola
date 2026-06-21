@@ -13,6 +13,8 @@ defmodule EmakolaWeb.Storefront.PageLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.Storefront.Path
+
   @impl true
   def mount(%{"page_slug" => page_slug}, _session, socket) do
     store = socket.assigns[:store]
@@ -36,7 +38,7 @@ defmodule EmakolaWeb.Storefront.PageLive do
         {:ok,
          socket
          |> put_flash(:error, "Page not found")
-         |> redirect(to: "/s/#{store.slug}")}
+         |> redirect(to: store_path(store.slug, "/"))}
     end
   end
 

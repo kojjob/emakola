@@ -4,6 +4,8 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.SEO
   alias EmakolaWeb.Helpers.StoreResolver
@@ -52,7 +54,7 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
             {:ok,
              socket
              |> put_flash(:error, "Recipe not found")
-             |> redirect(to: "/s/#{slug}/recipes")}
+             |> redirect(to: store_path(slug, "/recipes"))}
         end
 
       {:error, :not_found} ->

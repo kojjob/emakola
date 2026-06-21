@@ -5,6 +5,8 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.SEO
   alias EmakolaWeb.Helpers.StoreResolver
@@ -20,7 +22,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
              socket
              |> assign(:store, store)
              |> put_flash(:error, "Category not found")
-             |> redirect(to: "/s/#{slug}/products")}
+             |> redirect(to: store_path(slug, "/products"))}
 
           category ->
             products = load_category_products(store.id, category.id)

@@ -7,6 +7,8 @@ defmodule EmakolaWeb.Storefront.AccountLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Cart.CartStore
 
   @impl true
@@ -18,7 +20,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
         {:ok,
          socket
          |> put_flash(:info, "Please sign in to view your account")
-         |> redirect(to: "/s/#{slug}/login")}
+         |> redirect(to: store_path(slug, "/login"))}
 
       customer ->
         cart_session_id = session["cart_session_id"]
