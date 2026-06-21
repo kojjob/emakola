@@ -151,6 +151,7 @@ defmodule Emakola.Customers.Customer do
     # Required by AshAuthentication password strategy; real uniqueness is
     # enforced by the composite :unique_store_email identity above.
     identity(:unique_email, [:email])
+    identity(:unique_store_phone, [:store_id, :phone])
   end
 
   policies do
@@ -199,6 +200,12 @@ defmodule Emakola.Customers.Customer do
 
     create :create do
       accept([:email, :name, :phone, :store_id, :tags])
+    end
+
+    # Passwordless, store-scoped registration via verified phone. store_id comes
+    # from the request tenant (multitenancy :attribute).
+    create :register_with_phone do
+      accept([:email, :name, :phone])
     end
 
     create :register_with_password do

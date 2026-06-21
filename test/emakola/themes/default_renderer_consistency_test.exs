@@ -89,6 +89,7 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
       checkout_live.ex
       customer_login_live.ex
       customer_register_live.ex
+      customer_whats_app_live.ex
       product_detail_live.ex
       product_list_live.ex
       store_live.ex

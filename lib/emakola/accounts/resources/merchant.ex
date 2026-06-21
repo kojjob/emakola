@@ -131,6 +131,9 @@ defmodule Emakola.Accounts.Merchant do
 
   identities do
     identity(:unique_email, [:email])
+    # Phone is a login method (WhatsApp/SMS OTP); nullable, so Postgres allows
+    # many email-only rows (multiple NULLs) — only set phones must be unique.
+    identity(:unique_phone, [:phone])
   end
 
   policies do
@@ -164,6 +167,13 @@ defmodule Emakola.Accounts.Merchant do
 
   actions do
     defaults([:read])
+
+    # Passwordless registration via verified phone (WhatsApp/SMS OTP). The phone
+    # is already OTP-verified by PhoneAuth; email is collected once in the UI.
+    create :register_with_phone do
+      accept([:email, :name, :phone])
+      change(set_attribute(:confirmed_at, &DateTime.utc_now/0))
+    end
 
     # Shared by all OAuth strategies (google/facebook/apple). ash_authentication
     # passes the provider in the action context, so OAuth2.IdentityChange records

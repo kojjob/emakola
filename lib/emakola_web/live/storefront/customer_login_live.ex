@@ -7,6 +7,7 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.AuthComponents
   import EmakolaWeb.OAuthComponents
 
   @impl true
@@ -64,6 +65,12 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
           >
             {@error_message}
           </div>
+
+          <.whatsapp_button
+            :if={Emakola.Accounts.PhoneAuth.enabled?()}
+            href={~p"/s/#{@store.slug}/whatsapp"}
+            class="mb-6"
+          />
 
           <.oauth_buttons subject="customer" store_slug={@store.slug} class="mb-6" />
 
