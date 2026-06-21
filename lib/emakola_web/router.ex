@@ -8,6 +8,7 @@ defmodule EmakolaWeb.Router do
     # No-op until `:canonical_redirect_hosts` is configured (post emakola.io cutover).
     plug EmakolaWeb.Plugs.CanonicalHost
     plug :fetch_session
+    plug :put_store_subdomain_flag
     plug :fetch_live_flash
     plug :put_root_layout, html: {EmakolaWeb.Layouts, :root}
     plug :protect_from_forgery
@@ -400,5 +401,18 @@ defmodule EmakolaWeb.Router do
       live_dashboard "/dashboard", metrics: EmakolaWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
+  end
+
+  # Copies the on_store_subdomain? flag that ResolveStoreByHost stashes in
+  # conn.private (during endpoint resolution, before the session is fetched) into
+  # the session, so the storefront LiveView hook (ResolveStore) can read it. Runs
+  # every :browser request after :fetch_session, so the flag resets per request
+  # and never goes stale across a subdomain → apex navigation.
+  defp put_store_subdomain_flag(conn, _opts) do
+    Plug.Conn.put_session(
+      conn,
+      :on_store_subdomain?,
+      conn.private[:emakola_on_store_subdomain?] || false
+    )
   end
 end

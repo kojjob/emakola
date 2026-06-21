@@ -39,8 +39,12 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
         |> halt()
 
       {:serve_in_place, slug} ->
+        # Stash in conn.private (not the session): this plug runs in the endpoint
+        # BEFORE the router fetches the session, so put_session/3 would raise here.
+        # The :browser pipeline's :put_store_subdomain_flag copies it to the session
+        # after :fetch_session, where the storefront LiveView hook can read it.
         conn
-        |> put_session(:on_store_subdomain?, true)
+        |> put_private(:emakola_on_store_subdomain?, true)
         |> rewrite_to_subfolder(slug)
     end
   end
