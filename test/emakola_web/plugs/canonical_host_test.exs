@@ -18,14 +18,14 @@ defmodule EmakolaWeb.Plugs.CanonicalHostTest do
 
   test "301-redirects a configured alias host to the apex, preserving path + query" do
     conn =
-      call("emakola.com", "/s/shop/products/x?ref=wa",
+      call("emakola.com", "/@shop/products/x?ref=wa",
         hosts: ["emakola.com"],
         apex: "https://emakola.io"
       )
 
     assert conn.halted
     assert conn.status == 301
-    assert get_resp_header(conn, "location") == ["https://emakola.io/s/shop/products/x?ref=wa"]
+    assert get_resp_header(conn, "location") == ["https://emakola.io/@shop/products/x?ref=wa"]
   end
 
   test "redirect without a query string omits the trailing ?" do
@@ -44,7 +44,7 @@ defmodule EmakolaWeb.Plugs.CanonicalHostTest do
 
   test "passes through an unknown host (e.g. a future merchant subdomain) — never redirects it" do
     conn =
-      call("yourshop.emakola.io", "/s/shop", hosts: ["emakola.com"], apex: "https://emakola.io")
+      call("yourshop.emakola.io", "/@shop", hosts: ["emakola.com"], apex: "https://emakola.io")
 
     refute conn.halted
   end

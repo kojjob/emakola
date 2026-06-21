@@ -27,7 +27,7 @@ defmodule EmakolaWeb.Storefront.AccountDownloadsLive do
         {:ok,
          socket
          |> put_flash(:info, "Please sign in to view your downloads")
-         |> redirect(to: "/@#{slug}/login")}
+         |> redirect(to: "/#{slug}/login")}
 
       customer ->
         store = socket.assigns.store

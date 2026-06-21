@@ -473,6 +473,6 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
   # traffic into the store. Uses host from EmakolaWeb.Endpoint config.
   defp share_url(store, _order) do
     base = EmakolaWeb.Endpoint.url()
-    "#{base}/s/#{store.slug}"
+    "#{base}/@#{store.slug}"
   end
 end

@@ -285,9 +285,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       {:noreply,
        socket
        |> assign(:processing, false)
-       |> redirect(
-         to: "/@#{socket.assigns.store.slug}/orders/#{order.order_number}/confirmation"
-       )}
+       |> redirect(to: "/@#{socket.assigns.store.slug}/orders/#{order.order_number}/confirmation")}
     else
       {:noreply, socket}
     end
@@ -412,9 +410,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         store_id: store.id,
         order_reference: order.order_number,
         callback_url:
-          "#{EmakolaWeb.Endpoint.url()}/s/#{store.slug}/orders/#{order.order_number}/confirmation",
+          "#{EmakolaWeb.Endpoint.url()}/@#{store.slug}/orders/#{order.order_number}/confirmation",
         return_url:
-          "#{EmakolaWeb.Endpoint.url()}/s/#{store.slug}/orders/#{order.order_number}/confirmation",
+          "#{EmakolaWeb.Endpoint.url()}/@#{store.slug}/orders/#{order.order_number}/confirmation",
         channel: paystack_channel(method),
         metadata: %{payment_method: method}
       }

@@ -119,7 +119,7 @@ defmodule EmakolaWeb.StorefrontComponents.OccasionCollectionTileTest do
         <.occasion_collection_tile category={@category} store_slug={@store_slug} />
         """)
 
-      assert html =~ ~s|href="/s/akosua-boutique/category/kente"|
+      assert html =~ ~s|href="/@akosua-boutique/category/kente"|
       assert html =~ "Kente"
       assert html =~ "Browse"
     end

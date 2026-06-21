@@ -62,7 +62,7 @@ defmodule EmakolaWeb.Storefront.BlogPostLive do
             {:ok,
              socket
              |> put_flash(:error, "Post not found")
-             |> redirect(to: "/@#{slug}/blog")}
+             |> redirect(to: "/#{slug}/blog")}
         end
 
       {:error, :not_found} ->

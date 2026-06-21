@@ -164,7 +164,7 @@ defmodule Emakola.Notifications.Templates do
 
   defp storefront_tracking_url(store, order) do
     host = storefront_host()
-    "https://#{host}/s/#{store.slug}/track/#{order.order_number}"
+    "https://#{host}/@#{store.slug}/track/#{order.order_number}"
   end
 
   defp storefront_host do

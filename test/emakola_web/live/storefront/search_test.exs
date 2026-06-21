@@ -14,7 +14,7 @@ defmodule EmakolaWeb.Storefront.SearchTest do
 
   describe "search overlay on StoreLive" do
     test "renders search overlay element (hidden)", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}")
 
       assert html =~ "search-overlay"
       assert html =~ "Search products..."
@@ -29,7 +29,7 @@ defmodule EmakolaWeb.Storefront.SearchTest do
       Factory.create_variant!(other, store, %{price: 8000, stock_quantity: 5})
       activate_product!(other)
 
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}")
 
       html = render_keyup(view, "search_overlay", %{value: "Kente"})
 
@@ -43,7 +43,7 @@ defmodule EmakolaWeb.Storefront.SearchTest do
     end
 
     test "search overlay shows no results message", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}")
 
       html = render_keyup(view, "search_overlay", %{value: "nonexistent"})
 
@@ -55,7 +55,7 @@ defmodule EmakolaWeb.Storefront.SearchTest do
       Factory.create_variant!(product, store, %{price: 5000, stock_quantity: 10})
       activate_product!(product)
 
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}")
 
       render_keyup(view, "search_overlay", %{value: "Wax"})
       html = render_click(view, "close_search")
@@ -71,7 +71,7 @@ defmodule EmakolaWeb.Storefront.SearchTest do
       Factory.create_variant!(product, store, %{price: 3000, stock_quantity: 10})
       activate_product!(product)
 
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}")
 
       render_keyup(view, "search_overlay", %{value: "Beaded"})
       html = render_keyup(view, "search_overlay", %{value: ""})
@@ -89,7 +89,7 @@ defmodule EmakolaWeb.Storefront.SearchTest do
       Factory.create_variant!(product, store, %{price: 20000, stock_quantity: 5})
       activate_product!(product)
 
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/products")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/products")
 
       html = render_keyup(view, "search_overlay", %{value: "Ankara"})
 
@@ -97,7 +97,7 @@ defmodule EmakolaWeb.Storefront.SearchTest do
     end
 
     test "close_search works on product list page", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/products")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/products")
 
       html = render_click(view, "close_search")
 
@@ -117,7 +117,7 @@ defmodule EmakolaWeb.Storefront.SearchTest do
       Factory.create_variant!(non_matching, store, %{price: 30000, stock_quantity: 5})
       activate_product!(non_matching)
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/products?q=Gold")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/products?q=Gold")
 
       assert html =~ "Gold Ring"
       refute html =~ "Silver Bangle"
@@ -128,7 +128,7 @@ defmodule EmakolaWeb.Storefront.SearchTest do
       Factory.create_variant!(product, store, %{price: 5000, stock_quantity: 10})
       activate_product!(product)
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/products?q=")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/products?q=")
 
       assert html =~ "Test Product"
     end
@@ -144,7 +144,7 @@ defmodule EmakolaWeb.Storefront.SearchTest do
         activate_product!(product)
       end
 
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}")
 
       html = render_keyup(view, "search_overlay", %{value: "Widget"})
 
@@ -157,7 +157,7 @@ defmodule EmakolaWeb.Storefront.SearchTest do
 
   describe "nav search trigger" do
     test "search button in nav uses phx-click (not a link)", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}")
 
       # The search button should be a button with phx-click, not an <a> link
       assert html =~ "Search products"

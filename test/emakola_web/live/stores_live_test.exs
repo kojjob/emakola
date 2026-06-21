@@ -24,8 +24,8 @@ defmodule EmakolaWeb.StoresLiveTest do
 
       assert html =~ "Akosua&#39;s Boutique"
       assert html =~ "Kente Collective"
-      assert html =~ ~s|href="/s/akosua-boutique"|
-      assert html =~ ~s|href="/s/kente-collective"|
+      assert html =~ ~s|href="/@akosua-boutique"|
+      assert html =~ ~s|href="/@kente-collective"|
       assert html =~ "Accra"
     end
 

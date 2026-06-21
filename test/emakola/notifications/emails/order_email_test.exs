@@ -174,7 +174,7 @@ defmodule Emakola.Notifications.Emails.OrderEmailTest do
       store = build_store(slug: "accra-fashion-hub")
       order = build_order(order_number: "ORD-20260322-ABC123")
       email = OrderEmail.order_confirmation(order, build_customer(), store)
-      assert email.html_body =~ "/s/accra-fashion-hub/track/ORD-20260322-ABC123"
+      assert email.html_body =~ "/@accra-fashion-hub/track/ORD-20260322-ABC123"
     end
 
     test "HTML body contains store WhatsApp link" do

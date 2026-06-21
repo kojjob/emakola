@@ -214,7 +214,7 @@ defmodule Emakola.Notifications.Channels.WhatsappCatalogTest do
       currency: "GHS",
       availability: :in_stock,
       image_url: "https://e.x/i.jpg",
-      url: "https://e.x/s/shop/products/kente-tee"
+      url: "https://e.x/@shop/products/kente-tee"
     }
   end
 

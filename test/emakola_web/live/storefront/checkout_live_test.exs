@@ -40,7 +40,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
 
   describe "mount/3" do
     test "renders single-page checkout with all sections", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/checkout")
 
       assert html =~ "Contact"
       assert html =~ "Phone number"
@@ -53,7 +53,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
 
     test "loads cart items from CartStore session", %{conn: conn, store: store, variant: variant} do
       {conn, _session_id} = setup_cart_session(conn, variant)
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/checkout")
 
       assert html =~ "Test Shirt"
       assert html =~ "GH\u20B5 100"
@@ -61,7 +61,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
 
     test "renders order summary sidebar", %{conn: conn, store: store, variant: variant} do
       {conn, _session_id} = setup_cart_session(conn, variant)
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/checkout")
 
       assert html =~ "Order Summary"
       assert html =~ "Subtotal"
@@ -70,7 +70,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     end
 
     test "renders checkout with empty cart", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/checkout")
 
       assert html =~ "Contact"
       assert html =~ "Your cart is empty"
@@ -78,7 +78,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
 
     test "redirects for non-existent store", %{conn: conn} do
       assert {:error, {:redirect, %{to: "/"}}} =
-               live(conn, "/s/non-existent-store/checkout")
+               live(conn, "/@non-existent-store/checkout")
     end
   end
 
@@ -86,7 +86,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
 
   describe "payment method selection" do
     test "selects card payment method", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/checkout")
 
       html = render_click(view, "select_payment", %{"method" => "card"})
 
@@ -94,14 +94,14 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     end
 
     test "shows MTN MoMo selected by default", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/checkout")
 
       assert html =~ "MTN MoMo"
       assert html =~ "prompt will appear on your phone"
     end
 
     test "shows COD info when selected", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/checkout")
 
       html = render_click(view, "select_payment", %{"method" => "cod"})
 
@@ -119,7 +119,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       variant: variant
     } do
       {conn, _session_id} = setup_cart_session(conn, variant)
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/checkout")
 
       html =
         render_submit(view, "place_order", %{
@@ -139,7 +139,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       variant: variant
     } do
       {conn, _session_id} = setup_cart_session(conn, variant)
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/checkout")
 
       html =
         render_submit(view, "place_order", %{
@@ -156,7 +156,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     end
 
     test "shows error when cart is empty on place_order", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/checkout")
 
       html =
         render_submit(view, "place_order", %{
@@ -213,7 +213,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       })
 
       conn = init_test_session(conn, %{"cart_session_id" => session_id})
-      {:ok, view, _html} = live(conn, "/s/#{dropshipper.slug}/checkout")
+      {:ok, view, _html} = live(conn, "/@#{dropshipper.slug}/checkout")
 
       render_submit(view, "place_order", %{
         "phone" => "241234567",
@@ -249,7 +249,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
 
   describe "delivery fee calculation" do
     test "Greater Accra has lowest delivery fee", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/checkout")
 
       html =
         render_change(view, "update_details", %{
@@ -260,7 +260,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     end
 
     test "Ashanti region has higher delivery fee", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/checkout")
 
       html =
         render_change(view, "update_details", %{

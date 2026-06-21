@@ -3,7 +3,7 @@ defmodule Emakola.Themes.ProductDetailVariantsTest do
   Renderer-level smoke test: every theme's `ProductDetail.render/1`
   must handle a product with variants without raising.
 
-  Pins the regression caught at /s/kente-kingdom/products/... where
+  Pins the regression caught at /@kente-kingdom/products/... where
   five themes wrote `option_type.values` instead of the actual
   `option_type.option_values` field on `Emakola.Catalog.OptionType`.
 

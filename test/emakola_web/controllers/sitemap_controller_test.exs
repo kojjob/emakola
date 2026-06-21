@@ -43,9 +43,9 @@ defmodule EmakolaWeb.SitemapControllerTest do
     end
   end
 
-  describe "GET /s/:store_slug/sitemap.xml" do
+  describe "GET /@:store_slug/sitemap.xml" do
     test "returns valid XML with correct content type", %{conn: conn, store: store} do
-      conn = get(conn, "/s/#{store.slug}/sitemap.xml")
+      conn = get(conn, "/@#{store.slug}/sitemap.xml")
 
       assert response_content_type(conn, :xml) =~ "xml"
       assert conn.status == 200
@@ -57,9 +57,9 @@ defmodule EmakolaWeb.SitemapControllerTest do
     end
 
     test "includes store home URL", %{conn: conn, store: store} do
-      body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
+      body = conn |> get("/@#{store.slug}/sitemap.xml") |> response(200)
 
-      assert body =~ "/s/#{store.slug}</loc>"
+      assert body =~ "/@#{store.slug}</loc>"
     end
 
     test "<loc> URLs use the canonical apex host, not the request host", %{
@@ -70,26 +70,26 @@ defmodule EmakolaWeb.SitemapControllerTest do
 
       body =
         %{conn | host: "tenant-subdomain.example.com"}
-        |> get("/s/#{store.slug}/sitemap.xml")
+        |> get("/@#{store.slug}/sitemap.xml")
         |> response(200)
 
-      assert body =~ "#{apex}/s/#{store.slug}</loc>"
+      assert body =~ "#{apex}/@#{store.slug}</loc>"
       refute body =~ "tenant-subdomain.example.com"
     end
 
     test "includes active product URLs", %{conn: conn, store: store} do
       product = create_product!(store, title: "Kente Cloth", status: :active)
 
-      body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
+      body = conn |> get("/@#{store.slug}/sitemap.xml") |> response(200)
 
-      assert body =~ "/s/#{store.slug}/products/#{product.slug}"
+      assert body =~ "/@#{store.slug}/products/#{product.slug}"
     end
 
     test "excludes draft and archived products", %{conn: conn, store: store} do
       draft = create_product!(store, title: "Draft Product", status: :draft)
       archived = create_product!(store, title: "Archived Product", status: :archived)
 
-      body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
+      body = conn |> get("/@#{store.slug}/sitemap.xml") |> response(200)
 
       refute body =~ "/products/#{draft.slug}"
       refute body =~ "/products/#{archived.slug}"
@@ -104,25 +104,25 @@ defmodule EmakolaWeb.SitemapControllerTest do
         })
         |> Ash.create!(authorize?: false)
 
-      body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
+      body = conn |> get("/@#{store.slug}/sitemap.xml") |> response(200)
 
-      assert body =~ "/s/#{store.slug}/category/#{category.slug}"
+      assert body =~ "/@#{store.slug}/category/#{category.slug}"
     end
 
     test "includes static pages (about, products, blog)", %{conn: conn, store: store} do
-      body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
+      body = conn |> get("/@#{store.slug}/sitemap.xml") |> response(200)
 
-      assert body =~ "/s/#{store.slug}/products</loc>"
-      assert body =~ "/s/#{store.slug}/about</loc>"
+      assert body =~ "/@#{store.slug}/products</loc>"
+      assert body =~ "/@#{store.slug}/about</loc>"
     end
 
     test "returns 404 for non-existent store", %{conn: conn} do
-      conn = get(conn, "/s/nonexistent-store/sitemap.xml")
+      conn = get(conn, "/@nonexistent-store/sitemap.xml")
       assert conn.status == 404
     end
 
     test "does not include private pages (cart, checkout, account)", %{conn: conn, store: store} do
-      body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
+      body = conn |> get("/@#{store.slug}/sitemap.xml") |> response(200)
 
       refute body =~ "/cart"
       refute body =~ "/checkout"
@@ -134,7 +134,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
     test "each URL entry has proper sitemap structure", %{conn: conn, store: store} do
       _product = create_product!(store, title: "Test Item", status: :active)
 
-      body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
+      body = conn |> get("/@#{store.slug}/sitemap.xml") |> response(200)
 
       # Each <url> must have a <loc> child
       url_count = body |> String.split("<url>") |> length() |> Kernel.-(1)
@@ -147,28 +147,28 @@ defmodule EmakolaWeb.SitemapControllerTest do
 
   # ── robots.txt ──────────────────────────────────────────────────────
 
-  describe "GET /s/:store_slug/robots.txt" do
+  describe "GET /@:store_slug/robots.txt" do
     test "returns text/plain with sitemap reference", %{conn: conn, store: store} do
-      conn = get(conn, "/s/#{store.slug}/robots.txt")
+      conn = get(conn, "/@#{store.slug}/robots.txt")
 
       assert conn.status == 200
       assert response_content_type(conn, :text) =~ "text/plain"
 
       body = response(conn, 200)
       assert body =~ "Sitemap:"
-      assert body =~ "/s/#{store.slug}/sitemap.xml"
+      assert body =~ "/@#{store.slug}/sitemap.xml"
     end
 
     test "disallows private pages", %{conn: conn, store: store} do
-      body = conn |> get("/s/#{store.slug}/robots.txt") |> response(200)
+      body = conn |> get("/@#{store.slug}/robots.txt") |> response(200)
 
-      assert body =~ "Disallow: /s/#{store.slug}/cart"
-      assert body =~ "Disallow: /s/#{store.slug}/checkout"
-      assert body =~ "Disallow: /s/#{store.slug}/account"
+      assert body =~ "Disallow: /@#{store.slug}/cart"
+      assert body =~ "Disallow: /@#{store.slug}/checkout"
+      assert body =~ "Disallow: /@#{store.slug}/account"
     end
 
     test "explicitly allows AI crawlers", %{conn: conn, store: store} do
-      body = conn |> get("/s/#{store.slug}/robots.txt") |> response(200)
+      body = conn |> get("/@#{store.slug}/robots.txt") |> response(200)
 
       assert body =~ "User-Agent: GPTBot"
       assert body =~ "User-Agent: Google-Extended"
@@ -177,16 +177,16 @@ defmodule EmakolaWeb.SitemapControllerTest do
     end
 
     test "returns 404 for non-existent store", %{conn: conn} do
-      conn = get(conn, "/s/nonexistent-store/robots.txt")
+      conn = get(conn, "/@nonexistent-store/robots.txt")
       assert conn.status == 404
     end
   end
 
   # ── llms.txt ────────────────────────────────────────────────────────
 
-  describe "GET /s/:store_slug/llms.txt" do
+  describe "GET /@:store_slug/llms.txt" do
     test "returns text/plain with store description", %{conn: conn, store: store} do
-      conn = get(conn, "/s/#{store.slug}/llms.txt")
+      conn = get(conn, "/@#{store.slug}/llms.txt")
 
       assert conn.status == 200
       assert response_content_type(conn, :text) =~ "text/plain"
@@ -199,22 +199,22 @@ defmodule EmakolaWeb.SitemapControllerTest do
     test "lists active products", %{conn: conn, store: store} do
       product = create_product!(store, title: "Kente Cloth", status: :active)
 
-      body = conn |> get("/s/#{store.slug}/llms.txt") |> response(200)
+      body = conn |> get("/@#{store.slug}/llms.txt") |> response(200)
 
       assert body =~ "Kente Cloth"
       assert body =~ "/products/#{product.slug}"
     end
 
     test "includes navigation links", %{conn: conn, store: store} do
-      body = conn |> get("/s/#{store.slug}/llms.txt") |> response(200)
+      body = conn |> get("/@#{store.slug}/llms.txt") |> response(200)
 
-      assert body =~ "/s/#{store.slug}/products"
-      assert body =~ "/s/#{store.slug}/about"
-      assert body =~ "/s/#{store.slug}/sitemap.xml"
+      assert body =~ "/@#{store.slug}/products"
+      assert body =~ "/@#{store.slug}/about"
+      assert body =~ "/@#{store.slug}/sitemap.xml"
     end
 
     test "includes AI assistant guidance", %{conn: conn, store: store} do
-      body = conn |> get("/s/#{store.slug}/llms.txt") |> response(200)
+      body = conn |> get("/@#{store.slug}/llms.txt") |> response(200)
 
       assert body =~ "For AI assistants"
       assert body =~ "GHS"
@@ -222,7 +222,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
     end
 
     test "returns 404 for non-existent store", %{conn: conn} do
-      conn = get(conn, "/s/nonexistent-store/llms.txt")
+      conn = get(conn, "/@nonexistent-store/llms.txt")
       assert conn.status == 404
     end
   end

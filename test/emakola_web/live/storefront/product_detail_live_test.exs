@@ -28,7 +28,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLiveTest do
 
       html =
         %{conn | host: "evil.example.com"}
-        |> get("/s/#{store.slug}/products/#{product.slug}")
+        |> get("/@#{store.slug}/products/#{product.slug}")
         |> html_response(200)
 
       assert html =~ ~s(rel="canonical" href="#{canonical}")
@@ -44,7 +44,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLiveTest do
       activate!(product)
       {conn, session_id} = with_cart_session(conn)
 
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/products/#{product.slug}")
 
       html = view |> element("button[phx-click=add_to_cart]") |> render_click()
 
@@ -59,7 +59,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLiveTest do
       activate!(product)
       {conn, _session_id} = with_cart_session(conn)
 
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/products/#{product.slug}")
 
       # A genuinely out-of-stock (tracked) product still disables the button —
       # the gate now respects track_inventory rather than ignoring it.

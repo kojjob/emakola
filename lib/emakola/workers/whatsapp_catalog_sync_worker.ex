@@ -118,7 +118,7 @@ defmodule Emakola.Workers.WhatsappCatalogSyncWorker do
       currency: store.currency || "GHS",
       availability: availability(variant),
       image_url: image_url,
-      url: "#{storefront_host}/s/#{store.slug}/products/#{product.slug}"
+      url: "#{storefront_host}/@#{store.slug}/products/#{product.slug}"
     }
   end
 

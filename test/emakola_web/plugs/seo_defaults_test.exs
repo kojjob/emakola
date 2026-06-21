@@ -14,7 +14,7 @@ defmodule EmakolaWeb.Plugs.SEODefaultsTest do
   describe "call/2" do
     test "sets default SEO assigns" do
       conn =
-        conn(:get, "/s/test-store/products")
+        conn(:get, "/@test-store/products")
         |> SEODefaults.call([])
 
       assert conn.assigns[:page_title] == nil
@@ -27,7 +27,7 @@ defmodule EmakolaWeb.Plugs.SEODefaultsTest do
 
     test "does not override existing assigns" do
       conn =
-        conn(:get, "/s/test-store/products")
+        conn(:get, "/@test-store/products")
         |> Plug.Conn.assign(:page_title, "Already Set")
         |> Plug.Conn.assign(:robots, "noindex")
         |> SEODefaults.call([])

@@ -12,26 +12,26 @@ defmodule EmakolaWeb.Storefront.BlogListLiveTest do
     post = Factory.create_post!(store, %{title: "Published Article", type: :blog_post})
     post |> Ash.Changeset.for_update(:publish) |> Ash.update!(authorize?: false)
 
-    {:ok, _view, html} = live(conn, "/s/#{store.slug}/blog")
+    {:ok, _view, html} = live(conn, "/@#{store.slug}/blog")
     assert html =~ "Blog"
     assert html =~ "Published Article"
   end
 
   test "does not show draft posts", %{conn: conn, store: store} do
     Factory.create_post!(store, %{title: "Secret Draft", type: :blog_post})
-    {:ok, _view, html} = live(conn, "/s/#{store.slug}/blog")
+    {:ok, _view, html} = live(conn, "/@#{store.slug}/blog")
     refute html =~ "Secret Draft"
   end
 
   test "shows empty state when no posts", %{conn: conn, store: store} do
-    {:ok, _view, html} = live(conn, "/s/#{store.slug}/blog")
+    {:ok, _view, html} = live(conn, "/@#{store.slug}/blog")
     assert html =~ "Coming soon"
   end
 
   test "emits apex canonical and a blog-index meta description", %{conn: conn, store: store} do
-    {:ok, _view, html} = live(conn, "/s/#{store.slug}/blog")
+    {:ok, _view, html} = live(conn, "/@#{store.slug}/blog")
 
-    assert html =~ ~s(<link rel="canonical" href="http://localhost:4000/s/#{store.slug}/blog")
+    assert html =~ ~s(<link rel="canonical" href="http://localhost:4000/@#{store.slug}/blog")
     assert html =~ ~s(<meta name="description" content="Articles and updates from Blog Shop.")
   end
 end

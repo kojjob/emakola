@@ -52,7 +52,7 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHostTest do
     assert conn.status == 301
 
     assert Plug.Conn.get_resp_header(conn, "location") ==
-             ["http://localhost:4000/s/sub-shop/products?color=red"]
+             ["http://localhost:4000/@sub-shop/products?color=red"]
   end
 
   test "redirects the root path to the bare store URL (no trailing slash)", %{store: store} do
@@ -60,25 +60,25 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHostTest do
 
     conn = ResolveStoreByHost.call(conn_for("sub-shop.makola.io", "/"), @opts)
 
-    assert Plug.Conn.get_resp_header(conn, "location") == ["http://localhost:4000/s/sub-shop"]
+    assert Plug.Conn.get_resp_header(conn, "location") == ["http://localhost:4000/@sub-shop"]
   end
 
-  test "serve-in-place rewrites the path to the /s/:slug subfolder", %{store: store} do
+  test "serve-in-place rewrites the path to the /@:slug subfolder", %{store: store} do
     claim!(store, "sub-shop.makola.io", %{serve_in_place?: true})
 
     conn = ResolveStoreByHost.call(conn_for("sub-shop.makola.io", "/products"), @opts)
 
     refute conn.halted
-    assert conn.path_info == ["s", "sub-shop", "products"]
+    assert conn.path_info == ["@sub-shop", "products"]
   end
 
-  test "serve-in-place does not double-prefix an internal /s/:slug path", %{store: store} do
+  test "serve-in-place does not double-prefix an internal /@:slug path", %{store: store} do
     claim!(store, "sub-shop.makola.io", %{serve_in_place?: true})
 
-    conn = ResolveStoreByHost.call(conn_for("sub-shop.makola.io", "/s/sub-shop/cart"), @opts)
+    conn = ResolveStoreByHost.call(conn_for("sub-shop.makola.io", "/@sub-shop/cart"), @opts)
 
     refute conn.halted
-    assert conn.path_info == ["s", "sub-shop", "cart"]
+    assert conn.path_info == ["@sub-shop", "cart"]
   end
 
   test "passes an unknown subdomain through" do

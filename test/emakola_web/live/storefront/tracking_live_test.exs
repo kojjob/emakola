@@ -33,14 +33,14 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
 
   describe "TrackingLive with real order" do
     test "renders tracking page with order number", %{conn: conn, store: store, order: order} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/track/#{order.order_number}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/track/#{order.order_number}")
 
       assert html =~ order.order_number
       assert html =~ store.name
     end
 
     test "shows delivery status timeline", %{conn: conn, store: store, order: order} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/track/#{order.order_number}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/track/#{order.order_number}")
 
       assert html =~ "Delivery Status"
       assert html =~ "Order Placed"
@@ -51,14 +51,14 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
     end
 
     test "shows status hero for pending order", %{conn: conn, store: store, order: order} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/track/#{order.order_number}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/track/#{order.order_number}")
 
       assert html =~ "Awaiting Confirmation"
       assert html =~ "Waiting for payment confirmation"
     end
 
     test "shows order details section with real items", %{conn: conn, store: store, order: order} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/track/#{order.order_number}")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/track/#{order.order_number}")
 
       assert render(view) =~ "Order Details"
 
@@ -69,7 +69,7 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
     end
 
     test "shows total in order details", %{conn: conn, store: store, order: order} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/track/#{order.order_number}")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/track/#{order.order_number}")
 
       html = render_click(view, "toggle_details")
 
@@ -78,7 +78,7 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
     end
 
     test "shows shipping address in order details", %{conn: conn, store: store, order: order} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/track/#{order.order_number}")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/track/#{order.order_number}")
 
       html = render_click(view, "toggle_details")
 
@@ -87,7 +87,7 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
     end
 
     test "toggle order details expands/collapses", %{conn: conn, store: store, order: order} do
-      {:ok, view, html} = live(conn, "/s/#{store.slug}/track/#{order.order_number}")
+      {:ok, view, html} = live(conn, "/@#{store.slug}/track/#{order.order_number}")
 
       refute html =~ "Kente Wrap Dress"
 
@@ -103,7 +103,7 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
       store: store,
       order: order
     } do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/track/#{order.order_number}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/track/#{order.order_number}")
 
       refute html =~ "Contact Store"
     end
@@ -115,7 +115,7 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
     } do
       Emakola.Orders.confirm_order!(order, authorize?: false)
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/track/#{order.order_number}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/track/#{order.order_number}")
 
       assert html =~ "Order Confirmed"
       assert html =~ "Your payment has been verified"
@@ -125,7 +125,7 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
       order = Emakola.Orders.confirm_order!(order, authorize?: false)
       Emakola.Orders.start_processing_order!(order, authorize?: false)
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/track/#{order.order_number}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/track/#{order.order_number}")
 
       assert html =~ "Being Prepared"
       assert html =~ "The seller is preparing your order"
@@ -136,7 +136,7 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
       order = Emakola.Orders.start_processing_order!(order, authorize?: false)
       Emakola.Orders.mark_order_shipped!(order, authorize?: false)
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/track/#{order.order_number}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/track/#{order.order_number}")
 
       assert html =~ "Order Shipped"
       assert html =~ "Contact Store"
@@ -148,7 +148,7 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
       order = Emakola.Orders.mark_order_shipped!(order, authorize?: false)
       Emakola.Orders.mark_order_delivered!(order, authorize?: false)
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/track/#{order.order_number}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/track/#{order.order_number}")
 
       assert html =~ "Delivered"
       assert html =~ "Your order has been delivered"
@@ -157,12 +157,12 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
 
   describe "error handling" do
     test "redirects for non-existent order", %{conn: conn, store: store} do
-      assert {:error, {:redirect, %{to: "/s/ghana-shop"}}} =
-               live(conn, "/s/#{store.slug}/track/ORD-INVALID-000000")
+      assert {:error, {:redirect, %{to: "/@ghana-shop"}}} =
+               live(conn, "/@#{store.slug}/track/ORD-INVALID-000000")
     end
 
     test "redirects for non-existent store", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/s/no-such-store/track/EM-4821")
+      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/@no-such-store/track/EM-4821")
     end
   end
 end

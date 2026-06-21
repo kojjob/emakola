@@ -63,7 +63,7 @@ defmodule Emakola.Themes.SpotlightTest do
         )
 
       assert out =~ "Demo Store"
-      assert out =~ "/s/demo/cart"
+      assert out =~ "/@demo/cart"
       assert out =~ "3"
     end
 
@@ -84,7 +84,7 @@ defmodule Emakola.Themes.SpotlightTest do
           })
         )
 
-      assert out =~ "/s/demo/products/tee"
+      assert out =~ "/@demo/products/tee"
       assert out =~ "Cotton Tee"
       assert out =~ "GH₵ 120"
     end
@@ -230,7 +230,7 @@ defmodule Emakola.Themes.SpotlightTest do
 
       assert out =~ "Alpha"
       assert out =~ "Beta"
-      assert out =~ "/s/demo/products/a"
+      assert out =~ "/@demo/products/a"
 
       empty =
         Emakola.Themes.Spotlight.ProductList.render(%{
@@ -269,7 +269,7 @@ defmodule Emakola.Themes.SpotlightTest do
         |> IO.iodata_to_binary()
 
       assert out =~ "Lively Drink"
-      assert out =~ "/s/demo/products/lively"
+      assert out =~ "/@demo/products/lively"
     end
 
     test "empty products renders a coming-soon hero without raising" do

@@ -29,7 +29,7 @@ defmodule EmakolaWeb.Storefront.ThemeInjectionTest do
     test "injects a valid merchant primary color into :root", %{conn: conn} do
       store = create_store_with_primary!("#123456")
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}")
 
       assert html =~ "--theme-primary: #123456"
     end
@@ -37,7 +37,7 @@ defmodule EmakolaWeb.Storefront.ThemeInjectionTest do
     test "rejects a CSS injection payload and falls back to the default", %{conn: conn} do
       store = create_store_with_primary!("#123456;background:url(//evil)")
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}")
 
       refute html =~ "url(//evil)"
       assert html =~ "--theme-primary: #2563EB"
@@ -49,7 +49,7 @@ defmodule EmakolaWeb.Storefront.ThemeInjectionTest do
       store =
         create_store_with_body_font!("'; background-image: url(//evil2); font-family: '")
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}")
 
       refute html =~ "url(//evil2)"
     end
@@ -74,7 +74,7 @@ defmodule EmakolaWeb.Storefront.ThemeInjectionTest do
       token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(customer))
       conn = Phoenix.ConnTest.init_test_session(conn, %{"customer_token" => token})
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/account")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/account")
 
       refute html =~ "url(//evil3)"
     end

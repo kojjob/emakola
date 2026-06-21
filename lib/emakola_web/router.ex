@@ -193,7 +193,6 @@ defmodule EmakolaWeb.Router do
     get "/sitemap.xml", SitemapController, :platform
   end
 
-
   scope "/", EmakolaWeb do
     pipe_through :browser
 
@@ -348,6 +347,7 @@ defmodule EmakolaWeb.Router do
       live "/register", CustomerRegisterLive
     end
   end
+
   # Sitemap + AI-readable files — uses :seo pipeline (accepts XML/text),
   # NOT :api (which enforces JSON-only and would 406 crawlers).
   scope "/:store_slug", EmakolaWeb do
@@ -357,6 +357,7 @@ defmodule EmakolaWeb.Router do
     get "/llms.txt", SitemapController, :llms
     get "/feed/instagram.xml", InstagramFeedController, :show
   end
+
   # Customer storefront (public — no auth required)
   # In production, store is resolved from subdomain. For now, use store slug in URL.
   scope "/:store_slug", EmakolaWeb.Storefront do

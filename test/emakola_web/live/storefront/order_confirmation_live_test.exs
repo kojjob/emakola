@@ -33,7 +33,7 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLiveTest do
   describe "mount/3" do
     test "renders order confirmation page", %{conn: conn, store: store, order: order} do
       {:ok, _view, html} =
-        live(conn, "/s/#{store.slug}/orders/#{order.order_number}/confirmation")
+        live(conn, "/@#{store.slug}/orders/#{order.order_number}/confirmation")
 
       assert html =~ order.order_number
       assert html =~ "all set" or html =~ "Order Confirmed" or html =~ "Thank you"
@@ -41,7 +41,7 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLiveTest do
 
     test "shows order total and items", %{conn: conn, store: store, order: order} do
       {:ok, view, html} =
-        live(conn, "/s/#{store.slug}/orders/#{order.order_number}/confirmation")
+        live(conn, "/@#{store.slug}/orders/#{order.order_number}/confirmation")
 
       assert html =~ "GH\u20B5"
 
@@ -54,13 +54,13 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLiveTest do
 
     test "shows continue shopping link", %{conn: conn, store: store, order: order} do
       {:ok, _view, html} =
-        live(conn, "/s/#{store.slug}/orders/#{order.order_number}/confirmation")
+        live(conn, "/@#{store.slug}/orders/#{order.order_number}/confirmation")
 
-      assert html =~ "Continue Shopping" or html =~ "/s/#{store.slug}"
+      assert html =~ "Continue Shopping" or html =~ "/@#{store.slug}"
     end
 
     test "redirects for non-existent order", %{conn: conn, store: store} do
-      result = live(conn, "/s/#{store.slug}/orders/ORD-INVALID-000000/confirmation")
+      result = live(conn, "/@#{store.slug}/orders/ORD-INVALID-000000/confirmation")
 
       case result do
         {:error, {:redirect, _}} -> assert true
@@ -70,14 +70,14 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLiveTest do
 
     test "redirects for non-existent store", %{conn: conn, order: order} do
       assert {:error, {:redirect, %{to: "/"}}} =
-               live(conn, "/s/no-such-store/orders/#{order.order_number}/confirmation")
+               live(conn, "/@no-such-store/orders/#{order.order_number}/confirmation")
     end
   end
 
   describe "payment status display" do
     test "shows pending status for unpaid order", %{conn: conn, store: store, order: order} do
       {:ok, _view, html} =
-        live(conn, "/s/#{store.slug}/orders/#{order.order_number}/confirmation")
+        live(conn, "/@#{store.slug}/orders/#{order.order_number}/confirmation")
 
       # Order is pending by default
       assert html =~ "pending" or html =~ "Pending" or html =~ "Awaiting"

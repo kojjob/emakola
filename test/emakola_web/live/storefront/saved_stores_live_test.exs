@@ -4,18 +4,18 @@ defmodule EmakolaWeb.Storefront.SavedStoresLiveTest do
 
   alias Emakola.Factory
 
-  describe "GET /s/:slug/saved-stores" do
+  describe "GET /@:slug/saved-stores" do
     test "redirects to login when not authenticated", %{conn: conn} do
       store = Factory.create_store!(%{name: "Host Store", slug: "host-store"})
 
       assert {:error, {:redirect, %{to: redirect_to}}} =
-               live(conn, "/s/#{store.slug}/saved-stores")
+               live(conn, "/@#{store.slug}/saved-stores")
 
       assert redirect_to =~ "/login"
     end
   end
 
-  describe "GET /s/:slug/saved-stores (authenticated)" do
+  describe "GET /@:slug/saved-stores (authenticated)" do
     setup %{conn: conn} do
       host = Factory.create_store!(%{name: "Host Store", slug: "host-store"})
       {customer, conn} = sign_in_customer(conn, host)
@@ -23,7 +23,7 @@ defmodule EmakolaWeb.Storefront.SavedStoresLiveTest do
     end
 
     test "shows empty state when customer has no favorites", %{conn: conn, host: host} do
-      {:ok, _view, html} = live(conn, "/s/#{host.slug}/saved-stores")
+      {:ok, _view, html} = live(conn, "/@#{host.slug}/saved-stores")
       assert html =~ "No saved stores yet"
     end
 
@@ -36,7 +36,7 @@ defmodule EmakolaWeb.Storefront.SavedStoresLiveTest do
           actor: customer
         )
 
-      {:ok, _view, html} = live(conn, "/s/#{host.slug}/saved-stores")
+      {:ok, _view, html} = live(conn, "/@#{host.slug}/saved-stores")
       assert html =~ "Cool Shop"
       assert html =~ "1 store you"
     end
@@ -50,7 +50,7 @@ defmodule EmakolaWeb.Storefront.SavedStoresLiveTest do
           actor: customer
         )
 
-      {:ok, view, html} = live(conn, "/s/#{host.slug}/saved-stores")
+      {:ok, view, html} = live(conn, "/@#{host.slug}/saved-stores")
       assert html =~ "Drop Me"
 
       html =

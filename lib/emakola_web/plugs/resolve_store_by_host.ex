@@ -81,11 +81,12 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
   defp subpath(%{request_path: path, query_string: ""}), do: path
   defp subpath(%{request_path: path, query_string: q}), do: path <> "?" <> q
 
-  # Prepend ["s", slug] so the /s/:store_slug routes match — unless the path is
-  # already a subfolder path (e.g. an internal link), which routes unchanged.
-  defp rewrite_to_subfolder(%{path_info: ["s", slug | _]} = conn, slug), do: conn
-
+  # Prepend the "@slug" segment so the /:store_slug routes match — unless the
+  # path is already that handle (e.g. an internal link), which routes unchanged.
   defp rewrite_to_subfolder(conn, slug) do
-    %{conn | path_info: ["s", slug | conn.path_info]}
+    case conn.path_info do
+      ["@" <> first | _] when first == slug -> conn
+      _ -> %{conn | path_info: ["@" <> slug | conn.path_info]}
+    end
   end
 end

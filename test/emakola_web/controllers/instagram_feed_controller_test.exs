@@ -19,21 +19,21 @@ defmodule EmakolaWeb.InstagramFeedControllerTest do
     {:ok, store: store}
   end
 
-  describe "GET /s/:slug/feed/instagram.xml" do
+  describe "GET /@:slug/feed/instagram.xml" do
     test "returns 404 for unknown store", %{conn: conn} do
-      conn = get(conn, "/s/no-such-store/feed/instagram.xml")
+      conn = get(conn, "/@no-such-store/feed/instagram.xml")
       assert conn.status == 404
     end
 
     test "returns 200 + application/xml for known store", %{conn: conn, store: store} do
-      conn = get(conn, "/s/#{store.slug}/feed/instagram.xml")
+      conn = get(conn, "/@#{store.slug}/feed/instagram.xml")
       assert conn.status == 200
       [content_type] = get_resp_header(conn, "content-type")
       assert content_type =~ "application/xml"
     end
 
     test "renders RSS 2.0 + g: namespace envelope", %{conn: conn, store: store} do
-      conn = get(conn, "/s/#{store.slug}/feed/instagram.xml")
+      conn = get(conn, "/@#{store.slug}/feed/instagram.xml")
       body = response(conn, 200)
 
       assert body =~ ~s(<?xml version="1.0" encoding="UTF-8"?>)
@@ -46,7 +46,7 @@ defmodule EmakolaWeb.InstagramFeedControllerTest do
       product1 = create_active_product!(store, %{title: "Active 1"}, %{stock_quantity: 10})
       product2 = create_active_product!(store, %{title: "Active 2"}, %{stock_quantity: 0})
 
-      conn = get(conn, "/s/#{store.slug}/feed/instagram.xml")
+      conn = get(conn, "/@#{store.slug}/feed/instagram.xml")
       body = response(conn, 200)
 
       assert body =~ "<g:title>Active 1</g:title>"
@@ -65,14 +65,14 @@ defmodule EmakolaWeb.InstagramFeedControllerTest do
           %{price: 12_500, stock_quantity: 5}
         )
 
-      conn = get(conn, "/s/#{store.slug}/feed/instagram.xml")
+      conn = get(conn, "/@#{store.slug}/feed/instagram.xml")
       body = response(conn, 200)
 
       assert body =~ "<g:id>#{product.id}</g:id>"
       assert body =~ "<g:title>Kente Tee</g:title>"
       assert body =~ "<g:description>Cotton</g:description>"
       assert body =~ "<g:link>"
-      assert body =~ "/s/#{store.slug}/products/"
+      assert body =~ "/@#{store.slug}/products/"
       assert body =~ "<g:availability>in stock</g:availability>"
       assert body =~ "<g:price>125.00 GHS</g:price>"
       assert body =~ "<g:brand>Feed Shop</g:brand>"
@@ -86,7 +86,7 @@ defmodule EmakolaWeb.InstagramFeedControllerTest do
       _product =
         create_active_product!(store, %{title: "Sold Out"}, %{price: 1_000, stock_quantity: 0})
 
-      conn = get(conn, "/s/#{store.slug}/feed/instagram.xml")
+      conn = get(conn, "/@#{store.slug}/feed/instagram.xml")
       body = response(conn, 200)
 
       assert body =~ "<g:availability>out of stock</g:availability>"
@@ -95,7 +95,7 @@ defmodule EmakolaWeb.InstagramFeedControllerTest do
     test "draft (non-active) products are excluded", %{conn: conn, store: store} do
       _draft = Factory.create_product!(store, %{title: "Draft Only"})
 
-      conn = get(conn, "/s/#{store.slug}/feed/instagram.xml")
+      conn = get(conn, "/@#{store.slug}/feed/instagram.xml")
       body = response(conn, 200)
 
       refute body =~ "Draft Only"

@@ -12,20 +12,20 @@ defmodule EmakolaWeb.Storefront.WishlistLiveTest do
 
   describe "WishlistLive" do
     test "renders wishlist page with title", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/wishlist")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/wishlist")
 
       assert html =~ "My Wishlist"
     end
 
     test "shows empty state when wishlist is empty", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/wishlist")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/wishlist")
 
       assert html =~ "Your wishlist is empty"
       assert html =~ "Browse Products"
     end
 
     test "shows product grid when items exist", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/wishlist")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/wishlist")
 
       # Add an item to the wishlist
       html =
@@ -41,7 +41,7 @@ defmodule EmakolaWeb.Storefront.WishlistLiveTest do
     end
 
     test "remove button removes item from wishlist", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/wishlist")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/wishlist")
 
       # Add item
       render_click(view, "add_to_wishlist", %{
@@ -59,7 +59,7 @@ defmodule EmakolaWeb.Storefront.WishlistLiveTest do
     end
 
     test "add to bag button triggers event", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/wishlist")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/wishlist")
 
       # Add item
       render_click(view, "add_to_wishlist", %{
@@ -75,7 +75,7 @@ defmodule EmakolaWeb.Storefront.WishlistLiveTest do
     end
 
     test "displays saved items count", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/wishlist")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/wishlist")
 
       render_click(view, "add_to_wishlist", %{
         "product_id" => "p1",
@@ -96,7 +96,7 @@ defmodule EmakolaWeb.Storefront.WishlistLiveTest do
     end
 
     test "redirects for non-existent store", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/s/no-such-store/wishlist")
+      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/@no-such-store/wishlist")
     end
   end
 end

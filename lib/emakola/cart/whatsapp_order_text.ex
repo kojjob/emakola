@@ -67,7 +67,7 @@ defmodule Emakola.Cart.WhatsappOrderText do
       contact_line(customer_phone),
       "",
       "Sent from #{store.name}'s online shop:",
-      "#{storefront_host}/s/#{store.slug}?ref=whatsapp"
+      "#{storefront_host}/@#{store.slug}?ref=whatsapp"
     ]
     |> Enum.reject(&(&1 == nil))
     |> Enum.join("\n")

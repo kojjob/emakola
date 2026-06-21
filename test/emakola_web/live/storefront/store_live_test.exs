@@ -15,7 +15,7 @@ defmodule EmakolaWeb.Storefront.StoreLiveTest do
         instagram_url: "https://instagram.com/amakitchen"
       })
 
-    {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+    {:ok, _view, html} = live(conn, "/@#{store.slug}")
 
     assert html =~ ~s("@type":"LocalBusiness")
     assert html =~ ~s("addressLocality":"Accra")

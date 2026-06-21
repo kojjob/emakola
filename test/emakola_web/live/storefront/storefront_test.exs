@@ -14,7 +14,7 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
 
   describe "StoreLive" do
     test "renders store landing page with store name", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}")
 
       assert html =~ store.name
     end
@@ -24,7 +24,7 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
       _variant = Factory.create_variant!(product, store, %{price: 5000, stock_quantity: 10})
       activate_product!(product)
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}")
 
       assert html =~ "Active Widget"
     end
@@ -32,7 +32,7 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
     test "does not show draft products", %{conn: conn, store: store} do
       _draft = Factory.create_product!(store, %{title: "Draft Widget"})
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}")
 
       refute html =~ "Draft Widget"
     end
@@ -40,13 +40,13 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
     test "shows root categories", %{conn: conn, store: store} do
       _cat = Factory.create_category!(store, %{name: "Electronics"})
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}")
 
       assert html =~ "Electronics"
     end
 
     test "redirects for non-existent store slug", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/s/no-such-store")
+      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/@no-such-store")
     end
   end
 
@@ -61,7 +61,7 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
       draft_product = Factory.create_product!(store, %{title: "Draft Gadget"})
       Factory.create_variant!(draft_product, store, %{price: 2000, stock_quantity: 3})
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/products")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/products")
 
       assert html =~ "Active Gadget"
       refute html =~ "Draft Gadget"
@@ -72,7 +72,7 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
       Factory.create_variant!(product, store, %{price: 15000, stock_quantity: 10})
       activate_product!(product)
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/products")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/products")
 
       assert html =~ "GH\u20B5"
     end
@@ -86,7 +86,7 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
       Factory.create_variant!(product_b, store, %{price: 3000, stock_quantity: 5})
       activate_product!(product_b)
 
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/products")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/products")
 
       html = view |> element("form[phx-change]") |> render_change(%{query: "Blue"})
 
@@ -105,7 +105,7 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
       Factory.create_variant!(product_outside, store, %{price: 3000, stock_quantity: 5})
       activate_product!(product_outside)
 
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/products")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/products")
 
       html = render_click(view, "filter_category", %{category_id: cat.id})
 
@@ -122,7 +122,7 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
       Factory.create_variant!(product, store, %{price: 25000, stock_quantity: 10, sku: "BAG-001"})
       activate_product!(product)
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/products/#{product.slug}")
 
       assert html =~ "Fancy Bag"
       assert html =~ "A fancy bag"
@@ -136,7 +136,7 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
       Factory.create_variant!(product, store, %{price: 5000, stock_quantity: 0})
       activate_product!(product)
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/products/#{product.slug}")
 
       assert html =~ "Out of Stock"
     end
@@ -146,7 +146,7 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
       Factory.create_variant!(product, store, %{price: 5000, stock_quantity: 3})
       activate_product!(product)
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/products/#{product.slug}")
 
       assert html =~ "Low Stock"
       assert html =~ "3 left"
@@ -157,7 +157,7 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
       Factory.create_variant!(product, store, %{price: 5000, stock_quantity: 10})
       activate_product!(product)
 
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/products/#{product.slug}")
 
       html = render_click(view, "add_to_cart")
 
@@ -165,10 +165,10 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
     end
 
     test "redirects for non-existent product", %{conn: conn, store: store} do
-      expected_path = "/s/#{store.slug}/products"
+      expected_path = "/@#{store.slug}/products"
 
       assert {:error, {:redirect, %{to: ^expected_path}}} =
-               live(conn, "/s/#{store.slug}/products/non-existent-product")
+               live(conn, "/@#{store.slug}/products/non-existent-product")
     end
   end
 
@@ -176,13 +176,13 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
 
   describe "CartLive" do
     test "shows empty cart message", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/cart")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/cart")
 
       assert html =~ "empty" or html =~ "Shopping Bag"
     end
 
     test "redirects for non-existent store", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/s/no-such-store/cart")
+      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/@no-such-store/cart")
     end
   end
 
@@ -196,7 +196,7 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
       Factory.create_variant!(product, store, %{price: 12000, stock_quantity: 8})
       activate_product!(product)
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/category/#{cat.slug}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/category/#{cat.slug}")
 
       assert html =~ "Shoes"
       assert html =~ "All kinds of shoes"
@@ -209,7 +209,7 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
       draft = Factory.create_product!(store, %{title: "Draft Shoe", category_id: cat.id})
       Factory.create_variant!(draft, store, %{price: 5000, stock_quantity: 5})
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/category/#{cat.slug}")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/category/#{cat.slug}")
 
       refute html =~ "Draft Shoe"
     end

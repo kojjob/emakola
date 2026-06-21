@@ -56,7 +56,7 @@ defmodule EmakolaWeb.AuthControllerTest do
         |> put_session("customer_oauth_store_slug", store.slug)
         |> AuthController.success({:google, :callback}, customer, "tok")
 
-      assert redirected_to(conn) == "/s/#{store.slug}/account"
+      assert redirected_to(conn) == "/@#{store.slug}/account"
       assert {:ok, _subject} = AuthTokens.verify_subject(get_session(conn, :customer_token))
     end
   end

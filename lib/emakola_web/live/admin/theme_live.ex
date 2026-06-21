@@ -269,7 +269,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                 <div class="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
                 <div class="w-2.5 h-2.5 rounded-full bg-green-400"></div>
                 <div class="ml-3 text-[10px] text-slate-500 font-mono truncate">
-                  /s/{@store.slug}
+                  /@{@store.slug}
                 </div>
               </div>
 

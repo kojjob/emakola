@@ -38,7 +38,7 @@ defmodule Emakola.Notifications.TrackingSmsTest do
       msg = Templates.order_shipped_sms(order_with_tracking_url(), store())
 
       refute msg =~ "Track at:"
-      refute msg =~ "/s/kente-kingdom/track/"
+      refute msg =~ "/@kente-kingdom/track/"
     end
   end
 
@@ -52,7 +52,7 @@ defmodule Emakola.Notifications.TrackingSmsTest do
       assert msg =~ "ORD-20260327-TRK001"
       assert msg =~ "Kente Kingdom"
       assert msg =~ "Track at:"
-      assert msg =~ "/s/kente-kingdom/track/ORD-20260327-TRK001"
+      assert msg =~ "/@kente-kingdom/track/ORD-20260327-TRK001"
     end
 
     test "does not include 'Track here:' when no external tracking URL" do
@@ -65,7 +65,7 @@ defmodule Emakola.Notifications.TrackingSmsTest do
       custom_store = %{name: "Accra Styles", id: "other-id", slug: "accra-styles"}
       msg = Templates.order_shipped_sms(order(), custom_store)
 
-      assert msg =~ "/s/accra-styles/track/"
+      assert msg =~ "/@accra-styles/track/"
     end
   end
 
@@ -84,7 +84,7 @@ defmodule Emakola.Notifications.TrackingSmsTest do
       msg = Templates.order_shipped_sms(order(), store())
 
       assert msg =~
-               ~r/Your order ORD-20260327-TRK001 from Kente Kingdom has been shipped! Track at: https:\/\/.+\/s\/kente-kingdom\/track\/ORD-20260327-TRK001/
+               ~r/Your order ORD-20260327-TRK001 from Kente Kingdom has been shipped! Track at: https:\/\/.+\/@kente-kingdom\/track\/ORD-20260327-TRK001/
     end
 
     test "nil tracking_url falls back to storefront URL" do

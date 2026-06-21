@@ -261,7 +261,7 @@ defmodule EmakolaWeb.Admin.ThemeLiveTest do
       {:ok, _view, html} = live(conn, ~p"/admin/theme")
 
       assert html =~ store.name
-      assert html =~ "/s/#{store.slug}"
+      assert html =~ "/@#{store.slug}"
     end
   end
 end

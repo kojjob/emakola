@@ -87,7 +87,7 @@ defmodule EmakolaWeb.Storefront.AccountDownloadsLiveTest do
   describe "mount — auth gate" do
     test "redirects unauthenticated visitor to login", %{conn: conn, store: s} do
       assert {:error, {:redirect, %{to: redirect_to}}} =
-               live(conn, ~p"/s/#{s.slug}/account/downloads")
+               live(conn, "/@#{s.slug}/account/downloads")
 
       assert redirect_to =~ "/login"
     end
@@ -96,7 +96,7 @@ defmodule EmakolaWeb.Storefront.AccountDownloadsLiveTest do
   describe "mount — empty state" do
     test "shows empty-state message when customer has no grants",
          %{conn: conn, store: s, customer: c} do
-      {:ok, _view, html} = conn |> log_in(c) |> live(~p"/s/#{s.slug}/account/downloads")
+      {:ok, _view, html} = conn |> log_in(c) |> live("/@#{s.slug}/account/downloads")
 
       assert html =~ "no downloads" or html =~ "No downloads"
     end
@@ -108,12 +108,12 @@ defmodule EmakolaWeb.Storefront.AccountDownloadsLiveTest do
       _g1 = issue_grant!(s, c, "ebook.pdf")
       _g2 = issue_grant!(s, c, "soundtrack.mp3")
 
-      {:ok, _view, html} = conn |> log_in(c) |> live(~p"/s/#{s.slug}/account/downloads")
+      {:ok, _view, html} = conn |> log_in(c) |> live("/@#{s.slug}/account/downloads")
 
       assert html =~ "ebook.pdf"
       assert html =~ "soundtrack.mp3"
       # Both rows render a download link to the controller endpoint
-      assert html =~ "/s/#{s.slug}/downloads/"
+      assert html =~ "/@#{s.slug}/downloads/"
     end
 
     test "shows :expired badge for grants whose expires_at is in the past",
@@ -121,7 +121,7 @@ defmodule EmakolaWeb.Storefront.AccountDownloadsLiveTest do
       past = DateTime.add(DateTime.utc_now(), -3600, :second)
       _g = issue_grant!(s, c, "old.zip", %{expires_at: past})
 
-      {:ok, _view, html} = conn |> log_in(c) |> live(~p"/s/#{s.slug}/account/downloads")
+      {:ok, _view, html} = conn |> log_in(c) |> live("/@#{s.slug}/account/downloads")
 
       assert html =~ "Expired" or html =~ "expired"
     end
@@ -135,7 +135,7 @@ defmodule EmakolaWeb.Storefront.AccountDownloadsLiveTest do
       |> Ash.Changeset.for_update(:increment_download_count, %{})
       |> Ash.update!(authorize?: false)
 
-      {:ok, _view, html} = conn |> log_in(c) |> live(~p"/s/#{s.slug}/account/downloads")
+      {:ok, _view, html} = conn |> log_in(c) |> live("/@#{s.slug}/account/downloads")
 
       assert html =~ "Limit reached" or html =~ "limit reached"
     end
@@ -147,7 +147,7 @@ defmodule EmakolaWeb.Storefront.AccountDownloadsLiveTest do
       other = register_customer!(s)
       _theirs = issue_grant!(s, other, "their-file.zip")
 
-      {:ok, _view, html} = conn |> log_in(c) |> live(~p"/s/#{s.slug}/account/downloads")
+      {:ok, _view, html} = conn |> log_in(c) |> live("/@#{s.slug}/account/downloads")
 
       assert html =~ "my-file.zip"
       refute html =~ "their-file.zip"

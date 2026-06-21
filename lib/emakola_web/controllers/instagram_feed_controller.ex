@@ -60,7 +60,7 @@ defmodule EmakolaWeb.InstagramFeedController do
     <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
       <channel>
         <title>#{xml_escape(store.name)} — Product Feed</title>
-        <link>#{base}/s/#{store.slug}</link>
+        <link>#{base}/@#{store.slug}</link>
         <description>Instagram Shopping product feed for #{xml_escape(store.name)}</description>
     #{items}
       </channel>
@@ -72,7 +72,7 @@ defmodule EmakolaWeb.InstagramFeedController do
     variant = first_variant(product)
     image = first_image_url(product)
     currency = Map.get(store, :currency) || "GHS"
-    link = "#{base}/s/#{store.slug}/products/#{product.slug}"
+    link = "#{base}/@#{store.slug}/products/#{product.slug}"
 
     """
         <item>

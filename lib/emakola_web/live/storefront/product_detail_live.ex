@@ -24,7 +24,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
         {:ok,
          socket
          |> put_flash(:error, "Product not found")
-         |> redirect(to: "/@#{slug}/products")}
+         |> redirect(to: "/#{slug}/products")}
 
       product ->
         option_types = load_option_types(product)

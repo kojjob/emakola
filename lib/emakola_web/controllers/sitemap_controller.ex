@@ -159,7 +159,7 @@ defmodule EmakolaWeb.SitemapController do
         Allow: /
         #{disallows}
 
-        Sitemap: #{base}/s/#{store.slug}/sitemap.xml
+        Sitemap: #{base}/@#{store.slug}/sitemap.xml
         """
 
         conn
@@ -246,9 +246,9 @@ defmodule EmakolaWeb.SitemapController do
   # Static pages every store has
   defp static_urls(slug, base_url) do
     [
-      %{loc: "#{base_url}/s/#{slug}", priority: "1.0", changefreq: "daily"},
-      %{loc: "#{base_url}/s/#{slug}/products", priority: "0.9", changefreq: "daily"},
-      %{loc: "#{base_url}/s/#{slug}/about", priority: "0.5", changefreq: "monthly"}
+      %{loc: "#{base_url}/@#{slug}", priority: "1.0", changefreq: "daily"},
+      %{loc: "#{base_url}/@#{slug}/products", priority: "0.9", changefreq: "daily"},
+      %{loc: "#{base_url}/@#{slug}/about", priority: "0.5", changefreq: "monthly"}
     ]
   end
 
@@ -262,7 +262,7 @@ defmodule EmakolaWeb.SitemapController do
 
     Enum.map(products, fn product ->
       %{
-        loc: "#{base_url}/s/#{store.slug}/products/#{product.slug}",
+        loc: "#{base_url}/@#{store.slug}/products/#{product.slug}",
         priority: "0.8",
         changefreq: "weekly",
         lastmod: format_date(product.updated_at)
@@ -280,7 +280,7 @@ defmodule EmakolaWeb.SitemapController do
 
     Enum.map(categories, fn cat ->
       %{
-        loc: "#{base_url}/s/#{store.slug}/category/#{cat.slug}",
+        loc: "#{base_url}/@#{store.slug}/category/#{cat.slug}",
         priority: "0.7",
         changefreq: "weekly",
         lastmod: format_date(cat.updated_at)
@@ -299,7 +299,7 @@ defmodule EmakolaWeb.SitemapController do
 
       Enum.map(posts, fn post ->
         %{
-          loc: "#{base_url}/s/#{store.slug}/blog/#{post.slug}",
+          loc: "#{base_url}/@#{store.slug}/blog/#{post.slug}",
           priority: "0.6",
           changefreq: "monthly",
           lastmod: format_date(post.updated_at)
@@ -341,7 +341,7 @@ defmodule EmakolaWeb.SitemapController do
   # Private paths that all crawlers should not access
   defp build_disallow_rules(slug) do
     ["/cart", "/checkout", "/account", "/wishlist", "/track/", "/orders/", "/auth/"]
-    |> Enum.map_join("\n", fn path -> "Disallow: /s/#{slug}#{path}" end)
+    |> Enum.map_join("\n", fn path -> "Disallow: /@#{slug}#{path}" end)
   end
 
   # Minimal XML escaping for URL values
@@ -377,7 +377,7 @@ defmodule EmakolaWeb.SitemapController do
 
   defp build_llms_txt(store, base, products, categories) do
     currency = Map.get(store, :currency, "GHS")
-    store_url = "#{base}/s/#{store.slug}"
+    store_url = "#{base}/@#{store.slug}"
 
     product_lines =
       Enum.map_join(products, "\n", fn p ->

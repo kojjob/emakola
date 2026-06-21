@@ -14,7 +14,7 @@ defmodule EmakolaWeb.Storefront.CustomerAuthLiveTest do
 
   describe "CustomerLoginLive" do
     test "renders login form", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/login")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/login")
 
       assert html =~ "Sign in"
       assert html =~ "Email"
@@ -23,21 +23,21 @@ defmodule EmakolaWeb.Storefront.CustomerAuthLiveTest do
     end
 
     test "has link to register page", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/login")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/login")
 
-      assert html =~ "/s/#{store.slug}/register"
+      assert html =~ "/@#{store.slug}/register"
       assert html =~ "Create one"
     end
 
     test "has link to continue shopping", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/login")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/login")
 
-      assert html =~ "/s/#{store.slug}"
+      assert html =~ "/@#{store.slug}"
       assert html =~ "Continue shopping"
     end
 
     test "shows error on invalid credentials", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/login")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/login")
 
       html =
         view
@@ -52,7 +52,7 @@ defmodule EmakolaWeb.Storefront.CustomerAuthLiveTest do
 
   describe "CustomerRegisterLive" do
     test "renders register form", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/register")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/register")
 
       assert html =~ "Create your account"
       assert html =~ "Email"
@@ -62,21 +62,21 @@ defmodule EmakolaWeb.Storefront.CustomerAuthLiveTest do
     end
 
     test "has link to login page", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/register")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/register")
 
-      assert html =~ "/s/#{store.slug}/login"
+      assert html =~ "/@#{store.slug}/login"
       assert html =~ "Sign in"
     end
 
     test "has link to continue shopping", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/register")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/register")
 
-      assert html =~ "/s/#{store.slug}"
+      assert html =~ "/@#{store.slug}"
       assert html =~ "Continue shopping"
     end
 
     test "shows name and phone as optional fields", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/register")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/register")
 
       assert html =~ "Name"
       assert html =~ "Phone"

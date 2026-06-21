@@ -26,7 +26,7 @@ defmodule Emakola.Themes.AkomaTest do
         )
 
       assert out =~ "Demo Store"
-      assert out =~ "/s/demo/cart"
+      assert out =~ "/@demo/cart"
       assert out =~ "2"
     end
 
@@ -53,7 +53,7 @@ defmodule Emakola.Themes.AkomaTest do
           })
         )
 
-      assert out =~ "/s/demo/products/tee"
+      assert out =~ "/@demo/products/tee"
       assert out =~ "Cotton Tee"
       assert out =~ "GH₵ 120"
     end
@@ -283,7 +283,7 @@ defmodule Emakola.Themes.AkomaTest do
 
       assert out =~ "Cotton Tee"
       assert out =~ "Wool Cap"
-      assert out =~ "/s/demo/products/tee"
+      assert out =~ "/@demo/products/tee"
     end
   end
 

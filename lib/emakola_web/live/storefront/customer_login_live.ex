@@ -32,8 +32,7 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
           token =
             EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(customer))
 
-          {:noreply,
-           redirect(socket, to: "/@#{store.slug}/auth/customer-session?token=#{token}")}
+          {:noreply, redirect(socket, to: "/@#{store.slug}/auth/customer-session?token=#{token}")}
         else
           {:noreply, assign(socket, :error_message, "Invalid email or password.")}
         end

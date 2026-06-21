@@ -199,9 +199,9 @@ defmodule EmakolaWeb.Helpers.SEOTest do
   describe "json_ld_breadcrumb/1" do
     test "generates BreadcrumbList JSON-LD" do
       crumbs = [
-        %{name: "Home", url: "/s/accra-styles"},
-        %{name: "Products", url: "/s/accra-styles/products"},
-        %{name: "Kente Cloth", url: "/s/accra-styles/products/kente-cloth"}
+        %{name: "Home", url: "/@accra-styles"},
+        %{name: "Products", url: "/@accra-styles/products"},
+        %{name: "Kente Cloth", url: "/@accra-styles/products/kente-cloth"}
       ]
 
       json_ld = SEO.json_ld_breadcrumb(crumbs)
@@ -216,7 +216,7 @@ defmodule EmakolaWeb.Helpers.SEOTest do
       assert first["@type"] == "ListItem"
       assert first["position"] == 1
       assert first["name"] == "Home"
-      assert first["item"] == "/s/accra-styles"
+      assert first["item"] == "/@accra-styles"
     end
 
     test "handles empty breadcrumbs" do
@@ -247,8 +247,8 @@ defmodule EmakolaWeb.Helpers.SEOTest do
         port: 443
       }
 
-      assert SEO.canonical_url(conn, "/s/store/products") ==
-               "https://example.com/s/store/products"
+      assert SEO.canonical_url(conn, "/@store/products") ==
+               "https://example.com/@store/products"
     end
 
     test "includes port if non-standard" do
@@ -258,7 +258,7 @@ defmodule EmakolaWeb.Helpers.SEOTest do
         port: 4000
       }
 
-      assert SEO.canonical_url(conn, "/s/store") == "http://localhost:4000/s/store"
+      assert SEO.canonical_url(conn, "/@store") == "http://localhost:4000/@store"
     end
 
     test "omits standard HTTPS port" do
@@ -325,7 +325,7 @@ defmodule EmakolaWeb.Helpers.SEOTest do
       assert result["@context"] == "https://schema.org"
       assert result["@type"] == "BlogPosting"
       assert result["headline"] == "5 Jollof Tips"
-      assert result["url"] == "http://localhost:4000/s/ama-kitchen/blog/5-jollof-tips"
+      assert result["url"] == "http://localhost:4000/@ama-kitchen/blog/5-jollof-tips"
       assert result["image"] == "https://cdn.example.com/jollof.jpg"
       assert result["datePublished"] == "2026-06-01T09:00:00.000000Z"
     end
@@ -388,7 +388,7 @@ defmodule EmakolaWeb.Helpers.SEOTest do
       assert result["@context"] == "https://schema.org"
       assert result["@type"] == "Recipe"
       assert result["name"] == "Ghana Jollof Rice"
-      assert result["url"] == "http://localhost:4000/s/ama-kitchen/recipes/ghana-jollof-rice"
+      assert result["url"] == "http://localhost:4000/@ama-kitchen/recipes/ghana-jollof-rice"
       assert result["image"] == "https://cdn.example.com/jollof.jpg"
       assert result["description"] == "Authentic smoky Ghana jollof."
     end
@@ -487,7 +487,7 @@ defmodule EmakolaWeb.Helpers.SEOTest do
       assert result["@context"] == "https://schema.org"
       assert result["@type"] == "LocalBusiness"
       assert result["name"] == "Ama's Kitchen"
-      assert result["url"] == "http://localhost:4000/s/ama-kitchen"
+      assert result["url"] == "http://localhost:4000/@ama-kitchen"
       assert result["image"] == "https://cdn.example.com/logo.png"
       assert result["telephone"] == "+233200000000"
       assert result["email"] == "hello@ama.example"

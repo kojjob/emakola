@@ -31,14 +31,14 @@ defmodule EmakolaWeb.Storefront.AccountLiveTest do
 
   describe "AccountLive" do
     test "renders customer account page with profile section", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/account")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/account")
 
       assert html =~ "My Account"
       assert html =~ "Profile"
     end
 
     test "shows profile tab with name, email, phone fields", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/account")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/account")
 
       assert html =~ "Name"
       assert html =~ "Email"
@@ -48,7 +48,7 @@ defmodule EmakolaWeb.Storefront.AccountLiveTest do
     end
 
     test "shows empty state when customer has no orders", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/account")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/account")
 
       assert html =~ "Recent Orders"
       assert html =~ "No orders yet"
@@ -61,7 +61,7 @@ defmodule EmakolaWeb.Storefront.AccountLiveTest do
         status: :delivered
       })
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/account")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/account")
 
       assert html =~ "Recent Orders"
       assert html =~ "ORD-"
@@ -75,13 +75,13 @@ defmodule EmakolaWeb.Storefront.AccountLiveTest do
     } do
       Factory.create_order!(store, %{customer_id: customer.id, total: 48_500})
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/account")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/account")
 
       assert html =~ "GH\u20B5"
     end
 
     test "tab navigation switches content", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/account")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/account")
 
       html = render_click(view, "switch_tab", %{"tab" => "orders"})
 
@@ -89,7 +89,7 @@ defmodule EmakolaWeb.Storefront.AccountLiveTest do
     end
 
     test "shows addresses tab content", %{conn: conn, store: store} do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/account")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/account")
 
       html = render_click(view, "switch_tab", %{"tab" => "addresses"})
 
@@ -116,7 +116,7 @@ defmodule EmakolaWeb.Storefront.AccountLiveTest do
       |> Ash.Changeset.for_update(:toggle_default, %{is_default: true})
       |> Ash.update!(authorize?: false)
 
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/account")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/account")
 
       html = render_click(view, "switch_tab", %{"tab" => "addresses"})
 
@@ -129,29 +129,29 @@ defmodule EmakolaWeb.Storefront.AccountLiveTest do
     test "redirects unauthenticated users to login", %{store: store} do
       conn = build_conn() |> Phoenix.ConnTest.init_test_session(%{})
 
-      assert {:error, {:redirect, %{to: "/s/ghana-shop/login"}}} =
-               live(conn, "/s/#{store.slug}/account")
+      assert {:error, {:redirect, %{to: "/@ghana-shop/login"}}} =
+               live(conn, "/@#{store.slug}/account")
     end
 
     test "redirects for non-existent store", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/s/no-such-store/account")
+      assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/@no-such-store/account")
     end
 
     test "sets page title with store name", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/account")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/account")
 
       assert html =~ "My Account"
     end
 
     test "shows sign out link", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/account")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/account")
 
       assert html =~ "Sign Out"
       assert html =~ "/auth/customer-logout"
     end
 
     test "shows customer initials in avatar", %{conn: conn, store: store} do
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/account")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/account")
 
       assert html =~ "AM"
     end

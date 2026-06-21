@@ -100,7 +100,7 @@ defmodule EmakolaWeb.Auth.RegisterLiveTest do
       # current_store resolved to the created store (preview renders its name + slug)
       assert html =~ "Choose Your Look"
       assert html =~ store.name
-      assert html =~ "/s/#{store.slug}"
+      assert html =~ "/@#{store.slug}"
     end
   end
 end

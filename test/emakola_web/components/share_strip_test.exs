@@ -21,7 +21,7 @@ defmodule EmakolaWeb.StorefrontComponents.ShareStripTest do
 
       html =
         rendered_to_string(~H"""
-        <.share_strip url="https://example.com/s/test/products/widget" title="Cool Widget" />
+        <.share_strip url="https://example.com/@test/products/widget" title="Cool Widget" />
         """)
 
       assert html =~ "WhatsApp"

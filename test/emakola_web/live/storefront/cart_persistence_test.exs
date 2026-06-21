@@ -37,7 +37,7 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
       conn = init_test_session(conn, %{"cart_session_id" => session_id})
 
       # First visit: add item to cart from product detail
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/products/#{product.slug}")
       render_click(view, "add_to_cart")
 
       # Verify item is in CartStore
@@ -45,7 +45,7 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
       assert vid == variant.id
 
       # Second visit: navigate to cart page (simulates page refresh/navigation)
-      {:ok, _cart_view, cart_html} = live(conn, "/s/#{store.slug}/cart")
+      {:ok, _cart_view, cart_html} = live(conn, "/@#{store.slug}/cart")
 
       # Cart should show the item from CartStore
       assert cart_html =~ "Persisted Item"
@@ -56,7 +56,7 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
       store: store,
       product: product
     } do
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/products/#{product.slug}")
 
       html = render_click(view, "add_to_cart")
 
@@ -81,7 +81,7 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
         conn
         |> init_test_session(%{"cart_session_id" => session_id})
 
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/cart")
+      {:ok, _view, html} = live(conn, "/@#{store.slug}/cart")
 
       assert html =~ "Pre-loaded Item"
       assert html =~ "3 items"
@@ -105,7 +105,7 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
 
       conn = init_test_session(conn, %{"cart_session_id" => session_id})
 
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/cart")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/cart")
 
       html = render_click(view, "remove_item", %{"index" => "0"})
 
@@ -126,7 +126,7 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
 
       conn = init_test_session(conn, %{"cart_session_id" => session_id})
 
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/cart")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/cart")
 
       # Increment quantity
       render_click(view, "update_quantity", %{"index" => "0", "delta" => "1"})
@@ -154,9 +154,9 @@ defmodule EmakolaWeb.Storefront.CartPersistenceTest do
 
       conn = init_test_session(conn, %{"cart_session_id" => session_id})
 
-      {:ok, view, _html} = live(conn, "/s/#{store.slug}/cart")
+      {:ok, view, _html} = live(conn, "/@#{store.slug}/cart")
 
-      assert {:error, {:live_redirect, %{to: "/s/" <> _}}} = render_click(view, "checkout")
+      assert {:error, {:live_redirect, %{to: "/@" <> _}}} = render_click(view, "checkout")
 
       # Cart is NOT cleared yet — preserved until payment confirms
       assert CartStore.get_cart(session_id, store.id) != []

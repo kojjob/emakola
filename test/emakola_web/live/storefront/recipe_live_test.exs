@@ -24,7 +24,7 @@ defmodule EmakolaWeb.Storefront.RecipeLiveTest do
     post |> Ash.Changeset.for_update(:publish) |> Ash.update!(authorize?: false)
     Factory.create_recipe_meta!(post, %{prep_time: 20, cook_time: 40, servings: 6})
 
-    {:ok, _view, html} = live(conn, "/s/#{store.slug}/recipes/#{post.slug}")
+    {:ok, _view, html} = live(conn, "/@#{store.slug}/recipes/#{post.slug}")
 
     assert html =~ ~s("@type":"Recipe")
     assert html =~ ~s("name":"Ghana Jollof Rice")
@@ -32,13 +32,13 @@ defmodule EmakolaWeb.Storefront.RecipeLiveTest do
     assert html =~ ~s("prepTime":"PT20M")
 
     assert html =~
-             ~s(<link rel="canonical" href="http://localhost:4000/s/#{store.slug}/recipes/#{post.slug}")
+             ~s(<link rel="canonical" href="http://localhost:4000/@#{store.slug}/recipes/#{post.slug}")
 
     assert html =~
              ~s(<meta name="description" content="Authentic smoky Ghana jollof rice recipe.")
   end
 
   test "redirects when recipe not found", %{conn: conn, store: store} do
-    assert {:error, {:redirect, _}} = live(conn, "/s/#{store.slug}/recipes/nonexistent")
+    assert {:error, {:redirect, _}} = live(conn, "/@#{store.slug}/recipes/nonexistent")
   end
 end

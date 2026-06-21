@@ -2,7 +2,7 @@ defmodule EmakolaWeb.Plugs.RecentlyViewedStoresTest do
   @moduledoc """
   Pins the contract for `RecentlyViewedStores`:
 
-    * Visiting `/s/<slug>` prepends the slug to the cookie
+    * Visiting `/@<slug>` prepends the slug to the cookie
     * Subsequent visits to a NEW slug push it to the front (LRU order)
     * Re-visiting an existing slug dedupes — moves it to front, no duplicate
     * The list is capped at 8 entries (oldest fall off)
@@ -47,40 +47,40 @@ defmodule EmakolaWeb.Plugs.RecentlyViewedStoresTest do
   end
 
   describe "call/2 — storefront slug capture" do
-    test "first visit to /s/foo sets the cookie to \"foo\"" do
-      conn = visit("/s/foo")
+    test "first visit to /@foo sets the cookie to \"foo\"" do
+      conn = visit("/@foo")
 
       assert conn.cookies[@cookie_name] == "foo"
       assert %{value: "foo", http_only: true, same_site: "Lax"} = conn.resp_cookies[@cookie_name]
     end
 
     test "captures slug ignoring trailing path segments" do
-      conn = visit("/s/foo/products/123")
+      conn = visit("/@foo/products/123")
 
       assert conn.cookies[@cookie_name] == "foo"
     end
 
-    test "subsequent visit to /s/bar prepends to the existing cookie" do
-      conn = visit("/s/bar", "foo")
+    test "subsequent visit to /@bar prepends to the existing cookie" do
+      conn = visit("/@bar", "foo")
 
       assert conn.cookies[@cookie_name] == "bar,foo"
     end
 
     test "re-visiting an existing store dedupes and moves it to the front" do
-      conn = visit("/s/foo", "bar,foo")
+      conn = visit("/@foo", "bar,foo")
 
       assert conn.cookies[@cookie_name] == "foo,bar"
     end
 
     test "re-visiting a slug already at the front leaves the order unchanged" do
-      conn = visit("/s/foo", "foo,bar,baz")
+      conn = visit("/@foo", "foo,bar,baz")
 
       assert conn.cookies[@cookie_name] == "foo,bar,baz"
     end
 
     test "caps the list at 8 entries (oldest dropped)" do
       prior = "s7,s6,s5,s4,s3,s2,s1,s0"
-      conn = visit("/s/s8", prior)
+      conn = visit("/@s8", prior)
 
       slugs = String.split(conn.cookies[@cookie_name], ",")
 
@@ -92,7 +92,7 @@ defmodule EmakolaWeb.Plugs.RecentlyViewedStoresTest do
     end
 
     test "sets cookie attributes: http_only, same_site=Lax, 30-day max-age, unsigned" do
-      conn = visit("/s/foo")
+      conn = visit("/@foo")
       cookie = conn.resp_cookies[@cookie_name]
 
       assert cookie.http_only == true
@@ -123,15 +123,15 @@ defmodule EmakolaWeb.Plugs.RecentlyViewedStoresTest do
 
   describe "call/2 — slug sanitization" do
     for {label, path} <- [
-          {"path traversal", "/s/../etc/passwd"},
-          {"semicolon injection", "/s/foo;bar"},
-          {"uppercase letters", "/s/Foo"},
-          {"empty slug after /s/", "/s/"},
-          {"trailing slash with empty slug", "/s//products"},
-          {"percent-encoded dot-dot", "/s/%2E%2E"},
-          {"underscore (not in allowlist)", "/s/foo_bar"},
-          {"slug starting with hyphen", "/s/-foo"},
-          {"slug with whitespace", "/s/foo bar"}
+          {"path traversal", "/@../etc/passwd"},
+          {"semicolon injection", "/@foo;bar"},
+          {"uppercase letters", "/@Foo"},
+          {"empty slug after /@", "/@"},
+          {"trailing slash with empty slug", "/@/products"},
+          {"percent-encoded dot-dot", "/@%2E%2E"},
+          {"underscore (not in allowlist)", "/@foo_bar"},
+          {"slug starting with hyphen", "/@-foo"},
+          {"slug with whitespace", "/@foo bar"}
         ] do
       test "rejects #{label} (#{path}) — cookie unchanged" do
         conn = visit(unquote(path), "previous")
@@ -144,14 +144,14 @@ defmodule EmakolaWeb.Plugs.RecentlyViewedStoresTest do
 
     test "accepts a 63-char slug (boundary)" do
       slug = String.duplicate("a", 63)
-      conn = visit("/s/" <> slug)
+      conn = visit("/@" <> slug)
 
       assert conn.cookies[@cookie_name] == slug
     end
 
     test "rejects a 64-char slug (over boundary) — cookie unchanged" do
       slug = String.duplicate("a", 64)
-      conn = visit("/s/" <> slug, "kept")
+      conn = visit("/@" <> slug, "kept")
 
       refute Map.has_key?(conn.resp_cookies, @cookie_name)
       assert conn.cookies[@cookie_name] == "kept"

@@ -37,7 +37,7 @@ defmodule EmakolaWeb.Plugs.CustomerOAuthTenant do
 
   # Request phase: the button passes ?store_slug=…; resolve + stash for the callback.
   defp stash_store(%{params: %{"store_slug" => slug}} = conn) when is_binary(slug) do
-    case Emakola.Stores.get_store_by_slug(slug, authorize?: false) do
+    case Emakola.Stores.get_store_by_slug(String.trim_leading(slug, "@"), authorize?: false) do
       {:ok, store} ->
         conn
         |> put_session(@store_id_key, store.id)

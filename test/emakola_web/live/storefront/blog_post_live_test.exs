@@ -18,13 +18,13 @@ defmodule EmakolaWeb.Storefront.BlogPostLiveTest do
 
     post |> Ash.Changeset.for_update(:publish) |> Ash.update!(authorize?: false)
 
-    {:ok, _view, html} = live(conn, "/s/#{store.slug}/blog/#{post.slug}")
+    {:ok, _view, html} = live(conn, "/@#{store.slug}/blog/#{post.slug}")
     assert html =~ "My Great Post"
     assert html =~ "Hello world"
   end
 
   test "redirects when post not found", %{conn: conn, store: store} do
-    assert {:error, {:redirect, _}} = live(conn, "/s/#{store.slug}/blog/nonexistent")
+    assert {:error, {:redirect, _}} = live(conn, "/@#{store.slug}/blog/nonexistent")
   end
 
   test "emits Article JSON-LD, apex canonical, and meta description", %{conn: conn, store: store} do
@@ -39,10 +39,10 @@ defmodule EmakolaWeb.Storefront.BlogPostLiveTest do
 
     post |> Ash.Changeset.for_update(:publish) |> Ash.update!(authorize?: false)
 
-    {:ok, _view, html} = live(conn, "/s/#{store.slug}/blog/#{post.slug}")
+    {:ok, _view, html} = live(conn, "/@#{store.slug}/blog/#{post.slug}")
 
     assert html =~
-             ~s(<link rel="canonical" href="http://localhost:4000/s/#{store.slug}/blog/#{post.slug}")
+             ~s(<link rel="canonical" href="http://localhost:4000/@#{store.slug}/blog/#{post.slug}")
 
     assert html =~ ~s("@type":"BlogPosting")
     assert html =~ ~s("headline":"Smoky Jollof Secrets")

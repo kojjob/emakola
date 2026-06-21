@@ -43,7 +43,7 @@ defmodule Emakola.Cart.WhatsappOrderTextTest do
       assert msg =~ "• 2 × Ankara Wrap Dress (M, Red) — GH₵ 240"
       assert msg =~ "Total: GH₵ 240"
       assert msg =~ "Sent from Akosua's Boutique's online shop:"
-      assert msg =~ "https://e.x/s/akosua-boutique?ref=whatsapp"
+      assert msg =~ "https://e.x/@akosua-boutique?ref=whatsapp"
     end
 
     test "includes customer name in greeting when provided" do

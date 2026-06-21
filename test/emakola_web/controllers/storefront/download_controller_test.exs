@@ -86,7 +86,7 @@ defmodule EmakolaWeb.Storefront.DownloadControllerTest do
     {:ok, conn: conn, store: store, customer: customer, grant: grant}
   end
 
-  describe "GET /s/:store_slug/downloads/:id" do
+  describe "GET /@:store_slug/downloads/:id" do
     test "redirects to presigned URL for a valid owner", %{
       conn: conn,
       store: s,
@@ -97,13 +97,13 @@ defmodule EmakolaWeb.Storefront.DownloadControllerTest do
         {:ok, "https://cdn.example/sig?token=abc"}
       end)
 
-      conn = conn |> log_in(c) |> get(~p"/s/#{s.slug}/downloads/#{g.id}")
+      conn = conn |> log_in(c) |> get("/@#{s.slug}/downloads/#{g.id}")
 
       assert redirected_to(conn, 302) == "https://cdn.example/sig?token=abc"
     end
 
     test "returns 401 when no customer session is present", %{conn: conn, store: s, grant: g} do
-      conn = get(conn, ~p"/s/#{s.slug}/downloads/#{g.id}")
+      conn = get(conn, "/@#{s.slug}/downloads/#{g.id}")
 
       assert conn.status == 401
     end
@@ -111,14 +111,14 @@ defmodule EmakolaWeb.Storefront.DownloadControllerTest do
     test "returns 404 when another customer tries to download", %{conn: conn, store: s, grant: g} do
       other = register_customer!(s, "other-#{System.unique_integer([:positive])}@example.com")
 
-      conn = conn |> log_in(other) |> get(~p"/s/#{s.slug}/downloads/#{g.id}")
+      conn = conn |> log_in(other) |> get("/@#{s.slug}/downloads/#{g.id}")
 
       assert conn.status == 404
     end
 
     test "returns 404 for an unknown grant id", %{conn: conn, store: s, customer: c} do
       fake_id = Ecto.UUID.generate()
-      conn = conn |> log_in(c) |> get(~p"/s/#{s.slug}/downloads/#{fake_id}")
+      conn = conn |> log_in(c) |> get("/@#{s.slug}/downloads/#{fake_id}")
 
       assert conn.status == 404
     end
@@ -127,7 +127,7 @@ defmodule EmakolaWeb.Storefront.DownloadControllerTest do
       past = DateTime.add(DateTime.utc_now(), -60, :second)
       grant = issue_grant!(s, c, %{expires_at: past})
 
-      conn = conn |> log_in(c) |> get(~p"/s/#{s.slug}/downloads/#{grant.id}")
+      conn = conn |> log_in(c) |> get("/@#{s.slug}/downloads/#{grant.id}")
 
       assert conn.status == 410
       assert conn.resp_body =~ "expired"
@@ -139,12 +139,12 @@ defmodule EmakolaWeb.Storefront.DownloadControllerTest do
 
       # First download succeeds (consumes the limit)
       expect(Emakola.StorageMock, :presigned_url, fn _, _ -> {:ok, "https://cdn/sig"} end)
-      conn1 = conn |> log_in(c) |> get(~p"/s/#{s.slug}/downloads/#{grant.id}")
+      conn1 = conn |> log_in(c) |> get("/@#{s.slug}/downloads/#{grant.id}")
       assert redirected_to(conn1, 302) == "https://cdn/sig"
 
       # Second download is refused; storage must NOT be called again.
       conn2 =
-        Phoenix.ConnTest.build_conn() |> log_in(c) |> get(~p"/s/#{s.slug}/downloads/#{grant.id}")
+        Phoenix.ConnTest.build_conn() |> log_in(c) |> get("/@#{s.slug}/downloads/#{grant.id}")
 
       assert conn2.status == 410
       assert conn2.resp_body =~ "limit"
@@ -158,7 +158,7 @@ defmodule EmakolaWeb.Storefront.DownloadControllerTest do
     } do
       expect(Emakola.StorageMock, :presigned_url, fn _, _ -> {:error, :s3_unavailable} end)
 
-      conn = conn |> log_in(c) |> get(~p"/s/#{s.slug}/downloads/#{g.id}")
+      conn = conn |> log_in(c) |> get("/@#{s.slug}/downloads/#{g.id}")
 
       assert conn.status == 503
     end
@@ -167,7 +167,7 @@ defmodule EmakolaWeb.Storefront.DownloadControllerTest do
          %{conn: conn, store: s, customer: c} do
       grant = issue_grant!(s, c, %{customer_id: nil})
 
-      conn = conn |> log_in(c) |> get(~p"/s/#{s.slug}/downloads/#{grant.id}")
+      conn = conn |> log_in(c) |> get("/@#{s.slug}/downloads/#{grant.id}")
 
       assert conn.status == 404
     end
