@@ -13,7 +13,7 @@ defmodule EmakolaWeb.Auth.WhatsAppLive do
 
   @impl true
   def handle_event("send_code", %{"phone" => %{"cc" => cc, "number" => number}}, socket) do
-    phone = PhoneAuth.normalize(cc <> number)
+    phone = PhoneAuth.to_e164(cc, number)
 
     case PhoneAuth.request_code(phone, :merchant) do
       :ok ->

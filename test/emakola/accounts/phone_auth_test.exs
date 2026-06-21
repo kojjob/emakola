@@ -45,4 +45,19 @@ defmodule Emakola.Accounts.PhoneAuthTest do
     assert :ok = PhoneAuth.request_code("0509999999", :merchant)
     assert {:error, :invalid} = PhoneAuth.verify_code("0509999999", "000000", :merchant)
   end
+
+  describe "to_e164/2" do
+    test "drops a single leading trunk-0 from the national number" do
+      assert PhoneAuth.to_e164("+233", "0501234567") == "+233501234567"
+    end
+
+    test "a national number with and without the trunk-0 agree" do
+      assert PhoneAuth.to_e164("+233", "0501234567") ==
+               PhoneAuth.to_e164("+233", "501234567")
+    end
+
+    test "strips non-digit separators from the national number" do
+      assert PhoneAuth.to_e164("+233", "050 123 4567") == "+233501234567"
+    end
+  end
 end

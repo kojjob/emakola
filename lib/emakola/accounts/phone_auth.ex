@@ -55,6 +55,23 @@ defmodule Emakola.Accounts.PhoneAuth do
     end
   end
 
+  @doc """
+  Combine a country code with a national number into E.164.
+
+  Strips non-digit separators from `number` and drops a single leading trunk-0
+  (e.g. Ghana `0501234567`), so the national number entered with or without the
+  trunk-0 yields the same result. The combined value is run through the same
+  E.164 cleanup as `normalize/1`.
+  """
+  def to_e164(cc, number) do
+    national =
+      number
+      |> String.replace(~r/\D/, "")
+      |> String.replace_prefix("0", "")
+
+    normalize(cc <> national)
+  end
+
   defp generate_code, do: 100_000..999_999 |> Enum.random() |> Integer.to_string()
 
   defp store(phone, code, purpose, opts) do
