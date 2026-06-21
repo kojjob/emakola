@@ -1,6 +1,7 @@
 defmodule EmakolaWeb.Auth.LoginLive do
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.AuthComponents
   import EmakolaWeb.OAuthComponents
 
   require Logger
@@ -84,15 +85,12 @@ defmodule EmakolaWeb.Auth.LoginLive do
               Create Account
             </a>
           </div>
-          <!-- WhatsApp Button -->
-          <button
-            type="button"
-            disabled
-            class="w-full flex items-center justify-center gap-2 bg-whatsapp hover:bg-[#20bd5a] text-white font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm mb-6 opacity-50 cursor-not-allowed"
-          >
-            <span class="material-symbols-outlined text-xl">chat</span>
-            Continue with WhatsApp (Coming Soon)
-          </button>
+          <!-- WhatsApp Button (ship-dark: shown only when phone auth is enabled) -->
+          <.whatsapp_button
+            :if={Emakola.Accounts.PhoneAuth.enabled?()}
+            href={~p"/auth/whatsapp"}
+            class="mb-6"
+          />
           <.oauth_buttons subject="merchant" class="mb-6" />
           <!-- OR EMAIL Divider -->
           <div class="relative mb-6">
