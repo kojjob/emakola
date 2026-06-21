@@ -7,13 +7,13 @@ defmodule EmakolaWeb.Hooks.ResolveStoreSubdomainFlagTest do
     %{store: store}
   end
 
-  test "storefront LiveView assigns on_store_subdomain? when served on a subdomain", %{
+  test "storefront LiveView assigns on_store_subdomain? when the session flag is set", %{
     conn: conn,
     store: store
   } do
-    # ResolveStoreByHost stashes this in conn.private during endpoint resolution;
-    # the :browser pipeline copies it into the session for the hook to read.
-    conn = Plug.Conn.put_private(conn, :emakola_on_store_subdomain?, true)
+    # Host-routed storefront requests carry this flag in the session
+    # (ResolveStoreHost sets it); the /s/:slug ResolveStore hook reads it.
+    conn = Phoenix.ConnTest.init_test_session(conn, %{"on_store_subdomain?" => true})
     {:ok, view, _html} = live(conn, ~p"/s/#{store.slug}")
     assert :sys.get_state(view.pid).socket.assigns.on_store_subdomain? == true
   end

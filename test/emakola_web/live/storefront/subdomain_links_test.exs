@@ -14,7 +14,7 @@ defmodule EmakolaWeb.Storefront.SubdomainLinksTest do
   end
 
   test "on the subdomain, nav links omit /s/:slug", %{conn: conn, store: store} do
-    conn = Plug.Conn.put_private(conn, :emakola_on_store_subdomain?, true)
+    conn = Phoenix.ConnTest.init_test_session(conn, %{"on_store_subdomain?" => true})
     {:ok, _v, html} = live(conn, "/s/#{store.slug}/login")
     assert html =~ ~s(href="/whatsapp")
     refute html =~ ~s(href="/s/#{store.slug}/whatsapp")
@@ -30,7 +30,7 @@ defmodule EmakolaWeb.Storefront.SubdomainLinksTest do
     conn: conn,
     store: store
   } do
-    conn = Plug.Conn.put_private(conn, :emakola_on_store_subdomain?, true)
+    conn = Phoenix.ConnTest.init_test_session(conn, %{"on_store_subdomain?" => true})
     {:ok, _v, html} = live(conn, "/s/#{store.slug}")
     assert html =~ ~s(href="/products")
     refute html =~ ~s(href="/s/#{store.slug}/products")

@@ -63,22 +63,16 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHostTest do
     assert Plug.Conn.get_resp_header(conn, "location") == ["http://localhost:4000/s/sub-shop"]
   end
 
-  test "serve-in-place rewrites the path to the /s/:slug subfolder", %{store: store} do
+  # serve_in_place? domains are no longer rewritten here — the router host-routes
+  # the storefront at root (ResolveStoreHost + the catch-all), so this plug passes
+  # them through untouched, leaving conn.path_info as-is.
+  test "passes a serve-in-place domain through (router host-routes it at root)", %{store: store} do
     claim!(store, "sub-shop.makola.io", %{serve_in_place?: true})
 
     conn = ResolveStoreByHost.call(conn_for("sub-shop.makola.io", "/products"), @opts)
 
     refute conn.halted
-    assert conn.path_info == ["s", "sub-shop", "products"]
-  end
-
-  test "serve-in-place does not double-prefix an internal /s/:slug path", %{store: store} do
-    claim!(store, "sub-shop.makola.io", %{serve_in_place?: true})
-
-    conn = ResolveStoreByHost.call(conn_for("sub-shop.makola.io", "/s/sub-shop/cart"), @opts)
-
-    refute conn.halted
-    assert conn.path_info == ["s", "sub-shop", "cart"]
+    assert conn.path_info == ["products"]
   end
 
   test "passes an unknown subdomain through" do
@@ -87,15 +81,18 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHostTest do
     assert conn.path_info == []
   end
 
-  test "implicitly serves <slug>.<base> in place with no StoreDomain row", %{store: store} do
+  # No StoreDomain row: the implicit <slug>.<base> subdomain is no longer rewritten
+  # here. It passes through to the router, which host-routes it at root.
+  test "passes an implicit <slug>.<base> subdomain through with no StoreDomain row",
+       %{store: store} do
     conn = ResolveStoreByHost.call(conn_for("#{store.slug}.makola.io", "/products"), @opts)
 
     refute conn.halted
-    assert conn.path_info == ["s", store.slug, "products"]
-    assert conn.private[:emakola_on_store_subdomain?] == true
+    assert conn.path_info == ["products"]
+    refute conn.private[:emakola_on_store_subdomain?]
   end
 
-  test "a reserved label is never served implicitly, even if a store has that slug" do
+  test "a reserved label passes through (never redirected to a subfolder)" do
     create_store!(%{name: "Admin Co", slug: "admin"})
 
     conn = ResolveStoreByHost.call(conn_for("admin.makola.io", "/"), @opts)
