@@ -131,6 +131,9 @@ defmodule Emakola.Accounts.Merchant do
 
   identities do
     identity(:unique_email, [:email])
+    # Phone is a login method (WhatsApp/SMS OTP); nullable, so Postgres allows
+    # many email-only rows (multiple NULLs) — only set phones must be unique.
+    identity(:unique_phone, [:phone])
   end
 
   policies do

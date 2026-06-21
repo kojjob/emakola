@@ -151,6 +151,7 @@ defmodule Emakola.Customers.Customer do
     # Required by AshAuthentication password strategy; real uniqueness is
     # enforced by the composite :unique_store_email identity above.
     identity(:unique_email, [:email])
+    identity(:unique_store_phone, [:store_id, :phone])
   end
 
   policies do
