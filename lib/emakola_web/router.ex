@@ -213,6 +213,7 @@ defmodule EmakolaWeb.Router do
       session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
       live "/login", CustomerLoginLive
       live "/register", CustomerRegisterLive
+      live "/whatsapp", CustomerWhatsAppLive
     end
   end
 
