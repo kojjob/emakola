@@ -387,6 +387,12 @@ defmodule Emakola.Stores.Store do
     end
   end
 
+  changes do
+    # Ship-dark: provisions a serve-in-place primary <slug>.<base> StoreDomain
+    # after the store is created (best-effort; reserved slugs are skipped).
+    change(Emakola.Stores.Changes.ProvisionSubdomain, on: [:create])
+  end
+
   @doc """
   Returns `true` if the store has opted into selling `product_type` —
   i.e. the type is present in `:enabled_product_types`. Use this to gate
