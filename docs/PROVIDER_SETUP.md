@@ -467,6 +467,33 @@ Notes:
   domain lives in one config (`:mail_from_domain`); nothing is hardcoded.
 - Until DNS is done, everything works on `https://emakola.fly.dev`.
 
+### 9d. Store subdomains — pretty storefront URLs (`tiny-stitches.makola.io`)
+
+Every store's storefront serves at `<slug>.<base>` (e.g. `tiny-stitches.makola.io/cart`)
+with the branded host kept in the address bar; the indexed canonical stays the apex
+subfolder (`makola.io/s/<slug>`), so SEO authority stays consolidated. **Ships dark** —
+nothing changes until the three steps below. No per-store provisioning or backfill is
+needed: `<slug>.<base>` resolves implicitly (reserved labels like `www`/`admin`/`api`
+are never served).
+
+```bash
+# 1. Wildcard TLS for every store subdomain
+fly certs add '*.makola.io' --app emakola
+
+# 2. Turn the feature on (the apex base; storefront hosts are <slug>.<base>)
+fly secrets set STORE_SUBDOMAIN_BASE=makola.io --app emakola
+```
+
+3. **Wildcard DNS** at the registrar — add `*.makola.io` pointing at the **same**
+   Fly IPs as the apex (Namecheap: `A`/`AAAA` records for host `*` mirroring section 9a).
+   `fly certs show '*.makola.io'` lists exactly what's needed.
+
+Notes:
+- `check_origin` already allows the `*.PHX_HOST` wildcard (section 9c) — no code change.
+- Custom vanity labels (a merchant claiming `ama-kitchen.makola.io` instead of their
+  slug) and full custom domains are explicit `StoreDomain` records managed from the
+  merchant's **Storefront address** settings; those take precedence over the implicit slug.
+
 ---
 
 ## 🔟 Sentry — error monitoring (optional, recommended)

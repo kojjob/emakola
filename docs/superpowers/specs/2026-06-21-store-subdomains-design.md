@@ -8,6 +8,13 @@ Beautify storefront URLs: `makola.io/s/tiny-stitches/cart` → **`tiny-stitches.
 - **Canonical stays the subfolder** — `rel=canonical` + sitemap keep pointing to `makola.io/s/:slug`, so SEO authority stays consolidated on the strong apex (our original strategy). Pretty for users, unchanged for ranking.
 - **Every store auto-gets `<slug>.makola.io`** (reserved-word guarded). No merchant action required.
 
+> **Implementation note (2026-06-21):** shipped via *implicit* resolution, not
+> provisioned `StoreDomain` rows. `ResolveStoreByHost` serves `<slug>.<base>` in
+> place with no row (reserved-guarded), so "every store auto-gets a subdomain"
+> needs no provisioning change or backfill (the plan's Tasks 4–5 were dropped).
+> Explicit rows still exist for custom vanity labels / custom domains and take
+> precedence. This also resolves a collision with the pre-existing manual claim panel.
+
 ## What already exists (reuse — most of the *serving* is built, ship-dark)
 - **`Emakola.Stores.StoreDomain`** — host→store map; `host` (unique, normalized), `type` (:subdomain/:custom), `serve_in_place?`, `primary?`, `status`, `verified_at`.
 - **`EmakolaWeb.Plugs.ResolveStoreByHost`** (in the endpoint, before the router) — default 301→`/s/:slug`; when the `StoreDomain` has `serve_in_place?: true`, it **rewrites `conn.path_info`** to `["s", slug | rest]` and serves in place. Gated on `config :emakola, :store_subdomain_base` (env `STORE_SUBDOMAIN_BASE`, default nil = dark).
