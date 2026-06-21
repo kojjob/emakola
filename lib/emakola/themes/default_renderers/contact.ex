@@ -81,13 +81,12 @@ defmodule Emakola.Themes.DefaultRenderers.Contact do
           value={@store.whatsapp_number}
           href={"https://wa.me/#{@store.whatsapp_number}"}
         />
-        <.contact_row :if={@address} icon="location_on" label="Visit us" value={@address} href={nil} />
+        <.contact_row :if={@address} icon="location_on" label="Visit us" value={@address} />
         <.contact_row
           :if={@contact_hours}
           icon="schedule"
           label="Opening hours"
           value={@contact_hours}
-          href={nil}
         />
       </div>
 

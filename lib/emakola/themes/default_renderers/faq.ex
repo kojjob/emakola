@@ -75,8 +75,9 @@ defmodule Emakola.Themes.DefaultRenderers.Faq do
   end
 
   defp valid_item?(item) when is_map(item) do
-    question = item_field(item, "question")
-    is_binary(question) and String.trim(question) != ""
+    # item_field/2 always returns a binary, so a non-empty trimmed question
+    # is the only validity condition.
+    String.trim(item_field(item, "question")) != ""
   end
 
   defp valid_item?(_), do: false

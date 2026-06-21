@@ -45,7 +45,7 @@ defmodule EmakolaWeb.Admin.Content.PageContentLive do
          )}
 
       _ ->
-        {:ok, socket |> put_flash(:error, "Select a store first") |> redirect(to: ~p"/admin")}
+        {:ok, socket |> put_flash(:error, "Select a store first") |> redirect(to: ~p"/dashboard")}
     end
   end
 
