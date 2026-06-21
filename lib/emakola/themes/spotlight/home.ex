@@ -3,6 +3,8 @@ defmodule Emakola.Themes.Spotlight.Home do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.Spotlight.Shared
 
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
@@ -44,7 +46,7 @@ defmodule Emakola.Themes.Spotlight.Home do
             </p>
             <div :if={@hero_product} class="mt-7">
               <a
-                href={"/s/#{@store.slug}/products/#{@hero_product.slug}"}
+                href={store_path(@store.slug, "/products/#{@hero_product.slug}")}
                 class="inline-block rounded-full spot-cta px-8 py-3.5 text-sm font-semibold uppercase tracking-wider"
               >
                 {Map.get(@hero, :cta_text, "Choose yours")}
@@ -153,7 +155,7 @@ defmodule Emakola.Themes.Spotlight.Home do
           <p class="text-[#6B675F] mt-4">{Map.get(@closing, :subtitle)}</p>
           <a
             :if={@hero_product}
-            href={"/s/#{@store.slug}/products/#{@hero_product.slug}"}
+            href={store_path(@store.slug, "/products/#{@hero_product.slug}")}
             class="inline-block mt-7 rounded-full spot-cta px-8 py-3.5 text-sm font-semibold uppercase tracking-wider"
           >
             {Map.get(@closing, :button_text, "Get yours")}

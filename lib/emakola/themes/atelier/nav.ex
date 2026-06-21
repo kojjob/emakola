@@ -13,6 +13,7 @@ defmodule Emakola.Themes.Atelier.Nav do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Phoenix.LiveView.JS
@@ -56,7 +57,7 @@ defmodule Emakola.Themes.Atelier.Nav do
         <div class="flex items-center justify-between h-16 sm:h-20">
           <%!-- Left: Store logo or name --%>
           <a
-            href={"/s/#{@store.slug}"}
+            href={store_path(@store.slug, "/")}
             class="cursor-pointer transition-opacity duration-200 hover:opacity-80 min-h-[44px] flex items-center gap-2.5"
           >
             <.optimized_image
@@ -77,7 +78,7 @@ defmodule Emakola.Themes.Atelier.Nav do
           <%!-- Center: Nav links (Desktop only — hidden below xl for long category names) --%>
           <div class="hidden xl:flex items-center gap-5">
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class={[
                 "atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center whitespace-nowrap",
                 if(@active_path in ["/", "/products", nil] and @active_path != nil,
@@ -95,7 +96,7 @@ defmodule Emakola.Themes.Atelier.Nav do
             </a>
             <a
               :for={category <- Enum.take(@categories, 3)}
-              href={"/s/#{@store.slug}/category/#{category.slug}"}
+              href={store_path(@store.slug, "/category/#{category.slug}")}
               class={[
                 "atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center whitespace-nowrap max-w-[160px] truncate",
                 if(@active_path == "/category/#{category.slug}",
@@ -113,7 +114,7 @@ defmodule Emakola.Themes.Atelier.Nav do
               />
             </a>
             <a
-              href={"/s/#{@store.slug}/blog"}
+              href={store_path(@store.slug, "/blog")}
               class="atelier-nav-link relative text-sm font-medium cursor-pointer transition-colors duration-200 hover:text-gray-900 min-h-[44px] flex items-center text-gray-600 whitespace-nowrap"
             >
               Journal
@@ -167,7 +168,7 @@ defmodule Emakola.Themes.Atelier.Nav do
 
             <%!-- Cart --%>
             <a
-              href={"/s/#{@store.slug}/cart"}
+              href={store_path(@store.slug, "/cart")}
               class="atelier-nav-icon relative flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
               aria-label={"Shopping cart, #{@cart_count} items"}
             >
@@ -196,7 +197,7 @@ defmodule Emakola.Themes.Atelier.Nav do
 
             <%!-- Account (Desktop) --%>
             <a
-              href={"/s/#{@store.slug}/account"}
+              href={store_path(@store.slug, "/account")}
               class="atelier-nav-icon hidden sm:flex items-center justify-center w-11 h-11 text-gray-700 cursor-pointer transition-colors duration-200 hover:text-gray-900 rounded-full hover:bg-gray-100"
               aria-label="Account"
             >
@@ -264,7 +265,7 @@ defmodule Emakola.Themes.Atelier.Nav do
           <%!-- Close button --%>
           <div class="flex items-center justify-between mb-8">
             <a
-              href={"/s/#{@store.slug}"}
+              href={store_path(@store.slug, "/")}
               class="text-lg font-black tracking-tight"
               style="color: var(--theme-accent);"
             >
@@ -314,20 +315,20 @@ defmodule Emakola.Themes.Atelier.Nav do
           <%!-- Nav Links --%>
           <nav class="space-y-1 mb-8">
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="block px-3 py-3 text-sm font-medium text-gray-900 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center"
             >
               Shop All
             </a>
             <a
-              href={"/s/#{@store.slug}/collections"}
+              href={store_path(@store.slug, "/collections")}
               class="block px-3 py-3 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center"
             >
               Collections
             </a>
             <a
               :for={category <- @categories}
-              href={"/s/#{@store.slug}/category/#{category.slug}"}
+              href={store_path(@store.slug, "/category/#{category.slug}")}
               class="block px-3 py-3 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center"
             >
               {category.name}
@@ -336,25 +337,25 @@ defmodule Emakola.Themes.Atelier.Nav do
 
           <div class="border-t border-gray-100 pt-6 space-y-1">
             <a
-              href={"/s/#{@store.slug}/about"}
+              href={store_path(@store.slug, "/about")}
               class="block px-3 py-3 text-sm text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center"
             >
               About Us
             </a>
             <a
-              href={"/s/#{@store.slug}/blog"}
+              href={store_path(@store.slug, "/blog")}
               class="block px-3 py-3 text-sm text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center"
             >
               Blog
             </a>
             <a
-              href={"/s/#{@store.slug}/recipes"}
+              href={store_path(@store.slug, "/recipes")}
               class="block px-3 py-3 text-sm text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center"
             >
               Recipes
             </a>
             <a
-              href={"/s/#{@store.slug}/account"}
+              href={store_path(@store.slug, "/account")}
               class="block px-3 py-3 text-sm text-gray-600 rounded-lg hover:bg-gray-50 min-h-[44px] flex items-center gap-2"
             >
               <svg
@@ -409,7 +410,7 @@ defmodule Emakola.Themes.Atelier.Nav do
         phx-click-away={hide_search()}
       >
         <form
-          action={"/s/#{@store.slug}/products"}
+          action={store_path(@store.slug, "/products")}
           method="get"
           class="bg-white rounded-xl shadow-2xl overflow-hidden"
           phx-click={JS.dispatch("click", to: "#atelier-nav-search-overlay")}

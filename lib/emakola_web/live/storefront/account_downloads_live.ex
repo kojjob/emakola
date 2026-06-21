@@ -18,6 +18,8 @@ defmodule EmakolaWeb.Storefront.AccountDownloadsLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.Storefront.Path
+
   @max_grants 50
 
   @impl true
@@ -27,7 +29,7 @@ defmodule EmakolaWeb.Storefront.AccountDownloadsLive do
         {:ok,
          socket
          |> put_flash(:info, "Please sign in to view your downloads")
-         |> redirect(to: ~p"/s/#{slug}/login")}
+         |> redirect(to: store_path(slug, "/login"))}
 
       customer ->
         store = socket.assigns.store

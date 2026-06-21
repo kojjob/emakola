@@ -15,7 +15,7 @@ defmodule EmakolaWeb.Hooks.ResolveStore do
 
   alias EmakolaWeb.Helpers.StoreResolver
 
-  def on_mount(:default, %{"store_slug" => slug}, _session, socket) do
+  def on_mount(:default, %{"store_slug" => slug}, session, socket) do
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         theme = Emakola.Themes.ThemeResolver.resolve(store.theme_config || %{}, store)
@@ -26,12 +26,16 @@ defmodule EmakolaWeb.Hooks.ResolveStore do
           Phoenix.PubSub.subscribe(Emakola.PubSub, "store:#{store.id}:theme")
         end
 
+        on_store_subdomain? = Map.get(session, "on_store_subdomain?", false)
+        EmakolaWeb.Storefront.Path.put_on_store_subdomain(on_store_subdomain?)
+
         {:cont,
          socket
          |> assign(:store, store)
          |> assign(:theme, theme)
          |> assign(:theme_module, theme_module)
          |> assign(:theme_fonts, theme_module.fonts())
+         |> assign(:on_store_subdomain?, on_store_subdomain?)
          |> attach_hook(:theme_update, :handle_info, &handle_theme_update/2)}
 
       {:error, :not_found} ->

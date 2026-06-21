@@ -6,6 +6,7 @@ defmodule Emakola.Themes.Electronics.Shared do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   attr :theme, :map, required: true
@@ -35,7 +36,7 @@ defmodule Emakola.Themes.Electronics.Shared do
     <header class={"sticky top-0 z-50 transition-colors " <> if(@on_dark, do: "bg-[#134E4A]/85 backdrop-blur-md", else: "bg-white/95 backdrop-blur-md border-b border-[#E5E7EB]")}>
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16 sm:h-20">
-          <a href={"/s/#{@store.slug}"} class="flex items-center gap-3 min-w-0">
+          <a href={store_path(@store.slug, "/")} class="flex items-center gap-3 min-w-0">
             <div class={"w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 " <> if(@on_dark, do: "bg-[#0EA5E9]", else: "bg-[#134E4A]")}>
               <span
                 class={"material-symbols-outlined " <> if(@on_dark, do: "text-white", else: "text-[#0EA5E9]")}
@@ -66,7 +67,7 @@ defmodule Emakola.Themes.Electronics.Shared do
 
           <div class="flex items-center gap-2 sm:gap-3">
             <a
-              href={"/s/#{@store.slug}/account"}
+              href={store_path(@store.slug, "/account")}
               class={"hidden sm:flex w-11 h-11 rounded-full items-center justify-center transition-colors " <> if(@on_dark, do: "hover:bg-white/10", else: "hover:bg-[#F3F4F6]")}
               aria-label="Account"
             >
@@ -78,7 +79,7 @@ defmodule Emakola.Themes.Electronics.Shared do
               </span>
             </a>
             <a
-              href={"/s/#{@store.slug}/cart"}
+              href={store_path(@store.slug, "/cart")}
               class={"relative w-11 h-11 rounded-full flex items-center justify-center transition-colors " <> if(@on_dark, do: "hover:bg-white/10", else: "hover:bg-[#F3F4F6]")}
               aria-label={"Cart, #{@cart_count} items"}
             >
@@ -130,7 +131,7 @@ defmodule Emakola.Themes.Electronics.Shared do
             <ul class="space-y-3 text-sm text-white/65">
               <li :for={cat <- ["Phones", "Audio", "Computers", "Wearables", "Accessories"]}>
                 <a
-                  href={"/s/#{@store.slug}/products"}
+                  href={store_path(@store.slug, "/products")}
                   class="hover:text-white transition-colors"
                 >
                   {cat}
@@ -145,7 +146,7 @@ defmodule Emakola.Themes.Electronics.Shared do
             <ul class="space-y-3 text-sm text-white/65">
               <li :for={item <- ["Warranty", "Returns", "Contact", "FAQ"]}>
                 <a
-                  href={"/s/#{@store.slug}/contact"}
+                  href={store_path(@store.slug, "/contact")}
                   class="hover:text-white transition-colors"
                 >
                   {item}
@@ -185,7 +186,7 @@ defmodule Emakola.Themes.Electronics.Shared do
   def product_card(assigns) do
     ~H"""
     <a
-      href={"/s/#{@store.slug}/products/#{@product.slug}"}
+      href={store_path(@store.slug, "/products/#{@product.slug}")}
       class="electronics-card group block overflow-hidden hover:shadow-lg transition-all"
     >
       <div class="aspect-square bg-[#F3F4F6] overflow-hidden relative">

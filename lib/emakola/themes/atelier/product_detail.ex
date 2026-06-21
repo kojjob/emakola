@@ -18,6 +18,7 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Atelier.Shared
@@ -79,9 +80,14 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
             class="mb-6 sm:mb-8 text-xs uppercase tracking-wider text-gray-400"
             aria-label="Breadcrumb"
           >
-            <a href={"/s/#{@store.slug}"} class="hover:text-gray-900 transition-colors">Home</a>
+            <a href={store_path(@store.slug, "/")} class="hover:text-gray-900 transition-colors">
+              Home
+            </a>
             <span class="mx-2 text-gray-300">&rsaquo;</span>
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-gray-900 transition-colors">
+            <a
+              href={store_path(@store.slug, "/products")}
+              class="hover:text-gray-900 transition-colors"
+            >
               Shop
             </a>
             <span class="mx-2 text-gray-300">&rsaquo;</span>
@@ -514,7 +520,7 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                   "Dedicated to preserving West African craft traditions while creating contemporary pieces for the modern world."}
             </p>
             <a
-              href={"/s/#{@store.slug}/about"}
+              href={store_path(@store.slug, "/about")}
               class="inline-flex items-center gap-2 text-sm font-bold transition-colors hover:opacity-80 min-h-[44px]"
               style="color: var(--theme-primary);"
             >

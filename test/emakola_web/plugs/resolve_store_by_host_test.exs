@@ -86,4 +86,21 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHostTest do
     refute conn.halted
     assert conn.path_info == []
   end
+
+  test "implicitly serves <slug>.<base> in place with no StoreDomain row", %{store: store} do
+    conn = ResolveStoreByHost.call(conn_for("#{store.slug}.makola.io", "/products"), @opts)
+
+    refute conn.halted
+    assert conn.path_info == ["s", store.slug, "products"]
+    assert conn.private[:emakola_on_store_subdomain?] == true
+  end
+
+  test "a reserved label is never served implicitly, even if a store has that slug" do
+    create_store!(%{name: "Admin Co", slug: "admin"})
+
+    conn = ResolveStoreByHost.call(conn_for("admin.makola.io", "/"), @opts)
+
+    refute conn.halted
+    assert conn.path_info == []
+  end
 end

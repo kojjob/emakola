@@ -6,6 +6,7 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Electronics.Shared
@@ -32,9 +33,9 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
       <div class="bg-[#F5EFE5] border-b border-[#E5E7EB]">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <nav class="flex items-center gap-2 text-xs text-[#6B7280]">
-            <a href={"/s/#{@store.slug}"} class="hover:text-[#134E4A]">Home</a>
+            <a href={store_path(@store.slug, "/")} class="hover:text-[#134E4A]">Home</a>
             <span>/</span>
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-[#134E4A]">Shop</a>
+            <a href={store_path(@store.slug, "/products")} class="hover:text-[#134E4A]">Shop</a>
             <span>/</span>
             <span class="text-[#134E4A] font-medium truncate max-w-[200px]">{@product.title}</span>
           </nav>

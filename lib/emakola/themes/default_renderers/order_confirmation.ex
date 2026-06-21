@@ -11,6 +11,8 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias EmakolaWeb.Helpers.Currency
 
   def render(assigns) do
@@ -318,7 +320,7 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
         <%!-- CTAs --%>
         <div class="space-y-3 mb-6">
           <a
-            href={"/s/#{@store.slug}"}
+            href={store_path(@store.slug, "/")}
             class="group w-full flex items-center justify-center gap-2.5 px-8 py-4 bg-cta-dark text-white text-sm font-semibold tracking-wide rounded-2xl hover:bg-[#292524] transition-all hover:shadow-lg hover:shadow-stone-900/10"
           >
             Continue Shopping

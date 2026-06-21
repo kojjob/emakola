@@ -8,6 +8,8 @@ defmodule Emakola.Themes.DefaultRenderers.RecipeList do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   def render(assigns) do
     ~H"""
     <Emakola.Themes.Atelier.Shared.navbar
@@ -27,7 +29,11 @@ defmodule Emakola.Themes.DefaultRenderers.RecipeList do
       </div>
 
       <div class="grid gap-6 sm:grid-cols-2">
-        <a :for={post <- @posts} href={"/s/#{@store.slug}/recipes/#{post.slug}"} class="block group">
+        <a
+          :for={post <- @posts}
+          href={store_path(@store.slug, "/recipes/#{post.slug}")}
+          class="block group"
+        >
           <article class="rounded-xl overflow-hidden border border-stone-200 hover:border-stone-300 transition-colors">
             <div :if={post.featured_image_url} class="aspect-[4/3] overflow-hidden">
               <img

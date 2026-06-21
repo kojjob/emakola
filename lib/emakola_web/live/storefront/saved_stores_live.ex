@@ -10,6 +10,8 @@ defmodule EmakolaWeb.Storefront.SavedStoresLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.Storefront.Path
+
   require Ash.Query
 
   alias EmakolaWeb.StoresComponents
@@ -21,7 +23,7 @@ defmodule EmakolaWeb.Storefront.SavedStoresLive do
         {:ok,
          socket
          |> put_flash(:info, "Please sign in to view your saved stores")
-         |> redirect(to: "/s/#{slug}/login")}
+         |> redirect(to: store_path(slug, "/login"))}
 
       customer ->
         {:ok,

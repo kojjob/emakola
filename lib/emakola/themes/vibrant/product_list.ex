@@ -11,6 +11,8 @@ defmodule Emakola.Themes.Vibrant.ProductList do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.Vibrant.Shared
 
   @doc """
@@ -43,7 +45,9 @@ defmodule Emakola.Themes.Vibrant.ProductList do
           <nav aria-label="Breadcrumb" class="mb-4">
             <ol class="flex items-center gap-2 text-xs text-white/60">
               <li>
-                <a href={"/s/#{@store.slug}"} class="hover:text-white transition-colors">Home</a>
+                <a href={store_path(@store.slug, "/")} class="hover:text-white transition-colors">
+                  Home
+                </a>
               </li>
               <li>
                 <svg

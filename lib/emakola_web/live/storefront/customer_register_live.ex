@@ -10,6 +10,7 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
 
   import EmakolaWeb.AuthComponents
   import EmakolaWeb.OAuthComponents
+  import EmakolaWeb.Storefront.Path
 
   @impl true
   def mount(_params, _session, socket) do
@@ -103,7 +104,7 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
 
           <.whatsapp_button
             :if={Emakola.Accounts.PhoneAuth.enabled?()}
-            href={~p"/s/#{@store.slug}/whatsapp"}
+            href={store_path(@store.slug, "/whatsapp")}
             class="mb-6"
           />
 
@@ -234,7 +235,7 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
             <p class="text-sm text-[#44403C]">
               Already have an account?
               <.link
-                navigate={"/s/#{@store.slug}/login"}
+                navigate={store_path(@store.slug, "/login")}
                 class="font-medium text-cta-dark hover:underline"
               >
                 Sign in
@@ -242,7 +243,7 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
             </p>
             <p>
               <.link
-                navigate={"/s/#{@store.slug}"}
+                navigate={store_path(@store.slug, "/")}
                 class="text-sm text-[#78716C] hover:text-[#44403C] transition-colors"
               >
                 Continue shopping

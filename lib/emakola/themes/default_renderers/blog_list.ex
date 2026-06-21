@@ -9,6 +9,8 @@ defmodule Emakola.Themes.DefaultRenderers.BlogList do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   def render(assigns) do
     ~H"""
     <Emakola.Themes.Atelier.Shared.navbar
@@ -58,7 +60,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogList do
         <%!-- Featured Post (Hero Card) --%>
         <div :if={@featured} class="mt-8 sm:mt-10 mb-8 sm:mb-10">
           <a
-            href={"/s/#{@store.slug}/blog/#{@featured.slug}"}
+            href={store_path(@store.slug, "/blog/#{@featured.slug}")}
             class="cursor-pointer group block bg-white rounded-2xl shadow-xl shadow-stone-900/5 overflow-hidden lg:grid lg:grid-cols-2"
           >
             <div class="aspect-[16/10] lg:aspect-[4/3] overflow-hidden">
@@ -131,7 +133,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogList do
         >
           <a
             :for={post <- @rest_posts}
-            href={"/s/#{@store.slug}/blog/#{post.slug}"}
+            href={store_path(@store.slug, "/blog/#{post.slug}")}
             class="cursor-pointer group block bg-white rounded-2xl shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden"
           >
             <div class="aspect-[16/10] overflow-hidden">

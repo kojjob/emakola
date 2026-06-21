@@ -7,6 +7,7 @@ defmodule Emakola.Themes.Akoma.Shared do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   attr :theme, :map, required: true
@@ -37,19 +38,19 @@ defmodule Emakola.Themes.Akoma.Shared do
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <nav class="hidden md:flex items-center gap-6 text-sm text-[#6B7280] flex-1">
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-[#1A1A1A]">Shop</a>
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-[#1A1A1A]">New</a>
-            <a href={"/s/#{@store.slug}/about"} class="hover:text-[#1A1A1A]">About</a>
+            <a href={store_path(@store.slug, "/products")} class="hover:text-[#1A1A1A]">Shop</a>
+            <a href={store_path(@store.slug, "/products")} class="hover:text-[#1A1A1A]">New</a>
+            <a href={store_path(@store.slug, "/about")} class="hover:text-[#1A1A1A]">About</a>
           </nav>
           <a
-            href={"/s/#{@store.slug}"}
+            href={store_path(@store.slug, "/")}
             class="akoma-heading text-lg sm:text-xl font-extrabold tracking-[0.15em] uppercase text-[#1A1A1A] flex-1 text-center"
           >
             {@store.name}
           </a>
           <div class="flex items-center justify-end gap-3 flex-1">
             <a
-              href={"/s/#{@store.slug}/account"}
+              href={store_path(@store.slug, "/account")}
               class="w-9 h-9 rounded-full hover:bg-[#F0F1EF] flex items-center justify-center"
               aria-label="Account"
             >
@@ -67,7 +68,7 @@ defmodule Emakola.Themes.Akoma.Shared do
               </svg>
             </a>
             <a
-              href={"/s/#{@store.slug}/cart"}
+              href={store_path(@store.slug, "/cart")}
               class="relative w-9 h-9 rounded-full hover:bg-[#F0F1EF] flex items-center justify-center"
               aria-label={"Cart, #{@cart_count} items"}
             >
@@ -121,12 +122,12 @@ defmodule Emakola.Themes.Akoma.Shared do
             </h4>
             <ul class="space-y-2 text-sm text-[#6B7280]">
               <li>
-                <a href={"/s/#{@store.slug}/products"} class="hover:text-[#1A1A1A]">
+                <a href={store_path(@store.slug, "/products")} class="hover:text-[#1A1A1A]">
                   All products
                 </a>
               </li>
               <li>
-                <a href={"/s/#{@store.slug}/products"} class="hover:text-[#1A1A1A]">
+                <a href={store_path(@store.slug, "/products")} class="hover:text-[#1A1A1A]">
                   New arrivals
                 </a>
               </li>
@@ -138,10 +139,10 @@ defmodule Emakola.Themes.Akoma.Shared do
             </h4>
             <ul class="space-y-2 text-sm text-[#6B7280]">
               <li>
-                <a href={"/s/#{@store.slug}/about"} class="hover:text-[#1A1A1A]">About</a>
+                <a href={store_path(@store.slug, "/about")} class="hover:text-[#1A1A1A]">About</a>
               </li>
               <li>
-                <a href={"/s/#{@store.slug}/track"} class="hover:text-[#1A1A1A]">
+                <a href={store_path(@store.slug, "/track")} class="hover:text-[#1A1A1A]">
                   Track order
                 </a>
               </li>
@@ -206,7 +207,7 @@ defmodule Emakola.Themes.Akoma.Shared do
 
   def product_card(assigns) do
     ~H"""
-    <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
+    <a href={store_path(@store.slug, "/products/#{@product.slug}")} class="group block">
       <div class="akoma-card aspect-[3/4] overflow-hidden relative">
         <.optimized_image
           :if={first_image(@product)}

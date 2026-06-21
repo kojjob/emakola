@@ -9,6 +9,7 @@ defmodule EmakolaWeb.Storefront.CustomerWhatsAppLive do
   """
   use EmakolaWeb, :live_view
   import EmakolaWeb.AuthComponents
+  import EmakolaWeb.Storefront.Path
   alias Emakola.Accounts.PhoneAuth
   alias Emakola.Customers.Customer
   require Ash.Query
@@ -194,7 +195,7 @@ defmodule EmakolaWeb.Storefront.CustomerWhatsAppLive do
 
           <div class="mt-6 text-center">
             <.link
-              navigate={~p"/s/#{@store.slug}/login"}
+              navigate={store_path(@store.slug, "/login")}
               class="text-sm text-[#78716C] hover:text-[#44403C] transition-colors"
             >
               Back to sign in

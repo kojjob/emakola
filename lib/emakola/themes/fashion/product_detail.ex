@@ -6,6 +6,8 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Fashion.Shared
@@ -32,9 +34,9 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
       <div class="bg-[#FAF6EE] border-b border-[#E7E5E4]">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <nav class="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-[#57534E]">
-            <a href={"/s/#{@store.slug}"} class="hover:text-[#5B21B6]">Home</a>
+            <a href={store_path(@store.slug, "/")} class="hover:text-[#5B21B6]">Home</a>
             <span>/</span>
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-[#5B21B6]">Shop</a>
+            <a href={store_path(@store.slug, "/products")} class="hover:text-[#5B21B6]">Shop</a>
             <span>/</span>
             <span class="text-[#1C1917] font-semibold truncate max-w-[200px] normal-case tracking-normal">
               {@product.title}
