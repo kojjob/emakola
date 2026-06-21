@@ -7,7 +7,7 @@ defmodule EmakolaWeb.Router do
   # `host: @apex_hosts` matches these hosts only; store subdomains
   # (`kente-kingdom.makola.io`) fall through to the no-host storefront catch-all.
   # fly.dev is listed so the platform host never reaches the catch-all.
-  @apex_hosts ~w(makola.io www.makola.io emakola.fly.dev localhost 127.0.0.1)
+  @apex_hosts ~w(makola.io www.makola.io emakola.com www.emakola.com emakola.fly.dev localhost 127.0.0.1)
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -415,6 +415,23 @@ defmodule EmakolaWeb.Router do
   # — so the address-bar URL matches the mounted LiveView and the client never
   # force-reloads. These routes mirror the /s/:store_slug `:storefront` and
   # `:storefront_auth` live_sessions, at root, under distinct live_session names.
+
+  # Storefront customer-session controller at ROOT, host-resolved. Mirrors the
+  # /s/:store_slug controller routes so logged-in subdomain customers can sign
+  # out (the storefront's logout link renders root-relative via store_path/2)
+  # and fetch digital downloads. The controllers read the store from
+  # conn.assigns[:store] (set by ResolveStoreHost) on this path.
+  scope "/", EmakolaWeb.Storefront do
+    pipe_through [:browser, :resolve_store_host, :auth_rate_limit]
+    get "/auth/customer-session", CustomerSessionController, :create
+  end
+
+  scope "/", EmakolaWeb.Storefront do
+    pipe_through [:browser, :resolve_store_host]
+    delete "/auth/customer-session", CustomerSessionController, :delete
+    get "/auth/customer-logout", CustomerSessionController, :logout
+    get "/downloads/:id", DownloadController, :show
+  end
 
   # Storefront customer-auth pages (login/register — no customer auth required).
   scope "/", EmakolaWeb.Storefront do
