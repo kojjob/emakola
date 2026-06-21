@@ -47,5 +47,7 @@ defmodule Emakola.Accounts do
     end
 
     resource(Emakola.Accounts.Token)
+
+    resource(Emakola.Accounts.PhoneOtp)
   end
 end
