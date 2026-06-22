@@ -99,7 +99,7 @@ defmodule EmakolaWeb.SitemapController do
         |> put_resp_content_type("application/xml")
         |> send_resp(200, xml)
 
-      {:error, :not_found} ->
+      {:error, _} ->
         conn
         |> put_resp_content_type("text/plain")
         |> send_resp(404, "Store not found")
@@ -166,7 +166,7 @@ defmodule EmakolaWeb.SitemapController do
         |> put_resp_content_type("text/plain")
         |> send_resp(200, body)
 
-      {:error, :not_found} ->
+      {:error, _} ->
         conn
         |> put_resp_content_type("text/plain")
         |> send_resp(404, "Store not found")
@@ -196,7 +196,7 @@ defmodule EmakolaWeb.SitemapController do
         |> put_resp_content_type("text/plain")
         |> send_resp(200, body)
 
-      {:error, :not_found} ->
+      {:error, _} ->
         conn
         |> put_resp_content_type("text/plain")
         |> send_resp(404, "Store not found")

@@ -273,13 +273,21 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                   {Calendar.strftime(store.inserted_at, "%b %d, %Y")}
                 </td>
                 <td class="px-6 py-4 text-right">
-                  <a
-                    href={"/s/#{store.slug}"}
-                    target="_blank"
-                    class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    Storefront <span class="material-symbols-outlined text-xs">open_in_new</span>
-                  </a>
+                  <div class="flex items-center justify-end gap-3">
+                    <.link
+                      navigate={~p"/platform/stores/#{store.id}"}
+                      class="text-xs text-gray-600 hover:text-gray-900 font-medium"
+                    >
+                      Manage
+                    </.link>
+                    <a
+                      href={"/s/#{store.slug}"}
+                      target="_blank"
+                      class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Storefront <span class="material-symbols-outlined text-xs">open_in_new</span>
+                    </a>
+                  </div>
                 </td>
               </tr>
             </tbody>

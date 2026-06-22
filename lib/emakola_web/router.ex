@@ -295,6 +295,8 @@ defmodule EmakolaWeb.Router do
     live "/", LandingLive
     live "/pricing", PricingLive
     live "/stores", StoresLive
+    # Shown when a storefront is requested for a suspended/blocked/closed store.
+    live "/store-unavailable", StoreUnavailableLive
     # Programmatic SEO: per-region shop directories + sell-online pages (Phase 4)
     live "/shops/:region", ShopsLive
     live "/sell-online/:region", SellOnlineLive
@@ -321,6 +323,7 @@ defmodule EmakolaWeb.Router do
       ] do
       live "/platform", Platform.DashboardLive
       live "/platform/stores", Platform.StoreLive.Index
+      live "/platform/stores/:id", Platform.StoreLive.Show
       live "/platform/merchants", Platform.MerchantLive.Index
       live "/platform/team", Platform.TeamLive
       live "/platform/security", Platform.SecurityLive
@@ -336,6 +339,7 @@ defmodule EmakolaWeb.Router do
       on_mount: [
         {EmakolaWeb.Hooks.AssignDefaults, :default},
         {EmakolaWeb.Hooks.RequireAuth, :default},
+        {EmakolaWeb.Hooks.RequireActiveStore, :default},
         {EmakolaWeb.Hooks.NotificationHandler, :default}
       ] do
       live "/dashboard", DashboardLive
@@ -404,6 +408,17 @@ defmodule EmakolaWeb.Router do
       # Analytics
       live "/admin/reports", Admin.ReportLive.Index
       live "/admin/revenue", Admin.RevenueLive.Index
+    end
+
+    # Merchant store-locked interstitial — same auth as :app but WITHOUT
+    # RequireActiveStore, so a merchant whose store is suspended/blocked/archived
+    # can see why without a redirect loop.
+    live_session :app_store_locked,
+      on_mount: [
+        {EmakolaWeb.Hooks.AssignDefaults, :default},
+        {EmakolaWeb.Hooks.RequireAuth, :default}
+      ] do
+      live "/store-locked", MerchantStoreLockedLive
     end
 
     # PDF export (outside live_session, uses session-based auth)

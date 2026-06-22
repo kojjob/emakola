@@ -6,9 +6,22 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
   """
   use Phoenix.Component
 
-  @red_actions [:sign_in_failed, :totp_failed, :sessions_force_revoked, :staff_deactivated]
-  @amber_actions [:session_revoked, :invite_revoked, :totp_disabled]
-  @green_actions [:sign_in_succeeded, :invite_accepted, :totp_enabled, :staff_reactivated]
+  @red_actions [
+    :sign_in_failed,
+    :totp_failed,
+    :sessions_force_revoked,
+    :staff_deactivated,
+    :store_blocked,
+    :store_archived
+  ]
+  @amber_actions [:session_revoked, :invite_revoked, :totp_disabled, :store_suspended]
+  @green_actions [
+    :sign_in_succeeded,
+    :invite_accepted,
+    :totp_enabled,
+    :staff_reactivated,
+    :store_reactivated
+  ]
 
   attr :loaded?, :boolean, required: true
   attr :entries, :any, required: true

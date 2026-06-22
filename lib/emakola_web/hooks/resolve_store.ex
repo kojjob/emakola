@@ -38,6 +38,9 @@ defmodule EmakolaWeb.Hooks.ResolveStore do
          |> assign(:on_store_subdomain?, on_store_subdomain?)
          |> attach_hook(:theme_update, :handle_info, &handle_theme_update/2)}
 
+      {:error, :unavailable} ->
+        {:halt, redirect(socket, to: "/store-unavailable")}
+
       {:error, :not_found} ->
         {:halt,
          socket

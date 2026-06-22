@@ -100,4 +100,10 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHostTest do
     refute conn.halted
     assert conn.path_info == []
   end
+
+  # Note: store lifecycle enforcement (suspended/blocked/archived stores not
+  # serving) lives at the StoreResolver.resolve/1 chokepoint that every host
+  # path funnels through (the ResolveStoreFromHost / ResolveStore hooks), not in
+  # this SEO-canonicalization plug. See store_resolver_test.exs and
+  # storefront/store_lifecycle_access_test.exs.
 end
