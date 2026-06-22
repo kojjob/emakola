@@ -393,6 +393,23 @@
   <%!-- MAIN CONTENT                                --%>
   <%!-- ═══════════════════════════════════════════ --%>
   <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+    <%!-- IMPERSONATION BANNER (platform staff viewing a merchant's account) --%>
+    <div
+      :if={@impersonator}
+      class="flex items-center justify-between gap-4 bg-amber-500 px-4 sm:px-8 py-2 text-sm font-medium text-amber-950 shrink-0"
+    >
+      <span>
+        You ({@impersonator.email}) are viewing {@current_merchant &&
+          (@current_merchant.name || @current_merchant.email)}'s account.
+      </span>
+      <a
+        href={~p"/platform/impersonate/exit"}
+        class="rounded-md bg-amber-950/10 px-3 py-1 font-semibold hover:bg-amber-950/20 transition-colors whitespace-nowrap"
+      >
+        Exit impersonation
+      </a>
+    </div>
+
     <%!-- TOP BAR --%>
     <header class="topbar bg-white/80 backdrop-blur-xl border-b border-slate-200/80 h-[72px] flex items-center px-4 sm:px-8 shrink-0 gap-4 sticky top-0 z-30">
       <%!-- Mobile menu toggle --%>
