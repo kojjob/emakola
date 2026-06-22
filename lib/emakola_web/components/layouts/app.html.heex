@@ -261,6 +261,12 @@
         icon="gear"
         active={@active_nav == :settings}
       />
+      <.sidebar_link
+        href="/admin/verification"
+        title="Verification"
+        icon="shield"
+        active={@active_nav == :verification}
+      />
 
       <%!-- User card with popover --%>
       <% sidebar_user = @current_merchant || @current_user %>
