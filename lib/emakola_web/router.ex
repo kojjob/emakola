@@ -178,11 +178,15 @@ defmodule EmakolaWeb.Router do
   scope "/platform", EmakolaWeb do
     pipe_through [:browser, :auth_rate_limit]
     get "/session", PlatformSessionController, :create
+    # Start impersonation — staff + :manage_merchants verified in the controller.
+    post "/impersonate/:merchant_id", ImpersonateSessionController, :start
   end
 
   scope "/platform", EmakolaWeb do
     pipe_through :browser
     delete "/session", PlatformSessionController, :delete
+    # Exit impersonation (GET so the banner link + AssignDefaults expiry-redirect reach it).
+    get "/impersonate/exit", ImpersonateSessionController, :exit
   end
 
   # Platform staff login (two-step: password + TOTP). Root layout only —

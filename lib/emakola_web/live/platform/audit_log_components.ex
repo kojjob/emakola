@@ -16,7 +16,13 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
     :verification_rejected,
     :product_taken_down
   ]
-  @amber_actions [:session_revoked, :invite_revoked, :totp_disabled, :store_suspended]
+  @amber_actions [
+    :session_revoked,
+    :invite_revoked,
+    :totp_disabled,
+    :store_suspended,
+    :impersonation_started
+  ]
   @green_actions [
     :sign_in_succeeded,
     :invite_accepted,
@@ -24,7 +30,7 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
     :staff_reactivated,
     :store_reactivated,
     :verification_approved,
-    :product_reinstated
+    :impersonation_ended
   ]
 
   attr :loaded?, :boolean, required: true
