@@ -27,6 +27,7 @@ defmodule EmakolaWeb.SitemapController do
   use EmakolaWeb, :controller
 
   alias EmakolaWeb.Helpers.StoreResolver
+  alias EmakolaWeb.SEO.Canonical
 
   require Ash.Query
 
@@ -222,9 +223,8 @@ defmodule EmakolaWeb.SitemapController do
 
   # ── XML generation ─────────────────────────────────────────────────
 
-  defp build_sitemap(store, conn) do
-    base_url = base_url(conn, store)
-    urls = collect_urls(store, base_url)
+  defp build_sitemap(store, _conn) do
+    urls = collect_urls(store)
 
     """
     <?xml version="1.0" encoding="UTF-8"?>
@@ -234,26 +234,25 @@ defmodule EmakolaWeb.SitemapController do
     """
   end
 
-  defp collect_urls(store, base_url) do
-    slug = store.slug
-
-    static_urls(slug, base_url) ++
-      product_urls(store, base_url) ++
-      category_urls(store, base_url) ++
-      blog_urls(store, base_url)
+  defp collect_urls(store) do
+    static_urls(store) ++
+      product_urls(store) ++
+      category_urls(store) ++
+      blog_urls(store)
   end
 
-  # Static pages every store has
-  defp static_urls(slug, base_url) do
+  # Static pages every store has. URLs go through Canonical so they point at the
+  # store's SEO-primary host (its subdomain when configured, else apex /s/:slug).
+  defp static_urls(store) do
     [
-      %{loc: "#{base_url}/s/#{slug}", priority: "1.0", changefreq: "daily"},
-      %{loc: "#{base_url}/s/#{slug}/products", priority: "0.9", changefreq: "daily"},
-      %{loc: "#{base_url}/s/#{slug}/about", priority: "0.5", changefreq: "monthly"}
+      %{loc: Canonical.store_url(store), priority: "1.0", changefreq: "daily"},
+      %{loc: Canonical.path(store, "/products"), priority: "0.9", changefreq: "daily"},
+      %{loc: Canonical.path(store, "/about"), priority: "0.5", changefreq: "monthly"}
     ]
   end
 
   # Active products — highest SEO value
-  defp product_urls(store, base_url) do
+  defp product_urls(store) do
     products =
       Emakola.Catalog.Product
       |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
@@ -262,7 +261,7 @@ defmodule EmakolaWeb.SitemapController do
 
     Enum.map(products, fn product ->
       %{
-        loc: "#{base_url}/s/#{store.slug}/products/#{product.slug}",
+        loc: Canonical.product_url(store, product),
         priority: "0.8",
         changefreq: "weekly",
         lastmod: format_date(product.updated_at)
@@ -271,7 +270,7 @@ defmodule EmakolaWeb.SitemapController do
   end
 
   # Categories
-  defp category_urls(store, base_url) do
+  defp category_urls(store) do
     categories =
       Emakola.Catalog.Category
       |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
@@ -280,7 +279,7 @@ defmodule EmakolaWeb.SitemapController do
 
     Enum.map(categories, fn cat ->
       %{
-        loc: "#{base_url}/s/#{store.slug}/category/#{cat.slug}",
+        loc: Canonical.category_url(store, cat),
         priority: "0.7",
         changefreq: "weekly",
         lastmod: format_date(cat.updated_at)
@@ -289,7 +288,7 @@ defmodule EmakolaWeb.SitemapController do
   end
 
   # Blog posts (published only)
-  defp blog_urls(store, base_url) do
+  defp blog_urls(store) do
     try do
       posts =
         Emakola.Content.Post
@@ -299,7 +298,7 @@ defmodule EmakolaWeb.SitemapController do
 
       Enum.map(posts, fn post ->
         %{
-          loc: "#{base_url}/s/#{store.slug}/blog/#{post.slug}",
+          loc: Canonical.blog_url(store, post),
           priority: "0.6",
           changefreq: "monthly",
           lastmod: format_date(post.updated_at)
