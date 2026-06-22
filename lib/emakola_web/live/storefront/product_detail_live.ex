@@ -19,7 +19,8 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   alias EmakolaWeb.Helpers.SEO, as: SEOHelpers
 
   @impl true
-  def mount(%{"store_slug" => slug, "product_slug" => product_slug}, session, socket) do
+  def mount(%{"product_slug" => product_slug}, session, socket) do
+    slug = socket.assigns.store.slug
     store = socket.assigns.store
 
     case load_product(store.id, product_slug) do

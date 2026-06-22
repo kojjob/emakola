@@ -13,7 +13,9 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
   alias EmakolaWeb.Helpers.StoreResolver
 
   @impl true
-  def mount(%{"store_slug" => slug}, session, socket) do
+  def mount(_params, session, socket) do
+    slug = socket.assigns.store.slug
+
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         customer = resolve_customer(session, store)

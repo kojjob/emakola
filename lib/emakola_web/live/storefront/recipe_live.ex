@@ -12,7 +12,9 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
   alias EmakolaWeb.SEO.Canonical
 
   @impl true
-  def mount(%{"store_slug" => slug, "recipe_slug" => recipe_slug}, session, socket) do
+  def mount(%{"recipe_slug" => recipe_slug}, session, socket) do
+    slug = socket.assigns.store.slug
+
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         case Emakola.Content.Post

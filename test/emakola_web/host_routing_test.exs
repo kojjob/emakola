@@ -152,6 +152,39 @@ defmodule EmakolaWeb.HostRoutingTest do
     end
   end
 
+  # Regression for the #189 host-routing latent crash: storefront detail
+  # LiveViews pattern-matched "store_slug" in mount/3, but the subdomain routes
+  # (/products/:slug, /category/:slug, ...) carry the store in the HOST, not the
+  # path — so params have no store_slug and mount/3 raised FunctionClauseError.
+  # The store is already in socket.assigns.store via the on_mount hook.
+  describe "storefront detail LiveViews mounted by host" do
+    test "a product detail page mounts on the subdomain (params carry no store_slug)", %{
+      conn: conn,
+      store: store
+    } do
+      product = Factory.create_product!(store, status: :active)
+      Factory.create_variant!(product, store)
+
+      conn = %{conn | host: "#{store.slug}.makola.io"}
+
+      assert {:ok, _view, _html} = live(conn, "/products/#{product.slug}")
+    end
+
+    test "a category page mounts on the subdomain (params carry no store_slug)", %{
+      conn: conn,
+      store: store
+    } do
+      category =
+        Emakola.Catalog.Category
+        |> Ash.Changeset.for_create(:create, %{name: "Textiles", store_id: store.id})
+        |> Ash.create!(authorize?: false)
+
+      conn = %{conn | host: "#{store.slug}.makola.io"}
+
+      assert {:ok, _view, _html} = live(conn, "/category/#{category.slug}")
+    end
+  end
+
   defp log_in_customer(conn, customer) do
     token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(customer))
     Phoenix.ConnTest.init_test_session(conn, %{"customer_token" => token})
