@@ -13,7 +13,8 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
     :staff_deactivated,
     :store_blocked,
     :store_archived,
-    :verification_rejected
+    :verification_rejected,
+    :product_taken_down
   ]
   @amber_actions [
     :session_revoked,
@@ -29,7 +30,8 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
     :staff_reactivated,
     :store_reactivated,
     :verification_approved,
-    :impersonation_ended
+    :impersonation_ended,
+    :product_reinstated
   ]
 
   attr :loaded?, :boolean, required: true

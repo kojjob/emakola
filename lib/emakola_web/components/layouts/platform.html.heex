@@ -107,6 +107,13 @@
         active={@active_nav == :stores}
       />
       <.sidebar_link
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_stores)}
+        href="/platform/moderation"
+        title="Moderation"
+        icon="shield"
+        active={@active_nav == :moderation}
+      />
+      <.sidebar_link
         :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
         href="/platform/merchants"
         title="Merchants"

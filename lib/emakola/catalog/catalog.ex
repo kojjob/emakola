@@ -42,6 +42,10 @@ defmodule Emakola.Catalog do
 
       define(:list_related_products, action: :list_related, args: [:store_id, :product_id])
       define(:list_products_admin, action: :list_admin, args: [:store_id])
+      # Platform content moderation — call with `authorize?: false` (gated in the LiveView).
+      define(:take_down_product, action: :take_down)
+      define(:reinstate_product, action: :reinstate)
+      define(:list_products_for_moderation, action: :list_for_moderation)
     end
 
     resource Emakola.Catalog.OptionType do
