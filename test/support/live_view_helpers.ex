@@ -9,7 +9,10 @@ defmodule Emakola.LiveViewHelpers do
 
   defmacro __using__(_opts) do
     quote do
-      import Phoenix.ConnTest
+      # build_conn/0 comes from EmakolaWeb.ConnCase (apex-host default), which
+      # these test cases also `use`; exclude the Phoenix.ConnTest one to avoid
+      # an import conflict.
+      import Phoenix.ConnTest, except: [build_conn: 0]
       import Phoenix.LiveViewTest
       import Emakola.LiveViewHelpers
     end

@@ -2,13 +2,19 @@ defmodule EmakolaWeb.Router do
   use EmakolaWeb, :router
   use AshAuthentication.Phoenix.Router
 
+  # Hosts that serve the apex (marketing + platform/app admin), NOT a store.
+  # A host string WITHOUT a trailing dot is an EXACT match in `scope host:`, so
+  # `host: @apex_hosts` matches these hosts only; store subdomains
+  # (`kente-kingdom.makola.io`) fall through to the no-host storefront catch-all.
+  # fly.dev is listed so the platform host never reaches the catch-all.
+  @apex_hosts ~w(makola.io www.makola.io emakola.com www.emakola.com emakola.fly.dev localhost 127.0.0.1)
+
   pipeline :browser do
     plug :accepts, ["html"]
     # Redirects alias hosts (emakola.com/www/fly default) to the canonical apex.
     # No-op until `:canonical_redirect_hosts` is configured (post emakola.io cutover).
     plug EmakolaWeb.Plugs.CanonicalHost
     plug :fetch_session
-    plug :put_store_subdomain_flag
     plug :fetch_live_flash
     plug :put_root_layout, html: {EmakolaWeb.Layouts, :root}
     plug :protect_from_forgery
@@ -46,6 +52,13 @@ defmodule EmakolaWeb.Router do
   # merchant OAuth routes, so it can sit in the shared /oauth pipeline.
   pipeline :customer_oauth_tenant do
     plug EmakolaWeb.Plugs.CustomerOAuthTenant
+  end
+
+  # Host-routed storefront: resolves the store from conn.host (the request
+  # subdomain) and stashes the slug in the session for ResolveStoreFromHost.
+  # Redirects to / on the apex / a reserved label / an unknown host.
+  pipeline :resolve_store_host do
+    plug EmakolaWeb.Plugs.ResolveStoreHost
   end
 
   # Unauthenticated mobile-API auth endpoints: JSON + strict per-IP limit.
@@ -272,7 +285,11 @@ defmodule EmakolaWeb.Router do
     end
   end
 
-  scope "/", EmakolaWeb do
+  # Apex marketing + platform/app admin. host-locked to @apex_hosts (exact match)
+  # so "/", "/about", "/pricing", etc. match ONLY on the apex — never on a store
+  # subdomain, where root is the storefront. Declared BEFORE the storefront
+  # catch-all (first-match-wins) so apex hosts resolve here, not the catch-all.
+  scope "/", EmakolaWeb, host: @apex_hosts do
     pipe_through :browser
 
     live "/", LandingLive
@@ -410,6 +427,81 @@ defmodule EmakolaWeb.Router do
     live "/onboarding", OnboardingLive
   end
 
+  # ── Host-routed storefront (no host: → catch-all) ───────────────────────────
+  # Declared AFTER the host-locked apex scope so apex hosts match there first
+  # (first-match-wins). On a store's own subdomain, :resolve_store_host resolves
+  # the store from conn.host into the session and the storefront renders at ROOT
+  # — so the address-bar URL matches the mounted LiveView and the client never
+  # force-reloads. These routes mirror the /s/:store_slug `:storefront` and
+  # `:storefront_auth` live_sessions, at root, under distinct live_session names.
+
+  # Storefront customer-session controller at ROOT, host-resolved. Mirrors the
+  # /s/:store_slug controller routes so logged-in subdomain customers can sign
+  # out (the storefront's logout link renders root-relative via store_path/2)
+  # and fetch digital downloads. The controllers read the store from
+  # conn.assigns[:store] (set by ResolveStoreHost) on this path.
+  scope "/", EmakolaWeb.Storefront do
+    pipe_through [:browser, :resolve_store_host, :auth_rate_limit]
+    get "/auth/customer-session", CustomerSessionController, :create
+  end
+
+  scope "/", EmakolaWeb.Storefront do
+    pipe_through [:browser, :resolve_store_host]
+    delete "/auth/customer-session", CustomerSessionController, :delete
+    get "/auth/customer-logout", CustomerSessionController, :logout
+    get "/downloads/:id", DownloadController, :show
+  end
+
+  # Storefront customer-auth pages (login/register — no customer auth required).
+  scope "/", EmakolaWeb.Storefront do
+    pipe_through [:browser, :resolve_store_host]
+
+    live_session :storefront_auth_root,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [{EmakolaWeb.Hooks.ResolveStoreFromHost, :default}],
+      session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
+      live "/login", CustomerLoginLive
+      live "/register", CustomerRegisterLive
+      live "/whatsapp", CustomerWhatsAppLive
+    end
+  end
+
+  # Storefront (public — no auth required). ResolveStoreFromHost BEFORE
+  # ResolveCustomer: the customer hook reads the store's tenant context.
+  scope "/", EmakolaWeb.Storefront do
+    pipe_through [:browser, :resolve_store_host]
+
+    live_session :storefront_root,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [
+        {EmakolaWeb.Hooks.ResolveStoreFromHost, :default},
+        {EmakolaWeb.Hooks.ResolveCustomer, :default}
+      ],
+      session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
+      live "/", StoreLive
+      live "/products", ProductListLive
+      live "/products/:product_slug", ProductDetailLive
+      live "/cart", CartLive
+      live "/checkout", CheckoutLive
+      live "/orders/:order_number/confirmation", OrderConfirmationLive
+      live "/category/:category_slug", CategoryLive
+      live "/about", AboutLive
+      live "/contact", ContactLive
+      live "/faq", FaqLive
+      live "/policies", PoliciesLive
+      live "/blog", BlogListLive
+      live "/blog/:post_slug", BlogPostLive
+      live "/recipes", RecipeListLive
+      live "/recipes/:recipe_slug", RecipeLive
+      live "/account", AccountLive
+      live "/account/downloads", AccountDownloadsLive
+      live "/saved-stores", SavedStoresLive
+      live "/wishlist", WishlistLive
+      live "/track/:order_number", TrackingLive
+      live "/p/:page_slug", PageLive
+    end
+  end
+
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:emakola, :dev_routes) do
     import Phoenix.LiveDashboard.Router
@@ -420,18 +512,5 @@ defmodule EmakolaWeb.Router do
       live_dashboard "/dashboard", metrics: EmakolaWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
-  end
-
-  # Copies the on_store_subdomain? flag that ResolveStoreByHost stashes in
-  # conn.private (during endpoint resolution, before the session is fetched) into
-  # the session, so the storefront LiveView hook (ResolveStore) can read it. Runs
-  # every :browser request after :fetch_session, so the flag resets per request
-  # and never goes stale across a subdomain → apex navigation.
-  defp put_store_subdomain_flag(conn, _opts) do
-    Plug.Conn.put_session(
-      conn,
-      :on_store_subdomain?,
-      conn.private[:emakola_on_store_subdomain?] || false
-    )
   end
 end
