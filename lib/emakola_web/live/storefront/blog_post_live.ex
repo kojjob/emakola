@@ -13,7 +13,9 @@ defmodule EmakolaWeb.Storefront.BlogPostLive do
   alias EmakolaWeb.SEO.Canonical
 
   @impl true
-  def mount(%{"store_slug" => slug, "post_slug" => post_slug}, session, socket) do
+  def mount(%{"post_slug" => post_slug}, session, socket) do
+    slug = socket.assigns.store.slug
+
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         case Emakola.Content.Post

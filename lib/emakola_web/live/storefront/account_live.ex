@@ -12,8 +12,9 @@ defmodule EmakolaWeb.Storefront.AccountLive do
   alias Emakola.Cart.CartStore
 
   @impl true
-  def mount(%{"store_slug" => slug}, session, socket) do
+  def mount(_params, session, socket) do
     store = socket.assigns.store
+    slug = store.slug
 
     case socket.assigns[:current_customer] do
       nil ->

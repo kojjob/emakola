@@ -16,7 +16,9 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLive do
   alias EmakolaWeb.Helpers.StoreResolver
 
   @impl true
-  def mount(%{"store_slug" => slug, "order_number" => order_number}, _session, socket) do
+  def mount(%{"order_number" => order_number}, _session, socket) do
+    slug = socket.assigns.store.slug
+
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         categories =
