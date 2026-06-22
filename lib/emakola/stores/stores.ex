@@ -24,6 +24,11 @@ defmodule Emakola.Stores do
       define(:update_store_directory_meta, action: :update_directory_meta)
       define(:list_stores_by_slugs, action: :list_by_slugs, args: [:slugs])
       define(:list_stores_for_admin, action: :list_for_admin, args: [:search])
+      # Platform lifecycle — call with `authorize?: false` (gated in the LiveView).
+      define(:suspend_store, action: :suspend)
+      define(:block_store, action: :block)
+      define(:archive_store, action: :archive)
+      define(:reactivate_store, action: :reactivate)
     end
 
     resource Emakola.Stores.StorePayoutAccount do

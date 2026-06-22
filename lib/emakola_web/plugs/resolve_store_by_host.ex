@@ -22,6 +22,7 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
   import Plug.Conn
 
   alias Emakola.Stores
+  alias Emakola.Stores.Store
   alias Emakola.Stores.Validations.ValidStoreHost
 
   @impl true
@@ -70,11 +71,20 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
            authorize?: false,
            not_found_error?: false
          ) do
-      {:ok, %{status: :active, serve_in_place?: true, store: %{slug: slug}}} ->
-        {:serve_in_place, slug}
+      {:ok, %{status: :active, store: store} = domain} ->
+        cond do
+          # Non-live store (suspended/blocked/archived/closed): the branded host
+          # stops resolving — falls through to apex. The canonical /s/:slug path
+          # still shows the neutral unavailable page via the ResolveStore hook.
+          not Store.live?(store) ->
+            :passthrough
 
-      {:ok, %{status: :active, store: %{slug: slug}}} ->
-        {:redirect, EmakolaWeb.SEO.Canonical.store_url(%{slug: slug}) <> subpath(conn)}
+          domain.serve_in_place? ->
+            {:serve_in_place, store.slug}
+
+          true ->
+            {:redirect, EmakolaWeb.SEO.Canonical.store_url(%{slug: store.slug}) <> subpath(conn)}
+        end
 
       _ ->
         resolve_implicit_subdomain(conn.host, base)
@@ -90,7 +100,8 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHost do
     with true <- String.ends_with?(host, suffix),
          label = String.replace_suffix(host, suffix, ""),
          true <- valid_subdomain_label?(label) and not ValidStoreHost.reserved_label?(label),
-         {:ok, _store} <- Stores.get_store_by_slug(label, authorize?: false) do
+         {:ok, store} <- Stores.get_store_by_slug(label, authorize?: false),
+         true <- Store.live?(store) do
       {:serve_in_place, label}
     else
       _ -> :passthrough

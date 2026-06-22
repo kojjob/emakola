@@ -103,4 +103,25 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHostTest do
     refute conn.halted
     assert conn.path_info == []
   end
+
+  test "a suspended store's explicit subdomain is no longer 301-redirected", %{store: store} do
+    claim!(store, "sub-shop.makola.io")
+    {:ok, _} = Stores.suspend_store(store, %{reason: "x"}, authorize?: false)
+
+    conn = ResolveStoreByHost.call(conn_for("sub-shop.makola.io", "/products"), @opts)
+
+    refute conn.halted
+    assert conn.path_info == ["products"]
+  end
+
+  test "an archived store's implicit subdomain passes through (host stops resolving)", %{
+    store: store
+  } do
+    {:ok, _} = Stores.archive_store(store, %{}, authorize?: false)
+
+    conn = ResolveStoreByHost.call(conn_for("#{store.slug}.makola.io", "/products"), @opts)
+
+    refute conn.halted
+    assert conn.path_info == ["products"]
+  end
 end

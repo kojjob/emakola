@@ -49,7 +49,11 @@ defmodule Emakola.Accounts.PlatformAuditLog do
           :sessions_force_revoked,
           :staff_deactivated,
           :staff_reactivated,
-          :sign_out
+          :sign_out,
+          :store_suspended,
+          :store_blocked,
+          :store_archived,
+          :store_reactivated
         ]
       )
 
@@ -79,6 +83,15 @@ defmodule Emakola.Accounts.PlatformAuditLog do
     read :list do
       pagination(keyset?: true, default_limit: 50, max_page_size: 200)
       prepare(build(sort: [inserted_at: :desc, id: :desc]))
+    end
+
+    # Lifecycle history for one store's platform-admin detail page. The
+    # store id is matched against the jsonb `metadata ->> 'store_id'` that the
+    # store lifecycle events record.
+    read :list_for_store do
+      argument(:store_id, :string, allow_nil?: false)
+      filter(expr(fragment("? ->> 'store_id' = ?", metadata, ^arg(:store_id))))
+      prepare(build(sort: [inserted_at: :desc, id: :desc], limit: 50))
     end
   end
 end
