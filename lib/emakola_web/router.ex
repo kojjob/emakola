@@ -338,6 +338,7 @@ defmodule EmakolaWeb.Router do
       live "/platform/merchants", Platform.MerchantLive.Index
       live "/platform/verifications", Platform.VerificationLive.Index
       live "/platform/verifications/:id", Platform.VerificationLive.Show
+      live "/platform/moderation", Platform.ModerationLive.Index
       live "/platform/team", Platform.TeamLive
       live "/platform/security", Platform.SecurityLive
       live "/platform/audit-log", Platform.AuditLogLive

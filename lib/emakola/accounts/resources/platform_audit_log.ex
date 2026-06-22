@@ -55,7 +55,9 @@ defmodule Emakola.Accounts.PlatformAuditLog do
           :store_archived,
           :store_reactivated,
           :verification_approved,
-          :verification_rejected
+          :verification_rejected,
+          :product_taken_down,
+          :product_reinstated
         ]
       )
 

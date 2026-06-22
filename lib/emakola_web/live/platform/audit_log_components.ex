@@ -13,7 +13,8 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
     :staff_deactivated,
     :store_blocked,
     :store_archived,
-    :verification_rejected
+    :verification_rejected,
+    :product_taken_down
   ]
   @amber_actions [:session_revoked, :invite_revoked, :totp_disabled, :store_suspended]
   @green_actions [
@@ -22,7 +23,8 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
     :totp_enabled,
     :staff_reactivated,
     :store_reactivated,
-    :verification_approved
+    :verification_approved,
+    :product_reinstated
   ]
 
   attr :loaded?, :boolean, required: true
