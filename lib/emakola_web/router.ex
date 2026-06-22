@@ -334,6 +334,8 @@ defmodule EmakolaWeb.Router do
       live "/platform/stores", Platform.StoreLive.Index
       live "/platform/stores/:id", Platform.StoreLive.Show
       live "/platform/merchants", Platform.MerchantLive.Index
+      live "/platform/verifications", Platform.VerificationLive.Index
+      live "/platform/verifications/:id", Platform.VerificationLive.Show
       live "/platform/team", Platform.TeamLive
       live "/platform/security", Platform.SecurityLive
       live "/platform/audit-log", Platform.AuditLogLive
@@ -386,6 +388,7 @@ defmodule EmakolaWeb.Router do
 
       # Store settings & delivery zones
       live "/admin/settings", Admin.SettingsLive
+      live "/admin/verification", Admin.VerificationLive
       live "/admin/settings/delivery", Admin.DeliveryLive.Index
       live "/admin/settings/address", Admin.StoreAddressLive
 
