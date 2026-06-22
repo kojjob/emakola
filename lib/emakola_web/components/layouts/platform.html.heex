@@ -114,6 +114,13 @@
         active={@active_nav == :merchants}
       />
       <.sidebar_link
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
+        href="/platform/verifications"
+        title="Verifications"
+        icon="shield"
+        active={@active_nav == :verifications}
+      />
+      <.sidebar_link
         :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_team)}
         href="/platform/team"
         title="Team"

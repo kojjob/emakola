@@ -53,7 +53,9 @@ defmodule Emakola.Accounts.PlatformAuditLog do
           :store_suspended,
           :store_blocked,
           :store_archived,
-          :store_reactivated
+          :store_reactivated,
+          :verification_approved,
+          :verification_rejected
         ]
       )
 
