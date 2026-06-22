@@ -46,9 +46,20 @@ defmodule Emakola.Notifications.Workers.StoreStatusNotificationWorker do
 
     case load_store(store_id) do
       {:ok, store} ->
-        maybe_send_sms(store, event)
-        maybe_send_email(store, event)
-        :ok
+        # Attempt both channels, then fail the job if either ATTEMPTED send
+        # errored — so Oban retries a transient SMS/email outage. A skipped
+        # channel (no phone/email) returns :ok and never blocks the job.
+        results = [maybe_send_sms(store, event), maybe_send_email(store, event)]
+
+        if Enum.any?(results, &match?({:error, _}, &1)) do
+          Logger.error(
+            "[StoreStatusNotificationWorker] delivery failed for store #{store_id}: #{inspect(results)}"
+          )
+
+          {:error, :notification_delivery_failed}
+        else
+          :ok
+        end
 
       {:error, reason} ->
         Logger.error("[StoreStatusNotificationWorker] store #{store_id}: #{inspect(reason)}")
@@ -87,8 +98,6 @@ defmodule Emakola.Notifications.Workers.StoreStatusNotificationWorker do
     |> Swoosh.Email.subject(subject(event))
     |> Swoosh.Email.text_body(message(store, event))
     |> Emakola.Mailer.deliver()
-
-    :ok
   end
 
   defp maybe_send_email(_store, _event), do: :ok

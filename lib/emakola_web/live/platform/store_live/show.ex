@@ -357,8 +357,9 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
       <div
         :if={@action_modal}
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-        phx-click="cancel_modal"
       >
+        <%!-- Cancel on click-away only: backdrop clicks dismiss, but clicks inside
+             the dialog (textarea, Confirm) must not bubble up and close it. --%>
         <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" phx-click-away="cancel_modal">
           <h3 class="text-lg font-semibold text-gray-900">{modal_title(@action_modal)}</h3>
           <p class="mt-1 text-sm text-gray-500">{modal_help(@action_modal)}</p>

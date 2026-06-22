@@ -44,6 +44,17 @@ defmodule Emakola.Notifications.Workers.StoreStatusNotificationWorkerTest do
       assert :ok = perform_job(Worker, %{"store_id" => store.id, "event" => "store_reactivated"})
     end
 
+    test "fails the job when an attempted channel errors (so Oban retries)" do
+      store = Factory.create_store!(%{contact_phone: "+233201234567"})
+
+      expect(Emakola.SMSProviderMock, :send_sms, fn _to, _msg, _opts ->
+        {:error, :provider_down}
+      end)
+
+      assert {:error, _} =
+               perform_job(Worker, %{"store_id" => store.id, "event" => "store_suspended"})
+    end
+
     test "returns an error for a missing store" do
       assert {:error, :store_not_found} =
                perform_job(Worker, %{
