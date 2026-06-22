@@ -101,24 +101,9 @@ defmodule EmakolaWeb.Plugs.ResolveStoreByHostTest do
     assert conn.path_info == []
   end
 
-  test "a suspended store's explicit subdomain is no longer 301-redirected", %{store: store} do
-    claim!(store, "sub-shop.makola.io")
-    {:ok, _} = Stores.suspend_store(store, %{reason: "x"}, authorize?: false)
-
-    conn = ResolveStoreByHost.call(conn_for("sub-shop.makola.io", "/products"), @opts)
-
-    refute conn.halted
-    assert conn.path_info == ["products"]
-  end
-
-  test "an archived store's implicit subdomain passes through (host stops resolving)", %{
-    store: store
-  } do
-    {:ok, _} = Stores.archive_store(store, %{}, authorize?: false)
-
-    conn = ResolveStoreByHost.call(conn_for("#{store.slug}.makola.io", "/products"), @opts)
-
-    refute conn.halted
-    assert conn.path_info == ["products"]
-  end
+  # Note: store lifecycle enforcement (suspended/blocked/archived stores not
+  # serving) lives at the StoreResolver.resolve/1 chokepoint that every host
+  # path funnels through (the ResolveStoreFromHost / ResolveStore hooks), not in
+  # this SEO-canonicalization plug. See store_resolver_test.exs and
+  # storefront/store_lifecycle_access_test.exs.
 end
