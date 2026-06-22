@@ -58,4 +58,36 @@ defmodule EmakolaWeb.SitemapSubdomainTest do
       assert body =~ "<loc>#{origin}/category/#{category.slug}</loc>"
     end
   end
+
+  describe "GET /sitemap.xml routed by host" do
+    test "a store subdomain serves that store's sitemap (not the platform one)", %{
+      conn: conn,
+      store: store,
+      origin: origin
+    } do
+      product = create_product!(store, title: "Kente Cloth", status: :active)
+
+      body =
+        %{conn | host: "#{store.slug}.makola.io"}
+        |> get("/sitemap.xml")
+        |> response(200)
+
+      assert body =~ "<loc>#{origin}/products/#{product.slug}</loc>"
+      refute body =~ "/pricing</loc>"
+    end
+
+    test "the apex host still serves the platform sitemap", %{conn: conn} do
+      body =
+        %{conn | host: "makola.io"}
+        |> get("/sitemap.xml")
+        |> response(200)
+
+      assert body =~ "/pricing</loc>"
+    end
+
+    test "an unknown subdomain returns 404", %{conn: conn} do
+      conn = %{conn | host: "definitely-not-a-real-store-xyz.makola.io"} |> get("/sitemap.xml")
+      assert conn.status == 404
+    end
+  end
 end

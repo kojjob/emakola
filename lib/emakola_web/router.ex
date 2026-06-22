@@ -231,12 +231,21 @@ defmodule EmakolaWeb.Router do
     end
   end
 
-  # Platform-level sitemap (apex domain marketing pages).
-  # TODO: when store subdomain routing lands, add a host guard here so
-  # mystore.emakola.com/sitemap.xml serves the store sitemap instead.
-  scope "/", EmakolaWeb do
+  # Platform sitemap — host-locked to the apex (exact-match @apex_hosts). On a
+  # store subdomain, the catch-all below serves that store's sitemap instead.
+  scope "/", EmakolaWeb, host: @apex_hosts do
     pipe_through :seo
     get "/sitemap.xml", SitemapController, :platform
+  end
+
+  # Store sitemap at the subdomain ROOT (<slug>.makola.io/sitemap.xml). The apex
+  # route above matches apex hosts first (first-match-wins), so this unrestricted
+  # catch-all only fires on store subdomains; :show resolves the store from
+  # conn.host via ResolveStoreHost.resolve_store/1 (no session needed, so it sits
+  # on the :seo pipeline cleanly).
+  scope "/", EmakolaWeb do
+    pipe_through :seo
+    get "/sitemap.xml", SitemapController, :show
   end
 
   # Sitemap + AI-readable files — uses :seo pipeline (accepts XML/text),

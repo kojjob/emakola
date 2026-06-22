@@ -27,9 +27,8 @@ defmodule EmakolaWeb.SitemapController do
   use EmakolaWeb, :controller
 
   alias EmakolaWeb.Helpers.StoreResolver
+  alias EmakolaWeb.Plugs.ResolveStoreHost
   alias EmakolaWeb.SEO.Canonical
-
-  require Ash.Query
 
   @doc "Platform-level sitemap for the apex domain (marketing pages only)."
   def platform(conn, _params) do
@@ -90,9 +89,13 @@ defmodule EmakolaWeb.SitemapController do
     |> send_resp(200, xml)
   end
 
-  @doc "Serves the sitemap.xml for a store — lists all indexable URLs."
-  def show(conn, %{"store_slug" => slug}) do
-    case StoreResolver.resolve(slug) do
+  @doc """
+  Serves the sitemap.xml for a store — lists all indexable URLs. Routed both at
+  `/s/:store_slug/sitemap.xml` (slug in the path) and at the store's subdomain
+  root `<slug>.makola.io/sitemap.xml` (slug in the host).
+  """
+  def show(conn, params) do
+    case fetch_store(conn, params) do
       {:ok, store} ->
         xml = cached_sitemap(store, conn)
 
@@ -100,12 +103,23 @@ defmodule EmakolaWeb.SitemapController do
         |> put_resp_content_type("application/xml")
         |> send_resp(200, xml)
 
-      {:error, _} ->
+      :error ->
         conn
         |> put_resp_content_type("text/plain")
         |> send_resp(404, "Store not found")
     end
   end
+
+  # Resolve the store from the path slug (the /s/:store_slug route) or, when
+  # absent, from conn.host (the subdomain-root route).
+  defp fetch_store(_conn, %{"store_slug" => slug}) do
+    case StoreResolver.resolve(slug) do
+      {:ok, store} -> {:ok, store}
+      _ -> :error
+    end
+  end
+
+  defp fetch_store(conn, _params), do: ResolveStoreHost.resolve_store(conn.host)
 
   @doc """
   Serves a per-store robots.txt that references the sitemap and explicitly
