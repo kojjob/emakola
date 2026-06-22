@@ -49,6 +49,19 @@ defmodule EmakolaWeb.Plugs.ResolveStoreHost do
     end
   end
 
+  @doc """
+  Resolves the store for a request `host` *without* touching the session — for
+  controllers on the `:seo` pipeline (e.g. the sitemap), which doesn't
+  `fetch_session`. Returns `{:ok, store}` or `:error`. Same host→store logic as
+  the plug: an explicit StoreDomain row, then the implicit `<slug>.<base>` match.
+  """
+  def resolve_store(host) do
+    case resolve(host, base()) do
+      {:ok, _slug, store} -> {:ok, store}
+      :error -> :error
+    end
+  end
+
   defp base, do: Application.get_env(:emakola, :store_subdomain_base)
 
   # No base configured (ship-dark) → nothing to resolve.
