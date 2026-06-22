@@ -13,7 +13,9 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   alias EmakolaWeb.SEO.Canonical
 
   @impl true
-  def mount(%{"store_slug" => slug, "category_slug" => category_slug}, session, socket) do
+  def mount(%{"category_slug" => category_slug}, session, socket) do
+    slug = socket.assigns.store.slug
+
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         case load_category(store.id, category_slug) do
