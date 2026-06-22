@@ -57,7 +57,9 @@ defmodule Emakola.Accounts.PlatformAuditLog do
           :verification_approved,
           :verification_rejected,
           :impersonation_started,
-          :impersonation_ended
+          :impersonation_ended,
+          :product_taken_down,
+          :product_reinstated
         ]
       )
 

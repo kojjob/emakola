@@ -30,7 +30,8 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
     :staff_reactivated,
     :store_reactivated,
     :verification_approved,
-    :impersonation_ended
+    :impersonation_ended,
+    :product_reinstated
   ]
 
   attr :loaded?, :boolean, required: true
