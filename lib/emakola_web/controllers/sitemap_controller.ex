@@ -121,6 +121,25 @@ defmodule EmakolaWeb.SitemapController do
 
   defp fetch_store(conn, _params), do: ResolveStoreHost.resolve_store(conn.host)
 
+  @doc "Platform robots.txt for the apex domain — dynamic, replaces the old static priv/static/robots.txt."
+  def platform_robots(conn, _params) do
+    body = """
+    User-agent: *
+    Allow: /
+    Disallow: /dashboard
+    Disallow: /settings
+    Disallow: /api/
+    Disallow: /dev/
+    Disallow: /auth/
+
+    Sitemap: #{Canonical.base()}/sitemap.xml
+    """
+
+    conn
+    |> put_resp_content_type("text/plain")
+    |> send_resp(200, body)
+  end
+
   @doc """
   Serves a per-store robots.txt that references the sitemap and explicitly
   allows AI crawlers (GPTBot, Google-Extended, Anthropic, etc.).
@@ -131,13 +150,13 @@ defmodule EmakolaWeb.SitemapController do
   all AI crawlers with a specific directive, rather than relying on the
   wildcard User-Agent: * (which some AI crawlers ignore).
   """
-  def robots(conn, %{"store_slug" => slug}) do
-    case StoreResolver.resolve(slug) do
+  def robots(conn, params) do
+    case fetch_store(conn, params) do
       {:ok, store} ->
-        base = base_url(conn, store)
+        {prefix, sitemap_url} = robots_location(store, params)
 
         # Private paths that ALL crawlers (including AI) must not access
-        disallows = build_disallow_rules(store.slug)
+        disallows = build_disallow_rules(prefix)
 
         body = """
         # Makola storefront robots.txt for #{store.name}
@@ -174,14 +193,14 @@ defmodule EmakolaWeb.SitemapController do
         Allow: /
         #{disallows}
 
-        Sitemap: #{base}/s/#{store.slug}/sitemap.xml
+        Sitemap: #{sitemap_url}
         """
 
         conn
         |> put_resp_content_type("text/plain")
         |> send_resp(200, body)
 
-      {:error, _} ->
+      :error ->
         conn
         |> put_resp_content_type("text/plain")
         |> send_resp(404, "Store not found")
@@ -351,11 +370,21 @@ defmodule EmakolaWeb.SitemapController do
   defp format_date(%NaiveDateTime{} = ndt), do: NaiveDateTime.to_date(ndt) |> Date.to_iso8601()
   defp format_date(_), do: nil
 
-  # Private paths that all crawlers should not access
-  defp build_disallow_rules(slug) do
+  # Private paths that all crawlers should not access, under the given path prefix
+  # ("" on the subdomain root, "/s/:slug" on the apex subfolder route).
+  defp build_disallow_rules(prefix) do
     ["/cart", "/checkout", "/account", "/wishlist", "/track/", "/orders/", "/auth/"]
-    |> Enum.map_join("\n", fn path -> "Disallow: /s/#{slug}#{path}" end)
+    |> Enum.map_join("\n", fn path -> "Disallow: #{prefix}#{path}" end)
   end
+
+  # Where a store's robots.txt is served decides its path prefix + sitemap URL:
+  # the /s/:store_slug route (slug in params) → subfolder form + apex sitemap; the
+  # subdomain root → root-relative + the store's own subdomain sitemap.
+  defp robots_location(store, %{"store_slug" => _}),
+    do: {"/s/#{store.slug}", Canonical.base() <> "/s/#{store.slug}/sitemap.xml"}
+
+  defp robots_location(store, _),
+    do: {"", Canonical.store_url(store) <> "/sitemap.xml"}
 
   # Minimal XML escaping for URL values
   defp xml_escape(nil), do: ""

@@ -236,6 +236,7 @@ defmodule EmakolaWeb.Router do
   scope "/", EmakolaWeb, host: @apex_hosts do
     pipe_through :seo
     get "/sitemap.xml", SitemapController, :platform
+    get "/robots.txt", SitemapController, :platform_robots
   end
 
   # Store sitemap at the subdomain ROOT (<slug>.makola.io/sitemap.xml). The apex
@@ -246,6 +247,7 @@ defmodule EmakolaWeb.Router do
   scope "/", EmakolaWeb do
     pipe_through :seo
     get "/sitemap.xml", SitemapController, :show
+    get "/robots.txt", SitemapController, :robots
   end
 
   # Sitemap + AI-readable files — uses :seo pipeline (accepts XML/text),

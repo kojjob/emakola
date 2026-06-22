@@ -90,4 +90,42 @@ defmodule EmakolaWeb.SitemapSubdomainTest do
       assert conn.status == 404
     end
   end
+
+  describe "GET /robots.txt routed by host" do
+    test "a store subdomain serves dynamic store robots (root-relative, own sitemap)", %{
+      conn: conn,
+      store: store,
+      origin: origin
+    } do
+      body =
+        %{conn | host: "#{store.slug}.makola.io"}
+        |> get("/robots.txt")
+        |> response(200)
+
+      assert body =~ "Sitemap: #{origin}/sitemap.xml"
+      assert body =~ "Disallow: /cart"
+      # store robots, NOT the generic platform robots, and root-relative on the subdomain
+      refute body =~ "Disallow: /dashboard"
+      refute body =~ "Disallow: /s/#{store.slug}"
+    end
+
+    test "the apex serves platform robots (dynamic, not the static file)", %{conn: conn} do
+      body =
+        %{conn | host: "makola.io"}
+        |> get("/robots.txt")
+        |> response(200)
+
+      assert body =~ "Disallow: /dashboard"
+      assert body =~ "Sitemap:"
+    end
+
+    test "the apex /s/:slug route still serves store robots in subfolder form", %{
+      conn: conn,
+      store: store
+    } do
+      body = conn |> get("/s/#{store.slug}/robots.txt") |> response(200)
+
+      assert body =~ "Disallow: /s/#{store.slug}/cart"
+    end
+  end
 end
