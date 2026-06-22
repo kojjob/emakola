@@ -20,7 +20,7 @@ swap_size_mb = 256
 # Non-secret environment variables
 # -----------------------------------------------------------------------------
 [env]
-  PHX_HOST = "emakola.com"
+  PHX_HOST = "makola.io"
   PHX_SERVER = "true"
   ECTO_IPV6 = "true"
   POOL_SIZE = "10"
