@@ -308,6 +308,20 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
             </div>
           </div>
 
+          <.form
+            :if={Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
+            for={%{}}
+            action={~p"/platform/impersonate/#{m.id}"}
+            method="post"
+          >
+            <button
+              type="submit"
+              class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            >
+              Log in as this merchant
+            </button>
+          </.form>
+
           <dl class="grid grid-cols-2 gap-4 text-sm">
             <div>
               <dt class="text-gray-400">Business</dt>
