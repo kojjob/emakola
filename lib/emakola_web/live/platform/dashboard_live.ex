@@ -79,7 +79,7 @@ defmodule EmakolaWeb.Platform.DashboardLive do
       </div>
 
       <%!-- Recent stores table --%>
-      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 class="text-lg font-semibold text-gray-900">Recent Stores</h2>
           <.link
@@ -160,14 +160,14 @@ defmodule EmakolaWeb.Platform.DashboardLive do
       )
 
     ~H"""
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
-      <div class="flex items-center justify-between mb-3">
-        <span class={"material-symbols-outlined text-xl rounded-lg p-2 #{@color_class}"}>
-          {@icon}
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-medium text-gray-500">{@label}</span>
+        <span class={["flex h-9 w-9 items-center justify-center rounded-xl", @color_class]}>
+          <span class="material-symbols-outlined text-[20px]">{@icon}</span>
         </span>
       </div>
-      <p class="text-2xl font-bold text-gray-900 tabular-nums">{@value}</p>
-      <p class="text-sm text-gray-500 mt-1">{@label}</p>
+      <p class="mt-3 text-3xl font-bold text-gray-900 tabular-nums">{@value}</p>
     </div>
     """
   end
