@@ -29,7 +29,7 @@
 - `lib/emakola/notifications/notifications.ex` — register the two resources + code interfaces.
 - `lib/emakola/accounts/platform_permissions.ex` — add `:manage_announcements`.
 - `lib/emakola/accounts/resources/platform_audit_log.ex` — add `:announcement_published`, `:announcement_canceled`.
-- `lib/emakola_web/components/layouts/audit_log_components.ex` — severity colors for the two atoms.
+- `lib/emakola_web/live/platform/audit_log_components.ex` — severity colors for the two atoms.
 - `lib/emakola/notifications/channels/whatsapp.ex` — add `"announcement" => [:title]` to `@template_param_order`.
 - `lib/emakola_web/router.ex` — route in `:platform`; add `MerchantAnnouncements` hook to `:app`.
 - `lib/emakola_web/components/layouts/app.html.heex` — banner component.
@@ -825,7 +825,7 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 **Files:**
 - Modify: `lib/emakola/accounts/platform_permissions.ex`
 - Modify: `lib/emakola/accounts/resources/platform_audit_log.ex`
-- Modify: `lib/emakola_web/components/layouts/audit_log_components.ex`
+- Modify: `lib/emakola_web/live/platform/audit_log_components.ex`
 - Modify: `lib/emakola/notifications/channels/whatsapp.ex`
 - Test: `test/emakola/accounts/platform_permissions_test.exs` (add a case if the file exists; else assert inline in Task 5's LiveView test)
 
@@ -857,7 +857,7 @@ In `lib/emakola/accounts/resources/platform_audit_log.ex`, add the two atoms to 
 
 - [ ] **Step 3: Add audit severity colors**
 
-In `lib/emakola_web/components/layouts/audit_log_components.ex`, add `:announcement_published` to `@green_actions` and `:announcement_canceled` to `@amber_actions`:
+In `lib/emakola_web/live/platform/audit_log_components.ex`, add `:announcement_published` to `@green_actions` and `:announcement_canceled` to `@amber_actions`:
 
 ```elixir
   @amber_actions [
@@ -903,14 +903,14 @@ In `lib/emakola/notifications/channels/whatsapp.ex`, add `"announcement" => [:ti
 Run: `mix compile --warnings-as-errors 2>&1 | tail -5`
 Expected: compiles (no warnings from these files).
 
-Run: `mix format lib/emakola/accounts/platform_permissions.ex lib/emakola/accounts/resources/platform_audit_log.ex lib/emakola_web/components/layouts/audit_log_components.ex lib/emakola/notifications/channels/whatsapp.ex`
+Run: `mix format lib/emakola/accounts/platform_permissions.ex lib/emakola/accounts/resources/platform_audit_log.ex lib/emakola_web/live/platform/audit_log_components.ex lib/emakola/notifications/channels/whatsapp.ex`
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add lib/emakola/accounts/platform_permissions.ex \
         lib/emakola/accounts/resources/platform_audit_log.ex \
-        lib/emakola_web/components/layouts/audit_log_components.ex \
+        lib/emakola_web/live/platform/audit_log_components.ex \
         lib/emakola/notifications/channels/whatsapp.ex
 git commit -m "feat(notifications): announcement permission, audit atoms, whatsapp template
 

@@ -13,7 +13,8 @@ defmodule Emakola.Accounts.PlatformPermissions do
     :manage_team,
     :view_audit_log,
     :manage_billing,
-    :manage_settings
+    :manage_settings,
+    :manage_announcements
   ]
 
   @spec all() :: [atom()]
