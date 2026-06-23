@@ -45,12 +45,25 @@ defmodule EmakolaWeb.Storefront.CustomerWhatsAppLive do
         resolve(socket)
 
       {:error, :too_many_attempts} ->
+        Emakola.Security.record(%{
+          event_type: :auth_failed,
+          subject_type: :customer,
+          identifier: socket.assigns.phone,
+          metadata: %{"reason" => "too_many_attempts"}
+        })
+
         {:noreply, assign(socket, error: "Too many attempts. Request a new code.")}
 
       {:error, :expired} ->
         {:noreply, assign(socket, step: :phone, error: "Code expired. Please try again.")}
 
       {:error, _} ->
+        Emakola.Security.record(%{
+          event_type: :auth_failed,
+          subject_type: :customer,
+          identifier: socket.assigns.phone
+        })
+
         {:noreply, assign(socket, error: "Invalid code.")}
     end
   end
