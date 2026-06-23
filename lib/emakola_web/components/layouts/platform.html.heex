@@ -129,6 +129,13 @@
       />
       <.sidebar_link
         :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
+        href="/platform/onboarding"
+        title="Onboarding"
+        icon="chart"
+        active={@active_nav == :onboarding}
+      />
+      <.sidebar_link
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
         href="/platform/verifications"
         title="Verifications"
         icon="shield"
