@@ -49,7 +49,7 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
 
   defp totp_card(assigns) do
     ~H"""
-    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden mb-8">
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-8">
       <div class="px-6 py-4 border-b border-gray-100">
         <h2 class="text-lg font-semibold text-gray-900">Two-factor authentication</h2>
       </div>
@@ -185,7 +185,7 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
 
   defp sessions_card(assigns) do
     ~H"""
-    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       <div class="px-6 py-4 border-b border-gray-100">
         <h2 class="text-lg font-semibold text-gray-900">Active sessions</h2>
       </div>

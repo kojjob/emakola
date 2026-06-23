@@ -51,7 +51,10 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
 
       <p :if={!@loaded?} class="text-sm text-gray-500">Loading audit log…</p>
 
-      <div :if={@loaded?} class="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+      <div
+        :if={@loaded?}
+        class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-x-auto"
+      >
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-400">

@@ -160,7 +160,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
       </div>
 
       <%!-- Stores table --%>
-      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead>

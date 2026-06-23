@@ -36,7 +36,7 @@ defmodule EmakolaWeb.Platform.TeamComponents do
       </div>
 
       <%= if is_nil(@staff) do %>
-        <div class="bg-white rounded-xl border border-gray-200 px-6 py-12 text-center text-sm text-gray-400">
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-12 text-center text-sm text-gray-400">
           Loading team…
         </div>
       <% else %>
@@ -61,7 +61,7 @@ defmodule EmakolaWeb.Platform.TeamComponents do
 
   defp staff_table(assigns) do
     ~H"""
-    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden mb-8">
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-8">
       <div class="px-6 py-4 border-b border-gray-100">
         <h2 class="text-lg font-semibold text-gray-900">Staff</h2>
       </div>
@@ -208,7 +208,7 @@ defmodule EmakolaWeb.Platform.TeamComponents do
 
   defp invites_table(assigns) do
     ~H"""
-    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       <div class="px-6 py-4 border-b border-gray-100">
         <h2 class="text-lg font-semibold text-gray-900">Pending invites</h2>
       </div>

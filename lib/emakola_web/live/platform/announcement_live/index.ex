@@ -147,7 +147,7 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
       <form
         id="announcement-form"
         phx-submit="create"
-        class="bg-white rounded-xl border border-gray-200 p-6 mb-8 space-y-4"
+        class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-8 space-y-4"
       >
         <div>
           <label class="block text-sm font-medium text-gray-700">Title</label>
@@ -227,7 +227,7 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
         </button>
       </form>
 
-      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <table class="w-full text-sm">
           <thead>
             <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">

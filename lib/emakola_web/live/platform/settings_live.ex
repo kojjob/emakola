@@ -356,7 +356,7 @@ defmodule EmakolaWeb.Platform.SettingsLive do
       <%!-- Loading shell (disconnected mount — no DB) --%>
       <div
         :if={is_nil(@all_flags)}
-        class="bg-white rounded-xl border border-gray-200 px-6 py-16 text-center text-sm text-gray-400"
+        class="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-16 text-center text-sm text-gray-400"
       >
         Loading feature flags…
       </div>
@@ -399,7 +399,7 @@ defmodule EmakolaWeb.Platform.SettingsLive do
         <%!-- Empty states --%>
         <div
           :if={@stats.total == 0}
-          class="bg-white rounded-xl border border-gray-200 px-6 py-16 text-center"
+          class="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-16 text-center"
         >
           <span class="material-symbols-outlined text-4xl text-gray-300">flag</span>
           <p class="mt-2 text-sm font-medium text-gray-900">No feature flags yet</p>
@@ -415,7 +415,7 @@ defmodule EmakolaWeb.Platform.SettingsLive do
 
         <div
           :if={@stats.total > 0 and @filtered_count == 0}
-          class="bg-white rounded-xl border border-gray-200 px-6 py-16 text-center text-sm text-gray-400"
+          class="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-16 text-center text-sm text-gray-400"
         >
           No flags match your filters
         </div>
@@ -430,7 +430,7 @@ defmodule EmakolaWeb.Platform.SettingsLive do
             :for={{dom_id, flag} <- @streams.flags}
             id={dom_id}
             class={[
-              "bg-white rounded-xl border border-gray-200 border-l-4 p-5 flex flex-col",
+              "bg-white rounded-2xl border border-gray-200 shadow-sm border-l-4 p-5 flex flex-col",
               if(flag.enabled, do: "border-l-blue-500", else: "border-l-slate-300 opacity-75")
             ]}
           >
@@ -657,7 +657,7 @@ defmodule EmakolaWeb.Platform.SettingsLive do
       )
 
     ~H"""
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
       <span class={"material-symbols-outlined text-xl rounded-lg p-2 #{@color_class}"}>
         {@icon}
       </span>
