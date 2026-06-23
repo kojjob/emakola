@@ -231,6 +231,13 @@ defmodule Emakola.Payments.Payment do
       filter(expr(order_id == ^arg(:order_id)))
     end
 
+    # Platform refund oversight — refunded payments across all stores
+    # (Payment is global?: true; called with authorize?: false from the admin).
+    read :list_refunded do
+      filter(expr(status == :refunded))
+      prepare(build(sort: [inserted_at: :desc], load: [:store], limit: 100))
+    end
+
     read :failed_in_period do
       argument(:store_id, :uuid, allow_nil?: false)
       argument(:from, :utc_datetime, allow_nil?: false)

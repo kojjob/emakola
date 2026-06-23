@@ -50,6 +50,26 @@ defmodule Emakola.Platform.Stats do
     end
   end
 
+  def total_refunded do
+    # Sum of refunded amounts across all stores (in minor units)
+    case Emakola.Payments.Payment
+         |> Ash.Query.filter(status == :refunded)
+         |> Ash.sum(:refunded_amount, authorize?: false) do
+      {:ok, sum} -> sum || 0
+      _ -> 0
+    end
+  end
+
+  def refund_count do
+    Emakola.Payments.Payment
+    |> Ash.Query.filter(status == :refunded)
+    |> Ash.count(authorize?: false)
+    |> case do
+      {:ok, count} -> count
+      _ -> 0
+    end
+  end
+
   def total_products do
     Emakola.Catalog.Product
     |> Ash.Query.filter(status == :active)
