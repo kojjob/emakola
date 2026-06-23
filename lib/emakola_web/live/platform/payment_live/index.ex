@@ -6,13 +6,6 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
 
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_billing}
 
-  @stat_colors %{
-    "blue" => "bg-blue-50 text-blue-600",
-    "emerald" => "bg-emerald-50 text-emerald-600",
-    "amber" => "bg-amber-50 text-amber-600",
-    "rose" => "bg-rose-50 text-rose-600"
-  }
-
   @payment_gateways [:paystack, :hubtel]
 
   @impl true
@@ -87,25 +80,25 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
       <% else %>
         <%!-- ── Stat strip ──────────────────────────────────────────────── --%>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <.stat
+          <.stat_tile
             label="Total payments"
             value={to_string(@stats.total)}
             icon="payments"
             color="blue"
           />
-          <.stat
+          <.stat_tile
             label="Success rate"
             value={format_rate(@success_rate)}
             icon="chart"
             color="emerald"
           />
-          <.stat
+          <.stat_tile
             label="GMV"
             value={format_amount(@stats.gmv)}
             icon="currency"
             color="amber"
           />
-          <.stat
+          <.stat_tile
             label="Refunds"
             value={format_amount(@stats.refunded_total)}
             icon="returns"
@@ -114,7 +107,7 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
         </div>
 
         <%!-- ── Gateway breakdown ──────────────────────────────────────── --%>
-        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden mb-8">
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-8">
           <div class="px-6 py-4 border-b border-gray-100">
             <h2 class="text-lg font-semibold text-gray-900">Gateway breakdown</h2>
           </div>
@@ -143,7 +136,7 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
         </div>
 
         <%!-- ── Failed payments worklist ───────────────────────────────── --%>
-        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden mb-8">
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-8">
           <div class="px-6 py-4 border-b border-gray-100">
             <h2 class="text-lg font-semibold text-gray-900">Failed payments</h2>
             <p class="text-xs text-gray-400 mt-0.5">Most recent 20 — needs reconciliation</p>
@@ -182,7 +175,7 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
         </div>
 
         <%!-- ── Recent refunds ─────────────────────────────────────────── --%>
-        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div class="px-6 py-4 border-b border-gray-100">
             <h2 class="text-lg font-semibold text-gray-900">Recent refunds</h2>
             <p class="text-xs text-gray-400 mt-0.5">Most recent 10</p>
@@ -220,36 +213,6 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
           </div>
         </div>
       <% end %>
-    </div>
-    """
-  end
-
-  # ── Private components ──────────────────────────────────────────────
-
-  attr :label, :string, required: true
-  attr :value, :any, required: true
-  attr :icon, :string, required: true
-  attr :color, :string, required: true
-
-  defp stat(assigns) do
-    color_classes = @stat_colors
-
-    assigns =
-      assign(
-        assigns,
-        :color_class,
-        Map.get(color_classes, assigns.color, "bg-gray-50 text-gray-600")
-      )
-
-    ~H"""
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
-      <div class="flex items-center justify-between mb-3">
-        <span class={"material-symbols-outlined text-xl rounded-lg p-2 #{@color_class}"}>
-          {@icon}
-        </span>
-      </div>
-      <p class="text-2xl font-bold text-gray-900 tabular-nums">{@value}</p>
-      <p class="text-sm text-gray-500 mt-1">{@label}</p>
     </div>
     """
   end

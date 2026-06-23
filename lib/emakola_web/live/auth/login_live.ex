@@ -247,6 +247,13 @@ defmodule EmakolaWeb.Auth.LoginLive do
          |> redirect(to: "/auth/session?token=#{URI.encode_www_form(token)}")}
 
       {:error, _} ->
+        Emakola.Security.record(%{
+          event_type: :auth_failed,
+          subject_type: :merchant,
+          identifier: params["email"],
+          ip: ip
+        })
+
         {:noreply,
          socket
          |> put_flash(:error, "Invalid email or password")

@@ -129,6 +129,13 @@
       />
       <.sidebar_link
         :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
+        href="/platform/onboarding"
+        title="Onboarding"
+        icon="chart"
+        active={@active_nav == :onboarding}
+      />
+      <.sidebar_link
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
         href="/platform/verifications"
         title="Verifications"
         icon="shield"
@@ -153,6 +160,13 @@
         title="Audit log"
         icon="pencil-square"
         active={@active_nav == :audit_log}
+      />
+      <.sidebar_link
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :view_audit_log)}
+        href="/platform/security-events"
+        title="Security events"
+        icon="shield"
+        active={@active_nav == :security_events}
       />
 
       <%!-- Finance --%>
