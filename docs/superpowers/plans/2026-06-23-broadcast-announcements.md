@@ -985,10 +985,10 @@ defmodule EmakolaWeb.Hooks.MerchantAnnouncementsTest do
 
     refute html =~ "Dismiss me"
 
-    {:ok, ids} =
+    {:ok, dismissals} =
       Notifications.list_dismissed_announcement_ids(merchant.id, authorize?: false)
 
-    assert ann.id in Enum.map(ids, & &1.id)
+    assert ann.id in Enum.map(dismissals, & &1.announcement_id)
   end
 
   test "a scheduled (unpublished) announcement is not shown", %{conn: conn} do
@@ -1074,7 +1074,9 @@ defmodule EmakolaWeb.Hooks.MerchantAnnouncements do
              ),
            {:ok, dismissed} <-
              Notifications.list_dismissed_announcement_ids(merchant.id, authorize?: false) do
-        dismissed_ids = MapSet.new(dismissed, & &1.id)
+        # dismissed are AnnouncementDismissal records — key by announcement_id,
+        # NOT the dismissal row's own id.
+        dismissed_ids = MapSet.new(dismissed, & &1.announcement_id)
 
         active
         |> Enum.filter(&(:banner in &1.channels))
