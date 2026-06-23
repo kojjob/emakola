@@ -344,6 +344,7 @@ defmodule EmakolaWeb.Router do
       live "/platform/verifications/:id", Platform.VerificationLive.Show
       live "/platform/moderation", Platform.ModerationLive.Index
       live "/platform/announcements", Platform.AnnouncementLive.Index
+      live "/platform/onboarding", Platform.OnboardingLive
       live "/platform/team", Platform.TeamLive
       live "/platform/security", Platform.SecurityLive
       live "/platform/audit-log", Platform.AuditLogLive
