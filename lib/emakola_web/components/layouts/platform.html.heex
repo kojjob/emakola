@@ -114,6 +114,13 @@
         active={@active_nav == :moderation}
       />
       <.sidebar_link
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_announcements)}
+        href="/platform/announcements"
+        title="Announcements"
+        icon="megaphone"
+        active={@active_nav == :announcements}
+      />
+      <.sidebar_link
         :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
         href="/platform/merchants"
         title="Merchants"

@@ -59,7 +59,9 @@ defmodule Emakola.Accounts.PlatformAuditLog do
           :impersonation_started,
           :impersonation_ended,
           :product_taken_down,
-          :product_reinstated
+          :product_reinstated,
+          :announcement_published,
+          :announcement_canceled
         ]
       )
 

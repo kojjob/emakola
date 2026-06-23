@@ -55,7 +55,8 @@ defmodule Emakola.Notifications.Channels.WhatsApp do
     "order_delivered" => @order_param_order,
     "order_cancelled" => @order_param_order,
     "supplier_fulfillment" => [:order_number, :supplier_name, :items, :ship_to],
-    "auth_code" => [:code]
+    "auth_code" => [:code],
+    "announcement" => [:title]
   }
 
   # ── Public API ─────────────────────────────────────────────────

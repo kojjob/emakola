@@ -21,7 +21,8 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
     :invite_revoked,
     :totp_disabled,
     :store_suspended,
-    :impersonation_started
+    :impersonation_started,
+    :announcement_canceled
   ]
   @green_actions [
     :sign_in_succeeded,
@@ -31,7 +32,8 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
     :store_reactivated,
     :verification_approved,
     :impersonation_ended,
-    :product_reinstated
+    :product_reinstated,
+    :announcement_published
   ]
 
   attr :loaded?, :boolean, required: true

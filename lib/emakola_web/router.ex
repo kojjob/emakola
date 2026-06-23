@@ -343,6 +343,7 @@ defmodule EmakolaWeb.Router do
       live "/platform/verifications", Platform.VerificationLive.Index
       live "/platform/verifications/:id", Platform.VerificationLive.Show
       live "/platform/moderation", Platform.ModerationLive.Index
+      live "/platform/announcements", Platform.AnnouncementLive.Index
       live "/platform/team", Platform.TeamLive
       live "/platform/security", Platform.SecurityLive
       live "/platform/audit-log", Platform.AuditLogLive
@@ -358,7 +359,8 @@ defmodule EmakolaWeb.Router do
         {EmakolaWeb.Hooks.AssignDefaults, :default},
         {EmakolaWeb.Hooks.RequireAuth, :default},
         {EmakolaWeb.Hooks.RequireActiveStore, :default},
-        {EmakolaWeb.Hooks.NotificationHandler, :default}
+        {EmakolaWeb.Hooks.NotificationHandler, :default},
+        {EmakolaWeb.Hooks.MerchantAnnouncements, :default}
       ] do
       live "/dashboard", DashboardLive
 
