@@ -52,25 +52,25 @@ defmodule EmakolaWeb.Platform.SecurityEventsLive do
       <div :if={@overview}>
         <%!-- Hero stat tiles --%>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <.stat_tile
+          <.metric_tile
             label="Events (24h)"
             value={@overview.total}
             icon="hero-chart-bar"
             chip="bg-slate-100 text-slate-600"
           />
-          <.stat_tile
+          <.metric_tile
             label="Rate-limit hits"
             value={@overview.by_type.rate_limit_exceeded}
             icon="hero-bolt"
             chip="bg-amber-100 text-amber-600"
           />
-          <.stat_tile
+          <.metric_tile
             label="Failed sign-ins"
             value={@overview.by_type.auth_failed}
             icon="hero-finger-print"
             chip="bg-red-100 text-red-600"
           />
-          <.stat_tile
+          <.metric_tile
             label="Flagged sources"
             value={@overview.anomaly_count}
             icon="hero-flag"
@@ -168,7 +168,7 @@ defmodule EmakolaWeb.Platform.SecurityEventsLive do
   attr :icon, :string, required: true
   attr :chip, :string, required: true
 
-  defp stat_tile(assigns) do
+  defp metric_tile(assigns) do
     ~H"""
     <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
       <div class="flex items-center justify-between">
