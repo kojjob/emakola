@@ -500,7 +500,9 @@ defmodule Emakola.Notifications.Workers.AnnouncementPublishWorkerTest do
 
   test "audience :active skips non-live stores" do
     live = Factory.create_store!()
-    archived = Factory.create_store!(%{status: :archived})
+    # The factory can't set lifecycle status directly (it routes unknown keys to
+    # :update_settings, which rejects :status). Use the platform :archive action.
+    {:ok, archived} = Emakola.Stores.archive_store(Factory.create_store!(), %{}, authorize?: false)
     ann = announcement!(%{channels: [:sms], audience: :active})
 
     assert :ok = perform_job(Worker, %{"announcement_id" => ann.id})
