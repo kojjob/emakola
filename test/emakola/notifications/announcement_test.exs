@@ -7,7 +7,7 @@ defmodule Emakola.Notifications.AnnouncementTest do
 
   alias Emakola.Notifications
 
-  defp valid_attrs(overrides \\ %{}) do
+  defp valid_attrs(overrides) do
     Map.merge(
       %{
         title: "Scheduled maintenance",
