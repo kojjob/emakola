@@ -9,6 +9,7 @@ defmodule Emakola.Stores.StorePayoutAccountTest do
   import Emakola.Factory
   require Ash.Query
 
+  alias Emakola.Stores
   alias Emakola.Stores.StorePayoutAccount
 
   setup do
@@ -55,6 +56,47 @@ defmodule Emakola.Stores.StorePayoutAccountTest do
 
       assert updated.subaccount_code == "ACCT_xyz"
       assert updated.verification_status == :verified
+    end
+  end
+
+  describe "domain code interfaces (payout onboarding)" do
+    test "create_payout_account persists the payout destination", %{store: store} do
+      {:ok, account} =
+        Stores.create_payout_account(
+          %{
+            store_id: store.id,
+            payout_destination: %{"method" => "mobile_money", "number" => "0240000000"}
+          },
+          authorize?: false
+        )
+
+      assert account.store_id == store.id
+      assert account.verification_status == :unverified
+      assert account.payout_destination["number"] == "0240000000"
+    end
+
+    test "update_payout_account changes the payout destination", %{store: store} do
+      account = create_account!(store, %{payout_destination: %{"method" => "mobile_money"}})
+
+      {:ok, updated} =
+        Stores.update_payout_account(
+          account,
+          %{payout_destination: %{"method" => "bank", "account_number" => "1234567890"}},
+          authorize?: false
+        )
+
+      assert updated.payout_destination["method"] == "bank"
+      assert updated.payout_destination["account_number"] == "1234567890"
+    end
+
+    test "get_payout_account fetches the store's account, nil when none", %{store: store} do
+      assert {:ok, nil} =
+               Stores.get_payout_account(store.id, authorize?: false, not_found_error?: false)
+
+      create_account!(store, %{payout_destination: %{"number" => "0247654321"}})
+
+      {:ok, account} = Stores.get_payout_account(store.id, authorize?: false)
+      assert account.payout_destination["number"] == "0247654321"
     end
   end
 
