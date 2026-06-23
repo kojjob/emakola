@@ -344,11 +344,14 @@ defmodule EmakolaWeb.Router do
       live "/platform/verifications/:id", Platform.VerificationLive.Show
       live "/platform/moderation", Platform.ModerationLive.Index
       live "/platform/announcements", Platform.AnnouncementLive.Index
+      live "/platform/onboarding", Platform.OnboardingLive
       live "/platform/team", Platform.TeamLive
       live "/platform/security", Platform.SecurityLive
       live "/platform/audit-log", Platform.AuditLogLive
+      live "/platform/security-events", Platform.SecurityEventsLive
       live "/platform/billing", Platform.BillingLive
       live "/platform/payments", Platform.PaymentLive.Index
+      live "/platform/refunds", Platform.RefundsLive
       live "/platform/settings", Platform.SettingsLive
     end
 

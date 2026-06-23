@@ -53,6 +53,14 @@ defmodule EmakolaWeb.Plugs.RateLimiter do
 
         Logger.warning("Rate limit exceeded for #{key}")
 
+        Emakola.Security.record(%{
+          event_type: :rate_limit_exceeded,
+          ip: format_ip(conn.remote_ip),
+          path: conn.request_path,
+          identifier: key,
+          metadata: %{"limit" => limit}
+        })
+
         conn
         |> put_resp_header("retry-after", to_string(retry_after))
         |> put_resp_header("x-ratelimit-limit", to_string(limit))

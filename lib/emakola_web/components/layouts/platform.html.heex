@@ -129,6 +129,13 @@
       />
       <.sidebar_link
         :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
+        href="/platform/onboarding"
+        title="Onboarding"
+        icon="chart"
+        active={@active_nav == :onboarding}
+      />
+      <.sidebar_link
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_merchants)}
         href="/platform/verifications"
         title="Verifications"
         icon="shield"
@@ -154,6 +161,13 @@
         icon="pencil-square"
         active={@active_nav == :audit_log}
       />
+      <.sidebar_link
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :view_audit_log)}
+        href="/platform/security-events"
+        title="Security events"
+        icon="shield"
+        active={@active_nav == :security_events}
+      />
 
       <%!-- Finance --%>
       <p class="nav-section-label px-3 text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em] mt-6 mb-1.5">
@@ -174,6 +188,13 @@
         title="Payments"
         icon="payments"
         active={@active_nav == :payments}
+      />
+      <.sidebar_link
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_billing)}
+        href="/platform/refunds"
+        title="Refunds"
+        icon="returns"
+        active={@active_nav == :refunds}
       />
 
       <%!-- Config --%>
