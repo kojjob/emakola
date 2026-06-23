@@ -63,13 +63,13 @@ defmodule EmakolaWeb.Platform.RefundsLive do
 
       <div :if={@loaded}>
         <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-          <.stat_tile
+          <.metric_tile
             label="Total refunded"
             value={money(@total_refunded, "GHS")}
             icon="hero-receipt-refund"
             chip="bg-rose-100 text-rose-600"
           />
-          <.stat_tile
+          <.metric_tile
             label="Refunds"
             value={@refund_count}
             icon="hero-arrow-uturn-left"
@@ -131,7 +131,7 @@ defmodule EmakolaWeb.Platform.RefundsLive do
   attr :icon, :string, required: true
   attr :chip, :string, required: true
 
-  defp stat_tile(assigns) do
+  defp metric_tile(assigns) do
     ~H"""
     <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
       <div class="flex items-center justify-between">
