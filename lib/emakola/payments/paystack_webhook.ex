@@ -108,6 +108,7 @@ defmodule Emakola.Payments.PaystackWebhook do
         {:ok, _} =
           Emakola.Payments.mark_payout_paid(payout, %{gateway_response: data}, authorize?: false)
 
+        Emakola.Notifications.Workers.PayoutNotificationWorker.enqueue(payout.id)
         :ok
 
       {:ok, %{} = payout} ->

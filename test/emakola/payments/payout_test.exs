@@ -76,6 +76,15 @@ defmodule Emakola.Payments.PayoutTest do
     assert failed.failure_reason == "insufficient balance"
   end
 
+  test "list_recent returns payouts newest-first with the store loaded" do
+    store = Factory.create_store!(%{name: "Recent Co"})
+    pending_payout!(store, %{transfer_reference: "po_recent"})
+
+    payouts = Payments.list_recent_payouts!(load: [:store], authorize?: false)
+    assert [%{transfer_reference: "po_recent"} = payout | _] = payouts
+    assert payout.store.name == "Recent Co"
+  end
+
   test "by_store lists a store's payouts; by_transfer_reference finds one" do
     store = Factory.create_store!()
     pending_payout!(store, %{transfer_reference: "PO-find-me"})

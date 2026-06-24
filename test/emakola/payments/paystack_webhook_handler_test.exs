@@ -202,6 +202,11 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
 
       assert :ok = perform_job(PaystackWebhookHandler, event)
       assert Emakola.Payments.get_payout!(payout.id, authorize?: false).status == :paid
+
+      assert_enqueued(
+        worker: Emakola.Notifications.Workers.PayoutNotificationWorker,
+        args: %{"payout_id" => payout.id}
+      )
     end
 
     test "ignores a reference that is not one of our payouts" do
