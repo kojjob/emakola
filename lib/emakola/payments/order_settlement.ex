@@ -1,14 +1,19 @@
 defmodule Emakola.Payments.OrderSettlement do
   @moduledoc """
-  Order-aware glue between a placed order and the dropship split engine (SP5).
+  Order-aware glue between a placed order and the payment split engine.
 
-  Loads an order's line items (with their fulfillment's supplier), asks
-  `DropshipSettlement` for a split, and exposes:
+  Loads an order's line items, decides how the customer's charge is split, and
+  exposes:
 
-    * `prepare/2` — `{:split, %{total, allocations, shares}}` or `{:no_split, reason}`.
+    * `prepare/2` — `{:split, %{total, allocations, shares, mode}}` or
+      `{:no_split, reason}`. Two split modes:
+        - `:dropship_split` (SP5) — trustless margin split across wholesaler(s) +
+          dropshipper when every party has a verified subaccount.
+        - `:platform_fee` — a normal own-stock order: the merchant's net goes to
+          their verified subaccount, the platform keeps its transaction fee.
       `shares` is the gateway-ready list of `%{subaccount, share}` for
       `initiate_payment`; the platform's cut is never a share (it stays in the
-      platform main account).
+      platform main account as the split remainder).
     * `record_splits!/2` — persists one `PaymentSplit` per allocation once the
       payment record exists.
   """
@@ -16,6 +21,7 @@ defmodule Emakola.Payments.OrderSettlement do
   require Ash.Query
 
   alias Emakola.Payments.DropshipSettlement
+  alias Emakola.Payments.PlatformFee
 
   def prepare(order_id, store_id) do
     order = Ash.get!(Emakola.Orders.Order, order_id, authorize?: false, tenant: store_id)
@@ -32,13 +38,62 @@ defmodule Emakola.Payments.OrderSettlement do
 
         if valid_shares?(allocations) do
           {:split,
-           %{total: order.total, allocations: allocations, shares: gateway_shares(allocations)}}
+           %{
+             total: order.total,
+             allocations: allocations,
+             shares: gateway_shares(allocations),
+             mode: :dropship_split
+           }}
         else
           {:no_split, :unrepresentable_split}
         end
 
+      # A normal own-stock order: take the platform's transaction fee and route
+      # the merchant their net via their verified subaccount (same split-remainder
+      # model — the platform's fee stays in the main account).
+      {:no_split, :no_dropship_items} ->
+        prepare_platform_fee(order, store_id)
+
       {:no_split, reason} ->
         {:no_split, reason}
+    end
+  end
+
+  defp prepare_platform_fee(order, store_id) do
+    case verified_subaccount(store_id) do
+      {:ok, code} ->
+        %{fee: fee, net: net} = PlatformFee.calculate(order.total, platform_fee_rate_bps())
+
+        if net > 0 do
+          allocations = [
+            %{role: :merchant, amount: net, subaccount_code: code},
+            %{role: :platform, amount: fee, subaccount_code: nil}
+          ]
+
+          {:split,
+           %{
+             total: order.total,
+             allocations: allocations,
+             shares: gateway_shares(allocations),
+             mode: :platform_fee
+           }}
+        else
+          {:no_split, :unrepresentable_split}
+        end
+
+      {:error, :payout_unverified} ->
+        {:no_split, :payout_unverified}
+    end
+  end
+
+  # Mirrors DropshipSettlement's notion of a usable payout account.
+  defp verified_subaccount(store_id) do
+    case Emakola.Stores.get_payout_account(store_id, authorize?: false) do
+      {:ok, %{verification_status: :verified, subaccount_code: code}} when is_binary(code) ->
+        {:ok, code}
+
+      _ ->
+        {:error, :payout_unverified}
     end
   end
 
@@ -101,5 +156,9 @@ defmodule Emakola.Payments.OrderSettlement do
 
   defp fee_rate_bps do
     Application.get_env(:emakola, :dropship_fee_rate_bps, 1000)
+  end
+
+  defp platform_fee_rate_bps do
+    Application.get_env(:emakola, :platform_fee_rate_bps, 200)
   end
 end

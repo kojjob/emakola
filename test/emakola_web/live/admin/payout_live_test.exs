@@ -6,8 +6,10 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
   """
   use EmakolaWeb.ConnCase, async: false
   use Emakola.LiveViewHelpers
+  use Oban.Testing, repo: Emakola.Repo
   import Phoenix.LiveViewTest
 
+  alias Emakola.Payments.Workers.SubaccountCreationWorker
   alias Emakola.Stores
 
   setup %{conn: conn} do
@@ -45,6 +47,23 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
     assert account.payout_destination["provider"] == "mtn"
     assert account.payout_destination["number"] == "0240000000"
     assert account.payout_destination["account_name"] == "Ama Trades"
+  end
+
+  test "saving payout details enqueues subaccount creation", %{conn: conn, store: store} do
+    {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+
+    view
+    |> element("#payout-form")
+    |> render_submit(%{
+      "payout" => %{
+        "method" => "mobile_money",
+        "provider" => "mtn",
+        "number" => "0240000000",
+        "account_name" => "Ama Trades"
+      }
+    })
+
+    assert_enqueued(worker: SubaccountCreationWorker, args: %{"store_id" => store.id})
   end
 
   test "an existing account shows the update state and can be changed", %{

@@ -245,6 +245,47 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     end
   end
 
+  # -- Platform fee settlement (normal own-stock order) --
+
+  describe "platform fee settlement" do
+    test "places a normal order routing the merchant net and keeping the platform fee", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      verified_payout!(store, "ACCT_own")
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "241234567",
+        "fullname" => "Kofi Owusu",
+        "address" => "House 14, Osu",
+        "region" => "greater_accra",
+        "notes" => ""
+      })
+
+      payment =
+        Emakola.Payments.Payment
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+        |> List.first()
+
+      assert payment.split_mode == :platform_fee
+
+      {:ok, splits} =
+        Emakola.Payments.PaymentSplit
+        |> Ash.Query.for_read(:by_payment, %{payment_id: payment.id})
+        |> Ash.read(authorize?: false)
+
+      by_role = Map.new(splits, &{&1.role, &1})
+      # subtotal 10000 + Greater Accra delivery 1500 = 11500 total; 2% fee = 230.
+      assert by_role[:merchant].amount == 11_270
+      assert by_role[:merchant].subaccount_code == "ACCT_own"
+      assert by_role[:platform].amount == 230
+    end
+  end
+
   # -- Delivery Fee --
 
   describe "delivery fee calculation" do
