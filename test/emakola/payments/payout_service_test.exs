@@ -10,7 +10,7 @@ defmodule Emakola.Payments.PayoutServiceTest do
   alias Emakola.Payments
   alias Emakola.Payments.PayoutService
 
-  defp success_payment!(store, attrs \\ %{}) do
+  defp success_payment!(store, attrs) do
     store
     |> Factory.create_payment!(Map.merge(%{amount: 50_000}, attrs))
     |> Ash.Changeset.for_update(:mark_success, %{})
