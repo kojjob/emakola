@@ -1,7 +1,10 @@
 # Emakola — Action Roadmap
 
 > Prioritized implementation plan based on codebase evaluation (March 2026).
-> Last updated: 2026-06-14 — Phases 0 through 1.8 complete; bulk product upload shipped (below).
+> Last updated: 2026-06-24 — Phases 0–1.8 complete; bulk product upload shipped; **Revenue
+> rails + payout engine complete** (#206–#213, see new section below). Per
+> [`REVENUE-FIRST-90-DAY-PLAN.md`](REVENUE-FIRST-90-DAY-PLAN.md), Phase 0 build is done and the
+> constraint is now **activation + go-to-market**, not engineering.
 
 ---
 
@@ -261,10 +264,28 @@ image-upload endpoints must be added before the Flutter merchant app can build t
 - [x] `CheckoutLive` wired + `PaystackWebhookHandler` settle-on-success / reverse-on-refund
 
 **Remaining:**
-- [ ] SP1 merchant payout-onboarding UI (calls `create_subaccount`)
+- [x] SP1 merchant payout-onboarding UI (calls `create_subaccount`) — shipped
+- [x] Ops: verify Paystack Ghana MoMo-as-subaccount support — ✅ confirmed (2026-06-24)
 - [ ] Refund clawback against future payouts (splits currently only flip to `:reversed`)
 - [ ] SP2–SP4 supplier-network marketplace (connections, catalog sourcing, cross-store fulfillment)
-- [ ] Ops: Paystack fee bearer; verify Paystack Ghana MoMo-as-subaccount support
+- [ ] Paystack fee bearer (config decision at activation)
+
+---
+
+## ✅ Revenue Rails & Payout Engine — COMPLETE (2026-06-24)
+
+> Monetization end-to-end: **collect → split → fee → track → pay out → observe → retry →
+> notify.** All merged to `main`. Specs in `docs/superpowers/specs/2026-06-24-*`.
+
+- [x] **Subaccount creation** (#206) — `SubaccountCreationWorker` turns a saved MoMo payout into a verified Paystack subaccount (async, idempotent).
+- [x] **Platform fee on normal orders** (#207) — `OrderSettlement` routes the merchant net to their subaccount and keeps a **2%** fee as the split remainder (`platform_fee_rate_bps: 200`); graceful `:no_split` fallback so fee logic can never break a sale.
+- [x] **Finance oversight page** (#208) — `/platform/finance`: fees collected, GMV, take rate, outstanding-payout backlog + per-store breakdown.
+- [x] **Payout-execution engine** (#210 rails/ledger + #211 gated execution) — Paystack Transfer rails, `Payout` ledger, admin-approved disbursement (idempotent via `transfer_reference`), `transfer.success/failed` webhook confirmation.
+- [x] **Payout operations** (#212) — recent-payouts table + status, retry for failed payouts, merchant SMS/email on `:paid`.
+- [x] **Stat-tile icon fix** (#213) — valid Material Symbols on the finance/payments tiles.
+
+**Next (not engineering):** activation (real provider keys → `LAUNCH_TODO.md`) + go-to-market.
+**Next buildable toward revenue:** Smart Link / link-in-bio store page (`SOCIAL_COMMERCE.md`).
 
 ---
 
