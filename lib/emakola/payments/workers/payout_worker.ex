@@ -44,7 +44,8 @@ defmodule Emakola.Payments.Workers.PayoutWorker do
         :ok
 
       {:ok, dest} ->
-        with {:ok, %{recipient_code: recipient_code}} <- gateway().create_transfer_recipient(dest),
+        with {:ok, %{recipient_code: recipient_code}} <-
+               gateway().create_transfer_recipient(dest),
              {:ok, %{transfer_code: transfer_code}} <-
                gateway().initiate_transfer(transfer_params(payout, recipient_code)) do
           {:ok, _} =
