@@ -129,14 +129,19 @@ defmodule EmakolaWeb.Platform.FinanceLive do
           <.stat_tile
             label="Platform fees collected"
             value={format_amount(@stats.fees)}
-            icon="currency"
+            icon="account_balance_wallet"
             color="emerald"
           />
-          <.stat_tile label="GMV" value={format_amount(@stats.gmv)} icon="chart" color="blue" />
+          <.stat_tile
+            label="GMV"
+            value={format_amount(@stats.gmv)}
+            icon="trending_up"
+            color="blue"
+          />
           <.stat_tile
             label="Effective take rate"
             value={format_rate(@take_rate)}
-            icon="chart"
+            icon="percent"
             color="violet"
           />
           <.stat_tile

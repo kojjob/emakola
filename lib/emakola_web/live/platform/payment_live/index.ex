@@ -89,19 +89,19 @@ defmodule EmakolaWeb.Platform.PaymentLive.Index do
           <.stat_tile
             label="Success rate"
             value={format_rate(@success_rate)}
-            icon="chart"
+            icon="percent"
             color="emerald"
           />
           <.stat_tile
             label="GMV"
             value={format_amount(@stats.gmv)}
-            icon="currency"
+            icon="trending_up"
             color="amber"
           />
           <.stat_tile
             label="Refunds"
             value={format_amount(@stats.refunded_total)}
-            icon="returns"
+            icon="currency_exchange"
             color="rose"
           />
         </div>
