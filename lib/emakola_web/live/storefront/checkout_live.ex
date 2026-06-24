@@ -400,10 +400,10 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     store = socket.assigns.store
     gateway = Application.get_env(:emakola, :payment_gateway, Emakola.Payments.Gateways.Paystack)
 
-    # Resolve a trustless dropship split: when every wholesaler and the
-    # dropshipper have a verified payout subaccount, the customer's charge is
-    # split at the gateway so each party is paid directly. Otherwise the order
-    # settles normally and suppliers are paid via the manual ledger.
+    # Resolve how the charge is split at the gateway: a trustless dropship split
+    # across wholesaler(s) + dropshipper, or — for a normal own-stock order with
+    # a verified subaccount — the merchant's net with the platform keeping its
+    # fee. Falls back to settling via the main account when neither applies.
     settlement = Emakola.Payments.OrderSettlement.prepare(order.id, store.id)
 
     params =
@@ -493,14 +493,14 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     end
   end
 
-  # -- Dropship split helpers ----------------------------------------------
+  # -- Settlement split helpers --------------------------------------------
 
   defp maybe_attach_split(params, {:split, %{shares: shares}}),
     do: Map.put(params, :split, shares)
 
   defp maybe_attach_split(params, {:no_split, _reason}), do: params
 
-  defp split_mode({:split, _}), do: :dropship_split
+  defp split_mode({:split, %{mode: mode}}), do: mode
   defp split_mode({:no_split, _}), do: :none
 
   defp record_splits(payment, {:split, %{allocations: allocations}}),

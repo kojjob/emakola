@@ -83,7 +83,7 @@ defmodule Emakola.Payments.Payment do
 
     # Whether this charge is split across dropship parties at the gateway.
     attribute :split_mode, :atom do
-      constraints(one_of: [:none, :dropship_split])
+      constraints(one_of: [:none, :dropship_split, :platform_fee])
       default(:none)
       allow_nil?(false)
       public?(true)
