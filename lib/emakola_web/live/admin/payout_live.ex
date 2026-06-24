@@ -5,13 +5,15 @@ defmodule EmakolaWeb.Admin.PayoutLive do
       /admin/payouts
 
   Captures the merchant's payout destination (mobile money or bank) onto their
-  `StorePayoutAccount`. This is the path-independent slice: it stores the
-  details only — it does NOT create a Paystack subaccount, apply a platform fee,
-  or move money (those settlement pieces await the Paystack-Ghana MoMo ops
-  decision). `verification_status` stays `:unverified` here.
+  `StorePayoutAccount`. The save records the details as `:unverified`, then
+  enqueues `SubaccountCreationWorker` to create the matching Paystack subaccount
+  asynchronously (revenue rails, slice 1) — the gateway call never blocks the
+  save and retries on transient failure. Platform fee / money movement on normal
+  orders is slice 2.
   """
   use EmakolaWeb, :live_view
 
+  alias Emakola.Payments.Workers.SubaccountCreationWorker
   alias Emakola.Stores
 
   @impl true
@@ -47,6 +49,8 @@ defmodule EmakolaWeb.Admin.PayoutLive do
       :ok ->
         case persist(socket.assigns.account, socket.assigns.current_store, destination) do
           {:ok, account} ->
+            SubaccountCreationWorker.enqueue(socket.assigns.current_store.id)
+
             {:noreply,
              socket
              |> assign(:account, account)

@@ -35,6 +35,7 @@ defmodule Emakola.Stores do
       define(:get_payout_account, action: :get_by_store, args: [:store_id])
       define(:create_payout_account, action: :create)
       define(:update_payout_account, action: :update)
+      define(:record_payout_subaccount, action: :record_subaccount)
     end
 
     resource Emakola.Stores.StorePageContent do
