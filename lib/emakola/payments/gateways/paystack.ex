@@ -116,6 +116,34 @@ defmodule Emakola.Payments.Gateways.Paystack do
   end
 
   @impl true
+  def create_transfer_recipient(params) do
+    case paystack_client().create_transfer_recipient(params) do
+      {:ok, %{"status" => true, "data" => data}} ->
+        {:ok, %{recipient_code: data["recipient_code"], raw: data}}
+
+      {:ok, %{"status" => false, "message" => message}} ->
+        {:error, {:paystack_error, message}}
+
+      {:error, reason} ->
+        {:error, {:gateway_error, reason}}
+    end
+  end
+
+  @impl true
+  def initiate_transfer(params) do
+    case paystack_client().initiate_transfer(params) do
+      {:ok, %{"status" => true, "data" => data}} ->
+        {:ok, %{transfer_code: data["transfer_code"], status: data["status"], raw: data}}
+
+      {:ok, %{"status" => false, "message" => message}} ->
+        {:error, {:paystack_error, message}}
+
+      {:error, reason} ->
+        {:error, {:gateway_error, reason}}
+    end
+  end
+
+  @impl true
   def verify_webhook(body, headers) do
     secret = secret_key()
     provided_signature = headers["x-paystack-signature"]

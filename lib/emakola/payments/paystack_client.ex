@@ -50,6 +50,24 @@ defmodule Emakola.Payments.PaystackClient do
     )
   end
 
+  @impl true
+  def create_transfer_recipient(params) do
+    http_client().post(
+      "#{base_url()}/transferrecipient",
+      json: params,
+      headers: auth_headers()
+    )
+  end
+
+  @impl true
+  def initiate_transfer(params) do
+    http_client().post(
+      "#{base_url()}/transfer",
+      json: params,
+      headers: auth_headers()
+    )
+  end
+
   # -- Private helpers -------------------------------------------------------
 
   defp auth_headers do

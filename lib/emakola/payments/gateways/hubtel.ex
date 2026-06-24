@@ -84,6 +84,17 @@ defmodule Emakola.Payments.Gateways.Hubtel do
   end
 
   @impl true
+  def create_transfer_recipient(_params) do
+    # Hubtel transfers are not integrated — payouts route through Paystack.
+    {:error, :not_supported}
+  end
+
+  @impl true
+  def initiate_transfer(_params) do
+    {:error, :not_supported}
+  end
+
+  @impl true
   def verify_webhook(body, _headers) do
     # Hubtel doesn't use webhook signatures (uses IP allowlisting instead).
     # We verify by calling the payment status check API to confirm the transaction.
