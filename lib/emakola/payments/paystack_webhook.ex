@@ -75,6 +75,15 @@ defmodule Emakola.Payments.PaystackWebhook do
     end
   end
 
+  def handle_event(%{"event" => "transfer.success", "data" => data}) do
+    finalize_payout(data, :paid)
+  end
+
+  def handle_event(%{"event" => event, "data" => data})
+      when event in ["transfer.failed", "transfer.reversed"] do
+    finalize_payout(data, :failed)
+  end
+
   def handle_event(%{"event" => event}) do
     Logger.warning("[paystack_webhook] unhandled event: #{inspect(event)}")
     :ok
@@ -86,6 +95,35 @@ defmodule Emakola.Payments.PaystackWebhook do
   end
 
   # -- Private helpers -------------------------------------------------------
+
+  defp finalize_payout(data, outcome) do
+    case Emakola.Payments.get_payout_by_transfer_reference(data["reference"],
+           authorize?: false,
+           not_found_error?: false
+         ) do
+      {:ok, %{status: :paid}} ->
+        :ok
+
+      {:ok, %{} = payout} when outcome == :paid ->
+        {:ok, _} =
+          Emakola.Payments.mark_payout_paid(payout, %{gateway_response: data}, authorize?: false)
+
+        :ok
+
+      {:ok, %{} = payout} ->
+        {:ok, _} =
+          Emakola.Payments.mark_payout_failed(
+            payout,
+            %{failure_reason: data["status"] || "transfer failed", gateway_response: data},
+            authorize?: false
+          )
+
+        :ok
+
+      _ ->
+        :ok
+    end
+  end
 
   defp handle_charge(data, action) do
     reference = data["reference"]

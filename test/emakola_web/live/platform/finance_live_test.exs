@@ -6,15 +6,33 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
   """
   use EmakolaWeb.ConnCase, async: false
   use Emakola.LiveViewHelpers
+  use Oban.Testing, repo: Emakola.Repo
   import Phoenix.LiveViewTest
 
   alias Emakola.Factory
+  alias Emakola.Payments.Workers.PayoutWorker
 
   defp success_payment!(store, attrs) do
     store
     |> Factory.create_payment!(attrs)
     |> Ash.Changeset.for_update(:mark_success, %{})
     |> Ash.update!(authorize?: false)
+  end
+
+  defp momo_account!(store) do
+    {:ok, _} =
+      Emakola.Stores.create_payout_account(
+        %{
+          store_id: store.id,
+          payout_destination: %{
+            "method" => "mobile_money",
+            "provider" => "mtn",
+            "number" => "0244123456",
+            "account_name" => "Kwame Owusu"
+          }
+        },
+        authorize?: false
+      )
   end
 
   defp platform_fee_split!(payment, amount) do
@@ -84,6 +102,59 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
       # owed store has no payout set up; fee store is ready
       assert html =~ "No payout set up"
       assert html =~ "Ready"
+    end
+
+    test "shows a Pay out button for a store with an outstanding balance", %{conn: conn} do
+      store = Factory.create_store!(%{name: "Owed Co"})
+      success_payment!(store, %{amount: 80_000})
+
+      {:ok, _view, html} = live(conn, ~p"/platform/finance")
+      assert html =~ "Pay out"
+    end
+
+    test "approving a payout enqueues the worker, audits, and clears the backlog", %{
+      conn: conn,
+      user: user
+    } do
+      store = Factory.create_store!(%{name: "Owed Co"})
+      momo_account!(store)
+      success_payment!(store, %{amount: 80_000})
+
+      {:ok, view, _html} = live(conn, ~p"/platform/finance")
+
+      html =
+        view
+        |> element("button[phx-value-store_id='#{store.id}']")
+        |> render_click()
+
+      assert html =~ "queued" or html =~ "Payout"
+      assert_enqueued(worker: PayoutWorker)
+
+      # A pending payout was created and the backlog stamped clear.
+      assert [payout] = Emakola.Payments.list_payouts_by_store!(store.id, authorize?: false)
+      assert payout.amount == 80_000
+      assert payout.status == :pending
+
+      # Audit entry recorded against the approving staffer.
+      page = Emakola.Accounts.list_platform_audit_logs!(authorize?: false, page: [limit: 200])
+      assert Enum.any?(page.results, &(&1.action == :payout_approved and &1.actor_id == user.id))
+    end
+
+    test "approving a store with no MoMo details flashes an error and creates no payout", %{
+      conn: conn
+    } do
+      store = Factory.create_store!(%{name: "No MoMo Co"})
+      success_payment!(store, %{amount: 80_000})
+
+      {:ok, view, _html} = live(conn, ~p"/platform/finance")
+
+      html =
+        view
+        |> element("button[phx-value-store_id='#{store.id}']")
+        |> render_click()
+
+      assert html =~ "mobile money" or html =~ "payout details"
+      assert Emakola.Payments.list_payouts_by_store!(store.id, authorize?: false) == []
     end
   end
 end

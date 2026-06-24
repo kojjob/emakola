@@ -33,7 +33,42 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
       "charge.success" -> handle_charge_success(data)
       "charge.failed" -> handle_charge_failed(data)
       "refund.processed" -> handle_refund_processed(data)
+      "transfer.success" -> finalize_payout(data, :paid)
+      "transfer.failed" -> finalize_payout(data, :failed)
+      "transfer.reversed" -> finalize_payout(data, :failed)
       _unknown -> :ok
+    end
+  end
+
+  # Finalize a merchant payout from a transfer webhook. `data["reference"]` is the
+  # payout's transfer_reference. Unknown references (transfers not initiated by us)
+  # are ignored.
+  defp finalize_payout(data, outcome) do
+    case Emakola.Payments.get_payout_by_transfer_reference(data["reference"],
+           authorize?: false,
+           not_found_error?: false
+         ) do
+      {:ok, %{status: :paid}} ->
+        :ok
+
+      {:ok, %{} = payout} when outcome == :paid ->
+        {:ok, _} =
+          Emakola.Payments.mark_payout_paid(payout, %{gateway_response: data}, authorize?: false)
+
+        :ok
+
+      {:ok, %{} = payout} ->
+        {:ok, _} =
+          Emakola.Payments.mark_payout_failed(
+            payout,
+            %{failure_reason: data["status"] || "transfer failed", gateway_response: data},
+            authorize?: false
+          )
+
+        :ok
+
+      _ ->
+        :ok
     end
   end
 

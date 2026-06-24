@@ -160,7 +160,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
   describe "unknown events" do
     test "ignores unknown event types" do
       event = %{
-        "event" => "transfer.success",
+        "event" => "subscription.disable",
         "data" => %{"reference" => "some-ref"}
       }
 
@@ -180,6 +180,51 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
       }
 
       assert {:error, :payment_not_found} = perform_job(PaystackWebhookHandler, event)
+    end
+  end
+
+  describe "transfer.success event" do
+    test "marks the matching payout paid", %{store: store} do
+      payout =
+        Emakola.Payments.create_payout!(
+          %{store_id: store.id, amount: 80_000, transfer_reference: "po_wh_success"},
+          authorize?: false
+        )
+
+      event = %{
+        "event" => "transfer.success",
+        "data" => %{
+          "reference" => "po_wh_success",
+          "transfer_code" => "TRF_x",
+          "status" => "success"
+        }
+      }
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+      assert Emakola.Payments.get_payout!(payout.id, authorize?: false).status == :paid
+    end
+
+    test "ignores a reference that is not one of our payouts" do
+      event = %{"event" => "transfer.success", "data" => %{"reference" => "po_unknown"}}
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+    end
+  end
+
+  describe "transfer.failed event" do
+    test "marks the matching payout failed", %{store: store} do
+      payout =
+        Emakola.Payments.create_payout!(
+          %{store_id: store.id, amount: 80_000, transfer_reference: "po_wh_failed"},
+          authorize?: false
+        )
+
+      event = %{
+        "event" => "transfer.failed",
+        "data" => %{"reference" => "po_wh_failed", "status" => "failed"}
+      }
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+      assert Emakola.Payments.get_payout!(payout.id, authorize?: false).status == :failed
     end
   end
 end
