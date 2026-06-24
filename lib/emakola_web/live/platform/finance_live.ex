@@ -4,12 +4,18 @@ defmodule EmakolaWeb.Platform.FinanceLive do
 
   Surfaces platform revenue (transaction fees collected), GMV, the effective
   take rate, and the outstanding merchant-payout backlog, with a per-store
-  breakdown that flags which stores still owe a manual payout because they have
-  no verified subaccount yet. Distinct from `/platform/payments` (transaction
-  ops) and `/platform/billing` (legacy Stripe subscriptions).
+  breakdown. Staff can approve a payout per store (the human-approval gate of the
+  payout-execution engine): it prepares a `Payout`, stamps the covered charges,
+  audits the approval, and enqueues `PayoutWorker` to disburse via Paystack.
+  Distinct from `/platform/payments` (transaction ops) and `/platform/billing`
+  (legacy Stripe subscriptions).
   """
   use EmakolaWeb, :live_view
 
+  alias Emakola.Accounts.PlatformAudit
+  alias Emakola.Accounts.PlatformPermissions
+  alias Emakola.Payments.PayoutService
+  alias Emakola.Payments.Workers.PayoutWorker
   alias Emakola.Platform.FinanceStats
   alias Emakola.Platform.Stats
 
@@ -44,6 +50,50 @@ defmodule EmakolaWeb.Platform.FinanceLive do
     |> assign(:stats, %{fees: fees, outstanding: outstanding, gmv: gmv})
     |> assign(:take_rate, take_rate)
     |> assign(:stores, FinanceStats.per_store_finance())
+  end
+
+  @impl true
+  def handle_event("approve_payout", %{"store_id" => store_id}, socket) do
+    authorized(socket, fn socket ->
+      case PayoutService.prepare_payout(store_id) do
+        {:ok, payout} ->
+          PayoutWorker.enqueue(payout.id)
+
+          PlatformAudit.log(:payout_approved, socket.assigns.current_user, %{
+            "store_id" => store_id,
+            "payout_id" => payout.id,
+            "amount" => payout.amount
+          })
+
+          {:noreply,
+           socket
+           |> load()
+           |> put_flash(:info, "Payout of #{format_amount(payout.amount)} queued.")}
+
+        {:error, :nothing_outstanding} ->
+          {:noreply, put_flash(socket, :error, "Nothing outstanding to pay out for this store.")}
+
+        {:error, :no_momo_destination} ->
+          {:noreply,
+           put_flash(socket, :error, "This store has no mobile money payout details set up.")}
+      end
+    end)
+  end
+
+  # Re-check the permission against a fresh user (Iron Law: never trust mount).
+  defp authorized(socket, fun) do
+    if PlatformPermissions.allowed?(reload_current_user(socket), :manage_billing) do
+      fun.(socket)
+    else
+      {:noreply, put_flash(socket, :error, "You don't have permission to manage payouts.")}
+    end
+  end
+
+  defp reload_current_user(socket) do
+    case Emakola.Accounts.get_user_by_id(socket.assigns.current_user.id, authorize?: false) do
+      {:ok, user} -> user
+      {:error, _} -> nil
+    end
   end
 
   @impl true
@@ -101,11 +151,12 @@ defmodule EmakolaWeb.Platform.FinanceLive do
                   <th class="px-6 py-3">Fees collected</th>
                   <th class="px-6 py-3">Outstanding owed</th>
                   <th class="px-6 py-3">Payouts</th>
+                  <th class="px-6 py-3 text-right">Action</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100">
                 <tr :if={@stores == []}>
-                  <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-400">
+                  <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-400">
                     No finance activity yet.
                   </td>
                 </tr>
@@ -124,6 +175,18 @@ defmodule EmakolaWeb.Platform.FinanceLive do
                     <span :if={!row.payouts_ready?} class={pill_class(:missing)}>
                       No payout set up
                     </span>
+                  </td>
+                  <td class="px-6 py-4 text-sm text-right">
+                    <button
+                      :if={row.outstanding_owed > 0}
+                      type="button"
+                      phx-click="approve_payout"
+                      phx-value-store_id={row.store.id}
+                      data-confirm={"Pay out #{format_amount(row.outstanding_owed)} to #{row.store.name}? This sends money to their mobile money account."}
+                      class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+                    >
+                      Pay out
+                    </button>
                   </td>
                 </tr>
               </tbody>

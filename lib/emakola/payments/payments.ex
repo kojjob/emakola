@@ -25,6 +25,7 @@ defmodule Emakola.Payments do
 
     resource Emakola.Payments.Payout do
       define(:create_payout, action: :create)
+      define(:get_payout, action: :read, get_by: [:id])
       define(:mark_payout_processing, action: :mark_processing)
       define(:mark_payout_paid, action: :mark_paid)
       define(:mark_payout_failed, action: :mark_failed)
