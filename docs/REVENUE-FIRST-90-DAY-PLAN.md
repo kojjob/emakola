@@ -4,6 +4,18 @@
 > **This doc sequences existing plans for one goal — first real revenue in 90 days — given real constraints. It does not replace the strategy library; it prioritizes it.**
 >
 > Read alongside: [`BUSINESS_MODEL.md`](BUSINESS_MODEL.md) · [`SOCIAL_COMMERCE.md`](SOCIAL_COMMERCE.md) · [`ACTION_ROADMAP.md`](ACTION_ROADMAP.md) · [`ROADMAP-dropshipping.md`](ROADMAP-dropshipping.md)
+>
+> ---
+> **📌 Status update (2026-06-24): Phase 0 build is COMPLETE — and overshot.** The revenue
+> rails are all merged to `main`: subaccount creation (#206), the 2% platform fee on normal
+> orders with a graceful no-split fallback (#207), the finance oversight page (#208), the
+> payout-execution engine (#210/#211), payout operations — history/retry/notify (#212), and a
+> UI fix (#213). The ops blocker below is **resolved**. We also delivered *Phase 2*-level
+> capability early (paying merchants out, a "your sales" finance view). **Engineering is no
+> longer the constraint** — the remaining critical path is **activation** (real provider keys →
+> `LAUNCH_TODO.md`) and **go-to-market** (offer, niches, recruit sellers). The only
+> revenue-moving build left in the near sequence is the **Smart Link / link-in-bio store page**
+> (Phase 1/2, `SOCIAL_COMMERCE.md`).
 
 ## The situation (be honest)
 
@@ -29,6 +41,12 @@
 
 ## ⚠️ One ops blocker to clear before building the split-based fee
 
+> ✅ **RESOLVED (2026-06-24).** Paystack Ghana **does** support MoMo as a subaccount
+> settlement destination (List Banks returns MTN / VOD / AirtelTigo, type `mobile_money`,
+> GHS) and **does** support Transfers to MoMo wallets — so the split-remainder fee model and
+> automated payouts both work directly. SP1 + the fee + the payout engine were built on this
+> basis. The fallback below was not needed.
+
 `ACTION_ROADMAP.md` already flags it: **"verify Paystack Ghana MoMo-as-subaccount support"** and **"Paystack fee bearer."**
 - If Paystack Ghana **can** pay MoMo subaccounts → the split-remainder fee model works directly (merchant gets a verified subaccount in SP1).
 - If it **cannot** → fall back to: platform holds funds in main account, deducts the fee, and pays merchants out on a schedule (manual/Oban) using the existing `SupplierLedgerEntry`-style ledger pattern.
@@ -37,11 +55,11 @@
 
 ## The 90-day sequence
 
-### Phase 0 — Revenue rails (Weeks 0–2)
-- **Decide:** fee % (start ~2%), and the cohort offer ("free to set up, keep ~98% per sale, no monthly fee, buyers get a protected-order guarantee").
-- **Build (TDD, reuses existing rails):** SP1 merchant payout-onboarding UI; apply a **platform fee on normal orders** via the split-remainder, with a **graceful no-split fallback so fee logic can never break a sale**.
-- **Pick:** the 1–2 launch niches (women-led fashion / beauty / food in Accra) + a target list of active sellers.
-- **Success metric:** a test order routes a correct platform fee to the platform account end-to-end, checkout unaffected on the failure path.
+### Phase 0 — Revenue rails (Weeks 0–2) — ✅ BUILD COMPLETE (2026-06-24)
+- ✅ **Decided:** fee % = **2%** (`platform_fee_rate_bps: 200`). ⏳ cohort offer wording is a founder/marketing task.
+- ✅ **Built (TDD):** SP1 merchant payout-onboarding UI; subaccount creation (#206); **platform fee on normal orders** via split-remainder with a **graceful no-split fallback** (#207). Plus, ahead of schedule: payout-execution engine (#210/#211), payout operations (#212), finance oversight page (#208).
+- ⏳ **Pick (founder):** the 1–2 launch niches + target seller list — still open.
+- **Success metric:** ✅ proven in automated tests (fee routes; checkout safe on the no-split path). ⏳ the *real* end-to-end test order is gated on **activation** (real Paystack keys — `LAUNCH_TODO.md` steps 2/6/8), and requires the merchant to have a **verified subaccount first** (onboard payout → `SubaccountCreationWorker` succeeds → then the fee splits).
 
 ### Phase 1 — First merchants + first GMV (Weeks 2–8)
 - Hand-recruit + white-glove-onboard **10–20 social sellers** (cap it — limited hours). Run them in one WhatsApp support group.
