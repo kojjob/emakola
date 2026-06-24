@@ -124,7 +124,7 @@ defmodule EmakolaWeb.Platform.BillingLive do
 
       <div
         :if={!@loaded}
-        class="bg-white rounded-xl border border-gray-200 px-6 py-16 text-center text-sm text-gray-400"
+        class="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-16 text-center text-sm text-gray-400"
       >
         Loading billing…
       </div>
@@ -156,7 +156,7 @@ defmodule EmakolaWeb.Platform.BillingLive do
         <%!-- Plans --%>
         <section>
           <h2 class="text-lg font-semibold text-gray-900 mb-3">Plans</h2>
-          <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div :if={@plans == []} class="px-6 py-12 text-center text-sm text-gray-400">
               No plans configured.
             </div>
@@ -201,7 +201,7 @@ defmodule EmakolaWeb.Platform.BillingLive do
         <%!-- Subscriptions --%>
         <section>
           <h2 class="text-lg font-semibold text-gray-900 mb-3">Subscriptions</h2>
-          <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div :if={@subscriptions == []} class="px-6 py-12 text-center text-sm text-gray-400">
               No subscriptions yet.
             </div>
@@ -240,7 +240,7 @@ defmodule EmakolaWeb.Platform.BillingLive do
         <%!-- Invoices --%>
         <section>
           <h2 class="text-lg font-semibold text-gray-900 mb-3">Recent invoices</h2>
-          <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div :if={@invoices == []} class="px-6 py-12 text-center text-sm text-gray-400">
               No invoices yet.
             </div>
@@ -298,7 +298,7 @@ defmodule EmakolaWeb.Platform.BillingLive do
       )
 
     ~H"""
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
       <span class={"material-symbols-outlined text-xl rounded-lg p-2 #{@color_class}"}>{@icon}</span>
       <p class="text-2xl font-bold text-gray-900 tabular-nums mt-3">{@value}</p>
       <p class="text-sm text-gray-500 mt-1">{@label}</p>

@@ -193,7 +193,7 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
         </div>
       </div>
 
-      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <table class="w-full">
           <thead>
             <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
