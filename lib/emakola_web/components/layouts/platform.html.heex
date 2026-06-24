@@ -184,6 +184,14 @@
 
       <.sidebar_link
         :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_billing)}
+        href="/platform/finance"
+        title="Finance"
+        icon="chart"
+        active={@active_nav == :finance}
+      />
+
+      <.sidebar_link
+        :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_billing)}
         href="/platform/payments"
         title="Payments"
         icon="payments"
