@@ -350,6 +350,7 @@ defmodule EmakolaWeb.Router do
       live "/platform/audit-log", Platform.AuditLogLive
       live "/platform/security-events", Platform.SecurityEventsLive
       live "/platform/billing", Platform.BillingLive
+      live "/platform/finance", Platform.FinanceLive
       live "/platform/payments", Platform.PaymentLive.Index
       live "/platform/refunds", Platform.RefundsLive
       live "/platform/settings", Platform.SettingsLive
