@@ -59,6 +59,10 @@ config :emakola, :http_client, Emakola.HTTPClientMock
 # AI content generator: mock in tests — never call the real Claude API.
 config :emakola, :content_generator, Emakola.Content.GeneratorMock
 
+# AI provider: mock the whole LLM provider in tests (Emakola.AI.generate/3).
+# Provider wire-format tests call Emakola.AI.Providers.Anthropic directly.
+config :emakola, :ai_provider, Emakola.AI.ProviderMock
+
 # Hubtel test credentials
 config :emakola, :hubtel_client_id, "test_client_id"
 config :emakola, :hubtel_client_secret, "test_client_secret"

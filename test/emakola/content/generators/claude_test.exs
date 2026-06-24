@@ -1,70 +1,62 @@
 defmodule Emakola.Content.Generators.ClaudeTest do
-  # async: false — sets the :anthropic_api_key application env.
-  use ExUnit.Case, async: false
+  # async: false — drives the globally-configured :ai_provider (ProviderMock).
+  # DataCase: delegating through Emakola.AI records a usage row.
+  use Emakola.DataCase, async: false
 
   import Mox
 
+  alias Emakola.AI.Response
   alias Emakola.Content.Generators.Claude
 
   setup :verify_on_exit!
 
-  setup do
-    # Pin the mock HTTP client explicitly. Other (async) channel tests mutate the
-    # global :http_client and on_exit delete it, which under CI parallelism can
-    # leave it unset — falling back to the real Req client and hitting the live
-    # Anthropic API. Setting it here guarantees this test never makes a real call.
-    Application.put_env(:emakola, :http_client, Emakola.HTTPClientMock)
-    prev_key = Application.get_env(:emakola, :anthropic_api_key)
-    Application.put_env(:emakola, :anthropic_api_key, "test-key")
-
-    on_exit(fn ->
-      Application.put_env(:emakola, :http_client, Emakola.HTTPClientMock)
-
-      if prev_key,
-        do: Application.put_env(:emakola, :anthropic_api_key, prev_key),
-        else: Application.delete_env(:emakola, :anthropic_api_key)
+  test "generate_product_description returns the provider text" do
+    expect(Emakola.AI.ProviderMock, :complete, fn request ->
+      assert request.feature == :product_description
+      assert request.model == "claude-haiku-4-5"
+      assert [%{role: :user, content: content}] = request.messages
+      assert content =~ "Kente"
+      {:ok, %Response{text: "A handwoven kente cloth.", model: "claude-haiku-4-5"}}
     end)
 
-    :ok
+    assert {:ok, "A handwoven kente cloth."} =
+             Claude.generate_product_description(%{title: "Kente"}, %{
+               name: "Ama",
+               currency: "GHS"
+             })
   end
 
-  defp anthropic_text(text), do: {:ok, %{"content" => [%{"type" => "text", "text" => text}]}}
-
-  test "generate_product_description builds the Anthropic request and returns the text" do
-    expect(Emakola.HTTPClientMock, :post, fn url, opts ->
-      assert url == "https://api.anthropic.com/v1/messages"
-      body = opts[:json]
-      assert body.model == "claude-haiku-4-5"
-      assert [%{role: "user", content: content}] = body.messages
-      assert content =~ "Kente Cloth"
-      assert {"x-api-key", "test-key"} in opts[:headers]
-      assert {"anthropic-version", "2023-06-01"} in opts[:headers]
-      anthropic_text("A beautiful handwoven kente cloth, rich with tradition.")
+  test "generate_seo_meta maps parsed JSON to title/description" do
+    expect(Emakola.AI.ProviderMock, :complete, fn request ->
+      assert request.response_format == :json
+      {:ok, %Response{parsed: %{"title" => "Kente | Ama", "description" => "Handwoven kente."}}}
     end)
 
-    store = %{name: "Ama's Shop", currency: "GHS"}
-    product = %{title: "Kente Cloth", description: "handwoven"}
-
-    assert {:ok, desc} = Claude.generate_product_description(product, store)
-    assert desc =~ "kente"
-  end
-
-  test "generate_seo_meta parses the JSON title/description" do
-    expect(Emakola.HTTPClientMock, :post, fn _url, _opts ->
-      anthropic_text(
-        ~s({"title": "Kente Cloth | Ama", "description": "Authentic handwoven kente."})
-      )
-    end)
-
-    assert {:ok, %{title: "Kente Cloth | Ama", description: "Authentic handwoven kente."}} =
+    assert {:ok, %{title: "Kente | Ama", description: "Handwoven kente."}} =
              Claude.generate_seo_meta(%{title: "Kente"}, %{name: "Ama"})
   end
 
-  test "generate_recipe parses structured recipe JSON" do
-    expect(Emakola.HTTPClientMock, :post, fn _url, _opts ->
-      anthropic_text(
-        ~s({"body":"Cook it","ingredients":[{"item":"Rice","quantity":"2 cups"}],"instructions":["Boil"],"prep_time":10,"cook_time":20,"servings":4})
-      )
+  test "generate_seo_meta returns :unparseable when the model returns no JSON" do
+    expect(Emakola.AI.ProviderMock, :complete, fn _request ->
+      {:ok, %Response{parsed: nil, text: "oops"}}
+    end)
+
+    assert {:error, :unparseable} = Claude.generate_seo_meta(%{title: "x"}, %{name: "y"})
+  end
+
+  test "generate_recipe maps the parsed recipe JSON" do
+    expect(Emakola.AI.ProviderMock, :complete, fn _request ->
+      {:ok,
+       %Response{
+         parsed: %{
+           "body" => "Cook it",
+           "ingredients" => [%{"item" => "Rice", "quantity" => "2 cups"}],
+           "instructions" => ["Boil"],
+           "prep_time" => 10,
+           "cook_time" => 20,
+           "servings" => 4
+         }
+       }}
     end)
 
     assert {:ok, recipe} = Claude.generate_recipe(%{title: "Jollof"}, %{name: "Ama"})
@@ -73,19 +65,19 @@ defmodule Emakola.Content.Generators.ClaudeTest do
     assert [%{"item" => "Rice"}] = recipe.ingredients
   end
 
-  test "generate_image_alt_text sends a vision content block" do
-    expect(Emakola.HTTPClientMock, :post, fn _url, opts ->
-      [%{role: "user", content: content}] = opts[:json].messages
-      assert Enum.any?(content, &match?(%{type: "image"}, &1))
-      anthropic_text("Handwoven kente cloth in gold and green")
+  test "generate_image_alt_text sends a vision request and returns the text" do
+    expect(Emakola.AI.ProviderMock, :complete, fn request ->
+      [%{role: :user, content: content}] = request.messages
+      assert Enum.any?(content, &match?(%{type: :image}, &1))
+      {:ok, %Response{text: "Handwoven kente cloth in gold and green"}}
     end)
 
     assert {:ok, alt} = Claude.generate_image_alt_text("https://cdn.example.com/kente.jpg")
     assert alt =~ "kente"
   end
 
-  test "returns {:error, :not_configured} when no API key (ships dark)" do
-    Application.delete_env(:emakola, :anthropic_api_key)
+  test "passes through :not_configured (ships dark)" do
+    expect(Emakola.AI.ProviderMock, :complete, fn _request -> {:error, :not_configured} end)
 
     assert {:error, :not_configured} =
              Claude.generate_product_description(%{title: "x"}, %{name: "y"})

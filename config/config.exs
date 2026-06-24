@@ -98,7 +98,8 @@ config :emakola,
     Emakola.Content,
     Emakola.Pages,
     Emakola.Fulfillment,
-    Emakola.Security
+    Emakola.Security,
+    Emakola.AI
   ]
 
 # JSON:API content type (ash_json_api)
@@ -150,6 +151,18 @@ config :emakola, Oban,
 config :emakola,
   content_generator: Emakola.Content.Generators.Claude,
   ai_rate_limit_per_day: 50
+
+# AI foundation. The swappable LLM provider (Anthropic only for now); tests swap
+# in Emakola.AI.ProviderMock (test.exs). Pricing is micro-USD (millionths of a
+# dollar) PER TOKEN — a model's $/MTok maps 1:1 ($1/1M tokens = 1 micro-USD/token).
+# Drives Emakola.AI.Usage cost tracking; never floats.
+config :emakola,
+  ai_provider: Emakola.AI.Providers.Anthropic,
+  ai_model_pricing: %{
+    "claude-haiku-4-5" => %{input: 1, output: 5},
+    "claude-sonnet-4-6" => %{input: 3, output: 15},
+    "claude-opus-4-8" => %{input: 5, output: 25}
+  }
 
 # Google Search Console fetcher (SEO Phase 5). Ships dark until :gsc_credentials
 # is set (runtime.exs) — both this and the worker's stub no-op when dark.
