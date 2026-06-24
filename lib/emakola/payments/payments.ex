@@ -30,6 +30,7 @@ defmodule Emakola.Payments do
       define(:mark_payout_paid, action: :mark_paid)
       define(:mark_payout_failed, action: :mark_failed)
       define(:list_payouts_by_store, action: :by_store, args: [:store_id])
+      define(:list_recent_payouts, action: :list_recent)
 
       define(:get_payout_by_transfer_reference,
         action: :by_transfer_reference,

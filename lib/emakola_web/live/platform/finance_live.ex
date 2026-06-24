@@ -32,7 +32,7 @@ defmodule EmakolaWeb.Platform.FinanceLive do
       if connected?(socket) do
         load(socket)
       else
-        assign(socket, loaded: false, stats: nil, take_rate: nil, stores: [])
+        assign(socket, loaded: false, stats: nil, take_rate: nil, stores: [], payouts: [])
       end
 
     {:ok, socket}
@@ -50,6 +50,7 @@ defmodule EmakolaWeb.Platform.FinanceLive do
     |> assign(:stats, %{fees: fees, outstanding: outstanding, gmv: gmv})
     |> assign(:take_rate, take_rate)
     |> assign(:stores, FinanceStats.per_store_finance())
+    |> assign(:payouts, Emakola.Payments.list_recent_payouts!(load: [:store], authorize?: false))
   end
 
   @impl true
@@ -77,6 +78,17 @@ defmodule EmakolaWeb.Platform.FinanceLive do
           {:noreply,
            put_flash(socket, :error, "This store has no mobile money payout details set up.")}
       end
+    end)
+  end
+
+  def handle_event("retry_payout", %{"payout_id" => payout_id}, socket) do
+    authorized(socket, fn socket ->
+      # The worker re-attempts a :failed payout idempotently (same transfer_reference).
+      PayoutWorker.enqueue(payout_id)
+
+      PlatformAudit.log(:payout_retried, socket.assigns.current_user, %{"payout_id" => payout_id})
+
+      {:noreply, socket |> load() |> put_flash(:info, "Payout retry queued.")}
     end)
   end
 
@@ -193,6 +205,60 @@ defmodule EmakolaWeb.Platform.FinanceLive do
             </table>
           </div>
         </div>
+
+        <%!-- ── Recent payouts ─────────────────────────────────────────── --%>
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mt-8">
+          <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-lg font-semibold text-gray-900">Recent payouts</h2>
+            <p class="text-xs text-gray-400 mt-0.5">
+              Disbursements to merchants — retry any that failed
+            </p>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
+                  <th class="px-6 py-3">Store</th>
+                  <th class="px-6 py-3">Amount</th>
+                  <th class="px-6 py-3">Status</th>
+                  <th class="px-6 py-3">Date</th>
+                  <th class="px-6 py-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr :if={@payouts == []}>
+                  <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-400">
+                    No payouts yet.
+                  </td>
+                </tr>
+                <tr :for={payout <- @payouts} class="hover:bg-gray-50 transition-colors">
+                  <td class="px-6 py-4 text-sm font-medium text-gray-900">
+                    {(payout.store && payout.store.name) || "—"}
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-900">{format_amount(payout.amount)}</td>
+                  <td class="px-6 py-4 text-sm">
+                    <span class={payout_pill_class(payout.status)}>
+                      {humanize_status(payout.status)}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-400">{date_str(payout.inserted_at)}</td>
+                  <td class="px-6 py-4 text-sm text-right">
+                    <button
+                      :if={payout.status == :failed}
+                      type="button"
+                      phx-click="retry_payout"
+                      phx-value-payout_id={payout.id}
+                      data-confirm={"Retry the #{format_amount(payout.amount)} payout to #{(payout.store && payout.store.name) || "this store"}?"}
+                      class="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
+                    >
+                      Retry
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       <% end %>
     </div>
     """
@@ -216,4 +282,17 @@ defmodule EmakolaWeb.Platform.FinanceLive do
 
   defp pill_class(:missing),
     do: "inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700"
+
+  @pill_base "inline-flex px-2 py-0.5 rounded-full text-xs font-medium "
+
+  defp payout_pill_class(:paid), do: @pill_base <> "bg-emerald-100 text-emerald-700"
+  defp payout_pill_class(:processing), do: @pill_base <> "bg-blue-100 text-blue-700"
+  defp payout_pill_class(:failed), do: @pill_base <> "bg-rose-100 text-rose-700"
+  defp payout_pill_class(_pending), do: @pill_base <> "bg-gray-100 text-gray-600"
+
+  defp humanize_status(status), do: status |> to_string() |> String.capitalize()
+
+  defp date_str(%DateTime{} = dt), do: Calendar.strftime(dt, "%b %d, %Y")
+  defp date_str(%NaiveDateTime{} = dt), do: Calendar.strftime(dt, "%b %d, %Y")
+  defp date_str(_), do: "—"
 end

@@ -79,6 +79,13 @@ defmodule Emakola.Payments.Payout do
     timestamps()
   end
 
+  relationships do
+    belongs_to :store, Emakola.Stores.Store do
+      source_attribute(:store_id)
+      define_attribute?(false)
+    end
+  end
+
   multitenancy do
     strategy(:attribute)
     attribute(:store_id)
@@ -134,6 +141,11 @@ defmodule Emakola.Payments.Payout do
       argument(:transfer_reference, :string, allow_nil?: false)
       get?(true)
       filter(expr(transfer_reference == ^arg(:transfer_reference)))
+    end
+
+    # Cross-store recent payouts for the platform finance page.
+    read :list_recent do
+      prepare(build(sort: [inserted_at: :desc], limit: 50))
     end
   end
 end

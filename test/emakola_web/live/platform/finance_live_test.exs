@@ -156,5 +156,59 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
       assert html =~ "mobile money" or html =~ "payout details"
       assert Emakola.Payments.list_payouts_by_store!(store.id, authorize?: false) == []
     end
+
+    test "renders recent payouts with their status", %{conn: conn} do
+      store = Factory.create_store!(%{name: "Payout Co"})
+
+      Emakola.Payments.create_payout!(
+        %{store_id: store.id, amount: 80_000, transfer_reference: "po_render"},
+        authorize?: false
+      )
+
+      {:ok, _view, html} = live(conn, ~p"/platform/finance")
+
+      assert html =~ "Recent payouts"
+      assert html =~ "Payout Co"
+      assert html =~ "Pending"
+    end
+
+    test "retrying a failed payout re-enqueues the worker and audits", %{conn: conn, user: user} do
+      store = Factory.create_store!(%{name: "Failed Co"})
+
+      payout =
+        Emakola.Payments.create_payout!(
+          %{store_id: store.id, amount: 80_000, transfer_reference: "po_retry"},
+          authorize?: false
+        )
+
+      {:ok, failed} =
+        Emakola.Payments.mark_payout_failed(payout, %{failure_reason: "timeout"},
+          authorize?: false
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/platform/finance")
+
+      view
+      |> element("button[phx-value-payout_id='#{failed.id}']")
+      |> render_click()
+
+      assert_enqueued(worker: PayoutWorker, args: %{"payout_id" => failed.id})
+
+      page = Emakola.Accounts.list_platform_audit_logs!(authorize?: false, page: [limit: 200])
+      assert Enum.any?(page.results, &(&1.action == :payout_retried and &1.actor_id == user.id))
+    end
+
+    test "shows no retry button for a non-failed payout", %{conn: conn} do
+      store = Factory.create_store!(%{name: "Pending Co"})
+
+      payout =
+        Emakola.Payments.create_payout!(
+          %{store_id: store.id, amount: 80_000, transfer_reference: "po_pending"},
+          authorize?: false
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/platform/finance")
+      refute has_element?(view, "button[phx-value-payout_id='#{payout.id}']")
+    end
   end
 end
