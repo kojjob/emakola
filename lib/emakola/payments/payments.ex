@@ -14,6 +14,7 @@ defmodule Emakola.Payments do
       )
 
       define(:get_payment_by_order, action: :get_by_order, args: [:order_id])
+      define(:list_refunded_payments, action: :list_refunded)
     end
 
     resource Emakola.Payments.PaymentSplit do

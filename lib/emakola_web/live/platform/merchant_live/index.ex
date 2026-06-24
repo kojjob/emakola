@@ -153,7 +153,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
       <%!-- Loading shell (disconnected mount — no DB) --%>
       <div
         :if={is_nil(@all_merchants)}
-        class="bg-white rounded-xl border border-gray-200 px-6 py-16 text-center text-sm text-gray-400"
+        class="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-16 text-center text-sm text-gray-400"
       >
         Loading merchants…
       </div>
@@ -161,10 +161,10 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
       <div :if={@all_merchants}>
         <%!-- Stat strip --%>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <.stat label="Total" value={@stats.total} icon="group" color="blue" />
-          <.stat label="Confirmed" value={@stats.confirmed} icon="verified" color="emerald" />
-          <.stat label="With a store" value={@stats.with_store} icon="storefront" color="violet" />
-          <.stat label="New (30d)" value={@stats.new_30d} icon="trending_up" color="amber" />
+          <.stat_tile label="Total" value={@stats.total} icon="group" color="blue" />
+          <.stat_tile label="Confirmed" value={@stats.confirmed} icon="verified" color="emerald" />
+          <.stat_tile label="With a store" value={@stats.with_store} icon="storefront" color="violet" />
+          <.stat_tile label="New (30d)" value={@stats.new_30d} icon="trending_up" color="amber" />
         </div>
 
         <%!-- Toolbar --%>
@@ -196,7 +196,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
         <%!-- Empty states --%>
         <div
           :if={@stats.total == 0}
-          class="bg-white rounded-xl border border-gray-200 px-6 py-16 text-center"
+          class="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-16 text-center"
         >
           <span class="material-symbols-outlined text-4xl text-gray-300">group</span>
           <p class="mt-2 text-sm font-medium text-gray-900">No merchants yet</p>
@@ -205,13 +205,16 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
 
         <div
           :if={@stats.total > 0 and @merchants == []}
-          class="bg-white rounded-xl border border-gray-200 px-6 py-16 text-center text-sm text-gray-400"
+          class="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-16 text-center text-sm text-gray-400"
         >
           No merchants match your filters
         </div>
 
         <%!-- Table --%>
-        <div :if={@merchants != []} class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div
+          :if={@merchants != []}
+          class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
+        >
           <div class="overflow-x-auto">
             <table class="w-full">
               <thead>
@@ -383,37 +386,6 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
   end
 
   # ── Function components ─────────────────────────────────
-
-  attr :label, :string, required: true
-  attr :value, :any, required: true
-  attr :icon, :string, required: true
-  attr :color, :string, required: true
-
-  defp stat(assigns) do
-    color_classes = %{
-      "blue" => "bg-blue-50 text-blue-600",
-      "emerald" => "bg-emerald-50 text-emerald-600",
-      "violet" => "bg-violet-50 text-violet-600",
-      "amber" => "bg-amber-50 text-amber-600"
-    }
-
-    assigns =
-      assign(
-        assigns,
-        :color_class,
-        Map.get(color_classes, assigns.color, "bg-gray-50 text-gray-600")
-      )
-
-    ~H"""
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
-      <span class={"material-symbols-outlined text-xl rounded-lg p-2 #{@color_class}"}>
-        {@icon}
-      </span>
-      <p class="text-2xl font-bold text-gray-900 tabular-nums mt-3">{@value}</p>
-      <p class="text-sm text-gray-500 mt-1">{@label}</p>
-    </div>
-    """
-  end
 
   attr :filter, :string, required: true
   attr :active, :atom, required: true

@@ -97,7 +97,8 @@ config :emakola,
     Emakola.Stores,
     Emakola.Content,
     Emakola.Pages,
-    Emakola.Fulfillment
+    Emakola.Fulfillment,
+    Emakola.Security
   ]
 
 # JSON:API content type (ash_json_api)
