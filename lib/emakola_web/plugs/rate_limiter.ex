@@ -116,10 +116,16 @@ defmodule EmakolaWeb.Plugs.RateLimiter do
 
   defp rate_limit_key(conn, _default) do
     cond do
-      token = get_api_token(conn) -> "token:#{token}"
+      token = get_api_token(conn) -> "token:#{token_digest(token)}"
       org_id = get_org_id(conn) -> "org:#{org_id}"
       true -> "ip:#{format_ip(conn.remote_ip)}"
     end
+  end
+
+  # Hash the bearer token so the rate-limit bucket stays stable per token while the
+  # raw credential never reaches the log line or the security_events store.
+  defp token_digest(token) do
+    :crypto.hash(:sha256, token) |> Base.encode16(case: :lower) |> binary_part(0, 16)
   end
 
   defp get_api_token(conn) do

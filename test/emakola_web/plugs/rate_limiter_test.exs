@@ -1,6 +1,8 @@
 defmodule EmakolaWeb.Plugs.RateLimiterTest do
   use EmakolaWeb.ConnCase, async: false
 
+  import ExUnit.CaptureLog
+
   alias EmakolaWeb.Plugs.RateLimiter
 
   @opts RateLimiter.init(limit: 5, window_ms: 60_000)
@@ -104,6 +106,28 @@ defmodule EmakolaWeb.Plugs.RateLimiterTest do
         |> RateLimiter.call(opts)
 
       refute conn_b.halted
+    end
+
+    test "a bearer-token deny logs a hashed key, never the raw token (no credential leak)" do
+      token = "supersecret_#{System.unique_integer([:positive])}"
+      opts = RateLimiter.init(limit: 1, window_ms: 60_000)
+
+      build_conn()
+      |> put_req_header("authorization", "Bearer #{token}")
+      |> RateLimiter.call(opts)
+
+      log =
+        capture_log(fn ->
+          conn =
+            build_conn()
+            |> put_req_header("authorization", "Bearer #{token}")
+            |> RateLimiter.call(opts)
+
+          assert conn.status == 429
+        end)
+
+      assert log =~ "Rate limit exceeded for token:"
+      refute log =~ token
     end
   end
 

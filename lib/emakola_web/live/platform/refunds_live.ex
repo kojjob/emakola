@@ -45,7 +45,9 @@ defmodule EmakolaWeb.Platform.RefundsLive do
   defp money(nil, _currency), do: "—"
 
   defp money(amount, currency) when is_integer(amount) do
-    "#{currency || "GHS"} #{:erlang.float_to_binary(amount / 100, decimals: 2)}"
+    major = div(amount, 100)
+    minor = rem(abs(amount), 100) |> Integer.to_string() |> String.pad_leading(2, "0")
+    "#{currency || "GHS"} #{major}.#{minor}"
   end
 
   @impl true

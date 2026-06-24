@@ -32,7 +32,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
         Emakola.Accounts.Sessions.touch(user_session)
       end
 
-      {notifs, unread} = load_notifications(user.id)
+      {notifs, unread} =
+        if Phoenix.LiveView.connected?(socket), do: load_notifications(user.id), else: {[], 0}
 
       {:ok,
        assign(socket,
@@ -85,7 +86,12 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       {:ok, merchant} ->
         store = load_merchant_store(merchant.id)
         {notifs, unread} = load_notifications(nil)
-        stats = load_store_stats(store)
+        # Defer the 4 stat-count queries to the connected mount — the disconnected
+        # dead render throws them away (CLAUDE.md: no DB work in the dead render).
+        stats =
+          if Phoenix.LiveView.connected?(socket),
+            do: load_store_stats(store),
+            else: load_store_stats(nil)
 
         assign(socket,
           current_merchant: merchant,

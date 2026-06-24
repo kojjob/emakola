@@ -88,7 +88,9 @@ defmodule EmakolaWeb.Platform.BillingLive do
   # ── Helpers ────────────────────────────────────────────
 
   defp format_usd(cents) when is_integer(cents) do
-    "$" <> :erlang.float_to_binary(cents / 100, decimals: 2)
+    major = div(cents, 100)
+    minor = rem(abs(cents), 100) |> Integer.to_string() |> String.pad_leading(2, "0")
+    "$#{major}.#{minor}"
   end
 
   defp format_usd(_), do: "$0.00"
