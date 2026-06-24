@@ -26,9 +26,17 @@ defmodule Emakola.Notifications.Workers.AnnouncementPublishWorker do
   def perform(%Oban.Job{args: %{"announcement_id" => id}}) do
     case Notifications.get_announcement(id, authorize?: false) do
       {:ok, %{status: :scheduled} = ann} ->
-        {:ok, published} = Notifications.publish_announcement(ann, authorize?: false)
-        enqueue_deliveries(published)
-        :ok
+        case Notifications.publish_announcement(ann, authorize?: false) do
+          {:ok, published} ->
+            enqueue_deliveries(published)
+            :ok
+
+          # Return a structured error (not a MatchError) so Oban retries cleanly.
+          # The status==:scheduled guard above prevents a retry from re-publishing
+          # / re-fanning-out once a prior attempt committed :published.
+          {:error, reason} ->
+            {:error, {:publish_failed, reason}}
+        end
 
       {:ok, _other_status} ->
         :ok
