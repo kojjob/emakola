@@ -94,6 +94,17 @@ defmodule Emakola.Payments.Payment do
       public?(true)
     end
 
+    # Set when this charge's held balance has been included in a merchant Payout
+    # (only relevant for un-split `split_mode: :none` charges). Stamping it removes
+    # the charge from the outstanding-payout backlog so it can never be paid twice.
+    attribute :paid_out_at, :utc_datetime_usec do
+      public?(true)
+    end
+
+    attribute :payout_id, :uuid do
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -193,6 +204,14 @@ defmodule Emakola.Payments.Payment do
       validate({Emakola.Payments.Validations.RefundAmountNotExceeded, []})
 
       change(set_attribute(:status, :refunded))
+    end
+
+    # Stamp a charge as covered by a Payout so it drops out of the outstanding
+    # backlog and can never be paid out twice.
+    update :mark_paid_out do
+      require_atomic?(false)
+      accept([:payout_id])
+      change(set_attribute(:paid_out_at, &DateTime.utc_now/0))
     end
 
     read :by_gateway_reference do

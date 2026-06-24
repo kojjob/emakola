@@ -15,4 +15,13 @@ defmodule Emakola.Payments.Gateway do
   without split support may return `{:error, :not_supported}`.
   """
   @callback create_subaccount(map()) :: {:ok, map()} | {:error, term()}
+
+  @doc """
+  Create a transfer recipient (a payout destination) and initiate a transfer to
+  it. Used by the payout-execution engine to disburse the balance the platform
+  holds for un-split orders. Gateways without transfer support may return
+  `{:error, :not_supported}`.
+  """
+  @callback create_transfer_recipient(map()) :: {:ok, map()} | {:error, term()}
+  @callback initiate_transfer(map()) :: {:ok, map()} | {:error, term()}
 end

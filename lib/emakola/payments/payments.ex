@@ -15,11 +15,25 @@ defmodule Emakola.Payments do
 
       define(:get_payment_by_order, action: :get_by_order, args: [:order_id])
       define(:list_refunded_payments, action: :list_refunded)
+      define(:mark_payment_paid_out, action: :mark_paid_out)
     end
 
     resource Emakola.Payments.PaymentSplit do
       define(:create_payment_split, action: :create)
       define(:list_payment_splits, action: :by_payment, args: [:payment_id])
+    end
+
+    resource Emakola.Payments.Payout do
+      define(:create_payout, action: :create)
+      define(:mark_payout_processing, action: :mark_processing)
+      define(:mark_payout_paid, action: :mark_paid)
+      define(:mark_payout_failed, action: :mark_failed)
+      define(:list_payouts_by_store, action: :by_store, args: [:store_id])
+
+      define(:get_payout_by_transfer_reference,
+        action: :by_transfer_reference,
+        args: [:transfer_reference]
+      )
     end
   end
 end

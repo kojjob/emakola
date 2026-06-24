@@ -30,7 +30,7 @@ defmodule Emakola.Platform.FinanceStats do
   @doc "Total successful payments the platform still owes merchants (un-split, minor units)."
   def total_outstanding_payouts do
     Payment
-    |> Ash.Query.filter(status == :success and split_mode == :none)
+    |> Ash.Query.filter(status == :success and split_mode == :none and is_nil(paid_out_at))
     |> sum_amount()
   end
 
@@ -78,7 +78,7 @@ defmodule Emakola.Platform.FinanceStats do
 
   defp unsplit_success_payments do
     Payment
-    |> Ash.Query.filter(status == :success and split_mode == :none)
+    |> Ash.Query.filter(status == :success and split_mode == :none and is_nil(paid_out_at))
     |> Ash.read!(authorize?: false)
   end
 

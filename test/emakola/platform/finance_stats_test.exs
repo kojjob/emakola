@@ -66,6 +66,17 @@ defmodule Emakola.Platform.FinanceStatsTest do
 
       assert FinanceStats.total_outstanding_payouts() == 0
     end
+
+    test "excludes payments already paid out" do
+      store = Factory.create_store!()
+
+      store
+      |> success_payment!(%{amount: 50_000})
+      |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: Ecto.UUID.generate()})
+      |> Ash.update!(authorize?: false)
+
+      assert FinanceStats.total_outstanding_payouts() == 0
+    end
   end
 
   describe "per_store_finance/0" do
