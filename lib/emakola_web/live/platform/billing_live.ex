@@ -9,6 +9,7 @@ defmodule EmakolaWeb.Platform.BillingLive do
   as-is. Amounts are USD cents.
   """
   use EmakolaWeb, :live_view
+  require Logger
 
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_billing}
 
@@ -67,7 +68,12 @@ defmodule EmakolaWeb.Platform.BillingLive do
       _ -> []
     end
   rescue
-    _ -> []
+    exception ->
+      Logger.error(
+        "[platform.billing_live] safe_list loading billing data raised: #{Exception.message(exception)}"
+      )
+
+      []
   end
 
   defp compute_stats(plans, subscriptions) do

@@ -8,6 +8,8 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.Storefront.Path
 
   alias EmakolaWeb.Helpers.StoreResolver
@@ -82,7 +84,12 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
     try do
       Emakola.Catalog.list_root_categories!(store.id)
     rescue
-      _ -> []
+      exception ->
+        Logger.error(
+          "[tracking_live] load_root_categories loading root categories raised: #{Exception.message(exception)}"
+        )
+
+        []
     end
   end
 

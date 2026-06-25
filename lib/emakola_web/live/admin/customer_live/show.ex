@@ -5,6 +5,8 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.Helpers.Currency, only: [format_price: 1]
 
   @impl true
@@ -249,7 +251,12 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
   defp load_orders(customer_id, store_id) do
     Emakola.Orders.list_orders_by_customer!(customer_id, store_id, authorize?: false)
   rescue
-    _ -> []
+    exception ->
+      Logger.error(
+        "[customer_live.show] load_orders loading customer orders raised: #{Exception.message(exception)}"
+      )
+
+      []
   end
 
   # ── Helpers ──

@@ -10,6 +10,8 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.SEO, as: SEOHelpers
 
@@ -183,7 +185,12 @@ defmodule EmakolaWeb.Storefront.StoreLive do
       Emakola.Shipping.list_delivery_zones!(store.id)
       |> Enum.filter(& &1.active)
     rescue
-      _ -> []
+      exception ->
+        Logger.error(
+          "[store_live] load_delivery_zones loading delivery zones raised: #{Exception.message(exception)}"
+        )
+
+        []
     end
   end
 

@@ -5,6 +5,8 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.Helpers.Currency, only: [format_price: 1]
 
   @impl true
@@ -269,7 +271,12 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
     assign(socket, customers: customers)
   rescue
-    _ -> assign(socket, customers: [])
+    exception ->
+      Logger.error(
+        "[customer_live.index] load_customers loading customers raised: #{Exception.message(exception)}"
+      )
+
+      assign(socket, customers: [])
   end
 
   # ── Helpers ──

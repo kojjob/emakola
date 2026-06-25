@@ -9,6 +9,7 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
   record a platform audit entry, and notify the merchant.
   """
   use EmakolaWeb, :live_view
+  require Logger
 
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_stores}
 
@@ -149,7 +150,12 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
 
     assign(socket, :products, products)
   rescue
-    _ -> assign(socket, :products, [])
+    exception ->
+      Logger.error(
+        "[platform.moderation_live] load loading products raised: #{Exception.message(exception)}"
+      )
+
+      assign(socket, :products, [])
   end
 
   @impl true

@@ -10,6 +10,8 @@ defmodule EmakolaWeb.Storefront.SavedStoresLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.Storefront.Path
 
   require Ash.Query
@@ -153,6 +155,11 @@ defmodule EmakolaWeb.Storefront.SavedStoresLive do
         []
     end
   rescue
-    _ -> []
+    exception ->
+      Logger.error(
+        "[saved_stores_live] load_favorites loading favorite stores raised: #{Exception.message(exception)}"
+      )
+
+      []
   end
 end
