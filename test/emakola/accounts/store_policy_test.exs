@@ -61,4 +61,52 @@ defmodule Emakola.Accounts.StorePolicyTest do
       assert updated.name == "System Update"
     end
   end
+
+  describe "Store create policy" do
+    defp create_attrs do
+      n = System.unique_integer([:positive])
+      %{name: "New Store #{n}", slug: "new-store-#{n}", currency: "GHS"}
+    end
+
+    test "denies create with nil actor (no bypass for system creates)" do
+      result =
+        Emakola.Stores.Store
+        |> Ash.Changeset.for_create(:create, create_attrs())
+        |> Ash.create(authorize?: true)
+
+      assert {:error, %Ash.Error.Forbidden{}} = result
+    end
+
+    test "denies create by a customer actor" do
+      store = create_store!()
+      customer = create_customer!(store)
+
+      result =
+        Emakola.Stores.Store
+        |> Ash.Changeset.for_create(:create, create_attrs())
+        |> Ash.create(actor: customer, authorize?: true)
+
+      assert {:error, %Ash.Error.Forbidden{}} = result
+    end
+
+    test "allows create by a merchant actor" do
+      merchant = create_merchant!()
+
+      result =
+        Emakola.Stores.Store
+        |> Ash.Changeset.for_create(:create, create_attrs())
+        |> Ash.create(actor: merchant, authorize?: true)
+
+      assert {:ok, _store} = result
+    end
+
+    test "allows create with authorize?: false escape hatch (onboarding/system path)" do
+      result =
+        Emakola.Stores.Store
+        |> Ash.Changeset.for_create(:create, create_attrs())
+        |> Ash.create(authorize?: false)
+
+      assert {:ok, _store} = result
+    end
+  end
 end
