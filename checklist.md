@@ -146,9 +146,9 @@
       rescues now log; ~11 benign left as-is)
 - [x] Consolidate the two divergent Paystack webhook code paths — DONE
       2026-06-25 (removed dead synchronous `PaystackWebhook`; Oban worker is sole authority)
-- [ ] Review `bypass action_type(:create)` on Order/Customer/LineItem — Store
-      ✅ DONE 2026-06-25 (Merchant-only `:create`; onboarding uses `authorize?: false`).
-      Store creation is authenticated, so per-user rate-limit is a separate optional item.
+- [x] `bypass action_type(:create)` tightened across tenant resources — DONE
+      2026-06-25: Store via #217 (Merchant-only `:create`); Order/Customer/LineItem
+      reviewed and already hardened (same forbid pattern; creates use `authorize?: false`).
 - [ ] Catalog default `:read` lacks a `status == :published` filter (low risk)
 - [x] CSP `style-src 'unsafe-inline'` (P2) — DONE 2026-06-25 as documented
       accepted risk (~760 un-nonceable style attrs; script-src already nonce-only;
