@@ -10,6 +10,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Cart.CartStore
@@ -37,7 +39,12 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       try do
         Emakola.Catalog.list_root_categories!(store.id)
       rescue
-        _ -> []
+        exception ->
+          Logger.error(
+            "[checkout_live] mount loading root categories raised: #{Exception.message(exception)}"
+          )
+
+          []
       end
 
     # UTM attribution captured by EmakolaWeb.Plugs.UtmCapture during the

@@ -9,6 +9,7 @@ defmodule EmakolaWeb.Platform.SettingsLive do
   post-mount revocation is caught before the write.
   """
   use EmakolaWeb, :live_view
+  require Logger
 
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_settings}
 
@@ -248,7 +249,12 @@ defmodule EmakolaWeb.Platform.SettingsLive do
       _ -> []
     end
   rescue
-    _ -> []
+    exception ->
+      Logger.error(
+        "[platform.settings_live] list_all_flags loading feature flags raised: #{Exception.message(exception)}"
+      )
+
+      []
   end
 
   defp filtered(all, search, filter) do

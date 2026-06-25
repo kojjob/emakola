@@ -34,6 +34,8 @@ defmodule EmakolaWeb.Admin.ProductLive.DigitalFiles do
 
   use EmakolaWeb, :live_view
 
+  require Logger
+
   require Ash.Query
 
   alias Emakola.Catalog.DigitalFile
@@ -267,7 +269,12 @@ defmodule EmakolaWeb.Admin.ProductLive.DigitalFiles do
     |> Ash.Query.sort(position: :asc, inserted_at: :asc)
     |> Ash.read!(authorize?: false)
   rescue
-    _ -> []
+    exception ->
+      Logger.error(
+        "[product_live.digital_files] list_files loading digital files raised: #{Exception.message(exception)}"
+      )
+
+      []
   end
 
   # Re-authorization: never mutate a file without first confirming it

@@ -9,6 +9,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
   platform audit entry and enqueues a merchant notification.
   """
   use EmakolaWeb, :live_view
+  require Logger
 
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_stores}
 
@@ -186,7 +187,12 @@ defmodule EmakolaWeb.Platform.StoreLive.Show do
 
     assign(socket, history: entries, history_actors: actor_emails(entries))
   rescue
-    _ -> assign(socket, history: [], history_actors: %{})
+    exception ->
+      Logger.error(
+        "[platform.store_live] load_history loading lifecycle history raised: #{Exception.message(exception)}"
+      )
+
+      assign(socket, history: [], history_actors: %{})
   end
 
   defp actor_emails(entries) do

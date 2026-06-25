@@ -8,6 +8,8 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.Helpers.Currency, only: [format_price: 2]
 
   @statuses [:all, :success, :pending, :failed]
@@ -299,7 +301,12 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
     |> Ash.Query.limit(@payments_page_limit)
     |> Ash.read!(authorize?: false)
   rescue
-    _ -> []
+    exception ->
+      Logger.error(
+        "[payments_live] fetch_payments loading payments raised: #{Exception.message(exception)}"
+      )
+
+      []
   end
 
   defp compute_summary(store_id) do
@@ -333,7 +340,12 @@ defmodule EmakolaWeb.Admin.PaymentsLive do
     |> Emakola.Repo.aggregate(:sum, :amount)
     |> to_integer_amount()
   rescue
-    _ -> 0
+    exception ->
+      Logger.error(
+        "[payments_live] success_revenue aggregating revenue raised: #{Exception.message(exception)}"
+      )
+
+      0
   end
 
   # SUM over an integer column comes back as a Decimal from Postgres;

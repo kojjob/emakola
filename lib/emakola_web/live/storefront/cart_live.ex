@@ -11,6 +11,8 @@ defmodule EmakolaWeb.Storefront.CartLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Cart.CartStore
@@ -29,7 +31,12 @@ defmodule EmakolaWeb.Storefront.CartLive do
       try do
         Emakola.Catalog.list_root_categories!(store.id)
       rescue
-        _ -> []
+        exception ->
+          Logger.error(
+            "[cart_live] mount loading root categories raised: #{Exception.message(exception)}"
+          )
+
+          []
       end
 
     recommended_products =
@@ -42,7 +49,12 @@ defmodule EmakolaWeb.Storefront.CartLive do
         |> Ash.Query.limit(4)
         |> Ash.read!(authorize?: false)
       rescue
-        _ -> []
+        exception ->
+          Logger.error(
+            "[cart_live] mount loading recommended products raised: #{Exception.message(exception)}"
+          )
+
+          []
       end
 
     {:ok,

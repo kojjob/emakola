@@ -7,6 +7,8 @@ defmodule EmakolaWeb.Storefront.AccountLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Cart.CartStore
@@ -35,7 +37,12 @@ defmodule EmakolaWeb.Storefront.AccountLive do
           try do
             Emakola.Catalog.list_root_categories!(store.id)
           rescue
-            _ -> []
+            exception ->
+              Logger.error(
+                "[account_live] mount loading root categories raised: #{Exception.message(exception)}"
+              )
+
+              []
           end
 
         orders = load_orders(customer.id, store.id)
@@ -139,7 +146,12 @@ defmodule EmakolaWeb.Storefront.AccountLive do
     |> Ash.Query.load([:line_items])
     |> Ash.read!(authorize?: false)
   rescue
-    _ -> []
+    exception ->
+      Logger.error(
+        "[account_live] load_orders loading customer orders raised: #{Exception.message(exception)}"
+      )
+
+      []
   end
 
   defp load_addresses(customer_id, store_id) do

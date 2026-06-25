@@ -10,6 +10,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   3. Assign current_user, current_session_id, current_merchant,
      current_store accordingly
   """
+  require Logger
+
   import Phoenix.Component, only: [assign: 2]
 
   def on_mount(:default, _params, session, socket) do
@@ -217,7 +219,9 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       pending_orders: pending_order_count || 0
     }
   rescue
-    _ -> %{products: 0, orders: 0, customers: 0, pending_orders: 0}
+    exception ->
+      Logger.error("[assign_defaults] load_store_stats raised: #{Exception.message(exception)}")
+      %{products: 0, orders: 0, customers: 0, pending_orders: 0}
   end
 
   defp load_notifications(user_id) do
@@ -236,6 +240,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
         end
     end
   rescue
-    _ -> {[], 0}
+    exception ->
+      Logger.error("[assign_defaults] load_notifications raised: #{Exception.message(exception)}")
+      {[], 0}
   end
 end

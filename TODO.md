@@ -1,287 +1,208 @@
 # Emakola — Project TODO
 
-> ⚠️ **STALE (2026-04-25)** — this dev backlog predates the May–June cycle
-> (dropshipping, design system, deployment readiness, production launch);
-> many entries below are already done. **Launch setups live in
-> [`LAUNCH_TODO.md`](LAUNCH_TODO.md)** — use that for go-live work. This
-> file needs a re-audit (tracked there).
-
-**Last updated:** 2026-04-25 (post-audit refresh + multitenancy hardening pass)
-
-> This list reflects the 2026-04-25 codebase audit. Items previously listed as P0
-> were re-verified; many were already fixed and have been removed (address
-> `line_1` mismatch, Coupon authorizer, `/health` DB query, `String.to_atom`
-> claim, secrets-at-compile-time claim, storefront `on_mount` tenant resolver).
+> **Re-audited 2026-06-25** against current code via 5 parallel verification
+> passes. The previous list (2026-04-25) had drifted badly: of 58 verified
+> claims, **31 were already DONE**, 15 PARTIAL, 12 OPEN. Done items have been
+> removed and listed for traceability at the bottom.
+>
+> **Launch/go-live setups live in [`LAUNCH_TODO.md`](LAUNCH_TODO.md).**
+> Master index: [`checklist.md`](checklist.md).
 
 ---
 
-## RECENTLY COMPLETED (since last refresh)
+## CHANGELOG — 2026-06-25 re-audit
 
-### 2026-04-25 multitenancy hardening pass (commits a56b4b5, 05a2cb9, 0a2bea2, c755bc0, 7e51cf6)
-
-- **Store update bypass closed** (`a56b4b5`) — nil-actor writes now denied; `settings_live`/`onboarding_live` pass `actor: current_user`; factory uses `authorize?: false` for test infra. 4-test `store_policy_test.exs` covers nil/non-member/member/escape-hatch cases.
-- **Cross-tenant read isolation enforced** (`05a2cb9`) — added `multitenancy strategy: :attribute, attribute: :store_id, global?: true` to 9 resources: customer, address, customer_note, wishlist_item, order, line_item, return, coupon, payment. Replaced read bypass with scoped policies. 19-test `multitenancy_isolation_test.exs` proves the boundary.
-- **Tailwind v4 named tokens** (`a56b4b5`) — added 10 brand tokens (`emakola-emerald`, `emakola-gold`, `store-accent`, `cta-dark`, `mtn`, `voda`, `whatsapp`, etc.) and replaced 242 inline `bg-[#hex]`/`text-[#hex]` literals across 32 files. Reconciled storefront color drift `#CA8A04` → `#B45309`.
-- **Test suite: 1841→1862 passing**, 6 residual failures (see Follow-ups below).
-
-### Earlier
-- Address `line_1` key consistency between writer and reader — verified
-- Coupon resource `authorizers: [Ash.Policy.Authorizer]` — verified at `lib/emakola/orders/resources/coupon.ex:17`
-- `/health` controller queries `SELECT 1` — verified
-- Secrets resolved via `runtime.exs` not compile-time — verified
-- Storefront `live_session` calls `EmakolaWeb.Hooks.ResolveStore` `on_mount` — verified
-- Paystack gateway integration with HMAC verification (PR #36)
-- Theme engine + customizer (PRs #34/#35)
-- N+1 query elimination across dashboard / catalog (`edbf564`)
-- 5 deployment blockers resolved (`e1cecab`)
-- Sitemap / robots.txt / llms.txt (`9041293`)
-- `theme_styles/1` for all 5 non-Atelier themes (`20d4e60`)
+- **Removed (verified DONE):** the entire P0 checkout-correctness block
+  (DeliveryZone wiring, fake-email Paystack pattern, `connected?` guard,
+  `tracking_number`, `CachedCatalog.invalidate_store`, order-number collision
+  mapping), most notifications/payments features (WhatsApp, email lifecycle,
+  rate limiting, configurable Graph API version, Hubtel gateway, reviews UI,
+  payment reconciliation dashboard, admin refund UI), the white-label Phase 1
+  page-coverage work (ThemeRenderer + DefaultRenderers), the domain
+  restructuring (`Emakola.Stores`, `Emakola.Marketing`), and all the
+  infra/db/hygiene items (Postgres carts, webhook→PubSub bridge, parallelized
+  dashboard stats, coupon index + UUID default, repo cleanup). Full list below.
+- **Kept (still real):** security/correctness hygiene, the remaining ~70% of
+  the file decomposition, a few feature gaps (real SMS provider, weight-based
+  delivery, WhatsApp low-stock channel), `Emakola.Inventory` as a full domain,
+  white-label Phase 2 section editor, and the CI gaps.
 
 ---
 
-## RESIDUAL: Multitenancy follow-ups (6 test failures remain)
+## OPEN — Security & correctness (do first)
 
-### TrackingLive needs tenant on read (2 tests)
-- `lib/emakola_web/live/storefront/tracking_live.ex` — Order reads should
-  call `Ash.Query.set_tenant(store.id)` (or pass `authorize?: false` if
-  already store-scoped via filter).
+- [x] **Audit silent `rescue _ -> []` blocks** — DONE 2026-06-25. 48 data-load
+      rescues across 32 LiveView/hook files now `Logger.error("[ctx] fn raised: …")`
+      before returning the (unchanged) fallback. ~11 benign sites left as-is
+      (`safe_atom`, IP/user-agent → `"unknown"`, fire-and-forget `:ok` view counts,
+      the documented optional-domain sitemap rescue). Compile/format/credo clean.
+- [ ] **Consolidate the two Paystack webhook code paths** —
+      `lib/.../paystack_webhook.ex` (synchronous) and
+      `paystack_webhook_handler.ex` (Oban worker) contain divergent logic; the
+      worker has the settle/reverse-splits + PubSub broadcasts the sync one
+      lacks. Pick one authority; the worker already has a 24h `unique` dedup.
+- [ ] **Tighten permissive `bypass action_type(:create) → always()`** on
+      `Emakola.Stores.Store` (`store.ex:235`) and review the same pattern on
+      `Order`/`Customer`/`LineItem`. Onboarding must stay possible — add
+      rate-limiting (confirm Hammer is/ isn't applied to store creation) rather
+      than just opening it. *(This is the residual of the old "6 multitenancy
+      test failures" item — verify against the current suite, which CI reports
+      green.)*
+- [ ] **Catalog default `:read` lacks a status filter** — resources use
+      `authorize_unless(actor_present())` (not the feared `always()`), and all
+      storefront calls go through safe scoped actions, so risk is LOW. But the
+      bare `:read` action could surface draft/hidden rows to a future caller.
+      Either add `filter(expr(status == :published))` to the public read or
+      document that public read must use the scoped actions only.
+      Files: `product.ex:172`, `variant.ex:136`, `category.ex:90`, `review.ex:121`.
+- [ ] **CSP: migrate `style-src 'unsafe-inline'` → nonced styles** (P2) —
+      `lib/emakola_web/plugs/content_security_policy.ex:39` (nonce is already
+      generated on line 26 but unused for style-src).
+- [ ] **Fix `RawBodyReader` moduledoc** — `lib/emakola_web/plugs/raw_body_reader.ex:2`
+      still says "Stripe webhook signature verification" (copy-paste artifact;
+      the module is generic). Trivial.
 
-### Tighten create policies for Order + Customer (4 tests)
-- `Security.AuthorizationTest` expects merchant_b to be denied creating in
-  store_a. Currently `bypass action_type(:create) do authorize_if(always()) end`
-  matches existing project convention but is permissive. To tighten:
-  replace with `policy action_type(:create) do authorize_if(merchant has store access) end`
-  on `Order`, `Customer`, `LineItem`, etc. Will require updating any
-  service/worker code that creates without an actor to pass `authorize?: false`.
+## OPEN — Refactor / decomposition (still over the 200-line guideline)
 
----
+> The earlier pass cut these hard; they're reduced but not finished.
 
-## CRITICAL — Fix Before Launch
+- [ ] **`landing_live.ex` (680 lines, still a LiveView)** — convert to a dead
+      `Phoenix.Component` (mobile menu via `Phoenix.LiveView.JS`). Eliminates one
+      LV process per anonymous visitor. *(Inline `<style>` block already removed.)*
+- [ ] **`admin/product_live/index.ex` (1337 lines)** — extraction started
+      (`form.ex`, `bulk_upload_modal.ex`, `Catalog.CSVImporter` all exist).
+      Finish: pull out `product_card/1` and move the remaining Ash mutations
+      (`archive`/`activate`/`save`) into `Emakola.Catalog` context functions.
+- [ ] **`components/layouts/app.html.heex` (901 lines)** — `sidebar_components.ex`
+      exists but only holds the icon map; extract `admin_sidebar/1` +
+      `admin_topbar/1` into it.
+- [ ] **`storefront/checkout_live.ex` (645 lines)** — down from 1517 via
+      `CheckoutService`. Optional: extract `payment_method_card/1` and a poll
+      helper if it grows again. (No `PollService` was created — payment now uses
+      a PubSub bridge, so it may not be needed. Lower priority.)
 
-### Catalog reads (still P0)
+## OPEN — Component library consistency
 
-The 2026-04-25 hardening covered customers/orders/payments. Catalog
-resources still have `bypass action_type(:read) do authorize_if(always()) end`
-which is intentional for unauthenticated storefront browsing — but draft/
-hidden products leak across stores.
+- [ ] **Finish replacing inline hex literals with named tokens** — the 7 tokens
+      (`emakola-emerald`, `emakola-gold`, `mtn`, `voda`, `whatsapp`,
+      `store-accent`, `cta-dark`) are defined in `assets/css/app.css:164`, but
+      ~1968 `bg-[#…]`/`text-[#…]`/`from-[#…]` literals still exist in `lib/`.
+- [ ] **Resolve color drift** — both `#B45309` (66×, storefront default) and
+      `#CA8A04` (15×, admin) are in use. Standardise per
+      `storefront_components.ex` (`#B45309`).
+- [ ] **Add the two missing shared admin components** — `admin_page_header/1`
+      and `empty_state/1` exist in `admin_components.ex`; add `table_toolbar/1`
+      and reconcile the `status_pill/1` vs the planned `status_badge/1` name.
+- [ ] **Unify the duplicate KPI primitives** — `stat_card/1`
+      (`inventory_components.ex:49`) and `kpi_card` (`metric_components.ex:55`)
+      overlap; pick one and update usages in customer/revenue/report/campaign
+      admin LiveViews.
 
-- [ ] Tighten catalog public read bypass to `filter(expr(status == :published))`:
-  - [ ] `lib/emakola/catalog/resources/product.ex`
-  - [ ] `lib/emakola/catalog/resources/variant.ex`
-  - [ ] `lib/emakola/catalog/resources/category.ex`
-  - [ ] `lib/emakola/catalog/resources/review.ex`
-- [ ] Add separate admin `read :all` action requiring Merchant + store membership.
+## PARTIAL — Feature gaps
 
-### P0: Checkout Correctness
+- [ ] **Real SMS provider** — `notifications/channels/sms.ex` + rate limiting
+      exist, but only the `LogSMS` mock is wired; plug in Arkesel/Hubtel
+      (overlaps `LAUNCH_TODO.md` item 4).
+- [ ] **Delivery fee beyond flat-per-zone** — `Emakola.Shipping.calculate_fee/2`
+      does zone lookup only; add weight-based / tiered rules if needed.
+- [ ] **Low-stock WhatsApp channel** — `low_stock_alert_worker.ex` sends email
+      + SMS digest; WhatsApp alerting not yet wired.
+- [ ] **Hubtel refund automation** — `gateways/hubtel.ex` `process_refund/2`
+      returns `:not_supported` (manual today); automate if/when Hubtel supports it.
 
-- [ ] **Wire `DeliveryZone` resource into checkout** — `CheckoutLive` line 1431-1441
-      hardcodes a region→fee map (`"greater_accra" -> 1500`, `"ashanti" -> 2500`,
-      etc.). The admin `DeliveryZone` config is unused. Move calculation to
-      `Emakola.Shipping` context.
-- [ ] **Replace fake-email Paystack pattern** — `checkout_live.ex:1337` synthesizes
-      `"#{phone}@checkout.emakola.com"` and sends to Paystack, polluting their
-      customer DB and breaking receipts. Collect a real email or use a single
-      store-owned address.
-- [ ] **Add `connected?(socket)` guard** for `Process.send_after` in
-      `checkout_live.ex:1385-1386` — timer leaks on disconnected static renders.
-- [ ] **Add `tracking_number` field to `Order` resource** — "Mark as Shipped"
-      modal collects it but the handler discards it; `OrderNotificationWorker`
-      reads a non-existent field.
-- [ ] **Wire `CachedCatalog.invalidate_store/1`** into product/category admin
-      actions — cache currently never invalidated; stale storefront for up to
-      5 minutes after edit.
-- [ ] **Fix order number collision error mapping** — collision raises
-      `Ash.Error.Invalid` which `CheckoutService` rescue maps to
-      `:insufficient_stock`. Use `:crypto.strong_rand_bytes/1`; handle collision
-      explicitly.
+## OPEN — Architecture
 
-### P0: Operational Safety
+- [ ] **Promote `Emakola.Inventory` to a real Ash domain** — currently a service
+      shell (`inventory.ex:23` says "intentionally NOT a `use Ash.Domain` yet");
+      stock is still a single `stock_quantity` integer on `Variant`. Add stock
+      levels + multi-location when warranted.
+- [ ] **Extract remaining inline Ash anonymous functions into Change modules** —
+      `LineItem` price snapshot already uses `Changes.DenormalizeVariant`; the
+      `Order` number generation (`order.ex:274`) and status-transition
+      `after_action` notification dispatches are still inline `change(fn …)`.
 
-- [ ] **Audit silent rescue blocks** — `lib/emakola_web/live/admin/product_live/index.ex:1174`
-      and ~30 other `rescue _ -> []` blocks across the codebase. At minimum
-      `Logger.error` before returning fallback. Merchants currently see empty
-      states on auth/DB failures with no signal.
-- [ ] **Deduplicate Paystack webhook handlers** — `PaystackWebhook` and
-      `PaystackWebhookHandler` contain divergent duplicate logic. Add unique
-      constraint to webhook handler Oban job.
+## OPEN — White-label design system (remaining phases)
 
----
+- [ ] **Phase 2 — Section editor (Shopify-style)** — not started: section type
+      registry, `home_sections` JSON array, `SectionSortable` JS hook, the
+      admin Section Editor UI, per-section settings, backwards-compat, tests.
+      *(Phase 1 page coverage and most of Phase 3 — `DesignTokens`,
+      `design_tokens` config, the admin Design tab — are DONE; only a standalone
+      `FontLoader` was folded into `DesignTokens`.)*
 
-## HIGH — Fix Before Launch
+## OPEN — Infrastructure / CI
 
-### Architecture / Code Decomposition
+- [ ] **Add `mix dialyzer` to CI** (`.github/workflows/ci.yml`) — configured in
+      `mix.exs` but never run in CI.
+- [ ] **Create `.sobelow-conf`** — CI runs `mix sobelow --config` but the config
+      file is absent at repo root.
+- [ ] **Separate `deps` and `_build` CI cache keys** — currently one combined key.
+- [ ] **Raise `test_coverage` threshold** — `mix.exs:15` is at 55; ratchet toward
+      90 as tests are added.
 
-Files exceeding the project's 200-line guideline (per `CLAUDE.md`):
+## OPEN — Cleanup (low effort)
 
-- [ ] **`lib/emakola/themes/atelier/shared.ex` (1692 lines)** — split into
-      `Atelier.{Nav, Footer, ThemeStyles, ProductComponents}`. Move static CSS
-      out of `theme_styles/1` into a stylesheet; keep only CSS variable
-      overrides inline.
-- [ ] **`lib/emakola_web/live/admin/product_live/index.ex` (1564 lines)** —
-      extract `ProductLive.FormComponent` (slide-over, lines 160-964),
-      `Emakola.Catalog.CSVImporter` + `BulkUploadComponent` (lines 273-358 +
-      1218-1400), `product_card/1` function component. Move `archive_product`,
-      `activate_product`, `save_product` Ash mutations into `Emakola.Catalog`
-      context functions.
-- [ ] **`lib/emakola_web/live/storefront/checkout_live.ex` (1517 lines)** —
-      collapse `place_order`/`create_order`/`handle_payment`/`initiate_gateway_payment`
-      (lines 161-401) into `CheckoutService.initiate_checkout/1`. Extract
-      `payment_method_card/1`. Extract `Emakola.Payments.PollService`.
-- [ ] **`lib/emakola_web/live/landing_live.ex` (1221 lines)** — convert to a
-      dead Phoenix.Component (mobile menu via `Phoenix.LiveView.JS` only).
-      Move inline `<style>` block to `app.css`. Eliminates one LV process per
-      visitor.
-- [ ] **`lib/emakola_web/components/layouts/app.html.heex` (1044 lines)** —
-      extract `admin_sidebar/1` + `admin_topbar/1` into `sidebar_components.ex`.
-
-### Component Library
-
-- [ ] Add named Tailwind tokens (replace inline `bg-[#hex]` literals): `emakola-emerald`, `emakola-gold`, `mtn`, `voda`, `whatsapp`, `store-accent`, `cta-dark`.
-- [ ] **Reconcile color drift** — storefront accent should be `#B45309` per
-      `storefront_components.ex:7`, but cart/checkout/product-detail use
-      `#CA8A04`. Standardise on `#B45309`.
-- [ ] Extract shared admin components: `admin_page_header/1`, `status_badge/1`,
-      `empty_state/1`, `table_toolbar/1`.
-- [ ] Consolidate parallel KPI primitives — `dashboard/metric_components.ex`
-      `kpi_card` and `inventory_components.ex` `stat_card` overlap; pick one.
-- [ ] Update KPI grid usage in: `admin/customer_live/index.ex`,
-      `admin/revenue_live/index.ex` (7 cards), `admin/report_live/index.ex`
-      (8 cards), `admin/campaign_live/index.ex`.
-
-### Security Hardening
-
-- [ ] Migrate from `'unsafe-inline'` `style-src` to nonced styles in
-      `lib/emakola_web/plugs/content_security_policy.ex` (P2).
-- [ ] Re-evaluate `bypass action_type(:create)` allowing nil-actor on
-      `Emakola.Accounts.Store` — onboarding must be possible but unauthenticated
-      store creation should be rate-limited (already in Hammer? verify).
-
----
-
-## UP NEXT (high impact for launch)
-
-### Notifications
-- [ ] WhatsApp Business API integration (order confirmations, shipping updates)
-- [ ] SMS gateway for order updates (Hubtel SMS or alternative)
-- [ ] Email templates for order lifecycle (confirmation, shipped, delivered)
-- [ ] Rate limiting on SMS/WhatsApp channel calls
-- [ ] WhatsApp Graph API version no longer hardcoded `v18.0`
-
-### Operations
-- [ ] Shipping zone configuration UI (regions, delivery areas)
-- [ ] Delivery fee calculation by zone/weight/flat rate (depends on `DeliveryZone` wiring above)
-- [ ] Inventory low-stock alerts (Oban worker + email/WhatsApp)
-- [ ] Customer reviews and ratings (resource exists; storefront UI missing)
-
-### Payments (expand)
-- [ ] Hubtel payment gateway integration
-- [ ] Payment reconciliation dashboard (admin view of all payments)
-- [ ] Admin UI for initiating refunds (backend `process_refund/2` exists)
+- [ ] **Collapse the duplicate SMS hierarchy** — `notifications/sms_provider.ex`
+      (behaviour) and `channels/sms_behaviour.ex` (higher-level) both exist;
+      consolidate or clearly document the split.
 
 ---
 
-## WHITE-LABEL DESIGN SYSTEM
+## BACKLOG (not re-verified — aspirational / future)
 
-> Full plan: `docs/superpowers/plans/2026-03-28-white-label-design-system.md`
-
-### Phase 1: Full Page Coverage
-- [ ] Create `ThemeRenderer` dispatcher with `function_exported?` fallback
-- [ ] Extend `ThemeBehaviour` with `@optional_callbacks` for 13 new pages
-- [ ] Create `DefaultRenderers.Shared` wrapper (navbar + CSS vars + footer)
-- [ ] Extract `DefaultRenderers.Cart` from `cart_live.ex`
-- [ ] Extract `DefaultRenderers.Checkout` from `checkout_live.ex`
-- [ ] Extract `DefaultRenderers.BlogList` / `BlogPost`
-- [ ] Extract `DefaultRenderers.RecipeList` / `RecipeDetail`
-- [ ] Extract `DefaultRenderers.OrderConfirmation`
-- [ ] Extract `DefaultRenderers.Tracking`
-- [ ] Extract `DefaultRenderers.Category`
-- [ ] Extract `DefaultRenderers.Wishlist`
-- [ ] Extract `DefaultRenderers.Account`
-- [ ] Wire all 13 LiveViews to delegate render through `ThemeRenderer.render/3`
-- [ ] Tests for dispatcher fallback + all default renderers
-
-### Phase 2: Section Editor (Shopify-style)
-- [ ] Define section type registry (15+ blocks)
-- [ ] Per-type renderer components
-- [ ] `home_sections` JSON array in `theme_config`
-- [ ] `SectionSortable` JS hook (SortableJS)
-- [ ] Section Editor admin UI
-- [ ] Per-section settings forms
-- [ ] Backwards compatibility for stores without `home_sections`
-- [ ] Tests
-
-### Phase 3: Component Variant System
-- [ ] `DesignTokens` module (pure functions returning class strings)
-- [ ] `FontLoader` (Google Fonts URL mapping)
-- [ ] `design_tokens` in `theme_config` (10 dimensions)
-- [ ] Refactor `DefaultRenderers` to use `DesignTokens`
-- [ ] Tailwind safelist for variant fragments
-- [ ] Design tab in admin theme customizer
-- [ ] Tests
-
----
-
-## ARCHITECTURE — Structural Improvements
-
-### Domain Restructuring
-- [ ] **Extract `Store` into `Emakola.Stores` domain** — Store resource currently lives in `Emakola.Accounts`. Move with `StoreSettings` and `Domains`.
-- [ ] **Create `Emakola.Inventory` Ash domain** — currently just `stock_quantity` on `Variant`. Add stock levels + multi-location.
-- [ ] **Create `Emakola.Marketing` context** — `Coupon` currently in `Emakola.Orders`. Move to its own bounded context.
-
-### Ash-Specific
-- [ ] Evaluate `require_atomic?(false)` suppression on every update action — identify which transitions could use atomic updates for performance.
-- [ ] Extract inline anonymous functions from Ash resources (`Order` number generation, `LineItem` price snapshot) into `Ash.Resource.Actions.Implementation` modules per `CLAUDE.md`.
-
----
-
-## INFRASTRUCTURE
-
-### CI/CD
-- [ ] Raise `test_coverage threshold` from 50 → 90 (`mix.exs:15`) as tests are added.
-- [ ] `mix dialyzer` in CI (referenced in CLAUDE.md but absent).
-- [ ] `mix sobelow --config` requires `.sobelow-conf` to exist or errors.
-- [ ] Separate `deps` and `_build` cache keys in CI.
-
-### Scaling Preparation
-- [ ] **Replace ETS cart with persistent storage** — `CartStore` is node-local; breaks horizontal scaling.
-- [ ] **Webhook → LiveView PubSub bridge** — payment polling currently keeps customer page open 3 min. Webhook should broadcast via PubSub.
-- [ ] Parallelize `Dashboard.Stats.load_stats/1` (6 sequential queries) using `Task.async_stream` or `assign_async`.
-
-### Database
-- [ ] Index on `orders.coupon_id` (foreign key, missing index).
-- [ ] Fix non-reversible migration `20260326` (uses `def change` where `up`/`down` is required).
-- [ ] Add `gen_random_uuid()` default to `coupons.id`.
-
-### Repo Hygiene
-- [ ] Delete `erl_crash.dump` (46 MB, March 28) and `firebase-debug.log` from repo root.
-- [ ] Add both to `.gitignore` if missing.
-- [ ] Resolve weird directory `docs/business-plan/appendices 2/` (likely OS duplicate).
-
----
-
-## BACKLOG
-
-### Storefront Enhancements
+### Storefront
 - [ ] Real Emakola brand logo (replace placeholder SVG)
-- [ ] Functional WhatsApp login/signup (currently "Coming Soon")
 - [ ] Store search / marketplace browsing page
-- [ ] Wishlist persistence (currently session-only)
-- [ ] Theme preview screenshots for selection UI
-- [ ] Additional theme designs beyond initial 3
+- [ ] Theme preview screenshots for the selection UI
+- [ ] Additional theme designs beyond the current set
 - [ ] Mobile responsiveness QA pass
 
-### Admin Dashboard
-- [ ] Analytics charts (sales, orders, revenue over time) — partial today
-- [ ] Customer management (view, export)
-- [ ] Bulk product import/export (CSV) — depends on CSV extraction above
-- [ ] Staff accounts and permissions
+### Admin
+- [ ] Deeper analytics charts (sales/orders/revenue over time)
+- [ ] Customer export
+- [ ] Staff accounts & permissions (merchant-side; platform staff auth shipped)
 
-### Infrastructure
+### Infrastructure / payments
 - [ ] OG image generation for stores and products
-- [ ] Performance profiling and optimization
 - [ ] MTN MoMo direct integration (bypass Paystack)
 - [ ] Vodafone Cash direct integration
 - [ ] Rider/delivery tracking integration
-- [ ] Clean up duplicate `SMSProvider` / `SMSBehaviour` hierarchy
-- [ ] Fix `RawBodyReader` moduledoc (references Stripe — copy-paste artifact)
-- [ ] Build `emakola-admin-mobile.html` prototype's dedicated mobile admin view, OR declare existing responsive admin sufficient.
+- [ ] Decide: build a dedicated mobile admin view, or declare the responsive
+      admin sufficient
+- [ ] Decommission the legacy User/Organisation auth path (dead since #108;
+      `resolve_user`'s `current_store: nil` stub is a trap) — see `LAUNCH_TODO.md`
+- [ ] Seed digital-downloads demo data — see `LAUNCH_TODO.md`
+
+---
+
+## RESOLVED since 2026-04-25 (verified DONE 2026-06-25)
+
+> Kept here briefly for traceability; safe to delete once consolidated.
+
+**Checkout / orders:** DeliveryZone wired into checkout (`Shipping.calculate_fee/2`)
+· fake-email Paystack pattern removed · `connected?` guard on payment polling ·
+`tracking_number` added to `Order` + wired through ship flow + notification worker ·
+`CachedCatalog.invalidate_store/1` called on product/category create/update/archive ·
+order number via `:crypto.strong_rand_bytes`, collisions no longer mis-mapped to
+`:insufficient_stock`.
+
+**Notifications / payments:** WhatsApp Business API channel · order lifecycle email
+templates (order/shipping/delivery) · rate limiting on SMS + WhatsApp · WhatsApp
+Graph API version configurable (`v21.0` default, env override) · shipping-zone admin
+UI · customer reviews & ratings storefront UI + admin moderation · Hubtel gateway ·
+payment reconciliation dashboard · admin refund/return UI.
+
+**White-label / architecture:** `ThemeRenderer` dispatcher + `ThemeBehaviour`
+optional callbacks + `DefaultRenderers` (11 pages) wired through storefront LiveViews ·
+`DesignTokens` + `design_tokens` config + admin Design tab · `Store` extracted to
+`Emakola.Stores` domain (with `StoreSettings`/`StoreDomain`) · `Coupon` extracted to
+`Emakola.Marketing`.
+
+**Refactor:** `atelier/shared.ex` 1692→509 (Nav/Footer extracted).
+
+**Infra / DB / hygiene:** Postgres-backed carts (ETS removed) · webhook→LiveView
+PubSub bridge (no more 3-min poll) · `Dashboard.Stats.load_stats/1` parallelized ·
+`orders.coupon_id` index added · `coupons.id` `gen_random_uuid()` default · April
+migration made reversible (`up`/`down`) · `erl_crash.dump`/`firebase-debug.log`
+gitignored & gone · duplicate `appendices 2/` dir removed · WhatsApp storefront
+login (phone OTP) shipped · wishlist persisted to `wishlist_items` table.
