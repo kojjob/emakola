@@ -266,5 +266,72 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
         assert is_nil(reloaded.payout_id)
       end
     end
+
+    test "transfer.failed re-runs the release after a crash mid-loop (payout already :failed)",
+         %{store: store} do
+      payout =
+        Emakola.Payments.create_payout!(
+          %{store_id: store.id, amount: 50_000, transfer_reference: "po_crash"},
+          authorize?: false
+        )
+
+      charge = stamped_charge!(store, 50_000, payout)
+
+      # Simulate a prior attempt that committed mark_failed but crashed BEFORE
+      # releasing the charge — the payout is already :failed, the charge stamped.
+      {:ok, _} =
+        Emakola.Payments.mark_payout_failed(payout, %{failure_reason: "x"}, authorize?: false)
+
+      event = %{
+        "event" => "transfer.failed",
+        "data" => %{"reference" => "po_crash", "status" => "failed"}
+      }
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+
+      reloaded = Payment |> Ash.Query.filter(id == ^charge.id) |> Ash.read_one!(authorize?: false)
+      assert is_nil(reloaded.payout_id)
+      assert is_nil(reloaded.paid_out_at)
+    end
+
+    test "transfer.reversed after a success un-pays the payout and releases the balance",
+         %{store: store} do
+      payout =
+        Emakola.Payments.create_payout!(
+          %{store_id: store.id, amount: 50_000, transfer_reference: "po_rev"},
+          authorize?: false
+        )
+
+      charge = stamped_charge!(store, 50_000, payout)
+
+      assert :ok =
+               perform_job(PaystackWebhookHandler, %{
+                 "event" => "transfer.success",
+                 "data" => %{"reference" => "po_rev", "status" => "success"}
+               })
+
+      assert Emakola.Payments.get_payout!(payout.id, authorize?: false).status == :paid
+
+      # The gateway claws the money back after success — un-pay + release.
+      assert :ok =
+               perform_job(PaystackWebhookHandler, %{
+                 "event" => "transfer.reversed",
+                 "data" => %{"reference" => "po_rev", "status" => "reversed"}
+               })
+
+      assert Emakola.Payments.get_payout!(payout.id, authorize?: false).status == :reversed
+
+      reloaded = Payment |> Ash.Query.filter(id == ^charge.id) |> Ash.read_one!(authorize?: false)
+      assert is_nil(reloaded.payout_id)
+    end
+  end
+
+  defp stamped_charge!(store, amount, payout) do
+    store
+    |> create_payment!(amount: amount)
+    |> Ash.Changeset.for_update(:mark_success, %{})
+    |> Ash.update!(authorize?: false)
+    |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: payout.id})
+    |> Ash.update!(authorize?: false)
   end
 end

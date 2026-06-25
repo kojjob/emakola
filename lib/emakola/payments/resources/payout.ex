@@ -42,7 +42,7 @@ defmodule Emakola.Payments.Payout do
     end
 
     attribute :status, :atom do
-      constraints(one_of: [:pending, :processing, :paid, :failed])
+      constraints(one_of: [:pending, :processing, :paid, :failed, :reversed])
       default(:pending)
       allow_nil?(false)
       public?(true)
@@ -144,6 +144,19 @@ defmodule Emakola.Payments.Payout do
       end
 
       change(set_attribute(:status, :failed))
+    end
+
+    # A reversal can arrive AFTER a success (the gateway clawed the money back), so
+    # this is the one transition allowed out of :paid.
+    update :mark_reversed do
+      require_atomic?(false)
+      accept([:failure_reason, :gateway_response])
+
+      validate attribute_in(:status, [:pending, :processing, :paid]) do
+        message("can only reverse a pending, processing or paid payout")
+      end
+
+      change(set_attribute(:status, :reversed))
     end
 
     read :by_store do

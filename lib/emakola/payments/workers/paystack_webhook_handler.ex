@@ -51,7 +51,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
         finalize_payout(data, :failed)
 
       "transfer.reversed" ->
-        finalize_payout(data, :failed)
+        finalize_payout(data, :reversed)
 
       _unknown ->
         Logger.warning("[paystack_webhook] unhandled event: #{inspect(event)}")
@@ -67,34 +67,72 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
            authorize?: false,
            not_found_error?: false
          ) do
-      # Already terminal — idempotent no-op for Paystack webhook replays.
-      {:ok, %{status: status}} when status in [:paid, :failed] ->
-        :ok
-
-      {:ok, %{} = payout} when outcome == :paid ->
-        {:ok, _} =
-          Emakola.Payments.mark_payout_paid(payout, %{gateway_response: data}, authorize?: false)
-
-        Emakola.Notifications.Workers.PayoutNotificationWorker.enqueue(payout.id)
-        :ok
-
-      {:ok, %{} = payout} ->
-        {:ok, _} =
-          Emakola.Payments.mark_payout_failed(
-            payout,
-            %{failure_reason: data["status"] || "transfer failed", gateway_response: data},
-            authorize?: false
-          )
-
-        # A failed/reversed transfer did NOT (net) reach the merchant — return the
-        # covered charges to the outstanding backlog so the balance is re-paid via
-        # a fresh payout, never buried in a dead :failed payout.
-        release_payout_balance(payout)
-        :ok
-
-      _ ->
-        :ok
+      {:ok, %{} = payout} -> reconcile_payout(payout, outcome, data)
+      _ -> :ok
     end
+  end
+
+  # Drive a payout to its terminal state from a transfer webhook, idempotently.
+  # `release_payout_balance/1` is always safe to re-run (it returns [] once the
+  # charges are released or re-claimed by a fresh payout), so a retry after a
+  # crash mid-release — or a webhook replay — still completes without burying
+  # the balance.
+
+  # A reversal AFTER a success: the gateway clawed the money back, so un-pay the
+  # payout and return the balance — the one path out of :paid.
+  defp reconcile_payout(%{status: :paid} = payout, :reversed, data) do
+    {:ok, _} =
+      Emakola.Payments.mark_payout_reversed(
+        payout,
+        %{failure_reason: "transfer reversed", gateway_response: data},
+        authorize?: false
+      )
+
+    release_payout_balance(payout)
+    :ok
+  end
+
+  # Otherwise :paid is terminal (idempotent success replay).
+  defp reconcile_payout(%{status: :paid}, _outcome, _data), do: :ok
+
+  # :failed / :reversed are terminal for money-movement, but RE-RUN the release so
+  # an attempt that crashed mid-loop still returns every covered charge.
+  defp reconcile_payout(%{status: status} = payout, _outcome, _data)
+       when status in [:failed, :reversed] do
+    release_payout_balance(payout)
+    :ok
+  end
+
+  defp reconcile_payout(payout, :paid, data) do
+    {:ok, _} =
+      Emakola.Payments.mark_payout_paid(payout, %{gateway_response: data}, authorize?: false)
+
+    Emakola.Notifications.Workers.PayoutNotificationWorker.enqueue(payout.id)
+    :ok
+  end
+
+  defp reconcile_payout(payout, :reversed, data) do
+    {:ok, _} =
+      Emakola.Payments.mark_payout_reversed(
+        payout,
+        %{failure_reason: "transfer reversed", gateway_response: data},
+        authorize?: false
+      )
+
+    release_payout_balance(payout)
+    :ok
+  end
+
+  defp reconcile_payout(payout, _failed, data) do
+    {:ok, _} =
+      Emakola.Payments.mark_payout_failed(
+        payout,
+        %{failure_reason: data["status"] || "transfer failed", gateway_response: data},
+        authorize?: false
+      )
+
+    release_payout_balance(payout)
+    :ok
   end
 
   defp release_payout_balance(payout) do
