@@ -43,13 +43,16 @@
       logic missing split settlement/PubSub/notifications — a trap. Removed the
       module + its redundant test; the worker is now the documented single
       authority (signature coverage retained in `webhook_security_test`/`paystack_test`).
-- [ ] **Tighten permissive `bypass action_type(:create) → always()`** on
-      `Emakola.Stores.Store` (`store.ex:235`) and review the same pattern on
-      `Order`/`Customer`/`LineItem`. Onboarding must stay possible — add
-      rate-limiting (confirm Hammer is/ isn't applied to store creation) rather
-      than just opening it. *(This is the residual of the old "6 multitenancy
-      test failures" item — verify against the current suite, which CI reports
-      green.)*
+- [ ] **Review the permissive `bypass action_type(:create)` pattern on
+      `Order`/`Customer`/`LineItem`.** ✅ **Store DONE 2026-06-25** —
+      `Emakola.Stores.Store` now requires a Merchant actor for `:create`
+      (Merchant-scoped bypass that short-circuits the membership policy, plus an
+      explicit forbid for nil/Customer actors). Onboarding is unaffected (it
+      creates via `authorize?: false`). NOTE: store creation is *authenticated*
+      (`OnboardingLive` guards `is_nil(user)`), so the old "rate-limit
+      *unauthenticated* store creation" premise is moot — a per-user anti-abuse
+      limit on the onboarding create path is a separate optional follow-up.
+      Still to do: apply the same review to Order/Customer/LineItem creates.
 - [ ] **Catalog default `:read` lacks a status filter** — resources use
       `authorize_unless(actor_present())` (not the feared `always()`), and all
       storefront calls go through safe scoped actions, so risk is LOW. But the
