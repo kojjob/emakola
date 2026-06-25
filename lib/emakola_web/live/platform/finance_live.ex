@@ -83,12 +83,23 @@ defmodule EmakolaWeb.Platform.FinanceLive do
 
   def handle_event("retry_payout", %{"payout_id" => payout_id}, socket) do
     authorized(socket, fn socket ->
-      # The worker re-attempts a :failed payout idempotently (same transfer_reference).
-      PayoutWorker.enqueue(payout_id)
+      # A failed payout released its balance back to outstanding, so "retry"
+      # prepares a FRESH payout (new transfer_reference) for that store rather than
+      # re-running the dead one — Paystack rejects a reused reference.
+      with {:ok, %{store_id: store_id}} <-
+             Emakola.Payments.get_payout(payout_id, authorize?: false),
+           {:ok, payout} <- PayoutService.prepare_payout(store_id) do
+        PayoutWorker.enqueue(payout.id)
 
-      PlatformAudit.log(:payout_retried, socket.assigns.current_user, %{"payout_id" => payout_id})
+        PlatformAudit.log(:payout_retried, socket.assigns.current_user, %{
+          "store_id" => store_id,
+          "payout_id" => payout.id
+        })
 
-      {:noreply, socket |> load() |> put_flash(:info, "Payout retry queued.")}
+        {:noreply, socket |> load() |> put_flash(:info, "Payout retry queued.")}
+      else
+        _ -> {:noreply, put_flash(socket, :error, "Nothing outstanding to retry for this store.")}
+      end
     end)
   end
 

@@ -231,5 +231,40 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
       assert :ok = perform_job(PaystackWebhookHandler, event)
       assert Emakola.Payments.get_payout!(payout.id, authorize?: false).status == :failed
     end
+
+    test "a failed transfer releases the covered charges back to outstanding (no buried balance)",
+         %{store: store} do
+      payout =
+        Emakola.Payments.create_payout!(
+          %{store_id: store.id, amount: 80_000, transfer_reference: "po_release"},
+          authorize?: false
+        )
+
+      charges =
+        for amount <- [30_000, 50_000] do
+          store
+          |> create_payment!(amount: amount)
+          |> Ash.Changeset.for_update(:mark_success, %{})
+          |> Ash.update!(authorize?: false)
+          |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: payout.id})
+          |> Ash.update!(authorize?: false)
+        end
+
+      event = %{
+        "event" => "transfer.failed",
+        "data" => %{"reference" => "po_release", "status" => "failed"}
+      }
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+      assert Emakola.Payments.get_payout!(payout.id, authorize?: false).status == :failed
+
+      for charge <- charges do
+        reloaded =
+          Payment |> Ash.Query.filter(id == ^charge.id) |> Ash.read_one!(authorize?: false)
+
+        assert is_nil(reloaded.paid_out_at)
+        assert is_nil(reloaded.payout_id)
+      end
+    end
   end
 end

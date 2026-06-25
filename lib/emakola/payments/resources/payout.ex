@@ -116,18 +116,33 @@ defmodule Emakola.Payments.Payout do
     update :mark_processing do
       require_atomic?(false)
       accept([:recipient_code, :transfer_code])
+
+      validate attribute_in(:status, [:pending]) do
+        message("can only process a pending payout")
+      end
+
       change(set_attribute(:status, :processing))
     end
 
     update :mark_paid do
       require_atomic?(false)
       accept([:gateway_response])
+
+      validate attribute_in(:status, [:pending, :processing]) do
+        message("can only mark a pending or processing payout as paid")
+      end
+
       change(set_attribute(:status, :paid))
     end
 
     update :mark_failed do
       require_atomic?(false)
       accept([:failure_reason, :gateway_response])
+
+      validate attribute_in(:status, [:pending, :processing]) do
+        message("can only fail a pending or processing payout")
+      end
+
       change(set_attribute(:status, :failed))
     end
 

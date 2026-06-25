@@ -172,8 +172,30 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
       assert html =~ "Pending"
     end
 
-    test "retrying a failed payout re-enqueues the worker and audits", %{conn: conn, user: user} do
+    test "retrying a failed payout prepares a FRESH payout (not the dead one) and audits",
+         %{conn: conn, user: user} do
       store = Factory.create_store!(%{name: "Failed Co"})
+
+      # A MoMo destination + outstanding balance — the state a failed transfer
+      # leaves behind once its balance is released back to outstanding.
+      {:ok, _} =
+        Emakola.Stores.create_payout_account(
+          %{
+            store_id: store.id,
+            payout_destination: %{
+              "method" => "mobile_money",
+              "provider" => "mtn",
+              "number" => "0244123456",
+              "account_name" => "Kwame"
+            }
+          },
+          authorize?: false
+        )
+
+      store
+      |> Factory.create_payment!(%{amount: 80_000})
+      |> Ash.Changeset.for_update(:mark_success, %{})
+      |> Ash.update!(authorize?: false)
 
       payout =
         Emakola.Payments.create_payout!(
@@ -192,7 +214,10 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
       |> element("button[phx-value-payout_id='#{failed.id}']")
       |> render_click()
 
-      assert_enqueued(worker: PayoutWorker, args: %{"payout_id" => failed.id})
+      # Retry prepares a fresh payout (new reference) and enqueues THAT — never the
+      # dead :failed payout (Paystack rejects a reused reference).
+      assert_enqueued(worker: PayoutWorker)
+      refute_enqueued(worker: PayoutWorker, args: %{"payout_id" => failed.id})
 
       page = Emakola.Accounts.list_platform_audit_logs!(authorize?: false, page: [limit: 200])
       assert Enum.any?(page.results, &(&1.action == :payout_retried and &1.actor_id == user.id))

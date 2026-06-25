@@ -48,6 +48,24 @@ defmodule Emakola.Payments.PaymentSplitSettlementTest do
     assert Enum.all?(splits_for(payment), &(&1.status == :settled))
   end
 
+  test "re-processing charge.success when the payment is already :success still settles pending splits (retry recovery)",
+       %{payment: payment} do
+    # Simulate a prior attempt that committed :success but failed before settling
+    # the splits — they remain :pending. A webhook retry MUST recover them.
+    payment
+    |> Ash.Changeset.for_update(:mark_success, %{})
+    |> Ash.update!(authorize?: false)
+
+    assert Enum.all?(splits_for(payment), &(&1.status == :pending))
+
+    job = %Oban.Job{
+      args: %{"event" => "charge.success", "data" => %{"reference" => payment.gateway_reference}}
+    }
+
+    assert :ok = PaystackWebhookHandler.perform(job)
+    assert Enum.all?(splits_for(payment), &(&1.status == :settled))
+  end
+
   test "refund.processed reverses the splits for clawback", %{payment: payment} do
     # First settle via a successful charge.
     PaystackWebhookHandler.perform(%Oban.Job{

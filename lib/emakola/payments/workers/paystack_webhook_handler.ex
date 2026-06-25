@@ -67,7 +67,8 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
            authorize?: false,
            not_found_error?: false
          ) do
-      {:ok, %{status: :paid}} ->
+      # Already terminal — idempotent no-op for Paystack webhook replays.
+      {:ok, %{status: status}} when status in [:paid, :failed] ->
         :ok
 
       {:ok, %{} = payout} when outcome == :paid ->
@@ -85,6 +86,10 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
             authorize?: false
           )
 
+        # A failed/reversed transfer did NOT (net) reach the merchant — return the
+        # covered charges to the outstanding backlog so the balance is re-paid via
+        # a fresh payout, never buried in a dead :failed payout.
+        release_payout_balance(payout)
         :ok
 
       _ ->
@@ -92,35 +97,57 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
     end
   end
 
+  defp release_payout_balance(payout) do
+    {:ok, payments} = Emakola.Payments.list_payments_by_payout(payout.id, authorize?: false)
+
+    Enum.each(payments, fn payment ->
+      payment
+      |> Ash.Changeset.for_update(:release_from_payout, %{})
+      |> Ash.update!(authorize?: false)
+    end)
+  end
+
   defp handle_charge_success(data) do
     reference = data["reference"]
 
-    with {:ok, payment} <- find_payment(reference),
-         false <- terminal?(payment) do
-      updated =
-        payment
-        |> Ash.Changeset.for_update(:mark_success, %{gateway_response: data})
-        |> Ash.update!(authorize?: false)
+    with {:ok, payment} <- find_payment(reference) do
+      payment =
+        case payment.status do
+          # Already success (webhook retry/replay) — fall through to the idempotent
+          # post-processing below so a prior PARTIAL failure (e.g. settle_splits
+          # raised mid-loop) is recovered rather than skipped.
+          :success ->
+            payment
 
-      # Confirm the associated order if present
-      maybe_confirm_order(payment.order_id)
+          # A late charge.success after a terminal failure/refund — don't override.
+          s when s in [:failed, :refunded] ->
+            payment
 
-      # Settle any dropship split allocations — the gateway has applied the
-      # split, so record each as settled.
-      settle_splits(payment)
+          _ ->
+            updated =
+              payment
+              |> Ash.Changeset.for_update(:mark_success, %{gateway_response: data})
+              |> Ash.update!(authorize?: false)
 
-      # Notify any LiveView still polling on this reference so the
-      # customer sees confirmation immediately rather than waiting up
-      # to 3s for the next poll cycle.
-      Phoenix.PubSub.broadcast(
-        Emakola.PubSub,
-        "payment:#{reference}",
-        {:payment_succeeded, reference, updated}
-      )
+            Phoenix.PubSub.broadcast(
+              Emakola.PubSub,
+              "payment:#{reference}",
+              {:payment_succeeded, reference, updated}
+            )
+
+            updated
+        end
+
+      # Idempotent post-processing — runs on every (re)delivery of a successful
+      # charge. settle_splits only touches :pending splits and maybe_confirm_order
+      # only a :pending order, so a retry safely completes a partial first attempt.
+      if payment.status == :success do
+        maybe_confirm_order(payment.order_id)
+        settle_splits(payment)
+      end
 
       :ok
     else
-      true -> :ok
       {:error, reason} -> {:error, reason}
     end
   end
