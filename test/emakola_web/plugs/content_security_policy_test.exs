@@ -60,5 +60,30 @@ defmodule EmakolaWeb.Plugs.ContentSecurityPolicyTest do
       assert csp =~ "object-src 'none'"
       assert csp =~ "form-action 'self'"
     end
+
+    test "script-src is nonce-based with no 'unsafe-inline' (the real XSS vector is closed)" do
+      conn = conn(:get, "/") |> ContentSecurityPolicy.call([])
+
+      [csp] = get_resp_header(conn, "content-security-policy")
+      assert csp =~ ~r/script-src [^;]*'nonce-/
+      refute csp =~ ~r/script-src [^;]*'unsafe-inline'/
+    end
+
+    test "style-src is split into -attr (permanent) and -elem (deferred hardening target)" do
+      conn = conn(:get, "/") |> ContentSecurityPolicy.call([])
+
+      [csp] = get_resp_header(conn, "content-security-policy")
+
+      # Inline style ATTRIBUTES (style="…") cannot be nonced (CSP nonces only
+      # cover <style> elements). They stay on 'unsafe-inline' permanently.
+      assert csp =~ "style-src-attr 'unsafe-inline'"
+
+      # Inline <style> ELEMENTS remain on 'unsafe-inline' until they are nonced
+      # (deferred). Invariant: no nonce on style-src-elem — per CSP a nonce
+      # disables 'unsafe-inline', which would block every un-nonced <style>
+      # block in the app. This refute guards against a premature flip.
+      assert csp =~ ~r/style-src-elem [^;]*'unsafe-inline'/
+      refute csp =~ ~r/style-src-elem [^;]*nonce-/
+    end
   end
 end

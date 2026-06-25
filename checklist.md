@@ -150,7 +150,9 @@
       ✅ DONE 2026-06-25 (Merchant-only `:create`; onboarding uses `authorize?: false`).
       Store creation is authenticated, so per-user rate-limit is a separate optional item.
 - [ ] Catalog default `:read` lacks a `status == :published` filter (low risk)
-- [ ] CSP `style-src 'unsafe-inline'` → nonced styles (P2)
+- [x] CSP `style-src 'unsafe-inline'` (P2) — DONE 2026-06-25 as documented
+      accepted risk (~760 un-nonceable style attrs; script-src already nonce-only;
+      split into -attr/-elem with rationale in the plug; future = nonce the ~32 `<style>` blocks)
 
 **Refactor (still over the 200-line guideline)**
 - [ ] `landing_live.ex` (680) → dead `Phoenix.Component`

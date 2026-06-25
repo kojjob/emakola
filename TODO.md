@@ -60,9 +60,14 @@
       Either add `filter(expr(status == :published))` to the public read or
       document that public read must use the scoped actions only.
       Files: `product.ex:172`, `variant.ex:136`, `category.ex:90`, `review.ex:121`.
-- [ ] **CSP: migrate `style-src 'unsafe-inline'` → nonced styles** (P2) —
-      `lib/emakola_web/plugs/content_security_policy.ex:39` (nonce is already
-      generated on line 26 but unused for style-src).
+- [x] **CSP: `style-src 'unsafe-inline'`** (P2) — DONE 2026-06-25 as a
+      **documented accepted risk**. Full removal is infeasible: ~760 inline
+      `style="…"` attributes (CSP nonces can't cover attributes) and dynamic
+      per-store theme CSS variables. `script-src` is already nonce-only (the real
+      XSS vector is closed). Split into `style-src-attr` (permanent) /
+      `style-src-elem` (deferred) with the rationale written into the plug
+      moduledoc; future hardening = nonce the ~32 `<style>` blocks (needs a
+      socket-stable nonce) then drop `'unsafe-inline'` from `style-src-elem`.
 - [ ] **Fix `RawBodyReader` moduledoc** — `lib/emakola_web/plugs/raw_body_reader.ex:2`
       still says "Stripe webhook signature verification" (copy-paste artifact;
       the module is generic). Trivial.
