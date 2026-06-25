@@ -156,8 +156,7 @@ if config_env() == :prod do
     System.get_env("PAYSTACK_SECRET_KEY") ||
       raise "environment variable PAYSTACK_SECRET_KEY is missing."
 
-  # Flat key — read by Emakola.Payments.Gateways.Paystack (webhook HMAC)
-  # and Emakola.Payments.PaystackWebhook.
+  # Flat key — read by Emakola.Payments.Gateways.Paystack (webhook HMAC).
   config :emakola, :paystack_secret_key, paystack_secret_key
 
   # Nested keyword config — read by Emakola.Payments.PaystackClient.

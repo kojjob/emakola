@@ -144,7 +144,8 @@
 **Security & correctness (do first)**
 - [x] Audit silent `rescue _ -> []` blocks — DONE 2026-06-25 (48 data-load
       rescues now log; ~11 benign left as-is)
-- [ ] Consolidate the two divergent Paystack webhook code paths
+- [x] Consolidate the two divergent Paystack webhook code paths — DONE
+      2026-06-25 (removed dead synchronous `PaystackWebhook`; Oban worker is sole authority)
 - [ ] Tighten permissive `bypass action_type(:create) → always()` on Store
       (+ Order/Customer/LineItem) and rate-limit unauthenticated store creation
 - [ ] Catalog default `:read` lacks a `status == :published` filter (low risk)

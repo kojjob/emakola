@@ -36,11 +36,13 @@
       before returning the (unchanged) fallback. ~11 benign sites left as-is
       (`safe_atom`, IP/user-agent → `"unknown"`, fire-and-forget `:ok` view counts,
       the documented optional-domain sitemap rescue). Compile/format/credo clean.
-- [ ] **Consolidate the two Paystack webhook code paths** —
-      `lib/.../paystack_webhook.ex` (synchronous) and
-      `paystack_webhook_handler.ex` (Oban worker) contain divergent logic; the
-      worker has the settle/reverse-splits + PubSub broadcasts the sync one
-      lacks. Pick one authority; the worker already has a 24h `unique` dedup.
+- [x] **Consolidate the two Paystack webhook code paths** — DONE 2026-06-25.
+      The synchronous `Emakola.Payments.PaystackWebhook` was dead code (only its
+      own test referenced it; the controller verifies via `Paystack.verify_webhook/2`
+      and enqueues the `PaystackWebhookHandler` Oban worker) and carried stale
+      logic missing split settlement/PubSub/notifications — a trap. Removed the
+      module + its redundant test; the worker is now the documented single
+      authority (signature coverage retained in `webhook_security_test`/`paystack_test`).
 - [ ] **Tighten permissive `bypass action_type(:create) → always()`** on
       `Emakola.Stores.Store` (`store.ex:235`) and review the same pattern on
       `Order`/`Customer`/`LineItem`. Onboarding must stay possible — add
