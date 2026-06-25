@@ -5,11 +5,17 @@
 > of duplicating them.
 >
 > **Deeper docs:** `LAUNCH_TODO.md` (launch-critical setups, in order) ·
+> `TODO.md` (**engineering backlog of record** — re-audited 2026-06-25) ·
 > `docs/PROVIDER_SETUP.md` (illustrated credential guide) ·
-> `docs/DEPLOYMENT.md` (infra mechanics) · `docs/superpowers/specs/` +
-> `docs/superpowers/plans/` (feature design history).
+> `docs/DEPLOYMENT.md` (infra mechanics) · `docs/ACTION_ROADMAP.md` (forward
+> product plan) · `docs/superpowers/specs/` + `docs/superpowers/plans/`
+> (feature design history).
 >
-> Last updated: 2026-06-12.
+> **Superseded** (don't track work here): `docs/REMAINING-AREAS-2026-04-26.md`
+> (folded into the re-audited `TODO.md`) · `docs/ROADMAP.md` (historical Phase-1
+> record; forward plan now lives in `docs/ACTION_ROADMAP.md`).
+>
+> Last updated: 2026-06-25.
 
 ---
 
@@ -128,6 +134,43 @@
 - [ ] Replace the test-env drift on this machine (local full suite fails in
       auth/admin areas that CI passes — env-only, but worth fixing for local
       confidence)
+
+## 5b. Engineering backlog (re-audited 2026-06-25 — detail in `TODO.md`)
+
+> The April backlog was re-verified against current code: 31 items were already
+> DONE, 15 partial, 12 open. Full evidence + file:line refs in `TODO.md`. The
+> survivors, by cluster:
+
+**Security & correctness (do first)**
+- [x] Audit silent `rescue _ -> []` blocks — DONE 2026-06-25 (48 data-load
+      rescues now log; ~11 benign left as-is)
+- [ ] Consolidate the two divergent Paystack webhook code paths
+- [ ] Tighten permissive `bypass action_type(:create) → always()` on Store
+      (+ Order/Customer/LineItem) and rate-limit unauthenticated store creation
+- [ ] Catalog default `:read` lacks a `status == :published` filter (low risk)
+- [ ] CSP `style-src 'unsafe-inline'` → nonced styles (P2)
+
+**Refactor (still over the 200-line guideline)**
+- [ ] `landing_live.ex` (680) → dead `Phoenix.Component`
+- [ ] `product_live/index.ex` (1337) & `app.html.heex` (901) — finish extraction
+- [ ] Replace ~1968 inline `bg-[#…]` literals with named tokens; resolve the
+      `#B45309`/`#CA8A04` color drift; unify `stat_card`/`kpi_card`
+
+**Feature gaps (partial)**
+- [ ] Wire a real SMS provider (Arkesel/Hubtel — overlaps launch item 4)
+- [ ] Weight/tiered delivery fees; WhatsApp low-stock channel; Hubtel auto-refund
+
+**Architecture**
+- [ ] Promote `Emakola.Inventory` to a real Ash domain (multi-location)
+- [ ] Extract remaining inline Ash anon fns (Order number, status `after_action`)
+
+**White-label**
+- [ ] Phase 2 section editor (Shopify-style) — not started
+
+**CI / cleanup**
+- [ ] Add `mix dialyzer` to CI · create `.sobelow-conf` · split deps/_build
+      cache keys · ratchet coverage 55→90 · collapse the duplicate SMS hierarchy
+      · fix `RawBodyReader`'s Stripe moduledoc
 
 ## 6. Post-launch (once real keys + domain are in)
 
