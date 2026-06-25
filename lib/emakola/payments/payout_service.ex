@@ -56,26 +56,53 @@ defmodule Emakola.Payments.PayoutService do
   stamped when a payout can't be made).
   """
   def prepare_payout(store_id) do
-    with {:ok, _dest} <- transfer_destination(store_id),
-         [_ | _] = payments <- outstanding_payments(store_id) do
-      amount = Enum.sum(Enum.map(payments, & &1.amount))
-      reference = "po_" <> Ecto.UUID.generate()
+    with {:ok, _dest} <- transfer_destination(store_id) do
+      # One transaction with a row lock on the outstanding payments is the
+      # serialization point: a concurrent approval blocks on `FOR UPDATE`, then
+      # re-reads the now-stamped rows as empty — so the same balance can never be
+      # claimed by two payouts (no double-pay).
+      Emakola.Repo.transaction(fn ->
+        payments =
+          Payment
+          |> Ash.Query.filter(
+            store_id == ^store_id and status == :success and split_mode == :none and
+              is_nil(paid_out_at)
+          )
+          |> Ash.Query.lock("FOR UPDATE")
+          |> Ash.read!(authorize?: false)
 
-      {:ok, payout} =
-        Payments.create_payout(
-          %{store_id: store_id, amount: amount, transfer_reference: reference},
-          authorize?: false
-        )
+        # Pay one currency per payout (stores are single-currency in practice);
+        # take the currency of the claimed set rather than summing across currencies.
+        currency = payments |> List.first(%{}) |> Map.get(:currency, "GHS")
+        claimed = Enum.filter(payments, &(&1.currency == currency))
 
-      Enum.each(payments, fn payment ->
-        {:ok, _} =
-          Payments.mark_payment_paid_out(payment, %{payout_id: payout.id}, authorize?: false)
+        if claimed == [] do
+          Emakola.Repo.rollback(:nothing_outstanding)
+        end
+
+        amount = claimed |> Enum.map(& &1.amount) |> Enum.sum()
+        reference = "po_" <> Ecto.UUID.generate()
+
+        {:ok, payout} =
+          Payments.create_payout(
+            %{
+              store_id: store_id,
+              amount: amount,
+              currency: currency,
+              transfer_reference: reference
+            },
+            authorize?: false
+          )
+
+        Enum.each(claimed, fn payment ->
+          {:ok, _} =
+            Payments.mark_payment_paid_out(payment, %{payout_id: payout.id}, authorize?: false)
+        end)
+
+        payout
       end)
-
-      {:ok, payout}
     else
       {:error, :no_momo_destination} = err -> err
-      [] -> {:error, :nothing_outstanding}
     end
   end
 end

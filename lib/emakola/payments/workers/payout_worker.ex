@@ -9,11 +9,19 @@ defmodule Emakola.Payments.Workers.PayoutWorker do
   finalizes it); marks `:failed` on a definitive Paystack rejection; leaves it
   `:pending` and returns `{:error, _}` on a transient error so Oban retries.
 
-  Idempotent: a payout already `:processing` or `:paid` is a no-op.
+  Idempotent: only a `:pending` payout is executed; `:processing`/`:paid`/`:failed`
+  are no-ops. A failed payout is terminal — its balance is released back to
+  outstanding and re-paid via a fresh payout (new reference), never re-run here.
+
+  Runs on a dedicated `:payouts` queue (a transfer can't be starved by other work)
+  with a transfer timeout so a hung Paystack socket can't block the queue.
   """
-  use Oban.Worker, queue: :default, max_attempts: 3, unique: [period: 600, fields: [:args]]
+  use Oban.Worker, queue: :payouts, max_attempts: 3, unique: [period: 600, fields: [:args]]
 
   require Logger
+
+  @impl Oban.Worker
+  def timeout(_job), do: :timer.seconds(30)
 
   alias Emakola.Payments
   alias Emakola.Payments.PayoutService
@@ -28,10 +36,10 @@ defmodule Emakola.Payments.Workers.PayoutWorker do
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"payout_id" => payout_id}}) do
     case Payments.get_payout(payout_id, authorize?: false, not_found_error?: false) do
-      {:ok, %{status: status} = payout} when status in [:pending, :failed] ->
+      {:ok, %{status: :pending} = payout} ->
         execute(payout)
 
-      # :processing / :paid (already handled) or nil (gone) — nothing to do.
+      # :processing / :paid / :failed (terminal) or nil (gone) — nothing to do.
       _ ->
         :ok
     end

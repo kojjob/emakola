@@ -51,7 +51,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
         finalize_payout(data, :failed)
 
       "transfer.reversed" ->
-        finalize_payout(data, :failed)
+        finalize_payout(data, :reversed)
 
       _unknown ->
         Logger.warning("[paystack_webhook] unhandled event: #{inspect(event)}")
@@ -67,60 +67,125 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
            authorize?: false,
            not_found_error?: false
          ) do
-      {:ok, %{status: :paid}} ->
-        :ok
-
-      {:ok, %{} = payout} when outcome == :paid ->
-        {:ok, _} =
-          Emakola.Payments.mark_payout_paid(payout, %{gateway_response: data}, authorize?: false)
-
-        Emakola.Notifications.Workers.PayoutNotificationWorker.enqueue(payout.id)
-        :ok
-
-      {:ok, %{} = payout} ->
-        {:ok, _} =
-          Emakola.Payments.mark_payout_failed(
-            payout,
-            %{failure_reason: data["status"] || "transfer failed", gateway_response: data},
-            authorize?: false
-          )
-
-        :ok
-
-      _ ->
-        :ok
+      {:ok, %{} = payout} -> reconcile_payout(payout, outcome, data)
+      _ -> :ok
     end
+  end
+
+  # Drive a payout to its terminal state from a transfer webhook, idempotently.
+  # `release_payout_balance/1` is always safe to re-run (it returns [] once the
+  # charges are released or re-claimed by a fresh payout), so a retry after a
+  # crash mid-release — or a webhook replay — still completes without burying
+  # the balance.
+
+  # A reversal AFTER a success: the gateway clawed the money back, so un-pay the
+  # payout and return the balance — the one path out of :paid.
+  defp reconcile_payout(%{status: :paid} = payout, :reversed, data) do
+    {:ok, _} =
+      Emakola.Payments.mark_payout_reversed(
+        payout,
+        %{failure_reason: "transfer reversed", gateway_response: data},
+        authorize?: false
+      )
+
+    release_payout_balance(payout)
+    :ok
+  end
+
+  # Otherwise :paid is terminal (idempotent success replay).
+  defp reconcile_payout(%{status: :paid}, _outcome, _data), do: :ok
+
+  # :failed / :reversed are terminal for money-movement, but RE-RUN the release so
+  # an attempt that crashed mid-loop still returns every covered charge.
+  defp reconcile_payout(%{status: status} = payout, _outcome, _data)
+       when status in [:failed, :reversed] do
+    release_payout_balance(payout)
+    :ok
+  end
+
+  defp reconcile_payout(payout, :paid, data) do
+    {:ok, _} =
+      Emakola.Payments.mark_payout_paid(payout, %{gateway_response: data}, authorize?: false)
+
+    Emakola.Notifications.Workers.PayoutNotificationWorker.enqueue(payout.id)
+    :ok
+  end
+
+  defp reconcile_payout(payout, :reversed, data) do
+    {:ok, _} =
+      Emakola.Payments.mark_payout_reversed(
+        payout,
+        %{failure_reason: "transfer reversed", gateway_response: data},
+        authorize?: false
+      )
+
+    release_payout_balance(payout)
+    :ok
+  end
+
+  defp reconcile_payout(payout, _failed, data) do
+    {:ok, _} =
+      Emakola.Payments.mark_payout_failed(
+        payout,
+        %{failure_reason: data["status"] || "transfer failed", gateway_response: data},
+        authorize?: false
+      )
+
+    release_payout_balance(payout)
+    :ok
+  end
+
+  defp release_payout_balance(payout) do
+    {:ok, payments} = Emakola.Payments.list_payments_by_payout(payout.id, authorize?: false)
+
+    Enum.each(payments, fn payment ->
+      payment
+      |> Ash.Changeset.for_update(:release_from_payout, %{})
+      |> Ash.update!(authorize?: false)
+    end)
   end
 
   defp handle_charge_success(data) do
     reference = data["reference"]
 
-    with {:ok, payment} <- find_payment(reference),
-         false <- terminal?(payment) do
-      updated =
-        payment
-        |> Ash.Changeset.for_update(:mark_success, %{gateway_response: data})
-        |> Ash.update!(authorize?: false)
+    with {:ok, payment} <- find_payment(reference) do
+      payment =
+        case payment.status do
+          # Already success (webhook retry/replay) — fall through to the idempotent
+          # post-processing below so a prior PARTIAL failure (e.g. settle_splits
+          # raised mid-loop) is recovered rather than skipped.
+          :success ->
+            payment
 
-      # Confirm the associated order if present
-      maybe_confirm_order(payment.order_id)
+          # A late charge.success after a terminal failure/refund — don't override.
+          s when s in [:failed, :refunded] ->
+            payment
 
-      # Settle any dropship split allocations — the gateway has applied the
-      # split, so record each as settled.
-      settle_splits(payment)
+          _ ->
+            updated =
+              payment
+              |> Ash.Changeset.for_update(:mark_success, %{gateway_response: data})
+              |> Ash.update!(authorize?: false)
 
-      # Notify any LiveView still polling on this reference so the
-      # customer sees confirmation immediately rather than waiting up
-      # to 3s for the next poll cycle.
-      Phoenix.PubSub.broadcast(
-        Emakola.PubSub,
-        "payment:#{reference}",
-        {:payment_succeeded, reference, updated}
-      )
+            Phoenix.PubSub.broadcast(
+              Emakola.PubSub,
+              "payment:#{reference}",
+              {:payment_succeeded, reference, updated}
+            )
+
+            updated
+        end
+
+      # Idempotent post-processing — runs on every (re)delivery of a successful
+      # charge. settle_splits only touches :pending splits and maybe_confirm_order
+      # only a :pending order, so a retry safely completes a partial first attempt.
+      if payment.status == :success do
+        maybe_confirm_order(payment.order_id)
+        settle_splits(payment)
+      end
 
       :ok
     else
-      true -> :ok
       {:error, reason} -> {:error, reason}
     end
   end

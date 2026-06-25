@@ -97,5 +97,16 @@ defmodule Emakola.Payments.PayoutServiceTest do
       assert {:ok, payout} = PayoutService.prepare_payout(store.id)
       assert payout.amount == 50_000
     end
+
+    test "atomically claims the balance — a second approval finds nothing outstanding" do
+      store = Factory.create_store!()
+      momo_account!(store)
+      success_payment!(store, %{amount: 40_000})
+
+      assert {:ok, _payout} = PayoutService.prepare_payout(store.id)
+      # The FOR UPDATE claim stamped the charges, so a concurrent/second approval
+      # can't re-claim the same balance (no double-pay).
+      assert {:error, :nothing_outstanding} = PayoutService.prepare_payout(store.id)
+    end
   end
 end
