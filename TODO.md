@@ -43,16 +43,18 @@
       logic missing split settlement/PubSub/notifications — a trap. Removed the
       module + its redundant test; the worker is now the documented single
       authority (signature coverage retained in `webhook_security_test`/`paystack_test`).
-- [ ] **Review the permissive `bypass action_type(:create)` pattern on
-      `Order`/`Customer`/`LineItem`.** ✅ **Store DONE 2026-06-25** —
-      `Emakola.Stores.Store` now requires a Merchant actor for `:create`
-      (Merchant-scoped bypass that short-circuits the membership policy, plus an
-      explicit forbid for nil/Customer actors). Onboarding is unaffected (it
-      creates via `authorize?: false`). NOTE: store creation is *authenticated*
-      (`OnboardingLive` guards `is_nil(user)`), so the old "rate-limit
-      *unauthenticated* store creation" premise is moot — a per-user anti-abuse
-      limit on the onboarding create path is a separate optional follow-up.
-      Still to do: apply the same review to Order/Customer/LineItem creates.
+- [x] **Permissive `bypass action_type(:create)` across tenant resources** —
+      DONE 2026-06-25. `Emakola.Stores.Store` was the last holdout (#217): it now
+      requires a Merchant actor for `:create` (Merchant-scoped bypass that
+      short-circuits the membership policy + explicit forbid for nil/Customer);
+      onboarding is unaffected (`authorize?: false`, guarded by `is_nil(user)`).
+      Reviewed `Order`/`Customer`/`LineItem` — **already hardened** by the
+      2026-04 multitenancy pass: each has
+      `policy action_type(:create) do forbid_unless(actor_present());
+      forbid_unless(Merchant) … end`, and checkout/webhooks create via
+      `authorize?: false`. NOTE: store/order creation is *authenticated*, so the
+      old "rate-limit *unauthenticated* creation" premise is moot — a per-user
+      anti-abuse limit is a separate optional follow-up.
 - [ ] **Catalog default `:read` lacks a status filter** — resources use
       `authorize_unless(actor_present())` (not the feared `always()`), and all
       storefront calls go through safe scoped actions, so risk is LOW. But the
@@ -145,7 +147,10 @@
 - [ ] **Add `mix dialyzer` to CI** (`.github/workflows/ci.yml`) — configured in
       `mix.exs` but never run in CI.
 - [ ] **Create `.sobelow-conf`** — CI runs `mix sobelow --config` but the config
-      file is absent at repo root.
+      file is absent at repo root. (Not blocking CI — sobelow falls back to
+      defaults.) When doing this, triage what it surfaces first: `XSS.SendResp`
+      in `lib/emakola_web/plugs/rate_limiter.ex:80` (variable `safe_retry` — looks
+      like a deliberate false positive; persist a reviewed skip, not a blind config).
 - [ ] **Separate `deps` and `_build` CI cache keys** — currently one combined key.
 - [ ] **Raise `test_coverage` threshold** — `mix.exs:15` is at 55; ratchet toward
       90 as tests are added.
