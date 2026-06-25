@@ -1,13 +1,18 @@
 defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   @moduledoc """
-  Oban worker that processes Paystack webhook events.
+  Oban worker that processes Paystack webhook events — the single authority
+  for Paystack webhook handling. Enqueued by `EmakolaWeb.WebhookController`
+  after HMAC verification by `Emakola.Payments.Gateways.Paystack`.
 
   Handles:
-  - charge.success — marks payment as success, confirms order
-  - charge.failed — marks payment as failed
-  - refund.processed — marks payment as refunded with amount
+  - charge.success — marks payment success, confirms order, settles dropship
+    splits, broadcasts to polling LiveViews
+  - charge.failed — marks payment failed, broadcasts
+  - refund.processed — marks payment refunded, reverses splits, broadcasts
+  - transfer.success / transfer.failed / transfer.reversed — finalizes merchant payouts
 
-  Idempotent: skips processing if payment is already in a terminal state.
+  Idempotent: deduplicated at insert time (24h unique window) and guarded by a
+  terminal-state check inside `perform/1`.
   """
 
   use Oban.Worker,
@@ -30,13 +35,27 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"event" => event, "data" => data}}) do
     case event do
-      "charge.success" -> handle_charge_success(data)
-      "charge.failed" -> handle_charge_failed(data)
-      "refund.processed" -> handle_refund_processed(data)
-      "transfer.success" -> finalize_payout(data, :paid)
-      "transfer.failed" -> finalize_payout(data, :failed)
-      "transfer.reversed" -> finalize_payout(data, :failed)
-      _unknown -> :ok
+      "charge.success" ->
+        handle_charge_success(data)
+
+      "charge.failed" ->
+        handle_charge_failed(data)
+
+      "refund.processed" ->
+        handle_refund_processed(data)
+
+      "transfer.success" ->
+        finalize_payout(data, :paid)
+
+      "transfer.failed" ->
+        finalize_payout(data, :failed)
+
+      "transfer.reversed" ->
+        finalize_payout(data, :failed)
+
+      _unknown ->
+        Logger.warning("[paystack_webhook] unhandled event: #{inspect(event)}")
+        :ok
     end
   end
 
