@@ -214,6 +214,20 @@ defmodule Emakola.Payments.Payment do
       change(set_attribute(:paid_out_at, &DateTime.utc_now/0))
     end
 
+    # Return a charge to the outstanding backlog when its payout failed/reversed,
+    # so the balance is re-paid via a fresh payout instead of being buried.
+    update :release_from_payout do
+      require_atomic?(false)
+      accept([])
+      change(set_attribute(:paid_out_at, nil))
+      change(set_attribute(:payout_id, nil))
+    end
+
+    read :by_payout do
+      argument(:payout_id, :uuid, allow_nil?: false)
+      filter(expr(payout_id == ^arg(:payout_id)))
+    end
+
     read :by_gateway_reference do
       argument(:gateway_reference, :string, allow_nil?: false)
 
