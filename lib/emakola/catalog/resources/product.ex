@@ -352,6 +352,19 @@ defmodule Emakola.Catalog.Product do
       )
     end
 
+    read :get_active_by_id do
+      get?(true)
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:id, :uuid, allow_nil?: false)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and id == ^arg(:id) and status == :active and
+            moderation_status == :ok
+        )
+      )
+    end
+
     read :list_related do
       argument(:store_id, :uuid, allow_nil?: false)
       argument(:product_id, :uuid, allow_nil?: false)
