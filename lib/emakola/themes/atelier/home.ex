@@ -198,7 +198,7 @@ defmodule Emakola.Themes.Atelier.Home do
             class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white leading-[1.02] mb-6 tracking-tight"
             style="text-shadow: 0 2px 8px rgba(0,0,0,0.5);"
           >
-            {raw(String.replace(@hero_title, "\n", "<br>"))}
+            {hero_title_html(@hero_title)}
           </h1>
 
           <%!-- Description --%>
@@ -804,6 +804,21 @@ defmodule Emakola.Themes.Atelier.Home do
       valid_hero_image?(single) -> [single]
       true -> []
     end
+  end
+
+  @doc """
+  Renders the merchant-supplied hero title safely: the text is HTML-escaped
+  first (so markup in the title — e.g. `<img onerror=...>` — can't inject
+  script onto the public storefront), then literal newlines become `<br>`
+  breaks. Escaping before the replace means the only live tag in the output is
+  the `<br>` we add.
+  """
+  def hero_title_html(title) do
+    title
+    |> Phoenix.HTML.html_escape()
+    |> Phoenix.HTML.safe_to_string()
+    |> String.replace("\n", "<br>")
+    |> Phoenix.HTML.raw()
   end
 
   defp assign_hero_text(assigns, theme, store_name) do
