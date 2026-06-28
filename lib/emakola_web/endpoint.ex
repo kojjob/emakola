@@ -8,7 +8,10 @@ defmodule EmakolaWeb.Endpoint do
     store: :cookie,
     key: "_emakola_key",
     signing_salt: "mU2rqVT8",
-    same_site: "Lax"
+    same_site: "Lax",
+    # Secure only in prod — a Secure cookie isn't sent over http, which would
+    # break local dev/test on http://localhost. Evaluated at compile time.
+    secure: Mix.env() == :prod
   ]
 
   socket "/live", Phoenix.LiveView.Socket,
