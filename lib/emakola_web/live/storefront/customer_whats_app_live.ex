@@ -17,7 +17,13 @@ defmodule EmakolaWeb.Storefront.CustomerWhatsAppLive do
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
-     assign(socket, step: :phone, phone: nil, error: nil, page_title: "Sign in with WhatsApp")}
+     assign(socket,
+       step: :phone,
+       phone: nil,
+       phone_verified: false,
+       error: nil,
+       page_title: "Sign in with WhatsApp"
+     )}
   end
 
   @impl true
@@ -27,7 +33,7 @@ defmodule EmakolaWeb.Storefront.CustomerWhatsAppLive do
 
     case PhoneAuth.request_code(phone, :customer, store_id: store.id) do
       :ok ->
-        {:noreply, assign(socket, step: :code, phone: phone, error: nil)}
+        {:noreply, assign(socket, step: :code, phone: phone, phone_verified: false, error: nil)}
 
       {:error, :rate_limited} ->
         {:noreply, assign(socket, error: "Too many attempts. Try again in a minute.")}
@@ -71,24 +77,38 @@ defmodule EmakolaWeb.Storefront.CustomerWhatsAppLive do
   def handle_event("create_account", %{"customer" => params}, socket) do
     store = socket.assigns.store
 
-    case Ash.create(
-           Ash.Changeset.for_create(
-             Customer,
-             :register_with_phone,
-             %{
-               email: params["email"],
-               name: params["name"],
-               phone: socket.assigns.phone
-             },
-             tenant: store.id
-           ),
-           authorize?: false
-         ) do
-      {:ok, customer} ->
-        {:noreply, sign_in(socket, customer)}
+    # Events dispatch regardless of the rendered step, so the verified-phone
+    # check must live here (not in the template) or an unverified phone could
+    # be registered by a scripted client.
+    if socket.assigns.phone_verified do
+      case Ash.create(
+             Ash.Changeset.for_create(
+               Customer,
+               :register_with_phone,
+               %{
+                 email: params["email"],
+                 name: params["name"],
+                 phone: socket.assigns.phone
+               },
+               tenant: store.id
+             ),
+             authorize?: false
+           ) do
+        {:ok, customer} ->
+          {:noreply, sign_in(socket, customer)}
 
-      {:error, _} ->
-        {:noreply, assign(socket, error: "That email is already in use. Try signing in instead.")}
+        {:error, _} ->
+          {:noreply,
+           assign(socket, error: "That email is already in use. Try signing in instead.")}
+      end
+    else
+      {:noreply,
+       assign(socket,
+         step: :phone,
+         phone: nil,
+         phone_verified: false,
+         error: "Please verify your phone number first."
+       )}
     end
   end
 
@@ -102,7 +122,7 @@ defmodule EmakolaWeb.Storefront.CustomerWhatsAppLive do
   # goes to the email step.
   defp resolve(socket) do
     case customer_by_phone(socket.assigns.phone, socket.assigns.store.id) do
-      nil -> {:noreply, assign(socket, step: :email, error: nil)}
+      nil -> {:noreply, assign(socket, step: :email, phone_verified: true, error: nil)}
       customer -> {:noreply, sign_in(socket, customer)}
     end
   end
