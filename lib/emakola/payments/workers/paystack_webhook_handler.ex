@@ -148,7 +148,8 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   defp handle_charge_success(data) do
     reference = data["reference"]
 
-    with {:ok, payment} <- find_payment(reference) do
+    with {:ok, payment} <- find_payment(reference),
+         :ok <- verify_amount(payment, data) do
       payment =
         case payment.status do
           # Already success (webhook retry/replay) — fall through to the idempotent
@@ -186,7 +187,34 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
 
       :ok
     else
+      # Permanent mismatch — already logged. Don't confirm and don't retry.
+      {:error, :amount_mismatch} -> :ok
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # Defence in depth: never confirm a charge whose gateway-reported amount or
+  # currency differs from what we charged. The amount is already server-bound to
+  # the order total at initiation, so a mismatch means tampering or a bug — log
+  # loudly and skip rather than mark the payment paid.
+  defp verify_amount(payment, data) do
+    # Verify amount/currency whenever the gateway provides them. The real threat
+    # is a present-but-wrong amount (tampering/bug); a genuine Paystack
+    # charge.success always carries both, and webhooks are HMAC-verified, so a
+    # missing field can't come from a forged request — don't reject on absence.
+    amount_ok = is_nil(data["amount"]) or data["amount"] == payment.amount
+    currency_ok = is_nil(data["currency"]) or to_string(data["currency"]) == payment.currency
+
+    if amount_ok and currency_ok do
+      :ok
+    else
+      Logger.error(
+        "[paystack_webhook] charge.success amount/currency mismatch for payment=#{payment.id} " <>
+          "(ref=#{payment.gateway_reference}): expected #{payment.amount} #{payment.currency}, " <>
+          "got #{inspect(data["amount"])} #{inspect(data["currency"])} — not confirming"
+      )
+
+      {:error, :amount_mismatch}
     end
   end
 

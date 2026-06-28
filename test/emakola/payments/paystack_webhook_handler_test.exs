@@ -40,6 +40,31 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
       assert updated.status == :success
       assert updated.gateway_response["gateway_response"] == "Successful"
     end
+
+    test "ignores a charge.success whose amount doesn't match the payment", %{store: store} do
+      payment = create_payment!(store)
+
+      event = %{
+        "event" => "charge.success",
+        "data" => %{
+          "reference" => payment.gateway_reference,
+          # Gateway reports a different amount than we charged — never confirm.
+          "amount" => 400_000,
+          "currency" => "GHS",
+          "status" => "success",
+          "gateway_response" => "Successful"
+        }
+      }
+
+      # Permanent mismatch — logged and skipped, not retried (:ok), but the
+      # payment is NOT marked success and the order is not confirmed.
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+
+      updated =
+        Payment |> Ash.Query.filter(id == ^payment.id) |> Ash.read_one!(authorize?: false)
+
+      assert updated.status == :pending
+    end
   end
 
   describe "charge.failed event" do
