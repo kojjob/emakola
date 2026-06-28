@@ -818,7 +818,7 @@ defmodule Emakola.Themes.Atelier.Home do
     |> Phoenix.HTML.html_escape()
     |> Phoenix.HTML.safe_to_string()
     |> String.replace("\n", "<br>")
-    |> Phoenix.HTML.raw()
+    |> raw()
   end
 
   defp assign_hero_text(assigns, theme, store_name) do
