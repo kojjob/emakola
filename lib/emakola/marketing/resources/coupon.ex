@@ -198,7 +198,20 @@ defmodule Emakola.Marketing.Coupon do
     end
 
     update :increment_usage do
+      # Atomic ceiling: the increment runs as a single conditional UPDATE
+      # (`SET uses_count = uses_count + 1 WHERE ... AND (max_uses IS NULL OR
+      # uses_count < max_uses)`), so concurrent checkouts can't push uses_count
+      # past max_uses. A coupon at the cap matches no rows and fails
+      # (StaleRecord), which CheckoutService rolls back as
+      # :coupon_max_uses_reached — the unlocked read-then-increment in the
+      # checkout transaction can't enforce this on its own.
+      require_atomic?(false)
+
       change(atomic_update(:uses_count, expr(uses_count + 1)))
+
+      change(fn changeset, _context ->
+        Ash.Changeset.filter(changeset, expr(is_nil(max_uses) or uses_count < max_uses))
+      end)
     end
 
     read :list_by_store do
