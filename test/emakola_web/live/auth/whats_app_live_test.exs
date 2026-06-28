@@ -2,6 +2,7 @@ defmodule EmakolaWeb.Auth.WhatsAppLiveTest do
   use EmakolaWeb.ConnCase, async: false
   import Phoenix.LiveViewTest
   import Mox
+  require Ash.Query
   setup :verify_on_exit!
 
   setup do
@@ -77,5 +78,30 @@ defmodule EmakolaWeb.Auth.WhatsAppLiveTest do
 
     html = lv |> form("#code-form", otp: %{code: "000000"}) |> render_submit()
     assert html =~ "Invalid code"
+  end
+
+  test "create_account is refused before OTP verification (no unverified-phone account)",
+       %{conn: conn} do
+    stub(Emakola.WhatsAppProviderMock, :send_message, fn _, _, _, _ -> {:ok, %{}} end)
+
+    number = unique_national_number()
+    phone = Emakola.Accounts.PhoneAuth.to_e164("+233", number)
+
+    {:ok, lv, _} = live(conn, ~p"/auth/whatsapp")
+
+    # Request a code (server assigns the phone, step -> :code) but DO NOT verify.
+    render_submit(lv, "send_code", %{"phone" => %{"cc" => "+233", "number" => number}})
+
+    # Scripted bypass: dispatch create_account directly, skipping verify_code.
+    render_submit(lv, "create_account", %{
+      "merchant" => %{"email" => "squatter@example.com", "name" => "Squatter"}
+    })
+
+    merchants =
+      Emakola.Accounts.Merchant
+      |> Ash.Query.filter(phone == ^phone)
+      |> Ash.read!(authorize?: false)
+
+    assert merchants == []
   end
 end

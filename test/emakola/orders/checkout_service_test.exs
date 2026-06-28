@@ -95,6 +95,29 @@ defmodule Emakola.Orders.CheckoutServiceTest do
     end
   end
 
+  # -- Product availability re-validation -----------------------------
+
+  describe "product availability re-validation" do
+    test "rejects checkout of an archived product", %{store: store, customer: customer} do
+      product = create_product!(store, title: "Discontinued", status: :archived)
+      variant = create_variant!(product, store, price: 5_000, stock_quantity: 10)
+      items = [%{variant_id: variant.id, quantity: 1}]
+
+      assert {:error, :product_unavailable} =
+               Emakola.Orders.CheckoutService.checkout!(store.id, items, customer_id: customer.id)
+    end
+
+    test "rejects checkout of a taken-down product", %{store: store, customer: customer} do
+      product = create_product!(store, title: "Counterfeit", status: :active)
+      variant = create_variant!(product, store, price: 5_000, stock_quantity: 10)
+      {:ok, _} = Emakola.Catalog.take_down_product(product, %{reason: "x"}, authorize?: false)
+      items = [%{variant_id: variant.id, quantity: 1}]
+
+      assert {:error, :product_unavailable} =
+               Emakola.Orders.CheckoutService.checkout!(store.id, items, customer_id: customer.id)
+    end
+  end
+
   # -- Error cases ----------------------------------------------------
 
   describe "error cases" do

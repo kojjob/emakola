@@ -211,6 +211,32 @@ defmodule Emakola.Marketing.CouponTest do
 
       assert updated.uses_count == 1
     end
+
+    test "refuses to increment past max_uses (atomic ceiling)", %{store: store} do
+      {:ok, coupon} =
+        Coupon
+        |> Ash.Changeset.for_create(:create, %{
+          store_id: store.id,
+          code: "CAP1",
+          discount_type: :percentage,
+          discount_value: 500,
+          max_uses: 1
+        })
+        |> Ash.create(authorize?: false)
+
+      {:ok, used} =
+        coupon |> Ash.Changeset.for_update(:increment_usage, %{}) |> Ash.update(authorize?: false)
+
+      assert used.uses_count == 1
+
+      # At the cap — a further increment must be refused, not silently exceed it.
+      assert {:error, _} =
+               used
+               |> Ash.Changeset.for_update(:increment_usage, %{})
+               |> Ash.update(authorize?: false)
+
+      assert Ash.get!(Coupon, coupon.id, authorize?: false).uses_count == 1
+    end
   end
 
   describe "deactivate" do
