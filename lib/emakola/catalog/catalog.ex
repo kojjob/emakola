@@ -22,6 +22,8 @@ defmodule Emakola.Catalog do
       define(:create_product, action: :create)
       define(:get_product, action: :read, get_by: [:id])
       define(:get_product_by_slug, action: :get_by_slug, args: [:store_id, :slug])
+      # Storefront-safe single-product fetch — active, moderation-ok, store-scoped.
+      define(:get_active_product, action: :get_active_by_id, args: [:store_id, :id])
       define(:update_product, action: :update)
       define(:archive_product, action: :archive)
       define(:activate_product, action: :activate)
