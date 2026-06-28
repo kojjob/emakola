@@ -51,9 +51,14 @@ defmodule Emakola.Accounts.StoreMembership do
       authorize_if(always())
     end
 
-    # Creates are open (onboarding creates memberships)
-    bypass action_type(:create) do
-      authorize_if(always())
+    # Membership creation is system-only: onboarding and admin staff-management
+    # call with `authorize?: false` (which skips policies). Forbid every
+    # actor-driven (`authorize?: true`) create so a Customer or different-store
+    # merchant can't mint themselves a membership (privilege escalation — this is
+    # the tenant-authorization primitive). A future user-facing "add staff" flow
+    # must add an owner-of-target-store check here before relaxing this.
+    policy action_type(:create) do
+      forbid_if(always())
     end
 
     # Merchant actors: verify store membership for writes
