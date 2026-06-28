@@ -14,6 +14,12 @@ defmodule Emakola.Customers do
       define(:list_customers_by_store, action: :list_by_store, args: [:store_id])
       define(:search_customers, action: :search, args: [:store_id, :query])
       define(:get_customer_by_id, action: :get_by_id, args: [:id])
+
+      define(:get_customer_by_id_for_store,
+        action: :get_by_id_for_store,
+        args: [:id, :store_id]
+      )
+
       define(:register_customer, action: :register_with_password)
     end
 

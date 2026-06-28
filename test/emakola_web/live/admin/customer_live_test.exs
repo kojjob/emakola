@@ -184,5 +184,15 @@ defmodule EmakolaWeb.Admin.CustomerLiveTest do
 
       assert html =~ "Notes"
     end
+
+    test "cannot view a customer belonging to another store (cross-tenant)", %{conn: conn} do
+      other_store = Factory.create_store!()
+
+      foreign =
+        Factory.create_customer!(other_store, name: "Foreign", email: "foreign@example.com")
+
+      assert {:error, {:live_redirect, %{to: "/admin/customers"}}} =
+               live(conn, ~p"/admin/customers/#{foreign.id}")
+    end
   end
 end
