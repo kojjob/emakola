@@ -540,6 +540,9 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       assert order.total == expected_total
       assert order.subtotal == expected_total
 
+      # Stock decrements on payment confirmation, not at checkout.
+      {:ok, _} = Emakola.Orders.confirm_order(order, authorize?: false)
+
       # Verify all stocks decremented
       for v <- variants do
         reloaded = Ash.get!(Emakola.Catalog.Variant, v.id, authorize?: false, authorize?: false)

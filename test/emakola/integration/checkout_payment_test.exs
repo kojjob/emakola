@@ -66,7 +66,8 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
       # Order number generated
       assert order.order_number =~ ~r/^ORD-\d{8}-[A-Z0-9]{6}$/
 
-      # Stock decremented
+      # Stock decrements on payment confirmation, not at checkout.
+      {:ok, _} = Emakola.Orders.confirm_order(order, authorize?: false)
       updated_variant = reload_variant(variant)
       assert updated_variant.stock_quantity == 8
     end
@@ -110,7 +111,8 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
       assert order.total == 6000 + 22_500
       assert order.subtotal == order.total
 
-      # Both stocks decremented
+      # Stock decrements on payment confirmation, not at checkout.
+      {:ok, _} = Emakola.Orders.confirm_order(order, authorize?: false)
       assert reload_variant(variant_a).stock_quantity == 3
       assert reload_variant(variant_b).stock_quantity == 7
     end
@@ -243,7 +245,7 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
   # ═══════════════════════════════════════════════════════════════════
 
   describe "stock and checkout race conditions" do
-    test "two concurrent checkouts for last item: one succeeds, one fails" do
+    test "two concurrent checkouts for the last item both succeed (no reservation)" do
       %{store: store, variant: variant} =
         setup_store_with_product(%{}, %{stock_quantity: 1, price: 5000})
 
@@ -259,18 +261,10 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
 
       results = [Task.await(task1), Task.await(task2)]
 
-      successes = Enum.count(results, &match?({:ok, _}, &1))
-      failures = Enum.count(results, &match?({:error, _}, &1))
-
-      # Exactly one should succeed and one should fail
-      assert successes == 1,
-             "Expected exactly 1 success, got #{successes}. Results: #{inspect(results)}"
-
-      assert failures == 1,
-             "Expected exactly 1 failure, got #{failures}. Results: #{inspect(results)}"
-
-      # Stock should be 0
-      assert reload_variant(variant).stock_quantity == 0
+      # Checkout reserves no stock — both orders are placed; the oversell is
+      # resolved at payment confirmation, not here.
+      assert Enum.count(results, &match?({:ok, _}, &1)) == 2
+      assert reload_variant(variant).stock_quantity == 1
     end
 
     test "checkout for item with insufficient stock fails" do
@@ -299,18 +293,10 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
 
       results = Enum.map(tasks, &Task.await(&1, 10_000))
 
-      successes = Enum.count(results, &match?({:ok, _}, &1))
-      failures = Enum.count(results, &match?({:error, _}, &1))
-
-      # Exactly 5 should succeed (matching available stock)
-      assert successes == 5,
-             "Expected 5 successes, got #{successes}. Results: #{inspect(results)}"
-
-      assert failures == 5,
-             "Expected 5 failures, got #{failures}. Results: #{inspect(results)}"
-
-      # Stock should be exactly 0
-      assert reload_variant(variant).stock_quantity == 0
+      # No reservation at checkout — all 10 orders are placed; the oversell is
+      # resolved at payment confirmation, not here.
+      assert Enum.count(results, &match?({:ok, _}, &1)) == 10
+      assert reload_variant(variant).stock_quantity == 5
     end
   end
 
@@ -514,6 +500,9 @@ defmodule Emakola.Integration.CheckoutPaymentTest do
 
       expected_total = Enum.reduce(variants, 0, fn v, acc -> acc + v.price * 2 end)
       assert order.total == expected_total
+
+      # Stock decrements on payment confirmation, not at checkout.
+      {:ok, _} = Emakola.Orders.confirm_order(order, authorize?: false)
 
       # Verify all stocks decremented
       for v <- variants do
