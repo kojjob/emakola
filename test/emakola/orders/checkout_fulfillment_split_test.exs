@@ -93,7 +93,9 @@ defmodule Emakola.Orders.CheckoutFulfillmentSplitTest do
         %{variant_id: own.id, quantity: 4}
       ]
 
-      assert {:ok, _order} = Emakola.Orders.CheckoutService.checkout!(store.id, items, [])
+      assert {:ok, order} = Emakola.Orders.CheckoutService.checkout!(store.id, items, [])
+      # Stock decrements on payment confirmation, not at checkout.
+      {:ok, _} = Emakola.Orders.confirm_order(order, authorize?: false)
 
       reloaded_own = Ash.get!(Emakola.Catalog.Variant, own.id, authorize?: false)
       reloaded_drop = Ash.get!(Emakola.Catalog.Variant, drop.id, authorize?: false)

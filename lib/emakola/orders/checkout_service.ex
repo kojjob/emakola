@@ -195,30 +195,23 @@ defmodule Emakola.Orders.CheckoutService do
       # (including the nil key for merchant-owned/own-stock items).
       fulfillment_ids = create_fulfillments(store_id, order.id, items, variants)
 
-      # 4. Create line items and decrement stock for tracked variants only
+      # 4. Create line items. Stock is NOT decremented here — it's reserved
+      #    nowhere at checkout and decremented only when payment confirms the
+      #    order (Order :confirm -> Changes.DecrementStock), so an abandoned or
+      #    unpaid order never bleeds inventory.
       line_items =
         Enum.map(items, fn %{variant_id: vid, quantity: qty} ->
           variant = Map.fetch!(variants, vid)
 
-          line_item =
-            Emakola.Orders.LineItem
-            |> Ash.Changeset.for_create(:create, %{
-              order_id: order.id,
-              store_id: store_id,
-              variant_id: vid,
-              quantity: qty,
-              fulfillment_id: Map.fetch!(fulfillment_ids, variant.supplier_id)
-            })
-            |> Ash.create!(authorize?: false)
-
-          # Dropshipped / untracked variants carry no numeric stock to decrement.
-          if variant.track_inventory do
-            variant
-            |> Ash.Changeset.for_update(:adjust_stock, %{delta: -qty})
-            |> Ash.update!(authorize?: false)
-          end
-
-          line_item
+          Emakola.Orders.LineItem
+          |> Ash.Changeset.for_create(:create, %{
+            order_id: order.id,
+            store_id: store_id,
+            variant_id: vid,
+            quantity: qty,
+            fulfillment_id: Map.fetch!(fulfillment_ids, variant.supplier_id)
+          })
+          |> Ash.create!(authorize?: false)
         end)
 
       # 4a. Record what we owe each supplier for their dropship fulfillment.

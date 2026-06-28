@@ -52,15 +52,30 @@ defmodule Emakola.Orders.CheckoutServiceTest do
       assert length(line_items) == 2
     end
 
-    test "stock is decremented after checkout", %{store: store, variant: variant} do
+    test "checkout reserves no stock; payment confirmation decrements it",
+         %{store: store, variant: variant} do
       items = [%{variant_id: variant.id, quantity: 3}]
 
-      assert {:ok, _order} = Emakola.Orders.CheckoutService.checkout!(store.id, items, [])
+      assert {:ok, order} = Emakola.Orders.CheckoutService.checkout!(store.id, items, [])
 
-      updated_variant =
-        Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false, authorize?: false)
+      # Still 10 — an unpaid order holds no stock, so abandonment never bleeds it.
+      assert Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false).stock_quantity == 10
 
-      assert updated_variant.stock_quantity == 7
+      # Confirming the order (payment success) is what decrements stock.
+      {:ok, _} = Emakola.Orders.confirm_order(order, authorize?: false)
+      assert Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false).stock_quantity == 7
+    end
+
+    test "an abandoned (never-confirmed) order leaves stock intact",
+         %{store: store, variant: variant} do
+      assert {:ok, _order} =
+               Emakola.Orders.CheckoutService.checkout!(
+                 store.id,
+                 [%{variant_id: variant.id, quantity: 4}],
+                 []
+               )
+
+      assert Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false).stock_quantity == 10
     end
 
     test "order total equals sum of line totals", %{store: store, product: product} do
@@ -195,7 +210,7 @@ defmodule Emakola.Orders.CheckoutServiceTest do
   # -- Concurrency ----------------------------------------------------
 
   describe "concurrent checkouts" do
-    test "competing for limited stock — one succeeds, one fails", %{
+    test "both succeed — checkout reserves no stock (no-reservation model)", %{
       store: store,
       product: product
     } do
@@ -213,17 +228,32 @@ defmodule Emakola.Orders.CheckoutServiceTest do
 
       results = Enum.map(tasks, &Task.await/1)
 
-      successes = Enum.filter(results, &match?({:ok, _}, &1))
-      failures = Enum.filter(results, &match?({:error, _}, &1))
+      # Stock is reserved nowhere at checkout, so both orders are placed; the
+      # oversell is resolved at payment confirmation, not here.
+      assert Enum.count(results, &match?({:ok, _}, &1)) == 2
 
-      assert length(successes) == 1
-      assert length(failures) == 1
-
-      # Stock should be 0
       refreshed =
         Ash.get!(Emakola.Catalog.Variant, scarce_variant.id, authorize?: false, authorize?: false)
 
-      assert refreshed.stock_quantity == 0
+      assert refreshed.stock_quantity == 5
+    end
+
+    test "confirming more orders than stock clamps at zero, both stay confirmed (oversell)",
+         %{store: store, product: product} do
+      variant = create_variant!(product, store, price: 10_000, stock_quantity: 1)
+      items = [%{variant_id: variant.id, quantity: 1}]
+
+      {:ok, order1} = Emakola.Orders.CheckoutService.checkout!(store.id, items, [])
+      {:ok, order2} = Emakola.Orders.CheckoutService.checkout!(store.id, items, [])
+
+      # Both paid orders confirm; the second decrement is logged as oversold and
+      # the order still stands for manual fulfilment. Stock never goes negative.
+      assert {:ok, c1} = Emakola.Orders.confirm_order(order1, authorize?: false)
+      assert {:ok, c2} = Emakola.Orders.confirm_order(order2, authorize?: false)
+      assert c1.status == :confirmed
+      assert c2.status == :confirmed
+
+      assert Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false).stock_quantity == 0
     end
   end
 
