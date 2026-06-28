@@ -124,10 +124,23 @@ defmodule Emakola.Orders.CheckoutService do
       Enum.any?(variants, fn v -> v.store_id != store_id end) ->
         {:error, :variant_not_in_store}
 
+      Enum.any?(variants, fn v -> not product_available?(v.product) end) ->
+        {:error, :product_unavailable}
+
       true ->
         {:ok, Map.new(variants, fn v -> {v.id, v} end)}
     end
   end
+
+  # A variant can't be ordered once its product has been REMOVED from sale —
+  # archived by the merchant or taken down by platform moderation. The storefront
+  # only lets an `:active` product into a cart (Catalog `get_active_product`), and
+  # an active product has no transition back to `:draft` — so these two states are
+  # exactly the stale-cart hazards: a product live when added, removed before
+  # checkout. This stops a taken-down (e.g. counterfeit) item being bought anyway.
+  defp product_available?(%{status: :archived}), do: false
+  defp product_available?(%{moderation_status: moderation}) when moderation != :ok, do: false
+  defp product_available?(_), do: true
 
   defp validate_stock(variants, items) do
     insufficient =
