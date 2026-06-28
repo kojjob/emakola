@@ -145,3 +145,7 @@ stitch-store-preview.png
 
 # Claude tooling
 .claire/
+
+# Demo & smoke-test screenshot/recording artifacts
+/demo-shots/
+/smoke-shots/
