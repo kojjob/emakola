@@ -89,7 +89,10 @@ defmodule Emakola.Orders.CheckoutService do
   """
   def calculate_discount(%{discount_type: :percentage} = coupon, subtotal, _delivery_fee) do
     raw = div(subtotal * coupon.discount_value, 10_000)
-    if coupon.max_discount_amount, do: min(raw, coupon.max_discount_amount), else: raw
+    capped = if coupon.max_discount_amount, do: min(raw, coupon.max_discount_amount), else: raw
+    # Never discount more than the subtotal, or the order total would go
+    # negative (defence in depth if a coupon slips past the 100% cap).
+    min(capped, subtotal)
   end
 
   def calculate_discount(%{discount_type: :fixed_amount} = coupon, subtotal, _delivery_fee) do
@@ -146,13 +149,21 @@ defmodule Emakola.Orders.CheckoutService do
     insufficient =
       Enum.any?(items, fn %{variant_id: vid, quantity: qty} ->
         variant = Map.fetch!(variants, vid)
-        # Dropshipped / intentionally untracked variants have no numeric stock
-        # to check — Variant.in_stock?/2 encodes that rule in one place.
-        not Emakola.Catalog.Variant.in_stock?(variant, qty)
+        not available_for_order?(variant, qty)
       end)
 
     if insufficient, do: {:error, :insufficient_stock}, else: :ok
   end
+
+  # A dropship (supplier-fulfilled) variant the supplier marked unavailable is
+  # out of stock regardless of its numeric quantity — Variant.in_stock?/2 alone
+  # treats every untracked variant as available, so it misses this. Mirrors
+  # Inventory.stock_status, the rule the storefront uses.
+  defp available_for_order?(%{supplier_id: sid, available: false}, _qty)
+       when not is_nil(sid),
+       do: false
+
+  defp available_for_order?(variant, qty), do: Emakola.Catalog.Variant.in_stock?(variant, qty)
 
   defp check_coupon_validity(coupon, subtotal) do
     now = DateTime.utc_now()
