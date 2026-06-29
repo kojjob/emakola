@@ -13,6 +13,14 @@ alias Emakola.Repo
 
 IO.puts("🌱 Seeding Emakola database...")
 
+# Tests build their own data via ExMachina factories inside the Ecto sandbox
+# (rolled back per test). Seeding the test DB commits permanent rows that break
+# global-count / empty-state assertions, so never seed in :test.
+if Mix.env() == :test do
+  IO.puts("⏭️  :test environment detected — skipping seeds (tests use factories).")
+  System.halt(0)
+end
+
 # =============================================================================
 # HELPERS
 # =============================================================================
