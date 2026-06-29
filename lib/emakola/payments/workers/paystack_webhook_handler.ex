@@ -243,13 +243,17 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
 
   defp handle_refund_processed(data) do
     reference = get_in(data, ["transaction", "reference"])
-    refund_amount = data["amount"]
+    event_amount = data["amount"]
 
     with {:ok, payment} <- find_payment(reference),
          false <- payment.status == :refunded,
+         # Accumulate this refund event onto any prior partial refunds. The
+         # worker is unique on [:args] for 24h, so an identical redelivery won't
+         # double-count, and RefundAmountNotExceeded caps the running total.
+         cumulative = (payment.refunded_amount || 0) + event_amount,
          {:ok, updated} <-
            payment
-           |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: refund_amount})
+           |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: cumulative})
            |> Ash.update(authorize?: false) do
       # Reverse the split allocations so a clawback can recover each party's
       # share against future payouts.

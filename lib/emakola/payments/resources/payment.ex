@@ -203,7 +203,19 @@ defmodule Emakola.Payments.Payment do
 
       validate({Emakola.Payments.Validations.RefundAmountNotExceeded, []})
 
-      change(set_attribute(:status, :refunded))
+      # `refunded_amount` is the cumulative total refunded so far (the caller
+      # accumulates). A partial refund keeps the payment :success so later
+      # partials can still be recorded; only a FULLY refunded payment becomes
+      # :refunded.
+      change(fn changeset, _context ->
+        refunded = Ash.Changeset.get_attribute(changeset, :refunded_amount) || 0
+
+        if refunded >= changeset.data.amount do
+          Ash.Changeset.change_attribute(changeset, :status, :refunded)
+        else
+          changeset
+        end
+      end)
     end
 
     # Stamp a charge as covered by a Payout so it drops out of the outstanding
