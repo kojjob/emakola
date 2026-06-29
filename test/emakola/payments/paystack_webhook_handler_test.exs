@@ -104,11 +104,12 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
       })
       |> Ash.update!(authorize?: false)
 
+      # Full refund (payment default amount is 500_000) -> :refunded.
       event = %{
         "event" => "refund.processed",
         "data" => %{
           "transaction" => %{"reference" => payment.gateway_reference},
-          "amount" => 250_000
+          "amount" => 500_000
         }
       }
 
@@ -120,7 +121,47 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
         |> Ash.read_one!(authorize?: false)
 
       assert updated.status == :refunded
-      assert updated.refunded_amount == 250_000
+      assert updated.refunded_amount == 500_000
+    end
+
+    test "partial refunds accumulate; :refunded only once fully refunded", %{store: store} do
+      payment = create_payment!(store, %{amount: 500_000})
+
+      payment
+      |> Ash.Changeset.for_update(:mark_success, %{gateway_response: %{"status" => "success"}})
+      |> Ash.update!(authorize?: false)
+
+      refund_event = fn amount ->
+        %{
+          "event" => "refund.processed",
+          "data" => %{
+            "transaction" => %{"reference" => payment.gateway_reference},
+            "amount" => amount
+          }
+        }
+      end
+
+      reload = fn ->
+        Payment |> Ash.Query.filter(id == ^payment.id) |> Ash.read_one!(authorize?: false)
+      end
+
+      # First partial — tracked, not yet fully refunded.
+      assert :ok = perform_job(PaystackWebhookHandler, refund_event.(200_000))
+      p = reload.()
+      assert p.refunded_amount == 200_000
+      assert p.status == :success
+
+      # Second partial — accumulates to 400k, still partial.
+      assert :ok = perform_job(PaystackWebhookHandler, refund_event.(200_000))
+      p = reload.()
+      assert p.refunded_amount == 400_000
+      assert p.status == :success
+
+      # Final partial — reaches the captured amount, now fully refunded.
+      assert :ok = perform_job(PaystackWebhookHandler, refund_event.(100_000))
+      p = reload.()
+      assert p.refunded_amount == 500_000
+      assert p.status == :refunded
     end
   end
 
