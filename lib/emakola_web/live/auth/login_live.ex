@@ -227,7 +227,8 @@ defmodule EmakolaWeb.Auth.LoginLive do
     # via the platform session flow (/platform/login).
     case try_merchant_login(params) do
       {:ok, user} ->
-        token = EmakolaWeb.AuthTokens.sign_subject_exchange(AshAuthentication.user_to_subject(user))
+        token =
+          EmakolaWeb.AuthTokens.sign_subject_exchange(AshAuthentication.user_to_subject(user))
 
         # Log the login to audit trail (safely — connect_info may not be available)
         try do
