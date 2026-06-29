@@ -290,6 +290,7 @@ defmodule Emakola.Catalog.Product do
         expr(
           store_id == ^arg(:store_id) and
             contains(fragment("lower(?)", title), fragment("lower(?)", ^arg(:query))) and
+            moderation_status == :ok and
             (is_nil(^arg(:status)) or status == ^arg(:status))
         )
       )
