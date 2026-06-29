@@ -89,7 +89,10 @@ defmodule Emakola.Orders.CheckoutService do
   """
   def calculate_discount(%{discount_type: :percentage} = coupon, subtotal, _delivery_fee) do
     raw = div(subtotal * coupon.discount_value, 10_000)
-    if coupon.max_discount_amount, do: min(raw, coupon.max_discount_amount), else: raw
+    capped = if coupon.max_discount_amount, do: min(raw, coupon.max_discount_amount), else: raw
+    # Never discount more than the subtotal, or the order total would go
+    # negative (defence in depth if a coupon slips past the 100% cap).
+    min(capped, subtotal)
   end
 
   def calculate_discount(%{discount_type: :fixed_amount} = coupon, subtotal, _delivery_fee) do

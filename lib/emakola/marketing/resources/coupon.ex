@@ -161,17 +161,7 @@ defmodule Emakola.Marketing.Coupon do
         end
       end)
 
-      validate(fn changeset, _context ->
-        type = Ash.Changeset.get_attribute(changeset, :discount_type)
-        value = Ash.Changeset.get_attribute(changeset, :discount_value)
-
-        if type == :percentage and is_integer(value) and value > 10_000 do
-          {:error,
-           field: :discount_value, message: "percentage cannot exceed 100% (10000 basis points)"}
-        else
-          :ok
-        end
-      end)
+      validate(Emakola.Marketing.Validations.DiscountValueWithinCap)
     end
 
     update :update do
@@ -190,6 +180,8 @@ defmodule Emakola.Marketing.Coupon do
         :active,
         :is_public
       ])
+
+      validate(Emakola.Marketing.Validations.DiscountValueWithinCap)
     end
 
     update :deactivate do
