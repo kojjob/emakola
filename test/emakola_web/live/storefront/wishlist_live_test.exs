@@ -99,4 +99,16 @@ defmodule EmakolaWeb.Storefront.WishlistLiveTest do
       assert {:error, {:redirect, %{to: "/"}}} = live(conn, "/s/no-such-store/wishlist")
     end
   end
+
+  describe "add_to_wishlist input safety" do
+    test "a guest event with a missing price doesn't crash the LiveView",
+         %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/wishlist")
+
+      # A crafted event without "price" must not crash (was String.to_integer(nil)).
+      html = render_click(view, "add_to_wishlist", %{"product_id" => "p-x", "title" => "X"})
+
+      assert html =~ "My Wishlist"
+    end
+  end
 end

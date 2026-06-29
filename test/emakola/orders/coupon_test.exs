@@ -130,6 +130,25 @@ defmodule Emakola.Marketing.CouponTest do
     end
   end
 
+  describe "update" do
+    test "rejects a percentage discount over 100% (cap enforced on update too)", %{store: store} do
+      {:ok, coupon} =
+        Coupon
+        |> Ash.Changeset.for_create(:create, %{
+          store_id: store.id,
+          code: "PCTUP",
+          discount_type: :percentage,
+          discount_value: 1000
+        })
+        |> Ash.create(authorize?: false)
+
+      assert {:error, _} =
+               coupon
+               |> Ash.Changeset.for_update(:update, %{discount_value: 15_000})
+               |> Ash.update(authorize?: false)
+    end
+  end
+
   describe "find_by_code" do
     test "finds coupon by store and code", %{store: store} do
       {:ok, created} =
