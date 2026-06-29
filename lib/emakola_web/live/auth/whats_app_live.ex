@@ -103,7 +103,9 @@ defmodule EmakolaWeb.Auth.WhatsAppLive do
   end
 
   defp sign_in(socket, merchant) do
-    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
+    token =
+      EmakolaWeb.AuthTokens.sign_subject_exchange(AshAuthentication.user_to_subject(merchant))
+
     redirect(socket, to: ~p"/auth/session?#{[token: token]}")
   end
 
