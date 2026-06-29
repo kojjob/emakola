@@ -128,5 +128,29 @@ defmodule Emakola.Orders.CheckoutFulfillmentSplitTest do
       assert [%{supplier_id: sid}] = fulfillments
       assert sid == supplier.id
     end
+
+    test "an unavailable dropship variant cannot be checked out", %{
+      store: store,
+      product: product
+    } do
+      supplier = create_supplier!(store)
+
+      variant =
+        create_variant!(product, store,
+          price: 5_000,
+          sku: "DROP-UNAVAIL",
+          supplier_id: supplier.id,
+          available: false
+        )
+
+      # Dropship variants are untracked, so the plain stock check would pass —
+      # but the supplier marked it unavailable, so checkout must reject it.
+      assert {:error, :insufficient_stock} =
+               Emakola.Orders.CheckoutService.checkout!(
+                 store.id,
+                 [%{variant_id: variant.id, quantity: 1}],
+                 []
+               )
+    end
   end
 end
