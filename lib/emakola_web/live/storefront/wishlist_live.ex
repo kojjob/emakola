@@ -13,12 +13,16 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
   alias EmakolaWeb.Helpers.StoreResolver
 
   @impl true
-  def mount(_params, session, socket) do
+  def mount(_params, _session, socket) do
     slug = socket.assigns.store.slug
 
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
-        customer = resolve_customer(session, store)
+        # The ResolveCustomer on_mount hook already resolved the customer from
+        # the customer_token session — just scope it to THIS store. (Re-reading
+        # the session here read a "customer_id" key the storefront live_session
+        # never forwards, so the authenticated path was always nil.)
+        customer = store_customer(socket.assigns[:current_customer], store)
 
         socket =
           socket
@@ -180,18 +184,10 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
     end
   end
 
-  defp resolve_customer(session, store) do
-    case Map.get(session, "customer_id") do
-      nil ->
-        nil
-
-      customer_id ->
-        case Emakola.Customers.get_customer_by_id(customer_id) do
-          {:ok, customer} when customer.store_id == store.id -> customer
-          _ -> nil
-        end
-    end
-  end
+  # Only treat the hook-resolved customer as signed in when they belong to the
+  # store being viewed (a customer is per-store); otherwise fall back to guest.
+  defp store_customer(%{store_id: sid} = customer, %{id: sid}), do: customer
+  defp store_customer(_customer, _store), do: nil
 
   # The price arrives from a client event; default to 0 on bad/absent input
   # rather than crashing the LiveView.
