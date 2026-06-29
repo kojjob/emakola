@@ -128,19 +128,20 @@ All fixes TDD, each its own PR off fresh `main`. P2/P3 deferred per plan.
 ## P2 — post-launch hardening / minor correctness
 
 > **Status (2026-06-29):** the high-value P2s are shipped; the rest are a
-> deliberate post-launch backlog. Decision: don't rush the remaining money/auth
-> hardening before deploy — it's low-value and the worthwhile items (P2-4, P2-13)
-> need careful, dedicated work.
+> deliberate post-launch backlog. Both worthwhile items (P2-4, P2-13) are now
+> handled — what remains is low-value latent/no-float hardening.
 >
-> **✅ Done:** P2-1 (#231 webhook amount) · P2-5 (#234 wishlist add validation +
-> guest-crash) · P2-9 (#233 dropship availability) · P2-10 (#232 coupon
-> negative-total) · P2-11 + P2-12 (#230 secure cookie + key fail-fast).
+> **✅ Done:** P2-1 (#231 webhook amount) · **P2-4 (#240 partial-refund
+> accumulation)** · P2-5 (#234 wishlist add validation + guest-crash) · P2-9
+> (#233 dropship availability) · P2-10 (#232 coupon negative-total) · P2-11 +
+> P2-12 (#230 secure cookie + key fail-fast).
+>
+> **🔄 In review:** **P2-13 (#239 short-lived exchange token for the session
+> bridge)** — CI-green, open, not yet merged to `main`.
 >
 > **⬜ Deferred (post-launch):** P2-2 Hubtel outbound float · P2-3 refund-approve
-> no-float + bound · **P2-4 partial-refund accumulation (needs refund-event
-> dedup — careful)** · P2-6 review-photo magic-bytes · P2-7 financial-action
-> platform-`forbid` (latent) · P2-8 create-bypass survivors (latent) ·
-> **P2-13 30-day token-in-URL (needs short-lived exchange-token redesign)**.
+> no-float + bound · P2-6 review-photo magic-bytes · P2-7 financial-action
+> platform-`forbid` (latent) · P2-8 create-bypass survivors (latent).
 >
 > Also noted while fixing P2-5: `WishlistLive.mount` reads `session["customer_id"]`
 > but the storefront `live_session` only forwards `customer_token` — the
@@ -151,7 +152,7 @@ All fixes TDD, each its own PR off fresh `main`. P2/P3 deferred per plan.
 | P2-1 | Webhooks don't assert paid `amount == payment.amount` (Paystack + Hubtel). Mitigated today (amount server-bound at init) but the documented defense-in-depth check | `paystack_webhook_handler.ex:95`, `hubtel_webhook.ex:31` |
 | P2-2 | Float in the Hubtel **outbound** money path (`pesewas / 100.0`) — Iron-Law violation, latent rounding hazard | `gateways/hubtel.ex:113` |
 | P2-3 | `Float.parse` + **unbounded** `refund_amount` on return approve (no `<= order.total`); no money moves (out-of-band) but data-integrity + no-float violation | `return_live.ex:87`, `return.ex:142` |
-| P2-4 | Partial refunds **set** (not accumulate) `refunded_amount`; subsequent partials ignored after status flips `:refunded` → under-reports total refunded | `paystack_webhook_handler.ex:151` |
+| P2-4 ✅ #240 | Partial refunds **set** (not accumulate) `refunded_amount`; subsequent partials ignored after status flips `:refunded` → under-reports total refunded — handler now accumulates onto prior total; `:refunded` only at full amount | `paystack_webhook_handler.ex:151` |
 | P2-5 | `add_to_wishlist` persists an unvalidated client `product_id` (foreign/hidden product) — integrity, not leak; same class as the cart fix | `wishlist_live.ex:66` |
 | P2-6 | Review-photo uploads lack content-type/magic-byte validation (served `nosniff`, so not XSS; reliability: route to S3/Tigris like product images) | `product_detail_live.ex:454` |
 | P2-7 | Financial state-machine actions (Payment/Payout/PaymentSplit `mark_*`) lack a platform-only `forbid` above the generic Merchant policy — latent; not cross-tenant | `payment.ex:144`, `payout.ex:100`, `payment_split.ex:99` |
