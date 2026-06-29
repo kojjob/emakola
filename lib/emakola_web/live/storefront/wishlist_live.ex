@@ -48,7 +48,7 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
         item = %{
           product_id: params["product_id"],
           title: params["title"],
-          price: String.to_integer(params["price"]),
+          price: parse_price(params["price"]),
           image_url: params["image_url"]
         }
 
@@ -63,16 +63,25 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
       customer ->
         store = socket.assigns.store
 
-        Emakola.Customers.add_to_wishlist(
-          %{
-            customer_id: customer.id,
-            product_id: params["product_id"],
-            store_id: store.id
-          },
-          authorize?: false
-        )
+        # Only wishlist a real, customer-visible product of THIS store — the
+        # product_id is client-supplied, so a crafted event must not persist a
+        # foreign or hidden product reference.
+        case Emakola.Catalog.get_active_product(store.id, params["product_id"], authorize?: false) do
+          {:ok, _product} ->
+            Emakola.Customers.add_to_wishlist(
+              %{
+                customer_id: customer.id,
+                product_id: params["product_id"],
+                store_id: store.id
+              },
+              authorize?: false
+            )
 
-        {:noreply, load_wishlist(socket)}
+            {:noreply, load_wishlist(socket)}
+
+          _ ->
+            {:noreply, socket}
+        end
     end
   end
 
@@ -181,6 +190,15 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
           {:ok, customer} when customer.store_id == store.id -> customer
           _ -> nil
         end
+    end
+  end
+
+  # The price arrives from a client event; default to 0 on bad/absent input
+  # rather than crashing the LiveView.
+  defp parse_price(price) do
+    case Integer.parse(to_string(price)) do
+      {n, _} -> n
+      :error -> 0
     end
   end
 
