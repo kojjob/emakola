@@ -34,16 +34,18 @@ defmodule EmakolaWeb.Storefront.CustomerSessionControllerTest do
       store: store,
       customer: customer
     } do
-      signed = customer |> AshAuthentication.user_to_subject() |> AuthTokens.sign_subject()
+      subject = AshAuthentication.user_to_subject(customer)
+      exchange = AuthTokens.sign_subject_exchange(subject)
 
       conn =
         get(
           conn,
-          "/s/#{store.slug}/auth/customer-session?token=#{URI.encode_www_form(signed)}"
+          "/s/#{store.slug}/auth/customer-session?token=#{URI.encode_www_form(exchange)}"
         )
 
       assert redirected_to(conn) == "/s/#{store.slug}/account"
-      assert get_session(conn, :customer_token) == signed
+      # Session holds a freshly-minted long-lived token, not the URL exchange token.
+      assert {:ok, ^subject} = AuthTokens.verify_subject(get_session(conn, :customer_token))
 
       # Follow-up request resolves the customer
       assert {:ok, _view, html} = live(conn, "/s/#{store.slug}/account")

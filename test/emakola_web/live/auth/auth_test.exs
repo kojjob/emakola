@@ -196,7 +196,7 @@ defmodule EmakolaWeb.Auth.AuthTest do
   describe "Session management" do
     test "session controller creates session and redirects to dashboard", %{conn: conn} do
       user = create_user!()
-      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
+      token = EmakolaWeb.AuthTokens.sign_subject_exchange(AshAuthentication.user_to_subject(user))
 
       conn =
         conn
@@ -204,12 +204,12 @@ defmodule EmakolaWeb.Auth.AuthTest do
         |> get("/auth/session?token=#{URI.encode_www_form(token)}")
 
       assert redirected_to(conn) == "/dashboard"
-      assert get_session(conn, :user_token) == token
+      assert get_session(conn, :user_token)
     end
 
     test "session controller supports custom redirect_to", %{conn: conn} do
       user = create_user!()
-      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
+      token = EmakolaWeb.AuthTokens.sign_subject_exchange(AshAuthentication.user_to_subject(user))
 
       conn =
         conn

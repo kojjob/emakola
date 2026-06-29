@@ -32,15 +32,20 @@ defmodule EmakolaWeb.AuthSessionControllerTest do
     end
   end
 
-  describe "GET /auth/session with a signed subject" do
+  describe "GET /auth/session with a short-lived exchange token" do
     test "establishes a session and redirects to dashboard", %{conn: conn} do
       {merchant, _store} = create_merchant_with_store!()
-      signed = merchant |> AshAuthentication.user_to_subject() |> AuthTokens.sign_subject()
+      subject = AshAuthentication.user_to_subject(merchant)
+      exchange = AuthTokens.sign_subject_exchange(subject)
 
-      conn = get(conn, "/auth/session?token=#{URI.encode_www_form(signed)}")
+      conn = get(conn, "/auth/session?token=#{URI.encode_www_form(exchange)}")
 
       assert redirected_to(conn) == "/dashboard"
-      assert get_session(conn, :user_token) == signed
+
+      # The session holds a freshly-minted LONG-lived token — not the URL token.
+      session_token = get_session(conn, :user_token)
+      assert session_token != exchange
+      assert {:ok, ^subject} = AuthTokens.verify_subject(session_token)
 
       # Follow-up request is authenticated
       assert {:ok, _view, _html} = live(conn, "/dashboard")
@@ -48,13 +53,24 @@ defmodule EmakolaWeb.AuthSessionControllerTest do
 
     test "honours redirect_to", %{conn: conn} do
       user = create_user!()
-      signed = user |> AshAuthentication.user_to_subject() |> AuthTokens.sign_subject()
+      exchange = user |> AshAuthentication.user_to_subject() |> AuthTokens.sign_subject_exchange()
 
       conn =
-        get(conn, "/auth/session?token=#{URI.encode_www_form(signed)}&redirect_to=/onboarding")
+        get(conn, "/auth/session?token=#{URI.encode_www_form(exchange)}&redirect_to=/onboarding")
 
       assert redirected_to(conn) == "/onboarding"
-      assert get_session(conn, :user_token) == signed
+      assert get_session(conn, :user_token)
+    end
+
+    test "rejects a long-lived session token passed in the URL", %{conn: conn} do
+      user = create_user!()
+      # A leaked durable session token must NOT be replayable via the URL bridge.
+      session_token = user |> AshAuthentication.user_to_subject() |> AuthTokens.sign_subject()
+
+      conn = get(conn, "/auth/session?token=#{URI.encode_www_form(session_token)}")
+
+      assert redirected_to(conn) == "/auth/login"
+      refute get_session(conn, :user_token)
     end
   end
 

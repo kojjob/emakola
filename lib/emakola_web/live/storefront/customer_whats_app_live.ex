@@ -138,7 +138,7 @@ defmodule EmakolaWeb.Storefront.CustomerWhatsAppLive do
   end
 
   defp sign_in(socket, customer) do
-    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(customer))
+    token = EmakolaWeb.AuthTokens.sign_subject_exchange(AshAuthentication.user_to_subject(customer))
     slug = socket.assigns.store.slug
     redirect(socket, to: ~p"/s/#{slug}/auth/customer-session?#{[token: token]}")
   end
