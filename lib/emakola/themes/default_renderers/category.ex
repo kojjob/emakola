@@ -28,7 +28,8 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
     assigns = assign(assigns, :sort_options, @sort_options)
 
     ~H"""
-    <Emakola.Themes.Atelier.Shared.navbar
+    <Emakola.Themes.DefaultRenderers.Chrome.navbar
+      theme_module={assigns[:theme_module]}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -248,7 +249,11 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
     </div>
 
     <%!-- Footer --%>
-    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+    <Emakola.Themes.DefaultRenderers.Chrome.footer
+      theme_module={assigns[:theme_module]}
+      store={@store}
+      categories={@categories}
+    />
     <.bottom_nav store_slug={@store.slug} active_tab={:search} cart_count={@cart_count} />
     """
   end

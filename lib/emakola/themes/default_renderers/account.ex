@@ -23,7 +23,8 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
 
   def render(assigns) do
     ~H"""
-    <Emakola.Themes.Atelier.Shared.navbar
+    <Emakola.Themes.DefaultRenderers.Chrome.navbar
+      theme_module={assigns[:theme_module]}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -277,7 +278,11 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
         </div>
       </div>
 
-      <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+      <Emakola.Themes.DefaultRenderers.Chrome.footer
+        theme_module={assigns[:theme_module]}
+        store={@store}
+        categories={@categories}
+      />
     </div>
     <.bottom_nav store_slug={@store.slug} active_tab={:account} cart_count={@cart_count} />
     """
