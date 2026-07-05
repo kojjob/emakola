@@ -152,6 +152,53 @@ defmodule Emakola.Themes.ThemeResolverTest do
     end
   end
 
+  describe "theme-specific config sections" do
+    test "pharmacy stats reach the resolved theme" do
+      result = ThemeResolver.resolve(%{"theme" => "pharmacy"})
+
+      assert result.stats.heading =~ "Healthcare"
+      assert is_list(result.stats.items)
+    end
+
+    test "merchant overrides merge into theme-specific sections" do
+      result =
+        ThemeResolver.resolve(%{
+          "theme" => "pharmacy",
+          "stats" => %{"heading" => "Our numbers"}
+        })
+
+      assert result.stats.heading == "Our numbers"
+      # non-overridden fields keep their defaults
+      assert is_list(result.stats.items)
+    end
+
+    test "home_living rooms, feature_tiles and sale_band pass through" do
+      result = ThemeResolver.resolve(%{"theme" => "home_living"})
+
+      assert result.rooms.title == "Shop by room"
+      assert is_list(result.feature_tiles.items)
+      assert is_list(result.sale_band.items)
+    end
+
+    test "unknown config keys never leak into the resolved theme" do
+      result = ThemeResolver.resolve(%{"theme" => "market", "hax" => %{"a" => 1}})
+
+      refute Map.has_key?(result, :hax)
+    end
+
+    test "theme identity keys are not merchant-overridable" do
+      result =
+        ThemeResolver.resolve(%{
+          "theme" => "pharmacy",
+          "css_variables" => %{"--theme-primary" => "evil"},
+          "name" => "Spoofed"
+        })
+
+      assert result.theme_name == "Pharmacy"
+      refute Map.get(result, :css_variables, %{})["--theme-primary"] == "evil"
+    end
+  end
+
   describe "theme_module/1" do
     test "returns Atelier module for atelier" do
       assert ThemeResolver.theme_module("atelier") == Emakola.Themes.Atelier

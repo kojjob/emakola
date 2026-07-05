@@ -28,6 +28,12 @@ defmodule Emakola.Themes.ThemeResolver do
 
   @default_theme "market"
 
+  # Keys every theme shares, merged explicitly in resolve/2 below.
+  @standard_keys ~w(colors fonts hero nav sections trust testimonials closing_cta newsletter footer design_tokens)a
+
+  # Theme identity/internal keys that merchant config must never override.
+  @internal_keys ~w(id name css_variables)a
+
   @doc """
   Resolves theme configuration by merging merchant overrides with theme defaults.
 
@@ -78,6 +84,25 @@ defmodule Emakola.Themes.ThemeResolver do
       footer: footer,
       design_tokens: Emakola.Themes.DesignTokens.resolve(Map.get(config, "design_tokens", %{}))
     }
+    |> Map.merge(extra_sections(defaults, config))
+  end
+
+  # Theme-specific config sections (pharmacy stats, home_living rooms, ...)
+  # pass through to the resolved theme instead of being silently dropped by
+  # the standard-key whitelist above. Map-valued sections accept merchant
+  # overrides; other values pass through as theme defaults. Only keys that
+  # exist in the theme's defaults are considered, so unknown merchant config
+  # never leaks into @theme.
+  defp extra_sections(defaults, config) do
+    defaults
+    |> Map.drop(@standard_keys ++ @internal_keys)
+    |> Map.new(fn
+      {key, default} when is_map(default) ->
+        {key, deep_merge_atomize(default, Map.get(config, Atom.to_string(key), %{}))}
+
+      {key, default} ->
+        {key, default}
+    end)
   end
 
   @doc """
