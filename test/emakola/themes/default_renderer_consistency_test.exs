@@ -4,8 +4,9 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
   modules stay consistent. Two contracts:
 
     1. Every default renderer module exports a `render/1` function.
-    2. Every default renderer's source mounts both nav (`Atelier.Shared.navbar`)
-       and footer (`Atelier.Shared.footer`).
+    2. Every default renderer's source mounts both nav (`Chrome.navbar`)
+       and footer (`Chrome.footer`) — the dispatcher that renders the
+       active theme's own chrome and falls back to Atelier's.
 
   These checks would have caught the cart-without-navbar bug at PR
   time instead of in production. They're cheap (read source files,
@@ -18,13 +19,15 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
   # Renderers that intentionally don't carry the shared nav+footer
   # (focused conversion-flow pages where site chrome would distract
   # the customer from completing the action).
-  @nav_footer_exempt ~w(checkout.ex downloads.ex)
+  @nav_footer_exempt ~w(checkout.ex)
 
   defp renderer_files do
     @default_renderers_dir
     |> Path.expand()
     |> File.ls!()
     |> Enum.filter(&String.ends_with?(&1, ".ex"))
+    # chrome.ex is the shared nav/footer dispatcher, not a page renderer
+    |> Enum.reject(&(&1 == "chrome.ex"))
     |> Enum.map(&Path.join(@default_renderers_dir, &1))
   end
 
@@ -46,13 +49,14 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
       for file <- nav_footer_renderer_files() do
         source = File.read!(file)
 
-        assert source =~ ~r/(Atelier\.Shared\.navbar|Shared\.navbar)/,
+        assert source =~ ~r/Chrome\.navbar/,
                """
-               #{Path.basename(file)} must mount the shared navbar.
+               #{Path.basename(file)} must mount the theme-dispatched navbar.
 
                Add at the top of render/1:
 
-                   <Emakola.Themes.Atelier.Shared.navbar
+                   <Emakola.Themes.DefaultRenderers.Chrome.navbar
+                     theme_module={assigns[:theme_module]}
                      store={@store}
                      categories={@categories}
                      cart_count={@cart_count}
@@ -65,13 +69,14 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
       for file <- nav_footer_renderer_files() do
         source = File.read!(file)
 
-        assert source =~ ~r/(Atelier\.Shared\.footer|Shared\.footer)/,
+        assert source =~ ~r/Chrome\.footer/,
                """
-               #{Path.basename(file)} must mount the shared footer.
+               #{Path.basename(file)} must mount the theme-dispatched footer.
 
                Add at the bottom of render/1:
 
-                   <Emakola.Themes.Atelier.Shared.footer
+                   <Emakola.Themes.DefaultRenderers.Chrome.footer
+                     theme_module={assigns[:theme_module]}
                      store={@store}
                      categories={@categories}
                    />

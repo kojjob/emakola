@@ -8,6 +8,8 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.Helpers.Currency, only: [format_price: 2]
 
   @impl true
@@ -693,7 +695,12 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
             nil
         end
       rescue
-        _ -> nil
+        exception ->
+          Logger.error(
+            "[order_live.show] load_order loading order raised: #{Exception.message(exception)}"
+          )
+
+          nil
       end
 
     page_title =
@@ -717,7 +724,12 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
               _ -> nil
             end
           rescue
-            _ -> nil
+            exception ->
+              Logger.error(
+                "[order_live.show] load_payment loading payment raised: #{Exception.message(exception)}"
+              )
+
+              nil
           end
 
         assign(socket, payment: payment)
@@ -734,7 +746,12 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
           try do
             Emakola.Orders.list_fulfillments_by_order!(order.id, authorize?: false)
           rescue
-            _ -> []
+            exception ->
+              Logger.error(
+                "[order_live.show] load_fulfillments loading fulfillments raised: #{Exception.message(exception)}"
+              )
+
+              []
           end
 
         assign(socket, fulfillments: fulfillments)

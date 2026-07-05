@@ -10,6 +10,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   3. Assign current_user, current_session_id, current_merchant,
      current_store accordingly
   """
+  require Logger
+
   import Phoenix.Component, only: [assign: 2]
 
   def on_mount(:default, _params, session, socket) do
@@ -32,7 +34,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
         Emakola.Accounts.Sessions.touch(user_session)
       end
 
-      {notifs, unread} = load_notifications(user.id)
+      {notifs, unread} =
+        if Phoenix.LiveView.connected?(socket), do: load_notifications(user.id), else: {[], 0}
 
       {:ok,
        assign(socket,
@@ -85,7 +88,12 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       {:ok, merchant} ->
         store = load_merchant_store(merchant.id)
         {notifs, unread} = load_notifications(nil)
-        stats = load_store_stats(store)
+        # Defer the 4 stat-count queries to the connected mount — the disconnected
+        # dead render throws them away (CLAUDE.md: no DB work in the dead render).
+        stats =
+          if Phoenix.LiveView.connected?(socket),
+            do: load_store_stats(store),
+            else: load_store_stats(nil)
 
         assign(socket,
           current_merchant: merchant,
@@ -211,7 +219,9 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       pending_orders: pending_order_count || 0
     }
   rescue
-    _ -> %{products: 0, orders: 0, customers: 0, pending_orders: 0}
+    exception ->
+      Logger.error("[assign_defaults] load_store_stats raised: #{Exception.message(exception)}")
+      %{products: 0, orders: 0, customers: 0, pending_orders: 0}
   end
 
   defp load_notifications(user_id) do
@@ -230,6 +240,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
         end
     end
   rescue
-    _ -> {[], 0}
+    exception ->
+      Logger.error("[assign_defaults] load_notifications raised: #{Exception.message(exception)}")
+      {[], 0}
   end
 end

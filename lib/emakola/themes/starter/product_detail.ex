@@ -58,7 +58,7 @@ defmodule Emakola.Themes.Starter.ProductDetail do
         aria-label="Breadcrumb"
         class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-4"
       >
-        <ol class="flex items-center gap-2 text-xs text-[#94A3B8]">
+        <ol class="flex items-center gap-2 text-xs text-[#64748B]">
           <li>
             <a
               href={store_path(@store.slug, "/")}
@@ -401,8 +401,16 @@ defmodule Emakola.Themes.Starter.ProductDetail do
                 class="px-5 pb-5 text-sm text-[#64748B] leading-relaxed"
                 style="font-family: 'Inter', sans-serif;"
               >
-                <p>Delivery within Greater Accra: 1-2 business days.</p>
-                <p class="mt-2">Nationwide delivery: 3-5 business days.</p>
+                <p>
+                  See our
+                  <a
+                    href={store_path(@store.slug, "/policies")}
+                    class="underline hover:text-[#0F172A] transition-colors"
+                  >
+                    delivery information
+                  </a>
+                  on the policies page.
+                </p>
               </div>
             </details>
             <details class="bg-white rounded-xl border border-gray-200 mb-3 overflow-hidden">
@@ -430,7 +438,14 @@ defmodule Emakola.Themes.Starter.ProductDetail do
                 style="font-family: 'Inter', sans-serif;"
               >
                 <p>
-                  Returns accepted within 7 days of delivery. Items must be unused and in original packaging.
+                  See our
+                  <a
+                    href={store_path(@store.slug, "/policies")}
+                    class="underline hover:text-[#0F172A] transition-colors"
+                  >
+                    returns policy
+                  </a>
+                  on the policies page.
                 </p>
               </div>
             </details>

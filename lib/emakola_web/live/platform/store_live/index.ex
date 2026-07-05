@@ -9,6 +9,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   permission revocation after mount is caught before the write.
   """
   use EmakolaWeb, :live_view
+  require Logger
 
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_stores}
 
@@ -114,7 +115,12 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
 
     assign(socket, :stores, stores)
   rescue
-    _ -> assign(socket, :stores, [])
+    exception ->
+      Logger.error(
+        "[platform.store_live] load_stores loading stores raised: #{Exception.message(exception)}"
+      )
+
+      assign(socket, :stores, [])
   end
 
   @impl true

@@ -11,6 +11,8 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.Storefront.Path
 
   alias EmakolaWeb.Helpers.StoreResolver
@@ -25,7 +27,12 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLive do
           try do
             Emakola.Catalog.list_root_categories!(store.id)
           rescue
-            _ -> []
+            exception ->
+              Logger.error(
+                "[order_confirmation_live] mount loading root categories raised: #{Exception.message(exception)}"
+              )
+
+              []
           end
 
         case load_order(store, order_number) do

@@ -10,6 +10,8 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.SEO, as: SEOHelpers
 
@@ -78,8 +80,10 @@ defmodule EmakolaWeb.Storefront.StoreLive do
 
   @impl true
   def handle_event("add_to_cart", %{"product-id" => product_id}, socket) do
-    case Emakola.Catalog.get_product(product_id, authorize?: false) do
-      {:ok, product} when not is_nil(product) ->
+    case Emakola.Catalog.get_active_product(socket.assigns.store.id, product_id,
+           authorize?: false
+         ) do
+      {:ok, product} ->
         product = Ash.load!(product, [:variants, :images], authorize?: false)
         variant = product.variants |> Enum.sort_by(& &1.position) |> List.first()
 
@@ -183,7 +187,12 @@ defmodule EmakolaWeb.Storefront.StoreLive do
       Emakola.Shipping.list_delivery_zones!(store.id)
       |> Enum.filter(& &1.active)
     rescue
-      _ -> []
+      exception ->
+        Logger.error(
+          "[store_live] load_delivery_zones loading delivery zones raised: #{Exception.message(exception)}"
+        )
+
+        []
     end
   end
 

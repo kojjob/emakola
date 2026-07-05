@@ -9,6 +9,7 @@ defmodule EmakolaWeb.Platform.VerificationLive.Show do
   re-checks the permission against a freshly reloaded user.
   """
   use EmakolaWeb, :live_view
+  require Logger
 
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_merchants}
 
@@ -168,7 +169,12 @@ defmodule EmakolaWeb.Platform.VerificationLive.Show do
 
     assign(socket, history: entries, history_actors: actor_emails(entries))
   rescue
-    _ -> assign(socket, history: [], history_actors: %{})
+    exception ->
+      Logger.error(
+        "[platform.verification_live] load_history loading review history raised: #{Exception.message(exception)}"
+      )
+
+      assign(socket, history: [], history_actors: %{})
   end
 
   defp actor_emails(entries) do

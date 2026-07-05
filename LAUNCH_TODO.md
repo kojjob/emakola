@@ -41,6 +41,16 @@
       `/api/health` → register → onboard → test order (Paystack test card
       `4084 0840 8408 4081`) → order SMS + email arrive → product image
       upload (proves Tigris) → WhatsApp send once Meta approves.
+- [ ] **9. Verify the revenue rails end-to-end** (the Phase-0 success metric;
+      revenue engine shipped #206–#213). Sequence matters: in `/admin/payouts`
+      **save MoMo payout details first** so `SubaccountCreationWorker` creates a
+      verified Paystack subaccount — only then does a normal order split (merchant
+      net to subaccount, **2%** fee kept in the platform account). With no verified
+      subaccount the order falls back to `:none` (100% held, no fee). Then on
+      `/platform/finance` approve a payout and confirm the Paystack **Transfer**
+      fires (same `/webhooks/paystack` URL also receives `transfer.success/failed`).
+      ⚠️ Paystack holds a **new subaccount's first payout** until it's verified in
+      the Paystack dashboard.
 
 ## 🌐 Before opening to the public
 

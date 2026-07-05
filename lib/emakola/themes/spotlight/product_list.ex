@@ -20,7 +20,7 @@ defmodule Emakola.Themes.Spotlight.ProductList do
       <section class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div class="flex items-baseline justify-between mb-8">
           <h1 class="spot-display text-4xl uppercase">Shop</h1>
-          <span class="text-sm text-[#9b968c]">{length(@products)} items</span>
+          <span class="text-sm text-[#7A7468]">{length(@products)} items</span>
         </div>
         <div
           :if={@products != []}
@@ -28,7 +28,7 @@ defmodule Emakola.Themes.Spotlight.ProductList do
         >
           <Shared.product_card :for={product <- @products} product={product} store={@store} />
         </div>
-        <div :if={@products == []} class="text-center py-24 text-[#9b968c]">
+        <div :if={@products == []} class="text-center py-24 text-[#7A7468]">
           <p class="text-sm">No products yet. Check back soon.</p>
         </div>
       </section>

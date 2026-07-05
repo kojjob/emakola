@@ -3,7 +3,7 @@ defmodule Emakola.Themes.Fresh do
   Fresh theme — warm, organic, appetizing. Designed for food, grocery, and fresh produce stores.
 
   Design tokens:
-  - Primary: #059669 (emerald green)
+  - Primary: #047857 (emerald green)
   - Accent: #92400E (warm brown)
   - Background: #FEFCE8 (warm cream)
   - Heading font: Nunito
@@ -32,7 +32,7 @@ defmodule Emakola.Themes.Fresh do
       id: :fresh,
       name: "Fresh",
       colors: %{
-        primary: "#059669",
+        primary: "#047857",
         accent: "#92400E",
         background: "#FEFCE8",
         text: "#1C1917",
@@ -73,7 +73,7 @@ defmodule Emakola.Themes.Fresh do
       },
       footer: %{social_links: %{instagram: "", twitter: "", facebook: ""}},
       css_variables: %{
-        "--theme-primary" => "#059669",
+        "--theme-primary" => "#047857",
         "--theme-accent" => "#92400E",
         "--theme-bg" => "#FEFCE8",
         "--theme-font-heading" => "'Nunito', sans-serif",
@@ -98,4 +98,20 @@ defmodule Emakola.Themes.Fresh do
     as: :render
 
   defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
+
+  def storefront_nav(assigns) do
+    Emakola.Themes.Fresh.Shared.fresh_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0
+    })
+  end
+
+  def storefront_footer(assigns) do
+    Emakola.Themes.Fresh.Shared.footer(%{
+      __changed__: nil,
+      store: assigns.store,
+      categories: Map.get(assigns, :categories) || []
+    })
+  end
 end

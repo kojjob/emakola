@@ -28,8 +28,8 @@ defmodule Emakola.Themes.Spotlight do
         description: "Clean, honest components — nothing hidden, nothing unnecessary."
       },
       %{
-        name: "Locally sourced",
-        description: "Sourced and made in Ghana, supporting local supply chains."
+        name: "Made with care",
+        description: "Produced with attention to detail at every step."
       },
       %{
         name: "Everyday quality",
@@ -69,7 +69,8 @@ defmodule Emakola.Themes.Spotlight do
         tagline: "Clean, honest, and made to be part of your everyday rhythm.",
         cta_text: "Choose yours",
         cta_url: "/products",
-        badge: "100% Made in Ghana"
+        # No default badge — provenance claims are the merchant's to make.
+        badge: nil
       },
       nav: %{search_placeholder: "Search...", transparent: false},
       sections: %{
@@ -166,4 +167,18 @@ defmodule Emakola.Themes.Spotlight do
   defdelegate render_product_detail(assigns),
     to: Emakola.Themes.Spotlight.ProductDetail,
     as: :render
+
+  @impl true
+  def storefront_nav(assigns) do
+    Emakola.Themes.Spotlight.Shared.nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0
+    })
+  end
+
+  @impl true
+  def storefront_footer(assigns) do
+    Emakola.Themes.Spotlight.Shared.footer(%{__changed__: nil, store: assigns.store})
+  end
 end

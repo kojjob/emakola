@@ -183,6 +183,13 @@ defmodule Emakola.Orders.CheckoutServiceCouponTest do
       assert CheckoutService.calculate_discount(coupon, 150, 0) == 22
     end
 
+    test "percentage discount is floored at the subtotal (never a negative total)" do
+      # A coupon somehow above 100% (e.g. edited past the cap) must never
+      # discount more than the subtotal, or the order total would go negative.
+      coupon = %{discount_type: :percentage, discount_value: 15_000, max_discount_amount: nil}
+      assert CheckoutService.calculate_discount(coupon, 50_000, 1500) == 50_000
+    end
+
     test "100% percentage discount equals subtotal" do
       coupon = %{discount_type: :percentage, discount_value: 10_000, max_discount_amount: nil}
       assert CheckoutService.calculate_discount(coupon, 50_000, 1500) == 50_000

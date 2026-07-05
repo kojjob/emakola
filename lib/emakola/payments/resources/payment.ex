@@ -83,7 +83,7 @@ defmodule Emakola.Payments.Payment do
 
     # Whether this charge is split across dropship parties at the gateway.
     attribute :split_mode, :atom do
-      constraints(one_of: [:none, :dropship_split])
+      constraints(one_of: [:none, :dropship_split, :platform_fee])
       default(:none)
       allow_nil?(false)
       public?(true)
@@ -91,6 +91,17 @@ defmodule Emakola.Payments.Payment do
 
     # The Paystack split code used to route this charge, when split_mode is :dropship_split.
     attribute :split_code, :string do
+      public?(true)
+    end
+
+    # Set when this charge's held balance has been included in a merchant Payout
+    # (only relevant for un-split `split_mode: :none` charges). Stamping it removes
+    # the charge from the outstanding-payout backlog so it can never be paid twice.
+    attribute :paid_out_at, :utc_datetime_usec do
+      public?(true)
+    end
+
+    attribute :payout_id, :uuid do
       public?(true)
     end
 
@@ -192,7 +203,41 @@ defmodule Emakola.Payments.Payment do
 
       validate({Emakola.Payments.Validations.RefundAmountNotExceeded, []})
 
-      change(set_attribute(:status, :refunded))
+      # `refunded_amount` is the cumulative total refunded so far (the caller
+      # accumulates). A partial refund keeps the payment :success so later
+      # partials can still be recorded; only a FULLY refunded payment becomes
+      # :refunded.
+      change(fn changeset, _context ->
+        refunded = Ash.Changeset.get_attribute(changeset, :refunded_amount) || 0
+
+        if refunded >= changeset.data.amount do
+          Ash.Changeset.change_attribute(changeset, :status, :refunded)
+        else
+          changeset
+        end
+      end)
+    end
+
+    # Stamp a charge as covered by a Payout so it drops out of the outstanding
+    # backlog and can never be paid out twice.
+    update :mark_paid_out do
+      require_atomic?(false)
+      accept([:payout_id])
+      change(set_attribute(:paid_out_at, &DateTime.utc_now/0))
+    end
+
+    # Return a charge to the outstanding backlog when its payout failed/reversed,
+    # so the balance is re-paid via a fresh payout instead of being buried.
+    update :release_from_payout do
+      require_atomic?(false)
+      accept([])
+      change(set_attribute(:paid_out_at, nil))
+      change(set_attribute(:payout_id, nil))
+    end
+
+    read :by_payout do
+      argument(:payout_id, :uuid, allow_nil?: false)
+      filter(expr(payout_id == ^arg(:payout_id)))
     end
 
     read :by_gateway_reference do

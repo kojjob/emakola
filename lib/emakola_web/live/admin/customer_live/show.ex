@@ -5,11 +5,13 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.Helpers.Currency, only: [format_price: 1]
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
-    case load_customer(id) do
+    case load_customer(id, socket.assigns.current_store.id) do
       {:ok, customer} ->
         orders = load_orders(customer.id, customer.store_id)
         total_spent = Enum.reduce(orders, 0, fn order, acc -> acc + (order.total || 0) end)
@@ -242,14 +244,19 @@ defmodule EmakolaWeb.Admin.CustomerLive.Show do
 
   # ── Data Loading ──
 
-  defp load_customer(id) do
-    Emakola.Customers.get_customer_by_id(id, authorize?: false)
+  defp load_customer(id, store_id) do
+    Emakola.Customers.get_customer_by_id_for_store(id, store_id, authorize?: false)
   end
 
   defp load_orders(customer_id, store_id) do
     Emakola.Orders.list_orders_by_customer!(customer_id, store_id, authorize?: false)
   rescue
-    _ -> []
+    exception ->
+      Logger.error(
+        "[customer_live.show] load_orders loading customer orders raised: #{Exception.message(exception)}"
+      )
+
+      []
   end
 
   # ── Helpers ──

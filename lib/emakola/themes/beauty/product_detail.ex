@@ -89,26 +89,24 @@ defmodule Emakola.Themes.Beauty.ProductDetail do
 
             <%!-- Info --%>
             <div>
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C9925E]/20 text-[#6B4423] text-[11px] font-semibold uppercase tracking-[0.2em] mb-5">
-                <span class="material-symbols-outlined" style="font-size: 14px;">verified</span>
-                Dermatologist-tested
-              </span>
-
               <h1 class="beauty-heading text-4xl sm:text-5xl font-semibold text-[#3D2F25] leading-tight mb-4">
                 {@product.title}
               </h1>
 
-              <%!-- Rating --%>
-              <div class="flex items-center gap-3 mb-6">
-                <div class="flex items-center gap-1">
-                  <span :for={_ <- 1..5} class="text-[#C9925E]" style="font-size: 16px;">★</span>
-                </div>
-                <span class="text-xs text-[#6B4423]/60">(4.9 · 87 reviews)</span>
+              <%!-- Rating (real review data only) --%>
+              <div
+                :if={Map.get(@product, :review_count, 0) > 0}
+                class="flex items-center gap-3 mb-6"
+              >
+                <span class="text-[#8C5A24]" style="font-size: 16px;">{Shared.stars(@product)}</span>
+                <span class="text-xs text-[#6B4423]/60">
+                  ({Shared.format_rating(@product)} · {@product.review_count} reviews)
+                </span>
               </div>
 
               <%!-- Price --%>
               <div class="flex items-baseline gap-3 mb-6">
-                <span class="beauty-heading text-3xl sm:text-4xl font-semibold text-[#6B4423]">
+                <span class="beauty-heading text-3xl sm:text-4xl font-semibold text-[var(--theme-primary,#6B4423)]">
                   {EmakolaWeb.Helpers.Currency.format_price(
                     price_for(@product, @selected_variant),
                     Map.get(@store, :currency, "GHS")
@@ -177,7 +175,7 @@ defmodule Emakola.Themes.Beauty.ProductDetail do
                 <button
                   type="button"
                   phx-click="add_to_cart"
-                  class="flex-1 inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[#6B4423] text-[#FAF6EE] text-sm font-semibold hover:bg-[#5A381D] transition-colors min-h-[48px]"
+                  class="flex-1 inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[var(--theme-primary,#6B4423)] text-[#FAF6EE] text-sm font-semibold hover:bg-[#5A381D] transition-colors min-h-[48px]"
                 >
                   <span class="material-symbols-outlined" style="font-size: 18px;">shopping_bag</span>
                   Add to Bag

@@ -9,9 +9,9 @@ defmodule Emakola.Themes.ThemeResolverTest do
 
       assert result.theme_id == "market"
       assert result.theme_name == "Market"
-      assert result.colors.primary == "#2563EB"
-      assert result.colors.accent == "#0F172A"
-      assert result.colors.background == "#FFFFFF"
+      assert result.colors.primary == "#1C1917"
+      assert result.colors.accent == "#B45309"
+      assert result.colors.background == "#FAFAF9"
       assert result.sections.hero == true
       assert result.sections.categories == true
     end
@@ -19,7 +19,7 @@ defmodule Emakola.Themes.ThemeResolverTest do
     test "nil config returns market defaults" do
       result = ThemeResolver.resolve(nil)
       assert result.theme_id == "market"
-      assert result.colors.primary == "#2563EB"
+      assert result.colors.primary == "#1C1917"
     end
 
     test "atelier theme returns correct defaults" do
@@ -53,7 +53,7 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert result.colors.primary == "#FF0000"
       assert result.colors.accent == "#00FF00"
       # Non-overridden colors keep defaults
-      assert result.colors.background == "#FFFFFF"
+      assert result.colors.background == "#FAFAF9"
     end
 
     test "hero overrides merge correctly" do
@@ -87,7 +87,7 @@ defmodule Emakola.Themes.ThemeResolverTest do
       result = ThemeResolver.resolve(%{"theme" => "nonexistent"})
 
       assert result.theme_name == "Market"
-      assert result.colors.primary == "#2563EB"
+      assert result.colors.primary == "#1C1917"
     end
 
     test "pharmacy theme returns correct defaults" do
@@ -149,6 +149,53 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert result.colors.background == "#FAF6EE"
       assert result.sections.hero == true
       assert result.sections.featured_products == true
+    end
+  end
+
+  describe "theme-specific config sections" do
+    test "pharmacy stats reach the resolved theme" do
+      result = ThemeResolver.resolve(%{"theme" => "pharmacy"})
+
+      assert result.stats.heading =~ "Healthcare"
+      assert is_list(result.stats.items)
+    end
+
+    test "merchant overrides merge into theme-specific sections" do
+      result =
+        ThemeResolver.resolve(%{
+          "theme" => "pharmacy",
+          "stats" => %{"heading" => "Our numbers"}
+        })
+
+      assert result.stats.heading == "Our numbers"
+      # non-overridden fields keep their defaults
+      assert is_list(result.stats.items)
+    end
+
+    test "home_living rooms, feature_tiles and sale_band pass through" do
+      result = ThemeResolver.resolve(%{"theme" => "home_living"})
+
+      assert result.rooms.title == "Shop by room"
+      assert is_list(result.feature_tiles.items)
+      assert is_list(result.sale_band.items)
+    end
+
+    test "unknown config keys never leak into the resolved theme" do
+      result = ThemeResolver.resolve(%{"theme" => "market", "hax" => %{"a" => 1}})
+
+      refute Map.has_key?(result, :hax)
+    end
+
+    test "theme identity keys are not merchant-overridable" do
+      result =
+        ThemeResolver.resolve(%{
+          "theme" => "pharmacy",
+          "css_variables" => %{"--theme-primary" => "evil"},
+          "name" => "Spoofed"
+        })
+
+      assert result.theme_name == "Pharmacy"
+      refute Map.get(result, :css_variables, %{})["--theme-primary"] == "evil"
     end
   end
 

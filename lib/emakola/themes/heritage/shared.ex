@@ -337,14 +337,14 @@ defmodule Emakola.Themes.Heritage.Shared do
           {@product.title}
         </h3>
         <div class="flex items-center justify-between gap-3 mt-3">
-          <span class="text-base font-bold text-[#7A1F1F]">
+          <span class="text-base font-bold text-[var(--theme-primary,#7A1F1F)]">
             {EmakolaWeb.Helpers.Currency.format_price(
               @product.min_price || 0,
               Map.get(@store, :currency, "GHS")
             )}
           </span>
-          <span class="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-[#D4A843] group-hover:gap-1.5 transition-all">
-            Visit
+          <span class="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-[#8A6A1F] group-hover:gap-1.5 transition-all">
+            View
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"

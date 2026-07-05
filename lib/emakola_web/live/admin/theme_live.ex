@@ -7,6 +7,8 @@ defmodule EmakolaWeb.Admin.ThemeLive do
 
   use EmakolaWeb, :live_view
 
+  require Logger
+
   alias Emakola.Themes.ThemeResolver
 
   # Visual metadata for each theme. Colors are derived at runtime from each
@@ -940,7 +942,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
     Emakola.Catalog.list_root_categories!(store_id)
     |> Enum.take(4)
   rescue
-    _ -> []
+    exception ->
+      Logger.error(
+        "[theme_live] load_preview_categories loading preview categories raised: #{Exception.message(exception)}"
+      )
+
+      []
   end
 
   # Builds the theme picker list by combining static metadata (name, icon,

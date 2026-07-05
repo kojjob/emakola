@@ -8,7 +8,10 @@ defmodule EmakolaWeb.Endpoint do
     store: :cookie,
     key: "_emakola_key",
     signing_salt: "mU2rqVT8",
-    same_site: "Lax"
+    same_site: "Lax",
+    # Secure only in prod — a Secure cookie isn't sent over http, which would
+    # break local dev/test on http://localhost. Evaluated at compile time.
+    secure: Mix.env() == :prod
   ]
 
   socket "/live", Phoenix.LiveView.Socket,
@@ -40,6 +43,14 @@ defmodule EmakolaWeb.Endpoint do
     cookie_key: "request_logger"
 
   plug Plug.RequestId
+
+  # Behind the Fly proxy the direct peer is Fly's internal 6PN address; the real
+  # client IP arrives in X-Forwarded-For. Resolve it into conn.remote_ip here,
+  # before anything that keys on it — rate limiting, the Hubtel IP allowlist,
+  # security event logging. RemoteIp treats reserved/ULA ranges (Fly's internal
+  # hop) as proxies by default, so it walks XFF to the real client.
+  plug RemoteIp
+
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
   plug Plug.Parsers,

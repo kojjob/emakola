@@ -5,6 +5,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   alias EmakolaWeb.Admin.ProductLive.Shared
 
   @upload_opts [
@@ -439,7 +441,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
     try do
       Emakola.Catalog.list_categories_by_store!(store_id)
     rescue
-      _ -> []
+      exception ->
+        Logger.error(
+          "[product_live.form] load_store_categories loading store categories raised: #{Exception.message(exception)}"
+        )
+
+        []
     end
   end
 

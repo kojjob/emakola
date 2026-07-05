@@ -6,6 +6,7 @@ defmodule EmakolaWeb.Platform.VerificationLive.Index do
   disconnected render — a nil state renders a loading shell.
   """
   use EmakolaWeb, :live_view
+  require Logger
 
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_merchants}
 
@@ -48,7 +49,12 @@ defmodule EmakolaWeb.Platform.VerificationLive.Index do
 
     assign(socket, :verifications, verifications)
   rescue
-    _ -> assign(socket, :verifications, [])
+    exception ->
+      Logger.error(
+        "[platform.verification_live] load loading verifications raised: #{Exception.message(exception)}"
+      )
+
+      assign(socket, :verifications, [])
   end
 
   @impl true

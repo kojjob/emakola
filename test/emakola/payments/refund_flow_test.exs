@@ -70,7 +70,9 @@ defmodule Emakola.Payments.RefundFlowTest do
         |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 200_000})
         |> Ash.update(authorize?: false)
 
-      assert refunded.status == :refunded
+      # A partial refund keeps the payment :success so further partials can
+      # still be recorded; only a full refund flips it to :refunded.
+      assert refunded.status == :success
       assert refunded.refunded_amount == 200_000
       # Original amount unchanged
       assert refunded.amount == 500_000
@@ -173,11 +175,12 @@ defmodule Emakola.Payments.RefundFlowTest do
       })
       |> Ash.update!(authorize?: false)
 
+      # Full refund (payment amount is 500_000) -> :refunded.
       event = %{
         "event" => "refund.processed",
         "data" => %{
           "transaction" => %{"reference" => payment.gateway_reference},
-          "amount" => 250_000
+          "amount" => 500_000
         }
       }
 
@@ -189,7 +192,7 @@ defmodule Emakola.Payments.RefundFlowTest do
         |> Ash.read_one!(authorize?: false)
 
       assert updated.status == :refunded
-      assert updated.refunded_amount == 250_000
+      assert updated.refunded_amount == 500_000
     end
 
     test "idempotent — processing refund.processed twice does not error", %{store: store} do

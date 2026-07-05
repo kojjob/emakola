@@ -316,6 +316,18 @@ defmodule Emakola.Customers.Customer do
       filter(expr(id == ^arg(:id)))
     end
 
+    # Store-scoped single-customer read. Customer is `global?(true)`, so the
+    # id-only `get_by_id` above spans every store — admin pages MUST use this and
+    # pass the merchant's current store, or a merchant could read/edit another
+    # store's customer by id (IDOR).
+    read :get_by_id_for_store do
+      get?(true)
+      argument(:id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      filter(expr(id == ^arg(:id) and store_id == ^arg(:store_id)))
+    end
+
     read :by_store_in_period do
       argument(:store_id, :uuid, allow_nil?: false)
       argument(:from, :utc_datetime, allow_nil?: false)

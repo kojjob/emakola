@@ -125,6 +125,83 @@ defmodule Emakola.Payments.OrderSettlementTest do
     end
   end
 
+  describe "prepare/2 — platform fee on normal orders" do
+    test "splits an own-stock order: merchant net to subaccount, platform keeps the fee", %{
+      dropshipper: merchant,
+      product: product
+    } do
+      # `merchant` already has a verified subaccount ("ACCT_drop") from setup.
+      own = create_variant!(product, merchant, price: 5_000, sku: "PF-OWN", stock_quantity: 20)
+
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout!(
+          merchant.id,
+          [%{variant_id: own.id, quantity: 2}],
+          []
+        )
+
+      assert {:split, %{mode: :platform_fee, total: 10_000, shares: shares, allocations: allocs}} =
+               OrderSettlement.prepare(order.id, merchant.id)
+
+      # 2% of 10_000 = 200 fee, 9_800 net.
+      assert %{subaccount: "ACCT_drop", share: 9_800} in shares
+      # The platform's cut is the remainder — never a gateway share.
+      refute Enum.any?(shares, &(&1.share == 200))
+
+      by_role = Map.new(allocs, &{&1.role, &1})
+      assert by_role[:merchant].amount == 9_800
+      assert by_role[:merchant].subaccount_code == "ACCT_drop"
+      assert by_role[:platform].amount == 200
+      assert by_role[:platform].subaccount_code == nil
+      # No money created or lost.
+      assert 10_000 == Enum.sum(Enum.map(allocs, & &1.amount))
+    end
+
+    test "record_splits! persists the merchant and platform rows", %{
+      dropshipper: merchant,
+      product: product
+    } do
+      own = create_variant!(product, merchant, price: 5_000, sku: "PF-REC", stock_quantity: 20)
+
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout!(
+          merchant.id,
+          [%{variant_id: own.id, quantity: 2}],
+          []
+        )
+
+      {:split, %{allocations: allocs}} = OrderSettlement.prepare(order.id, merchant.id)
+      payment = create_payment!(merchant, order_id: order.id, amount: 10_000)
+
+      :ok = OrderSettlement.record_splits!(payment, allocs)
+
+      {:ok, splits} =
+        Emakola.Payments.PaymentSplit
+        |> Ash.Query.for_read(:by_payment, %{payment_id: payment.id})
+        |> Ash.read(authorize?: false)
+
+      by_role = Map.new(splits, &{&1.role, &1})
+      assert by_role[:merchant].amount == 9_800
+      assert by_role[:merchant].subaccount_code == "ACCT_drop"
+      assert by_role[:platform].amount == 200
+    end
+
+    test "an own-stock order with no verified subaccount yields no split" do
+      merchant = create_store!(name: "No Payout")
+      product = create_product!(merchant, title: "No Payout Product")
+      own = create_variant!(product, merchant, price: 5_000, sku: "PF-NOPAY", stock_quantity: 20)
+
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout!(
+          merchant.id,
+          [%{variant_id: own.id, quantity: 1}],
+          []
+        )
+
+      assert {:no_split, :payout_unverified} = OrderSettlement.prepare(order.id, merchant.id)
+    end
+  end
+
   describe "prepare/2 — fallback" do
     test "external (unlinked) supplier yields no split", %{
       dropshipper: dropshipper,

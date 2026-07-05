@@ -1,7 +1,7 @@
 defmodule Emakola.Themes.Electronics.Shared do
   @moduledoc """
-  Shared components for Electronics — teal nav with sky-blue CTAs,
-  monospace prices, "In Stock" pills, dark teal footer.
+  Shared components for Electronics — teal nav with sky-blue accents,
+  monospace prices, dark teal footer.
   """
 
   use Phoenix.Component
@@ -91,7 +91,7 @@ defmodule Emakola.Themes.Electronics.Shared do
               </span>
               <span
                 :if={@cart_count > 0}
-                class="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-[#0EA5E9] text-white text-[10px] font-bold flex items-center justify-center"
+                class="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-[var(--theme-primary,#134E4A)] text-white text-[10px] font-bold flex items-center justify-center"
               >
                 {@cart_count}
               </span>
@@ -204,21 +204,11 @@ defmodule Emakola.Themes.Electronics.Shared do
             devices
           </span>
         </div>
-        <%!-- In Stock pill --%>
-        <span class="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#10B981]/15 text-[#10B981] text-[10px] font-semibold">
-          <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span> In Stock
-        </span>
       </div>
       <div class="p-4 sm:p-5">
         <h3 class="electronics-heading text-sm sm:text-base font-semibold text-[#1F2937] line-clamp-2 mb-2 leading-snug min-h-[2.5rem]">
           {@product.title}
         </h3>
-        <%!-- Color swatches placeholder --%>
-        <div class="flex items-center gap-1 mb-3">
-          <span class="w-3 h-3 rounded-full bg-[#1F2937] ring-1 ring-black/10"></span>
-          <span class="w-3 h-3 rounded-full bg-[#0EA5E9] ring-1 ring-black/10"></span>
-          <span class="w-3 h-3 rounded-full bg-[#134E4A] ring-1 ring-black/10"></span>
-        </div>
         <div class="flex items-center justify-between">
           <span class="electronics-mono text-base font-bold text-[#134E4A]">
             {EmakolaWeb.Helpers.Currency.format_price(
@@ -226,7 +216,7 @@ defmodule Emakola.Themes.Electronics.Shared do
               Map.get(@store, :currency, "GHS")
             )}
           </span>
-          <span class="inline-flex items-center px-3 py-1.5 rounded-full bg-[#0EA5E9] text-white text-xs font-bold group-hover:bg-[#0284C7] transition-colors">
+          <span class="inline-flex items-center px-3 py-1.5 rounded-full bg-[var(--theme-primary,#134E4A)] text-white text-xs font-bold group-hover:bg-[#0E3F3B] transition-colors">
             Add
           </span>
         </div>

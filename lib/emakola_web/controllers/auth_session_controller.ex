@@ -12,10 +12,12 @@ defmodule EmakolaWeb.AuthSessionController do
   alias EmakolaWeb.AuthTokens
 
   def create(conn, %{"token" => token} = params) do
-    case AuthTokens.verify_subject(token) do
-      {:ok, _subject} ->
+    # The URL carries a short-lived exchange token; mint the durable session
+    # token here so the long-lived credential never appears in a URL.
+    case AuthTokens.verify_subject_exchange(token) do
+      {:ok, subject} ->
         conn
-        |> put_session(:user_token, token)
+        |> put_session(:user_token, AuthTokens.sign_subject(subject))
         |> configure_session(renew: true)
         |> redirect(to: safe_redirect(params["redirect_to"]))
 

@@ -9,6 +9,7 @@ defmodule EmakolaWeb.Platform.BillingLive do
   as-is. Amounts are USD cents.
   """
   use EmakolaWeb, :live_view
+  require Logger
 
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_billing}
 
@@ -67,7 +68,12 @@ defmodule EmakolaWeb.Platform.BillingLive do
       _ -> []
     end
   rescue
-    _ -> []
+    exception ->
+      Logger.error(
+        "[platform.billing_live] safe_list loading billing data raised: #{Exception.message(exception)}"
+      )
+
+      []
   end
 
   defp compute_stats(plans, subscriptions) do
@@ -88,7 +94,9 @@ defmodule EmakolaWeb.Platform.BillingLive do
   # ── Helpers ────────────────────────────────────────────
 
   defp format_usd(cents) when is_integer(cents) do
-    "$" <> :erlang.float_to_binary(cents / 100, decimals: 2)
+    major = div(cents, 100)
+    minor = rem(abs(cents), 100) |> Integer.to_string() |> String.pad_leading(2, "0")
+    "$#{major}.#{minor}"
   end
 
   defp format_usd(_), do: "$0.00"

@@ -232,8 +232,20 @@ defmodule Emakola.Stores.Store do
   end
 
   policies do
-    # Creates are open (onboarding creates stores without an actor).
+    # Creates: only an authenticated Merchant actor may create a store. This
+    # bypass short-circuits the Merchant-membership read policy below — a
+    # brand-new store has no memberships yet, so that policy would otherwise
+    # forbid the create. Onboarding creates via `authorize?: false` (guarded by
+    # the `is_nil(user)` check in OnboardingLive) and does not rely on this.
     bypass action_type(:create) do
+      authorize_if(actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant))
+    end
+
+    # Belt-and-braces for `:create` with `authorize?: true`: a nil or
+    # non-Merchant (e.g. Customer) actor is explicitly forbidden. This replaces
+    # a former blanket `authorize_if(always())` that let any actor create stores.
+    policy action_type(:create) do
+      forbid_unless(actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant))
       authorize_if(always())
     end
 

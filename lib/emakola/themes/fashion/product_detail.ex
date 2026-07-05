@@ -91,16 +91,12 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
 
             <%!-- Info --%>
             <div class="lg:sticky lg:top-24 lg:self-start">
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D97706] text-white text-[10px] font-bold uppercase tracking-[0.18em] mb-5">
-                Cover Look
-              </span>
-
               <h1 class="fashion-display text-4xl sm:text-5xl lg:text-6xl text-[#1C1917] leading-[1.05] mb-4">
                 {@product.title}
               </h1>
 
               <%!-- Price --%>
-              <p class="fashion-heading text-2xl sm:text-3xl font-semibold text-[#5B21B6] mb-6">
+              <p class="fashion-heading text-2xl sm:text-3xl font-semibold text-[var(--theme-primary,#5B21B6)] mb-6">
                 {EmakolaWeb.Helpers.Currency.format_price(
                   price_for(@product, @selected_variant),
                   Map.get(@store, :currency, "GHS")
@@ -180,7 +176,7 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
                 <button
                   type="button"
                   phx-click="add_to_cart"
-                  class="flex-1 inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[#5B21B6] text-white text-xs font-bold uppercase tracking-[0.18em] hover:bg-[#4C1D95] transition-colors min-h-[48px]"
+                  class="flex-1 inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[var(--theme-primary,#5B21B6)] text-white text-xs font-bold uppercase tracking-[0.18em] hover:bg-[#4C1D95] transition-colors min-h-[48px]"
                 >
                   <span class="material-symbols-outlined" style="font-size: 18px;">shopping_bag</span>
                   Add to Bag
@@ -223,7 +219,7 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
       <section :if={@related_products != []} class="bg-[#FAF6EE] pb-14 sm:pb-20">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="text-center mb-10">
-            <p class="text-[11px] uppercase tracking-[0.3em] text-[#D97706] mb-2">
+            <p class="text-[11px] uppercase tracking-[0.3em] text-[#9A5B00] mb-2">
               More from the edit
             </p>
             <h2 class="fashion-display text-3xl sm:text-4xl text-[#1C1917]">

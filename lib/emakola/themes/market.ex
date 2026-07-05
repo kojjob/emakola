@@ -20,7 +20,7 @@ defmodule Emakola.Themes.Market do
 
   def defaults do
     %{
-      colors: %{primary: "#2563EB", accent: "#0F172A", background: "#FFFFFF"},
+      colors: %{primary: "#1C1917", accent: "#B45309", background: "#FAFAF9"},
       fonts: %{heading: "Inter", body: "Inter"},
       hero: %{
         image_url: "",

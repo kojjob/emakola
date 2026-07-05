@@ -86,7 +86,7 @@ defmodule Emakola.Themes.Akoma.Shared do
               </svg>
               <span
                 :if={@cart_count > 0}
-                class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#2F5D50] text-white text-[10px] font-bold flex items-center justify-center"
+                class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--theme-accent,#2F5D50)] text-white text-[10px] font-bold flex items-center justify-center"
               >
                 {@cart_count}
               </span>
@@ -149,7 +149,7 @@ defmodule Emakola.Themes.Akoma.Shared do
             </ul>
           </div>
         </div>
-        <div class="border-t border-[#E8EAE7] mt-10 pt-6 text-xs text-[#9CA3AF]">
+        <div class="border-t border-[#E8EAE7] mt-10 pt-6 text-xs text-[#6B7280]">
           &copy; {DateTime.utc_now().year} {@store.name}. All rights reserved.
         </div>
       </div>
@@ -232,7 +232,7 @@ defmodule Emakola.Themes.Akoma.Shared do
       </div>
       <div class="pt-3">
         <h3 class="text-sm font-medium text-[#1A1A1A] line-clamp-1">{@product.title}</h3>
-        <span class="text-sm font-semibold text-[#2F5D50] mt-1 block">
+        <span class="text-sm font-semibold text-[var(--theme-accent,#2F5D50)] mt-1 block">
           {EmakolaWeb.Helpers.Currency.format_price(
             @product.min_price || 0,
             Map.get(@store, :currency, "GHS")

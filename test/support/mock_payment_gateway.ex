@@ -54,4 +54,20 @@ defmodule Emakola.Payments.Gateways.Mock do
   def create_subaccount(_params) do
     {:ok, %{subaccount_code: "ACCT_mock_#{System.unique_integer([:positive])}", raw: %{}}}
   end
+
+  @impl true
+  def create_transfer_recipient(_params) do
+    {:ok, %{recipient_code: "RCP_mock_#{System.unique_integer([:positive])}", raw: %{}}}
+  end
+
+  @impl true
+  def initiate_transfer(params) do
+    {:ok,
+     %{
+       transfer_code: "TRF_mock_#{System.unique_integer([:positive])}",
+       status: "pending",
+       reference: params[:reference],
+       raw: %{}
+     }}
+  end
 end

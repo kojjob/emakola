@@ -8,6 +8,8 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.InventoryComponents
 
   @impl true
@@ -675,7 +677,12 @@ defmodule EmakolaWeb.Admin.InventoryLive do
     try do
       Emakola.Catalog.list_variants_admin!(store_id, query: [limit: 200], authorize?: false)
     rescue
-      _ -> []
+      exception ->
+        Logger.error(
+          "[inventory_live] fetch_variants loading variants raised: #{Exception.message(exception)}"
+        )
+
+        []
     end
   end
 

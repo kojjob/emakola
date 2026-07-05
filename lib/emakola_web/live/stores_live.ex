@@ -15,6 +15,7 @@ defmodule EmakolaWeb.StoresLive do
   use EmakolaWeb, :live_view
 
   require Ash.Query
+  require Logger
 
   alias Emakola.Stores.Store
   alias EmakolaWeb.Plugs.RecentlyViewedStores
@@ -555,7 +556,9 @@ defmodule EmakolaWeb.StoresLive do
     |> Ash.Query.for_read(:list_with_filters, args)
     |> Ash.count!(authorize?: false)
   rescue
-    _ -> 0
+    exception ->
+      Logger.error("[stores_live] filtered_count raised: #{Exception.message(exception)}")
+      0
   end
 
   defp count_active_stores do
@@ -563,7 +566,9 @@ defmodule EmakolaWeb.StoresLive do
     |> Ash.Query.for_read(:list_active)
     |> Ash.count!(authorize?: false)
   rescue
-    _ -> 0
+    exception ->
+      Logger.error("[stores_live] count_active_stores raised: #{Exception.message(exception)}")
+      0
   end
 
   defp load_featured do
@@ -572,7 +577,9 @@ defmodule EmakolaWeb.StoresLive do
     |> Ash.Query.limit(8)
     |> Ash.read!(authorize?: false)
   rescue
-    _ -> []
+    exception ->
+      Logger.error("[stores_live] load_featured stores raised: #{Exception.message(exception)}")
+      []
   end
 
   defp load_recent do
@@ -581,7 +588,9 @@ defmodule EmakolaWeb.StoresLive do
     |> Ash.Query.limit(6)
     |> Ash.read!(authorize?: false)
   rescue
-    _ -> []
+    exception ->
+      Logger.error("[stores_live] load_recent stores raised: #{Exception.message(exception)}")
+      []
   end
 
   defp load_editor_picks do
@@ -590,7 +599,9 @@ defmodule EmakolaWeb.StoresLive do
     |> Ash.Query.limit(6)
     |> Ash.read!(authorize?: false)
   rescue
-    _ -> []
+    exception ->
+      Logger.error("[stores_live] load_editor_picks raised: #{Exception.message(exception)}")
+      []
   end
 
   defp load_theme_counts(socket) do
@@ -622,7 +633,9 @@ defmodule EmakolaWeb.StoresLive do
         []
     end
   rescue
-    _ -> []
+    exception ->
+      Logger.error("[stores_live] load_favorite_slugs raised: #{Exception.message(exception)}")
+      []
   end
 
   # The recently_viewed_stores cookie is set by RecentlyViewedStores plug
@@ -658,7 +671,9 @@ defmodule EmakolaWeb.StoresLive do
     |> Enum.map(&Map.get(by_slug, &1))
     |> Enum.reject(&is_nil/1)
   rescue
-    _ -> []
+    exception ->
+      Logger.error("[stores_live] load_stores_by_slug raised: #{Exception.message(exception)}")
+      []
   end
 
   defp find_store_by_slug(slug) when is_binary(slug) do
@@ -667,7 +682,9 @@ defmodule EmakolaWeb.StoresLive do
       _ -> nil
     end
   rescue
-    _ -> nil
+    exception ->
+      Logger.error("[stores_live] find_store_by_slug raised: #{Exception.message(exception)}")
+      nil
   end
 
   defp favorite_store(customer, store, socket) do

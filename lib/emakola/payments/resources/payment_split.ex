@@ -38,7 +38,7 @@ defmodule Emakola.Payments.PaymentSplit do
     end
 
     attribute :role, :atom do
-      constraints(one_of: [:wholesaler, :dropshipper, :platform])
+      constraints(one_of: [:wholesaler, :dropshipper, :platform, :merchant])
       allow_nil?(false)
       public?(true)
     end

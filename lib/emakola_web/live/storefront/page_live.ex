@@ -13,6 +13,8 @@ defmodule EmakolaWeb.Storefront.PageLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.Storefront.Path
 
   @impl true
@@ -65,7 +67,12 @@ defmodule EmakolaWeb.Storefront.PageLive do
     |> Ash.Query.limit(12)
     |> Ash.read!(authorize?: false)
   rescue
-    _ -> []
+    exception ->
+      Logger.error(
+        "[page_live] load_featured_products loading featured products raised: #{Exception.message(exception)}"
+      )
+
+      []
   end
 
   defp load_root_categories(nil), do: []
@@ -73,7 +80,12 @@ defmodule EmakolaWeb.Storefront.PageLive do
   defp load_root_categories(store) do
     Emakola.Catalog.list_root_categories!(store.id)
   rescue
-    _ -> []
+    exception ->
+      Logger.error(
+        "[page_live] load_root_categories loading root categories raised: #{Exception.message(exception)}"
+      )
+
+      []
   end
 
   defp page_meta_description(%{meta: meta}) when is_map(meta) do

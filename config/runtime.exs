@@ -156,20 +156,29 @@ if config_env() == :prod do
     System.get_env("PAYSTACK_SECRET_KEY") ||
       raise "environment variable PAYSTACK_SECRET_KEY is missing."
 
-  # Flat key — read by Emakola.Payments.Gateways.Paystack (webhook HMAC)
-  # and Emakola.Payments.PaystackWebhook.
+  # Flat key — read by Emakola.Payments.Gateways.Paystack (webhook HMAC).
   config :emakola, :paystack_secret_key, paystack_secret_key
 
   # Nested keyword config — read by Emakola.Payments.PaystackClient.
+  # The public key drives client-side Paystack.js checkout; an empty default
+  # would silently break the checkout page with no boot error, so fail fast.
   config :emakola, Emakola.Payments.PaystackClient,
     secret_key: paystack_secret_key,
-    public_key: System.get_env("PAYSTACK_PUBLIC_KEY") || ""
+    public_key:
+      System.get_env("PAYSTACK_PUBLIC_KEY") ||
+        raise("environment variable PAYSTACK_PUBLIC_KEY is missing.")
 
-  # Hubtel (optional at launch) — read by Emakola.Payments.HubtelClient.
+  # Hubtel (optional at launch) — read by Emakola.Payments.HubtelClient. If the
+  # client id is set, the secret is required too — a half-configured gateway
+  # would fail opaquely at the first call.
   if hubtel_id = System.get_env("HUBTEL_CLIENT_ID") do
     config :emakola, Emakola.Payments.HubtelClient,
       client_id: hubtel_id,
-      client_secret: System.get_env("HUBTEL_CLIENT_SECRET") || ""
+      client_secret:
+        System.get_env("HUBTEL_CLIENT_SECRET") ||
+          raise(
+            "environment variable HUBTEL_CLIENT_SECRET is missing (required with HUBTEL_CLIENT_ID)."
+          )
   end
 
   # Hubtel webhook source-IP allowlist. Hubtel does not sign webhooks, so

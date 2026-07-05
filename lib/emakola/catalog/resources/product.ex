@@ -290,6 +290,7 @@ defmodule Emakola.Catalog.Product do
         expr(
           store_id == ^arg(:store_id) and
             contains(fragment("lower(?)", title), fragment("lower(?)", ^arg(:query))) and
+            moderation_status == :ok and
             (is_nil(^arg(:status)) or status == ^arg(:status))
         )
       )
@@ -349,6 +350,19 @@ defmodule Emakola.Catalog.Product do
 
       prepare(
         build(load: [:variants, :images, :min_price, :max_price, :avg_rating, :review_count])
+      )
+    end
+
+    read :get_active_by_id do
+      get?(true)
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:id, :uuid, allow_nil?: false)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and id == ^arg(:id) and status == :active and
+            moderation_status == :ok
+        )
       )
     end
 

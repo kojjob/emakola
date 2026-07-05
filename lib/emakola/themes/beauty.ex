@@ -68,7 +68,7 @@ defmodule Emakola.Themes.Beauty do
       nav: %{search_placeholder: "Search beauty...", transparent: false},
       sections: %{
         hero: true,
-        featured_in: true,
+        featured_in: false,
         featured_products: true,
         why_us: true,
         testimonials: true,
@@ -78,7 +78,7 @@ defmodule Emakola.Themes.Beauty do
       },
       trust: %{
         title: "Beauty you can trust",
-        subtitle: "Botanical, dermatologist-tested, ethically sourced."
+        subtitle: "Botanical, thoughtfully formulated, ethically sourced."
       },
       why_us: %{
         title: "Why your skin deserves the best",
@@ -86,8 +86,7 @@ defmodule Emakola.Themes.Beauty do
           %{
             icon: "spa",
             title: "Proven Effectiveness",
-            description:
-              "Each formula is dermatologist-tested and made with active botanical ingredients you can feel."
+            description: "Each formula is made with active botanical ingredients you can feel."
           },
           %{
             icon: "compost",
@@ -108,7 +107,7 @@ defmodule Emakola.Themes.Beauty do
         subtitle: "Got questions? We've got answers.",
         items: [
           %{
-            question: "Are your products dermatologist-tested?",
+            question: "Are your products tested for skin compatibility?",
             answer:
               "Yes — every product is tested for skin compatibility before launch and reformulated with feedback from our beauty community."
           },
@@ -202,4 +201,19 @@ defmodule Emakola.Themes.Beauty do
 
   @impl true
   defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
+
+  @impl true
+  def storefront_nav(assigns) do
+    Emakola.Themes.Beauty.Shared.beauty_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0,
+      on_dark: false
+    })
+  end
+
+  @impl true
+  def storefront_footer(assigns) do
+    Emakola.Themes.Beauty.Shared.beauty_footer(%{__changed__: nil, store: assigns.store})
+  end
 end

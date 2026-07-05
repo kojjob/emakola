@@ -61,7 +61,9 @@ defmodule Emakola.Accounts.PlatformAuditLog do
           :product_taken_down,
           :product_reinstated,
           :announcement_published,
-          :announcement_canceled
+          :announcement_canceled,
+          :payout_approved,
+          :payout_retried
         ]
       )
 

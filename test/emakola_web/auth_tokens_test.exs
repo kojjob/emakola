@@ -108,4 +108,31 @@ defmodule EmakolaWeb.AuthTokensTest do
                AuthTokens.verify_login_exchange(AuthTokens.sign_subject(id))
     end
   end
+
+  describe "sign_subject_exchange/1 and verify_subject_exchange/1" do
+    test "round-trips a subject string" do
+      subject = "customer?id=#{Ash.UUID.generate()}"
+      signed = AuthTokens.sign_subject_exchange(subject)
+
+      assert signed != subject
+      assert {:ok, ^subject} = AuthTokens.verify_subject_exchange(signed)
+    end
+
+    test "rejects a tampered value" do
+      signed = AuthTokens.sign_subject_exchange("customer?id=#{Ash.UUID.generate()}")
+      assert {:error, :invalid} = AuthTokens.verify_subject_exchange(signed <> "x")
+    end
+
+    test "does NOT accept a long-lived session subject token (different salt)" do
+      # The exchange token is a distinct, short-lived credential — a leaked
+      # session token must not be replayable through the URL bridge.
+      session_token = AuthTokens.sign_subject("customer?id=#{Ash.UUID.generate()}")
+      assert {:error, :invalid} = AuthTokens.verify_subject_exchange(session_token)
+    end
+
+    test "rejects nil and non-binary input" do
+      assert {:error, :missing} = AuthTokens.verify_subject_exchange(nil)
+      assert {:error, :missing} = AuthTokens.verify_subject_exchange(123)
+    end
+  end
 end

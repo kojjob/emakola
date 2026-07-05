@@ -169,7 +169,10 @@
   --color-store-accent-light: #FEF3C7;
   --color-store-accent-soft: #FEF3C7;
   --color-store-accent-bright: #F59E0B;
-  --color-cta-dark: var(--theme-accent, #1C1917);      /* storefront dark CTA / nav — follows merchant theme */
+  /* Dark CTA / heading ink on fallback storefront pages. Must follow the
+     theme's dark PRIMARY, not the accent: several themes use a light accent
+     (mint, lime, gold) which rendered these headings/buttons near-invisible. */
+  --color-cta-dark: var(--theme-primary, #1C1917);
   --color-store-bg: var(--theme-bg, #FAFAF9);
   --color-mtn: #FFC107;                   /* MTN MoMo brand */
   --color-voda: #E60000;                  /* Vodafone Cash brand */

@@ -1,7 +1,7 @@
 defmodule Emakola.Themes.Heritage.ProductDetail do
   @moduledoc """
   Heritage theme product detail — gallery + Playfair italic title +
-  artisan provenance card + burgundy "Add to Cart" CTA.
+  burgundy "Add to Cart" CTA.
   """
 
   use Phoenix.Component
@@ -120,7 +120,7 @@ defmodule Emakola.Themes.Heritage.ProductDetail do
 
               <%!-- Price --%>
               <div class="flex items-baseline gap-3 mb-6">
-                <span class="heritage-heading text-3xl sm:text-4xl font-bold text-[#7A1F1F]">
+                <span class="heritage-heading text-3xl sm:text-4xl font-bold text-[var(--theme-primary,#7A1F1F)]">
                   {EmakolaWeb.Helpers.Currency.format_price(
                     price_for(@product, @selected_variant),
                     Map.get(@store, :currency, "GHS")
@@ -208,7 +208,7 @@ defmodule Emakola.Themes.Heritage.ProductDetail do
                 <button
                   type="button"
                   phx-click="add_to_cart"
-                  class="flex-1 inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[#7A1F1F] text-[#F5EFE0] text-sm font-bold uppercase tracking-wider hover:bg-[#5A1717] transition-colors min-h-[48px]"
+                  class="flex-1 inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[var(--theme-primary,#7A1F1F)] text-[#F5EFE0] text-sm font-bold uppercase tracking-wider hover:bg-[#5A1717] transition-colors min-h-[48px]"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -225,33 +225,6 @@ defmodule Emakola.Themes.Heritage.ProductDetail do
                   </svg>
                   Add to Cart
                 </button>
-              </div>
-
-              <%!-- Provenance card (artisan signature row) --%>
-              <div class="rounded-2xl bg-white border border-[#E8DBC2] p-5">
-                <p class="text-[10px] font-bold uppercase tracking-[0.25em] text-[#D4A843] mb-2">
-                  Provenance
-                </p>
-                <div class="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <p class="heritage-heading text-2xl font-bold text-[#7A1F1F]">100%</p>
-                    <p class="text-[10px] uppercase tracking-wider font-semibold text-[#6B4423]">
-                      Hand-made
-                    </p>
-                  </div>
-                  <div class="border-x border-[#E8DBC2]">
-                    <p class="heritage-heading text-2xl font-bold text-[#7A1F1F]">Fair</p>
-                    <p class="text-[10px] uppercase tracking-wider font-semibold text-[#6B4423]">
-                      Trade
-                    </p>
-                  </div>
-                  <div>
-                    <p class="heritage-heading text-2xl font-bold text-[#7A1F1F]">∞</p>
-                    <p class="text-[10px] uppercase tracking-wider font-semibold text-[#6B4423]">
-                      Heritage
-                    </p>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

@@ -7,8 +7,13 @@ defmodule EmakolaWeb.Auth.WhatsAppLive do
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
-     assign(socket, step: :phone, phone: nil, error: nil, page_title: "Sign in with WhatsApp"),
-     layout: false}
+     assign(socket,
+       step: :phone,
+       phone: nil,
+       phone_verified: false,
+       error: nil,
+       page_title: "Sign in with WhatsApp"
+     ), layout: false}
   end
 
   @impl true
@@ -17,7 +22,7 @@ defmodule EmakolaWeb.Auth.WhatsAppLive do
 
     case PhoneAuth.request_code(phone, :merchant) do
       :ok ->
-        {:noreply, assign(socket, step: :code, phone: phone, error: nil)}
+        {:noreply, assign(socket, step: :code, phone: phone, phone_verified: false, error: nil)}
 
       {:error, :rate_limited} ->
         {:noreply, assign(socket, error: "Too many attempts. Try again in a minute.")}
@@ -44,19 +49,33 @@ defmodule EmakolaWeb.Auth.WhatsAppLive do
   end
 
   def handle_event("create_account", %{"merchant" => params}, socket) do
-    case Ash.create(
-           Ash.Changeset.for_create(Merchant, :register_with_phone, %{
-             email: params["email"],
-             name: params["name"],
-             phone: socket.assigns.phone
-           }),
-           authorize?: false
-         ) do
-      {:ok, merchant} ->
-        {:noreply, sign_in(socket, merchant)}
+    # The OTP step is only rendered after verification, but events dispatch
+    # regardless of the rendered step — so the verified-phone check must live
+    # here, not in the template, or an unverified phone could be registered.
+    if socket.assigns.phone_verified do
+      case Ash.create(
+             Ash.Changeset.for_create(Merchant, :register_with_phone, %{
+               email: params["email"],
+               name: params["name"],
+               phone: socket.assigns.phone
+             }),
+             authorize?: false
+           ) do
+        {:ok, merchant} ->
+          {:noreply, sign_in(socket, merchant)}
 
-      {:error, _} ->
-        {:noreply, assign(socket, error: "That email is already in use. Try signing in instead.")}
+        {:error, _} ->
+          {:noreply,
+           assign(socket, error: "That email is already in use. Try signing in instead.")}
+      end
+    else
+      {:noreply,
+       assign(socket,
+         step: :phone,
+         phone: nil,
+         phone_verified: false,
+         error: "Please verify your phone number first."
+       )}
     end
   end
 
@@ -68,7 +87,7 @@ defmodule EmakolaWeb.Auth.WhatsAppLive do
   # After OTP success: existing merchant signs in; new phone goes to the email step.
   defp resolve(socket) do
     case merchant_by_phone(socket.assigns.phone) do
-      nil -> {:noreply, assign(socket, step: :email, error: nil)}
+      nil -> {:noreply, assign(socket, step: :email, phone_verified: true, error: nil)}
       merchant -> {:noreply, sign_in(socket, merchant)}
     end
   end
@@ -84,7 +103,9 @@ defmodule EmakolaWeb.Auth.WhatsAppLive do
   end
 
   defp sign_in(socket, merchant) do
-    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
+    token =
+      EmakolaWeb.AuthTokens.sign_subject_exchange(AshAuthentication.user_to_subject(merchant))
+
     redirect(socket, to: ~p"/auth/session?#{[token: token]}")
   end
 

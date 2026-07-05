@@ -89,8 +89,10 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
 
   @impl true
   def handle_event("add_to_cart", %{"product-id" => product_id}, socket) do
-    case Emakola.Catalog.get_product(product_id, authorize?: false) do
-      {:ok, product} when not is_nil(product) ->
+    case Emakola.Catalog.get_active_product(socket.assigns.store.id, product_id,
+           authorize?: false
+         ) do
+      {:ok, product} ->
         product = Ash.load!(product, [:variants, :images], authorize?: false)
         variant = product.variants |> Enum.sort_by(& &1.position) |> List.first()
 

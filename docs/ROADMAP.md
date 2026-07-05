@@ -1,5 +1,11 @@
 # Emakola — Product Roadmap
 
+> ⚠️ **HISTORICAL (as of 2026-03-22).** Phase-1 milestone record kept for
+> reference — many unchecked boxes here have since shipped. **Forward product
+> planning now lives in [`ACTION_ROADMAP.md`](ACTION_ROADMAP.md)**; the
+> engineering backlog of record is **[`../TODO.md`](../TODO.md)**; the
+> operational hub is **[`../checklist.md`](../checklist.md)**.
+
 > Last updated: 2026-03-22 | Phase 1 MVP: 8 of 9 milestones complete | 618 tests | Phase 2 in progress
 
 ## Phase 1: MVP (Ghana Launch)

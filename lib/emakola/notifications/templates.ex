@@ -61,6 +61,10 @@ defmodule Emakola.Notifications.Templates do
       "Check #{store.name} dashboard for details."
   end
 
+  def payout_paid_merchant_sms(payout, store) do
+    "#{store.name}: you've received #{currency_symbol(payout.currency)}#{format_amount(payout.amount)} from Makola. Payout complete."
+  end
+
   # ── WhatsApp template names ────────────────────────────────────
 
   def whatsapp_template_for(:order_placed), do: "order_placed"

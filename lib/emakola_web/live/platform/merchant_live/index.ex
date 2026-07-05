@@ -8,6 +8,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
   events (search, filter, select) issue no writes.
   """
   use EmakolaWeb, :live_view
+  require Logger
 
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_merchants}
 
@@ -62,7 +63,12 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
     |> assign(:stats, compute_stats(all))
     |> apply_filter()
   rescue
-    _ -> assign(socket, all_merchants: [], merchants: [], stats: compute_stats([]))
+    exception ->
+      Logger.error(
+        "[platform.merchant_live] load_merchants loading merchants raised: #{Exception.message(exception)}"
+      )
+
+      assign(socket, all_merchants: [], merchants: [], stats: compute_stats([]))
   end
 
   defp apply_filter(socket) do
@@ -76,7 +82,12 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
       _ -> nil
     end
   rescue
-    _ -> nil
+    exception ->
+      Logger.error(
+        "[platform.merchant_live] load_merchant_detail loading merchant detail raised: #{Exception.message(exception)}"
+      )
+
+      nil
   end
 
   defp filtered(all, search, filter) do
