@@ -155,4 +155,20 @@ defmodule Emakola.Themes.HomeLiving do
 
   @impl true
   defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
+
+  @impl true
+  def storefront_nav(assigns) do
+    Emakola.Themes.HomeLiving.Shared.home_living_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0,
+      on_dark: false,
+      active_path: Map.get(assigns, :active_path) || ""
+    })
+  end
+
+  @impl true
+  def storefront_footer(assigns) do
+    Emakola.Themes.HomeLiving.Shared.home_living_footer(%{__changed__: nil, store: assigns.store})
+  end
 end

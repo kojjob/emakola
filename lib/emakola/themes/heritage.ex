@@ -161,4 +161,19 @@ defmodule Emakola.Themes.Heritage do
 
   @impl true
   defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
+
+  @impl true
+  def storefront_nav(assigns) do
+    Emakola.Themes.Heritage.Shared.heritage_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0,
+      on_dark: false
+    })
+  end
+
+  @impl true
+  def storefront_footer(assigns) do
+    Emakola.Themes.Heritage.Shared.heritage_footer(%{__changed__: nil, store: assigns.store})
+  end
 end

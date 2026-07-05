@@ -166,4 +166,18 @@ defmodule Emakola.Themes.Spotlight do
   defdelegate render_product_detail(assigns),
     to: Emakola.Themes.Spotlight.ProductDetail,
     as: :render
+
+  @impl true
+  def storefront_nav(assigns) do
+    Emakola.Themes.Spotlight.Shared.nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0
+    })
+  end
+
+  @impl true
+  def storefront_footer(assigns) do
+    Emakola.Themes.Spotlight.Shared.footer(%{__changed__: nil, store: assigns.store})
+  end
 end

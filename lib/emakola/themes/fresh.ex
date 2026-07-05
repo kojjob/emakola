@@ -98,4 +98,20 @@ defmodule Emakola.Themes.Fresh do
     as: :render
 
   defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
+
+  def storefront_nav(assigns) do
+    Emakola.Themes.Fresh.Shared.fresh_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0
+    })
+  end
+
+  def storefront_footer(assigns) do
+    Emakola.Themes.Fresh.Shared.footer(%{
+      __changed__: nil,
+      store: assigns.store,
+      categories: Map.get(assigns, :categories) || []
+    })
+  end
 end

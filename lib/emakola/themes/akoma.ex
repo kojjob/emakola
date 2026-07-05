@@ -115,4 +115,18 @@ defmodule Emakola.Themes.Akoma do
 
   @impl true
   defdelegate render_product_detail(assigns), to: Emakola.Themes.Akoma.ProductDetail, as: :render
+
+  @impl true
+  def storefront_nav(assigns) do
+    Emakola.Themes.Akoma.Shared.akoma_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0
+    })
+  end
+
+  @impl true
+  def storefront_footer(assigns) do
+    Emakola.Themes.Akoma.Shared.akoma_footer(%{__changed__: nil, store: assigns.store})
+  end
 end

@@ -143,4 +143,18 @@ defmodule Emakola.Themes.Pharmacy do
 
   @impl true
   defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
+
+  @impl true
+  def storefront_nav(assigns) do
+    Emakola.Themes.Pharmacy.Shared.pharmacy_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0
+    })
+  end
+
+  @impl true
+  def storefront_footer(assigns) do
+    Emakola.Themes.Pharmacy.Shared.pharmacy_footer(%{__changed__: nil, store: assigns.store})
+  end
 end
