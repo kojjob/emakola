@@ -21,7 +21,7 @@ defmodule Emakola.Themes.DefaultRenderers.RecipeList do
     />
 
     <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-      <h1 class="font-[Cormorant,Georgia,serif] text-3xl sm:text-4xl font-semibold text-stone-900 mb-8">
+      <h1 class="text-3xl sm:text-4xl font-semibold text-stone-900 mb-8">
         Recipes
       </h1>
 
@@ -45,7 +45,7 @@ defmodule Emakola.Themes.DefaultRenderers.RecipeList do
               />
             </div>
             <div class="p-4">
-              <h2 class="text-lg font-semibold text-stone-900 group-hover:text-amber-700 transition-colors">
+              <h2 class="text-lg font-semibold text-stone-900 group-hover:text-store-accent transition-colors">
                 {post.title}
               </h2>
               <p :if={post.excerpt} class="text-sm text-stone-600 mt-1 line-clamp-2">

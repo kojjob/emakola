@@ -19,7 +19,7 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
   # Renderers that intentionally don't carry the shared nav+footer
   # (focused conversion-flow pages where site chrome would distract
   # the customer from completing the action).
-  @nav_footer_exempt ~w(checkout.ex downloads.ex)
+  @nav_footer_exempt ~w(checkout.ex)
 
   defp renderer_files do
     @default_renderers_dir

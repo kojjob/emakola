@@ -36,7 +36,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
       <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6 sm:pt-14 sm:pb-8">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-cta-dark">
+            <h1 class="text-3xl sm:text-4xl font-semibold text-cta-dark">
               My Account
             </h1>
             <p class="mt-1 text-sm font-light tracking-wide text-[#44403C]">
@@ -239,7 +239,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
                 class={[
                   "cursor-pointer w-full text-left px-4 py-3 border rounded-lg text-sm transition-colors",
                   if(@return_reason == value,
-                    do: "border-[#B45309] bg-amber-50 text-cta-dark",
+                    do: "border-store-accent bg-store-accent/5 text-cta-dark",
                     else: "border-stone-200 text-[#44403C] hover:border-stone-400"
                   )
                 ]}
@@ -258,7 +258,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
               name="detail"
               rows="3"
               placeholder="Tell us more about the issue..."
-              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-[#B45309] focus:border-[#B45309] focus:outline-none"
+              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-store-accent focus:border-store-accent focus:outline-none"
             >{@return_detail}</textarea>
           </div>
 
@@ -268,7 +268,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
             class={[
               "cursor-pointer w-full text-center text-xs font-semibold uppercase tracking-wider px-6 py-3 rounded-[20px] transition-colors",
               if(@return_reason,
-                do: "bg-cta-dark text-white hover:bg-stone-800",
+                do: "bg-cta-dark text-white hover:opacity-90",
                 else: "bg-stone-200 text-stone-400 cursor-not-allowed"
               )
             ]}
@@ -494,7 +494,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
             <button
               phx-click="show_return_modal"
               phx-value-order={order.order_number}
-              class="cursor-pointer text-xs font-medium text-store-accent hover:text-amber-800 transition-colors"
+              class="cursor-pointer text-xs font-medium text-store-accent hover:underline transition-colors"
             >
               Request Return
             </button>
