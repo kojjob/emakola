@@ -533,21 +533,17 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     />
                   </svg>
                 </summary>
-                <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-[#475569] leading-relaxed space-y-2">
-                  <div class="flex items-start gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-store-accent mt-1.5 flex-shrink-0">
-                    </span>
-                    <p>Delivery within Greater Accra: 1-2 business days.</p>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-store-accent mt-1.5 flex-shrink-0">
-                    </span>
-                    <p>Nationwide delivery: 3-5 business days.</p>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-[#059669] mt-1.5 flex-shrink-0"></span>
-                    <p>Free delivery on orders over GHS 500.</p>
-                  </div>
+                <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-[#475569] leading-relaxed">
+                  <p>
+                    See our
+                    <a
+                      href={store_path(@store.slug, "/policies")}
+                      class="underline hover:text-store-accent"
+                    >
+                      delivery information
+                    </a>
+                    on the policies page.
+                  </p>
                 </div>
               </details>
               <details class="group border-b border-[#E2E8F0] lg:border-[#E2E8F0]/60">
@@ -584,7 +580,14 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 </summary>
                 <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-[#475569] leading-relaxed">
                   <p>
-                    Returns accepted within 7 days of delivery. Items must be unworn and in original packaging.
+                    See our
+                    <a
+                      href={store_path(@store.slug, "/policies")}
+                      class="underline hover:text-store-accent"
+                    >
+                      returns policy
+                    </a>
+                    on the policies page.
                   </p>
                 </div>
               </details>

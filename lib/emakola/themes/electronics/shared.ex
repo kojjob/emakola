@@ -91,7 +91,7 @@ defmodule Emakola.Themes.Electronics.Shared do
               </span>
               <span
                 :if={@cart_count > 0}
-                class="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-[#0EA5E9] text-white text-[10px] font-bold flex items-center justify-center"
+                class="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-[var(--theme-primary,#134E4A)] text-white text-[10px] font-bold flex items-center justify-center"
               >
                 {@cart_count}
               </span>

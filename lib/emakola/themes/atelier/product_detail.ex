@@ -354,7 +354,14 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
 
                 <.accordion_section title="SHIPPING &amp; RETURNS">
                   <p class="text-sm text-gray-600 leading-relaxed">
-                    Free delivery within Accra and Kumasi. Standard delivery 3-5 business days. Free returns within 7 days of purchase for unused items.
+                    See our
+                    <a
+                      href={store_path(@store.slug, "/policies")}
+                      class="underline hover:text-gray-900"
+                    >
+                      shipping and returns policy
+                    </a>
+                    for details.
                   </p>
                 </.accordion_section>
               </div>

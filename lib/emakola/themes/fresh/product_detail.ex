@@ -474,7 +474,14 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
                 style="font-family: 'Inter', sans-serif;"
               >
                 <p>
-                  Not happy with freshness? Contact us within 24 hours of delivery for a full replacement or refund. We stand behind the quality of every item.
+                  Not happy with freshness? See our
+                  <a
+                    href={store_path(@store.slug, "/policies")}
+                    class="underline hover:text-cta-dark transition-colors"
+                  >
+                    returns policy
+                  </a>
+                  for how to request a replacement or refund.
                 </p>
               </div>
             </details>

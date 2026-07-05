@@ -346,8 +346,16 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
                 class="px-5 pb-5 text-sm text-[#78350F] leading-relaxed"
                 style="font-family: 'Inter', sans-serif;"
               >
-                <p>Delivery within Greater Accra: 1-2 business days.</p>
-                <p class="mt-2">Nationwide delivery: 3-5 business days.</p>
+                <p>
+                  See our
+                  <a
+                    href={store_path(@store.slug, "/policies")}
+                    class="underline hover:text-cta-dark transition-colors"
+                  >
+                    delivery information
+                  </a>
+                  on the policies page.
+                </p>
               </div>
             </details>
             <details class="bg-white rounded-2xl border border-[#FDE68A]/60 mb-3 overflow-hidden">
@@ -375,7 +383,14 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
                 style="font-family: 'Inter', sans-serif;"
               >
                 <p>
-                  Returns accepted within 7 days of delivery. Items must be unworn and in original packaging.
+                  See our
+                  <a
+                    href={store_path(@store.slug, "/policies")}
+                    class="underline hover:text-cta-dark transition-colors"
+                  >
+                    returns policy
+                  </a>
+                  on the policies page.
                 </p>
               </div>
             </details>

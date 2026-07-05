@@ -78,7 +78,7 @@ defmodule Emakola.Themes.Beauty do
       },
       trust: %{
         title: "Beauty you can trust",
-        subtitle: "Botanical, dermatologist-tested, ethically sourced."
+        subtitle: "Botanical, thoughtfully formulated, ethically sourced."
       },
       why_us: %{
         title: "Why your skin deserves the best",
@@ -86,8 +86,7 @@ defmodule Emakola.Themes.Beauty do
           %{
             icon: "spa",
             title: "Proven Effectiveness",
-            description:
-              "Each formula is dermatologist-tested and made with active botanical ingredients you can feel."
+            description: "Each formula is made with active botanical ingredients you can feel."
           },
           %{
             icon: "compost",
@@ -108,7 +107,7 @@ defmodule Emakola.Themes.Beauty do
         subtitle: "Got questions? We've got answers.",
         items: [
           %{
-            question: "Are your products dermatologist-tested?",
+            question: "Are your products tested for skin compatibility?",
             answer:
               "Yes — every product is tested for skin compatibility before launch and reformulated with feedback from our beauty community."
           },

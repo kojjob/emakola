@@ -241,7 +241,14 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
                   Delivery &amp; returns <span>+</span>
                 </button>
                 <div id="akoma-acc-ship" class="hidden pb-4 text-sm text-[#6B7280] leading-relaxed">
-                  Next-day delivery across Accra, nationwide in 2–4 days. Easy returns within 7 days.
+                  See our
+                  <a
+                    href={store_path(@store.slug, "/policies")}
+                    class="underline hover:text-[#1A1A1A]"
+                  >
+                    delivery and returns policy
+                  </a>
+                  for details.
                 </div>
               </div>
             </div>
