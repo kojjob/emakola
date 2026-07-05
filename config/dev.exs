@@ -13,6 +13,44 @@ config :emakola, Emakola.Repo,
 # Use local filesystem storage in dev (no S3 needed)
 config :emakola, :storage, Emakola.Storage.Local
 
+# AshAuthentication token signing secret — dev-only value
+config :emakola,
+  token_signing_secret: "dev-only-not-for-production-at-least-32-bytes!!"
+
+# Social login (OAuth) — set provider creds via env to test locally; unset = off
+# (ship-dark, see EmakolaWeb.OAuth). Google permits http://localhost redirect
+# URIs for dev; Facebook/Apple need the deployed host or a tunnel.
+config :emakola, :oauth,
+  google: %{
+    client_id: System.get_env("GOOGLE_CLIENT_ID"),
+    client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
+  },
+  facebook: %{
+    client_id: System.get_env("FACEBOOK_CLIENT_ID"),
+    client_secret: System.get_env("FACEBOOK_CLIENT_SECRET")
+  },
+  apple: %{
+    client_id: System.get_env("APPLE_CLIENT_ID"),
+    team_id: System.get_env("APPLE_TEAM_ID"),
+    private_key_id: System.get_env("APPLE_KEY_ID"),
+    private_key_path: System.get_env("APPLE_PRIVATE_KEY_PATH")
+  }
+
+config :emakola, :oauth_redirect_base, "http://localhost:4000/oauth"
+
+# Phone (WhatsApp/SMS) OTP auth enabled in dev (codes go to the Log providers).
+config :emakola, :phone_auth_enabled, true
+
+# Payment gateway credentials — harmless placeholders for dev (env vars
+# override). Prod credentials are set in runtime.exs.
+config :emakola, Emakola.Payments.PaystackClient,
+  secret_key: System.get_env("PAYSTACK_SECRET_KEY", "sk_test_placeholder"),
+  public_key: System.get_env("PAYSTACK_PUBLIC_KEY", "pk_test_placeholder")
+
+config :emakola, Emakola.Payments.HubtelClient,
+  client_id: System.get_env("HUBTEL_CLIENT_ID"),
+  client_secret: System.get_env("HUBTEL_CLIENT_SECRET")
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #
@@ -22,7 +60,8 @@ config :emakola, :storage, Emakola.Storage.Local
 config :emakola, EmakolaWeb.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
-  http: [ip: {127, 0, 0, 1}],
+  # PORT env override lets a second checkout/worktree run alongside the default server
+  http: [ip: {127, 0, 0, 1}, port: String.to_integer(System.get_env("PORT") || "4000")],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,

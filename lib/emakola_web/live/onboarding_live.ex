@@ -1,6 +1,6 @@
 defmodule EmakolaWeb.OnboardingLive do
   @moduledoc """
-  Onboarding flow for new Emakola merchants.
+  Onboarding flow for new Makola merchants.
 
   3-step flow:
   1. Name Your Store — store name, currency, auto-generated slug
@@ -136,17 +136,18 @@ defmodule EmakolaWeb.OnboardingLive do
               <label for="store_name" class="block text-sm font-medium text-gray-700 mb-1">
                 Store name
               </label>
-              <input
-                type="text"
-                id="store_name"
-                name="store_name"
-                value={@store_name}
-                placeholder="e.g. Kojo's Fashion"
-                phx-change="update_store_name"
-                phx-debounce="300"
-                autofocus
-                class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              />
+              <form id="store-name-form" phx-change="update_store_name">
+                <input
+                  type="text"
+                  id="store_name"
+                  name="store_name"
+                  value={@store_name}
+                  placeholder="e.g. Kojo's Fashion"
+                  phx-debounce="300"
+                  autofocus
+                  class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </form>
               <p :if={@store_slug != ""} class="mt-1.5 text-xs text-gray-400">
                 Your store URL: <span class="font-mono text-emerald-600">{@store_slug}</span>.emakola.com
               </p>
@@ -156,20 +157,21 @@ defmodule EmakolaWeb.OnboardingLive do
               <label for="currency" class="block text-sm font-medium text-gray-700 mb-1">
                 Currency
               </label>
-              <select
-                id="currency"
-                name="currency"
-                phx-change="update_currency"
-                class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              >
-                <option
-                  :for={c <- @currencies}
-                  value={c.code}
-                  selected={c.code == @currency}
+              <form id="currency-form" phx-change="update_currency">
+                <select
+                  id="currency"
+                  name="currency"
+                  class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 >
-                  {c.flag} {c.label}
-                </option>
-              </select>
+                  <option
+                    :for={c <- @currencies}
+                    value={c.code}
+                    selected={c.code == @currency}
+                  >
+                    {c.flag} {c.label}
+                  </option>
+                </select>
+              </form>
             </div>
           </div>
         </div>
@@ -265,34 +267,36 @@ defmodule EmakolaWeb.OnboardingLive do
               <label for="product_name" class="block text-sm font-medium text-gray-700 mb-1">
                 Product name
               </label>
-              <input
-                type="text"
-                id="product_name"
-                name="product_name"
-                value={@product_name}
-                placeholder="e.g. Ankara Dress"
-                phx-change="update_product"
-                phx-debounce="300"
-                class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              />
+              <form id="product-name-form" phx-change="update_product">
+                <input
+                  type="text"
+                  id="product_name"
+                  name="product_name"
+                  value={@product_name}
+                  placeholder="e.g. Ankara Dress"
+                  phx-debounce="300"
+                  class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </form>
             </div>
 
             <div>
               <label for="product_price" class="block text-sm font-medium text-gray-700 mb-1">
                 Price ({@currency})
               </label>
-              <input
-                type="number"
-                id="product_price"
-                name="product_price"
-                value={@product_price}
-                placeholder="e.g. 150"
-                min="0"
-                step="0.01"
-                phx-change="update_product"
-                phx-debounce="300"
-                class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              />
+              <form id="product-price-form" phx-change="update_product">
+                <input
+                  type="number"
+                  id="product_price"
+                  name="product_price"
+                  value={@product_price}
+                  placeholder="e.g. 150"
+                  min="0"
+                  step="0.01"
+                  phx-debounce="300"
+                  class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </form>
             </div>
           </div>
 
@@ -501,34 +505,28 @@ defmodule EmakolaWeb.OnboardingLive do
   def handle_event("complete", _, socket) do
     {:noreply,
      socket
-     |> put_flash(:info, "Welcome to Emakola! Your store is ready.")
+     |> put_flash(:info, "Welcome to Makola! Your store is ready.")
      |> push_navigate(to: "/dashboard")}
   end
 
   # ── Private helpers ──
 
+  # Merchant-only resolution — legacy User subjects no longer authenticate
+  # here (User accounts use the platform session flow exclusively).
   defp resolve_user(session) do
-    case session["user_token"] do
-      nil ->
+    case EmakolaWeb.AuthTokens.verify_subject(session["user_token"]) do
+      {:error, _reason} ->
         nil
 
-      token ->
-        # Try Merchant first (primary auth for ecommerce), fall back to User
-        case AshAuthentication.subject_to_user(token, Emakola.Accounts.Merchant) do
-          {:ok, merchant} ->
-            merchant
-
-          _ ->
-            case AshAuthentication.subject_to_user(token, Emakola.Accounts.User) do
-              {:ok, user} -> user
-              _ -> nil
-            end
+      {:ok, subject} ->
+        case AshAuthentication.subject_to_user(subject, Emakola.Accounts.Merchant) do
+          {:ok, merchant} -> merchant
+          _ -> nil
         end
     end
   end
 
   defp user_type(%Emakola.Accounts.Merchant{}), do: :merchant
-  defp user_type(%Emakola.Accounts.User{}), do: :user
   defp user_type(_), do: nil
 
   defp has_store_membership?(user) do
@@ -536,12 +534,6 @@ defmodule EmakolaWeb.OnboardingLive do
       :merchant ->
         case Emakola.Accounts.get_merchant_store_membership(user.id, authorize?: false) do
           {:ok, membership} when not is_nil(membership) -> true
-          _ -> false
-        end
-
-      :user ->
-        case Emakola.Accounts.list_memberships_by_user(user.id, authorize?: false) do
-          {:ok, [_ | _]} -> true
           _ -> false
         end
 
@@ -604,19 +596,6 @@ defmodule EmakolaWeb.OnboardingLive do
       %{role: :owner, merchant_id: merchant.id, store_id: store.id},
       authorize?: false
     )
-  end
-
-  defp create_membership_for_user(%Emakola.Accounts.User{} = user, store) do
-    # For legacy User accounts, create an Organisation membership
-    # as the current system still uses Org-based membership for Users
-    with {:ok, org} <- Emakola.Accounts.create_organisation(store.name, authorize?: false),
-         {:ok, membership} <-
-           Emakola.Accounts.create_membership(
-             %{role: :owner, user_id: user.id, organisation_id: org.id},
-             authorize?: false
-           ) do
-      {:ok, membership}
-    end
   end
 
   defp maybe_create_product(assigns, store) do

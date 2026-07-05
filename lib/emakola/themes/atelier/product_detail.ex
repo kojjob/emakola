@@ -5,9 +5,8 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
   Features:
   - Breadcrumb navigation
   - Image gallery with main image + thumbnails
-  - Verified Artisan / Limited Edition badges
   - Bold title with italic green accent
-  - Star ratings with review count
+  - Star ratings with review count (only when the product has real reviews)
   - Price with strikethrough for sale items
   - Free delivery callout
   - Description card with specs
@@ -18,6 +17,7 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Atelier.Shared
@@ -79,9 +79,14 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
             class="mb-6 sm:mb-8 text-xs uppercase tracking-wider text-gray-400"
             aria-label="Breadcrumb"
           >
-            <a href={"/s/#{@store.slug}"} class="hover:text-gray-900 transition-colors">Home</a>
+            <a href={store_path(@store.slug, "/")} class="hover:text-gray-900 transition-colors">
+              Home
+            </a>
             <span class="mx-2 text-gray-300">&rsaquo;</span>
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-gray-900 transition-colors">
+            <a
+              href={store_path(@store.slug, "/products")}
+              class="hover:text-gray-900 transition-colors"
+            >
               Shop
             </a>
             <span class="mx-2 text-gray-300">&rsaquo;</span>
@@ -184,30 +189,20 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
 
             <%!-- Product Info (right ~42%) --%>
             <div class="mt-8">
-              <%!-- Badges --%>
-              <div class="flex flex-wrap gap-2 mb-4">
-                <span
-                  class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white"
-                  style="background: var(--theme-accent);"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-                  </svg>
-                  Verified Artisan
-                </span>
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 uppercase tracking-wide">
-                  Limited Edition
-                </span>
-              </div>
-
               <%!-- Title --%>
               <h1 class="text-2xl sm:text-3xl font-black text-gray-900 leading-tight mb-3">
                 {product_title_with_accent(@product.title)}
               </h1>
 
-              <%!-- Rating --%>
-              <div class="mb-4">
-                <Shared.star_rating rating={4.5} review_count={24} />
+              <%!-- Rating (only when the product has real reviews) --%>
+              <div
+                :if={is_integer(Map.get(@product, :review_count)) && @product.review_count > 0}
+                class="mb-4"
+              >
+                <Shared.star_rating
+                  rating={rating_value(@product)}
+                  review_count={@product.review_count}
+                />
               </div>
 
               <%!-- Price --%>
@@ -322,7 +317,7 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                   phx-value-product-id={@product.id}
                   phx-value-variant-id={if @selected_variant, do: @selected_variant.id, else: ""}
                   class="w-full py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-300 hover:opacity-90 min-h-[48px]"
-                  style="background: var(--theme-primary);"
+                  style="background: var(--theme-accent, #166534);"
                 >
                   ADD TO CART
                 </button>
@@ -359,7 +354,14 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
 
                 <.accordion_section title="SHIPPING &amp; RETURNS">
                   <p class="text-sm text-gray-600 leading-relaxed">
-                    Free delivery within Accra and Kumasi. Standard delivery 3-5 business days. Free returns within 7 days of purchase for unused items.
+                    See our
+                    <a
+                      href={store_path(@store.slug, "/policies")}
+                      class="underline hover:text-gray-900"
+                    >
+                      shipping and returns policy
+                    </a>
+                    for details.
                   </p>
                 </.accordion_section>
               </div>
@@ -514,7 +516,7 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                   "Dedicated to preserving West African craft traditions while creating contemporary pieces for the modern world."}
             </p>
             <a
-              href={"/s/#{@store.slug}/about"}
+              href={store_path(@store.slug, "/about")}
               class="inline-flex items-center gap-2 text-sm font-bold transition-colors hover:opacity-80 min-h-[44px]"
               style="color: var(--theme-primary);"
             >
@@ -561,6 +563,14 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
 
       _ ->
         []
+    end
+  end
+
+  defp rating_value(product) do
+    case Map.get(product, :avg_rating) do
+      %Decimal{} = r -> Decimal.to_float(r)
+      r when is_number(r) -> r * 1.0
+      _ -> 0.0
     end
   end
 

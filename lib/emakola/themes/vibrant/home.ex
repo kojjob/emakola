@@ -21,6 +21,8 @@ defmodule Emakola.Themes.Vibrant.Home do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   import EmakolaWeb.StorefrontComponents,
     only: [
       optimized_image: 1,
@@ -219,7 +221,7 @@ defmodule Emakola.Themes.Vibrant.Home do
               </h2>
             </div>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="text-sm font-semibold text-[var(--theme-primary,#B45309)] hover:text-[var(--theme-accent,#7C2D12)] transition-colors flex items-center gap-1"
             >
               View all
@@ -366,7 +368,7 @@ defmodule Emakola.Themes.Vibrant.Home do
           </p>
           <div class="flex flex-wrap gap-3">
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-[#1C1917] rounded-full text-sm sm:text-base font-bold hover:bg-[#FEF3C7] active:scale-[0.97] transition-all shadow-lg shadow-black/20"
               style="font-family: 'Inter', sans-serif;"
             >
@@ -412,7 +414,7 @@ defmodule Emakola.Themes.Vibrant.Home do
 
     ~H"""
     <a
-      href={"/s/#{@store.slug}/products/#{@product.slug}"}
+      href={store_path(@store.slug, "/products/#{@product.slug}")}
       class="block bg-white rounded-3xl overflow-hidden border border-[#FDE68A]/60 hover:shadow-2xl hover:shadow-amber-200/40 transition-all duration-300 md:grid md:grid-cols-2"
       aria-label={"Featured product: #{@product.title}"}
     >
@@ -493,7 +495,7 @@ defmodule Emakola.Themes.Vibrant.Home do
 
     ~H"""
     <a
-      href={"/s/#{@store.slug}/products/#{@product.slug}"}
+      href={store_path(@store.slug, "/products/#{@product.slug}")}
       class="group flex flex-col sm:flex-row gap-5 rounded-3xl overflow-hidden p-5 sm:p-6 transition-all duration-300 hover:shadow-xl hover:shadow-amber-200/40"
       style={"background-color: #{@bg};"}
       aria-label={"Editor's pick: #{@product.title}"}
@@ -606,19 +608,12 @@ defmodule Emakola.Themes.Vibrant.Home do
     end
   end
 
-  defp trust_badges_for(store) do
-    base = [
+  defp trust_badges_for(_store) do
+    [
+      %{icon: "public", label: "Locally crafted", variant: :provenance},
       %{icon: "verified", label: "Authenticated", variant: :default},
       %{icon: "payments", label: "Mobile Money", variant: :default}
     ]
-
-    case Map.get(store, :region) do
-      region when is_binary(region) and region != "" ->
-        [%{icon: "public", label: "Made in Ghana", variant: :provenance} | base]
-
-      _ ->
-        [%{icon: "public", label: "Locally crafted", variant: :provenance} | base]
-    end
   end
 
   defp normalise_whatsapp(number) do

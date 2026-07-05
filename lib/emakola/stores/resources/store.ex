@@ -20,6 +20,12 @@ defmodule Emakola.Stores.Store do
   postgres do
     table("stores")
     repo(Emakola.Repo)
+
+    custom_indexes do
+      # Every public directory read and the storefront resolver filter on
+      # `status`; index it so suspended/archived stores are cheap to exclude.
+      index([:status])
+    end
   end
 
   attributes do
@@ -105,8 +111,36 @@ defmodule Emakola.Stores.Store do
       public?(true)
     end
 
+    # Merchant-owned open/closed switch. The merchant flips this themselves
+    # (e.g. holiday closure). Distinct from `status` below, which is the
+    # PLATFORM's lifecycle control. A store is publicly live only when BOTH
+    # agree: `active == true and status == :active` (see `live?/1`).
     attribute :active, :boolean do
       default(true)
+      public?(true)
+    end
+
+    # Platform-owned lifecycle state. Merchants cannot change this — only
+    # platform staff, via the `:suspend`/`:block`/`:archive`/`:reactivate`
+    # actions. `:archived` is the "delete" (hidden forever, row kept, no
+    # cascade/purge — restorable since nothing is destroyed).
+    attribute :status, :atom do
+      allow_nil?(false)
+      default(:active)
+      public?(true)
+      constraints(one_of: [:active, :suspended, :blocked, :archived])
+    end
+
+    # Why the store is in its current non-active status. Surfaced to the
+    # merchant on the lockout screen; nil when `:active`.
+    attribute :status_reason, :string do
+      public?(true)
+    end
+
+    # When `status` last changed — denormalized convenience for the admin UI.
+    # The append-only platform audit log remains the system of record for the
+    # full who/when/why history.
+    attribute :status_changed_at, :utc_datetime_usec do
       public?(true)
     end
 
@@ -198,8 +232,20 @@ defmodule Emakola.Stores.Store do
   end
 
   policies do
-    # Creates are open (onboarding creates stores without an actor).
+    # Creates: only an authenticated Merchant actor may create a store. This
+    # bypass short-circuits the Merchant-membership read policy below — a
+    # brand-new store has no memberships yet, so that policy would otherwise
+    # forbid the create. Onboarding creates via `authorize?: false` (guarded by
+    # the `is_nil(user)` check in OnboardingLive) and does not rely on this.
     bypass action_type(:create) do
+      authorize_if(actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant))
+    end
+
+    # Belt-and-braces for `:create` with `authorize?: true`: a nil or
+    # non-Merchant (e.g. Customer) actor is explicitly forbidden. This replaces
+    # a former blanket `authorize_if(always())` that let any actor create stores.
+    policy action_type(:create) do
+      forbid_unless(actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant))
       authorize_if(always())
     end
 
@@ -225,6 +271,15 @@ defmodule Emakola.Stores.Store do
       authorize_if(always())
     end
 
+    # Platform lifecycle actions are platform-only — callable solely via
+    # `authorize?: false` from the platform admin (gated there by
+    # :manage_stores). Forbidding every actor here means a suspended merchant
+    # can't un-suspend themselves by calling :reactivate (etc.) directly, even
+    # though the general update policy below would otherwise admit them.
+    policy action([:suspend, :block, :archive, :reactivate]) do
+      forbid_if(always())
+    end
+
     # Writes (update, destroy): nil actor → deny; non-Merchant → deny;
     # Merchant must have store access. System code uses `authorize?: false`.
     policy action_type([:update, :destroy]) do
@@ -239,6 +294,7 @@ defmodule Emakola.Stores.Store do
 
     create :create do
       accept([:name, :slug, :currency])
+      change(Emakola.Stores.Changes.EnsureUniqueSlug)
     end
 
     update :update do
@@ -280,7 +336,7 @@ defmodule Emakola.Stores.Store do
 
     read :list_by_slugs do
       argument(:slugs, {:array, :string}, allow_nil?: false)
-      filter(expr(active == true and slug in ^arg(:slugs)))
+      filter(expr(active == true and status == :active and slug in ^arg(:slugs)))
     end
 
     read :list_for_admin do
@@ -299,25 +355,31 @@ defmodule Emakola.Stores.Store do
     # ── Directory read actions ──
 
     read :list_active do
-      filter(expr(active == true))
+      filter(expr(active == true and status == :active))
       prepare(build(sort: [name: :asc]))
     end
 
     read :list_featured do
       argument(:limit, :integer, default: 8)
-      filter(expr(active == true and featured == true))
+      filter(expr(active == true and status == :active and featured == true))
       prepare(build(sort: [featured_rank: :asc_nils_last, view_count: :desc]))
       pagination(offset?: true, default_limit: 8, max_page_size: 50, required?: false)
     end
 
     read :list_recent do
       argument(:limit, :integer, default: 6)
-      filter(expr(active == true))
+      filter(expr(active == true and status == :active))
       prepare(build(sort: [inserted_at: :desc]))
     end
 
     read :list_editor_picks do
-      filter(expr(active == true and not is_nil(featured_rank) and featured_rank <= 6))
+      filter(
+        expr(
+          active == true and status == :active and not is_nil(featured_rank) and
+            featured_rank <= 6
+        )
+      )
+
       prepare(build(sort: [featured_rank: :asc]))
     end
 
@@ -332,7 +394,7 @@ defmodule Emakola.Stores.Store do
       argument(:limit, :integer, default: 12)
       argument(:offset, :integer, default: 0)
 
-      filter(expr(active == true))
+      filter(expr(active == true and status == :active))
 
       filter(
         expr(
@@ -379,6 +441,50 @@ defmodule Emakola.Stores.Store do
       accept([:featured, :featured_rank, :verified])
     end
 
+    # ── Platform lifecycle actions ──
+    # Called only with `authorize?: false` from the platform admin LiveView,
+    # which gates on the `:manage_stores` permission. The write policy above
+    # forbids non-Merchant actors, so passing a `%User{}` actor would be
+    # FORBIDDEN — `authorize?: false` is mandatory here, not a shortcut.
+
+    update :suspend do
+      require_atomic?(false)
+      accept([])
+      argument(:reason, :string, allow_nil?: false)
+      change(set_attribute(:status, :suspended))
+      change(set_attribute(:status_reason, arg(:reason)))
+      change(Emakola.Stores.Changes.StampStatusChange)
+    end
+
+    update :block do
+      require_atomic?(false)
+      accept([])
+      argument(:reason, :string, allow_nil?: false)
+      change(set_attribute(:status, :blocked))
+      change(set_attribute(:status_reason, arg(:reason)))
+      change(Emakola.Stores.Changes.StampStatusChange)
+    end
+
+    update :archive do
+      require_atomic?(false)
+      accept([])
+      argument(:reason, :string, allow_nil?: true)
+      change(set_attribute(:status, :archived))
+      change(set_attribute(:status_reason, arg(:reason)))
+      change(Emakola.Stores.Changes.StampStatusChange)
+    end
+
+    # Restores a suspended/blocked/archived store to live. Works from any
+    # state (incl. un-archiving, since archive keeps the row intact) and is
+    # idempotent on an already-active store.
+    update :reactivate do
+      require_atomic?(false)
+      accept([])
+      change(set_attribute(:status, :active))
+      change(set_attribute(:status_reason, nil))
+      change(Emakola.Stores.Changes.StampStatusChange)
+    end
+
     update :increment_view_count do
       require_atomic?(true)
       accept([])
@@ -398,4 +504,15 @@ defmodule Emakola.Stores.Store do
       when is_list(types) and is_atom(product_type) do
     product_type in types
   end
+
+  @doc """
+  Returns `true` only when the store is publicly live — the merchant has it
+  open (`active == true`) AND the platform has not suspended/blocked/archived
+  it (`status == :active`). Used by the storefront resolver, the host plug,
+  and the merchant-admin lockout hook to gate access in-memory on an
+  already-loaded struct.
+  """
+  @spec live?(%{:active => boolean(), :status => atom(), optional(any()) => any()}) :: boolean()
+  def live?(%{active: true, status: :active}), do: true
+  def live?(_), do: false
 end

@@ -130,6 +130,25 @@ defmodule Emakola.Marketing.CouponTest do
     end
   end
 
+  describe "update" do
+    test "rejects a percentage discount over 100% (cap enforced on update too)", %{store: store} do
+      {:ok, coupon} =
+        Coupon
+        |> Ash.Changeset.for_create(:create, %{
+          store_id: store.id,
+          code: "PCTUP",
+          discount_type: :percentage,
+          discount_value: 1000
+        })
+        |> Ash.create(authorize?: false)
+
+      assert {:error, _} =
+               coupon
+               |> Ash.Changeset.for_update(:update, %{discount_value: 15_000})
+               |> Ash.update(authorize?: false)
+    end
+  end
+
   describe "find_by_code" do
     test "finds coupon by store and code", %{store: store} do
       {:ok, created} =
@@ -210,6 +229,32 @@ defmodule Emakola.Marketing.CouponTest do
         |> Ash.update(authorize?: false)
 
       assert updated.uses_count == 1
+    end
+
+    test "refuses to increment past max_uses (atomic ceiling)", %{store: store} do
+      {:ok, coupon} =
+        Coupon
+        |> Ash.Changeset.for_create(:create, %{
+          store_id: store.id,
+          code: "CAP1",
+          discount_type: :percentage,
+          discount_value: 500,
+          max_uses: 1
+        })
+        |> Ash.create(authorize?: false)
+
+      {:ok, used} =
+        coupon |> Ash.Changeset.for_update(:increment_usage, %{}) |> Ash.update(authorize?: false)
+
+      assert used.uses_count == 1
+
+      # At the cap — a further increment must be refused, not silently exceed it.
+      assert {:error, _} =
+               used
+               |> Ash.Changeset.for_update(:increment_usage, %{})
+               |> Ash.update(authorize?: false)
+
+      assert Ash.get!(Coupon, coupon.id, authorize?: false).uses_count == 1
     end
   end
 

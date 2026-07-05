@@ -23,6 +23,55 @@ defmodule Emakola.Factory do
     |> Ash.create!(authorize?: false)
   end
 
+  def create_platform_owner!(attrs \\ %{}) do
+    attrs
+    |> create_user!()
+    |> Ash.Changeset.for_update(:set_platform_permissions, %{is_owner: true})
+    |> Ash.update!(authorize?: false)
+  end
+
+  def create_platform_invite!(attrs \\ %{}) do
+    attrs = Map.new(attrs)
+    {expires_at, attrs} = Map.pop(attrs, :expires_at)
+
+    params =
+      Map.merge(
+        %{email: unique_email(), invited_by_id: Ash.UUID.generate()},
+        attrs
+      )
+
+    changeset = Ash.Changeset.for_create(Emakola.Accounts.PlatformInvite, :create, params)
+
+    changeset =
+      if expires_at,
+        do: Ash.Changeset.force_change_attribute(changeset, :expires_at, expires_at),
+        else: changeset
+
+    Ash.create!(changeset)
+  end
+
+  def create_user_session!(user, attrs \\ %{}) do
+    attrs = Map.new(attrs)
+    {last_seen_at, attrs} = Map.pop(attrs, :last_seen_at)
+
+    params =
+      Map.merge(
+        %{user_id: user.id, ip: "127.0.0.1", user_agent: "TestAgent/1.0"},
+        attrs
+      )
+
+    changeset = Ash.Changeset.for_create(Emakola.Accounts.UserSession, :create, params)
+
+    changeset =
+      if last_seen_at do
+        Ash.Changeset.force_change_attribute(changeset, :last_seen_at, last_seen_at)
+      else
+        changeset
+      end
+
+    Ash.create!(changeset, authorize?: false)
+  end
+
   def build_organisation(attrs \\ %{}) do
     default = %{
       name: "Test Org #{System.unique_integer([:positive])}"
@@ -48,13 +97,32 @@ defmodule Emakola.Factory do
   # ── Merchant (ecommerce auth) ──────────────────────────────────
 
   def create_merchant!(attrs \\ %{}) do
-    Emakola.Accounts.Merchant
-    |> Ash.Changeset.for_create(:register_with_password, %{
-      email: attrs[:email] || unique_email(),
-      password: attrs[:password] || "Password123!",
-      password_confirmation: attrs[:password_confirmation] || attrs[:password] || "Password123!"
-    })
-    |> Ash.create!(authorize?: false)
+    attrs = Map.new(attrs)
+
+    merchant =
+      Emakola.Accounts.Merchant
+      |> Ash.Changeset.for_create(:register_with_password, %{
+        email: attrs[:email] || unique_email(),
+        password: attrs[:password] || "Password123!",
+        password_confirmation: attrs[:password_confirmation] || attrs[:password] || "Password123!"
+      })
+      |> Ash.create!(authorize?: false)
+
+    profile = Map.take(attrs, [:name, :business_name, :phone, :avatar_url])
+    confirmed_at = attrs[:confirmed_at]
+
+    if profile == %{} and is_nil(confirmed_at) do
+      merchant
+    else
+      changeset = Ash.Changeset.for_update(merchant, :update_profile, profile)
+
+      changeset =
+        if confirmed_at,
+          do: Ash.Changeset.force_change_attribute(changeset, :confirmed_at, confirmed_at),
+          else: changeset
+
+      Ash.update!(changeset, authorize?: false)
+    end
   end
 
   # ── Store ─────────────────────────────────────────────────────
@@ -103,6 +171,14 @@ defmodule Emakola.Factory do
       merchant_id: merchant.id,
       store_id: store.id
     })
+    |> Ash.create!(authorize?: false)
+  end
+
+  def create_page_content!(store, attrs \\ %{}) do
+    params = Map.merge(%{store_id: store.id}, Map.new(attrs))
+
+    Emakola.Stores.StorePageContent
+    |> Ash.Changeset.for_create(:create, params)
     |> Ash.create!(authorize?: false)
   end
 
@@ -219,6 +295,24 @@ defmodule Emakola.Factory do
 
     Emakola.Billing.Plan
     |> Ash.Changeset.for_create(:create, params)
+    |> Ash.create!(authorize?: false)
+  end
+
+  def create_subscription!(org, plan, attrs \\ %{}) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+
+    default = %{
+      organisation_id: org.id,
+      plan_id: plan.id,
+      stripe_subscription_id: "sub_test_#{System.unique_integer([:positive])}",
+      stripe_customer_id: "cus_test_#{System.unique_integer([:positive])}",
+      status: :active,
+      current_period_start: now,
+      current_period_end: DateTime.add(now, 30 * 24 * 3600, :second)
+    }
+
+    Emakola.Billing.Subscription
+    |> Ash.Changeset.for_create(:create, Map.merge(default, Map.new(attrs)))
     |> Ash.create!(authorize?: false)
   end
 
@@ -531,6 +625,22 @@ defmodule Emakola.Factory do
 
     Emakola.Content.RecipeMeta
     |> Ash.Changeset.for_create(:create, Map.merge(default, attrs))
+    |> Ash.create!(authorize?: false)
+  end
+
+  def create_feature_flag!(attrs \\ %{}) do
+    params =
+      Map.merge(
+        %{
+          key: "flag_#{System.unique_integer([:positive])}",
+          name: "Test Flag",
+          enabled: true
+        },
+        Map.new(attrs)
+      )
+
+    Emakola.FeatureFlags.FeatureFlag
+    |> Ash.Changeset.for_create(:create, params)
     |> Ash.create!(authorize?: false)
   end
 

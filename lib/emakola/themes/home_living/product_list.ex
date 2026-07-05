@@ -6,6 +6,8 @@ defmodule Emakola.Themes.HomeLiving.ProductList do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.HomeLiving.Shared
 
   attr :store, :map, required: true
@@ -42,14 +44,14 @@ defmodule Emakola.Themes.HomeLiving.ProductList do
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <div class="flex flex-wrap items-center gap-2 sm:gap-3">
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class={pill_class(@active_category_slug == nil)}
             >
               All
             </a>
             <a
               :for={category <- @categories}
-              href={"/s/#{@store.slug}/category/#{category.slug}"}
+              href={store_path(@store.slug, "/category/#{category.slug}")}
               class={pill_class(@active_category_slug == category.slug)}
             >
               {category.name}
@@ -75,7 +77,7 @@ defmodule Emakola.Themes.HomeLiving.ProductList do
             </h2>
             <p class="text-sm text-[#92400E]/70">Try a different category.</p>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="inline-flex items-center mt-6 px-6 py-3 rounded-xl bg-[#C2410C] text-white text-sm font-semibold hover:bg-[#9A340A] transition-colors"
             >
               Browse all

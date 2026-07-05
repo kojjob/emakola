@@ -3,7 +3,7 @@ defmodule EmakolaWeb.StoresLive do
   Public marketplace directory at `/stores`.
 
   Phase 1 sections:
-  - Sticky header (logo + search + Sell-on-Emakola CTA)
+  - Sticky header (logo + search + Sell-on-Makola CTA)
   - Hero with prominent search input
   - Theme filter chips + region dropdown + sort dropdown
   - Paginated main grid via `Store.list_with_filters` (cursor-style
@@ -15,6 +15,7 @@ defmodule EmakolaWeb.StoresLive do
   use EmakolaWeb, :live_view
 
   require Ash.Query
+  require Logger
 
   alias Emakola.Stores.Store
   alias EmakolaWeb.Plugs.RecentlyViewedStores
@@ -31,7 +32,7 @@ defmodule EmakolaWeb.StoresLive do
     socket =
       socket
       |> assign(
-        page_title: "Browse Stores — Emakola",
+        page_title: "Browse Stores — Makola",
         active_theme: "all",
         active_region: "",
         active_sort: "featured",
@@ -201,7 +202,7 @@ defmodule EmakolaWeb.StoresLive do
               href="/"
               class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 text-white text-sm font-semibold hover:bg-slate-700 transition-colors shadow-sm"
             >
-              Sell on Emakola
+              Sell on Makola
             </a>
           </div>
         </div>
@@ -448,7 +449,7 @@ defmodule EmakolaWeb.StoresLive do
         <StoresComponents.recent_strip
           stores={@favorite_stores}
           title="Your saved stores"
-          subtitle="Stores you've hearted on Emakola"
+          subtitle="Stores you've hearted on Makola"
         />
       </div>
 
@@ -464,7 +465,7 @@ defmodule EmakolaWeb.StoresLive do
         />
       </div>
 
-      <%!-- New on Emakola strip (light section) — hidden when filtering --%>
+      <%!-- New on Makola strip (light section) — hidden when filtering --%>
       <div :if={!filters_active?(assigns)} class="bg-slate-50">
         <StoresComponents.recent_strip stores={@recent_stores} />
       </div>
@@ -486,7 +487,7 @@ defmodule EmakolaWeb.StoresLive do
       <footer class="bg-slate-900 text-slate-300 text-sm py-10 text-center">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <p>
-            &copy; {DateTime.utc_now().year} Emakola — A marketplace for West Africa
+            &copy; {DateTime.utc_now().year} Makola — A marketplace for West Africa
           </p>
         </div>
       </footer>
@@ -555,7 +556,9 @@ defmodule EmakolaWeb.StoresLive do
     |> Ash.Query.for_read(:list_with_filters, args)
     |> Ash.count!(authorize?: false)
   rescue
-    _ -> 0
+    exception ->
+      Logger.error("[stores_live] filtered_count raised: #{Exception.message(exception)}")
+      0
   end
 
   defp count_active_stores do
@@ -563,7 +566,9 @@ defmodule EmakolaWeb.StoresLive do
     |> Ash.Query.for_read(:list_active)
     |> Ash.count!(authorize?: false)
   rescue
-    _ -> 0
+    exception ->
+      Logger.error("[stores_live] count_active_stores raised: #{Exception.message(exception)}")
+      0
   end
 
   defp load_featured do
@@ -572,7 +577,9 @@ defmodule EmakolaWeb.StoresLive do
     |> Ash.Query.limit(8)
     |> Ash.read!(authorize?: false)
   rescue
-    _ -> []
+    exception ->
+      Logger.error("[stores_live] load_featured stores raised: #{Exception.message(exception)}")
+      []
   end
 
   defp load_recent do
@@ -581,7 +588,9 @@ defmodule EmakolaWeb.StoresLive do
     |> Ash.Query.limit(6)
     |> Ash.read!(authorize?: false)
   rescue
-    _ -> []
+    exception ->
+      Logger.error("[stores_live] load_recent stores raised: #{Exception.message(exception)}")
+      []
   end
 
   defp load_editor_picks do
@@ -590,7 +599,9 @@ defmodule EmakolaWeb.StoresLive do
     |> Ash.Query.limit(6)
     |> Ash.read!(authorize?: false)
   rescue
-    _ -> []
+    exception ->
+      Logger.error("[stores_live] load_editor_picks raised: #{Exception.message(exception)}")
+      []
   end
 
   defp load_theme_counts(socket) do
@@ -622,7 +633,9 @@ defmodule EmakolaWeb.StoresLive do
         []
     end
   rescue
-    _ -> []
+    exception ->
+      Logger.error("[stores_live] load_favorite_slugs raised: #{Exception.message(exception)}")
+      []
   end
 
   # The recently_viewed_stores cookie is set by RecentlyViewedStores plug
@@ -658,7 +671,9 @@ defmodule EmakolaWeb.StoresLive do
     |> Enum.map(&Map.get(by_slug, &1))
     |> Enum.reject(&is_nil/1)
   rescue
-    _ -> []
+    exception ->
+      Logger.error("[stores_live] load_stores_by_slug raised: #{Exception.message(exception)}")
+      []
   end
 
   defp find_store_by_slug(slug) when is_binary(slug) do
@@ -667,7 +682,9 @@ defmodule EmakolaWeb.StoresLive do
       _ -> nil
     end
   rescue
-    _ -> nil
+    exception ->
+      Logger.error("[stores_live] find_store_by_slug raised: #{Exception.message(exception)}")
+      nil
   end
 
   defp favorite_store(customer, store, socket) do

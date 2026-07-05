@@ -7,6 +7,10 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.AuthComponents
+  import EmakolaWeb.OAuthComponents
+  import EmakolaWeb.Storefront.Path
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
@@ -27,7 +31,10 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
       {:ok, customer} when not is_nil(customer) ->
         # Verify customer belongs to this store
         if to_string(customer.store_id) == to_string(store.id) do
-          token = AshAuthentication.user_to_subject(customer)
+          token =
+            EmakolaWeb.AuthTokens.sign_subject_exchange(
+              AshAuthentication.user_to_subject(customer)
+            )
 
           {:noreply,
            redirect(socket, to: "/s/#{store.slug}/auth/customer-session?token=#{token}")}
@@ -61,6 +68,14 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
           >
             {@error_message}
           </div>
+
+          <.whatsapp_button
+            :if={Emakola.Accounts.PhoneAuth.enabled?()}
+            href={store_path(@store.slug, "/whatsapp")}
+            class="mb-6"
+          />
+
+          <.oauth_buttons subject="customer" store_slug={@store.slug} class="mb-6" />
 
           <.form for={@form} id="login-form" phx-submit="login" class="space-y-6">
             <div>
@@ -113,7 +128,7 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
             <p class="text-sm text-[#44403C]">
               Don't have an account?
               <.link
-                navigate={"/s/#{@store.slug}/register"}
+                navigate={store_path(@store.slug, "/register")}
                 class="font-medium text-cta-dark hover:underline"
               >
                 Create one
@@ -121,7 +136,7 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
             </p>
             <p>
               <.link
-                navigate={"/s/#{@store.slug}"}
+                navigate={store_path(@store.slug, "/")}
                 class="text-sm text-[#78716C] hover:text-[#44403C] transition-colors"
               >
                 Continue shopping

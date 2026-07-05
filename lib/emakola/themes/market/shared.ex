@@ -19,9 +19,9 @@ defmodule Emakola.Themes.Market.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#1C1917" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#B45309" %>;
-        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#FAFAF9" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#1C1917") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#B45309") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#FAFAF9") %>;
       }
     </style>
     """
@@ -59,6 +59,27 @@ defmodule Emakola.Themes.Market.Shared do
       category.image_url
     else
       nil
+    end
+  end
+
+  @doc """
+  wa.me link to the store's WhatsApp number prefilled with the product
+  title, or nil when the store has no number.
+  """
+  def whatsapp_link(store, product_title) do
+    case Map.get(store, :whatsapp_number) do
+      number when is_binary(number) ->
+        digits = String.replace(number, ~r/\D/, "")
+
+        if digits == "" do
+          nil
+        else
+          message = "Hi, I'm interested in #{product_title} from #{Map.get(store, :name)}"
+          "https://wa.me/#{digits}?text=#{URI.encode_www_form(message)}"
+        end
+
+      _ ->
+        nil
     end
   end
 end

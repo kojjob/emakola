@@ -5,11 +5,17 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Cart.CartStore
+  alias EmakolaWeb.Helpers.SEO
   alias EmakolaWeb.Helpers.StoreResolver
+  alias EmakolaWeb.SEO.Canonical
 
   @impl true
-  def mount(%{"store_slug" => slug, "category_slug" => category_slug}, session, socket) do
+  def mount(%{"category_slug" => category_slug}, session, socket) do
+    slug = socket.assigns.store.slug
+
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         case load_category(store.id, category_slug) do
@@ -18,7 +24,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
              socket
              |> assign(:store, store)
              |> put_flash(:error, "Category not found")
-             |> redirect(to: "/s/#{slug}/products")}
+             |> redirect(to: store_path(slug, "/products"))}
 
           category ->
             products = load_category_products(store.id, category.id)
@@ -26,7 +32,11 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
             parent = if category.parent_id, do: load_category_by_id(category.parent_id), else: nil
             categories = Emakola.Catalog.list_root_categories!(store.id)
             cart_session_id = session["cart_session_id"]
-            cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+
+            cart_count =
+              if connected?(socket) && cart_session_id,
+                do: CartStore.cart_count(cart_session_id, store.id),
+                else: 0
 
             {:ok,
              socket
@@ -44,7 +54,13 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
                meta_description: category_meta_description(category, store, product_count),
                og_image: first_product_image(products),
                og_type: "website",
-               og_site_name: store.name
+               og_site_name: store.name,
+               canonical_url: Canonical.category_url(store, category),
+               json_ld:
+                 SEO.json_ld_breadcrumb([
+                   %{name: store.name, url: Canonical.store_url(store)},
+                   %{name: category.name, url: Canonical.category_url(store, category)}
+                 ])
              )}
         end
 
@@ -73,29 +89,39 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
 
   @impl true
   def handle_event("add_to_cart", %{"product-id" => product_id}, socket) do
-    case Emakola.Catalog.get_product(product_id, authorize?: false) do
-      {:ok, product} when not is_nil(product) ->
+    case Emakola.Catalog.get_active_product(socket.assigns.store.id, product_id,
+           authorize?: false
+         ) do
+      {:ok, product} ->
         product = Ash.load!(product, [:variants, :images], authorize?: false)
         variant = product.variants |> Enum.sort_by(& &1.position) |> List.first()
 
-        if variant && variant.stock_quantity > 0 do
+        if variant && Emakola.Catalog.Variant.in_stock?(variant) do
           image_url =
             case product.images do
               [img | _] -> img.thumbnail_url || img.url
               _ -> nil
             end
 
-          Emakola.Cart.CartStore.add_item(socket.assigns.cart_session_id, %{
-            variant_id: variant.id,
-            quantity: 1,
-            product_title: product.title,
-            variant_info: variant.sku || "",
-            unit_price: variant.price,
-            sku: variant.sku,
-            image_url: image_url
-          })
+          Emakola.Cart.CartStore.add_item(
+            socket.assigns.cart_session_id,
+            socket.assigns.store.id,
+            %{
+              variant_id: variant.id,
+              quantity: 1,
+              product_title: product.title,
+              variant_info: variant.sku || "",
+              unit_price: variant.price,
+              sku: variant.sku,
+              image_url: image_url
+            }
+          )
 
-          cart_count = Emakola.Cart.CartStore.cart_count(socket.assigns.cart_session_id)
+          cart_count =
+            Emakola.Cart.CartStore.cart_count(
+              socket.assigns.cart_session_id,
+              socket.assigns.store.id
+            )
 
           {:noreply,
            socket

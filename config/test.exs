@@ -7,10 +7,21 @@ config :emakola, Emakola.Repo,
   hostname: "localhost",
   database: "emakola_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: System.schedulers_online() * 2
+  pool_size: System.schedulers_online() * 2,
+  # Generous queue/ownership windows: dashboard + checkout tests fan many
+  # Task-based queries onto one shared sandbox connection; DBConnection's
+  # default ~100ms queue window drops waiters under parallel suite load.
+  queue_target: 5_000,
+  queue_interval: 5_000,
+  ownership_timeout: 120_000,
+  timeout: 60_000
 
 # Oban: manual mode for assert_enqueued/refute_enqueued in tests
 config :emakola, Oban, testing: :manual
+
+# AshAuthentication token signing secret — test-only value
+config :emakola,
+  token_signing_secret: "dev-only-not-for-production-at-least-32-bytes!!"
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
@@ -45,6 +56,9 @@ config :phoenix,
 # HTTP client: use mock in tests
 config :emakola, :http_client, Emakola.HTTPClientMock
 
+# AI content generator: mock in tests — never call the real Claude API.
+config :emakola, :content_generator, Emakola.Content.GeneratorMock
+
 # Hubtel test credentials
 config :emakola, :hubtel_client_id, "test_client_id"
 config :emakola, :hubtel_client_secret, "test_client_secret"
@@ -71,6 +85,10 @@ config :emakola, Emakola.Payments.PaystackClient,
 # Notification providers: use Mox mocks in tests
 config :emakola, :sms_provider, Emakola.SMSProviderMock
 config :emakola, :whatsapp_provider, Emakola.WhatsAppProviderMock
+config :emakola, :push_provider, Emakola.PushProviderMock
+
+# Phone (WhatsApp/SMS) OTP auth enabled in tests.
+config :emakola, :phone_auth_enabled, true
 
 # Storage adapter: route through Mox so individual tests can expect/stub
 # the specific calls they care about. Tests that don't set expectations

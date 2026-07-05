@@ -5,8 +5,6 @@ defmodule Emakola.Accounts do
   resources do
     resource Emakola.Accounts.User do
       define(:register_with_password, args: [:email, :password, :password_confirmation])
-      define(:sign_in_with_password, args: [:email, :password])
-      define(:request_magic_link, args: [:email])
       define(:get_user_by_id, action: :read, get_by: [:id])
     end
 
@@ -23,7 +21,14 @@ defmodule Emakola.Accounts do
 
     resource Emakola.Accounts.Merchant do
       define(:update_merchant_profile, action: :update_profile)
+      define(:list_merchants_for_admin, action: :list_for_admin, args: [:search])
+      define(:get_merchant, action: :read, get_by: [:id])
+      define(:register_merchant_with_phone, action: :register_with_phone)
     end
+
+    # OAuth identity links for merchant social login (managed by
+    # AshAuthentication.UserIdentity).
+    resource(Emakola.Accounts.MerchantIdentity)
 
     # Store resource moved to Emakola.Stores on 2026-04-26.
     # See docs/PLAN-domain-restructuring-2026-04-26.md Step 3.
@@ -33,6 +38,17 @@ defmodule Emakola.Accounts do
       define(:get_merchant_store_membership, action: :by_merchant, args: [:merchant_id])
     end
 
+    resource(Emakola.Accounts.UserSession)
+
+    resource(Emakola.Accounts.PlatformInvite)
+
+    resource Emakola.Accounts.PlatformAuditLog do
+      define(:create_platform_audit_log, action: :create)
+      define(:list_platform_audit_logs, action: :list)
+    end
+
     resource(Emakola.Accounts.Token)
+
+    resource(Emakola.Accounts.PhoneOtp)
   end
 end

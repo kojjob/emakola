@@ -12,11 +12,15 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   - Related products horizontal scroll
   """
   use EmakolaWeb, :live_view
+
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.SEO, as: SEOHelpers
 
   @impl true
-  def mount(%{"store_slug" => slug, "product_slug" => product_slug}, session, socket) do
+  def mount(%{"product_slug" => product_slug}, session, socket) do
+    slug = socket.assigns.store.slug
     store = socket.assigns.store
 
     case load_product(store.id, product_slug) do
@@ -24,7 +28,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
         {:ok,
          socket
          |> put_flash(:error, "Product not found")
-         |> redirect(to: "/s/#{slug}/products")}
+         |> redirect(to: store_path(slug, "/products"))}
 
       product ->
         option_types = load_option_types(product)
@@ -33,7 +37,11 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
         related = load_related_products(store, product)
         categories = load_root_categories(store)
         cart_session_id = session["cart_session_id"]
-        cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+
+        cart_count =
+          if connected?(socket) && cart_session_id,
+            do: CartStore.cart_count(cart_session_id, store.id),
+            else: 0
 
         {:ok,
          socket
@@ -68,13 +76,13 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   end
 
   @impl true
-  def handle_params(_params, uri, socket) do
-    # Capture the absolute URL on first mount so SEO tags have a canonical
-    # URL. handle_params runs after mount and on every live navigation, so
-    # this also covers the case where the user re-enters the page via
-    # push_patch (variant selection doesn't patch, but it's the right hook
-    # regardless).
-    {:noreply, assign(socket, :canonical_url, uri)}
+  def handle_params(_params, _uri, socket) do
+    # Pin the canonical to the apex + /s/:slug subfolder (never the request host)
+    # so subdomains/custom domains all canonicalize to one indexed URL.
+    canonical =
+      EmakolaWeb.SEO.Canonical.product_url(socket.assigns.store, socket.assigns.product)
+
+    {:noreply, assign(socket, :canonical_url, canonical)}
   end
 
   @impl true
@@ -131,7 +139,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   def handle_event("add_to_cart", _params, socket) do
     variant = socket.assigns.selected_variant
 
-    if is_nil(variant) || variant.stock_quantity <= 0 do
+    if is_nil(variant) || not Emakola.Catalog.Variant.in_stock?(variant, socket.assigns.quantity) do
       {:noreply, put_flash(socket, :error, "This variant is out of stock")}
     else
       cart_session_id = socket.assigns.cart_session_id
@@ -147,7 +155,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
             nil
         end
 
-      CartStore.add_item(cart_session_id, %{
+      CartStore.add_item(cart_session_id, socket.assigns.store.id, %{
         variant_id: variant.id,
         quantity: quantity,
         product_title: socket.assigns.product.title,
@@ -157,7 +165,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
         image_url: image_url
       })
 
-      cart_count = CartStore.cart_count(cart_session_id)
+      cart_count = CartStore.cart_count(cart_session_id, socket.assigns.store.id)
 
       {:noreply,
        socket

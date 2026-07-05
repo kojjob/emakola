@@ -6,6 +6,7 @@ defmodule Emakola.Themes.Spotlight.Shared do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   attr :theme, :map, required: true
@@ -14,11 +15,11 @@ defmodule Emakola.Themes.Spotlight.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#16130F" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#7C3AED" %>;
-        --theme-accent-dark: <%= get_in(@theme, [:colors, :accent_dark]) || "#6D28D9" %>;
-        --theme-accent-soft: <%= get_in(@theme, [:colors, :accent_soft]) || "#EDE7FB" %>;
-        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#FBF9F5" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#16130F") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#7C3AED") %>;
+        --theme-accent-dark: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent_dark]), "#6D28D9") %>;
+        --theme-accent-soft: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent_soft]), "#EDE7FB") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#FBF9F5") %>;
       }
       .spot-body { font-family: 'Inter', sans-serif; color: #16130F; background: var(--theme-bg); }
       .spot-display { font-family: 'Archivo', 'Inter', sans-serif; font-weight: 800; letter-spacing: -0.02em; line-height: 0.95; }
@@ -38,17 +39,26 @@ defmodule Emakola.Themes.Spotlight.Shared do
     ~H"""
     <header class="sticky top-0 z-50 bg-[#FBF9F5]/85 backdrop-blur border-b border-[#ECE7DE]">
       <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-        <a href={"/s/#{@store.slug}"} class="spot-heading text-lg font-extrabold tracking-tight">
+        <a
+          href={store_path(@store.slug, "/")}
+          class="spot-heading text-lg font-extrabold tracking-tight"
+        >
           {@store.name}
         </a>
         <nav class="hidden md:flex items-center gap-7 text-sm text-[#6B675F]">
-          <a href={"/s/#{@store.slug}/products"} class="hover:text-[#16130F]">Product</a>
-          <a href="#benefits" class="hover:text-[#16130F]">Benefits</a>
-          <a href="#ingredients" class="hover:text-[#16130F]">Ingredients</a>
-          <a href="#reviews" class="hover:text-[#16130F]">Reviews</a>
+          <a href={store_path(@store.slug, "/products")} class="hover:text-[#16130F]">Product</a>
+          <a href={store_path(@store.slug, "/") <> "#benefits"} class="hover:text-[#16130F]">
+            Benefits
+          </a>
+          <a href={store_path(@store.slug, "/") <> "#ingredients"} class="hover:text-[#16130F]">
+            Ingredients
+          </a>
+          <a href={store_path(@store.slug, "/") <> "#testimonials"} class="hover:text-[#16130F]">
+            Reviews
+          </a>
         </nav>
         <a
-          href={"/s/#{@store.slug}/cart"}
+          href={store_path(@store.slug, "/cart")}
           class="relative inline-flex items-center gap-2 spot-cta rounded-full px-4 py-2 text-sm font-semibold"
           aria-label={"Cart, #{@cart_count} items"}
         >
@@ -73,29 +83,35 @@ defmodule Emakola.Themes.Spotlight.Shared do
           <div class="spot-heading text-xl font-extrabold">{@store.name}</div>
           <p class="text-sm text-[#6B675F] mt-3 max-w-sm leading-relaxed">
             {@store.description ||
-              "One product, done properly — made in Ghana, delivered to your door."}
+              "One product, done properly — delivered to your door."}
           </p>
         </div>
         <div>
           <h4 class="text-xs font-semibold uppercase tracking-wider mb-3">Shop</h4>
           <ul class="space-y-2 text-sm text-[#6B675F]">
             <li>
-              <a href={"/s/#{@store.slug}/products"} class="hover:text-[#16130F]">The product</a>
+              <a href={store_path(@store.slug, "/products")} class="hover:text-[#16130F]">
+                The product
+              </a>
             </li>
-            <li><a href={"/s/#{@store.slug}/cart"} class="hover:text-[#16130F]">Cart</a></li>
+            <li><a href={store_path(@store.slug, "/cart")} class="hover:text-[#16130F]">Cart</a></li>
           </ul>
         </div>
         <div>
           <h4 class="text-xs font-semibold uppercase tracking-wider mb-3">More</h4>
           <ul class="space-y-2 text-sm text-[#6B675F]">
-            <li><a href={"/s/#{@store.slug}/about"} class="hover:text-[#16130F]">About</a></li>
-            <li><a href={"/s/#{@store.slug}/track"} class="hover:text-[#16130F]">Track order</a></li>
+            <li>
+              <a href={store_path(@store.slug, "/about")} class="hover:text-[#16130F]">About</a>
+            </li>
+            <li>
+              <a href={store_path(@store.slug, "/track")} class="hover:text-[#16130F]">Track order</a>
+            </li>
           </ul>
         </div>
       </div>
       <div class="border-t border-[#ECE7DE]">
-        <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-5 text-xs text-[#9b968c]">
-          &copy; {DateTime.utc_now().year} {@store.name}. Made in Ghana.
+        <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-5 text-xs text-[#7A7468]">
+          &copy; {DateTime.utc_now().year} {@store.name}. All rights reserved.
         </div>
       </div>
     </footer>
@@ -154,7 +170,7 @@ defmodule Emakola.Themes.Spotlight.Shared do
 
   def product_card(assigns) do
     ~H"""
-    <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
+    <a href={store_path(@store.slug, "/products/#{@product.slug}")} class="group block">
       <div class="rounded-2xl overflow-hidden bg-white border border-[#ECE7DE] aspect-square relative">
         <.optimized_image
           :if={first_image(@product)}
@@ -179,7 +195,7 @@ defmodule Emakola.Themes.Spotlight.Shared do
       </div>
       <div class="pt-3">
         <h3 class="spot-heading text-sm font-semibold line-clamp-1">{@product.title}</h3>
-        <span class="text-sm font-bold text-[#7C3AED] mt-1 block">
+        <span class="text-sm font-bold text-[var(--theme-accent,#7C3AED)] mt-1 block">
           {EmakolaWeb.Helpers.Currency.format_price(
             @product.min_price || 0,
             Map.get(@store, :currency, "GHS")

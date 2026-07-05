@@ -11,11 +11,11 @@ defmodule Emakola.Themes.HomeLiving.Home do
   Sections (gated by `@theme.sections.*`):
   - Hero (charcoal, photographic, bold uppercase headline + 2 floating
     feature tiles overlaid bottom-right)
-  - "Shop by categories" stat bar (200+ Unique products)
+  - "Shop by categories" strip
   - 4-tile "Shop by room" categories
   - 4-feature sale band (Free Delivery / Safe Pay / Curation / Customers)
   - Featured products grid
-  - Editor's pick / Deal of the day on terracotta
+  - Editor's pick / Featured pick
   - Trust strip
   - Brand story split
   - Newsletter
@@ -23,6 +23,8 @@ defmodule Emakola.Themes.HomeLiving.Home do
   """
 
   use Phoenix.Component
+
+  import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.HomeLiving.Shared
 
@@ -78,8 +80,8 @@ defmodule Emakola.Themes.HomeLiving.Home do
               {@theme.hero.subtitle}
             </p>
             <a
-              href={"/s/#{@store.slug}/products"}
-              class="inline-flex items-center gap-2 px-7 py-4 rounded-full bg-[#1F2937] text-white text-sm font-semibold border border-white/20 hover:bg-white hover:text-[#1F2937] transition-colors min-h-[48px]"
+              href={store_path(@store.slug, "/products")}
+              class="inline-flex items-center gap-2 px-7 py-4 rounded-full bg-[#84CC16] text-[#1F2937] text-sm font-semibold hover:bg-white transition-colors min-h-[48px]"
             >
               {@theme.hero.cta_text || "Explore More"}
               <span class="material-symbols-outlined" style="font-size: 18px;">arrow_forward</span>
@@ -93,7 +95,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
           >
             <a
               :for={{product, idx} <- Enum.with_index(@tile_products)}
-              href={"/s/#{@store.slug}/products/#{product.slug}"}
+              href={store_path(@store.slug, "/products/#{product.slug}")}
               class="block w-40 h-40 rounded-2xl overflow-hidden bg-white/10 backdrop-blur-md ring-1 ring-white/20 group hover:ring-[#84CC16] transition-all"
             >
               <div class="relative w-full h-full">
@@ -125,7 +127,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
         </div>
       </section>
 
-      <%!-- SHOP BY CATEGORIES strip (Furniora "200+ Unique products") --%>
+      <%!-- SHOP BY CATEGORIES strip (Furniora) --%>
       <section class="bg-white py-10 sm:py-12 border-b border-[#E5E7EB]">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
@@ -133,19 +135,11 @@ defmodule Emakola.Themes.HomeLiving.Home do
               <h2 class="home-living-heading text-3xl sm:text-4xl font-bold text-[#1F2937] leading-tight">
                 Shop<br />by categories
               </h2>
-              <div class="flex items-center gap-2 mt-3">
-                <span class="material-symbols-outlined text-[#84CC16]" style="font-size: 22px;">
-                  inventory_2
-                </span>
-                <p class="text-sm text-[#4B5563]">
-                  <span class="font-bold text-[#1F2937]">200+</span> unique products
-                </p>
-              </div>
             </div>
             <div class="lg:col-span-9 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               <a
                 :for={room <- rooms_items(@theme)}
-                href={"/s/#{@store.slug}/products"}
+                href={store_path(@store.slug, "/products")}
                 class="group bg-[#F3F4F6] rounded-2xl p-4 sm:p-5 hover:bg-[#1F2937] hover:text-white transition-colors min-h-[120px] flex flex-col justify-between"
               >
                 <span
@@ -171,7 +165,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
               :for={item <- sale_band_items(@theme)}
               class="flex items-center gap-3"
             >
-              <span class="material-symbols-outlined text-[#84CC16]" style="font-size: 32px;">
+              <span class="material-symbols-outlined text-white" style="font-size: 32px;">
                 {item.icon}
               </span>
               <div>
@@ -191,7 +185,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-end justify-between mb-8">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#84CC16] mb-2">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#C2410C] mb-2">
                 Bestsellers
               </p>
               <h2 class="home-living-heading text-3xl sm:text-4xl font-bold text-[#1F2937]">
@@ -199,7 +193,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
               </h2>
             </div>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-[#1F2937] hover:gap-2 transition-all"
             >
               View all
@@ -216,7 +210,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
         </div>
       </section>
 
-      <%!-- DEAL OF THE DAY / Editor's Pick (terracotta secondary) --%>
+      <%!-- FEATURED PICK / Editor's Pick --%>
       <section
         :if={section_enabled?(@theme, :editor_pick) && @editor_pick}
         class="bg-[#FAF7F2] pb-14 sm:pb-20"
@@ -225,8 +219,8 @@ defmodule Emakola.Themes.HomeLiving.Home do
           <div class="grid lg:grid-cols-2 gap-0 rounded-3xl overflow-hidden bg-[#1F2937]">
             <div class="p-8 sm:p-12 lg:p-16 text-white order-2 lg:order-1 flex flex-col justify-center">
               <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#84CC16] text-[#1F2937] text-[11px] font-bold uppercase tracking-wider mb-5 self-start">
-                <span class="material-symbols-outlined" style="font-size: 12px;">flash_on</span>
-                Deal of the Day
+                <span class="material-symbols-outlined" style="font-size: 12px;">star</span>
+                Featured pick
               </span>
               <h2 class="home-living-heading text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-5">
                 {@editor_pick.title}
@@ -244,12 +238,9 @@ defmodule Emakola.Themes.HomeLiving.Home do
                     Map.get(@store, :currency, "GHS")
                   )}
                 </span>
-                <span class="text-sm text-white/50 line-through">
-                  20% off
-                </span>
               </div>
               <a
-                href={"/s/#{@store.slug}/products/#{@editor_pick.slug}"}
+                href={store_path(@store.slug, "/products/#{@editor_pick.slug}")}
                 class="inline-flex items-center gap-2 px-7 py-4 rounded-full bg-[#84CC16] text-[#1F2937] text-sm font-bold hover:bg-white transition-colors min-h-[48px] self-start"
               >
                 Shop now
@@ -308,7 +299,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
               </span>
             </div>
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#84CC16] mb-3">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#C2410C] mb-3">
                 Our story
               </p>
               <h2 class="home-living-heading text-3xl sm:text-4xl font-bold text-[#1F2937] mb-5 leading-tight">
@@ -319,7 +310,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
                   "We work with local craftspeople to bring you furniture that lasts. Solid wood, natural fibres, no fast-furniture shortcuts. Delivered across all 16 regions of Ghana."}
               </p>
               <a
-                href={"/s/#{@store.slug}/about"}
+                href={store_path(@store.slug, "/about")}
                 class="inline-flex items-center gap-1 mt-4 text-sm font-semibold text-[#1F2937] hover:gap-2 transition-all"
               >
                 Read more
@@ -409,8 +400,7 @@ defmodule Emakola.Themes.HomeLiving.Home do
     [
       %{icon: "local_shipping", title: "Free Delivery", subtitle: "Orders GHS 500+"},
       %{icon: "verified_user", title: "Safe Payment", subtitle: "MoMo & cards"},
-      %{icon: "schedule", title: "Daily Curation", subtitle: "Hand-picked"},
-      %{icon: "favorite", title: "Happy Customers", subtitle: "10k+ in Ghana"}
+      %{icon: "schedule", title: "Daily Curation", subtitle: "Hand-picked"}
     ]
   end
 

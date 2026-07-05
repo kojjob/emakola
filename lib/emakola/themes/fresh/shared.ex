@@ -4,13 +4,14 @@ defmodule Emakola.Themes.Fresh.Shared do
 
   Warm, organic, appetizing design for food and grocery stores:
   - Warm cream (#FEFCE8) background
-  - Emerald green (#059669) primary / warm brown (#92400E) accent
+  - Emerald green (#047857) primary / warm brown (#92400E) accent
   - Nunito headings + Inter body
   - Rounded-3xl cards with gentle shadows
   - Farmers market-style category circles
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias EmakolaWeb.Helpers.Currency
@@ -27,9 +28,9 @@ defmodule Emakola.Themes.Fresh.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#059669" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#92400E" %>;
-        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#FEFCE8" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#047857") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#92400E") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#FEFCE8") %>;
       }
     </style>
     """
@@ -50,7 +51,7 @@ defmodule Emakola.Themes.Fresh.Shared do
       <div class="bg-white border-b border-[#D9F99D]/60 shadow-sm">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between h-14 sm:h-16">
-            <a href={"/s/#{@store.slug}"} class="flex items-center gap-2.5 min-w-0">
+            <a href={store_path(@store.slug, "/")} class="flex items-center gap-2.5 min-w-0">
               <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#059669] to-[#047857] flex items-center justify-center flex-shrink-0 shadow-md">
                 <span
                   class="material-symbols-outlined text-white"
@@ -66,16 +67,12 @@ defmodule Emakola.Themes.Fresh.Shared do
                 >
                   {@store.name}
                 </div>
-                <div class="flex items-center gap-1 text-xs text-[#059669] leading-tight">
-                  <span class="w-1.5 h-1.5 rounded-full bg-[#059669] flex-shrink-0"></span>
-                  <span>Open</span>
-                </div>
               </div>
             </a>
 
             <div class="flex items-center gap-1">
               <a
-                href={"/s/#{@store.slug}/products"}
+                href={store_path(@store.slug, "/products")}
                 class="p-2.5 rounded-xl hover:bg-[#ECFDF5] transition-colors"
                 aria-label="Search products"
               >
@@ -94,7 +91,7 @@ defmodule Emakola.Themes.Fresh.Shared do
                 </svg>
               </a>
               <a
-                href={"/s/#{@store.slug}/cart"}
+                href={store_path(@store.slug, "/cart")}
                 class="relative p-2.5 rounded-xl hover:bg-[#ECFDF5] transition-colors"
                 aria-label={"Shopping cart, #{@cart_count} items"}
               >
@@ -194,7 +191,7 @@ defmodule Emakola.Themes.Fresh.Shared do
     assigns = assign(assigns, :image, first_image(assigns.product))
 
     ~H"""
-    <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
+    <a href={store_path(@store.slug, "/products/#{@product.slug}")} class="group block">
       <div class="relative rounded-3xl overflow-hidden mb-3 bg-[#FEF9C3]/30 shadow-sm group-hover:shadow-lg group-hover:shadow-emerald-100/60 transition-all duration-300">
         <.optimized_image
           :if={@image}
@@ -231,7 +228,7 @@ defmodule Emakola.Themes.Fresh.Shared do
       >
         {@product.title}
       </p>
-      <p class="text-sm font-bold text-[#059669]">
+      <p class="text-sm font-bold text-[var(--theme-primary,#047857)]">
         {Currency.format_price_range(@product.min_price, @product.max_price, @store.currency)}
       </p>
     </a>
@@ -324,7 +321,7 @@ defmodule Emakola.Themes.Fresh.Shared do
             <ul class="space-y-2 mb-4">
               <li>
                 <a
-                  href={"/s/#{@store.slug}/blog"}
+                  href={store_path(@store.slug, "/blog")}
                   class="text-sm text-[#78350F] hover:text-[#059669] transition-colors"
                   style="font-family: 'Inter', sans-serif;"
                 >
@@ -333,7 +330,7 @@ defmodule Emakola.Themes.Fresh.Shared do
               </li>
               <li>
                 <a
-                  href={"/s/#{@store.slug}/recipes"}
+                  href={store_path(@store.slug, "/recipes")}
                   class="text-sm text-[#78350F] hover:text-[#059669] transition-colors"
                   style="font-family: 'Inter', sans-serif;"
                 >
@@ -342,7 +339,7 @@ defmodule Emakola.Themes.Fresh.Shared do
               </li>
               <li>
                 <a
-                  href={"/s/#{@store.slug}/about"}
+                  href={store_path(@store.slug, "/about")}
                   class="text-sm text-[#78350F] hover:text-[#059669] transition-colors"
                   style="font-family: 'Inter', sans-serif;"
                 >
@@ -360,7 +357,7 @@ defmodule Emakola.Themes.Fresh.Shared do
             <ul class="space-y-2">
               <li :for={cat <- Enum.take(@categories, 6)}>
                 <a
-                  href={"/s/#{@store.slug}/products?category=#{cat.slug}"}
+                  href={store_path(@store.slug, "/products?category=#{cat.slug}")}
                   class="text-sm text-[#78350F] hover:text-[#059669] transition-colors"
                   style="font-family: 'Inter', sans-serif;"
                 >
@@ -394,7 +391,7 @@ defmodule Emakola.Themes.Fresh.Shared do
                 WhatsApp
               </a>
               <a
-                href={"/s/#{@store.slug}/products"}
+                href={store_path(@store.slug, "/products")}
                 class="flex items-center gap-2 text-sm text-[#78350F] hover:text-[#059669] transition-colors"
                 style="font-family: 'Inter', sans-serif;"
               >
@@ -431,7 +428,7 @@ defmodule Emakola.Themes.Fresh.Shared do
             </span>
           </div>
           <p class="text-xs text-[#78350F]/60" style="font-family: 'Inter', sans-serif;">
-            {@store.name} -- Powered by Emakola
+            {@store.name} — Powered by Makola
           </p>
         </div>
       </div>

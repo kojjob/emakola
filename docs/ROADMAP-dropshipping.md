@@ -1,6 +1,7 @@
 # Emakola — Dropshipping Roadmap (Merchant-Managed Suppliers)
 
-> Feature roadmap | Status: 🔵 Planned | Spec: `~/.claude/plans/let-brainstorm-how-we-typed-bachman.md`
+> Feature roadmap | Status: DS.1–DS.5 ✅ shipped · Trustless settlement (SP-series) 🟡 in review (#158/#159)
+> Specs: `~/.claude/plans/let-brainstorm-how-we-typed-bachman.md` (DS) · `~/.claude/plans/let-brainstorm-on-dropshipping-serene-dahl.md` (SP)
 
 ## Vision
 
@@ -114,9 +115,49 @@ as soon as their backing milestone is done (e.g., supplier CRUD UI right after D
   floating-point drift, no double-entry on retries.
 - **Cross-currency** (out of scope): suppliers priced in a foreign currency is deferred.
 
+## 🟡 Trustless Split Settlement — SP-series (NEW, 2026-06)
+
+> **Status: in review** — PRs [#158](https://github.com/kojjob/emakola/pull/158) (core)
+> and [#159](https://github.com/kojjob/emakola/pull/159) (integration), stacked.
+> Spec: `~/.claude/plans/let-brainstorm-on-dropshipping-serene-dahl.md`.
+
+**Problem.** DS.1–DS.5 settle suppliers via a *manual* ledger — the customer's full
+payment lands in the dropshipper's account first, who is then trusted to pay the supplier.
+That trust gap is fraud-prone, and it blocks merchants with **no working capital** from
+dropshipping at all.
+
+**Solution.** Split the charge **at the gateway** (Paystack Multi-Split) so each party is
+paid directly and the wholesaler's cut never touches the dropshipper's balance. **No
+platform custody** (avoids Bank of Ghana PSP licensing). Platform fee = **% of dropship
+margin** in basis points. Wholesalers are first-class Emakola stores (supplier network).
+
+Decomposed into 5 sub-projects; **SP1 + SP5 built first** (the money rails).
+
+| ID | Sub-project | Status |
+|----|-------------|--------|
+| **SP5** | Split settlement engine — `SplitCalculator`, `DropshipSettlement`, `OrderSettlement`, `PaymentSplit`, checkout wiring, webhook settle/reverse | ✅ Built (#158/#159) |
+| **SP1** | Payout identity — `StorePayoutAccount`, `Supplier.linked_store_id`, gateway `create_subaccount/1` | ✅ Data + gateway built; ⬜ merchant onboarding UI |
+| **SP2** | Supply connections — wholesaler↔dropshipper handshake (`SupplyConnection`) | 🔵 Planned |
+| **SP3** | Cross-store catalog sourcing — import wholesaler products; price/availability sync | 🔵 Planned |
+| **SP4** | Cross-store order & fulfillment — wholesaler inbound dashboard; cross-tenant auth | 🔵 Planned |
+
+**Done (built, TDD, full suite green):**
+- [x] `SplitCalculator` — pure 3-way split off margin, integer minor units, reconciles exactly
+- [x] `Supplier.linked_store_id` bridge + `StorePayoutAccount` (subaccount + verification)
+- [x] `PaymentSplit` (`pending→settled→reversed`) + `Payment.split_mode/split_code`
+- [x] Gateway `create_subaccount/1` + `:split` on `initiate_payment/1` (Paystack flat split)
+- [x] `DropshipSettlement` (resolve→split or fallback) + `OrderSettlement` (reconciles to `order.total`, folds delivery−discount into dropshipper share)
+- [x] `CheckoutLive` wired; `PaystackWebhookHandler` settles on success / reverses on refund
+
+**Remaining:**
+- [ ] **SP1 onboarding UI** — merchant screen to create a payout subaccount and verify it
+- [ ] **Refund clawback** — debit reversed splits against future payouts (currently splits only flip to `:reversed`)
+- [ ] **SP2–SP4** — the supplier-network marketplace
+- [ ] Ops confirms: Paystack txn-fee bearer; verify Paystack Ghana supports **MoMo as a subaccount destination** (else Transfers)
+
+---
+
 ## Beyond MVP (not scheduled)
-- Emakola-run central supplier marketplace (stores import shared catalog).
-- Supplier-facing portal / login (vs. notification-only).
 - API/inventory sync with supplier systems.
-- Automated supplier settlement (MoMo payout vs. manual mark-paid).
 - Per-supplier returns/RMA flow.
+- Stripe Connect gateway for international/USD (core is gateway-neutral; Stripe doesn't serve Ghana/Nigeria local payments — it owns Paystack).

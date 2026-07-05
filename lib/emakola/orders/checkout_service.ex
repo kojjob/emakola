@@ -89,7 +89,10 @@ defmodule Emakola.Orders.CheckoutService do
   """
   def calculate_discount(%{discount_type: :percentage} = coupon, subtotal, _delivery_fee) do
     raw = div(subtotal * coupon.discount_value, 10_000)
-    if coupon.max_discount_amount, do: min(raw, coupon.max_discount_amount), else: raw
+    capped = if coupon.max_discount_amount, do: min(raw, coupon.max_discount_amount), else: raw
+    # Never discount more than the subtotal, or the order total would go
+    # negative (defence in depth if a coupon slips past the 100% cap).
+    min(capped, subtotal)
   end
 
   def calculate_discount(%{discount_type: :fixed_amount} = coupon, subtotal, _delivery_fee) do
@@ -124,22 +127,43 @@ defmodule Emakola.Orders.CheckoutService do
       Enum.any?(variants, fn v -> v.store_id != store_id end) ->
         {:error, :variant_not_in_store}
 
+      Enum.any?(variants, fn v -> not product_available?(v.product) end) ->
+        {:error, :product_unavailable}
+
       true ->
         {:ok, Map.new(variants, fn v -> {v.id, v} end)}
     end
   end
 
+  # A variant can't be ordered once its product has been REMOVED from sale —
+  # archived by the merchant or taken down by platform moderation. The storefront
+  # only lets an `:active` product into a cart (Catalog `get_active_product`), and
+  # an active product has no transition back to `:draft` — so these two states are
+  # exactly the stale-cart hazards: a product live when added, removed before
+  # checkout. This stops a taken-down (e.g. counterfeit) item being bought anyway.
+  defp product_available?(%{status: :archived}), do: false
+  defp product_available?(%{moderation_status: moderation}) when moderation != :ok, do: false
+  defp product_available?(_), do: true
+
   defp validate_stock(variants, items) do
     insufficient =
       Enum.any?(items, fn %{variant_id: vid, quantity: qty} ->
         variant = Map.fetch!(variants, vid)
-        # Dropshipped / intentionally untracked variants have no numeric stock
-        # to check — only tracked own-stock is gated here.
-        variant.track_inventory and variant.stock_quantity < qty
+        not available_for_order?(variant, qty)
       end)
 
     if insufficient, do: {:error, :insufficient_stock}, else: :ok
   end
+
+  # A dropship (supplier-fulfilled) variant the supplier marked unavailable is
+  # out of stock regardless of its numeric quantity — Variant.in_stock?/2 alone
+  # treats every untracked variant as available, so it misses this. Mirrors
+  # Inventory.stock_status, the rule the storefront uses.
+  defp available_for_order?(%{supplier_id: sid, available: false}, _qty)
+       when not is_nil(sid),
+       do: false
+
+  defp available_for_order?(variant, qty), do: Emakola.Catalog.Variant.in_stock?(variant, qty)
 
   defp check_coupon_validity(coupon, subtotal) do
     now = DateTime.utc_now()
@@ -195,30 +219,23 @@ defmodule Emakola.Orders.CheckoutService do
       # (including the nil key for merchant-owned/own-stock items).
       fulfillment_ids = create_fulfillments(store_id, order.id, items, variants)
 
-      # 4. Create line items and decrement stock for tracked variants only
+      # 4. Create line items. Stock is NOT decremented here — it's reserved
+      #    nowhere at checkout and decremented only when payment confirms the
+      #    order (Order :confirm -> Changes.DecrementStock), so an abandoned or
+      #    unpaid order never bleeds inventory.
       line_items =
         Enum.map(items, fn %{variant_id: vid, quantity: qty} ->
           variant = Map.fetch!(variants, vid)
 
-          line_item =
-            Emakola.Orders.LineItem
-            |> Ash.Changeset.for_create(:create, %{
-              order_id: order.id,
-              store_id: store_id,
-              variant_id: vid,
-              quantity: qty,
-              fulfillment_id: Map.fetch!(fulfillment_ids, variant.supplier_id)
-            })
-            |> Ash.create!(authorize?: false)
-
-          # Dropshipped / untracked variants carry no numeric stock to decrement.
-          if variant.track_inventory do
-            variant
-            |> Ash.Changeset.for_update(:adjust_stock, %{delta: -qty})
-            |> Ash.update!(authorize?: false)
-          end
-
-          line_item
+          Emakola.Orders.LineItem
+          |> Ash.Changeset.for_create(:create, %{
+            order_id: order.id,
+            store_id: store_id,
+            variant_id: vid,
+            quantity: qty,
+            fulfillment_id: Map.fetch!(fulfillment_ids, variant.supplier_id)
+          })
+          |> Ash.create!(authorize?: false)
         end)
 
       # 4a. Record what we owe each supplier for their dropship fulfillment.

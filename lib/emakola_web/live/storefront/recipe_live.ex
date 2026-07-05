@@ -4,11 +4,17 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Cart.CartStore
+  alias EmakolaWeb.Helpers.SEO
   alias EmakolaWeb.Helpers.StoreResolver
+  alias EmakolaWeb.SEO.Canonical
 
   @impl true
-  def mount(%{"store_slug" => slug, "recipe_slug" => recipe_slug}, session, socket) do
+  def mount(%{"recipe_slug" => recipe_slug}, session, socket) do
+    slug = socket.assigns.store.slug
+
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         case Emakola.Content.Post
@@ -28,7 +34,11 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
             recipe_meta = load_recipe_meta(post.id)
 
             cart_session_id = session["cart_session_id"]
-            cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+
+            cart_count =
+              if connected?(socket) && cart_session_id,
+                do: CartStore.cart_count(cart_session_id, store.id),
+                else: 0
 
             {:ok,
              socket
@@ -39,13 +49,14 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
              |> assign(:cart_session_id, cart_session_id)
              |> assign(:cart_count, cart_count)
              |> assign(:categories, [])
-             |> assign(:page_title, "#{post.title} - #{store.name}")}
+             |> assign(:page_title, "#{post.title} - #{store.name}")
+             |> assign_recipe_seo(store, post, recipe_meta)}
 
           _ ->
             {:ok,
              socket
              |> put_flash(:error, "Recipe not found")
-             |> redirect(to: "/s/#{slug}/recipes")}
+             |> redirect(to: store_path(slug, "/recipes"))}
         end
 
       {:error, :not_found} ->
@@ -59,6 +70,27 @@ defmodule EmakolaWeb.Storefront.RecipeLive do
       {:ok, rendered} -> rendered
       :default -> Emakola.Themes.DefaultRenderers.RecipeDetail.render(assigns)
     end
+  end
+
+  defp assign_recipe_seo(socket, store, post, recipe_meta) do
+    post_with_meta = Map.put(post, :recipe_meta, recipe_meta)
+
+    json_ld = [
+      SEO.json_ld_recipe(post_with_meta, store),
+      SEO.json_ld_breadcrumb([
+        %{name: store.name, url: Canonical.store_url(store)},
+        %{name: "Recipes", url: Canonical.path(store, "/recipes")},
+        %{name: post.title, url: Canonical.recipe_url(store, post)}
+      ])
+    ]
+
+    socket
+    |> assign(:meta_description, post.seo_description || post.excerpt)
+    |> assign(:og_image, post.featured_image_url)
+    |> assign(:og_type, "article")
+    |> assign(:og_site_name, store.name)
+    |> assign(:canonical_url, Canonical.recipe_url(store, post))
+    |> assign(:json_ld, json_ld)
   end
 
   defp load_recipe_meta(post_id) do

@@ -1,20 +1,39 @@
 defmodule EmakolaWeb.LandingLive do
   use EmakolaWeb, :live_view
 
-  import EmakolaWeb.LandingComponents, only: [landing_footer: 1]
+  import EmakolaWeb.LandingComponents, only: [landing_nav: 1, landing_footer: 1]
+
+  # Mirrored by the hero-rotate keyframes in assets/css/app.css — update both if word count changes.
+  @rotating_words ["big name in Accra", "household brand", "MoMo success story", "market leader"]
+
+  @faqs [
+    {"What is Makola?",
+     "Makola is an ecommerce platform for West African merchants. You create an online store, accept mobile money payments, and manage orders from one dashboard."},
+    {"Who can sell on Makola?",
+     "Anyone with something to sell: market traders, seamstresses and tailors, hair stylists, beauticians and cosmetics sellers, barbers, tradesmen, food vendors, and electronics shops. Themed storefronts fit each trade."},
+    {"How much does Makola cost?",
+     "Makola is free to start — you pay 3.5% per sale on the Starter plan. Paid plans start at GHS 29 per month with lower transaction rates."},
+    {"Can I accept MTN MoMo and Vodafone Cash?",
+     "Yes. Makola supports MTN MoMo, Vodafone Cash, AirtelTigo, and card payments through Paystack and Hubtel."},
+    {"What is dropshipping on Makola?",
+     "Dropshipping lets you sell products your suppliers hold. When an order comes in, the supplier fulfills it and Makola tracks supplier costs and settlements automatically."},
+    {"Can I sell digital products?",
+     "Yes. Upload files to a product and customers get automatic download access after payment."},
+    {"Do customers get order updates?",
+     "Yes, automatically on WhatsApp and SMS: order confirmations, shipping updates, and delivery notifications."}
+  ]
 
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket,
-       page_title: "Emakola — Online Stores for Ghana | Accept Mobile Money",
+       page_title: "Makola — Start Selling Online in Ghana | Mobile Money & Dropshipping",
        meta_description:
-         "Launch your online store in Ghana. Accept MTN MoMo, Vodafone Cash, and card payments. WhatsApp order notifications. Join 500+ merchants on Emakola.",
-       og_title: "Emakola — Sell Online in Ghana",
-       og_description:
-         "The easiest way to create an online store in West Africa. Mobile money payments, WhatsApp notifications, and more.",
-       og_image: "/images/og-image.png",
-       twitter_card: "summary_large_image",
+         "Create your online store in Ghana. Accept MTN MoMo and Vodafone Cash, dropship from local suppliers, and send WhatsApp order updates. Free to start.",
+       og_image: url(~p"/images/og-image.png"),
+       canonical_url: url(~p"/"),
+       preload_image: "/images/landing/hero-market-woman.jpg",
+       json_ld: json_ld(),
        mobile_menu_open: false
      ), layout: false}
   end
@@ -32,1021 +51,630 @@ defmodule EmakolaWeb.LandingLive do
       phx-hook="ScrollReveal"
       class="min-h-screen bg-[#0c1526] text-[#f1f5f9] font-body antialiased"
     >
-      
-    <!-- ============================================ -->
-      <!-- SECTION 1: NAVIGATION                        -->
-      <!-- ============================================ -->
-      <nav
-        id="main-nav"
-        phx-hook="ScrollGlass"
-        class="fixed top-0 left-0 right-0 z-50 bg-[#0c1526]/80 backdrop-blur-md border-b border-transparent transition-all duration-300"
-      >
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="flex items-center justify-between h-16">
-            <!-- Logo -->
-            <a href="/" class="flex items-center gap-2">
-              <img src={~p"/images/emakola-logo.svg"} alt="Emakola" class="h-8 w-auto" />
-              <span class="text-xl font-headline font-bold text-[#f1f5f9]">Emakola</span>
-            </a>
-            <!-- Desktop Nav Links -->
-            <div class="hidden md:flex items-center gap-8">
-              <a
-                href="#features"
-                class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors"
-              >
-                Features
-              </a>
-              <a
-                href="#pricing"
-                class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors"
-              >
-                Pricing
-              </a>
-              <a
-                href="#how-it-works"
-                class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors"
-              >
-                How It Works
-              </a>
-            </div>
-            <!-- Desktop CTAs -->
-            <div class="hidden md:flex items-center gap-4">
-              <a
-                href="/auth/login"
-                class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors"
-              >
-                Login
-              </a>
-              <a
-                href="/auth/register"
-                class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-[#2563eb] rounded-lg hover:bg-[#1d4ed8] transition-colors focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1526]"
-              >
-                Get Started
-              </a>
-            </div>
-            <!-- Mobile Hamburger -->
-            <button
-              phx-click="toggle_mobile_menu"
-              class="md:hidden p-2 text-[#8896ab] hover:text-[#f1f5f9]"
-              aria-label="Toggle menu"
-            >
-              <span class="material-symbols-outlined text-2xl">
-                {if @mobile_menu_open, do: "close", else: "menu"}
-              </span>
-            </button>
-          </div>
-        </div>
-        <!-- Mobile Menu Overlay -->
-        <div
-          :if={@mobile_menu_open}
-          class="md:hidden fixed inset-0 top-16 bg-[#0c1526] z-40 flex flex-col items-center justify-start pt-12 gap-6 animate-slide-down"
-        >
-          <a
-            href="#features"
-            phx-click="toggle_mobile_menu"
-            class="text-lg text-[#8896ab] hover:text-[#f1f5f9]"
-          >
-            Features
-          </a>
-          <a
-            href="#pricing"
-            phx-click="toggle_mobile_menu"
-            class="text-lg text-[#8896ab] hover:text-[#f1f5f9]"
-          >
-            Pricing
-          </a>
-          <a
-            href="#how-it-works"
-            phx-click="toggle_mobile_menu"
-            class="text-lg text-[#8896ab] hover:text-[#f1f5f9]"
-          >
-            How It Works
-          </a>
-          <hr class="w-24 border-[#1a2744]" />
-          <a href="/auth/login" class="text-lg text-[#8896ab] hover:text-[#f1f5f9]">Login</a>
-          <a
-            href="/auth/register"
-            class="inline-flex items-center px-6 py-3 text-base font-semibold text-white bg-[#2563eb] rounded-lg hover:bg-[#1d4ed8]"
-          >
-            Get Started
-          </a>
-        </div>
-      </nav>
-      
-    <!-- ============================================ -->
-      <!-- SECTION 2: HERO (SPLIT SCREEN)               -->
-      <!-- ============================================ -->
-      <section class="min-h-screen flex flex-col lg:flex-row pt-16">
-        <!-- Merchant Side (Dark) -->
-        <div class="flex-1 flex items-center overflow-hidden bg-gradient-to-br from-[#0c1526] to-[#1a2744]">
-          <div class="max-w-xl px-8 py-16 lg:py-20 lg:px-16">
-            <span class="inline-block text-xs font-semibold tracking-[0.15em] uppercase text-[#d4a843] mb-3">
-              FOR MERCHANTS
-            </span>
-            <h1 class="text-4xl lg:text-5xl font-headline font-extrabold text-[#f1f5f9] leading-[1.1] mb-4">
-              Launch Your Online Store in Ghana
-            </h1>
-            <p class="text-sm text-[#8896ab] mb-5 max-w-md">
-              Accept MTN MoMo, Vodafone Cash, and card payments. Notify customers on WhatsApp.
-              Manage everything from one dashboard.
-            </p>
-            
-    <!-- CTA Buttons -->
-            <div class="flex flex-wrap gap-3 mb-5">
-              <a
-                href="/auth/register"
-                class="inline-flex items-center px-6 py-3 text-sm font-semibold text-[#0c1526] bg-[#d4a843] rounded-lg hover:bg-[#c49a3a] transition-colors focus-visible:ring-2 focus-visible:ring-[#d4a843] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1526]"
-              >
-                Start Selling — Free
-              </a>
-              <a
-                href="#features"
-                class="inline-flex items-center px-6 py-3 text-sm font-semibold text-[#8896ab] border border-[#2a3a5c] rounded-lg hover:text-[#f1f5f9] hover:border-[#f1f5f9] transition-colors"
-              >
-                See Features
-              </a>
-            </div>
-            
-    <!-- Mini Dashboard Preview -->
-            <div class="bg-[#0c1526]/60 backdrop-blur-sm rounded-xl p-4 max-w-sm mb-5">
-              <div class="flex items-center justify-between mb-3">
-                <span class="text-xs text-[#8896ab]">Your Dashboard</span>
-                <span class="text-[10px] text-[#d4a843] font-medium">Live Preview</span>
-              </div>
-              <div class="grid grid-cols-3 gap-2 mb-3">
-                <div class="bg-[#1a2744] rounded-lg p-2.5 text-center">
-                  <p class="text-lg font-bold text-[#d4a843]">GHS 2,450</p>
-                  <p class="text-[10px] text-[#8896ab]">Today's Sales</p>
-                </div>
-                <div class="bg-[#1a2744] rounded-lg p-2.5 text-center">
-                  <p class="text-lg font-bold text-[#f1f5f9]">24</p>
-                  <p class="text-[10px] text-[#8896ab]">Orders</p>
-                </div>
-                <div class="bg-[#1a2744] rounded-lg p-2.5 text-center">
-                  <p class="text-lg font-bold text-[#f1f5f9]">156</p>
-                  <p class="text-[10px] text-[#8896ab]">Customers</p>
-                </div>
-              </div>
-              <!-- Recent order row -->
-              <div class="flex items-center justify-between bg-[#1a2744] rounded-lg px-3 py-2">
-                <div class="flex items-center gap-2">
-                  <span class="material-symbols-outlined text-sm text-[#25D366]">check_circle</span>
-                  <span class="text-xs text-[#f1f5f9]">New order from Accra</span>
-                </div>
-                <span class="text-xs font-bold text-[#d4a843]">GHS 85</span>
-              </div>
-            </div>
-            
-    <!-- Payment Provider Badges -->
-            <div class="flex flex-wrap gap-2">
-              <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1a2744]/60 text-[10px] text-[#8896ab]">
-                <span class="material-symbols-outlined text-sm">account_balance_wallet</span> MTN MoMo
-              </div>
-              <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1a2744]/60 text-[10px] text-[#8896ab]">
-                <span class="material-symbols-outlined text-sm">payments</span> Vodafone Cash
-              </div>
-              <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1a2744]/60 text-[10px] text-[#8896ab]">
-                <span class="material-symbols-outlined text-sm">credit_card</span> Paystack
-              </div>
-              <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#1a2744]/60 text-[10px] text-[#8896ab]">
-                <span class="material-symbols-outlined text-sm">storefront</span> Hubtel
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Shopper Side (Light) -->
-        <div class="flex-1 flex items-center overflow-hidden bg-gradient-to-bl from-[#f7f8fa] to-[#e8eaed]">
-          <div class="max-w-xl px-8 py-16 lg:py-20 lg:px-16">
-            <span class="inline-block text-xs font-semibold tracking-[0.15em] uppercase text-[#2563eb] mb-3">
-              FOR SHOPPERS
-            </span>
-            <h1 class="text-3xl lg:text-4xl font-headline font-bold text-[#0c1526] leading-tight mb-3">
-              Shop Trusted Local Businesses
-            </h1>
-            <p class="text-sm text-[#5f6b7a] mb-5 max-w-md">
-              Pay with mobile money. Get order updates on WhatsApp. Support local merchants.
-            </p>
-            
-    <!-- Search Bar Mockup -->
-            <div class="flex items-center bg-white rounded-xl shadow-md px-4 py-3 mb-5 max-w-sm">
-              <span class="material-symbols-outlined text-[#8896ab] text-xl mr-3">search</span>
-              <span class="text-sm text-[#8896ab]">Search products, stores...</span>
-              <a
-                href="/stores"
-                class="ml-auto bg-[#2563eb] text-white text-xs font-semibold px-4 py-1.5 rounded-lg hover:bg-[#1d4ed8] transition-colors"
-              >
-                Browse Stores
-              </a>
-            </div>
-            
-    <!-- Popular Categories -->
-            <div class="flex flex-wrap gap-2 mb-5">
-              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white shadow-sm text-xs font-medium text-[#0c1526]">
-                <span class="material-symbols-outlined text-sm text-[#d4a843]">checkroom</span>
-                Fashion
-              </span>
-              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white shadow-sm text-xs font-medium text-[#0c1526]">
-                <span class="material-symbols-outlined text-sm text-[#d4a843]">spa</span> Beauty
-              </span>
-              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white shadow-sm text-xs font-medium text-[#0c1526]">
-                <span class="material-symbols-outlined text-sm text-[#d4a843]">devices</span>
-                Electronics
-              </span>
-              <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white shadow-sm text-xs font-medium text-[#0c1526]">
-                <span class="material-symbols-outlined text-sm text-[#d4a843]">restaurant</span> Food
-              </span>
-            </div>
-            
-    <!-- Product Cards -->
-            <div class="grid grid-cols-3 gap-2.5 max-w-sm">
-              <div class="bg-white rounded-xl shadow-md overflow-hidden">
-                <img
-                  src={~p"/images/landing/product-kente.jpg"}
-                  alt="Kente cloth"
-                  class="w-full h-20 object-cover"
-                />
-                <div class="p-2">
-                  <p class="text-[11px] font-semibold text-[#0c1526] truncate">Kente Cloth</p>
-                  <p class="text-xs font-bold text-[#d4a843]">GHS 150</p>
-                </div>
-              </div>
-              <div class="bg-white rounded-xl shadow-md overflow-hidden">
-                <img
-                  src={~p"/images/landing/product-shea.jpg"}
-                  alt="Shea butter"
-                  class="w-full h-20 object-cover"
-                />
-                <div class="p-2">
-                  <p class="text-[11px] font-semibold text-[#0c1526] truncate">Shea Butter</p>
-                  <p class="text-xs font-bold text-[#d4a843]">GHS 45</p>
-                </div>
-              </div>
-              <div class="bg-white rounded-xl shadow-md overflow-hidden">
-                <img
-                  src={~p"/images/landing/product-ankara.jpg"}
-                  alt="Ankara dress"
-                  class="w-full h-20 object-cover"
-                />
-                <div class="p-2">
-                  <p class="text-[11px] font-semibold text-[#0c1526] truncate">Ankara Dress</p>
-                  <p class="text-xs font-bold text-[#d4a843]">GHS 85</p>
-                </div>
-              </div>
-            </div>
-            
-    <!-- Trust signals -->
-            <div class="flex items-center gap-4 mt-5">
-              <div class="flex items-center gap-1.5 text-xs text-[#5f6b7a]">
-                <span class="material-symbols-outlined text-sm text-[#2563eb]">verified_user</span>
-                Secure Payment
-              </div>
-              <div class="flex items-center gap-1.5 text-xs text-[#5f6b7a]">
-                <span class="material-symbols-outlined text-sm text-[#2563eb]">local_shipping</span>
-                Local Delivery
-              </div>
-              <div class="flex items-center gap-1.5 text-xs text-[#5f6b7a]">
-                <span class="material-symbols-outlined text-sm text-[#2563eb]">chat</span>
-                WhatsApp Updates
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-    <!-- ============================================ -->
-      <!-- SECTION 3: TRUST BAR                         -->
-      <!-- ============================================ -->
-      <section class="bg-[#f0f1f4] py-6 px-4">
-        <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
-          <span class="text-sm text-[#5f6b7a] font-medium whitespace-nowrap">
-            Trusted by 500+ merchants across Ghana — and growing
-          </span>
-          <div class="flex flex-wrap items-center justify-center gap-3 sm:gap-5">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#ffcb05]/10 border border-[#ffcb05]/30">
-              <span class="w-2 h-2 rounded-full bg-[#ffcb05]"></span>
-              <span class="text-xs font-bold text-[#3f3f46]">MTN MoMo</span>
-            </span>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#e60000]/10 border border-[#e60000]/30">
-              <span class="w-2 h-2 rounded-full bg-[#e60000]"></span>
-              <span class="text-xs font-bold text-[#3f3f46]">Vodafone Cash</span>
-            </span>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0033a1]/10 border border-[#0033a1]/30">
-              <span class="w-2 h-2 rounded-full bg-[#0033a1]"></span>
-              <span class="text-xs font-bold text-[#3f3f46]">AirtelTigo</span>
-            </span>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#00c3f7]/10 border border-[#00c3f7]/30">
-              <span class="w-2 h-2 rounded-full bg-[#00c3f7]"></span>
-              <span class="text-xs font-bold text-[#3f3f46]">Paystack</span>
-            </span>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#00a651]/10 border border-[#00a651]/30">
-              <span class="w-2 h-2 rounded-full bg-[#00a651]"></span>
-              <span class="text-xs font-bold text-[#3f3f46]">Hubtel</span>
-            </span>
-          </div>
-        </div>
-      </section>
-      
-    <!-- ============================================ -->
-      <!-- SECTION 4: HOW IT WORKS                      -->
-      <!-- ============================================ -->
-      <section id="how-it-works" class="bg-white py-20 px-4" data-reveal>
-        <div class="max-w-6xl mx-auto">
-          <h2 class="text-3xl lg:text-4xl font-headline font-bold text-[#0c1526] text-center mb-4">
-            How It Works
-          </h2>
-          <p class="text-base text-[#5f6b7a] text-center mb-16">
-            3 simple steps
-          </p>
-          
-    <!-- === SELL ON EMAKOLA === -->
-          <div class="mb-20" data-reveal>
-            <div class="flex items-center justify-center gap-3 mb-12">
-              <span class="material-symbols-outlined text-2xl text-[#d4a843]">storefront</span>
-              <h3 class="text-xl font-bold text-[#0c1526]">Sell on Emakola</h3>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-10">
-              <!-- Step 1: Sign Up -->
-              <div class="group text-center" data-reveal>
-                <div class="relative mb-5">
-                  <div class="overflow-hidden rounded-2xl shadow-md">
-                    <img
-                      src={~p"/images/landing/step-sell-1.jpg"}
-                      alt="Sign up on your phone"
-                      loading="lazy"
-                      class="w-full object-cover"
-                      style="height:144px;max-height:144px"
-                    />
-                  </div>
-                  <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#d4a843] text-[#0c1526] flex items-center justify-center text-xl font-black shadow-lg">
-                    1
-                  </div>
-                </div>
-                <h4 class="text-lg font-bold text-[#0c1526] mb-1">Sign Up</h4>
-                <p class="text-sm text-[#5f6b7a]">Create your free store</p>
-              </div>
-              
-    <!-- Arrow connector (desktop only) -->
-
-              <!-- Step 2: Add Products -->
-              <div class="group text-center" data-reveal>
-                <div class="relative mb-5">
-                  <div class="overflow-hidden rounded-2xl shadow-md">
-                    <img
-                      src={~p"/images/landing/step-sell-2.jpg"}
-                      alt="Add your products"
-                      loading="lazy"
-                      class="w-full object-cover"
-                      style="height:144px;max-height:144px"
-                    />
-                  </div>
-                  <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#d4a843] text-[#0c1526] flex items-center justify-center text-xl font-black shadow-lg">
-                    2
-                  </div>
-                </div>
-                <h4 class="text-lg font-bold text-[#0c1526] mb-1">Add Products</h4>
-                <p class="text-sm text-[#5f6b7a]">Upload photos, set prices</p>
-              </div>
-              
-    <!-- Step 3: Get Paid -->
-              <div class="group text-center" data-reveal>
-                <div class="relative mb-5">
-                  <div class="overflow-hidden rounded-2xl shadow-md">
-                    <img
-                      src={~p"/images/landing/step-sell-3.jpg"}
-                      alt="Receive mobile money payment"
-                      loading="lazy"
-                      class="w-full object-cover"
-                      style="height:144px;max-height:144px"
-                    />
-                  </div>
-                  <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#d4a843] text-[#0c1526] flex items-center justify-center text-xl font-black shadow-lg">
-                    3
-                  </div>
-                </div>
-                <h4 class="text-lg font-bold text-[#0c1526] mb-1">Get Paid</h4>
-                <p class="text-sm text-[#5f6b7a]">Receive money via MoMo</p>
-              </div>
-            </div>
-          </div>
-          
-    <!-- Divider -->
-          <div class="flex items-center gap-4 mb-20">
-            <div class="flex-1 h-px bg-[#e8eaed]"></div>
-            <span class="text-xs font-semibold tracking-widest uppercase text-[#8896ab]">or</span>
-            <div class="flex-1 h-px bg-[#e8eaed]"></div>
-          </div>
-          
-    <!-- === BUY ON EMAKOLA === -->
-          <div data-reveal>
-            <div class="flex items-center justify-center gap-3 mb-12">
-              <span class="material-symbols-outlined text-2xl text-[#2563eb]">shopping_bag</span>
-              <h3 class="text-xl font-bold text-[#0c1526]">Buy on Emakola</h3>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-10">
-              <!-- Step 1: Browse -->
-              <div class="group text-center" data-reveal>
-                <div class="relative mb-5">
-                  <div class="overflow-hidden rounded-2xl shadow-md">
-                    <img
-                      src={~p"/images/landing/step-buy-1.jpg"}
-                      alt="Browse stores on your phone"
-                      loading="lazy"
-                      class="w-full object-cover"
-                      style="height:144px;max-height:144px"
-                    />
-                  </div>
-                  <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xl font-black shadow-lg">
-                    1
-                  </div>
-                </div>
-                <h4 class="text-lg font-bold text-[#0c1526] mb-1">Browse</h4>
-                <p class="text-sm text-[#5f6b7a]">Find what you need</p>
-              </div>
-              
-    <!-- Step 2: Pay with MoMo -->
-              <div class="group text-center" data-reveal>
-                <div class="relative mb-5">
-                  <div class="overflow-hidden rounded-2xl shadow-md">
-                    <img
-                      src={~p"/images/landing/step-buy-2.jpg"}
-                      alt="Pay with mobile money"
-                      loading="lazy"
-                      class="w-full object-cover"
-                      style="height:144px;max-height:144px"
-                    />
-                  </div>
-                  <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xl font-black shadow-lg">
-                    2
-                  </div>
-                </div>
-                <h4 class="text-lg font-bold text-[#0c1526] mb-1">Pay with MoMo</h4>
-                <p class="text-sm text-[#5f6b7a]">MTN MoMo, Vodafone Cash</p>
-              </div>
-              
-    <!-- Step 3: Receive -->
-              <div class="group text-center" data-reveal>
-                <div class="relative mb-5">
-                  <div class="overflow-hidden rounded-2xl shadow-md">
-                    <img
-                      src={~p"/images/landing/step-buy-3.jpg"}
-                      alt="Receive your delivery"
-                      loading="lazy"
-                      class="w-full object-cover"
-                      style="height:144px;max-height:144px"
-                    />
-                  </div>
-                  <div class="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xl font-black shadow-lg">
-                    3
-                  </div>
-                </div>
-                <h4 class="text-lg font-bold text-[#0c1526] mb-1">Receive</h4>
-                <p class="text-sm text-[#5f6b7a]">Get it delivered to you</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-    <!-- ============================================ -->
-      <!-- SECTION 5: FEATURES GRID (BENTO)             -->
-      <!-- ============================================ -->
-      <section id="features" class="bg-[#f7f8fa] py-20 px-4" data-reveal>
-        <div class="max-w-6xl mx-auto">
-          <h2 class="text-3xl lg:text-4xl font-headline font-bold text-[#0c1526] text-center mb-4">
-            Everything You Need
-          </h2>
-          <p class="text-base text-[#5f6b7a] text-center mb-14">
-            All the tools to sell online in Ghana
-          </p>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Mobile Money -->
-            <div
-              class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all"
-              data-reveal
-            >
-              <div class="overflow-hidden">
-                <img
-                  src={~p"/images/landing/feature-mobile-money.jpg"}
-                  alt="Mobile money payment"
-                  loading="lazy"
-                  class="w-full object-cover"
-                  style="height:144px;max-height:144px"
-                />
-              </div>
-              <div class="p-5">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="material-symbols-outlined text-xl text-[#d4a843]">
-                    account_balance_wallet
-                  </span>
-                  <h3 class="text-base font-bold text-[#0c1526]">Mobile Money</h3>
-                </div>
-                <p class="text-sm text-[#5f6b7a]">Accept MTN MoMo, Vodafone Cash, AirtelTigo</p>
-              </div>
-            </div>
-            
-    <!-- WhatsApp -->
-            <div
-              class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all"
-              data-reveal
-            >
-              <div class="overflow-hidden">
-                <img
-                  src={~p"/images/landing/feature-whatsapp.jpg"}
-                  alt="WhatsApp notifications"
-                  loading="lazy"
-                  class="w-full object-cover"
-                  style="height:144px;max-height:144px"
-                />
-              </div>
-              <div class="p-5">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="material-symbols-outlined text-xl text-[#25D366]">chat</span>
-                  <h3 class="text-base font-bold text-[#0c1526]">WhatsApp Notifications</h3>
-                </div>
-                <p class="text-sm text-[#5f6b7a]">Order updates sent to customers</p>
-              </div>
-            </div>
-            
-    <!-- Dashboard -->
-            <div
-              class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all"
-              data-reveal
-            >
-              <div class="overflow-hidden">
-                <img
-                  src={~p"/images/landing/feature-dashboard.jpg"}
-                  alt="Merchant dashboard"
-                  loading="lazy"
-                  class="w-full object-cover"
-                  style="height:144px;max-height:144px"
-                />
-              </div>
-              <div class="p-5">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="material-symbols-outlined text-xl text-[#2563eb]">dashboard</span>
-                  <h3 class="text-base font-bold text-[#0c1526]">Merchant Dashboard</h3>
-                </div>
-                <p class="text-sm text-[#5f6b7a]">See your sales, orders, customers</p>
-              </div>
-            </div>
-            
-    <!-- Multi-Store -->
-            <div
-              class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all"
-              data-reveal
-            >
-              <div class="overflow-hidden">
-                <img
-                  src={~p"/images/landing/feature-multi-store.jpg"}
-                  alt="Multiple stores"
-                  loading="lazy"
-                  class="w-full object-cover"
-                  style="height:144px;max-height:144px"
-                />
-              </div>
-              <div class="p-5">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="material-symbols-outlined text-xl text-[#2563eb]">store</span>
-                  <h3 class="text-base font-bold text-[#0c1526]">Multi-Store Management</h3>
-                </div>
-                <p class="text-sm text-[#5f6b7a]">Run many stores from one account</p>
-              </div>
-            </div>
-            
-    <!-- Inventory -->
-            <div
-              class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all"
-              data-reveal
-            >
-              <div class="overflow-hidden">
-                <img
-                  src={~p"/images/landing/feature-inventory.jpg"}
-                  alt="Inventory tracking"
-                  loading="lazy"
-                  class="w-full object-cover"
-                  style="height:144px;max-height:144px"
-                />
-              </div>
-              <div class="p-5">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="material-symbols-outlined text-xl text-[#2563eb]">inventory_2</span>
-                  <h3 class="text-base font-bold text-[#0c1526]">Inventory Tracking</h3>
-                </div>
-                <p class="text-sm text-[#5f6b7a]">Know your stock levels always</p>
-              </div>
-            </div>
-            
-    <!-- Shipping -->
-            <div
-              class="group bg-white rounded-2xl shadow-sm hover:shadow-lg overflow-hidden transition-all"
-              data-reveal
-            >
-              <div class="overflow-hidden">
-                <img
-                  src={~p"/images/landing/feature-shipping.jpg"}
-                  alt="Shipping and delivery"
-                  loading="lazy"
-                  class="w-full object-cover"
-                  style="height:144px;max-height:144px"
-                />
-              </div>
-              <div class="p-5">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="material-symbols-outlined text-xl text-[#2563eb]">local_shipping</span>
-                  <h3 class="text-base font-bold text-[#0c1526]">Shipping & Delivery</h3>
-                </div>
-                <p class="text-sm text-[#5f6b7a]">Deliver across Ghana</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-    <!-- ============================================ -->
-      <!-- SECTION 6: PRICING                           -->
-      <!-- ============================================ -->
-      <section id="pricing" class="bg-white py-20 px-4" data-reveal>
-        <div class="max-w-5xl mx-auto">
-          <h2 class="text-3xl lg:text-4xl font-headline font-bold text-[#0c1526] text-center mb-4">
-            Simple, Transparent Pricing
-          </h2>
-          <p class="text-base text-[#5f6b7a] text-center mb-12 max-w-2xl mx-auto">
-            All plans include SSL, mobile money payments, and basic analytics.
-          </p>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Starter -->
-            <div class="bg-[#f7f8fa] rounded-xl shadow-sm p-6 flex flex-col" data-reveal>
-              <h3 class="text-lg font-semibold text-[#0c1526] mb-1">Starter</h3>
-              <div class="flex items-baseline gap-1 mb-1">
-                <span class="text-3xl font-bold text-[#0c1526]">Free</span>
-              </div>
-              <p class="text-sm text-[#d4a843] font-medium mb-6">3.5% per sale</p>
-              <span class="inline-block text-[10px] font-semibold text-[#2563eb] bg-[#2563eb]/10 px-2 py-0.5 rounded-full mt-1">
-                No credit card needed
-              </span>
-              <ul class="space-y-2 mb-8 flex-1">
-                <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                  <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">check</span>
-                  1 store
-                </li>
-                <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                  <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">check</span>
-                  25 products
-                </li>
-                <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                  <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">check</span>
-                  Basic dashboard
-                </li>
-                <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                  <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">check</span>
-                  Email support
-                </li>
-              </ul>
-              <a
-                href="/auth/register"
-                class="block text-center px-4 py-2.5 text-sm font-semibold text-[#0c1526] bg-[#f0f1f4] rounded-lg hover:bg-[#e8eaed] transition-colors"
-              >
-                Get Started
-              </a>
-            </div>
-            
-    <!-- Growth -->
-            <div class="bg-[#f7f8fa] rounded-xl shadow-sm p-6 flex flex-col" data-reveal>
-              <h3 class="text-lg font-semibold text-[#0c1526] mb-1">Growth</h3>
-              <div class="flex items-baseline gap-1 mb-1">
-                <span class="text-3xl font-bold text-[#0c1526]">GHS 29</span>
-                <span class="text-sm text-[#5f6b7a]">/mo</span>
-              </div>
-              <p class="text-sm text-[#d4a843] font-medium mb-6">2.0% per sale</p>
-              <ul class="space-y-2 mb-8 flex-1">
-                <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                  <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">check</span>
-                  1 store
-                </li>
-                <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                  <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">check</span>
-                  250 products
-                </li>
-                <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                  <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">check</span>
-                  WhatsApp notifications
-                </li>
-                <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                  <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">check</span>
-                  Priority support
-                </li>
-              </ul>
-              <a
-                href="/auth/register"
-                class="block text-center px-4 py-2.5 text-sm font-semibold text-[#0c1526] bg-[#f0f1f4] rounded-lg hover:bg-[#e8eaed] transition-colors"
-              >
-                Get Started
-              </a>
-            </div>
-            
-    <!-- Pro (Highlighted) -->
-            <div
-              class="bg-[#0c1526] rounded-xl shadow-lg shadow-[#d4a843]/20 ring-1 ring-[#d4a843]/40 p-6 flex flex-col relative"
-              data-reveal
-            >
-              <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#d4a843] text-[#0c1526] text-xs font-bold px-3 py-0.5 rounded-full">
-                Most Popular
-              </span>
-              <h3 class="text-lg font-semibold text-[#f1f5f9] mb-1">Pro</h3>
-              <div class="flex items-baseline gap-1 mb-1">
-                <span class="text-3xl font-bold text-[#f1f5f9]">GHS 79</span>
-                <span class="text-sm text-[#8896ab]">/mo</span>
-              </div>
-              <p class="text-sm text-[#d4a843] font-medium mb-6">1.2% per sale</p>
-              <ul class="space-y-2 mb-8 flex-1">
-                <li class="flex items-start gap-2 text-sm text-[#8896ab]">
-                  <span class="material-symbols-outlined text-base text-[#d4a843] mt-0.5">check</span>
-                  3 stores
-                </li>
-                <li class="flex items-start gap-2 text-sm text-[#8896ab]">
-                  <span class="material-symbols-outlined text-base text-[#d4a843] mt-0.5">check</span>
-                  Unlimited products
-                </li>
-                <li class="flex items-start gap-2 text-sm text-[#8896ab]">
-                  <span class="material-symbols-outlined text-base text-[#d4a843] mt-0.5">check</span>
-                  Custom domain
-                </li>
-                <li class="flex items-start gap-2 text-sm text-[#8896ab]">
-                  <span class="material-symbols-outlined text-base text-[#d4a843] mt-0.5">check</span>
-                  Analytics
-                </li>
-                <li class="flex items-start gap-2 text-sm text-[#8896ab]">
-                  <span class="material-symbols-outlined text-base text-[#d4a843] mt-0.5">check</span>
-                  Phone support
-                </li>
-              </ul>
-              <a
-                href="/auth/register"
-                class="block text-center px-4 py-2.5 text-sm font-semibold text-[#0c1526] bg-[#d4a843] rounded-lg hover:bg-[#c49a3a] transition-colors"
-              >
-                Get Started
-              </a>
-            </div>
-            
-    <!-- Enterprise -->
-            <div class="bg-[#f7f8fa] rounded-xl shadow-sm p-6 flex flex-col" data-reveal>
-              <h3 class="text-lg font-semibold text-[#0c1526] mb-1">Enterprise</h3>
-              <div class="flex items-baseline gap-1 mb-1">
-                <span class="text-3xl font-bold text-[#0c1526]">Custom</span>
-              </div>
-              <p class="text-sm text-[#d4a843] font-medium mb-6">Custom rate</p>
-              <ul class="space-y-2 mb-8 flex-1">
-                <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                  <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">check</span>
-                  Unlimited stores
-                </li>
-                <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                  <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">check</span>
-                  Dedicated account manager
-                </li>
-                <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                  <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">check</span>
-                  SLA
-                </li>
-                <li class="flex items-start gap-2 text-sm text-[#5f6b7a]">
-                  <span class="material-symbols-outlined text-base text-[#2563eb] mt-0.5">check</span>
-                  API access
-                </li>
-              </ul>
-              <a
-                href="mailto:sales@emakola.com"
-                class="block text-center px-4 py-2.5 text-sm font-semibold text-[#0c1526] bg-[#f0f1f4] rounded-lg hover:bg-[#e8eaed] transition-colors"
-              >
-                Contact Sales
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-    <!-- ============================================ -->
-      <!-- SECTION 7: TESTIMONIALS                      -->
-      <!-- ============================================ -->
-      <section class="bg-[#0c1526] py-20 px-4" data-reveal>
-        <div class="max-w-6xl mx-auto">
-          <div class="text-center mb-14">
-            <span class="inline-block text-xs font-semibold tracking-[0.15em] uppercase text-[#d4a843] mb-3">
-              Testimonials
-            </span>
-            <h2 class="text-3xl lg:text-4xl font-headline font-bold text-[#f1f5f9] mb-3">
-              Trusted by Merchants Across Ghana
-            </h2>
-            <p class="text-base text-[#8896ab]">Real stories from real merchants</p>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            <!-- Testimonial 1 - Featured (larger) -->
-            <div
-              class="md:row-span-2 bg-gradient-to-br from-[#1a2744] to-[#0c1526] rounded-2xl p-6 flex flex-col"
-              data-reveal
-            >
-              <div class="flex gap-0.5 mb-4">
-                <svg :for={_i <- 1..5} class="w-4 h-4 text-[#d4a843] fill-current" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              </div>
-              <p class="text-base text-[#e2e8f0] leading-relaxed flex-1 mb-6">
-                "Emakola made it so easy to start selling online. My customers love paying with MoMo and I get instant notifications on every order. My sales have doubled since I moved online. I never thought ecommerce would be this simple."
-              </p>
-              <div class="flex items-center gap-3">
-                <img
-                  src={~p"/images/landing/testimonial-1.jpg"}
-                  alt="Ama Mensah"
-                  loading="lazy"
-                  class="w-12 h-12 rounded-full object-cover ring-2 ring-[#d4a843]"
-                />
-                <div>
-                  <p class="text-sm font-bold text-[#f1f5f9]">Ama Mensah</p>
-                  <p class="text-xs text-[#8896ab]">Ama's Fashion, Accra</p>
-                </div>
-              </div>
-            </div>
-            
-    <!-- Testimonial 2 -->
-            <div class="bg-white rounded-2xl p-5 shadow-sm" data-reveal>
-              <div class="flex gap-0.5 mb-3">
-                <svg
-                  :for={_i <- 1..5}
-                  class="w-3.5 h-3.5 text-[#d4a843] fill-current"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              </div>
-              <p class="text-sm text-[#5f6b7a] leading-relaxed mb-4">
-                "I run three stores on Emakola. Managing all of them from one dashboard saves me hours every week."
-              </p>
-              <div class="flex items-center gap-3">
-                <img
-                  src={~p"/images/landing/testimonial-2.jpg"}
-                  alt="Kwame Asante"
-                  loading="lazy"
-                  class="w-10 h-10 rounded-full object-cover"
-                />
-                <div>
-                  <p class="text-sm font-semibold text-[#0c1526]">Kwame Asante</p>
-                  <p class="text-xs text-[#8896ab]">TechHub GH, Kumasi</p>
-                </div>
-              </div>
-            </div>
-            
-    <!-- Testimonial 3 -->
-            <div class="bg-white rounded-2xl p-5 shadow-sm" data-reveal>
-              <div class="flex gap-0.5 mb-3">
-                <svg
-                  :for={_i <- 1..5}
-                  class="w-3.5 h-3.5 text-[#d4a843] fill-current"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              </div>
-              <p class="text-sm text-[#5f6b7a] leading-relaxed mb-4">
-                "As a food vendor, I needed something simple. My customers in Takoradi can now order from home."
-              </p>
-              <div class="flex items-center gap-3">
-                <img
-                  src={~p"/images/landing/testimonial-3.jpg"}
-                  alt="Efua Owusu"
-                  loading="lazy"
-                  class="w-10 h-10 rounded-full object-cover"
-                />
-                <div>
-                  <p class="text-sm font-semibold text-[#0c1526]">Efua Owusu</p>
-                  <p class="text-xs text-[#8896ab]">Efua's Kitchen, Takoradi</p>
-                </div>
-              </div>
-            </div>
-            
-    <!-- Testimonial 4 -->
-            <div class="bg-white rounded-2xl p-5 shadow-sm" data-reveal>
-              <div class="flex gap-0.5 mb-3">
-                <svg
-                  :for={_i <- 1..5}
-                  class="w-3.5 h-3.5 text-[#d4a843] fill-current"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              </div>
-              <p class="text-sm text-[#5f6b7a] leading-relaxed mb-4">
-                "The WhatsApp notifications changed everything. My customers feel confident because they know exactly when their order ships."
-              </p>
-              <div class="flex items-center gap-3">
-                <img
-                  src={~p"/images/landing/testimonial-4.jpg"}
-                  alt="Kofi Mensah"
-                  loading="lazy"
-                  class="w-10 h-10 rounded-full object-cover"
-                />
-                <div>
-                  <p class="text-sm font-semibold text-[#0c1526]">Kofi Mensah</p>
-                  <p class="text-xs text-[#8896ab]">Kofi Electronics, Cape Coast</p>
-                </div>
-              </div>
-            </div>
-            
-    <!-- Testimonial 5 -->
-            <div class="bg-white rounded-2xl p-5 shadow-sm" data-reveal>
-              <div class="flex gap-0.5 mb-3">
-                <svg
-                  :for={_i <- 1..5}
-                  class="w-3.5 h-3.5 text-[#d4a843] fill-current"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              </div>
-              <p class="text-sm text-[#5f6b7a] leading-relaxed mb-4">
-                "I was scared of technology. But Emakola is so simple even I can use it. Now I sell my beads and jewelry to people all over Ghana."
-              </p>
-              <div class="flex items-center gap-3">
-                <img
-                  src={~p"/images/landing/testimonial-5.jpg"}
-                  alt="Abena Darko"
-                  loading="lazy"
-                  class="w-10 h-10 rounded-full object-cover"
-                />
-                <div>
-                  <p class="text-sm font-semibold text-[#0c1526]">Abena Darko</p>
-                  <p class="text-xs text-[#8896ab]">Abena Beads, Koforidua</p>
-                </div>
-              </div>
-            </div>
-            
-    <!-- Testimonial 6 -->
-            <div class="bg-gradient-to-br from-[#1a2744] to-[#0c1526] rounded-2xl p-5" data-reveal>
-              <div class="flex gap-0.5 mb-3">
-                <svg
-                  :for={_i <- 1..5}
-                  class="w-3.5 h-3.5 text-[#d4a843] fill-current"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              </div>
-              <p class="text-sm text-[#e2e8f0] leading-relaxed mb-4">
-                "Mobile money integration is seamless. My customers pay with MoMo and I see it instantly on my dashboard. No more chasing payments."
-              </p>
-              <div class="flex items-center gap-3">
-                <img
-                  src={~p"/images/landing/testimonial-6.jpg"}
-                  alt="Yaw Boateng"
-                  loading="lazy"
-                  class="w-10 h-10 rounded-full object-cover ring-2 ring-[#d4a843]"
-                />
-                <div>
-                  <p class="text-sm font-bold text-[#f1f5f9]">Yaw Boateng</p>
-                  <p class="text-xs text-[#8896ab]">YB Auto Parts, Tamale</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-    <!-- ============================================ -->
-      <!-- SECTION 8: FINAL CTA + FOOTER                -->
-      <!-- ============================================ -->
-      <section class="bg-gradient-to-b from-[#0c1526] to-[#1a2744] py-20 px-4" data-reveal>
-        <div class="max-w-3xl mx-auto text-center">
-          <h2 class="text-3xl lg:text-4xl font-headline font-bold text-[#f1f5f9] mb-4">
-            Ready to Grow Your Business?
-          </h2>
-          <p class="text-base text-[#8896ab] mb-8">
-            Join 500+ merchants selling online across Ghana
-          </p>
-          <div class="flex flex-wrap justify-center gap-4">
-            <a
-              href="/auth/register"
-              class="inline-flex items-center px-8 py-3 text-base font-semibold text-white bg-[#2563eb] rounded-lg hover:bg-[#1d4ed8] transition-colors focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1526]"
-            >
-              Start Selling
-            </a>
-            <a
-              href="/stores"
-              class="inline-flex items-center px-8 py-3 text-base font-semibold text-[#8896ab] border border-[#2a3a5c] rounded-lg hover:text-[#f1f5f9] hover:border-[#f1f5f9] transition-colors"
-            >
-              Browse Stores
-            </a>
-            <p class="text-xs text-[#8896ab] mt-4 w-full text-center">
-              No credit card required. Start free today.
-            </p>
-          </div>
-        </div>
-      </section>
-
+      <.landing_nav mobile_menu_open={@mobile_menu_open} />
+      <main>
+        <.hero />
+        <.store_wall />
+        <.feature_stories />
+        <.features_grid />
+        <.growth_arc />
+        <.stats_band />
+        <.launch_steps />
+        <.faq_section />
+        <.final_cta />
+      </main>
       <.landing_footer />
     </div>
     """
+  end
+
+  defp hero(assigns) do
+    ~H"""
+    <section
+      class="relative bg-cover pt-16"
+      style="background-image: linear-gradient(180deg, rgba(12,21,38,0.62) 0%, rgba(12,21,38,0.80) 70%, #0c1526 100%), url('/images/landing/hero-market-woman.jpg'); background-position: center 25%;"
+    >
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 text-center py-24 lg:py-36">
+        <span class="inline-block text-xs font-semibold tracking-[0.2em] uppercase text-[#d4a843] mb-4">
+          For Ghana's Merchants
+        </span>
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-headline font-extrabold leading-[1.1] [text-shadow:0_2px_18px_rgba(12,21,38,0.6)]">
+          Be the next<br />
+          <span class="sr-only">big name in Accra</span>
+          <span
+            class="hero-rotator whitespace-nowrap text-[1.75rem] sm:text-5xl lg:text-6xl"
+            aria-hidden="true"
+          >
+            <span class="hero-rotator-list">
+              <span :for={word <- rotating_words()} class="text-[#d4a843]">{word}</span>
+            </span>
+          </span>
+        </h1>
+        <p class="text-base lg:text-lg text-[#e2e8f0] mt-6 mb-8 max-w-xl mx-auto">
+          Dream big and sell fast on Makola. Mobile money payments, WhatsApp updates,
+          and a storefront built for Ghana.
+        </p>
+        <a
+          href="/auth/register"
+          class="inline-flex items-center px-8 py-4 text-base font-semibold text-[#0c1526] bg-[#d4a843] rounded-lg hover:bg-[#c49a3a] transition-colors focus-visible:ring-2 focus-visible:ring-[#d4a843] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c1526]"
+        >
+          Start selling — free
+        </a>
+        <p class="text-xs text-[#cbd5e1] mt-4">No credit card needed</p>
+      </div>
+    </section>
+    """
+  end
+
+  defp store_wall(assigns) do
+    ~H"""
+    <section class="py-16 px-4 sm:px-6" data-reveal>
+      <div class="max-w-6xl mx-auto">
+        <h2 class="text-center text-2xl lg:text-3xl font-headline font-bold mb-2">
+          Stores built on Makola
+        </h2>
+        <p class="text-center text-sm text-[#8896ab] mb-10 max-w-xl mx-auto">
+          Market traders, seamstresses, hair stylists, beauticians, barbers —
+          if you sell it, Makola handles it.
+        </p>
+        <div class="flex gap-4 overflow-x-auto snap-x pb-4 lg:grid lg:grid-cols-3 lg:overflow-visible lg:pb-0">
+          <div
+            :for={{store, i} <- Enum.with_index(stores())}
+            class={[
+              "w-64 shrink-0 snap-start lg:w-auto bg-[#13203a] border border-[#1f2f50] rounded-2xl overflow-hidden",
+              rem(i, 3) == 1 && "lg:mt-6"
+            ]}
+          >
+            <div class="flex items-center gap-2 px-4 py-3 text-sm font-bold">
+              <span class={["w-3 h-3 rounded-full", store.dot]}></span>
+              {store.name}
+            </div>
+            <img
+              src={store.img}
+              alt={store.alt}
+              loading="lazy"
+              width="600"
+              height="400"
+              class="w-full h-[170px] object-cover"
+            />
+            <p class="px-4 py-3 text-xs font-bold text-[#d4a843]">{store.chip}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  defp feature_stories(assigns) do
+    ~H"""
+    <section class="bg-[#f7f8fa] py-20 px-4 sm:px-6" data-reveal>
+      <div class="max-w-5xl mx-auto space-y-16 lg:space-y-24">
+        <div class="flex flex-col lg:flex-row items-center gap-8 lg:gap-16" data-reveal>
+          <div class="flex-1">
+            <h2 class="text-2xl lg:text-3xl font-headline font-bold text-[#0c1526] mb-3">
+              Get paid in seconds
+            </h2>
+            <p class="text-base text-[#5f6b7a]">
+              MTN MoMo, Vodafone Cash, AirtelTigo, and cards. The money lands before
+              the customer hangs up.
+            </p>
+          </div>
+          <div class="flex-1 relative w-full">
+            <img
+              src="/images/landing/story-momo.jpg"
+              alt="Merchant smiling after receiving a mobile money payment"
+              loading="lazy"
+              width="800"
+              height="533"
+              class="w-full h-[240px] object-cover rounded-2xl"
+            />
+            <div
+              aria-hidden="true"
+              class="absolute bottom-3 left-3 lg:-bottom-4 lg:-left-4 bg-white rounded-xl shadow-xl p-4"
+            >
+              <p class="text-[10px] text-[#5f6b7a]">Payment received</p>
+              <p class="text-sm font-extrabold text-[#0c1526]">+ GHS 85.00 · MoMo</p>
+              <p class="text-[10px] font-bold text-[#16a34a]">✓ In your wallet</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col lg:flex-row-reverse items-center gap-8 lg:gap-16" data-reveal>
+          <div class="flex-1">
+            <h2 class="text-2xl lg:text-3xl font-headline font-bold text-[#0c1526] mb-3">
+              Customers kept in the loop
+            </h2>
+            <p class="text-base text-[#5f6b7a]">
+              Order confirmations and delivery updates sent on WhatsApp and SMS —
+              no extra work for you.
+            </p>
+          </div>
+          <div class="flex-1 relative w-full">
+            <img
+              src="/images/landing/story-whatsapp.jpg"
+              alt="Friends checking an order update together on a laptop"
+              loading="lazy"
+              width="800"
+              height="533"
+              class="w-full h-[240px] object-cover rounded-2xl"
+            />
+            <div
+              aria-hidden="true"
+              class="absolute bottom-3 right-3 lg:-bottom-4 lg:-right-4 bg-[#dcf8c6] rounded-xl rounded-br-sm shadow-xl p-3 max-w-[70%]"
+            >
+              <p class="text-xs text-[#0c1526]">
+                🛍️ <b>Order #1042 confirmed!</b> <br />Hi Akosua — your order ships today.
+              </p>
+              <p class="text-[9px] text-[#5f6b7a] mt-1 text-right">WhatsApp · automatic</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col lg:flex-row items-center gap-8 lg:gap-16" data-reveal>
+          <div class="flex-1">
+            <h2 class="text-2xl lg:text-3xl font-headline font-bold text-[#0c1526] mb-3">
+              A storefront that loads fast everywhere
+            </h2>
+            <p class="text-base text-[#5f6b7a]">
+              Built for real Ghanaian networks — light pages, lazy images, works on
+              any phone.
+            </p>
+          </div>
+          <div class="flex-1 relative w-full">
+            <img
+              src="/images/landing/story-storefront.jpg"
+              alt="Woman in a green dress shopping at a bustling Accra market"
+              loading="lazy"
+              width="800"
+              height="533"
+              class="w-full h-[240px] object-cover rounded-2xl"
+            />
+            <div
+              aria-hidden="true"
+              class="absolute top-3 right-3 bg-white rounded-xl shadow-xl px-3 py-2"
+            >
+              <p class="text-[10px] text-[#5f6b7a]">🔒 amas-fashion.emakola.com</p>
+              <p class="text-xs font-extrabold text-[#16a34a]">Loads in 1.2s on 3G</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  defp features_grid(assigns) do
+    ~H"""
+    <section id="features" class="bg-white py-20 px-4 sm:px-6" data-reveal>
+      <div class="max-w-6xl mx-auto">
+        <h2 class="text-2xl lg:text-3xl font-headline font-bold text-[#0c1526] text-center mb-2">
+          Everything you need to sell
+        </h2>
+        <p class="text-base text-[#5f6b7a] text-center mb-12">
+          The full toolkit, built for Ghana
+        </p>
+        <div
+          class="stagger-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+          data-reveal
+        >
+          <div
+            :for={feature <- features()}
+            class="group bg-[#f7f8fa] rounded-2xl overflow-hidden transition duration-300 hover:-translate-y-1.5 hover:shadow-xl"
+          >
+            <div class="h-36 overflow-hidden">
+              <img
+                src={feature.img}
+                alt={feature.alt}
+                loading="lazy"
+                width="600"
+                height="360"
+                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+            </div>
+            <div class="px-4 pb-5">
+              <span class={[
+                "relative -mt-6 inline-flex w-12 h-12 items-center justify-center rounded-xl text-white shadow-lg",
+                feature.badge
+              ]}>
+                <span class="material-symbols-outlined text-2xl" aria-hidden="true">
+                  {feature.icon}
+                </span>
+              </span>
+              <h3 class="text-base font-bold text-[#0c1526] mt-2 mb-1">{feature.title}</h3>
+              <p class="text-sm text-[#5f6b7a]">{feature.blurb}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  defp growth_arc(assigns) do
+    ~H"""
+    <section id="how-it-works" class="py-20 px-4 sm:px-6" data-reveal>
+      <div class="max-w-6xl mx-auto">
+        <h2 class="text-2xl lg:text-3xl font-headline font-bold text-center mb-2">
+          From first sale to household name
+        </h2>
+        <p class="text-base text-[#8896ab] text-center mb-12">Wherever you are, Makola fits.</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="bg-[#13203a] rounded-2xl overflow-hidden" data-reveal>
+            <img
+              src="/images/landing/growth-start.jpg"
+              alt="Young woman smiling as she starts her first online store"
+              loading="lazy"
+              width="600"
+              height="400"
+              class="w-full h-[180px] object-cover"
+            />
+            <div class="p-6">
+              <p class="text-xs font-extrabold tracking-widest text-[#d4a843] mb-2">START</p>
+              <h3 class="text-lg font-bold mb-2">From her phone in Makola Market</h3>
+              <p class="text-sm text-[#8896ab]">
+                Ama listed 12 products on a Sunday. First MoMo payment by Wednesday.
+              </p>
+            </div>
+          </div>
+          <div class="bg-[#13203a] rounded-2xl overflow-hidden" data-reveal>
+            <img
+              src="/images/landing/growth-grow.jpg"
+              alt="Shop owner in glasses managing his stores"
+              loading="lazy"
+              width="600"
+              height="400"
+              class="w-full h-[180px] object-cover"
+            />
+            <div class="p-6">
+              <p class="text-xs font-extrabold tracking-widest text-[#d4a843] mb-2">GROW</p>
+              <h3 class="text-lg font-bold mb-2">Three stores, one dashboard</h3>
+              <p class="text-sm text-[#8896ab]">
+                Kwame runs electronics, accessories, and repairs from a single account.
+              </p>
+            </div>
+          </div>
+          <div class="bg-[#13203a] border border-[#d4a843]/30 rounded-2xl overflow-hidden" data-reveal>
+            <img
+              src="/images/landing/growth-scale.jpg"
+              alt="Businesswoman in an orange blazer scaling her brand nationwide"
+              loading="lazy"
+              width="600"
+              height="400"
+              class="w-full h-[180px] object-cover"
+            />
+            <div class="p-6">
+              <p class="text-xs font-extrabold tracking-widest text-[#d4a843] mb-2">SCALE</p>
+              <h3 class="text-lg font-bold mb-2">Selling across all 16 regions</h3>
+              <p class="text-sm text-[#8896ab]">
+                Efua's Kitchen ships nationwide with delivery zones and order tracking.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  defp stats_band(assigns) do
+    ~H"""
+    <section class="bg-[#0a1120] border-y border-[#1a2744] py-12 px-4">
+      <div class="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
+        <div>
+          <p class="text-4xl font-headline font-extrabold text-[#d4a843]">500+</p>
+          <p class="text-sm text-[#8896ab] mt-1">merchants on Makola</p>
+        </div>
+        <div>
+          <p class="text-4xl font-headline font-extrabold text-[#d4a843]">3</p>
+          <p class="text-sm text-[#8896ab] mt-1">mobile money networks</p>
+        </div>
+        <div>
+          <p class="text-4xl font-headline font-extrabold text-[#d4a843]">Seconds</p>
+          <p class="text-sm text-[#8896ab] mt-1">from checkout to payout</p>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  defp launch_steps(assigns) do
+    ~H"""
+    <section class="bg-[#f7f8fa] py-20 px-4 sm:px-6" data-reveal>
+      <div class="max-w-5xl mx-auto text-center">
+        <h2 class="text-2xl lg:text-3xl font-headline font-bold text-[#0c1526] mb-2">
+          Launch before lunch
+        </h2>
+        <p class="text-base text-[#5f6b7a] mb-12">Most merchants go live in under an hour.</p>
+        <div class="stagger-grid flex flex-col md:flex-row items-stretch gap-4 text-left" data-reveal>
+          <%= for {step, i} <- Enum.with_index(steps()) do %>
+            <span
+              :if={i > 0}
+              class="step-arrow self-center shrink-0 rotate-90 md:rotate-0 text-[#d4a843]"
+              aria-hidden="true"
+            >
+              <span class="material-symbols-outlined text-3xl">arrow_forward</span>
+            </span>
+            <div class="group flex-1 bg-white rounded-2xl overflow-hidden shadow-sm transition duration-300 hover:-translate-y-1.5 hover:shadow-xl">
+              <div class="h-36 overflow-hidden">
+                <img
+                  src={step.img}
+                  alt={step.alt}
+                  loading="lazy"
+                  width="600"
+                  height="360"
+                  class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
+              <div class="px-4 pb-5">
+                <span
+                  aria-hidden="true"
+                  class={[
+                    "relative -mt-6 inline-flex w-12 h-12 items-center justify-center rounded-xl text-white shadow-lg font-headline font-extrabold",
+                    step.badge
+                  ]}
+                >
+                  {step.number}
+                </span>
+                <h3 class="text-base font-bold text-[#0c1526] mt-2 mb-1">
+                  <span class="sr-only">Step {i + 1}: </span>{step.title}
+                </h3>
+                <p class="text-sm text-[#5f6b7a]">{step.blurb}</p>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  defp faq_section(assigns) do
+    assigns = assign(assigns, :faqs, faqs())
+
+    ~H"""
+    <section id="faq" class="bg-white py-20 px-4 sm:px-6" data-reveal>
+      <div class="max-w-5xl mx-auto">
+        <h2 class="text-2xl lg:text-3xl font-headline font-bold text-[#0c1526] text-center mb-12">
+          Questions, answered
+        </h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+          <details :for={{question, answer} <- @faqs} class="group bg-[#f7f8fa] rounded-xl p-5">
+            <summary class="cursor-pointer text-base font-semibold text-[#0c1526] list-none flex items-center justify-between gap-3">
+              {question}
+              <span
+                class="material-symbols-outlined text-[#8896ab] group-open:rotate-180 transition-transform"
+                aria-hidden="true"
+              >
+                expand_more
+              </span>
+            </summary>
+            <p class="text-sm text-[#5f6b7a] mt-3">{answer}</p>
+          </details>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  defp final_cta(assigns) do
+    ~H"""
+    <section
+      class="relative bg-cover py-24 px-4 text-center"
+      style="background-image: linear-gradient(180deg, rgba(12,21,38,0.78), rgba(12,21,38,0.9)), url('/images/landing/cta-market.jpg'); background-position: center;"
+    >
+      <h2 class="text-3xl lg:text-4xl font-headline font-bold mb-8">Ready when you are</h2>
+      <div class="flex flex-col sm:flex-row flex-wrap justify-center items-center gap-4">
+        <a
+          href="/auth/register"
+          class="inline-flex items-center px-8 py-3 text-base font-semibold text-[#0c1526] bg-[#d4a843] rounded-lg hover:bg-[#c49a3a] transition-colors"
+        >
+          Start selling — free
+        </a>
+        <a
+          href="/stores"
+          class="inline-flex items-center px-8 py-3 text-base font-semibold text-[#f1f5f9] border border-[#2a3a5c] rounded-lg hover:border-[#f1f5f9] transition-colors"
+        >
+          Browse stores
+        </a>
+      </div>
+    </section>
+    """
+  end
+
+  defp rotating_words, do: @rotating_words
+  defp faqs, do: @faqs
+
+  defp steps do
+    [
+      %{
+        number: "01",
+        title: "Add your first product",
+        blurb: "Snap it, price it, done",
+        badge: "bg-sky-500 shadow-sky-500/40",
+        img: "/images/landing/step-add-product.jpg",
+        alt: "Market woman arranging the goods on her stall"
+      },
+      %{
+        number: "02",
+        title: "Share your store link",
+        blurb: "WhatsApp it to your customers",
+        badge: "bg-violet-500 shadow-violet-500/40",
+        img: "/images/landing/step-share-link.jpg",
+        alt: "Man and woman smiling at a phone screen together"
+      },
+      %{
+        number: "03",
+        title: "Get paid with MoMo",
+        blurb: "Money straight to your wallet",
+        badge: "bg-emerald-500 shadow-emerald-500/40",
+        img: "/images/landing/step-get-paid.jpg",
+        alt: "Woman smiling at the mobile money payment on her phone"
+      }
+    ]
+  end
+
+  defp stores do
+    [
+      %{
+        name: "Mansa Fresh",
+        dot: "bg-[#16a34a]",
+        img: "/images/landing/store-fruit.jpg",
+        alt: "Market woman in an orange dress arranging fruit at her stall",
+        chip: "Fruit Basket · GHS 75"
+      },
+      %{
+        name: "Yaa Braids",
+        dot: "bg-[#ec4899]",
+        img: "/images/landing/store-hair.jpg",
+        alt: "Client smiling while having her hair styled at a salon",
+        chip: "Braiding Bundle · GHS 150"
+      },
+      %{
+        name: "Adwoa Glow",
+        dot: "bg-[#9333ea]",
+        img: "/images/landing/store-beauty.jpg",
+        alt: "Beautician applying makeup for a client",
+        chip: "Shea Glow Set · GHS 95"
+      },
+      %{
+        name: "Efua's Kitchen",
+        dot: "bg-[#2563eb]",
+        img: "/images/landing/store-eggs.jpg",
+        alt: "Woman selling a pyramid of fresh eggs at the market",
+        chip: "Fresh Eggs · GHS 40"
+      },
+      %{
+        name: "Kojo the Tailor",
+        dot: "bg-[#d4a843]",
+        img: "/images/landing/store-tailor.jpg",
+        alt: "Tailor smiling as he works at his sewing machine",
+        chip: "Custom Kaftan · GHS 320"
+      },
+      %{
+        name: "Kwaku Cuts",
+        dot: "bg-[#0ea5e9]",
+        img: "/images/landing/store-barber.jpg",
+        alt: "Barber giving a client a haircut in his shop",
+        chip: "Grooming Kit · GHS 120"
+      }
+    ]
+  end
+
+  defp features do
+    [
+      %{
+        title: "Dropshipping",
+        blurb: "Suppliers hold it, you sell it",
+        icon: "warehouse",
+        badge: "bg-violet-500 shadow-violet-500/40",
+        img: "/images/landing/feature-dropship.jpg",
+        alt: "Man pushing a cart stacked with boxes through the street"
+      },
+      %{
+        title: "Themes",
+        blurb: "14 beautiful looks for your store",
+        icon: "palette",
+        badge: "bg-rose-500 shadow-rose-500/40",
+        img: "/images/landing/store-tailor.jpg",
+        alt: "Tailor smiling as he works at his sewing machine"
+      },
+      %{
+        title: "Digital goods",
+        blurb: "Files delivered after payment",
+        icon: "download",
+        badge: "bg-sky-500 shadow-sky-500/40",
+        img: "/images/landing/feature-digital.jpg",
+        alt: "Woman browsing digital files on her laptop"
+      },
+      %{
+        title: "Stock",
+        blurb: "Always know what is left",
+        icon: "inventory_2",
+        badge: "bg-amber-600 shadow-amber-600/40",
+        img: "/images/landing/feature-stock.jpg",
+        alt: "Stacked yellow crates ready for sale"
+      },
+      %{
+        title: "Delivery",
+        blurb: "Across all of Ghana",
+        icon: "local_shipping",
+        badge: "bg-orange-600 shadow-orange-600/40",
+        img: "/images/landing/feature-delivery.jpg",
+        alt: "Cargo motorcycle loaded with goods on the road"
+      },
+      %{
+        title: "Discounts",
+        blurb: "Bring customers back",
+        icon: "percent",
+        badge: "bg-emerald-500 shadow-emerald-500/40",
+        img: "/images/landing/store-fruit.jpg",
+        alt: "Market woman in an orange dress arranging fruit at her stall"
+      },
+      %{
+        title: "Reports",
+        blurb: "See your sales clearly",
+        icon: "monitoring",
+        badge: "bg-indigo-500 shadow-indigo-500/40",
+        img: "/images/landing/feature-reports.jpg",
+        alt: "Smiling woman checking her sales on a laptop"
+      },
+      %{
+        title: "Blog & recipes",
+        blurb: "Share posts and recipes",
+        icon: "article",
+        badge: "bg-teal-500 shadow-teal-500/40",
+        img: "/images/landing/store-eggs.jpg",
+        alt: "Woman selling a pyramid of fresh eggs at the market"
+      },
+      %{
+        title: "Many stores",
+        blurb: "One account, one dashboard",
+        icon: "storefront",
+        badge: "bg-pink-500 shadow-pink-500/40",
+        img: "/images/landing/cta-market.jpg",
+        alt: "Bustling market street with many stalls"
+      }
+    ]
+  end
+
+  defp json_ld do
+    base = EmakolaWeb.Endpoint.url()
+
+    %{
+      "@context" => "https://schema.org",
+      "@graph" => [
+        %{
+          "@type" => "Organization",
+          "name" => "Makola",
+          "url" => base,
+          "logo" => base <> "/images/emakola-logo.svg"
+        },
+        %{"@type" => "WebSite", "name" => "Makola", "url" => base},
+        %{
+          "@type" => "SoftwareApplication",
+          "name" => "Makola",
+          "applicationCategory" => "BusinessApplication",
+          "operatingSystem" => "Web",
+          "description" =>
+            "Ecommerce platform for West African merchants with mobile money payments, dropshipping, and WhatsApp notifications.",
+          "offers" => [
+            %{"@type" => "Offer", "name" => "Starter", "price" => "0", "priceCurrency" => "GHS"},
+            %{"@type" => "Offer", "name" => "Growth", "price" => "29", "priceCurrency" => "GHS"},
+            %{"@type" => "Offer", "name" => "Pro", "price" => "79", "priceCurrency" => "GHS"}
+          ]
+        },
+        %{
+          "@type" => "FAQPage",
+          "mainEntity" =>
+            Enum.map(@faqs, fn {q, a} ->
+              %{
+                "@type" => "Question",
+                "name" => q,
+                "acceptedAnswer" => %{"@type" => "Answer", "text" => a}
+              }
+            end)
+        }
+      ]
+    }
   end
 end

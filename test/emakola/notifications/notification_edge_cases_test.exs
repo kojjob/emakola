@@ -188,12 +188,18 @@ defmodule Emakola.Notifications.NotificationEdgeCasesTest do
     test "Oban unique constraint prevents duplicate jobs within period" do
       order = fake_order()
 
-      {:ok, job1} = Dispatcher.dispatch(order, :order_placed)
-      {:ok, job2} = Dispatcher.dispatch(order, :order_placed)
+      assert {:ok, _job1} = Dispatcher.dispatch(order, :order_placed)
+      assert {:ok, _job2} = Dispatcher.dispatch(order, :order_placed)
 
-      # Oban unique returns the existing job when a duplicate is detected
-      # Both return {:ok, %Oban.Job{}} but the second should be the same job
-      assert job1.id == job2.id
+      # The unique constraint must collapse both dispatches into ONE job.
+      # Assert that invariant directly instead of comparing the two return
+      # values: on a unique conflict Oban may hand back the *attempted* job
+      # rather than the *persisted* one, so their ids can differ even though
+      # dedup worked — which is what made the id comparison flaky.
+      enqueued = all_enqueued(worker: OrderNotificationWorker)
+      order_jobs = Enum.filter(enqueued, &(&1.args["order_id"] == order.id))
+
+      assert length(order_jobs) == 1
     end
 
     test "different events for same order create separate jobs" do

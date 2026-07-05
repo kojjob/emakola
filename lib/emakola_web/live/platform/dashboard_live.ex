@@ -6,11 +6,29 @@ defmodule EmakolaWeb.Platform.DashboardLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok,
-     socket
-     |> assign(:page_title, "Platform Dashboard")
-     |> assign(:active_nav, :dashboard)
-     |> load_stats()}
+    socket =
+      socket
+      |> assign(:page_title, "Platform Dashboard")
+      |> assign(:active_nav, :dashboard)
+
+    # No DB queries in disconnected mount — render a loading shell first.
+    socket =
+      if connected?(socket) do
+        load_stats(socket)
+      else
+        assign(socket,
+          total_stores: 0,
+          active_stores: 0,
+          total_merchants: 0,
+          total_orders: 0,
+          total_gmv: 0,
+          total_products: 0,
+          total_customers: 0,
+          recent_stores: nil
+        )
+      end
+
+    {:ok, socket}
   end
 
   defp load_stats(socket) do
@@ -32,7 +50,7 @@ defmodule EmakolaWeb.Platform.DashboardLive do
       <%!-- Page header --%>
       <div class="mb-8">
         <h1 class="text-2xl font-bold text-gray-900">Platform Overview</h1>
-        <p class="text-sm text-gray-500 mt-1">All stores and merchants across Emakola</p>
+        <p class="text-sm text-gray-500 mt-1">All stores and merchants across Makola</p>
       </div>
 
       <%!-- Metric cards — row 1 --%>
@@ -61,10 +79,11 @@ defmodule EmakolaWeb.Platform.DashboardLive do
       </div>
 
       <%!-- Recent stores table --%>
-      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 class="text-lg font-semibold text-gray-900">Recent Stores</h2>
           <.link
+            :if={Emakola.Accounts.PlatformPermissions.allowed?(@current_user, :manage_stores)}
             navigate="/platform/stores"
             class="text-sm text-blue-600 hover:text-blue-700 font-medium"
           >
@@ -82,7 +101,12 @@ defmodule EmakolaWeb.Platform.DashboardLive do
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-              <tr :for={store <- @recent_stores} class="hover:bg-gray-50 transition-colors">
+              <tr :if={is_nil(@recent_stores)}>
+                <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-400">
+                  Loading stores…
+                </td>
+              </tr>
+              <tr :for={store <- @recent_stores || []} class="hover:bg-gray-50 transition-colors">
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold shrink-0">
@@ -136,14 +160,14 @@ defmodule EmakolaWeb.Platform.DashboardLive do
       )
 
     ~H"""
-    <div class="bg-white rounded-xl border border-gray-200 p-5">
-      <div class="flex items-center justify-between mb-3">
-        <span class={"material-symbols-outlined text-xl rounded-lg p-2 #{@color_class}"}>
-          {@icon}
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-medium text-gray-500">{@label}</span>
+        <span class={["flex h-9 w-9 items-center justify-center rounded-xl", @color_class]}>
+          <span class="material-symbols-outlined text-[20px]">{@icon}</span>
         </span>
       </div>
-      <p class="text-2xl font-bold text-gray-900 tabular-nums">{@value}</p>
-      <p class="text-sm text-gray-500 mt-1">{@label}</p>
+      <p class="mt-3 text-3xl font-bold text-gray-900 tabular-nums">{@value}</p>
     </div>
     """
   end

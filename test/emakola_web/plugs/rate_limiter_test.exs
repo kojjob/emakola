@@ -1,6 +1,8 @@
 defmodule EmakolaWeb.Plugs.RateLimiterTest do
   use EmakolaWeb.ConnCase, async: false
 
+  import ExUnit.CaptureLog
+
   alias EmakolaWeb.Plugs.RateLimiter
 
   @opts RateLimiter.init(limit: 5, window_ms: 60_000)
@@ -105,6 +107,28 @@ defmodule EmakolaWeb.Plugs.RateLimiterTest do
 
       refute conn_b.halted
     end
+
+    test "a bearer-token deny logs a hashed key, never the raw token (no credential leak)" do
+      token = "supersecret_#{System.unique_integer([:positive])}"
+      opts = RateLimiter.init(limit: 1, window_ms: 60_000)
+
+      build_conn()
+      |> put_req_header("authorization", "Bearer #{token}")
+      |> RateLimiter.call(opts)
+
+      log =
+        capture_log(fn ->
+          conn =
+            build_conn()
+            |> put_req_header("authorization", "Bearer #{token}")
+            |> RateLimiter.call(opts)
+
+          assert conn.status == 429
+        end)
+
+      assert log =~ "Rate limit exceeded for token:"
+      refute log =~ token
+    end
   end
 
   describe "rate limiting by org" do
@@ -195,6 +219,57 @@ defmodule EmakolaWeb.Plugs.RateLimiterTest do
 
       conn = build_conn() |> Map.put(:remote_ip, unique_ip) |> RateLimiter.call(opts)
       assert get_resp_header(conn, "content-type") == ["application/json"]
+    end
+  end
+
+  describe "key: :ip option" do
+    test "forces IP-only keying: same IP with different Bearer headers share one bucket" do
+      ip = {10, 30, System.unique_integer([:positive]) |> rem(255), 1}
+      opts = RateLimiter.init(limit: 1, window_ms: 60_000, key: :ip)
+      token_a = "tokenA_#{System.unique_integer([:positive])}"
+      token_b = "tokenB_#{System.unique_integer([:positive])}"
+
+      conn1 =
+        build_conn()
+        |> Map.put(:remote_ip, ip)
+        |> put_req_header("authorization", "Bearer #{token_a}")
+        |> RateLimiter.call(opts)
+
+      refute conn1.halted
+
+      # Different Bearer, same IP → IP bucket is shared → denied
+      conn2 =
+        build_conn()
+        |> Map.put(:remote_ip, ip)
+        |> put_req_header("authorization", "Bearer #{token_b}")
+        |> RateLimiter.call(opts)
+
+      assert conn2.halted
+      assert conn2.status == 429
+    end
+
+    test "without key: :ip, different Bearer tokens have separate buckets (default behavior preserved)" do
+      ip = {10, 31, System.unique_integer([:positive]) |> rem(255), 1}
+      opts = RateLimiter.init(limit: 1, window_ms: 60_000)
+      token_a = "tokenC_#{System.unique_integer([:positive])}"
+      token_b = "tokenD_#{System.unique_integer([:positive])}"
+
+      conn1 =
+        build_conn()
+        |> Map.put(:remote_ip, ip)
+        |> put_req_header("authorization", "Bearer #{token_a}")
+        |> RateLimiter.call(opts)
+
+      refute conn1.halted
+
+      # Different Bearer from same IP → separate token buckets → still allowed
+      conn2 =
+        build_conn()
+        |> Map.put(:remote_ip, ip)
+        |> put_req_header("authorization", "Bearer #{token_b}")
+        |> RateLimiter.call(opts)
+
+      refute conn2.halted
     end
   end
 

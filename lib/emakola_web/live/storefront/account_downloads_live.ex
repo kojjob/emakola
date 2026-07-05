@@ -18,16 +18,22 @@ defmodule EmakolaWeb.Storefront.AccountDownloadsLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
+  import EmakolaWeb.Storefront.Path
+
   @max_grants 50
 
   @impl true
-  def mount(%{"store_slug" => slug}, _session, socket) do
+  def mount(_params, _session, socket) do
+    slug = socket.assigns.store.slug
+
     case socket.assigns[:current_customer] do
       nil ->
         {:ok,
          socket
          |> put_flash(:info, "Please sign in to view your downloads")
-         |> redirect(to: ~p"/s/#{slug}/login")}
+         |> redirect(to: store_path(slug, "/login"))}
 
       customer ->
         store = socket.assigns.store
@@ -56,6 +62,11 @@ defmodule EmakolaWeb.Storefront.AccountDownloadsLive do
     |> Ash.Query.limit(@max_grants)
     |> Ash.read!(authorize?: false)
   rescue
-    _ -> []
+    exception ->
+      Logger.error(
+        "[account_downloads_live] load_grants loading download grants raised: #{Exception.message(exception)}"
+      )
+
+      []
   end
 end

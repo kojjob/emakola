@@ -11,19 +11,32 @@ defmodule EmakolaWeb.Storefront.CartLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Cart.CartStore
 
   @impl true
   def mount(_params, session, socket) do
     store = socket.assigns.store
     cart_session_id = session["cart_session_id"]
-    cart = if cart_session_id, do: CartStore.get_cart(cart_session_id), else: []
+
+    cart =
+      if connected?(socket) && cart_session_id,
+        do: CartStore.get_cart(cart_session_id, store.id),
+        else: []
 
     categories =
       try do
         Emakola.Catalog.list_root_categories!(store.id)
       rescue
-        _ -> []
+        exception ->
+          Logger.error(
+            "[cart_live] mount loading root categories raised: #{Exception.message(exception)}"
+          )
+
+          []
       end
 
     recommended_products =
@@ -36,7 +49,12 @@ defmodule EmakolaWeb.Storefront.CartLive do
         |> Ash.Query.limit(4)
         |> Ash.read!(authorize?: false)
       rescue
-        _ -> []
+        exception ->
+          Logger.error(
+            "[cart_live] mount loading recommended products raised: #{Exception.message(exception)}"
+          )
+
+          []
       end
 
     {:ok,
@@ -62,9 +80,18 @@ defmodule EmakolaWeb.Storefront.CartLive do
     new_qty = item.quantity + delta
 
     if new_qty <= 0 do
-      CartStore.remove_item(socket.assigns.cart_session_id, item.variant_id)
+      CartStore.remove_item(
+        socket.assigns.cart_session_id,
+        socket.assigns.store.id,
+        item.variant_id
+      )
     else
-      CartStore.update_quantity(socket.assigns.cart_session_id, item.variant_id, min(new_qty, 10))
+      CartStore.update_quantity(
+        socket.assigns.cart_session_id,
+        socket.assigns.store.id,
+        item.variant_id,
+        min(new_qty, 10)
+      )
     end
 
     {:noreply, reload_cart(socket)}
@@ -78,9 +105,18 @@ defmodule EmakolaWeb.Storefront.CartLive do
 
     if item do
       if quantity <= 0 do
-        CartStore.remove_item(socket.assigns.cart_session_id, item.variant_id)
+        CartStore.remove_item(
+          socket.assigns.cart_session_id,
+          socket.assigns.store.id,
+          item.variant_id
+        )
       else
-        CartStore.update_quantity(socket.assigns.cart_session_id, item.variant_id, quantity)
+        CartStore.update_quantity(
+          socket.assigns.cart_session_id,
+          socket.assigns.store.id,
+          item.variant_id,
+          quantity
+        )
       end
     end
 
@@ -93,7 +129,11 @@ defmodule EmakolaWeb.Storefront.CartLive do
     item = Enum.at(socket.assigns.cart, index)
 
     if item do
-      CartStore.remove_item(socket.assigns.cart_session_id, item.variant_id)
+      CartStore.remove_item(
+        socket.assigns.cart_session_id,
+        socket.assigns.store.id,
+        item.variant_id
+      )
     end
 
     {:noreply, reload_cart(socket)}
@@ -104,7 +144,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
     if socket.assigns.cart == [] do
       {:noreply, put_flash(socket, :error, "Your cart is empty")}
     else
-      {:noreply, push_navigate(socket, to: "/s/#{socket.assigns.store.slug}/checkout")}
+      {:noreply, push_navigate(socket, to: store_path(socket.assigns.store.slug, "/checkout"))}
     end
   end
 
@@ -181,7 +221,7 @@ defmodule EmakolaWeb.Storefront.CartLive do
   # -- Helpers --
 
   defp reload_cart(socket) do
-    cart = CartStore.get_cart(socket.assigns.cart_session_id)
+    cart = CartStore.get_cart(socket.assigns.cart_session_id, socket.assigns.store.id)
     total = cart_total(cart)
 
     _discount =

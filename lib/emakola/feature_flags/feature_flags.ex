@@ -8,6 +8,9 @@ defmodule Emakola.FeatureFlags do
       define(:list_flags, action: :read)
       define(:get_flag, action: :read, get_by: [:id])
       define(:get_flag_by_key, action: :read, get_by: [:key])
+      define(:update_flag, action: :update)
+      define(:toggle_flag, action: :toggle)
+      define(:destroy_flag, action: :destroy)
     end
   end
 

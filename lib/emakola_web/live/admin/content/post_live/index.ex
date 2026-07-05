@@ -4,6 +4,8 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Index do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   @impl true
   def mount(_params, _session, socket) do
     store_id = get_store_id(socket)
@@ -320,7 +322,12 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Index do
       assign(socket, :posts, posts)
     end
   rescue
-    _ -> assign(socket, :posts, [])
+    exception ->
+      Logger.error(
+        "[post_live.index] load_posts loading posts raised: #{Exception.message(exception)}"
+      )
+
+      assign(socket, :posts, [])
   end
 
   defp get_store_id(socket) do

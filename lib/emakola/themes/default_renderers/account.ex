@@ -14,14 +14,17 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents
   import EmakolaWeb.ReturnComponents
 
+  alias EmakolaWeb.Helpers.CssColor
   alias EmakolaWeb.Helpers.Currency
 
   def render(assigns) do
     ~H"""
-    <Emakola.Themes.Atelier.Shared.navbar
+    <Emakola.Themes.DefaultRenderers.Chrome.navbar
+      theme_module={assigns[:theme_module]}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -33,7 +36,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
       <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6 sm:pt-14 sm:pb-8">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <h1 class="font-serif text-3xl sm:text-4xl font-semibold text-cta-dark">
+            <h1 class="text-3xl sm:text-4xl font-semibold text-cta-dark">
               My Account
             </h1>
             <p class="mt-1 text-sm font-light tracking-wide text-[#44403C]">
@@ -42,7 +45,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
           </div>
           <div class="flex items-center gap-4">
             <a
-              href={"/s/#{@store.slug}/auth/customer-logout"}
+              href={store_path(@store.slug, "/auth/customer-logout")}
               class="inline-flex items-center gap-2 text-sm font-medium transition-colors cursor-pointer text-rose-600 hover:text-rose-800"
             >
               <svg
@@ -61,7 +64,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
               Sign Out
             </a>
             <.link
-              navigate={"/s/#{@store.slug}"}
+              navigate={store_path(@store.slug, "/")}
               class="inline-flex items-center gap-2 text-sm font-medium transition-colors cursor-pointer group text-[#44403C] hover:text-cta-dark"
             >
               <svg
@@ -128,7 +131,8 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
                 ]}
                 style={
                   if(@active_tab == tab.id,
-                    do: "color: #1C1917; border-left: 2px solid #{@theme.colors.primary}",
+                    do:
+                      "color: #1C1917; border-left: 2px solid #{CssColor.safe_css_color(@theme.colors.primary, "#B45309")}",
                     else: "color: #44403C"
                   )
                 }
@@ -173,7 +177,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
                 <button
                   id="add-address-btn"
                   class="cursor-pointer text-white text-xs font-semibold uppercase tracking-wider px-5 py-2.5 rounded-full transition-colors flex items-center gap-2"
-                  style={"background-color: #{@theme.colors.primary}"}
+                  style={"background-color: #{CssColor.safe_css_color(@theme.colors.primary, "#B45309")}"}
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -235,7 +239,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
                 class={[
                   "cursor-pointer w-full text-left px-4 py-3 border rounded-lg text-sm transition-colors",
                   if(@return_reason == value,
-                    do: "border-[#B45309] bg-amber-50 text-cta-dark",
+                    do: "border-store-accent bg-store-accent/5 text-cta-dark",
                     else: "border-stone-200 text-[#44403C] hover:border-stone-400"
                   )
                 ]}
@@ -254,7 +258,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
               name="detail"
               rows="3"
               placeholder="Tell us more about the issue..."
-              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-[#B45309] focus:border-[#B45309] focus:outline-none"
+              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-store-accent focus:border-store-accent focus:outline-none"
             >{@return_detail}</textarea>
           </div>
 
@@ -264,7 +268,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
             class={[
               "cursor-pointer w-full text-center text-xs font-semibold uppercase tracking-wider px-6 py-3 rounded-[20px] transition-colors",
               if(@return_reason,
-                do: "bg-cta-dark text-white hover:bg-stone-800",
+                do: "bg-cta-dark text-white hover:opacity-90",
                 else: "bg-stone-200 text-stone-400 cursor-not-allowed"
               )
             ]}
@@ -274,7 +278,11 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
         </div>
       </div>
 
-      <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+      <Emakola.Themes.DefaultRenderers.Chrome.footer
+        theme_module={assigns[:theme_module]}
+        store={@store}
+        categories={@categories}
+      />
     </div>
     <.bottom_nav store_slug={@store.slug} active_tab={:account} cart_count={@cart_count} />
     """
@@ -293,7 +301,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
         <div class="flex items-center gap-6 mb-8">
           <div
             class="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold"
-            style={"background-color: #{@theme.colors.primary}"}
+            style={"background-color: #{CssColor.safe_css_color(@theme.colors.primary, "#B45309")}"}
           >
             {customer_initials(@customer)}
           </div>
@@ -318,7 +326,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
               name="name"
               value={@customer.name || ""}
               class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:outline-none transition-colors"
-              style={"--tw-ring-color: #{@theme.colors.primary};"}
+              style={"--tw-ring-color: #{CssColor.safe_css_color(@theme.colors.primary, "#B45309")};"}
               onfocus="this.style.boxShadow=`0 0 0 2px ${this.style.getPropertyValue('--tw-ring-color')}`;"
               onblur="this.style.boxShadow=''"
             />
@@ -344,7 +352,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
               name="phone"
               value={@customer.phone || ""}
               class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:outline-none transition-colors"
-              style={"--tw-ring-color: #{@theme.colors.primary};"}
+              style={"--tw-ring-color: #{CssColor.safe_css_color(@theme.colors.primary, "#B45309")};"}
               onfocus="this.style.boxShadow=`0 0 0 2px ${this.style.getPropertyValue('--tw-ring-color')}`;"
               onblur="this.style.boxShadow=''"
             />
@@ -354,7 +362,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
               type="submit"
               id="save-profile-btn"
               class="cursor-pointer text-white text-xs font-semibold uppercase tracking-wider px-8 py-3 rounded-full transition-opacity hover:opacity-80"
-              style={"background-color: #{@theme.colors.primary}"}
+              style={"background-color: #{CssColor.safe_css_color(@theme.colors.primary, "#B45309")}"}
             >
               Save Changes
             </button>
@@ -377,7 +385,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
           phx-click="switch_tab"
           phx-value-tab="orders"
           class="text-sm font-medium cursor-pointer transition-colors hover:opacity-70"
-          style={"color: #{@theme.colors.primary}"}
+          style={"color: #{CssColor.safe_css_color(@theme.colors.primary, "#B45309")}"}
         >
           View All
         </button>
@@ -415,9 +423,9 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
       </svg>
       <p class="text-sm text-[#44403C]">No orders yet</p>
       <.link
-        navigate={"/s/#{@store.slug}/products"}
+        navigate={store_path(@store.slug, "/products")}
         class="inline-block mt-3 text-sm font-medium transition-colors hover:opacity-70"
-        style={"color: #{if @theme, do: @theme.colors.primary, else: "#B45309"}"}
+        style={"color: #{CssColor.safe_css_color(@theme && @theme.colors.primary, "#B45309")}"}
       >
         Start Shopping
       </.link>
@@ -486,7 +494,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
             <button
               phx-click="show_return_modal"
               phx-value-order={order.order_number}
-              class="cursor-pointer text-xs font-medium text-store-accent hover:text-amber-800 transition-colors"
+              class="cursor-pointer text-xs font-medium text-store-accent hover:underline transition-colors"
             >
               Request Return
             </button>
@@ -533,7 +541,7 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
           <span
             :if={address.is_default}
             class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider"
-            style={"background-color: #{@theme.colors.primary}1a; color: #{@theme.colors.primary}"}
+            style={"background-color: #{CssColor.safe_css_color(@theme.colors.primary, "#B45309")}1a; color: #{CssColor.safe_css_color(@theme.colors.primary, "#B45309")}"}
           >
             Default
           </span>

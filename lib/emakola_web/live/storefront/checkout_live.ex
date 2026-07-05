@@ -10,6 +10,10 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Cart.CartStore
   alias Emakola.Orders.CheckoutService
 
@@ -20,7 +24,11 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   def mount(_params, session, socket) do
     store = socket.assigns.store
     cart_session_id = session["cart_session_id"]
-    cart = if cart_session_id, do: CartStore.get_cart(cart_session_id), else: []
+
+    cart =
+      if connected?(socket) && cart_session_id,
+        do: CartStore.get_cart(cart_session_id, store.id),
+        else: []
 
     cart_total =
       Enum.reduce(cart, 0, fn item, acc -> acc + item.unit_price * item.quantity end)
@@ -31,7 +39,12 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       try do
         Emakola.Catalog.list_root_categories!(store.id)
       rescue
-        _ -> []
+        exception ->
+          Logger.error(
+            "[checkout_live] mount loading root categories raised: #{Exception.message(exception)}"
+          )
+
+          []
       end
 
     # UTM attribution captured by EmakolaWeb.Plugs.UtmCapture during the
@@ -234,13 +247,14 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       case verify_payment_status(socket) do
         :success ->
           if socket.assigns[:cart_session_id],
-            do: CartStore.clear_cart(socket.assigns.cart_session_id)
+            do: CartStore.clear_cart(socket.assigns.cart_session_id, socket.assigns.store.id)
 
           {:noreply,
            socket
            |> assign(:processing, false)
            |> redirect(
-             to: "/s/#{socket.assigns.store.slug}/orders/#{order.order_number}/confirmation"
+             to:
+               store_path(socket.assigns.store.slug, "/orders/#{order.order_number}/confirmation")
            )}
 
         :failed ->
@@ -276,13 +290,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
     if order && socket.assigns.payment_status == :awaiting_payment do
       if socket.assigns[:cart_session_id],
-        do: CartStore.clear_cart(socket.assigns.cart_session_id)
+        do: CartStore.clear_cart(socket.assigns.cart_session_id, socket.assigns.store.id)
 
       {:noreply,
        socket
        |> assign(:processing, false)
        |> redirect(
-         to: "/s/#{socket.assigns.store.slug}/orders/#{order.order_number}/confirmation"
+         to: store_path(socket.assigns.store.slug, "/orders/#{order.order_number}/confirmation")
        )}
     else
       {:noreply, socket}
@@ -371,13 +385,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     case socket.assigns.payment_method do
       "cod" ->
         if socket.assigns[:cart_session_id],
-          do: CartStore.clear_cart(socket.assigns.cart_session_id)
+          do: CartStore.clear_cart(socket.assigns.cart_session_id, socket.assigns.store.id)
 
         {:noreply,
          socket
          |> assign(:processing, false)
          |> redirect(
-           to: "/s/#{socket.assigns.store.slug}/orders/#{order.order_number}/confirmation"
+           to: store_path(socket.assigns.store.slug, "/orders/#{order.order_number}/confirmation")
          )}
 
       method when method in ["momo", "vodafone", "card"] ->
@@ -393,20 +407,28 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     store = socket.assigns.store
     gateway = Application.get_env(:emakola, :payment_gateway, Emakola.Payments.Gateways.Paystack)
 
-    params = %{
-      amount: order.total,
-      email: paystack_email(socket.assigns, store),
-      currency: store.currency || "GHS",
-      order_id: order.id,
-      store_id: store.id,
-      order_reference: order.order_number,
-      callback_url:
-        "#{EmakolaWeb.Endpoint.url()}/s/#{store.slug}/orders/#{order.order_number}/confirmation",
-      return_url:
-        "#{EmakolaWeb.Endpoint.url()}/s/#{store.slug}/orders/#{order.order_number}/confirmation",
-      channel: paystack_channel(method),
-      metadata: %{payment_method: method}
-    }
+    # Resolve how the charge is split at the gateway: a trustless dropship split
+    # across wholesaler(s) + dropshipper, or — for a normal own-stock order with
+    # a verified subaccount — the merchant's net with the platform keeping its
+    # fee. Falls back to settling via the main account when neither applies.
+    settlement = Emakola.Payments.OrderSettlement.prepare(order.id, store.id)
+
+    params =
+      %{
+        amount: order.total,
+        email: paystack_email(socket.assigns, store),
+        currency: store.currency || "GHS",
+        order_id: order.id,
+        store_id: store.id,
+        order_reference: order.order_number,
+        callback_url:
+          "#{EmakolaWeb.Endpoint.url()}/s/#{store.slug}/orders/#{order.order_number}/confirmation",
+        return_url:
+          "#{EmakolaWeb.Endpoint.url()}/s/#{store.slug}/orders/#{order.order_number}/confirmation",
+        channel: paystack_channel(method),
+        metadata: %{payment_method: method}
+      }
+      |> maybe_attach_split(settlement)
 
     case gateway.initiate_payment(params) do
       {:ok, %{reference: reference} = resp} ->
@@ -418,11 +440,13 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                  currency: store.currency || "GHS",
                  gateway: :paystack,
                  gateway_reference: reference,
-                 metadata: %{payment_method: method}
+                 metadata: %{payment_method: method},
+                 split_mode: split_mode(settlement)
                },
                authorize?: false
              ) do
-          {:ok, _payment} ->
+          {:ok, payment} ->
+            record_splits(payment, settlement)
             :ok
 
           {:error, reason} ->
@@ -442,7 +466,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
               {:noreply,
                socket
                |> assign(:processing, false)
-               |> redirect(to: "/s/#{store.slug}/orders/#{order.order_number}/confirmation")}
+               |> redirect(
+                 to: store_path(store.slug, "/orders/#{order.order_number}/confirmation")
+               )}
         else
           # Guard against disconnected static render — without this, the
           # timer/poll messages leak into a process that has no client to
@@ -473,6 +499,21 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
          |> put_flash(:error, "Payment error: #{inspect(reason)}")}
     end
   end
+
+  # -- Settlement split helpers --------------------------------------------
+
+  defp maybe_attach_split(params, {:split, %{shares: shares}}),
+    do: Map.put(params, :split, shares)
+
+  defp maybe_attach_split(params, {:no_split, _reason}), do: params
+
+  defp split_mode({:split, %{mode: mode}}), do: mode
+  defp split_mode({:no_split, _}), do: :none
+
+  defp record_splits(payment, {:split, %{allocations: allocations}}),
+    do: Emakola.Payments.OrderSettlement.record_splits!(payment, allocations)
+
+  defp record_splits(_payment, {:no_split, _}), do: :ok
 
   defp verify_payment_status(socket) do
     ref = socket.assigns[:gateway_reference]

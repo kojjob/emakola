@@ -10,6 +10,8 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.SEO, as: SEOHelpers
 
@@ -23,7 +25,11 @@ defmodule EmakolaWeb.Storefront.StoreLive do
     public_coupons = load_public_coupons(store)
     delivery_zones = load_delivery_zones(store)
     cart_session_id = session["cart_session_id"]
-    cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+
+    cart_count =
+      if connected?(socket) && cart_session_id,
+        do: CartStore.cart_count(cart_session_id, store.id),
+        else: 0
 
     {:ok,
      socket
@@ -42,8 +48,10 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   end
 
   @impl true
-  def handle_params(_params, uri, socket) do
-    {:noreply, assign(socket, :canonical_url, uri)}
+  def handle_params(_params, _uri, socket) do
+    # Canonical pinned to the apex /s/:slug (never the request host).
+    {:noreply,
+     assign(socket, :canonical_url, EmakolaWeb.SEO.Canonical.store_url(socket.assigns.store))}
   end
 
   @impl true
@@ -72,19 +80,21 @@ defmodule EmakolaWeb.Storefront.StoreLive do
 
   @impl true
   def handle_event("add_to_cart", %{"product-id" => product_id}, socket) do
-    case Emakola.Catalog.get_product(product_id, authorize?: false) do
-      {:ok, product} when not is_nil(product) ->
+    case Emakola.Catalog.get_active_product(socket.assigns.store.id, product_id,
+           authorize?: false
+         ) do
+      {:ok, product} ->
         product = Ash.load!(product, [:variants, :images], authorize?: false)
         variant = product.variants |> Enum.sort_by(& &1.position) |> List.first()
 
-        if variant && variant.stock_quantity > 0 do
+        if variant && Emakola.Catalog.Variant.in_stock?(variant) do
           image_url =
             case product.images do
               [img | _] -> img.thumbnail_url || img.url
               _ -> nil
             end
 
-          CartStore.add_item(socket.assigns.cart_session_id, %{
+          CartStore.add_item(socket.assigns.cart_session_id, socket.assigns.store.id, %{
             variant_id: variant.id,
             quantity: 1,
             product_title: product.title,
@@ -94,7 +104,8 @@ defmodule EmakolaWeb.Storefront.StoreLive do
             image_url: image_url
           })
 
-          cart_count = CartStore.cart_count(socket.assigns.cart_session_id)
+          cart_count =
+            CartStore.cart_count(socket.assigns.cart_session_id, socket.assigns.store.id)
 
           {:noreply,
            socket
@@ -176,7 +187,12 @@ defmodule EmakolaWeb.Storefront.StoreLive do
       Emakola.Shipping.list_delivery_zones!(store.id)
       |> Enum.filter(& &1.active)
     rescue
-      _ -> []
+      exception ->
+        Logger.error(
+          "[store_live] load_delivery_zones loading delivery zones raised: #{Exception.message(exception)}"
+        )
+
+        []
     end
   end
 
@@ -208,7 +224,7 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   defp assign_seo_metadata(socket, store, products) do
     description = store_description_for_seo(store)
     og_image = first_featured_product_image(products) || store_logo_url(store)
-    json_ld = SEOHelpers.json_ld_store(store)
+    json_ld = SEOHelpers.json_ld_local_business(store)
 
     socket
     |> assign(:meta_description, description)

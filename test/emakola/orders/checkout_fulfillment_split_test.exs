@@ -93,7 +93,9 @@ defmodule Emakola.Orders.CheckoutFulfillmentSplitTest do
         %{variant_id: own.id, quantity: 4}
       ]
 
-      assert {:ok, _order} = Emakola.Orders.CheckoutService.checkout!(store.id, items, [])
+      assert {:ok, order} = Emakola.Orders.CheckoutService.checkout!(store.id, items, [])
+      # Stock decrements on payment confirmation, not at checkout.
+      {:ok, _} = Emakola.Orders.confirm_order(order, authorize?: false)
 
       reloaded_own = Ash.get!(Emakola.Catalog.Variant, own.id, authorize?: false)
       reloaded_drop = Ash.get!(Emakola.Catalog.Variant, drop.id, authorize?: false)
@@ -125,6 +127,30 @@ defmodule Emakola.Orders.CheckoutFulfillmentSplitTest do
       fulfillments = Emakola.Orders.list_fulfillments_by_order!(order.id, authorize?: false)
       assert [%{supplier_id: sid}] = fulfillments
       assert sid == supplier.id
+    end
+
+    test "an unavailable dropship variant cannot be checked out", %{
+      store: store,
+      product: product
+    } do
+      supplier = create_supplier!(store)
+
+      variant =
+        create_variant!(product, store,
+          price: 5_000,
+          sku: "DROP-UNAVAIL",
+          supplier_id: supplier.id,
+          available: false
+        )
+
+      # Dropship variants are untracked, so the plain stock check would pass —
+      # but the supplier marked it unavailable, so checkout must reject it.
+      assert {:error, :insufficient_stock} =
+               Emakola.Orders.CheckoutService.checkout!(
+                 store.id,
+                 [%{variant_id: variant.id, quantity: 1}],
+                 []
+               )
     end
   end
 end

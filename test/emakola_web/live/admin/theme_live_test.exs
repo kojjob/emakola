@@ -7,8 +7,8 @@ defmodule EmakolaWeb.Admin.ThemeLiveTest do
 
   describe "Theme customizer without store" do
     test "redirects to onboarding when no store", %{conn: conn} do
-      user = create_user!(password: "Password123!")
-      token = AshAuthentication.user_to_subject(user)
+      merchant = create_merchant!()
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn
@@ -22,7 +22,7 @@ defmodule EmakolaWeb.Admin.ThemeLiveTest do
   describe "Theme customizer (authenticated merchant)" do
     setup %{conn: conn} do
       {merchant, store} = Factory.create_merchant_with_store!()
-      token = AshAuthentication.user_to_subject(merchant)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn
@@ -51,6 +51,21 @@ defmodule EmakolaWeb.Admin.ThemeLiveTest do
       for hex <- ~w(#CA8A04 #2563EB #DC2626 #059669 #7C3AED #DB2777 #EA580C #0D9488) do
         assert has_element?(view, "button[phx-value-hex=\"#{hex}\"]")
       end
+    end
+
+    test "hero image upload renders a tappable overlay input, not clipped sr-only", %{conn: conn} do
+      # iOS Safari fails to open the file picker for a 1px sr-only-clipped input
+      # triggered via a label. The input must be a full-size transparent overlay.
+      {:ok, _view, html} = live(conn, ~p"/admin/theme")
+      input_tag = Regex.run(~r/<input[^>]*name="hero_images"[^>]*>/, html) |> List.first()
+
+      assert input_tag, "expected a hero_images file input on the theme page"
+
+      refute input_tag =~ "sr-only",
+             "file input must not be hidden via clipped sr-only (iOS Safari won't open the picker)"
+
+      assert input_tag =~ "opacity-0",
+             "file input should be a transparent full-size tap overlay"
     end
 
     test "select_theme switches active theme and applies palette from theme module", %{conn: conn} do
@@ -203,7 +218,7 @@ defmodule EmakolaWeb.Admin.ThemeLiveTest do
   describe "Live preview uses real store data (no hardcoded values)" do
     setup %{conn: conn} do
       {merchant, store} = Factory.create_merchant_with_store!()
-      token = AshAuthentication.user_to_subject(merchant)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn

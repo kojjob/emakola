@@ -24,15 +24,48 @@ defmodule EmakolaWeb.ConnCase do
 
       use EmakolaWeb, :verified_routes
 
-      # Import conveniences for testing with connections
+      # Import conveniences for testing with connections. build_conn/0 is
+      # provided by EmakolaWeb.ConnCase below (apex-host default), so exclude
+      # the Phoenix.ConnTest one to avoid an import conflict.
       import Plug.Conn
-      import Phoenix.ConnTest
+      import Phoenix.ConnTest, except: [build_conn: 0]
       import EmakolaWeb.ConnCase
     end
   end
 
+  @doc """
+  Builds a test conn on an apex host (`localhost`).
+
+  The router host-locks the apex routes (marketing, platform, app admin) to
+  `@apex_hosts` so store subdomains route to the storefront instead. Phoenix's
+  `build_conn/0` defaults the host to "www.example.com", which is NOT an apex
+  host and would fall through to the storefront catch-all (404 on /admin/*,
+  /dashboard, etc.). Defaulting to "localhost" (an apex host) keeps every
+  apex-route test matching. Storefront/host tests override `conn.host`.
+  """
+  def build_conn, do: %{Phoenix.ConnTest.build_conn() | host: "localhost"}
+
   setup tags do
     Emakola.DataCase.setup_sandbox(tags)
-    {:ok, conn: Phoenix.ConnTest.build_conn()}
+    {:ok, conn: build_conn()}
+  end
+
+  @doc """
+  Assigns a peer IP that is unique for the whole test run, isolating per-IP
+  rate-limit buckets (Hammer's ETS table is global and never reset between
+  tests). Sets both `remote_ip` (plugs/controllers) and the Plug.Test peer
+  data (LiveView `get_connect_info(:peer_data)`).
+
+  Do NOT build "unique" IPs from `:rand` — ExUnit seeds `:rand`
+  deterministically per test from the suite seed, so two tests can draw the
+  same IP and share a rate-limit bucket (flaky for ~1 in 5000 seeds).
+  """
+  def put_unique_peer_ip(conn) do
+    n = System.unique_integer([:positive])
+    ip = {10, rem(div(n, 65_536), 256), rem(div(n, 256), 256), rem(n, 256)}
+
+    conn
+    |> Map.replace!(:remote_ip, ip)
+    |> Plug.Test.put_peer_data(%{address: ip, port: 54321, ssl_cert: nil})
   end
 end

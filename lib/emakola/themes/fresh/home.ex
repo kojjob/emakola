@@ -13,6 +13,8 @@ defmodule Emakola.Themes.Fresh.Home do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.Fresh.Shared
 
   @doc """
@@ -104,8 +106,8 @@ defmodule Emakola.Themes.Fresh.Home do
               </p>
               <div class="flex flex-wrap gap-3">
                 <a
-                  href={"/s/#{@store.slug}/products"}
-                  class="inline-flex items-center gap-2 px-8 py-4 bg-white text-[#059669] rounded-full text-base font-bold hover:bg-[#ECFDF5] active:scale-[0.97] transition-all shadow-lg shadow-black/20"
+                  href={store_path(@store.slug, "/products")}
+                  class="inline-flex items-center gap-2 px-8 py-4 bg-white text-[var(--theme-primary,#047857)] rounded-full text-base font-bold hover:bg-[#ECFDF5] active:scale-[0.97] transition-all shadow-lg shadow-black/20"
                   style="font-family: 'Inter', sans-serif;"
                 >
                   {@theme.hero.cta_text || "Start Shopping"}
@@ -191,7 +193,7 @@ defmodule Emakola.Themes.Fresh.Home do
               </h2>
             </div>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="text-sm font-semibold text-[#059669] hover:text-[#047857] transition-colors flex items-center gap-1"
               style="font-family: 'Inter', sans-serif;"
             >
@@ -371,7 +373,7 @@ defmodule Emakola.Themes.Fresh.Home do
               </h2>
             </div>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="text-sm font-semibold text-[#059669] hover:text-[#047857] transition-colors flex items-center gap-1"
               style="font-family: 'Inter', sans-serif;"
             >
@@ -431,7 +433,7 @@ defmodule Emakola.Themes.Fresh.Home do
               />
               <button
                 type="submit"
-                class="px-8 py-3.5 bg-[#059669] text-white rounded-full text-sm font-bold hover:bg-[#047857] active:scale-[0.97] transition-all shadow-lg shadow-emerald-200"
+                class="px-8 py-3.5 bg-[var(--theme-primary,#047857)] text-white rounded-full text-sm font-bold hover:opacity-90 active:scale-[0.97] transition-all shadow-lg shadow-emerald-200"
                 style="font-family: 'Inter', sans-serif;"
               >
                 {@theme.newsletter.button_text || "Subscribe"}

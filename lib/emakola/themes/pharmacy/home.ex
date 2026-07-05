@@ -5,17 +5,18 @@ defmodule Emakola.Themes.Pharmacy.Home do
   Mirrors the Dribbble reference (Pharmaicus / "Professional Pharmacy
   Services You Can Trust") with these gated sections (`@theme.sections.*`):
   - Forest-green photographic hero with serif headline + cream pill CTA
-  - Stats strip (Years / Brands / Customers — 4 stat cards)
+  - Stats strip (renders only when the merchant supplies stat items)
   - Highlight feature cards (3 pastel-bg blocks showcasing top products)
   - Trending products grid
   - Category pill strip
   - Trust badges (Licensed / Genuine / Discreet)
-  - Brand story / Hospitals collaboration logos
   - Newsletter
   - Footer (matches hero forest-green)
   """
 
   use Phoenix.Component
+
+  import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Pharmacy.Shared
 
@@ -57,7 +58,7 @@ defmodule Emakola.Themes.Pharmacy.Home do
               </p>
               <div class="flex flex-col sm:flex-row gap-3">
                 <a
-                  href={"/s/#{@store.slug}/products"}
+                  href={store_path(@store.slug, "/products")}
                   class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-white text-[#14543E] text-sm font-semibold hover:bg-[#A7E5C5] transition-colors min-h-[48px]"
                 >
                   {@theme.hero.cta_text || "Explore Now"}
@@ -66,7 +67,7 @@ defmodule Emakola.Themes.Pharmacy.Home do
                   </span>
                 </a>
                 <a
-                  href={"/s/#{@store.slug}/about"}
+                  href={store_path(@store.slug, "/about")}
                   class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full border border-[#A7E5C5]/40 text-white text-sm font-semibold hover:bg-white/5 transition-colors min-h-[48px]"
                 >
                   Learn more
@@ -94,20 +95,18 @@ defmodule Emakola.Themes.Pharmacy.Home do
                   </div>
                 <% end %>
               </div>
-              <%!-- floating trust card --%>
-              <div class="absolute bottom-6 left-6 sm:bottom-8 sm:left-8 bg-white/95 backdrop-blur-md rounded-2xl px-5 py-4 shadow-xl">
+              <%!-- floating trust card (only for platform-verified stores) --%>
+              <div
+                :if={Map.get(@store, :verified)}
+                class="absolute bottom-6 left-6 sm:bottom-8 sm:left-8 bg-white/95 backdrop-blur-md rounded-2xl px-5 py-4 shadow-xl"
+              >
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 rounded-full bg-[#A7E5C5] flex items-center justify-center">
                     <span class="material-symbols-outlined text-[#14543E]" style="font-size: 22px;">
                       verified_user
                     </span>
                   </div>
-                  <div>
-                    <p class="text-xs uppercase tracking-wider text-[#6B7280] font-semibold">
-                      Verified Pharmacy
-                    </p>
-                    <p class="text-sm font-bold text-[#14543E]">FDA Ghana approved</p>
-                  </div>
+                  <p class="text-sm font-bold text-[#14543E]">Verified Pharmacy</p>
                 </div>
               </div>
             </div>
@@ -115,13 +114,15 @@ defmodule Emakola.Themes.Pharmacy.Home do
         </div>
       </section>
 
-      <%!-- STATS STRIP --%>
-      <section :if={section_enabled?(@theme, :stats)} class="bg-[#F9F6F0] py-14 sm:py-20">
+      <%!-- STATS STRIP (only when the merchant supplies real numbers) --%>
+      <section
+        :if={section_enabled?(@theme, :stats) && stats_items(@theme) != []}
+        class="bg-[#F9F6F0] py-14 sm:py-20"
+      >
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="grid lg:grid-cols-2 gap-10 mb-12 items-end">
             <h2 class="pharmacy-heading text-3xl sm:text-4xl lg:text-5xl font-medium text-[#14543E] leading-tight">
               {stats_heading(@theme)}
-              <span class="text-[#14543E]/60">Since {founded_year()}</span>
             </h2>
             <p class="text-base text-[#4B5563] leading-relaxed">
               {stats_subtitle(@theme)}
@@ -167,7 +168,7 @@ defmodule Emakola.Themes.Pharmacy.Home do
               </h2>
             </div>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-[#14543E] hover:gap-2 transition-all"
             >
               See all
@@ -210,14 +211,14 @@ defmodule Emakola.Themes.Pharmacy.Home do
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex flex-wrap items-center gap-2 sm:gap-3">
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="inline-flex items-center px-4 py-2 rounded-full bg-[#14543E] text-white text-sm font-semibold"
             >
               All Products
             </a>
             <a
               :for={category <- Enum.take(@categories, 7)}
-              href={"/s/#{@store.slug}/category/#{category.slug}"}
+              href={store_path(@store.slug, "/category/#{category.slug}")}
               class="inline-flex items-center px-4 py-2 rounded-full bg-[#A7E5C5]/40 text-[#14543E] text-sm font-medium hover:bg-[#A7E5C5] transition-colors"
             >
               {category.name}
@@ -270,26 +271,6 @@ defmodule Emakola.Themes.Pharmacy.Home do
         </div>
       </section>
 
-      <%!-- BRAND STORY / HOSPITALS strip --%>
-      <section :if={section_enabled?(@theme, :brand_story)} class="bg-[#F9F6F0] py-14 sm:py-20">
-        <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 class="pharmacy-heading text-3xl sm:text-4xl font-medium text-[#14543E] mb-3">
-            Trusted by hospitals across Ghana
-          </h2>
-          <p class="text-sm text-[#4B5563] mb-10 max-w-xl mx-auto">
-            We collaborate with leading hospitals and clinics to deliver verified medication
-            and wellness products to communities nationwide.
-          </p>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-10 items-center opacity-70">
-            <div :for={_ <- 1..4} class="h-10 sm:h-14 flex items-center justify-center">
-              <span class="text-sm font-bold text-[#14543E]/40 tracking-wider uppercase">
-                Hospital Logo
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <%!-- NEWSLETTER --%>
       <section :if={section_enabled?(@theme, :newsletter)} class="bg-[#14543E] py-14 sm:py-20">
         <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -331,7 +312,7 @@ defmodule Emakola.Themes.Pharmacy.Home do
   defp highlight_card(assigns) do
     ~H"""
     <a
-      href={"/s/#{@store.slug}/products/#{@product.slug}"}
+      href={store_path(@store.slug, "/products/#{@product.slug}")}
       class="relative block rounded-2xl p-6 sm:p-8 overflow-hidden group"
       style={"background-color: #{@palette.bg};"}
     >
@@ -397,20 +378,13 @@ defmodule Emakola.Themes.Pharmacy.Home do
       get_in(theme, [:stats, :subtitle]) ||
         "We believe in lasting relationships, not just transactions."
 
+  # Stats render only when the merchant supplies real numbers via the theme
+  # `stats` config — no invented defaults.
   defp stats_items(theme) do
     case get_in(theme, [:stats, :items]) do
-      items when is_list(items) and items != [] -> items
-      _ -> default_stats()
+      items when is_list(items) -> items
+      _ -> []
     end
-  end
-
-  defp default_stats do
-    [
-      %{value: "20+", label: "Years of experience", icon: "verified"},
-      %{value: "5k+", label: "Trusted brands", icon: "inventory_2"},
-      %{value: "600+", label: "Global brands", icon: "public"},
-      %{value: "1M", label: "Happy customers", icon: "favorite"}
-    ]
   end
 
   defp trust_title(theme), do: get_in(theme, [:trust, :title]) || "Licensed & Trusted"
@@ -429,7 +403,7 @@ defmodule Emakola.Themes.Pharmacy.Home do
 
   defp default_trust_items do
     [
-      %{icon: "verified_user", label: "Licensed pharmacy", subtitle: "FDA Ghana approved"},
+      %{icon: "verified_user", label: "Licensed pharmacy", subtitle: "Professional care"},
       %{icon: "local_pharmacy", label: "Genuine medicines", subtitle: "Trusted brands only"},
       %{icon: "local_shipping", label: "Discreet delivery", subtitle: "Across Ghana, fast"}
     ]
@@ -445,8 +419,6 @@ defmodule Emakola.Themes.Pharmacy.Home do
 
   defp newsletter_button(theme),
     do: get_in(theme, [:newsletter, :button_text]) || "Subscribe"
-
-  defp founded_year, do: DateTime.utc_now().year - 17
 
   defp highlight_palette(0), do: %{bg: "#E8F5EE", icon: "#14543E"}
   defp highlight_palette(1), do: %{bg: "#FFF4E6", icon: "#92400E"}

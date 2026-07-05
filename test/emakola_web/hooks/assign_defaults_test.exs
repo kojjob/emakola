@@ -20,7 +20,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaultsTest do
 
     test "merchant without store gets nil current_store", %{conn: conn} do
       merchant = Factory.create_merchant!()
-      token = AshAuthentication.user_to_subject(merchant)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn
@@ -35,21 +35,53 @@ defmodule EmakolaWeb.Hooks.AssignDefaultsTest do
     end
   end
 
-  describe "AssignDefaults with user auth (backward compat)" do
-    test "assigns current_user for authenticated User", %{conn: conn} do
+  describe "AssignDefaults with legacy User subject" do
+    test "User subjects in :user_token no longer authenticate", %{conn: conn} do
       user = Factory.create_user!()
       org = Factory.create_organisation!()
       Factory.create_membership!(user, org, :owner)
 
-      token = AshAuthentication.user_to_subject(user)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
 
       conn =
         conn
         |> Phoenix.ConnTest.init_test_session(%{})
         |> Plug.Conn.put_session(:user_token, token)
 
-      {:ok, _view, html} = live(conn, ~p"/dashboard")
-      assert html =~ "Dashboard" || html =~ "dashboard"
+      assert {:error, {:live_redirect, %{to: "/auth/login"}}} = live(conn, ~p"/dashboard")
+    end
+  end
+
+  describe "AssignDefaults with platform session" do
+    test "assigns current_user and current_session_id for platform staff", %{conn: conn} do
+      user = Factory.create_platform_owner!()
+      session = Factory.create_user_session!(user)
+      signed = EmakolaWeb.AuthTokens.sign_platform_session(session.id)
+
+      conn =
+        conn
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:platform_session_token, signed)
+
+      {:ok, _view, html} = live(conn, "/platform")
+      assert html =~ "Platform Overview"
+    end
+
+    test "connected mount touches a stale session", %{conn: conn} do
+      user = Factory.create_platform_owner!()
+      stale = DateTime.add(DateTime.utc_now(), -10, :minute)
+      session = Factory.create_user_session!(user, %{last_seen_at: stale})
+      signed = EmakolaWeb.AuthTokens.sign_platform_session(session.id)
+
+      conn =
+        conn
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:platform_session_token, signed)
+
+      {:ok, _view, _html} = live(conn, "/platform")
+
+      {:ok, reloaded} = Ash.get(Emakola.Accounts.UserSession, session.id, authorize?: false)
+      assert DateTime.after?(reloaded.last_seen_at, stale)
     end
   end
 
@@ -74,7 +106,7 @@ defmodule EmakolaWeb.Hooks.AssignDefaultsTest do
 
   defp setup_authenticated_merchant(conn, store_attrs \\ %{}) do
     {merchant, store} = Factory.create_merchant_with_store!(store_attrs)
-    token = AshAuthentication.user_to_subject(merchant)
+    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
     conn =
       conn

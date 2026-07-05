@@ -7,6 +7,8 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Phoenix.LiveView.JS
   alias Emakola.Themes.Akoma.Shared
 
@@ -39,10 +41,10 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
 
       <%!-- Breadcrumb --%>
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        <nav class="flex items-center gap-2 text-xs text-[#9CA3AF]">
-          <a href={"/s/#{@store.slug}"} class="hover:text-[#1A1A1A]">Home</a>
+        <nav class="flex items-center gap-2 text-xs text-[#6B7280]">
+          <a href={store_path(@store.slug, "/")} class="hover:text-[#1A1A1A]">Home</a>
           <span>/</span>
-          <a href={"/s/#{@store.slug}/products"} class="hover:text-[#1A1A1A]">Shop</a>
+          <a href={store_path(@store.slug, "/products")} class="hover:text-[#1A1A1A]">Shop</a>
           <span>/</span>
           <span class="text-[#1A1A1A] truncate max-w-[180px]">{@product.title}</span>
         </nav>
@@ -101,7 +103,7 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
 
           <%!-- Info --%>
           <div class="lg:sticky lg:top-24 lg:self-start">
-            <div class="text-[11px] uppercase tracking-[0.18em] text-[#9CA3AF]">{@store.name}</div>
+            <div class="text-[11px] uppercase tracking-[0.18em] text-[#6B7280]">{@store.name}</div>
             <h1 class="akoma-heading text-2xl sm:text-3xl font-bold text-[#1A1A1A] mt-2">
               {@product.title}
             </h1>
@@ -146,8 +148,10 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
                     phx-value-value={option_value.id}
                     class={"min-w-[44px] min-h-[44px] px-4 py-2 text-sm rounded-md border transition-colors " <>
                       if(Map.get(@selected_options, option_type.id) == option_value.id,
-                        do: "border-[#2F5D50] bg-[#2F5D50] text-white font-medium",
-                        else: "border-[#E8EAE7] bg-white text-[#1A1A1A] hover:border-[#2F5D50]")}
+                        do:
+                          "border-[var(--theme-accent,#2F5D50)] bg-[var(--theme-accent,#2F5D50)] text-white font-medium",
+                        else:
+                          "border-[#E8EAE7] bg-white text-[#1A1A1A] hover:border-[var(--theme-accent,#2F5D50)]")}
                   >
                     {option_value.value}
                   </button>
@@ -188,7 +192,8 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
               disabled={!in_stock?(@selected_variant)}
               class={"w-full mt-4 py-3.5 rounded-md text-sm font-semibold uppercase tracking-wider transition-colors " <>
                 if(in_stock?(@selected_variant),
-                  do: "bg-[#1A1A1A] text-white hover:bg-[#2F5D50]",
+                  do:
+                    "bg-[var(--theme-primary,#1A1A1A)] text-white hover:bg-[var(--theme-accent,#2F5D50)]",
                   else: "bg-[#E8EAE7] text-[#9CA3AF] cursor-not-allowed")}
             >
               {if in_stock?(@selected_variant), do: "Add to cart", else: "Out of stock"}
@@ -199,7 +204,7 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
               href={@wa_link}
               target="_blank"
               rel="noopener"
-              class="w-full mt-3 py-3 rounded-md border border-[#25D366] text-[#128C3A] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#25D366]/5"
+              class="w-full mt-3 py-3 rounded-md border border-[#25D366] text-[#0E6B2B] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#25D366]/5"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -236,13 +241,20 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
                   Delivery &amp; returns <span>+</span>
                 </button>
                 <div id="akoma-acc-ship" class="hidden pb-4 text-sm text-[#6B7280] leading-relaxed">
-                  Next-day delivery across Accra, nationwide in 2–4 days. Easy returns within 7 days.
+                  See our
+                  <a
+                    href={store_path(@store.slug, "/policies")}
+                    class="underline hover:text-[#1A1A1A]"
+                  >
+                    delivery and returns policy
+                  </a>
+                  for details.
                 </div>
               </div>
             </div>
 
             <%!-- Trust --%>
-            <div class="flex flex-wrap gap-x-5 gap-y-2 mt-5 text-[11px] text-[#9CA3AF]">
+            <div class="flex flex-wrap gap-x-5 gap-y-2 mt-5 text-[11px] text-[#6B7280]">
               <span>🔒 Secure checkout</span>
               <span>📱 MoMo &amp; Paystack</span>
               <span>🚚 Local delivery</span>
@@ -292,7 +304,7 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
       <div class="fixed bottom-0 inset-x-0 z-40 lg:hidden bg-white border-t border-[#E8EAE7] px-4 py-3 flex items-center justify-between gap-3">
         <div class="min-w-0">
           <div class="text-xs font-medium text-[#1A1A1A] truncate">{@product.title}</div>
-          <div class="text-sm font-bold text-[#2F5D50]">
+          <div class="text-sm font-bold text-[var(--theme-accent,#2F5D50)]">
             {EmakolaWeb.Helpers.Currency.format_price(@price, @currency)}
           </div>
         </div>
@@ -301,7 +313,9 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
           phx-click="add_to_cart"
           disabled={!in_stock?(@selected_variant)}
           class={"shrink-0 px-6 py-3 rounded-md text-sm font-semibold uppercase tracking-wider " <>
-            if(in_stock?(@selected_variant), do: "bg-[#1A1A1A] text-white", else: "bg-[#E8EAE7] text-[#9CA3AF]")}
+            if(in_stock?(@selected_variant),
+              do: "bg-[var(--theme-primary,#1A1A1A)] text-white",
+              else: "bg-[#E8EAE7] text-[#9CA3AF]")}
         >
           {if in_stock?(@selected_variant), do: "Add", else: "Sold out"}
         </button>
@@ -329,9 +343,10 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
 
   defp discount_pct(_, _), do: 0
 
-  defp in_stock?(%{stock_quantity: q}) when is_integer(q), do: q > 0
+  defp in_stock?(%{track_inventory: _} = variant), do: Emakola.Catalog.Variant.in_stock?(variant)
   defp in_stock?(_), do: true
 
+  defp stock_label(%{track_inventory: false}), do: "In stock"
   defp stock_label(%{stock_quantity: q}) when is_integer(q) and q <= 0, do: "Out of stock"
 
   defp stock_label(%{stock_quantity: q}) when is_integer(q) and q <= 5,
@@ -339,7 +354,9 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
 
   defp stock_label(_), do: "In stock"
 
+  defp stock_color(%{track_inventory: false}), do: "#16A34A"
   defp stock_color(%{stock_quantity: q}) when is_integer(q) and q <= 0, do: "#B91C1C"
+  defp stock_color(%{stock_quantity: q}) when is_integer(q) and q <= 5, do: "#B45309"
   defp stock_color(_), do: "#16A34A"
 
   defp selected_label(option_type, selected_options) do

@@ -31,6 +31,23 @@ config :emakola, EmakolaWeb.Endpoint,
 # at the `config/runtime.exs`.
 config :emakola, Emakola.Mailer, adapter: Swoosh.Adapters.Local
 
+# Sending domain for outbound mail "from" addresses (noreply@, billing@).
+# Single source of truth; overridable at runtime via MAIL_FROM_DOMAIN.
+config :emakola, :mail_from_domain, "emakola.com"
+
+# Platform fee on dropship margin, in basis points (1000 = 10%). Routed to the
+# platform main account by the gateway split. Must exceed the gateway's
+# effective transaction fee (~1.95% Paystack) or thin-margin orders net negative.
+config :emakola, :dropship_fee_rate_bps, 1000
+
+# Company/contact page channels (env-overridable in runtime.exs)
+config :emakola,
+  contact_email: "support@emakola.com",
+  careers_email: "careers@emakola.com",
+  press_email: "press@emakola.com",
+  support_whatsapp: "233200000000",
+  support_phone: "+233 20 000 0000"
+
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.4",
@@ -80,13 +97,17 @@ config :emakola,
     Emakola.Stores,
     Emakola.Content,
     Emakola.Pages,
-    Emakola.Fulfillment
+    Emakola.Fulfillment,
+    Emakola.Security
   ]
 
-# Token signing secret — loaded from env var; fallback only for dev/test
-config :emakola,
-  token_signing_secret:
-    System.get_env("TOKEN_SIGNING_SECRET", "dev-only-not-for-production-at-least-32-bytes!!")
+# JSON:API content type (ash_json_api)
+config :mime,
+  types: %{"application/vnd.api+json" => ["json"]},
+  extensions: %{"json" => "application/vnd.api+json"}
+
+# Token signing secret is set per environment: dev.exs/test.exs use a
+# fixed dev-only value; prod requires TOKEN_SIGNING_SECRET (runtime.exs).
 
 # Database
 config :emakola, Emakola.Repo, migration_primary_key: [name: :id, type: :binary_id]
@@ -102,45 +123,74 @@ config :emakola, Oban,
     mailers: 20,
     billing: 5,
     notifications: 5,
+    payouts: 5,
     webhooks: 5,
     images: 3,
     orders: 5,
-    whatsapp_catalog: 3
+    whatsapp_catalog: 3,
+    # Low concurrency bounds AI spend + respects Anthropic rate limits.
+    ai_content: 3
   ],
   repo: Emakola.Repo,
-  crontab: [
-    {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker},
-    {"0 */6 * * *", Emakola.Cart.CartCleanupWorker}
+  plugins: [
+    # Prune completed/cancelled/discarded jobs after 7 days — without this
+    # the oban_jobs table grows forever.
+    {Oban.Plugins.Pruner, max_age: 604_800},
+    # Rescue jobs orphaned by node crashes/deploys back to available.
+    {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)},
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker},
+       {"0 */6 * * *", Emakola.Cart.CartCleanupWorker},
+       {"30 3 * * *", Emakola.Accounts.Workers.PhoneOtpPruneWorker}
+     ]}
   ]
 
-# Demo mode
-config :emakola, :demo_mode, System.get_env("DEMO_MODE") == "true"
+# AI content generation (SEO Phase 3). The Claude generator ships dark until
+# ANTHROPIC_API_KEY is set (runtime.exs); tests swap in GeneratorMock (test.exs).
+config :emakola,
+  content_generator: Emakola.Content.Generators.Claude,
+  ai_rate_limit_per_day: 50
 
-# Paystack client defaults (overridden in runtime.exs for prod)
-config :emakola, Emakola.Payments.PaystackClient,
-  secret_key: System.get_env("PAYSTACK_SECRET_KEY", "sk_test_placeholder"),
-  public_key: System.get_env("PAYSTACK_PUBLIC_KEY", "pk_test_placeholder"),
-  base_url: "https://api.paystack.co"
+# Google Search Console fetcher (SEO Phase 5). Ships dark until :gsc_credentials
+# is set (runtime.exs) — both this and the worker's stub no-op when dark.
+config :emakola, :gsc_fetcher, Emakola.Analytics.GscFetcher
 
-# WhatsApp Business API (Cloud API)
-# api_version is overridable via WHATSAPP_API_VERSION env var so we
-# can roll forward when Meta deprecates a Graph API version without
-# a redeploy. See https://developers.facebook.com/docs/graph-api/changelog
-config :emakola, Emakola.Notifications.Channels.WhatsApp,
-  api_token: System.get_env("WHATSAPP_API_TOKEN"),
-  phone_number_id: System.get_env("WHATSAPP_PHONE_NUMBER_ID"),
-  api_version: System.get_env("WHATSAPP_API_VERSION") || "v21.0"
+# Demo mode is a runtime knob — set in config/runtime.exs (compile-time
+# evaluation here would bake `false` into release builds permanently).
 
-# SMS Gateway
-config :emakola, Emakola.Notifications.Channels.SMS,
-  api_key: System.get_env("SMS_API_KEY"),
-  sender_id: System.get_env("SMS_SENDER_ID") || "Emakola"
+# Paystack client — non-secret structure only. Credentials are set per
+# environment: dev.exs (placeholders), test.exs, runtime.exs (prod).
+config :emakola, Emakola.Payments.PaystackClient, base_url: "https://api.paystack.co"
 
-# Hubtel client defaults (overridden in runtime.exs for prod)
-config :emakola, Emakola.Payments.HubtelClient,
-  client_id: System.get_env("HUBTEL_CLIENT_ID"),
-  client_secret: System.get_env("HUBTEL_CLIENT_SECRET"),
-  base_url: "https://api.hubtel.com"
+# SMS/WhatsApp channel credentials are runtime concerns — configured in
+# runtime.exs for prod. Dev/test default to Log providers / Mox mocks.
+
+# Hubtel client — non-secret structure only. Credentials are set per
+# environment: dev.exs (env passthrough), test.exs (flat keys), runtime.exs (prod).
+config :emakola, Emakola.Payments.HubtelClient, base_url: "https://api.hubtel.com"
+
+# ExAws ships configured for a hackney HTTP client that is NOT one of our
+# dependencies — without this, every S3/Tigris call raises
+# UndefinedFunctionError (ExAws.Request.Hackney) at runtime. Use the Req
+# adapter (req is already a dependency).
+config :ex_aws, http_client: ExAws.Request.Req
+
+# Error monitoring (Sentry). The DSN is supplied at runtime (SENTRY_DSN in
+# runtime.exs); with no DSN, Sentry initialises but sends nothing. Uses Finch
+# (Sentry's default HTTP client) — no hackney needed.
+config :sentry,
+  environment_name: config_env(),
+  enable_source_code_context: true,
+  root_source_code_paths: [File.cwd!()],
+  in_app_otp_apps: [:emakola]
+
+# Forward crash reports and error-level logs to Sentry. Activated by
+# `Logger.add_handlers(:emakola)` in Emakola.Application.
+config :emakola, :logger, [
+  {:handler, :sentry_handler, Sentry.LoggerHandler,
+   %{config: %{metadata: [:request_id], capture_log_messages: true, level: :error}}}
+]
 
 # Import branding and plans config
 import_config "branding.exs"

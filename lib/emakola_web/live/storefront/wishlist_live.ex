@@ -13,10 +13,16 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
   alias EmakolaWeb.Helpers.StoreResolver
 
   @impl true
-  def mount(%{"store_slug" => slug}, session, socket) do
+  def mount(_params, _session, socket) do
+    slug = socket.assigns.store.slug
+
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
-        customer = resolve_customer(session, store)
+        # The ResolveCustomer on_mount hook already resolved the customer from
+        # the customer_token session — just scope it to THIS store. (Re-reading
+        # the session here read a "customer_id" key the storefront live_session
+        # never forwards, so the authenticated path was always nil.)
+        customer = store_customer(socket.assigns[:current_customer], store)
 
         socket =
           socket
@@ -46,7 +52,7 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
         item = %{
           product_id: params["product_id"],
           title: params["title"],
-          price: String.to_integer(params["price"]),
+          price: parse_price(params["price"]),
           image_url: params["image_url"]
         }
 
@@ -61,16 +67,25 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
       customer ->
         store = socket.assigns.store
 
-        Emakola.Customers.add_to_wishlist(
-          %{
-            customer_id: customer.id,
-            product_id: params["product_id"],
-            store_id: store.id
-          },
-          authorize?: false
-        )
+        # Only wishlist a real, customer-visible product of THIS store — the
+        # product_id is client-supplied, so a crafted event must not persist a
+        # foreign or hidden product reference.
+        case Emakola.Catalog.get_active_product(store.id, params["product_id"], authorize?: false) do
+          {:ok, _product} ->
+            Emakola.Customers.add_to_wishlist(
+              %{
+                customer_id: customer.id,
+                product_id: params["product_id"],
+                store_id: store.id
+              },
+              authorize?: false
+            )
 
-        {:noreply, load_wishlist(socket)}
+            {:noreply, load_wishlist(socket)}
+
+          _ ->
+            {:noreply, socket}
+        end
     end
   end
 
@@ -169,16 +184,17 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
     end
   end
 
-  defp resolve_customer(session, store) do
-    case Map.get(session, "customer_id") do
-      nil ->
-        nil
+  # Only treat the hook-resolved customer as signed in when they belong to the
+  # store being viewed (a customer is per-store); otherwise fall back to guest.
+  defp store_customer(%{store_id: sid} = customer, %{id: sid}), do: customer
+  defp store_customer(_customer, _store), do: nil
 
-      customer_id ->
-        case Emakola.Customers.get_customer_by_id(customer_id) do
-          {:ok, customer} when customer.store_id == store.id -> customer
-          _ -> nil
-        end
+  # The price arrives from a client event; default to 0 on bad/absent input
+  # rather than crashing the LiveView.
+  defp parse_price(price) do
+    case Integer.parse(to_string(price)) do
+      {n, _} -> n
+      :error -> 0
     end
   end
 

@@ -8,6 +8,6 @@ defmodule Emakola.Demo do
     Application.get_env(:emakola, :demo_mode, false)
   end
 
-  def demo_email, do: "demo@founderpad.io"
+  def demo_email, do: "demo@emakola.com"
   def demo_password, do: "DemoPassword123!"
 end

@@ -10,18 +10,24 @@ defmodule EmakolaWeb.Storefront.SavedStoresLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
+  import EmakolaWeb.Storefront.Path
+
   require Ash.Query
 
   alias EmakolaWeb.StoresComponents
 
   @impl true
-  def mount(%{"store_slug" => slug}, _session, socket) do
+  def mount(_params, _session, socket) do
+    slug = socket.assigns.store.slug
+
     case socket.assigns[:current_customer] do
       nil ->
         {:ok,
          socket
          |> put_flash(:info, "Please sign in to view your saved stores")
-         |> redirect(to: "/s/#{slug}/login")}
+         |> redirect(to: store_path(slug, "/login"))}
 
       customer ->
         {:ok,
@@ -149,6 +155,11 @@ defmodule EmakolaWeb.Storefront.SavedStoresLive do
         []
     end
   rescue
-    _ -> []
+    exception ->
+      Logger.error(
+        "[saved_stores_live] load_favorites loading favorite stores raised: #{Exception.message(exception)}"
+      )
+
+      []
   end
 end

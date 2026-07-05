@@ -61,6 +61,26 @@ defmodule Emakola.Catalog.Product do
       public?(true)
     end
 
+    # Platform-owned content-moderation control, separate from the merchant's
+    # `status` so a merchant can't reverse a takedown. A product is shown to
+    # customers only when `status == :active AND moderation_status == :ok`.
+    # Set solely by platform staff via the :take_down/:reinstate actions.
+    attribute :moderation_status, :atom do
+      constraints(one_of: [:ok, :taken_down])
+      default(:ok)
+      allow_nil?(false)
+      public?(true)
+    end
+
+    attribute :moderation_reason, :string do
+      public?(true)
+      constraints(max_length: 1_000)
+    end
+
+    attribute :moderation_at, :utc_datetime_usec do
+      public?(true)
+    end
+
     attribute :product_type, :atom do
       constraints(
         one_of: [
@@ -153,6 +173,14 @@ defmodule Emakola.Catalog.Product do
       authorize_unless(actor_present())
     end
 
+    # Platform moderation actions are platform-only — callable solely via
+    # `authorize?: false` from the moderation queue. Forbidding every actor
+    # means a merchant can't reverse a takedown, even though the merchant
+    # write policy below would otherwise admit the update.
+    policy action([:take_down, :reinstate]) do
+      forbid_if(always())
+    end
+
     # Merchant actors: verify store membership for writes
     policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
@@ -217,6 +245,27 @@ defmodule Emakola.Catalog.Product do
       change({Emakola.Catalog.Changes.SyncToWhatsappCatalog, action: :upsert})
     end
 
+    # ── Platform content-moderation actions ──
+    # Platform-only: called with `authorize?: false` from the moderation queue
+    # (gated there by :manage_stores). The policy below forbids every actor, so a
+    # merchant cannot reverse a takedown.
+    update :take_down do
+      require_atomic?(false)
+      accept([])
+      argument(:reason, :string, allow_nil?: false)
+      change(set_attribute(:moderation_status, :taken_down))
+      change(set_attribute(:moderation_reason, arg(:reason)))
+      change(set_attribute(:moderation_at, &DateTime.utc_now/0))
+    end
+
+    update :reinstate do
+      require_atomic?(false)
+      accept([])
+      change(set_attribute(:moderation_status, :ok))
+      change(set_attribute(:moderation_reason, nil))
+      change(set_attribute(:moderation_at, &DateTime.utc_now/0))
+    end
+
     # Atomic increment of share_count, fired by the storefront PDP when a
     # customer taps a button on the share_strip. No actor required — this
     # is a public/anonymous action driven by storefront UI. Idempotency
@@ -241,6 +290,7 @@ defmodule Emakola.Catalog.Product do
         expr(
           store_id == ^arg(:store_id) and
             contains(fragment("lower(?)", title), fragment("lower(?)", ^arg(:query))) and
+            moderation_status == :ok and
             (is_nil(^arg(:status)) or status == ^arg(:status))
         )
       )
@@ -268,7 +318,9 @@ defmodule Emakola.Catalog.Product do
         constraints: [one_of: [:draft, :active, :archived]]
       )
 
-      filter(expr(store_id == ^arg(:store_id) and status == ^arg(:status)))
+      filter(
+        expr(store_id == ^arg(:store_id) and status == ^arg(:status) and moderation_status == :ok)
+      )
 
       prepare(fn query, _context ->
         query
@@ -289,10 +341,28 @@ defmodule Emakola.Catalog.Product do
       argument(:store_id, :uuid, allow_nil?: false)
       argument(:slug, :string, allow_nil?: false)
 
-      filter(expr(store_id == ^arg(:store_id) and slug == ^arg(:slug) and status == :active))
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and slug == ^arg(:slug) and status == :active and
+            moderation_status == :ok
+        )
+      )
 
       prepare(
         build(load: [:variants, :images, :min_price, :max_price, :avg_rating, :review_count])
+      )
+    end
+
+    read :get_active_by_id do
+      get?(true)
+      argument(:store_id, :uuid, allow_nil?: false)
+      argument(:id, :uuid, allow_nil?: false)
+
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and id == ^arg(:id) and status == :active and
+            moderation_status == :ok
+        )
       )
     end
 
@@ -300,7 +370,12 @@ defmodule Emakola.Catalog.Product do
       argument(:store_id, :uuid, allow_nil?: false)
       argument(:product_id, :uuid, allow_nil?: false)
 
-      filter(expr(store_id == ^arg(:store_id) and status == :active and id != ^arg(:product_id)))
+      filter(
+        expr(
+          store_id == ^arg(:store_id) and status == :active and moderation_status == :ok and
+            id != ^arg(:product_id)
+        )
+      )
 
       prepare(build(load: [:images, :min_price, :max_price]))
     end
@@ -317,6 +392,7 @@ defmodule Emakola.Catalog.Product do
       filter(
         expr(
           category_id == ^arg(:category_id) and store_id == ^arg(:store_id) and
+            moderation_status == :ok and
             (is_nil(^arg(:status)) or status == ^arg(:status))
         )
       )
@@ -345,6 +421,25 @@ defmodule Emakola.Catalog.Product do
       prepare(
         build(sort: [inserted_at: :desc], load: [:variant_count, :min_price, :max_price, :images])
       )
+    end
+
+    # Cross-store read for the platform moderation queue (global; called with
+    # authorize?: false). Search by title/slug; optional moderation filter.
+    read :list_for_moderation do
+      argument(:search, :string, allow_nil?: true)
+
+      argument(:moderation, :atom, allow_nil?: true, constraints: [one_of: [:ok, :taken_down]])
+
+      filter(
+        expr(
+          (is_nil(^arg(:search)) or ^arg(:search) == "" or
+             contains(fragment("lower(?)", title), fragment("lower(?)", ^arg(:search))) or
+             contains(fragment("lower(?)", slug), fragment("lower(?)", ^arg(:search)))) and
+            (is_nil(^arg(:moderation)) or moderation_status == ^arg(:moderation))
+        )
+      )
+
+      prepare(build(sort: [inserted_at: :desc], load: [:store, :images, :min_price]))
     end
   end
 end

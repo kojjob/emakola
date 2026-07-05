@@ -16,6 +16,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Fresh.Shared
@@ -60,7 +61,9 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
       >
         <ol class="flex items-center gap-2 text-xs text-[#78350F]/60">
           <li>
-            <a href={"/s/#{@store.slug}"} class="hover:text-[#059669] transition-colors">Home</a>
+            <a href={store_path(@store.slug, "/")} class="hover:text-[#059669] transition-colors">
+              Home
+            </a>
           </li>
           <li>
             <svg
@@ -74,7 +77,10 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
             </svg>
           </li>
           <li>
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-[#059669] transition-colors">
+            <a
+              href={store_path(@store.slug, "/products")}
+              class="hover:text-[#059669] transition-colors"
+            >
               Products
             </a>
           </li>
@@ -175,7 +181,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
             >
               {@product.title}
             </h1>
-            <p class="text-2xl font-bold text-[#059669] mb-3">
+            <p class="text-2xl font-bold text-[var(--theme-primary,#047857)] mb-3">
               <%= if @selected_variant do %>
                 {Currency.format_price(@selected_variant.price, @store.currency)}
               <% else %>
@@ -279,13 +285,18 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
             <%!-- Add to Cart CTA --%>
             <button
               phx-click="add_to_cart"
-              disabled={is_nil(@selected_variant) || @selected_variant.stock_quantity <= 0}
+              disabled={
+                is_nil(@selected_variant) ||
+                  not Emakola.Catalog.Variant.in_stock?(@selected_variant)
+              }
               class={[
                 "w-full h-14 rounded-2xl text-base font-bold flex items-center justify-center gap-2.5 transition-all",
-                if(is_nil(@selected_variant) || @selected_variant.stock_quantity <= 0,
+                if(
+                  is_nil(@selected_variant) ||
+                    not Emakola.Catalog.Variant.in_stock?(@selected_variant),
                   do: "bg-[#D9F99D]/50 text-[#059669]/40 cursor-not-allowed",
                   else:
-                    "bg-[#059669] text-white hover:bg-[#047857] active:scale-[0.97] cursor-pointer shadow-lg shadow-emerald-200"
+                    "bg-[var(--theme-primary,#047857)] text-white hover:opacity-90 active:scale-[0.97] cursor-pointer shadow-lg shadow-emerald-200"
                 )
               ]}
               style="font-family: 'Inter', sans-serif;"
@@ -303,7 +314,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
                   d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121 0 2.002-.881 2.002-2.003V6.75m-14.22 0h14.22m-14.22 0L5.106 5.272M7.5 14.25L5.106 5.272m0 0a1.125 1.125 0 00-1.091-.852H2.25"
                 />
               </svg>
-              <%= if is_nil(@selected_variant) || @selected_variant.stock_quantity <= 0 do %>
+              <%= if is_nil(@selected_variant) || not Emakola.Catalog.Variant.in_stock?(@selected_variant) do %>
                 Out of Stock
               <% else %>
                 Add to Cart
@@ -353,14 +364,21 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
                   />
                 </svg>
                 <p class="text-sm font-bold text-cta-dark" style="font-family: 'Nunito', sans-serif;">
-                  Delivered fresh within 24 hours
+                  Delivery information
                 </p>
               </div>
               <p
                 class="text-xs text-[#78350F] leading-relaxed"
                 style="font-family: 'Inter', sans-serif;"
               >
-                Same-day delivery available in Greater Accra. Nationwide delivery in 2-3 business days.
+                See
+                <a
+                  href={store_path(@store.slug, "/policies")}
+                  class="underline hover:text-cta-dark transition-colors"
+                >
+                  our policies page
+                </a>
+                for delivery times and coverage.
               </p>
             </div>
           </div>
@@ -419,9 +437,15 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
                 class="px-5 pb-5 text-sm text-[#78350F] leading-relaxed"
                 style="font-family: 'Inter', sans-serif;"
               >
-                <p>Same-day delivery in Greater Accra for orders placed before 12pm.</p>
-                <p class="mt-2">
-                  Nationwide delivery: 2-3 business days. Products are packed fresh and kept cool during transit.
+                <p>
+                  See our
+                  <a
+                    href={store_path(@store.slug, "/policies")}
+                    class="underline hover:text-cta-dark transition-colors"
+                  >
+                    delivery information
+                  </a>
+                  on the policies page.
                 </p>
               </div>
             </details>
@@ -450,7 +474,14 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
                 style="font-family: 'Inter', sans-serif;"
               >
                 <p>
-                  Not happy with freshness? Contact us within 24 hours of delivery for a full replacement or refund. We stand behind the quality of every item.
+                  Not happy with freshness? See our
+                  <a
+                    href={store_path(@store.slug, "/policies")}
+                    class="underline hover:text-cta-dark transition-colors"
+                  >
+                    returns policy
+                  </a>
+                  for how to request a replacement or refund.
                 </p>
               </div>
             </details>
@@ -470,7 +501,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
           <div class="flex gap-4 overflow-x-auto px-4 sm:px-6 lg:px-8 pb-2 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <a
               :for={rp <- @related_products}
-              href={"/s/#{@store.slug}/products/#{rp.slug}"}
+              href={store_path(@store.slug, "/products/#{rp.slug}")}
               class="flex-[0_0_160px] snap-start group"
             >
               <div class="rounded-2xl overflow-hidden bg-[#ECFDF5]/30 shadow-sm group-hover:shadow-lg group-hover:shadow-emerald-100/60 transition-all duration-300 mb-2.5">
@@ -506,7 +537,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
               >
                 {rp.title}
               </p>
-              <p class="text-sm font-bold text-[#059669]">
+              <p class="text-sm font-bold text-[var(--theme-primary,#047857)]">
                 {Currency.format_price_range(rp.min_price, rp.max_price, @store.currency)}
               </p>
             </a>
@@ -544,11 +575,11 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
         <span class="text-sm text-[#92400E]" style="font-family: 'Inter', sans-serif;">
           Select options
         </span>
-      <% @variant.stock_quantity <= 0 -> %>
+      <% @variant.track_inventory and @variant.stock_quantity <= 0 -> %>
         <span class="inline-flex items-center gap-1.5 text-sm font-bold text-[#DC2626]">
           <span class="w-2 h-2 rounded-full bg-[#DC2626]"></span> Out of Stock
         </span>
-      <% @variant.stock_quantity < 5 -> %>
+      <% @variant.track_inventory and @variant.stock_quantity < 5 -> %>
         <span class="inline-flex items-center gap-1.5 text-sm font-bold text-[#D97706]">
           <span class="w-2 h-2 rounded-full bg-[#D97706]"></span>
           Low Stock ({@variant.stock_quantity} left)

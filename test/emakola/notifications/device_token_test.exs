@@ -1,0 +1,47 @@
+defmodule Emakola.Notifications.DeviceTokenTest do
+  use Emakola.DataCase, async: true
+
+  import Emakola.Factory
+
+  alias Emakola.Notifications.DeviceToken
+
+  defp register!(merchant, store, attrs) do
+    DeviceToken
+    |> Ash.Changeset.for_create(:register, attrs, actor: merchant, tenant: store.id)
+    |> Ash.create!()
+  end
+
+  test "register creates a device token owned by the actor" do
+    {merchant, store} = create_merchant_with_store!()
+
+    dt = register!(merchant, store, %{platform: :android, token: "fcm-token-1"})
+
+    assert dt.merchant_id == merchant.id
+    assert dt.store_id == store.id
+    assert dt.platform == :android
+    assert %DateTime{} = dt.last_seen_at
+  end
+
+  test "re-registering the same token upserts (no duplicate) and refreshes ownership" do
+    {merchant_a, store} = create_merchant_with_store!()
+    merchant_b = create_merchant!()
+    create_store_membership!(merchant_b, store, :staff)
+
+    register!(merchant_a, store, %{platform: :android, token: "shared-device"})
+    dt2 = register!(merchant_b, store, %{platform: :android, token: "shared-device"})
+
+    assert dt2.merchant_id == merchant_b.id
+
+    all = Ash.read!(DeviceToken, authorize?: false, tenant: store.id)
+    assert length(all) == 1
+  end
+
+  test "merchant cannot register a token into a store they don't belong to" do
+    {_merchant_a, store} = create_merchant_with_store!()
+    outsider = create_merchant!()
+
+    assert_raise Ash.Error.Forbidden, fn ->
+      register!(outsider, store, %{platform: :android, token: "evil"})
+    end
+  end
+end

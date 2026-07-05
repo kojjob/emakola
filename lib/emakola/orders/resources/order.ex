@@ -13,7 +13,8 @@ defmodule Emakola.Orders.Order do
   use Ash.Resource,
     domain: Emakola.Orders,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    extensions: [AshJsonApi.Resource]
 
   require Logger
 
@@ -122,6 +123,7 @@ defmodule Emakola.Orders.Order do
 
     attribute :notes, :string do
       public?(true)
+      filterable?(false)
       constraints(max_length: 5_000)
     end
 
@@ -132,10 +134,12 @@ defmodule Emakola.Orders.Order do
 
     attribute :shipping_address, :map do
       public?(true)
+      filterable?(false)
     end
 
     attribute :billing_address, :map do
       public?(true)
+      filterable?(false)
     end
 
     # UTM and click-source attribution captured during the customer's
@@ -144,6 +148,7 @@ defmodule Emakola.Orders.Order do
     # can pattern-match safely.
     attribute :attribution, :map do
       public?(true)
+      filterable?(false)
       default(%{})
     end
 
@@ -161,7 +166,9 @@ defmodule Emakola.Orders.Order do
       public?(true)
     end
 
-    has_many :line_items, Emakola.Orders.LineItem
+    has_many :line_items, Emakola.Orders.LineItem do
+      public?(true)
+    end
 
     has_many :fulfillments, Emakola.Orders.Fulfillment
 
@@ -192,6 +199,29 @@ defmodule Emakola.Orders.Order do
 
   identities do
     identity(:unique_store_order_number, [:store_id, :order_number])
+  end
+
+  json_api do
+    type("order")
+    includes(line_items: [])
+
+    routes do
+      base("/orders")
+
+      # index: returns list; filter[status]=confirmed maps to the public status
+      # attribute via ash_json_api's default derive_filter? behavior.
+      # derive_sort?: false — no arbitrary column sorts from the mobile client.
+      index(:api_list, derive_sort?: false)
+
+      # get: fetches a single order by primary key from the URL :id segment.
+      get(:api_get)
+
+      patch(:confirm, route: "/:id/confirm")
+      patch(:start_processing, route: "/:id/start_processing")
+      patch(:mark_shipped, route: "/:id/mark_shipped")
+      patch(:mark_delivered, route: "/:id/mark_delivered")
+      patch(:cancel, route: "/:id/cancel")
+    end
   end
 
   policies do
@@ -303,6 +333,10 @@ defmodule Emakola.Orders.Order do
       )
 
       change(Emakola.Orders.Changes.EnqueueFulfillment)
+
+      # Stock is decremented only now — on confirmed payment — not at checkout,
+      # so abandoned/unpaid orders never bleed inventory.
+      change(Emakola.Orders.Changes.DecrementStock)
     end
 
     update :start_processing do
@@ -482,6 +516,26 @@ defmodule Emakola.Orders.Order do
             inserted_at < ^arg(:to)
         )
       )
+    end
+
+    # Mobile API — list orders for the authenticated merchant's store.
+    # filter[status]=confirmed is handled by ash_json_api's derive_filter?
+    # on the public status attribute (no action argument required).
+    read :api_list do
+      description("Mobile API order list — tenant-scoped, newest first.")
+
+      prepare(fn query, _context ->
+        Ash.Query.sort(query, inserted_at: :desc)
+      end)
+
+      pagination(keyset?: true, countable: true, default_limit: 25)
+    end
+
+    # Mobile API — fetch a single order by primary key.
+    # ash_json_api routes to this via the :id path segment using Ash.get!.
+    read :api_get do
+      description("Mobile API order get by primary key.")
+      get?(true)
     end
   end
 end

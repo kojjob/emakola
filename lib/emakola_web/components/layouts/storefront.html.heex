@@ -37,9 +37,9 @@
   CSS variables + design token fonts.
 
   These :root variables are the BASELINE for all themes. Themes that define
-  their own theme_styles/1 (currently only Atelier) will override these in
-  a later <style> block. Themes that don't define theme_styles/1 (Vibrant,
-  Starter) rely on these as their ONLY source of --theme-* values.
+  their own theme_styles/1 (most do) will override these in a later <style>
+  block. Themes that don't rely on these as their ONLY source of --theme-*
+  values.
 
   IMPORTANT: We read from assigns[:theme] which is set by the ResolveStore
   hook — NO independent re-resolution. This eliminates the race condition
@@ -60,19 +60,30 @@
   <%= if body_url && body_url != heading_url do %>
     <link rel="stylesheet" href={body_url} />
   <% end %>
+  <%!--
+    Font rules are emitted ONLY when the merchant explicitly picked a font
+    token. The default token resolves to "inherit", which is a CSS-wide
+    keyword — invalid as a custom-property value — so an unconditional
+    `!important` rule here made every heading fall back to the body font
+    and silently defeated all theme heading fonts (Manrope, Fraunces, ...).
+  --%>
   <style>
     :root {
-      --theme-primary: <%= assigns[:theme][:colors][:primary] || "#2563EB" %>;
-      --theme-accent: <%= assigns[:theme][:colors][:accent] || "#0F172A" %>;
-      --theme-bg: <%= assigns[:theme][:colors][:background] || "#FFFFFF" %>;
-      --dt-heading-font: <%= heading_font %>;
-      --dt-body-font: <%= body_font %>;
+      --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(assigns[:theme][:colors][:primary], "#2563EB") %>;
+      --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(assigns[:theme][:colors][:accent], "#0F172A") %>;
+      --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(assigns[:theme][:colors][:background], "#FFFFFF") %>;
+      <%= if heading_font != "inherit" do %>--dt-heading-font: <%= heading_font %>;<% end %>
+      <%= if body_font != "inherit" do %>--dt-body-font: <%= body_font %>;<% end %>
       --dt-btn-radius: <%= case tokens[:button_style] do "pill" -> "9999px"; "square" -> "0px"; _ -> "0.5rem" end %>;
     }
+    <%= if heading_font != "inherit" do %>
     h1, h2, h3, h4, h5, h6 { font-family: var(--dt-heading-font) !important; }
+    <% end %>
+    <%= if body_font != "inherit" do %>
     p, span, a, li, td, th, label, input, textarea, select, div {
       font-family: var(--dt-body-font);
     }
+    <% end %>
     .dt-btn {
       border-radius: var(--dt-btn-radius) !important;
     }
@@ -82,10 +93,15 @@
 <div
   class="min-h-screen flex flex-col bg-[#FAFAF9] text-[#0C0A09] font-[Inter,system-ui,-apple-system,sans-serif] antialiased"
   style={
-    if assigns[:theme] && assigns[:theme][:fonts],
-      do:
-        "font-family: '#{assigns[:theme][:fonts][:body]}', system-ui, -apple-system, sans-serif",
-      else: nil
+    with %{} <- assigns[:theme],
+         family when family != "inherit" <-
+           Emakola.Themes.DesignTokens.body_font_family(
+             assigns[:theme][:design_tokens][:body_font] || "sans"
+           ) do
+      "font-family: #{family}"
+    else
+      _ -> nil
+    end
   }
 >
   <!-- Top Bar (hidden when theme provides its own nav) -->
@@ -98,7 +114,7 @@
         <!-- Store info -->
         <a
           :if={assigns[:store]}
-          href={"/s/#{@store.slug}"}
+          href={EmakolaWeb.Storefront.Path.store_path(@store.slug, "/")}
           class="flex items-center gap-2.5 min-w-0"
         >
           <div class="w-10 h-10 rounded-full bg-[#E2E8F0] flex items-center justify-center flex-shrink-0 border-2 border-[#E2E8F0] overflow-hidden">
@@ -145,7 +161,7 @@
           <!-- Cart -->
           <a
             :if={assigns[:store]}
-            href={"/s/#{@store.slug}/cart"}
+            href={EmakolaWeb.Storefront.Path.store_path(@store.slug, "/cart")}
             class="flex items-center justify-center w-10 h-10 rounded-full text-[#0F172A] hover:bg-[#F1F5F9] transition-colors relative"
             aria-label={"Shopping bag#{if assigns[:cart_count] && @cart_count > 0, do: ", #{@cart_count} items", else: ""}"}
           >
@@ -237,7 +253,7 @@
         </span>
       </div>
       <p class="text-[0.6875rem] text-[#94A3B8] mb-2">
-        Powered by <span class="font-semibold text-[#475569]">Emakola</span>
+        Powered by <span class="font-semibold text-[#475569]">Makola</span>
       </p>
       <p :if={assigns[:store]} class="text-[0.6875rem] text-[#94A3B8]">
         &copy; {Date.utc_today().year} {@store.name}
@@ -252,7 +268,7 @@
   >
     <div class="flex items-center justify-around h-16">
       <a
-        href={"/s/#{@store.slug}"}
+        href={EmakolaWeb.Storefront.Path.store_path(@store.slug, "/")}
         class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] == "/s/#{@store.slug}", do: "text-store-accent", else: "text-[#94A3B8]"}"}
       >
         <svg
@@ -271,7 +287,7 @@
         <span class="text-[0.625rem] font-medium">Home</span>
       </a>
       <a
-        href={"/s/#{@store.slug}/products"}
+        href={EmakolaWeb.Storefront.Path.store_path(@store.slug, "/products")}
         class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/products"), do: "text-store-accent", else: "text-[#94A3B8]"}"}
       >
         <svg
@@ -290,7 +306,7 @@
         <span class="text-[0.625rem] font-medium">Shop</span>
       </a>
       <a
-        href={"/s/#{@store.slug}/cart"}
+        href={EmakolaWeb.Storefront.Path.store_path(@store.slug, "/cart")}
         class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 relative #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/cart"), do: "text-store-accent", else: "text-[#94A3B8]"}"}
       >
         <div class="relative">
@@ -317,7 +333,7 @@
         <span class="text-[0.625rem] font-medium">Cart</span>
       </a>
       <a
-        href={"/s/#{@store.slug}/account"}
+        href={EmakolaWeb.Storefront.Path.store_path(@store.slug, "/account")}
         class={"flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-1 #{if assigns[:current_path] && String.contains?(assigns[:current_path], "/account"), do: "text-store-accent", else: "text-[#94A3B8]"}"}
       >
         <svg

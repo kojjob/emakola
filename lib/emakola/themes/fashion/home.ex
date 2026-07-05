@@ -17,6 +17,8 @@ defmodule Emakola.Themes.Fashion.Home do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.Fashion.Shared
 
   attr :store, :map, required: true
@@ -82,8 +84,8 @@ defmodule Emakola.Themes.Fashion.Home do
                 {@theme.hero.subtitle}
               </p>
               <a
-                href={"/s/#{@store.slug}/products"}
-                class="inline-flex items-center gap-2 px-7 py-4 rounded-full bg-[#D97706] text-white text-sm font-bold uppercase tracking-wider hover:bg-[#B45309] transition-colors min-h-[48px]"
+                href={store_path(@store.slug, "/products")}
+                class="inline-flex items-center gap-2 px-7 py-4 rounded-full bg-[#B45309] text-white text-sm font-bold uppercase tracking-wider hover:bg-[#92400E] transition-colors min-h-[48px]"
               >
                 {@theme.hero.cta_text || "Shop the Drop"}
                 <span class="material-symbols-outlined" style="font-size: 18px;">arrow_forward</span>
@@ -96,7 +98,7 @@ defmodule Emakola.Themes.Fashion.Home do
       <%!-- EDITORIAL INTRO --%>
       <section :if={section_enabled?(@theme, :editorial_intro)} class="bg-[#FAF6EE] py-16 sm:py-24">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p class="text-[11px] uppercase tracking-[0.3em] text-[#D97706] mb-4">
+          <p class="text-[11px] uppercase tracking-[0.3em] text-[#9A5B00] mb-4">
             {editorial_eyebrow(@theme)}
           </p>
           <h2 class="fashion-display text-4xl sm:text-5xl lg:text-6xl text-[#1C1917] leading-tight mb-6">
@@ -116,7 +118,7 @@ defmodule Emakola.Themes.Fashion.Home do
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-end justify-between mb-8">
             <div>
-              <p class="text-[11px] uppercase tracking-[0.3em] text-[#D97706] mb-2">
+              <p class="text-[11px] uppercase tracking-[0.3em] text-[#9A5B00] mb-2">
                 Lookbook
               </p>
               <h2 class="fashion-display text-3xl sm:text-4xl lg:text-5xl text-[#1C1917]">
@@ -124,7 +126,7 @@ defmodule Emakola.Themes.Fashion.Home do
               </h2>
             </div>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="hidden sm:inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#5B21B6] hover:gap-3 transition-all"
             >
               See all
@@ -135,7 +137,7 @@ defmodule Emakola.Themes.Fashion.Home do
           <div class="grid lg:grid-cols-12 gap-4 sm:gap-6">
             <%!-- Hero product (left, 7 cols) --%>
             <a
-              href={"/s/#{@store.slug}/products/#{@lookbook_hero.slug}"}
+              href={store_path(@store.slug, "/products/#{@lookbook_hero.slug}")}
               class="lg:col-span-7 relative aspect-[4/5] lg:aspect-auto rounded-lg overflow-hidden group bg-white"
             >
               <%= if Shared.first_image(@lookbook_hero) do %>
@@ -187,7 +189,7 @@ defmodule Emakola.Themes.Fashion.Home do
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-end justify-between mb-8">
             <div>
-              <p class="text-[11px] uppercase tracking-[0.3em] text-[#D97706] mb-2">
+              <p class="text-[11px] uppercase tracking-[0.3em] text-[#9A5B00] mb-2">
                 The Edit
               </p>
               <h2 class="fashion-display text-3xl sm:text-4xl lg:text-5xl text-[#1C1917]">
@@ -221,8 +223,8 @@ defmodule Emakola.Themes.Fashion.Home do
               </h2>
             </div>
             <a
-              href={"/s/#{@store.slug}/products"}
-              class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#D97706] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#B45309] transition-colors self-start sm:self-end"
+              href={store_path(@store.slug, "/products")}
+              class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[var(--theme-accent,#D97706)] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#B45309] transition-colors self-start sm:self-end"
             >
               Shop the Restock
               <span class="material-symbols-outlined" style="font-size: 14px;">arrow_forward</span>
@@ -231,7 +233,7 @@ defmodule Emakola.Themes.Fashion.Home do
           <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <a
               :for={product <- @new_arrivals}
-              href={"/s/#{@store.slug}/products/#{product.slug}"}
+              href={store_path(@store.slug, "/products/#{product.slug}")}
               class="group block"
             >
               <div class="aspect-[3/4] bg-white/5 ring-1 ring-white/10 overflow-hidden mb-3 rounded-lg">
@@ -266,7 +268,7 @@ defmodule Emakola.Themes.Fashion.Home do
       <%!-- UGC strip — "Worn by you" --%>
       <section :if={section_enabled?(@theme, :ugc)} class="bg-[#FAF6EE] py-14 sm:py-20">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p class="text-[11px] uppercase tracking-[0.3em] text-[#D97706] mb-3">
+          <p class="text-[11px] uppercase tracking-[0.3em] text-[#9A5B00] mb-3">
             Tag &commat;{String.downcase(String.replace(@store.name, " ", ""))}
           </p>
           <h2 class="fashion-display text-3xl sm:text-4xl lg:text-5xl text-[#1C1917] mb-10">
@@ -295,7 +297,7 @@ defmodule Emakola.Themes.Fashion.Home do
               </span>
             </div>
             <div>
-              <p class="text-[11px] uppercase tracking-[0.3em] text-[#D97706] mb-3">
+              <p class="text-[11px] uppercase tracking-[0.3em] text-[#9A5B00] mb-3">
                 Our story
               </p>
               <h2 class="fashion-display text-4xl sm:text-5xl lg:text-6xl text-[#1C1917] leading-[1.05] mb-6">
@@ -306,7 +308,7 @@ defmodule Emakola.Themes.Fashion.Home do
                   "We work with tailors and weavers across Ghana to bring you pieces that carry stories — Ankara prints, kente weaves, and modern silhouettes shaped by hand. Every piece is sewn in small batches; nothing mass-produced."}
               </p>
               <a
-                href={"/s/#{@store.slug}/about"}
+                href={store_path(@store.slug, "/about")}
                 class="inline-flex items-center gap-2 mt-5 text-xs font-semibold uppercase tracking-[0.18em] text-[#5B21B6] hover:gap-3 transition-all"
               >
                 Read the journal
@@ -339,7 +341,7 @@ defmodule Emakola.Themes.Fashion.Home do
             />
             <button
               type="submit"
-              class="px-7 py-3.5 rounded-full bg-[#D97706] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#B45309] transition-colors min-h-[48px]"
+              class="px-7 py-3.5 rounded-full bg-[var(--theme-accent,#D97706)] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#B45309] transition-colors min-h-[48px]"
             >
               {newsletter_button(@theme)}
             </button>

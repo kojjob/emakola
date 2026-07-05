@@ -11,6 +11,8 @@ defmodule Emakola.Themes.Fresh.ProductList do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.Fresh.Shared
 
   @doc """
@@ -46,7 +48,9 @@ defmodule Emakola.Themes.Fresh.ProductList do
           <nav aria-label="Breadcrumb" class="mb-4">
             <ol class="flex items-center gap-2 text-xs text-white/60">
               <li>
-                <a href={"/s/#{@store.slug}"} class="hover:text-white transition-colors">Home</a>
+                <a href={store_path(@store.slug, "/")} class="hover:text-white transition-colors">
+                  Home
+                </a>
               </li>
               <li>
                 <svg
@@ -205,7 +209,7 @@ defmodule Emakola.Themes.Fresh.ProductList do
           <div :if={@has_more} class="mt-10 text-center">
             <button
               phx-click="load_more"
-              class="inline-flex items-center gap-2 px-10 py-3.5 bg-[#059669] text-white rounded-full text-sm font-bold hover:bg-[#047857] active:scale-[0.97] transition-all shadow-lg shadow-emerald-200"
+              class="inline-flex items-center gap-2 px-10 py-3.5 bg-[var(--theme-primary,#047857)] text-white rounded-full text-sm font-bold hover:opacity-90 active:scale-[0.97] transition-all shadow-lg shadow-emerald-200"
               style="font-family: 'Inter', sans-serif;"
             >
               Load More

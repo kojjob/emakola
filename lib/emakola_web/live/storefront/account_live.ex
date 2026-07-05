@@ -7,28 +7,42 @@ defmodule EmakolaWeb.Storefront.AccountLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Cart.CartStore
 
   @impl true
-  def mount(%{"store_slug" => slug}, session, socket) do
+  def mount(_params, session, socket) do
     store = socket.assigns.store
+    slug = store.slug
 
     case socket.assigns[:current_customer] do
       nil ->
         {:ok,
          socket
          |> put_flash(:info, "Please sign in to view your account")
-         |> redirect(to: "/s/#{slug}/login")}
+         |> redirect(to: store_path(slug, "/login"))}
 
       customer ->
         cart_session_id = session["cart_session_id"]
-        cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+
+        cart_count =
+          if connected?(socket) && cart_session_id,
+            do: CartStore.cart_count(cart_session_id, store.id),
+            else: 0
 
         categories =
           try do
             Emakola.Catalog.list_root_categories!(store.id)
           rescue
-            _ -> []
+            exception ->
+              Logger.error(
+                "[account_live] mount loading root categories raised: #{Exception.message(exception)}"
+              )
+
+              []
           end
 
         orders = load_orders(customer.id, store.id)
@@ -132,7 +146,12 @@ defmodule EmakolaWeb.Storefront.AccountLive do
     |> Ash.Query.load([:line_items])
     |> Ash.read!(authorize?: false)
   rescue
-    _ -> []
+    exception ->
+      Logger.error(
+        "[account_live] load_orders loading customer orders raised: #{Exception.message(exception)}"
+      )
+
+      []
   end
 
   defp load_addresses(customer_id, store_id) do

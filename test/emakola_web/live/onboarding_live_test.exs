@@ -6,7 +6,7 @@ defmodule EmakolaWeb.OnboardingLiveTest do
   require Ash.Query
 
   defp auth_conn(conn, user) do
-    token = AshAuthentication.user_to_subject(user)
+    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
 
     conn
     |> Phoenix.ConnTest.init_test_session(%{})
@@ -30,20 +30,15 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       assert {:error, {:live_redirect, %{to: "/dashboard"}}} = live(conn, "/onboarding")
     end
 
-    test "redirects to dashboard when user already has an org membership", %{conn: conn} do
+    test "legacy User subject no longer resolves (treated as anonymous)", %{conn: conn} do
       user = create_user!()
       org = create_organisation!()
       create_membership!(user, org, :owner)
 
       conn = auth_conn(conn, user)
 
-      assert {:error, {:live_redirect, %{to: "/dashboard"}}} = live(conn, "/onboarding")
-    end
-
-    test "renders step 1 for authenticated user without store", %{conn: conn} do
-      user = create_user!()
-      conn = auth_conn(conn, user)
-
+      # Previously redirected to /dashboard via the legacy User path; that
+      # auth path is retired, so the visitor is anonymous and step 1 renders.
       {:ok, _view, html} = live(conn, "/onboarding")
       assert html =~ "Name Your Store"
     end
@@ -75,8 +70,8 @@ defmodule EmakolaWeb.OnboardingLiveTest do
     end
 
     test "advances from step 1 with valid store name", %{conn: conn} do
-      user = create_user!()
-      conn = auth_conn(conn, user)
+      merchant = create_merchant!()
+      conn = auth_conn(conn, merchant)
 
       {:ok, view, _html} = live(conn, "/onboarding")
 
@@ -86,10 +81,63 @@ defmodule EmakolaWeb.OnboardingLiveTest do
     end
   end
 
+  describe "change bindings are form-wrapped (browser-faithful)" do
+    # phx-change on a bare input is silently dead in real browsers
+    # ("form events require the input to be inside a form" — LiveView JS),
+    # while view-level render_change/3 bypasses the DOM entirely. These
+    # tests target the actual <form> elements so the binding structure a
+    # real browser needs is what gets verified.
+    test "typing a store name through its form enables Continue", %{conn: conn} do
+      conn = Phoenix.ConnTest.init_test_session(conn, %{})
+      {:ok, view, html} = live(conn, "/onboarding")
+
+      assert html =~ "cursor-not-allowed"
+
+      html =
+        view
+        |> element("#store-name-form")
+        |> render_change(%{"store_name" => "Kojo Fashion"})
+
+      refute html =~ "cursor-not-allowed"
+      assert html =~ "kojo-fashion"
+    end
+
+    test "currency select is inside a change form", %{conn: conn} do
+      conn = Phoenix.ConnTest.init_test_session(conn, %{})
+      {:ok, view, _html} = live(conn, "/onboarding")
+
+      html =
+        view
+        |> element("#currency-form")
+        |> render_change(%{"currency" => "NGN"})
+
+      assert html =~ ~s(value="NGN" selected)
+    end
+
+    test "product name and price inputs are inside change forms", %{conn: conn} do
+      conn = Phoenix.ConnTest.init_test_session(conn, %{})
+      {:ok, view, _html} = live(conn, "/onboarding")
+
+      view |> element("#store-name-form") |> render_change(%{"store_name" => "Shop"})
+      render_click(view, "next_step")
+      render_click(view, "next_step")
+
+      view |> element("#product-name-form") |> render_change(%{"product_name" => "Ankara Dress"})
+
+      html =
+        view
+        |> element("#product-price-form")
+        |> render_change(%{"product_price" => "150"})
+
+      assert html =~ "Ankara Dress"
+      assert html =~ "150"
+    end
+  end
+
   describe "step 2 (theme selection)" do
     test "shows theme selection with three themes", %{conn: conn} do
-      user = create_user!()
-      conn = auth_conn(conn, user)
+      merchant = create_merchant!()
+      conn = auth_conn(conn, merchant)
 
       {:ok, view, _html} = live(conn, "/onboarding")
 
@@ -102,8 +150,8 @@ defmodule EmakolaWeb.OnboardingLiveTest do
     end
 
     test "can select a theme", %{conn: conn} do
-      user = create_user!()
-      conn = auth_conn(conn, user)
+      merchant = create_merchant!()
+      conn = auth_conn(conn, merchant)
 
       {:ok, view, _html} = live(conn, "/onboarding")
 
@@ -117,8 +165,8 @@ defmodule EmakolaWeb.OnboardingLiveTest do
 
   describe "step 3 (add product)" do
     test "can skip adding a product", %{conn: conn} do
-      user = create_user!()
-      conn = auth_conn(conn, user)
+      merchant = create_merchant!()
+      conn = auth_conn(conn, merchant)
 
       {:ok, view, _html} = live(conn, "/onboarding")
 
@@ -135,8 +183,8 @@ defmodule EmakolaWeb.OnboardingLiveTest do
     end
 
     test "can advance with product details", %{conn: conn} do
-      user = create_user!()
-      conn = auth_conn(conn, user)
+      merchant = create_merchant!()
+      conn = auth_conn(conn, merchant)
 
       {:ok, view, _html} = live(conn, "/onboarding")
 
@@ -159,51 +207,12 @@ defmodule EmakolaWeb.OnboardingLiveTest do
   end
 
   describe "store creation on complete" do
-    test "creates store and membership for User on complete", %{conn: conn} do
-      user = create_user!()
-      conn = auth_conn(conn, user)
-
-      {:ok, view, _html} = live(conn, "/onboarding")
-
-      # Step 1: Store name
-      render_change(view, "update_store_name", %{"store_name" => "Kojo Shop"})
-      render_click(view, "next_step")
-
-      # Step 2: Theme (continue with default)
-      render_click(view, "next_step")
-
-      # Step 3: Skip product
-      render_click(view, "skip_step")
-
-      # Step 4: Complete — should redirect to dashboard
-      render_click(view, "complete")
-      assert_redirect(view, "/dashboard")
-
-      # Verify store was created
-      stores = Emakola.Stores.Store |> Ash.read!(authorize?: false)
-      assert Enum.any?(stores, &(&1.name == "Kojo Shop"))
-
-      # Verify the store has the right slug
-      store = Enum.find(stores, &(&1.name == "Kojo Shop"))
-      assert store.slug == "kojo-shop"
-      assert store.currency == "GHS"
-
-      # Verify org membership was created for legacy User
-      memberships =
-        Emakola.Accounts.Membership
-        |> Ash.Query.filter(user_id: user.id)
-        |> Ash.read!(authorize?: false)
-
-      assert length(memberships) == 1
-      assert hd(memberships).role == :owner
-    end
-
     test "creates the sample product and variant on complete", %{conn: conn} do
       # Regression: nil-actor writes were silently denied after the H2 policy
       # tightening because maybe_create_product called the domain interface
       # without authorize?: false.
-      user = create_user!()
-      conn = auth_conn(conn, user)
+      merchant = create_merchant!()
+      conn = auth_conn(conn, merchant)
 
       {:ok, view, _html} = live(conn, "/onboarding")
 
@@ -268,6 +277,7 @@ defmodule EmakolaWeb.OnboardingLiveTest do
       store = Enum.find(stores, &(&1.name == "Merchant Store"))
       assert store
       assert store.slug == "merchant-store"
+      assert store.currency == "GHS"
 
       # Verify store membership for merchant
       memberships =
@@ -280,8 +290,8 @@ defmodule EmakolaWeb.OnboardingLiveTest do
     end
 
     test "creates store with custom currency", %{conn: conn} do
-      user = create_user!()
-      conn = auth_conn(conn, user)
+      merchant = create_merchant!()
+      conn = auth_conn(conn, merchant)
 
       {:ok, view, _html} = live(conn, "/onboarding")
 
@@ -302,8 +312,8 @@ defmodule EmakolaWeb.OnboardingLiveTest do
 
   describe "navigation" do
     test "back button returns to previous step", %{conn: conn} do
-      user = create_user!()
-      conn = auth_conn(conn, user)
+      merchant = create_merchant!()
+      conn = auth_conn(conn, merchant)
 
       {:ok, view, _html} = live(conn, "/onboarding")
 

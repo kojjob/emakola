@@ -50,7 +50,6 @@
 /priv/static/assets/
 /priv/static/cache_manifest.json
 /priv/static/uploads/
-/rel/
 /tmp/
 /uploads/
 \#*\#
@@ -140,3 +139,13 @@ stitch-store-preview.png
 .playwright-mcp/
 
 .firecrawl/
+
+# Generated OpenAPI spec (run: mix openapi.spec.json --spec EmakolaWeb.ApiRouter --pretty=true)
+/openapi.json
+
+# Claude tooling
+.claire/
+
+# Demo & smoke-test screenshot/recording artifacts
+/demo-shots/
+/smoke-shots/

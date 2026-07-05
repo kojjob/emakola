@@ -75,7 +75,7 @@ defmodule EmakolaWeb.Storefront.SavedStoresLiveTest do
       })
       |> Ash.create!(authorize?: false)
 
-    token = AshAuthentication.user_to_subject(customer)
+    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(customer))
 
     conn =
       conn

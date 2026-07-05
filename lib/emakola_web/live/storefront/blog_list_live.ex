@@ -6,9 +6,12 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
 
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.StoreResolver
+  alias EmakolaWeb.SEO.Canonical
 
   @impl true
-  def mount(%{"store_slug" => slug}, session, socket) do
+  def mount(_params, session, socket) do
+    slug = socket.assigns.store.slug
+
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         {:ok, posts} =
@@ -18,7 +21,11 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
           |> Ash.read()
 
         cart_session_id = session["cart_session_id"]
-        cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+
+        cart_count =
+          if connected?(socket) && cart_session_id,
+            do: CartStore.cart_count(cart_session_id, store.id),
+            else: 0
 
         {featured, rest} =
           case posts do
@@ -35,7 +42,9 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
          |> assign(:cart_session_id, cart_session_id)
          |> assign(:cart_count, cart_count)
          |> assign(:categories, [])
-         |> assign(:page_title, "Blog - #{store.name}")}
+         |> assign(:page_title, "Blog - #{store.name}")
+         |> assign(:meta_description, "Articles and updates from #{store.name}.")
+         |> assign(:canonical_url, Canonical.path(store, "/blog"))}
 
       {:error, :not_found} ->
         {:ok, socket |> put_flash(:error, "Store not found") |> redirect(to: "/")}

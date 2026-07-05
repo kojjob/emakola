@@ -28,13 +28,13 @@ defmodule EmakolaWeb.Admin.Content.PostLiveTest do
 
     test "filters by type", %{conn: conn, store: store} do
       Factory.create_post!(store, %{title: "Blog Entry", type: :blog_post})
-      Factory.create_post!(store, %{title: "Store Page", type: :page})
+      Factory.create_post!(store, %{title: "Static Page", type: :page})
 
       {:ok, view, _html} = live(conn, ~p"/admin/content/posts")
 
       html = view |> element("button", "Blog Posts") |> render_click()
       assert html =~ "Blog Entry"
-      refute html =~ "Store Page"
+      refute html =~ "Static Page"
     end
 
     test "filters by status", %{conn: conn, store: store} do
@@ -54,7 +54,7 @@ defmodule EmakolaWeb.Admin.Content.PostLiveTest do
 
   defp setup_authenticated_merchant(conn, store_attrs \\ %{}) do
     {merchant, store} = Factory.create_merchant_with_store!(store_attrs)
-    token = AshAuthentication.user_to_subject(merchant)
+    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
     conn =
       conn

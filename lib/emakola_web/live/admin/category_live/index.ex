@@ -5,6 +5,8 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   @impl true
   def mount(_params, _session, socket) do
     store_id = get_store_id(socket)
@@ -482,7 +484,12 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
       try do
         Emakola.Catalog.list_categories_by_store!(store_id)
       rescue
-        _ -> []
+        exception ->
+          Logger.error(
+            "[category_live.index] load_category_tree loading categories raised: #{Exception.message(exception)}"
+          )
+
+          []
       end
 
     tree = build_tree(all_categories, nil)

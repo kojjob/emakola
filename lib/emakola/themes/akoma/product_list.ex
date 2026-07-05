@@ -20,7 +20,7 @@ defmodule Emakola.Themes.Akoma.ProductList do
       <section class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div class="flex items-baseline justify-between mb-8">
           <h1 class="akoma-heading text-2xl font-bold text-[#1A1A1A]">All products</h1>
-          <span class="text-sm text-[#9CA3AF]">{length(@products)} items</span>
+          <span class="text-sm text-[#6B7280]">{length(@products)} items</span>
         </div>
 
         <div

@@ -183,7 +183,7 @@ defmodule Emakola.Payments.PaymentTest do
       assert updated.gateway_response["gateway_response"] == "Declined"
     end
 
-    test "mark_refunded transitions to refunded with amount", %{payment: payment} do
+    test "mark_refunded transitions to refunded with full amount", %{payment: payment} do
       # First mark as success
       {:ok, payment} =
         payment
@@ -192,13 +192,14 @@ defmodule Emakola.Payments.PaymentTest do
         })
         |> Ash.update(authorize?: false)
 
+      # Full refund (payment amount is 500_000) flips the status to :refunded.
       assert {:ok, updated} =
                payment
-               |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 250_000})
+               |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 500_000})
                |> Ash.update(authorize?: false)
 
       assert updated.status == :refunded
-      assert updated.refunded_amount == 250_000
+      assert updated.refunded_amount == 500_000
     end
   end
 

@@ -1,11 +1,12 @@
 defmodule Emakola.Themes.Electronics.Shared do
   @moduledoc """
-  Shared components for Electronics — teal nav with sky-blue CTAs,
-  monospace prices, "In Stock" pills, dark teal footer.
+  Shared components for Electronics — teal nav with sky-blue accents,
+  monospace prices, dark teal footer.
   """
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   attr :theme, :map, required: true
@@ -14,9 +15,9 @@ defmodule Emakola.Themes.Electronics.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#134E4A" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#0EA5E9" %>;
-        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#F5EFE5" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#134E4A") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#0EA5E9") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#F5EFE5") %>;
       }
       .electronics-body { font-family: 'Inter', sans-serif; color: #1F2937; background: var(--theme-bg); }
       .electronics-heading { font-family: 'Outfit', sans-serif; letter-spacing: -0.015em; }
@@ -35,7 +36,7 @@ defmodule Emakola.Themes.Electronics.Shared do
     <header class={"sticky top-0 z-50 transition-colors " <> if(@on_dark, do: "bg-[#134E4A]/85 backdrop-blur-md", else: "bg-white/95 backdrop-blur-md border-b border-[#E5E7EB]")}>
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16 sm:h-20">
-          <a href={"/s/#{@store.slug}"} class="flex items-center gap-3 min-w-0">
+          <a href={store_path(@store.slug, "/")} class="flex items-center gap-3 min-w-0">
             <div class={"w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 " <> if(@on_dark, do: "bg-[#0EA5E9]", else: "bg-[#134E4A]")}>
               <span
                 class={"material-symbols-outlined " <> if(@on_dark, do: "text-white", else: "text-[#0EA5E9]")}
@@ -66,7 +67,7 @@ defmodule Emakola.Themes.Electronics.Shared do
 
           <div class="flex items-center gap-2 sm:gap-3">
             <a
-              href={"/s/#{@store.slug}/account"}
+              href={store_path(@store.slug, "/account")}
               class={"hidden sm:flex w-11 h-11 rounded-full items-center justify-center transition-colors " <> if(@on_dark, do: "hover:bg-white/10", else: "hover:bg-[#F3F4F6]")}
               aria-label="Account"
             >
@@ -78,7 +79,7 @@ defmodule Emakola.Themes.Electronics.Shared do
               </span>
             </a>
             <a
-              href={"/s/#{@store.slug}/cart"}
+              href={store_path(@store.slug, "/cart")}
               class={"relative w-11 h-11 rounded-full flex items-center justify-center transition-colors " <> if(@on_dark, do: "hover:bg-white/10", else: "hover:bg-[#F3F4F6]")}
               aria-label={"Cart, #{@cart_count} items"}
             >
@@ -90,7 +91,7 @@ defmodule Emakola.Themes.Electronics.Shared do
               </span>
               <span
                 :if={@cart_count > 0}
-                class="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-[#0EA5E9] text-white text-[10px] font-bold flex items-center justify-center"
+                class="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-[var(--theme-primary,#134E4A)] text-white text-[10px] font-bold flex items-center justify-center"
               >
                 {@cart_count}
               </span>
@@ -130,7 +131,7 @@ defmodule Emakola.Themes.Electronics.Shared do
             <ul class="space-y-3 text-sm text-white/65">
               <li :for={cat <- ["Phones", "Audio", "Computers", "Wearables", "Accessories"]}>
                 <a
-                  href={"/s/#{@store.slug}/products"}
+                  href={store_path(@store.slug, "/products")}
                   class="hover:text-white transition-colors"
                 >
                   {cat}
@@ -145,7 +146,7 @@ defmodule Emakola.Themes.Electronics.Shared do
             <ul class="space-y-3 text-sm text-white/65">
               <li :for={item <- ["Warranty", "Returns", "Contact", "FAQ"]}>
                 <a
-                  href={"/s/#{@store.slug}/contact"}
+                  href={store_path(@store.slug, "/contact")}
                   class="hover:text-white transition-colors"
                 >
                   {item}
@@ -185,7 +186,7 @@ defmodule Emakola.Themes.Electronics.Shared do
   def product_card(assigns) do
     ~H"""
     <a
-      href={"/s/#{@store.slug}/products/#{@product.slug}"}
+      href={store_path(@store.slug, "/products/#{@product.slug}")}
       class="electronics-card group block overflow-hidden hover:shadow-lg transition-all"
     >
       <div class="aspect-square bg-[#F3F4F6] overflow-hidden relative">
@@ -203,21 +204,11 @@ defmodule Emakola.Themes.Electronics.Shared do
             devices
           </span>
         </div>
-        <%!-- In Stock pill --%>
-        <span class="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#10B981]/15 text-[#10B981] text-[10px] font-semibold">
-          <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span> In Stock
-        </span>
       </div>
       <div class="p-4 sm:p-5">
         <h3 class="electronics-heading text-sm sm:text-base font-semibold text-[#1F2937] line-clamp-2 mb-2 leading-snug min-h-[2.5rem]">
           {@product.title}
         </h3>
-        <%!-- Color swatches placeholder --%>
-        <div class="flex items-center gap-1 mb-3">
-          <span class="w-3 h-3 rounded-full bg-[#1F2937] ring-1 ring-black/10"></span>
-          <span class="w-3 h-3 rounded-full bg-[#0EA5E9] ring-1 ring-black/10"></span>
-          <span class="w-3 h-3 rounded-full bg-[#134E4A] ring-1 ring-black/10"></span>
-        </div>
         <div class="flex items-center justify-between">
           <span class="electronics-mono text-base font-bold text-[#134E4A]">
             {EmakolaWeb.Helpers.Currency.format_price(
@@ -225,7 +216,7 @@ defmodule Emakola.Themes.Electronics.Shared do
               Map.get(@store, :currency, "GHS")
             )}
           </span>
-          <span class="inline-flex items-center px-3 py-1.5 rounded-full bg-[#0EA5E9] text-white text-xs font-bold group-hover:bg-[#0284C7] transition-colors">
+          <span class="inline-flex items-center px-3 py-1.5 rounded-full bg-[var(--theme-primary,#134E4A)] text-white text-xs font-bold group-hover:bg-[#0E3F3B] transition-colors">
             Add
           </span>
         </div>

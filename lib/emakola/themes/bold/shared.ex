@@ -11,6 +11,7 @@ defmodule Emakola.Themes.Bold.Shared do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias EmakolaWeb.Helpers.Currency
@@ -27,9 +28,9 @@ defmodule Emakola.Themes.Bold.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= get_in(@theme, [:colors, :primary]) || "#0F172A" %>;
-        --theme-accent: <%= get_in(@theme, [:colors, :accent]) || "#F59E0B" %>;
-        --theme-bg: <%= get_in(@theme, [:colors, :background]) || "#F8FAFC" %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#0F172A") %>;
+        --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#F59E0B") %>;
+        --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#F8FAFC") %>;
       }
     </style>
     """
@@ -50,7 +51,7 @@ defmodule Emakola.Themes.Bold.Shared do
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between h-14 sm:h-16">
             <a
-              href={"/s/#{@store.slug}"}
+              href={store_path(@store.slug, "/")}
               class="text-sm sm:text-base font-bold tracking-[0.2em] uppercase text-white hover:text-[#F59E0B] transition-colors"
               style="font-family: 'Outfit', sans-serif;"
             >
@@ -59,7 +60,7 @@ defmodule Emakola.Themes.Bold.Shared do
 
             <nav class="hidden sm:flex items-center gap-8" aria-label="Main navigation">
               <a
-                href={"/s/#{@store.slug}/products"}
+                href={store_path(@store.slug, "/products")}
                 class="text-sm font-medium text-slate-300 hover:text-white transition-colors tracking-wide uppercase"
                 style="font-family: 'Inter', sans-serif;"
               >
@@ -69,7 +70,7 @@ defmodule Emakola.Themes.Bold.Shared do
 
             <div class="flex items-center gap-1">
               <a
-                href={"/s/#{@store.slug}/products"}
+                href={store_path(@store.slug, "/products")}
                 class="p-2.5 text-slate-400 hover:text-white transition-colors"
                 aria-label="Search products"
               >
@@ -88,7 +89,7 @@ defmodule Emakola.Themes.Bold.Shared do
                 </svg>
               </a>
               <a
-                href={"/s/#{@store.slug}/cart"}
+                href={store_path(@store.slug, "/cart")}
                 class="relative p-2.5 text-slate-400 hover:text-white transition-colors"
                 aria-label={"Shopping cart, #{@cart_count} items"}
               >
@@ -133,7 +134,7 @@ defmodule Emakola.Themes.Bold.Shared do
     assigns = assign(assigns, :image, first_image(assigns.product))
 
     ~H"""
-    <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
+    <a href={store_path(@store.slug, "/products/#{@product.slug}")} class="group block">
       <div class="relative overflow-hidden mb-4 bg-[#F1F5F9]">
         <.optimized_image
           :if={@image}
@@ -177,7 +178,7 @@ defmodule Emakola.Themes.Bold.Shared do
   def category_tag(assigns) do
     ~H"""
     <a
-      href={"/s/#{@store_slug}/category/#{@category.slug}"}
+      href={store_path(@store_slug, "/category/#{@category.slug}")}
       class={[
         "text-sm font-medium tracking-wide uppercase transition-colors",
         "border-b-2 pb-0.5",
@@ -233,7 +234,7 @@ defmodule Emakola.Themes.Bold.Shared do
             <ul class="space-y-3 text-sm" style="font-family: 'Inter', sans-serif;">
               <li>
                 <a
-                  href={"/s/#{@store.slug}/products"}
+                  href={store_path(@store.slug, "/products")}
                   class="hover:text-[#F59E0B] transition-colors"
                 >
                   Shop All
@@ -241,7 +242,7 @@ defmodule Emakola.Themes.Bold.Shared do
               </li>
               <li :for={cat <- Enum.take(@categories, 4)}>
                 <a
-                  href={"/s/#{@store.slug}/category/#{cat.slug}"}
+                  href={store_path(@store.slug, "/category/#{cat.slug}")}
                   class="hover:text-[#F59E0B] transition-colors"
                 >
                   {cat.name}

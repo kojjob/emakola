@@ -5,12 +5,16 @@ defmodule EmakolaWeb.Plugs.RateLimiter do
   Supports per-IP, per-token, and per-org rate limiting.
   Returns 429 with Retry-After header when the limit is exceeded.
 
-  Key priority: Bearer token > X-Org-ID header > client IP address.
+  Key priority (default): Bearer token > X-Org-ID header > client IP address.
 
   ## Options
 
     * `:limit` - max requests per window (default: 100)
     * `:window_ms` - window duration in milliseconds (default: 60_000)
+    * `:key` - keying strategy; pass `key: :ip` to force IP-only keying regardless
+      of request headers (required for pre-auth endpoints where attacker-controlled
+      headers would otherwise mint a fresh bucket per request). Omit (or pass any
+      other value) to keep the default token > org > IP priority.
   """
   import Plug.Conn
   require Logger
@@ -21,20 +25,21 @@ defmodule EmakolaWeb.Plugs.RateLimiter do
   def init(opts) do
     %{
       limit: Keyword.get(opts, :limit, @default_limit),
-      window_ms: Keyword.get(opts, :window_ms, @default_window_ms)
+      window_ms: Keyword.get(opts, :window_ms, @default_window_ms),
+      key: Keyword.get(opts, :key, :default)
     }
   end
 
-  def call(conn, %{limit: limit, window_ms: window_ms}) do
+  def call(conn, %{limit: limit, window_ms: window_ms} = opts) do
     if Application.get_env(:emakola, :disable_rate_limit, false) do
       conn
     else
-      do_rate_limit(conn, limit, window_ms)
+      do_rate_limit(conn, limit, window_ms, Map.get(opts, :key, :default))
     end
   end
 
-  defp do_rate_limit(conn, limit, window_ms) do
-    key = rate_limit_key(conn)
+  defp do_rate_limit(conn, limit, window_ms, key_mode) do
+    key = rate_limit_key(conn, key_mode)
 
     case check_rate(key, limit, window_ms) do
       {:allow, count} ->
@@ -47,6 +52,14 @@ defmodule EmakolaWeb.Plugs.RateLimiter do
         retry_after = ceil(retry_after_ms / 1000)
 
         Logger.warning("Rate limit exceeded for #{key}")
+
+        Emakola.Security.record(%{
+          event_type: :rate_limit_exceeded,
+          ip: format_ip(conn.remote_ip),
+          path: conn.request_path,
+          identifier: key,
+          metadata: %{"limit" => limit}
+        })
 
         conn
         |> put_resp_header("retry-after", to_string(retry_after))
@@ -99,12 +112,20 @@ defmodule EmakolaWeb.Plugs.RateLimiter do
     end
   end
 
-  defp rate_limit_key(conn) do
+  defp rate_limit_key(conn, :ip), do: "ip:#{format_ip(conn.remote_ip)}"
+
+  defp rate_limit_key(conn, _default) do
     cond do
-      token = get_api_token(conn) -> "token:#{token}"
+      token = get_api_token(conn) -> "token:#{token_digest(token)}"
       org_id = get_org_id(conn) -> "org:#{org_id}"
       true -> "ip:#{format_ip(conn.remote_ip)}"
     end
+  end
+
+  # Hash the bearer token so the rate-limit bucket stays stable per token while the
+  # raw credential never reaches the log line or the security_events store.
+  defp token_digest(token) do
+    :crypto.hash(:sha256, token) |> Base.encode16(case: :lower) |> binary_part(0, 16)
   end
 
   defp get_api_token(conn) do

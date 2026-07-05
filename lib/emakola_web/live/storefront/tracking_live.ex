@@ -8,10 +8,16 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
+  import EmakolaWeb.Storefront.Path
+
   alias EmakolaWeb.Helpers.StoreResolver
 
   @impl true
-  def mount(%{"store_slug" => slug, "order_number" => order_number}, _session, socket) do
+  def mount(%{"order_number" => order_number}, _session, socket) do
+    slug = socket.assigns.store.slug
+
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         case load_order(store, order_number) do
@@ -34,7 +40,7 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
             {:ok,
              socket
              |> put_flash(:error, "Order not found")
-             |> redirect(to: "/s/#{slug}")}
+             |> redirect(to: store_path(slug, "/"))}
         end
 
       {:error, :not_found} ->
@@ -78,7 +84,12 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
     try do
       Emakola.Catalog.list_root_categories!(store.id)
     rescue
-      _ -> []
+      exception ->
+        Logger.error(
+          "[tracking_live] load_root_categories loading root categories raised: #{Exception.message(exception)}"
+        )
+
+        []
     end
   end
 

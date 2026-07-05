@@ -101,6 +101,102 @@ defmodule Emakola.Notifications.Channels.WhatsAppTest do
     end
   end
 
+  # ── send_message/4 (WhatsAppProvider bridge) ───────────────────
+
+  describe "send_message/4 behaviour declaration" do
+    test "channel implements the WhatsAppProvider behaviour" do
+      behaviours =
+        WhatsApp.__info__(:attributes)
+        |> Keyword.get_values(:behaviour)
+        |> List.flatten()
+
+      assert Emakola.Notifications.WhatsAppProvider in behaviours
+      assert function_exported?(WhatsApp, :send_message, 4)
+    end
+  end
+
+  describe "send_message/4 with mocked HTTP" do
+    setup do
+      original_http = Application.get_env(:emakola, :http_client)
+      original_wa = Application.get_env(:emakola, Emakola.Notifications.Channels.WhatsApp)
+
+      Application.put_env(:emakola, :http_client, __MODULE__.MockHTTP)
+
+      Application.put_env(:emakola, Emakola.Notifications.Channels.WhatsApp,
+        api_token: "test_token_123",
+        phone_number_id: "1234567890"
+      )
+
+      on_exit(fn ->
+        if original_http,
+          do: Application.put_env(:emakola, :http_client, original_http),
+          else: Application.delete_env(:emakola, :http_client)
+
+        if original_wa,
+          do: Application.put_env(:emakola, Emakola.Notifications.Channels.WhatsApp, original_wa),
+          else: Application.delete_env(:emakola, Emakola.Notifications.Channels.WhatsApp)
+      end)
+
+      :ok
+    end
+
+    test "sends an order template from a params map, in declared order" do
+      params = %{
+        order_number: "ORD-123",
+        store_name: "Accra Fashion Hub",
+        total: "500.00",
+        currency: "GHS"
+      }
+
+      assert {:ok, result} =
+               WhatsApp.send_message("+233244123456", "order_placed", params,
+                 store_id: Ash.UUID.generate()
+               )
+
+      assert result.template == "order_placed"
+      assert result.status == 200
+
+      request_body = result.body["request_body"]
+      assert request_body.template.name == "order_placed"
+      [component] = request_body.template.components
+
+      assert Enum.map(component.parameters, & &1.text) ==
+               ["ORD-123", "Accra Fashion Hub", "500.00", "GHS"]
+    end
+
+    test "sends the supplier_fulfillment template" do
+      params = %{
+        order_number: "ORD-456",
+        supplier_name: "Kumasi Crafts",
+        items: "2x Kente Scarf",
+        ship_to: "12 High St, Accra"
+      }
+
+      assert {:ok, result} =
+               WhatsApp.send_message("+233244123456", "supplier_fulfillment", params,
+                 store_id: Ash.UUID.generate()
+               )
+
+      assert result.template == "supplier_fulfillment"
+
+      [component] = result.body["request_body"].template.components
+
+      assert Enum.map(component.parameters, & &1.text) ==
+               ["ORD-456", "Kumasi Crafts", "2x Kente Scarf", "12 High St, Accra"]
+    end
+
+    test "returns an error for an unknown template instead of guessing param order" do
+      assert {:error, {:unknown_template, "nope"}} =
+               WhatsApp.send_message("+233244123456", "nope", %{a: "b"}, [])
+    end
+
+    test "raises loudly when a declared param is missing from the map" do
+      assert_raise KeyError, fn ->
+        WhatsApp.send_message("+233244123456", "order_placed", %{order_number: "ORD-1"}, [])
+      end
+    end
+  end
+
   # ── Integration with HTTP mock ─────────────────────────────────
 
   describe "send_order_confirmation/2 with mocked HTTP" do

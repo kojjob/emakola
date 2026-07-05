@@ -84,7 +84,7 @@ defmodule EmakolaWeb.Admin.SettingsLiveTest do
 
   defp setup_authenticated_merchant(conn) do
     {merchant, store} = Factory.create_merchant_with_store!()
-    token = AshAuthentication.user_to_subject(merchant)
+    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
     conn =
       conn

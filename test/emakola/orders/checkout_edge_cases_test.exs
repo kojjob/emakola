@@ -146,6 +146,8 @@ defmodule Emakola.Orders.CheckoutEdgeCasesTest do
         )
 
       assert order.total == 5000 * 3
+      # Stock decrements on payment confirmation, not at checkout.
+      {:ok, _} = Emakola.Orders.confirm_order(order, authorize?: false)
       assert reload_variant(ctx.variant).stock_quantity == 0
     end
   end
@@ -255,9 +257,9 @@ defmodule Emakola.Orders.CheckoutEdgeCasesTest do
   # 6. Concurrent Checkouts Depleting Same Stock
   # ═══════════════════════════════════════════════════════════════════
 
-  describe "concurrent checkouts depleting same stock" do
-    test "exactly N succeed when N items available and N+M concurrent checkouts" do
-      # 5 items in stock, 10 concurrent checkout attempts for 1 each
+  describe "concurrent checkouts (no-reservation model)" do
+    test "all concurrent checkouts succeed — checkout reserves no stock" do
+      # 5 items in stock, 10 concurrent checkout attempts for 1 each.
       ctx = setup_store_with_variant(%{}, %{stock_quantity: 5, price: 1000})
 
       tasks =
@@ -272,22 +274,15 @@ defmodule Emakola.Orders.CheckoutEdgeCasesTest do
         end
 
       results = Enum.map(tasks, &Task.await(&1, 15_000))
-      successes = Enum.count(results, &match?({:ok, _}, &1))
-      failures = Enum.count(results, &match?({:error, _}, &1))
 
-      assert successes == 5,
-             "Expected 5 successes, got #{successes}. Results: #{inspect(results)}"
-
-      assert failures == 5,
-             "Expected 5 failures, got #{failures}. Results: #{inspect(results)}"
-
-      # Final stock must be exactly 0
-      assert reload_variant(ctx.variant).stock_quantity == 0
+      # Stock is reserved nowhere at checkout — every order is placed, and the
+      # oversell is resolved at payment confirmation, not here.
+      assert Enum.count(results, &match?({:ok, _}, &1)) == 10
+      assert reload_variant(ctx.variant).stock_quantity == 5
     end
 
-    test "concurrent checkouts for quantity > 1 respect stock limits" do
-      # 10 items in stock, 5 concurrent checkout attempts for 3 each
-      # Only 3 can succeed (3*3 = 9 <= 10, but 4th would need 12 > 10)
+    test "checkouts for quantity > 1 also reserve no stock" do
+      # 10 items in stock, 5 concurrent checkout attempts for 3 each.
       ctx = setup_store_with_variant(%{}, %{stock_quantity: 10, price: 2000})
 
       tasks =
@@ -302,14 +297,9 @@ defmodule Emakola.Orders.CheckoutEdgeCasesTest do
         end
 
       results = Enum.map(tasks, &Task.await(&1, 15_000))
-      successes = Enum.count(results, &match?({:ok, _}, &1))
 
-      # At most 3 can succeed (3*3=9, 4th would need 12 total)
-      assert successes == 3,
-             "Expected 3 successes, got #{successes}. Results: #{inspect(results)}"
-
-      final_stock = reload_variant(ctx.variant).stock_quantity
-      assert final_stock == 1, "Expected 1 remaining stock, got #{final_stock}"
+      assert Enum.count(results, &match?({:ok, _}, &1)) == 5
+      assert reload_variant(ctx.variant).stock_quantity == 10
     end
   end
 

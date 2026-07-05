@@ -12,12 +12,15 @@ defmodule Emakola.Themes.DefaultRenderers.Wishlist do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias EmakolaWeb.Helpers.Currency
   alias EmakolaWeb.StorefrontComponents
 
   def render(assigns) do
     ~H"""
-    <Emakola.Themes.Atelier.Shared.navbar
+    <Emakola.Themes.DefaultRenderers.Chrome.navbar
+      theme_module={assigns[:theme_module]}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -36,8 +39,8 @@ defmodule Emakola.Themes.DefaultRenderers.Wishlist do
           </div>
           <div class="mt-4 sm:mt-0">
             <a
-              href={"/s/#{@store.slug}/products"}
-              class="text-sm font-medium text-store-accent hover:text-amber-800 transition-colors flex items-center gap-1"
+              href={store_path(@store.slug, "/products")}
+              class="text-sm font-medium text-store-accent hover:underline transition-colors flex items-center gap-1"
             >
               Continue Shopping
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,7 +58,7 @@ defmodule Emakola.Themes.DefaultRenderers.Wishlist do
         <%!-- Guest sign-in prompt --%>
         <div
           :if={is_nil(@current_customer)}
-          class="mb-6 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 font-medium flex items-center gap-2"
+          class="mb-6 px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-sm text-stone-700 font-medium flex items-center gap-2"
         >
           <svg
             class="w-5 h-5 flex-shrink-0"
@@ -121,7 +124,7 @@ defmodule Emakola.Themes.DefaultRenderers.Wishlist do
                 <button
                   phx-click="add_to_bag"
                   phx-value-product_id={item_product_id(item)}
-                  class="cursor-pointer w-full bg-cta-dark text-white text-xs font-semibold uppercase tracking-wider py-2.5 rounded-[20px] hover:bg-stone-800 transition-colors"
+                  class="cursor-pointer w-full bg-cta-dark text-white text-xs font-semibold uppercase tracking-wider py-2.5 rounded-[20px] hover:opacity-90 transition-opacity"
                 >
                   Add to Bag
                 </button>
@@ -155,8 +158,8 @@ defmodule Emakola.Themes.DefaultRenderers.Wishlist do
           <h2 class="text-2xl font-semibold text-cta-dark mb-2">Your wishlist is empty</h2>
           <p class="text-[#44403C] text-sm mb-8">Save items you love to find them later</p>
           <a
-            href={"/s/#{@store.slug}/products"}
-            class="inline-block cursor-pointer bg-cta-dark text-white text-xs font-semibold uppercase tracking-wider px-8 py-3 rounded-[20px] hover:bg-stone-800 transition-colors"
+            href={store_path(@store.slug, "/products")}
+            class="inline-block cursor-pointer bg-cta-dark text-white text-xs font-semibold uppercase tracking-wider px-8 py-3 rounded-[20px] hover:opacity-90 transition-opacity"
           >
             Browse Products
           </a>
@@ -164,7 +167,11 @@ defmodule Emakola.Themes.DefaultRenderers.Wishlist do
       </div>
     </div>
 
-    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+    <Emakola.Themes.DefaultRenderers.Chrome.footer
+      theme_module={assigns[:theme_module]}
+      store={@store}
+      categories={@categories}
+    />
     """
   end
 

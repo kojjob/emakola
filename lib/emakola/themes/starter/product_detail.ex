@@ -14,6 +14,8 @@ defmodule Emakola.Themes.Starter.ProductDetail do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Starter.Shared
@@ -56,10 +58,10 @@ defmodule Emakola.Themes.Starter.ProductDetail do
         aria-label="Breadcrumb"
         class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-4"
       >
-        <ol class="flex items-center gap-2 text-xs text-[#94A3B8]">
+        <ol class="flex items-center gap-2 text-xs text-[#64748B]">
           <li>
             <a
-              href={"/s/#{@store.slug}"}
+              href={store_path(@store.slug, "/")}
               class="hover:text-[var(--theme-primary,#6366F1)] transition-colors"
               style="font-family: 'Inter', sans-serif;"
             >
@@ -79,7 +81,7 @@ defmodule Emakola.Themes.Starter.ProductDetail do
           </li>
           <li>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="hover:text-[var(--theme-primary,#6366F1)] transition-colors"
               style="font-family: 'Inter', sans-serif;"
             >
@@ -275,10 +277,15 @@ defmodule Emakola.Themes.Starter.ProductDetail do
             <%!-- Add to Cart CTA --%>
             <button
               phx-click="add_to_cart"
-              disabled={is_nil(@selected_variant) || @selected_variant.stock_quantity <= 0}
+              disabled={
+                is_nil(@selected_variant) ||
+                  not Emakola.Catalog.Variant.in_stock?(@selected_variant)
+              }
               class={[
                 "w-full h-14 rounded-full text-base font-semibold flex items-center justify-center gap-2.5 transition-all",
-                if(is_nil(@selected_variant) || @selected_variant.stock_quantity <= 0,
+                if(
+                  is_nil(@selected_variant) ||
+                    not Emakola.Catalog.Variant.in_stock?(@selected_variant),
                   do: "bg-gray-100 text-gray-400 cursor-not-allowed",
                   else:
                     "bg-[var(--theme-primary,#6366F1)] text-white hover:bg-[#4F46E5] active:scale-[0.97] cursor-pointer shadow-sm"
@@ -299,7 +306,8 @@ defmodule Emakola.Themes.Starter.ProductDetail do
                   d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
                 />
               </svg>
-              <%= if is_nil(@selected_variant) || @selected_variant.stock_quantity <= 0 do %>
+              <%= if is_nil(@selected_variant) ||
+                       not Emakola.Catalog.Variant.in_stock?(@selected_variant) do %>
                 Out of Stock
               <% else %>
                 Add to Cart
@@ -393,8 +401,16 @@ defmodule Emakola.Themes.Starter.ProductDetail do
                 class="px-5 pb-5 text-sm text-[#64748B] leading-relaxed"
                 style="font-family: 'Inter', sans-serif;"
               >
-                <p>Delivery within Greater Accra: 1-2 business days.</p>
-                <p class="mt-2">Nationwide delivery: 3-5 business days.</p>
+                <p>
+                  See our
+                  <a
+                    href={store_path(@store.slug, "/policies")}
+                    class="underline hover:text-[#0F172A] transition-colors"
+                  >
+                    delivery information
+                  </a>
+                  on the policies page.
+                </p>
               </div>
             </details>
             <details class="bg-white rounded-xl border border-gray-200 mb-3 overflow-hidden">
@@ -422,7 +438,14 @@ defmodule Emakola.Themes.Starter.ProductDetail do
                 style="font-family: 'Inter', sans-serif;"
               >
                 <p>
-                  Returns accepted within 7 days of delivery. Items must be unused and in original packaging.
+                  See our
+                  <a
+                    href={store_path(@store.slug, "/policies")}
+                    class="underline hover:text-[#0F172A] transition-colors"
+                  >
+                    returns policy
+                  </a>
+                  on the policies page.
                 </p>
               </div>
             </details>
@@ -442,7 +465,7 @@ defmodule Emakola.Themes.Starter.ProductDetail do
           <div class="flex gap-4 overflow-x-auto px-4 sm:px-6 lg:px-8 pb-2 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             <a
               :for={rp <- @related_products}
-              href={"/s/#{@store.slug}/products/#{rp.slug}"}
+              href={store_path(@store.slug, "/products/#{rp.slug}")}
               class="flex-[0_0_160px] snap-start group"
             >
               <div class="rounded-2xl overflow-hidden bg-gray-50 shadow-sm group-hover:shadow-md group-hover:-translate-y-0.5 transition-all duration-300 mb-2.5">

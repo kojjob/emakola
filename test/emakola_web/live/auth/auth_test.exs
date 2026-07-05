@@ -5,8 +5,7 @@ defmodule EmakolaWeb.Auth.AuthTest do
 
   setup %{conn: conn} do
     # Use a unique remote_ip per test run to avoid Hammer rate limit collisions
-    unique_ip = {10, 99, :rand.uniform(255), :rand.uniform(255)}
-    {:ok, conn: %{conn | remote_ip: unique_ip}}
+    {:ok, conn: put_unique_peer_ip(conn)}
   end
 
   describe "Login page" do
@@ -18,19 +17,34 @@ defmodule EmakolaWeb.Auth.AuthTest do
       assert html =~ "Password"
     end
 
-    test "login with valid credentials redirects to session endpoint", %{conn: conn} do
+    test "login with valid merchant credentials redirects to session endpoint", %{conn: conn} do
       password = "Password123!"
-      user = create_user!(password: password)
+      merchant = create_merchant!(password: password)
 
       {:ok, view, _html} = live(conn, "/auth/login")
 
       view
-      |> form("form", user: %{email: to_string(user.email), password: password})
+      |> form("form", user: %{email: to_string(merchant.email), password: password})
       |> render_submit()
 
       {path, _flash} = assert_redirect(view)
       assert path =~ "/auth/session"
       assert path =~ "token="
+    end
+
+    test "legacy User credentials no longer log in at /auth/login", %{conn: conn} do
+      password = "Password123!"
+      user = create_user!(password: password)
+
+      {:ok, view, _html} = live(conn, "/auth/login")
+
+      html =
+        view
+        |> form("form", user: %{email: to_string(user.email), password: password})
+        |> render_submit()
+
+      assert html =~ "Invalid email or password"
+      assert render(view) =~ "Welcome back"
     end
 
     test "login with invalid credentials does not redirect", %{conn: conn} do
@@ -153,9 +167,9 @@ defmodule EmakolaWeb.Auth.AuthTest do
       assert {:error, {:live_redirect, %{to: "/auth/login"}}} = live(conn, "/dashboard")
     end
 
-    test "authenticated user can access dashboard", %{conn: conn} do
-      user = create_user!()
-      token = AshAuthentication.user_to_subject(user)
+    test "authenticated merchant can access dashboard", %{conn: conn} do
+      {merchant, _store} = create_merchant_with_store!()
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn
@@ -165,12 +179,24 @@ defmodule EmakolaWeb.Auth.AuthTest do
       {:ok, _view, html} = live(conn, "/dashboard")
       assert html =~ "Dashboard" or html =~ "dashboard"
     end
+
+    test "legacy User subject no longer grants dashboard access", %{conn: conn} do
+      user = create_user!()
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
+
+      conn =
+        conn
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:user_token, token)
+
+      assert {:error, {:live_redirect, %{to: "/auth/login"}}} = live(conn, "/dashboard")
+    end
   end
 
   describe "Session management" do
     test "session controller creates session and redirects to dashboard", %{conn: conn} do
       user = create_user!()
-      token = AshAuthentication.user_to_subject(user)
+      token = EmakolaWeb.AuthTokens.sign_subject_exchange(AshAuthentication.user_to_subject(user))
 
       conn =
         conn
@@ -178,12 +204,12 @@ defmodule EmakolaWeb.Auth.AuthTest do
         |> get("/auth/session?token=#{URI.encode_www_form(token)}")
 
       assert redirected_to(conn) == "/dashboard"
-      assert get_session(conn, :user_token) == token
+      assert get_session(conn, :user_token)
     end
 
     test "session controller supports custom redirect_to", %{conn: conn} do
       user = create_user!()
-      token = AshAuthentication.user_to_subject(user)
+      token = EmakolaWeb.AuthTokens.sign_subject_exchange(AshAuthentication.user_to_subject(user))
 
       conn =
         conn
@@ -195,7 +221,7 @@ defmodule EmakolaWeb.Auth.AuthTest do
 
     test "logout clears session and redirects to login", %{conn: conn} do
       user = create_user!()
-      token = AshAuthentication.user_to_subject(user)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
 
       conn =
         conn
@@ -208,16 +234,16 @@ defmodule EmakolaWeb.Auth.AuthTest do
   end
 
   describe "AssignDefaults hook" do
-    test "loads current_user into dashboard layout", %{conn: conn} do
-      user = create_user!()
+    test "loads current_merchant into dashboard layout", %{conn: conn} do
+      {merchant, _store} = create_merchant_with_store!()
 
-      # Update user name via update_profile action
-      user =
-        user
+      # Update merchant name via update_profile action
+      merchant =
+        merchant
         |> Ash.Changeset.for_update(:update_profile, %{name: "Ada Lovelace"})
         |> Ash.update!(authorize?: false)
 
-      token = AshAuthentication.user_to_subject(user)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn

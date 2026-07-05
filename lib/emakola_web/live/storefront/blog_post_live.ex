@@ -5,11 +5,17 @@ defmodule EmakolaWeb.Storefront.BlogPostLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Cart.CartStore
+  alias EmakolaWeb.Helpers.SEO
   alias EmakolaWeb.Helpers.StoreResolver
+  alias EmakolaWeb.SEO.Canonical
 
   @impl true
-  def mount(%{"store_slug" => slug, "post_slug" => post_slug}, session, socket) do
+  def mount(%{"post_slug" => post_slug}, session, socket) do
+    slug = socket.assigns.store.slug
+
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
         case Emakola.Content.Post
@@ -37,7 +43,11 @@ defmodule EmakolaWeb.Storefront.BlogPostLive do
               |> Ash.read()
 
             cart_session_id = session["cart_session_id"]
-            cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+
+            cart_count =
+              if connected?(socket) && cart_session_id,
+                do: CartStore.cart_count(cart_session_id, store.id),
+                else: 0
 
             {:ok,
              socket
@@ -49,13 +59,14 @@ defmodule EmakolaWeb.Storefront.BlogPostLive do
              |> assign(:cart_session_id, cart_session_id)
              |> assign(:cart_count, cart_count)
              |> assign(:categories, [])
-             |> assign(:page_title, "#{post.title} - #{store.name}")}
+             |> assign(:page_title, "#{post.title} - #{store.name}")
+             |> assign_article_seo(store, post)}
 
           _ ->
             {:ok,
              socket
              |> put_flash(:error, "Post not found")
-             |> redirect(to: "/s/#{slug}/blog")}
+             |> redirect(to: store_path(slug, "/blog"))}
         end
 
       {:error, :not_found} ->
@@ -69,6 +80,25 @@ defmodule EmakolaWeb.Storefront.BlogPostLive do
       {:ok, rendered} -> rendered
       :default -> Emakola.Themes.DefaultRenderers.BlogPost.render(assigns)
     end
+  end
+
+  defp assign_article_seo(socket, store, post) do
+    json_ld = [
+      SEO.json_ld_article(post, store),
+      SEO.json_ld_breadcrumb([
+        %{name: store.name, url: Canonical.store_url(store)},
+        %{name: "Blog", url: Canonical.path(store, "/blog")},
+        %{name: post.title, url: Canonical.blog_url(store, post)}
+      ])
+    ]
+
+    socket
+    |> assign(:meta_description, post.seo_description || post.excerpt)
+    |> assign(:og_image, post.featured_image_url)
+    |> assign(:og_type, "article")
+    |> assign(:og_site_name, store.name)
+    |> assign(:canonical_url, Canonical.blog_url(store, post))
+    |> assign(:json_ld, json_ld)
   end
 
   defp reading_time(nil), do: 1

@@ -4,9 +4,10 @@
 # =============================================================================
 
 app = "emakola"
-primary_region = "jnb"
+primary_region = "lhr"
 kill_signal = "SIGTERM"
-kill_timeout = "30s"
+# Long enough for connection draining + Oban jobs to finish on shutdown.
+kill_timeout = "60s"
 swap_size_mb = 256
 
 # -----------------------------------------------------------------------------
@@ -19,13 +20,16 @@ swap_size_mb = 256
 # Non-secret environment variables
 # -----------------------------------------------------------------------------
 [env]
-  PHX_HOST = "emakola.com"
+  PHX_HOST = "makola.io"
   PHX_SERVER = "true"
   ECTO_IPV6 = "true"
   POOL_SIZE = "10"
   LANG = "en_US.UTF-8"
   ERL_AFLAGS = "-proto_dist inet6_tcp"
-  RELEASE_DISTRIBUTION = "none"
+  # BEAM clustering: rel/env.sh.eex sets RELEASE_DISTRIBUTION=name and
+  # RELEASE_NODE from FLY_PRIVATE_IP; DNSCluster (lib/emakola/application.ex)
+  # discovers peers via this 6PN DNS query.
+  DNS_CLUSTER_QUERY = "emakola.internal"
 
 # -----------------------------------------------------------------------------
 # Deploy configuration
@@ -40,7 +44,10 @@ swap_size_mb = 256
 [http_service]
   internal_port = 4000
   force_https = true
-  auto_stop_machines = "stop"
+  # Carts are Postgres-backed (cart_items table), so a stopped or suspended
+  # machine no longer wipes carts and multi-machine scaling is safe.
+  # "suspend" is kept purely for faster wake-ups.
+  auto_stop_machines = "suspend"
   auto_start_machines = true
   min_machines_running = 1
   processes = ["app"]
@@ -50,14 +57,20 @@ swap_size_mb = 256
     hard_limit = 1000
     soft_limit = 800
 
-  [http_service.checks]
-    [http_service.checks.health]
-      grace_period = "30s"
-      interval = "15s"
-      method = "GET"
-      path = "/health"
-      port = 4000
-      timeout = "5s"
+  # NOTE: http_service.checks is an ARRAY of tables ([[...]]), not named
+  # tables — fly rejects the config otherwise.
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "15s"
+    method = "GET"
+    path = "/api/health"
+    timeout = "5s"
+
+    # Plug.SSL (force_ssl) sees rewrite_on: [:x_forwarded_proto]; sending
+    # this header makes internal health probes look like HTTPS so they
+    # are not 301-redirected.
+    [http_service.checks.headers]
+      X-Forwarded-Proto = "https"
 
 # -----------------------------------------------------------------------------
 # VM Resources
@@ -66,13 +79,6 @@ swap_size_mb = 256
   size = "shared-cpu-1x"
   memory = "512mb"
   cpus = 1
-
-# -----------------------------------------------------------------------------
-# Statics (served by Phoenix, cached by Cloudflare)
-# -----------------------------------------------------------------------------
-[[statics]]
-  guest_path = "/app/lib/emakola-0.1.0/priv/static"
-  url_prefix = "/assets"
 
 # -----------------------------------------------------------------------------
 # Metrics (Fly.io Prometheus integration)

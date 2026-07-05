@@ -48,6 +48,16 @@ defmodule EmakolaWeb.DashboardLiveTest do
       assert html =~ "Avg Order"
     end
 
+    test "topbar New button links to the product create page", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard")
+
+      # The quick-add "New" in the admin topbar must be a real navigation,
+      # not a decorative button (it shipped dead — no handler, no href).
+      assert view
+             |> element(~s{a[href="/admin/products/new"]}, "New")
+             |> has_element?()
+    end
+
     test "renders period toggle", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/dashboard")
 
@@ -142,6 +152,29 @@ defmodule EmakolaWeb.DashboardLiveTest do
     end
   end
 
+  describe "sidebar badges" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "Orders link shows the real pending-order count", %{conn: conn, store: store} do
+      Factory.create_order!(store, %{status: :pending})
+      Factory.create_order!(store, %{status: :pending})
+      Factory.create_order!(store, %{status: :confirmed})
+
+      {:ok, _view, html} = live(conn, ~p"/dashboard")
+
+      assert html =~ ~s(<span class="sidebar-badge nav-label sidebar-badge-emerald">2</span>)
+    end
+
+    test "no sidebar badge renders when there are no pending orders", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/dashboard")
+
+      refute html =~ "sidebar-badge"
+    end
+  end
+
   describe "empty state" do
     test "handles store with no orders gracefully", %{conn: _conn} do
       {conn, _merchant, _store} = setup_authenticated_merchant(build_conn())
@@ -155,7 +188,7 @@ defmodule EmakolaWeb.DashboardLiveTest do
 
   defp setup_authenticated_merchant(conn, store_attrs \\ %{}) do
     {merchant, store} = Factory.create_merchant_with_store!(store_attrs)
-    token = AshAuthentication.user_to_subject(merchant)
+    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
     conn =
       conn

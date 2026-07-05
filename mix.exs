@@ -75,6 +75,9 @@ defmodule Emakola.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
+      # Resolve the real client IP from X-Forwarded-For behind the Fly proxy
+      # so rate limiting and the Hubtel IP allowlist key on the actual client.
+      {:remote_ip, "~> 1.2"},
       {:swoosh, "~> 1.17"},
       {:phoenix_live_dashboard, "~> 0.8"},
       {:hammer, "~> 7.0"},
@@ -85,9 +88,17 @@ defmodule Emakola.MixProject do
       {:ash_phoenix, "~> 2.0"},
       {:ash_authentication, "~> 4.0"},
       {:ash_authentication_phoenix, "~> 2.0"},
+      {:ash_json_api, "~> 1.4"},
+      {:open_api_spex, "~> 3.16"},
+
+      # Mobile push notifications (FCM HTTP v1 via Req + Goth)
+      {:goth, "~> 1.4"},
 
       # Background jobs
       {:oban, "~> 2.18"},
+
+      # Error monitoring (uses Finch — already a dep — not hackney)
+      {:sentry, "~> 13.0"},
 
       # URL-safe slug generation (Unicode-aware)
       {:slugify, "~> 1.3"},
@@ -110,6 +121,13 @@ defmodule Emakola.MixProject do
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+
+      # CSV parsing for bulk product import
+      {:nimble_csv, "~> 1.0"},
+
+      # TOTP two-factor auth + QR code rendering for enrolment
+      {:nimble_totp, "~> 1.0"},
+      {:eqrcode, "~> 0.2"},
 
       # SAT solver for Ash policy checks
       {:simple_sat, "~> 0.1"},

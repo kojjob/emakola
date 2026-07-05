@@ -102,6 +102,35 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkUploadModal do
               Parse CSV
             </button>
           </div>
+
+          <%!-- Bulk Images Drop Zone --%>
+          <div class="space-y-3 mt-4">
+            <label class="block text-sm font-medium text-slate-700">Product images (optional)</label>
+            <div
+              class="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-emerald-400 transition-colors"
+              phx-drop-target={@uploads.bulk_images.ref}
+            >
+              <.icon name="hero-photo" class="size-7 mx-auto text-slate-400 mb-1" />
+              <p class="text-xs text-slate-600">
+                Upload the photos named in your <span class="font-mono">images</span> column
+              </p>
+              <.live_file_input upload={@uploads.bulk_images} class="mt-2" />
+            </div>
+            <div :for={entry <- @uploads.bulk_images.entries} class="text-xs text-slate-500">
+              {entry.client_name}
+              <button
+                type="button"
+                phx-click="cancel_bulk_image"
+                phx-value-ref={entry.ref}
+                class="text-red-500 ml-1"
+              >
+                ✕
+              </button>
+            </div>
+            <div :for={err <- upload_errors(@uploads.bulk_images)} class="text-xs text-red-600">
+              {upload_error_to_string(err)}
+            </div>
+          </div>
         </form>
 
         <%!-- CSV Errors --%>

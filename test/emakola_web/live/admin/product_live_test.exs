@@ -2,6 +2,7 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
   use EmakolaWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
+  import Mox
   alias Emakola.Factory
 
   require Ash.Query
@@ -15,8 +16,8 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
 
   describe "ProductLive.Index (authenticated)" do
     setup %{conn: conn} do
-      {conn, user, org} = setup_authenticated_user(conn)
-      %{conn: conn, user: user, org: org}
+      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
     end
 
     test "renders product list heading", %{conn: conn} do
@@ -51,8 +52,8 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
 
   describe "ProductLive.Form (authenticated)" do
     setup %{conn: conn} do
-      {conn, user, org} = setup_authenticated_user(conn)
-      %{conn: conn, user: user, org: org}
+      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
     end
 
     test "renders new product form", %{conn: conn} do
@@ -219,19 +220,232 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
     end
   end
 
-  # Uses the pattern from LiveViewHelpers — creates user, org, membership
-  defp setup_authenticated_user(conn) do
-    user = Factory.create_user!()
-    org = Factory.create_organisation!()
-    Factory.create_membership!(user, org, :owner)
+  describe "ProductLive.Index slide-over create (authenticated merchant)" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
 
-    token = AshAuthentication.user_to_subject(user)
+    test "creating with price and Save & Activate publishes the product",
+         %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
 
-    conn =
-      conn
-      |> Phoenix.ConnTest.init_test_session(%{})
-      |> Plug.Conn.put_session(:user_token, token)
+      view
+      |> element(~s{button[phx-click*="open_new_product"]})
+      |> render_click()
 
-    {conn, user, org}
+      html =
+        view
+        |> element("#product-slide-over-form")
+        |> render_submit(%{
+          "product" => %{
+            "title" => "Kente Cloth",
+            "price" => "25.00",
+            "_action" => "activate"
+          }
+        })
+
+      product =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(store_id: store.id)
+        |> Ash.read_one!(authorize?: false)
+
+      assert product.status == :active
+
+      loaded = Ash.load!(product, [:variants], authorize?: false)
+      assert [%{price: 2500}] = loaded.variants
+
+      assert html =~ "Product published"
+    end
+
+    test "creating without price saves a draft and shows draft flash",
+         %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      view
+      |> element(~s{button[phx-click*="open_new_product"]})
+      |> render_click()
+
+      html =
+        view
+        |> element("#product-slide-over-form")
+        |> render_submit(%{
+          "product" => %{
+            "title" => "Kente Cloth",
+            "_action" => "activate"
+          }
+        })
+
+      product =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(store_id: store.id)
+        |> Ash.read_one!(authorize?: false)
+
+      assert product.status == :draft
+      assert html =~ "Saved as draft"
+    end
+  end
+
+  describe "ProductLive.Index slide-over zero price boundary" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "slide-over price '0' → no product created, error rendered",
+         %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      view |> element(~s{button[phx-click*="open_new_product"]}) |> render_click()
+
+      html =
+        view
+        |> element("#product-slide-over-form")
+        |> render_submit(%{
+          "product" => %{"title" => "Zero", "price" => "0", "_action" => "activate"}
+        })
+
+      assert html =~ "must be greater than 0.00"
+
+      products =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(store_id: store.id)
+        |> Ash.read!(authorize?: false)
+
+      assert products == []
+    end
+
+    test "slide-over price '0.00' → no product created, error rendered",
+         %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      view |> element(~s{button[phx-click*="open_new_product"]}) |> render_click()
+
+      html =
+        view
+        |> element("#product-slide-over-form")
+        |> render_submit(%{
+          "product" => %{"title" => "Zero", "price" => "0.00", "_action" => "activate"}
+        })
+
+      assert html =~ "must be greater than 0.00"
+
+      products =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(store_id: store.id)
+        |> Ash.read!(authorize?: false)
+
+      assert products == []
+    end
+  end
+
+  describe "ProductLive.Index delete_image cross-store guard" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "deleting a foreign-store image id via the event leaves it intact",
+         %{conn: conn} do
+      {_ma, store_a} = Factory.create_merchant_with_store!()
+      product_a = Factory.create_product!(store_a)
+      image_a = Factory.create_image!(product_a, store_a)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      render_click(view, "delete_image", %{"id" => image_a.id})
+
+      assert %Emakola.Catalog.Image{} =
+               Ash.get!(Emakola.Catalog.Image, image_a.id, authorize?: false)
+    end
+  end
+
+  describe "bulk CSV import with images" do
+    @png Base.decode64!(
+           "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+         )
+
+    setup %{conn: conn} do
+      {conn, _merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, store: store}
+    end
+
+    setup :verify_on_exit!
+
+    test "the bulk modal exposes an image drop zone and the new template header", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+      html = render(view)
+      assert html =~ "stock_quantity,tags,images"
+      assert html =~ "Product images"
+    end
+
+    test "importing a CSV with a matched image publishes a product with that image",
+         %{conn: conn, store: store} do
+      stub(Emakola.StorageMock, :upload, fn _b, path, _o ->
+        {:ok, "https://s3.example.com/#{path}"}
+      end)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+      Mox.allow(Emakola.StorageMock, self(), view.pid)
+
+      csv =
+        Emakola.Catalog.CsvImporter.template_header() <>
+          "\nOkra,Fresh,,OKRA-1,15,5,fresh,okra.png"
+
+      file_input(view, "#csv-upload-form", :csv_file, [
+        %{name: "p.csv", content: csv, type: "text/csv"}
+      ])
+      |> render_upload("p.csv")
+
+      file_input(view, "#csv-upload-form", :bulk_images, [
+        %{name: "okra.png", content: @png, type: "image/png"}
+      ])
+      |> render_upload("okra.png")
+
+      view |> element("#csv-upload-form") |> render_submit()
+      view |> element("button[phx-click=import_products]") |> render_click()
+
+      p =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(store_id == ^store.id and title == "Okra")
+        |> Ash.read_one!(authorize?: false, load: [:images, :variants])
+
+      assert p.status == :active
+      assert [%{price: 1500}] = p.variants
+      assert length(p.images) == 1
+    end
+
+    test "after import the preview is cleared (no accidental re-import)", %{
+      conn: conn,
+      store: store
+    } do
+      stub(Emakola.StorageMock, :upload, fn _b, path, _o ->
+        {:ok, "https://s3.example.com/#{path}"}
+      end)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+      Mox.allow(Emakola.StorageMock, self(), view.pid)
+
+      csv = Emakola.Catalog.CsvImporter.template_header() <> "\nOkra,Fresh,,OKRA-1,15,5,fresh,"
+
+      file_input(view, "#csv-upload-form", :csv_file, [
+        %{name: "p.csv", content: csv, type: "text/csv"}
+      ])
+      |> render_upload("p.csv")
+
+      view |> element("#csv-upload-form") |> render_submit()
+      view |> element("button[phx-click=import_products]") |> render_click()
+
+      # after import the preview is cleared — button is disabled, second click can't re-import
+      assert has_element?(view, "button[phx-click=import_products][disabled]")
+
+      count =
+        Emakola.Catalog.Product
+        |> Ash.Query.filter(store_id == ^store.id and title == "Okra")
+        |> Ash.read!(authorize?: false)
+        |> length()
+
+      assert count == 1
+    end
   end
 end

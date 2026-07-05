@@ -17,9 +17,11 @@ defmodule EmakolaWeb do
   those modules here.
   """
 
+  # robots.txt is intentionally NOT static — it's served dynamically per host by
+  # SitemapController (apex platform rules vs. per-store subdomain rules). The
+  # legacy priv/static/robots.txt is now unused (kept, not deleted).
   def static_paths,
-    do:
-      ~w(assets css fonts images uploads favicon.ico robots.txt manifest.json sw.js offline.html)
+    do: ~w(assets css fonts images uploads favicon.ico manifest.json sw.js offline.html)
 
   def router do
     quote do
@@ -53,6 +55,9 @@ defmodule EmakolaWeb do
   def live_view do
     quote do
       use Phoenix.LiveView
+
+      # Capture errors raised in mount/handle_event/handle_info and report to Sentry.
+      on_mount(Sentry.LiveViewHook)
 
       unquote(html_helpers())
     end
@@ -90,6 +95,7 @@ defmodule EmakolaWeb do
       import EmakolaWeb.CoreComponents
       import EmakolaWeb.SidebarComponents
       import EmakolaWeb.AdminComponents
+      import EmakolaWeb.PlatformComponents
       # Storefront components — use explicit import in storefront LiveViews
       # import EmakolaWeb.StorefrontComponents
 

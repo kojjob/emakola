@@ -57,7 +57,7 @@ defmodule EmakolaWeb.Auth.RegisterLiveTest do
       assert merchant
 
       # 2. Complete onboarding as that merchant (creates Store + StoreMembership)
-      token = AshAuthentication.user_to_subject(merchant)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       onboarding_conn =
         conn

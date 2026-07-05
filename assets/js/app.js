@@ -82,6 +82,12 @@ liveSocket.connect()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
+// Server-driven modal close: runs the target element's phx-remove JS (hide_modal)
+window.addEventListener("phx:close-modal", (e) => {
+  const el = document.getElementById(e.detail.id)
+  if (el) liveSocket.execJS(el, el.getAttribute("phx-remove"))
+})
+
 // Register service worker for PWA
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js").catch(() => {})

@@ -11,13 +11,18 @@ defmodule EmakolaWeb.Storefront.AboutLive do
     store = socket.assigns.store
     categories = load_root_categories(store)
     cart_session_id = session["cart_session_id"]
-    cart_count = if cart_session_id, do: CartStore.cart_count(cart_session_id), else: 0
+
+    cart_count =
+      if connected?(socket) && cart_session_id,
+        do: CartStore.cart_count(cart_session_id, store.id),
+        else: 0
 
     {:ok,
      socket
      |> assign(:categories, categories)
      |> assign(:cart_session_id, cart_session_id)
      |> assign(:cart_count, cart_count)
+     |> assign(:page_content, EmakolaWeb.Storefront.ContentLoader.load(store.id))
      |> assign(:page_title, "About - #{store.name}")}
   end
 

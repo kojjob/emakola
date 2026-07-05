@@ -3,6 +3,8 @@ defmodule Emakola.Themes.Spotlight.Home do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.Spotlight.Shared
 
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
@@ -33,7 +35,7 @@ defmodule Emakola.Themes.Spotlight.Home do
         <div class="absolute -top-24 -right-24 w-96 h-96 rounded-full spot-blob opacity-60"></div>
         <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 grid lg:grid-cols-2 gap-10 items-center relative">
           <div>
-            <p class="text-xs uppercase tracking-[0.25em] text-[#7C3AED] font-semibold">
+            <p class="text-xs uppercase tracking-[0.25em] text-[var(--theme-accent,#7C3AED)] font-semibold">
               {Map.get(@hero, :overline, "The one you reach for")}
             </p>
             <h1 class="spot-display text-5xl sm:text-6xl lg:text-7xl text-[#16130F] mt-4 uppercase">
@@ -44,13 +46,16 @@ defmodule Emakola.Themes.Spotlight.Home do
             </p>
             <div :if={@hero_product} class="mt-7">
               <a
-                href={"/s/#{@store.slug}/products/#{@hero_product.slug}"}
+                href={store_path(@store.slug, "/products/#{@hero_product.slug}")}
                 class="inline-block rounded-full spot-cta px-8 py-3.5 text-sm font-semibold uppercase tracking-wider"
               >
                 {Map.get(@hero, :cta_text, "Choose yours")}
               </a>
-              <p class="text-[11px] uppercase tracking-wider text-[#9b968c] mt-4">
-                {Map.get(@hero, :badge, "100% Made in Ghana")}
+              <p
+                :if={Map.get(@hero, :badge) not in [nil, ""]}
+                class="text-[11px] uppercase tracking-wider text-[#7A7468] mt-4"
+              >
+                {Map.get(@hero, :badge)}
               </p>
             </div>
             <p :if={!@hero_product} class="mt-7 text-[#6B675F]">
@@ -92,7 +97,7 @@ defmodule Emakola.Themes.Spotlight.Home do
             data-reveal
             class="rounded-2xl bg-white border border-[#ECE7DE] p-6 text-center"
           >
-            <span class="material-symbols-outlined text-[#7C3AED] text-3xl">
+            <span class="material-symbols-outlined text-[var(--theme-accent,#7C3AED)] text-3xl">
               {Map.get(item, :icon, "star")}
             </span>
             <h3 class="spot-heading text-base font-semibold mt-3">{item.title}</h3>
@@ -132,7 +137,7 @@ defmodule Emakola.Themes.Spotlight.Home do
             data-reveal
             class="rounded-2xl bg-white border border-[#ECE7DE] p-6"
           >
-            <div class="text-[#7C3AED]">★★★★★</div>
+            <div class="text-[var(--theme-accent,#7C3AED)]">★★★★★</div>
             <blockquote class="text-sm text-[#16130F] mt-3 leading-relaxed">"{t.quote}"</blockquote>
             <figcaption class="text-xs text-[#6B675F] mt-4 font-semibold">
               {t.name}<span :if={Map.get(t, :location)} class="font-normal"> · {t.location}</span>
@@ -153,7 +158,7 @@ defmodule Emakola.Themes.Spotlight.Home do
           <p class="text-[#6B675F] mt-4">{Map.get(@closing, :subtitle)}</p>
           <a
             :if={@hero_product}
-            href={"/s/#{@store.slug}/products/#{@hero_product.slug}"}
+            href={store_path(@store.slug, "/products/#{@hero_product.slug}")}
             class="inline-block mt-7 rounded-full spot-cta px-8 py-3.5 text-sm font-semibold uppercase tracking-wider"
           >
             {Map.get(@closing, :button_text, "Get yours")}
@@ -174,7 +179,7 @@ defmodule Emakola.Themes.Spotlight.Home do
           <input
             type="email"
             placeholder="you@email.com"
-            class="flex-1 px-4 py-3 rounded-full border border-[#ECE7DE] text-sm focus:outline-none focus:border-[#7C3AED]"
+            class="flex-1 px-4 py-3 rounded-full border border-[#ECE7DE] text-sm focus:outline-none focus:border-[var(--theme-accent,#7C3AED)]"
           />
           <button type="button" class="rounded-full spot-cta px-6 py-3 text-sm font-semibold">
             {get_in(@theme, [:newsletter, :button_text]) || "Subscribe"}

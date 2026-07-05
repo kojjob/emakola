@@ -26,7 +26,7 @@ defmodule EmakolaWeb.Admin.CustomerLiveTest do
   describe "CustomerLive.Index (authenticated)" do
     setup %{conn: conn} do
       {merchant, store} = Factory.create_merchant_with_store!()
-      token = AshAuthentication.user_to_subject(merchant)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn
@@ -130,7 +130,7 @@ defmodule EmakolaWeb.Admin.CustomerLiveTest do
   describe "CustomerLive.Show (authenticated)" do
     setup %{conn: conn} do
       {merchant, store} = Factory.create_merchant_with_store!()
-      token = AshAuthentication.user_to_subject(merchant)
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
 
       conn =
         conn
@@ -183,6 +183,16 @@ defmodule EmakolaWeb.Admin.CustomerLiveTest do
       {:ok, _view, html} = live(conn, ~p"/admin/customers/#{customer.id}")
 
       assert html =~ "Notes"
+    end
+
+    test "cannot view a customer belonging to another store (cross-tenant)", %{conn: conn} do
+      other_store = Factory.create_store!()
+
+      foreign =
+        Factory.create_customer!(other_store, name: "Foreign", email: "foreign@example.com")
+
+      assert {:error, {:live_redirect, %{to: "/admin/customers"}}} =
+               live(conn, ~p"/admin/customers/#{foreign.id}")
     end
   end
 end
