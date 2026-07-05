@@ -58,7 +58,7 @@ defmodule Emakola.Themes.Starter.ProductDetail do
         aria-label="Breadcrumb"
         class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-4"
       >
-        <ol class="flex items-center gap-2 text-xs text-[#94A3B8]">
+        <ol class="flex items-center gap-2 text-xs text-[#64748B]">
           <li>
             <a
               href={store_path(@store.slug, "/")}

@@ -189,7 +189,7 @@ defmodule Emakola.Themes.Atelier.Nav do
               <span
                 :if={@cart_count > 0}
                 class="absolute top-0.5 right-0.5 w-5 h-5 text-[10px] font-bold rounded-full flex items-center justify-center text-white"
-                style="background: var(--theme-primary);"
+                style="background: var(--theme-accent, #166534);"
               >
                 {@cart_count}
               </span>

@@ -42,7 +42,7 @@ defmodule Emakola.Themes.Starter.Home do
         :if={section_enabled?(@theme, :hero)}
         class="relative overflow-hidden"
       >
-        <div class="bg-gradient-to-br from-[var(--theme-primary,#6366F1)] via-[#4F46E5] to-[var(--theme-accent,#1E293B)]">
+        <div class="bg-gradient-to-br from-[var(--theme-primary,#6366F1)] to-[var(--theme-accent,#1E293B)]">
           <div class="relative max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-28">
             <div class="max-w-2xl">
               <h1
@@ -52,7 +52,7 @@ defmodule Emakola.Themes.Starter.Home do
                 {@theme.hero.title}
               </h1>
               <p
-                class="text-lg sm:text-xl text-white/70 leading-relaxed mb-8 max-w-lg"
+                class="text-lg sm:text-xl text-white/90 leading-relaxed mb-8 max-w-lg"
                 style="font-family: 'Inter', sans-serif;"
               >
                 {if @store.description,

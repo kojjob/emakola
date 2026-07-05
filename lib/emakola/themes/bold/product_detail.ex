@@ -5,7 +5,7 @@ defmodule Emakola.Themes.Bold.ProductDetail do
   Features:
   - Minimal breadcrumb ("Back to shop" link)
   - Two-column layout: massive image gallery (60%) + product info (40%)
-  - Bold Outfit heading, amber accent price
+  - Bold Outfit heading, ink price with an amber underline
   - Rectangular variant selectors with dark borders
   - Minimal inline quantity stepper
   - Full-width dark add-to-cart button (uppercase)
@@ -152,7 +152,7 @@ defmodule Emakola.Themes.Bold.ProductDetail do
               {@product.title}
             </h1>
             <p
-              class="text-xl sm:text-2xl font-bold text-[#F59E0B] mb-3"
+              class="text-xl sm:text-2xl font-black text-[#0F172A] mb-3 w-fit border-b-4 border-[#F59E0B]"
               style="font-family: 'Outfit', sans-serif;"
             >
               <%= if @selected_variant do %>
@@ -297,7 +297,7 @@ defmodule Emakola.Themes.Bold.ProductDetail do
             href={"https://wa.me/#{String.replace(@store.whatsapp_number || "", "+", "")}?text=Hi%2C%20I'm%20interested%20in%20#{URI.encode(@product.title)}%20from%20#{URI.encode(@store.name)}"}
             target="_blank"
             rel="noopener noreferrer"
-            class="flex items-center justify-center gap-2.5 w-full h-12 mt-3 border-2 border-[#25D366] text-[#25D366] text-sm font-semibold hover:bg-whatsapp hover:text-white transition-all"
+            class="flex items-center justify-center gap-2.5 w-full h-12 mt-3 border-2 border-[#128C3A] text-[#128C3A] text-sm font-semibold hover:bg-whatsapp hover:text-white transition-all"
             style="font-family: 'Inter', sans-serif;"
           >
             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -369,8 +369,16 @@ defmodule Emakola.Themes.Bold.ProductDetail do
                 class="pb-5 text-sm text-[#64748B] leading-relaxed"
                 style="font-family: 'Inter', sans-serif;"
               >
-                <p>Delivery within Greater Accra: 1-2 business days.</p>
-                <p class="mt-2">Nationwide delivery: 3-5 business days.</p>
+                <p>
+                  See our
+                  <a
+                    href={store_path(@store.slug, "/policies")}
+                    class="underline hover:text-[#0F172A] transition-colors"
+                  >
+                    delivery information
+                  </a>
+                  on the policies page.
+                </p>
               </div>
             </details>
             <details class="border-b border-[#E2E8F0]">
@@ -398,7 +406,14 @@ defmodule Emakola.Themes.Bold.ProductDetail do
                 style="font-family: 'Inter', sans-serif;"
               >
                 <p>
-                  Returns accepted within 7 days of delivery. Items must be unworn and in original packaging.
+                  See our
+                  <a
+                    href={store_path(@store.slug, "/policies")}
+                    class="underline hover:text-[#0F172A] transition-colors"
+                  >
+                    returns policy
+                  </a>
+                  on the policies page.
                 </p>
               </div>
             </details>
@@ -456,8 +471,8 @@ defmodule Emakola.Themes.Bold.ProductDetail do
           <span class="w-2 h-2 rounded-full bg-red-600"></span> Out of Stock
         </span>
       <% @variant.stock_quantity < 5 -> %>
-        <span class="inline-flex items-center gap-1.5 text-sm font-medium text-[#F59E0B]">
-          <span class="w-2 h-2 rounded-full bg-[#F59E0B]"></span>
+        <span class="inline-flex items-center gap-1.5 text-sm font-medium text-[#B45309]">
+          <span class="w-2 h-2 rounded-full bg-[#B45309]"></span>
           Low Stock ({@variant.stock_quantity} left)
         </span>
       <% true -> %>

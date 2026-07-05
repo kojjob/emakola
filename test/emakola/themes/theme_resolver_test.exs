@@ -9,9 +9,9 @@ defmodule Emakola.Themes.ThemeResolverTest do
 
       assert result.theme_id == "market"
       assert result.theme_name == "Market"
-      assert result.colors.primary == "#2563EB"
-      assert result.colors.accent == "#0F172A"
-      assert result.colors.background == "#FFFFFF"
+      assert result.colors.primary == "#1C1917"
+      assert result.colors.accent == "#B45309"
+      assert result.colors.background == "#FAFAF9"
       assert result.sections.hero == true
       assert result.sections.categories == true
     end
@@ -19,7 +19,7 @@ defmodule Emakola.Themes.ThemeResolverTest do
     test "nil config returns market defaults" do
       result = ThemeResolver.resolve(nil)
       assert result.theme_id == "market"
-      assert result.colors.primary == "#2563EB"
+      assert result.colors.primary == "#1C1917"
     end
 
     test "atelier theme returns correct defaults" do
@@ -53,7 +53,7 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert result.colors.primary == "#FF0000"
       assert result.colors.accent == "#00FF00"
       # Non-overridden colors keep defaults
-      assert result.colors.background == "#FFFFFF"
+      assert result.colors.background == "#FAFAF9"
     end
 
     test "hero overrides merge correctly" do
@@ -87,7 +87,7 @@ defmodule Emakola.Themes.ThemeResolverTest do
       result = ThemeResolver.resolve(%{"theme" => "nonexistent"})
 
       assert result.theme_name == "Market"
-      assert result.colors.primary == "#2563EB"
+      assert result.colors.primary == "#1C1917"
     end
 
     test "pharmacy theme returns correct defaults" do

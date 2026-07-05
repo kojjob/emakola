@@ -28,11 +28,13 @@ defmodule Emakola.Themes.Akoma.Home do
       <section class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 text-center">
         <h1 class="akoma-heading text-4xl sm:text-6xl font-extrabold text-[#1A1A1A] leading-[1.05]">
           {Map.get(@hero, :title, "Considered goods,")}
-          <span class="block text-[#2F5D50]">{Map.get(@hero, :subtitle, "made to last.")}</span>
+          <span class="block text-[var(--theme-accent,#2F5D50)]">
+            {Map.get(@hero, :subtitle, "made to last.")}
+          </span>
         </h1>
         <a
           href={store_path(@store.slug, "/products")}
-          class="inline-block mt-8 px-8 py-3.5 rounded-md bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-wider hover:bg-[#2F5D50] transition-colors"
+          class="inline-block mt-8 px-8 py-3.5 rounded-md bg-[var(--theme-primary,#1A1A1A)] text-white text-sm font-semibold uppercase tracking-wider hover:bg-[var(--theme-accent,#2F5D50)] transition-colors"
         >
           {Map.get(@hero, :cta_text, "Shop the collection")}
         </a>
@@ -47,7 +49,7 @@ defmodule Emakola.Themes.Akoma.Home do
           <h2 class="akoma-heading text-xl font-bold text-[#1A1A1A]">Featured</h2>
           <a
             href={store_path(@store.slug, "/products")}
-            class="text-sm text-[#2F5D50] hover:underline"
+            class="text-sm text-[var(--theme-accent,#2F5D50)] hover:underline"
           >
             View all →
           </a>
@@ -77,7 +79,7 @@ defmodule Emakola.Themes.Akoma.Home do
       <%!-- Closing CTA --%>
       <section
         :if={section_enabled?(@theme, :closing_cta)}
-        class="bg-[#2F5D50] py-14 sm:py-20 text-center"
+        class="bg-[var(--theme-accent,#2F5D50)] py-14 sm:py-20 text-center"
       >
         <div class="max-w-[640px] mx-auto px-4 sm:px-6">
           <h2 class="akoma-heading text-2xl sm:text-3xl font-bold text-white">
@@ -88,7 +90,7 @@ defmodule Emakola.Themes.Akoma.Home do
           </p>
           <a
             href={store_path(@store.slug, "/products")}
-            class="inline-block mt-8 px-8 py-3.5 rounded-md bg-white text-[#2F5D50] text-sm font-semibold uppercase tracking-wider hover:bg-[#F8F9F7] transition-colors"
+            class="inline-block mt-8 px-8 py-3.5 rounded-md bg-white text-[var(--theme-accent,#2F5D50)] text-sm font-semibold uppercase tracking-wider hover:bg-[#F8F9F7] transition-colors"
           >
             {get_in(@theme, [:closing_cta, :button_text]) || "Browse all"}
           </a>
@@ -112,7 +114,7 @@ defmodule Emakola.Themes.Akoma.Home do
           />
           <button
             type="button"
-            class="px-6 py-3 rounded-md bg-[#1A1A1A] text-white text-sm font-semibold"
+            class="px-6 py-3 rounded-md bg-[var(--theme-primary,#1A1A1A)] text-white text-sm font-semibold"
           >
             {get_in(@theme, [:newsletter, :button_text]) || "Subscribe"}
           </button>

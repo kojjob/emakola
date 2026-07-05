@@ -27,7 +27,7 @@ defmodule Emakola.Themes.Fashion.ProductList do
       <%!-- Editorial header --%>
       <section class="bg-[#FAF6EE] border-b border-[#E7E5E4]">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 text-center">
-          <p class="text-[11px] uppercase tracking-[0.3em] text-[#D97706] mb-4">
+          <p class="text-[11px] uppercase tracking-[0.3em] text-[#9A5B00] mb-4">
             The Edit
           </p>
           <h1 class="fashion-display text-5xl sm:text-6xl lg:text-7xl text-[#1C1917] leading-tight mb-3">
@@ -78,7 +78,7 @@ defmodule Emakola.Themes.Fashion.ProductList do
             <p class="text-sm text-[#57534E]">Try a different category.</p>
             <a
               href={store_path(@store.slug, "/products")}
-              class="inline-flex items-center mt-6 px-6 py-3 rounded-full bg-[#5B21B6] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#4C1D95] transition-colors"
+              class="inline-flex items-center mt-6 px-6 py-3 rounded-full bg-[var(--theme-primary,#5B21B6)] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#4C1D95] transition-colors"
             >
               Browse all
             </a>

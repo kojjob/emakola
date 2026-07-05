@@ -81,14 +81,14 @@ defmodule Emakola.Themes.Beauty.Shared do
               </span>
               <span
                 :if={@cart_count > 0}
-                class="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-[#C9925E] text-white text-[10px] font-bold flex items-center justify-center"
+                class="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-[var(--theme-accent,#C9925E)] text-white text-[10px] font-bold flex items-center justify-center"
               >
                 {@cart_count}
               </span>
             </a>
             <a
               href={store_path(@store.slug, "/products")}
-              class={"hidden sm:inline-flex items-center px-5 py-2.5 rounded-full text-sm font-semibold transition-colors min-h-[44px] " <> if(@on_dark, do: "bg-[#FAF6EE] text-[#6B4423] hover:bg-white", else: "bg-[#6B4423] text-[#FAF6EE] hover:bg-[#5A381D]")}
+              class={"hidden sm:inline-flex items-center px-5 py-2.5 rounded-full text-sm font-semibold transition-colors min-h-[44px] " <> if(@on_dark, do: "bg-[#FAF6EE] text-[#6B4423] hover:bg-white", else: "bg-[var(--theme-primary,#6B4423)] text-[#FAF6EE] hover:bg-[#5A381D]")}
             >
               Book Now
             </a>
@@ -237,27 +237,50 @@ defmodule Emakola.Themes.Beauty.Shared do
         </span>
       </div>
       <div class="p-4 sm:p-5">
-        <%!-- 5-star rating row --%>
-        <div class="flex items-center gap-1 mb-2">
-          <span :for={_ <- 1..5} class="text-[#C9925E]" style="font-size: 12px;">★</span>
-          <span class="text-[10px] text-[#6B4423]/60 ml-1">(4.9)</span>
+        <%!-- Rating row (real review data only) --%>
+        <div :if={Map.get(@product, :review_count, 0) > 0} class="flex items-center gap-1 mb-2">
+          <span class="text-[#8C5A24]" style="font-size: 12px;">{stars(@product)}</span>
+          <span class="text-[10px] text-[#6B4423]/60 ml-1">({format_rating(@product)})</span>
         </div>
         <h3 class="beauty-heading text-lg font-semibold text-[#3D2F25] line-clamp-2 mb-2 leading-snug min-h-[3rem]">
           {@product.title}
         </h3>
         <div class="flex items-center justify-between">
-          <span class="text-base font-bold text-[#6B4423]">
+          <span class="text-base font-bold text-[var(--theme-primary,#6B4423)]">
             {EmakolaWeb.Helpers.Currency.format_price(
               @product.min_price || 0,
               Map.get(@store, :currency, "GHS")
             )}
           </span>
-          <span class="text-xs font-semibold text-[#C9925E] group-hover:underline">
+          <span class="text-xs font-semibold text-[#8C5A24] group-hover:underline">
             Add to bag →
           </span>
         </div>
       </div>
     </a>
     """
+  end
+
+  # ── Rating Helpers (real review data) ──
+
+  def format_rating(product) do
+    case Map.get(product, :avg_rating) do
+      %Decimal{} = r -> r |> Decimal.round(1) |> Decimal.to_string()
+      r when is_float(r) -> :erlang.float_to_binary(r, decimals: 1)
+      r when is_integer(r) -> "#{r}.0"
+      _ -> "—"
+    end
+  end
+
+  def stars(product) do
+    n =
+      case Map.get(product, :avg_rating) do
+        %Decimal{} = r -> r |> Decimal.to_float() |> round()
+        r when is_number(r) -> round(r)
+        _ -> 0
+      end
+
+    n = min(max(n, 0), 5)
+    String.duplicate("★", n) <> String.duplicate("☆", 5 - n)
   end
 end

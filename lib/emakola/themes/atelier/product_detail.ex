@@ -5,9 +5,8 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
   Features:
   - Breadcrumb navigation
   - Image gallery with main image + thumbnails
-  - Verified Artisan / Limited Edition badges
   - Bold title with italic green accent
-  - Star ratings with review count
+  - Star ratings with review count (only when the product has real reviews)
   - Price with strikethrough for sale items
   - Free delivery callout
   - Description card with specs
@@ -190,30 +189,20 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
 
             <%!-- Product Info (right ~42%) --%>
             <div class="mt-8">
-              <%!-- Badges --%>
-              <div class="flex flex-wrap gap-2 mb-4">
-                <span
-                  class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-white"
-                  style="background: var(--theme-accent);"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-                  </svg>
-                  Verified Artisan
-                </span>
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 uppercase tracking-wide">
-                  Limited Edition
-                </span>
-              </div>
-
               <%!-- Title --%>
               <h1 class="text-2xl sm:text-3xl font-black text-gray-900 leading-tight mb-3">
                 {product_title_with_accent(@product.title)}
               </h1>
 
-              <%!-- Rating --%>
-              <div class="mb-4">
-                <Shared.star_rating rating={4.5} review_count={24} />
+              <%!-- Rating (only when the product has real reviews) --%>
+              <div
+                :if={is_integer(Map.get(@product, :review_count)) && @product.review_count > 0}
+                class="mb-4"
+              >
+                <Shared.star_rating
+                  rating={rating_value(@product)}
+                  review_count={@product.review_count}
+                />
               </div>
 
               <%!-- Price --%>
@@ -328,7 +317,7 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                   phx-value-product-id={@product.id}
                   phx-value-variant-id={if @selected_variant, do: @selected_variant.id, else: ""}
                   class="w-full py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-300 hover:opacity-90 min-h-[48px]"
-                  style="background: var(--theme-primary);"
+                  style="background: var(--theme-accent, #166534);"
                 >
                   ADD TO CART
                 </button>
@@ -567,6 +556,14 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
 
       _ ->
         []
+    end
+  end
+
+  defp rating_value(product) do
+    case Map.get(product, :avg_rating) do
+      %Decimal{} = r -> Decimal.to_float(r)
+      r when is_number(r) -> r * 1.0
+      _ -> 0.0
     end
   end
 

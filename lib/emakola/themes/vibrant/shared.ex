@@ -67,10 +67,6 @@ defmodule Emakola.Themes.Vibrant.Shared do
                 >
                   {@store.name}
                 </div>
-                <div class="flex items-center gap-1 text-xs text-[#92400E] leading-tight">
-                  <span class="w-1.5 h-1.5 rounded-full bg-[#059669] flex-shrink-0"></span>
-                  <span>Open</span>
-                </div>
               </div>
             </a>
 
@@ -133,7 +129,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
                 </svg>
                 <span
                   :if={@cart_count > 0}
-                  class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-[var(--theme-primary,#DC2626)] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1"
+                  class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-[var(--theme-primary,#B45309)] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1"
                 >
                   {@cart_count}
                 </span>

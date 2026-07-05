@@ -68,7 +68,7 @@ defmodule Emakola.Themes.Beauty do
       nav: %{search_placeholder: "Search beauty...", transparent: false},
       sections: %{
         hero: true,
-        featured_in: true,
+        featured_in: false,
         featured_products: true,
         why_us: true,
         testimonials: true,

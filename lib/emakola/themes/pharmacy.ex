@@ -68,19 +68,15 @@ defmodule Emakola.Themes.Pharmacy do
         featured_products: true,
         highlight_cards: true,
         trust: true,
-        brand_story: true,
         newsletter: true
       },
+      # Stat items default to [] — the section only renders when the merchant
+      # supplies real numbers via theme config.
       stats: %{
         heading: "Your Trusted Healthcare Service",
         subtitle:
           "We believe in building lasting relationships with our patients, offering not just medications, but comprehensive health support that helps you live your best life.",
-        items: [
-          %{value: "20+", label: "Years of experience", icon: "verified"},
-          %{value: "5k+", label: "Trusted brands", icon: "inventory_2"},
-          %{value: "600+", label: "Global brands", icon: "public"},
-          %{value: "1M", label: "Happy customers", icon: "favorite"}
-        ]
+        items: []
       },
       trust: %{
         title: "Licensed & Trusted",
@@ -89,7 +85,7 @@ defmodule Emakola.Themes.Pharmacy do
           %{
             icon: "verified_user",
             label: "Licensed pharmacy",
-            subtitle: "FDA Ghana approved"
+            subtitle: "Professional care"
           },
           %{
             icon: "local_pharmacy",

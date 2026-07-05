@@ -50,7 +50,7 @@ defmodule Emakola.Themes.Atelier.Shared do
       .atelier-product-card:hover .atelier-quick-add { opacity: 1; transform: translateY(0); }
       .atelier-quick-add { opacity: 0; transform: translateY(8px); transition: all 0.2s ease; }
       .atelier-category-circle { cursor: pointer; }
-      .atelier-category-circle:hover img { transform: scale(1.1); }
+      .atelier-category-circle:hover img { transform: scale(1.10); }
       .atelier-category-circle:hover .atelier-cat-ring { border-color: var(--theme-primary); }
       @media (prefers-reduced-motion: reduce) {
         .atelier-hero-img { animation: none !important; opacity: 1 !important; }
@@ -197,7 +197,7 @@ defmodule Emakola.Themes.Atelier.Shared do
           <div :if={@show_add_button} class="absolute bottom-3 left-3 right-3">
             <button
               class={"atelier-quick-add w-full py-3 text-xs font-semibold uppercase tracking-wider #{@btn_classes} text-white cursor-pointer transition-colors duration-200 min-h-[44px]"}
-              style="background: var(--theme-primary);"
+              style="background: var(--theme-accent, #166534);"
               phx-click="add_to_cart"
               phx-value-product-id={@product.id}
             >

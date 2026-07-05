@@ -91,8 +91,7 @@ defmodule Emakola.Themes.HomeLiving do
         items: [
           %{icon: "local_shipping", title: "Free Delivery", subtitle: "On orders GHS 500+"},
           %{icon: "verified_user", title: "Safe Payment", subtitle: "Mobile money & card"},
-          %{icon: "schedule", title: "Daily Curation", subtitle: "Hand-picked pieces"},
-          %{icon: "favorite", title: "Happy Customers", subtitle: "10k+ across Ghana"}
+          %{icon: "schedule", title: "Daily Curation", subtitle: "Hand-picked pieces"}
         ]
       },
       trust: %{

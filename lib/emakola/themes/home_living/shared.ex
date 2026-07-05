@@ -49,10 +49,15 @@ defmodule Emakola.Themes.HomeLiving.Shared do
           </a>
 
           <nav class={"hidden md:flex items-center gap-7 text-sm font-medium " <> if(@on_dark, do: "text-white/80", else: "text-[#1F2937]/80")}>
-            <%= for {label, path} <- [{"Home", "/"}, {"Shop", "/products"}, {"Rooms", "/rooms"}, {"Blog", "/blog"}, {"Contact", "/contact"}] do %>
+            <%= for {label, path} <- [{"Home", "/"}, {"Shop", "/products"}, {"Rooms", "/products"}, {"Blog", "/blog"}, {"Contact", "/contact"}] do %>
               <a
                 href={store_path(@store.slug, "#{path}")}
-                class={"transition-colors " <> if(@active_path == path, do: "text-[#84CC16] font-semibold", else: "hover:text-[#84CC16]")}
+                class={"transition-colors " <>
+                  if(@active_path == path,
+                    do:
+                      "font-semibold border-b-2 border-[#84CC16] pb-0.5 " <>
+                        if(@on_dark, do: "text-white", else: "text-[#1F2937]"),
+                    else: "hover:text-[#84CC16]")}
               >
                 {label}
               </a>
@@ -181,6 +186,21 @@ defmodule Emakola.Themes.HomeLiving.Shared do
     end
   end
 
+  @new_badge_window_seconds 14 * 24 * 60 * 60
+
+  defp new_product?(product) do
+    case Map.get(product, :inserted_at) do
+      %DateTime{} = dt ->
+        DateTime.diff(DateTime.utc_now(), dt) <= @new_badge_window_seconds
+
+      %NaiveDateTime{} = dt ->
+        NaiveDateTime.diff(NaiveDateTime.utc_now(), dt) <= @new_badge_window_seconds
+
+      _ ->
+        false
+    end
+  end
+
   def current_image(product, index) do
     case Enum.at(product.images, index) do
       %{medium_url: url} when is_binary(url) -> url
@@ -213,8 +233,11 @@ defmodule Emakola.Themes.HomeLiving.Shared do
             chair
           </span>
         </div>
-        <%!-- Sale pill --%>
-        <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#84CC16] text-[#1F2937] text-[10px] font-bold uppercase tracking-wider">
+        <%!-- New-arrival pill (only within 14 days of listing) --%>
+        <span
+          :if={new_product?(@product)}
+          class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#84CC16] text-[#1F2937] text-[10px] font-bold uppercase tracking-wider"
+        >
           New
         </span>
       </div>

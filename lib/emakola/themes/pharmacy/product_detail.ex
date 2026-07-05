@@ -99,12 +99,15 @@ defmodule Emakola.Themes.Pharmacy.ProductDetail do
                 {@product.title}
               </h1>
 
-              <%!-- Rating + sold count --%>
-              <div class="flex items-center gap-3 mb-5">
-                <div class="flex items-center gap-1">
-                  <span :for={_ <- 1..5} class="text-[#FBBF24]" style="font-size: 16px;">★</span>
-                </div>
-                <span class="text-xs text-[#6B7280]">(4.8 · 124 reviews)</span>
+              <%!-- Rating (real review data only) --%>
+              <div
+                :if={Map.get(@product, :review_count, 0) > 0}
+                class="flex items-center gap-3 mb-5"
+              >
+                <span class="text-[#B45309]" style="font-size: 16px;">{Shared.stars(@product)}</span>
+                <span class="text-xs text-[#6B7280]">
+                  ({Shared.format_rating(@product)} · {@product.review_count} reviews)
+                </span>
               </div>
 
               <%!-- Price --%>
@@ -197,7 +200,7 @@ defmodule Emakola.Themes.Pharmacy.ProductDetail do
                   <p class="text-[10px] uppercase tracking-wider font-semibold text-[#14543E]">
                     Licensed
                   </p>
-                  <p class="text-[10px] text-[#6B7280]">FDA Ghana</p>
+                  <p class="text-[10px] text-[#6B7280]">Professional care</p>
                 </div>
                 <div class="flex flex-col items-center text-center">
                   <span class="material-symbols-outlined text-[#14543E] mb-1" style="font-size: 24px;">

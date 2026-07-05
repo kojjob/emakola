@@ -114,7 +114,7 @@ defmodule Emakola.Themes.Atelier.Footer do
             <button
               type="submit"
               class={"px-6 py-3.5 text-sm font-bold uppercase tracking-wider #{@btn_classes} text-white transition-all duration-200 hover:opacity-90 cursor-pointer min-h-[48px] whitespace-nowrap"}
-              style="background: var(--theme-primary);"
+              style="background: var(--theme-accent, #166534);"
             >
               {Map.get(@newsletter, :button_text, "Subscribe")}
             </button>
@@ -469,7 +469,7 @@ defmodule Emakola.Themes.Atelier.Footer do
               <a
                 href={store_path(@store.slug, "/products")}
                 class={"inline-flex items-center gap-2 px-8 py-4 text-sm font-bold uppercase tracking-wider #{@btn_classes} text-white transition-all duration-300 hover:opacity-90"}
-                style="background: var(--theme-primary);"
+                style="background: var(--theme-accent, #166534);"
               >
                 Shop Now
                 <svg

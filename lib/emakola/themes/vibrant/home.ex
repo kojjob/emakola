@@ -608,19 +608,12 @@ defmodule Emakola.Themes.Vibrant.Home do
     end
   end
 
-  defp trust_badges_for(store) do
-    base = [
+  defp trust_badges_for(_store) do
+    [
+      %{icon: "public", label: "Locally crafted", variant: :provenance},
       %{icon: "verified", label: "Authenticated", variant: :default},
       %{icon: "payments", label: "Mobile Money", variant: :default}
     ]
-
-    case Map.get(store, :region) do
-      region when is_binary(region) and region != "" ->
-        [%{icon: "public", label: "Made in Ghana", variant: :provenance} | base]
-
-      _ ->
-        [%{icon: "public", label: "Locally crafted", variant: :provenance} | base]
-    end
   end
 
   defp normalise_whatsapp(number) do

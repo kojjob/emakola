@@ -64,7 +64,9 @@ defmodule Emakola.Themes.Fashion do
         lookbook: true,
         featured_products: true,
         new_arrivals_band: true,
-        ugc: true,
+        # UGC strip is placeholder-only until real customer photos exist —
+        # off by default; merchants opt in explicitly.
+        ugc: false,
         brand_story: true,
         newsletter: true
       },

@@ -94,28 +94,17 @@ defmodule Emakola.Themes.Heritage do
           }
         ]
       },
+      # Testimonials ship empty — the section only renders once the merchant
+      # provides real customer quotes. Never fabricate social proof.
       testimonials: %{
         title: "Voices of the Collective",
-        items: [
-          %{
-            name: "Akua M.",
-            location: "Kumasi",
-            quote:
-              "The kente cloth I bought is wrapped in the breath of generations. It is more than fabric."
-          },
-          %{
-            name: "Kojo A.",
-            location: "Accra",
-            quote:
-              "Bought a bolga basket and a brass bowl. The craftsmanship is unmatched. Heirloom-grade pieces."
-          },
-          %{
-            name: "Esi K.",
-            location: "Cape Coast",
-            quote:
-              "I love that every purchase tells a story. The artisan profiles are beautifully done."
-          }
-        ]
+        items: []
+      },
+      # "Stories from the Loom" editorial ships empty — the section only
+      # renders once the merchant writes their own maker story.
+      editorial: %{
+        quote: "",
+        body: ""
       },
       newsletter: %{
         title: "Join the Collective",

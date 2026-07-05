@@ -77,7 +77,7 @@ defmodule Emakola.Themes.Electronics.ProductList do
             <p class="text-sm text-[#4B5563]">Try a different category.</p>
             <a
               href={store_path(@store.slug, "/products")}
-              class="inline-flex items-center mt-6 px-6 py-3 rounded-full bg-[#0EA5E9] text-white text-sm font-bold hover:bg-[#0284C7] transition-colors"
+              class="inline-flex items-center mt-6 px-6 py-3 rounded-full bg-[var(--theme-primary,#134E4A)] text-white text-sm font-bold hover:bg-[#0E3F3B] transition-colors"
             >
               Browse all
             </a>
@@ -115,10 +115,10 @@ defmodule Emakola.Themes.Electronics.ProductList do
   defp page_title(_, _, _), do: "All Electronics"
 
   defp pill_class(true) do
-    "inline-flex items-center px-4 py-2 rounded-full bg-[#0EA5E9] text-white text-sm font-bold transition-colors min-h-[40px]"
+    "inline-flex items-center px-4 py-2 rounded-full bg-[var(--theme-primary,#134E4A)] text-white text-sm font-bold transition-colors min-h-[40px]"
   end
 
   defp pill_class(false) do
-    "inline-flex items-center px-4 py-2 rounded-full bg-white border border-[#E5E7EB] text-[#1F2937] text-sm font-medium hover:border-[#0EA5E9] hover:text-[#0EA5E9] transition-colors min-h-[40px]"
+    "inline-flex items-center px-4 py-2 rounded-full bg-white border border-[#E5E7EB] text-[#1F2937] text-sm font-medium hover:border-[#0EA5E9] hover:text-[#134E4A] transition-colors min-h-[40px]"
   end
 end
