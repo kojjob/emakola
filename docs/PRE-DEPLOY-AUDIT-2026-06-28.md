@@ -134,10 +134,8 @@ All fixes TDD, each its own PR off fresh `main`. P2/P3 deferred per plan.
 > **✅ Done:** P2-1 (#231 webhook amount) · **P2-4 (#240 partial-refund
 > accumulation)** · P2-5 (#234 wishlist add validation + guest-crash) · P2-9
 > (#233 dropship availability) · P2-10 (#232 coupon negative-total) · P2-11 +
-> P2-12 (#230 secure cookie + key fail-fast).
->
-> **🔄 In review:** **P2-13 (#239 short-lived exchange token for the session
-> bridge)** — CI-green, open, not yet merged to `main`.
+> P2-12 (#230 secure cookie + key fail-fast) · **P2-13 (#239 short-lived
+> exchange token for the session bridge)**.
 >
 > **⬜ Deferred (post-launch):** P2-2 Hubtel outbound float · P2-3 refund-approve
 > no-float + bound · P2-6 review-photo magic-bytes · P2-7 financial-action
@@ -161,9 +159,30 @@ All fixes TDD, each its own PR off fresh `main`. P2/P3 deferred per plan.
 | P2-10 | Coupon percentage cap enforced on create but not **update** → `discount_value` 150% → negative order total (no `>= 0` floor) | `coupon.ex:177` |
 | P2-11 | Session cookie missing `secure: true` (narrow pre-HSTS window) | `endpoint.ex:7` |
 | P2-12 | `PAYSTACK_PUBLIC_KEY` silently defaults to `""` (checkout JS fails with no boot error); same for `HUBTEL_CLIENT_SECRET` | `runtime.exs:165,171` |
-| P2-13 | 30-day bearer subject token passed in `/auth/session?token=…` URL (logs/history/Referer leak; not single-use; survives logout) | `auth_tokens.ex:10` + 6 emit sites |
+| P2-13 ✅ #239 | 30-day bearer subject token passed in `/auth/session?token=…` URL (logs/history/Referer leak; not single-use; survives logout) — now a 60-second single-use exchange token; the 30-day token never rides the URL | `auth_tokens.ex:10` + 6 emit sites |
 
 Also ops-flavored P2s: `server: true` gated on `PHX_SERVER` env var rather than hardcoded for prod (`runtime.exs:19`); single health endpoint + 30 s grace may be too short during a long migration (`fly.toml:65`).
+
+---
+
+## Post-audit finding — storefront search ignored moderation takedowns (✅ #242)
+
+Surfaced **2026-06-29** by a read-only audit of every customer-facing
+product-read path, run as part of the pre-deploy smoke pass (not part of the
+original seven-pass sweep).
+
+- **Where:** `lib/emakola/catalog/resources/product.ex` — the `:search` read action.
+- **Category:** security / trust & safety (moderation bypass).
+- **Impact:** `:search` filtered `status == :active` but **omitted `moderation_status == :ok`**. A platform takedown sets `moderation_status: :taken_down` while leaving `status: :active` (the `take_down` action never touches `status`), so a taken-down product stayed discoverable via the store search overlay and the product-list search — silently defeating moderation. Every other storefront read (`get_by_slug`, `get_active_by_id`, `list_by_store_and_status`) already enforced the full `status == :active AND moderation_status == :ok` invariant; `:search` was the lone gap.
+- **Scope:** `:search` is exclusively customer-facing (`store_live` + `product_list_live` + the `cached_catalog` storefront wrapper). Merchant admin uses `:list_admin` and the moderation queue uses `:list_for_moderation`, so requiring `moderation_status == :ok` has **no admin side effects** (a merchant still sees their taken-down products in admin).
+- **Fix (#242, TDD):** added `moderation_status == :ok` to the `:search` filter, matching `list_by_store_and_status`. RED test (`product_search_visibility_test.exs`): a taken-down product whose status is still `:active` must not appear in search results; an active + moderation-ok product still does.
+- **Confidence:** high.
+
+The same audit confirmed the bare default `:read` (`defaults([:read, :destroy])`)
+is **latent only** — used by the WhatsApp catalog sync worker and the merchant
+SEO dashboard, never a customer path — so the `checklist.md §5b` "default read
+leaks unpublished products" concern is deferrable with the other latent P2s,
+not a live storefront leak.
 
 ---
 
