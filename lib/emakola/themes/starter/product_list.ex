@@ -45,7 +45,7 @@ defmodule Emakola.Themes.Starter.ProductList do
       <div class="bg-[#F8FAFC] border-b border-gray-100">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
           <nav aria-label="Breadcrumb" class="mb-3">
-            <ol class="flex items-center gap-2 text-xs text-[#94A3B8]">
+            <ol class="flex items-center gap-2 text-xs text-[#64748B]">
               <li>
                 <a
                   href={store_path(@store.slug, "/")}

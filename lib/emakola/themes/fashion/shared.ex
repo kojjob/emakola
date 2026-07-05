@@ -224,15 +224,18 @@ defmodule Emakola.Themes.Fashion.Shared do
             checkroom
           </span>
         </div>
-        <%!-- Gold "New" pill --%>
-        <span class="absolute top-3 left-3 px-3 py-1 rounded-full bg-[#D97706] text-white text-[10px] font-bold uppercase tracking-wider">
+        <%!-- Gold "New" pill — only for genuinely recent products --%>
+        <span
+          :if={new_product?(@product)}
+          class="absolute top-3 left-3 px-3 py-1 rounded-full bg-[#D97706] text-white text-[10px] font-bold uppercase tracking-wider"
+        >
           New
         </span>
       </div>
       <h3 class="fashion-heading text-base sm:text-lg font-semibold text-[#1C1917] mb-1 line-clamp-2 leading-snug min-h-[2.5rem]">
         {@product.title}
       </h3>
-      <p class="text-sm text-[#5B21B6] font-bold">
+      <p class="text-sm text-[var(--theme-primary,#5B21B6)] font-bold">
         {EmakolaWeb.Helpers.Currency.format_price(
           @product.min_price || 0,
           Map.get(@store, :currency, "GHS")
@@ -240,5 +243,14 @@ defmodule Emakola.Themes.Fashion.Shared do
       </p>
     </a>
     """
+  end
+
+  @doc "True when the product was added within the last 14 days."
+  def new_product?(product) do
+    case Map.get(product, :inserted_at) do
+      %DateTime{} = dt -> DateTime.diff(DateTime.utc_now(), dt, :day) <= 14
+      %NaiveDateTime{} = ndt -> NaiveDateTime.diff(NaiveDateTime.utc_now(), ndt, :day) <= 14
+      _ -> false
+    end
   end
 end

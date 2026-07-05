@@ -64,7 +64,9 @@ defmodule Emakola.Themes.Fashion do
         lookbook: true,
         featured_products: true,
         new_arrivals_band: true,
-        ugc: true,
+        # UGC strip is placeholder-only until real customer photos exist —
+        # off by default; merchants opt in explicitly.
+        ugc: false,
         brand_story: true,
         newsletter: true
       },
@@ -117,4 +119,19 @@ defmodule Emakola.Themes.Fashion do
 
   @impl true
   defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
+
+  @impl true
+  def storefront_nav(assigns) do
+    Emakola.Themes.Fashion.Shared.fashion_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0,
+      on_dark: false
+    })
+  end
+
+  @impl true
+  def storefront_footer(assigns) do
+    Emakola.Themes.Fashion.Shared.fashion_footer(%{__changed__: nil, store: assigns.store})
+  end
 end

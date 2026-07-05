@@ -4,7 +4,7 @@ defmodule Emakola.Themes.Fresh.Shared do
 
   Warm, organic, appetizing design for food and grocery stores:
   - Warm cream (#FEFCE8) background
-  - Emerald green (#059669) primary / warm brown (#92400E) accent
+  - Emerald green (#047857) primary / warm brown (#92400E) accent
   - Nunito headings + Inter body
   - Rounded-3xl cards with gentle shadows
   - Farmers market-style category circles
@@ -28,7 +28,7 @@ defmodule Emakola.Themes.Fresh.Shared do
     ~H"""
     <style>
       :root {
-        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#059669") %>;
+        --theme-primary: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :primary]), "#047857") %>;
         --theme-accent: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :accent]), "#92400E") %>;
         --theme-bg: <%= EmakolaWeb.Helpers.CssColor.safe_css_color(get_in(@theme, [:colors, :background]), "#FEFCE8") %>;
       }
@@ -66,10 +66,6 @@ defmodule Emakola.Themes.Fresh.Shared do
                   style="font-family: 'Nunito', sans-serif;"
                 >
                   {@store.name}
-                </div>
-                <div class="flex items-center gap-1 text-xs text-[#059669] leading-tight">
-                  <span class="w-1.5 h-1.5 rounded-full bg-[#059669] flex-shrink-0"></span>
-                  <span>Open</span>
                 </div>
               </div>
             </a>
@@ -232,7 +228,7 @@ defmodule Emakola.Themes.Fresh.Shared do
       >
         {@product.title}
       </p>
-      <p class="text-sm font-bold text-[#059669]">
+      <p class="text-sm font-bold text-[var(--theme-primary,#047857)]">
         {Currency.format_price_range(@product.min_price, @product.max_price, @store.currency)}
       </p>
     </a>
@@ -432,7 +428,7 @@ defmodule Emakola.Themes.Fresh.Shared do
             </span>
           </div>
           <p class="text-xs text-[#78350F]/60" style="font-family: 'Inter', sans-serif;">
-            {@store.name} -- Powered by Makola
+            {@store.name} — Powered by Makola
           </p>
         </div>
       </div>

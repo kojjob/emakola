@@ -5,7 +5,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
   Features:
   - Image gallery with rounded corners and warm background
   - Bold variant selectors as colorful pills
-  - Prominent add-to-cart button with red CTA
+  - Prominent add-to-cart button in the theme's amber primary
   - WhatsApp inquiry button
   - Accordion details with warm styling
   - Related products horizontal scroll
@@ -96,7 +96,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
               class={[
                 "h-2.5 rounded-full border-none transition-all cursor-pointer",
                 if(idx == @current_image_index,
-                  do: "w-8 bg-[var(--theme-primary,#DC2626)]",
+                  do: "w-8 bg-[var(--theme-primary,#B45309)]",
                   else: "w-2.5 bg-[#FDE68A] hover:bg-[#F59E0B]"
                 )
               ]}
@@ -108,16 +108,19 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
         <div class="lg:py-4">
           <%!-- Product Info --%>
           <section class="px-4 lg:px-0 py-6 bg-[#FFFBEB]">
-            <span class="inline-block bg-red-50 text-[var(--theme-primary,#DC2626)] text-[0.6875rem] font-bold tracking-wider uppercase px-3 py-1.5 rounded-full mb-3">
+            <span
+              :if={new_arrival?(@product)}
+              class="inline-block bg-[#FEF3C7] text-[var(--theme-primary,#B45309)] text-[0.6875rem] font-bold tracking-wider uppercase px-3 py-1.5 rounded-full mb-3"
+            >
               New Arrival
             </span>
             <h1
               class="text-3xl font-bold text-cta-dark leading-tight mb-2"
-              style="font-family: 'Playfair Display', serif;"
+              style="font-family: 'Manrope', sans-serif;"
             >
               {@product.title}
             </h1>
-            <p class="text-2xl font-bold text-[var(--theme-primary,#DC2626)] mb-3">
+            <p class="text-2xl font-bold text-[var(--theme-primary,#B45309)] mb-3">
               <%= if @selected_variant do %>
                 {Currency.format_price(@selected_variant.price, @store.currency)}
               <% else %>
@@ -131,7 +134,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
             <p
               :if={@product.description}
               class="text-base text-[#78350F] leading-relaxed"
-              style="font-family: 'DM Sans', sans-serif;"
+              style="font-family: 'Inter', sans-serif;"
             >
               {@product.description}
             </p>
@@ -146,7 +149,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
             <div :for={ot <- @option_types}>
               <div
                 class="text-sm font-bold text-cta-dark mb-3"
-                style="font-family: 'DM Sans', sans-serif;"
+                style="font-family: 'Inter', sans-serif;"
               >
                 {ot.name}
               </div>
@@ -162,9 +165,9 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
                     "min-w-[52px] h-12 px-5 rounded-full text-sm font-bold flex items-center justify-center transition-all cursor-pointer",
                     if(Map.get(@selected_options, ot.id) == ov.id,
                       do:
-                        "bg-[var(--theme-primary,#DC2626)] text-white border-2 border-[var(--theme-primary,#DC2626)] shadow-md shadow-red-200",
+                        "bg-[var(--theme-primary,#B45309)] text-white border-2 border-[var(--theme-primary,#B45309)] shadow-md shadow-amber-200/60",
                       else:
-                        "bg-white text-[#78350F] border-2 border-[#FDE68A] hover:border-[var(--theme-primary,#DC2626)] hover:text-[var(--theme-primary,#DC2626)]"
+                        "bg-white text-[#78350F] border-2 border-[#FDE68A] hover:border-[var(--theme-primary,#B45309)] hover:text-[var(--theme-primary,#B45309)]"
                     )
                   ]}
                 >
@@ -196,7 +199,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
               </button>
               <div
                 class="w-14 h-12 flex items-center justify-center text-base font-bold text-cta-dark border-x-2 border-[#FDE68A] select-none"
-                style="font-family: 'DM Sans', sans-serif;"
+                style="font-family: 'Inter', sans-serif;"
               >
                 {@quantity}
               </div>
@@ -231,10 +234,10 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
                     not Emakola.Catalog.Variant.in_stock?(@selected_variant),
                   do: "bg-[#FDE68A]/50 text-[#D97706]/50 cursor-not-allowed",
                   else:
-                    "bg-[var(--theme-primary,#DC2626)] text-white hover:bg-[#B91C1C] active:scale-[0.97] cursor-pointer shadow-lg shadow-red-200"
+                    "bg-[var(--theme-primary,#B45309)] text-white hover:bg-[#B91C1C] active:scale-[0.97] cursor-pointer shadow-lg shadow-amber-200/60"
                 )
               ]}
-              style="font-family: 'DM Sans', sans-serif;"
+              style="font-family: 'Inter', sans-serif;"
             >
               <svg
                 class="w-5 h-5"
@@ -262,7 +265,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
               target="_blank"
               rel="noopener noreferrer"
               class="flex items-center justify-center gap-2.5 w-full h-12 border-2 border-[#25D366] rounded-full text-base font-semibold text-[#25D366] hover:bg-whatsapp/5 transition-all"
-              style="font-family: 'DM Sans', sans-serif;"
+              style="font-family: 'Inter', sans-serif;"
             >
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
@@ -283,7 +286,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
             <p
               :if={@selected_variant && @selected_variant.sku}
               class="text-center text-xs text-[#D97706]/60 pt-1"
-              style="font-family: 'DM Sans', sans-serif;"
+              style="font-family: 'Inter', sans-serif;"
             >
               SKU: {@selected_variant.sku}
             </p>
@@ -294,7 +297,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
             <details class="bg-white rounded-2xl border border-[#FDE68A]/60 mb-3 overflow-hidden">
               <summary
                 class="px-5 py-4 text-base font-bold text-cta-dark cursor-pointer flex items-center justify-between hover:bg-store-accent-light/30 select-none list-none [&::-webkit-details-marker]:hidden"
-                style="font-family: 'DM Sans', sans-serif;"
+                style="font-family: 'Inter', sans-serif;"
               >
                 <span>Product Details</span>
                 <svg
@@ -313,7 +316,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
               </summary>
               <div
                 class="px-5 pb-5 text-sm text-[#78350F] leading-relaxed"
-                style="font-family: 'DM Sans', sans-serif;"
+                style="font-family: 'Inter', sans-serif;"
               >
                 <p :if={@product.description}>{@product.description}</p>
                 <p :if={!@product.description}>No additional details available.</p>
@@ -322,7 +325,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
             <details class="bg-white rounded-2xl border border-[#FDE68A]/60 mb-3 overflow-hidden">
               <summary
                 class="px-5 py-4 text-base font-bold text-cta-dark cursor-pointer flex items-center justify-between hover:bg-store-accent-light/30 select-none list-none [&::-webkit-details-marker]:hidden"
-                style="font-family: 'DM Sans', sans-serif;"
+                style="font-family: 'Inter', sans-serif;"
               >
                 <span>Shipping & Delivery</span>
                 <svg
@@ -341,16 +344,24 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
               </summary>
               <div
                 class="px-5 pb-5 text-sm text-[#78350F] leading-relaxed"
-                style="font-family: 'DM Sans', sans-serif;"
+                style="font-family: 'Inter', sans-serif;"
               >
-                <p>Delivery within Greater Accra: 1-2 business days.</p>
-                <p class="mt-2">Nationwide delivery: 3-5 business days.</p>
+                <p>
+                  See our
+                  <a
+                    href={store_path(@store.slug, "/policies")}
+                    class="underline hover:text-cta-dark transition-colors"
+                  >
+                    delivery information
+                  </a>
+                  on the policies page.
+                </p>
               </div>
             </details>
             <details class="bg-white rounded-2xl border border-[#FDE68A]/60 mb-3 overflow-hidden">
               <summary
                 class="px-5 py-4 text-base font-bold text-cta-dark cursor-pointer flex items-center justify-between hover:bg-store-accent-light/30 select-none list-none [&::-webkit-details-marker]:hidden"
-                style="font-family: 'DM Sans', sans-serif;"
+                style="font-family: 'Inter', sans-serif;"
               >
                 <span>Returns & Exchange</span>
                 <svg
@@ -369,10 +380,17 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
               </summary>
               <div
                 class="px-5 pb-5 text-sm text-[#78350F] leading-relaxed"
-                style="font-family: 'DM Sans', sans-serif;"
+                style="font-family: 'Inter', sans-serif;"
               >
                 <p>
-                  Returns accepted within 7 days of delivery. Items must be unworn and in original packaging.
+                  See our
+                  <a
+                    href={store_path(@store.slug, "/policies")}
+                    class="underline hover:text-cta-dark transition-colors"
+                  >
+                    returns policy
+                  </a>
+                  on the policies page.
                 </p>
               </div>
             </details>
@@ -385,7 +403,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
         <div class="max-w-[1280px] mx-auto">
           <h2
             class="text-xl font-bold text-cta-dark px-4 sm:px-6 lg:px-8 mb-5"
-            style="font-family: 'Playfair Display', serif;"
+            style="font-family: 'Manrope', sans-serif;"
           >
             You May Also Like
           </h2>
@@ -425,7 +443,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
               <p class="text-sm font-semibold text-cta-dark leading-tight mb-1 truncate">
                 {rp.title}
               </p>
-              <p class="text-sm font-bold text-[var(--theme-primary,#DC2626)]">
+              <p class="text-sm font-bold text-[var(--theme-primary,#B45309)]">
                 {Currency.format_price_range(rp.min_price, rp.max_price, @store.currency)}
               </p>
             </a>
@@ -460,12 +478,12 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
     ~H"""
     <%= cond do %>
       <% is_nil(@variant) -> %>
-        <span class="text-sm text-[#D97706]" style="font-family: 'DM Sans', sans-serif;">
+        <span class="text-sm text-[#D97706]" style="font-family: 'Inter', sans-serif;">
           Select options
         </span>
       <% @variant.track_inventory and @variant.stock_quantity <= 0 -> %>
-        <span class="inline-flex items-center gap-1.5 text-sm font-bold text-[var(--theme-primary,#DC2626)]">
-          <span class="w-2 h-2 rounded-full bg-[var(--theme-primary,#DC2626)]"></span> Out of Stock
+        <span class="inline-flex items-center gap-1.5 text-sm font-bold text-[var(--theme-primary,#B45309)]">
+          <span class="w-2 h-2 rounded-full bg-[var(--theme-primary,#B45309)]"></span> Out of Stock
         </span>
       <% @variant.track_inventory and @variant.stock_quantity < 5 -> %>
         <span class="inline-flex items-center gap-1.5 text-sm font-bold text-[#D97706]">
@@ -487,6 +505,21 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
       %{medium_url: url} when is_binary(url) -> url
       %{url: url} when is_binary(url) -> url
       _ -> Shared.first_image(product)
+    end
+  end
+
+  @new_arrival_window_seconds 14 * 24 * 60 * 60
+
+  defp new_arrival?(product) do
+    case Map.get(product, :inserted_at) do
+      %DateTime{} = dt ->
+        DateTime.diff(DateTime.utc_now(), dt) <= @new_arrival_window_seconds
+
+      %NaiveDateTime{} = dt ->
+        NaiveDateTime.diff(NaiveDateTime.utc_now(), dt) <= @new_arrival_window_seconds
+
+      _ ->
+        false
     end
   end
 end

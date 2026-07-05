@@ -13,7 +13,8 @@ defmodule Emakola.Themes.DefaultRenderers.BlogList do
 
   def render(assigns) do
     ~H"""
-    <Emakola.Themes.Atelier.Shared.navbar
+    <Emakola.Themes.DefaultRenderers.Chrome.navbar
+      theme_module={assigns[:theme_module]}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -26,10 +27,10 @@ defmodule Emakola.Themes.DefaultRenderers.BlogList do
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
           <div class="lg:flex lg:items-end lg:justify-between lg:gap-16">
             <div class="max-w-2xl mb-8 lg:mb-0">
-              <p class="text-amber-400 text-sm font-semibold tracking-widest uppercase mb-3">
+              <p class="text-stone-300 text-sm font-semibold tracking-widest uppercase mb-3">
                 {@store.name}
               </p>
-              <h1 class="font-[Cormorant,Georgia,serif] text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-3">
+              <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-3">
                 Stories & Ideas
               </h1>
               <p class="text-stone-400 text-lg leading-relaxed">
@@ -37,16 +38,16 @@ defmodule Emakola.Themes.DefaultRenderers.BlogList do
               </p>
             </div>
             <div class="lg:w-96 shrink-0">
-              <p class="font-[Cormorant,Georgia,serif] text-xl font-semibold text-white mb-3">
+              <p class="text-xl font-semibold text-white mb-3">
                 Stay in the loop
               </p>
               <div class="flex gap-2">
                 <input
                   type="email"
                   placeholder="Enter your email"
-                  class="flex-1 bg-stone-800 border border-stone-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-stone-500 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+                  class="flex-1 bg-stone-800 border border-stone-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-stone-500 focus:ring-2 focus:ring-white/20 focus:border-stone-400"
                 />
-                <button class="cursor-pointer px-5 py-3 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors shrink-0">
+                <button class="cursor-pointer px-5 py-3 bg-white text-stone-900 rounded-xl text-sm font-semibold hover:bg-stone-200 transition-colors shrink-0">
                   Subscribe
                 </button>
               </div>
@@ -72,7 +73,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogList do
               />
               <div
                 :if={!@featured.featured_image_url}
-                class="w-full h-full bg-gradient-to-br from-amber-100 to-stone-200 flex items-center justify-center"
+                class="w-full h-full bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center"
               >
                 <svg
                   class="w-16 h-16 text-stone-300"
@@ -91,21 +92,21 @@ defmodule Emakola.Themes.DefaultRenderers.BlogList do
             </div>
             <div class="p-6 sm:p-8 lg:p-10 flex flex-col justify-center">
               <div class="flex items-center gap-3 mb-4">
-                <span class="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full uppercase tracking-wide">
+                <span class="px-3 py-1 bg-store-accent/10 text-store-accent text-xs font-semibold rounded-full uppercase tracking-wide">
                   Featured
                 </span>
                 <span class="text-xs text-stone-400">
                   {reading_time(@featured.body)} min read
                 </span>
               </div>
-              <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl lg:text-4xl font-bold text-stone-900 mb-3 group-hover:text-amber-700 transition-colors">
+              <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-stone-900 mb-3 group-hover:text-store-accent transition-colors">
                 {@featured.title}
               </h2>
               <p :if={@featured.excerpt} class="text-stone-600 leading-relaxed mb-5 line-clamp-3">
                 {@featured.excerpt}
               </p>
               <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-full bg-amber-600 flex items-center justify-center text-white font-bold text-sm">
+                <div class="w-10 h-10 rounded-full bg-cta-dark flex items-center justify-center text-white font-bold text-sm">
                   {String.first(@store.name)}
                 </div>
                 <div>
@@ -121,7 +122,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogList do
 
         <%!-- Section Header --%>
         <div :if={@rest_posts != []} class="mb-6">
-          <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900">
+          <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900">
             Latest Posts
           </h2>
         </div>
@@ -167,14 +168,14 @@ defmodule Emakola.Themes.DefaultRenderers.BlogList do
               <div class="flex items-center gap-2 mb-3">
                 <span
                   :if={post.tags != []}
-                  class="text-xs font-semibold text-amber-700 uppercase tracking-wide"
+                  class="text-xs font-semibold text-store-accent uppercase tracking-wide"
                 >
                   {List.first(post.tags)}
                 </span>
                 <span class="text-stone-300">|</span>
                 <span class="text-xs text-stone-400">{reading_time(post.body)} min read</span>
               </div>
-              <h3 class="font-[Cormorant,Georgia,serif] text-xl sm:text-2xl font-bold text-stone-900 mb-2 group-hover:text-amber-700 transition-colors leading-snug">
+              <h3 class="text-xl sm:text-2xl font-bold text-stone-900 mb-2 group-hover:text-store-accent transition-colors leading-snug">
                 {post.title}
               </h3>
               <p :if={post.excerpt} class="text-sm text-stone-500 line-clamp-2 leading-relaxed">
@@ -225,7 +226,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogList do
               d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"
             />
           </svg>
-          <h2 class="font-[Cormorant,Georgia,serif] text-2xl font-semibold text-stone-900 mb-2">
+          <h2 class="text-2xl font-semibold text-stone-900 mb-2">
             Coming soon
           </h2>
           <p class="text-stone-500">
@@ -235,7 +236,11 @@ defmodule Emakola.Themes.DefaultRenderers.BlogList do
       </div>
     </div>
 
-    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+    <Emakola.Themes.DefaultRenderers.Chrome.footer
+      theme_module={assigns[:theme_module]}
+      store={@store}
+      categories={@categories}
+    />
     """
   end
 

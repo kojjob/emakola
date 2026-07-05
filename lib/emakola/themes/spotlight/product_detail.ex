@@ -47,7 +47,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
         <div class="absolute -top-24 -right-24 w-96 h-96 rounded-full spot-blob opacity-60"></div>
         <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20 grid lg:grid-cols-2 gap-10 items-center relative">
           <div>
-            <p class="text-xs uppercase tracking-[0.25em] text-[#7C3AED] font-semibold">
+            <p class="text-xs uppercase tracking-[0.25em] text-[var(--theme-accent,#7C3AED)] font-semibold">
               {get_in(@theme, [:hero, :overline]) || "The one you reach for"}
             </p>
             <h1 class="spot-display text-5xl sm:text-6xl lg:text-7xl text-[#16130F] mt-4 uppercase">
@@ -87,8 +87,11 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
                 Order on WhatsApp
               </a>
             </div>
-            <p class="text-[11px] uppercase tracking-wider text-[#9b968c] mt-5">
-              {get_in(@theme, [:hero, :badge]) || "100% Made in Ghana"}
+            <p
+              :if={get_in(@theme, [:hero, :badge]) not in [nil, ""]}
+              class="text-[11px] uppercase tracking-wider text-[#7A7468] mt-5"
+            >
+              {get_in(@theme, [:hero, :badge])}
             </p>
           </div>
           <div class="relative">
@@ -120,7 +123,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
                 type="button"
                 phx-click="select_image"
                 phx-value-index={idx}
-                class={"w-14 h-14 rounded-xl overflow-hidden border " <> if(idx == @current_image_index, do: "border-[#7C3AED]", else: "border-[#ECE7DE] opacity-70")}
+                class={"w-14 h-14 rounded-xl overflow-hidden border " <> if(idx == @current_image_index, do: "border-[var(--theme-accent,#7C3AED)]", else: "border-[#ECE7DE] opacity-70")}
               >
                 <img
                   src={Map.get(image, :thumbnail_url) || Map.get(image, :url)}
@@ -148,7 +151,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
             data-reveal
             class="rounded-2xl bg-white border border-[#ECE7DE] p-6 text-center"
           >
-            <span class="material-symbols-outlined text-[#7C3AED] text-3xl">
+            <span class="material-symbols-outlined text-[var(--theme-accent,#7C3AED)] text-3xl">
               {Map.get(item, :icon, "star")}
             </span>
             <h3 class="spot-heading text-base font-semibold mt-3">{item.title}</h3>
@@ -160,7 +163,9 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
       <%!-- STATEMENT --%>
       <section class="bg-[var(--theme-accent-soft)]">
         <div class="max-w-[900px] mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-          <span class="material-symbols-outlined text-[#7C3AED] text-3xl">auto_awesome</span>
+          <span class="material-symbols-outlined text-[var(--theme-accent,#7C3AED)] text-3xl">
+            auto_awesome
+          </span>
           <p class="spot-display text-3xl sm:text-4xl text-[#16130F] mt-4 leading-tight">
             {Map.get(@closing, :title, "One product, done properly.")}
           </p>
@@ -220,7 +225,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
                     phx-click="select_option"
                     phx-value-option_type_id={option_type.id}
                     phx-value-value={ov.id}
-                    class={"min-h-[44px] px-5 py-2.5 rounded-full text-sm border transition-colors " <> if(Map.get(@selected_options, option_type.id) == ov.id, do: "border-[#7C3AED] bg-[#7C3AED] text-white font-medium", else: "border-[#ECE7DE] bg-white hover:border-[#7C3AED]")}
+                    class={"min-h-[44px] px-5 py-2.5 rounded-full text-sm border transition-colors " <> if(Map.get(@selected_options, option_type.id) == ov.id, do: "border-[var(--theme-accent,#7C3AED)] bg-[var(--theme-accent,#7C3AED)] text-white font-medium", else: "border-[#ECE7DE] bg-white hover:border-[var(--theme-accent,#7C3AED)]")}
                   >
                     {ov.value}
                   </button>
@@ -273,7 +278,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
             </a>
             <a
               href={store_path(@store.slug, "/cart")}
-              class="block mt-4 text-sm text-[#7C3AED] hover:underline"
+              class="block mt-4 text-sm text-[var(--theme-accent,#7C3AED)] hover:underline"
             >
               View cart ({@cart_count}) →
             </a>
@@ -296,7 +301,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
             data-reveal
             class="rounded-2xl bg-white border border-[#ECE7DE] p-6"
           >
-            <div class="text-[#7C3AED]">★★★★★</div>
+            <div class="text-[var(--theme-accent,#7C3AED)]">★★★★★</div>
             <blockquote class="text-sm text-[#16130F] mt-3 leading-relaxed">"{t.quote}"</blockquote>
             <figcaption class="text-xs text-[#6B675F] mt-4 font-semibold">
               {t.name}<span :if={Map.get(t, :location)} class="font-normal"> · {t.location}</span>

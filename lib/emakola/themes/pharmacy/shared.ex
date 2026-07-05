@@ -281,10 +281,10 @@ defmodule Emakola.Themes.Pharmacy.Shared do
         </span>
       </div>
       <div class="p-4 sm:p-5">
-        <%!-- Static rating placeholder — swap to real reviews aggregate when available --%>
-        <div class="flex items-center gap-1 mb-1.5">
-          <span :for={_ <- 1..5} class="text-[#FBBF24]" style="font-size: 14px;">★</span>
-          <span class="text-[10px] text-[#6B7280] ml-1">(4.8)</span>
+        <%!-- Rating row (real review data only) --%>
+        <div :if={Map.get(@product, :review_count, 0) > 0} class="flex items-center gap-1 mb-1.5">
+          <span class="text-[#B45309]" style="font-size: 14px;">{stars(@product)}</span>
+          <span class="text-[10px] text-[#6B7280] ml-1">({format_rating(@product)})</span>
         </div>
         <h3 class="text-sm font-semibold text-[#1F2937] line-clamp-2 mb-1.5 min-h-[2.5rem]">
           {@product.title}
@@ -304,5 +304,28 @@ defmodule Emakola.Themes.Pharmacy.Shared do
       </div>
     </a>
     """
+  end
+
+  # ── Rating Helpers (real review data) ──
+
+  def format_rating(product) do
+    case Map.get(product, :avg_rating) do
+      %Decimal{} = r -> r |> Decimal.round(1) |> Decimal.to_string()
+      r when is_float(r) -> :erlang.float_to_binary(r, decimals: 1)
+      r when is_integer(r) -> "#{r}.0"
+      _ -> "—"
+    end
+  end
+
+  def stars(product) do
+    n =
+      case Map.get(product, :avg_rating) do
+        %Decimal{} = r -> r |> Decimal.to_float() |> round()
+        r when is_number(r) -> round(r)
+        _ -> 0
+      end
+
+    n = min(max(n, 0), 5)
+    String.duplicate("★", n) <> String.duplicate("☆", 5 - n)
   end
 end

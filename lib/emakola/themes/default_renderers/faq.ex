@@ -22,7 +22,8 @@ defmodule Emakola.Themes.DefaultRenderers.Faq do
     assigns = assign(assigns, :faq_items, items)
 
     ~H"""
-    <Emakola.Themes.Atelier.Shared.navbar
+    <Emakola.Themes.DefaultRenderers.Chrome.navbar
+      theme_module={assigns[:theme_module]}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -70,7 +71,11 @@ defmodule Emakola.Themes.DefaultRenderers.Faq do
       </div>
     </div>
 
-    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+    <Emakola.Themes.DefaultRenderers.Chrome.footer
+      theme_module={assigns[:theme_module]}
+      store={@store}
+      categories={@categories}
+    />
     """
   end
 

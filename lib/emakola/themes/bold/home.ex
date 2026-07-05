@@ -104,7 +104,7 @@ defmodule Emakola.Themes.Bold.Home do
           <div class="flex items-center justify-center gap-4 sm:gap-6 flex-wrap">
             <a
               href={store_path(@store.slug, "/products")}
-              class="text-xs sm:text-sm font-semibold tracking-[0.15em] uppercase text-[#0F172A] hover:text-[#F59E0B] transition-colors"
+              class="text-xs sm:text-sm font-semibold tracking-[0.15em] uppercase text-[#0F172A] hover:text-[#B45309] transition-colors"
               style="font-family: 'Inter', sans-serif;"
             >
               All

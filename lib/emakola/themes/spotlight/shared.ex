@@ -47,9 +47,15 @@ defmodule Emakola.Themes.Spotlight.Shared do
         </a>
         <nav class="hidden md:flex items-center gap-7 text-sm text-[#6B675F]">
           <a href={store_path(@store.slug, "/products")} class="hover:text-[#16130F]">Product</a>
-          <a href="#benefits" class="hover:text-[#16130F]">Benefits</a>
-          <a href="#ingredients" class="hover:text-[#16130F]">Ingredients</a>
-          <a href="#reviews" class="hover:text-[#16130F]">Reviews</a>
+          <a href={store_path(@store.slug, "/") <> "#benefits"} class="hover:text-[#16130F]">
+            Benefits
+          </a>
+          <a href={store_path(@store.slug, "/") <> "#ingredients"} class="hover:text-[#16130F]">
+            Ingredients
+          </a>
+          <a href={store_path(@store.slug, "/") <> "#testimonials"} class="hover:text-[#16130F]">
+            Reviews
+          </a>
         </nav>
         <a
           href={store_path(@store.slug, "/cart")}
@@ -77,7 +83,7 @@ defmodule Emakola.Themes.Spotlight.Shared do
           <div class="spot-heading text-xl font-extrabold">{@store.name}</div>
           <p class="text-sm text-[#6B675F] mt-3 max-w-sm leading-relaxed">
             {@store.description ||
-              "One product, done properly — made in Ghana, delivered to your door."}
+              "One product, done properly — delivered to your door."}
           </p>
         </div>
         <div>
@@ -104,8 +110,8 @@ defmodule Emakola.Themes.Spotlight.Shared do
         </div>
       </div>
       <div class="border-t border-[#ECE7DE]">
-        <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-5 text-xs text-[#9b968c]">
-          &copy; {DateTime.utc_now().year} {@store.name}. Made in Ghana.
+        <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-5 text-xs text-[#7A7468]">
+          &copy; {DateTime.utc_now().year} {@store.name}. All rights reserved.
         </div>
       </div>
     </footer>
@@ -189,7 +195,7 @@ defmodule Emakola.Themes.Spotlight.Shared do
       </div>
       <div class="pt-3">
         <h3 class="spot-heading text-sm font-semibold line-clamp-1">{@product.title}</h3>
-        <span class="text-sm font-bold text-[#7C3AED] mt-1 block">
+        <span class="text-sm font-bold text-[var(--theme-accent,#7C3AED)] mt-1 block">
           {EmakolaWeb.Helpers.Currency.format_price(
             @product.min_price || 0,
             Map.get(@store, :currency, "GHS")

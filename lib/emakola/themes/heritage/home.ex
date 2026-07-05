@@ -123,7 +123,7 @@ defmodule Emakola.Themes.Heritage.Home do
                 </div>
                 <button
                   type="submit"
-                  class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl sm:rounded-full bg-[#7A1F1F] text-[#F5EFE0] text-sm font-bold hover:bg-[#5A1717] transition-colors min-h-[44px]"
+                  class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl sm:rounded-full bg-[var(--theme-primary,#7A1F1F)] text-[#F5EFE0] text-sm font-bold hover:bg-[#5A1717] transition-colors min-h-[44px]"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -194,8 +194,13 @@ defmodule Emakola.Themes.Heritage.Home do
         </div>
       </section>
 
-      <%!-- STORIES FROM THE LOOM — dark editorial section --%>
-      <section :if={section_enabled?(@theme, :why_us)} class="bg-[#1A1612] text-[#F5EFE0]">
+      <%!-- STORIES FROM THE LOOM — dark editorial section. Only renders when
+           the merchant has written their own maker story (no fabricated
+           default copy). --%>
+      <section
+        :if={section_enabled?(@theme, :why_us) && editorial_content?(@theme)}
+        class="bg-[#1A1612] text-[#F5EFE0]"
+      >
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-24">
           <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             <%!-- Editorial portrait card --%>
@@ -257,12 +262,17 @@ defmodule Emakola.Themes.Heritage.Home do
                 the Loom
               </p>
 
-              <blockquote class="heritage-italic text-lg sm:text-xl leading-relaxed text-[#F5EFE0]/90 mb-6 border-l-2 border-[#D4A843] pl-5">
-                "We do not just weave fabric; we weave the breath of our ancestors into every pattern."
+              <blockquote
+                :if={editorial_text(@theme, :quote)}
+                class="heritage-italic text-lg sm:text-xl leading-relaxed text-[#F5EFE0]/90 mb-6 border-l-2 border-[#D4A843] pl-5"
+              >
+                "{editorial_text(@theme, :quote)}"
               </blockquote>
-              <p class="text-sm text-[#F5EFE0]/70 leading-relaxed mb-8 max-w-md">
-                Meet Kofi, a master weaver from the Volta region. For fifty years, he has translated the
-                rhythms of his village into the intricate, geometric languages of the kente loom.
+              <p
+                :if={editorial_text(@theme, :body)}
+                class="text-sm text-[#F5EFE0]/70 leading-relaxed mb-8 max-w-md"
+              >
+                {editorial_text(@theme, :body)}
               </p>
 
               <a
@@ -292,7 +302,7 @@ defmodule Emakola.Themes.Heritage.Home do
       <section :if={@theme.trust} class="bg-[#FAF6EC] py-16 sm:py-20 border-t border-[#E8DBC2]">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="text-center mb-12">
-            <p class="text-xs font-bold uppercase tracking-[0.3em] text-[#D4A843] mb-3">
+            <p class="text-xs font-bold uppercase tracking-[0.3em] text-[#8A6A1F] mb-3">
               Why Heritage
             </p>
             <h2 class="heritage-heading text-3xl sm:text-4xl font-bold text-[#7A1F1F]">
@@ -321,9 +331,10 @@ defmodule Emakola.Themes.Heritage.Home do
         </div>
       </section>
 
-      <%!-- TESTIMONIALS --%>
+      <%!-- TESTIMONIALS — only renders when the merchant has provided real
+           customer quotes (no fabricated defaults). --%>
       <section
-        :if={section_enabled?(@theme, :testimonials) && @theme.testimonials}
+        :if={section_enabled?(@theme, :testimonials) && testimonial_items(@theme) != []}
         class="bg-white py-16 sm:py-20"
       >
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -332,7 +343,7 @@ defmodule Emakola.Themes.Heritage.Home do
           </h2>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div
-              :for={t <- @theme.testimonials.items || []}
+              :for={t <- testimonial_items(@theme)}
               class="p-7 rounded-2xl bg-[#FAF6EC] border border-[#E8DBC2]"
             >
               <div class="flex items-center gap-1 text-[#D4A843] mb-4">
@@ -347,10 +358,13 @@ defmodule Emakola.Themes.Heritage.Home do
                 </svg>
               </div>
               <p class="heritage-italic text-base text-[#3D2817] mb-5 leading-relaxed">
-                "{t.quote}"
+                "{testimonial_field(t, :quote)}"
               </p>
               <p class="text-xs font-bold uppercase tracking-wider text-[#7A1F1F]">
-                {t.name} <span class="text-[#6B4423]/60 font-medium">— {t.location}</span>
+                {testimonial_field(t, :name)}
+                <span class="text-[#6B4423]/60 font-medium">
+                  — {testimonial_field(t, :location)}
+                </span>
               </p>
             </div>
           </div>
@@ -394,7 +408,7 @@ defmodule Emakola.Themes.Heritage.Home do
             />
             <button
               type="submit"
-              class="inline-flex items-center justify-center px-6 py-3 rounded-full bg-[#D4A843] text-[#3D2817] text-sm font-bold hover:bg-[#E5BB5A] transition-colors min-h-[44px]"
+              class="inline-flex items-center justify-center px-6 py-3 rounded-full bg-[var(--theme-accent,#D4A843)] text-[#3D2817] text-sm font-bold hover:bg-[#E5BB5A] transition-colors min-h-[44px]"
             >
               {get_in(@theme, [:newsletter, :button_text]) || "Subscribe"}
             </button>
@@ -412,5 +426,36 @@ defmodule Emakola.Themes.Heritage.Home do
       false -> false
       _ -> true
     end
+  end
+
+  # Merchant-written editorial copy, or nil when blank/absent.
+  defp editorial_text(theme, key) do
+    case get_in(theme, [:editorial, key]) do
+      value when is_binary(value) ->
+        case String.trim(value) do
+          "" -> nil
+          trimmed -> trimmed
+        end
+
+      _ ->
+        nil
+    end
+  end
+
+  defp editorial_content?(theme) do
+    editorial_text(theme, :quote) != nil || editorial_text(theme, :body) != nil
+  end
+
+  defp testimonial_items(theme) do
+    case get_in(theme, [:testimonials, :items]) do
+      items when is_list(items) -> items
+      _ -> []
+    end
+  end
+
+  # Merchant testimonials arrive from JSON theme_config with string keys;
+  # theme defaults use atom keys. Read both.
+  defp testimonial_field(item, key) when is_map(item) do
+    Map.get(item, key) || Map.get(item, Atom.to_string(key))
   end
 end

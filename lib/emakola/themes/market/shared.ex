@@ -61,4 +61,25 @@ defmodule Emakola.Themes.Market.Shared do
       nil
     end
   end
+
+  @doc """
+  wa.me link to the store's WhatsApp number prefilled with the product
+  title, or nil when the store has no number.
+  """
+  def whatsapp_link(store, product_title) do
+    case Map.get(store, :whatsapp_number) do
+      number when is_binary(number) ->
+        digits = String.replace(number, ~r/\D/, "")
+
+        if digits == "" do
+          nil
+        else
+          message = "Hi, I'm interested in #{product_title} from #{Map.get(store, :name)}"
+          "https://wa.me/#{digits}?text=#{URI.encode_www_form(message)}"
+        end
+
+      _ ->
+        nil
+    end
+  end
 end
