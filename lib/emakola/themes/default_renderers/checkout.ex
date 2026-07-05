@@ -920,6 +920,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
   attr :order, :any, required: true
   attr :phone, :string, required: true
   attr :timer_seconds, :integer, required: true
+  attr :store, :map, required: true
 
   defp momo_waiting_state(assigns) do
     assigns =
