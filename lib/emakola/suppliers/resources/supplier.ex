@@ -63,6 +63,10 @@ defmodule Emakola.Suppliers.Supplier do
       public?(true)
     end
 
+    attribute :logo_url, :string do
+      public?(true)
+    end
+
     attribute :active, :boolean do
       default(true)
       allow_nil?(false)
@@ -119,6 +123,7 @@ defmodule Emakola.Suppliers.Supplier do
         :payment_details,
         :linked_store_id,
         :notes,
+        :logo_url,
         :active
       ])
     end
@@ -132,6 +137,7 @@ defmodule Emakola.Suppliers.Supplier do
         :payment_details,
         :linked_store_id,
         :notes,
+        :logo_url,
         :active
       ])
     end

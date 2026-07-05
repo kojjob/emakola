@@ -477,6 +477,11 @@ defmodule EmakolaWeb.CoreComponents do
   attr :title, :string, required: true
   attr :kind, :atom, default: :centered, values: [:centered, :slide_over]
   attr :size, :atom, default: :md, values: [:sm, :md, :lg, :xl]
+
+  attr :show, :boolean,
+    default: false,
+    doc: "open on mount — for modals rendered conditionally with :if"
+
   attr :on_cancel, JS, default: %JS{}
   attr :icon, :string, default: nil
   attr :icon_class, :string, default: "text-slate-500"
@@ -488,7 +493,7 @@ defmodule EmakolaWeb.CoreComponents do
     ~H"""
     <div
       id={@id}
-      phx-mounted={@kind == :centered && JS.hide(to: "##{@id}")}
+      phx-mounted={(@show && show_modal(@id)) || (@kind == :centered && JS.hide(to: "##{@id}"))}
       phx-remove={hide_modal(@id)}
       class="hidden relative z-50"
       data-cancel={JS.exec(@on_cancel, "phx-remove")}

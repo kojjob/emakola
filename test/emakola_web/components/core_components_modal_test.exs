@@ -148,6 +148,22 @@ defmodule EmakolaWeb.CoreComponentsModalTest do
       assert container_tag =~ "phx-click-away"
     end
 
+    # Server-driven modals render with :if={...} and need to reveal
+    # themselves on mount — the show attr wires show_modal into phx-mounted.
+    test "show attr mounts the modal visible" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <CoreComponents.modal id="auto-show" title="Auto" kind={:slide_over} show>
+          <p>Content</p>
+        </CoreComponents.modal>
+        """)
+
+      [root_tag] = Regex.run(~r/<div[^>]*id="auto-show"[^>]*>/, html)
+      assert root_tag =~ "phx-mounted"
+    end
+
     test "centered container handles click-away" do
       assigns = %{}
 
