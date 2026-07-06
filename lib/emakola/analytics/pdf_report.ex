@@ -150,7 +150,7 @@ defmodule Emakola.Analytics.PdfReport do
       #{render_top_products(data.top_products)}
 
       <div class="footer">
-        #{escape_html(store.name)} &bull; Powered by Emakola
+        #{escape_html(store.name)} &bull; Powered by Makola
       </div>
     </body>
     </html>

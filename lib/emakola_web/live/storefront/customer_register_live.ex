@@ -8,6 +8,10 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
   """
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.AuthComponents
+  import EmakolaWeb.OAuthComponents
+  import EmakolaWeb.Storefront.Path
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
@@ -45,7 +49,9 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
 
     case Emakola.Customers.register_customer(create_params, authorize?: false) do
       {:ok, customer} ->
-        token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(customer))
+        token =
+          EmakolaWeb.AuthTokens.sign_subject_exchange(AshAuthentication.user_to_subject(customer))
+
         {:noreply, redirect(socket, to: "/s/#{store.slug}/auth/customer-session?token=#{token}")}
 
       {:error, %Ash.Error.Invalid{} = error} ->
@@ -97,6 +103,14 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
           >
             {@error_message}
           </div>
+
+          <.whatsapp_button
+            :if={Emakola.Accounts.PhoneAuth.enabled?()}
+            href={store_path(@store.slug, "/whatsapp")}
+            class="mb-6"
+          />
+
+          <.oauth_buttons subject="customer" store_slug={@store.slug} class="mb-6" />
 
           <.form for={@form} id="register-form" phx-submit="register" class="space-y-5">
             <div>
@@ -223,7 +237,7 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
             <p class="text-sm text-[#44403C]">
               Already have an account?
               <.link
-                navigate={"/s/#{@store.slug}/login"}
+                navigate={store_path(@store.slug, "/login")}
                 class="font-medium text-cta-dark hover:underline"
               >
                 Sign in
@@ -231,7 +245,7 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
             </p>
             <p>
               <.link
-                navigate={"/s/#{@store.slug}"}
+                navigate={store_path(@store.slug, "/")}
                 class="text-sm text-[#78716C] hover:text-[#44403C] transition-colors"
               >
                 Continue shopping

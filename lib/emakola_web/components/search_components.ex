@@ -14,6 +14,8 @@ defmodule EmakolaWeb.SearchComponents do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Phoenix.LiveView.JS
   alias EmakolaWeb.Helpers.Currency
 
@@ -163,7 +165,7 @@ defmodule EmakolaWeb.SearchComponents do
             <div :if={!@searching && @search_results != []} class="py-2">
               <a
                 :for={product <- Enum.take(@search_results, @max_results)}
-                href={"/s/#{@store.slug}/products/#{product.slug}"}
+                href={store_path(@store.slug, "/products/#{product.slug}")}
                 class="flex items-center gap-3.5 px-4 sm:px-5 py-3 hover:bg-white transition-colors"
               >
                 <div class="w-12 h-12 rounded-xl bg-[#F1F5F9] flex-shrink-0 overflow-hidden border border-[#E2E8F0]">
@@ -218,7 +220,7 @@ defmodule EmakolaWeb.SearchComponents do
                 class="px-4 sm:px-5 py-3 border-t border-[#E2E8F0]"
               >
                 <a
-                  href={"/s/#{@store.slug}/products?q=#{URI.encode_www_form(@search_query)}"}
+                  href={store_path(@store.slug, "/products?q=#{URI.encode_www_form(@search_query)}")}
                   class="flex items-center justify-center gap-2 py-2.5 w-full rounded-xl bg-white border border-[#E2E8F0] text-sm font-semibold text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all"
                 >
                   View all {@total_results} results

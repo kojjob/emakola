@@ -4,15 +4,13 @@ defmodule Emakola.Notifications.ContactMailer do
 
   alias Emakola.Mailer
 
-  @from {"Emakola Contact Form", "noreply@founderpad.io"}
-
   def deliver_contact_message(%{name: name, email: email, subject: subject, message: message}) do
     to_address = Application.get_env(:emakola, :contact_email, "support@emakola.com")
 
     new()
     |> to(to_address)
-    |> from(@from)
-    |> reply_to([email])
+    |> from(Mailer.from_address("Makola Contact Form"))
+    |> reply_to(email)
     |> subject("[Contact] #{subject}")
     |> text_body("""
     New contact form submission

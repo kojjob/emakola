@@ -11,11 +11,14 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias EmakolaWeb.Helpers.Currency
 
   def render(assigns) do
     ~H"""
-    <Emakola.Themes.Atelier.Shared.navbar
+    <Emakola.Themes.DefaultRenderers.Chrome.navbar
+      theme_module={assigns[:theme_module]}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -32,7 +35,7 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
               <p class="text-xs text-stone-400 font-mono mt-0.5">Order #{@order_number}</p>
             </div>
             <a
-              href={"/s/#{@store.slug}"}
+              href={store_path(@store.slug, "/")}
               class="text-xs font-semibold text-store-accent cursor-pointer"
               aria-label="Go back"
             >
@@ -164,19 +167,19 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
                     <path
                       d="M 40 0 L 0 0 0 40"
                       fill="none"
-                      stroke="#E2E8F0"
+                      stroke="#E7E5E4"
                       stroke-width="0.5"
                     />
                   </pattern>
                 </defs>
-                <rect width="400" height="200" fill="#F1F5F9" />
+                <rect width="400" height="200" fill="#F5F5F4" />
                 <rect width="400" height="200" fill="url(#grid)" />
                 <line
                   x1="0"
                   y1="100"
                   x2="400"
                   y2="100"
-                  stroke="#CBD5E1"
+                  stroke="#D6D3D1"
                   stroke-width="6"
                   stroke-linecap="round"
                 />
@@ -185,34 +188,34 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
                   y1="0"
                   x2="200"
                   y2="200"
-                  stroke="#CBD5E1"
+                  stroke="#D6D3D1"
                   stroke-width="6"
                   stroke-linecap="round"
                 />
                 <path
                   d="M140 120 C180 110 220 90 300 80"
                   fill="none"
-                  stroke="#B45309"
+                  stroke="var(--theme-primary, #B45309)"
                   stroke-width="3"
                   stroke-dasharray="6 4"
                   stroke-linecap="round"
                 />
                 <g transform="translate(300, 80)">
-                  <circle cx="0" cy="0" r="10" fill="#B45309" opacity="0.15" />
-                  <circle cx="0" cy="0" r="5" fill="#B45309" opacity="0.3" />
+                  <circle cx="0" cy="0" r="10" fill="var(--theme-primary, #B45309)" opacity="0.15" />
+                  <circle cx="0" cy="0" r="5" fill="var(--theme-primary, #B45309)" opacity="0.3" />
                   <circle cx="0" cy="-12" r="8" fill="#F43F5E" />
                   <circle cx="0" cy="-12" r="3" fill="white" />
                   <path d="M0 -4 L0 0" stroke="#F43F5E" stroke-width="2" />
                 </g>
                 <g transform="translate(140, 120)">
-                  <circle cx="0" cy="0" r="12" fill="#B45309" opacity="0.15" />
-                  <circle cx="0" cy="0" r="6" fill="#B45309" />
+                  <circle cx="0" cy="0" r="12" fill="var(--theme-primary, #B45309)" opacity="0.15" />
+                  <circle cx="0" cy="0" r="6" fill="var(--theme-primary, #B45309)" />
                   <circle cx="0" cy="0" r="2.5" fill="white" />
                 </g>
                 <text
                   x="140"
                   y="145"
-                  fill="#B45309"
+                  fill="var(--theme-primary, #B45309)"
                   font-size="9"
                   font-family="Inter, sans-serif"
                   font-weight="600"
@@ -322,7 +325,11 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
         </main>
 
         <%!-- FOOTER --%>
-        <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+        <Emakola.Themes.DefaultRenderers.Chrome.footer
+          theme_module={assigns[:theme_module]}
+          store={@store}
+          categories={@categories}
+        />
       </div>
     </div>
     """
@@ -459,8 +466,8 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
       <%!-- Contact store button --%>
       <div class="flex gap-3 mt-4">
         <a
-          href={"/s/#{@store.slug}/about"}
-          class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-store-accent hover:bg-amber-800 text-white rounded-xl text-sm font-semibold transition-colors"
+          href={store_path(@store.slug, "/about")}
+          class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-store-accent hover:opacity-90 text-white rounded-xl text-sm font-semibold transition-opacity"
         >
           <svg
             class="w-4 h-4"

@@ -7,9 +7,9 @@ defmodule EmakolaWeb.PricingLive do
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket,
-       page_title: "Pricing — Emakola | Free to Start, Pay as You Grow",
+       page_title: "Pricing — Makola | Free to Start, Pay as You Grow",
        meta_description:
-         "Emakola pricing: start free with 3.5% per sale, or grow with plans from GHS 29/month. Mobile money payments and WhatsApp notifications on every plan.",
+         "Makola pricing: start free with 3.5% per sale, or grow with plans from GHS 29/month. Mobile money payments and WhatsApp notifications on every plan.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/pricing"),
        json_ld: pricing_json_ld(),
@@ -275,7 +275,7 @@ defmodule EmakolaWeb.PricingLive do
     %{
       "@context" => "https://schema.org",
       "@type" => "SoftwareApplication",
-      "name" => "Emakola",
+      "name" => "Makola",
       "applicationCategory" => "BusinessApplication",
       "operatingSystem" => "Web",
       "offers" => [

@@ -192,6 +192,29 @@ flowchart LR
 | `order_cancelled` | Order {{1}} at {{2}} ({{4}} {{3}}) has been cancelled. Contact us with any questions. |
 | `supplier_fulfillment` | New order {{1}} for {{2}}. Items: {{3}}. Ship to: {{4}}. Please confirm and share a tracking number. |
 
+### 4d. WhatsApp / phone OTP sign-in (`auth_code` template)
+
+Phone sign-in (WhatsApp/SMS one-time codes) needs **one more template**, in a
+different category from the five order templates above:
+
+- **Name:** `auth_code`
+- **Category:** **Authentication** (NOT Utility — Meta requires the
+  authentication category for one-time passcodes)
+- **Language:** English
+- **Body:** a single parameter `{{1}}` = the 6-digit code (e.g. `{{1}} is your
+  Makola verification code.`). The code (`Emakola.Accounts.PhoneAuth`) sends the
+  code as the template's one positional body parameter.
+
+Activation is **ship-dark** behind `PHONE_AUTH_ENABLED`:
+
+- The WhatsApp sign-in button stays hidden until you set
+  `PHONE_AUTH_ENABLED=true` (prod reads it from the env var; dev/test are on by
+  default).
+- You can flip it on **before** the `auth_code` template is approved: delivery
+  falls back to **SMS** (your configured SMS provider) and carries the OTP in
+  the meantime. Once Meta approves `auth_code`, codes go out over WhatsApp first
+  and fall back to SMS only on failure.
+
 ---
 
 ## 5️⃣ Generated secrets — no signup, 30 seconds
@@ -329,7 +352,9 @@ fly secrets set \
 ```
 
 Optional: `HUBTEL_CLIENT_ID`/`HUBTEL_CLIENT_SECRET`/`HUBTEL_WEBHOOK_ALLOWLIST`
-(second gateway), `DEMO_MODE=true`.
+(second gateway), `DEMO_MODE=true`, `SENTRY_DSN` (error monitoring — §🔟),
+`MAIL_FROM_DOMAIN` + `CONTACT_EMAIL`/`CAREERS_EMAIL`/`PRESS_EMAIL`
+(only when your domain isn't `emakola.com` — §9c).
 
 ---
 
@@ -348,10 +373,55 @@ flowchart TD
     G --> H(("🎉 LIVE"))
 ```
 
-## 9️⃣ Custom domain — Cloudflare DNS + Fly certificates
+## 9️⃣ Custom domain — DNS + Fly certificates
 
 Optional for the smoke deploy (`emakola.fly.dev` works out of the box);
-required for the real launch (`emakola.com` + merchant subdomains).
+required for the real launch (your domain + merchant subdomains). Two paths:
+**Option A — Namecheap (or any registrar's own DNS)** is the simplest;
+**Option B — Cloudflare** adds a CDN + DDoS shield. Use whichever you prefer.
+
+> 🪪 **The same DNS host also holds your email (Resend) records.** Wherever you
+> put the records below — Namecheap or Cloudflare — also add the Resend
+> **SPF + DKIM** records from §2 there, so email delivery and the website
+> share one DNS zone.
+
+### 9a. Option A — Namecheap (registrar DNS)
+
+```mermaid
+flowchart TD
+    A["🌐 Own the domain in Namecheap"] --> A2["fly ips list --app emakola<br/>(note the v4 + v6 — allocate a v4<br/>with 'fly ips allocate-v4' if none)"]
+    A2 --> B["Namecheap → Domain List → Manage →<br/><b>Advanced DNS</b> → Host Records"]
+    B --> C["Add records:<br/>A      @    &lt;Fly IPv4&gt;<br/>AAAA   @    &lt;Fly IPv6&gt;<br/>CNAME  www  emakola.fly.dev.<br/>CNAME  *    emakola.fly.dev.  (subdomains)"]
+    C --> C2["+ Resend SPF/DKIM TXT records (§2)<br/>+ (wildcard cert) the ACME CNAME Fly prints"]
+    C2 --> D["Nameservers = <b>Namecheap BasicDNS</b> (default)"]
+    D --> E["fly certs add emakola.com --app emakola<br/>fly certs add '*.emakola.com' --app emakola"]
+    E --> F["fly certs show emakola.com → wait for <b>Ready</b> ✅"]
+    F --> G(("✅ next: PHX_HOST + email env, §9c"))
+```
+
+**Step by step (Namecheap):**
+
+1. **Get Fly's IPs** — `fly ips list --app emakola`. The apex (`@`) needs an A
+   (IPv4) record, so if there's no dedicated v4, run `fly ips allocate-v4`
+   (a shared v4 also works for HTTP).
+2. **Namecheap → Domain List → Manage → Advanced DNS → Host Records** — add:
+
+   | Type | Host | Value | TTL |
+   |---|---|---|---|
+   | `A` | `@` | your Fly **IPv4** | Automatic |
+   | `AAAA` | `@` | your Fly **IPv6** | Automatic |
+   | `CNAME` | `www` | `emakola.fly.dev.` | Automatic |
+   | `CNAME` | `*` | `emakola.fly.dev.` | Automatic (merchant subdomains) |
+
+   Then add the **Resend SPF + DKIM** records from §2 in this same list.
+   Keep **Nameservers = Namecheap BasicDNS** (the default).
+3. **Issue Fly certs** — `fly certs add emakola.com --app emakola` and
+   `fly certs add '*.emakola.com' --app emakola`. The wildcard cert needs an
+   **ACME DNS-challenge `CNAME`** — `fly certs show` prints it; paste that into
+   Namecheap Advanced DNS too. Re-run `fly certs show` until both say **Ready**.
+4. Continue at **§9c** (PHX_HOST + email env).
+
+### 9b. Option B — Cloudflare (adds CDN + DDoS)
 
 ```mermaid
 flowchart TD
@@ -365,10 +435,123 @@ flowchart TD
     H --> I(("✅ live on your domain"))
 ```
 
+### 9c. Point the app at the domain (+ flip email) — pure config, no code
+
+Once certs are **Ready**, the entire app + email domain swap is env only:
+
+```bash
+# Receiving/sending email addresses follow the domain. MAIL_FROM_DOMAIN
+# drives every mailer's "from" (noreply@/billing@).
+fly secrets set \
+  MAIL_FROM_DOMAIN=emakola.com \
+  CONTACT_EMAIL=support@emakola.com \
+  CAREERS_EMAIL=careers@emakola.com \
+  PRESS_EMAIL=press@emakola.com \
+  --app emakola
+```
+
+Then set the canonical host in **`fly.toml`** under `[env]` and redeploy:
+
+```toml
+[env]
+  PHX_HOST = "emakola.com"   # drives URL generation AND check_origin
+```
+
 Notes:
-- `check_origin` already allows `https://emakola.com`, `www.` and `*.emakola.com`
-  (set from `PHX_HOST` at runtime) — no code change needed.
-- Until DNS is done, everything below works on `https://emakola.fly.dev`.
+- `PHX_HOST` flows into `url` **and** `check_origin` (it auto-allows
+  `https://PHX_HOST`, `www.`, and the `*.PHX_HOST` wildcard for merchant
+  subdomains) — **no code change**. Keep `https://emakola.fly.dev` in the
+  allowlist during the cutover.
+- **Switching to a different domain (e.g. `emakola.io`)?** Same commands —
+  just substitute the domain in the env vars and `PHX_HOST`. The sending
+  domain lives in one config (`:mail_from_domain`); nothing is hardcoded.
+- Until DNS is done, everything works on `https://emakola.fly.dev`.
+
+### 9d. Store subdomains — pretty storefront URLs (`tiny-stitches.makola.io`)
+
+Every store's storefront serves at `<slug>.<base>` (e.g. `tiny-stitches.makola.io/cart`)
+with the branded host kept in the address bar; the indexed canonical stays the apex
+subfolder (`makola.io/s/<slug>`), so SEO authority stays consolidated. **Ships dark** —
+nothing changes until the three steps below. No per-store provisioning or backfill is
+needed: `<slug>.<base>` resolves implicitly (reserved labels like `www`/`admin`/`api`
+are never served).
+
+```bash
+# 1. Wildcard TLS for every store subdomain
+fly certs add '*.makola.io' --app emakola
+
+# 2. Turn the feature on (the apex base; storefront hosts are <slug>.<base>)
+fly secrets set STORE_SUBDOMAIN_BASE=makola.io --app emakola
+```
+
+3. **Wildcard DNS** at the registrar — add `*.makola.io` pointing at the **same**
+   Fly IPs as the apex (Namecheap: `A`/`AAAA` records for host `*` mirroring section 9a).
+   `fly certs show '*.makola.io'` lists exactly what's needed.
+
+Notes:
+- `check_origin` already allows the `*.PHX_HOST` wildcard (section 9c) — no code change.
+- Custom vanity labels (a merchant claiming `ama-kitchen.makola.io` instead of their
+  slug) and full custom domains are explicit `StoreDomain` records managed from the
+  merchant's **Storefront address** settings; those take precedence over the implicit slug.
+
+---
+
+## 🔟 Sentry — error monitoring (optional, recommended)
+
+The app ships with Sentry wired into Phoenix / LiveView / Oban. It stays
+**completely inert until you provide a DSN** — no DSN means `capture` returns
+`:ignored`, so there's nothing to break.
+
+```mermaid
+flowchart TD
+    A["sentry.io → create project<br/>platform: Elixir"] --> B["Settings → Client Keys (DSN)<br/>copy the DSN"]
+    B --> C["fly secrets set SENTRY_DSN=https://...ingest.sentry.io/...<br/>--app emakola"]
+    C --> D["fly deploy"]
+    D --> E(("✅ errors, crash reports,<br/>LiveView + Oban failures<br/>now flow to Sentry"))
+```
+
+- Env var: **`SENTRY_DSN`** (optional `SENTRY_RELEASE`). The DSN is *not* a
+  secret (it only says where to send events) — using `fly secrets` just keeps
+  it out of the repo.
+- Uses the existing **Finch** HTTP client (no hackney added).
+- Smoke test after the DSN is set: trigger any error and confirm it appears in
+  the Sentry dashboard within a minute.
+
+---
+
+## 👤 First platform admin (owner)
+
+Platform staff sign in at **`/platform/login`** (password **+** mandatory TOTP)
+and are normally created by **invite** from the Team page. To create the very
+first owner out-of-band (e.g. right after launch, before email works), open a
+console on the live node:
+
+```bash
+fly ssh console -C "/app/bin/emakola remote" --app emakola
+```
+
+Then paste (edit the two values at the top). **Exit with Ctrl+C twice — never
+`System.halt`.**
+
+```elixir
+require Ash.Query
+
+email    = "owner@yourdomain.com"
+password = "PickAStrongPassword"
+
+Emakola.Accounts.User
+|> Ash.Changeset.for_create(:bootstrap_owner, %{email: email, password: password})
+|> Ash.create!(authorize?: false)
+```
+
+Then log in at `/platform/login` and set up TOTP.
+
+- **Scoped (non-owner) admin instead?** Use the `:accept_platform_invite`
+  action with `platform_permissions:` from this set:
+  `:manage_stores`, `:manage_merchants`, `:manage_team`, `:view_audit_log`,
+  `:manage_billing`, `:manage_settings`. Owner (`is_owner: true`) bypasses all
+  checks.
+- Local dev has the convenience task: `mix emakola.bootstrap_platform_owner <email>`.
 
 ---
 
@@ -380,7 +563,7 @@ So you don't chase credentials nothing consumes:
 |---|---|---|
 | **Stripe** | ❌ Not wired | No Stripe SDK dependency, **no `/webhooks/stripe` route**, no `STRIPE_*` env var read anywhere. The `stripe_*` fields on Billing resources and the `StripeHandler` worker are dormant scaffolding for a future merchant-subscription feature; the Stripe mentions on the `/docs` page are leftover boilerplate copy. Customer payments run on **Paystack/Hubtel** (§1). |
 | **Mailgun** | ❌ Not wired | Only a commented-out example in `runtime.exs`; email runs on **Resend** (§2). |
-| **Sentry** | ❌ Not a dependency | Mentioned in old docs only; nothing to configure. |
+| **Sentry** | ✅ Wired, optional | Now a dependency and fully integrated — but **inert without `SENTRY_DSN`**. Set the DSN to turn it on (see §🔟); nothing breaks if you don't. |
 | **Chrome/PDF** | ✅ Built into the image | Receipt/report PDFs use ChromicPDF; Chromium ships in the Docker image and spawns on-demand — zero setup, no env vars. |
 
 > If/when merchant subscription billing launches for real, Stripe gets its own
@@ -401,4 +584,6 @@ So you don't chase credentials nothing consumes:
 - [ ] Infra: `fly launch` ▸ postgres (+`DATABASE_SSL=false`) (DEPLOYMENT.md)
 - [ ] Section 7 `fly secrets set`
 - [ ] `fly deploy` ▸ section 8 smoke flow green
-- [ ] Custom domain: Cloudflare DNS ▸ `fly certs` Ready ▸ `PHX_HOST` updated (§9 — post-smoke)
+- [ ] Custom domain: Namecheap **or** Cloudflare DNS ▸ `fly certs` Ready ▸ `PHX_HOST` + email env updated (§9 — post-smoke)
+- [ ] First platform owner bootstrapped ▸ logged in ▸ TOTP set (§👤)
+- [ ] _(optional)_ `SENTRY_DSN` set for error monitoring (§🔟)

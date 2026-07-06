@@ -206,6 +206,7 @@ defmodule EmakolaWeb.Platform.LoginLiveTest do
     end
 
     test "a code cannot be reused within its window", %{conn: conn} do
+      ensure_totp_window_headroom()
       {user, secret} = create_owner_with_totp!()
       # Mark the current window as already used
       set_totp_last_used_at!(user, DateTime.utc_now())
@@ -360,6 +361,15 @@ defmodule EmakolaWeb.Platform.LoginLiveTest do
       )
 
     :ok
+  end
+
+  # Avoid straddling a 30s TOTP window boundary mid-test: if too little of the
+  # current window remains, sleep into the next (fresh) one. Otherwise the
+  # "reused" code can land in a new window and be (correctly) accepted — turning
+  # the expected "Invalid code" render into a redirect → flaky failure.
+  defp ensure_totp_window_headroom do
+    remaining = 30 - rem(System.os_time(:second), 30)
+    if remaining < 10, do: Process.sleep(remaining * 1000 + 200)
   end
 
   defp audit_entries(action) do

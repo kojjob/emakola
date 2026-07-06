@@ -6,9 +6,35 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
   """
   use Phoenix.Component
 
-  @red_actions [:sign_in_failed, :totp_failed, :sessions_force_revoked, :staff_deactivated]
-  @amber_actions [:session_revoked, :invite_revoked, :totp_disabled]
-  @green_actions [:sign_in_succeeded, :invite_accepted, :totp_enabled, :staff_reactivated]
+  @red_actions [
+    :sign_in_failed,
+    :totp_failed,
+    :sessions_force_revoked,
+    :staff_deactivated,
+    :store_blocked,
+    :store_archived,
+    :verification_rejected,
+    :product_taken_down
+  ]
+  @amber_actions [
+    :session_revoked,
+    :invite_revoked,
+    :totp_disabled,
+    :store_suspended,
+    :impersonation_started,
+    :announcement_canceled
+  ]
+  @green_actions [
+    :sign_in_succeeded,
+    :invite_accepted,
+    :totp_enabled,
+    :staff_reactivated,
+    :store_reactivated,
+    :verification_approved,
+    :impersonation_ended,
+    :product_reinstated,
+    :announcement_published
+  ]
 
   attr :loaded?, :boolean, required: true
   attr :entries, :any, required: true
@@ -25,7 +51,10 @@ defmodule EmakolaWeb.Platform.AuditLogComponents do
 
       <p :if={!@loaded?} class="text-sm text-gray-500">Loading audit log…</p>
 
-      <div :if={@loaded?} class="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+      <div
+        :if={@loaded?}
+        class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-x-auto"
+      >
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-400">

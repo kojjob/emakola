@@ -8,6 +8,7 @@ Adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Trustless dropship split settlement (SP-series, in review — PRs #158/#159): customer charges are split at the gateway (Paystack Multi-Split) so a wholesaler's cut is paid directly and never lands in the dropshipper's account first. Includes `SplitCalculator` (pure 3-way split off margin), `StorePayoutAccount` + `Supplier.linked_store_id`, `PaymentSplit`, gateway `create_subaccount/1` + `:split` on `initiate_payment/1`, `DropshipSettlement`/`OrderSettlement` (with manual-ledger fallback), checkout wiring, and webhook settle/reverse. No platform fund custody; platform fee is a % of dropship margin.
 - Project initialization and planning
 - Architecture documentation (system design, tech stack, multi-tenant strategy)
 - Domain model specification (Accounts, Catalog, Orders, Customers, Shipping, Marketing, Billing)

@@ -7,6 +7,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.Admin.ProductLive.BulkUploadModal, only: [bulk_upload_modal: 1]
 
   alias EmakolaWeb.Admin.ProductLive.Shared
@@ -1040,7 +1042,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         |> Ash.read!(authorize?: false)
         |> Enum.take(@admin_products_limit)
       rescue
-        _ -> []
+        exception ->
+          Logger.error(
+            "[product_live.index] load_products loading products raised: #{Exception.message(exception)}"
+          )
+
+          []
       end
 
     assign(socket, products: products)
@@ -1055,7 +1062,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       try do
         Emakola.Catalog.list_categories_by_store!(socket.assigns.store_id)
       rescue
-        _ -> []
+        exception ->
+          Logger.error(
+            "[product_live.index] load_categories loading categories raised: #{Exception.message(exception)}"
+          )
+
+          []
       end
 
     categories_map = Map.new(categories_list, fn cat -> {cat.id, cat.name} end)

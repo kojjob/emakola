@@ -8,9 +8,12 @@ defmodule Emakola.Themes.DefaultRenderers.RecipeList do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   def render(assigns) do
     ~H"""
-    <Emakola.Themes.Atelier.Shared.navbar
+    <Emakola.Themes.DefaultRenderers.Chrome.navbar
+      theme_module={assigns[:theme_module]}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -18,7 +21,7 @@ defmodule Emakola.Themes.DefaultRenderers.RecipeList do
     />
 
     <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-      <h1 class="font-[Cormorant,Georgia,serif] text-3xl sm:text-4xl font-semibold text-stone-900 mb-8">
+      <h1 class="text-3xl sm:text-4xl font-semibold text-stone-900 mb-8">
         Recipes
       </h1>
 
@@ -27,7 +30,11 @@ defmodule Emakola.Themes.DefaultRenderers.RecipeList do
       </div>
 
       <div class="grid gap-6 sm:grid-cols-2">
-        <a :for={post <- @posts} href={"/s/#{@store.slug}/recipes/#{post.slug}"} class="block group">
+        <a
+          :for={post <- @posts}
+          href={store_path(@store.slug, "/recipes/#{post.slug}")}
+          class="block group"
+        >
           <article class="rounded-xl overflow-hidden border border-stone-200 hover:border-stone-300 transition-colors">
             <div :if={post.featured_image_url} class="aspect-[4/3] overflow-hidden">
               <img
@@ -38,7 +45,7 @@ defmodule Emakola.Themes.DefaultRenderers.RecipeList do
               />
             </div>
             <div class="p-4">
-              <h2 class="text-lg font-semibold text-stone-900 group-hover:text-amber-700 transition-colors">
+              <h2 class="text-lg font-semibold text-stone-900 group-hover:text-store-accent transition-colors">
                 {post.title}
               </h2>
               <p :if={post.excerpt} class="text-sm text-stone-600 mt-1 line-clamp-2">
@@ -56,7 +63,11 @@ defmodule Emakola.Themes.DefaultRenderers.RecipeList do
       </div>
     </div>
 
-    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+    <Emakola.Themes.DefaultRenderers.Chrome.footer
+      theme_module={assigns[:theme_module]}
+      store={@store}
+      categories={@categories}
+    />
     """
   end
 end

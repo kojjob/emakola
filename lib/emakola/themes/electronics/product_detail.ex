@@ -1,11 +1,12 @@
 defmodule Emakola.Themes.Electronics.ProductDetail do
   @moduledoc """
-  Electronics theme product detail — gallery + spec accordion +
-  monospace price + sky-blue "Add to Cart" CTA + warranty pill.
+  Electronics theme product detail — gallery + monospace price +
+  deep-teal "Add to Cart" CTA + warranty pill + stock-aware badge.
   """
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Electronics.Shared
@@ -32,9 +33,9 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
       <div class="bg-[#F5EFE5] border-b border-[#E5E7EB]">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <nav class="flex items-center gap-2 text-xs text-[#6B7280]">
-            <a href={"/s/#{@store.slug}"} class="hover:text-[#134E4A]">Home</a>
+            <a href={store_path(@store.slug, "/")} class="hover:text-[#134E4A]">Home</a>
             <span>/</span>
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-[#134E4A]">Shop</a>
+            <a href={store_path(@store.slug, "/products")} class="hover:text-[#134E4A]">Shop</a>
             <span>/</span>
             <span class="text-[#134E4A] font-medium truncate max-w-[200px]">{@product.title}</span>
           </nav>
@@ -86,20 +87,21 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
 
             <%!-- Info --%>
             <div>
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#10B981]/15 text-[#10B981] text-[11px] font-bold uppercase tracking-wider mb-4">
-                <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span> In Stock
-              </span>
+              <.stock_badge :if={@selected_variant} variant={@selected_variant} />
 
               <h1 class="electronics-heading text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#134E4A] leading-tight mb-4">
                 {@product.title}
               </h1>
 
-              <%!-- Rating --%>
-              <div class="flex items-center gap-3 mb-6">
-                <div class="flex items-center gap-1">
-                  <span :for={_ <- 1..5} class="text-[#0EA5E9]" style="font-size: 16px;">★</span>
-                </div>
-                <span class="text-xs text-[#6B7280]">(4.8 · 254 reviews)</span>
+              <%!-- Rating (real review data only) --%>
+              <div
+                :if={Map.get(@product, :review_count, 0) > 0}
+                class="flex items-center gap-3 mb-6"
+              >
+                <span class="text-[#134E4A]" style="font-size: 16px;">{stars(@product)}</span>
+                <span class="text-xs text-[#6B7280]">
+                  ({format_rating(@product)} · {@product.review_count} reviews)
+                </span>
               </div>
 
               <%!-- Price (monospace) --%>
@@ -177,49 +179,11 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
                 <button
                   type="button"
                   phx-click="add_to_cart"
-                  class="flex-1 inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[#0EA5E9] text-white text-sm font-bold hover:bg-[#0284C7] transition-colors min-h-[48px]"
+                  class="flex-1 inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[var(--theme-primary,#134E4A)] text-white text-sm font-bold hover:bg-[#0E3F3B] transition-colors min-h-[48px]"
                 >
                   <span class="material-symbols-outlined" style="font-size: 18px;">shopping_bag</span>
                   Add to Cart
                 </button>
-              </div>
-
-              <%!-- Spec accordion --%>
-              <div class="space-y-2 pt-6 border-t border-[#E5E7EB]">
-                <details class="electronics-card group">
-                  <summary class="flex items-center justify-between p-4 cursor-pointer list-none">
-                    <span class="text-sm font-bold text-[#134E4A]">Specifications</span>
-                    <span
-                      class="material-symbols-outlined text-[#0EA5E9] transition-transform group-open:rotate-180"
-                      style="font-size: 20px;"
-                    >
-                      expand_more
-                    </span>
-                  </summary>
-                  <div class="px-4 pb-4 text-xs text-[#4B5563] electronics-mono space-y-1.5">
-                    <p>display: 6.7" OLED · 120Hz</p>
-                    <p>battery: 5000 mAh</p>
-                    <p>connectivity: 5G · Wi-Fi 6 · BT 5.3</p>
-                    <p>storage: 128/256/512 GB</p>
-                  </div>
-                </details>
-                <details class="electronics-card group">
-                  <summary class="flex items-center justify-between p-4 cursor-pointer list-none">
-                    <span class="text-sm font-bold text-[#134E4A]">In the box</span>
-                    <span
-                      class="material-symbols-outlined text-[#0EA5E9] transition-transform group-open:rotate-180"
-                      style="font-size: 20px;"
-                    >
-                      expand_more
-                    </span>
-                  </summary>
-                  <div class="px-4 pb-4 text-xs text-[#4B5563] space-y-1.5">
-                    <p>· Device</p>
-                    <p>· Charging cable</p>
-                    <p>· Quick start guide</p>
-                    <p>· Warranty card</p>
-                  </div>
-                </details>
               </div>
             </div>
           </div>
@@ -247,6 +211,53 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
     """
   end
 
+  # ── Components ──
+
+  attr :variant, :map, required: true
+
+  defp stock_badge(assigns) do
+    ~H"""
+    <%= cond do %>
+      <% @variant.track_inventory and @variant.stock_quantity <= 0 -> %>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#DC2626]/10 text-[#DC2626] text-[11px] font-bold uppercase tracking-wider mb-4">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#DC2626]"></span> Out of Stock
+        </span>
+      <% @variant.track_inventory and @variant.stock_quantity < 5 -> %>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D97706]/10 text-[#B45309] text-[11px] font-bold uppercase tracking-wider mb-4">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#D97706]"></span>
+          Low Stock ({@variant.stock_quantity} left)
+        </span>
+      <% true -> %>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#10B981]/15 text-[#047857] text-[11px] font-bold uppercase tracking-wider mb-4">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span> In Stock
+        </span>
+    <% end %>
+    """
+  end
+
+  # ── Helpers ──
+
   defp price_for(_product, %{price: price}) when is_integer(price), do: price
   defp price_for(product, _), do: Map.get(product, :min_price) || 0
+
+  defp format_rating(product) do
+    case Map.get(product, :avg_rating) do
+      %Decimal{} = r -> r |> Decimal.round(1) |> Decimal.to_string()
+      r when is_float(r) -> :erlang.float_to_binary(r, decimals: 1)
+      r when is_integer(r) -> "#{r}.0"
+      _ -> "—"
+    end
+  end
+
+  defp stars(product) do
+    n =
+      case Map.get(product, :avg_rating) do
+        %Decimal{} = r -> r |> Decimal.to_float() |> round()
+        r when is_number(r) -> round(r)
+        _ -> 0
+      end
+
+    n = min(max(n, 0), 5)
+    String.duplicate("★", n) <> String.duplicate("☆", 5 - n)
+  end
 end

@@ -1,7 +1,10 @@
 # Emakola — Action Roadmap
 
 > Prioritized implementation plan based on codebase evaluation (March 2026).
-> Last updated: 2026-06-14 — Phases 0 through 1.8 complete; bulk product upload shipped (below).
+> Last updated: 2026-06-24 — Phases 0–1.8 complete; bulk product upload shipped; **Revenue
+> rails + payout engine complete** (#206–#213, see new section below). Per
+> [`REVENUE-FIRST-90-DAY-PLAN.md`](REVENUE-FIRST-90-DAY-PLAN.md), Phase 0 build is done and the
+> constraint is now **activation + go-to-market**, not engineering.
 
 ---
 
@@ -245,6 +248,47 @@ image-upload endpoints must be added before the Flutter merchant app can build t
 
 ---
 
+## 🟡 Dropship Trustless Settlement (SP-series) — IN REVIEW (2026-06)
+
+> Split a customer charge **at the gateway** so the wholesaler's cut never lands in the
+> dropshipper's account first — solving the manual-ledger fraud gap and unlocking
+> zero-capital dropshipping. PRs #158 (core) + #159 (integration), stacked. Full detail in
+> [`ROADMAP-dropshipping.md`](ROADMAP-dropshipping.md) § Trustless Split Settlement.
+
+**Built (TDD, full suite green — 3097 passing):**
+- [x] `SplitCalculator` — pure 3-way split off margin (wholesaler cost / platform fee / dropshipper), integer minor units, reconciles exactly
+- [x] `StorePayoutAccount` + `Supplier.linked_store_id` — per-store payout subaccount + verification
+- [x] `PaymentSplit` (`pending→settled→reversed`) + `Payment.split_mode/split_code`
+- [x] Gateway `create_subaccount/1` + `:split` on `initiate_payment/1` (Paystack flat split; Hubtel falls back)
+- [x] `DropshipSettlement` / `OrderSettlement` — resolve→split or manual-ledger fallback; reconciles to `order.total`
+- [x] `CheckoutLive` wired + `PaystackWebhookHandler` settle-on-success / reverse-on-refund
+
+**Remaining:**
+- [x] SP1 merchant payout-onboarding UI (calls `create_subaccount`) — shipped
+- [x] Ops: verify Paystack Ghana MoMo-as-subaccount support — ✅ confirmed (2026-06-24)
+- [ ] Refund clawback against future payouts (splits currently only flip to `:reversed`)
+- [ ] SP2–SP4 supplier-network marketplace (connections, catalog sourcing, cross-store fulfillment)
+- [ ] Paystack fee bearer (config decision at activation)
+
+---
+
+## ✅ Revenue Rails & Payout Engine — COMPLETE (2026-06-24)
+
+> Monetization end-to-end: **collect → split → fee → track → pay out → observe → retry →
+> notify.** All merged to `main`. Specs in `docs/superpowers/specs/2026-06-24-*`.
+
+- [x] **Subaccount creation** (#206) — `SubaccountCreationWorker` turns a saved MoMo payout into a verified Paystack subaccount (async, idempotent).
+- [x] **Platform fee on normal orders** (#207) — `OrderSettlement` routes the merchant net to their subaccount and keeps a **2%** fee as the split remainder (`platform_fee_rate_bps: 200`); graceful `:no_split` fallback so fee logic can never break a sale.
+- [x] **Finance oversight page** (#208) — `/platform/finance`: fees collected, GMV, take rate, outstanding-payout backlog + per-store breakdown.
+- [x] **Payout-execution engine** (#210 rails/ledger + #211 gated execution) — Paystack Transfer rails, `Payout` ledger, admin-approved disbursement (idempotent via `transfer_reference`), `transfer.success/failed` webhook confirmation.
+- [x] **Payout operations** (#212) — recent-payouts table + status, retry for failed payouts, merchant SMS/email on `:paid`.
+- [x] **Stat-tile icon fix** (#213) — valid Material Symbols on the finance/payments tiles.
+
+**Next (not engineering):** activation (real provider keys → `LAUNCH_TODO.md`) + go-to-market.
+**Next buildable toward revenue:** Smart Link / link-in-bio store page (`SOCIAL_COMMERCE.md`).
+
+---
+
 ## 📊 Progress Summary
 
 | Phase | Status | Tests | Key Deliverables |
@@ -258,6 +302,7 @@ image-upload endpoints must be added before the Flutter merchant app can build t
 | Phase 1.6 | ✅ Complete | +106 | Order admin, notifications, customers |
 | Phase 1.7 | ✅ Complete | +48 | Dashboard, settings, delivery zones |
 | Phase 1.8 | ✅ Complete | +6 | All pages prototype-matched, modals, checkout |
+| Dropship Settlement (SP) | 🟡 In review | #158/#159 | Gateway split, PaymentSplit, OrderSettlement, webhook reconcile |
 | **Total** | **8/9 phases** | **618** | **17 Ash resources, 21 LiveViews** |
 
 ---

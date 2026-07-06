@@ -7,6 +7,7 @@ defmodule Emakola.Themes.Heritage.Shared do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   attr :theme, :map, required: true
@@ -46,7 +47,7 @@ defmodule Emakola.Themes.Heritage.Shared do
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16 sm:h-20">
           <%!-- Brand wordmark --%>
-          <a href={"/s/#{@store.slug}"} class="flex items-center gap-2 min-w-0">
+          <a href={store_path(@store.slug, "/")} class="flex items-center gap-2 min-w-0">
             <span class={[
               "heritage-heading text-xl sm:text-2xl font-bold",
               if(@on_dark, do: "text-[#F5EFE0]", else: "text-[#7A1F1F]")
@@ -66,7 +67,7 @@ defmodule Emakola.Themes.Heritage.Shared do
                   {"Collections", "/products", false}
                 ]
               }
-              href={"/s/#{@store.slug}#{path}"}
+              href={store_path(@store.slug, "#{path}")}
               class={[
                 "text-sm font-medium transition-colors",
                 cond do
@@ -91,7 +92,7 @@ defmodule Emakola.Themes.Heritage.Shared do
           <%!-- Right cluster: search + cart + account --%>
           <div class="flex items-center gap-2 sm:gap-3">
             <form
-              action={"/s/#{@store.slug}/products"}
+              action={store_path(@store.slug, "/products")}
               method="get"
               class="hidden lg:flex items-center relative"
             >
@@ -128,7 +129,7 @@ defmodule Emakola.Themes.Heritage.Shared do
             </form>
 
             <a
-              href={"/s/#{@store.slug}/cart"}
+              href={store_path(@store.slug, "/cart")}
               class={[
                 "relative w-10 h-10 rounded-full flex items-center justify-center transition-colors",
                 if(@on_dark, do: "hover:bg-white/10", else: "hover:bg-[#E8DBC2]")
@@ -160,7 +161,7 @@ defmodule Emakola.Themes.Heritage.Shared do
             </a>
 
             <a
-              href={"/s/#{@store.slug}/account"}
+              href={store_path(@store.slug, "/account")}
               class={[
                 "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
                 if(@on_dark, do: "hover:bg-white/10", else: "hover:bg-[#E8DBC2]")
@@ -214,17 +215,23 @@ defmodule Emakola.Themes.Heritage.Shared do
             </h4>
             <ul class="space-y-3 text-sm text-[#F5EFE0]/75">
               <li>
-                <a href={"/s/#{@store.slug}/products"} class="hover:text-white transition-colors">
+                <a
+                  href={store_path(@store.slug, "/products")}
+                  class="hover:text-white transition-colors"
+                >
                   All artisans
                 </a>
               </li>
               <li>
-                <a href={"/s/#{@store.slug}/products"} class="hover:text-white transition-colors">
+                <a
+                  href={store_path(@store.slug, "/products")}
+                  class="hover:text-white transition-colors"
+                >
                   Collections
                 </a>
               </li>
               <li>
-                <a href={"/s/#{@store.slug}/blog"} class="hover:text-white transition-colors">
+                <a href={store_path(@store.slug, "/blog")} class="hover:text-white transition-colors">
                   Stories
                 </a>
               </li>
@@ -237,17 +244,20 @@ defmodule Emakola.Themes.Heritage.Shared do
             </h4>
             <ul class="space-y-3 text-sm text-[#F5EFE0]/75">
               <li>
-                <a href={"/s/#{@store.slug}/about"} class="hover:text-white transition-colors">
+                <a href={store_path(@store.slug, "/about")} class="hover:text-white transition-colors">
                   Our story
                 </a>
               </li>
               <li>
-                <a href={"/s/#{@store.slug}/contact"} class="hover:text-white transition-colors">
+                <a
+                  href={store_path(@store.slug, "/contact")}
+                  class="hover:text-white transition-colors"
+                >
                   Contact
                 </a>
               </li>
               <li>
-                <a href={"/s/#{@store.slug}/about"} class="hover:text-white transition-colors">
+                <a href={store_path(@store.slug, "/about")} class="hover:text-white transition-colors">
                   Fair trade
                 </a>
               </li>
@@ -290,7 +300,7 @@ defmodule Emakola.Themes.Heritage.Shared do
   def product_card(assigns) do
     ~H"""
     <a
-      href={"/s/#{@store.slug}/products/#{@product.slug}"}
+      href={store_path(@store.slug, "/products/#{@product.slug}")}
       class="heritage-card group block overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
     >
       <div class="aspect-[4/5] bg-[#F5EFE0] flex items-center justify-center overflow-hidden relative">
@@ -327,14 +337,14 @@ defmodule Emakola.Themes.Heritage.Shared do
           {@product.title}
         </h3>
         <div class="flex items-center justify-between gap-3 mt-3">
-          <span class="text-base font-bold text-[#7A1F1F]">
+          <span class="text-base font-bold text-[var(--theme-primary,#7A1F1F)]">
             {EmakolaWeb.Helpers.Currency.format_price(
               @product.min_price || 0,
               Map.get(@store, :currency, "GHS")
             )}
           </span>
-          <span class="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-[#D4A843] group-hover:gap-1.5 transition-all">
-            Visit
+          <span class="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-[#8A6A1F] group-hover:gap-1.5 transition-all">
+            View
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"

@@ -31,7 +31,10 @@ defmodule Emakola.Themes.ThemeRenderer do
     category: :render_category,
     wishlist: :render_wishlist,
     account: :render_account,
-    downloads: :render_downloads
+    downloads: :render_downloads,
+    contact: :render_contact,
+    faq: :render_faq,
+    policies: :render_policies
   }
 
   @doc """

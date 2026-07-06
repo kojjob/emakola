@@ -142,4 +142,22 @@ defmodule Emakola.Themes.Electronics do
 
   @impl true
   defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
+
+  @impl true
+  def storefront_nav(assigns) do
+    Emakola.Themes.Electronics.Shared.electronics_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0,
+      on_dark: false
+    })
+  end
+
+  @impl true
+  def storefront_footer(assigns) do
+    Emakola.Themes.Electronics.Shared.electronics_footer(%{
+      __changed__: nil,
+      store: assigns.store
+    })
+  end
 end

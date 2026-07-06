@@ -26,6 +26,8 @@ defmodule Emakola.Catalog do
       define(:create_product, action: :create)
       define(:get_product, action: :read, get_by: [:id])
       define(:get_product_by_slug, action: :get_by_slug, args: [:store_id, :slug])
+      # Storefront-safe single-product fetch — active, moderation-ok, store-scoped.
+      define(:get_active_product, action: :get_active_by_id, args: [:store_id, :id])
       define(:update_product, action: :update)
       define(:archive_product, action: :archive)
       define(:activate_product, action: :activate)
@@ -46,6 +48,10 @@ defmodule Emakola.Catalog do
 
       define(:list_related_products, action: :list_related, args: [:store_id, :product_id])
       define(:list_products_admin, action: :list_admin, args: [:store_id])
+      # Platform content moderation — call with `authorize?: false` (gated in the LiveView).
+      define(:take_down_product, action: :take_down)
+      define(:reinstate_product, action: :reinstate)
+      define(:list_products_for_moderation, action: :list_for_moderation)
     end
 
     resource Emakola.Catalog.OptionType do

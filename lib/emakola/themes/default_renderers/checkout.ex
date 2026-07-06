@@ -16,17 +16,19 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias EmakolaWeb.Helpers.Currency
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen flex flex-col bg-stone-50 font-[Montserrat,system-ui,sans-serif] text-stone-950 antialiased">
+    <div class="min-h-screen flex flex-col bg-stone-50 text-stone-950 antialiased">
       <%!-- Minimal Navigation --%>
       <header class="border-b border-stone-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between h-16">
             <a
-              href={"/s/#{@store.slug}/cart"}
+              href={store_path(@store.slug, "/cart")}
               class="cursor-pointer flex items-center gap-2 text-stone-600 hover:text-stone-900 transition-colors text-sm font-medium rounded-lg px-2 py-1 -ml-2"
             >
               <svg
@@ -40,12 +42,12 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
               </svg>
               Back to Bag
             </a>
-            <span class="absolute left-1/2 -translate-x-1/2 font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold tracking-[0.15em] text-stone-900">
+            <span class="absolute left-1/2 -translate-x-1/2 text-2xl sm:text-3xl font-semibold tracking-[0.15em] text-stone-900">
               {String.upcase(@store.name)}
             </span>
             <div class="flex items-center gap-2 text-stone-600 text-sm font-medium">
               <svg
-                class="w-4 h-4 text-amber-600"
+                class="w-4 h-4 text-store-accent"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
@@ -65,7 +67,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
         <div class="max-w-2xl mx-auto px-4 sm:px-6 py-6">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-full bg-amber-600 text-white flex items-center justify-center text-xs font-semibold shadow-sm shadow-amber-600/20">
+              <div class="w-8 h-8 rounded-full bg-cta-dark text-white flex items-center justify-center text-xs font-semibold shadow-sm shadow-cta-dark/20">
                 1
               </div>
               <span class="text-sm font-semibold text-stone-900 hidden sm:inline">Information</span>
@@ -97,6 +99,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
               order={@order}
               phone={@phone}
               timer_seconds={@timer_seconds}
+              store={@store}
             />
           </div>
 
@@ -114,7 +117,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
-              <h3 class="font-[Cormorant,Georgia,serif] text-2xl font-semibold text-red-900 mb-1">
+              <h3 class="text-2xl font-semibold text-red-900 mb-1">
                 Payment failed
               </h3>
               <p class="text-sm text-red-700 mb-4">
@@ -122,7 +125,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
               </p>
               <button
                 phx-click="retry_payment"
-                class="cursor-pointer inline-flex items-center px-8 py-3.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors"
+                class="cursor-pointer inline-flex items-center px-8 py-3.5 bg-cta-dark text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
               >
                 Retry Payment
               </button>
@@ -147,7 +150,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                   />
                 </svg>
               </div>
-              <h3 class="font-[Cormorant,Georgia,serif] text-2xl font-semibold text-amber-900 mb-1">
+              <h3 class="text-2xl font-semibold text-amber-900 mb-1">
                 Payment timed out
               </h3>
               <p class="text-sm text-amber-700 mb-4">
@@ -155,7 +158,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
               </p>
               <button
                 phx-click="retry_payment"
-                class="cursor-pointer inline-flex items-center px-8 py-3.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors"
+                class="cursor-pointer inline-flex items-center px-8 py-3.5 bg-cta-dark text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
               >
                 Retry Payment
               </button>
@@ -172,13 +175,13 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
               <form phx-submit="place_order" phx-change="update_details" novalidate class="space-y-10">
                 <%!-- SECTION 1: Contact Information --%>
                 <section>
-                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
+                  <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
                     Contact
                   </h2>
                   <div class="space-y-4">
                     <div>
                       <label for="phone" class="block text-sm font-medium text-stone-900 mb-1.5">
-                        Phone number <span class="text-amber-600">*</span>
+                        Phone number <span class="text-store-accent">*</span>
                       </label>
                       <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -202,7 +205,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                           name="phone"
                           value={@phone}
                           placeholder="+233 24 123 4567"
-                          class={"w-full bg-white border rounded-xl pl-11 pr-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all #{if @form_errors[:phone], do: "border-red-400 bg-red-50", else: "border-stone-200"}"}
+                          class={"w-full bg-white border rounded-xl pl-11 pr-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-store-accent/30 focus:border-store-accent transition-all #{if @form_errors[:phone], do: "border-red-400 bg-red-50", else: "border-stone-200"}"}
                         />
                       </div>
                       <p :if={@form_errors[:phone]} class="text-xs text-red-600 mt-1">
@@ -212,7 +215,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
 
                     <div>
                       <label for="fullname" class="block text-sm font-medium text-stone-900 mb-1.5">
-                        Full name <span class="text-amber-600">*</span>
+                        Full name <span class="text-store-accent">*</span>
                       </label>
                       <input
                         type="text"
@@ -220,7 +223,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                         name="fullname"
                         value={@fullname}
                         placeholder="Ama Mensah"
-                        class={"w-full bg-white border rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all #{if @form_errors[:fullname], do: "border-red-400 bg-red-50", else: "border-stone-200"}"}
+                        class={"w-full bg-white border rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-store-accent/30 focus:border-store-accent transition-all #{if @form_errors[:fullname], do: "border-red-400 bg-red-50", else: "border-stone-200"}"}
                       />
                       <p :if={@form_errors[:fullname]} class="text-xs text-red-600 mt-1">
                         {@form_errors[:fullname]}
@@ -238,7 +241,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                         value={@email}
                         placeholder="ama@example.com"
                         autocomplete="email"
-                        class={"w-full bg-white border rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all #{if @form_errors[:email], do: "border-red-400 bg-red-50", else: "border-stone-200"}"}
+                        class={"w-full bg-white border rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-store-accent/30 focus:border-store-accent transition-all #{if @form_errors[:email], do: "border-red-400 bg-red-50", else: "border-stone-200"}"}
                       />
                       <p :if={@form_errors[:email]} class="text-xs text-red-600 mt-1">
                         {@form_errors[:email]}
@@ -251,13 +254,13 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
 
                 <%!-- SECTION 2: Shipping Address --%>
                 <section>
-                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
+                  <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
                     Shipping Address
                   </h2>
                   <div class="space-y-4">
                     <div>
                       <label for="address" class="block text-sm font-medium text-stone-900 mb-1.5">
-                        Address <span class="text-amber-600">*</span>
+                        Address <span class="text-store-accent">*</span>
                       </label>
                       <input
                         type="text"
@@ -265,7 +268,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                         name="address"
                         value={@address}
                         placeholder="House 14, Osu Badu Street"
-                        class={"w-full bg-white border rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all #{if @form_errors[:address], do: "border-red-400 bg-red-50", else: "border-stone-200"}"}
+                        class={"w-full bg-white border rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-store-accent/30 focus:border-store-accent transition-all #{if @form_errors[:address], do: "border-red-400 bg-red-50", else: "border-stone-200"}"}
                       />
                       <p :if={@form_errors[:address]} class="text-xs text-red-600 mt-1">
                         {@form_errors[:address]}
@@ -274,13 +277,13 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
 
                     <div>
                       <label for="region" class="block text-sm font-medium text-stone-900 mb-1.5">
-                        Region <span class="text-amber-600">*</span>
+                        Region <span class="text-store-accent">*</span>
                       </label>
                       <div class="relative">
                         <select
                           id="region"
                           name="region"
-                          class="cursor-pointer w-full bg-white border border-stone-200 rounded-xl px-4 py-3.5 text-sm text-stone-900 appearance-none focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all"
+                          class="cursor-pointer w-full bg-white border border-stone-200 rounded-xl px-4 py-3.5 text-sm text-stone-900 appearance-none focus:ring-2 focus:ring-store-accent/30 focus:border-store-accent transition-all"
                         >
                           <option value="greater_accra" selected={@region == "greater_accra"}>
                             Greater Accra
@@ -317,7 +320,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                         name="notes"
                         value={@notes}
                         placeholder="Landmark, special instructions, etc."
-                        class="w-full bg-white border border-stone-200 rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all"
+                        class="w-full bg-white border border-stone-200 rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-store-accent/30 focus:border-store-accent transition-all"
                       />
                     </div>
                   </div>
@@ -327,15 +330,15 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
 
                 <%!-- SECTION 3: Delivery Method --%>
                 <section>
-                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
+                  <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
                     Delivery Method
                   </h2>
                   <div class="space-y-3">
                     <%!-- Standard Delivery (selected based on region) --%>
-                    <div class="flex items-center justify-between p-4 sm:p-5 bg-white border-2 border-amber-600 bg-amber-50/40 rounded-xl">
+                    <div class="flex items-center justify-between p-4 sm:p-5 bg-white border-2 border-store-accent bg-store-accent/5 rounded-xl">
                       <div class="flex items-center gap-4">
-                        <div class="w-5 h-5 rounded-full border-2 border-amber-600 flex items-center justify-center shrink-0">
-                          <div class="w-2.5 h-2.5 rounded-full bg-amber-600"></div>
+                        <div class="w-5 h-5 rounded-full border-2 border-store-accent flex items-center justify-center shrink-0">
+                          <div class="w-2.5 h-2.5 rounded-full bg-store-accent"></div>
                         </div>
                         <div>
                           <p class="text-sm font-semibold text-stone-900">Standard Delivery</p>
@@ -366,7 +369,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
 
                 <%!-- SECTION 4: Payment Method --%>
                 <section>
-                  <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-semibold text-stone-900 mb-2">
+                  <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 mb-2">
                     How do you want to pay?
                   </h2>
                   <p class="text-sm text-stone-500 mb-6">Choose your preferred payment method</p>
@@ -613,7 +616,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                         placeholder="Enter code"
                         disabled={@coupon != nil}
                         phx-keydown=""
-                        class={"flex-1 bg-white border rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-amber-600/30 focus:border-amber-600 transition-all #{if @coupon_error, do: "border-red-400", else: "border-stone-200"} disabled:bg-stone-50 disabled:text-stone-400"}
+                        class={"flex-1 bg-white border rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-store-accent/30 focus:border-store-accent transition-all #{if @coupon_error, do: "border-red-400", else: "border-stone-200"} disabled:bg-stone-50 disabled:text-stone-400"}
                       />
                       <button
                         :if={@coupon == nil}
@@ -652,7 +655,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                   <button
                     type="submit"
                     disabled={@processing}
-                    class="cursor-pointer w-full bg-amber-600 text-white py-4 rounded-xl text-sm font-semibold hover:bg-amber-700 disabled:bg-stone-200 disabled:text-stone-400 transition-colors shadow-sm shadow-amber-600/20"
+                    class="cursor-pointer w-full bg-cta-dark text-white py-4 rounded-xl text-sm font-semibold hover:opacity-90 disabled:bg-stone-200 disabled:text-stone-400 disabled:opacity-100 transition-opacity shadow-sm shadow-cta-dark/20"
                   >
                     <%= if @processing do %>
                       <span class="inline-flex items-center gap-2">
@@ -703,12 +706,12 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                 <div class="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm">
                   <%!-- Header --%>
                   <div class="flex items-center justify-between mb-5">
-                    <h2 class="font-[Cormorant,Georgia,serif] text-xl font-semibold text-stone-900">
+                    <h2 class="text-xl font-semibold text-stone-900">
                       Order Summary
                     </h2>
                     <a
-                      href={"/s/#{@store.slug}/cart"}
-                      class="text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors"
+                      href={store_path(@store.slug, "/cart")}
+                      class="text-sm font-medium text-store-accent hover:underline"
                     >
                       Edit
                     </a>
@@ -805,10 +808,10 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
 
                   <%!-- Total --%>
                   <div class="border-t border-stone-200 mt-4 pt-4 flex justify-between items-baseline">
-                    <span class="font-[Cormorant,Georgia,serif] text-lg font-semibold text-stone-900">
+                    <span class="text-lg font-semibold text-stone-900">
                       Total
                     </span>
-                    <span class="font-[Cormorant,Georgia,serif] text-2xl font-bold text-stone-900">
+                    <span class="text-2xl font-bold text-stone-900">
                       {Currency.format_price(@order_total, @store.currency)}
                     </span>
                   </div>
@@ -882,16 +885,25 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p class="text-xs text-stone-400">
-              &copy; 2026 {String.upcase(@store.name)}. All rights reserved.
+              &copy; {Date.utc_today().year} {String.upcase(@store.name)}. All rights reserved.
             </p>
             <div class="flex items-center gap-6">
-              <a href="#" class="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+              <a
+                href={store_path(@store.slug, "/policies#privacy")}
+                class="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+              >
                 Privacy Policy
               </a>
-              <a href="#" class="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+              <a
+                href={store_path(@store.slug, "/policies#terms")}
+                class="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+              >
                 Terms of Service
               </a>
-              <a href="#" class="text-xs text-stone-400 hover:text-stone-600 transition-colors">
+              <a
+                href={store_path(@store.slug, "/policies#shipping")}
+                class="text-xs text-stone-400 hover:text-stone-600 transition-colors"
+              >
                 Refund Policy
               </a>
             </div>
@@ -908,6 +920,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
   attr :order, :any, required: true
   attr :phone, :string, required: true
   attr :timer_seconds, :integer, required: true
+  attr :store, :map, required: true
 
   defp momo_waiting_state(assigns) do
     assigns =
@@ -947,7 +960,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
         </div>
       </div>
 
-      <h3 class="font-[Cormorant,Georgia,serif] text-2xl font-semibold text-stone-900 text-center mb-1">
+      <h3 class="text-2xl font-semibold text-stone-900 text-center mb-1">
         Approve on your phone
       </h3>
       <p class="text-sm text-stone-600 text-center mb-8">
@@ -1021,7 +1034,12 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
 
       <p class="text-center text-xs text-stone-400">
         Didn't receive the prompt?
-        <a href="#" class="text-amber-600 font-medium hover:underline">Get help</a>
+        <a
+          href={store_path(@store.slug, "/contact")}
+          class="text-store-accent font-medium hover:underline"
+        >
+          Get help
+        </a>
       </p>
     </div>
     """

@@ -3,7 +3,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
   Tests for the per-store sitemap.xml endpoint.
 
   The sitemap is the primary mechanism for Google to discover all product
-  and content pages for each Emakola storefront. Without it, products
+  and content pages for each Makola storefront. Without it, products
   that are only reachable via JS-driven pagination or search may never
   be indexed.
   """
@@ -16,6 +16,31 @@ defmodule EmakolaWeb.SitemapControllerTest do
   setup do
     store = create_store!()
     {:ok, store: store}
+  end
+
+  describe "GET /sitemap.xml (platform) — programmatic region pages" do
+    defp region_store!(region) do
+      create_store!(%{
+        name: "Shop #{System.unique_integer([:positive])}",
+        slug: "shop-#{System.unique_integer([:positive])}",
+        region: region,
+        active: true
+      })
+    end
+
+    test "lists indexable region pages and omits thin ones", %{conn: conn} do
+      for _ <- 1..3, do: region_store!("Greater Accra")
+      region_store!("Ashanti")
+
+      body = conn |> get("/sitemap.xml") |> response(200)
+
+      assert body =~ "/shops/greater-accra"
+      refute body =~ "/shops/ashanti"
+
+      # sell-online pages are listed for every region, regardless of shop count
+      assert body =~ "/sell-online/greater-accra"
+      assert body =~ "/sell-online/ashanti"
+    end
   end
 
   describe "GET /s/:store_slug/sitemap.xml" do
@@ -35,6 +60,21 @@ defmodule EmakolaWeb.SitemapControllerTest do
       body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
 
       assert body =~ "/s/#{store.slug}</loc>"
+    end
+
+    test "<loc> URLs use the canonical apex host, not the request host", %{
+      conn: conn,
+      store: store
+    } do
+      apex = EmakolaWeb.SEO.Canonical.base()
+
+      body =
+        %{conn | host: "tenant-subdomain.example.com"}
+        |> get("/s/#{store.slug}/sitemap.xml")
+        |> response(200)
+
+      assert body =~ "#{apex}/s/#{store.slug}</loc>"
+      refute body =~ "tenant-subdomain.example.com"
     end
 
     test "includes active product URLs", %{conn: conn, store: store} do
@@ -153,7 +193,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
 
       body = response(conn, 200)
       assert body =~ "# #{store.name}"
-      assert body =~ "Emakola"
+      assert body =~ "Makola"
     end
 
     test "lists active products", %{conn: conn, store: store} do

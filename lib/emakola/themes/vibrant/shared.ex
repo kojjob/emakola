@@ -11,6 +11,8 @@ defmodule Emakola.Themes.Vibrant.Shared do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias EmakolaWeb.Helpers.Currency
@@ -52,7 +54,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
       <div class="bg-[#FFFBEB] border-b border-[#FDE68A]/60 shadow-sm">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between h-14 sm:h-16">
-            <a href={"/s/#{@store.slug}"} class="flex items-center gap-3 min-w-0">
+            <a href={store_path(@store.slug, "/")} class="flex items-center gap-3 min-w-0">
               <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--theme-primary,#B45309)] to-[var(--theme-highlight,#F59E0B)] flex items-center justify-center flex-shrink-0 shadow-md">
                 <span class="text-sm font-bold text-white">
                   {String.first(@store.name)}
@@ -65,16 +67,12 @@ defmodule Emakola.Themes.Vibrant.Shared do
                 >
                   {@store.name}
                 </div>
-                <div class="flex items-center gap-1 text-xs text-[#92400E] leading-tight">
-                  <span class="w-1.5 h-1.5 rounded-full bg-[#059669] flex-shrink-0"></span>
-                  <span>Open</span>
-                </div>
               </div>
             </a>
 
             <div class="flex items-center gap-1">
               <a
-                href={"/s/#{@store.slug}/products"}
+                href={store_path(@store.slug, "/products")}
                 class="p-2.5 rounded-xl hover:bg-[#FEF3C7] transition-colors"
                 aria-label="Search products"
               >
@@ -93,7 +91,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
                 </svg>
               </a>
               <a
-                href={"/s/#{@store.slug}/wishlist"}
+                href={store_path(@store.slug, "/wishlist")}
                 class="p-2.5 rounded-xl hover:bg-[#FEF3C7] transition-colors"
                 aria-label="Wishlist"
               >
@@ -112,7 +110,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
                 </svg>
               </a>
               <a
-                href={"/s/#{@store.slug}/cart"}
+                href={store_path(@store.slug, "/cart")}
                 class="relative p-2.5 rounded-xl hover:bg-[#FEF3C7] transition-colors"
                 aria-label={"Shopping cart, #{@cart_count} items"}
               >
@@ -131,7 +129,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
                 </svg>
                 <span
                   :if={@cart_count > 0}
-                  class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-[var(--theme-primary,#DC2626)] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1"
+                  class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-[var(--theme-primary,#B45309)] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1"
                 >
                   {@cart_count}
                 </span>
@@ -157,7 +155,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
   def category_circle(assigns) do
     ~H"""
     <a
-      href={"/s/#{@store_slug}/category/#{@category.slug}"}
+      href={store_path(@store_slug, "/category/#{@category.slug}")}
       class="flex flex-col items-center gap-2 flex-shrink-0 group"
       role="listitem"
     >
@@ -211,7 +209,7 @@ defmodule Emakola.Themes.Vibrant.Shared do
     assigns = assign(assigns, :image, first_image(assigns.product))
 
     ~H"""
-    <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="group block">
+    <a href={store_path(@store.slug, "/products/#{@product.slug}")} class="group block">
       <div class="relative rounded-2xl overflow-hidden mb-3 bg-[#FEF3C7]/40 shadow-md shadow-amber-100 group-hover:shadow-xl group-hover:shadow-amber-200/60 transition-all duration-300">
         <.optimized_image
           :if={@image}

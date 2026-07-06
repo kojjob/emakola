@@ -31,6 +31,15 @@ config :emakola, EmakolaWeb.Endpoint,
 # at the `config/runtime.exs`.
 config :emakola, Emakola.Mailer, adapter: Swoosh.Adapters.Local
 
+# Sending domain for outbound mail "from" addresses (noreply@, billing@).
+# Single source of truth; overridable at runtime via MAIL_FROM_DOMAIN.
+config :emakola, :mail_from_domain, "emakola.com"
+
+# Platform fee on dropship margin, in basis points (1000 = 10%). Routed to the
+# platform main account by the gateway split. Must exceed the gateway's
+# effective transaction fee (~1.95% Paystack) or thin-margin orders net negative.
+config :emakola, :dropship_fee_rate_bps, 1000
+
 # Company/contact page channels (env-overridable in runtime.exs)
 config :emakola,
   contact_email: "support@emakola.com",
@@ -88,7 +97,9 @@ config :emakola,
     Emakola.Stores,
     Emakola.Content,
     Emakola.Pages,
-    Emakola.Fulfillment
+    Emakola.Fulfillment,
+    Emakola.Security,
+    Emakola.AI
   ]
 
 # JSON:API content type (ash_json_api)
@@ -113,10 +124,13 @@ config :emakola, Oban,
     mailers: 20,
     billing: 5,
     notifications: 5,
+    payouts: 5,
     webhooks: 5,
     images: 3,
     orders: 5,
-    whatsapp_catalog: 3
+    whatsapp_catalog: 3,
+    # Low concurrency bounds AI spend + respects Anthropic rate limits.
+    ai_content: 3
   ],
   repo: Emakola.Repo,
   plugins: [
@@ -128,9 +142,32 @@ config :emakola, Oban,
     {Oban.Plugins.Cron,
      crontab: [
        {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker},
-       {"0 */6 * * *", Emakola.Cart.CartCleanupWorker}
+       {"0 */6 * * *", Emakola.Cart.CartCleanupWorker},
+       {"30 3 * * *", Emakola.Accounts.Workers.PhoneOtpPruneWorker}
      ]}
   ]
+
+# AI content generation (SEO Phase 3). The Claude generator ships dark until
+# ANTHROPIC_API_KEY is set (runtime.exs); tests swap in GeneratorMock (test.exs).
+config :emakola,
+  content_generator: Emakola.Content.Generators.Claude,
+  ai_rate_limit_per_day: 50
+
+# AI foundation. The swappable LLM provider (Anthropic only for now); tests swap
+# in Emakola.AI.ProviderMock (test.exs). Pricing is micro-USD (millionths of a
+# dollar) PER TOKEN — a model's $/MTok maps 1:1 ($1/1M tokens = 1 micro-USD/token).
+# Drives Emakola.AI.Usage cost tracking; never floats.
+config :emakola,
+  ai_provider: Emakola.AI.Providers.Anthropic,
+  ai_model_pricing: %{
+    "claude-haiku-4-5" => %{input: 1, output: 5},
+    "claude-sonnet-4-6" => %{input: 3, output: 15},
+    "claude-opus-4-8" => %{input: 5, output: 25}
+  }
+
+# Google Search Console fetcher (SEO Phase 5). Ships dark until :gsc_credentials
+# is set (runtime.exs) — both this and the worker's stub no-op when dark.
+config :emakola, :gsc_fetcher, Emakola.Analytics.GscFetcher
 
 # Demo mode is a runtime knob — set in config/runtime.exs (compile-time
 # evaluation here would bake `false` into release builds permanently).
@@ -151,6 +188,22 @@ config :emakola, Emakola.Payments.HubtelClient, base_url: "https://api.hubtel.co
 # UndefinedFunctionError (ExAws.Request.Hackney) at runtime. Use the Req
 # adapter (req is already a dependency).
 config :ex_aws, http_client: ExAws.Request.Req
+
+# Error monitoring (Sentry). The DSN is supplied at runtime (SENTRY_DSN in
+# runtime.exs); with no DSN, Sentry initialises but sends nothing. Uses Finch
+# (Sentry's default HTTP client) — no hackney needed.
+config :sentry,
+  environment_name: config_env(),
+  enable_source_code_context: true,
+  root_source_code_paths: [File.cwd!()],
+  in_app_otp_apps: [:emakola]
+
+# Forward crash reports and error-level logs to Sentry. Activated by
+# `Logger.add_handlers(:emakola)` in Emakola.Application.
+config :emakola, :logger, [
+  {:handler, :sentry_handler, Sentry.LoggerHandler,
+   %{config: %{metadata: [:request_id], capture_log_messages: true, level: :error}}}
+]
 
 # Import branding and plans config
 import_config "branding.exs"

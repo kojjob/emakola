@@ -91,8 +91,7 @@ defmodule Emakola.Themes.HomeLiving do
         items: [
           %{icon: "local_shipping", title: "Free Delivery", subtitle: "On orders GHS 500+"},
           %{icon: "verified_user", title: "Safe Payment", subtitle: "Mobile money & card"},
-          %{icon: "schedule", title: "Daily Curation", subtitle: "Hand-picked pieces"},
-          %{icon: "favorite", title: "Happy Customers", subtitle: "10k+ across Ghana"}
+          %{icon: "schedule", title: "Daily Curation", subtitle: "Hand-picked pieces"}
         ]
       },
       trust: %{
@@ -155,4 +154,20 @@ defmodule Emakola.Themes.HomeLiving do
 
   @impl true
   defdelegate render_about(assigns), to: Emakola.Themes.Atelier.About, as: :render
+
+  @impl true
+  def storefront_nav(assigns) do
+    Emakola.Themes.HomeLiving.Shared.home_living_nav(%{
+      __changed__: nil,
+      store: assigns.store,
+      cart_count: Map.get(assigns, :cart_count) || 0,
+      on_dark: false,
+      active_path: Map.get(assigns, :active_path) || ""
+    })
+  end
+
+  @impl true
+  def storefront_footer(assigns) do
+    Emakola.Themes.HomeLiving.Shared.home_living_footer(%{__changed__: nil, store: assigns.store})
+  end
 end

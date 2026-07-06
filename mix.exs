@@ -75,6 +75,9 @@ defmodule Emakola.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
+      # Resolve the real client IP from X-Forwarded-For behind the Fly proxy
+      # so rate limiting and the Hubtel IP allowlist key on the actual client.
+      {:remote_ip, "~> 1.2"},
       {:swoosh, "~> 1.17"},
       {:phoenix_live_dashboard, "~> 0.8"},
       {:hammer, "~> 7.0"},
@@ -93,6 +96,9 @@ defmodule Emakola.MixProject do
 
       # Background jobs
       {:oban, "~> 2.18"},
+
+      # Error monitoring (uses Finch — already a dep — not hackney)
+      {:sentry, "~> 13.0"},
 
       # URL-safe slug generation (Unicode-aware)
       {:slugify, "~> 1.3"},

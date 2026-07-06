@@ -333,6 +333,10 @@ defmodule Emakola.Orders.Order do
       )
 
       change(Emakola.Orders.Changes.EnqueueFulfillment)
+
+      # Stock is decremented only now — on confirmed payment — not at checkout,
+      # so abandoned/unpaid orders never bleed inventory.
+      change(Emakola.Orders.Changes.DecrementStock)
     end
 
     update :start_processing do

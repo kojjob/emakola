@@ -144,3 +144,10 @@ stitch-store-preview.png
 #   Merchant API: mix openapi.spec.json --spec EmakolaWeb.ApiRouter --pretty=true
 #   Shop browse API (CW1 contract): mix openapi.spec.json --spec EmakolaWeb.ShopApiRouter --pretty=true
 /openapi.json
+
+# Claude tooling
+.claire/
+
+# Demo & smoke-test screenshot/recording artifacts
+/demo-shots/
+/smoke-shots/

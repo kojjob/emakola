@@ -9,6 +9,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   permission revocation after mount is caught before the write.
   """
   use EmakolaWeb, :live_view
+  require Logger
 
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_stores}
 
@@ -114,7 +115,12 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
 
     assign(socket, :stores, stores)
   rescue
-    _ -> assign(socket, :stores, [])
+    exception ->
+      Logger.error(
+        "[platform.store_live] load_stores loading stores raised: #{Exception.message(exception)}"
+      )
+
+      assign(socket, :stores, [])
   end
 
   @impl true
@@ -127,8 +133,8 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
           <h1 class="text-2xl font-bold text-gray-900">Stores</h1>
           <p class="text-sm text-gray-500 mt-1">
             {if @stores,
-              do: "All stores on the Emakola platform (#{length(@stores)} shown)",
-              else: "All stores on the Emakola platform — loading…"}
+              do: "All stores on the Makola platform (#{length(@stores)} shown)",
+              else: "All stores on the Makola platform — loading…"}
           </p>
         </div>
       </div>
@@ -160,7 +166,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
       </div>
 
       <%!-- Stores table --%>
-      <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead>
@@ -273,13 +279,21 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                   {Calendar.strftime(store.inserted_at, "%b %d, %Y")}
                 </td>
                 <td class="px-6 py-4 text-right">
-                  <a
-                    href={"/s/#{store.slug}"}
-                    target="_blank"
-                    class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    Storefront <span class="material-symbols-outlined text-xs">open_in_new</span>
-                  </a>
+                  <div class="flex items-center justify-end gap-3">
+                    <.link
+                      navigate={~p"/platform/stores/#{store.id}"}
+                      class="text-xs text-gray-600 hover:text-gray-900 font-medium"
+                    >
+                      Manage
+                    </.link>
+                    <a
+                      href={"/s/#{store.slug}"}
+                      target="_blank"
+                      class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Storefront <span class="material-symbols-outlined text-xs">open_in_new</span>
+                    </a>
+                  </div>
                 </td>
               </tr>
             </tbody>

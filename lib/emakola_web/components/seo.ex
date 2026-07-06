@@ -11,7 +11,7 @@ defmodule EmakolaWeb.SEO do
       `twitter:description`, `twitter:image`)
     * Optional JSON-LD structured data (Product, Store, BreadcrumbList, etc.)
 
-  ## Why this component matters for Emakola
+  ## Why this component matters for Makola
 
   West African customers share product links **primarily via WhatsApp**.
   When a merchant sends `https://store.emakola.com/products/kente-shirt`
@@ -38,15 +38,15 @@ defmodule EmakolaWeb.SEO do
       |> assign(:meta_description, product.seo_description || product.description)
       |> assign(:og_image, first_product_image_url(product))
       |> assign(:og_type, "product")
-      |> assign(:canonical_url, "https://\#{store.slug}.emakola.com/products/\#{product.slug}")
+      |> assign(:canonical_url, EmakolaWeb.SEO.Canonical.product_url(store, product))
       |> assign(:json_ld, Emakola.SEO.product_json_ld(product, variants, store))
   """
   use Phoenix.Component
 
   import Phoenix.HTML, only: [raw: 1]
 
-  @default_description "Your online store powered by Emakola"
-  @default_site_name "Emakola"
+  @default_description "Your online store powered by Makola"
+  @default_site_name "Makola"
 
   @doc """
   Renders the full SEO / Open Graph / Twitter Card / JSON-LD metadata
@@ -80,7 +80,7 @@ defmodule EmakolaWeb.SEO do
 
   attr :site_name, :string,
     default: @default_site_name,
-    doc: "Site name shown in link previews (e.g., \"Emakola\")."
+    doc: "Site name shown in link previews (e.g., \"Makola\")."
 
   attr :robots, :string,
     default: "index, follow",
@@ -101,6 +101,7 @@ defmodule EmakolaWeb.SEO do
     <meta property="og:title" content={@title} />
     <meta property="og:description" content={@description} />
     <meta :if={@og_image} property="og:image" content={@og_image} />
+    <meta :if={@og_image} property="og:image:alt" content={@title} />
     <meta :if={@canonical_url} property="og:url" content={@canonical_url} />
     <meta property="og:site_name" content={@site_name} />
 
@@ -108,6 +109,7 @@ defmodule EmakolaWeb.SEO do
     <meta name="twitter:title" content={@title} />
     <meta name="twitter:description" content={@description} />
     <meta :if={@og_image} name="twitter:image" content={@og_image} />
+    <meta :if={@og_image} name="twitter:image:alt" content={@title} />
 
     <%!--
       HEEx treats <script> tag content as raw text — curly-brace

@@ -8,8 +8,8 @@ defmodule EmakolaWeb.Company.PrivacyLive do
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket,
-       page_title: "Privacy Policy — Emakola",
-       meta_description: "How Emakola collects, uses, and protects merchant and customer data.",
+       page_title: "Privacy Policy — Makola",
+       meta_description: "How Makola collects, uses, and protects merchant and customer data.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/privacy"),
        mobile_menu_open: false
@@ -26,19 +26,17 @@ defmodule EmakolaWeb.Company.PrivacyLive do
     ~H"""
     <div class="min-h-screen bg-white font-body antialiased">
       <.landing_nav mobile_menu_open={@mobile_menu_open} />
-      <main class="pt-16">
-        <.page_hero
-          eyebrow="Legal"
+      <main>
+        <.legal_layout
           title="Privacy Policy"
           subtitle="How we collect, use, and protect your information."
-        />
-
-        <.legal_layout title="Privacy Policy" last_updated="June 15, 2026">
+          last_updated="June 15, 2026"
+        >
           <:section id="introduction" title="Introduction">
             <p class="text-[#5f6b7a] leading-relaxed">
-              This Privacy Policy explains how Emakola ("we", "us", "our") collects, uses, and
+              This Privacy Policy explains how Makola ("we", "us", "our") collects, uses, and
               protects personal information when you use our platform, websites, and services.
-              By using Emakola you agree to the practices described here.
+              By using Makola you agree to the practices described here.
             </p>
             <p class="text-[#5f6b7a] leading-relaxed">
               We take privacy seriously and are committed to handling your information with
@@ -49,14 +47,14 @@ defmodule EmakolaWeb.Company.PrivacyLive do
 
           <:section id="who-we-are" title="Who we are">
             <p class="text-[#5f6b7a] leading-relaxed">
-              Emakola operates a multi-tenant commerce platform that enables merchants in Ghana
+              Makola operates a multi-tenant commerce platform that enables merchants in Ghana
               and Nigeria to sell online. Each merchant runs their own independent store and acts
-              as the controller of their customers' data; Emakola processes data on the merchant's
+              as the controller of their customers' data; Makola processes data on the merchant's
               behalf as the platform operator.
             </p>
             <p class="text-[#5f6b7a] leading-relaxed">
               Merchants are responsible for their own privacy notices to their customers and for
-              complying with applicable data protection law in their jurisdiction. Emakola provides
+              complying with applicable data protection law in their jurisdiction. Makola provides
               the technical infrastructure and tooling.
             </p>
           </:section>
@@ -83,7 +81,7 @@ defmodule EmakolaWeb.Company.PrivacyLive do
 
           <:section id="how-we-use-it" title="How we use it">
             <p class="text-[#5f6b7a] leading-relaxed">
-              We use the information we collect to operate and improve the Emakola platform,
+              We use the information we collect to operate and improve the Makola platform,
               process transactions, send order and account notifications (via email, SMS, and
               WhatsApp), provide customer support, detect and prevent fraud, and comply with
               legal obligations.
@@ -97,14 +95,14 @@ defmodule EmakolaWeb.Company.PrivacyLive do
 
           <:section id="payments" title="Payment processing">
             <p class="text-[#5f6b7a] leading-relaxed">
-              Payments on the Emakola platform are processed by third-party payment providers
+              Payments on the Makola platform are processed by third-party payment providers
               including Paystack, Hubtel, and mobile-money operators (MTN MoMo, Vodafone Cash,
               AirtelTigo). Payment data — including card details and mobile-money account numbers
               — is transmitted directly to and stored by these providers under their own security
               standards and privacy policies.
             </p>
             <p class="text-[#5f6b7a] leading-relaxed">
-              Emakola does not store full card numbers, CVV codes, or mobile-money PINs on our
+              Makola does not store full card numbers, CVV codes, or mobile-money PINs on our
               servers at any time. We receive only the transaction reference, amount, status, and
               the masked identifier needed to display order history.
             </p>
@@ -119,7 +117,7 @@ defmodule EmakolaWeb.Company.PrivacyLive do
             </p>
             <p class="text-[#5f6b7a] leading-relaxed">
               We may disclose information where required by law or to protect the rights, property,
-              or safety of Emakola, our merchants, customers, or the public. We will notify you
+              or safety of Makola, our merchants, customers, or the public. We will notify you
               of any such disclosure where permitted by law.
             </p>
           </:section>
@@ -173,7 +171,7 @@ defmodule EmakolaWeb.Company.PrivacyLive do
 
           <:section id="children" title="Children">
             <p class="text-[#5f6b7a] leading-relaxed">
-              Emakola is not directed at children under the age of 18 and we do not knowingly
+              Makola is not directed at children under the age of 18 and we do not knowingly
               collect personal data from minors. If you believe a child has provided us with
               personal information, please contact us and we will delete it promptly.
             </p>
@@ -181,7 +179,7 @@ defmodule EmakolaWeb.Company.PrivacyLive do
 
           <:section id="international" title="International transfers">
             <p class="text-[#5f6b7a] leading-relaxed">
-              Emakola operates from Ghana and our primary infrastructure is hosted within the
+              Makola operates from Ghana and our primary infrastructure is hosted within the
               European Economic Area (EEA) or equivalent jurisdictions with adequate data
               protection laws. Where we transfer data internationally, we apply appropriate
               safeguards such as standard contractual clauses or equivalent mechanisms.

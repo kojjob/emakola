@@ -120,7 +120,16 @@ defmodule Emakola.Catalog.Image do
   end
 
   actions do
-    defaults([:read, :destroy])
+    defaults([:read])
+
+    destroy :destroy do
+      primary?(true)
+      # DeleteImageFiles enqueues object-storage cleanup (a side effect), so the
+      # destroy can't run atomically — opt out of the atomic requirement.
+      require_atomic?(false)
+      # Enqueue object-storage cleanup so the deleted row's files aren't orphaned.
+      change(Emakola.Catalog.Changes.DeleteImageFiles)
+    end
 
     create :create do
       accept([

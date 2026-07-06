@@ -10,17 +10,20 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   3. Assign current_user, current_session_id, current_merchant,
      current_store accordingly
   """
+  require Logger
+
   import Phoenix.Component, only: [assign: 2]
 
   def on_mount(:default, _params, session, socket) do
-    socket = assign(socket, active_nav: :dashboard, setup_banner_dismissed: false)
+    socket =
+      assign(socket, active_nav: :dashboard, setup_banner_dismissed: false, impersonator: nil)
 
     case resolve_platform_session(socket, session["platform_session_token"]) do
       {:ok, socket} ->
         {:cont, attach_notification_hook(socket)}
 
       :error ->
-        resolve_merchant_token(socket, session["user_token"])
+        resolve_merchant_token(socket, session["user_token"], session)
     end
   end
 
@@ -31,7 +34,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
         Emakola.Accounts.Sessions.touch(user_session)
       end
 
-      {notifs, unread} = load_notifications(user.id)
+      {notifs, unread} =
+        if Phoenix.LiveView.connected?(socket), do: load_notifications(user.id), else: {[], 0}
 
       {:ok,
        assign(socket,
@@ -49,32 +53,53 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
     end
   end
 
-  defp resolve_merchant_token(socket, signed_token) do
-    case EmakolaWeb.AuthTokens.verify_subject(signed_token) do
-      {:error, _reason} ->
-        {:cont, assign_unauthenticated(socket)}
+  # The `:user_token` path also carries platform-staff impersonation: when the
+  # session holds an active `:impersonation`, the resolved merchant is the
+  # impersonated one and `impersonator` is the real staff user (for the banner).
+  # An expired window bounces to the exit controller, which restores the staff
+  # session. A normal merchant login has no `:impersonation` → impersonator nil.
+  defp resolve_merchant_token(socket, signed_token, session) do
+    case impersonation_state(session) do
+      :expired ->
+        {:halt, Phoenix.LiveView.redirect(socket, to: "/platform/impersonate/exit")}
 
-      {:ok, subject} ->
-        socket =
-          socket
-          |> resolve_merchant(subject)
-          |> attach_notification_hook()
+      state ->
+        impersonator =
+          case state do
+            {:active, staff} -> staff
+            _ -> nil
+          end
 
-        {:cont, socket}
+        case EmakolaWeb.AuthTokens.verify_subject(signed_token) do
+          {:error, _reason} ->
+            {:cont, assign_unauthenticated(socket)}
+
+          {:ok, subject} ->
+            {:cont,
+             socket
+             |> resolve_merchant(subject, impersonator)
+             |> attach_notification_hook()}
+        end
     end
   end
 
-  defp resolve_merchant(socket, token) do
+  defp resolve_merchant(socket, token, impersonator) do
     case AshAuthentication.subject_to_user(token, Emakola.Accounts.Merchant) do
       {:ok, merchant} ->
         store = load_merchant_store(merchant.id)
         {notifs, unread} = load_notifications(nil)
-        stats = load_store_stats(store)
+        # Defer the 4 stat-count queries to the connected mount — the disconnected
+        # dead render throws them away (CLAUDE.md: no DB work in the dead render).
+        stats =
+          if Phoenix.LiveView.connected?(socket),
+            do: load_store_stats(store),
+            else: load_store_stats(nil)
 
         assign(socket,
           current_merchant: merchant,
           current_store: store,
           current_user: nil,
+          impersonator: impersonator,
           onboarding_complete: true,
           notifications: notifs,
           unread_notification_count: unread,
@@ -89,11 +114,35 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
     end
   end
 
+  # `:none` (no/!impersonation), `:expired` (window elapsed → force exit), or
+  # `{:active, staff_user}`. Only the impersonation start controller ever sets
+  # `:impersonation`, so a real merchant login is always `:none`.
+  defp impersonation_state(session) do
+    case session["impersonation"] do
+      %{"expires_at" => expires_at, "staff_user_id" => staff_id} ->
+        if expired?(expires_at) do
+          :expired
+        else
+          case Emakola.Accounts.get_user_by_id(staff_id, authorize?: false) do
+            {:ok, staff} -> {:active, staff}
+            _ -> :expired
+          end
+        end
+
+      _ ->
+        :none
+    end
+  end
+
+  defp expired?(expires_at) when is_integer(expires_at), do: System.os_time(:second) >= expires_at
+  defp expired?(_), do: true
+
   defp assign_unauthenticated(socket) do
     assign(socket,
       current_merchant: nil,
       current_store: nil,
       current_user: nil,
+      impersonator: nil,
       onboarding_complete: false,
       notifications: [],
       unread_notification_count: 0,
@@ -170,7 +219,9 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       pending_orders: pending_order_count || 0
     }
   rescue
-    _ -> %{products: 0, orders: 0, customers: 0, pending_orders: 0}
+    exception ->
+      Logger.error("[assign_defaults] load_store_stats raised: #{Exception.message(exception)}")
+      %{products: 0, orders: 0, customers: 0, pending_orders: 0}
   end
 
   defp load_notifications(user_id) do
@@ -189,6 +240,8 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
         end
     end
   rescue
-    _ -> {[], 0}
+    exception ->
+      Logger.error("[assign_defaults] load_notifications raised: #{Exception.message(exception)}")
+      {[], 0}
   end
 end

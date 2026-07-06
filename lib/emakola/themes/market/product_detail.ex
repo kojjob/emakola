@@ -13,6 +13,8 @@ defmodule Emakola.Themes.Market.ProductDetail do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   import EmakolaWeb.StorefrontComponents,
     only: [image_placeholder: 1, bottom_nav: 1, optimized_image: 1]
 
@@ -26,7 +28,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
       <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#E2E8F0]/80 transition-all">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between h-14 sm:h-16">
-            <a href={"/s/#{@store.slug}"} class="flex items-center gap-2.5 min-w-0">
+            <a href={store_path(@store.slug, "/")} class="flex items-center gap-2.5 min-w-0">
               <div class="w-9 h-9 rounded-full bg-gradient-to-br from-[#B45309] to-[#D97706] flex items-center justify-center flex-shrink-0">
                 <span class="text-sm font-bold text-white">
                   {String.first(@store.name)}
@@ -41,7 +43,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
 
             <div class="flex items-center gap-1">
               <a
-                href={"/s/#{@store.slug}/products"}
+                href={store_path(@store.slug, "/products")}
                 class="p-2.5 rounded-xl hover:bg-[#F1F5F9] transition-colors"
                 aria-label="Search products"
               >
@@ -60,7 +62,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 </svg>
               </a>
               <a
-                href={"/s/#{@store.slug}/wishlist"}
+                href={store_path(@store.slug, "/wishlist")}
                 class="p-2.5 rounded-xl hover:bg-[#F1F5F9] transition-colors hidden sm:flex"
                 aria-label="Wishlist"
               >
@@ -79,7 +81,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 </svg>
               </a>
               <a
-                href={"/s/#{@store.slug}/cart"}
+                href={store_path(@store.slug, "/cart")}
                 class="relative p-2.5 rounded-xl hover:bg-[#F1F5F9] transition-colors"
                 aria-label={"Shopping cart, #{@cart_count} items"}
               >
@@ -115,7 +117,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
       >
         <ol class="flex items-center gap-2 text-sm text-[#94A3B8]">
           <li>
-            <a href={"/s/#{@store.slug}"} class="hover:text-[#475569] transition-colors">
+            <a href={store_path(@store.slug, "/")} class="hover:text-[#475569] transition-colors">
               {@store.name}
             </a>
           </li>
@@ -131,7 +133,10 @@ defmodule Emakola.Themes.Market.ProductDetail do
             </svg>
           </li>
           <li>
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-[#475569] transition-colors">
+            <a
+              href={store_path(@store.slug, "/products")}
+              class="hover:text-[#475569] transition-colors"
+            >
               Products
             </a>
           </li>
@@ -228,8 +233,11 @@ defmodule Emakola.Themes.Market.ProductDetail do
           <div class="bg-white lg:bg-transparent">
             <%!-- Product Header --%>
             <section class="px-4 sm:px-6 lg:px-0 pt-5 lg:pt-2 pb-5 border-b border-[#E2E8F0] lg:border-none">
-              <%!-- Badge --%>
-              <span class="inline-flex items-center gap-1.5 bg-gradient-to-r from-[#FEF3C7] to-[#FDE68A] text-[#92400E] text-[0.6875rem] font-bold tracking-wider uppercase px-3 py-1 rounded-full mb-3">
+              <%!-- Badge — only for genuinely recent products --%>
+              <span
+                :if={new_arrival?(@product)}
+                class="inline-flex items-center gap-1.5 bg-gradient-to-r from-[#FEF3C7] to-[#FDE68A] text-[#92400E] text-[0.6875rem] font-bold tracking-wider uppercase px-3 py-1 rounded-full mb-3"
+              >
                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
@@ -240,24 +248,6 @@ defmodule Emakola.Themes.Market.ProductDetail do
               <h1 class="text-2xl lg:text-3xl xl:text-[2rem] font-bold text-[#0F172A] leading-tight mb-2">
                 {@product.title}
               </h1>
-
-              <%!-- Rating --%>
-              <div class="flex items-center gap-2 mb-3">
-                <div class="flex items-center gap-0.5">
-                  <svg
-                    :for={_ <- 1..4}
-                    class="w-4 h-4 text-[#F59E0B]"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                  <svg class="w-4 h-4 text-[#F59E0B]/40" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                </div>
-                <span class="text-sm text-[#94A3B8]">4.5</span>
-              </div>
 
               <%!-- Price --%>
               <div class="flex items-baseline gap-2.5 mb-3">
@@ -424,9 +414,10 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 <% end %>
               </button>
 
-              <%!-- WhatsApp button --%>
+              <%!-- WhatsApp button (only when the store has a WhatsApp number) --%>
               <a
-                href={"https://wa.me/?text=Hi%2C%20I'm%20interested%20in%20#{URI.encode(@product.title)}%20from%20#{URI.encode(@store.name)}"}
+                :if={Shared.whatsapp_link(@store, @product.title)}
+                href={Shared.whatsapp_link(@store, @product.title)}
                 target="_blank"
                 rel="noopener noreferrer"
                 class="flex items-center justify-center gap-2.5 w-full h-12 border-[1.5px] border-[#E2E8F0] rounded-full text-[0.9375rem] font-medium text-[#0F172A] hover:border-[#25D366] hover:text-[#25D366] hover:bg-whatsapp/5 transition-all duration-200 group"
@@ -542,21 +533,17 @@ defmodule Emakola.Themes.Market.ProductDetail do
                     />
                   </svg>
                 </summary>
-                <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-[#475569] leading-relaxed space-y-2">
-                  <div class="flex items-start gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-store-accent mt-1.5 flex-shrink-0">
-                    </span>
-                    <p>Delivery within Greater Accra: 1-2 business days.</p>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-store-accent mt-1.5 flex-shrink-0">
-                    </span>
-                    <p>Nationwide delivery: 3-5 business days.</p>
-                  </div>
-                  <div class="flex items-start gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-[#059669] mt-1.5 flex-shrink-0"></span>
-                    <p>Free delivery on orders over GHS 500.</p>
-                  </div>
+                <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-[#475569] leading-relaxed">
+                  <p>
+                    See our
+                    <a
+                      href={store_path(@store.slug, "/policies")}
+                      class="underline hover:text-store-accent"
+                    >
+                      delivery information
+                    </a>
+                    on the policies page.
+                  </p>
                 </div>
               </details>
               <details class="group border-b border-[#E2E8F0] lg:border-[#E2E8F0]/60">
@@ -593,7 +580,14 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 </summary>
                 <div class="px-4 sm:px-6 lg:px-0 pb-5 text-sm text-[#475569] leading-relaxed">
                   <p>
-                    Returns accepted within 7 days of delivery. Items must be unworn and in original packaging.
+                    See our
+                    <a
+                      href={store_path(@store.slug, "/policies")}
+                      class="underline hover:text-store-accent"
+                    >
+                      returns policy
+                    </a>
+                    on the policies page.
                   </p>
                 </div>
               </details>
@@ -608,7 +602,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
           <div class="flex items-center justify-between px-4 sm:px-6 lg:px-8 mb-6 lg:mb-8">
             <h2 class="text-xl lg:text-2xl font-bold text-[#0F172A]">You May Also Like</h2>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="text-sm font-medium text-store-accent hover:text-[#92400E] transition-colors flex items-center gap-1"
             >
               View All
@@ -628,7 +622,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
           <div class="flex gap-3.5 overflow-x-auto px-4 sm:px-6 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden lg:hidden">
             <a
               :for={rp <- @related_products}
-              href={"/s/#{@store.slug}/products/#{rp.slug}"}
+              href={store_path(@store.slug, "/products/#{rp.slug}")}
               class="flex-[0_0_160px] snap-start bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden hover:shadow-md transition-all duration-200 group"
             >
               <div class="w-full aspect-square bg-[#F1F5F9] overflow-hidden">
@@ -659,7 +653,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
           <div class="hidden lg:grid lg:grid-cols-4 gap-5 px-8">
             <a
               :for={rp <- Enum.take(@related_products, 4)}
-              href={"/s/#{@store.slug}/products/#{rp.slug}"}
+              href={store_path(@store.slug, "/products/#{rp.slug}")}
               class="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden hover:shadow-lg hover:border-[#CBD5E1] transition-all duration-300 group"
             >
               <div class="w-full aspect-[3/4] bg-[#F1F5F9] overflow-hidden">
@@ -704,23 +698,6 @@ defmodule Emakola.Themes.Market.ProductDetail do
         uploads={@uploads}
       />
 
-      <%!-- Desktop Footer --%>
-      <footer class="hidden lg:block bg-[#0F172A] text-white/70 mt-0">
-        <div class="max-w-7xl mx-auto px-8 py-12">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#B45309] to-[#D97706] flex items-center justify-center">
-                <span class="text-xs font-bold text-white">{String.first(@store.name)}</span>
-              </div>
-              <span class="text-sm font-semibold text-white">{@store.name}</span>
-            </div>
-            <p class="text-xs text-white/40">
-              &copy; {Date.utc_today().year} {@store.name} · Powered by Emakola
-            </p>
-          </div>
-        </div>
-      </footer>
-
       <%!-- Mobile spacer for bottom nav --%>
       <div class="h-16 sm:hidden"></div>
     </div>
@@ -729,6 +706,17 @@ defmodule Emakola.Themes.Market.ProductDetail do
 
     <.bottom_nav store_slug={@store.slug} active_tab={:home} cart_count={@cart_count} />
     """
+  end
+
+  # -- Helpers --
+
+  # True when the product was added within the last 14 days.
+  defp new_arrival?(product) do
+    case Map.get(product, :inserted_at) do
+      %DateTime{} = dt -> DateTime.diff(DateTime.utc_now(), dt, :day) <= 14
+      %NaiveDateTime{} = ndt -> NaiveDateTime.diff(NaiveDateTime.utc_now(), ndt, :day) <= 14
+      _ -> false
+    end
   end
 
   # -- Components --

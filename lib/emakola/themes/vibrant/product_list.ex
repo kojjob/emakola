@@ -11,6 +11,8 @@ defmodule Emakola.Themes.Vibrant.ProductList do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.Vibrant.Shared
 
   @doc """
@@ -37,13 +39,15 @@ defmodule Emakola.Themes.Vibrant.ProductList do
     ~H"""
     <div class="min-h-screen bg-[#FFFBEB]">
       <%!-- Warm-Toned Header --%>
-      <div class="bg-gradient-to-r from-[var(--theme-primary,#DC2626)] to-[var(--theme-accent,#7C2D12)]">
+      <div class="bg-gradient-to-r from-[var(--theme-primary,#B45309)] to-[var(--theme-accent,#7C2D12)]">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <%!-- Breadcrumb --%>
           <nav aria-label="Breadcrumb" class="mb-4">
             <ol class="flex items-center gap-2 text-xs text-white/60">
               <li>
-                <a href={"/s/#{@store.slug}"} class="hover:text-white transition-colors">Home</a>
+                <a href={store_path(@store.slug, "/")} class="hover:text-white transition-colors">
+                  Home
+                </a>
               </li>
               <li>
                 <svg
@@ -62,11 +66,11 @@ defmodule Emakola.Themes.Vibrant.ProductList do
 
           <h1
             class="text-3xl sm:text-4xl font-bold text-white"
-            style="font-family: 'Playfair Display', serif;"
+            style="font-family: 'Manrope', sans-serif;"
           >
             Shop All
           </h1>
-          <p class="text-white/70 text-sm mt-1" style="font-family: 'DM Sans', sans-serif;">
+          <p class="text-white/70 text-sm mt-1" style="font-family: 'Inter', sans-serif;">
             {length(@products)} products
           </p>
         </div>
@@ -84,12 +88,12 @@ defmodule Emakola.Themes.Vibrant.ProductList do
             class={[
               "flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold transition-all",
               if(is_nil(@selected_category),
-                do: "bg-[var(--theme-primary,#DC2626)] text-white shadow-md shadow-red-200",
+                do: "bg-[var(--theme-primary,#B45309)] text-white shadow-md shadow-amber-200/60",
                 else:
-                  "bg-white text-[#78350F] border border-[#FDE68A] hover:border-[var(--theme-primary,#DC2626)] hover:text-[var(--theme-primary,#DC2626)]"
+                  "bg-white text-[#78350F] border border-[#FDE68A] hover:border-[var(--theme-primary,#B45309)] hover:text-[var(--theme-primary,#B45309)]"
               )
             ]}
-            style="font-family: 'DM Sans', sans-serif;"
+            style="font-family: 'Inter', sans-serif;"
           >
             All
           </button>
@@ -100,12 +104,12 @@ defmodule Emakola.Themes.Vibrant.ProductList do
             class={[
               "flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-semibold transition-all",
               if(@selected_category == cat.id,
-                do: "bg-[var(--theme-primary,#DC2626)] text-white shadow-md shadow-red-200",
+                do: "bg-[var(--theme-primary,#B45309)] text-white shadow-md shadow-amber-200/60",
                 else:
-                  "bg-white text-[#78350F] border border-[#FDE68A] hover:border-[var(--theme-primary,#DC2626)] hover:text-[var(--theme-primary,#DC2626)]"
+                  "bg-white text-[#78350F] border border-[#FDE68A] hover:border-[var(--theme-primary,#B45309)] hover:text-[var(--theme-primary,#B45309)]"
               )
             ]}
-            style="font-family: 'DM Sans', sans-serif;"
+            style="font-family: 'Inter', sans-serif;"
           >
             {cat.name}
           </button>
@@ -133,8 +137,8 @@ defmodule Emakola.Themes.Vibrant.ProductList do
               value={@search_query}
               placeholder="Search products..."
               phx-debounce="300"
-              class="w-full pl-12 pr-4 py-3 border border-[#FDE68A] rounded-full text-sm text-cta-dark bg-white placeholder:text-[#D97706]/50 focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary,#DC2626)] focus:border-transparent shadow-sm"
-              style="font-family: 'DM Sans', sans-serif;"
+              class="w-full pl-12 pr-4 py-3 border border-[#FDE68A] rounded-full text-sm text-cta-dark bg-white placeholder:text-[#D97706]/50 focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary,#B45309)] focus:border-transparent shadow-sm"
+              style="font-family: 'Inter', sans-serif;"
             />
           </div>
         </form>
@@ -159,18 +163,18 @@ defmodule Emakola.Themes.Vibrant.ProductList do
             </div>
             <p
               class="text-[#78350F] font-medium text-lg mb-2"
-              style="font-family: 'Playfair Display', serif;"
+              style="font-family: 'Manrope', sans-serif;"
             >
               No products found
             </p>
-            <p class="text-[#92400E]/70 text-sm mb-4" style="font-family: 'DM Sans', sans-serif;">
+            <p class="text-[#92400E]/70 text-sm mb-4" style="font-family: 'Inter', sans-serif;">
               Try a different search or category
             </p>
             <button
               :if={@search_query != "" || @selected_category}
               phx-click="filter_category"
               phx-value-category_id="all"
-              class="text-sm font-bold text-[var(--theme-primary,#DC2626)] hover:text-[#B91C1C] transition-colors"
+              class="text-sm font-bold text-[var(--theme-primary,#B45309)] hover:text-[#B91C1C] transition-colors"
             >
               Clear filters
             </button>
@@ -183,8 +187,8 @@ defmodule Emakola.Themes.Vibrant.ProductList do
           <div :if={@has_more} class="mt-10 text-center">
             <button
               phx-click="load_more"
-              class="inline-flex items-center gap-2 px-10 py-3.5 bg-[var(--theme-primary,#DC2626)] text-white rounded-full text-sm font-bold hover:bg-[#B91C1C] active:scale-[0.97] transition-all shadow-lg shadow-red-200"
-              style="font-family: 'DM Sans', sans-serif;"
+              class="inline-flex items-center gap-2 px-10 py-3.5 bg-[var(--theme-primary,#B45309)] text-white rounded-full text-sm font-bold hover:bg-[#B91C1C] active:scale-[0.97] transition-all shadow-lg shadow-amber-200/60"
+              style="font-family: 'Inter', sans-serif;"
             >
               Load More
               <svg

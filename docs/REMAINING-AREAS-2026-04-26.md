@@ -1,5 +1,11 @@
 # Emakola — Remaining Work (post-2026-04-25 hardening pass)
 
+> ⚠️ **SUPERSEDED (2026-06-25).** This was the same April-pass backlog as
+> `TODO.md`. It has been re-audited against current code (31 of these items
+> shipped since) and folded into the re-audited **[`TODO.md`](../TODO.md)** —
+> the engineering backlog of record. Operational hub: **[`checklist.md`](../checklist.md)**.
+> Kept for history; **do not track work here.**
+
 **Updated:** 2026-04-26
 
 This is the residual after the 11-commit hardening session on

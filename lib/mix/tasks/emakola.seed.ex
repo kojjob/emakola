@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Emakola.Seed do
     {:ok, user} =
       User
       |> Ash.Changeset.for_create(:register_with_password, %{
-        email: "demo@founderpad.io",
+        email: "demo@emakola.com",
         password: "DemoPassword123!",
         password_confirmation: "DemoPassword123!"
       })
@@ -44,7 +44,7 @@ defmodule Mix.Tasks.Emakola.Seed do
     |> Ash.Changeset.for_update(:update_profile, %{name: "Demo User"})
     |> Ash.update!()
 
-    Mix.shell().info("  Created demo user: Demo User (demo@founderpad.io)")
+    Mix.shell().info("  Created demo user: Demo User (demo@emakola.com)")
 
     # Create demo org
     {:ok, org} =

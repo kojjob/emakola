@@ -278,11 +278,12 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
       |> Ash.Changeset.for_update(:mark_success, %{})
       |> Ash.update!(authorize?: false)
 
+      # Full refund (default amount 500_000) so the payment reaches :refunded.
       refund_event = %{
         "event" => "refund.processed",
         "data" => %{
           "transaction" => %{"reference" => payment.gateway_reference},
-          "amount" => 250_000
+          "amount" => 500_000
         }
       }
 
@@ -338,10 +339,10 @@ defmodule Emakola.Payments.PaymentEdgeCasesTest do
 
       assert success_payment.status == :success
 
-      # success -> refunded
+      # success -> refunded (full refund of the default 500_000 amount)
       {:ok, refunded_payment} =
         success_payment
-        |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 250_000})
+        |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 500_000})
         |> Ash.update(authorize?: false)
 
       assert refunded_payment.status == :refunded

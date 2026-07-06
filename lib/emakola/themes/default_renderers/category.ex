@@ -11,6 +11,8 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   import EmakolaWeb.StorefrontComponents
 
   alias EmakolaWeb.Helpers.Currency
@@ -26,7 +28,8 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
     assigns = assign(assigns, :sort_options, @sort_options)
 
     ~H"""
-    <Emakola.Themes.Atelier.Shared.navbar
+    <Emakola.Themes.DefaultRenderers.Chrome.navbar
+      theme_module={assigns[:theme_module]}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -35,18 +38,18 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
 
     <div class="min-h-screen bg-[#FAFAF9]">
       <%!-- Hero Section --%>
-      <div class="bg-white border-b border-[#E2E8F0]">
+      <div class="bg-white border-b border-stone-200">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           <%!-- Breadcrumb --%>
           <nav class="flex items-center gap-2 text-xs sm:text-sm font-medium mb-6">
             <a
-              href={"/s/#{@store.slug}"}
-              class="text-[#94A3B8] hover:text-[#475569] uppercase tracking-wider transition-colors"
+              href={store_path(@store.slug, "/")}
+              class="text-stone-400 hover:text-stone-600 uppercase tracking-wider transition-colors"
             >
               Shop
             </a>
             <%= if @parent_category do %>
-              <span class="text-[#CBD5E1]">
+              <span class="text-stone-300">
                 <svg
                   class="w-3.5 h-3.5"
                   fill="none"
@@ -58,13 +61,13 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
                 </svg>
               </span>
               <a
-                href={"/s/#{@store.slug}/category/#{@parent_category.slug}"}
-                class="text-[#94A3B8] hover:text-[#475569] uppercase tracking-wider transition-colors"
+                href={store_path(@store.slug, "/category/#{@parent_category.slug}")}
+                class="text-stone-400 hover:text-stone-600 uppercase tracking-wider transition-colors"
               >
                 {@parent_category.name}
               </a>
             <% end %>
-            <span class="text-[#CBD5E1]">
+            <span class="text-stone-300">
               <svg
                 class="w-3.5 h-3.5"
                 fill="none"
@@ -82,7 +85,7 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
           <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-4">
             <% words = String.split(@category.name, " ", parts: 2) %>
             <%= if length(words) > 1 do %>
-              <span class="text-[#0F172A]">{Enum.at(words, 0)}</span>
+              <span class="text-stone-900">{Enum.at(words, 0)}</span>
               <br class="sm:hidden" />
               <span class="text-store-accent">{Enum.at(words, 1)}</span>
             <% else %>
@@ -93,7 +96,7 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
           <%!-- Description --%>
           <p
             :if={@category.description}
-            class="text-base sm:text-lg text-[#64748B] max-w-2xl leading-relaxed"
+            class="text-base sm:text-lg text-stone-500 max-w-2xl leading-relaxed"
           >
             {@category.description}
           </p>
@@ -101,10 +104,10 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
       </div>
 
       <%!-- Filters & Sort Bar --%>
-      <div class="sticky top-14 sm:top-16 z-30 bg-[#FAFAF9] border-b border-[#E2E8F0]">
+      <div class="sticky top-14 sm:top-16 z-30 bg-[#FAFAF9] border-b border-stone-200">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <span class="text-sm text-[#64748B]">
+            <span class="text-sm text-stone-500">
               {length(@filtered_products)} {if length(@filtered_products) == 1,
                 do: "product",
                 else: "products"}
@@ -113,7 +116,7 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
           <div class="flex items-center gap-3">
             <label
               for="sort-select"
-              class="text-xs font-semibold text-[#64748B] uppercase tracking-wider hidden sm:block"
+              class="text-xs font-semibold text-stone-500 uppercase tracking-wider hidden sm:block"
             >
               Sort
             </label>
@@ -121,7 +124,7 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
               id="sort-select"
               phx-change="sort_products"
               name="sort"
-              class="text-sm font-medium text-[#0F172A] bg-white border border-[#E2E8F0] rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-[#B45309]/20 focus:border-[#B45309] cursor-pointer"
+              class="text-sm font-medium text-stone-900 bg-white border border-stone-200 rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-store-accent/20 focus:border-store-accent cursor-pointer"
             >
               <option
                 :for={{label, value} <- @sort_options}
@@ -139,9 +142,9 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 pb-20 sm:pb-10">
         <%= if @filtered_products == [] do %>
           <div class="text-center py-20">
-            <div class="w-20 h-20 rounded-full bg-[#F1F5F9] flex items-center justify-center mx-auto mb-4">
+            <div class="w-20 h-20 rounded-full bg-stone-100 flex items-center justify-center mx-auto mb-4">
               <svg
-                class="w-10 h-10 text-[#CBD5E1]"
+                class="w-10 h-10 text-stone-300"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="1.5"
@@ -154,13 +157,13 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
                 />
               </svg>
             </div>
-            <h3 class="text-lg font-semibold text-[#0F172A] mb-1">No products yet</h3>
-            <p class="text-sm text-[#64748B] mb-6">
+            <h3 class="text-lg font-semibold text-stone-900 mb-1">No products yet</h3>
+            <p class="text-sm text-stone-500 mb-6">
               Check back soon for new arrivals in this category.
             </p>
             <a
-              href={"/s/#{@store.slug}/products"}
-              class="inline-flex items-center gap-2 px-6 py-3 bg-cta-dark text-white text-sm font-semibold rounded-xl hover:bg-[#292524] transition-colors"
+              href={store_path(@store.slug, "/products")}
+              class="inline-flex items-center gap-2 px-6 py-3 bg-cta-dark text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity"
             >
               Browse All Products
               <svg
@@ -246,7 +249,11 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
     </div>
 
     <%!-- Footer --%>
-    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+    <Emakola.Themes.DefaultRenderers.Chrome.footer
+      theme_module={assigns[:theme_module]}
+      store={@store}
+      categories={@categories}
+    />
     <.bottom_nav store_slug={@store.slug} active_tab={:search} cart_count={@cart_count} />
     """
   end
@@ -262,7 +269,7 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
 
     ~H"""
     <div class="group">
-      <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="block">
+      <a href={store_path(@store.slug, "/products/#{@product.slug}")} class="block">
         <div class="relative rounded-xl overflow-hidden mb-3 bg-[#F5F5F4]">
           <img
             :if={@image}
@@ -300,7 +307,7 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
             <button
               phx-click="add_to_cart"
               phx-value-product-id={@product.id}
-              class="w-full py-2.5 text-[11px] font-semibold uppercase tracking-wider rounded-lg bg-cta-dark text-white cursor-pointer hover:bg-[#292524] transition-colors min-h-[40px]"
+              class="w-full py-2.5 text-[11px] font-semibold uppercase tracking-wider rounded-lg bg-cta-dark text-white cursor-pointer hover:opacity-90 transition-opacity min-h-[40px]"
             >
               Add to Cart
             </button>
@@ -308,7 +315,7 @@ defmodule Emakola.Themes.DefaultRenderers.Category do
         </div>
       </a>
 
-      <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="block px-0.5">
+      <a href={store_path(@store.slug, "/products/#{@product.slug}")} class="block px-0.5">
         <h3 class="text-sm font-medium text-cta-dark leading-snug mb-1 line-clamp-1 group-hover:text-store-accent transition-colors">
           {@product.title}
         </h3>

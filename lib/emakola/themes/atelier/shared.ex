@@ -10,6 +10,7 @@ defmodule Emakola.Themes.Atelier.Shared do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.DesignTokens
@@ -49,7 +50,7 @@ defmodule Emakola.Themes.Atelier.Shared do
       .atelier-product-card:hover .atelier-quick-add { opacity: 1; transform: translateY(0); }
       .atelier-quick-add { opacity: 0; transform: translateY(8px); transition: all 0.2s ease; }
       .atelier-category-circle { cursor: pointer; }
-      .atelier-category-circle:hover img { transform: scale(1.1); }
+      .atelier-category-circle:hover img { transform: scale(1.10); }
       .atelier-category-circle:hover .atelier-cat-ring { border-color: var(--theme-primary); }
       @media (prefers-reduced-motion: reduce) {
         .atelier-hero-img { animation: none !important; opacity: 1 !important; }
@@ -153,7 +154,7 @@ defmodule Emakola.Themes.Atelier.Shared do
 
     ~H"""
     <div class="atelier-product-card group">
-      <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="block">
+      <a href={store_path(@store.slug, "/products/#{@product.slug}")} class="block">
         <div class="relative overflow-hidden bg-gray-100 rounded-lg aspect-square mb-3">
           <.optimized_image
             :if={@image}
@@ -167,7 +168,7 @@ defmodule Emakola.Themes.Atelier.Shared do
 
           <%!-- Quick View icon button (top-right, visible on hover) --%>
           <a
-            href={"/s/#{@store.slug}/products/#{@product.slug}"}
+            href={store_path(@store.slug, "/products/#{@product.slug}")}
             class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-gray-50"
             aria-label={"View #{@product.title}"}
           >
@@ -196,7 +197,7 @@ defmodule Emakola.Themes.Atelier.Shared do
           <div :if={@show_add_button} class="absolute bottom-3 left-3 right-3">
             <button
               class={"atelier-quick-add w-full py-3 text-xs font-semibold uppercase tracking-wider #{@btn_classes} text-white cursor-pointer transition-colors duration-200 min-h-[44px]"}
-              style="background: var(--theme-primary);"
+              style="background: var(--theme-accent, #166534);"
               phx-click="add_to_cart"
               phx-value-product-id={@product.id}
             >
@@ -206,7 +207,7 @@ defmodule Emakola.Themes.Atelier.Shared do
         </div>
       </a>
 
-      <a href={"/s/#{@store.slug}/products/#{@product.slug}"} class="block">
+      <a href={store_path(@store.slug, "/products/#{@product.slug}")} class="block">
         <h3 class="text-sm font-medium text-gray-900 leading-snug mb-1 line-clamp-2">
           {@product.title}
         </h3>
@@ -259,7 +260,7 @@ defmodule Emakola.Themes.Atelier.Shared do
 
     ~H"""
     <a
-      href={"/s/#{@store.slug}/products/#{@product.slug}"}
+      href={store_path(@store.slug, "/products/#{@product.slug}")}
       class="group block relative overflow-hidden rounded-xl bg-gray-100 aspect-[4/5] sm:aspect-[3/4] cursor-pointer"
     >
       <.optimized_image
@@ -307,7 +308,7 @@ defmodule Emakola.Themes.Atelier.Shared do
 
     ~H"""
     <a
-      href={"/s/#{@store.slug}/category/#{@category.slug}"}
+      href={store_path(@store.slug, "/category/#{@category.slug}")}
       class="atelier-category-circle flex flex-col items-center gap-2.5 flex-shrink-0 group"
     >
       <div class="atelier-cat-ring w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-2 border-gray-200 transition-colors duration-200">

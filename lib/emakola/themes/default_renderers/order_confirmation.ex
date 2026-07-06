@@ -11,11 +11,14 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias EmakolaWeb.Helpers.Currency
 
   def render(assigns) do
     ~H"""
-    <Emakola.Themes.Atelier.Shared.navbar
+    <Emakola.Themes.DefaultRenderers.Chrome.navbar
+      theme_module={assigns[:theme_module]}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -25,15 +28,15 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
       <%!-- ===== HERO CELEBRATION ===== --%>
       <section class="relative overflow-hidden bg-gradient-to-b from-[#1C1917] via-[#292524] to-[#1C1917] text-white">
         <%!-- Subtle radial glow --%>
-        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(180,83,9,0.15)_0%,_transparent_70%)]">
+        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(255,255,255,0.08)_0%,_transparent_70%)]">
         </div>
 
         <div class="relative max-w-[640px] mx-auto px-4 pt-12 pb-14 sm:pt-16 sm:pb-20 text-center">
           <%!-- Animated checkmark ring --%>
           <div class="relative w-24 h-24 mx-auto mb-6">
-            <div class="absolute inset-0 rounded-full border-2 border-[#B45309]/30 animate-[ring-expand_1s_ease-out_forwards]">
+            <div class="absolute inset-0 rounded-full border-2 border-store-accent/30 animate-[ring-expand_1s_ease-out_forwards]">
             </div>
-            <div class="absolute inset-0 rounded-full bg-gradient-to-br from-[#B45309] to-[#92400E] flex items-center justify-center animate-[checkmark-pop_0.5s_ease-out_forwards] shadow-lg shadow-[#B45309]/25">
+            <div class="absolute inset-0 rounded-full bg-cta-dark flex items-center justify-center animate-[checkmark-pop_0.5s_ease-out_forwards] shadow-lg shadow-cta-dark/25">
               <svg
                 class="w-11 h-11 text-white"
                 fill="none"
@@ -46,7 +49,7 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
             </div>
           </div>
 
-          <h1 class="font-serif text-3xl sm:text-4xl font-semibold tracking-tight mb-2">
+          <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight mb-2">
             Thank you for your order
           </h1>
           <p class="text-[#A8A29E] text-sm sm:text-base">
@@ -77,7 +80,7 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
               <%!-- Step 1 --%>
               <div class="flex-1 text-center">
                 <div class="flex justify-center mb-3">
-                  <div class="w-10 h-10 rounded-full bg-store-accent flex items-center justify-center shadow-md shadow-[#B45309]/20">
+                  <div class="w-10 h-10 rounded-full bg-store-accent flex items-center justify-center shadow-md shadow-store-accent/20">
                     <svg
                       class="w-5 h-5 text-white"
                       fill="none"
@@ -95,7 +98,7 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
 
               <%!-- Connector --%>
               <div class="flex-shrink-0 w-16 sm:w-24 pt-5">
-                <div class="h-px bg-gradient-to-r from-[#B45309] to-[#E7E5E4]"></div>
+                <div class="h-px bg-gradient-to-r from-store-accent to-[#E7E5E4]"></div>
               </div>
 
               <%!-- Step 2 --%>
@@ -318,8 +321,8 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
         <%!-- CTAs --%>
         <div class="space-y-3 mb-6">
           <a
-            href={"/s/#{@store.slug}"}
-            class="group w-full flex items-center justify-center gap-2.5 px-8 py-4 bg-cta-dark text-white text-sm font-semibold tracking-wide rounded-2xl hover:bg-[#292524] transition-all hover:shadow-lg hover:shadow-stone-900/10"
+            href={store_path(@store.slug, "/")}
+            class="group w-full flex items-center justify-center gap-2.5 px-8 py-4 bg-cta-dark text-white text-sm font-semibold tracking-wide rounded-2xl hover:opacity-90 transition-all hover:shadow-lg hover:shadow-stone-900/10"
           >
             Continue Shopping
             <svg
@@ -367,7 +370,11 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
       </div>
     </div>
 
-    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+    <Emakola.Themes.DefaultRenderers.Chrome.footer
+      theme_module={assigns[:theme_module]}
+      store={@store}
+      categories={@categories}
+    />
 
     <style>
       @keyframes checkmark-pop {
@@ -406,7 +413,7 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
   defp status_colors(:shipped), do: {"bg-purple-50", "text-purple-700", "Shipped"}
   defp status_colors(:delivered), do: {"bg-green-50", "text-green-700", "Delivered"}
   defp status_colors(:cancelled), do: {"bg-red-50", "text-red-700", "Cancelled"}
-  defp status_colors(_), do: {"bg-gray-50", "text-gray-700", "Unknown"}
+  defp status_colors(_), do: {"bg-stone-50", "text-stone-700", "Unknown"}
 
   defp status_dot_color(:pending), do: "bg-amber-500"
   defp status_dot_color(:confirmed), do: "bg-green-500"
@@ -414,7 +421,7 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
   defp status_dot_color(:shipped), do: "bg-purple-500"
   defp status_dot_color(:delivered), do: "bg-green-500"
   defp status_dot_color(:cancelled), do: "bg-red-500"
-  defp status_dot_color(_), do: "bg-gray-500"
+  defp status_dot_color(_), do: "bg-stone-500"
 
   # -- Helpers --
 

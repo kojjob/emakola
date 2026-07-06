@@ -1,6 +1,9 @@
 defmodule EmakolaWeb.Auth.LoginLive do
   use EmakolaWeb, :live_view
 
+  import EmakolaWeb.AuthComponents
+  import EmakolaWeb.OAuthComponents
+
   require Logger
 
   @login_limit 10
@@ -23,8 +26,8 @@ defmodule EmakolaWeb.Auth.LoginLive do
         <!-- Top: Brand -->
         <div class="relative z-10">
           <div class="flex items-center gap-2">
-            <img src={~p"/images/emakola-logo.svg"} alt="Emakola" class="h-9 w-auto" />
-            <span class="text-[#f1f5f9] text-xl font-bold tracking-tight">Emakola</span>
+            <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-9 w-auto" />
+            <span class="text-[#f1f5f9] text-xl font-bold tracking-tight">Makola</span>
           </div>
         </div>
         <!-- Middle: Headline + Photo -->
@@ -45,7 +48,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
                 Authentic Growth
               </p>
               <p class="text-[#f1f5f9] text-sm leading-relaxed">
-                Join over 500+ merchants building their businesses on Emakola.
+                Join over 500+ merchants building their businesses on Makola.
               </p>
             </div>
           </div>
@@ -62,8 +65,8 @@ defmodule EmakolaWeb.Auth.LoginLive do
         <div class="w-full max-w-md">
           <!-- Mobile brand (visible on small screens) -->
           <div class="lg:hidden flex items-center justify-center gap-2 mb-8">
-            <img src={~p"/images/emakola-logo.svg"} alt="Emakola" class="h-8 w-auto" />
-            <span class="text-[#0c1526] text-lg font-bold tracking-tight">Emakola</span>
+            <img src={~p"/images/emakola-logo.svg"} alt="Makola" class="h-8 w-auto" />
+            <span class="text-[#0c1526] text-lg font-bold tracking-tight">Makola</span>
           </div>
           <!-- Heading -->
           <div class="mb-8">
@@ -82,15 +85,13 @@ defmodule EmakolaWeb.Auth.LoginLive do
               Create Account
             </a>
           </div>
-          <!-- WhatsApp Button -->
-          <button
-            type="button"
-            disabled
-            class="w-full flex items-center justify-center gap-2 bg-whatsapp hover:bg-[#20bd5a] text-white font-semibold py-3 rounded-xl text-sm transition-all active:scale-[0.98] shadow-sm mb-6 opacity-50 cursor-not-allowed"
-          >
-            <span class="material-symbols-outlined text-xl">chat</span>
-            Continue with WhatsApp (Coming Soon)
-          </button>
+          <!-- WhatsApp Button (ship-dark: shown only when phone auth is enabled) -->
+          <.whatsapp_button
+            :if={Emakola.Accounts.PhoneAuth.enabled?()}
+            href={~p"/auth/whatsapp"}
+            class="mb-6"
+          />
+          <.oauth_buttons subject="merchant" class="mb-6" />
           <!-- OR EMAIL Divider -->
           <div class="relative mb-6">
             <div class="absolute inset-0 flex items-center">
@@ -226,7 +227,8 @@ defmodule EmakolaWeb.Auth.LoginLive do
     # via the platform session flow (/platform/login).
     case try_merchant_login(params) do
       {:ok, user} ->
-        token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(user))
+        token =
+          EmakolaWeb.AuthTokens.sign_subject_exchange(AshAuthentication.user_to_subject(user))
 
         # Log the login to audit trail (safely — connect_info may not be available)
         try do
@@ -246,6 +248,13 @@ defmodule EmakolaWeb.Auth.LoginLive do
          |> redirect(to: "/auth/session?token=#{URI.encode_www_form(token)}")}
 
       {:error, _} ->
+        Emakola.Security.record(%{
+          event_type: :auth_failed,
+          subject_type: :merchant,
+          identifier: params["email"],
+          ip: ip
+        })
+
         {:noreply,
          socket
          |> put_flash(:error, "Invalid email or password")

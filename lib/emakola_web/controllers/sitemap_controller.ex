@@ -1,9 +1,9 @@
 defmodule EmakolaWeb.SitemapController do
   @moduledoc """
   Generates per-store sitemap.xml for Google and other search engine crawlers.
-  It also serves the platform-level (apex) sitemap at `/sitemap.xml` for Emakola's own marketing pages.
+  It also serves the platform-level (apex) sitemap at `/sitemap.xml` for Makola's own marketing pages.
 
-  Each Emakola storefront gets its own sitemap at `/s/:store_slug/sitemap.xml`.
+  Each Makola storefront gets its own sitemap at `/s/:store_slug/sitemap.xml`.
   The sitemap lists all indexable public pages: store home, product list,
   individual active products, categories, about, blog posts, and recipes.
 
@@ -27,14 +27,14 @@ defmodule EmakolaWeb.SitemapController do
   use EmakolaWeb, :controller
 
   alias EmakolaWeb.Helpers.StoreResolver
-
-  require Ash.Query
+  alias EmakolaWeb.Plugs.ResolveStoreHost
+  alias EmakolaWeb.SEO.Canonical
 
   @doc "Platform-level sitemap for the apex domain (marketing pages only)."
   def platform(conn, _params) do
     base = EmakolaWeb.Endpoint.url()
 
-    entries =
+    marketing_entries =
       [
         "/",
         "/pricing",
@@ -53,6 +53,30 @@ defmodule EmakolaWeb.SitemapController do
         "  <url><loc>#{xml_escape(base <> path)}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>"
       end)
 
+    # Programmatic /shops/:region pages — only regions with enough active shops
+    # to be indexable (matches ShopsLive's noindex guardrail, so we never list a
+    # noindex page in the sitemap).
+    region_entries =
+      EmakolaWeb.SEO.Regions.indexable()
+      |> Enum.map_join("\n", fn {_name, slug} ->
+        loc = xml_escape(base <> "/shops/" <> slug)
+        "  <url><loc>#{loc}</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>"
+      end)
+
+    # "Sell online in {region}" merchant-acquisition pages — one per region,
+    # always index-worthy (templated marketing, not listings-gated).
+    sell_online_entries =
+      EmakolaWeb.SEO.Regions.names()
+      |> Enum.map_join("\n", fn name ->
+        loc = xml_escape(base <> "/sell-online/" <> EmakolaWeb.SEO.Regions.slug(name))
+        "  <url><loc>#{loc}</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>"
+      end)
+
+    entries =
+      [marketing_entries, region_entries, sell_online_entries]
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.join("\n")
+
     xml = """
     <?xml version="1.0" encoding="UTF-8"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -65,9 +89,13 @@ defmodule EmakolaWeb.SitemapController do
     |> send_resp(200, xml)
   end
 
-  @doc "Serves the sitemap.xml for a store — lists all indexable URLs."
-  def show(conn, %{"store_slug" => slug}) do
-    case StoreResolver.resolve(slug) do
+  @doc """
+  Serves the sitemap.xml for a store — lists all indexable URLs. Routed both at
+  `/s/:store_slug/sitemap.xml` (slug in the path) and at the store's subdomain
+  root `<slug>.makola.io/sitemap.xml` (slug in the host).
+  """
+  def show(conn, params) do
+    case fetch_store(conn, params) do
       {:ok, store} ->
         xml = cached_sitemap(store, conn)
 
@@ -75,33 +103,63 @@ defmodule EmakolaWeb.SitemapController do
         |> put_resp_content_type("application/xml")
         |> send_resp(200, xml)
 
-      {:error, :not_found} ->
+      :error ->
         conn
         |> put_resp_content_type("text/plain")
         |> send_resp(404, "Store not found")
     end
   end
 
+  # Resolve the store from the path slug (the /s/:store_slug route) or, when
+  # absent, from conn.host (the subdomain-root route).
+  defp fetch_store(_conn, %{"store_slug" => slug}) do
+    case StoreResolver.resolve(slug) do
+      {:ok, store} -> {:ok, store}
+      _ -> :error
+    end
+  end
+
+  defp fetch_store(conn, _params), do: ResolveStoreHost.resolve_store(conn.host)
+
+  @doc "Platform robots.txt for the apex domain — dynamic, replaces the old static priv/static/robots.txt."
+  def platform_robots(conn, _params) do
+    body = """
+    User-agent: *
+    Allow: /
+    Disallow: /dashboard
+    Disallow: /settings
+    Disallow: /api/
+    Disallow: /dev/
+    Disallow: /auth/
+
+    Sitemap: #{Canonical.base()}/sitemap.xml
+    """
+
+    conn
+    |> put_resp_content_type("text/plain")
+    |> send_resp(200, body)
+  end
+
   @doc """
   Serves a per-store robots.txt that references the sitemap and explicitly
   allows AI crawlers (GPTBot, Google-Extended, Anthropic, etc.).
 
-  Most sites block AI crawlers by default. Emakola merchants WANT their
+  Most sites block AI crawlers by default. Makola merchants WANT their
   products to appear in AI-powered search (Google SGE, Perplexity,
   ChatGPT Browse) — it's a customer acquisition channel. So we allow
   all AI crawlers with a specific directive, rather than relying on the
   wildcard User-Agent: * (which some AI crawlers ignore).
   """
-  def robots(conn, %{"store_slug" => slug}) do
-    case StoreResolver.resolve(slug) do
+  def robots(conn, params) do
+    case fetch_store(conn, params) do
       {:ok, store} ->
-        base = base_url(conn, store)
+        {prefix, sitemap_url} = robots_location(store, params)
 
         # Private paths that ALL crawlers (including AI) must not access
-        disallows = build_disallow_rules(store.slug)
+        disallows = build_disallow_rules(prefix)
 
         body = """
-        # Emakola storefront robots.txt for #{store.name}
+        # Makola storefront robots.txt for #{store.name}
         # Generated dynamically — do not edit
 
         User-Agent: *
@@ -135,14 +193,14 @@ defmodule EmakolaWeb.SitemapController do
         Allow: /
         #{disallows}
 
-        Sitemap: #{base}/s/#{store.slug}/sitemap.xml
+        Sitemap: #{sitemap_url}
         """
 
         conn
         |> put_resp_content_type("text/plain")
         |> send_resp(200, body)
 
-      {:error, :not_found} ->
+      :error ->
         conn
         |> put_resp_content_type("text/plain")
         |> send_resp(404, "Store not found")
@@ -172,7 +230,7 @@ defmodule EmakolaWeb.SitemapController do
         |> put_resp_content_type("text/plain")
         |> send_resp(200, body)
 
-      {:error, :not_found} ->
+      {:error, _} ->
         conn
         |> put_resp_content_type("text/plain")
         |> send_resp(404, "Store not found")
@@ -198,9 +256,8 @@ defmodule EmakolaWeb.SitemapController do
 
   # ── XML generation ─────────────────────────────────────────────────
 
-  defp build_sitemap(store, conn) do
-    base_url = base_url(conn, store)
-    urls = collect_urls(store, base_url)
+  defp build_sitemap(store, _conn) do
+    urls = collect_urls(store)
 
     """
     <?xml version="1.0" encoding="UTF-8"?>
@@ -210,26 +267,25 @@ defmodule EmakolaWeb.SitemapController do
     """
   end
 
-  defp collect_urls(store, base_url) do
-    slug = store.slug
-
-    static_urls(slug, base_url) ++
-      product_urls(store, base_url) ++
-      category_urls(store, base_url) ++
-      blog_urls(store, base_url)
+  defp collect_urls(store) do
+    static_urls(store) ++
+      product_urls(store) ++
+      category_urls(store) ++
+      blog_urls(store)
   end
 
-  # Static pages every store has
-  defp static_urls(slug, base_url) do
+  # Static pages every store has. URLs go through Canonical so they point at the
+  # store's SEO-primary host (its subdomain when configured, else apex /s/:slug).
+  defp static_urls(store) do
     [
-      %{loc: "#{base_url}/s/#{slug}", priority: "1.0", changefreq: "daily"},
-      %{loc: "#{base_url}/s/#{slug}/products", priority: "0.9", changefreq: "daily"},
-      %{loc: "#{base_url}/s/#{slug}/about", priority: "0.5", changefreq: "monthly"}
+      %{loc: Canonical.store_url(store), priority: "1.0", changefreq: "daily"},
+      %{loc: Canonical.path(store, "/products"), priority: "0.9", changefreq: "daily"},
+      %{loc: Canonical.path(store, "/about"), priority: "0.5", changefreq: "monthly"}
     ]
   end
 
   # Active products — highest SEO value
-  defp product_urls(store, base_url) do
+  defp product_urls(store) do
     products =
       Emakola.Catalog.Product
       |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
@@ -238,7 +294,7 @@ defmodule EmakolaWeb.SitemapController do
 
     Enum.map(products, fn product ->
       %{
-        loc: "#{base_url}/s/#{store.slug}/products/#{product.slug}",
+        loc: Canonical.product_url(store, product),
         priority: "0.8",
         changefreq: "weekly",
         lastmod: format_date(product.updated_at)
@@ -247,7 +303,7 @@ defmodule EmakolaWeb.SitemapController do
   end
 
   # Categories
-  defp category_urls(store, base_url) do
+  defp category_urls(store) do
     categories =
       Emakola.Catalog.Category
       |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
@@ -256,7 +312,7 @@ defmodule EmakolaWeb.SitemapController do
 
     Enum.map(categories, fn cat ->
       %{
-        loc: "#{base_url}/s/#{store.slug}/category/#{cat.slug}",
+        loc: Canonical.category_url(store, cat),
         priority: "0.7",
         changefreq: "weekly",
         lastmod: format_date(cat.updated_at)
@@ -265,7 +321,7 @@ defmodule EmakolaWeb.SitemapController do
   end
 
   # Blog posts (published only)
-  defp blog_urls(store, base_url) do
+  defp blog_urls(store) do
     try do
       posts =
         Emakola.Content.Post
@@ -275,7 +331,7 @@ defmodule EmakolaWeb.SitemapController do
 
       Enum.map(posts, fn post ->
         %{
-          loc: "#{base_url}/s/#{store.slug}/blog/#{post.slug}",
+          loc: Canonical.blog_url(store, post),
           priority: "0.6",
           changefreq: "monthly",
           lastmod: format_date(post.updated_at)
@@ -306,30 +362,29 @@ defmodule EmakolaWeb.SitemapController do
 
   # ── Helpers ────────────────────────────────────────────────────────
 
-  defp base_url(conn, _store) do
-    scheme = to_string(conn.scheme)
-    host = conn.host
-    port = conn.port
-
-    port_suffix =
-      case {conn.scheme, port} do
-        {:https, 443} -> ""
-        {:http, 80} -> ""
-        {_, p} -> ":#{p}"
-      end
-
-    "#{scheme}://#{host}#{port_suffix}"
-  end
+  # Always the canonical apex — sitemap <loc> URLs must point to the one indexed
+  # host regardless of which host (apex, subdomain, custom domain) the crawler hit.
+  defp base_url(_conn, _store), do: EmakolaWeb.SEO.Canonical.base()
 
   defp format_date(%DateTime{} = dt), do: DateTime.to_date(dt) |> Date.to_iso8601()
   defp format_date(%NaiveDateTime{} = ndt), do: NaiveDateTime.to_date(ndt) |> Date.to_iso8601()
   defp format_date(_), do: nil
 
-  # Private paths that all crawlers should not access
-  defp build_disallow_rules(slug) do
+  # Private paths that all crawlers should not access, under the given path prefix
+  # ("" on the subdomain root, "/s/:slug" on the apex subfolder route).
+  defp build_disallow_rules(prefix) do
     ["/cart", "/checkout", "/account", "/wishlist", "/track/", "/orders/", "/auth/"]
-    |> Enum.map_join("\n", fn path -> "Disallow: /s/#{slug}#{path}" end)
+    |> Enum.map_join("\n", fn path -> "Disallow: #{prefix}#{path}" end)
   end
+
+  # Where a store's robots.txt is served decides its path prefix + sitemap URL:
+  # the /s/:store_slug route (slug in params) → subfolder form + apex sitemap; the
+  # subdomain root → root-relative + the store's own subdomain sitemap.
+  defp robots_location(store, %{"store_slug" => _}),
+    do: {"/s/#{store.slug}", Canonical.base() <> "/s/#{store.slug}/sitemap.xml"}
+
+  defp robots_location(store, _),
+    do: {"", Canonical.store_url(store) <> "/sitemap.xml"}
 
   # Minimal XML escaping for URL values
   defp xml_escape(nil), do: ""
@@ -382,15 +437,15 @@ defmodule EmakolaWeb.SitemapController do
     """
     # #{store.name}
 
-    > #{Map.get(store, :description) || Map.get(store, :tagline) || "Online store powered by Emakola"}
+    > #{Map.get(store, :description) || Map.get(store, :tagline) || "Online store powered by Makola"}
 
     ## About
 
-    #{store.name} is an online store on the Emakola platform, serving customers primarily in Ghana and West Africa. The store accepts mobile money payments (MTN MoMo, Vodafone Cash, AirtelTigo) via Paystack and Hubtel, as well as card payments.
+    #{store.name} is an online store on the Makola platform, serving customers primarily in Ghana and West Africa. The store accepts mobile money payments (MTN MoMo, Vodafone Cash, AirtelTigo) via Paystack and Hubtel, as well as card payments.
 
     - Store URL: #{store_url}
     - Currency: #{currency}
-    - Platform: Emakola (https://emakola.com)
+    - Platform: Makola (https://emakola.com)
 
     ## Categories
 
@@ -415,7 +470,7 @@ defmodule EmakolaWeb.SitemapController do
     - All prices include VAT where applicable
     - Delivery is available across Ghana; delivery zones and fees vary by location
     - Mobile money is the primary payment method for most customers
-    - The store is operated by a merchant on the Emakola ecommerce platform
+    - The store is operated by a merchant on the Makola ecommerce platform
     """
   end
 

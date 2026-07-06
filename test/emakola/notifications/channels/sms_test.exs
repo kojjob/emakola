@@ -23,7 +23,7 @@ defmodule Emakola.Notifications.Channels.SMSTest do
     test "builds correct payload structure" do
       payload = SMS.build_sms_payload("+233244123456", "Hello there!")
 
-      assert payload.from == "Emakola"
+      assert payload.from == "Makola"
       assert payload.to == "+233244123456"
       assert payload.content == "Hello there!"
     end

@@ -8,8 +8,8 @@ defmodule EmakolaWeb.Company.TermsLive do
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket,
-       page_title: "Terms of Service — Emakola",
-       meta_description: "The terms governing use of the Emakola commerce platform.",
+       page_title: "Terms of Service — Makola",
+       meta_description: "The terms governing use of the Makola commerce platform.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/terms"),
        mobile_menu_open: false
@@ -26,20 +26,18 @@ defmodule EmakolaWeb.Company.TermsLive do
     ~H"""
     <div class="min-h-screen bg-white font-body antialiased">
       <.landing_nav mobile_menu_open={@mobile_menu_open} />
-      <main class="pt-16">
-        <.page_hero
-          eyebrow="Legal"
+      <main>
+        <.legal_layout
           title="Terms of Service"
-          subtitle="The rules and agreements that govern your use of Emakola."
-        />
-
-        <.legal_layout title="Terms of Service" last_updated="June 15, 2026">
+          subtitle="The rules and agreements that govern your use of Makola."
+          last_updated="June 15, 2026"
+        >
           <:section id="acceptance" title="Acceptance of terms">
             <p class="text-[#5f6b7a] leading-relaxed">
-              By creating an account, accessing, or using the Emakola platform (the "Service"),
+              By creating an account, accessing, or using the Makola platform (the "Service"),
               you agree to be bound by these Terms of Service ("Terms"). If you do not agree,
               you may not use the Service. These Terms form a binding agreement between you
-              and Emakola.
+              and Makola.
             </p>
             <p class="text-[#5f6b7a] leading-relaxed">
               We may update these Terms from time to time. Continued use of the Service after
@@ -50,10 +48,10 @@ defmodule EmakolaWeb.Company.TermsLive do
 
           <:section id="definitions" title="Definitions">
             <p class="text-[#5f6b7a] leading-relaxed">
-              "Emakola", "we", "us", or "our" refers to the Emakola platform operator.
-              "Merchant" means any business or individual who registers a store on Emakola.
+              "Makola", "we", "us", or "our" refers to the Makola platform operator.
+              "Merchant" means any business or individual who registers a store on Makola.
               "Customer" means a person who purchases from a Merchant's store. "Platform" means
-              the Emakola software, APIs, websites, and related services.
+              the Makola software, APIs, websites, and related services.
             </p>
             <p class="text-[#5f6b7a] leading-relaxed">
               "Content" means any text, images, product listings, or other material uploaded
@@ -65,7 +63,7 @@ defmodule EmakolaWeb.Company.TermsLive do
           <:section id="accounts" title="Eligibility & accounts">
             <p class="text-[#5f6b7a] leading-relaxed">
               You must be at least 18 years of age and legally capable of entering a binding
-              contract to use Emakola as a Merchant. By registering, you represent that all
+              contract to use Makola as a Merchant. By registering, you represent that all
               information you provide is accurate, complete, and current.
             </p>
             <p class="text-[#5f6b7a] leading-relaxed">
@@ -85,7 +83,7 @@ defmodule EmakolaWeb.Company.TermsLive do
             </p>
             <p class="text-[#5f6b7a] leading-relaxed">
               Merchants are solely responsible for the accuracy of their Content, the quality
-              of their products, and the resolution of disputes with Customers. Emakola may
+              of their products, and the resolution of disputes with Customers. Makola may
               act as an intermediary at its discretion but is not obligated to do so.
             </p>
           </:section>
@@ -94,7 +92,7 @@ defmodule EmakolaWeb.Company.TermsLive do
             <p class="text-[#5f6b7a] leading-relaxed">
               You may not use the Platform to sell counterfeit goods, regulated firearms or
               weapons, illegal drugs or controlled substances, adult content in jurisdictions
-              where prohibited, or any goods or services that violate applicable law. Emakola
+              where prohibited, or any goods or services that violate applicable law. Makola
               reserves the right to determine, at its sole discretion, whether a product or
               service is prohibited.
             </p>
@@ -107,14 +105,14 @@ defmodule EmakolaWeb.Company.TermsLive do
 
           <:section id="payments-fees" title="Payments, fees & payouts">
             <p class="text-[#5f6b7a] leading-relaxed">
-              Emakola charges platform fees as set out in your subscription plan. Payment
+              Makola charges platform fees as set out in your subscription plan. Payment
               processing fees are charged by our payment partners (Paystack, Hubtel, mobile-money
               operators) and passed through at cost unless otherwise stated. All fees are
               exclusive of applicable taxes.
             </p>
             <p class="text-[#5f6b7a] leading-relaxed">
               Payouts to Merchants are made according to the payout schedule associated with
-              your payment provider. Emakola may withhold payouts in cases of suspected fraud,
+              your payment provider. Makola may withhold payouts in cases of suspected fraud,
               chargebacks, or where required by law. Fees are non-refundable except where
               required by law.
             </p>
@@ -122,14 +120,14 @@ defmodule EmakolaWeb.Company.TermsLive do
 
           <:section id="orders" title="Orders & fulfillment">
             <p class="text-[#5f6b7a] leading-relaxed">
-              Emakola facilitates the sale between a Merchant and a Customer. The Merchant is
-              the seller of record for every transaction; Emakola is not a party to the contract
+              Makola facilitates the sale between a Merchant and a Customer. The Merchant is
+              the seller of record for every transaction; Makola is not a party to the contract
               of sale and does not hold title to any goods. Merchants are responsible for
               fulfilling orders, managing returns, and handling Customer complaints.
             </p>
             <p class="text-[#5f6b7a] leading-relaxed">
               Customers contract directly with the Merchant whose store they purchase from.
-              Emakola provides the technology platform and payment infrastructure but does not
+              Makola provides the technology platform and payment infrastructure but does not
               guarantee the quality, safety, or delivery of any product or service sold by a
               Merchant.
             </p>
@@ -137,13 +135,13 @@ defmodule EmakolaWeb.Company.TermsLive do
 
           <:section id="intellectual-property" title="Intellectual property">
             <p class="text-[#5f6b7a] leading-relaxed">
-              Emakola and its licensors retain all intellectual property rights in the Platform,
+              Makola and its licensors retain all intellectual property rights in the Platform,
               including software, design, trademarks, and documentation. These Terms do not
-              grant you any rights in Emakola's intellectual property except as expressly set
+              grant you any rights in Makola's intellectual property except as expressly set
               out herein.
             </p>
             <p class="text-[#5f6b7a] leading-relaxed">
-              By uploading Content to the Platform, you grant Emakola a non-exclusive,
+              By uploading Content to the Platform, you grant Makola a non-exclusive,
               royalty-free licence to host, display, and transmit that Content solely for the
               purpose of operating the Service. You retain all ownership rights in your Content.
             </p>
@@ -153,7 +151,7 @@ defmodule EmakolaWeb.Company.TermsLive do
             <p class="text-[#5f6b7a] leading-relaxed">
               The Platform integrates with third-party services including payment gateways,
               SMS and WhatsApp providers, and shipping partners. Your use of those services is
-              governed by their respective terms and privacy policies. Emakola is not responsible
+              governed by their respective terms and privacy policies. Makola is not responsible
               for the availability or conduct of third-party services.
             </p>
           </:section>
@@ -170,12 +168,12 @@ defmodule EmakolaWeb.Company.TermsLive do
 
           <:section id="liability" title="Limitation of liability">
             <p class="text-[#5f6b7a] leading-relaxed">
-              To the maximum extent permitted by applicable law, Emakola's total liability to
+              To the maximum extent permitted by applicable law, Makola's total liability to
               you for any claim arising under or in connection with these Terms shall not exceed
-              the fees you paid to Emakola in the three months preceding the claim.
+              the fees you paid to Makola in the three months preceding the claim.
             </p>
             <p class="text-[#5f6b7a] leading-relaxed">
-              In no event shall Emakola be liable for any indirect, incidental, special,
+              In no event shall Makola be liable for any indirect, incidental, special,
               consequential, or punitive damages, including loss of profits or revenue, loss of
               data, or business interruption, even if advised of the possibility of such damages.
             </p>
@@ -183,7 +181,7 @@ defmodule EmakolaWeb.Company.TermsLive do
 
           <:section id="indemnification" title="Indemnification">
             <p class="text-[#5f6b7a] leading-relaxed">
-              You agree to indemnify and hold harmless Emakola, its officers, directors,
+              You agree to indemnify and hold harmless Makola, its officers, directors,
               employees, and agents from any claims, losses, damages, and expenses (including
               reasonable legal fees) arising out of your use of the Platform, your Content,
               your products or services, or your violation of these Terms or applicable law.
@@ -192,7 +190,7 @@ defmodule EmakolaWeb.Company.TermsLive do
 
           <:section id="termination" title="Suspension & termination">
             <p class="text-[#5f6b7a] leading-relaxed">
-              Emakola may suspend or terminate your account and access to the Service at any
+              Makola may suspend or terminate your account and access to the Service at any
               time, with or without notice, for conduct that we believe violates these Terms,
               is harmful to other users, or is otherwise unacceptable. You may close your
               account at any time from your account settings.
@@ -213,7 +211,7 @@ defmodule EmakolaWeb.Company.TermsLive do
               requires otherwise for merchants operating in other markets.
             </p>
             <p class="text-[#5f6b7a] leading-relaxed">
-              As Emakola expands to other markets (including Nigeria), merchants in those
+              As Makola expands to other markets (including Nigeria), merchants in those
               jurisdictions may also be subject to additional local terms required by applicable
               law. Such terms will be presented at registration or when entering a new market.
             </p>

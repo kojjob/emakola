@@ -121,7 +121,7 @@ defmodule Emakola.WebhooksTest do
     end
 
     test "demo credentials are defined" do
-      assert Emakola.Demo.demo_email() == "demo@founderpad.io"
+      assert Emakola.Demo.demo_email() == "demo@emakola.com"
       assert is_binary(Emakola.Demo.demo_password())
     end
   end

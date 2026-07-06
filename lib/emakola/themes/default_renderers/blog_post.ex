@@ -12,9 +12,12 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   def render(assigns) do
     ~H"""
-    <Emakola.Themes.Atelier.Shared.navbar
+    <Emakola.Themes.DefaultRenderers.Chrome.navbar
+      theme_module={assigns[:theme_module]}
       store={@store}
       categories={@categories}
       cart_count={@cart_count}
@@ -33,7 +36,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
         <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-10 lg:p-16">
           <div class="max-w-3xl mx-auto">
             <a
-              href={"/s/#{@store.slug}/blog"}
+              href={store_path(@store.slug, "/blog")}
               class="cursor-pointer inline-flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors mb-4"
             >
               <svg
@@ -50,13 +53,13 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
             <div class="flex items-center gap-3 mb-4">
               <span
                 :if={@post.tags != []}
-                class="px-3 py-1 bg-amber-500/90 text-white text-xs font-semibold rounded-full uppercase tracking-wide"
+                class="px-3 py-1 bg-white/90 text-stone-900 text-xs font-semibold rounded-full uppercase tracking-wide"
               >
                 {List.first(@post.tags)}
               </span>
               <span class="text-white/60 text-sm">{@reading_time} min read</span>
             </div>
-            <h1 class="font-[Cormorant,Georgia,serif] text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight">
+            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight">
               {@post.title}
             </h1>
           </div>
@@ -67,7 +70,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
       <div :if={!@post.featured_image_url} class="bg-stone-900 py-16 sm:py-20">
         <div class="max-w-3xl mx-auto px-4 sm:px-6">
           <a
-            href={"/s/#{@store.slug}/blog"}
+            href={store_path(@store.slug, "/blog")}
             class="cursor-pointer inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-white transition-colors mb-6"
           >
             <svg
@@ -81,7 +84,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
             </svg>
             Back to blog
           </a>
-          <h1 class="font-[Cormorant,Georgia,serif] text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight">
+          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight">
             {@post.title}
           </h1>
         </div>
@@ -91,7 +94,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
       <div class="border-b border-stone-100">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 py-5 flex flex-wrap items-center justify-between gap-4">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-amber-600 flex items-center justify-center text-white font-bold text-sm">
+            <div class="w-10 h-10 rounded-full bg-cta-dark flex items-center justify-center text-white font-bold text-sm">
               {String.first(@store.name)}
             </div>
             <div>
@@ -147,7 +150,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
           {@post.excerpt}
         </p>
 
-        <div class="prose prose-lg prose-stone max-w-none prose-headings:font-[Cormorant,Georgia,serif] prose-headings:font-bold prose-a:text-amber-700 prose-a:no-underline hover:prose-a:underline prose-img:rounded-2xl prose-blockquote:border-amber-500 prose-blockquote:bg-amber-50/50 prose-blockquote:rounded-xl prose-blockquote:py-1">
+        <div class="prose prose-lg prose-stone max-w-none prose-headings:font-bold prose-a:text-store-accent prose-a:no-underline hover:prose-a:underline prose-img:rounded-2xl prose-blockquote:border-store-accent prose-blockquote:bg-store-accent/5 prose-blockquote:rounded-xl prose-blockquote:py-1">
           {@safe_body}
         </div>
 
@@ -167,7 +170,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
         <%!-- Author Card --%>
         <div class="mt-10 p-6 sm:p-8 bg-stone-50 rounded-2xl">
           <div class="flex items-start gap-4">
-            <div class="w-14 h-14 rounded-full bg-amber-600 flex items-center justify-center text-white font-bold text-lg shrink-0">
+            <div class="w-14 h-14 rounded-full bg-cta-dark flex items-center justify-center text-white font-bold text-lg shrink-0">
               {String.first(@store.name)}
             </div>
             <div>
@@ -179,8 +182,8 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
                 {@store.description}
               </p>
               <a
-                href={"/s/#{@store.slug}/blog"}
-                class="cursor-pointer inline-flex items-center gap-1 text-sm text-amber-700 font-medium mt-3 hover:text-amber-800"
+                href={store_path(@store.slug, "/blog")}
+                class="cursor-pointer inline-flex items-center gap-1 text-sm text-store-accent font-medium mt-3 hover:underline"
               >
                 View all posts
                 <svg
@@ -201,13 +204,13 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
       <%!-- Related Posts --%>
       <div :if={@related != []} class="bg-stone-50 py-14 sm:py-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-bold text-stone-900 mb-8 text-center">
+          <h2 class="text-2xl sm:text-3xl font-bold text-stone-900 mb-8 text-center">
             You might also enjoy
           </h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             <a
               :for={rp <- @related}
-              href={"/s/#{@store.slug}/blog/#{rp.slug}"}
+              href={store_path(@store.slug, "/blog/#{rp.slug}")}
               class="cursor-pointer group block bg-white rounded-2xl shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden"
             >
               <div class="aspect-[16/10] overflow-hidden">
@@ -228,7 +231,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
                 <p class="text-xs text-stone-400 mb-2">
                   {if rp.published_at, do: Calendar.strftime(rp.published_at, "%b %d, %Y"), else: ""}
                 </p>
-                <h3 class="font-[Cormorant,Georgia,serif] text-xl font-bold text-stone-900 group-hover:text-amber-700 transition-colors leading-snug">
+                <h3 class="text-xl font-bold text-stone-900 group-hover:text-store-accent transition-colors leading-snug">
                   {rp.title}
                 </h3>
               </div>
@@ -240,7 +243,7 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
       <%!-- Newsletter CTA --%>
       <div class="bg-stone-900 py-14 sm:py-16">
         <div class="max-w-xl mx-auto px-4 sm:px-6 text-center">
-          <h3 class="font-[Cormorant,Georgia,serif] text-2xl sm:text-3xl font-bold text-white mb-3">
+          <h3 class="text-2xl sm:text-3xl font-bold text-white mb-3">
             Enjoyed this article?
           </h3>
           <p class="text-stone-400 mb-6">
@@ -250,9 +253,9 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
             <input
               type="email"
               placeholder="Enter your email"
-              class="flex-1 bg-stone-800 border border-stone-700 rounded-xl px-4 py-3.5 text-sm text-white placeholder:text-stone-500 focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500"
+              class="flex-1 bg-stone-800 border border-stone-700 rounded-xl px-4 py-3.5 text-sm text-white placeholder:text-stone-500 focus:ring-2 focus:ring-white/20 focus:border-stone-400"
             />
-            <button class="cursor-pointer px-6 py-3.5 bg-amber-600 text-white rounded-xl text-sm font-semibold hover:bg-amber-700 transition-colors shrink-0">
+            <button class="cursor-pointer px-6 py-3.5 bg-white text-stone-900 rounded-xl text-sm font-semibold hover:bg-stone-200 transition-colors shrink-0">
               Subscribe
             </button>
           </div>
@@ -260,7 +263,11 @@ defmodule Emakola.Themes.DefaultRenderers.BlogPost do
       </div>
     </div>
 
-    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+    <Emakola.Themes.DefaultRenderers.Chrome.footer
+      theme_module={assigns[:theme_module]}
+      store={@store}
+      categories={@categories}
+    />
     """
   end
 

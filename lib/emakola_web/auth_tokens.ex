@@ -16,6 +16,9 @@ defmodule EmakolaWeb.AuthTokens do
   @login_exchange_salt "platform_login_exchange_v1"
   @login_exchange_max_age 30
 
+  @subject_exchange_salt "auth_subject_exchange_v1"
+  @subject_exchange_max_age 60
+
   @doc "Signs a subject string for storage in the session or a redirect URL."
   def sign_subject(subject) when is_binary(subject) do
     Phoenix.Token.sign(EmakolaWeb.Endpoint, @salt, subject)
@@ -68,4 +71,28 @@ defmodule EmakolaWeb.AuthTokens do
   end
 
   def verify_login_exchange(_), do: {:error, :missing}
+
+  @doc """
+  Signs a subject string as a short-lived (60s) exchange token for the
+  LiveView -> session-controller redirect bridge. The long-lived session token
+  is then minted server-side and stored only in the (signed) session cookie, so
+  the durable credential never travels in a URL where it could leak via access
+  logs, the Referer header, or browser history.
+  """
+  def sign_subject_exchange(subject) when is_binary(subject) do
+    Phoenix.Token.sign(EmakolaWeb.Endpoint, @subject_exchange_salt, subject)
+  end
+
+  @doc """
+  Verifies a subject exchange token. Returns `{:ok, subject}` or
+  `{:error, reason}`. Safely rejects nil and non-binary input. A long-lived
+  session subject token (different salt) is NOT a valid exchange token.
+  """
+  def verify_subject_exchange(signed) when is_binary(signed) do
+    Phoenix.Token.verify(EmakolaWeb.Endpoint, @subject_exchange_salt, signed,
+      max_age: @subject_exchange_max_age
+    )
+  end
+
+  def verify_subject_exchange(_), do: {:error, :missing}
 end

@@ -1,6 +1,8 @@
 defmodule EmakolaWeb.DashboardLive do
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.DashboardComponents
   import EmakolaWeb.DashboardMetricComponents
   import EmakolaWeb.SetupChecklistComponent
@@ -76,7 +78,12 @@ defmodule EmakolaWeb.DashboardLive do
         try do
           DashboardHelpers.load_merchant_dashboard(store_id, period)
         rescue
-          _ -> DashboardHelpers.default_data()
+          exception ->
+            Logger.error(
+              "[dashboard_live] dashboard data load raised: #{Exception.message(exception)}"
+            )
+
+            DashboardHelpers.default_data()
         end
       else
         DashboardHelpers.default_data()
@@ -130,7 +137,9 @@ defmodule EmakolaWeb.DashboardLive do
     |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store_id, status: :active})
     |> Ash.count!(authorize?: false)
   rescue
-    _ -> 0
+    exception ->
+      Logger.error("[dashboard_live] count_products raised: #{Exception.message(exception)}")
+      0
   end
 
   defp count_delivery_zones(store_id) do
@@ -138,7 +147,12 @@ defmodule EmakolaWeb.DashboardLive do
     |> Ash.Query.for_read(:list_active_by_store, %{store_id: store_id})
     |> Ash.count!(authorize?: false)
   rescue
-    _ -> 0
+    exception ->
+      Logger.error(
+        "[dashboard_live] count_delivery_zones raised: #{Exception.message(exception)}"
+      )
+
+      0
   end
 
   def render(assigns) do

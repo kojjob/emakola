@@ -3,15 +3,15 @@ import Config
 # White-label branding configuration
 # Override these values to customize the app for different brands
 config :emakola, :branding,
-  app_name: "Emakola",
-  tagline: "Ship your SaaS faster",
-  company_name: "Emakola Inc.",
-  support_email: "support@founderpad.io",
-  marketing_url: "https://founderpad.io",
+  app_name: "Makola",
+  tagline: "Commerce for West Africa",
+  company_name: "Makola Inc.",
+  support_email: "support@emakola.com",
+  marketing_url: "https://emakola.com",
   logo_path: "/images/logo.svg",
   favicon_path: "/images/favicon.ico",
-  primary_color: "#6366f1",
-  accent_color: "#8083ff",
+  primary_color: "#0c1526",
+  accent_color: "#d4a843",
   # Social links
   twitter_url: nil,
   github_url: nil,

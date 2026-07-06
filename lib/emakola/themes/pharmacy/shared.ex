@@ -7,6 +7,7 @@ defmodule Emakola.Themes.Pharmacy.Shared do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   # ── CSS Variable Injection ──
@@ -41,7 +42,7 @@ defmodule Emakola.Themes.Pharmacy.Shared do
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16 sm:h-20">
           <%!-- Brand --%>
-          <a href={"/s/#{@store.slug}"} class="flex items-center gap-3 min-w-0">
+          <a href={store_path(@store.slug, "/")} class="flex items-center gap-3 min-w-0">
             <div class="w-10 h-10 rounded-full bg-[#14543E] flex items-center justify-center flex-shrink-0">
               <span class="material-symbols-outlined text-[#A7E5C5]" style="font-size: 22px;">
                 medical_services
@@ -54,20 +55,28 @@ defmodule Emakola.Themes.Pharmacy.Shared do
 
           <%!-- Desktop nav --%>
           <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-[#1F2937]">
-            <a href={"/s/#{@store.slug}"} class="hover:text-[#14543E] transition-colors">Home</a>
-            <a href={"/s/#{@store.slug}/products"} class="hover:text-[#14543E] transition-colors">
+            <a href={store_path(@store.slug, "/")} class="hover:text-[#14543E] transition-colors">
+              Home
+            </a>
+            <a
+              href={store_path(@store.slug, "/products")}
+              class="hover:text-[#14543E] transition-colors"
+            >
               Products
             </a>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="hover:text-[#14543E] transition-colors"
             >
               Categories
             </a>
-            <a href={"/s/#{@store.slug}/about"} class="hover:text-[#14543E] transition-colors">
+            <a href={store_path(@store.slug, "/about")} class="hover:text-[#14543E] transition-colors">
               About
             </a>
-            <a href={"/s/#{@store.slug}/contact"} class="hover:text-[#14543E] transition-colors">
+            <a
+              href={store_path(@store.slug, "/contact")}
+              class="hover:text-[#14543E] transition-colors"
+            >
               Contact
             </a>
           </nav>
@@ -75,7 +84,7 @@ defmodule Emakola.Themes.Pharmacy.Shared do
           <%!-- Right cluster --%>
           <div class="flex items-center gap-2 sm:gap-3">
             <a
-              href={"/s/#{@store.slug}/cart"}
+              href={store_path(@store.slug, "/cart")}
               class="relative w-11 h-11 rounded-full hover:bg-[#A7E5C5]/30 flex items-center justify-center transition-colors"
               aria-label={"Cart, #{@cart_count} items"}
             >
@@ -90,7 +99,7 @@ defmodule Emakola.Themes.Pharmacy.Shared do
               </span>
             </a>
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="hidden sm:inline-flex items-center px-5 py-2.5 rounded-full bg-[#14543E] text-white text-sm font-semibold hover:bg-[#0F3F2E] transition-colors min-h-[44px]"
             >
               Shop Now
@@ -132,22 +141,34 @@ defmodule Emakola.Themes.Pharmacy.Shared do
             </h4>
             <ul class="space-y-3 text-sm text-[#F9F6F0]/80">
               <li>
-                <a href={"/s/#{@store.slug}/products"} class="hover:text-white transition-colors">
+                <a
+                  href={store_path(@store.slug, "/products")}
+                  class="hover:text-white transition-colors"
+                >
                   All Products
                 </a>
               </li>
               <li>
-                <a href={"/s/#{@store.slug}/products"} class="hover:text-white transition-colors">
+                <a
+                  href={store_path(@store.slug, "/products")}
+                  class="hover:text-white transition-colors"
+                >
                   Medicines
                 </a>
               </li>
               <li>
-                <a href={"/s/#{@store.slug}/products"} class="hover:text-white transition-colors">
+                <a
+                  href={store_path(@store.slug, "/products")}
+                  class="hover:text-white transition-colors"
+                >
                   Wellness
                 </a>
               </li>
               <li>
-                <a href={"/s/#{@store.slug}/products"} class="hover:text-white transition-colors">
+                <a
+                  href={store_path(@store.slug, "/products")}
+                  class="hover:text-white transition-colors"
+                >
                   Supplements
                 </a>
               </li>
@@ -160,17 +181,20 @@ defmodule Emakola.Themes.Pharmacy.Shared do
             </h4>
             <ul class="space-y-3 text-sm text-[#F9F6F0]/80">
               <li>
-                <a href={"/s/#{@store.slug}/about"} class="hover:text-white transition-colors">
+                <a href={store_path(@store.slug, "/about")} class="hover:text-white transition-colors">
                   About us
                 </a>
               </li>
               <li>
-                <a href={"/s/#{@store.slug}/contact"} class="hover:text-white transition-colors">
+                <a
+                  href={store_path(@store.slug, "/contact")}
+                  class="hover:text-white transition-colors"
+                >
                   Contact
                 </a>
               </li>
               <li>
-                <a href={"/s/#{@store.slug}/blog"} class="hover:text-white transition-colors">
+                <a href={store_path(@store.slug, "/blog")} class="hover:text-white transition-colors">
                   Health blog
                 </a>
               </li>
@@ -200,7 +224,7 @@ defmodule Emakola.Themes.Pharmacy.Shared do
 
         <div class="border-t border-[#F9F6F0]/15 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#F9F6F0]/60">
           <p>&copy; {DateTime.utc_now().year} {@store.name}. All rights reserved.</p>
-          <p>Designed by Emakola</p>
+          <p>Designed by Makola</p>
         </div>
       </div>
     </footer>
@@ -238,7 +262,7 @@ defmodule Emakola.Themes.Pharmacy.Shared do
   def product_card(assigns) do
     ~H"""
     <a
-      href={"/s/#{@store.slug}/products/#{@product.slug}"}
+      href={store_path(@store.slug, "/products/#{@product.slug}")}
       class="pharmacy-card group block overflow-hidden hover:shadow-md transition-shadow"
     >
       <div class="aspect-square bg-[#F9F6F0] flex items-center justify-center overflow-hidden">
@@ -257,10 +281,10 @@ defmodule Emakola.Themes.Pharmacy.Shared do
         </span>
       </div>
       <div class="p-4 sm:p-5">
-        <%!-- Static rating placeholder — swap to real reviews aggregate when available --%>
-        <div class="flex items-center gap-1 mb-1.5">
-          <span :for={_ <- 1..5} class="text-[#FBBF24]" style="font-size: 14px;">★</span>
-          <span class="text-[10px] text-[#6B7280] ml-1">(4.8)</span>
+        <%!-- Rating row (real review data only) --%>
+        <div :if={Map.get(@product, :review_count, 0) > 0} class="flex items-center gap-1 mb-1.5">
+          <span class="text-[#B45309]" style="font-size: 14px;">{stars(@product)}</span>
+          <span class="text-[10px] text-[#6B7280] ml-1">({format_rating(@product)})</span>
         </div>
         <h3 class="text-sm font-semibold text-[#1F2937] line-clamp-2 mb-1.5 min-h-[2.5rem]">
           {@product.title}
@@ -280,5 +304,28 @@ defmodule Emakola.Themes.Pharmacy.Shared do
       </div>
     </a>
     """
+  end
+
+  # ── Rating Helpers (real review data) ──
+
+  def format_rating(product) do
+    case Map.get(product, :avg_rating) do
+      %Decimal{} = r -> r |> Decimal.round(1) |> Decimal.to_string()
+      r when is_float(r) -> :erlang.float_to_binary(r, decimals: 1)
+      r when is_integer(r) -> "#{r}.0"
+      _ -> "—"
+    end
+  end
+
+  def stars(product) do
+    n =
+      case Map.get(product, :avg_rating) do
+        %Decimal{} = r -> r |> Decimal.to_float() |> round()
+        r when is_number(r) -> round(r)
+        _ -> 0
+      end
+
+    n = min(max(n, 0), 5)
+    String.duplicate("★", n) <> String.duplicate("☆", 5 - n)
   end
 end

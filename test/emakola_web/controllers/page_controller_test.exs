@@ -3,7 +3,7 @@ defmodule EmakolaWeb.LandingPageTest do
 
   test "GET / renders landing page", %{conn: conn} do
     conn = get(conn, ~p"/")
-    assert html_response(conn, 200) =~ "Emakola"
+    assert html_response(conn, 200) =~ "Makola"
   end
 
   test "GET /api/health returns ok", %{conn: conn} do

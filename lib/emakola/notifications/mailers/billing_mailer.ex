@@ -4,12 +4,10 @@ defmodule Emakola.Notifications.BillingMailer do
 
   alias Emakola.Mailer
 
-  @from {"Emakola", "billing@founderpad.io"}
-
   def subscription_created(user, plan) do
     new()
     |> to({user.name || "User", to_string(user.email)})
-    |> from(@from)
+    |> from(Mailer.from_address("Makola", "billing"))
     |> subject("Welcome to #{plan.name}!")
     |> html_body("""
     <h2>Subscription Confirmed</h2>
@@ -26,7 +24,7 @@ defmodule Emakola.Notifications.BillingMailer do
   def payment_failed(user) do
     new()
     |> to({user.name || "User", to_string(user.email)})
-    |> from(@from)
+    |> from(Mailer.from_address("Makola", "billing"))
     |> subject("Payment failed — action required")
     |> html_body("""
     <h2>Payment Failed</h2>
@@ -40,7 +38,7 @@ defmodule Emakola.Notifications.BillingMailer do
   def subscription_canceled(user, plan) do
     new()
     |> to({user.name || "User", to_string(user.email)})
-    |> from(@from)
+    |> from(Mailer.from_address("Makola", "billing"))
     |> subject("Your #{plan.name} subscription has been canceled")
     |> html_body("""
     <h2>Subscription Canceled</h2>

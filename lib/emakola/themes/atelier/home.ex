@@ -12,6 +12,7 @@ defmodule Emakola.Themes.Atelier.Home do
   """
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
   import Phoenix.HTML, only: [raw: 1]
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
@@ -187,7 +188,7 @@ defmodule Emakola.Themes.Atelier.Home do
           <%!-- Badge --%>
           <span
             class="inline-block px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase mb-6 text-white"
-            style="background: var(--theme-primary); text-shadow: none;"
+            style="background: var(--theme-accent, #166534); text-shadow: none;"
           >
             {@hero_subtitle}
           </span>
@@ -197,7 +198,7 @@ defmodule Emakola.Themes.Atelier.Home do
             class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white leading-[1.02] mb-6 tracking-tight"
             style="text-shadow: 0 2px 8px rgba(0,0,0,0.5);"
           >
-            {raw(String.replace(@hero_title, "\n", "<br>"))}
+            {hero_title_html(@hero_title)}
           </h1>
 
           <%!-- Description --%>
@@ -211,9 +212,9 @@ defmodule Emakola.Themes.Atelier.Home do
           <%!-- CTA Buttons --%>
           <div class="flex flex-col sm:flex-row gap-4">
             <a
-              href={"/s/#{@store.slug}/products"}
+              href={store_path(@store.slug, "/products")}
               class="inline-flex items-center justify-center gap-2 px-8 py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-300 hover:opacity-90 min-h-[48px]"
-              style="background: var(--theme-primary);"
+              style="background: var(--theme-accent, #166534);"
             >
               {@cta_text}
               <svg
@@ -231,7 +232,7 @@ defmodule Emakola.Themes.Atelier.Home do
               </svg>
             </a>
             <a
-              href={"/s/#{@store.slug}/about"}
+              href={store_path(@store.slug, "/about")}
               class="inline-flex items-center justify-center px-8 py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white border-2 border-white/40 hover:bg-white/10 transition-all duration-300 min-h-[48px]"
             >
               {@cta_secondary_text}
@@ -292,8 +293,8 @@ defmodule Emakola.Themes.Atelier.Home do
             Shop by Category
           </h2>
           <a
-            href={"/s/#{@store.slug}/products"}
-            class="text-xs sm:text-sm font-medium text-[#A8A29E] hover:text-cta-dark transition-colors"
+            href={store_path(@store.slug, "/products")}
+            class="text-xs sm:text-sm font-medium text-[#78716C] hover:text-cta-dark transition-colors"
           >
             Browse all
           </a>
@@ -302,7 +303,7 @@ defmodule Emakola.Themes.Atelier.Home do
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <a
             :for={item <- @categories_with_colors}
-            href={"/s/#{@store.slug}/category/#{item.category.slug}"}
+            href={store_path(@store.slug, "/category/#{item.category.slug}")}
             class={"group relative overflow-hidden rounded-2xl bg-gradient-to-br #{item.gradient} border border-[#E7E5E4] p-6 sm:p-8 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"}
           >
             <%!-- Decorative accent --%>
@@ -323,11 +324,11 @@ defmodule Emakola.Themes.Atelier.Home do
 
             <%!-- Arrow indicator --%>
             <div class="flex items-center gap-1 mt-2">
-              <span class="text-xs font-medium text-[#A8A29E] group-hover:text-cta-dark transition-colors">
+              <span class="text-xs font-medium text-[#78716C] group-hover:text-cta-dark transition-colors">
                 Explore
               </span>
               <svg
-                class="w-3.5 h-3.5 text-[#A8A29E] group-hover:text-cta-dark group-hover:translate-x-0.5 transition-all"
+                class="w-3.5 h-3.5 text-[#78716C] group-hover:text-cta-dark group-hover:translate-x-0.5 transition-all"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
@@ -369,10 +370,10 @@ defmodule Emakola.Themes.Atelier.Home do
           <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-cta-dark">
             Featured Masterpieces
           </h2>
-          <p class="text-sm text-[#A8A29E] mt-1 hidden sm:block">Handpicked by our artisans</p>
+          <p class="text-sm text-[#78716C] mt-1 hidden sm:block">Handpicked by our artisans</p>
         </div>
         <a
-          href={"/s/#{@store.slug}/products"}
+          href={store_path(@store.slug, "/products")}
           class="group inline-flex items-center gap-1.5 text-sm font-semibold transition-colors hover:opacity-80"
           style="color: var(--theme-primary);"
         >
@@ -435,7 +436,7 @@ defmodule Emakola.Themes.Atelier.Home do
       <div class="flex items-center justify-between mb-8">
         <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-cta-dark">New Arrivals</h2>
         <a
-          href={"/s/#{@store.slug}/products"}
+          href={store_path(@store.slug, "/products")}
           class="group inline-flex items-center gap-1.5 text-sm font-semibold transition-colors hover:opacity-80"
           style="color: var(--theme-primary);"
         >
@@ -490,7 +491,7 @@ defmodule Emakola.Themes.Atelier.Home do
               </svg>
             </div>
             <span class="text-sm sm:text-base font-semibold text-cta-dark">Safe</span>
-            <span class="text-[11px] sm:text-xs text-[#A8A29E] mt-0.5">Secure checkout</span>
+            <span class="text-[11px] sm:text-xs text-[#78716C] mt-0.5">Secure checkout</span>
           </div>
           <div class="flex flex-col items-center text-center group cursor-default">
             <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-store-accent/10 flex items-center justify-center mb-3 group-hover:bg-store-accent/15 group-hover:scale-110 transition-all duration-300">
@@ -509,7 +510,7 @@ defmodule Emakola.Themes.Atelier.Home do
               </svg>
             </div>
             <span class="text-sm sm:text-base font-semibold text-cta-dark">Fast</span>
-            <span class="text-[11px] sm:text-xs text-[#A8A29E] mt-0.5">Instant confirmation</span>
+            <span class="text-[11px] sm:text-xs text-[#78716C] mt-0.5">Instant confirmation</span>
           </div>
           <div class="flex flex-col items-center text-center group cursor-default">
             <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#7C3AED]/10 flex items-center justify-center mb-3 group-hover:bg-[#7C3AED]/15 group-hover:scale-110 transition-all duration-300">
@@ -528,12 +529,12 @@ defmodule Emakola.Themes.Atelier.Home do
               </svg>
             </div>
             <span class="text-sm sm:text-base font-semibold text-cta-dark">Easy</span>
-            <span class="text-[11px] sm:text-xs text-[#A8A29E] mt-0.5">Pay with your phone</span>
+            <span class="text-[11px] sm:text-xs text-[#78716C] mt-0.5">Pay with your phone</span>
           </div>
         </div>
         <div class="border-t border-[#E7E5E4] mb-10 sm:mb-14 reveal-up"></div>
         <div class="reveal-up">
-          <p class="text-center text-xs font-semibold uppercase tracking-[0.2em] text-[#A8A29E] mb-6">
+          <p class="text-center text-xs font-semibold uppercase tracking-[0.2em] text-[#78716C] mb-6">
             We Accept
           </p>
           <div class="flex items-center justify-center gap-3 sm:gap-4 flex-wrap">
@@ -623,7 +624,7 @@ defmodule Emakola.Themes.Atelier.Home do
             <button
               type="submit"
               class="cursor-pointer px-8 py-3.5 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-200 hover:opacity-90 whitespace-nowrap min-h-[48px]"
-              style="background: var(--theme-primary);"
+              style="background: var(--theme-accent, #166534);"
             >
               {@nl_button_text}
             </button>
@@ -803,6 +804,21 @@ defmodule Emakola.Themes.Atelier.Home do
       valid_hero_image?(single) -> [single]
       true -> []
     end
+  end
+
+  @doc """
+  Renders the merchant-supplied hero title safely: the text is HTML-escaped
+  first (so markup in the title — e.g. `<img onerror=...>` — can't inject
+  script onto the public storefront), then literal newlines become `<br>`
+  breaks. Escaping before the replace means the only live tag in the output is
+  the `<br>` we add.
+  """
+  def hero_title_html(title) do
+    title
+    |> Phoenix.HTML.html_escape()
+    |> Phoenix.HTML.safe_to_string()
+    |> String.replace("\n", "<br>")
+    |> raw()
   end
 
   defp assign_hero_text(assigns, theme, store_name) do

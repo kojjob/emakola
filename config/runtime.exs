@@ -20,6 +20,16 @@ if System.get_env("PHX_SERVER") do
   config :emakola, EmakolaWeb.Endpoint, server: true
 end
 
+# AI content generation (SEO Phase 3). All environments: nil = ships dark, so the
+# Claude generator returns {:error, :not_configured} and nothing is spent.
+config :emakola, :anthropic_api_key, System.get_env("ANTHROPIC_API_KEY")
+
+# Sentry DSN is read at runtime so the same release works with or without it.
+# Without SENTRY_DSN set, Sentry stays inert (no events sent).
+config :sentry,
+  dsn: System.get_env("SENTRY_DSN"),
+  release: System.get_env("SENTRY_RELEASE")
+
 config :emakola, EmakolaWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
@@ -79,6 +89,10 @@ if config_env() == :prod do
     press_email: System.get_env("PRESS_EMAIL", "press@emakola.com"),
     support_whatsapp: System.get_env("SUPPORT_WHATSAPP", "233200000000"),
     support_phone: System.get_env("SUPPORT_PHONE", "+233 20 000 0000")
+
+  # Outbound mail "from" domain (noreply@/billing@). Flip the whole sending
+  # domain by setting MAIL_FROM_DOMAIN — no code change needed.
+  config :emakola, :mail_from_domain, System.get_env("MAIL_FROM_DOMAIN", "emakola.com")
 
   # ChromicPDF (analytics PDF export) — the Docker runner installs Debian's
   # chromium package and runs as a non-root user. Chrome's sandbox needs
@@ -142,20 +156,29 @@ if config_env() == :prod do
     System.get_env("PAYSTACK_SECRET_KEY") ||
       raise "environment variable PAYSTACK_SECRET_KEY is missing."
 
-  # Flat key — read by Emakola.Payments.Gateways.Paystack (webhook HMAC)
-  # and Emakola.Payments.PaystackWebhook.
+  # Flat key — read by Emakola.Payments.Gateways.Paystack (webhook HMAC).
   config :emakola, :paystack_secret_key, paystack_secret_key
 
   # Nested keyword config — read by Emakola.Payments.PaystackClient.
+  # The public key drives client-side Paystack.js checkout; an empty default
+  # would silently break the checkout page with no boot error, so fail fast.
   config :emakola, Emakola.Payments.PaystackClient,
     secret_key: paystack_secret_key,
-    public_key: System.get_env("PAYSTACK_PUBLIC_KEY") || ""
+    public_key:
+      System.get_env("PAYSTACK_PUBLIC_KEY") ||
+        raise("environment variable PAYSTACK_PUBLIC_KEY is missing.")
 
-  # Hubtel (optional at launch) — read by Emakola.Payments.HubtelClient.
+  # Hubtel (optional at launch) — read by Emakola.Payments.HubtelClient. If the
+  # client id is set, the secret is required too — a half-configured gateway
+  # would fail opaquely at the first call.
   if hubtel_id = System.get_env("HUBTEL_CLIENT_ID") do
     config :emakola, Emakola.Payments.HubtelClient,
       client_id: hubtel_id,
-      client_secret: System.get_env("HUBTEL_CLIENT_SECRET") || ""
+      client_secret:
+        System.get_env("HUBTEL_CLIENT_SECRET") ||
+          raise(
+            "environment variable HUBTEL_CLIENT_SECRET is missing (required with HUBTEL_CLIENT_ID)."
+          )
   end
 
   # Hubtel webhook source-IP allowlist. Hubtel does not sign webhooks, so
@@ -183,7 +206,7 @@ if config_env() == :prod do
     api_key:
       System.get_env("SMS_API_KEY") ||
         raise("environment variable SMS_API_KEY is missing."),
-    sender_id: System.get_env("SMS_SENDER_ID") || "Emakola",
+    sender_id: System.get_env("SMS_SENDER_ID") || "Makola",
     api_url:
       System.get_env("SMS_API_URL") ||
         raise("environment variable SMS_API_URL is missing.")
@@ -204,6 +227,11 @@ if config_env() == :prod do
       System.get_env("WHATSAPP_PHONE_NUMBER_ID") ||
         raise("environment variable WHATSAPP_PHONE_NUMBER_ID is missing."),
     api_version: System.get_env("WHATSAPP_API_VERSION") || "v21.0"
+
+  # Phone (WhatsApp/SMS) OTP auth — ship-dark. Reveal the WhatsApp sign-in
+  # button only once SMS (now) or the approved WhatsApp auth_code template can
+  # deliver codes: set PHONE_AUTH_ENABLED=true. See docs/PROVIDER_SETUP.md.
+  config :emakola, :phone_auth_enabled, System.get_env("PHONE_AUTH_ENABLED") == "true"
 
   # Mobile push (FCM HTTP v1 via Req + Goth). Only active when a Firebase
   # service account is configured; otherwise the Log provider keeps the
@@ -237,6 +265,27 @@ if config_env() == :prod do
            You can generate one by calling: mix phx.gen.secret 64
            """)
 
+  # Social login (OAuth) — ship-dark: each provider activates only when its
+  # credentials are present (see EmakolaWeb.OAuth). Leaving the env vars unset
+  # keeps that provider's button hidden and its routes inert, so this deploys
+  # safely before any provider is set up. Apple uses a .p8 signing key, not a
+  # client secret.
+  config :emakola, :oauth,
+    google: %{
+      client_id: System.get_env("GOOGLE_CLIENT_ID"),
+      client_secret: System.get_env("GOOGLE_CLIENT_SECRET")
+    },
+    facebook: %{
+      client_id: System.get_env("FACEBOOK_CLIENT_ID"),
+      client_secret: System.get_env("FACEBOOK_CLIENT_SECRET")
+    },
+    apple: %{
+      client_id: System.get_env("APPLE_CLIENT_ID"),
+      team_id: System.get_env("APPLE_TEAM_ID"),
+      private_key_id: System.get_env("APPLE_KEY_ID"),
+      private_key_path: System.get_env("APPLE_PRIVATE_KEY_PATH")
+    }
+
   host =
     System.get_env("PHX_HOST") ||
       raise """
@@ -245,6 +294,11 @@ if config_env() == :prod do
       It is used for URL generation (emails, webhooks) and check_origin —
       a silent default would generate links to the wrong domain.
       """
+
+  # OAuth callback base — providers redirect back to
+  # "<base>/<subject>/<strategy>/callback" (e.g. .../oauth/merchant/google/callback).
+  # Derived from PHX_HOST so it follows the canonical host automatically.
+  config :emakola, :oauth_redirect_base, "https://#{host}/oauth"
 
   config :emakola, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
@@ -272,6 +326,30 @@ if config_env() == :prod do
       ip: {0, 0, 0, 0, 0, 0, 0, 0}
     ],
     secret_key_base: secret_key_base
+
+  # Branded merchant subdomains (yourshop.makola.io). Ships dark: until this is
+  # set, EmakolaWeb.Plugs.ResolveStoreByHost is a pure pass-through. Set it to
+  # the apex (e.g. "makola.io") only AFTER wildcard *.makola.io DNS + TLS exist,
+  # or branded hosts would resolve to a cert error.
+  config :emakola, :store_subdomain_base, System.get_env("STORE_SUBDOMAIN_BASE")
+
+  # Hosts that 301-redirect to the canonical apex (EmakolaWeb.Plugs.CanonicalHost).
+  # Auto-activates once PHX_HOST is makola.io: the Fly default + emakola.* aliases
+  # consolidate onto the brand apex, and www -> apex. Override with
+  # CANONICAL_REDIRECT_HOSTS (comma-separated) for any other host setup, or set it
+  # to an empty string to disable the redirects entirely.
+  canonical_redirect_hosts =
+    case System.get_env("CANONICAL_REDIRECT_HOSTS") do
+      nil ->
+        if host == "makola.io",
+          do: ["www.makola.io", "emakola.fly.dev", "emakola.com", "www.emakola.com"],
+          else: []
+
+      csv ->
+        csv |> String.split(",", trim: true) |> Enum.map(&String.trim/1)
+    end
+
+  config :emakola, :canonical_redirect_hosts, canonical_redirect_hosts
 
   # ## SSL Support
   #

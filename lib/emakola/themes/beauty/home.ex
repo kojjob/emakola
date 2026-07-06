@@ -17,6 +17,8 @@ defmodule Emakola.Themes.Beauty.Home do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.Beauty.Shared
 
   attr :store, :map, required: true
@@ -55,7 +57,7 @@ defmodule Emakola.Themes.Beauty.Home do
               </p>
               <div class="flex flex-col sm:flex-row gap-3">
                 <a
-                  href={"/s/#{@store.slug}/products"}
+                  href={store_path(@store.slug, "/products")}
                   class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[#FAF6EE] text-[#6B4423] text-sm font-semibold hover:bg-white transition-colors min-h-[48px]"
                 >
                   {@theme.hero.cta_text || "Shop the Collection"}
@@ -64,7 +66,7 @@ defmodule Emakola.Themes.Beauty.Home do
                   </span>
                 </a>
                 <a
-                  href={"/s/#{@store.slug}/about"}
+                  href={store_path(@store.slug, "/about")}
                   class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full border border-[#C9925E]/40 text-[#FAF6EE] text-sm font-semibold hover:bg-white/5 transition-colors min-h-[48px]"
                 >
                   Our Story
@@ -121,7 +123,7 @@ defmodule Emakola.Themes.Beauty.Home do
       >
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="text-center mb-12">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#C9925E] mb-3">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#8C5A24] mb-3">
               Our Products
             </p>
             <h2 class="beauty-heading text-4xl sm:text-5xl font-semibold text-[#3D2F25]">
@@ -137,8 +139,8 @@ defmodule Emakola.Themes.Beauty.Home do
           </div>
           <div class="text-center mt-12">
             <a
-              href={"/s/#{@store.slug}/products"}
-              class="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-[#6B4423] text-[#FAF6EE] text-sm font-semibold hover:bg-[#5A381D] transition-colors min-h-[48px]"
+              href={store_path(@store.slug, "/products")}
+              class="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-[var(--theme-primary,#6B4423)] text-[#FAF6EE] text-sm font-semibold hover:bg-[#5A381D] transition-colors min-h-[48px]"
             >
               See all products
               <span class="material-symbols-outlined" style="font-size: 18px;">arrow_forward</span>
@@ -186,7 +188,7 @@ defmodule Emakola.Themes.Beauty.Home do
       >
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
           <div class="text-center mb-12">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#C9925E] mb-3">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#8C5A24] mb-3">
               Testimonials
             </p>
             <h2 class="beauty-heading text-4xl sm:text-5xl font-semibold text-[#3D2F25]">
@@ -202,7 +204,7 @@ defmodule Emakola.Themes.Beauty.Home do
                 {String.first(t.name)}
               </div>
               <div class="flex items-center gap-1 mb-3">
-                <span :for={_ <- 1..5} class="text-[#C9925E]" style="font-size: 14px;">★</span>
+                <span :for={_ <- 1..5} class="text-[#8C5A24]" style="font-size: 14px;">★</span>
               </div>
               <p class="text-sm text-[#3D2F25] leading-relaxed mb-4 line-clamp-5">
                 "{t.quote}"
@@ -260,8 +262,8 @@ defmodule Emakola.Themes.Beauty.Home do
             {closing_subtitle(@theme)}
           </p>
           <a
-            href={"/s/#{@store.slug}/products"}
-            class="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-[#C9925E] text-[#3D2F25] text-sm font-bold hover:bg-[#FAF6EE] transition-colors min-h-[48px]"
+            href={store_path(@store.slug, "/products")}
+            class="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-[var(--theme-accent,#C9925E)] text-[#3D2F25] text-sm font-bold hover:bg-[#FAF6EE] transition-colors min-h-[48px]"
           >
             {closing_button(@theme)}
             <span class="material-symbols-outlined" style="font-size: 18px;">arrow_forward</span>
@@ -286,7 +288,7 @@ defmodule Emakola.Themes.Beauty.Home do
             />
             <button
               type="submit"
-              class="px-7 py-3.5 rounded-full bg-[#C9925E] text-[#3D2F25] text-sm font-bold hover:bg-[#FAF6EE] transition-colors min-h-[48px]"
+              class="px-7 py-3.5 rounded-full bg-[var(--theme-accent,#C9925E)] text-[#3D2F25] text-sm font-bold hover:bg-[#FAF6EE] transition-colors min-h-[48px]"
             >
               {newsletter_button(@theme)}
             </button>

@@ -5,6 +5,8 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   import EmakolaWeb.Helpers.Currency, only: [format_price: 2]
 
   @statuses [:all, :pending, :confirmed, :processing, :shipped, :delivered, :cancelled]
@@ -272,7 +274,12 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
         |> Ash.read!(authorize?: false)
         |> Enum.take(@orders_per_page)
       rescue
-        _ -> []
+        exception ->
+          Logger.error(
+            "[order_live.index] load_orders loading orders raised: #{Exception.message(exception)}"
+          )
+
+          []
       end
 
     assign(socket, orders: orders)

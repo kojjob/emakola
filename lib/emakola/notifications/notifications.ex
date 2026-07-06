@@ -22,6 +22,24 @@ defmodule Emakola.Notifications do
       define(:create_email_log, action: :create)
       define(:list_email_logs, action: :read)
     end
+
+    resource Emakola.Notifications.Announcement do
+      define(:create_announcement, action: :create)
+      define(:publish_announcement, action: :publish)
+      define(:cancel_announcement, action: :cancel)
+      define(:get_announcement, action: :read, get_by: [:id])
+      define(:list_announcements_for_admin, action: :list_for_admin)
+      define(:list_active_announcements, action: :active_for_store, args: [:store_live, :as_of])
+    end
+
+    resource Emakola.Notifications.AnnouncementDismissal do
+      define(:dismiss_announcement, action: :dismiss)
+
+      define(:list_dismissed_announcement_ids,
+        action: :dismissed_ids_for_merchant,
+        args: [:merchant_id]
+      )
+    end
   end
 
   @doc "Broadcast a notification to a user via PubSub."

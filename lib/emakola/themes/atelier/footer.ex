@@ -13,6 +13,8 @@ defmodule Emakola.Themes.Atelier.Footer do
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
   alias Emakola.Themes.DesignTokens
 
   # ── Footer ──
@@ -41,15 +43,19 @@ defmodule Emakola.Themes.Atelier.Footer do
         )
       )
 
-    # Company links with sensible defaults that work for any merchant
+    # Company links with sensible defaults that work for any merchant.
+    # All routes flow through store_path/2 so they stay correct on both the
+    # apex (/s/:slug/...) and a store subdomain (<slug>.<base>/...).
     company_links =
       Map.get(footer_config, :company_links, [
-        %{label: "Our Story", url: "/s/#{slug}/about"},
-        %{label: "Blog", url: "/s/#{slug}/blog"},
-        %{label: "Recipes", url: "/s/#{slug}/recipes"},
-        %{label: "Shipping & Returns", url: nil},
-        %{label: "Privacy Policy", url: nil},
-        %{label: "Terms of Service", url: nil}
+        %{label: "Our Story", url: store_path(slug, "/about")},
+        %{label: "Contact", url: store_path(slug, "/contact")},
+        %{label: "FAQ", url: store_path(slug, "/faq")},
+        %{label: "Blog", url: store_path(slug, "/blog")},
+        %{label: "Recipes", url: store_path(slug, "/recipes")},
+        %{label: "Shipping & Returns", url: store_path(slug, "/policies#shipping")},
+        %{label: "Privacy Policy", url: store_path(slug, "/policies#privacy")},
+        %{label: "Terms of Service", url: store_path(slug, "/policies#terms")}
       ])
 
     social_links =
@@ -108,7 +114,7 @@ defmodule Emakola.Themes.Atelier.Footer do
             <button
               type="submit"
               class={"px-6 py-3.5 text-sm font-bold uppercase tracking-wider #{@btn_classes} text-white transition-all duration-200 hover:opacity-90 cursor-pointer min-h-[48px] whitespace-nowrap"}
-              style="background: var(--theme-primary);"
+              style="background: var(--theme-accent, #166534);"
             >
               {Map.get(@newsletter, :button_text, "Subscribe")}
             </button>
@@ -160,7 +166,7 @@ defmodule Emakola.Themes.Atelier.Footer do
         <div class="flex flex-col items-center text-center gap-6">
           <%!-- Brand --%>
           <a
-            href={"/s/#{@store.slug}"}
+            href={store_path(@store.slug, "/")}
             class="text-xl font-black tracking-tight cursor-pointer transition-opacity duration-200 hover:opacity-80"
             style="color: var(--theme-primary);"
           >
@@ -207,7 +213,7 @@ defmodule Emakola.Themes.Atelier.Footer do
             </p>
             <p class="text-gray-600 text-[10px] mt-1">
               Powered by
-              <span class="font-semibold" style="color: var(--theme-primary);">Emakola</span>
+              <span class="font-semibold" style="color: var(--theme-primary);">Makola</span>
             </p>
           </div>
         </div>
@@ -232,7 +238,7 @@ defmodule Emakola.Themes.Atelier.Footer do
           <%!-- Brand / Description --%>
           <div>
             <a
-              href={"/s/#{@store.slug}"}
+              href={store_path(@store.slug, "/")}
               class="inline-block text-xl font-black tracking-tight mb-4 cursor-pointer transition-opacity duration-200 hover:opacity-80 min-h-[44px] flex items-center"
               style="color: var(--theme-primary);"
             >
@@ -275,7 +281,7 @@ defmodule Emakola.Themes.Atelier.Footer do
             <ul class="space-y-3">
               <li>
                 <a
-                  href={"/s/#{@store.slug}/products"}
+                  href={store_path(@store.slug, "/products")}
                   class="text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer inline-flex items-center min-h-[44px]"
                 >
                   All Products
@@ -283,7 +289,7 @@ defmodule Emakola.Themes.Atelier.Footer do
               </li>
               <li :for={category <- Enum.take(@categories, 5)}>
                 <a
-                  href={"/s/#{@store.slug}/category/#{category.slug}"}
+                  href={store_path(@store.slug, "/category/#{category.slug}")}
                   class="text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer inline-flex items-center min-h-[44px]"
                 >
                   {category.name}
@@ -379,7 +385,7 @@ defmodule Emakola.Themes.Atelier.Footer do
               </li>
               <li>
                 <a
-                  href={"/s/#{@store.slug}/about"}
+                  href={store_path(@store.slug, "/about")}
                   class="text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer inline-flex items-center min-h-[44px]"
                 >
                   About Us
@@ -422,7 +428,7 @@ defmodule Emakola.Themes.Atelier.Footer do
             &copy; {Date.utc_today().year} {@store.name}. All rights reserved.
           </p>
           <p class="text-gray-600 text-[10px]">
-            Powered by <span class="font-semibold" style="color: var(--theme-primary);">Emakola</span>
+            Powered by <span class="font-semibold" style="color: var(--theme-primary);">Makola</span>
           </p>
         </div>
       </div>
@@ -449,7 +455,7 @@ defmodule Emakola.Themes.Atelier.Footer do
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
             <div>
               <a
-                href={"/s/#{@store.slug}"}
+                href={store_path(@store.slug, "/")}
                 class="inline-block text-2xl sm:text-3xl font-black tracking-tight mb-4 cursor-pointer transition-opacity duration-200 hover:opacity-80"
                 style={"color: var(--theme-primary); font-family: #{@heading_font};"}
               >
@@ -461,9 +467,9 @@ defmodule Emakola.Themes.Atelier.Footer do
             </div>
             <div class="lg:text-right">
               <a
-                href={"/s/#{@store.slug}/products"}
+                href={store_path(@store.slug, "/products")}
                 class={"inline-flex items-center gap-2 px-8 py-4 text-sm font-bold uppercase tracking-wider #{@btn_classes} text-white transition-all duration-300 hover:opacity-90"}
-                style="background: var(--theme-primary);"
+                style="background: var(--theme-accent, #166534);"
               >
                 Shop Now
                 <svg
@@ -494,7 +500,7 @@ defmodule Emakola.Themes.Atelier.Footer do
             <ul class="space-y-3">
               <li>
                 <a
-                  href={"/s/#{@store.slug}/products"}
+                  href={store_path(@store.slug, "/products")}
                   class="text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer inline-flex items-center min-h-[44px]"
                 >
                   All Products
@@ -502,7 +508,7 @@ defmodule Emakola.Themes.Atelier.Footer do
               </li>
               <li :for={category <- Enum.take(@categories, 5)}>
                 <a
-                  href={"/s/#{@store.slug}/category/#{category.slug}"}
+                  href={store_path(@store.slug, "/category/#{category.slug}")}
                   class="text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer inline-flex items-center min-h-[44px]"
                 >
                   {category.name}
@@ -519,7 +525,7 @@ defmodule Emakola.Themes.Atelier.Footer do
             <ul class="space-y-3">
               <li>
                 <a
-                  href={"/s/#{@store.slug}/collections"}
+                  href={store_path(@store.slug, "/collections")}
                   class="text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer inline-flex items-center min-h-[44px]"
                 >
                   View All
@@ -527,7 +533,7 @@ defmodule Emakola.Themes.Atelier.Footer do
               </li>
               <li>
                 <a
-                  href={"/s/#{@store.slug}/products?sort=newest"}
+                  href={store_path(@store.slug, "/products?sort=newest")}
                   class="text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer inline-flex items-center min-h-[44px]"
                 >
                   New Arrivals
@@ -535,7 +541,7 @@ defmodule Emakola.Themes.Atelier.Footer do
               </li>
               <li>
                 <a
-                  href={"/s/#{@store.slug}/products?sort=popular"}
+                  href={store_path(@store.slug, "/products?sort=popular")}
                   class="text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer inline-flex items-center min-h-[44px]"
                 >
                   Best Sellers
@@ -631,7 +637,7 @@ defmodule Emakola.Themes.Atelier.Footer do
               </li>
               <li>
                 <a
-                  href={"/s/#{@store.slug}/about"}
+                  href={store_path(@store.slug, "/about")}
                   class="text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer inline-flex items-center min-h-[44px]"
                 >
                   About Us
@@ -701,7 +707,7 @@ defmodule Emakola.Themes.Atelier.Footer do
             &copy; {Date.utc_today().year} {@store.name}. All rights reserved.
           </p>
           <p class="text-gray-600 text-[10px]">
-            Powered by <span class="font-semibold" style="color: var(--theme-primary);">Emakola</span>
+            Powered by <span class="font-semibold" style="color: var(--theme-primary);">Makola</span>
           </p>
         </div>
       </div>
