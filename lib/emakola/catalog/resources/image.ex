@@ -14,7 +14,12 @@ defmodule Emakola.Catalog.Image do
   use Ash.Resource,
     domain: Emakola.Catalog,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    extensions: [AshJsonApi.Resource]
+
+  json_api do
+    type("image")
+  end
 
   multitenancy do
     strategy(:attribute)

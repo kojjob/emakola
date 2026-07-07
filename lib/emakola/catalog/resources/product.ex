@@ -12,7 +12,19 @@ defmodule Emakola.Catalog.Product do
   use Ash.Resource,
     domain: Emakola.Catalog,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    extensions: [AshJsonApi.Resource]
+
+  json_api do
+    type("product")
+    includes(variants: [], images: [])
+
+    routes do
+      base("/products")
+      index(:public_list)
+      get(:public_get)
+    end
+  end
 
   multitenancy do
     strategy(:attribute)
@@ -143,16 +155,28 @@ defmodule Emakola.Catalog.Product do
       public?(true)
     end
 
-    has_many :variants, Emakola.Catalog.Variant
-    has_many :images, Emakola.Catalog.Image
+    has_many :variants, Emakola.Catalog.Variant do
+      public?(true)
+    end
+
+    has_many :images, Emakola.Catalog.Image do
+      public?(true)
+    end
+
     has_many :reviews, Emakola.Catalog.Review
     has_many :digital_files, Emakola.Catalog.DigitalFile
   end
 
   aggregates do
     count(:variant_count, :variants)
-    min(:min_price, :variants, :price)
-    max(:max_price, :variants, :price)
+
+    min :min_price, :variants, :price do
+      public?(true)
+    end
+
+    max :max_price, :variants, :price do
+      public?(true)
+    end
 
     count :review_count, :reviews do
       filter(expr(status == :published))
@@ -189,6 +213,34 @@ defmodule Emakola.Catalog.Product do
 
   actions do
     defaults([:read, :destroy])
+
+    read :public_list do
+      description("""
+      Public storefront product list — active only, tenant-scoped, newest first.
+      SECURITY: Product is global?(true) multitenant. A call WITHOUT `tenant:` set
+      returns EVERY store's active products (no store_id filter). The public shop
+      API MUST set the Ash tenant (PublicStoreTenant plug) before invoking this —
+      fail-closed if the store slug is unknown; never call tenantless.
+      """)
+
+      filter(expr(status == :active))
+      prepare(build(sort: [inserted_at: :desc], load: [:min_price, :max_price, :images]))
+      pagination(keyset?: true, countable: true, default_limit: 20)
+    end
+
+    read :public_get do
+      description("""
+      Public storefront product fetch — active only, by primary key.
+      SECURITY: Product is global?(true) multitenant. A call WITHOUT `tenant:` set
+      returns EVERY store's active products (no store_id filter). The public shop
+      API MUST set the Ash tenant (PublicStoreTenant plug) before invoking this —
+      fail-closed if the store slug is unknown; never call tenantless.
+      """)
+
+      get?(true)
+      filter(expr(status == :active))
+      prepare(build(load: [:variants, :images, :min_price, :max_price]))
+    end
 
     create :create do
       accept([

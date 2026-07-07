@@ -15,7 +15,12 @@ defmodule Emakola.Stores.Store do
   use Ash.Resource,
     domain: Emakola.Stores,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    extensions: [AshJsonApi.Resource]
+
+  json_api do
+    type("store")
+  end
 
   postgres do
     table("stores")

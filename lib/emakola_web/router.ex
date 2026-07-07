@@ -34,6 +34,13 @@ defmodule EmakolaWeb.Router do
     plug EmakolaWeb.Plugs.RateLimiter, limit: 100, window_ms: 60_000
   end
 
+  # Public, store-scoped browse API. Accepts JSON:API media type; per-IP rate
+  # limited. Tenant is set per-request by PublicStoreTenant (see scopes below).
+  pipeline :shop_api do
+    plug :accepts, ["json"]
+    plug EmakolaWeb.Plugs.RateLimiter, limit: 100, window_ms: 60_000
+  end
+
   # Pipeline for SEO/crawler endpoints that return XML or plain text.
   # Separate from :api to avoid the JSON-only :accepts plug rejecting
   # crawlers that send Accept: text/xml or Accept: */*.
@@ -125,6 +132,30 @@ defmodule EmakolaWeb.Router do
     pipe_through [:api, :api_bearer]
 
     get "/stores", StoreController, :index
+  end
+
+  # Public store-scoped browse API. Both routes resolve the tenant from the
+  # :store_slug via PublicStoreTenant — the Ash tenant is ALWAYS set before the
+  # global?(true) browse actions run, fail-closed on unknown/inactive slug (the
+  # cross-store leak guard).
+  #
+  # MUST stay above the /api/v1 JSON:API forward below: that forward matches
+  # every path under /api/v1 (including /api/v1/shop/...), so these must be
+  # declared first or they get swallowed (same trap as /api/v1/stores).
+  #
+  # Store-info GET "/" is declared before the ShopApiForward forward for the same
+  # reason — the explicit, more-specific route wins over the catch-all forward.
+  scope "/api/v1/shop/:store_slug", EmakolaWeb.Api do
+    pipe_through [:shop_api, EmakolaWeb.Plugs.PublicStoreTenant]
+    get "/", ShopController, :show
+  end
+
+  # Phoenix `forward` forbids a dynamic segment, so we forward a STATIC prefix to
+  # ShopApiForward, which pops the slug, sets the tenant (PublicStoreTenant,
+  # fail-closed), then forwards the rest (e.g. ["products"]) to ShopApiRouter.
+  scope "/api/v1/shop" do
+    pipe_through :shop_api
+    forward "/", EmakolaWeb.Plugs.ShopApiForward
   end
 
   # Tenant-scoped JSON:API resources (orders; device tokens in a later task).
