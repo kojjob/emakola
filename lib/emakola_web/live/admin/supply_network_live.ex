@@ -2,7 +2,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
   @moduledoc "Merchant UI for SP2 wholesaler/reseller supply connections."
   use EmakolaWeb, :live_view
 
-  alias Emakola.Suppliers.{ListingImporter, Network, Offers}
+  alias Emakola.Suppliers.{InboundFulfillment, ListingImporter, Network, Offers}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -14,10 +14,16 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
        connection_count: 0,
        offer_count: 0,
        listing_count: 0,
+       inbound_count: 0,
+       shipping_fulfillment_id: nil,
+       shipping_form: to_form(%{"tracking_number" => ""}, as: :shipment),
+       delivery_fulfillment_id: nil,
+       delivery_form: to_form(%{"code" => ""}, as: :delivery),
        form: connection_form()
      )
      |> load_connections()
-     |> load_earn_catalog()}
+     |> load_earn_catalog()
+     |> load_inbound_fulfillments()}
   end
 
   @impl true
@@ -109,6 +115,100 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     end
   end
 
+  def handle_event("select_inbound_shipping", %{"id" => id}, socket) do
+    {:noreply,
+     socket
+     |> assign(
+       shipping_fulfillment_id: id,
+       shipping_form: to_form(%{"tracking_number" => ""}, as: :shipment)
+     )
+     |> load_inbound_fulfillments()}
+  end
+
+  def handle_event("cancel_inbound_shipping", _params, socket) do
+    {:noreply, socket |> assign(:shipping_fulfillment_id, nil) |> load_inbound_fulfillments()}
+  end
+
+  def handle_event("ship_inbound", %{"shipment" => params}, socket) do
+    id = socket.assigns.shipping_fulfillment_id
+
+    case InboundFulfillment.mark_shipped(
+           socket.assigns.current_merchant,
+           socket.assigns.current_store.id,
+           id,
+           Map.get(params, "tracking_number", "")
+         ) do
+      {:ok, _fulfillment} ->
+        {:noreply,
+         socket
+         |> assign(:shipping_fulfillment_id, nil)
+         |> load_inbound_fulfillments()
+         |> put_flash(:info, "Shipment marked as on the way.")}
+
+      _error ->
+        {:noreply, put_flash(socket, :error, "Shipment could not be updated.")}
+    end
+  end
+
+  def handle_event("request_delivery_code", %{"id" => id}, socket) do
+    case InboundFulfillment.request_delivery_code(
+           socket.assigns.current_merchant,
+           socket.assigns.current_store.id,
+           id
+         ) do
+      {:ok, _proof} ->
+        {:noreply,
+         socket
+         |> assign(
+           delivery_fulfillment_id: id,
+           delivery_form: to_form(%{"code" => ""}, as: :delivery)
+         )
+         |> load_inbound_fulfillments()
+         |> put_flash(:info, "Delivery code sent to the customer.")}
+
+      {:error, :customer_phone_missing} ->
+        {:noreply, put_flash(socket, :error, "This order has no customer phone number.")}
+
+      _error ->
+        {:noreply, put_flash(socket, :error, "The delivery code could not be sent.")}
+    end
+  end
+
+  def handle_event("enter_delivery_code", %{"id" => id}, socket) do
+    {:noreply,
+     socket
+     |> assign(
+       delivery_fulfillment_id: id,
+       delivery_form: to_form(%{"code" => ""}, as: :delivery)
+     )
+     |> load_inbound_fulfillments()}
+  end
+
+  def handle_event("verify_delivery", %{"delivery" => params}, socket) do
+    case InboundFulfillment.verify_delivery(
+           socket.assigns.current_merchant,
+           socket.assigns.current_store.id,
+           socket.assigns.delivery_fulfillment_id,
+           Map.get(params, "code", "")
+         ) do
+      {:ok, _fulfillment} ->
+        {:noreply,
+         socket
+         |> assign(:delivery_fulfillment_id, nil)
+         |> load_inbound_fulfillments()
+         |> put_flash(:info, "Delivery confirmed by the customer.")}
+
+      {:error, :invalid_code} ->
+        {:noreply, put_flash(socket, :error, "That delivery code is not correct.")}
+
+      {:error, :expired} ->
+        {:noreply, put_flash(socket, :error, "That code has expired. Send a new one.")}
+
+      _error ->
+        {:noreply, put_flash(socket, :error, "Delivery could not be confirmed.")}
+    end
+  end
+
   defp update_connection(socket, id, callback, success_message) do
     actor = socket.assigns.current_merchant
 
@@ -159,6 +259,17 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     |> stream(:listings, listings, reset: true)
   end
 
+  defp load_inbound_fulfillments(socket) do
+    fulfillments =
+      socket.assigns.current_merchant
+      |> InboundFulfillment.list(socket.assigns.current_store.id)
+      |> result_rows()
+
+    socket
+    |> assign(:inbound_count, length(fulfillments))
+    |> stream(:inbound_fulfillments, fulfillments, reset: true)
+  end
+
   defp result_rows({:ok, rows}), do: rows
   defp result_rows(_error), do: []
 
@@ -203,6 +314,20 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
   defp status_classes(:suspended), do: "bg-slate-100 text-slate-600 ring-slate-500/20"
   defp status_classes(:rejected), do: "bg-rose-50 text-rose-700 ring-rose-600/20"
   defp status_classes(:terminated), do: "bg-slate-100 text-slate-500 ring-slate-500/20"
+
+  defp fulfillment_status_classes(:pending), do: "bg-amber-50 text-amber-700"
+  defp fulfillment_status_classes(:notified), do: "bg-blue-50 text-blue-700"
+  defp fulfillment_status_classes(:shipped), do: "bg-violet-50 text-violet-700"
+  defp fulfillment_status_classes(:delivered), do: "bg-emerald-50 text-emerald-700"
+  defp fulfillment_status_classes(:cancelled), do: "bg-slate-100 text-slate-500"
+
+  defp shipment_open?(fulfillment_id, selected_id), do: fulfillment_id == selected_id
+  defp delivery_open?(fulfillment_id, selected_id), do: fulfillment_id == selected_id
+
+  defp customer_city(order) do
+    address = order.shipping_address || %{}
+    Map.get(address, "city") || Map.get(address, :city) || "Delivery address on order"
+  end
 
   defp lead_image(offer), do: List.first(offer.source_product.images)
 
@@ -541,6 +666,174 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
             >
               <.icon name="hero-pencil-square" class="size-4" />
             </.link>
+          </article>
+        </div>
+      </section>
+
+      <section id="supplier-inbox" aria-labelledby="supplier-inbox-heading" class="space-y-5">
+        <div class="overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 to-slate-800 px-6 py-7 text-white shadow-lg sm:px-8">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <span class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-emerald-300">
+                <.icon name="hero-inbox-stack" class="size-4" /> Supplier inbox
+              </span>
+              <h2 id="supplier-inbox-heading" class="mt-2 text-2xl font-bold tracking-tight">
+                Orders for you to fulfill
+              </h2>
+              <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+                These orders were sold by connected Makola stores using your products. Ship directly to the customer, then use their private code as delivery proof.
+              </p>
+            </div>
+            <span
+              id="inbound-fulfillment-count"
+              class="w-fit rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-white ring-1 ring-white/15"
+            >
+              {@inbound_count} orders
+            </span>
+          </div>
+        </div>
+
+        <div id="inbound-fulfillments" phx-update="stream" class="space-y-4">
+          <div
+            id="inbound-empty"
+            class="hidden only:block rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center"
+          >
+            <.icon name="hero-truck" class="mx-auto size-9 text-slate-300" />
+            <p class="mt-3 text-sm font-semibold text-slate-700">No partner orders need attention</p>
+            <p class="mt-1 text-xs text-slate-500">
+              New paid orders for your shared products will appear here.
+            </p>
+          </div>
+
+          <article
+            :for={{dom_id, fulfillment} <- @streams.inbound_fulfillments}
+            id={dom_id}
+            class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+          >
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <h3 class="font-bold text-slate-900">Order {fulfillment.order.order_number}</h3>
+                  <span class={[
+                    "rounded-full px-2.5 py-1 text-[11px] font-bold capitalize",
+                    fulfillment_status_classes(fulfillment.status)
+                  ]}>
+                    {fulfillment.status}
+                  </span>
+                </div>
+                <p class="mt-1 text-xs text-slate-500">
+                  Sold by {fulfillment.supplier.name} · Deliver to {customer_city(fulfillment.order)}
+                </p>
+              </div>
+              <p class="text-xs font-semibold text-slate-400">
+                {length(fulfillment.line_items)} item types
+              </p>
+            </div>
+
+            <ul class="mt-4 divide-y divide-slate-100 rounded-xl bg-slate-50 px-4">
+              <li
+                :for={item <- fulfillment.line_items}
+                class="flex items-center justify-between gap-4 py-3 text-sm"
+              >
+                <span class="font-medium text-slate-700">{item.product_title}</span>
+                <span class="shrink-0 text-xs font-bold text-slate-500">× {item.quantity}</span>
+              </li>
+            </ul>
+
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+              <button
+                :if={fulfillment.status in [:pending, :notified]}
+                id={"prepare-shipment-#{fulfillment.id}"}
+                phx-click="select_inbound_shipping"
+                phx-value-id={fulfillment.id}
+                class="rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-700 active:scale-[0.98]"
+              >
+                Mark shipped
+              </button>
+              <button
+                :if={fulfillment.status == :shipped}
+                id={"send-delivery-code-#{fulfillment.id}"}
+                phx-click="request_delivery_code"
+                phx-value-id={fulfillment.id}
+                class="rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-700 active:scale-[0.98]"
+              >
+                {if fulfillment.delivery_proof, do: "Send new code", else: "Send delivery code"}
+              </button>
+              <button
+                :if={fulfillment.status == :shipped and fulfillment.delivery_proof}
+                id={"enter-delivery-code-#{fulfillment.id}"}
+                phx-click="enter_delivery_code"
+                phx-value-id={fulfillment.id}
+                class="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                Enter customer code
+              </button>
+              <span
+                :if={fulfillment.status == :delivered}
+                class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700"
+              >
+                <.icon name="hero-check-circle" class="size-4" /> Customer confirmed delivery
+              </span>
+            </div>
+
+            <.form
+              :if={shipment_open?(fulfillment.id, @shipping_fulfillment_id)}
+              for={@shipping_form}
+              id={"ship-inbound-form-#{fulfillment.id}"}
+              phx-submit="ship_inbound"
+              class="mt-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-end"
+            >
+              <div class="flex-1">
+                <.input
+                  field={@shipping_form[:tracking_number]}
+                  type="text"
+                  label="Tracking number"
+                  placeholder="Optional courier reference"
+                />
+              </div>
+              <div class="flex gap-2 pb-0.5">
+                <button
+                  type="submit"
+                  class="rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-bold text-white"
+                >
+                  Confirm shipment
+                </button>
+                <button
+                  type="button"
+                  phx-click="cancel_inbound_shipping"
+                  class="rounded-xl px-3 py-2.5 text-xs font-bold text-slate-500"
+                >
+                  Cancel
+                </button>
+              </div>
+            </.form>
+
+            <.form
+              :if={delivery_open?(fulfillment.id, @delivery_fulfillment_id)}
+              for={@delivery_form}
+              id={"verify-delivery-form-#{fulfillment.id}"}
+              phx-submit="verify_delivery"
+              class="mt-4 flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 sm:flex-row sm:items-end"
+            >
+              <div class="flex-1">
+                <.input
+                  field={@delivery_form[:code]}
+                  type="text"
+                  inputmode="numeric"
+                  pattern="[0-9]{6}"
+                  maxlength="6"
+                  label="Customer's 6-digit code"
+                  placeholder="000000"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                class="rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-800"
+              >
+                Confirm delivery
+              </button>
+            </.form>
           </article>
         </div>
       </section>

@@ -157,6 +157,30 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     refute has_element?(view, "#import-offer-#{offer.id}")
   end
 
+  test "wholesaler manages cross-store orders from the supplier inbox", ctx do
+    fulfillment = create_inbound_fulfillment!(ctx)
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+
+    assert has_element?(view, "#supplier-inbox")
+    assert has_element?(view, "#inbound-fulfillment-count", "1 orders")
+    assert has_element?(view, "#inbound-fulfillments article", "Accra")
+
+    view
+    |> element("#prepare-shipment-#{fulfillment.id}")
+    |> render_click()
+
+    assert has_element?(view, "#ship-inbound-form-#{fulfillment.id}")
+
+    view
+    |> form("#ship-inbound-form-#{fulfillment.id}",
+      shipment: %{tracking_number: "GH-INBOUND-1"}
+    )
+    |> render_submit()
+
+    assert has_element?(view, "#send-delivery-code-#{fulfillment.id}")
+    refute has_element?(view, "#prepare-shipment-#{fulfillment.id}")
+  end
+
   defp create_partner_offer!(ctx) do
     product = create_product!(ctx.partner, status: :active, title: "Partner Kente Bag")
     variant = create_variant!(product, ctx.partner, price: 6_500, stock_quantity: 10)
@@ -190,5 +214,22 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
 
     {:ok, active} = Network.approve(ctx.merchant, pending)
     active
+  end
+
+  defp create_inbound_fulfillment!(ctx) do
+    customer = create_customer!(ctx.partner, phone: "+233501234567")
+
+    order =
+      Emakola.Orders.create_order!(
+        %{
+          store_id: ctx.partner.id,
+          customer_id: customer.id,
+          shipping_address: %{"phone" => customer.phone, "city" => "Accra"}
+        },
+        authorize?: false
+      )
+
+    supplier = create_supplier!(ctx.partner, linked_store_id: ctx.store.id)
+    create_fulfillment!(order, ctx.partner, supplier_id: supplier.id)
   end
 end

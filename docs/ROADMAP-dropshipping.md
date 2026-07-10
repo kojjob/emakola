@@ -186,8 +186,9 @@ Decomposed into 5 sub-projects; **SP1 + SP5 built first** (the money rails).
     bounded prices, source synchronization, and automatic suspension propagation.
   - [x] Retryable, SSRF-safe source-image replication into reseller-owned storage.
   - [x] Pilot-facing one-click publication UI with offer earnings and listing status.
-- [ ] **SP4 cross-store fulfillment** — wholesaler inbound queue, cross-tenant access,
-  physical delivery proof, and protected digital grants.
+- [x] **SP4 cross-store fulfillment** — authorized wholesaler inbox and shipment updates,
+  row-locked customer delivery OTP proof, and protected source-file grants for imported
+  digital products.
 - [ ] **Sales Kits and First Money journey** — ready-to-share content, tracked links, and
   guided activation through the first fulfilled sale.
 

@@ -38,6 +38,10 @@ defmodule Emakola.Orders do
       define(:cancel_fulfillment, action: :cancel)
     end
 
+    resource Emakola.Orders.FulfillmentDeliveryProof do
+      define(:issue_fulfillment_delivery_proof, action: :issue)
+    end
+
     # Coupon resource moved to Emakola.Marketing on 2026-04-26.
     # See docs/PLAN-domain-restructuring-2026-04-26.md
 

@@ -17,8 +17,6 @@ defmodule Emakola.Orders.Fulfillment do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
-  require Ash.Query
-
   multitenancy do
     strategy(:attribute)
     attribute(:store_id)
@@ -89,6 +87,11 @@ defmodule Emakola.Orders.Fulfillment do
     end
 
     has_many :line_items, Emakola.Orders.LineItem
+
+    has_one :delivery_proof, Emakola.Orders.FulfillmentDeliveryProof do
+      destination_attribute(:fulfillment_id)
+      public?(true)
+    end
   end
 
   policies do

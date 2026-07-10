@@ -156,7 +156,8 @@
         option values, bounded pricing, and existing supplier fulfillment linkage.
   - [x] Retryable, SSRF-safe source-image replication into reseller-owned storage.
   - [x] Pilot-facing one-click listing UI with offer earnings and imported-listing status.
-- [ ] **SP4:** cross-store inbound fulfillment, delivery proof, and protected digital delivery.
+- [x] **SP4:** authorized cross-store supplier inbox, customer delivery OTP proof,
+      and protected grants for imported digital products.
 - [ ] Add Sales Kits, tracked sharing links, and the guided “First Money” journey.
 - [ ] Pass the concierge validation gate before broad network rollout.
 

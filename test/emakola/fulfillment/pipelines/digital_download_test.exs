@@ -8,6 +8,7 @@ defmodule Emakola.Fulfillment.Pipelines.DigitalDownloadTest do
   alias Emakola.Catalog.DigitalFile
   alias Emakola.Fulfillment.DownloadGrant
   alias Emakola.Fulfillment.Pipelines.DigitalDownload
+  alias Emakola.Suppliers.{ListingImporter, Network, Offers}
 
   defp digital_store! do
     create_store!()
@@ -126,6 +127,65 @@ defmodule Emakola.Fulfillment.Pipelines.DigitalDownloadTest do
       assert {:ok, %{grants: [grant]}} = DigitalDownload.fulfill(line_item, %{})
       assert grant.customer_id == nil
     end
+
+    test "issues a reseller-scoped grant for an imported offer's protected source file" do
+      {wholesaler_actor, wholesaler} = create_merchant_with_store!()
+      {reseller_actor, reseller} = create_merchant_with_store!()
+      wholesaler = enable_digital!(wholesaler)
+      reseller = enable_digital!(reseller)
+
+      source_product =
+        create_product!(wholesaler, product_type: :digital_download, status: :active)
+
+      source_variant = create_variant!(source_product, wholesaler, stock_quantity: 10)
+      source_file = attach_file!(wholesaler, source_product, file_name: "partner-guide.pdf")
+
+      {:ok, offer} =
+        Offers.create_draft(wholesaler_actor, %{
+          wholesaler_store_id: wholesaler.id,
+          source_product_id: source_product.id,
+          earning_model: :fixed_commission
+        })
+
+      {:ok, _terms} =
+        Offers.add_variant(wholesaler_actor, offer, %{
+          source_variant_id: source_variant.id,
+          supplier_price: 4_000,
+          suggested_retail_price: 5_000,
+          fixed_commission_amount: 1_000
+        })
+
+      {:ok, published} = Offers.publish(wholesaler_actor, offer)
+
+      {:ok, pending} =
+        Network.request(wholesaler_actor, %{
+          wholesaler_store_id: wholesaler.id,
+          reseller_store_id: reseller.id,
+          requested_by_store_id: wholesaler.id
+        })
+
+      {:ok, _active} = Network.approve(reseller_actor, pending)
+      {:ok, listing} = ListingImporter.import(reseller_actor, reseller.id, published)
+      [reseller_variant] = listing.reseller_product.variants
+      customer = create_customer!(reseller)
+      order = create_order!(reseller, customer_id: customer.id)
+
+      line_item =
+        Emakola.Orders.LineItem
+        |> Ash.Changeset.for_create(:create, %{
+          order_id: order.id,
+          store_id: reseller.id,
+          variant_id: reseller_variant.id,
+          quantity: 1
+        })
+        |> Ash.create!(authorize?: false)
+
+      assert {:ok, %{grants: [grant]}} = DigitalDownload.fulfill(line_item, %{})
+      assert grant.digital_file_id == source_file.id
+      assert grant.store_id == reseller.id
+      assert grant.order_id == order.id
+      assert grant.customer_id == customer.id
+    end
   end
 
   describe "fulfill/2 — error paths" do
@@ -139,5 +199,13 @@ defmodule Emakola.Fulfillment.Pipelines.DigitalDownloadTest do
 
       assert {:error, :line_item_not_found} = DigitalDownload.fulfill(fake, %{})
     end
+  end
+
+  defp enable_digital!(store) do
+    store
+    |> Ash.Changeset.for_update(:update_settings, %{
+      enabled_product_types: [:physical, :digital_download]
+    })
+    |> Ash.update!(authorize?: false)
   end
 end

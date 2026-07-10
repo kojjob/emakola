@@ -39,8 +39,8 @@ defmodule Emakola.Fulfillment.Pipelines.DigitalDownload do
   @impl true
   def fulfill(%{id: line_item_id}, context) when is_binary(line_item_id) do
     with {:ok, line_item} <- load_line_item(line_item_id),
-         {:ok, product_id} <- product_id_for(line_item),
-         files when is_list(files) <- list_paid_files(line_item.store_id, product_id) do
+         {:ok, {file_store_id, product_id}} <- file_source_for(line_item),
+         files when is_list(files) <- list_paid_files(file_store_id, product_id) do
       customer_id = Map.get(context, :customer_id) || customer_id_for(line_item)
       existing_grants = load_existing_grants(line_item.id)
       grants = Enum.map(files, &issue_or_reuse_grant(line_item, &1, customer_id, existing_grants))
@@ -55,10 +55,28 @@ defmodule Emakola.Fulfillment.Pipelines.DigitalDownload do
     end
   end
 
-  defp product_id_for(%{variant: %{product_id: product_id}}) when is_binary(product_id),
-    do: {:ok, product_id}
+  defp file_source_for(%{variant: %{product_id: product_id}, store_id: store_id})
+       when is_binary(product_id) do
+    case reseller_source(product_id) do
+      {:ok, %{offer: offer}} -> {:ok, {offer.wholesaler_store_id, offer.source_product_id}}
+      :not_imported -> {:ok, {store_id, product_id}}
+      {:error, reason} -> {:error, reason}
+    end
+  end
 
-  defp product_id_for(_), do: {:error, :product_unresolved}
+  defp file_source_for(_), do: {:error, :product_unresolved}
+
+  defp reseller_source(product_id) do
+    Emakola.Suppliers.ResellerListing
+    |> Ash.Query.filter(reseller_product_id == ^product_id)
+    |> Ash.Query.load(:offer)
+    |> Ash.read_one(authorize?: false)
+    |> case do
+      {:ok, nil} -> :not_imported
+      {:ok, listing} -> {:ok, listing}
+      {:error, reason} -> {:error, reason}
+    end
+  end
 
   defp list_paid_files(store_id, product_id) do
     DigitalFile
