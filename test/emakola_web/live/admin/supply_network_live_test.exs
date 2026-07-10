@@ -29,6 +29,10 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     assert has_element?(view, "#supply-connection-form")
     assert has_element?(view, "#connections-empty")
     assert has_element?(view, "#connection-count", "0")
+    assert has_element?(view, "#collaborative-commerce")
+    assert has_element?(view, "#group-buy-form")
+    assert has_element?(view, "#sales-team-form")
+    assert has_element?(view, "#franchise-package-form")
   end
 
   test "requests a reseller connection by partner store slug", ctx do
@@ -330,6 +334,54 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
 
     {:ok, shares} = Emakola.Suppliers.SalesSharing.list_for_store(ctx.merchant, ctx.store.id)
     assert length(shares) == 3
+  end
+
+  test "opens a protected group buy from an imported variant", ctx do
+    offer = create_partner_offer!(ctx)
+    connect_partner!(ctx)
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    view |> element("#import-offer-#{offer.id}") |> render_click()
+    {:ok, [listing]} = Emakola.Suppliers.ListingImporter.list(ctx.merchant, ctx.store.id)
+    mapping = hd(listing.listing_variants)
+    deadline = DateTime.add(DateTime.utc_now(), 7, :day)
+    refund = DateTime.add(deadline, 2, :day)
+
+    view
+    |> form("#group-buy-form",
+      group_buy: %{
+        listing_variant_id: mapping.id,
+        title: "Ten bag circle",
+        threshold_quantity: "10",
+        unit_price: "60.00",
+        deadline: Calendar.strftime(deadline, "%Y-%m-%dT%H:%M"),
+        refund_deadline: Calendar.strftime(refund, "%Y-%m-%dT%H:%M")
+      }
+    )
+    |> render_submit()
+
+    assert has_element?(view, "#group-buy-campaigns article", "Ten bag circle")
+    assert has_element?(view, "#group-buy-campaigns article", "0/10 paid")
+    assert has_element?(view, "#group-buy-campaigns article", "Refund by")
+  end
+
+  test "creates a flat team invitation with exact displayed roles and splits", ctx do
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+
+    view
+    |> form("#sales-team-form",
+      sales_team: %{
+        name: "Social launch crew",
+        collaborator_email: to_string(ctx.partner_merchant.email),
+        collaborator_role: "seller",
+        owner_percent: "60",
+        collaborator_percent: "40"
+      }
+    )
+    |> render_submit()
+
+    assert has_element?(view, "#sales-teams article", "Social launch crew")
+    assert {:ok, [team]} = Emakola.Suppliers.SalesTeams.list(ctx.merchant, ctx.store.id)
+    assert Enum.sum(Enum.map(team.members, & &1.split_bps)) == 10_000
   end
 
   defp create_partner_offer!(ctx) do

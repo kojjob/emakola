@@ -187,6 +187,10 @@
           exact consented team splits, package terms, and explicit anti-MLM structure.
     - [ ] Add Phase D merchant/customer UI, settlement integration, automatic refunds, and
           approved-package catalog activation.
+      - [x] Add Earn Network merchant UI for group buys, exact-split team invitations/consent,
+            and supplier/reseller micro-franchise publishing/discovery/application.
+      - [ ] Add customer commitments, automatic refunds, order settlement, supplier approval,
+            and approved-package catalog activation.
 
 ## OPEN — White-label design system (remaining phases)
 

@@ -47,6 +47,15 @@ defmodule Emakola.Suppliers.SalesTeams do
     end
   end
 
+  def invitations(%Emakola.Accounts.Merchant{id: merchant_id}) do
+    SalesTeamMember
+    |> Ash.Query.filter(merchant_id == ^merchant_id and status == :invited)
+    |> Ash.Query.load([:team])
+    |> Ash.read(authorize?: false)
+  end
+
+  def invitations(_actor), do: {:error, :forbidden}
+
   def accept(actor, member_id) do
     with {:ok, member} <- Ash.get(SalesTeamMember, member_id, authorize?: false),
          true <- member.merchant_id == actor.id do

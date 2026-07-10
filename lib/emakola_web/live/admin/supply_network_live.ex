@@ -2,11 +2,15 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
   @moduledoc "Merchant UI for SP2 wholesaler/reseller supply connections."
   use EmakolaWeb, :live_view
 
+  require Ash.Query
+
   alias Emakola.Suppliers.{
     BusinessCommand,
     ContentStudio,
     HustlePlanner,
     GoalProgress,
+    Franchises,
+    GroupBuys,
     InboundFulfillment,
     IncomeGoals,
     ListingImporter,
@@ -15,6 +19,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     OpportunitySignals,
     Offers,
     SalesSharing,
+    SalesTeams,
     StarterBusiness
   }
 
@@ -44,6 +49,13 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
        starter_business_form: starter_business_form(),
        opportunity_radar_count: 0,
        supplier_demand_alert_count: 0,
+       group_buy_count: 0,
+       sales_team_count: 0,
+       franchise_package_count: 0,
+       available_franchise_count: 0,
+       group_buy_form: group_buy_form(),
+       sales_team_form: sales_team_form(),
+       franchise_form: franchise_form(),
        income_goal_form: income_goal_form(),
        first_money: %{},
        active_connection?: false,
@@ -60,7 +72,8 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
      |> load_sales_journey()
      |> load_income_goal()
      |> load_content_drafts()
-     |> load_opportunity_radar()}
+     |> load_opportunity_radar()
+     |> load_collaborative_commerce()}
   end
 
   @impl true
@@ -141,6 +154,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
        |> load_earn_catalog()
        |> load_sales_journey()
        |> load_income_goal()
+       |> load_collaborative_commerce()
        |> put_flash(:info, "Product added to your store. Its images are being prepared.")}
     else
       nil ->
@@ -152,6 +166,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
          |> load_earn_catalog()
          |> load_sales_journey()
          |> load_income_goal()
+         |> load_collaborative_commerce()
          |> put_flash(:info, "Already in your store.")}
 
       _ ->
@@ -267,6 +282,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
          |> load_sales_journey()
          |> load_income_goal()
          |> load_content_drafts()
+         |> load_collaborative_commerce()
          |> put_flash(:info, message)}
 
       {:error, message} ->
@@ -288,6 +304,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
          |> load_sales_journey()
          |> load_income_goal()
          |> load_content_drafts()
+         |> load_collaborative_commerce()
          |> put_flash(
            :info,
            "Starter business ready: #{result.imported} products, tracked links, and reviewable content drafts."
@@ -304,6 +321,132 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
 
   def handle_event("refresh_opportunity_radar", _params, socket) do
     {:noreply, load_opportunity_radar(socket)}
+  end
+
+  def handle_event("create_group_buy", %{"group_buy" => params}, socket) do
+    with %{} = mapping <-
+           find_listing_mapping(socket.assigns.hustle_listings, params["listing_variant_id"]),
+         attrs <- group_buy_attrs(params, mapping),
+         {:ok, campaign} <-
+           GroupBuys.create(
+             socket.assigns.current_merchant,
+             socket.assigns.current_store.id,
+             attrs
+           ),
+         {:ok, _opened} <-
+           GroupBuys.open(
+             socket.assigns.current_merchant,
+             socket.assigns.current_store.id,
+             campaign.id
+           ) do
+      {:noreply,
+       socket
+       |> assign(:group_buy_form, group_buy_form())
+       |> load_collaborative_commerce()
+       |> put_flash(:info, "Group buy opened with a locked price and refund deadline.")}
+    else
+      nil -> {:noreply, put_flash(socket, :error, "Choose an imported product variant.")}
+      {:error, reason} -> {:noreply, put_flash(socket, :error, group_buy_error(reason))}
+    end
+  end
+
+  def handle_event("create_sales_team", %{"sales_team" => params}, socket) do
+    with {:ok, collaborator} <- merchant_by_email(params["collaborator_email"]),
+         {:ok, owner_bps} <- percent_bps(params["owner_percent"]),
+         {:ok, collaborator_bps} <- percent_bps(params["collaborator_percent"]),
+         {:ok, _team} <-
+           SalesTeams.create(
+             socket.assigns.current_merchant,
+             socket.assigns.current_store.id,
+             params["name"],
+             [
+               %{
+                 merchant_id: socket.assigns.current_merchant.id,
+                 role: :owner,
+                 split_bps: owner_bps
+               },
+               %{
+                 merchant_id: collaborator.id,
+                 role: params["collaborator_role"],
+                 split_bps: collaborator_bps
+               }
+             ]
+           ) do
+      {:noreply,
+       socket
+       |> assign(:sales_team_form, sales_team_form())
+       |> load_collaborative_commerce()
+       |> put_flash(
+         :info,
+         "Team invitation created. Earnings stay inactive until the collaborator consents."
+       )}
+    else
+      {:error, reason} -> {:noreply, put_flash(socket, :error, sales_team_error(reason))}
+    end
+  end
+
+  def handle_event("accept_sales_team", %{"id" => member_id}, socket) do
+    case SalesTeams.accept(socket.assigns.current_merchant, member_id) do
+      {:ok, _member} ->
+        {:noreply,
+         socket
+         |> load_collaborative_commerce()
+         |> put_flash(:info, "You accepted the declared role and split.")}
+
+      _error ->
+        {:noreply, put_flash(socket, :error, "The invitation could not be accepted.")}
+    end
+  end
+
+  def handle_event("create_franchise_package", %{"franchise" => params}, socket) do
+    attrs = %{
+      name: params["name"],
+      offer_ids: [params["offer_id"]],
+      training: %{"summary" => params["training"]},
+      brand_rules: %{"rules" => params["brand_rules"]},
+      channel_permissions: params["channel_permissions"] || ["storefront"],
+      territory: params["territory"],
+      commission_bps: params["commission_bps"]
+    }
+
+    with {:ok, package} <-
+           Franchises.create(
+             socket.assigns.current_merchant,
+             socket.assigns.current_store.id,
+             attrs
+           ),
+         {:ok, _published} <-
+           Franchises.publish(
+             socket.assigns.current_merchant,
+             socket.assigns.current_store.id,
+             package.id
+           ) do
+      {:noreply,
+       socket
+       |> assign(:franchise_form, franchise_form())
+       |> load_collaborative_commerce()
+       |> put_flash(:info, "Micro-franchise package published to connected resellers.")}
+    else
+      {:error, reason} -> {:noreply, put_flash(socket, :error, franchise_error(reason))}
+    end
+  end
+
+  def handle_event("apply_franchise", %{"id" => package_id}, socket) do
+    case Franchises.apply(
+           socket.assigns.current_merchant,
+           socket.assigns.current_store.id,
+           package_id,
+           true
+         ) do
+      {:ok, _enrollment} ->
+        {:noreply,
+         socket
+         |> load_collaborative_commerce()
+         |> put_flash(:info, "Application sent with package terms accepted.")}
+
+      _error ->
+        {:noreply, put_flash(socket, :error, "The package application could not be sent.")}
+    end
   end
 
   def handle_event("record_sales_share", %{"id" => share_id}, socket) do
@@ -604,6 +747,37 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     |> stream(:supplier_demand_alerts, alerts, reset: true)
   end
 
+  defp load_collaborative_commerce(socket) do
+    actor = socket.assigns.current_merchant
+    store_id = socket.assigns.current_store.id
+    campaigns = GroupBuys.list(actor, store_id) |> result_rows()
+    teams = SalesTeams.list(actor, store_id) |> result_rows()
+    invitations = SalesTeams.invitations(actor) |> result_rows()
+
+    owned_packages =
+      case Emakola.Suppliers.list_franchise_packages_owned_by_store(store_id,
+             authorize?: false
+           ) do
+        {:ok, rows} -> rows
+        _error -> []
+      end
+
+    available_packages = Franchises.discover(actor, store_id) |> result_rows()
+    owned_offers = Offers.list_owned(actor, store_id) |> result_rows()
+
+    socket
+    |> assign(:group_buy_count, length(campaigns))
+    |> assign(:sales_team_count, length(teams))
+    |> assign(:franchise_package_count, length(owned_packages))
+    |> assign(:available_franchise_count, length(available_packages))
+    |> assign(:collaboration_owned_offers, owned_offers)
+    |> stream(:group_buys, campaigns, reset: true)
+    |> stream(:sales_teams, teams, reset: true)
+    |> stream(:sales_team_invitations, invitations, reset: true)
+    |> stream(:owned_franchise_packages, owned_packages, reset: true)
+    |> stream(:available_franchise_packages, available_packages, reset: true)
+  end
+
   defp result_rows({:ok, rows}), do: rows
   defp result_rows(_error), do: []
 
@@ -646,6 +820,123 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
   defp starter_business_form do
     to_form(%{"niche" => "", "count" => "3"}, as: :starter_business)
   end
+
+  defp group_buy_form do
+    deadline = DateTime.add(DateTime.utc_now(), 7, :day)
+    refund = DateTime.add(deadline, 2, :day)
+
+    to_form(
+      %{
+        "listing_variant_id" => "",
+        "title" => "",
+        "threshold_quantity" => "10",
+        "unit_price" => "",
+        "deadline" => Calendar.strftime(deadline, "%Y-%m-%dT%H:%M"),
+        "refund_deadline" => Calendar.strftime(refund, "%Y-%m-%dT%H:%M")
+      },
+      as: :group_buy
+    )
+  end
+
+  defp sales_team_form do
+    to_form(
+      %{
+        "name" => "",
+        "collaborator_email" => "",
+        "collaborator_role" => "seller",
+        "owner_percent" => "60",
+        "collaborator_percent" => "40"
+      },
+      as: :sales_team
+    )
+  end
+
+  defp franchise_form do
+    to_form(
+      %{
+        "name" => "",
+        "offer_id" => "",
+        "training" => "",
+        "brand_rules" => "",
+        "channel_permissions" => ["storefront", "whatsapp"],
+        "territory" => "",
+        "commission_bps" => "1000"
+      },
+      as: :franchise
+    )
+  end
+
+  defp find_listing_mapping(listings, mapping_id) do
+    listings |> Enum.flat_map(& &1.listing_variants) |> Enum.find(&(&1.id == mapping_id))
+  end
+
+  defp group_buy_attrs(params, mapping) do
+    %{
+      listing_id: mapping.listing_id,
+      listing_variant_id: mapping.id,
+      title: params["title"],
+      threshold_quantity: params["threshold_quantity"],
+      unit_price: cedis_to_pesewas(params["unit_price"]),
+      deadline: local_datetime(params["deadline"]),
+      refund_deadline: local_datetime(params["refund_deadline"])
+    }
+  end
+
+  defp local_datetime(value), do: value <> ":00Z"
+
+  defp merchant_by_email(email) do
+    Emakola.Accounts.Merchant
+    |> Ash.Query.filter(email == ^String.trim(email))
+    |> Ash.Query.limit(1)
+    |> Ash.read_one(authorize?: false)
+    |> case do
+      {:ok, %{} = merchant} -> {:ok, merchant}
+      _error -> {:error, :merchant_not_found}
+    end
+  end
+
+  defp percent_bps(value) do
+    case Decimal.parse(String.trim(value || "")) do
+      {percent, ""} ->
+        bps = percent |> Decimal.mult(100) |> Decimal.round(0) |> Decimal.to_integer()
+        if bps in 1..10_000, do: {:ok, bps}, else: {:error, :invalid_percent}
+
+      _ ->
+        {:error, :invalid_percent}
+    end
+  end
+
+  defp group_buy_error(:price_below_supplier_floor),
+    do: "The campaign price cannot underpay the supplier."
+
+  defp group_buy_error(:deadline_must_be_future), do: "Choose a future campaign deadline."
+
+  defp group_buy_error(:refund_deadline_invalid),
+    do: "The refund deadline must be after the campaign deadline."
+
+  defp group_buy_error(_reason), do: "The group buy could not be created."
+  defp sales_team_error(:merchant_not_found), do: "No Makola merchant uses that email."
+
+  defp sales_team_error(:split_total_must_equal_10000),
+    do: "The two earnings percentages must total exactly 100%."
+
+  defp sales_team_error(_reason), do: "The sales team could not be created."
+
+  defp franchise_error(:package_incomplete),
+    do: "Add training, brand rules, channels, and a published offer."
+
+  defp franchise_error(_reason), do: "The micro-franchise package could not be published."
+
+  defp group_buy_options(listings) do
+    Enum.flat_map(listings, fn listing ->
+      Enum.map(listing.listing_variants, fn mapping ->
+        {"#{listing.reseller_product.title} — #{money(mapping.retail_price)}", mapping.id}
+      end)
+    end)
+  end
+
+  defp franchise_offer_options(offers),
+    do: Enum.map(offers, &{&1.source_product.title, &1.id})
 
   defp execute_business_command(_socket, nil),
     do: {:error, "Preview an instruction before confirming it."}
@@ -1128,6 +1419,265 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
             </button>
           </.form>
         <% end %>
+      </section>
+
+      <section
+        id="collaborative-commerce"
+        aria-labelledby="collaborative-commerce-heading"
+        class="space-y-6 rounded-3xl border border-fuchsia-200 bg-fuchsia-50/40 p-6 shadow-sm sm:p-8"
+      >
+        <div>
+          <span class="text-xs font-bold uppercase tracking-[0.18em] text-fuchsia-700">
+            Collaborative Commerce
+          </span>
+          <h2 id="collaborative-commerce-heading" class="mt-1 text-2xl font-bold text-slate-950">
+            Contribute demand, skills, or a proven playbook—not recruitment
+          </h2>
+          <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+            Group buys have visible thresholds and refund dates. Team earnings total exactly 100% and require personal consent. Micro-franchises reward product sales only—never downlines.
+          </p>
+        </div>
+
+        <div class="grid gap-5 xl:grid-cols-3">
+          <div class="rounded-2xl border border-fuchsia-100 bg-white p-5 shadow-sm">
+            <h3 class="font-bold text-slate-900">Open a group buy</h3>
+            <p class="mt-1 text-xs text-slate-500">
+              Customers commit to one variant at a locked price.
+            </p>
+            <.form
+              for={@group_buy_form}
+              id="group-buy-form"
+              phx-submit="create_group_buy"
+              class="mt-4 space-y-3"
+            >
+              <.input
+                field={@group_buy_form[:listing_variant_id]}
+                type="select"
+                label="Product variant"
+                prompt="Choose a product"
+                options={group_buy_options(@hustle_listings)}
+                required
+              />
+              <.input field={@group_buy_form[:title]} type="text" label="Campaign name" required />
+              <div class="grid grid-cols-2 gap-3">
+                <.input
+                  field={@group_buy_form[:threshold_quantity]}
+                  type="number"
+                  min="2"
+                  max="1000"
+                  label="Threshold"
+                  required
+                /><.input
+                  field={@group_buy_form[:unit_price]}
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  label="Price (GH₵)"
+                  required
+                />
+              </div>
+              <.input
+                field={@group_buy_form[:deadline]}
+                type="datetime-local"
+                label="Commitment deadline"
+                required
+              />
+              <.input
+                field={@group_buy_form[:refund_deadline]}
+                type="datetime-local"
+                label="Refund completed by"
+                required
+              />
+              <button
+                id="create-group-buy"
+                type="submit"
+                class="w-full rounded-xl bg-fuchsia-700 px-4 py-3 text-sm font-bold text-white transition hover:bg-fuchsia-800"
+              >
+                Open protected group buy
+              </button>
+            </.form>
+            <div id="group-buy-campaigns" phx-update="stream" class="mt-4 space-y-2">
+              <article
+                :for={{dom_id, campaign} <- @streams.group_buys}
+                id={dom_id}
+                class="rounded-xl bg-fuchsia-50 p-3 text-xs"
+              >
+                <p class="font-bold text-fuchsia-900">{campaign.title}</p>
+                <p class="mt-1 text-fuchsia-800">
+                  {campaign.committed_quantity}/{campaign.threshold_quantity} paid · {money(
+                    campaign.unit_price
+                  )} · {campaign.status}
+                </p>
+                <p class="mt-1 text-fuchsia-700">
+                  Refund by {Calendar.strftime(campaign.refund_deadline, "%d %b %Y %H:%M UTC")} if threshold is missed.
+                </p>
+              </article>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-fuchsia-100 bg-white p-5 shadow-sm">
+            <h3 class="font-bold text-slate-900">Create a flat sales team</h3>
+            <p class="mt-1 text-xs text-slate-500">
+              One collaborator, declared role, exact split; expandable through the service boundary.
+            </p>
+            <.form
+              for={@sales_team_form}
+              id="sales-team-form"
+              phx-submit="create_sales_team"
+              class="mt-4 space-y-3"
+            >
+              <.input field={@sales_team_form[:name]} type="text" label="Team name" required />
+              <.input
+                field={@sales_team_form[:collaborator_email]}
+                type="email"
+                label="Collaborator's Makola email"
+                required
+              />
+              <.input
+                field={@sales_team_form[:collaborator_role]}
+                type="select"
+                label="Declared role"
+                options={[
+                  {"Seller", "seller"},
+                  {"Content", "content"},
+                  {"Customer support", "support"}
+                ]}
+              />
+              <div class="grid grid-cols-2 gap-3">
+                <.input
+                  field={@sales_team_form[:owner_percent]}
+                  type="number"
+                  min="1"
+                  max="99"
+                  step="0.01"
+                  label="Your %"
+                  required
+                /><.input
+                  field={@sales_team_form[:collaborator_percent]}
+                  type="number"
+                  min="1"
+                  max="99"
+                  step="0.01"
+                  label="Their %"
+                  required
+                />
+              </div>
+              <button
+                id="create-sales-team"
+                type="submit"
+                class="w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-fuchsia-800"
+              >
+                Send consent invitation
+              </button>
+            </.form>
+            <div id="sales-team-invitations" phx-update="stream" class="mt-4 space-y-2">
+              <article
+                :for={{dom_id, member} <- @streams.sales_team_invitations}
+                id={dom_id}
+                class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs"
+              >
+                <p class="font-bold text-amber-900">
+                  {member.team.name}: {member.role} · {member.split_bps / 100}%
+                </p>
+                <button
+                  id={"accept-sales-team-#{member.id}"}
+                  phx-click="accept_sales_team"
+                  phx-value-id={member.id}
+                  class="mt-2 rounded-lg bg-amber-700 px-3 py-1.5 font-bold text-white"
+                >
+                  Accept role and split
+                </button>
+              </article>
+            </div>
+            <div id="sales-teams" phx-update="stream" class="mt-4 space-y-2">
+              <article
+                :for={{dom_id, team} <- @streams.sales_teams}
+                id={dom_id}
+                class="rounded-xl bg-slate-50 p-3 text-xs"
+              >
+                <p class="font-bold text-slate-800">{team.name}</p>
+                <p class="mt-1 text-slate-500">{length(team.members)} flat members · {team.status}</p>
+              </article>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-fuchsia-100 bg-white p-5 shadow-sm">
+            <h3 class="font-bold text-slate-900">Package a micro-franchise</h3>
+            <p class="mt-1 text-xs text-slate-500">
+              For suppliers: training, rules, channels, territory, and sales commission.
+            </p>
+            <.form
+              for={@franchise_form}
+              id="franchise-package-form"
+              phx-submit="create_franchise_package"
+              class="mt-4 space-y-3"
+            >
+              <.input field={@franchise_form[:name]} type="text" label="Package name" required />
+              <.input
+                field={@franchise_form[:offer_id]}
+                type="select"
+                prompt="Choose your published offer"
+                label="Product offer"
+                options={franchise_offer_options(@collaboration_owned_offers)}
+                required
+              />
+              <.input
+                field={@franchise_form[:training]}
+                type="textarea"
+                label="Required training"
+                required
+              />
+              <.input
+                field={@franchise_form[:brand_rules]}
+                type="textarea"
+                label="Brand and claims rules"
+                required
+              />
+              <.input field={@franchise_form[:territory]} type="text" label="Territory (optional)" />
+              <.input
+                field={@franchise_form[:commission_bps]}
+                type="number"
+                min="1"
+                max="10000"
+                label="Commission (basis points)"
+                required
+              />
+              <input type="hidden" name="franchise[channel_permissions][]" value="storefront" /><input
+                type="hidden"
+                name="franchise[channel_permissions][]"
+                value="whatsapp"
+              />
+              <button
+                id="create-franchise-package"
+                type="submit"
+                class="w-full rounded-xl bg-fuchsia-700 px-4 py-3 text-sm font-bold text-white transition hover:bg-fuchsia-800"
+              >
+                Publish product-sales package
+              </button>
+            </.form>
+            <div id="available-franchise-packages" phx-update="stream" class="mt-4 space-y-2">
+              <article
+                :for={{dom_id, package} <- @streams.available_franchise_packages}
+                id={dom_id}
+                class="rounded-xl bg-emerald-50 p-3 text-xs"
+              >
+                <p class="font-bold text-emerald-900">{package.name}</p>
+                <p class="mt-1 text-emerald-800">
+                  {package.commission_bps / 100}% product-sales commission · {package.territory ||
+                    "Open territory"}
+                </p>
+                <button
+                  id={"apply-franchise-#{package.id}"}
+                  phx-click="apply_franchise"
+                  phx-value-id={package.id}
+                  class="mt-2 rounded-lg bg-emerald-700 px-3 py-1.5 font-bold text-white"
+                >
+                  Accept terms and apply
+                </button>
+              </article>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section
