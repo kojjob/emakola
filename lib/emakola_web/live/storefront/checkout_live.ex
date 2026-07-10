@@ -492,6 +492,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         end
 
       {:error, reason} ->
+        release_recovery_reservations(settlement)
+
         {:noreply,
          socket
          |> assign(:processing, false)
@@ -514,6 +516,11 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     do: Emakola.Payments.OrderSettlement.record_splits!(payment, allocations)
 
   defp record_splits(_payment, {:no_split, _}), do: :ok
+
+  defp release_recovery_reservations({:split, %{allocations: allocations}}),
+    do: Emakola.Payments.OrderSettlement.release_recovery_reservations!(allocations)
+
+  defp release_recovery_reservations({:no_split, _}), do: :ok
 
   defp verify_payment_status(socket) do
     ref = socket.assigns[:gateway_reference]

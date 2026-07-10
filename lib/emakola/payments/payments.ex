@@ -23,6 +23,11 @@ defmodule Emakola.Payments do
     resource Emakola.Payments.PaymentSplit do
       define(:create_payment_split, action: :create)
       define(:list_payment_splits, action: :by_payment, args: [:payment_id])
+
+      define(:list_recoverable_payment_splits,
+        action: :recoverable_by_recipient,
+        args: [:recipient_store_id]
+      )
     end
 
     resource Emakola.Payments.Payout do

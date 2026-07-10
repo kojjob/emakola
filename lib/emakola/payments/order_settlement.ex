@@ -22,6 +22,7 @@ defmodule Emakola.Payments.OrderSettlement do
 
   alias Emakola.Payments.DropshipSettlement
   alias Emakola.Payments.PlatformFee
+  alias Emakola.Payments.RefundLiability
 
   def prepare(order_id, store_id) do
     order = Ash.get!(Emakola.Orders.Order, order_id, authorize?: false, tenant: store_id)
@@ -34,9 +35,12 @@ defmodule Emakola.Payments.OrderSettlement do
         # so fold it into their share — otherwise that money would fall to the
         # platform's main account as the split remainder.
         adjustment = (order.delivery_fee || 0) - (order.discount_amount || 0)
+
         allocations = adjust_dropshipper(allocations, adjustment)
 
         if valid_shares?(allocations) do
+          allocations = RefundLiability.reserve!(allocations)
+
           {:split,
            %{
              total: order.total,
@@ -65,10 +69,17 @@ defmodule Emakola.Payments.OrderSettlement do
         %{fee: fee, net: net} = PlatformFee.calculate(order.total, platform_fee_rate_bps())
 
         if net > 0 do
-          allocations = [
-            %{role: :merchant, amount: net, subaccount_code: code},
-            %{role: :platform, amount: fee, subaccount_code: nil}
-          ]
+          allocations =
+            [
+              %{
+                role: :merchant,
+                recipient_store_id: store_id,
+                amount: net,
+                subaccount_code: code
+              },
+              %{role: :platform, recipient_store_id: nil, amount: fee, subaccount_code: nil}
+            ]
+            |> RefundLiability.reserve!()
 
           {:split,
            %{
@@ -107,12 +118,16 @@ defmodule Emakola.Payments.OrderSettlement do
           recipient_store_id: Map.get(alloc, :recipient_store_id),
           supplier_id: Map.get(alloc, :supplier_id),
           subaccount_code: Map.get(alloc, :subaccount_code),
-          amount: alloc.amount
+          amount: alloc.amount,
+          recovery_amount: Map.get(alloc, :recovery_amount, 0),
+          recovery_breakdown: Map.get(alloc, :recovery_breakdown, %{"items" => []})
         },
         authorize?: false
       )
     end)
   end
+
+  def release_recovery_reservations!(allocations), do: RefundLiability.release!(allocations)
 
   defp adjust_dropshipper(allocations, 0), do: allocations
 
@@ -135,7 +150,7 @@ defmodule Emakola.Payments.OrderSettlement do
   # cut is the unassigned remainder, kept by the main account.
   defp gateway_shares(allocations) do
     allocations
-    |> Enum.filter(& &1[:subaccount_code])
+    |> Enum.filter(&(&1[:subaccount_code] && &1.amount > 0))
     |> Enum.map(&%{subaccount: &1.subaccount_code, share: &1.amount})
   end
 

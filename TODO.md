@@ -141,7 +141,9 @@
 
 - [x] Persist proportional partial/full refund reversal amounts on the existing
       `PaymentSplit` ledger (no duplicate liability table).
-- [ ] Recover those reversal amounts from future recipient splits.
+- [x] Recover reversal amounts from future recipient splits using row-locked
+      reservations, success/failure reconciliation, and proportional reopening
+      when a recovery-bearing earning is itself refunded.
 - [x] **SP2 foundation:** wholesaler↔reseller connection resource, authorized service,
       lifecycle, migration, and tests.
 - [x] **SP2 UI:** merchant invitations, approvals, active connections, suspension,

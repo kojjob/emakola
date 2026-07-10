@@ -86,6 +86,27 @@ defmodule Emakola.Payments.OrderSettlementTest do
       assert by_role[:platform].amount == 840
       assert by_role[:dropshipper].amount == 10_560
     end
+
+    test "nets an older refund liability from the recipient's gateway share", %{
+      dropshipper: dropshipper,
+      wholesaler: wholesaler,
+      order: order
+    } do
+      liability = refundable_liability!(dropshipper, wholesaler, 600)
+
+      assert {:split, %{total: 13_000, shares: shares, allocations: allocations}} =
+               OrderSettlement.prepare(order.id, dropshipper.id)
+
+      assert %{subaccount: "ACCT_whole", share: 1_000} in shares
+
+      by_role = Map.new(allocations, &{&1.role, &1})
+      assert by_role.wholesaler.recovery_amount == 600
+      assert by_role.platform.amount == 1_440
+      assert Enum.sum(Enum.map(allocations, & &1.amount)) == 13_000
+
+      updated = Ash.get!(Emakola.Payments.PaymentSplit, liability.id, authorize?: false)
+      assert updated.reserved_recovery_amount == 600
+    end
   end
 
   describe "prepare/2 — reconciles to order total" do
@@ -226,5 +247,22 @@ defmodule Emakola.Payments.OrderSettlementTest do
 
       assert {:no_split, :supplier_not_linked} = OrderSettlement.prepare(order.id, dropshipper.id)
     end
+  end
+
+  defp refundable_liability!(tenant_store, recipient_store, reversed_amount) do
+    payment = create_payment!(tenant_store)
+
+    Emakola.Payments.create_payment_split!(
+      %{
+        store_id: tenant_store.id,
+        payment_id: payment.id,
+        role: :wholesaler,
+        recipient_store_id: recipient_store.id,
+        amount: 1_000
+      },
+      authorize?: false
+    )
+    |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: reversed_amount})
+    |> Ash.update!(authorize?: false)
   end
 end

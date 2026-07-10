@@ -228,6 +228,10 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
         |> Ash.Changeset.for_update(:mark_failed, %{gateway_response: data})
         |> Ash.update!(authorize?: false)
 
+      payment
+      |> payment_splits()
+      |> Emakola.Payments.RefundLiability.release!()
+
       Phoenix.PubSub.broadcast(
         Emakola.PubSub,
         "payment:#{reference}",
@@ -287,18 +291,23 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   end
 
   defp settle_splits(payment) do
-    payment
-    |> payment_splits()
+    splits = payment_splits(payment)
+
+    splits
     |> Enum.filter(&(&1.status == :pending))
     |> Enum.each(fn split ->
       split
       |> Ash.Changeset.for_update(:mark_settled, %{})
       |> Ash.update!(authorize?: false)
     end)
+
+    Emakola.Payments.RefundLiability.apply_recoveries!(splits)
   end
 
   defp reverse_splits(payment) do
-    Emakola.Payments.RefundLiability.reconcile!(payment, payment_splits(payment))
+    splits = payment_splits(payment)
+    Emakola.Payments.RefundLiability.rollback_recoveries!(payment, splits)
+    Emakola.Payments.RefundLiability.reconcile!(payment, splits)
   end
 
   defp payment_splits(payment) do

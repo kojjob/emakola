@@ -171,7 +171,9 @@ Decomposed into 5 sub-projects; **SP1 + SP5 built first** (the money rails).
 **Remaining (build in this order):**
 - [x] **Refund reversal accounting** — partial/full refunds now persist cumulative,
   proportional `PaymentSplit.reversed_amount` without creating a duplicate ledger.
-- [ ] **Refund recovery** — net unrecovered reversal amounts from future recipient splits.
+- [x] **Refund recovery** — row-lock and reserve unrecovered liabilities before
+  gateway routing, net them from future recipient shares, apply/release them on
+  payment success/failure, and reopen them proportionally on later refunds.
 - [x] **SP2 supply connection foundation** — request/approve/reject/suspend/reactivate/
   terminate service with participant authorization and lifecycle tests.
 - [x] **SP2 merchant UI** — connection inbox, invitations, active relationships, and
