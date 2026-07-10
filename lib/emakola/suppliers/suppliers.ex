@@ -29,5 +29,17 @@ defmodule Emakola.Suppliers do
       define(:reactivate_supply_connection, action: :reactivate)
       define(:terminate_supply_connection, action: :terminate)
     end
+
+    resource Emakola.Suppliers.SupplierOffer do
+      define(:create_supplier_offer, action: :create_draft)
+      define(:list_supplier_offers_owned_by_store, action: :owned_by_store, args: [:store_id])
+      define(:publish_supplier_offer, action: :publish)
+      define(:pause_supplier_offer, action: :pause)
+      define(:archive_supplier_offer, action: :archive)
+    end
+
+    resource Emakola.Suppliers.SupplierOfferVariant do
+      define(:create_supplier_offer_variant, action: :create)
+    end
   end
 end

@@ -180,6 +180,9 @@ Decomposed into 5 sub-projects; **SP1 + SP5 built first** (the money rails).
   approve/reject/suspend/reactivate/terminate controls.
 - [ ] **SP3 shared offers and catalog sourcing** — physical/digital offers, markup and
   fixed-commission earnings, one-click listing, and source synchronization.
+  - [x] Offer foundation: network-only commercial terms reference the existing
+    Product/Variant catalog, with partner-gated discovery and live source availability.
+  - [ ] Reseller listing/import mapping, one-click publication, and price synchronization.
 - [ ] **SP4 cross-store fulfillment** — wholesaler inbound queue, cross-tenant access,
   physical delivery proof, and protected digital grants.
 - [ ] **Sales Kits and First Money journey** — ready-to-share content, tracked links, and
