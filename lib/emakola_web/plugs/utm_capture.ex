@@ -31,6 +31,7 @@ defmodule EmakolaWeb.Plugs.UtmCapture do
   import Plug.Conn
 
   @session_key "utm_attribution"
+  @share_clicks_session_key "earn_share_clicks"
 
   @utm_keys ~w(utm_source utm_medium utm_campaign utm_content utm_term)
 
@@ -38,6 +39,7 @@ defmodule EmakolaWeb.Plugs.UtmCapture do
 
   def call(conn, _opts) do
     captured = capture(conn.params)
+    conn = maybe_record_share_click(conn, conn.params)
 
     case captured do
       empty when map_size(empty) == 0 ->
@@ -74,6 +76,15 @@ defmodule EmakolaWeb.Plugs.UtmCapture do
         end
       end)
 
+    base =
+      case Map.get(params, "share") do
+        token when is_binary(token) and byte_size(token) <= 100 and token != "" ->
+          Map.put(base, "share_token", token)
+
+        _ ->
+          base
+      end
+
     case Map.get(params, "ref") do
       "whatsapp" -> Map.put(base, "click_to_whatsapp", true)
       _ -> base
@@ -81,4 +92,18 @@ defmodule EmakolaWeb.Plugs.UtmCapture do
   end
 
   defp capture(_params), do: %{}
+
+  defp maybe_record_share_click(conn, %{"share" => token})
+       when is_binary(token) and token != "" and byte_size(token) <= 100 do
+    recorded = get_session(conn, @share_clicks_session_key) || []
+
+    if token in recorded do
+      conn
+    else
+      Emakola.Suppliers.SalesSharing.record_click(token)
+      put_session(conn, @share_clicks_session_key, Enum.take([token | recorded], 20))
+    end
+  end
+
+  defp maybe_record_share_click(conn, _params), do: conn
 end

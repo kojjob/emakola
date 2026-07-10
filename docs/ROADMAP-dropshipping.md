@@ -189,8 +189,9 @@ Decomposed into 5 sub-projects; **SP1 + SP5 built first** (the money rails).
 - [x] **SP4 cross-store fulfillment** — authorized wholesaler inbox and shipment updates,
   row-locked customer delivery OTP proof, and protected source-file grants for imported
   digital products.
-- [ ] **Sales Kits and First Money journey** — ready-to-share content, tracked links, and
-  guided activation through the first fulfilled sale.
+- [x] **Sales Kits and First Money journey** — channel-ready product messages,
+  session-deduplicated clicks, confirmed-order conversions/revenue, and guided activation
+  through the first fulfilled sale.
 
 ### Locked Makola Earn decisions
 

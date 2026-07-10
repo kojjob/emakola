@@ -181,6 +181,44 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     refute has_element?(view, "#prepare-shipment-#{fulfillment.id}")
   end
 
+  test "creates a tracked Sales Kit and advances the First Money journey", ctx do
+    offer = create_partner_offer!(ctx)
+    connect_partner!(ctx)
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+
+    view
+    |> element("#import-offer-#{offer.id}")
+    |> render_click()
+
+    {:ok, [listing]} =
+      Emakola.Suppliers.ListingImporter.list(ctx.merchant, ctx.store.id)
+
+    assert has_element?(view, "#first-money-journey")
+    assert has_element?(view, "#create-sales-kit-#{listing.id}")
+
+    view
+    |> element("#create-sales-kit-#{listing.id}")
+    |> render_click()
+
+    assert has_element?(view, "#sales-shares article", "Partner Kente Bag")
+    assert has_element?(view, "#sales-shares article", "WhatsApp")
+    assert has_element?(view, "#sales-shares article", "Facebook")
+    assert has_element?(view, "#sales-shares article", "Copy link")
+    assert has_element?(view, "#first-money-step-shared")
+
+    {:ok, shares} = Emakola.Suppliers.SalesSharing.list_for_store(ctx.merchant, ctx.store.id)
+    copy_share = Enum.find(shares, &(&1.channel == :copy_link))
+
+    view
+    |> element("#copy-sales-link-#{copy_share.id}")
+    |> render_click()
+
+    updated = Ash.get!(Emakola.Suppliers.SalesShare, copy_share.id, authorize?: false)
+    assert updated.share_count == 1
+    assert has_element?(view, "#first-money-step-shared")
+    assert has_element?(view, "#first-money-step-shared .bg-emerald-600")
+  end
+
   defp create_partner_offer!(ctx) do
     product = create_product!(ctx.partner, status: :active, title: "Partner Kente Bag")
     variant = create_variant!(product, ctx.partner, price: 6_500, stock_quantity: 10)

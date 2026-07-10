@@ -54,5 +54,13 @@ defmodule Emakola.Suppliers do
     resource Emakola.Suppliers.ResellerListingImage do
       define(:create_reseller_listing_image, action: :create)
     end
+
+    resource Emakola.Suppliers.SalesShare do
+      define(:create_sales_share, action: :create)
+    end
+
+    resource Emakola.Suppliers.SalesShareConversion do
+      define(:record_sales_share_conversion, action: :record)
+    end
   end
 end

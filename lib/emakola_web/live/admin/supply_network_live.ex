@@ -2,7 +2,13 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
   @moduledoc "Merchant UI for SP2 wholesaler/reseller supply connections."
   use EmakolaWeb, :live_view
 
-  alias Emakola.Suppliers.{InboundFulfillment, ListingImporter, Network, Offers}
+  alias Emakola.Suppliers.{
+    InboundFulfillment,
+    ListingImporter,
+    Network,
+    Offers,
+    SalesSharing
+  }
 
   @impl true
   def mount(_params, _session, socket) do
@@ -14,6 +20,12 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
        connection_count: 0,
        offer_count: 0,
        listing_count: 0,
+       sales_share_count: 0,
+       sales_click_count: 0,
+       sales_order_count: 0,
+       sales_revenue: 0,
+       first_money: %{},
+       active_connection?: false,
        inbound_count: 0,
        shipping_fulfillment_id: nil,
        shipping_form: to_form(%{"tracking_number" => ""}, as: :shipment),
@@ -23,7 +35,8 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
      )
      |> load_connections()
      |> load_earn_catalog()
-     |> load_inbound_fulfillments()}
+     |> load_inbound_fulfillments()
+     |> load_sales_journey()}
   end
 
   @impl true
@@ -102,17 +115,48 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
       {:noreply,
        socket
        |> load_earn_catalog()
+       |> load_sales_journey()
        |> put_flash(:info, "Product added to your store. Its images are being prepared.")}
     else
       nil ->
         {:noreply, put_flash(socket, :error, "This offer is no longer available.")}
 
       {:error, :listing_exists} ->
-        {:noreply, socket |> load_earn_catalog() |> put_flash(:info, "Already in your store.")}
+        {:noreply,
+         socket
+         |> load_earn_catalog()
+         |> load_sales_journey()
+         |> put_flash(:info, "Already in your store.")}
 
       _ ->
         {:noreply, put_flash(socket, :error, "This product could not be added right now.")}
     end
+  end
+
+  def handle_event("create_sales_kit", %{"id" => listing_id}, socket) do
+    actor = socket.assigns.current_merchant
+    store = socket.assigns.current_store
+
+    with {:ok, listings} <- ListingImporter.list(actor, store.id),
+         %{} = listing <- Enum.find(listings, &(&1.id == listing_id)),
+         {:ok, _shares} <- SalesSharing.create_kit(actor, listing) do
+      {:noreply,
+       socket
+       |> load_sales_journey()
+       |> put_flash(:info, "Sales kit ready. Share it where your customers already chat.")}
+    else
+      _ -> {:noreply, put_flash(socket, :error, "The sales kit could not be created.")}
+    end
+  end
+
+  def handle_event("record_sales_share", %{"id" => share_id}, socket) do
+    SalesSharing.record_share(
+      socket.assigns.current_merchant,
+      socket.assigns.current_store.id,
+      share_id
+    )
+
+    {:noreply, load_sales_journey(socket)}
   end
 
   def handle_event("select_inbound_shipping", %{"id" => id}, socket) do
@@ -218,6 +262,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
        socket
        |> load_connections()
        |> load_earn_catalog()
+       |> load_sales_journey()
        |> put_flash(:info, success_message)}
     else
       {:error, :forbidden} ->
@@ -240,6 +285,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
 
     socket
     |> assign(:connection_count, length(connections))
+    |> assign(:active_connection?, Enum.any?(connections, &(&1.status == :active)))
     |> stream(:connections, connections, reset: true)
   end
 
@@ -268,6 +314,39 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     socket
     |> assign(:inbound_count, length(fulfillments))
     |> stream(:inbound_fulfillments, fulfillments, reset: true)
+  end
+
+  defp load_sales_journey(socket) do
+    shares =
+      socket.assigns.current_merchant
+      |> SalesSharing.list_for_store(socket.assigns.current_store.id)
+      |> result_rows()
+
+    share_count = Enum.reduce(shares, 0, &(&1.share_count + &2))
+    click_count = Enum.reduce(shares, 0, &(&1.click_count + &2))
+    order_count = Enum.reduce(shares, 0, &(&1.order_count + &2))
+    revenue = Enum.reduce(shares, 0, &(&1.revenue + &2))
+
+    delivered? =
+      Enum.any?(shares, fn share ->
+        Enum.any?(share.conversions, &SalesSharing.delivered_conversion?/1)
+      end)
+
+    first_money = %{
+      connected: socket.assigns.active_connection?,
+      listed: socket.assigns.listing_count > 0,
+      shared: share_count > 0,
+      sold: order_count > 0,
+      fulfilled: delivered?
+    }
+
+    socket
+    |> assign(:sales_share_count, length(shares))
+    |> assign(:sales_click_count, click_count)
+    |> assign(:sales_order_count, order_count)
+    |> assign(:sales_revenue, revenue)
+    |> assign(:first_money, first_money)
+    |> stream(:sales_shares, shares, reset: true)
   end
 
   defp result_rows({:ok, rows}), do: rows
@@ -350,6 +429,33 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
   end
 
   defp money(pesewas), do: "GH₵#{:erlang.float_to_binary(pesewas / 100, decimals: 2)}"
+
+  defp sales_share_url(share), do: SalesSharing.url(share)
+  defp sales_share_message(share), do: SalesSharing.message(share)
+
+  defp whatsapp_share_url(share),
+    do: "https://wa.me/?text=#{URI.encode_www_form(sales_share_message(share))}"
+
+  defp facebook_share_url(share),
+    do:
+      "https://www.facebook.com/sharer/sharer.php?u=#{URI.encode_www_form(sales_share_url(share))}"
+
+  defp channel_label(:whatsapp), do: "WhatsApp"
+  defp channel_label(:facebook), do: "Facebook"
+  defp channel_label(:copy_link), do: "Copy link"
+
+  defp channel_icon(:whatsapp), do: "hero-chat-bubble-left-right"
+  defp channel_icon(:facebook), do: "hero-user-group"
+  defp channel_icon(:copy_link), do: "hero-link"
+
+  defp journey_step(first_money, key, label, description) do
+    %{
+      key: key,
+      complete?: Map.get(first_money, key, false),
+      label: label,
+      description: description
+    }
+  end
 
   @impl true
   def render(assigns) do
@@ -659,6 +765,14 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
                 {listing.status} · Synced from partner
               </p>
             </div>
+            <button
+              id={"create-sales-kit-#{listing.id}"}
+              phx-click="create_sales_kit"
+              phx-value-id={listing.id}
+              class="rounded-lg border border-emerald-200 px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-50"
+            >
+              Sales kit
+            </button>
             <.link
               navigate={~p"/admin/products/#{listing.reseller_product_id}/edit"}
               class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-50 hover:text-slate-700"
@@ -669,6 +783,189 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
           </article>
         </div>
       </section>
+
+      <div
+        id="earn-activation-grid"
+        aria-labelledby="first-money-heading"
+        class="grid gap-5 lg:grid-cols-[0.9fr_1.4fr]"
+      >
+        <section
+          id="first-money-journey"
+          class="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm sm:p-7"
+        >
+          <span class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">
+            First Money journey
+          </span>
+          <h2 id="first-money-heading" class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+            Your path to the first fulfilled sale
+          </h2>
+          <p class="mt-2 text-sm leading-6 text-slate-600">
+            Focus on one next action at a time. Makola updates this automatically from real activity.
+          </p>
+
+          <ol id="first-money-steps" class="mt-6 space-y-3">
+            <li
+              :for={
+                step <- [
+                  journey_step(@first_money, :connected, "Connect", "Agree with a supplier"),
+                  journey_step(@first_money, :listed, "List", "Add one product to your store"),
+                  journey_step(@first_money, :shared, "Share", "Send a tracked sales link"),
+                  journey_step(@first_money, :sold, "Sell", "Receive a confirmed attributed order"),
+                  journey_step(
+                    @first_money,
+                    :fulfilled,
+                    "Fulfill",
+                    "Complete delivery to the customer"
+                  )
+                ]
+              }
+              id={"first-money-step-#{step.key}"}
+              data-complete={to_string(step.complete?)}
+              class="flex items-start gap-3"
+            >
+              <span class={[
+                "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full ring-1 ring-inset",
+                if(step.complete?,
+                  do: "bg-emerald-600 text-white ring-emerald-600",
+                  else: "bg-white text-slate-300 ring-slate-200"
+                )
+              ]}>
+                <.icon
+                  name={if(step.complete?, do: "hero-check", else: "hero-ellipsis-horizontal")}
+                  class="size-4"
+                />
+              </span>
+              <div>
+                <p class={[
+                  "text-sm font-bold",
+                  if(step.complete?, do: "text-emerald-800", else: "text-slate-700")
+                ]}>
+                  {step.label}
+                </p>
+                <p class="text-xs text-slate-500">{step.description}</p>
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <section
+          id="sales-kit-panel"
+          class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7"
+        >
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-[0.18em] text-violet-600">
+                Sales Kits
+              </span>
+              <h2 class="mt-2 text-xl font-bold text-slate-950">Ready-to-share product links</h2>
+              <p class="mt-1 text-sm text-slate-500">
+                Use the Sales kit button beside an imported product. Every link tracks genuine interest and confirmed orders.
+              </p>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center">
+              <div class="rounded-xl bg-slate-50 px-3 py-2">
+                <p id="sales-click-count" class="text-sm font-bold text-slate-900">
+                  {@sales_click_count}
+                </p>
+                <p class="text-[10px] uppercase text-slate-400">Clicks</p>
+              </div>
+              <div class="rounded-xl bg-slate-50 px-3 py-2">
+                <p id="sales-order-count" class="text-sm font-bold text-slate-900">
+                  {@sales_order_count}
+                </p>
+                <p class="text-[10px] uppercase text-slate-400">Orders</p>
+              </div>
+              <div class="rounded-xl bg-emerald-50 px-3 py-2">
+                <p id="sales-revenue" class="text-sm font-bold text-emerald-800">
+                  {money(@sales_revenue)}
+                </p>
+                <p class="text-[10px] uppercase text-emerald-600">Sales</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="sales-shares" phx-update="stream" class="mt-5 grid gap-3 sm:grid-cols-2">
+            <div
+              id="sales-shares-empty"
+              class="hidden only:block rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center sm:col-span-2"
+            >
+              <.icon name="hero-megaphone" class="mx-auto size-8 text-slate-300" />
+              <p class="mt-2 text-sm font-semibold text-slate-700">Create your first Sales Kit</p>
+              <p class="mt-1 text-xs text-slate-500">
+                Choose an imported product above to generate channel-ready links.
+              </p>
+            </div>
+
+            <article
+              :for={{dom_id, share} <- @streams.sales_shares}
+              id={dom_id}
+              class="rounded-2xl border border-slate-200 p-4 transition hover:border-violet-200 hover:shadow-sm"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex min-w-0 items-center gap-3">
+                  <span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
+                    <.icon name={channel_icon(share.channel)} class="size-4" />
+                  </span>
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-bold text-slate-900">{share.product.title}</p>
+                    <p class="text-xs text-slate-500">{channel_label(share.channel)}</p>
+                  </div>
+                </div>
+                <span class="text-[10px] font-semibold text-slate-400">
+                  {share.click_count} clicks · {share.order_count} orders
+                </span>
+              </div>
+
+              <%= case share.channel do %>
+                <% :whatsapp -> %>
+                  <a
+                    id={"share-whatsapp-#{share.id}"}
+                    href={whatsapp_share_url(share)}
+                    target="_blank"
+                    rel="noopener"
+                    phx-click="record_sales_share"
+                    phx-value-id={share.id}
+                    class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-700"
+                  >
+                    <.icon name="hero-chat-bubble-left-right" class="size-4" /> Share on WhatsApp
+                  </a>
+                <% :facebook -> %>
+                  <a
+                    id={"share-facebook-#{share.id}"}
+                    href={facebook_share_url(share)}
+                    target="_blank"
+                    rel="noopener"
+                    phx-click="record_sales_share"
+                    phx-value-id={share.id}
+                    class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-blue-700"
+                  >
+                    <.icon name="hero-user-group" class="size-4" /> Share on Facebook
+                  </a>
+                <% :copy_link -> %>
+                  <button
+                    id={"copy-sales-link-#{share.id}"}
+                    type="button"
+                    phx-hook=".CopySalesLink"
+                    phx-click="record_sales_share"
+                    phx-value-id={share.id}
+                    data-url={sales_share_url(share)}
+                    class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-violet-700"
+                  >
+                    <.icon name="hero-link" class="size-4" /> Copy sales link
+                  </button>
+              <% end %>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <script :type={Phoenix.LiveView.ColocatedHook} name=".CopySalesLink">
+        export default {
+          mounted() {
+            this.el.addEventListener("click", () => navigator.clipboard.writeText(this.el.dataset.url))
+          }
+        }
+      </script>
 
       <section id="supplier-inbox" aria-labelledby="supplier-inbox-heading" class="space-y-5">
         <div class="overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 to-slate-800 px-6 py-7 text-white shadow-lg sm:px-8">

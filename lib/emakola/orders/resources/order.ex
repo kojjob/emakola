@@ -321,6 +321,7 @@ defmodule Emakola.Orders.Order do
       change(
         after_action(fn _changeset, order, _context ->
           dispatch_notification(order, :order_confirmed)
+          Emakola.Suppliers.SalesSharing.record_conversion(order)
           pending_supplier_ids = load_pending_supplier_ids(order)
 
           Emakola.Notifications.Dispatcher.dispatch_supplier_fulfillments(

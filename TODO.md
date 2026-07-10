@@ -158,7 +158,8 @@
   - [x] Pilot-facing one-click listing UI with offer earnings and imported-listing status.
 - [x] **SP4:** authorized cross-store supplier inbox, customer delivery OTP proof,
       and protected grants for imported digital products.
-- [ ] Add Sales Kits, tracked sharing links, and the guided “First Money” journey.
+- [x] Add channel-ready Sales Kits, session-deduplicated tracked links, confirmed-order
+      attribution, and the guided “First Money” journey.
 - [ ] Pass the concierge validation gate before broad network rollout.
 
 ## OPEN — White-label design system (remaining phases)
