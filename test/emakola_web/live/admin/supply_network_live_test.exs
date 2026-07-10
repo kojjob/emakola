@@ -257,6 +257,31 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     assert has_element?(view, "#first-money-step-shared .bg-emerald-600")
   end
 
+  test "creates and explicitly approves a supplier-fact-grounded content draft", ctx do
+    offer = create_partner_offer!(ctx)
+    connect_partner!(ctx)
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+
+    view |> element("#import-offer-#{offer.id}") |> render_click()
+    {:ok, [listing]} = Emakola.Suppliers.ListingImporter.list(ctx.merchant, ctx.store.id)
+
+    assert has_element?(view, "#earn-content-studio")
+    view |> element("#create-content-draft-#{listing.id}") |> render_click()
+
+    assert has_element?(view, "#content-draft-count", "1")
+    assert has_element?(view, "#content-drafts article", "Partner Kente Bag")
+    assert has_element?(view, "#content-drafts article", "GH₵65.00")
+
+    {:ok, [draft]} = Emakola.Suppliers.ContentStudio.list(ctx.merchant, ctx.store.id)
+    assert draft.status == :draft
+    assert has_element?(view, "#approve-content-draft-#{draft.id}")
+
+    view |> element("#approve-content-draft-#{draft.id}") |> render_click()
+
+    assert has_element?(view, "#content-drafts article", "approved")
+    refute has_element?(view, "#approve-content-draft-#{draft.id}")
+  end
+
   defp create_partner_offer!(ctx) do
     product = create_product!(ctx.partner, status: :active, title: "Partner Kente Bag")
     variant = create_variant!(product, ctx.partner, price: 6_500, stock_quantity: 10)

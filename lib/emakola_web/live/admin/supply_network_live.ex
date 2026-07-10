@@ -3,6 +3,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
   use EmakolaWeb, :live_view
 
   alias Emakola.Suppliers.{
+    ContentStudio,
     HustlePlanner,
     GoalProgress,
     InboundFulfillment,
@@ -33,6 +34,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
        hustle_listings: [],
        hustle_shares: [],
        goal_progress: nil,
+       content_draft_count: 0,
        income_goal_form: income_goal_form(),
        first_money: %{},
        active_connection?: false,
@@ -47,7 +49,8 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
      |> load_earn_catalog()
      |> load_inbound_fulfillments()
      |> load_sales_journey()
-     |> load_income_goal()}
+     |> load_income_goal()
+     |> load_content_drafts()}
   end
 
   @impl true
@@ -160,6 +163,57 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
        |> put_flash(:info, "Sales kit ready. Share it where your customers already chat.")}
     else
       _ -> {:noreply, put_flash(socket, :error, "The sales kit could not be created.")}
+    end
+  end
+
+  def handle_event("create_content_draft", %{"id" => listing_id}, socket) do
+    case ContentStudio.create_draft(
+           socket.assigns.current_merchant,
+           socket.assigns.current_store.id,
+           listing_id
+         ) do
+      {:ok, _draft} ->
+        {:noreply,
+         socket
+         |> load_content_drafts()
+         |> put_flash(:info, "Content draft ready for your review.")}
+
+      _error ->
+        {:noreply, put_flash(socket, :error, "The content draft could not be created.")}
+    end
+  end
+
+  def handle_event("approve_content_draft", %{"id" => id}, socket) do
+    case ContentStudio.approve(
+           socket.assigns.current_merchant,
+           socket.assigns.current_store.id,
+           id
+         ) do
+      {:ok, _draft} ->
+        {:noreply, socket |> load_content_drafts() |> put_flash(:info, "Content approved.")}
+
+      {:error, :source_facts_changed} ->
+        {:noreply,
+         socket
+         |> load_content_drafts()
+         |> put_flash(:error, "Supplier facts changed. Generate a fresh draft before sharing.")}
+
+      _error ->
+        {:noreply, put_flash(socket, :error, "The content could not be approved.")}
+    end
+  end
+
+  def handle_event("reject_content_draft", %{"id" => id}, socket) do
+    case ContentStudio.reject(
+           socket.assigns.current_merchant,
+           socket.assigns.current_store.id,
+           id
+         ) do
+      {:ok, _draft} ->
+        {:noreply, socket |> load_content_drafts() |> put_flash(:info, "Draft rejected.")}
+
+      _error ->
+        {:noreply, put_flash(socket, :error, "The draft could not be rejected.")}
     end
   end
 
@@ -427,6 +481,17 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     |> assign(:goal_progress, progress)
   end
 
+  defp load_content_drafts(socket) do
+    drafts =
+      socket.assigns.current_merchant
+      |> ContentStudio.list(socket.assigns.current_store.id)
+      |> result_rows()
+
+    socket
+    |> assign(:content_draft_count, length(drafts))
+    |> stream(:content_drafts, drafts, reset: true)
+  end
+
   defp result_rows({:ok, rows}), do: rows
   defp result_rows(_error), do: []
 
@@ -505,6 +570,11 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
   defp fulfillment_status_classes(:shipped), do: "bg-violet-50 text-violet-700"
   defp fulfillment_status_classes(:delivered), do: "bg-emerald-50 text-emerald-700"
   defp fulfillment_status_classes(:cancelled), do: "bg-slate-100 text-slate-500"
+
+  defp content_status_classes(:draft), do: "bg-amber-50 text-amber-700"
+  defp content_status_classes(:approved), do: "bg-emerald-50 text-emerald-700"
+  defp content_status_classes(:rejected), do: "bg-rose-50 text-rose-700"
+  defp content_status_classes(:stale), do: "bg-slate-100 text-slate-600"
 
   defp shipment_open?(fulfillment_id, selected_id), do: fulfillment_id == selected_id
   defp delivery_open?(fulfillment_id, selected_id), do: fulfillment_id == selected_id
@@ -1181,6 +1251,14 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
               </p>
             </div>
             <button
+              id={"create-content-draft-#{listing.id}"}
+              phx-click="create_content_draft"
+              phx-value-id={listing.id}
+              class="rounded-lg border border-violet-200 px-3 py-2 text-xs font-bold text-violet-700 transition hover:bg-violet-50"
+            >
+              Content
+            </button>
+            <button
               id={"create-sales-kit-#{listing.id}"}
               phx-click="create_sales_kit"
               phx-value-id={listing.id}
@@ -1195,6 +1273,102 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
             >
               <.icon name="hero-pencil-square" class="size-4" />
             </.link>
+          </article>
+        </div>
+      </section>
+
+      <section id="earn-content-studio" aria-labelledby="content-studio-heading" class="space-y-4">
+        <div class="flex items-end justify-between gap-4">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-[0.18em] text-violet-600">
+              Content Studio
+            </span>
+            <h2 id="content-studio-heading" class="mt-1 text-xl font-bold text-slate-950">
+              Fact-grounded drafts you control
+            </h2>
+            <p class="mt-1 max-w-2xl text-sm text-slate-500">
+              Every draft is constrained to the supplier's approved facts. Nothing is published until you review and approve it.
+            </p>
+          </div>
+          <span
+            id="content-draft-count"
+            class="rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700"
+          >
+            {@content_draft_count}
+          </span>
+        </div>
+
+        <div id="content-drafts" phx-update="stream" class="grid gap-4 lg:grid-cols-2">
+          <div
+            id="content-drafts-empty"
+            class="hidden only:block rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center lg:col-span-2"
+          >
+            <p class="text-sm font-semibold text-slate-700">
+              Create a draft from one of your partner products.
+            </p>
+          </div>
+          <article
+            :for={{dom_id, draft} <- @streams.content_drafts}
+            id={dom_id}
+            class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-wide text-violet-600">
+                  {draft.locale} · {draft.generator}
+                </p>
+                <h3 class="mt-1 font-bold text-slate-900">{draft.source_facts["product_title"]}</h3>
+              </div>
+              <span class={[
+                "rounded-full px-2.5 py-1 text-[11px] font-bold capitalize",
+                content_status_classes(draft.status)
+              ]}>
+                {draft.status}
+              </span>
+            </div>
+            <div class="mt-4 space-y-3">
+              <div class="rounded-xl bg-emerald-50 p-3">
+                <p class="text-[10px] font-bold uppercase text-emerald-700">WhatsApp</p>
+                <p class="mt-1 text-sm leading-5 text-slate-700">{draft.content["whatsapp"]}</p>
+              </div>
+              <div class="rounded-xl bg-blue-50 p-3">
+                <p class="text-[10px] font-bold uppercase text-blue-700">Facebook</p>
+                <p class="mt-1 text-sm leading-5 text-slate-700">{draft.content["facebook"]}</p>
+              </div>
+              <details class="rounded-xl border border-slate-200 p-3">
+                <summary class="cursor-pointer text-xs font-bold text-slate-700">
+                  View source facts
+                </summary>
+                <dl class="mt-3 space-y-2 text-xs">
+                  <div>
+                    <dt class="text-slate-400">Supplier description</dt>
+                    <dd class="text-slate-700">{draft.source_facts["supplier_description"]}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-slate-400">Return terms</dt>
+                    <dd class="text-slate-700">{draft.source_facts["return_terms"]}</dd>
+                  </div>
+                </dl>
+              </details>
+            </div>
+            <div :if={draft.status == :draft} class="mt-4 flex gap-2 border-t border-slate-100 pt-4">
+              <button
+                id={"approve-content-draft-#{draft.id}"}
+                phx-click="approve_content_draft"
+                phx-value-id={draft.id}
+                class="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-emerald-700"
+              >
+                Approve
+              </button>
+              <button
+                id={"reject-content-draft-#{draft.id}"}
+                phx-click="reject_content_draft"
+                phx-value-id={draft.id}
+                class="rounded-xl border border-rose-200 px-4 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-50"
+              >
+                Reject
+              </button>
+            </div>
           </article>
         </div>
       </section>

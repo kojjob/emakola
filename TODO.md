@@ -173,6 +173,9 @@
         reseller net earnings, evidence confidence, and ranking reason.
   - [x] Complete Phase A — Hustle Autopilot.
   - [ ] Build Phase B — voice-first Business-in-a-Box and fact-grounded content drafts.
+    - [x] Add supplier-fact snapshots, deterministic channel drafts, stale-content protection,
+          and explicit merchant review in Earn Network.
+    - [ ] Add voice/text commands, starter-store generation, translation, and grounded images.
 
 ## OPEN — White-label design system (remaining phases)
 

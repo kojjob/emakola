@@ -66,5 +66,9 @@ defmodule Emakola.Suppliers do
     resource Emakola.Suppliers.IncomeGoal do
       define(:list_income_goals_for_store, action: :for_store, args: [:store_id])
     end
+
+    resource Emakola.Suppliers.ContentDraft do
+      define(:list_content_drafts_for_store, action: :for_store, args: [:store_id])
+    end
   end
 end
