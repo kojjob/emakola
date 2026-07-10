@@ -10,6 +10,7 @@ defmodule Emakola.Storage.S3 do
   """
 
   @behaviour Emakola.Storage
+  @max_image_bytes 10_000_000
 
   @impl true
   def upload(binary, path, opts \\ []) do
@@ -28,6 +29,15 @@ defmodule Emakola.Storage.S3 do
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  @impl true
+  def replicate(source_url, destination_path, opts) do
+    with {:ok, source_key} <- trusted_source_key(source_url),
+         {:ok, %{body: binary}} <- ExAws.request(ExAws.S3.get_object(bucket(), source_key)),
+         :ok <- validate_size(binary) do
+      upload(binary, destination_path, opts)
     end
   end
 
@@ -67,6 +77,30 @@ defmodule Emakola.Storage.S3 do
     case Application.get_env(:ex_aws, :s3, [])[:host] do
       nil -> "https://#{bucket()}.s3.#{region()}.amazonaws.com/#{path}"
       host -> "https://#{bucket()}.#{host}/#{path}"
+    end
+  end
+
+  defp trusted_source_key(source_url) do
+    uri = URI.parse(source_url)
+
+    with true <- uri.scheme == "https",
+         true <- uri.host == public_host(),
+         encoded_key when encoded_key != "" <- String.trim_leading(uri.path || "", "/"),
+         source_key <- URI.decode(encoded_key),
+         false <- ".." in Path.split(source_key) do
+      {:ok, source_key}
+    else
+      _ -> {:error, :untrusted_source_url}
+    end
+  end
+
+  defp validate_size(binary) when byte_size(binary) <= @max_image_bytes, do: :ok
+  defp validate_size(_binary), do: {:error, :source_image_too_large}
+
+  defp public_host do
+    case Application.get_env(:ex_aws, :s3, [])[:host] do
+      nil -> "#{bucket()}.s3.#{region()}.amazonaws.com"
+      host -> "#{bucket()}.#{host}"
     end
   end
 end

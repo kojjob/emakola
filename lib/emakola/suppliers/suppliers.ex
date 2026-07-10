@@ -50,5 +50,9 @@ defmodule Emakola.Suppliers do
     resource Emakola.Suppliers.ResellerListingVariant do
       define(:create_reseller_listing_variant, action: :create)
     end
+
+    resource Emakola.Suppliers.ResellerListingImage do
+      define(:create_reseller_listing_image, action: :create)
+    end
   end
 end

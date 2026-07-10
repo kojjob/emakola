@@ -17,6 +17,10 @@ defmodule Emakola.Storage do
   @callback upload(binary :: binary(), path :: String.t(), opts :: upload_opts()) ::
               {:ok, String.t()} | {:error, term()}
 
+  @doc "Copy a trusted object already owned by this storage backend to a new path."
+  @callback replicate(source_url :: String.t(), path :: String.t(), opts :: upload_opts()) ::
+              {:ok, String.t()} | {:error, term()}
+
   @doc "Delete a file at the given path."
   @callback delete(path :: String.t()) :: :ok | {:error, term()}
 
@@ -30,6 +34,7 @@ defmodule Emakola.Storage do
   end
 
   def upload(binary, path, opts \\ []), do: impl().upload(binary, path, opts)
+  def replicate(source_url, path, opts \\ []), do: impl().replicate(source_url, path, opts)
   def delete(path), do: impl().delete(path)
   def presigned_url(path, opts \\ []), do: impl().presigned_url(path, opts)
 end

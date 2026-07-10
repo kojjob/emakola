@@ -49,6 +49,11 @@ defmodule Emakola.Suppliers.ResellerListing do
       destination_attribute(:listing_id)
       public?(true)
     end
+
+    has_many :listing_images, Emakola.Suppliers.ResellerListingImage do
+      destination_attribute(:listing_id)
+      public?(true)
+    end
   end
 
   identities do

@@ -89,7 +89,11 @@ defmodule Emakola.Suppliers.Offers do
     case SupplierOffer
          |> Ash.Query.filter(status == :published and wholesaler_store_id in ^wholesaler_ids)
          |> Ash.Query.sort(published_at: :desc)
-         |> Ash.Query.load([:wholesaler_store, :source_product, offer_variants: :source_variant])
+         |> Ash.Query.load([
+           :wholesaler_store,
+           source_product: :images,
+           offer_variants: :source_variant
+         ])
          |> Ash.read(authorize?: false) do
       {:ok, offers} -> {:ok, Enum.filter(offers, &discoverable?/1)}
       {:error, reason} -> {:error, reason}

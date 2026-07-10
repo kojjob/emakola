@@ -126,10 +126,13 @@ defmodule Emakola.Suppliers.ListingImporter do
              )
            end)
 
+           create_image_mappings!(listing, product, offer.source_product.images)
            activated = Emakola.Catalog.activate_product!(product, authorize?: false)
            {listing, activated}
          end) do
       {:ok, {listing, _product}} ->
+        enqueue_image_replication(listing.id)
+
         {:ok,
          Ash.load!(
            listing,
@@ -284,6 +287,33 @@ defmodule Emakola.Suppliers.ListingImporter do
       authorize?: false
     )
   end
+
+  defp create_image_mappings!(listing, product, source_images) do
+    Enum.each(source_images, fn image ->
+      Suppliers.create_reseller_listing_image!(
+        %{
+          listing_id: listing.id,
+          source_image_id: image.id,
+          storage_key:
+            "stores/#{listing.reseller_store_id}/products/#{product.id}/earn-#{image.id}#{image_extension(image)}"
+        },
+        authorize?: false
+      )
+    end)
+  end
+
+  defp enqueue_image_replication(listing_id) do
+    %{listing_id: listing_id}
+    |> Emakola.Suppliers.Workers.ListingImageReplicationWorker.new()
+    |> Oban.insert()
+
+    :ok
+  end
+
+  defp image_extension(%{content_type: "image/jpeg"}), do: ".jpg"
+  defp image_extension(%{content_type: "image/png"}), do: ".png"
+  defp image_extension(%{content_type: "image/webp"}), do: ".webp"
+  defp image_extension(_image), do: ""
 
   defp clone_options!(store_id, source_product_id, reseller_product_id) do
     source_types =

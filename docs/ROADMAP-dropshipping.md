@@ -184,7 +184,8 @@ Decomposed into 5 sub-projects; **SP1 + SP5 built first** (the money rails).
     Product/Variant catalog, with partner-gated discovery and live source availability.
   - [x] Transactional reseller listing/import mapping, multi-variant option cloning,
     bounded prices, source synchronization, and automatic suspension propagation.
-  - [ ] Safe source-image replication and the pilot-facing one-click publication UI.
+  - [x] Retryable, SSRF-safe source-image replication into reseller-owned storage.
+  - [ ] Pilot-facing one-click publication UI.
 - [ ] **SP4 cross-store fulfillment** — wholesaler inbound queue, cross-tenant access,
   physical delivery proof, and protected digital grants.
 - [ ] **Sales Kits and First Money journey** — ready-to-share content, tracked links, and

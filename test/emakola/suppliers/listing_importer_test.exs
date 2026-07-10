@@ -1,10 +1,14 @@
 defmodule Emakola.Suppliers.ListingImporterTest do
   use Emakola.DataCase, async: true
+  use Oban.Testing, repo: Emakola.Repo
 
   import Emakola.Factory
+  import Mox
   require Ash.Query
 
   alias Emakola.Suppliers.{ListingImporter, Network, Offers}
+
+  setup :verify_on_exit!
 
   setup do
     {wholesaler_actor, wholesaler} = create_merchant_with_store!(%{name: "Import wholesaler"})
@@ -64,6 +68,7 @@ defmodule Emakola.Suppliers.ListingImporterTest do
     {:ok,
      wholesaler_actor: wholesaler_actor,
      wholesaler: wholesaler,
+     product: product,
      reseller_actor: reseller_actor,
      reseller: reseller,
      offer: published,
@@ -238,6 +243,59 @@ defmodule Emakola.Suppliers.ListingImporterTest do
     |> Enum.each(fn variant ->
       refute Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false).available
     end)
+  end
+
+  test "replicates source images into independently owned reseller catalog images", context do
+    source_image =
+      Emakola.Catalog.create_image!(
+        %{
+          store_id: context.wholesaler.id,
+          product_id: context.product.id,
+          url: "/uploads/stores/source/product.jpg",
+          alt_text: "Handmade sandals",
+          content_type: "image/jpeg",
+          file_size_bytes: 1234
+        },
+        authorize?: false,
+        tenant: context.wholesaler.id
+      )
+
+    connect!(context)
+
+    {:ok, listing} =
+      ListingImporter.import(context.reseller_actor, context.reseller.id, context.offer)
+
+    expect(Emakola.StorageMock, :replicate, fn source_url, destination, opts ->
+      assert source_url == source_image.url
+
+      assert destination =~
+               "stores/#{context.reseller.id}/products/#{listing.reseller_product_id}/"
+
+      assert opts[:content_type] == "image/jpeg"
+      {:ok, "/uploads/#{destination}"}
+    end)
+
+    assert :ok =
+             perform_job(Emakola.Suppliers.Workers.ListingImageReplicationWorker, %{
+               listing_id: listing.id
+             })
+
+    [mapping] =
+      Emakola.Suppliers.ResellerListingImage
+      |> Ash.Query.filter(listing_id == ^listing.id)
+      |> Ash.Query.load(:reseller_image)
+      |> Ash.read!(authorize?: false)
+
+    assert mapping.status == :completed
+    assert mapping.source_image_id == source_image.id
+    assert mapping.reseller_image.product_id == listing.reseller_product_id
+    assert mapping.reseller_image.store_id == context.reseller.id
+    assert mapping.reseller_image.url != source_image.url
+
+    assert :ok =
+             perform_job(Emakola.Suppliers.Workers.ListingImageReplicationWorker, %{
+               listing_id: listing.id
+             })
   end
 
   defp connect!(context) do

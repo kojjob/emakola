@@ -154,7 +154,8 @@
         markup and fixed-commission terms, and limits discovery to active supply partners.
   - [x] Transactional reseller listing/import mapping for products, variants,
         option values, bounded pricing, and existing supplier fulfillment linkage.
-  - [ ] Safe source-image replication and the pilot-facing one-click listing UI.
+  - [x] Retryable, SSRF-safe source-image replication into reseller-owned storage.
+  - [ ] Pilot-facing one-click listing UI.
 - [ ] **SP4:** cross-store inbound fulfillment, delivery proof, and protected digital delivery.
 - [ ] Add Sales Kits, tracked sharing links, and the guided “First Money” journey.
 - [ ] Pass the concierge validation gate before broad network rollout.
