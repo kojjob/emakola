@@ -156,7 +156,7 @@ Decomposed into 5 sub-projects; **SP1 + SP5 built first** (the money rails).
 |----|-------------|--------|
 | **SP5** | Split settlement engine — `SplitCalculator`, `DropshipSettlement`, `OrderSettlement`, `PaymentSplit`, checkout wiring, webhook settle/reverse | ✅ Built (#158/#159) |
 | **SP1** | Payout identity — `StorePayoutAccount`, onboarding UI, `Supplier.linked_store_id`, gateway `create_subaccount/1` | ✅ Shipped |
-| **SP2** | Supply connections — wholesaler↔dropshipper handshake (`SupplyConnection`) | 🟡 Resource/service built; UI pending |
+| **SP2** | Supply connections — wholesaler↔dropshipper handshake (`SupplyConnection`) | ✅ Shipped |
 | **SP3** | Cross-store catalog sourcing — import wholesaler products; price/availability sync | 🔵 Planned |
 | **SP4** | Cross-store order & fulfillment — wholesaler inbound dashboard; cross-tenant auth | 🔵 Planned |
 
@@ -174,8 +174,8 @@ Decomposed into 5 sub-projects; **SP1 + SP5 built first** (the money rails).
 - [ ] **Refund recovery** — net unrecovered reversal amounts from future recipient splits.
 - [x] **SP2 supply connection foundation** — request/approve/reject/suspend/reactivate/
   terminate service with participant authorization and lifecycle tests.
-- [ ] **SP2 merchant UI** — connection inbox, invitations, active relationships, and
-  suspension/termination controls.
+- [x] **SP2 merchant UI** — connection inbox, invitations, active relationships, and
+  approve/reject/suspend/reactivate/terminate controls.
 - [ ] **SP3 shared offers and catalog sourcing** — physical/digital offers, markup and
   fixed-commission earnings, one-click listing, and source synchronization.
 - [ ] **SP4 cross-store fulfillment** — wholesaler inbound queue, cross-tenant access,

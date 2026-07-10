@@ -144,7 +144,8 @@
 - [ ] Recover those reversal amounts from future recipient splits.
 - [x] **SP2 foundation:** wholesaler↔reseller connection resource, authorized service,
       lifecycle, migration, and tests.
-- [ ] **SP2 UI:** merchant invitations, approvals, active connections, and suspension.
+- [x] **SP2 UI:** merchant invitations, approvals, active connections, suspension,
+      reactivation, and termination at `/admin/settings/supply-network`.
 - [ ] **SP3:** shared physical/digital offers, markup/fixed commission, one-click listing,
       and source synchronization.
 - [ ] **SP4:** cross-store inbound fulfillment, delivery proof, and protected digital delivery.
