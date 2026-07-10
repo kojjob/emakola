@@ -4,6 +4,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
 
   alias Emakola.Suppliers.{
     HustlePlanner,
+    GoalProgress,
     InboundFulfillment,
     IncomeGoals,
     ListingImporter,
@@ -29,6 +30,9 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
        income_goal: nil,
        hustle_plan: nil,
        hustle_opportunities: [],
+       hustle_listings: [],
+       hustle_shares: [],
+       goal_progress: nil,
        income_goal_form: income_goal_form(),
        first_money: %{},
        active_connection?: false,
@@ -123,6 +127,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
        socket
        |> load_earn_catalog()
        |> load_sales_journey()
+       |> load_income_goal()
        |> put_flash(:info, "Product added to your store. Its images are being prepared.")}
     else
       nil ->
@@ -133,6 +138,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
          socket
          |> load_earn_catalog()
          |> load_sales_journey()
+         |> load_income_goal()
          |> put_flash(:info, "Already in your store.")}
 
       _ ->
@@ -150,6 +156,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
       {:noreply,
        socket
        |> load_sales_journey()
+       |> load_income_goal()
        |> put_flash(:info, "Sales kit ready. Share it where your customers already chat.")}
     else
       _ -> {:noreply, put_flash(socket, :error, "The sales kit could not be created.")}
@@ -163,7 +170,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
       share_id
     )
 
-    {:noreply, load_sales_journey(socket)}
+    {:noreply, socket |> load_sales_journey() |> load_income_goal()}
   end
 
   def handle_event("create_income_goal", %{"income_goal" => params}, socket) do
@@ -333,6 +340,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     |> assign(:offer_count, length(available))
     |> assign(:listing_count, length(listings))
     |> assign(:hustle_opportunities, Enum.map(offers, &hustle_opportunity/1))
+    |> assign(:hustle_listings, listings)
     |> stream(:offers, available, reset: true)
     |> stream(:listings, listings, reset: true)
   end
@@ -377,6 +385,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     |> assign(:sales_click_count, click_count)
     |> assign(:sales_order_count, order_count)
     |> assign(:sales_revenue, revenue)
+    |> assign(:hustle_shares, shares)
     |> assign(:first_money, first_money)
     |> stream(:sales_shares, shares, reset: true)
   end
@@ -392,9 +401,22 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
 
     plan = if goal, do: HustlePlanner.plan(goal, socket.assigns.hustle_opportunities), else: nil
 
+    progress =
+      if goal do
+        case GoalProgress.load(
+               socket.assigns.current_merchant,
+               socket.assigns.current_store.id,
+               goal
+             ) do
+          {:ok, progress} -> progress
+          _error -> nil
+        end
+      end
+
     socket
     |> assign(:income_goal, goal)
     |> assign(:hustle_plan, plan)
+    |> assign(:goal_progress, progress)
   end
 
   defp result_rows({:ok, rows}), do: rows
@@ -535,6 +557,19 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
   defp channel_icon(:facebook), do: "hero-user-group"
   defp channel_icon(:copy_link), do: "hero-link"
 
+  defp next_action_message(:publish), do: "Start by adding one recommended partner product."
+
+  defp next_action_message(:create_sales_kit),
+    do: "Turn your first product into tracked share links."
+
+  defp next_action_message(:share), do: "Share a tracked link where customers already know you."
+
+  defp next_action_message(:follow_up),
+    do: "People are viewing your links—follow up and answer questions."
+
+  defp next_action_message(:fulfill),
+    do: "A customer ordered. Help the supplier complete delivery successfully."
+
   defp journey_step(first_money, key, label, description) do
     %{
       key: key,
@@ -629,6 +664,100 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
                   </div>
                 </li>
               </ol>
+            </div>
+          </div>
+
+          <div
+            :if={@goal_progress}
+            id="income-goal-progress"
+            class="mt-6 rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm"
+          >
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                  Real fulfilled earnings
+                </p>
+                <p id="goal-net-earned" class="mt-1 text-2xl font-black text-slate-950">
+                  {money(@goal_progress.net_earned)}
+                </p>
+                <p class="text-xs text-slate-500">
+                  {money(@goal_progress.remaining)} remaining toward this scenario
+                </p>
+              </div>
+              <p id="goal-progress-percent" class="text-3xl font-black text-emerald-700">
+                {@goal_progress.percent}%
+              </p>
+            </div>
+            <div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+              <div
+                class="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                style={"width: #{@goal_progress.percent}%"}
+              >
+              </div>
+            </div>
+            <dl class="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-6">
+              <div
+                :for={
+                  {label, value} <- [
+                    {"Published", @goal_progress.published},
+                    {"Shared", @goal_progress.shared},
+                    {"Clicked", @goal_progress.clicked},
+                    {"Ordered", @goal_progress.ordered},
+                    {"Fulfilled", @goal_progress.fulfilled},
+                    {"Refunded", @goal_progress.refunded}
+                  ]
+                }
+                class="rounded-xl bg-slate-50 p-3 text-center"
+              >
+                <dt class="text-[10px] font-bold uppercase text-slate-400">{label}</dt>
+                <dd class="mt-1 text-lg font-black text-slate-800">{value}</dd>
+              </div>
+            </dl>
+            <div
+              id="goal-next-action"
+              class="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4"
+            >
+              <p class="mr-auto text-sm font-semibold text-slate-700">
+                {next_action_message(@goal_progress.next_action)}
+              </p>
+              <button
+                :if={@goal_progress.next_action == :publish && @hustle_opportunities != []}
+                id="goal-publish-product"
+                phx-click="import_offer"
+                phx-value-id={List.first(@hustle_opportunities).id}
+                class="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700"
+              >
+                Add recommended product
+              </button>
+              <button
+                :if={@goal_progress.next_action == :create_sales_kit && @hustle_listings != []}
+                id="goal-create-sales-kit"
+                phx-click="create_sales_kit"
+                phx-value-id={List.first(@hustle_listings).id}
+                class="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700"
+              >
+                Create Sales Kit
+              </button>
+              <a
+                :if={@goal_progress.next_action in [:share, :follow_up] && @hustle_shares != []}
+                id="goal-share-now"
+                href={whatsapp_share_url(List.first(@hustle_shares))}
+                phx-click="record_sales_share"
+                phx-value-id={List.first(@hustle_shares).id}
+                target="_blank"
+                rel="noopener"
+                class="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700"
+              >
+                Share now
+              </a>
+              <a
+                :if={@goal_progress.next_action == :fulfill}
+                id="goal-track-fulfillment"
+                href="#first-money-journey"
+                class="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-amber-600"
+              >
+                Track fulfillment
+              </a>
             </div>
           </div>
         <% else %>

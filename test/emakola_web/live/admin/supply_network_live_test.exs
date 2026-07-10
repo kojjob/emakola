@@ -165,7 +165,14 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     assert has_element?(view, "#income-goal-required-sales", "20")
     assert has_element?(view, "#hustle-plan-actions li")
     assert has_element?(view, "#income-goal-disclaimer", "not guaranteed income")
+    assert has_element?(view, "#income-goal-progress")
+    assert has_element?(view, "#goal-net-earned", "GH₵0.00")
+    assert has_element?(view, "#goal-publish-product")
     refute has_element?(view, "#income-goal-form")
+
+    view |> element("#goal-publish-product") |> render_click()
+
+    assert has_element?(view, "#goal-create-sales-kit")
   end
 
   test "adds an offer to the reseller catalog with one action", ctx do
