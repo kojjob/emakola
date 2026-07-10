@@ -31,9 +31,21 @@ defmodule Emakola.Payments.PaymentSplitSettlementTest do
         gateway_reference: "PAY-split-#{System.unique_integer([:positive])}"
       )
 
-    split!(payment, store, %{role: :wholesaler, subaccount_code: "ACCT_w", amount: 1_600})
+    split!(payment, store, %{
+      role: :wholesaler,
+      recipient_store_id: store.id,
+      subaccount_code: "ACCT_w",
+      amount: 1_600
+    })
+
     split!(payment, store, %{role: :platform, amount: 840})
-    split!(payment, store, %{role: :dropshipper, subaccount_code: "ACCT_d", amount: 10_560})
+
+    split!(payment, store, %{
+      role: :dropshipper,
+      recipient_store_id: store.id,
+      subaccount_code: "ACCT_d",
+      amount: 10_560
+    })
 
     {:ok, store: store, payment: payment}
   end
@@ -85,5 +97,57 @@ defmodule Emakola.Payments.PaymentSplitSettlementTest do
     assert :ok = PaystackWebhookHandler.perform(refund_job)
 
     assert Enum.all?(splits_for(payment), &(&1.status == :reversed))
+
+    recipient_reversals =
+      payment
+      |> splits_for()
+      |> Enum.reject(&(&1.role == :platform))
+      |> Enum.map(& &1.reversed_amount)
+      |> Enum.sort()
+
+    assert recipient_reversals == [1_600, 10_560]
+  end
+
+  test "partial refunds update proportional liabilities without duplicating rows", %{
+    payment: payment
+  } do
+    PaystackWebhookHandler.perform(%Oban.Job{
+      args: %{"event" => "charge.success", "data" => %{"reference" => payment.gateway_reference}}
+    })
+
+    refund = fn amount ->
+      PaystackWebhookHandler.perform(%Oban.Job{
+        args: %{
+          "event" => "refund.processed",
+          "data" => %{
+            "transaction" => %{"reference" => payment.gateway_reference},
+            "amount" => amount
+          }
+        }
+      })
+    end
+
+    assert :ok = refund.(6_500)
+    assert Enum.all?(splits_for(payment), &(&1.status == :partially_reversed))
+
+    recipient_reversals =
+      payment
+      |> splits_for()
+      |> Enum.reject(&(&1.role == :platform))
+      |> Enum.map(& &1.reversed_amount)
+      |> Enum.sort()
+
+    assert recipient_reversals == [800, 5_280]
+
+    assert :ok = refund.(6_500)
+
+    recipient_reversals =
+      payment
+      |> splits_for()
+      |> Enum.reject(&(&1.role == :platform))
+      |> Enum.map(& &1.reversed_amount)
+      |> Enum.sort()
+
+    assert recipient_reversals == [1_600, 10_560]
   end
 end

@@ -64,9 +64,15 @@ defmodule Emakola.Payments.PaymentSplit do
     end
 
     attribute :status, :atom do
-      constraints(one_of: [:pending, :settled, :reversed])
+      constraints(one_of: [:pending, :settled, :partially_reversed, :reversed])
       default(:pending)
       allow_nil?(false)
+      public?(true)
+    end
+
+    attribute :reversed_amount, :integer do
+      allow_nil?(false)
+      default(0)
       public?(true)
     end
 
@@ -125,10 +131,31 @@ defmodule Emakola.Payments.PaymentSplit do
       change(set_attribute(:status, :settled))
     end
 
+    update :record_reversal do
+      require_atomic?(false)
+      accept([:reversed_amount])
+
+      change(fn changeset, _context ->
+        reversed_amount = Ash.Changeset.get_attribute(changeset, :reversed_amount) || 0
+
+        status =
+          if reversed_amount >= changeset.data.amount,
+            do: :reversed,
+            else: :partially_reversed
+
+        Ash.Changeset.change_attribute(changeset, :status, status)
+      end)
+    end
+
     update :mark_reversed do
       require_atomic?(false)
       accept([])
-      change(set_attribute(:status, :reversed))
+
+      change(fn changeset, _context ->
+        changeset
+        |> Ash.Changeset.change_attribute(:reversed_amount, changeset.data.amount)
+        |> Ash.Changeset.change_attribute(:status, :reversed)
+      end)
     end
 
     read :by_payment do

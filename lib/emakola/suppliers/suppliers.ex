@@ -19,5 +19,15 @@ defmodule Emakola.Suppliers do
 
       define(:mark_ledger_entry_paid, action: :mark_paid)
     end
+
+    resource Emakola.Suppliers.SupplyConnection do
+      define(:request_supply_connection, action: :request)
+      define(:list_supply_connections_for_store, action: :for_store, args: [:store_id])
+      define(:approve_supply_connection, action: :approve)
+      define(:reject_supply_connection, action: :reject)
+      define(:suspend_supply_connection, action: :suspend)
+      define(:reactivate_supply_connection, action: :reactivate)
+      define(:terminate_supply_connection, action: :terminate)
+    end
   end
 end
