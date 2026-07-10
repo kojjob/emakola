@@ -182,7 +182,9 @@ Decomposed into 5 sub-projects; **SP1 + SP5 built first** (the money rails).
   fixed-commission earnings, one-click listing, and source synchronization.
   - [x] Offer foundation: network-only commercial terms reference the existing
     Product/Variant catalog, with partner-gated discovery and live source availability.
-  - [ ] Reseller listing/import mapping, one-click publication, and price synchronization.
+  - [x] Transactional reseller listing/import mapping, multi-variant option cloning,
+    bounded prices, source synchronization, and automatic suspension propagation.
+  - [ ] Safe source-image replication and the pilot-facing one-click publication UI.
 - [ ] **SP4 cross-store fulfillment** — wholesaler inbound queue, cross-tenant access,
   physical delivery proof, and protected digital grants.
 - [ ] **Sales Kits and First Money journey** — ready-to-share content, tracked links, and

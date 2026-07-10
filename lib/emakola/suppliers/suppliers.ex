@@ -41,5 +41,14 @@ defmodule Emakola.Suppliers do
     resource Emakola.Suppliers.SupplierOfferVariant do
       define(:create_supplier_offer_variant, action: :create)
     end
+
+    resource Emakola.Suppliers.ResellerListing do
+      define(:create_reseller_listing, action: :create)
+      define(:list_reseller_listings_for_store, action: :for_store, args: [:store_id])
+    end
+
+    resource Emakola.Suppliers.ResellerListingVariant do
+      define(:create_reseller_listing_variant, action: :create)
+    end
   end
 end

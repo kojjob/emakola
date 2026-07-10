@@ -152,7 +152,9 @@
       and source synchronization.
   - [x] Shared-offer foundation references existing products/variants, validates
         markup and fixed-commission terms, and limits discovery to active supply partners.
-  - [ ] Reseller listing/import mapping and one-click catalog publication.
+  - [x] Transactional reseller listing/import mapping for products, variants,
+        option values, bounded pricing, and existing supplier fulfillment linkage.
+  - [ ] Safe source-image replication and the pilot-facing one-click listing UI.
 - [ ] **SP4:** cross-store inbound fulfillment, delivery proof, and protected digital delivery.
 - [ ] Add Sales Kits, tracked sharing links, and the guided “First Money” journey.
 - [ ] Pass the concierge validation gate before broad network rollout.

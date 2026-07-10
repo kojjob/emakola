@@ -48,8 +48,8 @@ defmodule Emakola.Suppliers.Offers do
     end
   end
 
-  def pause(actor, offer), do: owner_update(actor, offer, :pause)
-  def archive(actor, offer), do: owner_update(actor, offer, :archive)
+  def pause(actor, offer), do: owner_update_and_pause_listings(actor, offer, :pause)
+  def archive(actor, offer), do: owner_update_and_pause_listings(actor, offer, :archive)
 
   def list_owned(actor, store_id) do
     with :ok <- ensure_access(actor, store_id) do
@@ -72,13 +72,24 @@ defmodule Emakola.Suppliers.Offers do
     end
   end
 
+  defp owner_update_and_pause_listings(actor, offer, action) do
+    case owner_update(actor, offer, action) do
+      {:ok, updated} ->
+        Emakola.Suppliers.ListingImporter.pause_offer_listings!(offer.id)
+        {:ok, updated}
+
+      error ->
+        error
+    end
+  end
+
   defp available_offers([]), do: {:ok, []}
 
   defp available_offers(wholesaler_ids) do
     case SupplierOffer
          |> Ash.Query.filter(status == :published and wholesaler_store_id in ^wholesaler_ids)
          |> Ash.Query.sort(published_at: :desc)
-         |> Ash.Query.load([:source_product, offer_variants: :source_variant])
+         |> Ash.Query.load([:wholesaler_store, :source_product, offer_variants: :source_variant])
          |> Ash.read(authorize?: false) do
       {:ok, offers} -> {:ok, Enum.filter(offers, &discoverable?/1)}
       {:error, reason} -> {:error, reason}
@@ -133,7 +144,7 @@ defmodule Emakola.Suppliers.Offers do
     maximum = attrs[:max_retail_price]
     commission = attrs[:fixed_commission_amount]
 
-    if is_integer(supplier) and is_integer(suggested) and suggested >= supplier and
+    if is_integer(supplier) and is_integer(suggested) and suggested > supplier and
          (is_nil(maximum) or (is_integer(maximum) and maximum >= suggested)) and
          is_nil(commission),
        do: :ok,
