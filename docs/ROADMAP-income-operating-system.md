@@ -30,11 +30,11 @@ Makola Earn should turn an income goal into an explainable sequence of legitimat
 
 ## Delivery phases
 
-### Phase A — Hustle Autopilot
+### Phase A — Hustle Autopilot ✅
 
 - [x] Persist a merchant income goal, timeframe, preferred channels, and daily time budget.
 - [x] Produce a deterministic seven-day action plan and measurable sales target with a prominent non-guarantee disclosure.
-- [ ] Recommend eligible Earn listings using transparent economics and historical signals.
+- [x] Recommend eligible Earn listings using transparent economics and historical signals.
 - [x] Create Sales Kits through the existing tracked-share service.
 - [x] Track published, shared, clicked, ordered, fulfilled, refunded, and net-earned progress.
 - [x] Give rule-based next-best actions; AI may rewrite copy but cannot change economics.
@@ -107,7 +107,7 @@ Guardrails:
 1. Income goals and deterministic plan engine. **Implemented and focused tests passing.**
 2. Goal dashboard integrated into the existing Earn Network screen. **Implemented and focused tests passing.**
 3. Goal progress from existing Sales Shares, conversions, fulfillments, and splits. **Implemented and focused tests passing.**
-4. Fact-grounded content drafts and multilingual/voice input.
+4. Fact-grounded content drafts and multilingual/voice input. **Next active slice.**
 5. Opportunity signal warehouse and recommendation evaluation.
 6. Group buys, teams, and micro-franchise packages.
 7. Commerce passport and partner-credit interfaces.

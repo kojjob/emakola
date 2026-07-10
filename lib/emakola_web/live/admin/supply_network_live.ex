@@ -399,7 +399,14 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
         _error -> nil
       end
 
-    plan = if goal, do: HustlePlanner.plan(goal, socket.assigns.hustle_opportunities), else: nil
+    opportunities =
+      attach_history(
+        socket.assigns.hustle_opportunities,
+        socket.assigns.hustle_listings,
+        socket.assigns.hustle_shares
+      )
+
+    plan = if goal, do: HustlePlanner.plan(goal, opportunities), else: nil
 
     progress =
       if goal do
@@ -414,6 +421,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
       end
 
     socket
+    |> assign(:hustle_opportunities, opportunities)
     |> assign(:income_goal, goal)
     |> assign(:hustle_plan, plan)
     |> assign(:goal_progress, progress)
@@ -518,14 +526,58 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
   end
 
   defp hustle_opportunity(offer) do
-    earnings = Enum.map(offer.offer_variants, &(&1.suggested_retail_price - &1.supplier_price))
+    terms =
+      Enum.max_by(offer.offer_variants, &(&1.suggested_retail_price - &1.supplier_price), fn ->
+        nil
+      end)
+
+    gross = if terms, do: terms.suggested_retail_price - terms.supplier_price, else: 0
+    earning = div(gross * 9_000, 10_000)
 
     %{
       id: offer.id,
       title: offer.source_product.title,
-      earning: Enum.max(earnings, fn -> 0 end),
+      supplier_price: if(terms, do: terms.supplier_price, else: 0),
+      retail_price: if(terms, do: terms.suggested_retail_price, else: 0),
+      platform_fee: gross - earning,
+      earning: earning,
+      ordered: 0,
+      fulfilled: 0,
+      refunded: 0,
       status: if(offer.status == :published, do: :active, else: :paused)
     }
+  end
+
+  defp attach_history(opportunities, listings, shares) do
+    offer_by_product = Map.new(listings, &{&1.reseller_product_id, &1.offer_id})
+
+    stats =
+      Enum.reduce(shares, %{}, fn share, acc ->
+        case Map.get(offer_by_product, share.product_id) do
+          nil ->
+            acc
+
+          offer_id ->
+            current = Map.get(acc, offer_id, %{ordered: 0, fulfilled: 0, refunded: 0})
+            conversions = share.conversions
+
+            Map.put(acc, offer_id, %{
+              ordered: current.ordered + length(conversions),
+              fulfilled:
+                current.fulfilled + Enum.count(conversions, &SalesSharing.delivered_conversion?/1),
+              refunded: current.refunded + Enum.count(conversions, &refunded_conversion?/1)
+            })
+        end
+      end)
+
+    Enum.map(opportunities, &Map.merge(&1, Map.get(stats, &1.id, %{})))
+  end
+
+  defp refunded_conversion?(conversion) do
+    case Emakola.Payments.get_payment_by_order(conversion.order_id, authorize?: false) do
+      {:ok, payment} -> payment.refunded_amount > 0
+      _error -> false
+    end
   end
 
   defp retail_range(offer) do
@@ -648,6 +700,42 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
             </div>
 
             <div>
+              <div id="hustle-recommendations" class="mb-6">
+                <h3 class="text-sm font-bold text-slate-900">Why these products</h3>
+                <div class="mt-3 space-y-2">
+                  <article
+                    :for={item <- Enum.take(@hustle_plan.recommended, 3)}
+                    id={"hustle-recommendation-#{item.id}"}
+                    class="rounded-xl border border-violet-100 bg-white p-3 shadow-sm"
+                  >
+                    <div class="flex items-start justify-between gap-3">
+                      <p class="text-sm font-bold text-slate-900">{item.title}</p>
+                      <span class="rounded-full bg-violet-50 px-2 py-1 text-[10px] font-bold uppercase text-violet-700">
+                        {item.confidence} evidence
+                      </span>
+                    </div>
+                    <dl class="mt-3 grid grid-cols-4 gap-2 text-xs">
+                      <div>
+                        <dt class="text-slate-400">Supplier</dt>
+                        <dd class="font-bold text-slate-700">{money(item.supplier_price)}</dd>
+                      </div>
+                      <div>
+                        <dt class="text-slate-400">Customer</dt>
+                        <dd class="font-bold text-slate-700">{money(item.retail_price)}</dd>
+                      </div>
+                      <div>
+                        <dt class="text-slate-400">Fee</dt>
+                        <dd class="font-bold text-slate-700">{money(item.platform_fee)}</dd>
+                      </div>
+                      <div>
+                        <dt class="text-emerald-600">You earn</dt>
+                        <dd class="font-bold text-emerald-700">{money(item.earning)}</dd>
+                      </div>
+                    </dl>
+                    <p class="mt-2 text-[11px] leading-4 text-slate-500">{item.reason}</p>
+                  </article>
+                </div>
+              </div>
               <h3 class="text-sm font-bold text-slate-900">Your next seven actions</h3>
               <ol id="hustle-plan-actions" class="mt-3 space-y-2">
                 <li

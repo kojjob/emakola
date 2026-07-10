@@ -1,11 +1,12 @@
 defmodule Emakola.Suppliers.HustlePlanner do
   @moduledoc "Explainable, deterministic planning for a Makola Earn income goal."
 
+  alias Emakola.Suppliers.OpportunityRanker
+
   def plan(goal, opportunities) do
     ranked =
       opportunities
-      |> Enum.filter(&eligible?/1)
-      |> Enum.sort_by(&{-earning(&1), Map.get(&1, :title, "")})
+      |> OpportunityRanker.rank()
       |> Enum.take(5)
 
     assumed_earning = median(Enum.map(ranked, &earning/1))
@@ -26,7 +27,6 @@ defmodule Emakola.Suppliers.HustlePlanner do
     }
   end
 
-  defp eligible?(item), do: Map.get(item, :status, :active) == :active and earning(item) > 0
   defp earning(item), do: Map.get(item, :earning, 0)
 
   defp actions(goal, []),

@@ -169,7 +169,10 @@
   - [x] Persist authorized income goals and generate an explainable deterministic seven-day plan.
   - [x] Add goal creation and the seven-day plan to Earn Network using existing offer economics.
   - [x] Add fulfilled net-earnings progress and executable next actions to Earn Network.
-  - [ ] Add historical-signal ranking and expose the complete recommendation assumptions.
+  - [x] Add historical-signal ranking and expose supplier net, customer price, platform fee,
+        reseller net earnings, evidence confidence, and ranking reason.
+  - [x] Complete Phase A — Hustle Autopilot.
+  - [ ] Build Phase B — voice-first Business-in-a-Box and fact-grounded content drafts.
 
 ## OPEN — White-label design system (remaining phases)
 
