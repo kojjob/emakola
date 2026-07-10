@@ -71,7 +71,10 @@
 - **Success metric:** weekly transacting sellers (retention); seller-referral rate; rough CAC per onboarded seller.
 
 ### Later (post-revenue, do NOT pull forward)
-Subscription "pay to lower your fee" tiers · SMS/WhatsApp credit bundles · full social-catalog sync · dropship supplier network · Flutter app · custom domains · Nigeria. All real; all premature until revenue exists.
+Subscription "pay to lower your fee" tiers · SMS/WhatsApp credit bundles · Flutter app ·
+custom domains · Nigeria. The founder promoted the dropship supplier network to an active
+managed validation/build track; it remains gated by the concierge pilot in
+`ROADMAP-dropshipping.md`, not a broad marketplace launch.
 
 ## Kill / pivot signal
 

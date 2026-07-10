@@ -257,7 +257,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
            |> Ash.update(authorize?: false) do
       # Reverse the split allocations so a clawback can recover each party's
       # share against future payouts.
-      reverse_splits(payment)
+      reverse_splits(updated)
 
       Phoenix.PubSub.broadcast(
         Emakola.PubSub,
@@ -298,14 +298,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   end
 
   defp reverse_splits(payment) do
-    payment
-    |> payment_splits()
-    |> Enum.reject(&(&1.status == :reversed))
-    |> Enum.each(fn split ->
-      split
-      |> Ash.Changeset.for_update(:mark_reversed, %{})
-      |> Ash.update!(authorize?: false)
-    end)
+    Emakola.Payments.RefundLiability.reconcile!(payment, payment_splits(payment))
   end
 
   defp payment_splits(payment) do

@@ -1,6 +1,6 @@
-# Emakola — Dropshipping Roadmap (Merchant-Managed Suppliers)
+# Emakola — Makola Earn / Dropshipping Roadmap
 
-> Feature roadmap | Status: DS.1–DS.5 ✅ shipped · Trustless settlement (SP-series) 🟡 in review (#158/#159)
+> Feature roadmap | Status: DS.1–DS.5 ✅ shipped · SP1/SP5 ✅ shipped · SP2–SP4 🔵 planned
 > Specs: `~/.claude/plans/let-brainstorm-how-we-typed-bachman.md` (DS) · `~/.claude/plans/let-brainstorm-on-dropshipping-serene-dahl.md` (SP)
 
 ## Vision
@@ -9,6 +9,25 @@ Let merchants sell goods they don't hold in stock, sourced from their own suppli
 (local wholesalers, importers — reachable by WhatsApp/SMS). When a customer orders, the
 order is **split by source**, each supplier is **auto-notified to ship direct**, and the
 merchant tracks **margin** and a **payout ledger** of what they owe each supplier.
+
+Makola Earn extends that private-supplier foundation into a verified supplier network for
+people who cannot afford inventory. A wholesaler publishes an approved offer, a reseller
+adds it to their branded storefront without buying stock, and the customer charge is
+split directly between the wholesaler, reseller, and Emakola.
+
+### Makola Earn product promise
+
+> Start selling without buying stock. Choose trusted products, share them with your
+> network, and earn from completed sales.
+
+- No joining fee, required starter pack, inventory purchase, downline, or multi-level
+  commission.
+- Earnings come only from genuine product sales; income is never guaranteed.
+- Offers show customer price, supplier net, reseller earnings, Emakola fee, delivery
+  area, return terms, and supplier performance.
+- Physical and digital offers are separate lanes with distinct fulfillment and return
+  rules.
+- Paystack splits funds at source. Emakola does not operate or advertise an escrow wallet.
 
 ### Locked decisions
 | Decision | Choice |
@@ -115,10 +134,10 @@ as soon as their backing milestone is done (e.g., supplier CRUD UI right after D
   floating-point drift, no double-entry on retries.
 - **Cross-currency** (out of scope): suppliers priced in a foreign currency is deferred.
 
-## 🟡 Trustless Split Settlement — SP-series (NEW, 2026-06)
+## ✅ Trustless Split Settlement — SP-series (2026-06)
 
-> **Status: in review** — PRs [#158](https://github.com/kojjob/emakola/pull/158) (core)
-> and [#159](https://github.com/kojjob/emakola/pull/159) (integration), stacked.
+> **Status:** SP1 payout identity/onboarding and SP5 settlement are shipped. SP2–SP4
+> remain the active Makola Earn build.
 > Spec: `~/.claude/plans/let-brainstorm-on-dropshipping-serene-dahl.md`.
 
 **Problem.** DS.1–DS.5 settle suppliers via a *manual* ledger — the customer's full
@@ -136,8 +155,8 @@ Decomposed into 5 sub-projects; **SP1 + SP5 built first** (the money rails).
 | ID | Sub-project | Status |
 |----|-------------|--------|
 | **SP5** | Split settlement engine — `SplitCalculator`, `DropshipSettlement`, `OrderSettlement`, `PaymentSplit`, checkout wiring, webhook settle/reverse | ✅ Built (#158/#159) |
-| **SP1** | Payout identity — `StorePayoutAccount`, `Supplier.linked_store_id`, gateway `create_subaccount/1` | ✅ Data + gateway built; ⬜ merchant onboarding UI |
-| **SP2** | Supply connections — wholesaler↔dropshipper handshake (`SupplyConnection`) | 🔵 Planned |
+| **SP1** | Payout identity — `StorePayoutAccount`, onboarding UI, `Supplier.linked_store_id`, gateway `create_subaccount/1` | ✅ Shipped |
+| **SP2** | Supply connections — wholesaler↔dropshipper handshake (`SupplyConnection`) | 🟡 Resource/service built; UI pending |
 | **SP3** | Cross-store catalog sourcing — import wholesaler products; price/availability sync | 🔵 Planned |
 | **SP4** | Cross-store order & fulfillment — wholesaler inbound dashboard; cross-tenant auth | 🔵 Planned |
 
@@ -149,11 +168,47 @@ Decomposed into 5 sub-projects; **SP1 + SP5 built first** (the money rails).
 - [x] `DropshipSettlement` (resolve→split or fallback) + `OrderSettlement` (reconciles to `order.total`, folds delivery−discount into dropshipper share)
 - [x] `CheckoutLive` wired; `PaystackWebhookHandler` settles on success / reverses on refund
 
-**Remaining:**
-- [ ] **SP1 onboarding UI** — merchant screen to create a payout subaccount and verify it
-- [ ] **Refund clawback** — debit reversed splits against future payouts (currently splits only flip to `:reversed`)
-- [ ] **SP2–SP4** — the supplier-network marketplace
-- [ ] Ops confirms: Paystack txn-fee bearer; verify Paystack Ghana supports **MoMo as a subaccount destination** (else Transfers)
+**Remaining (build in this order):**
+- [x] **Refund reversal accounting** — partial/full refunds now persist cumulative,
+  proportional `PaymentSplit.reversed_amount` without creating a duplicate ledger.
+- [ ] **Refund recovery** — net unrecovered reversal amounts from future recipient splits.
+- [x] **SP2 supply connection foundation** — request/approve/reject/suspend/reactivate/
+  terminate service with participant authorization and lifecycle tests.
+- [ ] **SP2 merchant UI** — connection inbox, invitations, active relationships, and
+  suspension/termination controls.
+- [ ] **SP3 shared offers and catalog sourcing** — physical/digital offers, markup and
+  fixed-commission earnings, one-click listing, and source synchronization.
+- [ ] **SP4 cross-store fulfillment** — wholesaler inbound queue, cross-tenant access,
+  physical delivery proof, and protected digital grants.
+- [ ] **Sales Kits and First Money journey** — ready-to-share content, tracked links, and
+  guided activation through the first fulfilled sale.
+
+### Locked Makola Earn decisions
+
+| Decision | Choice |
+|---|---|
+| Settlement | Existing direct Paystack multi-split; no platform custody |
+| Platform fee | 10% of reseller gross earnings on network offers |
+| Earning models | Merchant-set markup within supplier bounds; supplier-set fixed commission |
+| Eligibility | Browse/build before verification; verified payout required before checkout |
+| Supply | Curated wholesalers plus approved existing Emakola stores |
+| Fulfillment | Supplier ships physical goods; Emakola issues protected digital grants |
+| Customer disclosure | “Fulfilled by verified partner” |
+| Delivery proof | Customer OTP; quality evidence, not a settlement hold |
+| Coupons | Ordinary merchant coupons excluded from network products in v1 |
+| Recruitment | Single-level product sales only; never MLM/downline compensation |
+
+### Concierge validation gate
+
+Before building the full SP3 UI, run a 2–4 week managed pilot with 3 suppliers, 20
+offers, and 10 prospective resellers using the existing private-supplier flow plus manual
+Sales Kits. Proceed when at least 7 publish, 5 share, 3 make a genuine sale, and 90% of
+paid orders fulfill successfully. Treat sharing-without-sales as a product/price/trust
+problem and no-sharing as an activation/content/ICP problem.
+
+The expanded pilot targets roughly 10 verified suppliers, 100 approved offers, and 50
+zero-capital resellers. The north-star metric is resellers with at least one successfully
+fulfilled sale per week—not registrations or catalog size.
 
 ---
 

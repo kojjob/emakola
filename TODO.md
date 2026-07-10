@@ -133,6 +133,24 @@
       `Order` number generation (`order.ex:274`) and status-transition
       `after_action` notification dispatches are still inline `change(fn …)`.
 
+## OPEN — Makola Earn / zero-capital supplier network
+
+> Canonical specification and status: [`docs/ROADMAP-dropshipping.md`](docs/ROADMAP-dropshipping.md).
+> Private suppliers, split fulfillment, payout onboarding, and direct Paystack settlement
+> already exist. This workstream builds the verified shared network.
+
+- [x] Persist proportional partial/full refund reversal amounts on the existing
+      `PaymentSplit` ledger (no duplicate liability table).
+- [ ] Recover those reversal amounts from future recipient splits.
+- [x] **SP2 foundation:** wholesaler↔reseller connection resource, authorized service,
+      lifecycle, migration, and tests.
+- [ ] **SP2 UI:** merchant invitations, approvals, active connections, and suspension.
+- [ ] **SP3:** shared physical/digital offers, markup/fixed commission, one-click listing,
+      and source synchronization.
+- [ ] **SP4:** cross-store inbound fulfillment, delivery proof, and protected digital delivery.
+- [ ] Add Sales Kits, tracked sharing links, and the guided “First Money” journey.
+- [ ] Pass the concierge validation gate before broad network rollout.
+
 ## OPEN — White-label design system (remaining phases)
 
 - [ ] **Phase 2 — Section editor (Shopify-style)** — not started: section type
