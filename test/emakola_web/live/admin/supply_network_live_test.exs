@@ -142,6 +142,32 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     assert has_element?(view, "#import-offer-#{offer.id}")
   end
 
+  test "creates an income goal and renders an explainable seven-day plan", ctx do
+    create_partner_offer!(ctx)
+    connect_partner!(ctx)
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+
+    assert has_element?(view, "#hustle-autopilot")
+    assert has_element?(view, "#income-goal-form")
+
+    view
+    |> form("#income-goal-form",
+      income_goal: %{
+        target_amount: "300.00",
+        timeframe_days: "30",
+        daily_minutes: "45"
+      }
+    )
+    |> render_submit()
+
+    assert has_element?(view, "#active-income-goal")
+    assert has_element?(view, "#income-goal-target", "GH₵300.00")
+    assert has_element?(view, "#income-goal-required-sales", "20")
+    assert has_element?(view, "#hustle-plan-actions li")
+    assert has_element?(view, "#income-goal-disclaimer", "not guaranteed income")
+    refute has_element?(view, "#income-goal-form")
+  end
+
   test "adds an offer to the reseller catalog with one action", ctx do
     offer = create_partner_offer!(ctx)
     connect_partner!(ctx)

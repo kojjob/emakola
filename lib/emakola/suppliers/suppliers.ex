@@ -62,5 +62,9 @@ defmodule Emakola.Suppliers do
     resource Emakola.Suppliers.SalesShareConversion do
       define(:record_sales_share_conversion, action: :record)
     end
+
+    resource Emakola.Suppliers.IncomeGoal do
+      define(:list_income_goals_for_store, action: :for_store, args: [:store_id])
+    end
   end
 end

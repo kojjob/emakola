@@ -3,7 +3,9 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
   use EmakolaWeb, :live_view
 
   alias Emakola.Suppliers.{
+    HustlePlanner,
     InboundFulfillment,
+    IncomeGoals,
     ListingImporter,
     Network,
     Offers,
@@ -24,6 +26,10 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
        sales_click_count: 0,
        sales_order_count: 0,
        sales_revenue: 0,
+       income_goal: nil,
+       hustle_plan: nil,
+       hustle_opportunities: [],
+       income_goal_form: income_goal_form(),
        first_money: %{},
        active_connection?: false,
        inbound_count: 0,
@@ -36,7 +42,8 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
      |> load_connections()
      |> load_earn_catalog()
      |> load_inbound_fulfillments()
-     |> load_sales_journey()}
+     |> load_sales_journey()
+     |> load_income_goal()}
   end
 
   @impl true
@@ -157,6 +164,30 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     )
 
     {:noreply, load_sales_journey(socket)}
+  end
+
+  def handle_event("create_income_goal", %{"income_goal" => params}, socket) do
+    attrs = Map.update(params, "target_amount", "", &cedis_to_pesewas/1)
+
+    case IncomeGoals.create(
+           socket.assigns.current_merchant,
+           socket.assigns.current_store.id,
+           attrs
+         ) do
+      {:ok, _goal} ->
+        {:noreply,
+         socket
+         |> assign(:income_goal_form, income_goal_form())
+         |> load_income_goal()
+         |> put_flash(:info, "Your seven-day earning plan is ready.")}
+
+      {:error, :invalid_goal} ->
+        {:noreply,
+         put_flash(socket, :error, "Enter a valid target, timeframe, and daily time budget.")}
+
+      _error ->
+        {:noreply, put_flash(socket, :error, "Your income goal could not be saved.")}
+    end
   end
 
   def handle_event("select_inbound_shipping", %{"id" => id}, socket) do
@@ -301,6 +332,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     socket
     |> assign(:offer_count, length(available))
     |> assign(:listing_count, length(listings))
+    |> assign(:hustle_opportunities, Enum.map(offers, &hustle_opportunity/1))
     |> stream(:offers, available, reset: true)
     |> stream(:listings, listings, reset: true)
   end
@@ -349,6 +381,22 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     |> stream(:sales_shares, shares, reset: true)
   end
 
+  defp load_income_goal(socket) do
+    goal =
+      socket.assigns.current_merchant
+      |> IncomeGoals.active(socket.assigns.current_store.id)
+      |> case do
+        {:ok, goal} -> goal
+        _error -> nil
+      end
+
+    plan = if goal, do: HustlePlanner.plan(goal, socket.assigns.hustle_opportunities), else: nil
+
+    socket
+    |> assign(:income_goal, goal)
+    |> assign(:hustle_plan, plan)
+  end
+
   defp result_rows({:ok, rows}), do: rows
   defp result_rows(_error), do: []
 
@@ -371,6 +419,34 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
   defp connection_form do
     to_form(%{"partner_slug" => "", "relationship" => "resell"}, as: :connection)
   end
+
+  defp income_goal_form do
+    to_form(
+      %{
+        "target_amount" => "",
+        "timeframe_days" => "30",
+        "daily_minutes" => "45",
+        "channels" => ["whatsapp"]
+      },
+      as: :income_goal
+    )
+  end
+
+  defp cedis_to_pesewas(value) when is_binary(value) do
+    case Decimal.parse(String.trim(value)) do
+      {amount, ""} ->
+        amount
+        |> Decimal.mult(100)
+        |> Decimal.round(0)
+        |> Decimal.to_integer()
+        |> Integer.to_string()
+
+      _ ->
+        value
+    end
+  end
+
+  defp cedis_to_pesewas(value), do: value
 
   defp partner(connection, current_store_id) do
     if connection.wholesaler_store_id == current_store_id,
@@ -417,6 +493,17 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
       {same, same} -> money(same)
       {minimum, maximum} -> "#{money(minimum)}–#{money(maximum)}"
     end
+  end
+
+  defp hustle_opportunity(offer) do
+    earnings = Enum.map(offer.offer_variants, &(&1.suggested_retail_price - &1.supplier_price))
+
+    %{
+      id: offer.id,
+      title: offer.source_product.title,
+      earning: Enum.max(earnings, fn -> 0 end),
+      status: if(offer.status == :published, do: :active, else: :paused)
+    }
   end
 
   defp retail_range(offer) do
@@ -475,6 +562,117 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
           </p>
         </div>
       </header>
+
+      <section
+        id="hustle-autopilot"
+        aria-labelledby="hustle-autopilot-heading"
+        class="overflow-hidden rounded-3xl border border-violet-200 bg-gradient-to-br from-violet-50 via-white to-emerald-50 p-6 shadow-sm sm:p-8"
+      >
+        <div class="flex items-start gap-4">
+          <div class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-lg shadow-violet-200">
+            <.icon name="hero-rocket-launch" class="size-6" />
+          </div>
+          <div>
+            <span class="text-xs font-bold uppercase tracking-[0.18em] text-violet-700">
+              Hustle Autopilot
+            </span>
+            <h2 id="hustle-autopilot-heading" class="mt-1 text-2xl font-bold text-slate-950">
+              Turn an income goal into today's next action
+            </h2>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              Makola uses real partner-product economics to estimate the sales needed and build a focused seven-day plan. Income is never guaranteed.
+            </p>
+          </div>
+        </div>
+
+        <%= if @income_goal do %>
+          <div id="active-income-goal" class="mt-7 grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+            <div class="rounded-2xl bg-slate-950 p-5 text-white shadow-xl">
+              <p class="text-xs font-bold uppercase tracking-wider text-violet-300">Your target</p>
+              <p id="income-goal-target" class="mt-2 text-3xl font-black">
+                {money(@income_goal.target_amount)}
+              </p>
+              <p class="mt-1 text-sm text-slate-300">
+                over {@income_goal.timeframe_days} days · {@income_goal.daily_minutes} minutes/day
+              </p>
+              <div class="mt-5 grid grid-cols-2 gap-3">
+                <div class="rounded-xl bg-white/10 p-3">
+                  <p class="text-[10px] uppercase text-slate-400">Estimated sales</p>
+                  <p id="income-goal-required-sales" class="mt-1 text-xl font-bold">
+                    {@hustle_plan.required_sales}
+                  </p>
+                </div>
+                <div class="rounded-xl bg-white/10 p-3">
+                  <p class="text-[10px] uppercase text-slate-400">Per day</p>
+                  <p class="mt-1 text-xl font-bold">{@hustle_plan.daily_sales_target}</p>
+                </div>
+              </div>
+              <p id="income-goal-disclaimer" class="mt-4 text-xs leading-5 text-slate-400">
+                {@hustle_plan.disclaimer}
+              </p>
+            </div>
+
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">Your next seven actions</h3>
+              <ol id="hustle-plan-actions" class="mt-3 space-y-2">
+                <li
+                  :for={action <- @hustle_plan.actions}
+                  id={"hustle-action-#{action.day}"}
+                  class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3"
+                >
+                  <span class="flex size-8 shrink-0 items-center justify-center rounded-full bg-violet-100 text-xs font-black text-violet-700">
+                    {action.day}
+                  </span>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-slate-800">{action.message}</p>
+                    <p class="text-xs text-slate-400">About {action.minutes} minutes</p>
+                  </div>
+                </li>
+              </ol>
+            </div>
+          </div>
+        <% else %>
+          <.form
+            for={@income_goal_form}
+            id="income-goal-form"
+            phx-submit="create_income_goal"
+            class="mt-7 grid gap-4 rounded-2xl border border-white/80 bg-white/80 p-5 shadow-sm backdrop-blur md:grid-cols-2 xl:grid-cols-4 xl:items-end"
+          >
+            <.input
+              field={@income_goal_form[:target_amount]}
+              type="number"
+              min="1"
+              step="0.01"
+              label="Income target (GH₵)"
+              required
+            />
+            <.input
+              field={@income_goal_form[:timeframe_days]}
+              type="select"
+              label="Timeframe"
+              options={[{"14 days", "14"}, {"30 days", "30"}, {"60 days", "60"}, {"90 days", "90"}]}
+            />
+            <.input
+              field={@income_goal_form[:daily_minutes]}
+              type="select"
+              label="Daily time"
+              options={[
+                {"20 minutes", "20"},
+                {"45 minutes", "45"},
+                {"90 minutes", "90"},
+                {"2 hours", "120"}
+              ]}
+            />
+            <button
+              id="build-income-plan"
+              type="submit"
+              class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-violet-700"
+            >
+              <.icon name="hero-sparkles" class="size-4" /> Build my plan
+            </button>
+          </.form>
+        <% end %>
+      </section>
 
       <section
         id="connection-invite-panel"

@@ -163,6 +163,12 @@
 - [x] Enforce Earn launch guards: both payout accounts verified before network checkout,
       no ordinary coupons on network items, and visible partner-fulfillment disclosure.
 - [ ] Pass the concierge validation gate before broad network rollout.
+- [ ] **Income Operating System:** deliver the phased program in
+      [`docs/ROADMAP-income-operating-system.md`](docs/ROADMAP-income-operating-system.md),
+      beginning with persistent income goals and the deterministic Hustle Autopilot.
+  - [x] Persist authorized income goals and generate an explainable deterministic seven-day plan.
+  - [x] Add goal creation and the seven-day plan to Earn Network using existing offer economics.
+  - [ ] Add fulfilled net-earnings progress and executable next actions to Earn Network.
 
 ## OPEN — White-label design system (remaining phases)
 
