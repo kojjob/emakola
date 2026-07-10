@@ -70,5 +70,23 @@ defmodule Emakola.Suppliers do
     resource Emakola.Suppliers.ContentDraft do
       define(:list_content_drafts_for_store, action: :for_store, args: [:store_id])
     end
+
+    resource Emakola.Suppliers.GroupBuyCampaign do
+      define(:list_group_buy_campaigns_for_store, action: :for_store, args: [:store_id])
+    end
+
+    resource(Emakola.Suppliers.GroupBuyCommitment)
+
+    resource Emakola.Suppliers.SalesTeam do
+      define(:list_sales_teams_for_store, action: :for_store, args: [:store_id])
+    end
+
+    resource(Emakola.Suppliers.SalesTeamMember)
+
+    resource Emakola.Suppliers.FranchisePackage do
+      define(:list_franchise_packages_owned_by_store, action: :owned_by_store, args: [:store_id])
+    end
+
+    resource(Emakola.Suppliers.FranchiseEnrollment)
   end
 end

@@ -183,6 +183,10 @@
         aggregate-only supplier demand alerts.
   - [ ] Run Phase C's live controlled evaluation against the popularity-only baseline.
   - [ ] Build Phase D — group buys, consent-based sales teams, and micro-franchises.
+    - [x] Add Phase D schemas and authorized service foundations with threshold/payment checks,
+          exact consented team splits, package terms, and explicit anti-MLM structure.
+    - [ ] Add Phase D merchant/customer UI, settlement integration, automatic refunds, and
+          approved-package catalog activation.
 
 ## OPEN — White-label design system (remaining phases)
 

@@ -75,10 +75,19 @@ Acceptance: recommendations beat a popularity-only baseline in fulfilled sales w
 
 ### Phase D — Collaborative Commerce
 
-- Threshold-based group-buy campaigns with clear deadlines and automatic refunds.
-- Consent-based sales teams with declared roles and fixed transaction splits.
-- Supplier-authored micro-franchise packages: training, brand rules, permissions, territory, and commission.
-- No recruitment compensation or inherited/downline relationships.
+- [ ] Threshold-based group-buy campaigns with clear deadlines and automatic refunds.
+  - [x] Persist variant-specific thresholds, locked prices, payment commitments, campaign deadlines,
+        refund deadlines, and transactional paid-quantity funding.
+  - [ ] Add merchant/customer UI and automatic gateway refund execution when a threshold is missed.
+- [ ] Consent-based sales teams with declared roles and fixed transaction splits.
+  - [x] Persist flat roles, immutable basis-point shares totaling exactly 100%, personal consent,
+        and exact last-pesewa allocation.
+  - [ ] Attach consented team allocations to eligible attributed order settlement and merchant UI.
+- [ ] Supplier-authored micro-franchise packages: training, brand rules, permissions, territory, and commission.
+  - [x] Persist supplier-owned packages, connected-reseller discovery, explicit terms acceptance,
+        supplier approval, training, rules, territory, channels, and commission.
+  - [ ] Add supplier/reseller package management UI and approved-package catalog activation.
+- [x] No recruitment compensation or inherited/downline relationships.
 
 Acceptance: every participant and customer sees the complete economics before committing, and totals reconcile exactly with payment splits.
 
