@@ -11,6 +11,8 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     IncomeGoals,
     ListingImporter,
     Network,
+    OpportunityRadar,
+    OpportunitySignals,
     Offers,
     SalesSharing,
     StarterBusiness
@@ -40,6 +42,8 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
        pending_business_command: nil,
        business_command_form: business_command_form(),
        starter_business_form: starter_business_form(),
+       opportunity_radar_count: 0,
+       supplier_demand_alert_count: 0,
        income_goal_form: income_goal_form(),
        first_money: %{},
        active_connection?: false,
@@ -55,7 +59,8 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
      |> load_inbound_fulfillments()
      |> load_sales_journey()
      |> load_income_goal()
-     |> load_content_drafts()}
+     |> load_content_drafts()
+     |> load_opportunity_radar()}
   end
 
   @impl true
@@ -297,6 +302,10 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     end
   end
 
+  def handle_event("refresh_opportunity_radar", _params, socket) do
+    {:noreply, load_opportunity_radar(socket)}
+  end
+
   def handle_event("record_sales_share", %{"id" => share_id}, socket) do
     SalesSharing.record_share(
       socket.assigns.current_merchant,
@@ -473,6 +482,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     socket
     |> assign(:offer_count, length(available))
     |> assign(:listing_count, length(listings))
+    |> assign(:radar_offers, offers)
     |> assign(:hustle_opportunities, Enum.map(offers, &hustle_opportunity/1))
     |> assign(:hustle_listings, listings)
     |> stream(:offers, available, reset: true)
@@ -570,6 +580,28 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     socket
     |> assign(:content_draft_count, length(drafts))
     |> stream(:content_drafts, drafts, reset: true)
+  end
+
+  defp load_opportunity_radar(socket) do
+    events = OpportunitySignals.recent() |> result_rows()
+
+    radar =
+      OpportunityRadar.build(
+        socket.assigns[:radar_offers] || [],
+        socket.assigns.hustle_listings,
+        socket.assigns.hustle_shares,
+        events,
+        socket.assigns.current_store.id
+      )
+
+    OpportunitySignals.emit_supplier_alerts(radar)
+    alerts = OpportunitySignals.supplier_alerts(socket.assigns.current_store.id) |> result_rows()
+
+    socket
+    |> assign(:opportunity_radar_count, length(radar))
+    |> assign(:supplier_demand_alert_count, length(alerts))
+    |> stream(:opportunity_radar, radar, reset: true)
+    |> stream(:supplier_demand_alerts, alerts, reset: true)
   end
 
   defp result_rows({:ok, rows}), do: rows
@@ -1096,6 +1128,119 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
             </button>
           </.form>
         <% end %>
+      </section>
+
+      <section
+        id="opportunity-radar"
+        aria-labelledby="opportunity-radar-heading"
+        class="rounded-3xl border border-sky-200 bg-sky-50/60 p-6 shadow-sm sm:p-8"
+      >
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-[0.18em] text-sky-700">
+              Live Opportunity Radar
+            </span>
+            <h2 id="opportunity-radar-heading" class="mt-1 text-2xl font-bold text-slate-950">
+              See demand without exposing customers
+            </h2>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              Searches are fingerprinted, locations appear only after three attributed orders, and every price stays inside supplier bounds with no scarcity surcharge.
+            </p>
+          </div>
+          <button
+            id="refresh-opportunity-radar"
+            phx-click="refresh_opportunity_radar"
+            class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-sky-200 bg-white px-4 text-xs font-bold text-sky-800 transition hover:bg-sky-100"
+          >
+            <.icon name="hero-arrow-path" class="size-4" /> Refresh signals
+          </button>
+        </div>
+
+        <div id="opportunity-radar-items" phx-update="stream" class="mt-6 grid gap-4 lg:grid-cols-2">
+          <div
+            id="opportunity-radar-empty"
+            class="hidden only:block rounded-2xl border border-dashed border-sky-200 bg-white p-8 text-center lg:col-span-2"
+          >
+            <p class="text-sm font-semibold text-slate-700">
+              Connect to a supplier to begin collecting privacy-safe opportunity signals.
+            </p>
+          </div>
+          <article
+            :for={{dom_id, item} <- @streams.opportunity_radar}
+            id={dom_id}
+            class="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h3 class="font-bold text-slate-900">{item.title}</h3>
+                <p class="mt-1 text-xs text-slate-400">{item.freshness.label}</p>
+              </div>
+              <span class="rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-bold uppercase text-sky-700">
+                {item.confidence} confidence
+              </span>
+            </div>
+            <p class="mt-4 text-xs leading-5 text-slate-600">{item.explanation}</p>
+            <dl class="mt-4 grid grid-cols-4 gap-2">
+              <div class="rounded-xl bg-slate-50 p-2 text-center">
+                <dt class="text-[9px] font-bold uppercase text-slate-400">Views</dt>
+                <dd class="mt-1 font-black text-slate-800">{item.views}</dd>
+              </div>
+              <div class="rounded-xl bg-slate-50 p-2 text-center">
+                <dt class="text-[9px] font-bold uppercase text-slate-400">Searches</dt>
+                <dd class="mt-1 font-black text-slate-800">{item.searches}</dd>
+              </div>
+              <div class="rounded-xl bg-slate-50 p-2 text-center">
+                <dt class="text-[9px] font-bold uppercase text-slate-400">Fulfilled</dt>
+                <dd class="mt-1 font-black text-emerald-700">{item.fulfilled}</dd>
+              </div>
+              <div class="rounded-xl bg-slate-50 p-2 text-center">
+                <dt class="text-[9px] font-bold uppercase text-slate-400">Stock</dt>
+                <dd class="mt-1 font-black text-slate-800">{item.stock}</dd>
+              </div>
+            </dl>
+            <div class="mt-4 rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-[10px] font-bold uppercase text-emerald-700">
+                    Ethical recommended price
+                  </p>
+                  <p class="mt-1 text-lg font-black text-emerald-800">{money(item.pricing.price)}</p>
+                </div>
+                <span class="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-emerald-700">
+                  0 scarcity surcharge
+                </span>
+              </div>
+              <p class="mt-2 text-[11px] leading-4 text-emerald-900/70">{item.pricing.reason}</p>
+            </div>
+            <p :if={item.regions != []} class="mt-3 text-xs text-slate-500">
+              Privacy-safe demand regions: {Enum.map_join(item.regions, ", ", fn {region, count} ->
+                "#{region} (#{count})"
+              end)}
+            </p>
+          </article>
+        </div>
+
+        <div
+          :if={@supplier_demand_alert_count > 0}
+          id="supplier-demand-alerts"
+          class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5"
+        >
+          <p class="text-xs font-bold uppercase tracking-wider text-amber-800">
+            Supplier demand alerts
+          </p>
+          <div id="supplier-demand-alert-items" phx-update="stream" class="mt-3 space-y-2">
+            <article
+              :for={{dom_id, alert} <- @streams.supplier_demand_alerts}
+              id={dom_id}
+              class="rounded-xl bg-white p-3 text-sm text-slate-700 shadow-sm"
+            >
+              <span class="font-bold">{alert.metadata["title"]}</span>
+              received {alert.metadata["views"]} views and {alert.metadata["matched_searches"]} matched searches but no orders in the {alert.metadata[
+                "window_days"
+              ]}-day window. Review price, content, availability, or trust signals.
+            </article>
+          </div>
+        </div>
       </section>
 
       <section

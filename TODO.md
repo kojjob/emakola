@@ -179,7 +179,10 @@
     - [x] Add one-action niche starter catalogs with products, tracked links, and content drafts.
     - [x] Add curated English/Twi variants and escaped social cards grounded in approved
           supplier images, titles, and prices.
-  - [ ] Build Phase C — privacy-safe Opportunity Radar and bounded ethical pricing.
+  - [x] Build Phase C — privacy-safe Opportunity Radar, bounded ethical pricing, and
+        aggregate-only supplier demand alerts.
+  - [ ] Run Phase C's live controlled evaluation against the popularity-only baseline.
+  - [ ] Build Phase D — group buys, consent-based sales teams, and micro-franchises.
 
 ## OPEN — White-label design system (remaining phases)
 

@@ -4,6 +4,8 @@ defmodule EmakolaWeb.Storefront.ProductDetailLiveTest do
   import Phoenix.LiveViewTest
   import Emakola.Factory
 
+  require Ash.Query
+
   alias Emakola.Cart.CartStore
   alias Emakola.Suppliers.{ListingImporter, Network, Offers}
 
@@ -38,6 +40,23 @@ defmodule EmakolaWeb.Storefront.ProductDetailLiveTest do
   end
 
   describe "add_to_cart stock gate" do
+    test "records a privacy-safe product-view opportunity signal", %{conn: conn} do
+      store = create_store!(%{slug: "signal-shop"})
+      product = create_product!(store, %{title: "Signal Bowl"})
+      create_variant!(product, store, %{price: 4_500, stock_quantity: 2})
+      activate!(product)
+
+      {:ok, _view, _html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
+
+      events =
+        Emakola.Analytics.AppEvent
+        |> Ash.Query.filter(event_name == "earn.product_view")
+        |> Ash.read!(authorize?: false)
+
+      assert Enum.any?(events, &(&1.metadata["product_id"] == product.id))
+      refute Enum.any?(events, &Map.has_key?(&1.metadata, "customer_id"))
+    end
+
     test "untracked variant adds to cart even at zero stock", %{conn: conn} do
       store = create_store!(%{slug: "untracked-shop"})
       product = create_product!(store, %{title: "Made To Order Bowl"})

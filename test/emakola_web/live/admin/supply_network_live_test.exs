@@ -140,6 +140,10 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     assert has_element?(view, "#earn-offers article", "Partner Kente Bag")
     assert has_element?(view, "#earn-offers article", "GH₵15.00")
     assert has_element?(view, "#import-offer-#{offer.id}")
+    assert has_element?(view, "#opportunity-radar")
+    assert has_element?(view, "#opportunity-radar-items article", "Partner Kente Bag")
+    assert has_element?(view, "#opportunity-radar-items article", "0 scarcity surcharge")
+    assert has_element?(view, "#opportunity-radar-items article", "GH₵65.00")
   end
 
   test "creates an income goal and renders an explainable seven-day plan", ctx do

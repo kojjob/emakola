@@ -33,6 +33,10 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
          |> redirect(to: store_path(slug, "/products"))}
 
       product ->
+        if connected?(socket) do
+          Emakola.Suppliers.OpportunitySignals.track_product_view(store.id, product.id)
+        end
+
         partner_fulfillment = partner_fulfillment(product.id)
         option_types = load_option_types(product)
         selected_variant = List.first(product.variants)

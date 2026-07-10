@@ -62,12 +62,14 @@ Acceptance: a reseller can create a goal, understand the assumptions, publish re
 
 Acceptance: a new merchant can reach a reviewable storefront and first Sales Kit in under ten minutes without purchasing inventory.
 
-### Phase C — Opportunity Radar and Ethical Pricing
+### Phase C — Opportunity Radar and Ethical Pricing (build complete)
 
-- Aggregate privacy-safe search, view, share, stock, conversion, refund, and regional demand signals.
-- Explain why an opportunity is recommended and show data freshness/confidence.
-- Recommend bounded prices optimized for sustainable conversion, never scarcity exploitation.
-- Alert suppliers to unmet demand without exposing individual customer behavior.
+- [x] Aggregate privacy-safe search, view, share, stock, conversion, refund, and regional demand signals.
+- [x] Explain why an opportunity is recommended and show data freshness/confidence.
+- [x] Recommend bounded prices optimized for sustainable conversion, never scarcity exploitation.
+- [x] Alert suppliers to unmet demand without exposing individual customer behavior.
+- [ ] Complete the live controlled evaluation proving the radar beats a popularity-only baseline
+      in fulfilled sales without increasing refunds or complaints.
 
 Acceptance: recommendations beat a popularity-only baseline in fulfilled sales without increasing refund or complaint rates.
 
@@ -117,8 +119,9 @@ Guardrails:
 2. Goal dashboard integrated into the existing Earn Network screen. **Implemented and focused tests passing.**
 3. Goal progress from existing Sales Shares, conversions, fulfillments, and splits. **Implemented and focused tests passing.**
 4. Fact-grounded content drafts and multilingual/voice input. **Implemented and focused tests passing.**
-5. Opportunity signal warehouse and recommendation evaluation. **Next active slice.**
-6. Group buys, teams, and micro-franchise packages.
+5. Opportunity signal warehouse and recommendation evaluation. **Warehouse/UI implemented;
+   live controlled evaluation remains a rollout gate.**
+6. Group buys, teams, and micro-franchise packages. **Next active slice.**
 7. Commerce passport and partner-credit interfaces.
 8. Preorders after payments/legal approval.
 
