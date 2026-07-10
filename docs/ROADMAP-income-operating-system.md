@@ -75,12 +75,13 @@ Acceptance: recommendations beat a popularity-only baseline in fulfilled sales w
 
 ### Phase D — Collaborative Commerce
 
-- [ ] Threshold-based group-buy campaigns with clear deadlines and automatic refunds.
+- [x] Threshold-based group-buy campaigns with clear deadlines and automatic refunds.
   - [x] Persist variant-specific thresholds, locked prices, payment commitments, campaign deadlines,
         refund deadlines, and transactional paid-quantity funding.
-  - [ ] Add merchant/customer UI and automatic gateway refund execution when a threshold is missed.
+  - [x] Add merchant/customer UI and automatic gateway refund execution when a threshold is missed.
     - [x] Merchant creation/status UI with locked price, threshold, deadline, and refund-by date.
-    - [ ] Customer commitment/payment UI.
+    - [x] Customer commitment/payment UI with authenticated, capacity-reserving quantities,
+          gateway-linked payments, complete economics, and webhook-driven funding.
     - [x] Automatically cancel expired under-threshold campaigns every five minutes, claim each
           paid commitment once, execute the configured gateway refund, and persist retry/failure state.
 - [ ] Consent-based sales teams with declared roles and fixed transaction splits.

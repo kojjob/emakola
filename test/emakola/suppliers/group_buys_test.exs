@@ -96,6 +96,65 @@ defmodule Emakola.Suppliers.GroupBuysTest do
     assert funded.status == :funded
   end
 
+  test "initiates a linked customer payment and funds it after gateway confirmation", ctx do
+    {:ok, campaign} = GroupBuys.create(ctx.actor, ctx.store.id, attrs(ctx))
+    {:ok, campaign} = GroupBuys.open(ctx.actor, ctx.store.id, campaign.id)
+    customer = create_customer!(ctx.store)
+
+    assert {:ok, result} =
+             GroupBuys.initiate_customer_payment(
+               campaign.id,
+               customer,
+               2,
+               "https://shop.example/group-buy-return"
+             )
+
+    assert result.payment.amount == 12_000
+    assert result.payment.metadata["group_buy_commitment_id"] == result.commitment.id
+    assert result.authorization_url =~ "mock.paystack.co/pay/"
+
+    linked =
+      Ash.get!(Emakola.Suppliers.GroupBuyCommitment, result.commitment.id, authorize?: false)
+
+    assert linked.payment_id == result.payment.id
+    assert linked.status == :pending
+
+    paid_payment =
+      result.payment
+      |> Ash.Changeset.for_update(:mark_success, %{})
+      |> Ash.update!(authorize?: false)
+
+    assert {:ok, paid} = GroupBuys.confirm_payment(paid_payment)
+    assert paid.status == :paid
+
+    funded = Ash.get!(Emakola.Suppliers.GroupBuyCampaign, campaign.id, authorize?: false)
+    assert funded.committed_quantity == 2
+    assert funded.status == :open
+    assert :ok = GroupBuys.confirm_payment(paid_payment)
+  end
+
+  test "pending gateway commitments reserve capacity and customers cannot cross stores", ctx do
+    {:ok, campaign} = GroupBuys.create(ctx.actor, ctx.store.id, attrs(ctx))
+    {:ok, campaign} = GroupBuys.open(ctx.actor, ctx.store.id, campaign.id)
+    first_customer = create_customer!(ctx.store)
+    second_customer = create_customer!(ctx.store)
+    {_other_actor, other_store} = create_merchant_with_store!()
+    other_customer = create_customer!(other_store)
+
+    assert {:ok, _commitment} = GroupBuys.reserve(campaign.id, first_customer.id, 2)
+
+    assert {:error, :quantity_exceeds_remaining} =
+             GroupBuys.reserve(campaign.id, second_customer.id, 2)
+
+    assert {:error, :forbidden} =
+             GroupBuys.initiate_customer_payment(
+               campaign.id,
+               other_customer,
+               1,
+               "https://shop.example/return"
+             )
+  end
+
   test "automatically refunds paid commitments after an under-threshold deadline", ctx do
     {:ok, campaign} = GroupBuys.create(ctx.actor, ctx.store.id, attrs(ctx))
     {:ok, campaign} = GroupBuys.open(ctx.actor, ctx.store.id, campaign.id)

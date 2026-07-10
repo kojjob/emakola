@@ -36,6 +36,61 @@ defmodule Emakola.Suppliers.GroupBuys do
     end
   end
 
+  def public_campaigns(store_id, product_id) do
+    listing_ids =
+      Emakola.Suppliers.ResellerListing
+      |> Ash.Query.filter(
+        reseller_store_id == ^store_id and reseller_product_id == ^product_id and
+          status == :active
+      )
+      |> Ash.read!(authorize?: false)
+      |> Enum.map(& &1.id)
+
+    GroupBuyCampaign
+    |> Ash.Query.filter(
+      store_id == ^store_id and listing_id in ^listing_ids and status == :open and
+        deadline > ^DateTime.utc_now()
+    )
+    |> Ash.Query.load([:listing_variant, :commitments])
+    |> Ash.Query.sort(deadline: :asc)
+    |> Ash.read!(authorize?: false)
+  end
+
+  def initiate_customer_payment(campaign_id, customer, quantity, callback_url) do
+    with {:ok, campaign} <- Ash.get(GroupBuyCampaign, campaign_id, authorize?: false),
+         true <- customer.store_id == campaign.store_id,
+         {:ok, commitment} <- reserve(campaign_id, customer.id, quantity) do
+      case create_customer_payment(campaign, commitment, customer, callback_url) do
+        {:ok, result} ->
+          {:ok, result}
+
+        {:error, reason} ->
+          commitment
+          |> Ash.Changeset.for_update(:cancel, %{})
+          |> Ash.update!(authorize?: false)
+
+          {:error, reason}
+      end
+    else
+      false -> {:error, :forbidden}
+      error -> error
+    end
+  end
+
+  def confirm_payment(payment) do
+    commitment =
+      GroupBuyCommitment
+      |> Ash.Query.filter(payment_id == ^payment.id)
+      |> Ash.read_one!(authorize?: false)
+
+    case commitment do
+      nil -> :ok
+      %{status: :paid} -> :ok
+      %{status: :pending} -> confirm_paid(commitment.id, payment)
+      _commitment -> :ok
+    end
+  end
+
   def open(actor, store_id, campaign_id) do
     with {:ok, campaign} <- authorized_campaign(actor, store_id, campaign_id),
          :ok <- future_deadline(campaign.deadline),
@@ -47,8 +102,9 @@ defmodule Emakola.Suppliers.GroupBuys do
   def reserve(campaign_id, customer_id, quantity) when is_integer(quantity) and quantity > 0 do
     Emakola.Repo.transaction(fn ->
       campaign = locked_campaign!(campaign_id)
+      reserved_quantity = reserved_quantity(campaign.id)
 
-      with :ok <- reservable?(campaign, quantity) do
+      with :ok <- reservable?(campaign, quantity, reserved_quantity) do
         GroupBuyCommitment
         |> Ash.Changeset.for_create(:create, %{
           campaign_id: campaign.id,
@@ -215,6 +271,48 @@ defmodule Emakola.Suppliers.GroupBuys do
   defp payment_gateway,
     do: Application.get_env(:emakola, :payment_gateway, Emakola.Payments.Gateways.Paystack)
 
+  defp create_customer_payment(campaign, commitment, customer, callback_url) do
+    gateway = payment_gateway()
+
+    with {:ok, response} <-
+           gateway.initiate_payment(%{
+             amount: commitment.amount,
+             email: customer.email,
+             currency: "GHS",
+             store_id: campaign.store_id,
+             callback_url: callback_url,
+             return_url: callback_url,
+             metadata: %{group_buy_commitment_id: commitment.id}
+           }),
+         {:ok, payment} <-
+           Emakola.Payments.create_payment(
+             %{
+               store_id: campaign.store_id,
+               amount: commitment.amount,
+               currency: "GHS",
+               gateway: :paystack,
+               gateway_reference: response.reference,
+               customer_email: customer.email,
+               metadata: %{group_buy_commitment_id: commitment.id}
+             },
+             authorize?: false
+           ),
+         {:ok, _commitment} <-
+           commitment
+           |> Ash.Changeset.for_update(:attach_payment, %{payment_id: payment.id})
+           |> Ash.update(authorize?: false) do
+      {:ok,
+       %{commitment: commitment, payment: payment, authorization_url: response.authorization_url}}
+    end
+  end
+
+  defp reserved_quantity(campaign_id) do
+    GroupBuyCommitment
+    |> Ash.Query.filter(campaign_id == ^campaign_id and status in [:pending, :paid])
+    |> Ash.read!(authorize?: false)
+    |> Enum.reduce(0, &(&1.quantity + &2))
+  end
+
   defp authorized_listing(actor, store_id, listing_id) do
     with {:ok, listings} <- ListingImporter.list(actor, store_id),
          %{} = listing <- Enum.find(listings, &(&1.id == listing_id)) do
@@ -236,23 +334,26 @@ defmodule Emakola.Suppliers.GroupBuys do
     end
   end
 
+  defp reservable?(campaign, quantity),
+    do: reservable?(campaign, quantity, campaign.committed_quantity)
+
   defp reservable?(
          %{
            status: :open,
            deadline: deadline,
-           committed_quantity: committed,
            threshold_quantity: threshold
          },
-         quantity
+         quantity,
+         reserved_quantity
        ) do
     cond do
       DateTime.compare(DateTime.utc_now(), deadline) != :lt -> {:error, :campaign_closed}
-      committed + quantity > threshold -> {:error, :quantity_exceeds_remaining}
+      reserved_quantity + quantity > threshold -> {:error, :quantity_exceeds_remaining}
       true -> :ok
     end
   end
 
-  defp reservable?(_campaign, _quantity), do: {:error, :campaign_closed}
+  defp reservable?(_campaign, _quantity, _reserved_quantity), do: {:error, :campaign_closed}
 
   defp payable?(%{status: :pending, amount: amount}, %{status: :success, amount: amount}), do: :ok
   defp payable?(_commitment, _payment), do: {:error, :payment_mismatch}

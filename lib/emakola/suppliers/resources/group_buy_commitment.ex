@@ -73,6 +73,12 @@ defmodule Emakola.Suppliers.GroupBuyCommitment do
       change(set_attribute(:status, :paid))
     end
 
+    update :attach_payment do
+      require_atomic?(false)
+      accept([:payment_id])
+      validate(attribute_equals(:status, :pending))
+    end
+
     update :cancel do
       require_atomic?(false)
       accept([])

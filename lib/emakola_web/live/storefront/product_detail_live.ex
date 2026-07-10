@@ -42,6 +42,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
         selected_variant = List.first(product.variants)
         vov_map = load_variant_option_values(product.variants)
         related = load_related_products(store, product)
+        group_buys = Emakola.Suppliers.GroupBuys.public_campaigns(store.id, product.id)
         categories = load_root_categories(store)
         cart_session_id = session["cart_session_id"]
 
@@ -64,6 +65,8 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
          |> assign(:quantity, 1)
          |> assign(:current_image_index, 0)
          |> assign(:related_products, related)
+         |> assign(:group_buy_forms, group_buy_forms(group_buys))
+         |> stream(:group_buys, group_buys)
          |> assign(:categories, categories)
          |> assign(:cart_session_id, cart_session_id)
          |> assign(:cart_count, cart_count)
@@ -182,6 +185,39 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
     end
   end
 
+  def handle_event("join_group_buy", %{"group_buy" => params}, socket) do
+    case socket.assigns[:current_customer] do
+      nil ->
+        {:noreply,
+         push_navigate(socket,
+           to: store_path(socket.assigns.store.slug, "/login")
+         )}
+
+      customer ->
+        with {quantity, ""} <- Integer.parse(params["quantity"] || ""),
+             true <- quantity > 0,
+             callback_url <-
+               EmakolaWeb.Endpoint.url() <>
+                 store_path(
+                   socket.assigns.store.slug,
+                   "/products/#{socket.assigns.product.slug}"
+                 ),
+             {:ok, result} <-
+               Emakola.Suppliers.GroupBuys.initiate_customer_payment(
+                 params["campaign_id"],
+                 customer,
+                 quantity,
+                 callback_url
+               ) do
+          {:noreply, redirect(socket, external: result.authorization_url)}
+        else
+          false -> {:noreply, put_flash(socket, :error, "Choose at least one item.")}
+          :error -> {:noreply, put_flash(socket, :error, "Enter a valid quantity.")}
+          {:error, reason} -> {:noreply, put_flash(socket, :error, group_buy_error(reason))}
+        end
+    end
+  end
+
   @impl true
   def handle_event("set_review_rating", %{"rating" => r}, socket) do
     {:noreply, assign(socket, :review_form_rating, String.to_integer(r))}
@@ -275,6 +311,63 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
       <.icon name="hero-shield-check" class="size-4 text-emerald-300" />
       Fulfilled by verified partner {@partner_fulfillment.name}
     </div>
+    <section
+      id="group-buy-offers"
+      phx-update="stream"
+      class="mx-auto w-full max-w-7xl space-y-3 px-4 py-5 sm:px-6 lg:px-8"
+    >
+      <article
+        :for={{dom_id, campaign} <- @streams.group_buys}
+        id={dom_id}
+        class="overflow-hidden rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-950 to-teal-900 p-5 text-white shadow-lg shadow-emerald-950/10"
+      >
+        <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">
+              Buy together, pay less
+            </p>
+            <h2 class="mt-1 text-xl font-black">{campaign.title}</h2>
+            <p class="mt-2 text-sm text-emerald-100">
+              {campaign.committed_quantity}/{campaign.threshold_quantity} paid · {format_group_buy_money(
+                campaign.unit_price
+              )} each
+            </p>
+            <p class="mt-1 text-xs text-emerald-200">
+              If the target is missed, payment is automatically refunded by {Calendar.strftime(
+                campaign.refund_deadline,
+                "%d %b %Y"
+              )}.
+            </p>
+          </div>
+          <.form
+            for={Map.fetch!(@group_buy_forms, campaign.id)}
+            id={"group-buy-form-#{campaign.id}"}
+            phx-submit="join_group_buy"
+            class="flex items-end gap-2"
+          >
+            <.input
+              field={Map.fetch!(@group_buy_forms, campaign.id)[:campaign_id]}
+              type="hidden"
+            />
+            <.input
+              field={Map.fetch!(@group_buy_forms, campaign.id)[:quantity]}
+              type="number"
+              min="1"
+              max={campaign.threshold_quantity - campaign.committed_quantity}
+              label="Quantity"
+              class="w-24 rounded-xl border border-white/20 bg-white px-3 py-2 text-slate-950"
+            />
+            <button
+              id={"join-group-buy-#{campaign.id}"}
+              type="submit"
+              class="rounded-xl bg-amber-300 px-4 py-2.5 text-sm font-black text-emerald-950 transition hover:-translate-y-0.5 hover:bg-amber-200"
+            >
+              Join securely
+            </button>
+          </.form>
+        </div>
+      </article>
+    </section>
     {@theme_content}
     """
   end
@@ -286,6 +379,23 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
       {:ok, product} -> product
       _ -> nil
     end
+  end
+
+  defp group_buy_forms(campaigns) do
+    Map.new(campaigns, fn campaign ->
+      {campaign.id, to_form(%{"campaign_id" => campaign.id, "quantity" => "1"}, as: :group_buy)}
+    end)
+  end
+
+  defp group_buy_error(:quantity_exceeds_remaining), do: "That quantity is no longer available."
+  defp group_buy_error(:campaign_closed), do: "This group buy has closed."
+
+  defp group_buy_error(_reason),
+    do: "We could not start this group-buy payment. Please try again."
+
+  defp format_group_buy_money(amount) do
+    formatted = :erlang.float_to_binary(amount / 100, decimals: 2)
+    "GH₵ " <> (formatted |> String.trim_trailing("0") |> String.trim_trailing("."))
   end
 
   defp partner_fulfillment(product_id) do
