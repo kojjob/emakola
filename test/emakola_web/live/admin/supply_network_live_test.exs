@@ -309,6 +309,24 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     refute has_element?(view, "#business-command-preview")
   end
 
+  test "builds a starter catalog with tracked links and reviewable content", ctx do
+    create_partner_offer!(ctx)
+    connect_partner!(ctx)
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+
+    view
+    |> form("#starter-business-form", starter_business: %{niche: "kente fashion", count: "3"})
+    |> render_submit()
+
+    assert has_element?(view, "#listing-count", "1")
+    assert has_element?(view, "#sales-shares article", "Partner Kente Bag")
+    assert has_element?(view, "#content-drafts article", "Partner Kente Bag")
+    assert has_element?(view, "#content-draft-count", "1")
+
+    {:ok, shares} = Emakola.Suppliers.SalesSharing.list_for_store(ctx.merchant, ctx.store.id)
+    assert length(shares) == 3
+  end
+
   defp create_partner_offer!(ctx) do
     product = create_product!(ctx.partner, status: :active, title: "Partner Kente Bag")
     variant = create_variant!(product, ctx.partner, price: 6_500, stock_quantity: 10)

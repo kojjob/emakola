@@ -12,7 +12,8 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     ListingImporter,
     Network,
     Offers,
-    SalesSharing
+    SalesSharing,
+    StarterBusiness
   }
 
   @impl true
@@ -38,6 +39,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
        content_draft_count: 0,
        pending_business_command: nil,
        business_command_form: business_command_form(),
+       starter_business_form: starter_business_form(),
        income_goal_form: income_goal_form(),
        first_money: %{},
        active_connection?: false,
@@ -263,6 +265,34 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
 
       {:error, message} ->
         {:noreply, put_flash(socket, :error, message)}
+    end
+  end
+
+  def handle_event("build_starter_business", %{"starter_business" => params}, socket) do
+    case StarterBusiness.build(
+           socket.assigns.current_merchant,
+           socket.assigns.current_store.id,
+           params
+         ) do
+      {:ok, result} ->
+        {:noreply,
+         socket
+         |> assign(:starter_business_form, starter_business_form())
+         |> load_earn_catalog()
+         |> load_sales_journey()
+         |> load_income_goal()
+         |> load_content_drafts()
+         |> put_flash(
+           :info,
+           "Starter business ready: #{result.imported} products, tracked links, and reviewable content drafts."
+         )}
+
+      {:error, :no_matching_offers} ->
+        {:noreply,
+         put_flash(socket, :error, "Connect with a supplier that has eligible products first.")}
+
+      _error ->
+        {:noreply, put_flash(socket, :error, "The starter business could not be created.")}
     end
   end
 
@@ -578,6 +608,10 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
 
   defp business_command_form do
     to_form(%{"instruction" => ""}, as: :business_command)
+  end
+
+  defp starter_business_form do
+    to_form(%{"niche" => "", "count" => "3"}, as: :starter_business)
   end
 
   defp execute_business_command(_socket, nil),
@@ -1137,13 +1171,53 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
               class="rounded-xl bg-cyan-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-cyan-800"
             >
               Confirm
-            </button><button
+            </button>
+            <button
               id="cancel-business-command"
               phx-click="cancel_business_command"
               class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
             >Cancel</button>
           </div>
         </div>
+
+        <div class="my-6 flex items-center gap-3">
+          <span class="h-px flex-1 bg-cyan-100"></span>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-600">
+            or launch a complete starter
+          </span>
+          <span class="h-px flex-1 bg-cyan-100"></span>
+        </div>
+        <.form
+          for={@starter_business_form}
+          id="starter-business-form"
+          phx-submit="build_starter_business"
+          class="grid gap-3 sm:grid-cols-[1fr_180px_auto] sm:items-end"
+        >
+          <.input
+            field={@starter_business_form[:niche]}
+            type="text"
+            label="Your niche or audience"
+            placeholder="Women’s fashion, school essentials…"
+            required
+          />
+          <.input
+            field={@starter_business_form[:count]}
+            type="select"
+            label="Starter size"
+            options={[{"3 products", "3"}, {"5 products", "5"}]}
+          />
+          <button
+            id="build-starter-business"
+            type="submit"
+            class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-cyan-800"
+          >
+            <.icon name="hero-building-storefront" class="size-4" /> Build starter business
+          </button>
+        </.form>
+        <p class="mt-2 text-xs text-slate-500">
+          This adds eligible products to your existing branded storefront, creates tracked links,
+          and prepares content drafts for review. It never publishes claims without your approval.
+        </p>
 
         <script :type={Phoenix.LiveView.ColocatedHook} name=".VoiceCommand">
           export default {

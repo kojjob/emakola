@@ -176,7 +176,8 @@
     - [x] Add supplier-fact snapshots, deterministic channel drafts, stale-content protection,
           and explicit merchant review in Earn Network.
     - [x] Add preview-first voice/text commands with explicit confirmation before mutations.
-    - [ ] Add starter-store generation, translation, and grounded images.
+    - [x] Add one-action niche starter catalogs with products, tracked links, and content drafts.
+    - [ ] Add translation and grounded images.
 
 ## OPEN — White-label design system (remaining phases)
 
