@@ -189,8 +189,10 @@
           approved-package catalog activation.
       - [x] Add Earn Network merchant UI for group buys, exact-split team invitations/consent,
             and supplier/reseller micro-franchise publishing/discovery/application.
-      - [ ] Add customer commitments, automatic refunds, order settlement, supplier approval,
-            and approved-package catalog activation.
+      - [ ] Add customer commitment/payment UI, order settlement, supplier approval, and
+            approved-package catalog activation.
+      - [x] Add scheduled, idempotent automatic gateway refunds for expired under-threshold
+            group buys, including persisted claim, reference, and failure state.
 
 ## OPEN — White-label design system (remaining phases)
 

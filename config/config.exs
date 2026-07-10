@@ -126,6 +126,7 @@ config :emakola, Oban,
     notifications: 5,
     payouts: 5,
     webhooks: 5,
+    payments: 3,
     images: 3,
     orders: 5,
     whatsapp_catalog: 3,
@@ -143,6 +144,7 @@ config :emakola, Oban,
      crontab: [
        {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker},
        {"0 */6 * * *", Emakola.Cart.CartCleanupWorker},
+       {"*/5 * * * *", Emakola.Suppliers.Workers.GroupBuyExpiryWorker},
        {"30 3 * * *", Emakola.Accounts.Workers.PhoneOtpPruneWorker}
      ]}
   ]

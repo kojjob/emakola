@@ -80,7 +80,9 @@ Acceptance: recommendations beat a popularity-only baseline in fulfilled sales w
         refund deadlines, and transactional paid-quantity funding.
   - [ ] Add merchant/customer UI and automatic gateway refund execution when a threshold is missed.
     - [x] Merchant creation/status UI with locked price, threshold, deadline, and refund-by date.
-    - [ ] Customer commitment/payment UI and automatic gateway refund execution.
+    - [ ] Customer commitment/payment UI.
+    - [x] Automatically cancel expired under-threshold campaigns every five minutes, claim each
+          paid commitment once, execute the configured gateway refund, and persist retry/failure state.
 - [ ] Consent-based sales teams with declared roles and fixed transaction splits.
   - [x] Persist flat roles, immutable basis-point shares totaling exactly 100%, personal consent,
         and exact last-pesewa allocation.

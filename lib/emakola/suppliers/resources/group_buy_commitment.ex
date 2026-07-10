@@ -24,8 +24,12 @@ defmodule Emakola.Suppliers.GroupBuyCommitment do
       allow_nil?(false)
       default(:pending)
       public?(true)
-      constraints(one_of: [:pending, :paid, :cancelled, :refunded])
+      constraints(one_of: [:pending, :paid, :cancelled, :refunding, :refunded, :refund_failed])
     end
+
+    attribute(:refund_attempted_at, :utc_datetime_usec, public?: true)
+    attribute(:refund_reference, :string, public?: true)
+    attribute(:refund_error, :string, public?: true)
 
     timestamps()
   end
@@ -78,9 +82,24 @@ defmodule Emakola.Suppliers.GroupBuyCommitment do
 
     update :mark_refunded do
       require_atomic?(false)
+      accept([:refund_reference])
+      validate(attribute_equals(:status, :refunding))
+      change(set_attribute(:status, :refunded))
+    end
+
+    update :claim_refund do
+      require_atomic?(false)
       accept([])
       validate(attribute_equals(:status, :paid))
-      change(set_attribute(:status, :refunded))
+      change(set_attribute(:status, :refunding))
+      change(set_attribute(:refund_attempted_at, &DateTime.utc_now/0))
+    end
+
+    update :mark_refund_failed do
+      require_atomic?(false)
+      accept([:refund_error])
+      validate(attribute_equals(:status, :refunding))
+      change(set_attribute(:status, :refund_failed))
     end
   end
 end

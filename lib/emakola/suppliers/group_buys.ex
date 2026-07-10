@@ -95,6 +95,32 @@ defmodule Emakola.Suppliers.GroupBuys do
     |> normalize_transaction()
   end
 
+  def expire_and_refund(campaign_id, gateway \\ payment_gateway()) do
+    with {:ok, campaign} <- Ash.get(GroupBuyCampaign, campaign_id, authorize?: false),
+         {:ok, campaign} <- cancel_if_due(campaign) do
+      commitments =
+        GroupBuyCommitment
+        |> Ash.Query.filter(campaign_id == ^campaign.id)
+        |> Ash.read!(authorize?: false)
+
+      Enum.each(commitments, &cancel_pending/1)
+      results = Enum.map(commitments, &refund_paid(&1, gateway))
+
+      refreshed =
+        GroupBuyCommitment
+        |> Ash.Query.filter(campaign_id == ^campaign.id)
+        |> Ash.read!(authorize?: false)
+
+      if refreshed != [] and Enum.all?(refreshed, &(&1.status in [:cancelled, :refunded])) do
+        campaign
+        |> Ash.Changeset.for_update(:mark_refunded, %{})
+        |> Ash.update!(authorize?: false)
+      end
+
+      {:ok, %{campaign_id: campaign.id, results: results}}
+    end
+  end
+
   defp normalize(attrs, mapping) do
     with {:ok, threshold} <- integer(value(attrs, :threshold_quantity), 2, 1_000),
          {:ok, unit_price} <- integer(value(attrs, :unit_price), 1, mapping.retail_price),
@@ -117,6 +143,77 @@ defmodule Emakola.Suppliers.GroupBuys do
       error -> error
     end
   end
+
+  defp cancel_if_due(%{status: :refunded} = campaign), do: {:ok, campaign}
+  defp cancel_if_due(%{status: :cancelled} = campaign), do: {:ok, campaign}
+
+  defp cancel_if_due(%{status: :open} = campaign) do
+    if DateTime.compare(DateTime.utc_now(), campaign.deadline) in [:eq, :gt] and
+         campaign.committed_quantity < campaign.threshold_quantity do
+      campaign |> Ash.Changeset.for_update(:cancel, %{}) |> Ash.update(authorize?: false)
+    else
+      {:error, :campaign_not_due}
+    end
+  end
+
+  defp cancel_if_due(_campaign), do: {:error, :campaign_not_due}
+
+  defp cancel_pending(%{status: :pending} = commitment),
+    do: commitment |> Ash.Changeset.for_update(:cancel, %{}) |> Ash.update!(authorize?: false)
+
+  defp cancel_pending(_commitment), do: :ok
+
+  defp refund_paid(%{status: :paid, payment_id: payment_id} = commitment, gateway)
+       when not is_nil(payment_id) do
+    claimed =
+      commitment |> Ash.Changeset.for_update(:claim_refund, %{}) |> Ash.update!(authorize?: false)
+
+    payment = Ash.get!(Emakola.Payments.Payment, payment_id, authorize?: false)
+
+    case gateway.process_refund(payment.gateway_reference, commitment.amount) do
+      {:ok, response} ->
+        reference = Map.get(response, :refund_reference) || Map.get(response, "refund_reference")
+
+        _payment =
+          payment
+          |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: commitment.amount})
+          |> Ash.update!(authorize?: false)
+
+        _commitment =
+          claimed
+          |> Ash.Changeset.for_update(:mark_refunded, %{refund_reference: reference})
+          |> Ash.update!(authorize?: false)
+
+        {:ok, commitment.id}
+
+      {:error, reason} ->
+        _commitment =
+          claimed
+          |> Ash.Changeset.for_update(:mark_refund_failed, %{
+            refund_error: inspect(reason) |> String.slice(0, 500)
+          })
+          |> Ash.update!(authorize?: false)
+
+        {:error, commitment.id, reason}
+    end
+  end
+
+  defp refund_paid(%{status: :paid} = commitment, _gateway) do
+    claimed =
+      commitment |> Ash.Changeset.for_update(:claim_refund, %{}) |> Ash.update!(authorize?: false)
+
+    _commitment =
+      claimed
+      |> Ash.Changeset.for_update(:mark_refund_failed, %{refund_error: "payment_missing"})
+      |> Ash.update!(authorize?: false)
+
+    {:error, commitment.id, :payment_missing}
+  end
+
+  defp refund_paid(commitment, _gateway), do: {:skipped, commitment.id, commitment.status}
+
+  defp payment_gateway,
+    do: Application.get_env(:emakola, :payment_gateway, Emakola.Payments.Gateways.Paystack)
 
   defp authorized_listing(actor, store_id, listing_id) do
     with {:ok, listings} <- ListingImporter.list(actor, store_id),

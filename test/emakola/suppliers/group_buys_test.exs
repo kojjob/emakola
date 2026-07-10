@@ -2,8 +2,10 @@ defmodule Emakola.Suppliers.GroupBuysTest do
   use Emakola.DataCase, async: true
 
   import Emakola.Factory
+  import Ecto.Query
 
   alias Emakola.Suppliers.{GroupBuys, ListingImporter, Network, Offers}
+  alias Emakola.Suppliers.Workers.GroupBuyExpiryWorker
 
   setup do
     {supplier_actor, supplier} = create_merchant_with_store!()
@@ -80,7 +82,9 @@ defmodule Emakola.Suppliers.GroupBuysTest do
           amount: 18_000,
           gateway: :paystack,
           gateway_reference: "group-buy-#{Ecto.UUID.generate()}"
-        }, authorize?: false)
+        },
+        authorize?: false
+      )
 
     payment =
       payment |> Ash.Changeset.for_update(:mark_success, %{}) |> Ash.update!(authorize?: false)
@@ -90,6 +94,86 @@ defmodule Emakola.Suppliers.GroupBuysTest do
     funded = Ash.get!(Emakola.Suppliers.GroupBuyCampaign, campaign.id, authorize?: false)
     assert funded.committed_quantity == 3
     assert funded.status == :funded
+  end
+
+  test "automatically refunds paid commitments after an under-threshold deadline", ctx do
+    {:ok, campaign} = GroupBuys.create(ctx.actor, ctx.store.id, attrs(ctx))
+    {:ok, campaign} = GroupBuys.open(ctx.actor, ctx.store.id, campaign.id)
+    customer = create_customer!(ctx.store)
+    {:ok, commitment} = GroupBuys.reserve(campaign.id, customer.id, 1)
+
+    payment =
+      Emakola.Payments.create_payment!(
+        %{
+          store_id: ctx.store.id,
+          amount: 6_000,
+          gateway: :paystack,
+          gateway_reference: "group-refund-#{Ecto.UUID.generate()}"
+        },
+        authorize?: false
+      )
+
+    payment =
+      payment |> Ash.Changeset.for_update(:mark_success, %{}) |> Ash.update!(authorize?: false)
+
+    {:ok, _paid} = GroupBuys.confirm_paid(commitment.id, payment)
+
+    past = DateTime.add(DateTime.utc_now(), -60, :second)
+
+    Emakola.Repo.update_all(
+      from(c in "earn_group_buy_campaigns", where: c.id == type(^campaign.id, Ecto.UUID)),
+      set: [deadline: past]
+    )
+
+    assert {:ok, _summary} =
+             GroupBuys.expire_and_refund(campaign.id, Emakola.Payments.Gateways.Mock)
+
+    assert Ash.get!(Emakola.Suppliers.GroupBuyCommitment, commitment.id, authorize?: false).status ==
+             :refunded
+
+    assert Ash.get!(Emakola.Payments.Payment, payment.id, authorize?: false).status == :refunded
+
+    assert Ash.get!(Emakola.Suppliers.GroupBuyCampaign, campaign.id, authorize?: false).status ==
+             :refunded
+
+    assert {:ok, %{results: [{:skipped, _, :refunded}]}} =
+             GroupBuys.expire_and_refund(campaign.id, Emakola.Payments.Gateways.Mock)
+  end
+
+  test "expiry worker refunds a due campaign through the configured gateway", ctx do
+    {:ok, campaign} = GroupBuys.create(ctx.actor, ctx.store.id, attrs(ctx))
+    {:ok, campaign} = GroupBuys.open(ctx.actor, ctx.store.id, campaign.id)
+    customer = create_customer!(ctx.store)
+    {:ok, commitment} = GroupBuys.reserve(campaign.id, customer.id, 1)
+
+    payment =
+      Emakola.Payments.create_payment!(
+        %{
+          store_id: ctx.store.id,
+          amount: commitment.amount,
+          gateway: :paystack,
+          gateway_reference: "group-worker-#{Ecto.UUID.generate()}"
+        },
+        authorize?: false
+      )
+      |> Ash.Changeset.for_update(:mark_success, %{})
+      |> Ash.update!(authorize?: false)
+
+    {:ok, _paid} = GroupBuys.confirm_paid(commitment.id, payment)
+    past = DateTime.add(DateTime.utc_now(), -60, :second)
+
+    Emakola.Repo.update_all(
+      from(c in "earn_group_buy_campaigns", where: c.id == type(^campaign.id, Ecto.UUID)),
+      set: [deadline: past]
+    )
+
+    assert :ok =
+             GroupBuyExpiryWorker.perform(%Oban.Job{args: %{"campaign_id" => campaign.id}})
+
+    assert Ash.get!(Emakola.Suppliers.GroupBuyCommitment, commitment.id, authorize?: false).status ==
+             :refunded
+
+    assert Ash.get!(Emakola.Payments.Payment, payment.id, authorize?: false).status == :refunded
   end
 
   defp attrs(ctx) do
