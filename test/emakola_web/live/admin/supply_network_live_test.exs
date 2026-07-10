@@ -282,6 +282,33 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     refute has_element?(view, "#approve-content-draft-#{draft.id}")
   end
 
+  test "previews text or transcribed voice instructions before mutating the store", ctx do
+    offer = create_partner_offer!(ctx)
+    connect_partner!(ctx)
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+
+    assert has_element?(view, "#business-in-a-box")
+    assert has_element?(view, "#voice-command-control")
+
+    view
+    |> form("#business-command-form", business_command: %{instruction: "Add one product"})
+    |> render_submit()
+
+    assert has_element?(
+             view,
+             "#business-command-preview",
+             "Add up to 1 top-ranked partner product"
+           )
+
+    assert has_element?(view, "#import-offer-#{offer.id}")
+    assert has_element?(view, "#listing-count", "0")
+
+    view |> element("#confirm-business-command") |> render_click()
+
+    assert has_element?(view, "#listing-count", "1")
+    refute has_element?(view, "#business-command-preview")
+  end
+
   defp create_partner_offer!(ctx) do
     product = create_product!(ctx.partner, status: :active, title: "Partner Kente Bag")
     variant = create_variant!(product, ctx.partner, price: 6_500, stock_quantity: 10)

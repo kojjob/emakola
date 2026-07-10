@@ -3,6 +3,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
   use EmakolaWeb, :live_view
 
   alias Emakola.Suppliers.{
+    BusinessCommand,
     ContentStudio,
     HustlePlanner,
     GoalProgress,
@@ -35,6 +36,8 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
        hustle_shares: [],
        goal_progress: nil,
        content_draft_count: 0,
+       pending_business_command: nil,
+       business_command_form: business_command_form(),
        income_goal_form: income_goal_form(),
        first_money: %{},
        active_connection?: false,
@@ -214,6 +217,52 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
 
       _error ->
         {:noreply, put_flash(socket, :error, "The draft could not be rejected.")}
+    end
+  end
+
+  def handle_event(
+        "preview_business_command",
+        %{"business_command" => %{"instruction" => instruction}},
+        socket
+      ) do
+    case BusinessCommand.parse(instruction) do
+      {:ok, command} ->
+        {:noreply, assign(socket, :pending_business_command, command)}
+
+      {:error, :empty} ->
+        {:noreply, put_flash(socket, :error, "Say or type an instruction first.")}
+
+      {:error, :unsupported} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Try: “Add three products”, “Create a Sales Kit”, or “Make a content draft”."
+         )}
+    end
+  end
+
+  def handle_event("cancel_business_command", _params, socket) do
+    {:noreply, assign(socket, :pending_business_command, nil)}
+  end
+
+  def handle_event("confirm_business_command", _params, socket) do
+    case execute_business_command(socket, socket.assigns.pending_business_command) do
+      {:ok, message} ->
+        {:noreply,
+         socket
+         |> assign(
+           pending_business_command: nil,
+           business_command_form: business_command_form()
+         )
+         |> load_earn_catalog()
+         |> load_sales_journey()
+         |> load_income_goal()
+         |> load_content_drafts()
+         |> put_flash(:info, message)}
+
+      {:error, message} ->
+        {:noreply, put_flash(socket, :error, message)}
     end
   end
 
@@ -525,6 +574,59 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
       },
       as: :income_goal
     )
+  end
+
+  defp business_command_form do
+    to_form(%{"instruction" => ""}, as: :business_command)
+  end
+
+  defp execute_business_command(_socket, nil),
+    do: {:error, "Preview an instruction before confirming it."}
+
+  defp execute_business_command(socket, %{action: :import_products, count: count}) do
+    actor = socket.assigns.current_merchant
+    store = socket.assigns.current_store
+
+    offers = Offers.list_available(actor, store.id) |> result_rows() |> Enum.take(count)
+
+    imported =
+      Enum.count(offers, fn offer ->
+        match?({:ok, _listing}, ListingImporter.import(actor, store.id, offer))
+      end)
+
+    if imported > 0,
+      do: {:ok, "Added #{imported} partner product#{if imported == 1, do: "", else: "s"}."},
+      else: {:error, "No eligible new partner products are available."}
+  end
+
+  defp execute_business_command(socket, %{action: :create_content}) do
+    case List.first(socket.assigns.hustle_listings) do
+      nil ->
+        {:error, "Add a partner product before creating content."}
+
+      listing ->
+        case ContentStudio.create_draft(
+               socket.assigns.current_merchant,
+               socket.assigns.current_store.id,
+               listing.id
+             ) do
+          {:ok, _draft} -> {:ok, "Fact-grounded content draft created for review."}
+          _error -> {:error, "The content draft could not be created."}
+        end
+    end
+  end
+
+  defp execute_business_command(socket, %{action: :create_sales_kit}) do
+    case List.first(socket.assigns.hustle_listings) do
+      nil ->
+        {:error, "Add a partner product before creating a Sales Kit."}
+
+      listing ->
+        case SalesSharing.create_kit(socket.assigns.current_merchant, listing) do
+          {:ok, _shares} -> {:ok, "Tracked Sales Kit links created."}
+          _error -> {:error, "The Sales Kit could not be created."}
+        end
+    end
   end
 
   defp cedis_to_pesewas(value) when is_binary(value) do
@@ -959,6 +1061,119 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
             </button>
           </.form>
         <% end %>
+      </section>
+
+      <section
+        id="business-in-a-box"
+        aria-labelledby="business-command-heading"
+        class="rounded-3xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-white p-6 shadow-sm sm:p-8"
+      >
+        <div class="flex items-start gap-4">
+          <div class="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-600 text-white">
+            <.icon name="hero-microphone" class="size-5" />
+          </div>
+          <div>
+            <span class="text-xs font-bold uppercase tracking-[0.18em] text-cyan-700">
+              Business-in-a-Box
+            </span>
+            <h2 id="business-command-heading" class="mt-1 text-xl font-bold text-slate-950">
+              Say what you want to build
+            </h2>
+            <p class="mt-1 text-sm text-slate-600">
+              Voice becomes editable text. Makola always shows the exact action and waits for confirmation before changing your store.
+            </p>
+          </div>
+        </div>
+
+        <.form
+          for={@business_command_form}
+          id="business-command-form"
+          phx-submit="preview_business_command"
+          class="mt-6"
+        >
+          <div
+            id="voice-command-control"
+            phx-hook=".VoiceCommand"
+            class="flex flex-col gap-3 sm:flex-row"
+          >
+            <.input
+              field={@business_command_form[:instruction]}
+              type="text"
+              placeholder="Add three products, create a Sales Kit…"
+              required
+              class="h-12 w-full rounded-xl border border-cyan-200 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-100"
+            />
+            <button
+              id="voice-command-button"
+              type="button"
+              class="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-200 bg-white px-4 text-sm font-bold text-cyan-800 transition hover:bg-cyan-50"
+            >
+              <.icon name="hero-microphone" class="size-4" /> Speak
+            </button>
+            <button
+              id="preview-business-command"
+              type="submit"
+              class="inline-flex h-12 shrink-0 items-center justify-center rounded-xl bg-cyan-700 px-5 text-sm font-bold text-white transition hover:bg-cyan-800"
+            >
+              Preview action
+            </button>
+          </div>
+        </.form>
+
+        <div
+          :if={@pending_business_command}
+          id="business-command-preview"
+          class="mt-4 rounded-2xl border border-cyan-200 bg-white p-5 shadow-sm"
+        >
+          <p class="text-xs font-bold uppercase tracking-wide text-cyan-700">Confirmation required</p>
+          <p class="mt-2 text-sm font-semibold text-slate-900">{@pending_business_command.preview}</p>
+          <p class="mt-1 text-xs text-slate-500">
+            Original instruction: “{@pending_business_command.original}”
+          </p>
+          <div class="mt-4 flex gap-2">
+            <button
+              id="confirm-business-command"
+              phx-click="confirm_business_command"
+              class="rounded-xl bg-cyan-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-cyan-800"
+            >
+              Confirm
+            </button><button
+              id="cancel-business-command"
+              phx-click="cancel_business_command"
+              class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+            >Cancel</button>
+          </div>
+        </div>
+
+        <script :type={Phoenix.LiveView.ColocatedHook} name=".VoiceCommand">
+          export default {
+            mounted() {
+              const button = this.el.querySelector("#voice-command-button")
+              const input = this.el.querySelector("input[name='business_command[instruction]']")
+              const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition
+
+              button.addEventListener("click", () => {
+                if (!Recognition) {
+                  input.focus()
+                  input.placeholder = "Voice input is not supported by this browser. Type your instruction."
+                  return
+                }
+
+                const recognition = new Recognition()
+                recognition.lang = document.documentElement.lang || "en-GH"
+                recognition.interimResults = false
+                button.textContent = "Listening…"
+                recognition.onresult = event => {
+                  input.value = event.results[0][0].transcript
+                  input.dispatchEvent(new Event("input", {bubbles: true}))
+                }
+                recognition.onend = () => { button.textContent = "Speak" }
+                recognition.onerror = () => { button.textContent = "Try again" }
+                recognition.start()
+              })
+            }
+          }
+        </script>
       </section>
 
       <section

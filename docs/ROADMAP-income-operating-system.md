@@ -47,13 +47,15 @@ Acceptance: a reseller can create a goal, understand the assumptions, publish re
 ### Phase B — Voice-first Business-in-a-Box
 
 - [ ] Create a starter storefront/catalog from a goal and niche.
-- [ ] Accept text and voice instructions, with confirmation before mutations.
+- [x] Accept text and voice instructions, with confirmation before mutations.
 - [ ] Add locale-aware copy and translation with merchant review.
 - [ ] Generate fact-grounded product copy, images, short-video scripts, FAQs, and channel variants.
   - [x] Persist immutable supplier-fact snapshots and hashes for every content draft.
   - [x] Generate safe WhatsApp, Facebook, short-video, and FAQ drafts without requiring AI.
   - [x] Require explicit merchant approval/rejection and invalidate stale supplier facts.
   - [ ] Add fact-grounded image generation and optional AI/local-language rewriting.
+  - [x] Convert browser speech to editable instructions, parse a bounded command set,
+        preview the exact action, and require confirmation before catalog/content mutations.
 
 Acceptance: a new merchant can reach a reviewable storefront and first Sales Kit in under ten minutes without purchasing inventory.
 

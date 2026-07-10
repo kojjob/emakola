@@ -175,7 +175,8 @@
   - [ ] Build Phase B — voice-first Business-in-a-Box and fact-grounded content drafts.
     - [x] Add supplier-fact snapshots, deterministic channel drafts, stale-content protection,
           and explicit merchant review in Earn Network.
-    - [ ] Add voice/text commands, starter-store generation, translation, and grounded images.
+    - [x] Add preview-first voice/text commands with explicit confirmation before mutations.
+    - [ ] Add starter-store generation, translation, and grounded images.
 
 ## OPEN — White-label design system (remaining phases)
 
