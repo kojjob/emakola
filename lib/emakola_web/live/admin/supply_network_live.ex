@@ -171,11 +171,12 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     end
   end
 
-  def handle_event("create_content_draft", %{"id" => listing_id}, socket) do
+  def handle_event("create_content_draft", %{"id" => listing_id} = params, socket) do
     case ContentStudio.create_draft(
            socket.assigns.current_merchant,
            socket.assigns.current_store.id,
-           listing_id
+           listing_id,
+           locale: Map.get(params, "locale", "en-GH")
          ) do
       {:ok, _draft} ->
         {:noreply,
@@ -1176,7 +1177,9 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
               id="cancel-business-command"
               phx-click="cancel_business_command"
               class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
-            >Cancel</button>
+            >
+              Cancel
+            </button>
           </div>
         </div>
 
@@ -1543,9 +1546,19 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
               id={"create-content-draft-#{listing.id}"}
               phx-click="create_content_draft"
               phx-value-id={listing.id}
+              phx-value-locale="en-GH"
               class="rounded-lg border border-violet-200 px-3 py-2 text-xs font-bold text-violet-700 transition hover:bg-violet-50"
             >
               Content
+            </button>
+            <button
+              id={"create-twi-content-draft-#{listing.id}"}
+              phx-click="create_content_draft"
+              phx-value-id={listing.id}
+              phx-value-locale="tw-GH"
+              class="rounded-lg border border-amber-200 px-3 py-2 text-xs font-bold text-amber-700 transition hover:bg-amber-50"
+            >
+              Twi
             </button>
             <button
               id={"create-sales-kit-#{listing.id}"}
@@ -1616,6 +1629,13 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
               </span>
             </div>
             <div class="mt-4 space-y-3">
+              <img
+                :if={draft.content["social_card_data_uri"]}
+                id={"content-social-card-#{draft.id}"}
+                src={draft.content["social_card_data_uri"]}
+                alt={"Sales card for #{draft.source_facts["product_title"]}"}
+                class="aspect-square w-full rounded-xl border border-slate-200 object-cover"
+              />
               <div class="rounded-xl bg-emerald-50 p-3">
                 <p class="text-[10px] font-bold uppercase text-emerald-700">WhatsApp</p>
                 <p class="mt-1 text-sm leading-5 text-slate-700">{draft.content["whatsapp"]}</p>

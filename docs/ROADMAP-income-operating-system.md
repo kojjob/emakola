@@ -44,16 +44,17 @@ Makola Earn should turn an income goal into an explainable sequence of legitimat
 
 Acceptance: a reseller can create a goal, understand the assumptions, publish recommended products, share tracked links, and see fulfilled net earnings against the goal.
 
-### Phase B — Voice-first Business-in-a-Box
+### Phase B — Voice-first Business-in-a-Box ✅
 
 - [x] Create a starter storefront/catalog from a goal and niche.
 - [x] Accept text and voice instructions, with confirmation before mutations.
-- [ ] Add locale-aware copy and translation with merchant review.
-- [ ] Generate fact-grounded product copy, images, short-video scripts, FAQs, and channel variants.
+- [x] Add locale-aware copy and translation with merchant review.
+- [x] Generate fact-grounded product copy, images, short-video scripts, FAQs, and channel variants.
   - [x] Persist immutable supplier-fact snapshots and hashes for every content draft.
   - [x] Generate safe WhatsApp, Facebook, short-video, and FAQ drafts without requiring AI.
   - [x] Require explicit merchant approval/rejection and invalidate stale supplier facts.
-  - [ ] Add fact-grounded image generation and optional AI/local-language rewriting.
+  - [x] Add escaped SVG social-card generation grounded in supplier images/title/price and
+        curated English/Twi rewriting that never translates unsupported free-form claims.
   - [x] Convert browser speech to editable instructions, parse a bounded command set,
         preview the exact action, and require confirmation before catalog/content mutations.
   - [x] Build a bounded niche starter catalog on the merchant's branded storefront with
@@ -115,8 +116,8 @@ Guardrails:
 1. Income goals and deterministic plan engine. **Implemented and focused tests passing.**
 2. Goal dashboard integrated into the existing Earn Network screen. **Implemented and focused tests passing.**
 3. Goal progress from existing Sales Shares, conversions, fulfillments, and splits. **Implemented and focused tests passing.**
-4. Fact-grounded content drafts and multilingual/voice input. **Next active slice.**
-5. Opportunity signal warehouse and recommendation evaluation.
+4. Fact-grounded content drafts and multilingual/voice input. **Implemented and focused tests passing.**
+5. Opportunity signal warehouse and recommendation evaluation. **Next active slice.**
 6. Group buys, teams, and micro-franchise packages.
 7. Commerce passport and partner-credit interfaces.
 8. Preorders after payments/legal approval.

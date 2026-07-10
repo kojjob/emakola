@@ -172,12 +172,14 @@
   - [x] Add historical-signal ranking and expose supplier net, customer price, platform fee,
         reseller net earnings, evidence confidence, and ranking reason.
   - [x] Complete Phase A — Hustle Autopilot.
-  - [ ] Build Phase B — voice-first Business-in-a-Box and fact-grounded content drafts.
+  - [x] Build Phase B — voice-first Business-in-a-Box and fact-grounded content drafts.
     - [x] Add supplier-fact snapshots, deterministic channel drafts, stale-content protection,
           and explicit merchant review in Earn Network.
     - [x] Add preview-first voice/text commands with explicit confirmation before mutations.
     - [x] Add one-action niche starter catalogs with products, tracked links, and content drafts.
-    - [ ] Add translation and grounded images.
+    - [x] Add curated English/Twi variants and escaped social cards grounded in approved
+          supplier images, titles, and prices.
+  - [ ] Build Phase C — privacy-safe Opportunity Radar and bounded ethical pricing.
 
 ## OPEN — White-label design system (remaining phases)
 

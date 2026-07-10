@@ -60,12 +60,23 @@ defmodule Emakola.Suppliers.ContentStudioTest do
     assert draft.content["whatsapp"] =~ "Grounded Kente"
     assert draft.content["whatsapp"] =~ "GH₵65.00"
     assert draft.content["whatsapp"] =~ "Handwoven cotton cloth."
+    assert String.starts_with?(draft.content["social_card_data_uri"], "data:image/svg+xml,")
     refute draft.content["whatsapp"] =~ "guaranteed"
 
     assert {:ok, approved} = ContentStudio.approve(ctx.actor, ctx.store.id, draft.id)
     assert approved.status == :approved
     assert approved.approved_by_id == ctx.actor.id
     assert approved.approved_at
+  end
+
+  test "creates a curated Twi draft while preserving source facts", ctx do
+    assert {:ok, draft} =
+             ContentStudio.create_draft(ctx.actor, ctx.store.id, ctx.listing.id, locale: "tw-GH")
+
+    assert draft.locale == "tw-GH"
+    assert draft.content["whatsapp"] =~ "Yɛwɔ Grounded Kente"
+    assert draft.source_facts["supplier_description"] == "Handwoven cotton cloth."
+    refute draft.content["whatsapp"] =~ "Handwoven cotton cloth."
   end
 
   test "does not expose or approve another store's draft", ctx do

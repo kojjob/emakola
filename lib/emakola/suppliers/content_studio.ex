@@ -3,12 +3,14 @@ defmodule Emakola.Suppliers.ContentStudio do
 
   require Ash.Query
 
-  alias Emakola.Suppliers.{ContentDraft, ListingImporter}
+  alias Emakola.Suppliers.{ContentDraft, ContentLocale, ListingImporter, SocialCard}
 
   def create_draft(actor, store_id, listing_id, opts \\ []) do
     with {:ok, listing} <- authorized_listing(actor, store_id, listing_id),
          {:ok, listing} <-
-           Ash.load(listing, [offer: [:source_product, :offer_variants]], authorize?: false) do
+           Ash.load(listing, [offer: [:offer_variants, source_product: :images]],
+             authorize?: false
+           ) do
       facts = facts(listing)
       kind = Keyword.get(opts, :kind, :sales_kit)
       locale = Keyword.get(opts, :locale, "en-GH")
@@ -40,7 +42,9 @@ defmodule Emakola.Suppliers.ContentStudio do
          :ok <- ensure_draft_store(draft, store_id),
          {:ok, listing} <- authorized_listing(actor, store_id, draft.listing_id),
          {:ok, listing} <-
-           Ash.load(listing, [offer: [:source_product, :offer_variants]], authorize?: false),
+           Ash.load(listing, [offer: [:offer_variants, source_product: :images]],
+             authorize?: false
+           ),
          :ok <- ensure_fresh(draft, listing) do
       draft
       |> Ash.Changeset.for_update(:approve, %{approved_by_id: actor.id})
@@ -86,43 +90,21 @@ defmodule Emakola.Suppliers.ContentStudio do
       "return_terms" =>
         listing.offer.return_terms || "Ask the store about returns before ordering.",
       "prices" => Enum.map(terms, & &1.suggested_retail_price) |> Enum.sort(),
-      "supplier_prices" => Enum.map(terms, & &1.supplier_price) |> Enum.sort()
+      "supplier_prices" => Enum.map(terms, & &1.supplier_price) |> Enum.sort(),
+      "source_image_url" => product.images |> List.first() |> then(&(&1 && &1.url))
     }
   end
 
   defp deterministic_content(facts, :sales_kit, locale) do
-    title = facts["product_title"]
-    price = facts["prices"] |> List.first() |> money()
-
-    description =
-      blank_fallback(facts["supplier_description"], "Contact us for verified product details.")
-
-    %{
-      "locale" => locale,
-      "whatsapp" => "#{title} is available from #{price}. #{description}",
-      "facebook" => "Now available: #{title} from #{price}. #{description}",
-      "short_video_script" => "Show #{title}. Say: Available from #{price}. #{description}",
-      "faq" => [
-        %{
-          "question" => "Where is delivery available?",
-          "answer" => areas(facts["delivery_areas"])
-        },
-        %{"question" => "What is the return policy?", "answer" => facts["return_terms"]}
-      ]
-    }
+    facts
+    |> ContentLocale.render(locale)
+    |> Map.put("social_card_data_uri", SocialCard.data_uri(facts))
   end
 
   defp deterministic_content(facts, kind, locale) do
     deterministic_content(facts, :sales_kit, locale)
     |> Map.put("kind", Atom.to_string(kind))
   end
-
-  defp areas([]), do: "Confirm the delivery area with the store before ordering."
-  defp areas(areas), do: "Delivery areas: #{Enum.join(areas, ", ")}."
-  defp blank_fallback(value, fallback) when value in [nil, ""], do: fallback
-  defp blank_fallback(value, _fallback), do: value
-  defp money(nil), do: "the listed price"
-  defp money(amount), do: "GH₵#{:erlang.float_to_binary(amount / 100, decimals: 2)}"
 
   defp mark_stale(draft_id) do
     case Ash.get(ContentDraft, draft_id, authorize?: false) do

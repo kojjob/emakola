@@ -274,6 +274,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
 
     {:ok, [draft]} = Emakola.Suppliers.ContentStudio.list(ctx.merchant, ctx.store.id)
     assert draft.status == :draft
+    assert has_element?(view, "#content-social-card-#{draft.id}")
     assert has_element?(view, "#approve-content-draft-#{draft.id}")
 
     view |> element("#approve-content-draft-#{draft.id}") |> render_click()
