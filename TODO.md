@@ -160,6 +160,8 @@
       and protected grants for imported digital products.
 - [x] Add channel-ready Sales Kits, session-deduplicated tracked links, confirmed-order
       attribution, and the guided “First Money” journey.
+- [x] Enforce Earn launch guards: both payout accounts verified before network checkout,
+      no ordinary coupons on network items, and visible partner-fulfillment disclosure.
 - [ ] Pass the concierge validation gate before broad network rollout.
 
 ## OPEN — White-label design system (remaining phases)

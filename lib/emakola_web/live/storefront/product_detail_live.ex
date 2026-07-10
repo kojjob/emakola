@@ -13,6 +13,8 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   """
   use EmakolaWeb, :live_view
 
+  require Ash.Query
+
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Cart.CartStore
@@ -31,6 +33,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
          |> redirect(to: store_path(slug, "/products"))}
 
       product ->
+        partner_fulfillment = partner_fulfillment(product.id)
         option_types = load_option_types(product)
         selected_variant = List.first(product.variants)
         vov_map = load_variant_option_values(product.variants)
@@ -46,6 +49,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
         {:ok,
          socket
          |> assign(:product, product)
+         |> assign(:partner_fulfillment, partner_fulfillment)
          |> assign(:option_types, option_types)
          |> assign(:vov_map, vov_map)
          |> assign(:selected_variant, selected_variant)
@@ -255,7 +259,20 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
 
   @impl true
   def render(assigns) do
-    assigns.theme_module.render_product_detail(assigns)
+    theme_content = assigns.theme_module.render_product_detail(assigns)
+    assigns = assign(assigns, :theme_content, theme_content)
+
+    ~H"""
+    <div
+      :if={@partner_fulfillment}
+      id="partner-fulfillment-disclosure"
+      class="relative z-50 flex items-center justify-center gap-2 bg-emerald-950 px-4 py-2.5 text-center text-xs font-semibold text-emerald-50 shadow-sm"
+    >
+      <.icon name="hero-shield-check" class="size-4 text-emerald-300" />
+      Fulfilled by verified partner {@partner_fulfillment.name}
+    </div>
+    {@theme_content}
+    """
   end
 
   # -- Helpers --
@@ -263,6 +280,18 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   defp load_product(store_id, product_slug) do
     case Emakola.Catalog.get_product_by_slug(store_id, product_slug, authorize?: false) do
       {:ok, product} -> product
+      _ -> nil
+    end
+  end
+
+  defp partner_fulfillment(product_id) do
+    Emakola.Suppliers.ResellerListing
+    |> Ash.Query.filter(reseller_product_id == ^product_id and status == :active)
+    |> Ash.Query.load(offer: :wholesaler_store)
+    |> Ash.Query.limit(1)
+    |> Ash.read_one(authorize?: false)
+    |> case do
+      {:ok, %{offer: %{wholesaler_store: partner}}} -> %{name: partner.name}
       _ -> nil
     end
   end

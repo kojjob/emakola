@@ -137,11 +137,23 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
   @impl true
   def handle_event("apply_coupon", %{"coupon_code" => code}, socket) do
-    case CheckoutService.validate_coupon(
+    variant_ids = Enum.map(socket.assigns.cart, & &1.variant_id)
+
+    result =
+      if Emakola.Suppliers.NetworkCheckoutEligibility.network_items?(
            socket.assigns.store.id,
-           code,
-           socket.assigns.cart_total
+           variant_ids
          ) do
+        {:error, :network_coupon_not_allowed}
+      else
+        CheckoutService.validate_coupon(
+          socket.assigns.store.id,
+          code,
+          socket.assigns.cart_total
+        )
+      end
+
+    case result do
       {:ok, coupon} ->
         discount =
           CheckoutService.calculate_discount(
@@ -644,6 +656,16 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   defp checkout_error_message(:variant_not_found), do: "Some items are no longer available"
   defp checkout_error_message(:variant_not_in_store), do: "Some items are not from this store"
   defp checkout_error_message(:insufficient_stock), do: "Some items are out of stock"
+
+  defp checkout_error_message(:reseller_payout_unverified),
+    do: "This store is finishing payout verification. Please try again soon."
+
+  defp checkout_error_message(:wholesaler_payout_unverified),
+    do: "A fulfillment partner is finishing payout verification. Please try again soon."
+
+  defp checkout_error_message(:network_coupon_not_allowed),
+    do: "Coupons cannot be used with partner-fulfilled products yet."
+
   defp checkout_error_message(_), do: "Something went wrong. Please try again."
 
   defp coupon_error_message(:coupon_not_found), do: "Coupon code not found"
@@ -651,6 +673,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   defp coupon_error_message(:coupon_expired), do: "This coupon has expired"
   defp coupon_error_message(:coupon_not_started), do: "This coupon is not yet active"
   defp coupon_error_message(:coupon_minimum_not_met), do: "Order does not meet the minimum amount"
+
+  defp coupon_error_message(:network_coupon_not_allowed),
+    do: "Coupons cannot be used with partner-fulfilled products yet"
 
   defp coupon_error_message(:coupon_max_uses_reached),
     do: "This coupon has reached its usage limit"

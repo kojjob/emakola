@@ -192,6 +192,9 @@ Decomposed into 5 sub-projects; **SP1 + SP5 built first** (the money rails).
 - [x] **Sales Kits and First Money journey** — channel-ready product messages,
   session-deduplicated clicks, confirmed-order conversions/revenue, and guided activation
   through the first fulfilled sale.
+- [x] **Locked launch guards** — reseller and wholesaler payout verification before
+  network checkout, coupon exclusion for network items, and customer-facing verified-partner
+  fulfillment disclosure across every storefront theme.
 
 ### Locked Makola Earn decisions
 

@@ -130,6 +130,8 @@ defmodule Emakola.Suppliers.ListingImporterTest do
 
   test "imported variants use the existing supplier fulfillment path at checkout", context do
     connect!(context)
+    verified_payout!(context.reseller, "ACCT_reseller")
+    verified_payout!(context.wholesaler, "ACCT_wholesaler")
 
     {:ok, listing} =
       ListingImporter.import(context.reseller_actor, context.reseller.id, context.offer)
@@ -150,6 +152,42 @@ defmodule Emakola.Suppliers.ListingImporterTest do
 
     assert [%{supplier_id: supplier_id}] = fulfillments
     assert supplier_id == listing.supplier_id
+  end
+
+  test "network checkout requires verified payout accounts for both stores", context do
+    connect!(context)
+
+    {:ok, listing} =
+      ListingImporter.import(context.reseller_actor, context.reseller.id, context.offer)
+
+    [variant | _] = listing.reseller_product.variants
+    items = [%{variant_id: variant.id, quantity: 1}]
+
+    assert {:error, :reseller_payout_unverified} =
+             Emakola.Orders.CheckoutService.checkout!(context.reseller.id, items, [])
+
+    verified_payout!(context.reseller, "ACCT_reseller_only")
+
+    assert {:error, :wholesaler_payout_unverified} =
+             Emakola.Orders.CheckoutService.checkout!(context.reseller.id, items, [])
+  end
+
+  test "network checkout excludes ordinary merchant coupons", context do
+    connect!(context)
+    verified_payout!(context.reseller, "ACCT_reseller_coupon")
+    verified_payout!(context.wholesaler, "ACCT_wholesaler_coupon")
+
+    {:ok, listing} =
+      ListingImporter.import(context.reseller_actor, context.reseller.id, context.offer)
+
+    [variant | _] = listing.reseller_product.variants
+
+    assert {:error, :network_coupon_not_allowed} =
+             Emakola.Orders.CheckoutService.checkout!(
+               context.reseller.id,
+               [%{variant_id: variant.id, quantity: 1}],
+               coupon_id: Ash.UUID.generate()
+             )
   end
 
   test "rejects prices outside supplier bounds before creating catalog records", context do
@@ -314,5 +352,20 @@ defmodule Emakola.Suppliers.ListingImporterTest do
     Emakola.Catalog.Product
     |> Ash.Query.filter(store_id == ^store_id)
     |> Ash.count!(authorize?: false)
+  end
+
+  defp verified_payout!(store, code) do
+    account =
+      Emakola.Stores.StorePayoutAccount
+      |> Ash.Changeset.for_create(:create, %{
+        store_id: store.id,
+        payout_provider: :paystack,
+        payout_destination: %{"type" => "momo", "number" => "0244000000"}
+      })
+      |> Ash.create!(authorize?: false)
+
+    account
+    |> Ash.Changeset.for_update(:record_subaccount, %{subaccount_code: code})
+    |> Ash.update!(authorize?: false)
   end
 end
