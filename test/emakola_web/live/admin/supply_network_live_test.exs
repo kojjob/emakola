@@ -5,7 +5,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
   import Emakola.Factory
   import Phoenix.LiveViewTest
 
-  alias Emakola.Suppliers.Network
+  alias Emakola.Suppliers.{Network, Offers}
 
   setup %{conn: conn} do
     {conn, merchant, store} = setup_authenticated_merchant(conn)
@@ -127,5 +127,68 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
 
     refute has_element?(view, "#terminate-connection-#{active.id}")
     assert has_element?(view, "#supply-connections article", "terminated")
+  end
+
+  test "shows published partner offers with clear earnings", ctx do
+    offer = create_partner_offer!(ctx)
+    connect_partner!(ctx)
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+
+    assert has_element?(view, "#earn-catalog")
+    assert has_element?(view, "#available-offer-count", "1 available")
+    assert has_element?(view, "#earn-offers article", "Partner Kente Bag")
+    assert has_element?(view, "#earn-offers article", "GH₵15.00")
+    assert has_element?(view, "#import-offer-#{offer.id}")
+  end
+
+  test "adds an offer to the reseller catalog with one action", ctx do
+    offer = create_partner_offer!(ctx)
+    connect_partner!(ctx)
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+
+    view
+    |> element("#import-offer-#{offer.id}")
+    |> render_click()
+
+    assert has_element?(view, "#available-offer-count", "0 available")
+    assert has_element?(view, "#listing-count", "1")
+    assert has_element?(view, "#reseller-listings article", "Partner Kente Bag")
+    refute has_element?(view, "#import-offer-#{offer.id}")
+  end
+
+  defp create_partner_offer!(ctx) do
+    product = create_product!(ctx.partner, status: :active, title: "Partner Kente Bag")
+    variant = create_variant!(product, ctx.partner, price: 6_500, stock_quantity: 10)
+
+    {:ok, offer} =
+      Offers.create_draft(ctx.partner_merchant, %{
+        wholesaler_store_id: ctx.partner.id,
+        source_product_id: product.id,
+        earning_model: :markup
+      })
+
+    {:ok, _terms} =
+      Offers.add_variant(ctx.partner_merchant, offer, %{
+        source_variant_id: variant.id,
+        supplier_price: 5_000,
+        suggested_retail_price: 6_500,
+        max_retail_price: 7_500
+      })
+
+    {:ok, published} = Offers.publish(ctx.partner_merchant, offer)
+    published
+  end
+
+  defp connect_partner!(ctx) do
+    {:ok, pending} =
+      Network.request(ctx.partner_merchant, %{
+        wholesaler_store_id: ctx.partner.id,
+        reseller_store_id: ctx.store.id,
+        requested_by_store_id: ctx.partner.id
+      })
+
+    {:ok, active} = Network.approve(ctx.merchant, pending)
+    active
   end
 end

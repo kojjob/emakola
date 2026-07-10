@@ -178,14 +178,14 @@ Decomposed into 5 sub-projects; **SP1 + SP5 built first** (the money rails).
   terminate service with participant authorization and lifecycle tests.
 - [x] **SP2 merchant UI** — connection inbox, invitations, active relationships, and
   approve/reject/suspend/reactivate/terminate controls.
-- [ ] **SP3 shared offers and catalog sourcing** — physical/digital offers, markup and
+- [x] **SP3 shared offers and catalog sourcing** — physical/digital offers, markup and
   fixed-commission earnings, one-click listing, and source synchronization.
   - [x] Offer foundation: network-only commercial terms reference the existing
     Product/Variant catalog, with partner-gated discovery and live source availability.
   - [x] Transactional reseller listing/import mapping, multi-variant option cloning,
     bounded prices, source synchronization, and automatic suspension propagation.
   - [x] Retryable, SSRF-safe source-image replication into reseller-owned storage.
-  - [ ] Pilot-facing one-click publication UI.
+  - [x] Pilot-facing one-click publication UI with offer earnings and listing status.
 - [ ] **SP4 cross-store fulfillment** — wholesaler inbound queue, cross-tenant access,
   physical delivery proof, and protected digital grants.
 - [ ] **Sales Kits and First Money journey** — ready-to-share content, tracked links, and

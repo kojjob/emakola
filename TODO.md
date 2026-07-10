@@ -148,14 +148,14 @@
       lifecycle, migration, and tests.
 - [x] **SP2 UI:** merchant invitations, approvals, active connections, suspension,
       reactivation, and termination at `/admin/settings/supply-network`.
-- [ ] **SP3:** shared physical/digital offers, markup/fixed commission, one-click listing,
+- [x] **SP3:** shared physical/digital offers, markup/fixed commission, one-click listing,
       and source synchronization.
   - [x] Shared-offer foundation references existing products/variants, validates
         markup and fixed-commission terms, and limits discovery to active supply partners.
   - [x] Transactional reseller listing/import mapping for products, variants,
         option values, bounded pricing, and existing supplier fulfillment linkage.
   - [x] Retryable, SSRF-safe source-image replication into reseller-owned storage.
-  - [ ] Pilot-facing one-click listing UI.
+  - [x] Pilot-facing one-click listing UI with offer earnings and imported-listing status.
 - [ ] **SP4:** cross-store inbound fulfillment, delivery proof, and protected digital delivery.
 - [ ] Add Sales Kits, tracked sharing links, and the guided “First Money” journey.
 - [ ] Pass the concierge validation gate before broad network rollout.

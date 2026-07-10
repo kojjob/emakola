@@ -2,7 +2,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
   @moduledoc "Merchant UI for SP2 wholesaler/reseller supply connections."
   use EmakolaWeb, :live_view
 
-  alias Emakola.Suppliers.Network
+  alias Emakola.Suppliers.{ListingImporter, Network, Offers}
 
   @impl true
   def mount(_params, _session, socket) do
@@ -12,9 +12,12 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
        page_title: "Earn Network",
        active_nav: :supply_network,
        connection_count: 0,
+       offer_count: 0,
+       listing_count: 0,
        form: connection_form()
      )
-     |> load_connections()}
+     |> load_connections()
+     |> load_earn_catalog()}
   end
 
   @impl true
@@ -83,12 +86,39 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     )
   end
 
+  def handle_event("import_offer", %{"id" => offer_id}, socket) do
+    actor = socket.assigns.current_merchant
+    store = socket.assigns.current_store
+
+    with {:ok, offers} <- Offers.list_available(actor, store.id),
+         %{} = offer <- Enum.find(offers, &(&1.id == offer_id)),
+         {:ok, _listing} <- ListingImporter.import(actor, store.id, offer) do
+      {:noreply,
+       socket
+       |> load_earn_catalog()
+       |> put_flash(:info, "Product added to your store. Its images are being prepared.")}
+    else
+      nil ->
+        {:noreply, put_flash(socket, :error, "This offer is no longer available.")}
+
+      {:error, :listing_exists} ->
+        {:noreply, socket |> load_earn_catalog() |> put_flash(:info, "Already in your store.")}
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "This product could not be added right now.")}
+    end
+  end
+
   defp update_connection(socket, id, callback, success_message) do
     actor = socket.assigns.current_merchant
 
     with {:ok, connection} <- Network.get(actor, id),
          {:ok, _updated} <- callback.(actor, connection) do
-      {:noreply, socket |> load_connections() |> put_flash(:info, success_message)}
+      {:noreply,
+       socket
+       |> load_connections()
+       |> load_earn_catalog()
+       |> put_flash(:info, success_message)}
     else
       {:error, :forbidden} ->
         {:noreply, put_flash(socket, :error, "You cannot perform that action.")}
@@ -112,6 +142,25 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     |> assign(:connection_count, length(connections))
     |> stream(:connections, connections, reset: true)
   end
+
+  defp load_earn_catalog(socket) do
+    actor = socket.assigns.current_merchant
+    store = socket.assigns.current_store
+
+    offers = result_rows(Offers.list_available(actor, store.id))
+    listings = result_rows(ListingImporter.list(actor, store.id))
+    imported_offer_ids = MapSet.new(listings, & &1.offer_id)
+    available = Enum.reject(offers, &MapSet.member?(imported_offer_ids, &1.id))
+
+    socket
+    |> assign(:offer_count, length(available))
+    |> assign(:listing_count, length(listings))
+    |> stream(:offers, available, reset: true)
+    |> stream(:listings, listings, reset: true)
+  end
+
+  defp result_rows({:ok, rows}), do: rows
+  defp result_rows(_error), do: []
 
   defp connection_attrs(current_store_id, partner_store_id, "supply") do
     %{
@@ -154,6 +203,28 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
   defp status_classes(:suspended), do: "bg-slate-100 text-slate-600 ring-slate-500/20"
   defp status_classes(:rejected), do: "bg-rose-50 text-rose-700 ring-rose-600/20"
   defp status_classes(:terminated), do: "bg-slate-100 text-slate-500 ring-slate-500/20"
+
+  defp lead_image(offer), do: List.first(offer.source_product.images)
+
+  defp earning_range(offer) do
+    earnings = Enum.map(offer.offer_variants, &(&1.suggested_retail_price - &1.supplier_price))
+
+    case Enum.min_max(earnings, fn -> {0, 0} end) do
+      {same, same} -> money(same)
+      {minimum, maximum} -> "#{money(minimum)}–#{money(maximum)}"
+    end
+  end
+
+  defp retail_range(offer) do
+    prices = Enum.map(offer.offer_variants, & &1.suggested_retail_price)
+
+    case Enum.min_max(prices, fn -> {0, 0} end) do
+      {same, same} -> money(same)
+      {minimum, maximum} -> "#{money(minimum)}–#{money(maximum)}"
+    end
+  end
+
+  defp money(pesewas), do: "GH₵#{:erlang.float_to_binary(pesewas / 100, decimals: 2)}"
 
   @impl true
   def render(assigns) do
@@ -328,6 +399,148 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
                 End connection
               </button>
             </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="earn-catalog" aria-labelledby="earn-catalog-heading" class="space-y-5">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">
+              Earn catalog
+            </span>
+            <h2
+              id="earn-catalog-heading"
+              class="mt-1 text-2xl font-bold tracking-tight text-slate-950"
+            >
+              Products you can sell today
+            </h2>
+            <p class="mt-1 max-w-2xl text-sm text-slate-500">
+              No stock payment upfront. Add a partner product, share your storefront, and keep the displayed earning when it sells.
+            </p>
+          </div>
+          <span
+            id="available-offer-count"
+            class="w-fit rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 ring-1 ring-emerald-600/15"
+          >
+            {@offer_count} available
+          </span>
+        </div>
+
+        <div id="earn-offers" phx-update="stream" class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <div
+            id="offers-empty"
+            class="hidden only:block rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center md:col-span-2 xl:col-span-3"
+          >
+            <.icon name="hero-shopping-bag" class="mx-auto size-9 text-slate-300" />
+            <p class="mt-3 text-sm font-semibold text-slate-700">No new products available</p>
+            <p class="mt-1 text-xs text-slate-500">
+              Connect with a supplier or check back when partners publish new offers.
+            </p>
+          </div>
+
+          <article
+            :for={{dom_id, offer} <- @streams.offers}
+            id={dom_id}
+            class="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-950/5"
+          >
+            <div class="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-emerald-50 to-slate-100">
+              <img
+                :if={lead_image(offer)}
+                src={lead_image(offer).url}
+                alt={lead_image(offer).alt_text || offer.source_product.title}
+                class="size-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                loading="lazy"
+              />
+              <div
+                :if={!lead_image(offer)}
+                class="flex size-full items-center justify-center text-emerald-200"
+              >
+                <.icon name="hero-photo" class="size-12" />
+              </div>
+              <span class="absolute left-3 top-3 rounded-full bg-slate-950/85 px-3 py-1 text-[11px] font-bold text-white backdrop-blur">
+                No upfront stock
+              </span>
+            </div>
+            <div class="p-5">
+              <p class="text-xs font-medium text-slate-400">{offer.wholesaler_store.name}</p>
+              <h3 class="mt-1 line-clamp-2 text-lg font-bold text-slate-900">
+                {offer.source_product.title}
+              </h3>
+              <div class="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-3">
+                <div>
+                  <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Sell for</p>
+                  <p class="mt-1 text-sm font-bold text-slate-800">{retail_range(offer)}</p>
+                </div>
+                <div class="border-l border-slate-200 pl-3">
+                  <p class="text-[10px] font-bold uppercase tracking-wide text-emerald-600">
+                    You earn
+                  </p>
+                  <p class="mt-1 text-sm font-bold text-emerald-700">{earning_range(offer)}</p>
+                </div>
+              </div>
+              <button
+                id={"import-offer-#{offer.id}"}
+                phx-click="import_offer"
+                phx-value-id={offer.id}
+                class="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.98]"
+              >
+                <.icon name="hero-plus" class="size-4" /> Add to my store
+              </button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="earned-listings" aria-labelledby="earned-listings-heading" class="space-y-4">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <h2 id="earned-listings-heading" class="text-xl font-semibold text-slate-900">
+              Added from partners
+            </h2>
+            <p class="mt-1 text-sm text-slate-500">
+              These products behave like the rest of your catalog and fulfill through their supplier.
+            </p>
+          </div>
+          <span
+            id="listing-count"
+            class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"
+          >
+            {@listing_count}
+          </span>
+        </div>
+        <div id="reseller-listings" phx-update="stream" class="grid gap-3 sm:grid-cols-2">
+          <div
+            id="listings-empty"
+            class="hidden only:block rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center sm:col-span-2"
+          >
+            <p class="text-sm font-semibold text-slate-700">
+              You have not added a partner product yet.
+            </p>
+          </div>
+          <article
+            :for={{dom_id, listing} <- @streams.listings}
+            id={dom_id}
+            class="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+          >
+            <div class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+              <.icon name="hero-check" class="size-5" />
+            </div>
+            <div class="min-w-0 flex-1">
+              <h3 class="truncate text-sm font-semibold text-slate-900">
+                {listing.reseller_product.title}
+              </h3>
+              <p class="mt-0.5 text-xs capitalize text-slate-500">
+                {listing.status} · Synced from partner
+              </p>
+            </div>
+            <.link
+              navigate={~p"/admin/products/#{listing.reseller_product_id}/edit"}
+              class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-50 hover:text-slate-700"
+              aria-label={"Edit #{listing.reseller_product.title}"}
+            >
+              <.icon name="hero-pencil-square" class="size-4" />
+            </.link>
           </article>
         </div>
       </section>
