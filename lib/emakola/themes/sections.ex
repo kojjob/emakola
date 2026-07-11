@@ -30,10 +30,15 @@ defmodule Emakola.Themes.Sections do
   end
 
   defp theme_section_index do
-    for theme <- @sectionized_themes,
+    for theme <- @sectionized_themes ++ extra_sectionized_themes(),
         section <- theme.sections(),
         into: %{} do
       {section.key(), section}
     end
   end
+
+  # Test-only seam: lets tests resolve section keys for a theme module that
+  # isn't registered in @sectionized_themes yet (fan-out lands it for real
+  # in later tasks). Not read outside test config.
+  defp extra_sectionized_themes, do: Application.get_env(:emakola, :extra_sectionized_themes, [])
 end

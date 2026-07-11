@@ -155,9 +155,11 @@ defmodule Emakola.Themes.HomeSections do
   # ThemeResolver exposes no known-ids list, but its public theme_module/1
   # round-trips exactly: unknown ids fall back to Market, whose id/0 won't
   # echo the input. Rejects unknown themes, non-binary names, and the
-  # reserved "v" envelope key without modifying ThemeResolver.
+  # reserved "v" envelope key without modifying ThemeResolver. The seam
+  # clause lets tests exercise a fake theme not registered with
+  # ThemeResolver — see the matching seam in Sections.resolve/1.
   defp validate_theme_name(theme_name) when is_binary(theme_name) do
-    if ThemeResolver.theme_module(theme_name).id() == theme_name do
+    if ThemeResolver.theme_module(theme_name).id() == theme_name or seam_theme?(theme_name) do
       :ok
     else
       {:error, :unknown_theme}
@@ -165,6 +167,14 @@ defmodule Emakola.Themes.HomeSections do
   end
 
   defp validate_theme_name(_theme_name), do: {:error, :unknown_theme}
+
+  # Test-only seam: mirrors Sections.resolve/1's extra_sectionized_themes
+  # env so put_layout/clear_layout accept a fake theme's name in tests
+  # without registering it as a real theme. Not read outside test config.
+  defp seam_theme?(theme_name) do
+    Application.get_env(:emakola, :extra_sectionized_themes, [])
+    |> Enum.any?(&(&1.id() == theme_name))
+  end
 
   defp update_theme_config(store, config) do
     store
