@@ -264,7 +264,7 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
               href={"https://wa.me/?text=Hi%2C%20I'm%20interested%20in%20#{URI.encode(@product.title)}%20from%20#{URI.encode(@store.name)}"}
               target="_blank"
               rel="noopener noreferrer"
-              class="flex items-center justify-center gap-2.5 w-full h-12 border-2 border-[#25D366] rounded-full text-base font-semibold text-[#25D366] hover:bg-whatsapp/5 transition-all"
+              class="flex items-center justify-center gap-2.5 w-full h-12 border-2 border-whatsapp rounded-full text-base font-semibold text-whatsapp hover:bg-whatsapp/5 transition-all"
               style="font-family: 'Inter', sans-serif;"
             >
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">

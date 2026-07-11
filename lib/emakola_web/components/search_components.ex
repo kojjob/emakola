@@ -82,7 +82,7 @@ defmodule EmakolaWeb.SearchComponents do
               phx-debounce="300"
               autocomplete="off"
               autofocus
-              class="flex-1 text-[0.9375rem] text-[#0F172A] placeholder:text-[#94A3B8] bg-transparent border-none focus:outline-none focus:ring-0"
+              class="flex-1 text-[0.9375rem] text-slate-900 placeholder:text-[#94A3B8] bg-transparent border-none focus:outline-none focus:ring-0"
             />
             <button
               type="button"
@@ -153,7 +153,7 @@ defmodule EmakolaWeb.SearchComponents do
                   />
                 </svg>
               </div>
-              <p class="text-sm font-semibold text-[#0F172A] mb-1">
+              <p class="text-sm font-semibold text-slate-900 mb-1">
                 No results found
               </p>
               <p class="text-xs text-[#64748B]">
@@ -196,7 +196,7 @@ defmodule EmakolaWeb.SearchComponents do
                   </div>
                 </div>
                 <div class="min-w-0 flex-1">
-                  <p class="text-sm font-semibold text-[#0F172A] truncate">
+                  <p class="text-sm font-semibold text-slate-900 truncate">
                     {product.title}
                   </p>
                   <p class="text-xs font-medium text-store-accent">
@@ -221,7 +221,7 @@ defmodule EmakolaWeb.SearchComponents do
               >
                 <a
                   href={store_path(@store.slug, "/products?q=#{URI.encode_www_form(@search_query)}")}
-                  class="flex items-center justify-center gap-2 py-2.5 w-full rounded-xl bg-white border border-[#E2E8F0] text-sm font-semibold text-[#0F172A] hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all"
+                  class="flex items-center justify-center gap-2 py-2.5 w-full rounded-xl bg-white border border-[#E2E8F0] text-sm font-semibold text-slate-900 hover:bg-[#F8FAFC] hover:border-[#CBD5E1] transition-all"
                 >
                   View all {@total_results} results
                   <svg

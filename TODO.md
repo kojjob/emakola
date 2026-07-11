@@ -97,13 +97,19 @@
 
 ## OPEN — Component library consistency
 
-- [ ] **Finish replacing inline hex literals with named tokens** — the 7 tokens
-      (`emakola-emerald`, `emakola-gold`, `mtn`, `voda`, `whatsapp`,
-      `store-accent`, `cta-dark`) are defined in `assets/css/app.css:164`, but
-      ~1968 `bg-[#…]`/`text-[#…]`/`from-[#…]` literals still exist in `lib/`.
-- [ ] **Resolve color drift** — both `#B45309` (66×, storefront default) and
-      `#CA8A04` (15×, admin) are in use. Standardise per
-      `storefront_components.ex` (`#B45309`).
+- [x] **Brand-token sweep** — DONE 2026-07-11, rescoped after measurement. The
+      "~1968 literals" were mostly per-theme palettes (a theme's identity IS its
+      hex palette — flattening them to global tokens would be wrong), so only
+      true brand colors were swept: all WhatsApp (`#25D366`/`#1FAF55` → 
+      `-whatsapp`/`-whatsapp-dark`, 22×) and Vodafone (`#E60000` → `-voda`, 3×)
+      literals everywhere, plus spelling normalizations in `lib/emakola_web`
+      (non-theme) files (`#B45309` → `amber-700`, `#0F172A` → `slate-900`).
+      MTN/emerald/gold literals were already fully swept by earlier passes.
+- [x] **Resolve color drift** — RESOLVED-AS-STALE 2026-07-11: only 3 `#CA8A04`
+      uses remain and all are deliberate (the `emakola-gold` token definition,
+      Atelier's `--theme-gold`, and a merchant color-picker option). No scattered
+      drift exists; earlier passes already standardised the storefront on
+      `#B45309`.
 - [ ] **Add the two missing shared admin components** — `admin_page_header/1`
       and `empty_state/1` exist in `admin_components.ex`; add `table_toolbar/1`
       and reconcile the `status_pill/1` vs the planned `status_badge/1` name.

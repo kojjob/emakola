@@ -420,10 +420,10 @@ defmodule Emakola.Themes.Market.ProductDetail do
                 href={Shared.whatsapp_link(@store, @product.title)}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex items-center justify-center gap-2.5 w-full h-12 border-[1.5px] border-[#E2E8F0] rounded-full text-[0.9375rem] font-medium text-[#0F172A] hover:border-[#25D366] hover:text-[#25D366] hover:bg-whatsapp/5 transition-all duration-200 group"
+                class="flex items-center justify-center gap-2.5 w-full h-12 border-[1.5px] border-[#E2E8F0] rounded-full text-[0.9375rem] font-medium text-[#0F172A] hover:border-whatsapp hover:text-whatsapp hover:bg-whatsapp/5 transition-all duration-200 group"
               >
                 <svg
-                  class="w-5 h-5 text-[#25D366] group-hover:scale-110 transition-transform"
+                  class="w-5 h-5 text-whatsapp group-hover:scale-110 transition-transform"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                 >
