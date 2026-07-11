@@ -50,6 +50,33 @@ defmodule Emakola.Payments.HubtelWebhookTest do
 
       assert {:error, :payment_not_found} = HubtelWebhook.handle_event(event)
     end
+
+    # Post-merge hardening (2026-07-11 review): a replay of a successful charge
+    # must re-run the idempotent post-processing (the Paystack handler already
+    # does this) so a crash after mark_success is recovered, not skipped.
+    test "replays a successful charge to recover crashed post-processing", %{store: store} do
+      order = create_order!(store)
+      payment = create_payment!(store, order_id: order.id)
+
+      # Simulate the first delivery crashing right after mark_success.
+      payment =
+        payment |> Ash.Changeset.for_update(:mark_success, %{}) |> Ash.update!(authorize?: false)
+
+      event = %{
+        "ResponseCode" => "0000",
+        "Data" => %{
+          "ClientReference" => payment.gateway_reference,
+          "Amount" => 50.0
+        }
+      }
+
+      assert :ok = HubtelWebhook.handle_event(event)
+
+      assert Ash.get!(Emakola.Orders.Order, order.id,
+               authorize?: false,
+               tenant: store.id
+             ).status == :confirmed
+    end
   end
 
   # -- handle_event/1: failed payment ----------------------------------------

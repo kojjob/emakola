@@ -1,7 +1,16 @@
 defmodule Emakola.Suppliers.ProtectedPreordersTest do
   use Emakola.DataCase, async: true
+  use Oban.Testing, repo: Emakola.Repo
   import Emakola.Factory
   import Ecto.Query
+
+  defmodule SelfReportingGateway do
+    @moduledoc "Runs in the caller's process; reports every refund to the test pid."
+    def process_refund(reference, amount) do
+      send(self(), {:refund_called, reference, amount})
+      {:ok, %{refund_reference: "REF-#{reference}"}}
+    end
+  end
 
   alias Emakola.Suppliers.{
     CommercePassports,
@@ -214,5 +223,137 @@ defmodule Emakola.Suppliers.ProtectedPreordersTest do
         evidence_requirements: "Batch photos and serials"
       }
     ]
+  end
+
+  # Post-merge hardening (2026-07-11 review): no successful deposit payment may
+  # be stranded — late webhooks, crashed refunds, and failed gateway calls must
+  # all converge on :refunded via the sweep.
+  describe "refund recovery" do
+    test "a deposit paid after failure is swept for refund, not stranded", ctx do
+      {:ok, preorder} = create_open(ctx)
+      {:ok, deposit} = ProtectedPreorders.reserve(preorder.id, ctx.customer, 2)
+      payment = create_payment!(ctx.store, amount: deposit.amount)
+
+      deposit
+      |> Ash.Changeset.for_update(:attach_payment, %{payment_id: payment.id})
+      |> Ash.update!(authorize?: false)
+
+      # The refund deadline passes and the preorder fails while the deposit is
+      # still pending (its charge.success has not arrived yet).
+      force_refund_deadline_past!(preorder.id)
+
+      {:ok, _results} =
+        ProtectedPreorders.fail_and_refund(
+          preorder.id,
+          "Deadline missed",
+          Emakola.Payments.Gateways.Mock
+        )
+
+      # The late webhook now lands with a successful charge.
+      payment =
+        payment |> Ash.Changeset.for_update(:mark_success, %{}) |> Ash.update!(authorize?: false)
+
+      assert :ok = ProtectedPreorders.confirm_payment(payment)
+      assert Ash.get!(PreorderDeposit, deposit.id, authorize?: false).status == :paid
+
+      reloaded = Ash.get!(ProtectedPreorder, preorder.id, authorize?: false)
+      assert reloaded.status in [:failed, :refunded]
+
+      # The sweep must re-enqueue this preorder even though it is terminal.
+      assert :ok =
+               Emakola.Suppliers.Workers.ProtectedPreorderExpiryWorker.perform(%Oban.Job{
+                 args: %{}
+               })
+
+      assert_enqueued(
+        worker: Emakola.Suppliers.Workers.ProtectedPreorderExpiryWorker,
+        args: %{preorder_id: preorder.id}
+      )
+
+      # And the per-preorder job completes the refund.
+      {:ok, _results} =
+        ProtectedPreorders.fail_and_refund(
+          preorder.id,
+          "Late deposit refund",
+          Emakola.Payments.Gateways.Mock
+        )
+
+      assert Ash.get!(PreorderDeposit, deposit.id, authorize?: false).status == :refunded
+
+      assert Ash.get!(Emakola.Payments.Payment, payment.id, authorize?: false).status ==
+               :refunded
+    end
+
+    test "a stranded :refunding deposit is re-attempted", ctx do
+      {:ok, preorder} = create_open(ctx)
+      deposit = paid_deposit!(ctx, preorder)
+      force_refund_deadline_past!(preorder.id)
+      force_deposit_status!(deposit.id, "refunding")
+
+      {:ok, _results} =
+        ProtectedPreorders.fail_and_refund(preorder.id, "Recovery", SelfReportingGateway)
+
+      assert_received {:refund_called, _reference, 4_000}
+      assert Ash.get!(PreorderDeposit, deposit.id, authorize?: false).status == :refunded
+      assert Ash.get!(ProtectedPreorder, preorder.id, authorize?: false).status == :refunded
+    end
+
+    test "a :refunding deposit whose payment is already refunded completes without a gateway call",
+         ctx do
+      {:ok, preorder} = create_open(ctx)
+      deposit = paid_deposit!(ctx, preorder)
+      force_refund_deadline_past!(preorder.id)
+      force_deposit_status!(deposit.id, "refunding")
+
+      Ash.get!(Emakola.Payments.Payment, deposit.payment_id, authorize?: false)
+      |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: deposit.amount})
+      |> Ash.update!(authorize?: false)
+
+      {:ok, _results} =
+        ProtectedPreorders.fail_and_refund(preorder.id, "Bookkeeping", SelfReportingGateway)
+
+      refute_received {:refund_called, _, _}
+      assert Ash.get!(PreorderDeposit, deposit.id, authorize?: false).status == :refunded
+    end
+
+    test "the deposit state machine rejects illegal transitions", ctx do
+      {:ok, preorder} = create_open(ctx)
+      {:ok, deposit} = ProtectedPreorders.reserve(preorder.id, ctx.customer, 2)
+
+      assert_raise Ash.Error.Invalid, fn ->
+        deposit
+        |> Ash.Changeset.for_update(:refunded, %{refund_reference: "REF-ILLEGAL"})
+        |> Ash.update!(authorize?: false)
+      end
+    end
+  end
+
+  defp paid_deposit!(ctx, preorder) do
+    {:ok, deposit} = ProtectedPreorders.reserve(preorder.id, ctx.customer, 2)
+    payment = create_payment!(ctx.store, amount: deposit.amount)
+
+    deposit
+    |> Ash.Changeset.for_update(:attach_payment, %{payment_id: payment.id})
+    |> Ash.update!(authorize?: false)
+
+    payment =
+      payment |> Ash.Changeset.for_update(:mark_success, %{}) |> Ash.update!(authorize?: false)
+
+    :ok = ProtectedPreorders.confirm_payment(payment)
+    Ash.get!(PreorderDeposit, deposit.id, authorize?: false)
+  end
+
+  defp force_refund_deadline_past!(preorder_id) do
+    Emakola.Repo.update_all(
+      from(p in "protected_preorders", where: p.id == type(^preorder_id, Ecto.UUID)),
+      set: [automatic_refund_deadline: DateTime.add(DateTime.utc_now(), -60)]
+    )
+  end
+
+  defp force_deposit_status!(deposit_id, status) do
+    Emakola.Repo.update_all(
+      from(d in "preorder_deposits", where: d.id == type(^deposit_id, Ecto.UUID)),
+      set: [status: status]
+    )
   end
 end

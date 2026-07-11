@@ -155,4 +155,68 @@ defmodule Emakola.Suppliers.SalesTeamsTest do
              |> Ash.Query.filter(payment_id == ^payment.id)
              |> Ash.read!(authorize?: false)
   end
+
+  # Post-merge hardening (2026-07-11 review): a crash that persisted only some
+  # member rows must be healed by the webhook retry — the old any-vs-all guard
+  # skipped the whole payment, stranding the remaining members forever.
+  test "a partial settlement crash is completed on retry, not skipped" do
+    {owner, store} = create_merchant_with_store!()
+    seller_a = create_merchant!()
+    seller_b = create_merchant!()
+
+    {:ok, team} =
+      SalesTeams.create(owner, store.id, "Crash crew", [
+        %{merchant_id: owner.id, role: :owner, split_bps: 3_334},
+        %{merchant_id: seller_a.id, role: :seller, split_bps: 3_333},
+        %{merchant_id: seller_b.id, role: :seller, split_bps: 3_333}
+      ])
+
+    for seller <- [seller_a, seller_b] do
+      invited = Enum.find(team.members, &(&1.merchant_id == seller.id))
+      {:ok, _} = SalesTeams.accept(seller, invited.id)
+    end
+
+    order = create_order!(store, attribution: %{"sales_team_id" => team.id})
+    payment = create_payment!(store, order_id: order.id, amount: 10_000)
+
+    Emakola.Payments.create_payment_split!(
+      %{
+        store_id: store.id,
+        payment_id: payment.id,
+        role: :merchant,
+        recipient_store_id: store.id,
+        amount: 9_800
+      },
+      authorize?: false
+    )
+
+    assert :ok = SalesTeams.settle_attributed_payment(payment)
+
+    settled =
+      Emakola.Suppliers.SalesTeamSettlement
+      |> Ash.Query.filter(payment_id == ^payment.id)
+      |> Ash.read!(authorize?: false)
+
+    assert length(settled) == 3
+
+    # Simulate the crash aftermath: only the owner's row survived.
+    lost_ids = settled |> Enum.reject(&(&1.role == :owner)) |> Enum.map(& &1.id)
+
+    Emakola.Repo.delete_all(
+      Ecto.Query.from(s in "earn_sales_team_settlements",
+        where: s.id in type(^lost_ids, {:array, Ecto.UUID})
+      )
+    )
+
+    assert :ok = SalesTeams.settle_attributed_payment(payment)
+
+    healed =
+      Emakola.Suppliers.SalesTeamSettlement
+      |> Ash.Query.filter(payment_id == ^payment.id)
+      |> Ash.read!(authorize?: false)
+
+    assert length(healed) == 3
+    assert Enum.sum(Enum.map(healed, & &1.amount)) == 9_800
+    assert Enum.uniq_by(healed, & &1.team_member_id) == healed
+  end
 end

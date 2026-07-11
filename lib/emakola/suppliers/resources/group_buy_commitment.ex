@@ -101,6 +101,22 @@ defmodule Emakola.Suppliers.GroupBuyCommitment do
       change(set_attribute(:refund_attempted_at, &DateTime.utc_now/0))
     end
 
+    update :reclaim_refund do
+      require_atomic?(false)
+      accept([])
+      validate(attribute_equals(:status, :refund_failed))
+      change(set_attribute(:status, :refunding))
+      change(set_attribute(:refund_attempted_at, &DateTime.utc_now/0))
+    end
+
+    update :claim_late_refund do
+      require_atomic?(false)
+      accept([])
+      validate(attribute_in(:status, [:pending, :cancelled]))
+      change(set_attribute(:status, :refunding))
+      change(set_attribute(:refund_attempted_at, &DateTime.utc_now/0))
+    end
+
     update :mark_refund_failed do
       require_atomic?(false)
       accept([:refund_error])

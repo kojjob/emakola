@@ -77,17 +77,45 @@ defmodule Emakola.Suppliers.GroupBuys do
     end
   end
 
-  def confirm_payment(payment) do
+  def confirm_payment(payment, gateway \\ payment_gateway()) do
     commitment =
       GroupBuyCommitment
       |> Ash.Query.filter(payment_id == ^payment.id)
       |> Ash.read_one!(authorize?: false)
 
     case commitment do
-      nil -> :ok
-      %{status: :paid} -> :ok
-      %{status: :pending} -> confirm_paid(commitment.id, payment)
-      _commitment -> :ok
+      nil ->
+        :ok
+
+      %{status: :paid} ->
+        :ok
+
+      %{status: :refunded} ->
+        :ok
+
+      %{status: :pending} = commitment ->
+        case confirm_paid(commitment.id, payment) do
+          {:ok, paid} -> {:ok, paid}
+          {:error, :campaign_closed} -> late_refund(commitment.id, gateway)
+          error -> error
+        end
+
+      # A successful charge landing on a cancelled/failed commitment means the
+      # campaign already closed — the customer must get their money back.
+      %{status: status} = commitment when status in [:cancelled, :refunding, :refund_failed] ->
+        if payment.status == :success do
+          late_refund(commitment.id, gateway)
+        else
+          :ok
+        end
+    end
+  end
+
+  defp late_refund(commitment_id, gateway) do
+    case ensure_refunded(commitment_id, gateway) do
+      {:ok, _id} -> :ok
+      {:skipped, _id, _status} -> :ok
+      {:error, _id, reason} -> {:error, reason}
     end
   end
 
@@ -141,6 +169,7 @@ defmodule Emakola.Suppliers.GroupBuys do
 
         if updated.committed_quantity >= updated.threshold_quantity do
           updated |> Ash.Changeset.for_update(:mark_funded, %{}) |> Ash.update!(authorize?: false)
+          release_payout_holds!(updated.id)
         end
 
         paid
@@ -160,7 +189,7 @@ defmodule Emakola.Suppliers.GroupBuys do
         |> Ash.read!(authorize?: false)
 
       Enum.each(commitments, &cancel_pending/1)
-      results = Enum.map(commitments, &refund_paid(&1, gateway))
+      results = Enum.map(commitments, &ensure_refunded(&1.id, gateway))
 
       refreshed =
         GroupBuyCommitment
@@ -219,54 +248,116 @@ defmodule Emakola.Suppliers.GroupBuys do
 
   defp cancel_pending(_commitment), do: :ok
 
-  defp refund_paid(%{status: :paid, payment_id: payment_id} = commitment, gateway)
-       when not is_nil(payment_id) do
-    claimed =
-      commitment |> Ash.Changeset.for_update(:claim_refund, %{}) |> Ash.update!(authorize?: false)
-
-    payment = Ash.get!(Emakola.Payments.Payment, payment_id, authorize?: false)
-
-    case gateway.process_refund(payment.gateway_reference, commitment.amount) do
-      {:ok, response} ->
-        reference = Map.get(response, :refund_reference) || Map.get(response, "refund_reference")
-
-        _payment =
-          payment
-          |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: commitment.amount})
-          |> Ash.update!(authorize?: false)
-
-        _commitment =
-          claimed
-          |> Ash.Changeset.for_update(:mark_refunded, %{refund_reference: reference})
-          |> Ash.update!(authorize?: false)
-
-        {:ok, commitment.id}
-
-      {:error, reason} ->
-        _commitment =
-          claimed
-          |> Ash.Changeset.for_update(:mark_refund_failed, %{
-            refund_error: inspect(reason) |> String.slice(0, 500)
-          })
-          |> Ash.update!(authorize?: false)
-
-        {:error, commitment.id, reason}
+  # Single refund engine. Dispatches on the FRESH row status under FOR UPDATE —
+  # never on a caller-supplied struct — so overlapping sweeps, Oban retries, and
+  # late webhooks cannot double-claim. The gateway call happens after the claim
+  # transaction commits (no row lock held during HTTP); a crash in that window
+  # leaves :refunding, which this same function recovers on the next run.
+  def ensure_refunded(commitment_id, gateway \\ payment_gateway()) do
+    case claim_for_refund(commitment_id) do
+      {:refund, claimed, payment} -> execute_refund(claimed, payment, gateway)
+      result -> result
     end
   end
 
-  defp refund_paid(%{status: :paid} = commitment, _gateway) do
-    claimed =
-      commitment |> Ash.Changeset.for_update(:claim_refund, %{}) |> Ash.update!(authorize?: false)
+  defp claim_for_refund(commitment_id) do
+    Emakola.Repo.transaction(fn ->
+      commitment = locked_commitment!(commitment_id)
+      payment = commitment_payment(commitment)
 
-    _commitment =
-      claimed
-      |> Ash.Changeset.for_update(:mark_refund_failed, %{refund_error: "payment_missing"})
-      |> Ash.update!(authorize?: false)
+      cond do
+        commitment.status == :refunded ->
+          {:skipped, commitment.id, :refunded}
 
-    {:error, commitment.id, :payment_missing}
+        commitment.status in [:pending, :cancelled] and not payment_successful?(payment) ->
+          {:skipped, commitment.id, commitment.status}
+
+        payment_refunded?(payment) ->
+          # Money already moved (e.g. crash after the gateway call) — finish
+          # the bookkeeping without touching the gateway again.
+          {:ok, finish_refund!(commitment, nil).id}
+
+        commitment.status == :paid and is_nil(payment) ->
+          commitment
+          |> claim!(:claim_refund)
+          |> fail_refund!(:payment_missing)
+
+          {:error, commitment.id, :payment_missing}
+
+        true ->
+          {:refund, claim_for_status!(commitment), payment}
+      end
+    end)
+    |> case do
+      {:ok, result} -> result
+      {:error, reason} -> {:error, commitment_id, reason}
+    end
   end
 
-  defp refund_paid(commitment, _gateway), do: {:skipped, commitment.id, commitment.status}
+  defp execute_refund(claimed, payment, gateway) do
+    case gateway.process_refund(payment.gateway_reference, claimed.amount) do
+      {:ok, response} ->
+        reference = Map.get(response, :refund_reference) || Map.get(response, "refund_reference")
+        mark_payment_refunded!(payment, claimed.amount)
+
+        claimed
+        |> Ash.Changeset.for_update(:mark_refunded, %{refund_reference: reference})
+        |> Ash.update!(authorize?: false)
+
+        {:ok, claimed.id}
+
+      {:error, reason} ->
+        fail_refund!(claimed, reason)
+        {:error, claimed.id, reason}
+    end
+  end
+
+  defp claim_for_status!(%{status: :refunding} = commitment), do: commitment
+  defp claim_for_status!(%{status: :paid} = commitment), do: claim!(commitment, :claim_refund)
+
+  defp claim_for_status!(%{status: :refund_failed} = commitment),
+    do: claim!(commitment, :reclaim_refund)
+
+  defp claim_for_status!(%{status: status} = commitment) when status in [:pending, :cancelled],
+    do: claim!(commitment, :claim_late_refund)
+
+  defp claim!(commitment, action) do
+    commitment |> Ash.Changeset.for_update(action, %{}) |> Ash.update!(authorize?: false)
+  end
+
+  defp fail_refund!(claimed, reason) do
+    claimed
+    |> Ash.Changeset.for_update(:mark_refund_failed, %{
+      refund_error: inspect(reason) |> String.slice(0, 500)
+    })
+    |> Ash.update!(authorize?: false)
+  end
+
+  defp finish_refund!(commitment, reference) do
+    commitment
+    |> claim_for_status!()
+    |> Ash.Changeset.for_update(:mark_refunded, %{refund_reference: reference})
+    |> Ash.update!(authorize?: false)
+  end
+
+  defp mark_payment_refunded!(%{status: :success} = payment, amount) do
+    payment
+    |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: amount})
+    |> Ash.update!(authorize?: false)
+  end
+
+  defp mark_payment_refunded!(payment, _amount), do: payment
+
+  defp commitment_payment(%{payment_id: nil}), do: nil
+
+  defp commitment_payment(%{payment_id: payment_id}),
+    do: Ash.get!(Emakola.Payments.Payment, payment_id, authorize?: false)
+
+  defp payment_successful?(%{status: :success}), do: true
+  defp payment_successful?(_payment), do: false
+
+  defp payment_refunded?(%{status: :refunded}), do: true
+  defp payment_refunded?(_payment), do: false
 
   defp payment_gateway,
     do: Application.get_env(:emakola, :payment_gateway, Emakola.Payments.Gateways.Paystack)
@@ -293,7 +384,9 @@ defmodule Emakola.Suppliers.GroupBuys do
                gateway: :paystack,
                gateway_reference: response.reference,
                customer_email: customer.email,
-               metadata: %{group_buy_commitment_id: commitment.id}
+               metadata: %{group_buy_commitment_id: commitment.id},
+               payout_held: true,
+               payout_hold_reason: "group_buy_escrow"
              },
              authorize?: false
            ),
@@ -304,6 +397,26 @@ defmodule Emakola.Suppliers.GroupBuys do
       {:ok,
        %{commitment: commitment, payment: payment, authorization_url: response.authorization_url}}
     end
+  end
+
+  # Escrow release: once the campaign funds, its money legitimately belongs in
+  # the normal payout flow (automatic refunds only apply to under-threshold
+  # expiry, which can no longer happen).
+  defp release_payout_holds!(campaign_id) do
+    GroupBuyCommitment
+    |> Ash.Query.filter(
+      campaign_id == ^campaign_id and status == :paid and not is_nil(payment_id)
+    )
+    |> Ash.read!(authorize?: false)
+    |> Enum.each(fn commitment ->
+      payment = Ash.get!(Emakola.Payments.Payment, commitment.payment_id, authorize?: false)
+
+      if payment.payout_held do
+        payment
+        |> Ash.Changeset.for_update(:release_payout_hold, %{})
+        |> Ash.update!(authorize?: false)
+      end
+    end)
   end
 
   defp reserved_quantity(campaign_id) do
