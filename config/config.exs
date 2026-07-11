@@ -147,6 +147,7 @@ config :emakola, Oban,
        {"*/5 * * * *", Emakola.Suppliers.Workers.GroupBuyExpiryWorker},
        {"*/10 * * * *", Emakola.Suppliers.Workers.InventoryReservationExpiryWorker},
        {"*/5 * * * *", Emakola.Suppliers.Workers.ProtectedPreorderExpiryWorker},
+       {"15 * * * *", Emakola.Payments.Workers.PaymentExpiryWorker},
        {"30 3 * * *", Emakola.Accounts.Workers.PhoneOtpPruneWorker}
      ]}
   ]
