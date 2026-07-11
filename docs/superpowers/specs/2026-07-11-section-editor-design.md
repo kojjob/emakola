@@ -145,7 +145,7 @@ New LiveView `/admin/design/sections` (linked from the Design tab):
    |---|---|---|
    | Sika | Jewelry & accessories | Quiet-luxury minimal: monochrome + one metallic accent, oversized serif display, full-bleed photography |
    | Fie | Home & décor | Warm editorial, asymmetric grid, room-scene hero, muted earth palette |
-   | Chale | Streetwear & urban youth | Dark base + electric accent, oversized nav, marquee strips, drop stock counters |
+   | Chale | Streetwear & urban youth | Concrete palette (locked 2026-07-11): crimson accents on light concrete grey, black type; oversized nav, marquee strips, drop stock counters |
    | Dede | Food vendors & chop bars | Mobile-order-first menu layout, sticky quick-buy, prominent WhatsApp ordering |
    | Depot | Wholesalers & B2B (Earn suppliers) | Dense quick-order tables, volume-tier pricing, heavy filtering, minimal chrome |
 
