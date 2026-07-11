@@ -25,6 +25,7 @@ defmodule Emakola.Suppliers.PartnerCredit do
          {:ok, offer} <- Ash.get(PartnerCreditOffer, offer_id, authorize?: false),
          :ok <- ensure_store_access(actor, offer.borrower_store_id),
          true <- offer.status == :offered,
+         :ok <- ensure_no_open_agreement(offer.borrower_store_id),
          passport when not is_nil(passport) <- current_passport(offer.borrower_store_id),
          true <- @tiers[passport.tier] >= @tiers[offer.minimum_tier] do
       total = offer.principal_amount + offer.fee_amount
@@ -93,11 +94,14 @@ defmodule Emakola.Suppliers.PartnerCredit do
         allocations
 
       agreement ->
+        # Capacity excludes carves already routed on in-flight (pending)
+        # payments, so overlapping checkouts cannot over-collect the debt.
+        available = max(0, agreement.outstanding_amount - pending_carved(agreement.id))
+
         Enum.flat_map(allocations, fn
           %{role: role, recipient_store_id: ^borrower_store_id, amount: amount} = allocation
           when role in [:merchant, :dropshipper] ->
-            repayment =
-              min(agreement.outstanding_amount, div(amount * agreement.repayment_bps, 10_000))
+            repayment = min(available, div(amount * agreement.repayment_bps, 10_000))
 
             if repayment > 0 do
               offer = Ash.get!(PartnerCreditOffer, agreement.offer_id, authorize?: false)
@@ -122,14 +126,17 @@ defmodule Emakola.Suppliers.PartnerCredit do
     end
   end
 
+  # Both settlement and refund reconciliation RECOMPUTE the outstanding balance
+  # from the repayment ledger under a FOR UPDATE lock on the agreement — never
+  # read-modify-write — so concurrent webhooks and crashed prior runs converge
+  # on the ledger truth instead of losing updates.
   def record_settlement(payment, splits) do
     Enum.each(Enum.filter(splits, &(&1.role == :credit_partner)), fn split ->
       Emakola.Repo.transaction(fn ->
-        case repayment(split.credit_agreement_id, payment.id) do
-          nil ->
-            agreement =
-              Ash.get!(PartnerCreditAgreement, split.credit_agreement_id, authorize?: false)
+        agreement = locked_agreement!(split.credit_agreement_id)
 
+        case repayment(agreement.id, payment.id) do
+          nil ->
             PartnerCreditRepayment
             |> Ash.Changeset.for_create(:create, %{
               agreement_id: agreement.id,
@@ -138,7 +145,7 @@ defmodule Emakola.Suppliers.PartnerCredit do
             })
             |> Ash.create!(authorize?: false)
 
-            set_balance(agreement, max(0, agreement.outstanding_amount - split.amount))
+            recompute_balance!(agreement)
 
           _ ->
             :ok
@@ -151,24 +158,27 @@ defmodule Emakola.Suppliers.PartnerCredit do
 
   def reconcile_refund(payment, splits) do
     Enum.each(Enum.filter(splits, &(&1.role == :credit_partner)), fn split ->
-      case repayment(split.credit_agreement_id, payment.id) do
-        nil ->
-          :ok
+      Emakola.Repo.transaction(fn ->
+        agreement = locked_agreement!(split.credit_agreement_id)
 
-        item ->
-          target = min(item.amount, div(item.amount * payment.refunded_amount, payment.amount))
-          delta = max(0, target - item.reversed_amount)
+        case repayment(agreement.id, payment.id) do
+          nil ->
+            :ok
 
-          if delta > 0 do
-            agreement = Ash.get!(PartnerCreditAgreement, item.agreement_id, authorize?: false)
+          item ->
+            target = min(item.amount, div(item.amount * payment.refunded_amount, payment.amount))
 
-            item
-            |> Ash.Changeset.for_update(:reverse, %{reversed_amount: target})
-            |> Ash.update!(authorize?: false)
+            if target > item.reversed_amount do
+              item
+              |> Ash.Changeset.for_update(:reverse, %{reversed_amount: target})
+              |> Ash.update!(authorize?: false)
+            end
 
-            set_balance(agreement, min(agreement.total_due, agreement.outstanding_amount + delta))
-          end
-      end
+            # Recompute unconditionally so a replay heals a crashed prior run
+            # that recorded the reversal but lost the balance restore.
+            recompute_balance!(agreement)
+        end
+      end)
     end)
 
     :ok
@@ -196,8 +206,12 @@ defmodule Emakola.Suppliers.PartnerCredit do
   defp authorize_provider(actor, %{provider_type: :supplier, provider_store_id: id}),
     do: ensure_store_access(actor, id)
 
-  defp authorize_provider(%Emakola.Accounts.Merchant{}, %{provider_type: :licensed_partner}),
-    do: :ok
+  # Licensed-partner lending is platform-mediated: only platform staff may
+  # register a licensed lender's offer. A merchant claiming to be a licensed
+  # partner could otherwise divert borrower proceeds to their own subaccount.
+  defp authorize_provider(%Emakola.Accounts.User{} = actor, %{provider_type: :licensed_partner}) do
+    if Emakola.Accounts.PlatformPermissions.staff?(actor), do: :ok, else: {:error, :forbidden}
+  end
 
   defp authorize_provider(_, _), do: {:error, :forbidden}
 
@@ -227,7 +241,42 @@ defmodule Emakola.Suppliers.PartnerCredit do
         borrower_store_id == ^store_id and status == :active and outstanding_amount > 0
       )
       |> Ash.Query.sort(activated_at: :asc)
+      |> Ash.Query.limit(1)
+      |> Ash.read!(authorize?: false)
+      |> List.first()
+
+  defp ensure_no_open_agreement(store_id) do
+    PartnerCreditAgreement
+    |> Ash.Query.filter(borrower_store_id == ^store_id and status in [:accepted, :active])
+    |> Ash.Query.limit(1)
+    |> Ash.read!(authorize?: false)
+    |> case do
+      [] -> :ok
+      _ -> {:error, :active_agreement_exists}
+    end
+  end
+
+  defp locked_agreement!(agreement_id),
+    do:
+      PartnerCreditAgreement
+      |> Ash.Query.filter(id == ^agreement_id)
+      |> Ash.Query.lock("FOR UPDATE")
       |> Ash.read_one!(authorize?: false)
+
+  # In-flight carves: pending credit-partner splits younger than the TTL. The
+  # TTL bounds starvation from abandoned checkouts (their splits never settle).
+  @pending_carve_ttl_hours 24
+  defp pending_carved(agreement_id) do
+    cutoff = DateTime.add(DateTime.utc_now(), -@pending_carve_ttl_hours, :hour)
+
+    Emakola.Payments.PaymentSplit
+    |> Ash.Query.filter(
+      credit_agreement_id == ^agreement_id and role == :credit_partner and
+        status == :pending and inserted_at > ^cutoff
+    )
+    |> Ash.read!(authorize?: false)
+    |> Enum.reduce(0, &(&1.amount + &2))
+  end
 
   defp repayment(agreement_id, payment_id),
     do:
@@ -235,14 +284,22 @@ defmodule Emakola.Suppliers.PartnerCredit do
       |> Ash.Query.filter(agreement_id == ^agreement_id and payment_id == ^payment_id)
       |> Ash.read_one!(authorize?: false)
 
-  defp set_balance(agreement, amount),
-    do:
-      agreement
-      |> Ash.Changeset.for_update(:balance, %{
-        outstanding_amount: amount,
-        status: if(amount == 0, do: :repaid, else: :active)
-      })
-      |> Ash.update!(authorize?: false)
+  defp recompute_balance!(agreement) do
+    repaid =
+      PartnerCreditRepayment
+      |> Ash.Query.filter(agreement_id == ^agreement.id)
+      |> Ash.read!(authorize?: false)
+      |> Enum.reduce(0, &(&1.amount - &1.reversed_amount + &2))
+
+    amount = agreement.total_due |> Kernel.-(repaid) |> max(0) |> min(agreement.total_due)
+
+    agreement
+    |> Ash.Changeset.for_update(:balance, %{
+      outstanding_amount: amount,
+      status: if(amount == 0, do: :repaid, else: :active)
+    })
+    |> Ash.update!(authorize?: false)
+  end
 
   defp blank?(value), do: is_nil(value) or String.trim(value) == ""
   defp normalize({:ok, value}), do: {:ok, value}
