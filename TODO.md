@@ -114,8 +114,13 @@
 - [ ] **Real SMS provider** — `notifications/channels/sms.ex` + rate limiting
       exist, but only the `LogSMS` mock is wired; plug in Arkesel/Hubtel
       (overlaps `LAUNCH_TODO.md` item 4).
-- [ ] **Delivery fee beyond flat-per-zone** — `Emakola.Shipping.calculate_fee/2`
-      does zone lookup only; add weight-based / tiered rules if needed.
+- [x] **Delivery fee beyond flat-per-zone** — DONE 2026-07-11. `DeliveryZone`
+      gained `free_above_pesewas` (order subtotal free-shipping threshold) and
+      `per_kg_fee_pesewas` (surcharge per started kg of `variant.weight_grams`);
+      `calculate_fee/3` accepts subtotal/weight context (free-above wins),
+      checkout passes both, zone admin form has the two GHS inputs.
+      Follow-up: merchants can't set variant weights via UI yet (API/CSV only) —
+      add a weight input to the product/variant admin form.
 - [ ] **Low-stock WhatsApp channel** — `low_stock_alert_worker.ex` sends email
       + SMS digest; WhatsApp alerting not yet wired.
 - [ ] **Hubtel refund automation** — `gateways/hubtel.ex` `process_refund/2`
