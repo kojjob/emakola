@@ -1,5 +1,5 @@
 defmodule EmakolaWeb.Plugs.RawBodyReader do
-  @moduledoc "Caches raw body for Stripe webhook signature verification."
+  @moduledoc "Caches the raw request body for payment and third-party webhook signature verification."
 
   def read_body(conn, opts) do
     {:ok, body, conn} = Plug.Conn.read_body(conn, opts)

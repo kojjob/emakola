@@ -100,6 +100,8 @@ defmodule EmakolaWeb.Plugs.HubtelAllowlist do
     end
   end
 
+  # The response body is a Jason encoding of static literals. `reason` is logged only.
+  # sobelow_skip ["XSS.SendResp"]
   defp block(conn, reason) do
     Logger.warning(
       "[hubtel-allowlist] blocked webhook request: #{reason}",

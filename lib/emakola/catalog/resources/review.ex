@@ -4,6 +4,10 @@ defmodule Emakola.Catalog.Review do
 
   A customer may leave one review per product, and only if they have a delivered
   order containing that product. Reviews can be published or hidden by merchants.
+
+  Storefront callers must use `:list_published_by_product`; the default `:read`
+  may include moderation state and is reserved for internal or authorized
+  administration loads.
   """
 
   use Ash.Resource,

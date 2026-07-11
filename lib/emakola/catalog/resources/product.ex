@@ -7,6 +7,10 @@ defmodule Emakola.Catalog.Product do
   to a store (multi-tenant) and optionally to a category.
 
   Status lifecycle: draft → active (requires variants) → archived → draft
+
+  Public callers must use `:public_list`, `:public_get`, or another explicitly
+  scoped read action. The default `:read` exists for internal relationship and
+  authorized administration loads and is not a storefront API.
   """
 
   use Ash.Resource,

@@ -7,6 +7,9 @@ defmodule Emakola.Catalog.Category do
   while a fashion merchant has Clothing → Men's → Shirts.
 
   Multi-tenancy: scoped to store_id. All queries must include store context.
+
+  Public callers must use the store-scoped category read actions; the default
+  `:read` is reserved for internal relationship and administration loads.
   """
 
   use Ash.Resource,
