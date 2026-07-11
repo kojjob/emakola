@@ -4,7 +4,6 @@ defmodule Emakola.Accounts.PhoneAuth do
   Codes are 6 digits, stored hashed (Bcrypt), ~10-min TTL, ≤5 attempts, and
   rate-limited per phone. Delivery prefers WhatsApp, falls back to SMS.
   """
-  require Ash.Query
   alias Emakola.Accounts.PhoneOtp
 
   @ttl_seconds 600

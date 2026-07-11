@@ -767,9 +767,6 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
     if fulfillment do
       result =
         case action do
-          :mark_notified ->
-            Emakola.Orders.mark_fulfillment_notified(fulfillment, params, authorize?: false)
-
           :mark_shipped ->
             Emakola.Orders.mark_fulfillment_shipped(fulfillment, params, authorize?: false)
 

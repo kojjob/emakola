@@ -55,12 +55,12 @@
       `authorize?: false`. NOTE: store/order creation is *authenticated*, so the
       old "rate-limit *unauthenticated* creation" premise is moot — a per-user
       anti-abuse limit is a separate optional follow-up.
-- [ ] **Catalog default `:read` lacks a status filter** — resources use
+- [x] **Catalog default `:read` contract documented** — resources use
       `authorize_unless(actor_present())` (not the feared `always()`), and all
       storefront calls go through safe scoped actions, so risk is LOW. But the
       bare `:read` action could surface draft/hidden rows to a future caller.
-      Either add `filter(expr(status == :published))` to the public read or
-      document that public read must use the scoped actions only.
+      Public storefront access is now explicitly documented on all four resources as requiring
+      scoped actions; default reads are reserved for internal relationship/admin loads.
       Files: `product.ex:172`, `variant.ex:136`, `category.ex:90`, `review.ex:121`.
 - [x] **CSP: `style-src 'unsafe-inline'`** (P2) — DONE 2026-06-25 as a
       **documented accepted risk**. Full removal is infeasible: ~760 inline
@@ -70,9 +70,8 @@
       `style-src-elem` (deferred) with the rationale written into the plug
       moduledoc; future hardening = nonce the ~32 `<style>` blocks (needs a
       socket-stable nonce) then drop `'unsafe-inline'` from `style-src-elem`.
-- [ ] **Fix `RawBodyReader` moduledoc** — `lib/emakola_web/plugs/raw_body_reader.ex:2`
-      still says "Stripe webhook signature verification" (copy-paste artifact;
-      the module is generic). Trivial.
+- [x] **Fix `RawBodyReader` moduledoc** — now accurately documents generic payment and
+      third-party webhook signature verification.
 
 ## OPEN — Refactor / decomposition (still over the 200-line guideline)
 
@@ -224,14 +223,13 @@
 
 ## OPEN — Infrastructure / CI
 
-- [ ] **Add `mix dialyzer` to CI** (`.github/workflows/ci.yml`) — configured in
-      `mix.exs` but never run in CI.
-- [ ] **Create `.sobelow-conf`** — CI runs `mix sobelow --config` but the config
-      file is absent at repo root. (Not blocking CI — sobelow falls back to
-      defaults.) When doing this, triage what it surfaces first: `XSS.SendResp`
-      in `lib/emakola_web/plugs/rate_limiter.ex:80` (variable `safe_retry` — looks
-      like a deliberate false positive; persist a reviewed skip, not a blind config).
-- [ ] **Separate `deps` and `_build` CI cache keys** — currently one combined key.
+- [x] **Add `mix dialyzer` to CI** and make Dialyxir available in the test environment.
+- [x] **Create and triage `.sobelow-conf`** — CI now enforces medium findings.
+      Narrow reviewed skips cover static JSON/escaped integer responses; the custom
+      nonce CSP plug is documented because Sobelow cannot recognize it. The previously
+      unprotected SEO pipeline now receives secure headers and the same CSP.
+- [x] **Separate `deps` and `_build` CI cache keys**, including OTP/Elixir versions in
+      the build cache key to prevent incompatible BEAM reuse.
 - [ ] **Raise `test_coverage` threshold** — `mix.exs:15` is at 55; ratchet toward
       90 as tests are added.
 

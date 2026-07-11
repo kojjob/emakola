@@ -2,8 +2,6 @@ defmodule Emakola.Webhooks.Workers.WebhookDeliveryWorker do
   @moduledoc "Delivers outbound webhooks with HMAC-SHA256 signing."
   use Oban.Worker, queue: :default, max_attempts: 5
 
-  require Logger
-
   @impl Oban.Worker
   def perform(%Oban.Job{args: args, attempt: attempt}) do
     %{

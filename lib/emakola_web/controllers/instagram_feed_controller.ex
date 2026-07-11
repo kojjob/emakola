@@ -30,8 +30,6 @@ defmodule EmakolaWeb.InstagramFeedController do
 
   alias EmakolaWeb.Helpers.StoreResolver
 
-  require Ash.Query
-
   def show(conn, %{"store_slug" => slug}) do
     case StoreResolver.resolve(slug) do
       {:ok, store} ->

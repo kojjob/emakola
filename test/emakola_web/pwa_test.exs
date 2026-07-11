@@ -8,7 +8,8 @@ defmodule EmakolaWeb.PWATest do
   describe "manifest.json" do
     test "is accessible and returns valid JSON", %{conn: conn} do
       conn = get(conn, "/manifest.json")
-      assert response_content_type(conn, :json) || conn.status == 200
+      assert response_content_type(conn, :json)
+      assert conn.status == 200
 
       body = json_response(conn, 200)
       assert body["name"] == "Makola"

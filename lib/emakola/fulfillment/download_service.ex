@@ -29,8 +29,6 @@ defmodule Emakola.Fulfillment.DownloadService do
   decrement on failure" which has its own race window.
   """
 
-  require Logger
-
   alias Emakola.Fulfillment.DownloadGrant
 
   @url_ttl_seconds 15 * 60

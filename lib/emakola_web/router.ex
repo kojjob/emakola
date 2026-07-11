@@ -46,6 +46,8 @@ defmodule EmakolaWeb.Router do
   # crawlers that send Accept: text/xml or Accept: */*.
   pipeline :seo do
     plug :accepts, ["xml", "text", "html", "json"]
+    plug :put_secure_browser_headers
+    plug EmakolaWeb.Plugs.ContentSecurityPolicy
   end
 
   # Stricter per-IP rate limiting for authentication endpoints to prevent brute-force attacks.

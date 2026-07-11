@@ -6,7 +6,6 @@ defmodule Emakola.Payments.DropshipSettlementTest do
   """
   use Emakola.DataCase, async: true
   import Emakola.Factory
-  require Ash.Query
 
   alias Emakola.Payments.DropshipSettlement
 

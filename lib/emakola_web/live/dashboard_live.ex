@@ -7,8 +7,6 @@ defmodule EmakolaWeb.DashboardLive do
   import EmakolaWeb.DashboardMetricComponents
   import EmakolaWeb.SetupChecklistComponent
 
-  require Ash.Query
-
   alias EmakolaWeb.DashboardHelpers
   alias Emakola.Onboarding.SetupChecklist
 

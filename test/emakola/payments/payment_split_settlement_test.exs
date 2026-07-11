@@ -5,7 +5,6 @@ defmodule Emakola.Payments.PaymentSplitSettlementTest do
   """
   use Emakola.DataCase, async: true
   import Emakola.Factory
-  require Ash.Query
 
   alias Emakola.Payments.Workers.PaystackWebhookHandler
 

@@ -181,8 +181,6 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
     end
   end
 
-  defp send_merchant_sms(_order, _store, _event), do: :ok
-
   defp customer_sms_template(order, store, :order_placed),
     do: Templates.order_placed_sms(order, store)
 

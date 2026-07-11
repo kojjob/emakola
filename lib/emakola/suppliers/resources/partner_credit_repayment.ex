@@ -1,4 +1,5 @@
 defmodule Emakola.Suppliers.PartnerCreditRepayment do
+  @moduledoc "Idempotent sales-proceeds repayment and reversal record for partner-funded credit."
   use Ash.Resource, domain: Emakola.Suppliers, data_layer: AshPostgres.DataLayer
 
   postgres do

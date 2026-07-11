@@ -66,8 +66,6 @@ defmodule Emakola.Policies.Checks.ActorHasStoreAccess do
     end
   end
 
-  defp get_store_id(_), do: nil
-
   # Ash.Changeset.get_attribute/2 calls get_data/2 for the original value,
   # which raises ArgumentError when changeset.data is OriginalDataNotAvailable
   # (atomic bulk operations). Match on that sentinel instead of rescuing so

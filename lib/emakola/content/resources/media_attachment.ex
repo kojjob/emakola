@@ -11,8 +11,6 @@ defmodule Emakola.Content.MediaAttachment do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
-  require Ash.Query
-
   multitenancy do
     strategy(:attribute)
     attribute(:store_id)

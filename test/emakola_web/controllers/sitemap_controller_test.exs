@@ -11,8 +11,6 @@ defmodule EmakolaWeb.SitemapControllerTest do
 
   import Emakola.Factory
 
-  require Ash.Query
-
   setup do
     store = create_store!()
     {:ok, store: store}

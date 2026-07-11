@@ -4,6 +4,8 @@ defmodule EmakolaWeb.Plugs.DemoMode do
 
   def init(opts), do: opts
 
+  # Static keys and literals are encoded by Jason; no request value reaches the body.
+  # sobelow_skip ["XSS.SendResp"]
   def call(conn, _opts) do
     if Emakola.Demo.enabled?() and mutation_request?(conn) do
       conn

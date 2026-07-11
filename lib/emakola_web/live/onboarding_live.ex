@@ -582,9 +582,6 @@ defmodule EmakolaWeb.OnboardingLive do
         {:error, %Ash.Error.Invalid{} = error} ->
           {:error, Exception.message(error)}
 
-        {:error, error} when is_binary(error) ->
-          {:error, error}
-
         {:error, error} ->
           {:error, inspect(error)}
       end

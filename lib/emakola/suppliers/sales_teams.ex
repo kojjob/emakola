@@ -182,38 +182,45 @@ defmodule Emakola.Suppliers.SalesTeams do
     normalized = Enum.map(allocations, &normalize_allocation/1)
     ids = Enum.map(normalized, & &1.merchant_id)
 
-    cond do
-      normalized == [] or length(normalized) > @max_members ->
-        {:error, :invalid_team_size}
+    checks = [
+      {invalid_team_size?(normalized), :invalid_team_size},
+      {invalid_allocation?(normalized), :invalid_allocation},
+      {duplicate_members?(ids), :duplicate_member},
+      {owner_count_invalid?(normalized), :owner_required},
+      {actor_not_owner?(actor, normalized), :actor_must_be_owner},
+      {non_positive_split?(normalized), :split_must_be_positive},
+      {split_total_invalid?(normalized), :split_total_must_equal_10000},
+      {missing_merchant?(ids), :merchant_not_found}
+    ]
 
-      Enum.any?(
-        normalized,
-        &(&1.role not in @roles or not is_integer(&1.split_bps) or not is_binary(&1.merchant_id))
-      ) ->
-        {:error, :invalid_allocation}
-
-      length(Enum.uniq(ids)) != length(ids) ->
-        {:error, :duplicate_member}
-
-      Enum.count(normalized, &(&1.role == :owner)) != 1 ->
-        {:error, :owner_required}
-
-      not Enum.any?(normalized, &(&1.merchant_id == actor.id and &1.role == :owner)) ->
-        {:error, :actor_must_be_owner}
-
-      Enum.any?(normalized, &(&1.split_bps <= 0)) ->
-        {:error, :split_must_be_positive}
-
-      Enum.sum(Enum.map(normalized, & &1.split_bps)) != 10_000 ->
-        {:error, :split_total_must_equal_10000}
-
-      Enum.any?(ids, &(not merchant_exists?(&1))) ->
-        {:error, :merchant_not_found}
-
-      true ->
-        {:ok, normalized}
+    case Enum.find(checks, fn {failed?, _reason} -> failed? end) do
+      nil -> {:ok, normalized}
+      {true, reason} -> {:error, reason}
     end
   end
+
+  defp invalid_team_size?(allocations),
+    do: allocations == [] or length(allocations) > @max_members
+
+  defp invalid_allocation?(allocations) do
+    Enum.any?(allocations, fn allocation ->
+      allocation.role not in @roles or not is_integer(allocation.split_bps) or
+        not is_binary(allocation.merchant_id)
+    end)
+  end
+
+  defp duplicate_members?(ids), do: length(Enum.uniq(ids)) != length(ids)
+  defp owner_count_invalid?(allocations), do: Enum.count(allocations, &(&1.role == :owner)) != 1
+
+  defp actor_not_owner?(actor, allocations),
+    do: not Enum.any?(allocations, &(&1.merchant_id == actor.id and &1.role == :owner))
+
+  defp non_positive_split?(allocations), do: Enum.any?(allocations, &(&1.split_bps <= 0))
+
+  defp split_total_invalid?(allocations),
+    do: Enum.sum(Enum.map(allocations, & &1.split_bps)) != 10_000
+
+  defp missing_merchant?(ids), do: Enum.any?(ids, &(not merchant_exists?(&1)))
 
   defp normalize_allocation(allocation) do
     role = value(allocation, :role)
