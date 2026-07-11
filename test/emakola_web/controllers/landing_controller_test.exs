@@ -1,11 +1,9 @@
-defmodule EmakolaWeb.LandingLiveTest do
+defmodule EmakolaWeb.LandingControllerTest do
   use EmakolaWeb.ConnCase, async: true
-
-  import Phoenix.LiveViewTest
 
   describe "hero" do
     test "renders merchant-first hero with rotating words", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      html = conn |> get("/") |> html_response(200)
 
       assert html =~ "For Ghana&#39;s Merchants" or html =~ "For Ghana's Merchants"
       assert html =~ "Be the next"
@@ -18,12 +16,12 @@ defmodule EmakolaWeb.LandingLiveTest do
     end
 
     test "has no shopper hero", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      html = conn |> get("/") |> html_response(200)
       refute html =~ "Shop Trusted Local Businesses"
     end
 
     test "hero image is preloaded", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      html = conn |> get("/") |> html_response(200)
       assert html =~ ~s(rel="preload")
       assert html =~ "hero-market-woman.jpg"
     end
@@ -31,10 +29,10 @@ defmodule EmakolaWeb.LandingLiveTest do
 
   describe "nav" do
     test "renders marketing nav with correct links", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      html = conn |> get("/") |> html_response(200)
 
       assert html =~ ~s(id="main-nav")
-      assert html =~ ~s(phx-hook="ScrollGlass")
+      assert html =~ ~s(data-scroll-glass)
       assert html =~ ~s(href="/pricing")
       assert html =~ ~s(href="/stores")
       assert html =~ ~s(href="/auth/login")
@@ -42,19 +40,21 @@ defmodule EmakolaWeb.LandingLiveTest do
       assert html =~ ~s(href="/#faq")
     end
 
-    test "mobile menu toggles", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/")
+    test "mobile menu is client-side toggled", %{conn: conn} do
+      html = conn |> get("/") |> html_response(200)
 
-      refute render(view) =~ "animate-slide-down"
-
-      assert view |> element("button[phx-click=toggle_mobile_menu]") |> render_click() =~
-               "animate-slide-down"
+      # The menu ships hidden and the button flips it purely client-side
+      # (Phoenix.LiveView.JS commands) — no server event, no LiveView process.
+      assert html =~ ~s(id="landing-mobile-menu")
+      assert html =~ "animate-slide-down"
+      assert html =~ ~s(id="landing-menu-button")
+      refute html =~ "toggle_mobile_menu"
     end
   end
 
   describe "store wall" do
     test "renders six vertical-diverse example stores", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      html = conn |> get("/") |> html_response(200)
 
       assert html =~ "Stores built on Makola"
       assert html =~ "Mansa Fresh"
@@ -72,7 +72,7 @@ defmodule EmakolaWeb.LandingLiveTest do
 
   describe "feature stories" do
     test "renders three stories with floating UI copy", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      html = conn |> get("/") |> html_response(200)
 
       assert html =~ "Get paid in seconds"
       assert html =~ "Customers kept in the loop"
@@ -85,7 +85,7 @@ defmodule EmakolaWeb.LandingLiveTest do
 
   describe "features grid" do
     test "renders nine photo-led features with short titles", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      html = conn |> get("/") |> html_response(200)
 
       assert html =~ "Everything you need to sell"
 
@@ -105,7 +105,7 @@ defmodule EmakolaWeb.LandingLiveTest do
     end
 
     test "features carry photos and color badges", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      html = conn |> get("/") |> html_response(200)
 
       for img <- [
             "feature-dropship.jpg",
@@ -125,7 +125,7 @@ defmodule EmakolaWeb.LandingLiveTest do
 
   describe "growth arc" do
     test "renders start/grow/scale cards", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      html = conn |> get("/") |> html_response(200)
 
       assert html =~ "From first sale to household name"
       assert html =~ "START"
@@ -138,7 +138,7 @@ defmodule EmakolaWeb.LandingLiveTest do
 
   describe "stats band" do
     test "renders cited stats", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      html = conn |> get("/") |> html_response(200)
 
       assert html =~ "500+"
       assert html =~ "mobile money networks"
@@ -148,7 +148,7 @@ defmodule EmakolaWeb.LandingLiveTest do
 
   describe "launch steps" do
     test "renders the three photo step cards with number badges", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      html = conn |> get("/") |> html_response(200)
 
       assert html =~ "Launch before lunch"
       assert html =~ "Most merchants go live in under an hour."
@@ -167,7 +167,7 @@ defmodule EmakolaWeb.LandingLiveTest do
 
   describe "faq" do
     test "renders seven FAQ entries as details elements", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      html = conn |> get("/") |> html_response(200)
 
       assert html =~ "Who can sell on Makola?"
       assert html =~ "What is dropshipping on Makola?"
@@ -184,7 +184,7 @@ defmodule EmakolaWeb.LandingLiveTest do
 
   describe "no pricing on landing" do
     test "pricing grid lives on /pricing, not here", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      html = conn |> get("/") |> html_response(200)
 
       refute html =~ "Most Popular"
       refute html =~ "GHS 79"
@@ -193,7 +193,7 @@ defmodule EmakolaWeb.LandingLiveTest do
 
   describe "seo" do
     test "sets merchant-first SEO meta and JSON-LD", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      html = conn |> get("/") |> html_response(200)
 
       assert html =~ "Start Selling Online in Ghana"
       assert html =~ ~s(rel="canonical")
@@ -204,7 +204,7 @@ defmodule EmakolaWeb.LandingLiveTest do
     end
 
     test "JSON-LD graph decodes with offers and FAQ entries", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      html = conn |> get("/") |> html_response(200)
 
       [_, payload] =
         Regex.run(~r{<script type="application/ld\+json">\s*(.*?)\s*</script>}s, html)
@@ -220,10 +220,10 @@ defmodule EmakolaWeb.LandingLiveTest do
   end
 
   describe "page chrome" do
-    test "ScrollReveal hook and footer render", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+    test "scroll-reveal binding and footer render", %{conn: conn} do
+      html = conn |> get("/") |> html_response(200)
 
-      assert html =~ ~s(phx-hook="ScrollReveal")
+      assert html =~ ~s(data-scroll-reveal)
       assert html =~ ~s(href="/pricing")
     end
   end

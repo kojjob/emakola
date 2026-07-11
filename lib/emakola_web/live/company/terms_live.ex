@@ -11,21 +11,15 @@ defmodule EmakolaWeb.Company.TermsLive do
        page_title: "Terms of Service — Makola",
        meta_description: "The terms governing use of the Makola commerce platform.",
        og_image: url(~p"/images/og-image.png"),
-       canonical_url: url(~p"/terms"),
-       mobile_menu_open: false
+       canonical_url: url(~p"/terms")
      ), layout: false}
-  end
-
-  @impl true
-  def handle_event("toggle_mobile_menu", _params, socket) do
-    {:noreply, assign(socket, mobile_menu_open: !socket.assigns.mobile_menu_open)}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-white font-body antialiased">
-      <.landing_nav mobile_menu_open={@mobile_menu_open} />
+      <.landing_nav />
       <main>
         <.legal_layout
           title="Terms of Service"
