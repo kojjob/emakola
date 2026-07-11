@@ -80,10 +80,13 @@
 - [ ] **`landing_live.ex` (680 lines, still a LiveView)** — convert to a dead
       `Phoenix.Component` (mobile menu via `Phoenix.LiveView.JS`). Eliminates one
       LV process per anonymous visitor. *(Inline `<style>` block already removed.)*
-- [ ] **`admin/product_live/index.ex` (1337 lines)** — extraction started
-      (`form.ex`, `bulk_upload_modal.ex`, `Catalog.CSVImporter` all exist).
-      Finish: pull out `product_card/1` and move the remaining Ash mutations
-      (`archive`/`activate`/`save`) into `Emakola.Catalog` context functions.
+- [x] **`admin/product_live/index.ex` decomposed** — DONE 2026-07-11: 1,347 → 764
+      lines. Render markup (product list/table/cards, quick-view + confirm modals,
+      form slide-over, status tabs) extracted verbatim into `IndexComponents`;
+      `sorted_variants/1` promoted to `Shared`. The "move mutations to context"
+      half was already done in an earlier pass (`archive`/`activate`/`save` all go
+      through `Emakola.Catalog` + `Shared`); the only raw Ash call left is the
+      `:list_admin` read.
 - [ ] **`components/layouts/app.html.heex` (901 lines)** — `sidebar_components.ex`
       exists but only holds the icon map; extract `admin_sidebar/1` +
       `admin_topbar/1` into it.
