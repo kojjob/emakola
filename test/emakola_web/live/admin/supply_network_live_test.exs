@@ -33,6 +33,35 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     assert has_element?(view, "#group-buy-form")
     assert has_element?(view, "#sales-team-form")
     assert has_element?(view, "#franchise-package-form")
+    assert has_element?(view, "#commerce-passport")
+    assert has_element?(view, "#commerce-signals article")
+  end
+
+  test "merchant inspects, refreshes, and appeals passport evidence", ctx do
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    assert has_element?(view, "#passport-score")
+    assert has_element?(view, "#passport-tier", "starter")
+    assert has_element?(view, "#commerce-signals article", "Evidence:")
+    assert has_element?(view, "#commerce-signals article", "Expires")
+
+    view |> element("#refresh-commerce-passport") |> render_click()
+    assert has_element?(view, "#commerce-signals article")
+
+    {:ok, passport} =
+      Emakola.Suppliers.CommercePassports.inspect(ctx.merchant, ctx.store.id)
+
+    signal = Enum.find(passport.signals, &(&1.status == :active))
+
+    view
+    |> form("#passport-appeal-form-#{signal.id}",
+      appeal: %{reason: "A completed delivery is missing from this evidence."}
+    )
+    |> render_submit()
+
+    assert has_element?(view, "#commerce-signals article", "Appeal open")
+
+    assert Ash.get!(Emakola.Suppliers.ReputationSignal, signal.id, authorize?: false).status ==
+             :appealed
   end
 
   test "requests a reseller connection by partner store slug", ctx do

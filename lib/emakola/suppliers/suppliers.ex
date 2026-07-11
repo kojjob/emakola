@@ -89,5 +89,8 @@ defmodule Emakola.Suppliers do
     end
 
     resource(Emakola.Suppliers.FranchiseEnrollment)
+    resource(Emakola.Suppliers.CommercePassport)
+    resource(Emakola.Suppliers.ReputationSignal)
+    resource(Emakola.Suppliers.ReputationAppeal)
   end
 end

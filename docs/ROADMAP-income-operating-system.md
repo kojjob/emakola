@@ -104,10 +104,11 @@ Acceptance: every participant and customer sees the complete economics before co
 
 ### Phase E — Trust, Progression, and Partner Credit
 
-- Portable commerce passport based on fulfilled orders, service quality, disputes, and verified training.
-- Evidence, reason codes, expiry, correction, and appeal for every reputation signal.
-- Opportunity tiers and reserved inventory based on transparent eligibility.
-- Licensed-partner or explicit supplier trade credit, repaid from sales only with informed consent.
+- [x] Portable commerce passport based on fulfilled orders, service quality, refunds/disputes,
+      and verified supplier training.
+- [x] Evidence, reason codes, expiry, correction, and appeal for every reputation signal.
+- [ ] Opportunity tiers and reserved inventory based on transparent eligibility.
+- [ ] Licensed-partner or explicit supplier trade credit, repaid from sales only with informed consent.
 
 Acceptance: merchants can inspect and challenge their passport; credit decisions are explainable and compliant.
 

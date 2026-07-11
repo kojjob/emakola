@@ -6,6 +6,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
 
   alias Emakola.Suppliers.{
     BusinessCommand,
+    CommercePassports,
     ContentStudio,
     HustlePlanner,
     GoalProgress,
@@ -53,6 +54,8 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
        sales_team_count: 0,
        franchise_package_count: 0,
        available_franchise_count: 0,
+       commerce_passport: nil,
+       passport_appeal_forms: %{},
        group_buy_form: group_buy_form(),
        sales_team_form: sales_team_form(),
        franchise_form: franchise_form(),
@@ -73,7 +76,8 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
      |> load_income_goal()
      |> load_content_drafts()
      |> load_opportunity_radar()
-     |> load_collaborative_commerce()}
+     |> load_collaborative_commerce()
+     |> load_commerce_passport()}
   end
 
   @impl true
@@ -466,6 +470,43 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     end
   end
 
+  def handle_event("refresh_commerce_passport", _params, socket) do
+    case CommercePassports.refresh(
+           socket.assigns.current_merchant,
+           socket.assigns.current_store.id
+         ) do
+      {:ok, passport} ->
+        {:noreply,
+         socket
+         |> assign_passport(passport)
+         |> put_flash(:info, "Commerce passport refreshed from current evidence.")}
+
+      {:error, _reason} ->
+        {:noreply, put_flash(socket, :error, "The passport could not be refreshed.")}
+    end
+  end
+
+  def handle_event("appeal_reputation_signal", %{"appeal" => params}, socket) do
+    case CommercePassports.appeal(
+           socket.assigns.current_merchant,
+           socket.assigns.current_store.id,
+           params["signal_id"],
+           params["reason"] || ""
+         ) do
+      {:ok, _appeal} ->
+        {:noreply,
+         socket
+         |> load_commerce_passport()
+         |> put_flash(:info, "Appeal submitted with the signal evidence attached.")}
+
+      {:error, :invalid_appeal} ->
+        {:noreply, put_flash(socket, :error, "Explain the issue in at least 10 characters.")}
+
+      {:error, _reason} ->
+        {:noreply, put_flash(socket, :error, "This signal could not be appealed.")}
+    end
+  end
+
   def handle_event("record_sales_share", %{"id" => share_id}, socket) do
     SalesSharing.record_share(
       socket.assigns.current_merchant,
@@ -793,6 +834,34 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     |> stream(:sales_team_invitations, invitations, reset: true)
     |> stream(:owned_franchise_packages, owned_packages, reset: true)
     |> stream(:available_franchise_packages, available_packages, reset: true)
+  end
+
+  defp load_commerce_passport(socket) do
+    case CommercePassports.inspect(
+           socket.assigns.current_merchant,
+           socket.assigns.current_store.id
+         ) do
+      {:ok, passport} -> assign_passport(socket, passport)
+      _ -> socket |> assign(:commerce_passport, nil) |> stream(:commerce_signals, [], reset: true)
+    end
+  end
+
+  defp assign_passport(socket, passport) do
+    signals = Enum.reject(passport.signals, &(&1.status == :expired))
+
+    forms =
+      Map.new(signals, fn signal ->
+        {signal.id,
+         to_form(%{"signal_id" => signal.id, "reason" => ""},
+           as: :appeal,
+           id: "appeal-#{signal.id}"
+         )}
+      end)
+
+    socket
+    |> assign(:commerce_passport, passport)
+    |> assign(:passport_appeal_forms, forms)
+    |> stream(:commerce_signals, signals, reset: true)
   end
 
   defp result_rows({:ok, rows}), do: rows
@@ -1727,6 +1796,91 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
               </article>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section
+        :if={@commerce_passport}
+        id="commerce-passport"
+        class="rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-950 to-slate-950 p-6 text-white shadow-xl sm:p-8"
+      >
+        <div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">
+              Portable commerce passport
+            </p>
+            <div class="mt-2 flex items-end gap-3">
+              <span id="passport-score" class="text-5xl font-black">{@commerce_passport.score}</span>
+              <span
+                id="passport-tier"
+                class="mb-1 rounded-full bg-white/10 px-3 py-1 text-sm font-bold capitalize"
+              >
+                {@commerce_passport.tier}
+              </span>
+            </div>
+            <p class="mt-3 max-w-2xl text-sm leading-6 text-indigo-100">
+              Built only from fulfilled orders, service outcomes, refunds, and verified supplier training. Every signal below has evidence, a reason code, and an expiry date.
+            </p>
+          </div>
+          <button
+            id="refresh-commerce-passport"
+            phx-click="refresh_commerce_passport"
+            class="rounded-xl bg-indigo-300 px-4 py-2.5 text-sm font-black text-indigo-950 transition hover:-translate-y-0.5 hover:bg-indigo-200"
+          >
+            Refresh evidence
+          </button>
+        </div>
+
+        <div id="commerce-signals" phx-update="stream" class="mt-6 grid gap-3 lg:grid-cols-2">
+          <article
+            :for={{dom_id, signal} <- @streams.commerce_signals}
+            id={dom_id}
+            class="rounded-2xl border border-white/10 bg-white/5 p-4"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="font-bold capitalize">
+                  {signal.kind |> Atom.to_string() |> String.replace("_", " ")}
+                </p>
+                <p class="mt-1 font-mono text-[11px] text-indigo-300">{signal.reason_code}</p>
+              </div>
+              <span class={[
+                "rounded-full px-2 py-1 text-[10px] font-bold uppercase",
+                if(signal.impact >= 0,
+                  do: "bg-emerald-400/15 text-emerald-200",
+                  else: "bg-rose-400/15 text-rose-200"
+                )
+              ]}>
+                {if(signal.impact >= 0, do: "+", else: "")}{signal.impact} pts
+              </span>
+            </div>
+            <p class="mt-3 text-xs text-indigo-100">Evidence: {Jason.encode!(signal.evidence)}</p>
+            <p class="mt-1 text-[11px] text-indigo-300">
+              Expires {Calendar.strftime(signal.expires_at, "%d %b %Y")}
+            </p>
+            <.form
+              :if={signal.status == :active}
+              for={Map.fetch!(@passport_appeal_forms, signal.id)}
+              id={"passport-appeal-form-#{signal.id}"}
+              phx-submit="appeal_reputation_signal"
+              class="mt-3 flex items-end gap-2"
+            >
+              <.input field={Map.fetch!(@passport_appeal_forms, signal.id)[:signal_id]} type="hidden" />
+              <.input
+                field={Map.fetch!(@passport_appeal_forms, signal.id)[:reason]}
+                type="text"
+                label="Challenge this evidence"
+                placeholder="Explain what is wrong or missing"
+                class="min-w-0 flex-1 rounded-lg border border-white/20 bg-white px-3 py-2 text-xs text-slate-950"
+              />
+              <button class="rounded-lg border border-indigo-300 px-3 py-2 text-xs font-bold text-indigo-100 hover:bg-white/10">
+                Appeal
+              </button>
+            </.form>
+            <p :if={signal.status == :appealed} class="mt-3 text-xs font-bold text-amber-200">
+              Appeal open — this signal is flagged for review.
+            </p>
+          </article>
         </div>
       </section>
 
