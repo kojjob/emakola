@@ -21,7 +21,11 @@ defmodule Emakola.Suppliers.Workers.ProtectedPreorderExpiryWorker do
 
   def perform(%Oban.Job{}) do
     Emakola.Suppliers.ProtectedPreorder
-    |> Ash.Query.filter(status in [:open, :funded, :production])
+    |> Ash.Query.filter(
+      status in [:open, :funded, :production] or
+        (status in [:failed, :refunded] and
+           exists(deposits, status in [:paid, :refunding, :refund_failed]))
+    )
     |> Ash.read!(authorize?: false)
     |> Enum.filter(&Emakola.Suppliers.ProtectedPreorders.due_for_failure?/1)
     |> Enum.each(fn preorder -> %{preorder_id: preorder.id} |> new() |> Oban.insert!() end)
