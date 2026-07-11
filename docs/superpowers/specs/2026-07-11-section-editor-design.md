@@ -138,8 +138,9 @@ New LiveView `/admin/design/sections` (linked from the Design tab):
    Atelier are safe keeps: the default and the showcase.)
 2. **Editor PR** — the LiveView, `SectionSortable` hook, settings/style
    forms, real-time preview, publish/reset, LiveView tests.
-3. **Five new themes** (locked 2026-07-11) — **born sectionized**, built by
-   five parallel agents after the core PR so `sections/0` exists from birth:
+3. **Six new themes** (five locked 2026-07-11; Pace added same day) — **born
+   sectionized**, built by six parallel agents after the core PR so
+   `sections/0` exists from birth:
 
    | Theme | Vertical | Direction |
    |---|---|---|
@@ -148,6 +149,7 @@ New LiveView `/admin/design/sections` (linked from the Design tab):
    | Chale | Streetwear & urban youth | Concrete palette (locked 2026-07-11): crimson accents on light concrete grey, black type; oversized nav, marquee strips, drop stock counters |
    | Dede | Food vendors & chop bars | Mobile-order-first menu layout, sticky quick-buy, prominent WhatsApp ordering |
    | Depot | Wholesalers & B2B (Earn suppliers) | Dense quick-order tables, volume-tier pricing, heavy filtering, minimal chrome |
+   | Pace | Activewear & techwear | Kinetic athletic catalog (locked to Kojo's Dribbble video ref, userupload/43016702): ice-blue ground, rounded canvas, dark-gradient photo cards with overlaid caps type, ghost marquee behind cards, letter-reveal headlines; motion CSS-driven and low-bandwidth-safe |
 
    **Production-grade bar** for each: native `home` (as sections),
    `product_list`, `product_detail`, and shared chrome (nav/footer/cart
