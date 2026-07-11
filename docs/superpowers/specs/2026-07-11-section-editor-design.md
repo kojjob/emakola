@@ -130,18 +130,38 @@ New LiveView `/admin/design/sections` (linked from the Design tab):
   to a `Emakola.Themes.HomeSections` context (get/put layout) that enforces
   store membership; params never trusted for tenancy.
 
-### 7. Rollout plan (3 PRs)
+### 7. Rollout plan (amended 2026-07-11 after the new-themes decision)
 
-1. **Core** — contract, registry, block bridge, `SectionRenderer`,
+1. **Core PR** — contract, registry, block bridge, `SectionRenderer`,
    `HomeSections` context, storefront wiring, **starter + Atelier**
-   decomposed as references, per-theme equivalence tests.
-2. **Editor** — the LiveView, `SectionSortable` hook, settings/style forms,
-   real-time preview, publish/reset, LiveView tests.
-3. **Theme fan-out** — remaining ~10 themes decomposed by parallel agents
-   (one per theme, isolated worktrees) against the hard rule: *default
-   layout renders the same sections in the same order; the theme's existing
-   storefront tests pass unchanged; add the equivalence test.* Merged as one
-   PR after review (or split per theme if any decomposition proves risky).
+   decomposed as references, per-theme equivalence tests. (Starter and
+   Atelier are safe keeps: the default and the showcase.)
+2. **Editor PR** — the LiveView, `SectionSortable` hook, settings/style
+   forms, real-time preview, publish/reset, LiveView tests.
+3. **Five new themes** (locked 2026-07-11) — **born sectionized**, built by
+   five parallel agents after the core PR so `sections/0` exists from birth:
+
+   | Theme | Vertical | Direction |
+   |---|---|---|
+   | Sika | Jewelry & accessories | Quiet-luxury minimal: monochrome + one metallic accent, oversized serif display, full-bleed photography |
+   | Fie | Home & décor | Warm editorial, asymmetric grid, room-scene hero, muted earth palette |
+   | Chale | Streetwear & urban youth | Dark base + electric accent, oversized nav, marquee strips, drop stock counters |
+   | Dede | Food vendors & chop bars | Mobile-order-first menu layout, sticky quick-buy, prominent WhatsApp ordering |
+   | Depot | Wholesalers & B2B (Earn suppliers) | Dense quick-order tables, volume-tier pricing, heavy filtering, minimal chrome |
+
+   **Production-grade bar** for each: native `home` (as sections),
+   `product_list`, `product_detail`, and shared chrome (nav/footer/cart
+   entry); design-tokens support; mobile-first low-bandwidth discipline;
+   WhatsApp CTAs where the vertical calls for them; a storefront test
+   suite matching the strongest existing theme's coverage; DefaultRenderers
+   remain acceptable for secondary pages (About/Contact/FAQ/Policies) per
+   platform convention.
+4. **Existing-theme cull, then survivor fan-out** — Kojo picks which of the
+   ~10 remaining existing themes to keep; ONLY survivors get decomposed
+   (parallel agents, one per theme) against the hard rule: *default layout
+   renders the same sections in the same order; the theme's existing
+   storefront tests pass unchanged; add the equivalence test.* Dropped
+   themes are removed rather than sectionized.
 
 ### 8. Testing
 
