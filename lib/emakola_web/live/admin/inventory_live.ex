@@ -191,7 +191,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
       <%!-- Stat Cards --%>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <.stat_card label="Total SKUs" value={Integer.to_string(@stats.total)} color="slate">
+        <.stat_card label="Total SKUs" value={Integer.to_string(@stats.total)} icon_bg="bg-slate-100">
           <:icon>
             <svg
               class="w-5 h-5 text-slate-600"
@@ -208,7 +208,11 @@ defmodule EmakolaWeb.Admin.InventoryLive do
             </svg>
           </:icon>
         </.stat_card>
-        <.stat_card label="In Stock" value={Integer.to_string(@stats.in_stock)} color="emerald">
+        <.stat_card
+          label="In Stock"
+          value={Integer.to_string(@stats.in_stock)}
+          icon_bg="bg-emerald-50"
+        >
           <:icon>
             <svg
               class="w-5 h-5 text-emerald-600"
@@ -225,7 +229,11 @@ defmodule EmakolaWeb.Admin.InventoryLive do
             </svg>
           </:icon>
         </.stat_card>
-        <.stat_card label="Low Stock" value={Integer.to_string(@stats.low_stock)} color="amber">
+        <.stat_card
+          label="Low Stock"
+          value={Integer.to_string(@stats.low_stock)}
+          icon_bg="bg-amber-50"
+        >
           <:icon>
             <svg
               class="w-5 h-5 text-amber-600"
@@ -245,7 +253,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         <.stat_card
           label="Out of Stock"
           value={Integer.to_string(@stats.out_of_stock)}
-          color="red"
+          icon_bg="bg-red-50"
         >
           <:icon>
             <svg

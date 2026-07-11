@@ -425,33 +425,16 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       </div>
 
       <%!-- Search & Filters --%>
-      <div class="flex flex-col sm:flex-row gap-3">
-        <form phx-change="search" phx-debounce="300" class="flex-1">
-          <div class="relative">
-            <.icon
-              name="hero-magnifying-glass"
-              class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500"
-            />
-            <input
-              type="text"
-              name="search"
-              value={@search_query}
-              placeholder="Search products..."
-              class="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg border border-slate-200
-                     bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
-                     placeholder:text-slate-500/50"
-              autocomplete="off"
-            />
+      <.table_toolbar search_query={@search_query} placeholder="Search products...">
+        <:filters>
+          <div class="flex gap-1 bg-slate-100 rounded-lg p-1 overflow-x-auto">
+            <.status_tab status={:all} current={@status_filter} label="All" />
+            <.status_tab status={:draft} current={@status_filter} label="Draft" />
+            <.status_tab status={:active} current={@status_filter} label="Active" />
+            <.status_tab status={:archived} current={@status_filter} label="Archived" />
           </div>
-        </form>
-
-        <div class="flex gap-1 bg-slate-100 rounded-lg p-1 overflow-x-auto">
-          <.status_tab status={:all} current={@status_filter} label="All" />
-          <.status_tab status={:draft} current={@status_filter} label="Draft" />
-          <.status_tab status={:active} current={@status_filter} label="Active" />
-          <.status_tab status={:archived} current={@status_filter} label="Archived" />
-        </div>
-      </div>
+        </:filters>
+      </.table_toolbar>
 
       <%!-- Product List --%>
       <%= if @products == [] do %>
@@ -502,7 +485,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                   </div>
                 </td>
                 <td class="px-4 py-3">
-                  <.status_pill status={product.status} variant={:product} />
+                  <.status_badge status={product.status} variant={:product} />
                 </td>
                 <td class="px-4 py-3 text-sm text-slate-500">
                   {category_name(product.category_id, @categories)}
@@ -589,7 +572,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                   </p>
                 </div>
               </div>
-              <.status_pill status={product.status} variant={:product} />
+              <.status_badge status={product.status} variant={:product} />
             </div>
             <div class="flex items-center justify-between text-sm">
               <span class="text-slate-500 font-mono">
@@ -644,7 +627,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
                   {@quick_view_product.title}
                 </h3>
                 <div class="flex items-center gap-2 mt-1">
-                  <.status_pill status={@quick_view_product.status} variant={:product} />
+                  <.status_badge status={@quick_view_product.status} variant={:product} />
                   <span class="text-xs text-slate-500">
                     {category_name(@quick_view_product.category_id, @categories)}
                   </span>

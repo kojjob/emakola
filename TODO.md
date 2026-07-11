@@ -101,13 +101,14 @@
 - [ ] **Resolve color drift** — both `#B45309` (66×, storefront default) and
       `#CA8A04` (15×, admin) are in use. Standardise per
       `storefront_components.ex` (`#B45309`).
-- [ ] **Add the two missing shared admin components** — `admin_page_header/1`
-      and `empty_state/1` exist in `admin_components.ex`; add `table_toolbar/1`
-      and reconcile the `status_pill/1` vs the planned `status_badge/1` name.
-- [ ] **Unify the duplicate KPI primitives** — `stat_card/1`
-      (`inventory_components.ex:49`) and `kpi_card` (`metric_components.ex:55`)
-      overlap; pick one and update usages in customer/revenue/report/campaign
-      admin LiveViews.
+- [x] **Add the two missing shared admin components** — DONE 2026-07-11.
+      `table_toolbar/1` added to `admin_components.ex` (product + customer
+      index retrofitted); `status_pill/1` renamed to `status_badge/1` with
+      all 7 caller files updated (no shim).
+- [x] **Unify the duplicate KPI primitives** — DONE 2026-07-11. Canonical
+      `stat_card/1` (richer kpi_card markup + icon/delta slots) now lives in
+      `admin_components.ex`; inventory, customer index, and dashboard
+      `kpi_cards` all use it; duplicates deleted.
 
 ## PARTIAL — Feature gaps
 
