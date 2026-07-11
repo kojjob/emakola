@@ -99,6 +99,13 @@ storefront). Missing settings keys fall back to schema defaults
    applying validated background/text color (via the existing
    `EmakolaWeb.Helpers.CssColor.safe_css_color`) and a vertical padding scale.
    No per-section CSS work; sections inherit color.
+   **Amendment (Kojo, 2026-07-11, during core build):** the wrapper div is
+   emitted ONLY when the entry actually carries a style (color or padding
+   resolves to something). Unstyled entries render the section bare, so a
+   store with no saved layout keeps today's exact DOM — the byte-identical
+   rule holds strictly. Consequence: `data-section-id` anchors exist only on
+   styled sections; the editor's live preview (next PR) must force wrappers
+   in preview mode if it needs anchors on every section.
 
 Storefront precedence in `store_live.ex` (unchanged shape):
 **page-builder "home" page override → section layout → theme fixed home.**
