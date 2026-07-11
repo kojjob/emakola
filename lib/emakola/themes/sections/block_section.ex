@@ -3,6 +3,14 @@ defmodule Emakola.Themes.Sections.BlockSection do
   Bridges any registered page-builder block into the section system:
   key "block/<type>", settings = the block's content map. One adapter,
   the whole block library becomes insertable custom sections.
+
+  Layout sanitization (`Emakola.Themes.HomeSections.sanitize_entry/2`) keeps
+  only scalar (string/boolean/integer) settings values — list/map-valued
+  block content (e.g. FAQ items, testimonial lists) is dropped on write. A
+  bridged block with such fields renders its built-in defaults for them
+  instead of the merchant's content. The section editor should not offer
+  those fields on `block/<type>` entries until list/map values are
+  supported end-to-end.
   """
 
   @behaviour Emakola.Themes.Section

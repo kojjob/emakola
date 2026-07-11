@@ -235,6 +235,17 @@
       *(Phase 1 page coverage and most of Phase 3 — `DesignTokens`,
       `design_tokens` config, the admin Design tab — are DONE; only a standalone
       `FontLoader` was folded into `DesignTokens`.)*
+- [ ] **Security: sanitize URL-position block content (href/src) at the
+      block-render boundary** — `block/<type>` section entries bridge the
+      page-builder block library verbatim (`BlockSection.settings_schema/0`
+      is `[]`, so `HomeSections` URL scoping is skipped by design — see
+      `home_sections_integration_test.exs`). A `javascript:`/`data:` value
+      in a block's href/src-position field (e.g. `hero_banner`'s `cta_url`,
+      or the equivalent on `split`/`image_banner`/`audio`) renders as a
+      live, clickable link — a stored-XSS vector, and the same pre-existing
+      gap in the page builder's own unsanitized content bar. Closing both
+      paths MUST land before or with the section-editor UI PR (above),
+      which makes `put_layout` merchant-reachable for the first time.
 
 ## OPEN — Infrastructure / CI
 

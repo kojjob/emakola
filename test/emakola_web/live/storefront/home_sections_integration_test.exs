@@ -118,10 +118,17 @@ defmodule EmakolaWeb.Storefront.HomeSectionsIntegrationTest do
   #     the public `FakeSection` seam). Instead, this asserts the
   #     complementary, already-documented behaviour: a `block/<type>` entry
   #     declares no settings schema (`BlockSection.settings_schema/0` is
-  #     `[]`), so it is exempt from URL scoping by design — a `javascript:`
-  #     value in its settings survives the sanitizer and renders as inert
-  #     plain text (the block never uses it as an href/src), mirroring the
-  #     page builder's own verbatim content bar.
+  #     `[]`), so it is exempt from URL scoping by design — parity with the
+  #     page builder's own unsanitized verbatim content model, NOT a claim
+  #     that the value is harmless. Verified directly: `block/hero_banner`
+  #     with `settings["cta_url"] => "javascript:alert(1)"` survives
+  #     `put_layout` and renders as a LIVE `<a href="javascript:alert(1)">`.
+  #     URL-position fields on blocks like hero_banner/split/image_banner/
+  #     audio are a real stored-XSS vector once `put_layout` gets a web
+  #     caller. The security follow-up (sanitize href/src at the
+  #     block-render boundary, closing both this path and the pre-existing
+  #     page-builder one) is tracked in TODO.md and gates the section-editor
+  #     UI PR.
   test "put_layout URL-scoping survives end-to-end for a real starter section and a block-bridge entry",
        %{conn: conn} do
     {merchant, store} = create_merchant_with_store!()

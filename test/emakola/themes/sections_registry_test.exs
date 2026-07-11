@@ -34,4 +34,16 @@ defmodule Emakola.Themes.SectionsRegistryTest do
       assert is_list(section.settings_schema())
     end
   end
+
+  # theme_section_index/0 is built `into: %{}` — a colliding key across two
+  # sectionized themes would silently last-write-win, making one theme's
+  # section unreachable. Guard against that as new themes fan out.
+  test "no two sectionized themes register the same section key" do
+    keys =
+      for theme <- Sections.sectionized_themes(),
+          section <- theme.sections(),
+          do: section.key()
+
+    assert keys == Enum.uniq(keys)
+  end
 end

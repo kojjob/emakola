@@ -181,4 +181,37 @@ defmodule Emakola.Themes.SectionRendererTest do
     refute html =~ "data-section-id"
     assert html =~ "beta"
   end
+
+  test "a well-formed style map with scalar junk is sanitized instead of raising", %{
+    merchant: merchant,
+    store: store
+  } do
+    {:ok, store} =
+      HomeSections.put_layout(merchant, store, "faketheme", [
+        %{"id" => "faketheme/beta", "type" => "faketheme/beta", "enabled" => true}
+      ])
+
+    # Same bypass-the-sanitizer corruption class as the tests above, one
+    # level narrower: the style map itself is well-formed, but "bg" holds a
+    # nested map instead of a scalar. `is_map(style) == true` alone doesn't
+    # catch this — the crash is at interpolation ("background-color: #{...}"),
+    # which String.Chars can't do for a Map.
+    corrupt = %{
+      "id" => "faketheme/alpha",
+      "type" => "faketheme/alpha",
+      "enabled" => true,
+      "settings" => %{},
+      "style" => %{"bg" => %{"x" => 1}}
+    }
+
+    config = store.theme_config
+    entries = [corrupt | get_in(config, ["home_sections", "faketheme"])]
+    store = %{store | theme_config: put_in(config, ["home_sections", "faketheme"], entries)}
+
+    html = render_home(store)
+
+    assert html =~ "Alpha default"
+    refute html =~ "background-color"
+    assert html =~ "beta"
+  end
 end

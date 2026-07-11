@@ -76,12 +76,32 @@ defmodule Emakola.Themes.SectionRenderer do
 
   # A non-binary "type" is just as unresolvable as an unknown one —
   # Sections.resolve/1 only accepts binaries, so guard before calling.
+  #
+  # Reuses HomeSections.sanitize_entry/2 — the same validation put_layout
+  # applies on write — instead of a hand-rolled normalizer. Write paths
+  # outside put_layout (raw Ash updates, migrations) can leave nested
+  # scalar-position fields holding junk (e.g. a map where a CSS color
+  # string is expected); sanitize_entry/2 validates every scalar position
+  # incl. CSS-color allowlisting and URL schemes, and is idempotent for
+  # anything put_layout legitimately wrote, so default/saved layouts render
+  # byte-identically.
   defp resolve_type(entry, store_id) do
     type = entry["type"]
 
     with true <- is_binary(type),
          {:ok, {module, meta}} <- Sections.resolve(type) do
-      [{normalize_entry(entry, type), module, meta}]
+      case HomeSections.sanitize_entry(entry, module) do
+        %{} = sanitized ->
+          [{sanitized, module, meta}]
+
+        nil ->
+          Logger.warning(
+            "[sections] malformed layout entry #{inspect(entry, limit: 5, printable_limit: 120)} " <>
+              "skipped (store=#{store_id})"
+          )
+
+          []
+      end
     else
       _unresolvable ->
         Logger.warning(
@@ -90,16 +110,6 @@ defmodule Emakola.Themes.SectionRenderer do
 
         []
     end
-  end
-
-  # Same corruption class as non-map entries, one level down: nested
-  # fields written outside put_layout's sanitizer must not crash the
-  # render — coerce junk to the shape the wrapper and render expect.
-  defp normalize_entry(entry, type) do
-    entry
-    |> Map.update("id", type, &if(is_binary(&1), do: &1, else: type))
-    |> Map.update("style", %{}, &if(is_map(&1), do: &1, else: %{}))
-    |> Map.update("settings", %{}, &if(is_map(&1), do: &1, else: %{}))
   end
 
   defp render_section(module, meta, entry, assigns) do
