@@ -6,7 +6,7 @@ defmodule Emakola.Themes.Sections do
   """
 
   # Fan-out appends here, one module per decomposed theme.
-  @sectionized_themes []
+  @sectionized_themes [Emakola.Themes.Starter]
 
   def sectionized_themes, do: @sectionized_themes
 
