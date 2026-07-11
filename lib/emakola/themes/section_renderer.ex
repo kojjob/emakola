@@ -4,9 +4,11 @@ defmodule Emakola.Themes.SectionRenderer do
   active theme when present, else the theme's `sections/0` defaults —
   making untouched stores byte-identical to the pre-section themes.
 
-  Each enabled entry renders inside the universal style wrapper
+  Entries carrying a style render inside the universal style wrapper
   (validated background/text color + a padding scale) — v1 "full
-  theming" with zero per-section CSS work.
+  theming" with zero per-section CSS work. Unstyled entries render
+  bare, keeping default storefronts byte-identical to the pre-section
+  themes.
   """
 
   use Phoenix.Component
@@ -30,16 +32,29 @@ defmodule Emakola.Themes.SectionRenderer do
     assigns = assign(assigns, :resolved_entries, entries)
 
     ~H"""
-    <div
-      :for={{entry, module, meta} <- @resolved_entries}
-      class={padding_class(entry["style"])}
-      style={wrapper_style(entry["style"])}
-      data-section-id={entry["id"]}
-      data-section-padding={entry["style"]["padding"]}
-    >
-      {render_section(module, meta, entry, assigns)}
-    </div>
+    <%= for {entry, module, meta} <- @resolved_entries do %>
+      <%= if styled?(entry["style"]) do %>
+        <div
+          class={padding_class(entry["style"])}
+          style={wrapper_style(entry["style"])}
+          data-section-id={entry["id"]}
+          data-section-padding={entry["style"]["padding"]}
+        >
+          {render_section(module, meta, entry, assigns)}
+        </div>
+      <% else %>
+        {render_section(module, meta, entry, assigns)}
+      <% end %>
+    <% end %>
     """
+  end
+
+  # Spec amendment (88963c2): the wrapper is emitted only when the entry is
+  # actually styled — unstyled entries render bare so default storefronts
+  # keep today's exact DOM; the editor preview forces wrappers in preview
+  # mode (next PR). Junk style keys that resolve to neither count as unstyled.
+  defp styled?(style) do
+    padding_class(style) != nil or wrapper_style(style) != nil
   end
 
   # theme_config is a bare map attribute: write paths other than

@@ -67,6 +67,9 @@ defmodule Emakola.Themes.SectionRendererTest do
     html = render_home(store)
     assert html =~ ~r/alpha.*beta/s
     assert html =~ "Alpha default"
+    # Spec amendment (88963c2): unstyled entries render bare — no wrapper
+    # divs — so default storefronts keep today's exact DOM.
+    refute html =~ "data-section-id"
   end
 
   test "saved layout controls order, enabled, settings, and style wrapper", %{
@@ -172,9 +175,10 @@ defmodule Emakola.Themes.SectionRendererTest do
 
     html = render_home(store)
 
-    # Normalized: settings fall back to schema defaults, id to the type string.
+    # Normalized: settings fall back to schema defaults; the normalized
+    # (empty) style means no wrapper is emitted (spec amendment 88963c2).
     assert html =~ "Alpha default"
-    assert html =~ ~s(data-section-id="faketheme/alpha")
+    refute html =~ "data-section-id"
     assert html =~ "beta"
   end
 end
