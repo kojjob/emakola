@@ -144,7 +144,7 @@ New LiveView `/admin/design/sections` (linked from the Design tab):
    | Theme | Vertical | Direction |
    |---|---|---|
    | Sika | Jewelry & accessories | Quiet-luxury minimal: monochrome + one metallic accent, oversized serif display, full-bleed photography |
-   | Fie | Home & décor | Warm editorial, asymmetric grid, room-scene hero, muted earth palette |
+   | Fie | Home & décor | Belo.fur reference (locked 2026-07-11, Dribbble shot 26409577): modernist catalog — white gallery ground in a blush frame, huge grotesk display, numbered category index with hairline rules, pale-grey product panels, black pill CTAs |
    | Chale | Streetwear & urban youth | Concrete palette (locked 2026-07-11): crimson accents on light concrete grey, black type; oversized nav, marquee strips, drop stock counters |
    | Dede | Food vendors & chop bars | Mobile-order-first menu layout, sticky quick-buy, prominent WhatsApp ordering |
    | Depot | Wholesalers & B2B (Earn suppliers) | Dense quick-order tables, volume-tier pricing, heavy filtering, minimal chrome |
