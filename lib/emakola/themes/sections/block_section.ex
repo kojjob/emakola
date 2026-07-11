@@ -18,11 +18,10 @@ defmodule Emakola.Themes.Sections.BlockSection do
 
   @impl true
   def render(assigns) do
-    %{block_type: block_type, block_module: block_module} = assigns.section_meta
-    content = Map.merge(block_module.default_content(), assigns.settings || %{})
+    %{block_type: block_type} = assigns.section_meta
 
     Emakola.PageBuilder.render_block(
-      %{"type" => block_type, "content" => content},
+      %{"type" => block_type, "content" => assigns.settings || %{}},
       %{
         __changed__: nil,
         store: assigns.store,
