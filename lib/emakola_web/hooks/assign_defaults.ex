@@ -213,10 +213,10 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
       |> Ash.count(authorize?: false)
 
     %{
-      products: product_count || 0,
-      orders: order_count || 0,
-      customers: customer_count || 0,
-      pending_orders: pending_order_count || 0
+      products: product_count,
+      orders: order_count,
+      customers: customer_count,
+      pending_orders: pending_order_count
     }
   rescue
     exception ->

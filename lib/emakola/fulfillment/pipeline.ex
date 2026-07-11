@@ -22,7 +22,7 @@ defmodule Emakola.Fulfillment.Pipeline do
 
   @type line_item :: map()
   @type context :: map()
-  @type result :: {:ok, map()} | {:error, term()}
+  @type result :: {:ok, map() | :deferred} | {:error, term()}
 
   @callback fulfill(line_item, context) :: result
 end

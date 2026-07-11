@@ -21,7 +21,7 @@ defmodule Emakola.MixProject do
     [
       plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
       plt_add_apps: [:ex_unit, :mix, :ash, :ash_postgres, :ash_phoenix],
-      flags: [:error_handling, :underspecs],
+      flags: [:error_handling],
       ignore_warnings: ".dialyzer_ignore.exs",
       list_unused_filters: true
     ]
