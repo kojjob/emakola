@@ -11,21 +11,15 @@ defmodule EmakolaWeb.Company.PrivacyLive do
        page_title: "Privacy Policy — Makola",
        meta_description: "How Makola collects, uses, and protects merchant and customer data.",
        og_image: url(~p"/images/og-image.png"),
-       canonical_url: url(~p"/privacy"),
-       mobile_menu_open: false
+       canonical_url: url(~p"/privacy")
      ), layout: false}
-  end
-
-  @impl true
-  def handle_event("toggle_mobile_menu", _params, socket) do
-    {:noreply, assign(socket, mobile_menu_open: !socket.assigns.mobile_menu_open)}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-white font-body antialiased">
-      <.landing_nav mobile_menu_open={@mobile_menu_open} />
+      <.landing_nav />
       <main>
         <.legal_layout
           title="Privacy Policy"

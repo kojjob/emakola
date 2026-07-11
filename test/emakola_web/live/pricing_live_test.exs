@@ -47,13 +47,11 @@ defmodule EmakolaWeb.PricingLiveTest do
       assert html =~ ~s("priceCurrency":"GHS")
     end
 
-    test "mobile menu toggles", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/pricing")
+    test "renders mobile menu markup with client-side toggle", %{conn: conn} do
+      {:ok, view, html} = live(conn, "/pricing")
 
-      refute render(view) =~ "animate-slide-down"
-
-      assert view |> element("button[phx-click=toggle_mobile_menu]") |> render_click() =~
-               "animate-slide-down"
+      assert html =~ ~s(id="landing-mobile-menu")
+      assert has_element?(view, "#landing-menu-button[phx-click]")
     end
   end
 end
