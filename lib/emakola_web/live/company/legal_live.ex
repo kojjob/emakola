@@ -11,14 +11,8 @@ defmodule EmakolaWeb.Company.LegalLive do
        page_title: "Legal — Makola",
        meta_description: "Makola legal policies: privacy, terms of service, and cookie policy.",
        og_image: url(~p"/images/og-image.png"),
-       canonical_url: url(~p"/legal"),
-       mobile_menu_open: false
+       canonical_url: url(~p"/legal")
      ), layout: false}
-  end
-
-  @impl true
-  def handle_event("toggle_mobile_menu", _params, socket) do
-    {:noreply, assign(socket, mobile_menu_open: !socket.assigns.mobile_menu_open)}
   end
 
   @impl true
@@ -29,7 +23,7 @@ defmodule EmakolaWeb.Company.LegalLive do
       phx-hook="ScrollReveal"
       class="min-h-screen bg-white font-body antialiased"
     >
-      <.landing_nav mobile_menu_open={@mobile_menu_open} />
+      <.landing_nav />
       <main>
         <.marketing_hero
           eyebrow="Legal"

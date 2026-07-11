@@ -324,4 +324,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Shared do
 
   defp upload_error_to_string(:too_many_files), do: "Up to 5 images at a time"
   defp upload_error_to_string(err), do: "Upload error: #{inspect(err)}"
+
+  @doc "Variants in display order; [] when the association is not loaded."
+  def sorted_variants(product) do
+    case product.variants do
+      %Ash.NotLoaded{} -> []
+      variants -> Enum.sort_by(variants, & &1.position)
+    end
+  end
 end
