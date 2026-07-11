@@ -218,9 +218,20 @@
 
 ## OPEN — White-label design system (remaining phases)
 
-- [ ] **Phase 2 — Section editor (Shopify-style)** — not started: section type
-      registry, `home_sections` JSON array, `SectionSortable` JS hook, the
-      admin Section Editor UI, per-section settings, backwards-compat, tests.
+- [ ] **Phase 2 — Section editor (Shopify-style)**
+  - [x] Core infrastructure + two reference themes — DONE 2026-07-11: section
+        contract/registry (`Emakola.Themes.Section`, `Sections`), the
+        block-bridge (`block/<type>` into the page-builder library),
+        `HomeSections` per-theme layout storage (sanitized: type resolution,
+        URL scoping, padding/color allowlists), and `SectionRenderer` (style
+        wrapper only for styled entries — byte-identical defaults); Starter
+        and Atelier decomposed into registered sections. Spec:
+        `docs/superpowers/specs/2026-07-11-section-editor-design.md`.
+  - [ ] Remaining: the admin Section Editor UI (`SectionSortable` JS hook,
+        per-section settings forms, backwards-compat, tests), the seven new
+        themes (Sika, Fie, Chale, Dede, Depot, Pace, Ntoma — locked
+        2026-07-11), and the cull-gated fan-out of surviving existing themes
+        into sections.
       *(Phase 1 page coverage and most of Phase 3 — `DesignTokens`,
       `design_tokens` config, the admin Design tab — are DONE; only a standalone
       `FontLoader` was folded into `DesignTokens`.)*
