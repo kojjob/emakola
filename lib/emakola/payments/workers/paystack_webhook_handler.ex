@@ -183,6 +183,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
       if payment.status == :success do
         maybe_confirm_order(payment.order_id)
         Emakola.Suppliers.GroupBuys.confirm_payment(payment)
+        Emakola.Suppliers.ProtectedPreorders.confirm_payment(payment)
         settle_splits(payment)
         Emakola.Suppliers.SalesTeams.settle_attributed_payment(payment)
 

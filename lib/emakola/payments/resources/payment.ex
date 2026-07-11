@@ -105,6 +105,20 @@ defmodule Emakola.Payments.Payment do
       public?(true)
     end
 
+    attribute :payout_held, :boolean do
+      allow_nil?(false)
+      default(false)
+      public?(true)
+    end
+
+    attribute :payout_hold_reason, :string do
+      public?(true)
+    end
+
+    attribute :payout_released_at, :utc_datetime_usec do
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -170,7 +184,9 @@ defmodule Emakola.Payments.Payment do
         :customer_email,
         :metadata,
         :split_mode,
-        :split_code
+        :split_code,
+        :payout_held,
+        :payout_hold_reason
       ])
     end
 
@@ -233,6 +249,13 @@ defmodule Emakola.Payments.Payment do
       accept([])
       change(set_attribute(:paid_out_at, nil))
       change(set_attribute(:payout_id, nil))
+    end
+
+    update :release_payout_hold do
+      require_atomic?(false)
+      accept([])
+      change(set_attribute(:payout_held, false))
+      change(set_attribute(:payout_released_at, &DateTime.utc_now/0))
     end
 
     read :by_payout do

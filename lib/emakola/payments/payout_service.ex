@@ -44,7 +44,8 @@ defmodule Emakola.Payments.PayoutService do
   def outstanding_payments(store_id) do
     Payment
     |> Ash.Query.filter(
-      store_id == ^store_id and status == :success and split_mode == :none and is_nil(paid_out_at)
+      store_id == ^store_id and status == :success and split_mode == :none and
+        payout_held == false and is_nil(paid_out_at)
     )
     |> Ash.read!(authorize?: false)
   end
@@ -66,7 +67,7 @@ defmodule Emakola.Payments.PayoutService do
           Payment
           |> Ash.Query.filter(
             store_id == ^store_id and status == :success and split_mode == :none and
-              is_nil(paid_out_at)
+              payout_held == false and is_nil(paid_out_at)
           )
           |> Ash.Query.lock("FOR UPDATE")
           |> Ash.read!(authorize?: false)

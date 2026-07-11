@@ -98,5 +98,8 @@ defmodule Emakola.Suppliers do
     resource(Emakola.Suppliers.PartnerCreditOffer)
     resource(Emakola.Suppliers.PartnerCreditAgreement)
     resource(Emakola.Suppliers.PartnerCreditRepayment)
+    resource(Emakola.Suppliers.ProtectedPreorder)
+    resource(Emakola.Suppliers.PreorderMilestone)
+    resource(Emakola.Suppliers.PreorderDeposit)
   end
 end

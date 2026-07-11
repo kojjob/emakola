@@ -119,11 +119,15 @@ Acceptance: merchants can inspect and challenge their passport; credit decisions
 
 ### Phase F — Trust-protected Preorders
 
-- Supplier milestone plans, delivery windows, minimum demand, and customer disclosures.
-- Protected deposits only after legal/payment-provider approval of the funds flow.
-- Automatic cancellation/refund rules and supplier performance consequences.
+- [x] Supplier milestone plans, delivery windows, minimum demand, and customer disclosures.
+- [x] Protected deposits only after legal/payment-provider approval of the funds flow.
+  - [x] A hard dual-approval gate prevents collection without both references; successful
+        deposits remain excluded from merchant payouts until every milestone is fulfilled.
+- [x] Automatic cancellation/refund rules and supplier performance consequences.
+  - [x] Five-minute enforcement, retryable refund evidence, missed-milestone state, and an
+        explainable expiring passport signal cover deadline and production failure.
 
-Acceptance: preorder funds, deadlines, milestones, refunds, and earnings reconcile end to end under failure simulations.
+Acceptance: preorder funds, deadlines, milestones, refunds, and earnings reconcile end to end under failure simulations. **Verified:** passing success, replay, payout-quarantine, milestone, failure, and refund simulations.
 
 ## North-star and guardrail metrics
 

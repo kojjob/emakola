@@ -207,6 +207,11 @@
     - [x] Add licensed-partner or explicit supplier trade credit with informed consent,
           external disbursement evidence, explainable passport decisions, and idempotent
           sales-only repayment/refund reconciliation through the payment-split ledger.
+  - [x] Build Phase F — trust-protected preorders.
+    - [x] Require complete customer disclosures, demand limits, delivery windows, milestone
+          evidence, and independent legal/payment-provider approval references before launch.
+    - [x] Quarantine deposits from payout until verified fulfillment; automatically refund
+          deadline/milestone failures and add explainable supplier performance consequences.
 
 ## OPEN — White-label design system (remaining phases)
 
