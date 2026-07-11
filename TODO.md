@@ -181,6 +181,8 @@
   - [x] Build Phase C — privacy-safe Opportunity Radar, bounded ethical pricing, and
         aggregate-only supplier demand alerts.
   - [ ] Run Phase C's live controlled evaluation against the popularity-only baseline.
+        *(Harness shipped 2026-07-11: `RadarEvaluation` deterministic arms + baseline
+        ranking + `mix emakola.radar_eval` report; the live run awaits pilot traffic.)*
   - [x] Build Phase D — group buys, consent-based sales teams, and micro-franchises.
     - [x] Add Phase D schemas and authorized service foundations with threshold/payment checks,
           exact consented team splits, package terms, and explicit anti-MLM structure.
