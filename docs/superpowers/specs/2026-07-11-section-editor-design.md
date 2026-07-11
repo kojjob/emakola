@@ -138,9 +138,9 @@ New LiveView `/admin/design/sections` (linked from the Design tab):
    Atelier are safe keeps: the default and the showcase.)
 2. **Editor PR** — the LiveView, `SectionSortable` hook, settings/style
    forms, real-time preview, publish/reset, LiveView tests.
-3. **Six new themes** (five locked 2026-07-11; Pace added same day) — **born
-   sectionized**, built by six parallel agents after the core PR so
-   `sections/0` exists from birth:
+3. **Seven new themes** (five locked 2026-07-11; Pace and Ntoma added same
+   day) — **born sectionized**, built by seven parallel agents after the
+   core PR so `sections/0` exists from birth:
 
    | Theme | Vertical | Direction |
    |---|---|---|
@@ -150,6 +150,7 @@ New LiveView `/admin/design/sections` (linked from the Design tab):
    | Dede | Food vendors & chop bars | Mobile-order-first menu layout, sticky quick-buy, prominent WhatsApp ordering |
    | Depot | Wholesalers & B2B (Earn suppliers) | Dense quick-order tables, volume-tier pricing, heavy filtering, minimal chrome |
    | Pace | Activewear & techwear | Kinetic athletic catalog (locked to Kojo's Dribbble video ref, userupload/43016702): ice-blue ground, rounded canvas, dark-gradient photo cards with overlaid caps type, ghost marquee behind cards, letter-reveal headlines; motion CSS-driven and low-bandwidth-safe |
+   | Ntoma | Fashion & apparel retail | Warm mainstream fashion (locked to Kojo's Frolax ref, Dribbble shot 26410257 by Bilash Roy): terracotta + amber palette, oversized serif display, trust-badge strip, asymmetric category tiles, full-bleed gold featured band with giant wordmark, editorial lifestyle banners; hero photography celebrates West African print |
 
    **Production-grade bar** for each: native `home` (as sections),
    `product_list`, `product_detail`, and shared chrome (nav/footer/cart
