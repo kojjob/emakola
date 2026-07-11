@@ -130,6 +130,49 @@ defmodule Emakola.Payments.RefundLiabilityTest do
 
   defp allocation(allocations, role), do: Enum.find(allocations, &(&1.role == role))
 
+  # Post-merge hardening (2026-07-11 review): per-split floor division left up
+  # to n-1 pesewas of a partial refund unrecoverable. Reversals must sum
+  # exactly to the refunded amount.
+  describe "exact partial-refund reversals" do
+    test "reversals sum exactly to the refunded amount", %{original_store: store} do
+      payment = create_payment!(store, amount: 1_001)
+      recipient = create_store!(name: "Split recipient")
+
+      splits =
+        for amount <- [333, 333, 335] do
+          create_split!(store, payment, %{
+            role: :wholesaler,
+            recipient_store_id: recipient.id,
+            amount: amount
+          })
+        end
+
+      RefundLiability.reconcile!(%{payment | refunded_amount: 500}, splits)
+
+      assert splits |> Enum.map(&fresh(&1).reversed_amount) |> Enum.sum() == 500
+    end
+
+    test "successive partial refunds keep the running total exact", %{original_store: store} do
+      payment = create_payment!(store, amount: 1_001)
+      recipient = create_store!(name: "Split recipient two")
+
+      splits =
+        for amount <- [333, 333, 335] do
+          create_split!(store, payment, %{
+            role: :wholesaler,
+            recipient_store_id: recipient.id,
+            amount: amount
+          })
+        end
+
+      RefundLiability.reconcile!(%{payment | refunded_amount: 500}, splits)
+      RefundLiability.reconcile!(%{payment | refunded_amount: 1_001}, splits)
+
+      # A full refund reverses every split completely — no pesewa left behind.
+      assert Enum.map(splits, &fresh(&1).reversed_amount) == [333, 333, 335]
+    end
+  end
+
   defp create_split!(store, payment, attrs) do
     attrs
     |> Map.merge(%{store_id: store.id, payment_id: payment.id})

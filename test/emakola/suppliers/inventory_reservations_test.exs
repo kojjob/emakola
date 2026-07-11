@@ -1,5 +1,6 @@
 defmodule Emakola.Suppliers.InventoryReservationsTest do
   use Emakola.DataCase, async: true
+  use Oban.Testing, repo: Emakola.Repo
 
   import Emakola.Factory
   import Ecto.Query
@@ -212,5 +213,14 @@ defmodule Emakola.Suppliers.InventoryReservationsTest do
 
     assert Ash.get!(Emakola.Catalog.Variant, ctx.variant.id, authorize?: false).stock_quantity ==
              10
+  end
+
+  # Post-merge hardening (2026-07-11 review).
+  test "expiry worker jobs are unique — a duplicate insert is a no-op" do
+    %{} |> Emakola.Suppliers.Workers.InventoryReservationExpiryWorker.new() |> Oban.insert!()
+    %{} |> Emakola.Suppliers.Workers.InventoryReservationExpiryWorker.new() |> Oban.insert!()
+
+    assert [_only_one] =
+             all_enqueued(worker: Emakola.Suppliers.Workers.InventoryReservationExpiryWorker)
   end
 end
