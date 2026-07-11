@@ -506,4 +506,18 @@ defmodule Emakola.Themes.Atelier.Shared do
   defp category_image(category) do
     if Map.has_key?(category, :image_url), do: category.image_url, else: nil
   end
+
+  @doc """
+  A second, legacy gate underneath the section editor's `enabled` flag
+  (`Emakola.Themes.HomeSections`): a section entry can be enabled in the
+  saved/default layout and still be hidden by the theme's older
+  `@theme.sections.<name>` boolean (set via `theme_config`), preserving
+  pre-section-editor behaviour for stores that toggled sections the old way.
+  """
+  def section_enabled?(theme, section_name) do
+    case get_in(theme, [:sections, section_name]) do
+      false -> false
+      _ -> true
+    end
+  end
 end
