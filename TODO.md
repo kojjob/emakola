@@ -84,9 +84,12 @@
       (`form.ex`, `bulk_upload_modal.ex`, `Catalog.CSVImporter` all exist).
       Finish: pull out `product_card/1` and move the remaining Ash mutations
       (`archive`/`activate`/`save`) into `Emakola.Catalog` context functions.
-- [ ] **`components/layouts/app.html.heex` (901 lines)** — `sidebar_components.ex`
-      exists but only holds the icon map; extract `admin_sidebar/1` +
-      `admin_topbar/1` into it.
+- [x] **`components/layouts/app.html.heex` decomposed** — DONE 2026-07-11: 907 → 99
+      lines. `admin_sidebar/1` (overlay + aside + user popover) and `admin_topbar/1`
+      (search, quick add, notifications, user dropdown) extracted verbatim into
+      `SidebarComponents`; the shared display helpers (`user_initials`,
+      `notification_*`, `relative_time`) moved to a new leaf `LayoutHelpers`
+      module (with `Layouts` delegates) to break the circular dependency.
 - [ ] **`storefront/checkout_live.ex` (645 lines)** — down from 1517 via
       `CheckoutService`. Optional: extract `payment_method_card/1` and a poll
       helper if it grows again. (No `PollService` was created — payment now uses
