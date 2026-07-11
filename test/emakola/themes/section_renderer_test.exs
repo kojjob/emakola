@@ -5,6 +5,7 @@ defmodule Emakola.Themes.SectionRendererTest do
   use Emakola.DataCase, async: false
 
   import Emakola.Factory
+  import ExUnit.CaptureLog, only: [with_log: 1]
   import Phoenix.LiveViewTest, only: [rendered_to_string: 1]
 
   alias Emakola.Themes.{HomeSections, SectionRenderer}
@@ -123,5 +124,26 @@ defmodule Emakola.Themes.SectionRendererTest do
 
     html = render_home(store)
     assert html =~ "beta"
+  end
+
+  test "non-map layout entries are skipped with a warning, never raise", %{
+    merchant: merchant,
+    store: store
+  } do
+    {:ok, store} =
+      HomeSections.put_layout(merchant, store, "faketheme", [
+        %{"id" => "faketheme/beta", "type" => "faketheme/beta", "enabled" => true}
+      ])
+
+    # Simulate corruption from a write path that bypasses put_layout's
+    # sanitizer (raw Ash update, migration): a bare string in the array.
+    config = store.theme_config
+    entries = ["oops" | get_in(config, ["home_sections", "faketheme"])]
+    store = %{store | theme_config: put_in(config, ["home_sections", "faketheme"], entries)}
+
+    {html, log} = with_log(fn -> render_home(store) end)
+
+    assert html =~ "beta"
+    assert log =~ "[sections] malformed layout entry"
   end
 end

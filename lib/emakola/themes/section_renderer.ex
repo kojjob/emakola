@@ -25,21 +25,7 @@ defmodule Emakola.Themes.SectionRenderer do
   def home(assigns) do
     entries =
       HomeSections.effective_layout(assigns.store, assigns.theme_module)
-      |> Enum.filter(& &1["enabled"])
-      |> Enum.flat_map(fn entry ->
-        case Sections.resolve(entry["type"]) do
-          {:ok, {module, meta}} ->
-            [{entry, module, meta}]
-
-          :error ->
-            Logger.warning(
-              "[sections] unknown section type #{inspect(entry["type"])} skipped " <>
-                "(store=#{assigns.store.id})"
-            )
-
-            []
-        end
-      end)
+      |> Enum.flat_map(&resolve_entry(&1, assigns.store.id))
 
     assigns = assign(assigns, :resolved_entries, entries)
 
@@ -56,6 +42,41 @@ defmodule Emakola.Themes.SectionRenderer do
     """
   end
 
+  # theme_config is a bare map attribute: write paths other than
+  # HomeSections.put_layout (raw Ash updates, migrations) can leave
+  # non-map junk in the array. Skip it — a bad entry must never take
+  # down the storefront home render.
+  defp resolve_entry(%{} = entry, store_id) do
+    if entry["enabled"], do: resolve_type(entry, store_id), else: []
+  end
+
+  defp resolve_entry(entry, store_id) do
+    Logger.warning(
+      "[sections] malformed layout entry #{inspect(entry, limit: 5, printable_limit: 120)} " <>
+        "skipped (store=#{store_id})"
+    )
+
+    []
+  end
+
+  # A non-binary "type" is just as unresolvable as an unknown one —
+  # Sections.resolve/1 only accepts binaries, so guard before calling.
+  defp resolve_type(entry, store_id) do
+    type = entry["type"]
+
+    with true <- is_binary(type),
+         {:ok, {module, meta}} <- Sections.resolve(type) do
+      [{entry, module, meta}]
+    else
+      _unresolvable ->
+        Logger.warning(
+          "[sections] unknown section type #{inspect(type)} skipped (store=#{store_id})"
+        )
+
+        []
+    end
+  end
+
   defp render_section(module, meta, entry, assigns) do
     settings = Map.merge(schema_defaults(module), entry["settings"] || %{})
 
@@ -63,6 +84,9 @@ defmodule Emakola.Themes.SectionRenderer do
     |> Map.drop([:resolved_entries])
     |> Map.put(:settings, settings)
     |> Map.put(:section_meta, meta)
+    # Dynamic per-section renders opt out of change tracking so section
+    # templates always re-render fully — same convention as BlockSection.
+    |> Map.put(:__changed__, nil)
     |> module.render()
   end
 
