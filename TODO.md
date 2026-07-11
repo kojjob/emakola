@@ -211,6 +211,10 @@
           evidence, and independent legal/payment-provider approval references before launch.
     - [x] Quarantine deposits from payout until verified fulfillment; automatically refund
           deadline/milestone failures and add explainable supplier performance consequences.
+  - [ ] Harden income-OS money paths per the 2026-07-11 post-merge review: group-buy
+        refund claim races/crash recovery, trade-credit balance locking, transactional
+        team-settlement persistence, reservation release races, and late-webhook
+        refund coverage. (Fix-forward PRs in flight.)
 
 ## OPEN — White-label design system (remaining phases)
 
@@ -266,36 +270,3 @@
       `resolve_user`'s `current_store: nil` stub is a trap) — see `LAUNCH_TODO.md`
 - [ ] Seed digital-downloads demo data — see `LAUNCH_TODO.md`
 
----
-
-## RESOLVED since 2026-04-25 (verified DONE 2026-06-25)
-
-> Kept here briefly for traceability; safe to delete once consolidated.
-
-**Checkout / orders:** DeliveryZone wired into checkout (`Shipping.calculate_fee/2`)
-· fake-email Paystack pattern removed · `connected?` guard on payment polling ·
-`tracking_number` added to `Order` + wired through ship flow + notification worker ·
-`CachedCatalog.invalidate_store/1` called on product/category create/update/archive ·
-order number via `:crypto.strong_rand_bytes`, collisions no longer mis-mapped to
-`:insufficient_stock`.
-
-**Notifications / payments:** WhatsApp Business API channel · order lifecycle email
-templates (order/shipping/delivery) · rate limiting on SMS + WhatsApp · WhatsApp
-Graph API version configurable (`v21.0` default, env override) · shipping-zone admin
-UI · customer reviews & ratings storefront UI + admin moderation · Hubtel gateway ·
-payment reconciliation dashboard · admin refund/return UI.
-
-**White-label / architecture:** `ThemeRenderer` dispatcher + `ThemeBehaviour`
-optional callbacks + `DefaultRenderers` (11 pages) wired through storefront LiveViews ·
-`DesignTokens` + `design_tokens` config + admin Design tab · `Store` extracted to
-`Emakola.Stores` domain (with `StoreSettings`/`StoreDomain`) · `Coupon` extracted to
-`Emakola.Marketing`.
-
-**Refactor:** `atelier/shared.ex` 1692→509 (Nav/Footer extracted).
-
-**Infra / DB / hygiene:** Postgres-backed carts (ETS removed) · webhook→LiveView
-PubSub bridge (no more 3-min poll) · `Dashboard.Stats.load_stats/1` parallelized ·
-`orders.coupon_id` index added · `coupons.id` `gen_random_uuid()` default · April
-migration made reversible (`up`/`down`) · `erl_crash.dump`/`firebase-debug.log`
-gitignored & gone · duplicate `appendices 2/` dir removed · WhatsApp storefront
-login (phone OTP) shipped · wishlist persisted to `wishlist_items` table.

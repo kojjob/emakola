@@ -252,37 +252,45 @@ defmodule Emakola.Suppliers.SalesTeams do
     end
   end
 
+  # Transactional and per-member idempotent: a crash that persisted only some
+  # member rows is healed by the retry (missing members are filled in), and the
+  # transaction prevents new partial states. The (payment_id, team_member_id)
+  # unique identity remains the last line of defense against duplicates.
   defp persist_settlements(payment, order, team, allocations, base) do
-    existing =
-      Emakola.Suppliers.SalesTeamSettlement
-      |> Ash.Query.filter(payment_id == ^payment.id)
-      |> Ash.read!(authorize?: false)
+    {:ok, :ok} =
+      Emakola.Repo.transaction(fn ->
+        settled_member_ids =
+          Emakola.Suppliers.SalesTeamSettlement
+          |> Ash.Query.filter(payment_id == ^payment.id)
+          |> Ash.read!(authorize?: false)
+          |> MapSet.new(& &1.team_member_id)
 
-    if existing == [] do
-      now = DateTime.utc_now()
+        now = DateTime.utc_now()
 
-      Enum.each(allocations, fn allocation ->
-        Emakola.Suppliers.SalesTeamSettlement
-        |> Ash.Changeset.for_create(:create, %{
-          store_id: payment.store_id,
-          order_id: order.id,
-          payment_id: payment.id,
-          team_id: team.id,
-          team_member_id: allocation.team_member_id,
-          merchant_id: allocation.merchant_id,
-          role: allocation.role,
-          split_bps: allocation.split_bps,
-          settlement_base: base,
-          amount: allocation.amount,
-          settled_at: now
-        })
-        |> Ash.create!(authorize?: false)
+        allocations
+        |> Enum.reject(&MapSet.member?(settled_member_ids, &1.team_member_id))
+        |> Enum.each(fn allocation ->
+          Emakola.Suppliers.SalesTeamSettlement
+          |> Ash.Changeset.for_create(:create, %{
+            store_id: payment.store_id,
+            order_id: order.id,
+            payment_id: payment.id,
+            team_id: team.id,
+            team_member_id: allocation.team_member_id,
+            merchant_id: allocation.merchant_id,
+            role: allocation.role,
+            split_bps: allocation.split_bps,
+            settlement_base: base,
+            amount: allocation.amount,
+            settled_at: now
+          })
+          |> Ash.create!(authorize?: false)
+        end)
+
+        :ok
       end)
 
-      :ok
-    else
-      :ok
-    end
+    :ok
   end
 
   defp value(map, key), do: Map.get(map, key) || Map.get(map, to_string(key))
