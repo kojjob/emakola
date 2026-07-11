@@ -92,5 +92,8 @@ defmodule Emakola.Suppliers do
     resource(Emakola.Suppliers.CommercePassport)
     resource(Emakola.Suppliers.ReputationSignal)
     resource(Emakola.Suppliers.ReputationAppeal)
+    resource(Emakola.Suppliers.InventoryEligibilityPolicy)
+    resource(Emakola.Suppliers.InventoryReservation)
+    resource(Emakola.Suppliers.InventoryReservationConsumption)
   end
 end

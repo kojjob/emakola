@@ -49,6 +49,11 @@ defmodule Emakola.Payments.HubtelWebhook do
       Emakola.Suppliers.GroupBuys.confirm_payment(payment)
       Emakola.Suppliers.SalesTeams.settle_attributed_payment(payment)
 
+      Emakola.Suppliers.InventoryReservations.consume_for_order(
+        payment.order_id,
+        payment.store_id
+      )
+
       :ok
     else
       true -> :ok

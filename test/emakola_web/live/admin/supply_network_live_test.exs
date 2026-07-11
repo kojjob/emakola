@@ -35,6 +35,39 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     assert has_element?(view, "#franchise-package-form")
     assert has_element?(view, "#commerce-passport")
     assert has_element?(view, "#commerce-signals article")
+    assert has_element?(view, "#inventory-eligibility")
+    assert has_element?(view, "#inventory-policy-form")
+  end
+
+  test "eligible reseller sees the reason, reserves stock, and releases unused units", ctx do
+    offer = create_partner_offer!(ctx)
+    connect_partner!(ctx)
+    offer = Ash.load!(offer, :offer_variants, authorize?: false)
+    terms = List.first(offer.offer_variants)
+
+    {:ok, policy} =
+      Emakola.Suppliers.InventoryReservations.create_policy(
+        ctx.partner_merchant,
+        ctx.partner.id,
+        terms.id,
+        %{minimum_tier: :starter, max_quantity_per_reseller: 4, reservation_hours: 48}
+      )
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+    assert has_element?(view, "#eligible-inventory-policies article", policy.reason_code)
+    assert has_element?(view, "#eligible-inventory-policies article", "Requires starter+")
+
+    view
+    |> form("#reserve-inventory-form-#{policy.id}", inventory_reservation: %{quantity: "2"})
+    |> render_submit()
+
+    assert has_element?(view, "#inventory-reservations article", "2 of 2 held")
+
+    {:ok, [reservation]} =
+      Emakola.Suppliers.InventoryReservations.list(ctx.merchant, ctx.store.id)
+
+    view |> element("#release-inventory-#{reservation.id}") |> render_click()
+    assert has_element?(view, "#inventory-reservations article", "released")
   end
 
   test "merchant inspects, refreshes, and appeals passport evidence", ctx do

@@ -202,8 +202,10 @@
           codes, expiry, repeatable refresh, correction audit state, and merchant appeals.
     - [x] Add Earn Network inspection, evidence display, expiry visibility, refresh, and
           per-signal appeal UI.
-    - [ ] Add transparent inventory eligibility/reservations and licensed-partner or explicit
-          supplier trade credit with informed consent and sales-only repayment.
+    - [x] Add transparent passport-tier inventory eligibility, supplier-authored caps/reason
+          codes, atomic stock holds, idempotent paid-order consumption, and automatic unused release.
+    - [ ] Add licensed-partner or explicit supplier trade credit with informed consent and
+          sales-only repayment.
 
 ## OPEN — White-label design system (remaining phases)
 

@@ -145,6 +145,7 @@ config :emakola, Oban,
        {"0 8 * * *", Emakola.Inventory.Workers.LowStockAlertWorker},
        {"0 */6 * * *", Emakola.Cart.CartCleanupWorker},
        {"*/5 * * * *", Emakola.Suppliers.Workers.GroupBuyExpiryWorker},
+       {"*/10 * * * *", Emakola.Suppliers.Workers.InventoryReservationExpiryWorker},
        {"30 3 * * *", Emakola.Accounts.Workers.PhoneOtpPruneWorker}
      ]}
   ]

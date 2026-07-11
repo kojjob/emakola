@@ -14,6 +14,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     GroupBuys,
     InboundFulfillment,
     IncomeGoals,
+    InventoryReservations,
     ListingImporter,
     Network,
     OpportunityRadar,
@@ -56,6 +57,8 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
        available_franchise_count: 0,
        commerce_passport: nil,
        passport_appeal_forms: %{},
+       inventory_policy_form: inventory_policy_form(),
+       inventory_reservation_forms: %{},
        group_buy_form: group_buy_form(),
        sales_team_form: sales_team_form(),
        franchise_form: franchise_form(),
@@ -77,7 +80,8 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
      |> load_content_drafts()
      |> load_opportunity_radar()
      |> load_collaborative_commerce()
-     |> load_commerce_passport()}
+     |> load_commerce_passport()
+     |> load_inventory_eligibility()}
   end
 
   @impl true
@@ -507,6 +511,60 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     end
   end
 
+  def handle_event("create_inventory_policy", %{"inventory_policy" => params}, socket) do
+    case InventoryReservations.create_policy(
+           socket.assigns.current_merchant,
+           socket.assigns.current_store.id,
+           params["offer_variant_id"],
+           params
+         ) do
+      {:ok, _policy} ->
+        {:noreply,
+         socket
+         |> assign(:inventory_policy_form, inventory_policy_form())
+         |> load_inventory_eligibility()
+         |> put_flash(:info, "Transparent inventory eligibility published.")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, inventory_error(reason))}
+    end
+  end
+
+  def handle_event("reserve_eligible_inventory", %{"inventory_reservation" => params}, socket) do
+    case InventoryReservations.reserve(
+           socket.assigns.current_merchant,
+           socket.assigns.current_store.id,
+           params["policy_id"],
+           params["quantity"]
+         ) do
+      {:ok, _reservation} ->
+        {:noreply,
+         socket
+         |> load_inventory_eligibility()
+         |> put_flash(:info, "Inventory held until the displayed expiry time.")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, inventory_error(reason))}
+    end
+  end
+
+  def handle_event("release_inventory_reservation", %{"id" => reservation_id}, socket) do
+    case InventoryReservations.release(
+           socket.assigns.current_merchant,
+           socket.assigns.current_store.id,
+           reservation_id
+         ) do
+      {:ok, _reservation} ->
+        {:noreply,
+         socket
+         |> load_inventory_eligibility()
+         |> put_flash(:info, "Unused inventory returned to the supplier.")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, inventory_error(reason))}
+    end
+  end
+
   def handle_event("record_sales_share", %{"id" => share_id}, socket) do
     SalesSharing.record_share(
       socket.assigns.current_merchant,
@@ -846,6 +904,29 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     end
   end
 
+  defp load_inventory_eligibility(socket) do
+    actor = socket.assigns.current_merchant
+    store_id = socket.assigns.current_store.id
+    owned = InventoryReservations.owned_policies(actor, store_id) |> result_rows()
+    eligible = InventoryReservations.eligible_policies(actor, store_id) |> result_rows()
+    reservations = InventoryReservations.list(actor, store_id) |> result_rows()
+
+    forms =
+      Map.new(eligible, fn policy ->
+        {policy.id,
+         to_form(%{"policy_id" => policy.id, "quantity" => "1"},
+           as: :inventory_reservation,
+           id: "inventory-reservation-#{policy.id}"
+         )}
+      end)
+
+    socket
+    |> assign(:inventory_reservation_forms, forms)
+    |> stream(:owned_inventory_policies, owned, reset: true)
+    |> stream(:eligible_inventory_policies, eligible, reset: true)
+    |> stream(:inventory_reservations, reservations, reset: true)
+  end
+
   defp assign_passport(socket, passport) do
     signals = Enum.reject(passport.signals, &(&1.status == :expired))
 
@@ -886,6 +967,35 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
   defp connection_form do
     to_form(%{"partner_slug" => "", "relationship" => "resell"}, as: :connection)
   end
+
+  defp inventory_policy_form do
+    to_form(
+      %{
+        "offer_variant_id" => "",
+        "minimum_tier" => "reliable",
+        "max_quantity_per_reseller" => "5",
+        "reservation_hours" => "72"
+      },
+      as: :inventory_policy
+    )
+  end
+
+  defp inventory_policy_options(offers) do
+    for offer <- offers,
+        variant <- offer.offer_variants do
+      label = "#{offer.source_product.title} · #{String.slice(variant.id, 0, 6)}"
+      {label, variant.id}
+    end
+  end
+
+  defp inventory_error(:not_eligible), do: "Your current passport tier does not meet this rule."
+  defp inventory_error(:reseller_limit_exceeded), do: "That exceeds the published reseller limit."
+  defp inventory_error(:insufficient_inventory), do: "The supplier no longer has enough stock."
+
+  defp inventory_error(:inventory_not_tracked),
+    do: "The supplier must track this stock before reserving it."
+
+  defp inventory_error(_), do: "The inventory request could not be completed."
 
   defp income_goal_form do
     to_form(
@@ -1881,6 +1991,150 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
               Appeal open — this signal is flagged for review.
             </p>
           </article>
+        </div>
+      </section>
+
+      <section
+        id="inventory-eligibility"
+        class="rounded-3xl border border-amber-200 bg-amber-50/70 p-6 shadow-sm sm:p-8"
+      >
+        <div class="grid gap-6 xl:grid-cols-2">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">Supplier rules</p>
+            <h2 class="mt-1 text-2xl font-black text-slate-950">Reserve stock by transparent tier</h2>
+            <p class="mt-2 text-sm leading-6 text-slate-600">
+              Publish the minimum passport tier, exact unit cap, reason code, and automatic expiry. Held stock is removed atomically and unused units return automatically.
+            </p>
+            <.form
+              for={@inventory_policy_form}
+              id="inventory-policy-form"
+              phx-submit="create_inventory_policy"
+              class="mt-5 grid gap-3 sm:grid-cols-2"
+            >
+              <.input
+                field={@inventory_policy_form[:offer_variant_id]}
+                type="select"
+                label="Offer variant"
+                prompt="Choose tracked stock"
+                options={inventory_policy_options(@collaboration_owned_offers)}
+                required
+              />
+              <.input
+                field={@inventory_policy_form[:minimum_tier]}
+                type="select"
+                label="Minimum tier"
+                options={[{"Starter", "starter"}, {"Reliable", "reliable"}, {"Proven", "proven"}]}
+              />
+              <.input
+                field={@inventory_policy_form[:max_quantity_per_reseller]}
+                type="number"
+                min="1"
+                label="Unit cap per reseller"
+              />
+              <.input
+                field={@inventory_policy_form[:reservation_hours]}
+                type="number"
+                min="1"
+                max="720"
+                label="Hold duration (hours)"
+              />
+              <button
+                id="publish-inventory-policy"
+                class="sm:col-span-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-amber-500"
+              >
+                Publish eligibility rule
+              </button>
+            </.form>
+            <div id="owned-inventory-policies" phx-update="stream" class="mt-4 space-y-2">
+              <article
+                :for={{dom_id, policy} <- @streams.owned_inventory_policies}
+                id={dom_id}
+                class="rounded-xl bg-white p-3 text-xs text-slate-700"
+              >
+                <p class="font-bold text-slate-950">{policy.reason_code}</p>
+                <p class="mt-1 capitalize">
+                  {policy.minimum_tier}+ · up to {policy.max_quantity_per_reseller} units · {policy.reservation_hours}h
+                </p>
+              </article>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">
+              Your eligible holds
+            </p>
+            <div id="eligible-inventory-policies" phx-update="stream" class="mt-3 space-y-3">
+              <p
+                id="eligible-inventory-empty"
+                class="hidden only:block rounded-xl border border-dashed border-emerald-200 bg-white p-4 text-sm text-slate-500"
+              >
+                No connected supplier rule currently matches your passport tier.
+              </p>
+              <article
+                :for={{dom_id, policy} <- @streams.eligible_inventory_policies}
+                id={dom_id}
+                class="rounded-2xl border border-emerald-200 bg-white p-4"
+              >
+                <p class="text-sm font-black text-slate-950">
+                  {policy.offer_variant.offer.source_product.title}
+                </p>
+                <p class="mt-1 font-mono text-[11px] text-emerald-700">{policy.reason_code}</p>
+                <p class="mt-1 text-xs text-slate-500 capitalize">
+                  Requires {policy.minimum_tier}+ · cap {policy.max_quantity_per_reseller} · expires after {policy.reservation_hours}h
+                </p>
+                <.form
+                  for={Map.fetch!(@inventory_reservation_forms, policy.id)}
+                  id={"reserve-inventory-form-#{policy.id}"}
+                  phx-submit="reserve_eligible_inventory"
+                  class="mt-3 flex items-end gap-2"
+                >
+                  <.input
+                    field={Map.fetch!(@inventory_reservation_forms, policy.id)[:policy_id]}
+                    type="hidden"
+                  />
+                  <.input
+                    field={Map.fetch!(@inventory_reservation_forms, policy.id)[:quantity]}
+                    type="number"
+                    min="1"
+                    max={policy.max_quantity_per_reseller}
+                    label="Units"
+                    class="w-24 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                  />
+                  <button class="rounded-lg bg-emerald-700 px-3 py-2.5 text-xs font-bold text-white hover:bg-emerald-600">
+                    Hold stock
+                  </button>
+                </.form>
+              </article>
+            </div>
+            <div id="inventory-reservations" phx-update="stream" class="mt-4 space-y-2">
+              <article
+                :for={{dom_id, reservation} <- @streams.inventory_reservations}
+                id={dom_id}
+                class="flex items-center justify-between gap-3 rounded-xl bg-slate-950 p-3 text-xs text-white"
+              >
+                <div>
+                  <p class="font-bold">
+                    {reservation.quantity - reservation.consumed_quantity} of {reservation.quantity} held · {reservation.status}
+                  </p>
+                  <p class="mt-1 text-slate-400">
+                    {reservation.reason_code} · until {Calendar.strftime(
+                      reservation.expires_at,
+                      "%d %b %H:%M"
+                    )}
+                  </p>
+                </div>
+                <button
+                  :if={reservation.status == :active}
+                  id={"release-inventory-#{reservation.id}"}
+                  phx-click="release_inventory_reservation"
+                  phx-value-id={reservation.id}
+                  class="rounded-lg border border-slate-600 px-3 py-1.5 font-bold hover:bg-slate-800"
+                >
+                  Release
+                </button>
+              </article>
+            </div>
+          </div>
         </div>
       </section>
 

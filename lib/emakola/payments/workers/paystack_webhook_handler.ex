@@ -185,6 +185,11 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
         Emakola.Suppliers.GroupBuys.confirm_payment(payment)
         settle_splits(payment)
         Emakola.Suppliers.SalesTeams.settle_attributed_payment(payment)
+
+        Emakola.Suppliers.InventoryReservations.consume_for_order(
+          payment.order_id,
+          payment.store_id
+        )
       end
 
       :ok

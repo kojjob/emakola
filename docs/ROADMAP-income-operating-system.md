@@ -107,7 +107,8 @@ Acceptance: every participant and customer sees the complete economics before co
 - [x] Portable commerce passport based on fulfilled orders, service quality, refunds/disputes,
       and verified supplier training.
 - [x] Evidence, reason codes, expiry, correction, and appeal for every reputation signal.
-- [ ] Opportunity tiers and reserved inventory based on transparent eligibility.
+- [x] Opportunity tiers and reserved inventory based on transparent eligibility, with supplier
+      reason codes, atomic stock holds, paid-order consumption, limits, expiry, and unused release.
 - [ ] Licensed-partner or explicit supplier trade credit, repaid from sales only with informed consent.
 
 Acceptance: merchants can inspect and challenge their passport; credit decisions are explainable and compliant.
