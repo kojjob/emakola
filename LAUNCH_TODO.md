@@ -143,6 +143,3 @@ also needs a real device token, which only the Phase 1 Flutter client mints
       webhook route, no env reads — deliberately NOT in the setup guide).
       When subscription billing becomes a real feature: SDK + route +
       `STRIPE_*` secrets + its own PROVIDER_SETUP section.
-- [ ] **Refresh `TODO.md`** — the April-25 dev backlog predates this cycle;
-      re-audit it (many entries are already done: WhatsApp/SMS integration,
-      admin component extraction, named tokens, domain restructuring, …).
