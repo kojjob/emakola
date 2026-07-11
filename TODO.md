@@ -77,9 +77,12 @@
 
 > The earlier pass cut these hard; they're reduced but not finished.
 
-- [ ] **`landing_live.ex` (680 lines, still a LiveView)** — convert to a dead
-      `Phoenix.Component` (mobile menu via `Phoenix.LiveView.JS`). Eliminates one
-      LV process per anonymous visitor. *(Inline `<style>` block already removed.)*
+- [x] **`landing_live.ex` → dead render** — DONE 2026-07-11. `LandingController` +
+      `LandingHTML`; mobile menu is pure client state in the shared `landing_nav`
+      (`Phoenix.LiveView.JS`, no parent handler — 10 caller LiveViews cleaned up);
+      scroll effects bind via `data-scroll-glass`/`data-scroll-reveal` in app.js so
+      they work on dead pages and live navigation alike. No LV process per
+      anonymous visitor.
 - [ ] **`admin/product_live/index.ex` (1337 lines)** — extraction started
       (`form.ex`, `bulk_upload_modal.ex`, `Catalog.CSVImporter` all exist).
       Finish: pull out `product_card/1` and move the remaining Ash mutations

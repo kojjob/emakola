@@ -13,14 +13,8 @@ defmodule EmakolaWeb.Company.CareersLive do
          "Join Makola and help build commerce tools for West African merchants. Remote-friendly, mission-driven, early-stage.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/careers"),
-       mobile_menu_open: false,
        careers_email: Application.get_env(:emakola, :careers_email, "careers@emakola.com")
      ), layout: false}
-  end
-
-  @impl true
-  def handle_event("toggle_mobile_menu", _params, socket) do
-    {:noreply, assign(socket, mobile_menu_open: !socket.assigns.mobile_menu_open)}
   end
 
   @impl true
@@ -31,7 +25,7 @@ defmodule EmakolaWeb.Company.CareersLive do
       phx-hook="ScrollReveal"
       class="min-h-screen bg-white font-body antialiased"
     >
-      <.landing_nav mobile_menu_open={@mobile_menu_open} />
+      <.landing_nav />
       <main>
         <.marketing_hero
           eyebrow="Careers"
