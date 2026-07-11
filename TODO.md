@@ -116,8 +116,11 @@
       (overlaps `LAUNCH_TODO.md` item 4).
 - [ ] **Delivery fee beyond flat-per-zone** — `Emakola.Shipping.calculate_fee/2`
       does zone lookup only; add weight-based / tiered rules if needed.
-- [ ] **Low-stock WhatsApp channel** — `low_stock_alert_worker.ex` sends email
-      + SMS digest; WhatsApp alerting not yet wired.
+- [x] **Low-stock WhatsApp channel** — DONE 2026-07-11. The daily digest now also
+      goes to `store.whatsapp_number` via the `low_stock_digest` template,
+      tolerating an unapproved Meta template exactly like the announcement
+      worker (ship-dark until the template goes live — submit it alongside the
+      LAUNCH_TODO step-1 batch).
 - [ ] **Hubtel refund automation** — `gateways/hubtel.ex` `process_refund/2`
       returns `:not_supported` (manual today); automate if/when Hubtel supports it.
 
