@@ -140,6 +140,44 @@ defmodule EmakolaWeb.SitemapController do
     |> send_resp(200, body)
   end
 
+  @doc "Serves an AI-readable overview of the Makola platform and its authoritative pages."
+  def platform_llms(conn, _params) do
+    base = Canonical.base()
+
+    body = """
+    # Makola
+
+    > Makola is an ecommerce platform for merchants in Ghana and West Africa.
+
+    Makola helps merchants create an online store, accept MTN MoMo, Vodafone Cash,
+    AirtelTigo and card payments, manage local supplier dropshipping, and send
+    automatic WhatsApp and SMS order updates.
+
+    ## Authoritative pages
+
+    - Home: #{base}/
+    - Pricing: #{base}/pricing
+    - Store directory: #{base}/stores
+    - Documentation: #{base}/docs
+    - About Makola: #{base}/about
+    - Contact: #{base}/contact
+    - Sitemap: #{base}/sitemap.xml
+
+    ## Key facts
+
+    - Primary market: Ghana and West Africa
+    - Merchant payments: mobile money and cards
+    - Starter plan: free to start, with a transaction fee
+    - Customer notifications: WhatsApp and SMS
+    - Commerce types: physical products, digital products, and dropshipping
+    """
+
+    conn
+    |> put_resp_content_type("text/plain")
+    |> put_resp_header("cache-control", "public, max-age=3600")
+    |> send_resp(200, body)
+  end
+
   @doc """
   Serves a per-store robots.txt that references the sitemap and explicitly
   allows AI crawlers (GPTBot, Google-Extended, Anthropic, etc.).
@@ -217,20 +255,20 @@ defmodule EmakolaWeb.SitemapController do
   helps AI assistants (ChatGPT, Claude, Perplexity, etc.) give accurate
   answers when users ask about the store or its products.
   """
-  def llms(conn, %{"store_slug" => slug}) do
-    case StoreResolver.resolve(slug) do
+  def llms(conn, params) do
+    case fetch_store(conn, params) do
       {:ok, store} ->
-        base = base_url(conn, store)
         products = load_product_summaries(store)
         categories = load_category_names(store)
 
-        body = build_llms_txt(store, base, products, categories)
+        body = build_llms_txt(store, products, categories)
 
         conn
         |> put_resp_content_type("text/plain")
+        |> put_resp_header("cache-control", "public, max-age=900")
         |> send_resp(200, body)
 
-      {:error, _} ->
+      :error ->
         conn
         |> put_resp_content_type("text/plain")
         |> send_resp(404, "Store not found")
@@ -280,7 +318,12 @@ defmodule EmakolaWeb.SitemapController do
     [
       %{loc: Canonical.store_url(store), priority: "1.0", changefreq: "daily"},
       %{loc: Canonical.path(store, "/products"), priority: "0.9", changefreq: "daily"},
-      %{loc: Canonical.path(store, "/about"), priority: "0.5", changefreq: "monthly"}
+      %{loc: Canonical.path(store, "/about"), priority: "0.5", changefreq: "monthly"},
+      %{loc: Canonical.path(store, "/contact"), priority: "0.4", changefreq: "monthly"},
+      %{loc: Canonical.path(store, "/faq"), priority: "0.5", changefreq: "monthly"},
+      %{loc: Canonical.path(store, "/policies"), priority: "0.3", changefreq: "monthly"},
+      %{loc: Canonical.path(store, "/blog"), priority: "0.6", changefreq: "weekly"},
+      %{loc: Canonical.path(store, "/recipes"), priority: "0.6", changefreq: "weekly"}
     ]
   end
 
@@ -417,9 +460,9 @@ defmodule EmakolaWeb.SitemapController do
     |> Ash.read!(authorize?: false)
   end
 
-  defp build_llms_txt(store, base, products, categories) do
+  defp build_llms_txt(store, products, categories) do
     currency = Map.get(store, :currency, "GHS")
-    store_url = "#{base}/s/#{store.slug}"
+    store_url = Canonical.store_url(store)
 
     product_lines =
       Enum.map_join(products, "\n", fn p ->
