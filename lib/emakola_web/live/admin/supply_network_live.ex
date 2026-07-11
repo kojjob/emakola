@@ -449,6 +449,23 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     end
   end
 
+  def handle_event("approve_franchise", %{"id" => enrollment_id}, socket) do
+    case Franchises.approve(
+           socket.assigns.current_merchant,
+           socket.assigns.current_store.id,
+           enrollment_id
+         ) do
+      {:ok, _enrollment} ->
+        {:noreply,
+         socket
+         |> load_collaborative_commerce()
+         |> put_flash(:info, "Partner approved and package catalog activated.")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, franchise_error(reason))}
+    end
+  end
+
   def handle_event("record_sales_share", %{"id" => share_id}, socket) do
     SalesSharing.record_share(
       socket.assigns.current_merchant,
@@ -1658,6 +1675,36 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
                 Publish product-sales package
               </button>
             </.form>
+            <div id="owned-franchise-packages" phx-update="stream" class="mt-4 space-y-2">
+              <article
+                :for={{dom_id, package} <- @streams.owned_franchise_packages}
+                id={dom_id}
+                class="rounded-xl border border-fuchsia-100 bg-fuchsia-50 p-3 text-xs"
+              >
+                <p class="font-bold text-fuchsia-950">{package.name}</p>
+                <div id={"franchise-enrollments-#{package.id}"} class="mt-2 space-y-2">
+                  <div
+                    :for={enrollment <- package.enrollments}
+                    id={"franchise-enrollment-#{enrollment.id}"}
+                    class="flex items-center justify-between gap-3 rounded-lg bg-white p-2"
+                  >
+                    <span>{enrollment.reseller_store.name} · {enrollment.status}</span>
+                    <button
+                      :if={enrollment.status == :applied}
+                      id={"approve-franchise-#{enrollment.id}"}
+                      phx-click="approve_franchise"
+                      phx-value-id={enrollment.id}
+                      class="rounded-lg bg-fuchsia-700 px-3 py-1.5 font-bold text-white transition hover:bg-fuchsia-600"
+                    >
+                      Approve and activate catalog
+                    </button>
+                    <span :if={enrollment.status == :approved} class="font-bold text-emerald-700">
+                      {length(enrollment.activated_listing_ids)} products active
+                    </span>
+                  </div>
+                </div>
+              </article>
+            </div>
             <div id="available-franchise-packages" phx-update="stream" class="mt-4 space-y-2">
               <article
                 :for={{dom_id, package} <- @streams.available_franchise_packages}

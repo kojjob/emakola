@@ -66,6 +66,39 @@ defmodule Emakola.Suppliers.FranchisesTest do
              Franchises.approve(ctx.supplier_actor, ctx.supplier.id, enrollment.id)
 
     assert approved.status == :approved
+    assert approved.approved_at
+    assert length(approved.activated_listing_ids) == 1
+
+    listing_id = List.first(approved.activated_listing_ids)
+    listing = Ash.get!(Emakola.Suppliers.ResellerListing, listing_id, authorize?: false)
+    assert listing.offer_id == ctx.offer.id
+    assert listing.reseller_store_id == ctx.reseller.id
+    assert listing.status == :active
+
+    product = Ash.get!(Emakola.Catalog.Product, listing.reseller_product_id, authorize?: false)
+    assert product.status == :active
+
+    assert {:ok, [listed]} =
+             Emakola.Suppliers.ListingImporter.list(ctx.reseller_actor, ctx.reseller.id)
+
+    assert listed.id == listing.id
+  end
+
+  test "only the supplier can approve and activation remains atomic", ctx do
+    {:ok, package} = Franchises.create(ctx.supplier_actor, ctx.supplier.id, attrs(ctx))
+    {:ok, package} = Franchises.publish(ctx.supplier_actor, ctx.supplier.id, package.id)
+
+    {:ok, enrollment} =
+      Franchises.apply(ctx.reseller_actor, ctx.reseller.id, package.id, true)
+
+    {stranger, stranger_store} = create_merchant_with_store!()
+
+    assert {:error, :forbidden} =
+             Franchises.approve(stranger, stranger_store.id, enrollment.id)
+
+    unchanged = Ash.get!(Emakola.Suppliers.FranchiseEnrollment, enrollment.id, authorize?: false)
+    assert unchanged.status == :applied
+    assert unchanged.activated_listing_ids == []
   end
 
   test "rejects incomplete packages and contains no recruitment economics", ctx do

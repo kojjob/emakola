@@ -182,14 +182,15 @@
   - [x] Build Phase C — privacy-safe Opportunity Radar, bounded ethical pricing, and
         aggregate-only supplier demand alerts.
   - [ ] Run Phase C's live controlled evaluation against the popularity-only baseline.
-  - [ ] Build Phase D — group buys, consent-based sales teams, and micro-franchises.
+  - [x] Build Phase D — group buys, consent-based sales teams, and micro-franchises.
     - [x] Add Phase D schemas and authorized service foundations with threshold/payment checks,
           exact consented team splits, package terms, and explicit anti-MLM structure.
-    - [ ] Add Phase D merchant/customer UI, settlement integration, automatic refunds, and
+    - [x] Add Phase D merchant/customer UI, settlement integration, automatic refunds, and
           approved-package catalog activation.
       - [x] Add Earn Network merchant UI for group buys, exact-split team invitations/consent,
             and supplier/reseller micro-franchise publishing/discovery/application.
-      - [ ] Add supplier approval and approved-package catalog activation.
+      - [x] Add supplier-only approval, atomic package-offer catalog activation, and enrollment
+            evidence linking every activated reseller listing.
       - [x] Add UUID-safe sales-team attribution links, customer economics disclosure, exact
             consented settlement ledgers, webhook integration, and proportional refund reversals.
       - [x] Add customer group-buy discovery, capacity-reserving commitment/payment UI, and

@@ -3,7 +3,14 @@ defmodule Emakola.Suppliers.Franchises do
 
   require Ash.Query
 
-  alias Emakola.Suppliers.{FranchiseEnrollment, FranchisePackage, Network, Offers}
+  alias Emakola.Suppliers.{
+    FranchiseEnrollment,
+    FranchisePackage,
+    ListingImporter,
+    Network,
+    Offers
+  }
+
   @channels [:storefront, :whatsapp, :facebook, :in_person]
 
   def create(actor, supplier_store_id, attrs) do
@@ -82,11 +89,41 @@ defmodule Emakola.Suppliers.Franchises do
     with :ok <- ensure_store_access(actor, supplier_store_id),
          {:ok, enrollment} <- Ash.get(FranchiseEnrollment, enrollment_id, authorize?: false),
          {:ok, package} <- Ash.get(FranchisePackage, enrollment.package_id, authorize?: false),
-         true <- package.supplier_store_id == supplier_store_id do
-      enrollment |> Ash.Changeset.for_update(:approve, %{}) |> Ash.update(authorize?: false)
+         true <- package.supplier_store_id == supplier_store_id,
+         {:ok, offers} <- Offers.list_owned(actor, supplier_store_id) do
+      activate_enrollment(enrollment, package, offers)
     else
       false -> {:error, :forbidden}
       error -> error
+    end
+  end
+
+  defp activate_enrollment(enrollment, package, offers) do
+    Emakola.Repo.transaction(fn ->
+      listings =
+        Enum.map(package.offer_ids, fn offer_id ->
+          offer = Enum.find(offers, &(&1.id == offer_id and &1.status == :published))
+
+          case offer &&
+                 ListingImporter.import_approved_franchise_offer(
+                   enrollment.reseller_store_id,
+                   offer
+                 ) do
+            {:ok, listing} -> listing
+            {:error, reason} -> Emakola.Repo.rollback(reason)
+            nil -> Emakola.Repo.rollback(:offer_not_available)
+          end
+        end)
+
+      enrollment
+      |> Ash.Changeset.for_update(:approve, %{
+        activated_listing_ids: Enum.map(listings, & &1.id)
+      })
+      |> Ash.update!(authorize?: false)
+    end)
+    |> case do
+      {:ok, approved} -> {:ok, approved}
+      {:error, reason} -> {:error, reason}
     end
   end
 

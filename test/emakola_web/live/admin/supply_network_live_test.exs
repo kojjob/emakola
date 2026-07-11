@@ -385,6 +385,56 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     assert has_element?(view, "#sales-teams article", "sales_team=#{team.id}")
   end
 
+  test "supplier approves a franchise application and activates its catalog", ctx do
+    offer = create_partner_offer!(ctx)
+    connect_partner!(ctx)
+
+    {:ok, package} =
+      Emakola.Suppliers.Franchises.create(ctx.partner_merchant, ctx.partner.id, %{
+        name: "Accra seller kit",
+        offer_ids: [offer.id],
+        training: %{"lesson" => "Product safety"},
+        brand_rules: %{"claims" => "Approved facts only"},
+        channel_permissions: [:storefront, :whatsapp],
+        territory: "Accra",
+        commission_bps: 1_000
+      })
+
+    {:ok, package} =
+      Emakola.Suppliers.Franchises.publish(
+        ctx.partner_merchant,
+        ctx.partner.id,
+        package.id
+      )
+
+    {:ok, enrollment} =
+      Emakola.Suppliers.Franchises.apply(ctx.merchant, ctx.store.id, package.id, true)
+
+    token =
+      EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(ctx.partner_merchant))
+
+    supplier_conn =
+      build_conn()
+      |> init_test_session(%{})
+      |> Plug.Conn.put_session(:user_token, token)
+
+    {:ok, view, _html} = live(supplier_conn, ~p"/admin/settings/supply-network")
+    assert has_element?(view, "#franchise-enrollment-#{enrollment.id}", ctx.store.name)
+    assert has_element?(view, "#approve-franchise-#{enrollment.id}")
+
+    view
+    |> element("#approve-franchise-#{enrollment.id}")
+    |> render_click()
+
+    assert has_element?(view, "#franchise-enrollment-#{enrollment.id}", "approved")
+    assert has_element?(view, "#franchise-enrollment-#{enrollment.id}", "1 products active")
+
+    assert {:ok, [listing]} =
+             Emakola.Suppliers.ListingImporter.list(ctx.merchant, ctx.store.id)
+
+    assert listing.offer_id == offer.id
+  end
+
   defp create_partner_offer!(ctx) do
     product = create_product!(ctx.partner, status: :active, title: "Partner Kente Bag")
     variant = create_variant!(product, ctx.partner, price: 6_500, stock_quantity: 10)

@@ -23,6 +23,27 @@ defmodule Emakola.Suppliers.ListingImporter do
     end
   end
 
+  def import_approved_franchise_offer(reseller_store_id, offer) do
+    offer =
+      Ash.load!(
+        offer,
+        [:wholesaler_store, source_product: :images, offer_variants: :source_variant],
+        authorize?: false
+      )
+
+    with true <- offer.status == :published,
+         true <- active_connection?(offer.wholesaler_store_id, reseller_store_id),
+         {:ok, priced_variants} <- price_variants(offer, %{}) do
+      case existing_listing(offer.id, reseller_store_id) do
+        nil -> import_transaction(reseller_store_id, offer, priced_variants)
+        listing -> activate_existing_listing(listing)
+      end
+    else
+      false -> {:error, :offer_not_available}
+      error -> error
+    end
+  end
+
   def list(actor, store_id) do
     with {:ok, _connections} <- Network.list_for_store(actor, store_id) do
       Suppliers.list_reseller_listings_for_store(store_id, authorize?: false)
@@ -230,10 +251,14 @@ defmodule Emakola.Suppliers.ListingImporter do
   end
 
   defp active_connection?(listing) do
+    active_connection?(listing.offer.wholesaler_store_id, listing.reseller_store_id)
+  end
+
+  defp active_connection?(wholesaler_store_id, reseller_store_id) do
     case Emakola.Suppliers.SupplyConnection
          |> Ash.Query.filter(
-           wholesaler_store_id == ^listing.offer.wholesaler_store_id and
-             reseller_store_id == ^listing.reseller_store_id and status == :active
+           wholesaler_store_id == ^wholesaler_store_id and
+             reseller_store_id == ^reseller_store_id and status == :active
          )
          |> Ash.Query.limit(1)
          |> Ash.read(authorize?: false) do
@@ -437,6 +462,30 @@ defmodule Emakola.Suppliers.ListingImporter do
       {:ok, []} -> :ok
       {:ok, [_]} -> {:error, :listing_exists}
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp existing_listing(offer_id, reseller_store_id) do
+    ResellerListing
+    |> Ash.Query.filter(offer_id == ^offer_id and reseller_store_id == ^reseller_store_id)
+    |> Ash.Query.limit(1)
+    |> Ash.read_one!(authorize?: false)
+  end
+
+  defp activate_existing_listing(listing) do
+    listing =
+      Ash.load!(
+        listing,
+        [
+          :reseller_product,
+          offer: [:source_product, offer_variants: :source_variant],
+          listing_variants: [:reseller_variant, :offer_variant]
+        ],
+        authorize?: false
+      )
+
+    with {:ok, _updated} <- sync_active_listing(listing) do
+      {:ok, Ash.get!(ResellerListing, listing.id, authorize?: false)}
     end
   end
 end

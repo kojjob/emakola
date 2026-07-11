@@ -91,7 +91,7 @@ defmodule Emakola.Suppliers.FranchisePackage do
     read :owned_by_store do
       argument(:store_id, :uuid, allow_nil?: false)
       filter(expr(supplier_store_id == ^arg(:store_id)))
-      prepare(build(sort: [inserted_at: :desc], load: [:enrollments]))
+      prepare(build(sort: [inserted_at: :desc], load: [enrollments: :reseller_store]))
     end
   end
 end

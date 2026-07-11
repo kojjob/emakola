@@ -23,6 +23,14 @@ defmodule Emakola.Suppliers.FranchiseEnrollment do
     )
 
     attribute(:terms_accepted_at, :utc_datetime_usec, public?: true)
+    attribute(:approved_at, :utc_datetime_usec, public?: true)
+
+    attribute(:activated_listing_ids, {:array, :uuid},
+      allow_nil?: false,
+      default: [],
+      public?: true
+    )
+
     timestamps()
   end
 
@@ -57,9 +65,10 @@ defmodule Emakola.Suppliers.FranchiseEnrollment do
 
     update :approve do
       require_atomic?(false)
-      accept([])
+      accept([:activated_listing_ids])
       validate(attribute_equals(:status, :applied))
       change(set_attribute(:status, :approved))
+      change(set_attribute(:approved_at, &DateTime.utc_now/0))
     end
 
     update :decline do

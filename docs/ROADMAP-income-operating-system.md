@@ -91,12 +91,13 @@ Acceptance: recommendations beat a popularity-only baseline in fulfilled sales w
     - [x] Merchant team creation, invitation, declared-role/split display, and personal acceptance UI.
     - [x] Capture UUID-safe team links, disclose exact economics at checkout, and persist
           idempotent member allocations from merchant proceeds with proportional refund reversals.
-- [ ] Supplier-authored micro-franchise packages: training, brand rules, permissions, territory, and commission.
+- [x] Supplier-authored micro-franchise packages: training, brand rules, permissions, territory, and commission.
   - [x] Persist supplier-owned packages, connected-reseller discovery, explicit terms acceptance,
         supplier approval, training, rules, territory, channels, and commission.
-  - [ ] Add supplier/reseller package management UI and approved-package catalog activation.
+  - [x] Add supplier/reseller package management UI and approved-package catalog activation.
     - [x] Supplier package authoring/publishing and connected-reseller discovery/application UI.
-    - [ ] Supplier approval UI and approved-package catalog activation.
+    - [x] Supplier-only approval UI with atomic activation of every package offer through the
+          existing listing importer and persisted activation evidence on the enrollment.
 - [x] No recruitment compensation or inherited/downline relationships.
 
 Acceptance: every participant and customer sees the complete economics before committing, and totals reconcile exactly with payment splits.
