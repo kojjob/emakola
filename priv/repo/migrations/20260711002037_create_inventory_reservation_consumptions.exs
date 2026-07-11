@@ -17,7 +17,9 @@ defmodule Emakola.Repo.Migrations.CreateInventoryReservationConsumptions do
 
     create unique_index(
              :earn_inventory_reservation_consumptions,
-             [:reservation_id, :line_item_id], name: :inv_res_consumption_res_line_idx)
+             [:reservation_id, :line_item_id],
+             name: :inv_res_consumption_res_line_idx
+           )
 
     create index(:earn_inventory_reservation_consumptions, [:order_id])
 

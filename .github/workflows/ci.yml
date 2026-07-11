@@ -7,8 +7,8 @@ on:
 
 env:
   MIX_ENV: test
-  ELIXIR_VERSION: "1.18"
-  OTP_VERSION: "27"
+  ELIXIR_VERSION: "1.20.1"
+  OTP_VERSION: "29"
 
 jobs:
   test:
@@ -39,8 +39,8 @@ jobs:
       - name: Setup Elixir
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: "1.18"
-          otp-version: "27"
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
 
       - name: Cache dependencies
         uses: actions/cache@v5
