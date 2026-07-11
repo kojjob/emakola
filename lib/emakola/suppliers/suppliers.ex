@@ -82,6 +82,7 @@ defmodule Emakola.Suppliers do
     end
 
     resource(Emakola.Suppliers.SalesTeamMember)
+    resource(Emakola.Suppliers.SalesTeamSettlement)
 
     resource Emakola.Suppliers.FranchisePackage do
       define(:list_franchise_packages_owned_by_store, action: :owned_by_store, args: [:store_id])

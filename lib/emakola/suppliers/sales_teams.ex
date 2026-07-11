@@ -56,6 +56,26 @@ defmodule Emakola.Suppliers.SalesTeams do
 
   def invitations(_actor), do: {:error, :forbidden}
 
+  def public_economics(team_id, store_id) when is_binary(team_id) do
+    with {:ok, team} <- Ash.get(SalesTeam, team_id, authorize?: false),
+         true <- team.store_id == store_id,
+         {:ok, allocations} <- allocate(team, 10_000) do
+      {:ok,
+       %{
+         id: team.id,
+         name: team.name,
+         members:
+           Enum.map(allocations, fn allocation ->
+             %{role: allocation.role, percent: div(allocation.split_bps, 100)}
+           end)
+       }}
+    else
+      _ -> {:error, :not_available}
+    end
+  end
+
+  def public_economics(_team_id, _store_id), do: {:error, :not_available}
+
   def accept(actor, member_id) do
     with {:ok, member} <- Ash.get(SalesTeamMember, member_id, authorize?: false),
          true <- member.merchant_id == actor.id do
@@ -94,11 +114,58 @@ defmodule Emakola.Suppliers.SalesTeams do
     end
   end
 
+  def settle_attributed_payment(%{order_id: nil}), do: :ok
+
+  def settle_attributed_payment(payment) do
+    order =
+      Ash.get!(Emakola.Orders.Order, payment.order_id,
+        authorize?: false,
+        tenant: payment.store_id
+      )
+
+    team_id = order.attribution["sales_team_id"]
+
+    with team_id when is_binary(team_id) <- team_id,
+         {:ok, team} <- Ash.get(SalesTeam, team_id, authorize?: false),
+         true <- team.store_id == payment.store_id,
+         {:ok, base} <- settlement_base(payment.id),
+         {:ok, allocations} <- allocate(team, base) do
+      persist_settlements(payment, order, team, allocations, base)
+    else
+      _ineligible -> :ok
+    end
+  end
+
+  def reverse_attributed_payment(payment) do
+    settlements =
+      Emakola.Suppliers.SalesTeamSettlement
+      |> Ash.Query.filter(payment_id == ^payment.id)
+      |> Ash.read!(authorize?: false)
+
+    Enum.each(settlements, fn settlement ->
+      reversed = div(settlement.amount * payment.refunded_amount, payment.amount)
+
+      if reversed > settlement.reversed_amount do
+        settlement
+        |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: reversed})
+        |> Ash.update!(authorize?: false)
+      end
+    end)
+
+    :ok
+  end
+
   defp exact_allocations(members, amount) do
     allocations =
       Enum.map(
         members,
-        &%{merchant_id: &1.merchant_id, role: &1.role, amount: div(amount * &1.split_bps, 10_000)}
+        &%{
+          team_member_id: &1.id,
+          merchant_id: &1.merchant_id,
+          role: &1.role,
+          split_bps: &1.split_bps,
+          amount: div(amount * &1.split_bps, 10_000)
+        }
       )
 
     remainder = amount - Enum.sum(Enum.map(allocations, & &1.amount))
@@ -165,6 +232,51 @@ defmodule Emakola.Suppliers.SalesTeams do
 
   defp merchant_exists?(id),
     do: match?({:ok, _}, Ash.get(Emakola.Accounts.Merchant, id, authorize?: false))
+
+  defp settlement_base(payment_id) do
+    allocations =
+      Emakola.Payments.PaymentSplit
+      |> Ash.Query.filter(payment_id == ^payment_id and role in [:merchant, :dropshipper])
+      |> Ash.read!(authorize?: false)
+
+    case allocations do
+      [allocation] when allocation.amount >= 0 -> {:ok, allocation.amount}
+      _ -> {:error, :ineligible_settlement_base}
+    end
+  end
+
+  defp persist_settlements(payment, order, team, allocations, base) do
+    existing =
+      Emakola.Suppliers.SalesTeamSettlement
+      |> Ash.Query.filter(payment_id == ^payment.id)
+      |> Ash.read!(authorize?: false)
+
+    if existing == [] do
+      now = DateTime.utc_now()
+
+      Enum.each(allocations, fn allocation ->
+        Emakola.Suppliers.SalesTeamSettlement
+        |> Ash.Changeset.for_create(:create, %{
+          store_id: payment.store_id,
+          order_id: order.id,
+          payment_id: payment.id,
+          team_id: team.id,
+          team_member_id: allocation.team_member_id,
+          merchant_id: allocation.merchant_id,
+          role: allocation.role,
+          split_bps: allocation.split_bps,
+          settlement_base: base,
+          amount: allocation.amount,
+          settled_at: now
+        })
+        |> Ash.create!(authorize?: false)
+      end)
+
+      :ok
+    else
+      :ok
+    end
+  end
 
   defp value(map, key), do: Map.get(map, key) || Map.get(map, to_string(key))
   defp normalize_transaction({:ok, result}), do: {:ok, result}

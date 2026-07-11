@@ -189,7 +189,9 @@
           approved-package catalog activation.
       - [x] Add Earn Network merchant UI for group buys, exact-split team invitations/consent,
             and supplier/reseller micro-franchise publishing/discovery/application.
-      - [ ] Add order settlement, supplier approval, and approved-package catalog activation.
+      - [ ] Add supplier approval and approved-package catalog activation.
+      - [x] Add UUID-safe sales-team attribution links, customer economics disclosure, exact
+            consented settlement ledgers, webhook integration, and proportional refund reversals.
       - [x] Add customer group-buy discovery, capacity-reserving commitment/payment UI, and
             idempotent webhook funding on imported storefront products.
       - [x] Add scheduled, idempotent automatic gateway refunds for expired under-threshold

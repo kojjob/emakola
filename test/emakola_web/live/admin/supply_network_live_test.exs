@@ -382,6 +382,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     assert has_element?(view, "#sales-teams article", "Social launch crew")
     assert {:ok, [team]} = Emakola.Suppliers.SalesTeams.list(ctx.merchant, ctx.store.id)
     assert Enum.sum(Enum.map(team.members, & &1.split_bps)) == 10_000
+    assert has_element?(view, "#sales-teams article", "sales_team=#{team.id}")
   end
 
   defp create_partner_offer!(ctx) do

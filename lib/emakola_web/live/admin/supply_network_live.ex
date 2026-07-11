@@ -1597,6 +1597,9 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
               >
                 <p class="font-bold text-slate-800">{team.name}</p>
                 <p class="mt-1 text-slate-500">{length(team.members)} flat members · {team.status}</p>
+                <p class="mt-2 break-all rounded-lg bg-white px-2 py-1.5 font-mono text-[10px] text-emerald-700">
+                  {EmakolaWeb.Endpoint.url()}/s/{@current_store.slug}?sales_team={team.id}
+                </p>
               </article>
             </div>
           </div>

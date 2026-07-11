@@ -184,6 +184,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
         maybe_confirm_order(payment.order_id)
         Emakola.Suppliers.GroupBuys.confirm_payment(payment)
         settle_splits(payment)
+        Emakola.Suppliers.SalesTeams.settle_attributed_payment(payment)
       end
 
       :ok
@@ -263,6 +264,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
       # Reverse the split allocations so a clawback can recover each party's
       # share against future payouts.
       reverse_splits(updated)
+      Emakola.Suppliers.SalesTeams.reverse_attributed_payment(updated)
 
       Phoenix.PubSub.broadcast(
         Emakola.PubSub,

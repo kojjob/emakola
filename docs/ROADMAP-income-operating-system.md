@@ -84,12 +84,13 @@ Acceptance: recommendations beat a popularity-only baseline in fulfilled sales w
           gateway-linked payments, complete economics, and webhook-driven funding.
     - [x] Automatically cancel expired under-threshold campaigns every five minutes, claim each
           paid commitment once, execute the configured gateway refund, and persist retry/failure state.
-- [ ] Consent-based sales teams with declared roles and fixed transaction splits.
+- [x] Consent-based sales teams with declared roles and fixed transaction splits.
   - [x] Persist flat roles, immutable basis-point shares totaling exactly 100%, personal consent,
         and exact last-pesewa allocation.
-  - [ ] Attach consented team allocations to eligible attributed order settlement and merchant UI.
+  - [x] Attach consented team allocations to eligible attributed order settlement and merchant UI.
     - [x] Merchant team creation, invitation, declared-role/split display, and personal acceptance UI.
-    - [ ] Attributed-order settlement integration.
+    - [x] Capture UUID-safe team links, disclose exact economics at checkout, and persist
+          idempotent member allocations from merchant proceeds with proportional refund reversals.
 - [ ] Supplier-authored micro-franchise packages: training, brand rules, permissions, territory, and commission.
   - [x] Persist supplier-owned packages, connected-reseller discovery, explicit terms acceptance,
         supplier approval, training, rules, territory, channels, and commission.

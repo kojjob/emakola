@@ -85,6 +85,12 @@ defmodule EmakolaWeb.Plugs.UtmCapture do
           base
       end
 
+    base =
+      case Ecto.UUID.cast(Map.get(params, "sales_team")) do
+        {:ok, team_id} -> Map.put(base, "sales_team_id", team_id)
+        :error -> base
+      end
+
     case Map.get(params, "ref") do
       "whatsapp" -> Map.put(base, "click_to_whatsapp", true)
       _ -> base
