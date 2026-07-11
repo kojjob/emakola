@@ -156,7 +156,7 @@ Decomposed into 5 sub-projects; **SP1 + SP5 built first** (the money rails).
 |----|-------------|--------|
 | **SP5** | Split settlement engine — `SplitCalculator`, `DropshipSettlement`, `OrderSettlement`, `PaymentSplit`, checkout wiring, webhook settle/reverse | ✅ Built (#158/#159) |
 | **SP1** | Payout identity — `StorePayoutAccount`, onboarding UI, `Supplier.linked_store_id`, gateway `create_subaccount/1` | ✅ Shipped |
-| **SP2** | Supply connections — wholesaler↔dropshipper handshake (`SupplyConnection`) | 🟡 Resource/service built; UI pending |
+| **SP2** | Supply connections — wholesaler↔dropshipper handshake (`SupplyConnection`) | ✅ Shipped |
 | **SP3** | Cross-store catalog sourcing — import wholesaler products; price/availability sync | 🔵 Planned |
 | **SP4** | Cross-store order & fulfillment — wholesaler inbound dashboard; cross-tenant auth | 🔵 Planned |
 
@@ -171,17 +171,30 @@ Decomposed into 5 sub-projects; **SP1 + SP5 built first** (the money rails).
 **Remaining (build in this order):**
 - [x] **Refund reversal accounting** — partial/full refunds now persist cumulative,
   proportional `PaymentSplit.reversed_amount` without creating a duplicate ledger.
-- [ ] **Refund recovery** — net unrecovered reversal amounts from future recipient splits.
+- [x] **Refund recovery** — row-lock and reserve unrecovered liabilities before
+  gateway routing, net them from future recipient shares, apply/release them on
+  payment success/failure, and reopen them proportionally on later refunds.
 - [x] **SP2 supply connection foundation** — request/approve/reject/suspend/reactivate/
   terminate service with participant authorization and lifecycle tests.
-- [ ] **SP2 merchant UI** — connection inbox, invitations, active relationships, and
-  suspension/termination controls.
-- [ ] **SP3 shared offers and catalog sourcing** — physical/digital offers, markup and
+- [x] **SP2 merchant UI** — connection inbox, invitations, active relationships, and
+  approve/reject/suspend/reactivate/terminate controls.
+- [x] **SP3 shared offers and catalog sourcing** — physical/digital offers, markup and
   fixed-commission earnings, one-click listing, and source synchronization.
-- [ ] **SP4 cross-store fulfillment** — wholesaler inbound queue, cross-tenant access,
-  physical delivery proof, and protected digital grants.
-- [ ] **Sales Kits and First Money journey** — ready-to-share content, tracked links, and
-  guided activation through the first fulfilled sale.
+  - [x] Offer foundation: network-only commercial terms reference the existing
+    Product/Variant catalog, with partner-gated discovery and live source availability.
+  - [x] Transactional reseller listing/import mapping, multi-variant option cloning,
+    bounded prices, source synchronization, and automatic suspension propagation.
+  - [x] Retryable, SSRF-safe source-image replication into reseller-owned storage.
+  - [x] Pilot-facing one-click publication UI with offer earnings and listing status.
+- [x] **SP4 cross-store fulfillment** — authorized wholesaler inbox and shipment updates,
+  row-locked customer delivery OTP proof, and protected source-file grants for imported
+  digital products.
+- [x] **Sales Kits and First Money journey** — channel-ready product messages,
+  session-deduplicated clicks, confirmed-order conversions/revenue, and guided activation
+  through the first fulfilled sale.
+- [x] **Locked launch guards** — reseller and wholesaler payout verification before
+  network checkout, coupon exclusion for network items, and customer-facing verified-partner
+  fulfillment disclosure across every storefront theme.
 
 ### Locked Makola Earn decisions
 

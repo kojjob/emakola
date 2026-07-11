@@ -128,4 +128,22 @@ defmodule EmakolaWeb.SitemapSubdomainTest do
       assert body =~ "Disallow: /s/#{store.slug}/cart"
     end
   end
+
+  describe "GET /llms.txt routed by host" do
+    test "a store subdomain serves canonical store information", %{
+      conn: conn,
+      store: store,
+      origin: origin
+    } do
+      body =
+        %{conn | host: "#{store.slug}.makola.io"}
+        |> get("/llms.txt")
+        |> response(200)
+
+      assert body =~ "# #{store.name}"
+      assert body =~ "Store URL: #{origin}"
+      assert body =~ "All Products: #{origin}/products"
+      refute body =~ "/s/#{store.slug}/products"
+    end
+  end
 end

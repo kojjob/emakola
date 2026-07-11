@@ -1184,8 +1184,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     }
   end
 
-  defp product_to_form_data(nil), do: empty_form_data()
-
   defp product_to_form_data(product) do
     %{
       "title" => product.title || "",

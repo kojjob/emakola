@@ -503,7 +503,7 @@ defmodule Emakola.Orders.OrderEdgeCasesTest do
       ctx = setup_store_with_variant()
       order = create_pending_order!(ctx.store, ctx.variant)
 
-      assert is_nil(order.notes) or order.notes == nil
+      assert is_nil(order.notes)
     end
   end
 

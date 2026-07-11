@@ -16,6 +16,16 @@ defmodule Emakola.Storage.Local do
   end
 
   @impl true
+  def replicate("/uploads/" <> source_path, destination_path, opts) do
+    with :ok <- validate_path(source_path),
+         {:ok, binary} <- File.read(Path.join(@upload_dir, source_path)) do
+      upload(binary, destination_path, opts)
+    end
+  end
+
+  def replicate(_source_url, _destination_path, _opts), do: {:error, :untrusted_source_url}
+
+  @impl true
   def delete(path) do
     dest = Path.join(@upload_dir, path)
 
@@ -29,5 +39,11 @@ defmodule Emakola.Storage.Local do
   @impl true
   def presigned_url(path, _opts \\ []) do
     {:ok, "/uploads/#{path}"}
+  end
+
+  defp validate_path(path) do
+    if path != "" and Path.type(path) == :relative and ".." not in Path.split(path),
+      do: :ok,
+      else: {:error, :untrusted_source_url}
   end
 end

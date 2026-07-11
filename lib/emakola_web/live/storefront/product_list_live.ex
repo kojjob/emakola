@@ -84,6 +84,10 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
         search_active_products(socket.assigns.store.id, String.trim(query))
       end
 
+    if String.trim(query) != "" do
+      Emakola.Suppliers.OpportunitySignals.track_search(socket.assigns.store.id, query, products)
+    end
+
     {:noreply,
      socket
      |> assign(:search_query, query)

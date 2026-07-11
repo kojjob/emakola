@@ -46,6 +46,8 @@ defmodule EmakolaWeb.Router do
   # crawlers that send Accept: text/xml or Accept: */*.
   pipeline :seo do
     plug :accepts, ["xml", "text", "html", "json"]
+    plug :put_secure_browser_headers
+    plug EmakolaWeb.Plugs.ContentSecurityPolicy
   end
 
   # Stricter per-IP rate limiting for authentication endpoints to prevent brute-force attacks.
@@ -272,6 +274,7 @@ defmodule EmakolaWeb.Router do
     pipe_through :seo
     get "/sitemap.xml", SitemapController, :platform
     get "/robots.txt", SitemapController, :platform_robots
+    get "/llms.txt", SitemapController, :platform_llms
   end
 
   # Store sitemap at the subdomain ROOT (<slug>.makola.io/sitemap.xml). The apex
@@ -283,6 +286,7 @@ defmodule EmakolaWeb.Router do
     pipe_through :seo
     get "/sitemap.xml", SitemapController, :show
     get "/robots.txt", SitemapController, :robots
+    get "/llms.txt", SitemapController, :llms
   end
 
   # Sitemap + AI-readable files — uses :seo pipeline (accepts XML/text),
@@ -439,6 +443,7 @@ defmodule EmakolaWeb.Router do
 
       # Suppliers (dropshipping) — management + payout ledger
       live "/admin/settings/suppliers", Admin.SupplierLive.Index
+      live "/admin/settings/supply-network", Admin.SupplyNetworkLive
       live "/admin/suppliers/:id", Admin.SupplierLive.Show
 
       # Theme customizer

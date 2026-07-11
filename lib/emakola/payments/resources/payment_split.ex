@@ -38,7 +38,7 @@ defmodule Emakola.Payments.PaymentSplit do
     end
 
     attribute :role, :atom do
-      constraints(one_of: [:wholesaler, :dropshipper, :platform, :merchant])
+      constraints(one_of: [:wholesaler, :dropshipper, :platform, :merchant, :credit_partner])
       allow_nil?(false)
       public?(true)
     end
@@ -50,6 +50,10 @@ defmodule Emakola.Payments.PaymentSplit do
 
     # Ties a wholesaler allocation back to the supplier it settles. Nil otherwise.
     attribute :supplier_id, :uuid do
+      public?(true)
+    end
+
+    attribute :credit_agreement_id, :uuid do
       public?(true)
     end
 
@@ -73,6 +77,44 @@ defmodule Emakola.Payments.PaymentSplit do
     attribute :reversed_amount, :integer do
       allow_nil?(false)
       default(0)
+      public?(true)
+    end
+
+    attribute :recovered_amount, :integer do
+      allow_nil?(false)
+      default(0)
+      public?(true)
+    end
+
+    attribute :reserved_recovery_amount, :integer do
+      allow_nil?(false)
+      default(0)
+      public?(true)
+    end
+
+    # Amount withheld from this new earning and routed to the platform to
+    # recover earlier refund liabilities.
+    attribute :recovery_amount, :integer do
+      allow_nil?(false)
+      default(0)
+      public?(true)
+    end
+
+    attribute :recovery_applied_amount, :integer do
+      allow_nil?(false)
+      default(0)
+      public?(true)
+    end
+
+    attribute :recovery_reversed_amount, :integer do
+      allow_nil?(false)
+      default(0)
+      public?(true)
+    end
+
+    attribute :recovery_breakdown, :map do
+      allow_nil?(false)
+      default(%{"items" => []})
       public?(true)
     end
 
@@ -120,8 +162,22 @@ defmodule Emakola.Payments.PaymentSplit do
         :role,
         :recipient_store_id,
         :supplier_id,
+        :credit_agreement_id,
         :subaccount_code,
-        :amount
+        :amount,
+        :recovery_amount,
+        :recovery_breakdown
+      ])
+    end
+
+    update :update_recovery_tracking do
+      require_atomic?(false)
+
+      accept([
+        :recovered_amount,
+        :reserved_recovery_amount,
+        :recovery_applied_amount,
+        :recovery_reversed_amount
       ])
     end
 
@@ -161,6 +217,19 @@ defmodule Emakola.Payments.PaymentSplit do
     read :by_payment do
       argument(:payment_id, :uuid, allow_nil?: false)
       filter(expr(payment_id == ^arg(:payment_id)))
+    end
+
+    read :recoverable_by_recipient do
+      argument(:recipient_store_id, :uuid, allow_nil?: false)
+
+      filter(
+        expr(
+          recipient_store_id == ^arg(:recipient_store_id) and role != :platform and
+            reversed_amount > recovered_amount + reserved_recovery_amount
+        )
+      )
+
+      prepare(build(sort: [inserted_at: :asc]))
     end
   end
 end

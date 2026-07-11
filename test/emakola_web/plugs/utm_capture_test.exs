@@ -40,6 +40,32 @@ defmodule EmakolaWeb.Plugs.UtmCaptureTest do
       assert attribution["first_seen_at"] =~ ~r/^\d{4}-\d{2}-\d{2}T/
     end
 
+    test "captures an Earn share token for checkout attribution", %{conn: conn} do
+      conn = conn |> Map.put(:params, %{"share" => "safe-share-token"}) |> UtmCapture.call([])
+      conn = UtmCapture.call(conn, [])
+
+      assert UtmCapture.from_session(conn)["share_token"] == "safe-share-token"
+      assert Plug.Conn.get_session(conn, "earn_share_clicks") == ["safe-share-token"]
+    end
+
+    test "captures only valid sales-team attribution identifiers", %{conn: conn} do
+      team_id = Ecto.UUID.generate()
+
+      valid =
+        conn
+        |> Map.put(:params, %{"sales_team" => team_id})
+        |> UtmCapture.call([])
+
+      assert UtmCapture.from_session(valid)["sales_team_id"] == team_id
+
+      invalid =
+        init_test_session(build_conn(), %{})
+        |> Map.put(:params, %{"sales_team" => "not-a-uuid"})
+        |> UtmCapture.call([])
+
+      assert UtmCapture.from_session(invalid) == %{}
+    end
+
     test "captures only the params that are present", %{conn: conn} do
       conn =
         conn

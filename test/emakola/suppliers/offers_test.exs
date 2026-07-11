@@ -1,0 +1,215 @@
+defmodule Emakola.Suppliers.OffersTest do
+  use Emakola.DataCase, async: true
+
+  import Emakola.Factory
+
+  alias Emakola.Suppliers.{Network, Offers}
+
+  setup do
+    {wholesaler_actor, wholesaler} = create_merchant_with_store!(%{name: "Offer wholesaler"})
+    {reseller_actor, reseller} = create_merchant_with_store!(%{name: "Offer reseller"})
+    product = create_product!(wholesaler, status: :active, title: "Shared shea butter")
+
+    variant =
+      create_variant!(product, wholesaler,
+        price: 5_000,
+        sku: "SHEA-500",
+        stock_quantity: 10
+      )
+
+    {:ok,
+     wholesaler_actor: wholesaler_actor,
+     wholesaler: wholesaler,
+     reseller_actor: reseller_actor,
+     reseller: reseller,
+     product: product,
+     variant: variant}
+  end
+
+  test "creates terms that reference, rather than copy, existing catalog records", context do
+    offer = draft_offer!(context, :markup)
+
+    assert offer.source_product_id == context.product.id
+    assert offer.wholesaler_store_id == context.wholesaler.id
+    assert offer.status == :draft
+
+    assert {:ok, terms} =
+             Offers.add_variant(context.wholesaler_actor, offer, %{
+               source_variant_id: context.variant.id,
+               supplier_price: 3_000,
+               suggested_retail_price: 4_000,
+               max_retail_price: 5_000
+             })
+
+    assert terms.source_variant_id == context.variant.id
+    assert terms.supplier_price == 3_000
+  end
+
+  test "rejects catalog records owned by another store", context do
+    foreign_product = create_product!(context.reseller, status: :active)
+
+    assert {:error, :product_not_owned} =
+             Offers.create_draft(context.wholesaler_actor, %{
+               wholesaler_store_id: context.wholesaler.id,
+               source_product_id: foreign_product.id,
+               earning_model: :markup
+             })
+
+    offer = draft_offer!(context, :markup)
+    foreign_variant = create_variant!(foreign_product, context.reseller)
+
+    assert {:error, :variant_not_owned} =
+             Offers.add_variant(context.wholesaler_actor, offer, %{
+               source_variant_id: foreign_variant.id,
+               supplier_price: 3_000,
+               suggested_retail_price: 4_000
+             })
+  end
+
+  test "fixed commission terms must exactly reconcile customer price and supplier net", context do
+    offer = draft_offer!(context, :fixed_commission)
+
+    assert {:error, :invalid_fixed_commission_terms} =
+             Offers.add_variant(context.wholesaler_actor, offer, %{
+               source_variant_id: context.variant.id,
+               supplier_price: 3_000,
+               suggested_retail_price: 4_000,
+               fixed_commission_amount: 500
+             })
+
+    assert {:ok, terms} =
+             Offers.add_variant(context.wholesaler_actor, offer, %{
+               source_variant_id: context.variant.id,
+               supplier_price: 3_000,
+               suggested_retail_price: 4_000,
+               fixed_commission_amount: 1_000
+             })
+
+    assert terms.fixed_commission_amount == 1_000
+  end
+
+  test "cannot publish without sellable source content and available terms", context do
+    draft_product = create_product!(context.wholesaler, title: "Not ready")
+    draft_variant = create_variant!(draft_product, context.wholesaler)
+
+    {:ok, offer} =
+      Offers.create_draft(context.wholesaler_actor, %{
+        wholesaler_store_id: context.wholesaler.id,
+        source_product_id: draft_product.id,
+        earning_model: :markup
+      })
+
+    {:ok, _} =
+      Offers.add_variant(context.wholesaler_actor, offer, %{
+        source_variant_id: draft_variant.id,
+        supplier_price: 3_000,
+        suggested_retail_price: 4_000
+      })
+
+    assert {:error, :source_product_not_sellable} =
+             Offers.publish(context.wholesaler_actor, offer)
+
+    empty_offer = draft_offer!(context, :markup)
+
+    assert {:error, :offer_requires_variants} =
+             Offers.publish(context.wholesaler_actor, empty_offer)
+  end
+
+  test "only active supply partners can discover a published offer", context do
+    offer = publish_offer!(context)
+
+    assert {:ok, []} = Offers.list_available(context.reseller_actor, context.reseller.id)
+
+    {:ok, connection} =
+      Network.request(context.wholesaler_actor, %{
+        wholesaler_store_id: context.wholesaler.id,
+        reseller_store_id: context.reseller.id,
+        requested_by_store_id: context.wholesaler.id
+      })
+
+    {:ok, _active} = Network.approve(context.reseller_actor, connection)
+
+    assert {:ok, [available]} = Offers.list_available(context.reseller_actor, context.reseller.id)
+    assert available.id == offer.id
+    assert available.source_product.id == context.product.id
+    assert length(available.offer_variants) == 1
+  end
+
+  test "a paused offer disappears from partner discovery", context do
+    offer = publish_offer!(context)
+
+    {:ok, connection} =
+      Network.request(context.wholesaler_actor, %{
+        wholesaler_store_id: context.wholesaler.id,
+        reseller_store_id: context.reseller.id,
+        requested_by_store_id: context.wholesaler.id
+      })
+
+    {:ok, _} = Network.approve(context.reseller_actor, connection)
+    assert {:ok, [_]} = Offers.list_available(context.reseller_actor, context.reseller.id)
+
+    assert {:ok, paused} = Offers.pause(context.wholesaler_actor, offer)
+    assert paused.status == :paused
+    assert {:ok, []} = Offers.list_available(context.reseller_actor, context.reseller.id)
+  end
+
+  test "discovery reads live source availability instead of a copied flag", context do
+    _offer = publish_offer!(context)
+
+    {:ok, connection} =
+      Network.request(context.wholesaler_actor, %{
+        wholesaler_store_id: context.wholesaler.id,
+        reseller_store_id: context.reseller.id,
+        requested_by_store_id: context.wholesaler.id
+      })
+
+    {:ok, _} = Network.approve(context.reseller_actor, connection)
+    assert {:ok, [_]} = Offers.list_available(context.reseller_actor, context.reseller.id)
+
+    context.variant
+    |> Ash.Changeset.for_update(:update, %{available: false})
+    |> Ash.update!(authorize?: false)
+
+    assert {:ok, []} = Offers.list_available(context.reseller_actor, context.reseller.id)
+  end
+
+  test "non-owners cannot manage or browse for another store", context do
+    assert {:error, :forbidden} =
+             Offers.create_draft(context.reseller_actor, %{
+               wholesaler_store_id: context.wholesaler.id,
+               source_product_id: context.product.id,
+               earning_model: :markup
+             })
+
+    assert {:error, :forbidden} =
+             Offers.list_available(context.wholesaler_actor, context.reseller.id)
+  end
+
+  defp draft_offer!(context, earning_model) do
+    {:ok, offer} =
+      Offers.create_draft(context.wholesaler_actor, %{
+        wholesaler_store_id: context.wholesaler.id,
+        source_product_id: context.product.id,
+        earning_model: earning_model,
+        delivery_areas: ["Greater Accra"],
+        return_terms: "Returns accepted within seven days"
+      })
+
+    offer
+  end
+
+  defp publish_offer!(context) do
+    offer = draft_offer!(context, :markup)
+
+    {:ok, _terms} =
+      Offers.add_variant(context.wholesaler_actor, offer, %{
+        source_variant_id: context.variant.id,
+        supplier_price: 3_000,
+        suggested_retail_price: 4_000,
+        max_retail_price: 5_000
+      })
+
+    {:ok, published} = Offers.publish(context.wholesaler_actor, offer)
+    published
+  end
+end

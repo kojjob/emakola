@@ -1,7 +1,6 @@
 defmodule Emakola.Suppliers.SupplierTest do
   use Emakola.DataCase, async: true
   import Emakola.Factory
-  require Ash.Query
 
   setup do
     store = create_store!()

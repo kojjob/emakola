@@ -14,8 +14,6 @@ defmodule EmakolaWeb.Storefront.SavedStoresLive do
 
   import EmakolaWeb.Storefront.Path
 
-  require Ash.Query
-
   alias EmakolaWeb.StoresComponents
 
   @impl true

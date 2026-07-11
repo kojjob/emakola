@@ -5,8 +5,6 @@ defmodule Emakola.Content.PostTest do
 
   import Emakola.Factory
 
-  require Ash.Query
-
   alias Emakola.Content.Post
 
   setup do

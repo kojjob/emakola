@@ -6,7 +6,6 @@ defmodule Emakola.Payments.PaymentSplitTest do
   """
   use Emakola.DataCase, async: true
   import Emakola.Factory
-  require Ash.Query
 
   alias Emakola.Payments.PaymentSplit
 

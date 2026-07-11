@@ -21,7 +21,8 @@ defmodule EmakolaWeb do
   # SitemapController (apex platform rules vs. per-store subdomain rules). The
   # legacy priv/static/robots.txt is now unused (kept, not deleted).
   def static_paths,
-    do: ~w(assets css fonts images uploads favicon.ico manifest.json sw.js offline.html)
+    do:
+      ~w(assets css fonts images uploads favicon.ico favicon.svg manifest.json sw.js offline.html)
 
   def router do
     quote do

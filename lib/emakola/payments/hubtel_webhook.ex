@@ -40,11 +40,19 @@ defmodule Emakola.Payments.HubtelWebhook do
         "client_reference" => reference
       }
 
-      payment
-      |> Ash.Changeset.for_update(:mark_success, %{gateway_response: gateway_response})
-      |> Ash.update!(authorize?: false)
+      payment =
+        payment
+        |> Ash.Changeset.for_update(:mark_success, %{gateway_response: gateway_response})
+        |> Ash.update!(authorize?: false)
 
       maybe_confirm_order(payment.order_id)
+      Emakola.Suppliers.GroupBuys.confirm_payment(payment)
+      Emakola.Suppliers.SalesTeams.settle_attributed_payment(payment)
+
+      Emakola.Suppliers.InventoryReservations.consume_for_order(
+        payment.order_id,
+        payment.store_id
+      )
 
       :ok
     else

@@ -3,8 +3,6 @@ defmodule EmakolaWeb.DashboardHelpers do
 
   alias Emakola.AsyncSandbox
 
-  require Ash.Query
-
   @doc """
   Returns a map with all dashboard data for the given store and period.
 

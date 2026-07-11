@@ -11,8 +11,6 @@ defmodule Emakola.Security.AuthorizationTest do
 
   use Emakola.DataCase, async: false
 
-  require Ash.Query
-
   import Emakola.Factory
 
   alias Emakola.Catalog.Product

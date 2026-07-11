@@ -64,7 +64,6 @@ defmodule EmakolaWeb.Platform.BillingLive do
   defp safe_list(fun) do
     case fun.() do
       {:ok, list} -> list
-      list when is_list(list) -> list
       _ -> []
     end
   rescue

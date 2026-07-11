@@ -37,6 +37,7 @@ defmodule Emakola.Orders.CheckoutService do
   def checkout!(store_id, items, opts) do
     with :ok <- validate_cart(items),
          {:ok, variants} <- load_and_validate_variants(store_id, items),
+         :ok <- Emakola.Suppliers.NetworkCheckoutEligibility.validate(store_id, variants, opts),
          :ok <- validate_stock(variants, items) do
       case run_checkout(store_id, items, variants, opts) do
         {:ok, order} ->

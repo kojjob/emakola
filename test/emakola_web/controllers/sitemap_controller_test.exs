@@ -11,8 +11,6 @@ defmodule EmakolaWeb.SitemapControllerTest do
 
   import Emakola.Factory
 
-  require Ash.Query
-
   setup do
     store = create_store!()
     {:ok, store: store}
@@ -109,11 +107,16 @@ defmodule EmakolaWeb.SitemapControllerTest do
       assert body =~ "/s/#{store.slug}/category/#{category.slug}"
     end
 
-    test "includes static pages (about, products, blog)", %{conn: conn, store: store} do
+    test "includes all indexable static content hubs", %{conn: conn, store: store} do
       body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
 
       assert body =~ "/s/#{store.slug}/products</loc>"
       assert body =~ "/s/#{store.slug}/about</loc>"
+      assert body =~ "/s/#{store.slug}/contact</loc>"
+      assert body =~ "/s/#{store.slug}/faq</loc>"
+      assert body =~ "/s/#{store.slug}/policies</loc>"
+      assert body =~ "/s/#{store.slug}/blog</loc>"
+      assert body =~ "/s/#{store.slug}/recipes</loc>"
     end
 
     test "returns 404 for non-existent store", %{conn: conn} do
@@ -240,6 +243,19 @@ defmodule EmakolaWeb.SitemapControllerTest do
       assert body =~ "/stores</loc>"
       assert body =~ "/docs</loc>"
       assert body =~ "</urlset>"
+    end
+  end
+
+  describe "GET /llms.txt (platform)" do
+    test "describes the platform and links authoritative pages", %{conn: conn} do
+      conn = get(conn, "/llms.txt")
+      body = response(conn, 200)
+
+      assert response_content_type(conn, :text) =~ "text/plain"
+      assert body =~ "# Makola"
+      assert body =~ "/pricing"
+      assert body =~ "/docs"
+      assert body =~ "/sitemap.xml"
     end
   end
 end

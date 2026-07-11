@@ -52,6 +52,15 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     # creation so merchant analytics can attribute revenue by source.
     utm_attribution = session["utm_attribution"] || %{}
 
+    sales_team_economics =
+      case Emakola.Suppliers.SalesTeams.public_economics(
+             utm_attribution["sales_team_id"],
+             store.id
+           ) do
+        {:ok, economics} -> economics
+        _ -> nil
+      end
+
     {:ok,
      socket
      |> assign(:categories, categories)
@@ -60,6 +69,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      |> assign(:cart_count, cart_count)
      |> assign(:cart_total, cart_total)
      |> assign(:utm_attribution, utm_attribution)
+     |> assign(:sales_team_economics, sales_team_economics)
      |> assign(:step, 1)
      |> assign(:payment_method, "momo")
      |> assign(:phone, "")
@@ -137,11 +147,23 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
   @impl true
   def handle_event("apply_coupon", %{"coupon_code" => code}, socket) do
-    case CheckoutService.validate_coupon(
+    variant_ids = Enum.map(socket.assigns.cart, & &1.variant_id)
+
+    result =
+      if Emakola.Suppliers.NetworkCheckoutEligibility.network_items?(
            socket.assigns.store.id,
-           code,
-           socket.assigns.cart_total
+           variant_ids
          ) do
+        {:error, :network_coupon_not_allowed}
+      else
+        CheckoutService.validate_coupon(
+          socket.assigns.store.id,
+          code,
+          socket.assigns.cart_total
+        )
+      end
+
+    case result do
       {:ok, coupon} ->
         discount =
           CheckoutService.calculate_discount(
@@ -329,10 +351,32 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       |> assign(:order_total, calculate_order_total(assigns))
       |> assign(:effective_delivery_fee, effective_delivery_fee(assigns))
 
-    case Emakola.Themes.ThemeRenderer.theme_render(assigns, :checkout) do
-      {:ok, rendered} -> rendered
-      :default -> Emakola.Themes.DefaultRenderers.Checkout.render(assigns)
-    end
+    theme_content =
+      case Emakola.Themes.ThemeRenderer.theme_render(assigns, :checkout) do
+        {:ok, rendered} -> rendered
+        :default -> Emakola.Themes.DefaultRenderers.Checkout.render(assigns)
+      end
+
+    assigns = assign(assigns, :theme_content, theme_content)
+
+    ~H"""
+    <aside
+      :if={@sales_team_economics}
+      id="sales-team-economics"
+      class="border-b border-indigo-200 bg-indigo-50 px-4 py-3 text-center text-xs text-indigo-950"
+    >
+      <p class="font-bold">This order supports {@sales_team_economics.name}</p>
+      <p id="sales-team-splits" class="mt-1">
+        <span :for={member <- @sales_team_economics.members} class="mr-2 capitalize">
+          {member.role}: {member.percent}%
+        </span>
+      </p>
+      <p class="mt-1 text-indigo-700">
+        Their split comes from merchant proceeds and does not increase your price.
+      </p>
+    </aside>
+    {@theme_content}
+    """
   end
 
   # render_default/1 (was here, ~880 lines) was extracted to
@@ -492,6 +536,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         end
 
       {:error, reason} ->
+        release_recovery_reservations(settlement)
+
         {:noreply,
          socket
          |> assign(:processing, false)
@@ -514,6 +560,11 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     do: Emakola.Payments.OrderSettlement.record_splits!(payment, allocations)
 
   defp record_splits(_payment, {:no_split, _}), do: :ok
+
+  defp release_recovery_reservations({:split, %{allocations: allocations}}),
+    do: Emakola.Payments.OrderSettlement.release_recovery_reservations!(allocations)
+
+  defp release_recovery_reservations({:no_split, _}), do: :ok
 
   defp verify_payment_status(socket) do
     ref = socket.assigns[:gateway_reference]
@@ -637,6 +688,16 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   defp checkout_error_message(:variant_not_found), do: "Some items are no longer available"
   defp checkout_error_message(:variant_not_in_store), do: "Some items are not from this store"
   defp checkout_error_message(:insufficient_stock), do: "Some items are out of stock"
+
+  defp checkout_error_message(:reseller_payout_unverified),
+    do: "This store is finishing payout verification. Please try again soon."
+
+  defp checkout_error_message(:wholesaler_payout_unverified),
+    do: "A fulfillment partner is finishing payout verification. Please try again soon."
+
+  defp checkout_error_message(:network_coupon_not_allowed),
+    do: "Coupons cannot be used with partner-fulfilled products yet."
+
   defp checkout_error_message(_), do: "Something went wrong. Please try again."
 
   defp coupon_error_message(:coupon_not_found), do: "Coupon code not found"
@@ -645,8 +706,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   defp coupon_error_message(:coupon_not_started), do: "This coupon is not yet active"
   defp coupon_error_message(:coupon_minimum_not_met), do: "Order does not meet the minimum amount"
 
+  defp coupon_error_message(:network_coupon_not_allowed),
+    do: "Coupons cannot be used with partner-fulfilled products yet"
+
   defp coupon_error_message(:coupon_max_uses_reached),
     do: "This coupon has reached its usage limit"
-
-  defp coupon_error_message(_), do: "Invalid coupon code"
 end

@@ -55,12 +55,12 @@
       `authorize?: false`. NOTE: store/order creation is *authenticated*, so the
       old "rate-limit *unauthenticated* creation" premise is moot — a per-user
       anti-abuse limit is a separate optional follow-up.
-- [ ] **Catalog default `:read` lacks a status filter** — resources use
+- [x] **Catalog default `:read` contract documented** — resources use
       `authorize_unless(actor_present())` (not the feared `always()`), and all
       storefront calls go through safe scoped actions, so risk is LOW. But the
       bare `:read` action could surface draft/hidden rows to a future caller.
-      Either add `filter(expr(status == :published))` to the public read or
-      document that public read must use the scoped actions only.
+      Public storefront access is now explicitly documented on all four resources as requiring
+      scoped actions; default reads are reserved for internal relationship/admin loads.
       Files: `product.ex:172`, `variant.ex:136`, `category.ex:90`, `review.ex:121`.
 - [x] **CSP: `style-src 'unsafe-inline'`** (P2) — DONE 2026-06-25 as a
       **documented accepted risk**. Full removal is infeasible: ~760 inline
@@ -70,9 +70,8 @@
       `style-src-elem` (deferred) with the rationale written into the plug
       moduledoc; future hardening = nonce the ~32 `<style>` blocks (needs a
       socket-stable nonce) then drop `'unsafe-inline'` from `style-src-elem`.
-- [ ] **Fix `RawBodyReader` moduledoc** — `lib/emakola_web/plugs/raw_body_reader.ex:2`
-      still says "Stripe webhook signature verification" (copy-paste artifact;
-      the module is generic). Trivial.
+- [x] **Fix `RawBodyReader` moduledoc** — now accurately documents generic payment and
+      third-party webhook signature verification.
 
 ## OPEN — Refactor / decomposition (still over the 200-line guideline)
 
@@ -141,15 +140,77 @@
 
 - [x] Persist proportional partial/full refund reversal amounts on the existing
       `PaymentSplit` ledger (no duplicate liability table).
-- [ ] Recover those reversal amounts from future recipient splits.
+- [x] Recover reversal amounts from future recipient splits using row-locked
+      reservations, success/failure reconciliation, and proportional reopening
+      when a recovery-bearing earning is itself refunded.
 - [x] **SP2 foundation:** wholesaler↔reseller connection resource, authorized service,
       lifecycle, migration, and tests.
-- [ ] **SP2 UI:** merchant invitations, approvals, active connections, and suspension.
-- [ ] **SP3:** shared physical/digital offers, markup/fixed commission, one-click listing,
+- [x] **SP2 UI:** merchant invitations, approvals, active connections, suspension,
+      reactivation, and termination at `/admin/settings/supply-network`.
+- [x] **SP3:** shared physical/digital offers, markup/fixed commission, one-click listing,
       and source synchronization.
-- [ ] **SP4:** cross-store inbound fulfillment, delivery proof, and protected digital delivery.
-- [ ] Add Sales Kits, tracked sharing links, and the guided “First Money” journey.
+  - [x] Shared-offer foundation references existing products/variants, validates
+        markup and fixed-commission terms, and limits discovery to active supply partners.
+  - [x] Transactional reseller listing/import mapping for products, variants,
+        option values, bounded pricing, and existing supplier fulfillment linkage.
+  - [x] Retryable, SSRF-safe source-image replication into reseller-owned storage.
+  - [x] Pilot-facing one-click listing UI with offer earnings and imported-listing status.
+- [x] **SP4:** authorized cross-store supplier inbox, customer delivery OTP proof,
+      and protected grants for imported digital products.
+- [x] Add channel-ready Sales Kits, session-deduplicated tracked links, confirmed-order
+      attribution, and the guided “First Money” journey.
+- [x] Enforce Earn launch guards: both payout accounts verified before network checkout,
+      no ordinary coupons on network items, and visible partner-fulfillment disclosure.
 - [ ] Pass the concierge validation gate before broad network rollout.
+- [ ] **Income Operating System:** deliver the phased program in
+      [`docs/ROADMAP-income-operating-system.md`](docs/ROADMAP-income-operating-system.md),
+      beginning with persistent income goals and the deterministic Hustle Autopilot.
+  - [x] Persist authorized income goals and generate an explainable deterministic seven-day plan.
+  - [x] Add goal creation and the seven-day plan to Earn Network using existing offer economics.
+  - [x] Add fulfilled net-earnings progress and executable next actions to Earn Network.
+  - [x] Add historical-signal ranking and expose supplier net, customer price, platform fee,
+        reseller net earnings, evidence confidence, and ranking reason.
+  - [x] Complete Phase A — Hustle Autopilot.
+  - [x] Build Phase B — voice-first Business-in-a-Box and fact-grounded content drafts.
+    - [x] Add supplier-fact snapshots, deterministic channel drafts, stale-content protection,
+          and explicit merchant review in Earn Network.
+    - [x] Add preview-first voice/text commands with explicit confirmation before mutations.
+    - [x] Add one-action niche starter catalogs with products, tracked links, and content drafts.
+    - [x] Add curated English/Twi variants and escaped social cards grounded in approved
+          supplier images, titles, and prices.
+  - [x] Build Phase C — privacy-safe Opportunity Radar, bounded ethical pricing, and
+        aggregate-only supplier demand alerts.
+  - [ ] Run Phase C's live controlled evaluation against the popularity-only baseline.
+  - [x] Build Phase D — group buys, consent-based sales teams, and micro-franchises.
+    - [x] Add Phase D schemas and authorized service foundations with threshold/payment checks,
+          exact consented team splits, package terms, and explicit anti-MLM structure.
+    - [x] Add Phase D merchant/customer UI, settlement integration, automatic refunds, and
+          approved-package catalog activation.
+      - [x] Add Earn Network merchant UI for group buys, exact-split team invitations/consent,
+            and supplier/reseller micro-franchise publishing/discovery/application.
+      - [x] Add supplier-only approval, atomic package-offer catalog activation, and enrollment
+            evidence linking every activated reseller listing.
+      - [x] Add UUID-safe sales-team attribution links, customer economics disclosure, exact
+            consented settlement ledgers, webhook integration, and proportional refund reversals.
+      - [x] Add customer group-buy discovery, capacity-reserving commitment/payment UI, and
+            idempotent webhook funding on imported storefront products.
+      - [x] Add scheduled, idempotent automatic gateway refunds for expired under-threshold
+            group buys, including persisted claim, reference, and failure state.
+  - [x] Build Phase E — trust, progression, and compliant partner credit.
+    - [x] Add deterministic commerce passports with bounded tiers, aggregate evidence, reason
+          codes, expiry, repeatable refresh, correction audit state, and merchant appeals.
+    - [x] Add Earn Network inspection, evidence display, expiry visibility, refresh, and
+          per-signal appeal UI.
+    - [x] Add transparent passport-tier inventory eligibility, supplier-authored caps/reason
+          codes, atomic stock holds, idempotent paid-order consumption, and automatic unused release.
+    - [x] Add licensed-partner or explicit supplier trade credit with informed consent,
+          external disbursement evidence, explainable passport decisions, and idempotent
+          sales-only repayment/refund reconciliation through the payment-split ledger.
+  - [x] Build Phase F — trust-protected preorders.
+    - [x] Require complete customer disclosures, demand limits, delivery windows, milestone
+          evidence, and independent legal/payment-provider approval references before launch.
+    - [x] Quarantine deposits from payout until verified fulfillment; automatically refund
+          deadline/milestone failures and add explainable supplier performance consequences.
 
 ## OPEN — White-label design system (remaining phases)
 
@@ -162,14 +223,13 @@
 
 ## OPEN — Infrastructure / CI
 
-- [ ] **Add `mix dialyzer` to CI** (`.github/workflows/ci.yml`) — configured in
-      `mix.exs` but never run in CI.
-- [ ] **Create `.sobelow-conf`** — CI runs `mix sobelow --config` but the config
-      file is absent at repo root. (Not blocking CI — sobelow falls back to
-      defaults.) When doing this, triage what it surfaces first: `XSS.SendResp`
-      in `lib/emakola_web/plugs/rate_limiter.ex:80` (variable `safe_retry` — looks
-      like a deliberate false positive; persist a reviewed skip, not a blind config).
-- [ ] **Separate `deps` and `_build` CI cache keys** — currently one combined key.
+- [x] **Add `mix dialyzer` to CI** and make Dialyxir available in the test environment.
+- [x] **Create and triage `.sobelow-conf`** — CI now enforces medium findings.
+      Narrow reviewed skips cover static JSON/escaped integer responses; the custom
+      nonce CSP plug is documented because Sobelow cannot recognize it. The previously
+      unprotected SEO pipeline now receives secure headers and the same CSP.
+- [x] **Separate `deps` and `_build` CI cache keys**, including OTP/Elixir versions in
+      the build cache key to prevent incompatible BEAM reuse.
 - [ ] **Raise `test_coverage` threshold** — `mix.exs:15` is at 55; ratchet toward
       90 as tests are added.
 

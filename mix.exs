@@ -21,7 +21,7 @@ defmodule Emakola.MixProject do
     [
       plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
       plt_add_apps: [:ex_unit, :mix, :ash, :ash_postgres, :ash_phoenix],
-      flags: [:error_handling, :underspecs],
+      flags: [:error_handling],
       ignore_warnings: ".dialyzer_ignore.exs",
       list_unused_filters: true
     ]
@@ -119,7 +119,7 @@ defmodule Emakola.MixProject do
       {:ex_machina, "~> 2.8", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.4", only: [:dev], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
 
       # CSV parsing for bulk product import

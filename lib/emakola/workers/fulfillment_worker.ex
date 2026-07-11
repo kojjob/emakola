@@ -57,8 +57,6 @@ defmodule Emakola.Workers.FulfillmentWorker do
 
     case Dispatcher.dispatch(product_type, line_item, %{customer_id: order.customer_id}) do
       {:ok, :deferred} ->
-        # Stub pipeline — not yet wired for this phase. Log at debug to avoid
-        # production noise on physical/license-key orders during phased rollout.
         Logger.debug(
           "[fulfillment_worker] order=#{order.id} line_item=#{line_item.id} " <>
             "type=#{product_type} deferred (stub)"

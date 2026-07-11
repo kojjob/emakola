@@ -69,9 +69,20 @@ defmodule Emakola.Suppliers.Network do
   end
 
   defp update(connection, action, attrs) do
-    connection
-    |> Ash.Changeset.for_update(action, attrs)
-    |> Ash.update(authorize?: false)
+    case connection
+         |> Ash.Changeset.for_update(action, attrs)
+         |> Ash.update(authorize?: false) do
+      {:ok, updated} when action in [:suspend, :terminate] ->
+        Emakola.Suppliers.ListingImporter.pause_connection_listings!(
+          connection.wholesaler_store_id,
+          connection.reseller_store_id
+        )
+
+        {:ok, updated}
+
+      result ->
+        result
+    end
   end
 
   defp ensure_distinct(id, id), do: {:error, :stores_must_differ}

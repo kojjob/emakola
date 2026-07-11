@@ -376,11 +376,11 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
         :if={@delete_category}
         id="delete-category-modal"
         title="Delete Category"
-        message={"Are you sure you want to delete \"#{if @delete_category, do: @delete_category.name, else: ""}\"? This action cannot be undone."}
+        message={"Are you sure you want to delete \"#{@delete_category.name}\"? This action cannot be undone."}
         confirm_text="Delete"
         confirm_class="bg-red-600 hover:bg-red-700 text-white"
         on_confirm="delete_category"
-        value={if @delete_category, do: @delete_category.id}
+        value={@delete_category.id}
         icon="warning"
         icon_class="text-red-500"
       />

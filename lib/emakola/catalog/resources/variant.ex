@@ -12,6 +12,9 @@ defmodule Emakola.Catalog.Variant do
   prevents negative stock under concurrent access.
 
   Multi-tenancy: store_id denormalized from parent product.
+
+  Public exposure is through an active product's scoped storefront action;
+  callers must not treat the default `:read` as a public catalog endpoint.
   """
 
   use Ash.Resource,

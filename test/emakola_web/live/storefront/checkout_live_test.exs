@@ -59,6 +59,33 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       assert html =~ "GH\u20B5 100"
     end
 
+    test "discloses a fully consented attributed team's exact economics", %{conn: conn} do
+      {owner, store} = create_merchant_with_store!(%{slug: "team-checkout"})
+      seller = create_merchant!()
+
+      {:ok, team} =
+        Emakola.Suppliers.SalesTeams.create(owner, store.id, "Neighbour crew", [
+          %{merchant_id: owner.id, role: :owner, split_bps: 6_000},
+          %{merchant_id: seller.id, role: :seller, split_bps: 4_000}
+        ])
+
+      invited = Enum.find(team.members, &(&1.merchant_id == seller.id))
+      {:ok, _accepted} = Emakola.Suppliers.SalesTeams.accept(seller, invited.id)
+
+      conn =
+        init_test_session(conn, %{
+          "cart_session_id" => Ecto.UUID.generate(),
+          "utm_attribution" => %{"sales_team_id" => team.id}
+        })
+
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      assert has_element?(view, "#sales-team-economics", "Neighbour crew")
+      assert has_element?(view, "#sales-team-splits", "owner: 60%")
+      assert has_element?(view, "#sales-team-splits", "seller: 40%")
+      assert has_element?(view, "#sales-team-economics", "does not increase your price")
+    end
+
     test "renders order summary sidebar", %{conn: conn, store: store, variant: variant} do
       {conn, _session_id} = setup_cart_session(conn, variant)
       {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")

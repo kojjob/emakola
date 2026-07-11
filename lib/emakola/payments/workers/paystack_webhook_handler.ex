@@ -182,7 +182,15 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
       # only a :pending order, so a retry safely completes a partial first attempt.
       if payment.status == :success do
         maybe_confirm_order(payment.order_id)
+        Emakola.Suppliers.GroupBuys.confirm_payment(payment)
+        Emakola.Suppliers.ProtectedPreorders.confirm_payment(payment)
         settle_splits(payment)
+        Emakola.Suppliers.SalesTeams.settle_attributed_payment(payment)
+
+        Emakola.Suppliers.InventoryReservations.consume_for_order(
+          payment.order_id,
+          payment.store_id
+        )
       end
 
       :ok
@@ -228,6 +236,10 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
         |> Ash.Changeset.for_update(:mark_failed, %{gateway_response: data})
         |> Ash.update!(authorize?: false)
 
+      payment
+      |> payment_splits()
+      |> Emakola.Payments.RefundLiability.release!()
+
       Phoenix.PubSub.broadcast(
         Emakola.PubSub,
         "payment:#{reference}",
@@ -258,6 +270,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
       # Reverse the split allocations so a clawback can recover each party's
       # share against future payouts.
       reverse_splits(updated)
+      Emakola.Suppliers.SalesTeams.reverse_attributed_payment(updated)
 
       Phoenix.PubSub.broadcast(
         Emakola.PubSub,
@@ -287,18 +300,25 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   end
 
   defp settle_splits(payment) do
-    payment
-    |> payment_splits()
+    splits = payment_splits(payment)
+
+    splits
     |> Enum.filter(&(&1.status == :pending))
     |> Enum.each(fn split ->
       split
       |> Ash.Changeset.for_update(:mark_settled, %{})
       |> Ash.update!(authorize?: false)
     end)
+
+    Emakola.Payments.RefundLiability.apply_recoveries!(splits)
+    Emakola.Suppliers.PartnerCredit.record_settlement(payment, splits)
   end
 
   defp reverse_splits(payment) do
-    Emakola.Payments.RefundLiability.reconcile!(payment, payment_splits(payment))
+    splits = payment_splits(payment)
+    Emakola.Payments.RefundLiability.rollback_recoveries!(payment, splits)
+    Emakola.Payments.RefundLiability.reconcile!(payment, splits)
+    Emakola.Suppliers.PartnerCredit.reconcile_refund(payment, splits)
   end
 
   defp payment_splits(payment) do

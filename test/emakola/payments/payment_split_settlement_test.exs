@@ -5,7 +5,6 @@ defmodule Emakola.Payments.PaymentSplitSettlementTest do
   """
   use Emakola.DataCase, async: true
   import Emakola.Factory
-  require Ash.Query
 
   alias Emakola.Payments.Workers.PaystackWebhookHandler
 
@@ -149,5 +148,76 @@ defmodule Emakola.Payments.PaymentSplitSettlementTest do
       |> Enum.sort()
 
     assert recipient_reversals == [1_600, 10_560]
+  end
+
+  test "charge.success applies a reserved recovery", %{store: store, payment: payment} do
+    liability = refundable_liability!(store, 700)
+
+    [earning, _platform] =
+      Emakola.Payments.RefundLiability.reserve!([
+        %{
+          role: :merchant,
+          recipient_store_id: store.id,
+          subaccount_code: "ACCT_d",
+          amount: 500
+        },
+        %{role: :platform, recipient_store_id: nil, subaccount_code: nil, amount: 100}
+      ])
+
+    split!(payment, store, Map.put(earning, :role, :merchant))
+
+    assert :ok =
+             PaystackWebhookHandler.perform(%Oban.Job{
+               args: %{
+                 "event" => "charge.success",
+                 "data" => %{"reference" => payment.gateway_reference}
+               }
+             })
+
+    updated = Ash.get!(Emakola.Payments.PaymentSplit, liability.id, authorize?: false)
+    assert updated.recovered_amount == 500
+    assert updated.reserved_recovery_amount == 0
+  end
+
+  test "charge.failed releases a reserved recovery", %{store: store, payment: payment} do
+    liability = refundable_liability!(store, 700)
+
+    [earning, _platform] =
+      Emakola.Payments.RefundLiability.reserve!([
+        %{
+          role: :merchant,
+          recipient_store_id: store.id,
+          subaccount_code: "ACCT_d",
+          amount: 500
+        },
+        %{role: :platform, recipient_store_id: nil, subaccount_code: nil, amount: 100}
+      ])
+
+    split!(payment, store, Map.put(earning, :role, :merchant))
+
+    assert :ok =
+             PaystackWebhookHandler.perform(%Oban.Job{
+               args: %{
+                 "event" => "charge.failed",
+                 "data" => %{"reference" => payment.gateway_reference}
+               }
+             })
+
+    updated = Ash.get!(Emakola.Payments.PaymentSplit, liability.id, authorize?: false)
+    assert updated.recovered_amount == 0
+    assert updated.reserved_recovery_amount == 0
+  end
+
+  defp refundable_liability!(recipient, reversed_amount) do
+    original_store = create_store!()
+    original_payment = create_payment!(original_store)
+
+    split!(original_payment, original_store, %{
+      role: :wholesaler,
+      recipient_store_id: recipient.id,
+      amount: 1_000
+    })
+    |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: reversed_amount})
+    |> Ash.update!(authorize?: false)
   end
 end
