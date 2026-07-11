@@ -146,4 +146,35 @@ defmodule Emakola.Themes.SectionRendererTest do
     assert html =~ "beta"
     assert log =~ "[sections] malformed layout entry"
   end
+
+  test "corrupt nested entry fields are normalized instead of raising", %{
+    merchant: merchant,
+    store: store
+  } do
+    {:ok, store} =
+      HomeSections.put_layout(merchant, store, "faketheme", [
+        %{"id" => "faketheme/beta", "type" => "faketheme/beta", "enabled" => true}
+      ])
+
+    # Same bypass-the-sanitizer corruption class as the bare-string entry,
+    # one level deeper: a resolvable entry whose nested fields are junk.
+    corrupt = %{
+      "id" => %{},
+      "type" => "faketheme/alpha",
+      "enabled" => true,
+      "style" => "x",
+      "settings" => "x"
+    }
+
+    config = store.theme_config
+    entries = [corrupt | get_in(config, ["home_sections", "faketheme"])]
+    store = %{store | theme_config: put_in(config, ["home_sections", "faketheme"], entries)}
+
+    html = render_home(store)
+
+    # Normalized: settings fall back to schema defaults, id to the type string.
+    assert html =~ "Alpha default"
+    assert html =~ ~s(data-section-id="faketheme/alpha")
+    assert html =~ "beta"
+  end
 end
