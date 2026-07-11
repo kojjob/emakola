@@ -1,6 +1,7 @@
 # Emakola — Makola Earn / Dropshipping Roadmap
 
-> Feature roadmap | Status: DS.1–DS.5 ✅ shipped · SP1/SP5 ✅ shipped · SP2–SP4 🔵 planned
+> Feature roadmap | Status: DS.1–DS.5 ✅ shipped · SP1–SP5 ✅ shipped (SP2–SP4 landed 2026-07-11
+> with the income-OS stack; final PRs #277/#278) · broad network rollout gated on the concierge pilot
 > Specs: `~/.claude/plans/let-brainstorm-how-we-typed-bachman.md` (DS) · `~/.claude/plans/let-brainstorm-on-dropshipping-serene-dahl.md` (SP)
 
 ## Vision
