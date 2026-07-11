@@ -95,5 +95,8 @@ defmodule Emakola.Suppliers do
     resource(Emakola.Suppliers.InventoryEligibilityPolicy)
     resource(Emakola.Suppliers.InventoryReservation)
     resource(Emakola.Suppliers.InventoryReservationConsumption)
+    resource(Emakola.Suppliers.PartnerCreditOffer)
+    resource(Emakola.Suppliers.PartnerCreditAgreement)
+    resource(Emakola.Suppliers.PartnerCreditRepayment)
   end
 end

@@ -197,15 +197,16 @@
             idempotent webhook funding on imported storefront products.
       - [x] Add scheduled, idempotent automatic gateway refunds for expired under-threshold
             group buys, including persisted claim, reference, and failure state.
-  - [ ] Build Phase E — trust, progression, and compliant partner credit.
+  - [x] Build Phase E — trust, progression, and compliant partner credit.
     - [x] Add deterministic commerce passports with bounded tiers, aggregate evidence, reason
           codes, expiry, repeatable refresh, correction audit state, and merchant appeals.
     - [x] Add Earn Network inspection, evidence display, expiry visibility, refresh, and
           per-signal appeal UI.
     - [x] Add transparent passport-tier inventory eligibility, supplier-authored caps/reason
           codes, atomic stock holds, idempotent paid-order consumption, and automatic unused release.
-    - [ ] Add licensed-partner or explicit supplier trade credit with informed consent and
-          sales-only repayment.
+    - [x] Add licensed-partner or explicit supplier trade credit with informed consent,
+          external disbursement evidence, explainable passport decisions, and idempotent
+          sales-only repayment/refund reconciliation through the payment-split ledger.
 
 ## OPEN — White-label design system (remaining phases)
 

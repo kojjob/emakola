@@ -310,12 +310,14 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
     end)
 
     Emakola.Payments.RefundLiability.apply_recoveries!(splits)
+    Emakola.Suppliers.PartnerCredit.record_settlement(payment, splits)
   end
 
   defp reverse_splits(payment) do
     splits = payment_splits(payment)
     Emakola.Payments.RefundLiability.rollback_recoveries!(payment, splits)
     Emakola.Payments.RefundLiability.reconcile!(payment, splits)
+    Emakola.Suppliers.PartnerCredit.reconcile_refund(payment, splits)
   end
 
   defp payment_splits(payment) do

@@ -38,7 +38,7 @@ defmodule Emakola.Payments.PaymentSplit do
     end
 
     attribute :role, :atom do
-      constraints(one_of: [:wholesaler, :dropshipper, :platform, :merchant])
+      constraints(one_of: [:wholesaler, :dropshipper, :platform, :merchant, :credit_partner])
       allow_nil?(false)
       public?(true)
     end
@@ -50,6 +50,10 @@ defmodule Emakola.Payments.PaymentSplit do
 
     # Ties a wholesaler allocation back to the supplier it settles. Nil otherwise.
     attribute :supplier_id, :uuid do
+      public?(true)
+    end
+
+    attribute :credit_agreement_id, :uuid do
       public?(true)
     end
 
@@ -158,6 +162,7 @@ defmodule Emakola.Payments.PaymentSplit do
         :role,
         :recipient_store_id,
         :supplier_id,
+        :credit_agreement_id,
         :subaccount_code,
         :amount,
         :recovery_amount,

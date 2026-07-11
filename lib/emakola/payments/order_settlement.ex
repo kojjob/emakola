@@ -39,7 +39,10 @@ defmodule Emakola.Payments.OrderSettlement do
         allocations = adjust_dropshipper(allocations, adjustment)
 
         if valid_shares?(allocations) do
-          allocations = RefundLiability.reserve!(allocations)
+          allocations =
+            allocations
+            |> Emakola.Suppliers.PartnerCredit.carve_sales_proceeds(store_id)
+            |> RefundLiability.reserve!()
 
           {:split,
            %{
@@ -79,6 +82,7 @@ defmodule Emakola.Payments.OrderSettlement do
               },
               %{role: :platform, recipient_store_id: nil, amount: fee, subaccount_code: nil}
             ]
+            |> Emakola.Suppliers.PartnerCredit.carve_sales_proceeds(store_id)
             |> RefundLiability.reserve!()
 
           {:split,
@@ -117,6 +121,7 @@ defmodule Emakola.Payments.OrderSettlement do
           role: alloc.role,
           recipient_store_id: Map.get(alloc, :recipient_store_id),
           supplier_id: Map.get(alloc, :supplier_id),
+          credit_agreement_id: Map.get(alloc, :credit_agreement_id),
           subaccount_code: Map.get(alloc, :subaccount_code),
           amount: alloc.amount,
           recovery_amount: Map.get(alloc, :recovery_amount, 0),

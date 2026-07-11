@@ -109,7 +109,11 @@ Acceptance: every participant and customer sees the complete economics before co
 - [x] Evidence, reason codes, expiry, correction, and appeal for every reputation signal.
 - [x] Opportunity tiers and reserved inventory based on transparent eligibility, with supplier
       reason codes, atomic stock holds, paid-order consumption, limits, expiry, and unused release.
-- [ ] Licensed-partner or explicit supplier trade credit, repaid from sales only with informed consent.
+- [x] Licensed-partner or explicit supplier trade credit, repaid from sales only with informed consent.
+  - [x] Provider identity/authority, licensed-partner evidence, transparent fixed economics,
+        frozen passport decision, explicit borrower consent, and external disbursement proof.
+  - [x] Gateway-routed repayment only from realized merchant/dropshipper proceeds, with an
+        idempotent ledger and proportional refund reopening; supplier/platform shares stay intact.
 
 Acceptance: merchants can inspect and challenge their passport; credit decisions are explainable and compliant.
 
