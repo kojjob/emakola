@@ -48,30 +48,35 @@ defmodule Emakola.Suppliers.PreorderDeposit do
     update :paid do
       require_atomic?(false)
       accept([])
+      validate(attribute_equals(:status, :pending))
       change(set_attribute(:status, :paid))
     end
 
     update :cancel do
       require_atomic?(false)
       accept([])
+      validate(attribute_equals(:status, :pending))
       change(set_attribute(:status, :cancelled))
     end
 
     update :claim_refund do
       require_atomic?(false)
       accept([:refund_claimed_at])
+      validate(attribute_in(:status, [:paid, :refund_failed]))
       change(set_attribute(:status, :refunding))
     end
 
     update :refunded do
       require_atomic?(false)
       accept([:refund_reference])
+      validate(attribute_equals(:status, :refunding))
       change(set_attribute(:status, :refunded))
     end
 
     update :refund_failed do
       require_atomic?(false)
       accept([:refund_error])
+      validate(attribute_equals(:status, :refunding))
       change(set_attribute(:status, :refund_failed))
     end
   end

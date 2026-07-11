@@ -32,32 +32,44 @@ defmodule Emakola.Payments.HubtelWebhook do
     reference = data["ClientReference"]
     amount = data["Amount"]
 
-    with {:ok, payment} <- find_payment(reference),
-         false <- terminal?(payment) do
-      gateway_response = %{
-        "response_code" => "0000",
-        "amount" => amount,
-        "client_reference" => reference
-      }
-
+    with {:ok, payment} <- find_payment(reference) do
       payment =
-        payment
-        |> Ash.Changeset.for_update(:mark_success, %{gateway_response: gateway_response})
-        |> Ash.update!(authorize?: false)
+        case payment.status do
+          # Already success (webhook retry/replay) — fall through to the
+          # idempotent post-processing below so a prior partial failure is
+          # recovered rather than skipped (mirrors the Paystack handler).
+          :success ->
+            payment
 
-      maybe_confirm_order(payment.order_id)
-      Emakola.Suppliers.GroupBuys.confirm_payment(payment)
-      Emakola.Suppliers.SalesTeams.settle_attributed_payment(payment)
+          # A late success after a terminal failure/refund — don't override.
+          status when status in [:failed, :refunded] ->
+            payment
 
-      Emakola.Suppliers.InventoryReservations.consume_for_order(
-        payment.order_id,
-        payment.store_id
-      )
+          _ ->
+            gateway_response = %{
+              "response_code" => "0000",
+              "amount" => amount,
+              "client_reference" => reference
+            }
+
+            payment
+            |> Ash.Changeset.for_update(:mark_success, %{gateway_response: gateway_response})
+            |> Ash.update!(authorize?: false)
+        end
+
+      if payment.status == :success do
+        maybe_confirm_order(payment.order_id)
+        Emakola.Suppliers.GroupBuys.confirm_payment(payment)
+        Emakola.Suppliers.ProtectedPreorders.confirm_payment(payment)
+        Emakola.Suppliers.SalesTeams.settle_attributed_payment(payment)
+
+        Emakola.Suppliers.InventoryReservations.consume_for_order(
+          payment.order_id,
+          payment.store_id
+        )
+      end
 
       :ok
-    else
-      true -> :ok
-      {:error, reason} -> {:error, reason}
     end
   end
 
