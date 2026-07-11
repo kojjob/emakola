@@ -72,6 +72,31 @@ defmodule Emakola.InventoryDomainTest do
                Inventory.deactivate_location(merchant, store.id, main.id)
     end
 
+    test "rename_location/4 renames a location", %{merchant: merchant, store: store} do
+      main = Inventory.ensure_default_location!(store.id)
+
+      assert {:ok, renamed} = Inventory.rename_location(merchant, store.id, main.id, "Shop Floor")
+      assert renamed.name == "Shop Floor"
+    end
+
+    test "rename_location/4 rejects duplicate names per store", %{
+      merchant: merchant,
+      store: store
+    } do
+      Inventory.ensure_default_location!(store.id)
+      {:ok, stall} = Inventory.create_location(merchant, store.id, %{name: "Stall"})
+
+      assert {:error, _} = Inventory.rename_location(merchant, store.id, stall.id, "Main")
+    end
+
+    test "rename_location/4 requires store membership", %{store: store} do
+      main = Inventory.ensure_default_location!(store.id)
+      {outsider, _other_store} = Factory.create_merchant_with_store!()
+
+      assert {:error, :forbidden} =
+               Inventory.rename_location(outsider, store.id, main.id, "Hijacked")
+    end
+
     test "a location holding stock cannot be deactivated", %{
       merchant: merchant,
       store: store,
@@ -228,6 +253,42 @@ defmodule Emakola.InventoryDomainTest do
       assert level_quantity(variant.id, main.id) in [nil, 10]
       assert reload_variant(variant).stock_quantity == 10
       assert movements(variant.id) == []
+    end
+  end
+
+  describe "levels_by_variant/2" do
+    test "returns the store's levels grouped by variant, default location first", %{
+      merchant: merchant,
+      store: store,
+      product: product,
+      variant: variant
+    } do
+      main = Inventory.ensure_default_location!(store.id)
+      # "A Stall" sorts before "Main" alphabetically — the default must still lead.
+      {:ok, stall} = Inventory.create_location(merchant, store.id, %{name: "A Stall"})
+
+      variant2 = Factory.create_variant!(product, store, stock_quantity: 0)
+
+      {:ok, _} = Inventory.restock(variant.id, stall.id, 5)
+      {:ok, _} = Inventory.restock(variant2.id, stall.id, 2)
+
+      assert {:ok, map} = Inventory.levels_by_variant(merchant, store.id)
+
+      assert [main_level, stall_level] = map[variant.id]
+      assert main_level.location_id == main.id
+      assert main_level.quantity == 10
+      assert stall_level.location_id == stall.id
+      assert stall_level.quantity == 5
+
+      assert [v2_main, v2_stall] = map[variant2.id]
+      assert v2_main.quantity == 0
+      assert v2_stall.quantity == 2
+    end
+
+    test "requires store membership", %{store: store} do
+      {outsider, _other_store} = Factory.create_merchant_with_store!()
+
+      assert {:error, :forbidden} = Inventory.levels_by_variant(outsider, store.id)
     end
   end
 

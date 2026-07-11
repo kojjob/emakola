@@ -134,8 +134,10 @@
       Migration backfilled a "Main" location + level per tracked variant;
       later variants seed lazily. All four writers rewired (checkout
       decrement, Earn reservations hold/release, admin adjust, catalog
-      interface unused). REMAINING (UI follow-up): locations management,
-      per-location stock matrix, restock location picker, transfer modal.
+      interface unused). UI follow-up SHIPPED 2026-07-11: admin inventory
+      page gained the locations manager (add/rename/set-default/deactivate
+      with guard flashes), per-location breakdown lines on variant rows,
+      a location picker on the stock editor, and the transfer modal.
 - [ ] **Extract remaining inline Ash anonymous functions into Change modules** —
       `LineItem` price snapshot already uses `Changes.DenormalizeVariant`; the
       `Order` number generation (`order.ex:274`) and status-transition
