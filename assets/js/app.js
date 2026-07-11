@@ -25,13 +25,29 @@ import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import ThemeToggle from "./hooks/theme_toggle"
 import Analytics from "./hooks/analytics"
-import ScrollReveal from "./hooks/scroll_reveal"
+import ScrollReveal, {bindScrollReveal} from "./hooks/scroll_reveal"
 import AutoDismiss from "./hooks/auto_dismiss"
 import ThemeSettings from "./hooks/theme_settings"
-import ScrollGlass from "./hooks/scroll_glass"
+import ScrollGlass, {bindScrollGlass} from "./hooks/scroll_glass"
 import AddToBag from "./hooks/add_to_bag"
 import AtelierNavScroll from "./hooks/atelier_nav_scroll"
 import ChartHook from "./hooks/chart_hook"
+
+// Scroll effects on dead pages (e.g. the landing page) and on the shared
+// marketing nav: bind by data attribute since phx-hook needs a LiveView.
+// Re-scan after live navigation; the data flag prevents double-binding.
+const bindScrollEffects = () => {
+  document.querySelectorAll("[data-scroll-glass]:not([data-scroll-bound])").forEach((el) => {
+    el.dataset.scrollBound = "1"
+    bindScrollGlass(el)
+  })
+  document.querySelectorAll("[data-scroll-reveal]:not([data-scroll-bound])").forEach((el) => {
+    el.dataset.scrollBound = "1"
+    bindScrollReveal(el)
+  })
+}
+bindScrollEffects()
+window.addEventListener("phx:page-loading-stop", bindScrollEffects)
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {

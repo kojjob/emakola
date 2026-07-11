@@ -77,9 +77,12 @@
 
 > The earlier pass cut these hard; they're reduced but not finished.
 
-- [ ] **`landing_live.ex` (680 lines, still a LiveView)** — convert to a dead
-      `Phoenix.Component` (mobile menu via `Phoenix.LiveView.JS`). Eliminates one
-      LV process per anonymous visitor. *(Inline `<style>` block already removed.)*
+- [x] **`landing_live.ex` → dead render** — DONE 2026-07-11. `LandingController` +
+      `LandingHTML`; mobile menu is pure client state in the shared `landing_nav`
+      (`Phoenix.LiveView.JS`, no parent handler — 10 caller LiveViews cleaned up);
+      scroll effects bind via `data-scroll-glass`/`data-scroll-reveal` in app.js so
+      they work on dead pages and live navigation alike. No LV process per
+      anonymous visitor.
 - [ ] **`admin/product_live/index.ex` (1337 lines)** — extraction started
       (`form.ex`, `bulk_upload_modal.ex`, `Catalog.CSVImporter` all exist).
       Finish: pull out `product_card/1` and move the remaining Ash mutations
@@ -94,21 +97,26 @@
 
 ## OPEN — Component library consistency
 
-- [ ] **Finish replacing inline hex literals with named tokens** — the 7 tokens
-      (`emakola-emerald`, `emakola-gold`, `mtn`, `voda`, `whatsapp`,
-      `store-accent`, `cta-dark`) are defined in `assets/css/app.css:164`, but
-      ~1968 `bg-[#…]`/`text-[#…]`/`from-[#…]` literals still exist in `lib/`.
-- [ ] **Resolve color drift** — both `#B45309` (66×, storefront default) and
-      `#CA8A04` (15×, admin) are in use. Standardise per
-      `storefront_components.ex` (`#B45309`).
-- [x] **Add the two missing shared admin components** — DONE 2026-07-11.
-      `table_toolbar/1` added to `admin_components.ex` (product + customer
-      index retrofitted); `status_pill/1` renamed to `status_badge/1` with
-      all 7 caller files updated (no shim).
-- [x] **Unify the duplicate KPI primitives** — DONE 2026-07-11. Canonical
-      `stat_card/1` (richer kpi_card markup + icon/delta slots) now lives in
-      `admin_components.ex`; inventory, customer index, and dashboard
-      `kpi_cards` all use it; duplicates deleted.
+- [x] **Brand-token sweep** — DONE 2026-07-11, rescoped after measurement. The
+      "~1968 literals" were mostly per-theme palettes (a theme's identity IS its
+      hex palette — flattening them to global tokens would be wrong), so only
+      true brand colors were swept: all WhatsApp (`#25D366`/`#1FAF55` → 
+      `-whatsapp`/`-whatsapp-dark`, 22×) and Vodafone (`#E60000` → `-voda`, 3×)
+      literals everywhere, plus spelling normalizations in `lib/emakola_web`
+      (non-theme) files (`#B45309` → `amber-700`, `#0F172A` → `slate-900`).
+      MTN/emerald/gold literals were already fully swept by earlier passes.
+- [x] **Resolve color drift** — RESOLVED-AS-STALE 2026-07-11: only 3 `#CA8A04`
+      uses remain and all are deliberate (the `emakola-gold` token definition,
+      Atelier's `--theme-gold`, and a merchant color-picker option). No scattered
+      drift exists; earlier passes already standardised the storefront on
+      `#B45309`.
+- [ ] **Add the two missing shared admin components** — `admin_page_header/1`
+      and `empty_state/1` exist in `admin_components.ex`; add `table_toolbar/1`
+      and reconcile the `status_pill/1` vs the planned `status_badge/1` name.
+- [ ] **Unify the duplicate KPI primitives** — `stat_card/1`
+      (`inventory_components.ex:49`) and `kpi_card` (`metric_components.ex:55`)
+      overlap; pick one and update usages in customer/revenue/report/campaign
+      admin LiveViews.
 
 ## PARTIAL — Feature gaps
 
