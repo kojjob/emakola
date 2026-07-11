@@ -14,8 +14,6 @@ defmodule Emakola.Orders.LineItem do
     authorizers: [Ash.Policy.Authorizer],
     extensions: [AshJsonApi.Resource]
 
-  require Ash.Query
-
   multitenancy do
     strategy(:attribute)
     attribute(:store_id)

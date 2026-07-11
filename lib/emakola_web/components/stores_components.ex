@@ -915,15 +915,11 @@ defmodule EmakolaWeb.StoresComponents do
   end
 
   defp theme_label(store) do
-    case theme_id(store) do
-      nil ->
-        "Store"
+    id = theme_id(store)
 
-      id ->
-        Enum.find_value(theme_chips(), "Store", fn {chip_id, label, _icon} ->
-          if chip_id == id, do: label
-        end)
-    end
+    Enum.find_value(theme_chips(), "Store", fn {chip_id, label, _icon} ->
+      if chip_id == id, do: label
+    end)
   end
 
   defp theme_id(store) do
@@ -934,17 +930,11 @@ defmodule EmakolaWeb.StoresComponents do
   end
 
   defp theme_primary(store) do
-    case theme_id(store) do
-      nil -> "#1F2937"
-      id -> resolve_color(id, :primary, "#1F2937")
-    end
+    resolve_color(theme_id(store), :primary, "#1F2937")
   end
 
   defp theme_accent(store) do
-    case theme_id(store) do
-      nil -> "#0EA5E9"
-      id -> resolve_color(id, :accent, "#0EA5E9")
-    end
+    resolve_color(theme_id(store), :accent, "#0EA5E9")
   end
 
   # Scopes the store's theme colors onto a single card element so the
@@ -960,7 +950,7 @@ defmodule EmakolaWeb.StoresComponents do
   defp resolve_color(theme_id, key, fallback) do
     module = ThemeResolver.theme_module(theme_id)
 
-    if module && function_exported?(module, :defaults, 0) do
+    if function_exported?(module, :defaults, 0) do
       get_in(module.defaults(), [:colors, key]) || fallback
     else
       fallback

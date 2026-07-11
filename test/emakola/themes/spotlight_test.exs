@@ -35,7 +35,7 @@ defmodule Emakola.Themes.SpotlightTest do
 
     test "ingredients/0 returns a non-empty list of name+description maps" do
       items = Emakola.Themes.Spotlight.ingredients()
-      assert is_list(items) and length(items) >= 3
+      assert length(items) >= 3
       assert Enum.all?(items, &(is_binary(&1.name) and is_binary(&1.description)))
     end
   end

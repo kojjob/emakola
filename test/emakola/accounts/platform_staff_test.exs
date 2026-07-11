@@ -5,8 +5,6 @@ defmodule Emakola.Accounts.PlatformStaffTest do
 
   alias Emakola.Accounts.User
 
-  require Ash.Query
-
   defp set_platform_permissions!(user, attrs) do
     user
     |> Ash.Changeset.for_update(:set_platform_permissions, attrs)

@@ -11,8 +11,6 @@ defmodule Emakola.Content.RecipeMeta do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
-  require Ash.Query
-
   postgres do
     table("recipe_meta")
     repo(Emakola.Repo)

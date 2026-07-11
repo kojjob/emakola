@@ -711,6 +711,4 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
   defp coupon_error_message(:coupon_max_uses_reached),
     do: "This coupon has reached its usage limit"
-
-  defp coupon_error_message(_), do: "Invalid coupon code"
 end

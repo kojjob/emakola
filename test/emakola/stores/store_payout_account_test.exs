@@ -7,7 +7,6 @@ defmodule Emakola.Stores.StorePayoutAccountTest do
   """
   use Emakola.DataCase, async: true
   import Emakola.Factory
-  require Ash.Query
 
   alias Emakola.Stores
   alias Emakola.Stores.StorePayoutAccount

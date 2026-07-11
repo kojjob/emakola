@@ -3,8 +3,6 @@ defmodule Emakola.Accounts.PlatformInviteTest do
 
   import Emakola.Factory
 
-  require Ash.Query
-
   alias Emakola.Accounts.PlatformAuditLog
   alias Emakola.Accounts.PlatformInvite
 

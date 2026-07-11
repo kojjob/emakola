@@ -450,8 +450,6 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
     end
   end
 
-  defp product_to_form_data(nil), do: %{}
-
   defp product_to_form_data(product) do
     %{
       "title" => product.title || "",

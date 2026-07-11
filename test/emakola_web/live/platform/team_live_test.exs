@@ -10,8 +10,6 @@ defmodule EmakolaWeb.Platform.TeamLiveTest do
 
   import Swoosh.TestAssertions
 
-  require Ash.Query
-
   alias Emakola.Accounts.PlatformInvite
   alias Emakola.Accounts.Sessions
   alias Emakola.Accounts.TOTP

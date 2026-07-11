@@ -9,8 +9,6 @@ defmodule Emakola.Orders.CheckoutEdgeCasesTest do
 
   use Emakola.DataCase, async: false
 
-  require Ash.Query
-
   import Emakola.Factory
 
   alias Emakola.Orders.CheckoutService

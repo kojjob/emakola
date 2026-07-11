@@ -58,8 +58,6 @@ defmodule EmakolaWeb.Storefront.PageLive do
     """
   end
 
-  defp load_featured_products(nil), do: []
-
   defp load_featured_products(store) do
     Emakola.Catalog.Product
     |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
@@ -74,8 +72,6 @@ defmodule EmakolaWeb.Storefront.PageLive do
 
       []
   end
-
-  defp load_root_categories(nil), do: []
 
   defp load_root_categories(store) do
     Emakola.Catalog.list_root_categories!(store.id)

@@ -201,8 +201,6 @@ defmodule Emakola.Themes.DesignTokens do
     }
   end
 
-  defp safe_to_atom(key) when is_atom(key), do: key
-
   defp safe_to_atom(key) when is_binary(key) do
     String.to_existing_atom(key)
   rescue

@@ -14,7 +14,6 @@ defmodule EmakolaWeb.StoresLive do
   """
   use EmakolaWeb, :live_view
 
-  require Ash.Query
   require Logger
 
   alias Emakola.Stores.Store
