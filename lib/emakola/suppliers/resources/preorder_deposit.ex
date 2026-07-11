@@ -1,4 +1,5 @@
 defmodule Emakola.Suppliers.PreorderDeposit do
+  @moduledoc "Customer deposit and refund audit state for a protected preorder commitment."
   use Ash.Resource, domain: Emakola.Suppliers, data_layer: AshPostgres.DataLayer
 
   postgres do

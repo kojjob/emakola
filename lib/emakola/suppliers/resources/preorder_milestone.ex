@@ -1,4 +1,5 @@
 defmodule Emakola.Suppliers.PreorderMilestone do
+  @moduledoc "Ordered, evidence-backed production milestone for a protected preorder."
   use Ash.Resource, domain: Emakola.Suppliers, data_layer: AshPostgres.DataLayer
 
   postgres do

@@ -1,4 +1,5 @@
 defmodule Emakola.Suppliers.ProtectedPreorder do
+  @moduledoc "Supplier preorder plan with approval evidence, demand limits, delivery dates, and lifecycle state."
   use Ash.Resource, domain: Emakola.Suppliers, data_layer: AshPostgres.DataLayer
 
   postgres do

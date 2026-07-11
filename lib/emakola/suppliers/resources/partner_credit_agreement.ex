@@ -1,4 +1,5 @@
 defmodule Emakola.Suppliers.PartnerCreditAgreement do
+  @moduledoc "Frozen borrower consent, disbursement evidence, and balance for partner-funded credit."
   use Ash.Resource, domain: Emakola.Suppliers, data_layer: AshPostgres.DataLayer
 
   postgres do

@@ -1,4 +1,5 @@
 defmodule Emakola.Suppliers.PartnerCreditOffer do
+  @moduledoc "Explicit supplier or licensed-partner credit terms offered to a merchant store."
   use Ash.Resource, domain: Emakola.Suppliers, data_layer: AshPostgres.DataLayer
 
   postgres do
