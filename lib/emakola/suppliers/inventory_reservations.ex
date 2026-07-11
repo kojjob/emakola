@@ -2,6 +2,7 @@ defmodule Emakola.Suppliers.InventoryReservations do
   @moduledoc "Transparent passport-tier stock holds with atomic release back to supplier inventory."
 
   require Ash.Query
+  require Logger
 
   alias Emakola.Suppliers.{CommercePassports, InventoryEligibilityPolicy, InventoryReservation}
 
@@ -107,7 +108,17 @@ defmodule Emakola.Suppliers.InventoryReservations do
     InventoryReservation
     |> Ash.Query.filter(status == :active and expires_at <= ^now)
     |> Ash.read!(authorize?: false)
-    |> Enum.each(&release_reservation(&1, :expired))
+    |> Enum.each(fn reservation ->
+      try do
+        release_reservation(reservation, :expired)
+      rescue
+        exception ->
+          Logger.error(
+            "[InventoryReservations] expire failed for #{reservation.id}: " <>
+              Exception.message(exception)
+          )
+      end
+    end)
 
     :ok
   end
@@ -243,25 +254,31 @@ defmodule Emakola.Suppliers.InventoryReservations do
     end)
   end
 
-  defp release_reservation(%{status: :active} = reservation, status)
-       when status in [:released, :expired] do
+  # Dispatches on the FRESH row status under FOR UPDATE — a stale struct from a
+  # sweep batch or a concurrent release can no longer restore stock twice, and
+  # `remaining` reflects consumption that happened after the caller's read.
+  defp release_reservation(%{id: id}, status) when status in [:released, :expired] do
     Emakola.Repo.transaction(fn ->
-      remaining = reservation.quantity - reservation.consumed_quantity
+      reservation = locked_reservation!(id)
 
-      if remaining > 0 do
-        locked_variant!(reservation.source_variant_id)
-        |> Ash.Changeset.for_update(:adjust_stock, %{delta: remaining})
+      if reservation.status == :active do
+        remaining = reservation.quantity - reservation.consumed_quantity
+
+        if remaining > 0 do
+          locked_variant!(reservation.source_variant_id)
+          |> Ash.Changeset.for_update(:adjust_stock, %{delta: remaining})
+          |> Ash.update!(authorize?: false)
+        end
+
+        reservation
+        |> Ash.Changeset.for_update(:release, %{status: status})
         |> Ash.update!(authorize?: false)
+      else
+        reservation
       end
-
-      reservation
-      |> Ash.Changeset.for_update(:release, %{status: status})
-      |> Ash.update!(authorize?: false)
     end)
     |> normalize_transaction()
   end
-
-  defp release_reservation(reservation, _status), do: {:ok, reservation}
 
   defp load_policy(id) do
     case Ash.get(InventoryEligibilityPolicy, id, authorize?: false) do

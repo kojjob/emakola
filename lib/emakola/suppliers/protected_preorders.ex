@@ -194,7 +194,7 @@ defmodule Emakola.Suppliers.ProtectedPreorders do
     preorder = Ash.get!(ProtectedPreorder, id, authorize?: false)
 
     with true <- failure_due?(preorder) do
-      first_failure? = preorder.status != :failed
+      first_failure? = preorder.status not in [:failed, :refunded]
 
       failed =
         preorder
@@ -210,7 +210,7 @@ defmodule Emakola.Suppliers.ProtectedPreorders do
 
       deposits =
         PreorderDeposit
-        |> Ash.Query.filter(preorder_id == ^id and status in [:paid, :refund_failed])
+        |> Ash.Query.filter(preorder_id == ^id and status in [:paid, :refunding, :refund_failed])
         |> Ash.read!(authorize?: false)
 
       results = Enum.map(deposits, &refund(&1, gateway))
@@ -235,26 +235,44 @@ defmodule Emakola.Suppliers.ProtectedPreorders do
   def due_for_failure?(preorder), do: failure_due?(preorder)
 
   defp refund(deposit, gateway) do
-    claimed =
-      deposit
-      |> Ash.Changeset.for_update(:claim_refund, %{refund_claimed_at: DateTime.utc_now()})
-      |> Ash.update!(authorize?: false)
-
     payment = Ash.get!(Emakola.Payments.Payment, deposit.payment_id, authorize?: false)
 
-    case gateway.process_refund(payment.gateway_reference, deposit.amount) do
+    if payment.status == :refunded do
+      # Money already moved (e.g. crash after the gateway call) — finish the
+      # bookkeeping without touching the gateway again.
+      deposit
+      |> claim_unless_refunding()
+      |> Ash.Changeset.for_update(:refunded, %{refund_reference: nil})
+      |> Ash.update!(authorize?: false)
+
+      {:ok, deposit.id}
+    else
+      execute_refund(claim_unless_refunding(deposit), payment, gateway)
+    end
+  end
+
+  defp claim_unless_refunding(%{status: :refunding} = deposit), do: deposit
+
+  defp claim_unless_refunding(deposit) do
+    deposit
+    |> Ash.Changeset.for_update(:claim_refund, %{refund_claimed_at: DateTime.utc_now()})
+    |> Ash.update!(authorize?: false)
+  end
+
+  defp execute_refund(claimed, payment, gateway) do
+    case gateway.process_refund(payment.gateway_reference, claimed.amount) do
       {:ok, response} ->
         reference = response[:refund_reference] || response["refund_reference"]
 
         payment
-        |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: deposit.amount})
+        |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: claimed.amount})
         |> Ash.update!(authorize?: false)
 
         claimed
         |> Ash.Changeset.for_update(:refunded, %{refund_reference: reference})
         |> Ash.update!(authorize?: false)
 
-        {:ok, deposit.id}
+        {:ok, claimed.id}
 
       {:error, reason} ->
         claimed
@@ -263,7 +281,7 @@ defmodule Emakola.Suppliers.ProtectedPreorders do
         })
         |> Ash.update!(authorize?: false)
 
-        {:error, deposit.id, reason}
+        {:error, claimed.id, reason}
     end
   end
 
@@ -351,12 +369,12 @@ defmodule Emakola.Suppliers.ProtectedPreorders do
       (p.status in [:open, :funded, :production] and
          (DateTime.compare(DateTime.utc_now(), p.automatic_refund_deadline) in [:eq, :gt] or
             overdue_milestone?(p.id))) or
-        (p.status == :failed and refundable_deposits?(p.id))
+        (p.status in [:failed, :refunded] and refundable_deposits?(p.id))
 
   defp refundable_deposits?(id),
     do:
       PreorderDeposit
-      |> Ash.Query.filter(preorder_id == ^id and status in [:paid, :refund_failed])
+      |> Ash.Query.filter(preorder_id == ^id and status in [:paid, :refunding, :refund_failed])
       |> Ash.exists?(authorize?: false)
 
   defp overdue_milestone?(id),
