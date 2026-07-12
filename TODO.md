@@ -123,26 +123,48 @@
 
 ## PARTIAL — Feature gaps
 
-- [ ] **Real SMS provider** — `notifications/channels/sms.ex` + rate limiting
-      exist, but only the `LogSMS` mock is wired; plug in Arkesel/Hubtel
-      (overlaps `LAUNCH_TODO.md` item 4).
-- [ ] **Delivery fee beyond flat-per-zone** — `Emakola.Shipping.calculate_fee/2`
-      does zone lookup only; add weight-based / tiered rules if needed.
-- [ ] **Low-stock WhatsApp channel** — `low_stock_alert_worker.ex` sends email
-      + SMS digest; WhatsApp alerting not yet wired.
+- [x] **Real SMS provider** — DONE 2026-07-11. The channel was already wired in
+      prod (`runtime.exs` sets `:sms_provider` to `Channels.SMS`); it now speaks
+      Arkesel v2 natively via `SMS_PROVIDER=arkesel` (api-key header,
+      sender/message/recipients payload, endpoint defaulted — closes the
+      LAUNCH_TODO header warning). Generic Bearer gateways remain the default.
+      Ship-dark: dev/test stay on LogSMS/Mox.
+- [x] **Delivery fee beyond flat-per-zone** — DONE 2026-07-11. `DeliveryZone`
+      gained `free_above_pesewas` (order subtotal free-shipping threshold) and
+      `per_kg_fee_pesewas` (surcharge per started kg of `variant.weight_grams`);
+      `calculate_fee/3` accepts subtotal/weight context (free-above wins),
+      checkout passes both, zone admin form has the two GHS inputs.
+      Follow-up: merchants can't set variant weights via UI yet (API/CSV only) —
+      add a weight input to the product/variant admin form.
+- [x] **Low-stock WhatsApp channel** — DONE 2026-07-11. The daily digest now also
+      goes to `store.whatsapp_number` via the `low_stock_digest` template,
+      tolerating an unapproved Meta template exactly like the announcement
+      worker (ship-dark until the template goes live — submit it alongside the
+      LAUNCH_TODO step-1 batch).
 - [ ] **Hubtel refund automation** — `gateways/hubtel.ex` `process_refund/2`
       returns `:not_supported` (manual today); automate if/when Hubtel supports it.
 
 ## OPEN — Architecture
 
-- [ ] **Promote `Emakola.Inventory` to a real Ash domain** — currently a service
-      shell (`inventory.ex:23` says "intentionally NOT a `use Ash.Domain` yet");
-      stock is still a single `stock_quantity` integer on `Variant`. Add stock
-      levels + multi-location when warranted.
-- [ ] **Extract remaining inline Ash anonymous functions into Change modules** —
-      `LineItem` price snapshot already uses `Changes.DenormalizeVariant`; the
-      `Order` number generation (`order.ex:274`) and status-transition
-      `after_action` notification dispatches are still inline `change(fn …)`.
+- [x] **Promote `Emakola.Inventory` to a real Ash domain** — CORE DONE
+      2026-07-11 (full multi-location per decision). Domain owns `Location`
+      (one default per store, partial unique index), `StockLevel`
+      (variant × location, non-negative CHECK), and the insert-only
+      `StockMovement` ledger. Invariant: `variant.stock_quantity` stays the
+      fast-read total == Σ levels, maintained by the single write funnel
+      (`restock/adjust/transfer/decrement_for_sale!`) under a FOR UPDATE
+      variant lock; sales cascade default-first then stock-descending.
+      Migration backfilled a "Main" location + level per tracked variant;
+      later variants seed lazily. All four writers rewired (checkout
+      decrement, Earn reservations hold/release, admin adjust, catalog
+      interface unused). REMAINING (UI follow-up): locations management,
+      per-location stock matrix, restock location picker, transfer modal.
+- [x] **Extract remaining inline Ash anonymous functions into Change modules** —
+      DONE 2026-07-11. `Changes.GenerateOrderNumber` (create), parameterized
+      `Changes.NotifyStatusChange` (shipped/delivered/cancelled dispatches), and
+      `Changes.NotifyConfirmation` (confirm fanout: notification + Earn
+      conversion + supplier fulfillments); the Order module's dispatch helpers
+      moved with them. Behavior-preserving — 234 order tests unchanged.
 
 ## OPEN — Makola Earn / zero-capital supplier network
 
@@ -193,6 +215,8 @@
   - [x] Build Phase C — privacy-safe Opportunity Radar, bounded ethical pricing, and
         aggregate-only supplier demand alerts.
   - [ ] Run Phase C's live controlled evaluation against the popularity-only baseline.
+        *(Harness shipped 2026-07-11: `RadarEvaluation` deterministic arms + baseline
+        ranking + `mix emakola.radar_eval` report; the live run awaits pilot traffic.)*
   - [x] Build Phase D — group buys, consent-based sales teams, and micro-franchises.
     - [x] Add Phase D schemas and authorized service foundations with threshold/payment checks,
           exact consented team splits, package terms, and explicit anti-MLM structure.
@@ -251,9 +275,10 @@
 
 ## OPEN — Cleanup (low effort)
 
-- [ ] **Collapse the duplicate SMS hierarchy** — `notifications/sms_provider.ex`
-      (behaviour) and `channels/sms_behaviour.ex` (higher-level) both exist;
-      consolidate or clearly document the split.
+- [x] **Collapse the duplicate SMS hierarchy** — DONE 2026-07-11. Single
+      `SMSProvider` behaviour (`send_sms/3` + optional `send_order_sms/2`);
+      `Channels.SMSBehaviour` deleted, `Channels.SMS` declares `SMSProvider`,
+      `SMSChannelMock` repointed. Workers' `:sms_provider` resolution unchanged.
 
 ---
 

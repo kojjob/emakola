@@ -139,4 +139,80 @@ defmodule Emakola.Notifications.Channels.SMSTest do
        }}
     end
   end
+
+  # ── Arkesel provider mode (SMS_PROVIDER=arkesel) ───────────────
+
+  describe "arkesel provider mode" do
+    setup do
+      original_http = Application.get_env(:emakola, :http_client)
+      original_sms = Application.get_env(:emakola, Emakola.Notifications.Channels.SMS)
+
+      Application.put_env(:emakola, :http_client, __MODULE__.CaptureHTTP)
+
+      Application.put_env(:emakola, Emakola.Notifications.Channels.SMS,
+        provider: :arkesel,
+        api_key: "ARKESEL_KEY_123",
+        sender_id: "Makola"
+      )
+
+      on_exit(fn ->
+        if original_http,
+          do: Application.put_env(:emakola, :http_client, original_http),
+          else: Application.delete_env(:emakola, :http_client)
+
+        if original_sms,
+          do: Application.put_env(:emakola, Emakola.Notifications.Channels.SMS, original_sms),
+          else: Application.delete_env(:emakola, Emakola.Notifications.Channels.SMS)
+      end)
+
+      :ok
+    end
+
+    test "builds the Arkesel v2 payload shape" do
+      payload = SMS.build_sms_payload("+233 244 123 456", "Hello!")
+
+      assert payload == %{
+               sender: "Makola",
+               message: "Hello!",
+               recipients: ["+233244123456"]
+             }
+    end
+
+    test "authenticates with the api-key header and Arkesel default URL" do
+      assert {:ok, _} = SMS.send_sms("+233244123456", "hi", bypass_rate_limit: true)
+
+      assert_received {:sms_post, url, headers, payload}
+      assert url == "https://sms.arkesel.com/api/v2/sms/send"
+      assert {"api-key", "ARKESEL_KEY_123"} in headers
+      refute Enum.any?(headers, fn {name, _} -> name == "authorization" end)
+      assert payload.recipients == ["+233244123456"]
+    end
+
+    test "an explicit SMS_API_URL still wins over the Arkesel default" do
+      Application.put_env(:emakola, Emakola.Notifications.Channels.SMS,
+        provider: :arkesel,
+        api_key: "ARKESEL_KEY_123",
+        api_url: "https://custom.example.com/send"
+      )
+
+      assert {:ok, _} = SMS.send_sms("+233244123456", "hi", bypass_rate_limit: true)
+      assert_received {:sms_post, "https://custom.example.com/send", _headers, _payload}
+    end
+  end
+
+  test "the channel implements the consolidated SMSProvider behaviour" do
+    behaviours =
+      Emakola.Notifications.Channels.SMS.module_info(:attributes)
+      |> Keyword.get_values(:behaviour)
+      |> List.flatten()
+
+    assert Emakola.Notifications.SMSProvider in behaviours
+  end
+
+  defmodule CaptureHTTP do
+    def post(url, opts) do
+      send(self(), {:sms_post, url, opts[:headers], opts[:json]})
+      {:ok, %{status: 200, body: %{"status" => "success"}}}
+    end
+  end
 end

@@ -86,6 +86,7 @@ defmodule Emakola.Catalog.Variant do
 
     attribute :weight_grams, :integer do
       public?(true)
+      constraints(min: 0)
     end
 
     attribute :barcode, :string do

@@ -23,9 +23,10 @@
 - [ ] **3. Resend** — API key; add + DNS-verify the sending domain for real
       delivery (sandbox only mails yourself). (§2)
 - [ ] **4. Arkesel SMS** — request Sender ID `Emakola` (NCA approval <1 day)
-      → API key → top up credits. ⚠️ Then ONE real test send: our channel
-      sends `Authorization: Bearer`; Arkesel v2 may expect an `api-key`
-      header — adapt `lib/emakola/notifications/channels/sms.ex` if so. (§3)
+      → API key → top up credits. The channel speaks Arkesel v2 natively:
+      set `SMS_PROVIDER=arkesel` (api-key header + payload + endpoint all
+      handled; `SMS_API_URL` becomes optional). Then ONE real test send to
+      confirm credits/sender-ID. (§3)
 - [ ] **5. WhatsApp credentials** — permanent **System User** token (the
       API-Setup page token expires in 24 h — don't ship it) + Phone Number ID.
       (§4a–4b)
@@ -76,9 +77,10 @@
 - [ ] **Hubtel (optional second gateway)** — set `HUBTEL_CLIENT_ID`,
       `HUBTEL_CLIENT_SECRET` **and** `HUBTEL_WEBHOOK_ALLOWLIST` together
       (the webhook is IP-allowlisted and fails closed) — or leave all unset.
-- [ ] **Monitoring** — nothing is wired (Sentry in old docs is not a
-      dependency). Until something is chosen, `fly logs` is the only window;
-      pick Sentry/AppSignal once real traffic starts.
+- [ ] **Monitoring** — Sentry is fully wired ship-dark (dep + Finch transport +
+      LoggerHandler for crashes/error-level logs). Activate with
+      `fly secrets set SENTRY_DSN=… --app emakola` (project DSN from sentry.io);
+      unset = inert. Until then `fly logs` is the only window.
 - [ ] **Verify `conn.remote_ip` reflects the real client IP behind the Fly
       proxy** — mobile API pre-auth rate limits key on it (10/min sign-in
       per IP). If it's the edge IP, all mobile clients share one bucket.
