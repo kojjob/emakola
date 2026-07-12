@@ -16,6 +16,7 @@ defmodule Emakola.Themes.Sections do
     Emakola.Themes.Depot,
     Emakola.Themes.Fie,
     Emakola.Themes.Ntoma,
+    Emakola.Themes.Akwaaba,
     Emakola.Themes.Pace,
     Emakola.Themes.Sika
   ]
