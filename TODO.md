@@ -146,10 +146,19 @@
 
 ## OPEN — Architecture
 
-- [ ] **Promote `Emakola.Inventory` to a real Ash domain** — currently a service
-      shell (`inventory.ex:23` says "intentionally NOT a `use Ash.Domain` yet");
-      stock is still a single `stock_quantity` integer on `Variant`. Add stock
-      levels + multi-location when warranted.
+- [x] **Promote `Emakola.Inventory` to a real Ash domain** — CORE DONE
+      2026-07-11 (full multi-location per decision). Domain owns `Location`
+      (one default per store, partial unique index), `StockLevel`
+      (variant × location, non-negative CHECK), and the insert-only
+      `StockMovement` ledger. Invariant: `variant.stock_quantity` stays the
+      fast-read total == Σ levels, maintained by the single write funnel
+      (`restock/adjust/transfer/decrement_for_sale!`) under a FOR UPDATE
+      variant lock; sales cascade default-first then stock-descending.
+      Migration backfilled a "Main" location + level per tracked variant;
+      later variants seed lazily. All four writers rewired (checkout
+      decrement, Earn reservations hold/release, admin adjust, catalog
+      interface unused). REMAINING (UI follow-up): locations management,
+      per-location stock matrix, restock location picker, transfer modal.
 - [x] **Extract remaining inline Ash anonymous functions into Change modules** —
       DONE 2026-07-11. `Changes.GenerateOrderNumber` (create), parameterized
       `Changes.NotifyStatusChange` (shipped/delivered/cancelled dispatches), and

@@ -42,9 +42,11 @@ defmodule Emakola.Orders.Changes.DecrementStock do
   end
 
   defp decrement_variant(order, variant, quantity) do
-    variant
-    |> Ash.Changeset.for_update(:adjust_stock, %{delta: -quantity})
-    |> Ash.update!(authorize?: false)
+    # Funnels through the Inventory domain: default location first, then a
+    # cascade across active locations, with the variant total kept in sync
+    # and a :sale movement recorded — same oversell contract as before
+    # (raises Ash.Error.Invalid, nothing committed).
+    Emakola.Inventory.decrement_for_sale!(variant.id, order.store_id, quantity, order.id)
   rescue
     e in Ash.Error.Invalid ->
       Logger.error(
