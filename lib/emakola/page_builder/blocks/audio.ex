@@ -16,6 +16,8 @@ defmodule Emakola.PageBuilder.Blocks.Audio do
 
   use Phoenix.Component
 
+  alias Emakola.PageBuilder.SafeUrl
+
   @impl true
   def type, do: "audio"
 
@@ -55,7 +57,12 @@ defmodule Emakola.PageBuilder.Blocks.Audio do
               </p>
             </div>
           </div>
-          <audio src={@content[:audio_url]} controls preload="metadata" class="w-full">
+          <audio
+            src={SafeUrl.safe_url(@content[:audio_url])}
+            controls
+            preload="metadata"
+            class="w-full"
+          >
             Your browser does not support the audio element.
           </audio>
         </div>
