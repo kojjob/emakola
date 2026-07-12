@@ -51,11 +51,11 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
     setup %{conn: conn} do
       {merchant, store} = create_merchant_with_store!()
 
-      # Market is the platform default theme and — like every theme except
-      # Starter/Atelier — implements no sections/0.
+      # Bold — like every theme except Starter/Atelier/Market — implements
+      # no sections/0.
       store =
         store
-        |> Ash.Changeset.for_update(:update, %{theme_config: %{"theme" => "market"}})
+        |> Ash.Changeset.for_update(:update, %{theme_config: %{"theme" => "bold"}})
         |> Ash.update!(authorize?: false)
 
       token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))

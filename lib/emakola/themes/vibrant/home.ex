@@ -49,6 +49,7 @@ defmodule Emakola.Themes.Vibrant.Home do
   attr :products, :list, required: true
   attr :categories, :list, required: true
   attr :theme, :map, required: true
+  attr :cart_count, :integer, default: 0
 
   def render(assigns) do
     assigns =
@@ -62,6 +63,7 @@ defmodule Emakola.Themes.Vibrant.Home do
     ~H"""
     <div class="min-h-screen bg-[#FFFBEB]">
       <Shared.theme_styles theme={@theme} />
+      <Shared.vibrant_nav store={@store} cart_count={@cart_count} />
 
       <%!-- ── Editorial Hero ── --%>
       <section :if={section_enabled?(@theme, :hero)} class="relative overflow-hidden">

@@ -34,10 +34,12 @@ defmodule Emakola.Themes.Vibrant.ProductList do
   attr :search_query, :string, default: ""
   attr :has_more, :boolean, default: false
   attr :theme, :map, required: true
+  attr :cart_count, :integer, default: 0
 
   def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-[#FFFBEB]">
+      <Shared.vibrant_nav store={@store} cart_count={@cart_count} />
       <%!-- Warm-Toned Header --%>
       <div class="bg-gradient-to-r from-[var(--theme-primary,#B45309)] to-[var(--theme-accent,#7C2D12)]">
         <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">

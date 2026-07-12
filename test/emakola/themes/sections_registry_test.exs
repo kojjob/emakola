@@ -51,10 +51,11 @@ defmodule Emakola.Themes.SectionsRegistryTest do
     test "is true for every registered sectionized theme" do
       assert Sections.sectionized?(Emakola.Themes.Starter)
       assert Sections.sectionized?(Emakola.Themes.Atelier)
+      assert Sections.sectionized?(Emakola.Themes.Market)
     end
 
     test "is false for a theme without sections support" do
-      refute Sections.sectionized?(Emakola.Themes.Market)
+      refute Sections.sectionized?(Emakola.Themes.Bold)
     end
   end
 end

@@ -3,6 +3,77 @@ defmodule EmakolaWeb.Storefront.StoreLiveTest do
   import Phoenix.LiveViewTest
   alias Emakola.Factory
 
+  describe "Market home chrome (theme-owned nav)" do
+    test "renders a banner header with cart, search, and category navigation", %{conn: conn} do
+      store =
+        Factory.create_store!(%{
+          name: "Adjoa's Stall",
+          slug: "adjoa-stall-nav",
+          theme_config: %{"theme" => "market"}
+        })
+
+      Factory.create_category!(store, %{name: "Fresh Peppers"})
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+
+      assert html =~ ~r/<header[^>]*role="banner"/
+      assert html =~ ~r/<a[^>]*href="\/s\/adjoa-stall-nav\/cart"/
+      assert html =~ ~r/aria-label="Search products"/
+      assert html =~ ~s(href="/s/adjoa-stall-nav/category/fresh-peppers")
+      # Skip link + landmarks floor
+      assert html =~ ~s(href="#market-content")
+      assert html =~ ~s(id="market-content")
+    end
+
+    test "the newsletter section form submits through the platform hook", %{conn: conn} do
+      store = Factory.create_store!(%{theme_config: %{"theme" => "market"}})
+
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}")
+
+      html =
+        view
+        |> form("#market-newsletter-form", %{"email" => "efua@example.com"})
+        |> render_submit()
+
+      assert html =~ "Thanks for subscribing"
+    end
+
+    test "a store with zero products renders an intentional empty state", %{conn: conn} do
+      store = Factory.create_store!(%{theme_config: %{"theme" => "market"}})
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+
+      assert html =~ "The stall is being set up"
+      assert html =~ "added any products yet"
+    end
+
+    test "sold-out and sale states render from live variant stock", %{conn: conn} do
+      store = Factory.create_store!(%{theme_config: %{"theme" => "market"}})
+
+      gone = Factory.create_product!(store, %{title: "Gone Basket", status: :active})
+
+      Factory.create_variant!(gone, store, %{
+        price: 4550,
+        stock_quantity: 0,
+        track_inventory: true
+      })
+
+      deal = Factory.create_product!(store, %{title: "Deal Cloth", status: :active})
+
+      Factory.create_variant!(deal, store, %{
+        price: 4550,
+        compare_at_price: 6075,
+        stock_quantity: 9
+      })
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+
+      assert html =~ "Sold out"
+      assert html =~ "GH₵ 60.75"
+      assert html =~ "line-through"
+    end
+  end
+
   test "emits LocalBusiness JSON-LD derived from the store profile", %{conn: conn} do
     store =
       Factory.create_store!(%{

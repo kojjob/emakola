@@ -311,9 +311,10 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
       </section>
 
       <%!-- REVIEWS (only when LiveView provides review assigns) --%>
+      <%!-- No id here: review_section/1 already renders id="reviews", and a
+           duplicate DOM id breaks LiveView's DOM patching. --%>
       <section
         :if={assigns[:reviews] != nil}
-        id="reviews"
         class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-[#ECE7DE]"
       >
         <EmakolaWeb.ReviewComponents.review_section

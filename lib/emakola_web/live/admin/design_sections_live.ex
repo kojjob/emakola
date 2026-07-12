@@ -387,9 +387,12 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
   # render (grids, category pills/circles, delivery-zone copy).
 
   defp load_preview_products(store) do
+    # Variants loaded to mirror StoreLive — theme cards derive their sale
+    # (compare-at) and sold-out states from them.
     Emakola.Catalog.Product
     |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
     |> Ash.Query.limit(@preview_product_limit)
+    |> Ash.Query.load(:variants)
     |> Ash.read!(authorize?: false)
   end
 
