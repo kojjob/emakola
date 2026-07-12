@@ -97,6 +97,7 @@ defmodule EmakolaWeb.Platform.LoginLiveTest do
     test "more than 5 attempts within a minute are rate limited", %{conn: conn} do
       user = create_platform_owner!()
       {:ok, view, _html} = live(conn, "/platform/login")
+      ensure_rate_window_headroom()
 
       for _ <- 1..5 do
         assert submit_credentials(view, user.email, "WrongPassword99!") =~ @generic_error
@@ -159,6 +160,7 @@ defmodule EmakolaWeb.Platform.LoginLiveTest do
 
       {:ok, view, _html} = live(conn, "/platform/login")
       submit_credentials(view, user.email, @password)
+      ensure_rate_window_headroom()
 
       for _ <- 1..5 do
         assert submit_totp_setup(view, "000000") =~ "Invalid code"
@@ -225,6 +227,7 @@ defmodule EmakolaWeb.Platform.LoginLiveTest do
 
       {:ok, view, _html} = live(conn, "/platform/login")
       submit_credentials(view, user.email, @password)
+      ensure_rate_window_headroom()
 
       for _ <- 1..5 do
         assert submit_totp(view, "000000") =~ "Invalid code"
