@@ -25,7 +25,6 @@ defmodule Emakola.Stores.ThemeConfig do
     }
   """
 
-  @valid_themes ~w(atelier beauty bold electronics fashion fresh home_living market pharmacy starter vibrant)
   @hex_color_regex ~r/^#[0-9a-fA-F]{6}$/
   @valid_color_keys ~w(primary secondary accent background text)
   @valid_section_keys ~w(show_featured show_categories show_about)
@@ -49,12 +48,20 @@ defmodule Emakola.Stores.ThemeConfig do
 
   def validate(_), do: {:error, "theme_config must be a map"}
 
-  defp validate_theme(%{"theme" => theme}) when theme in @valid_themes, do: :ok
-
-  defp validate_theme(%{"theme" => _}),
-    do: {:error, "invalid theme name, must be one of: #{Enum.join(@valid_themes, ", ")}"}
+  defp validate_theme(%{"theme" => theme}) do
+    if theme in valid_themes() do
+      :ok
+    else
+      {:error, "invalid theme name, must be one of: #{Enum.join(valid_themes(), ", ")}"}
+    end
+  end
 
   defp validate_theme(_), do: :ok
+
+  # Derived from the single authority in ThemeResolver — the hardcoded copy
+  # this replaces had already drifted (spotlight was missing, culled akoma/
+  # heritage were absent by luck, not by decision).
+  defp valid_themes, do: Emakola.Themes.ThemeResolver.offerable_theme_ids()
 
   defp validate_colors(%{"colors" => colors}) when is_map(colors) do
     invalid =
