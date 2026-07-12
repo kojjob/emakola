@@ -26,12 +26,16 @@ defmodule Emakola.Themes.Market.Components do
   @doc """
   Image-free price tag: heading-family typography, tabular numerals, tight
   tracking, folded top-right corner. Renders instantly with zero image bytes.
+  Carries the strikethrough compare-at ("was") price when the product is on
+  sale — see `Shared.compare_at_price/1` for when that applies.
   """
   attr :product, :map, required: true
   attr :store, :map, required: true
   attr :size, :atom, values: [:sm, :lg], default: :sm
 
   def price_chip(assigns) do
+    assigns = assign(assigns, :compare_at, Shared.compare_at_price(assigns.product))
+
     ~H"""
     <span class={[
       "inline-block bg-store-accent text-white font-bold tabular-nums tracking-tight",
@@ -43,6 +47,10 @@ defmodule Emakola.Themes.Market.Components do
       )
     ]}>
       {Currency.format_price_range(@product.min_price, @product.max_price, @store.currency)}
+      <s :if={@compare_at} class="ml-0.5 text-[0.75em] font-medium text-white/70 line-through">
+        <span class="sr-only">was</span>
+        {Currency.format_price(@compare_at, @store.currency)}
+      </s>
     </span>
     """
   end
@@ -55,7 +63,10 @@ defmodule Emakola.Themes.Market.Components do
   attr :store, :map, required: true
 
   def product_card(assigns) do
-    assigns = assign(assigns, :image, Shared.first_image(assigns.product))
+    assigns =
+      assigns
+      |> assign(:image, Shared.first_image(assigns.product))
+      |> assign(:sold_out, Shared.sold_out?(assigns.product))
 
     ~H"""
     <div class="group">
@@ -79,6 +90,13 @@ defmodule Emakola.Themes.Market.Components do
           height={640}
           class="absolute inset-0 w-full h-full object-cover motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.03]"
         />
+        <div :if={@sold_out} class="absolute inset-0 z-[5] bg-white/50" aria-hidden="true"></div>
+        <span
+          :if={@sold_out}
+          class="absolute right-2.5 top-2.5 z-10 rounded-full bg-stone-900/90 px-2.5 py-1 text-[0.6875rem] font-bold uppercase tracking-wide text-white"
+        >
+          Sold out
+        </span>
         <div class="absolute bottom-2.5 left-2.5 z-10">
           <.price_chip product={@product} store={@store} />
         </div>
@@ -93,6 +111,7 @@ defmodule Emakola.Themes.Market.Components do
           </h3>
         </a>
         <button
+          :if={!@sold_out}
           type="button"
           phx-click="add_to_cart"
           phx-value-product-id={@product.id}
@@ -110,6 +129,25 @@ defmodule Emakola.Themes.Market.Components do
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
         </button>
+        <button
+          :if={@sold_out}
+          type="button"
+          disabled
+          aria-disabled="true"
+          class="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full bg-stone-200 text-stone-400 cursor-not-allowed"
+          aria-label={"#{@product.title} is sold out"}
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14" />
+          </svg>
+        </button>
       </div>
     </div>
     """
@@ -123,7 +161,10 @@ defmodule Emakola.Themes.Market.Components do
   attr :store, :map, required: true
 
   def featured_card(assigns) do
-    assigns = assign(assigns, :image, Shared.first_image(assigns.product))
+    assigns =
+      assigns
+      |> assign(:image, Shared.first_image(assigns.product))
+      |> assign(:sold_out, Shared.sold_out?(assigns.product))
 
     ~H"""
     <div class="overflow-hidden rounded-[20px] border border-stone-200 bg-white md:grid md:grid-cols-2">
@@ -149,6 +190,13 @@ defmodule Emakola.Themes.Market.Components do
           height={400}
           class="absolute inset-0 w-full h-full object-cover"
         />
+        <div :if={@sold_out} class="absolute inset-0 z-[5] bg-white/50" aria-hidden="true"></div>
+        <span
+          :if={@sold_out}
+          class="absolute right-4 top-4 z-10 rounded-full bg-stone-900/90 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-white"
+        >
+          Sold out
+        </span>
         <div class="absolute bottom-4 left-4 z-10">
           <.price_chip product={@product} store={@store} size={:lg} />
         </div>
@@ -169,12 +217,22 @@ defmodule Emakola.Themes.Market.Components do
           {@product.description}
         </p>
         <button
+          :if={!@sold_out}
           type="button"
           phx-click="add_to_cart"
           phx-value-product-id={@product.id}
           class="mt-2 flex w-full items-center justify-center rounded-full bg-store-accent px-6 py-3.5 text-[0.9375rem] font-semibold leading-none text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 motion-safe:transition-opacity motion-safe:active:scale-[0.98] cursor-pointer"
         >
           Add to Cart
+        </button>
+        <button
+          :if={@sold_out}
+          type="button"
+          disabled
+          aria-disabled="true"
+          class="mt-2 flex w-full items-center justify-center rounded-full bg-stone-200 px-6 py-3.5 text-[0.9375rem] font-semibold leading-none text-stone-500 cursor-not-allowed"
+        >
+          Sold out
         </button>
       </div>
     </div>

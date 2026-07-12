@@ -250,6 +250,43 @@ defmodule Emakola.Themes.Market.Shared do
   end
 
   @doc """
+  The compare-at ("was") price to show on a product's price chip, in minor
+  units, or nil.
+
+  Shown only when the product has a single price point (min == max) and its
+  cheapest loaded variant carries a compare_at_price above its price —
+  striking through a "was" price next to a price *range* would be
+  ambiguous. Products whose variants aren't loaded show no sale treatment:
+  fail quiet, never crash.
+  """
+  def compare_at_price(product) do
+    with %{min_price: min, max_price: max} when is_integer(min) and min == max <- product,
+         [_ | _] = variants <- loaded_variants(product),
+         %{price: price, compare_at_price: compare} <- Enum.min_by(variants, & &1.price),
+         true <- is_integer(compare) and is_integer(price) and compare > price do
+      compare
+    else
+      _ -> nil
+    end
+  end
+
+  @doc """
+  True when every loaded variant is out of stock —
+  `Emakola.Catalog.Variant.in_stock?/1` is the single purchasability rule.
+  Products whose variants aren't loaded (or that have none) fail open to
+  purchasable: the `add_to_cart` handler re-checks stock server-side.
+  """
+  def sold_out?(product) do
+    case loaded_variants(product) do
+      [_ | _] = variants -> not Enum.any?(variants, &Emakola.Catalog.Variant.in_stock?/1)
+      _ -> false
+    end
+  end
+
+  defp loaded_variants(%{variants: variants}) when is_list(variants), do: variants
+  defp loaded_variants(_product), do: []
+
+  @doc """
   Extract the first image URL from a product's images association.
   Returns thumbnail_url if available, falls back to url, then nil.
   """

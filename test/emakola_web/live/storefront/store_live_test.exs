@@ -37,6 +37,41 @@ defmodule EmakolaWeb.Storefront.StoreLiveTest do
 
       assert html =~ "Thanks for subscribing"
     end
+
+    test "a store with zero products renders an intentional empty state", %{conn: conn} do
+      store = Factory.create_store!(%{theme_config: %{"theme" => "market"}})
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+
+      assert html =~ "The stall is being set up"
+      assert html =~ "added any products yet"
+    end
+
+    test "sold-out and sale states render from live variant stock", %{conn: conn} do
+      store = Factory.create_store!(%{theme_config: %{"theme" => "market"}})
+
+      gone = Factory.create_product!(store, %{title: "Gone Basket", status: :active})
+
+      Factory.create_variant!(gone, store, %{
+        price: 4550,
+        stock_quantity: 0,
+        track_inventory: true
+      })
+
+      deal = Factory.create_product!(store, %{title: "Deal Cloth", status: :active})
+
+      Factory.create_variant!(deal, store, %{
+        price: 4550,
+        compare_at_price: 6075,
+        stock_quantity: 9
+      })
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+
+      assert html =~ "Sold out"
+      assert html =~ "GH₵ 60.75"
+      assert html =~ "line-through"
+    end
   end
 
   test "emits LocalBusiness JSON-LD derived from the store profile", %{conn: conn} do

@@ -165,9 +165,11 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   # -- Helpers --
 
   defp load_featured_products(store) do
+    # Variants feed the theme cards' sale (compare-at) and sold-out states.
     Emakola.Catalog.Product
     |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
     |> Ash.Query.limit(8)
+    |> Ash.Query.load(:variants)
     |> Ash.read!(authorize?: false)
   end
 

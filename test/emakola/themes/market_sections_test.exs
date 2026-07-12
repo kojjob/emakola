@@ -5,7 +5,7 @@ defmodule Emakola.Themes.MarketSectionsTest do
   import Phoenix.LiveViewTest, only: [rendered_to_string: 1]
 
   alias Emakola.Themes.Market.Components
-  alias Emakola.Themes.Market.Sections.{Hero, Newsletter, Trust}
+  alias Emakola.Themes.Market.Sections.{Hero, Newsletter, ProductGrid, Trust}
   alias Emakola.Themes.Market.Shared
   alias Emakola.Themes.{Market, Sections, ThemeResolver}
 
@@ -127,13 +127,16 @@ defmodule Emakola.Themes.MarketSectionsTest do
              )
     end
 
-    test "empty products and categories render without crashing" do
+    test "empty products and categories render an intentional empty state, not a blank page" do
       {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "market"}})
 
       html = render_home(store)
 
       refute html =~ ~s(aria-label="Product categories")
       refute html =~ "Shop All"
+      # The grid renders its setting-up state instead of vanishing
+      assert html =~ "The stall is being set up"
+      assert html =~ "added any products yet"
       # The hero still opens the page with the store name as its h1
       assert html =~ ~r/<h1[^>]*id="market-hero-heading"[^>]*>\s*#{store.name}\s*<\/h1>/
       assert html =~ "About the Shop"
@@ -543,6 +546,44 @@ defmodule Emakola.Themes.MarketSectionsTest do
 
       assert html =~ "GH₵ 10 - GH₵ 25"
     end
+
+    test "shows the strikethrough compare-at when the product is on sale" do
+      product =
+        component_product(%{
+          variants: [
+            %{price: 4550, compare_at_price: 6075, track_inventory: false, stock_quantity: 0}
+          ]
+        })
+
+      html =
+        render_component(&Components.price_chip/1, %{product: product, store: @component_store})
+
+      assert html =~ "GH₵ 45.50"
+      assert html =~ "GH₵ 60.75"
+      assert html =~ "line-through"
+    end
+
+    test "no compare-at treatment on a price range or when variants aren't loaded" do
+      ranged =
+        component_product(%{
+          min_price: 1000,
+          max_price: 2500,
+          variants: [
+            %{price: 1000, compare_at_price: 3000, track_inventory: false, stock_quantity: 0},
+            %{price: 2500, compare_at_price: nil, track_inventory: false, stock_quantity: 0}
+          ]
+        })
+
+      refute render_component(&Components.price_chip/1, %{
+               product: ranged,
+               store: @component_store
+             }) =~ "line-through"
+
+      refute render_component(&Components.price_chip/1, %{
+               product: component_product(),
+               store: @component_store
+             }) =~ "line-through"
+    end
   end
 
   describe "product_card/1" do
@@ -575,6 +616,43 @@ defmodule Emakola.Themes.MarketSectionsTest do
       # The placeholder-first panel still renders underneath
       assert html =~ ~s(aria-hidden="true")
     end
+
+    test "a sold-out product shows the badge and disables add to cart" do
+      product =
+        component_product(%{
+          variants: [
+            %{price: 4550, compare_at_price: nil, track_inventory: true, stock_quantity: 0}
+          ]
+        })
+
+      html =
+        render_component(&Components.product_card/1, %{
+          product: product,
+          store: @component_store
+        })
+
+      assert html =~ "Sold out"
+      refute html =~ ~s(phx-click="add_to_cart")
+      assert html =~ ~r/<button[^>]*\sdisabled/
+    end
+
+    test "an untracked variant keeps the product purchasable at zero stock" do
+      product =
+        component_product(%{
+          variants: [
+            %{price: 4550, compare_at_price: nil, track_inventory: false, stock_quantity: 0}
+          ]
+        })
+
+      html =
+        render_component(&Components.product_card/1, %{
+          product: product,
+          store: @component_store
+        })
+
+      refute html =~ "Sold out"
+      assert html =~ ~s(phx-click="add_to_cart")
+    end
   end
 
   describe "featured_card/1" do
@@ -592,6 +670,41 @@ defmodule Emakola.Themes.MarketSectionsTest do
       assert html =~ "Add to Cart"
       assert html =~ ~s(phx-click="add_to_cart")
       assert html =~ ~s(phx-value-product-id="prod-1")
+    end
+
+    test "a sold-out featured product swaps the CTA for a disabled sold-out state" do
+      product =
+        component_product(%{
+          variants: [
+            %{price: 4550, compare_at_price: nil, track_inventory: true, stock_quantity: 0}
+          ]
+        })
+
+      html =
+        render_component(&Components.featured_card/1, %{
+          product: product,
+          store: @component_store
+        })
+
+      assert html =~ "Sold out"
+      refute html =~ "Add to Cart"
+      refute html =~ ~s(phx-click="add_to_cart")
+      assert html =~ ~r/<button[^>]*\sdisabled/
+    end
+  end
+
+  describe "product grid section" do
+    test "zero products render an intentional empty state, not nothing" do
+      html =
+        render_component(&ProductGrid.render/1, %{
+          store: @component_store,
+          products: [],
+          settings: %{"heading" => "Shop All"}
+        })
+
+      assert html =~ "The stall is being set up"
+      assert html =~ "added any products yet"
+      refute html =~ "Shop All"
     end
   end
 
