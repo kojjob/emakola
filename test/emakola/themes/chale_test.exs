@@ -85,10 +85,10 @@ defmodule Emakola.Themes.ChaleTest do
 
       assert %{heading: _, body: _} = defaults.fonts
 
-      # Locked: crimson heat, concrete ground, black type
-      assert defaults.colors.primary == "#DC143C"
-      assert defaults.colors.background == "#F4F4F5"
-      assert defaults.colors.text == "#09090B"
+      # Locked: cobalt accent, bone ground, ink type
+      assert defaults.colors.primary == "#2547E8"
+      assert defaults.colors.background == "#F7F5F1"
+      assert defaults.colors.text == "#101114"
     end
 
     test "sections/0 lists the six home sections in visual order, hero first" do

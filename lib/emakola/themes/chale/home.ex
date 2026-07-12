@@ -22,7 +22,7 @@ defmodule Emakola.Themes.Chale.Home do
       <Shared.theme_styles theme={@theme} />
       <a
         href="#chale-content"
-        class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:bg-zinc-950 focus:px-5 focus:py-3 focus:text-sm focus:font-bold focus:uppercase focus:tracking-widest focus:text-white"
+        class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:bg-[#101114] focus:px-5 focus:py-3 focus:text-sm focus:font-bold focus:uppercase focus:tracking-widest focus:text-white"
       >
         Skip to content
       </a>

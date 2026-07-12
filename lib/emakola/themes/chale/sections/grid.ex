@@ -34,7 +34,7 @@ defmodule Emakola.Themes.Chale.Sections.Grid do
       <div class="mx-auto max-w-[1280px]">
         <h2
           id="chale-grid-heading"
-          class="mb-5 text-2xl font-bold uppercase tracking-tight text-zinc-950 [font-family:var(--chale-display)] sm:text-3xl"
+          class="mb-5 text-2xl font-bold uppercase tracking-tight text-[#101114] [font-family:var(--chale-display)] sm:text-3xl"
         >
           {if @settings["heading"] not in [nil, ""], do: @settings["heading"], else: "Shop all"}
         </h2>
@@ -56,7 +56,7 @@ defmodule Emakola.Themes.Chale.Sections.Grid do
       <div class="mx-auto max-w-[1280px] border-2 border-dashed border-zinc-400 bg-white px-6 py-16 text-center sm:py-20">
         <h2
           id="chale-grid-empty-heading"
-          class="text-2xl font-bold uppercase tracking-tight text-zinc-950 [font-family:var(--chale-display)] sm:text-3xl"
+          class="text-2xl font-bold uppercase tracking-tight text-[#101114] [font-family:var(--chale-display)] sm:text-3xl"
         >
           Nothing on the rack yet
         </h2>
