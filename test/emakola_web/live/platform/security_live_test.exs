@@ -137,15 +137,7 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
       {:ok, view, _html} = live(conn, "/platform/security")
       view |> element("#rotate-totp") |> render_click()
 
-      # The shared limiter (Emakola.RateLimit) uses Hammer's :fix_window, which
-      # counts within epoch-aligned buckets of div(System.system_time(:ms), window).
-      # Six rapid submits that straddle a 60s boundary split across two buckets,
-      # so the count resets and the 6th attempt escapes the limit (Hammer
-      # documents this 2x-at-boundary behaviour). Start only when a full window
-      # lies ahead so all six attempts share one bucket.
-      window_ms = 60_000
-      ms_left_in_window = window_ms - rem(System.system_time(:millisecond), window_ms)
-      if ms_left_in_window < 3_000, do: Process.sleep(ms_left_in_window + 50)
+      ensure_rate_window_headroom()
 
       for _ <- 1..5 do
         assert submit_verify(view, "000000") =~ "Invalid code"

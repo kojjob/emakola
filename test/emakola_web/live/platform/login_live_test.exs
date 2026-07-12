@@ -375,21 +375,6 @@ defmodule EmakolaWeb.Platform.LoginLiveTest do
     if remaining < 10, do: Process.sleep(remaining * 1000 + 200)
   end
 
-  # Same hazard, different clock: Emakola.RateLimit is Hammer's :fix_window, so
-  # it counts inside epoch-aligned buckets of div(system_time_ms, 60_000). The
-  # rate-limit tests below spend five attempts reaching the limit and assert the
-  # sixth is blocked — which only holds if all six land in ONE bucket. Straddle
-  # the boundary and the counter resets to 1, the sixth attempt is (correctly)
-  # allowed, and the test fails on CI for reasons that have nothing to do with
-  # the code under test. Start only when a comfortable slice of the window
-  # remains: six submits are bcrypt-backed, so the margin has to clear seconds,
-  # not milliseconds.
-  defp ensure_rate_window_headroom do
-    window_ms = 60_000
-    ms_left = window_ms - rem(System.system_time(:millisecond), window_ms)
-    if ms_left < 15_000, do: Process.sleep(ms_left + 100)
-  end
-
   defp audit_entries(action) do
     PlatformAuditLog
     |> Ash.Query.for_read(:list)
