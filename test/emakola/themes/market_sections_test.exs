@@ -195,6 +195,15 @@ defmodule Emakola.Themes.MarketSectionsTest do
       refute html =~ ~r/(?<![a-zA-Z])gray-\d/
     end
 
+    test "declares the contentinfo landmark explicitly" do
+      # The layout renders theme content inside <main>, which strips
+      # <footer>'s implicit contentinfo role — declare it, like the
+      # banner header does.
+      html = render_footer(@component_store)
+
+      assert html =~ ~r/<footer[^>]*role="contentinfo"/
+    end
+
     test "keeps the shop and company links" do
       html =
         render_footer(@component_store, %{

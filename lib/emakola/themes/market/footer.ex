@@ -47,7 +47,9 @@ defmodule Emakola.Themes.Market.Footer do
       |> assign(:social_links, social_links)
 
     ~H"""
-    <footer class="bg-stone-900 text-white">
+    <%!-- Explicit role: the layout nests theme content inside <main>,
+    which strips <footer>'s implicit contentinfo landmark. --%>
+    <footer role="contentinfo" class="bg-stone-900 text-white">
       <%!-- Mobile bottom padding clears the fixed market_bottom_nav tab bar. --%>
       <div class="mx-auto max-w-[1280px] px-4 pb-28 pt-14 sm:px-6 sm:py-20 lg:px-8">
         <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:gap-8">
