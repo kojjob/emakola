@@ -466,6 +466,58 @@ defmodule Emakola.Themes.NtomaTest do
       refute html =~ "Product categories"
       refute html =~ "<a"
     end
+
+    test "a tile with no image of its own borrows a photograph from a product in that category" do
+      categories = [%{id: "cat-1", name: "Ankara", slug: "ankara"}]
+
+      products = [
+        component_product(%{
+          id: "p1",
+          category_id: "cat-1",
+          images: [%{thumbnail_url: "/uploads/ankara.jpg", url: "/uploads/ankara-full.jpg"}]
+        })
+      ]
+
+      html =
+        render_section(CategoryTiles, %{
+          store: @component_store,
+          categories: categories,
+          products: products
+        })
+
+      assert html =~ "/uploads/ankara.jpg"
+    end
+
+    test "a tile never borrows a photograph from a DIFFERENT category" do
+      # A Food tile wearing a photo of a dress is a lie the shopper acts on.
+      categories = [%{id: "cat-food", name: "Food", slug: "food"}]
+
+      products = [
+        component_product(%{
+          id: "p1",
+          category_id: "cat-apparel",
+          images: [%{thumbnail_url: "/uploads/dress.jpg", url: "/uploads/dress-full.jpg"}]
+        })
+      ]
+
+      html =
+        render_section(CategoryTiles, %{
+          store: @component_store,
+          categories: categories,
+          products: products
+        })
+
+      refute html =~ "/uploads/dress.jpg"
+      # The finished calico-and-initial state stands in instead.
+      assert html =~ "Food"
+    end
+
+    test "renders with no :products assign at all" do
+      html =
+        render_section(CategoryTiles, %{store: @component_store, categories: four_categories()})
+
+      assert html =~ "Kaftans"
+    end
   end
 
   describe "wordmark band section" do
@@ -493,6 +545,15 @@ defmodule Emakola.Themes.NtomaTest do
         })
 
       assert html =~ "Cloth with a story"
+    end
+
+    test "the band does not flood the page with the accent" do
+      # A full-bleed ochre slab shouts louder than any buy button on the page.
+      # The accent survives on the woven strip; the ground is the theme's paper.
+      html = render_section(Wordmark, %{store: @component_store})
+
+      refute html =~ ~r/<section[^>]*class="[^"]*bg-\[#E0A32E\]/
+      assert html =~ "bg-[#FFFBF2]"
     end
   end
 

@@ -606,7 +606,7 @@ defmodule Emakola.Themes.Ntoma.Shared do
     <div class="group">
       <a
         href={store_path(@store.slug, "/products/#{@product.slug}")}
-        class="relative block aspect-[3/4] overflow-hidden border border-[#E6D5B8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B1708] focus-visible:ring-offset-2"
+        class="relative block aspect-[3/4] overflow-hidden border border-[#E6D5B8] shadow-sm focus-visible:outline-none motion-safe:transition-shadow motion-safe:group-hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#2B1708] focus-visible:ring-offset-2"
       >
         <.weave_tile initial={String.first(@product.title)} />
         <.optimized_image
