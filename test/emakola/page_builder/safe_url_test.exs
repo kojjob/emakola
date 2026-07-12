@@ -35,6 +35,13 @@ defmodule Emakola.PageBuilder.SafeUrlTest do
     assert safe_url("/\\\\evil.com/x?y=1") == nil
     assert safe_url("\\\\evil.com") == nil
     assert safe_url("\\/evil.com") == nil
+    assert safe_url("/\t/evil.com") == nil
+    assert safe_url("/\n/evil.com") == nil
+    assert safe_url("/\r/evil.com") == nil
+    assert safe_url("/\t\\evil.com") == nil
+    # canonicalization mirrors browsers: stripped bytes inside a scheme still parse
+    assert safe_url("ht\ttps://good.example/x") == "https://good.example/x"
+    assert safe_url("j\navascript:alert(1)") == nil
   end
 
   test "rejects non-binaries and blanks" do
