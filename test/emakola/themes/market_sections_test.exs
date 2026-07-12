@@ -5,7 +5,7 @@ defmodule Emakola.Themes.MarketSectionsTest do
   import Phoenix.LiveViewTest, only: [rendered_to_string: 1]
 
   alias Emakola.Themes.Market.Components
-  alias Emakola.Themes.Market.Sections.{Hero, Newsletter, ProductGrid, Trust}
+  alias Emakola.Themes.Market.Sections.{CategoryStrip, Hero, Newsletter, ProductGrid, Trust}
   alias Emakola.Themes.Market.Shared
   alias Emakola.Themes.{Market, Sections, ThemeResolver}
 
@@ -37,6 +37,51 @@ defmodule Emakola.Themes.MarketSectionsTest do
     |> Map.put(:__changed__, nil)
     |> fun.()
     |> rendered_to_string()
+  end
+
+  defp render_category_strip(assigns) do
+    defaults =
+      for setting <- CategoryStrip.settings_schema(),
+          into: %{},
+          do: {setting.key, setting.default}
+
+    render_component(&CategoryStrip.render/1, Map.put(assigns, :settings, defaults))
+  end
+
+  describe "category strip covers" do
+    test "a category circle wears the store's real cover photograph" do
+      html =
+        render_category_strip(%{
+          store: @component_store,
+          categories: [%{id: "cat-1", name: "Spices", slug: "spices"}],
+          category_photos: %{"cat-1" => "/uploads/spices.jpg"}
+        })
+
+      assert html =~ "/uploads/spices.jpg"
+    end
+
+    test "a circle never wears a cover belonging to a different category" do
+      html =
+        render_category_strip(%{
+          store: @component_store,
+          categories: [%{id: "cat-food", name: "Food", slug: "food"}],
+          category_photos: %{"cat-other" => "/uploads/dress.jpg"}
+        })
+
+      refute html =~ "/uploads/dress.jpg"
+      # the designed initial circle stands in
+      assert html =~ "F"
+    end
+
+    test "renders with no covers assign at all" do
+      html =
+        render_category_strip(%{
+          store: @component_store,
+          categories: [%{id: "cat-1", name: "Spices", slug: "spices"}]
+        })
+
+      assert html =~ "Spices"
+    end
   end
 
   defp render_hero(store, settings_overrides \\ %{}) do
