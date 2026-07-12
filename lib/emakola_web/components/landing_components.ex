@@ -1,11 +1,15 @@
 defmodule EmakolaWeb.LandingComponents do
   @moduledoc """
-  Shared marketing/landing components (nav and footer) used by
-  `EmakolaWeb.LandingLive` and `EmakolaWeb.PricingLive`.
-  Stateless markup helpers; mobile-menu state lives in the parent LiveView.
+  Shared marketing/landing components (nav and footer) used by the dead
+  landing page and the marketing LiveViews (pricing, company, docs).
+  Stateless markup helpers; the mobile menu is pure client state driven by
+  `Phoenix.LiveView.JS` commands, so the nav works identically on dead pages
+  and LiveViews with no server round-trip or parent event handler.
   """
 
   use Phoenix.Component
+
+  alias Phoenix.LiveView.JS
 
   # ─────────────────────────────────────────────────────────────────────
   # landing_nav/1
@@ -15,16 +19,14 @@ defmodule EmakolaWeb.LandingComponents do
   Marketing nav shared by the landing and pricing pages.
 
   Anchor links use absolute paths ("/#features") so they work from /pricing too.
-  The parent LiveView must handle the "toggle_mobile_menu" event and pass
-  `mobile_menu_open`.
+  The scrolled-glass effect binds via `data-scroll-glass` (see app.js), which
+  runs on dead pages and live navigation alike.
   """
-  attr :mobile_menu_open, :boolean, default: false
-
   def landing_nav(assigns) do
     ~H"""
     <nav
       id="main-nav"
-      phx-hook="ScrollGlass"
+      data-scroll-glass
       class="fixed top-0 left-0 right-0 z-50 bg-[#0c1526]/80 backdrop-blur-md border-b border-transparent transition-all duration-300"
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -68,13 +70,17 @@ defmodule EmakolaWeb.LandingComponents do
             </a>
           </div>
           <button
-            phx-click="toggle_mobile_menu"
+            id="landing-menu-button"
+            phx-click={toggle_mobile_menu()}
             class="md:hidden p-2 text-[#8896ab] hover:text-[#f1f5f9]"
             aria-label="Toggle menu"
-            aria-expanded={to_string(@mobile_menu_open)}
+            aria-expanded="false"
           >
-            <span class="material-symbols-outlined text-2xl">
-              {if @mobile_menu_open, do: "close", else: "menu"}
+            <span id="landing-menu-closed-icon" class="material-symbols-outlined text-2xl">
+              menu
+            </span>
+            <span id="landing-menu-open-icon" class="material-symbols-outlined text-2xl hidden">
+              close
             </span>
           </button>
         </div>
@@ -85,17 +91,17 @@ defmodule EmakolaWeb.LandingComponents do
           otherwise become the containing block for this fixed overlay and
           collapse its height. --%>
     <div
-      :if={@mobile_menu_open}
-      class="md:hidden fixed inset-0 top-16 z-40 bg-[#0c1526] flex flex-col items-center justify-start pt-12 gap-6 animate-slide-down"
+      id="landing-mobile-menu"
+      class="hidden md:hidden fixed inset-0 top-16 z-40 bg-[#0c1526] flex-col items-center justify-start pt-12 gap-6 animate-slide-down [&:not(.hidden)]:flex"
     >
-      <a href="/#how-it-works" phx-click="toggle_mobile_menu" class="text-lg text-[#e2e8f0]">
+      <a href="/#how-it-works" phx-click={toggle_mobile_menu()} class="text-lg text-[#e2e8f0]">
         How it works
       </a>
-      <a href="/#features" phx-click="toggle_mobile_menu" class="text-lg text-[#e2e8f0]">
+      <a href="/#features" phx-click={toggle_mobile_menu()} class="text-lg text-[#e2e8f0]">
         Features
       </a>
-      <a href="/#faq" phx-click="toggle_mobile_menu" class="text-lg text-[#e2e8f0]">FAQ</a>
-      <a href="/pricing" phx-click="toggle_mobile_menu" class="text-lg text-[#e2e8f0]">Pricing</a>
+      <a href="/#faq" phx-click={toggle_mobile_menu()} class="text-lg text-[#e2e8f0]">FAQ</a>
+      <a href="/pricing" phx-click={toggle_mobile_menu()} class="text-lg text-[#e2e8f0]">Pricing</a>
       <a href="/stores" class="text-lg text-[#e2e8f0]">Browse stores</a>
       <hr class="w-24 border-[#1a2744]" />
       <a href="/auth/login" class="text-lg text-[#e2e8f0]">Login</a>
@@ -107,6 +113,15 @@ defmodule EmakolaWeb.LandingComponents do
       </a>
     </div>
     """
+  end
+
+  # Pure client-side toggle: works on the dead landing page and inside
+  # LiveViews without any parent handle_event or server round-trip.
+  defp toggle_mobile_menu do
+    JS.toggle_class("hidden", to: "#landing-mobile-menu")
+    |> JS.toggle_class("hidden", to: "#landing-menu-closed-icon")
+    |> JS.toggle_class("hidden", to: "#landing-menu-open-icon")
+    |> JS.toggle_attribute({"aria-expanded", "true", "false"}, to: "#landing-menu-button")
   end
 
   # ─────────────────────────────────────────────────────────────────────

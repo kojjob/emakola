@@ -342,7 +342,8 @@ defmodule EmakolaWeb.Router do
   scope "/", EmakolaWeb, host: @apex_hosts do
     pipe_through :browser
 
-    live "/", LandingLive
+    # Dead render — no LiveView process per anonymous visitor.
+    get "/", LandingController, :home
     live "/pricing", PricingLive
     live "/stores", StoresLive
     # Shown when a storefront is requested for a suspended/blocked/closed store.
