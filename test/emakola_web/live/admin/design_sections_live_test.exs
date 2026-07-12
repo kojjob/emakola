@@ -77,6 +77,28 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
       assert ["starter/category_pills", "starter/hero" | _] = Enum.map(saved, & &1["id"])
     end
 
+    test "an unrecognized move direction leaves the order unchanged", %{conn: conn} do
+      {:ok, view, _} = live(conn, "/admin/design/sections")
+
+      html = render_click(view, "move_section", %{"id" => "starter/hero", "dir" => "sideways"})
+
+      assert String.match?(html, ~r/Hero.*Category Pills.*Featured Products.*Trust.*Newsletter/s)
+    end
+
+    test "the unsaved-changes guard is mounted and its dirty flag tracks the draft", %{conn: conn} do
+      {:ok, view, html} = live(conn, "/admin/design/sections")
+
+      assert html =~ ~s(phx-hook="UnsavedChanges")
+      assert html =~ ~s(data-dirty="false")
+
+      dirty_html =
+        view
+        |> element(~s([phx-click="toggle_section"][phx-value-id="starter/newsletter"]))
+        |> render_click()
+
+      assert dirty_html =~ ~s(data-dirty="true")
+    end
+
     test "the first section's move-up control is disabled", %{conn: conn} do
       {:ok, view, _} = live(conn, "/admin/design/sections")
 

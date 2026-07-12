@@ -55,6 +55,10 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
     {:noreply, assign(socket, draft: swap_adjacent(socket.assigns.draft, id, dir), dirty: true)}
   end
 
+  # An unrecognized direction (only reachable by tampering with the payload)
+  # leaves the draft untouched rather than crashing the editor.
+  def handle_event("move_section", _params, socket), do: {:noreply, socket}
+
   @impl true
   def handle_event("publish", _params, socket) do
     %{store: store, theme_module: theme_module, draft: draft} = socket.assigns
@@ -73,6 +77,9 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
 
       {:error, :unknown_theme} ->
         {:noreply, put_flash(socket, :error, "Unknown theme — couldn't publish sections.")}
+
+      {:error, _other} ->
+        {:noreply, put_flash(socket, :error, "Couldn't publish your sections. Please try again.")}
     end
   end
 
@@ -98,6 +105,9 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
 
       {:error, :unknown_theme} ->
         {:noreply, put_flash(socket, :error, "Unknown theme — couldn't reset sections.")}
+
+      {:error, _other} ->
+        {:noreply, put_flash(socket, :error, "Couldn't reset your sections. Please try again.")}
     end
   end
 
@@ -116,21 +126,44 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
     end
   end
 
-  # Resolves a draft entry's display label from the section registry.
-  # Saved types that no longer resolve (a theme's sections changed since
-  # the layout was saved) render as an inert "missing section" row instead
-  # of crashing the editor.
-  defp section_label(entry) do
-    case Sections.resolve(entry["type"]) do
-      {:ok, {module, _meta}} -> {:ok, module.label()}
-      :error -> :error
+  # Resolves each draft entry's display label from the section registry ONCE
+  # per render (Sections.resolve/1 rebuilds the registry index on every call,
+  # so the template must not call it per-attribute). Saved types that no
+  # longer resolve (a theme's section list changed since the layout was
+  # saved) are marked `missing?` and render as an inert row instead of
+  # crashing the editor.
+  defp rows(draft) do
+    last_index = length(draft) - 1
+
+    for {entry, index} <- Enum.with_index(draft) do
+      {label, missing?} =
+        case Sections.resolve(entry["type"]) do
+          {:ok, {module, _meta}} -> {module.label(), false}
+          :error -> {entry["type"] || entry["id"], true}
+        end
+
+      %{
+        id: entry["id"],
+        label: label,
+        missing?: missing?,
+        enabled?: entry["enabled"] == true,
+        first?: index == 0,
+        last?: index == last_index
+      }
     end
   end
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :rows, rows(assigns.draft))
+
     ~H"""
-    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 pb-16">
+    <div
+      id="unsaved-guard"
+      phx-hook="UnsavedChanges"
+      data-dirty={to_string(@dirty)}
+      class="max-w-[1600px] mx-auto px-4 sm:px-6 pb-16"
+    >
       <.admin_page_header
         title="Sections"
         subtitle="Reorder, show, or hide sections on your store's home page"
@@ -159,31 +192,23 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
         <section class="lg:col-span-6">
           <.admin_card padding={:none} class="divide-y divide-border">
             <div
-              :for={{entry, index} <- Enum.with_index(@draft)}
-              class={[
-                "flex items-center gap-3 px-4 py-3.5",
-                section_label(entry) == :error && "opacity-60"
-              ]}
+              :for={row <- @rows}
+              class={["flex items-center gap-3 px-4 py-3.5", row.missing? && "opacity-60"]}
             >
               <.icon name="hero-bars-2" class="size-4 shrink-0 text-text-muted" />
 
               <div class="min-w-0 flex-1">
-                <p class="truncate text-sm font-semibold text-text">
-                  {case section_label(entry) do
-                    {:ok, label} -> label
-                    :error -> entry["type"] || entry["id"]
-                  end}
-                </p>
+                <p class="truncate text-sm font-semibold text-text">{row.label}</p>
               </div>
 
               <span
-                :if={section_label(entry) == :error}
+                :if={row.missing?}
                 class="inline-flex items-center whitespace-nowrap rounded-full bg-danger-soft px-2.5 py-0.5 text-xs font-semibold text-danger"
               >
                 Missing section
               </span>
               <span
-                :if={section_label(entry) != :error && !entry["enabled"]}
+                :if={!row.missing? && !row.enabled?}
                 class="inline-flex items-center whitespace-nowrap rounded-full bg-surface-subtle px-2.5 py-0.5 text-xs font-semibold text-text-muted"
               >
                 Hidden
@@ -192,7 +217,7 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
               <%!-- Missing sections render inert placeholders — no phx-click
               wiring at all, so a stale/removed section type can never
               trigger a handler. --%>
-              <div :if={section_label(entry) == :error} class="flex items-center gap-0.5 opacity-30">
+              <div :if={row.missing?} class="flex items-center gap-0.5 opacity-30">
                 <span class="p-1.5">
                   <.icon name="hero-chevron-up" class="size-4 text-text-muted" />
                 </span>
@@ -200,49 +225,49 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
                   <.icon name="hero-chevron-down" class="size-4 text-text-muted" />
                 </span>
               </div>
-              <div :if={section_label(entry) != :error} class="flex items-center gap-0.5">
+              <div :if={!row.missing?} class="flex items-center gap-0.5">
                 <button
                   type="button"
                   phx-click="move_section"
-                  phx-value-id={entry["id"]}
+                  phx-value-id={row.id}
                   phx-value-dir="up"
-                  disabled={index == 0}
+                  disabled={row.first?}
                   class="rounded-control p-1.5 text-text-muted transition-colors hover:bg-surface-subtle hover:text-text disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-                  aria-label={"Move #{entry["id"]} up"}
+                  aria-label={"Move #{row.label} up"}
                 >
                   <.icon name="hero-chevron-up" class="size-4" />
                 </button>
                 <button
                   type="button"
                   phx-click="move_section"
-                  phx-value-id={entry["id"]}
+                  phx-value-id={row.id}
                   phx-value-dir="down"
-                  disabled={index == length(@draft) - 1}
+                  disabled={row.last?}
                   class="rounded-control p-1.5 text-text-muted transition-colors hover:bg-surface-subtle hover:text-text disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-                  aria-label={"Move #{entry["id"]} down"}
+                  aria-label={"Move #{row.label} down"}
                 >
                   <.icon name="hero-chevron-down" class="size-4" />
                 </button>
               </div>
 
               <span
-                :if={section_label(entry) == :error}
+                :if={row.missing?}
                 aria-hidden="true"
                 class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-border bg-surface-subtle opacity-40"
               >
                 <span class="inline-block size-4 translate-x-1 transform rounded-full bg-white shadow" />
               </span>
               <button
-                :if={section_label(entry) != :error}
+                :if={!row.missing?}
                 type="button"
                 phx-click="toggle_section"
-                phx-value-id={entry["id"]}
+                phx-value-id={row.id}
                 role="switch"
-                aria-checked={to_string(entry["enabled"] == true)}
-                aria-label={"Toggle #{entry["id"]}"}
+                aria-checked={to_string(row.enabled?)}
+                aria-label={"Toggle #{row.label}"}
                 class={[
                   "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
-                  if(entry["enabled"],
+                  if(row.enabled?,
                     do: "bg-primary",
                     else: "bg-surface-subtle border border-border"
                   )
@@ -250,7 +275,7 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
               >
                 <span class={[
                   "inline-block size-4 transform rounded-full bg-white shadow transition-transform",
-                  if(entry["enabled"], do: "translate-x-6", else: "translate-x-1")
+                  if(row.enabled?, do: "translate-x-6", else: "translate-x-1")
                 ]} />
               </button>
 
