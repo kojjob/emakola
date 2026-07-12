@@ -12,13 +12,19 @@ defmodule Emakola.Notifications.Channels.SMS do
         sender_id: System.get_env("SMS_SENDER_ID") || "Makola",
         api_url: System.get_env("SMS_API_URL") || "https://api.sms-gateway.example.com/v1/messages"
 
+  Set `provider: :arkesel` (SMS_PROVIDER=arkesel in prod) to speak Arkesel's
+  v2 API natively: `api-key` auth header (not Bearer), the
+  `sender/message/recipients` payload shape, and the Arkesel endpoint as the
+  default `api_url`. The `:generic` default keeps the Bearer + from/to/content
+  contract for Hubtel-SMS-compatible gateways.
+
   ## Usage
 
       sms_channel().send_sms("+233244123456", "Your order has shipped!", store_id: store.id)
       sms_channel().send_order_sms(order, customer_phone: "+233244123456", store_name: "My Shop")
   """
 
-  @behaviour Emakola.Notifications.Channels.SMSBehaviour
+  @behaviour Emakola.Notifications.SMSProvider
 
   require Logger
 
@@ -106,11 +112,21 @@ defmodule Emakola.Notifications.Channels.SMS do
   formatting without making HTTP calls.
   """
   def build_sms_payload(phone, message) do
-    %{
-      from: sender_id(),
-      to: normalize_phone(phone),
-      content: message
-    }
+    case provider() do
+      :arkesel ->
+        %{
+          sender: sender_id(),
+          message: message,
+          recipients: [normalize_phone(phone)]
+        }
+
+      _generic ->
+        %{
+          from: sender_id(),
+          to: normalize_phone(phone),
+          content: message
+        }
+    end
   end
 
   # ── Helpers ────────────────────────────────────────────────────
@@ -141,10 +157,19 @@ defmodule Emakola.Notifications.Channels.SMS do
   defp currency_symbol(_), do: ""
 
   defp auth_headers do
-    [
-      {"authorization", "Bearer #{api_key()}"},
-      {"content-type", "application/json"}
-    ]
+    case provider() do
+      :arkesel ->
+        [
+          {"api-key", api_key()},
+          {"content-type", "application/json"}
+        ]
+
+      _generic ->
+        [
+          {"authorization", "Bearer #{api_key()}"},
+          {"content-type", "application/json"}
+        ]
+    end
   end
 
   defp api_key do
@@ -155,8 +180,17 @@ defmodule Emakola.Notifications.Channels.SMS do
     config()[:sender_id] || "Makola"
   end
 
+  @arkesel_api_url "https://sms.arkesel.com/api/v2/sms/send"
+
   defp api_url do
-    config()[:api_url] || "https://api.sms-gateway.example.com/v1/messages"
+    config()[:api_url] || default_api_url(provider())
+  end
+
+  defp default_api_url(:arkesel), do: @arkesel_api_url
+  defp default_api_url(_generic), do: "https://api.sms-gateway.example.com/v1/messages"
+
+  defp provider do
+    config()[:provider] || :generic
   end
 
   defp config do

@@ -413,9 +413,9 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                       type="button"
                       phx-click="select_payment"
                       phx-value-method="vodafone"
-                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "vodafone", do: "border-[#E60000] bg-voda/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
+                      class={"cursor-pointer relative flex flex-col items-center text-center gap-3 p-5 sm:p-6 bg-white border-2 rounded-2xl transition-all #{if @payment_method == "vodafone", do: "border-voda bg-voda/5 shadow-sm", else: "border-stone-200 hover:border-stone-300"}"}
                     >
-                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "vodafone", do: "border-[#E60000] bg-voda", else: "border-stone-300"}"}>
+                      <div class={"absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center #{if @payment_method == "vodafone", do: "border-voda bg-voda", else: "border-stone-300"}"}>
                         <svg
                           :if={@payment_method == "vodafone"}
                           class="w-3 h-3 text-white"
@@ -551,7 +551,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                     </div>
                     <div :if={@payment_method == "vodafone"} class="flex items-start gap-3">
                       <svg
-                        class="w-5 h-5 text-[#E60000] mt-0.5 shrink-0"
+                        class="w-5 h-5 text-voda mt-0.5 shrink-0"
                         fill="none"
                         stroke="currentColor"
                         stroke-width="1.5"

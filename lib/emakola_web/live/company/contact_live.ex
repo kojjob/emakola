@@ -16,7 +16,6 @@ defmodule EmakolaWeb.Company.ContactLive do
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/contact"),
        json_ld: EmakolaWeb.Helpers.SEO.json_ld_organization(),
-       mobile_menu_open: false,
        form: empty_form(),
        sent: false,
        error: nil,
@@ -27,10 +26,6 @@ defmodule EmakolaWeb.Company.ContactLive do
   end
 
   @impl true
-  def handle_event("toggle_mobile_menu", _params, socket) do
-    {:noreply, assign(socket, mobile_menu_open: !socket.assigns.mobile_menu_open)}
-  end
-
   def handle_event("submit", %{"contact" => params}, socket) do
     cond do
       # Honeypot: a real user never fills this hidden field. Pretend success.
@@ -82,7 +77,7 @@ defmodule EmakolaWeb.Company.ContactLive do
       phx-hook="ScrollReveal"
       class="min-h-screen bg-white font-body antialiased"
     >
-      <.landing_nav mobile_menu_open={@mobile_menu_open} />
+      <.landing_nav />
       <main>
         <.marketing_hero
           eyebrow="We're here to help"

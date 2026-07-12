@@ -113,6 +113,75 @@ defmodule Emakola.Inventory.Workers.LowStockAlertWorkerTest do
     end
   end
 
+  describe "WhatsApp digest" do
+    import Mox
+
+    setup :verify_on_exit!
+
+    setup do
+      original = Application.get_env(:emakola, :whatsapp_provider)
+      Application.put_env(:emakola, :whatsapp_provider, Emakola.WhatsAppProviderMock)
+
+      on_exit(fn ->
+        if original,
+          do: Application.put_env(:emakola, :whatsapp_provider, original),
+          else: Application.delete_env(:emakola, :whatsapp_provider)
+      end)
+
+      :ok
+    end
+
+    test "sends a low-stock digest to the store's WhatsApp number", %{store: store} do
+      set_whatsapp_number!(store, "+233200000001")
+      product = Factory.create_product!(store)
+      _low = Factory.create_variant!(product, store, stock_quantity: 2, sku: "WA-LOW-1")
+
+      store_id = store.id
+      store_name = store.name
+
+      expect(Emakola.WhatsAppProviderMock, :send_message, fn "+233200000001",
+                                                             "low_stock_digest",
+                                                             params,
+                                                             opts ->
+        assert params.count == 1
+        assert params.store_name == store_name
+        assert opts[:store_id] == store_id
+        {:ok, %{}}
+      end)
+
+      assert :ok = perform_job(LowStockAlertWorker, %{})
+    end
+
+    test "skips WhatsApp when the store has no number", %{store: store} do
+      product = Factory.create_product!(store)
+      _low = Factory.create_variant!(product, store, stock_quantity: 2, sku: "WA-LOW-2")
+
+      # No expectation set — any send_message call would fail verify_on_exit!.
+      assert :ok = perform_job(LowStockAlertWorker, %{})
+    end
+
+    test "an unapproved template is tolerated, not an error", %{store: store} do
+      set_whatsapp_number!(store, "+233200000002")
+      product = Factory.create_product!(store)
+      _low = Factory.create_variant!(product, store, stock_quantity: 2, sku: "WA-LOW-3")
+
+      expect(Emakola.WhatsAppProviderMock, :send_message, fn _, _, _, _ ->
+        {:error, {:unknown_template, "low_stock_digest"}}
+      end)
+
+      assert :ok = perform_job(LowStockAlertWorker, %{})
+    end
+  end
+
+  defp set_whatsapp_number!(store, number) do
+    import Ecto.Query
+
+    Emakola.Repo.update_all(
+      from(s in "stores", where: s.id == type(^store.id, Ecto.UUID)),
+      set: [whatsapp_number: number]
+    )
+  end
+
   defp flush_swoosh_mailbox do
     receive do
       {:email, _} -> flush_swoosh_mailbox()

@@ -204,7 +204,7 @@ defmodule Emakola.Themes.Akoma.ProductDetail do
               href={@wa_link}
               target="_blank"
               rel="noopener"
-              class="w-full mt-3 py-3 rounded-md border border-[#25D366] text-[#0E6B2B] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#25D366]/5"
+              class="w-full mt-3 py-3 rounded-md border border-whatsapp text-[#0E6B2B] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-whatsapp/5"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
