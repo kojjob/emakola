@@ -19,7 +19,7 @@ defmodule Emakola.Themes.SectionContractTest do
   @themes Sections.sectionized_themes()
 
   test "there are sectionized themes to check (guards against a vacuous suite)" do
-    refute @themes == [],
+    refute Enum.empty?(@themes),
            "no sectionized themes registered — every assertion below would pass vacuously"
   end
 
@@ -28,7 +28,7 @@ defmodule Emakola.Themes.SectionContractTest do
       test "expose the Section behaviour and a non-empty ordered list" do
         sections = unquote(theme).sections()
 
-        refute sections == [], "#{inspect(unquote(theme))} registers no sections"
+        refute Enum.empty?(sections), "#{inspect(unquote(theme))} registers no sections"
 
         for section <- sections do
           assert is_binary(section.key()), "#{inspect(section)}.key/0 must return a string"

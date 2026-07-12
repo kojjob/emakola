@@ -129,8 +129,8 @@ defmodule Emakola.Themes.DepotTest do
 
       assert Enum.sort(Map.keys(defaults)) == Enum.sort(Map.keys(starter))
       assert Enum.sort(Map.keys(defaults.colors)) == Enum.sort(Map.keys(starter.colors))
-      assert %{heading: heading, body: body} = defaults.fonts
-      assert is_binary(heading) and is_binary(body)
+      assert %{heading: _heading, body: _body} = defaults.fonts
+      assert Enum.sort(Map.keys(defaults.fonts)) == Enum.sort(Map.keys(starter.fonts))
       assert defaults.css_variables["--theme-primary"] == defaults.colors.primary
     end
 
@@ -548,7 +548,7 @@ defmodule Emakola.Themes.DepotTest do
   end
 
   describe "depot_bottom_nav/1" do
-    defp render_bottom_nav(attrs \\ %{}) do
+    defp render_bottom_nav(attrs) do
       render_component(
         &Shared.depot_bottom_nav/1,
         Map.merge(%{store: @component_store, cart_count: 0, active: :home}, attrs)

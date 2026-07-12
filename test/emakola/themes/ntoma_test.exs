@@ -723,7 +723,7 @@ defmodule Emakola.Themes.NtomaTest do
   end
 
   describe "product list page" do
-    defp list_assigns(overrides \\ %{}) do
+    defp list_assigns(overrides) do
       Map.merge(
         %{
           store: @component_store,
@@ -778,7 +778,7 @@ defmodule Emakola.Themes.NtomaTest do
   end
 
   describe "product detail page" do
-    defp detail_assigns(overrides \\ %{}) do
+    defp detail_assigns(overrides) do
       Map.merge(
         %{
           store: @component_store,
