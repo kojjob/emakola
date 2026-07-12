@@ -53,6 +53,23 @@ defmodule EmakolaWeb.Storefront.StorefrontTest do
   # -- Product List Page --
 
   describe "ProductListLive" do
+    test "Market list page carries the theme banner nav with a cart link", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/products")
+
+      # The cart must be reachable from the list page on every viewport —
+      # the shared bottom_nav is mobile-only, so the banner nav is the
+      # desktop path to checkout.
+      assert html =~ ~r/<header[^>]*role="banner"/
+
+      assert html =~
+               ~r/<a[^>]*href="\/s\/ghana-shop\/cart"[^>]*aria-label="Shopping cart, \d+ items"/
+
+      assert html =~ ~r/aria-label="Search products"/
+    end
+
     test "shows active products only", %{conn: conn, store: store} do
       active_product = Factory.create_product!(store, %{title: "Active Gadget"})
       Factory.create_variant!(active_product, store, %{price: 3000, stock_quantity: 5})

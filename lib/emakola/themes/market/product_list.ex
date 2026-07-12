@@ -10,8 +10,13 @@ defmodule Emakola.Themes.Market.ProductList do
   import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [product_card: 1, bottom_nav: 1]
 
+  alias Emakola.Themes.Market.Shared
+
   def render(assigns) do
     ~H"""
+    <%!-- Theme banner nav: the shared bottom_nav below is mobile-only, so
+    without this the cart is unreachable from the list page on desktop. --%>
+    <Shared.market_nav store={@store} categories={@categories} cart_count={@cart_count} />
     <%!-- Hero Header Section --%>
     <div class="bg-[#F8FAFC] border-b border-[#E2E8F0] mb-8 lg:mb-12">
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
