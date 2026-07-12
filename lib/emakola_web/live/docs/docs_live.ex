@@ -10,8 +10,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
        meta_description:
          "Build on Makola — multi-tenant storefronts, mobile money payments, WhatsApp order alerts, and the merchant mobile API.",
        canonical_url: url(~p"/docs"),
-       active_section: "getting-started",
-       mobile_menu_open: false
+       active_section: "getting-started"
      ), layout: false}
   end
 
@@ -19,14 +18,10 @@ defmodule EmakolaWeb.Docs.DocsLive do
     {:noreply, assign(socket, active_section: section)}
   end
 
-  def handle_event("toggle_mobile_menu", _params, socket) do
-    {:noreply, assign(socket, mobile_menu_open: !socket.assigns.mobile_menu_open)}
-  end
-
   def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-white text-[#0c1526] font-body antialiased">
-      <.landing_nav mobile_menu_open={@mobile_menu_open} />
+      <.landing_nav />
 
       <main class="pt-16">
         <.docs_hero />

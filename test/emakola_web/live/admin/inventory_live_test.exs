@@ -326,6 +326,247 @@ defmodule EmakolaWeb.Admin.InventoryLiveTest do
     end
   end
 
+  describe "locations manager" do
+    test "renders the locations section with the default location and badge", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/admin/inventory")
+
+      assert html =~ "Locations"
+      assert html =~ "Main"
+      assert html =~ "Default"
+    end
+
+    test "creates a location", %{conn: conn, store: store, merchant: merchant} do
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      view
+      |> element("button[phx-click='toggle_location_form']")
+      |> render_click()
+
+      html =
+        view
+        |> form("#add-location-form", %{"name" => "Market Stall"})
+        |> render_submit()
+
+      assert html =~ "Market Stall"
+
+      {:ok, locations} = Emakola.Inventory.list_locations(merchant, store.id)
+      assert Enum.any?(locations, &(&1.name == "Market Stall"))
+    end
+
+    test "renames a location", %{conn: conn, store: store, merchant: merchant} do
+      main = Emakola.Inventory.ensure_default_location!(store.id)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      render_click(view, "start_rename_location", %{"id" => main.id})
+
+      html =
+        view
+        |> form("#rename-location-form", %{"name" => "Shop Floor"})
+        |> render_submit()
+
+      assert html =~ "Shop Floor"
+
+      {:ok, locations} = Emakola.Inventory.list_locations(merchant, store.id)
+      assert Enum.any?(locations, &(&1.name == "Shop Floor"))
+      refute Enum.any?(locations, &(&1.name == "Main"))
+    end
+
+    test "sets a new default location", %{conn: conn, store: store, merchant: merchant} do
+      Emakola.Inventory.ensure_default_location!(store.id)
+      {:ok, stall} = Emakola.Inventory.create_location(merchant, store.id, %{name: "Stall"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      view
+      |> element("button[phx-click='set_default_location'][phx-value-id='#{stall.id}']")
+      |> render_click()
+
+      {:ok, [first | _]} = Emakola.Inventory.list_locations(merchant, store.id)
+      assert first.id == stall.id
+      assert first.default
+    end
+
+    test "deactivating the default location shows a friendly error", %{
+      conn: conn,
+      store: store
+    } do
+      main = Emakola.Inventory.ensure_default_location!(store.id)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      html = render_click(view, "deactivate_location", %{"id" => main.id})
+
+      assert html =~ "The default location can&#39;t be deactivated"
+    end
+
+    test "deactivating a location that still holds stock shows a friendly error", %{
+      conn: conn,
+      store: store,
+      merchant: merchant
+    } do
+      product = Factory.create_product!(store)
+      variant = Factory.create_variant!(product, store, %{stock_quantity: 10, sku: "HOLD-001"})
+
+      Emakola.Inventory.ensure_default_location!(store.id)
+      {:ok, stall} = Emakola.Inventory.create_location(merchant, store.id, %{name: "Stall"})
+      {:ok, _} = Emakola.Inventory.restock(variant.id, stall.id, 5)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      html =
+        view
+        |> element("button[phx-click='deactivate_location'][phx-value-id='#{stall.id}']")
+        |> render_click()
+
+      assert html =~ "Move its stock first"
+
+      {:ok, locations} = Emakola.Inventory.list_locations(merchant, store.id)
+      assert Enum.find(locations, &(&1.id == stall.id)).active
+    end
+
+    test "deactivates an empty non-default location", %{
+      conn: conn,
+      store: store,
+      merchant: merchant
+    } do
+      Emakola.Inventory.ensure_default_location!(store.id)
+      {:ok, stall} = Emakola.Inventory.create_location(merchant, store.id, %{name: "Stall"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      html =
+        view
+        |> element("button[phx-click='deactivate_location'][phx-value-id='#{stall.id}']")
+        |> render_click()
+
+      assert html =~ "Location deactivated"
+
+      {:ok, locations} = Emakola.Inventory.list_locations(merchant, store.id)
+      refute Enum.find(locations, &(&1.id == stall.id)).active
+    end
+  end
+
+  describe "per-location breakdown" do
+    test "shows a per-location breakdown on variant rows when the store has multiple locations",
+         %{conn: conn, store: store, merchant: merchant} do
+      product = Factory.create_product!(store)
+      variant = Factory.create_variant!(product, store, %{stock_quantity: 10, sku: "BRK-001"})
+
+      Emakola.Inventory.ensure_default_location!(store.id)
+      {:ok, stall} = Emakola.Inventory.create_location(merchant, store.id, %{name: "Stall"})
+      {:ok, _} = Emakola.Inventory.restock(variant.id, stall.id, 4)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/inventory")
+
+      assert html =~ "Main 10"
+      assert html =~ "Stall 4"
+    end
+
+    test "hides the breakdown when the store has a single location", %{
+      conn: conn,
+      store: store
+    } do
+      product = Factory.create_product!(store)
+      _variant = Factory.create_variant!(product, store, %{stock_quantity: 10, sku: "SGL-001"})
+
+      {:ok, _view, html} = live(conn, ~p"/admin/inventory")
+
+      refute html =~ "location-breakdown"
+    end
+  end
+
+  describe "stock transfer" do
+    test "transfers stock between locations", %{conn: conn, store: store, merchant: merchant} do
+      product = Factory.create_product!(store)
+      variant = Factory.create_variant!(product, store, %{stock_quantity: 10, sku: "TRF-001"})
+
+      main = Emakola.Inventory.ensure_default_location!(store.id)
+      {:ok, stall} = Emakola.Inventory.create_location(merchant, store.id, %{name: "Stall"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      render_click(view, "open_transfer", %{"id" => variant.id})
+
+      html =
+        view
+        |> form("#transfer-form", %{
+          "transfer" => %{
+            "from_location_id" => main.id,
+            "to_location_id" => stall.id,
+            "quantity" => "4"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Stock transferred"
+
+      levels = Emakola.Inventory.levels(variant.id)
+      assert [%{quantity: 6}, %{quantity: 4}] = levels
+      assert Enum.map(levels, & &1.location.name) == ["Main", "Stall"]
+
+      assert Ash.reload!(variant, authorize?: false).stock_quantity == 10
+    end
+
+    test "transfer with insufficient source stock shows an error flash", %{
+      conn: conn,
+      store: store,
+      merchant: merchant
+    } do
+      product = Factory.create_product!(store)
+      variant = Factory.create_variant!(product, store, %{stock_quantity: 10, sku: "TRF-002"})
+
+      main = Emakola.Inventory.ensure_default_location!(store.id)
+      {:ok, stall} = Emakola.Inventory.create_location(merchant, store.id, %{name: "Stall"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      render_click(view, "open_transfer", %{"id" => variant.id})
+
+      html =
+        view
+        |> form("#transfer-form", %{
+          "transfer" => %{
+            "from_location_id" => main.id,
+            "to_location_id" => stall.id,
+            "quantity" => "25"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Not enough stock at the source"
+      assert Ash.reload!(variant, authorize?: false).stock_quantity == 10
+    end
+  end
+
+  describe "stock editor with location picker" do
+    test "saving the editor writes to the selected location", %{
+      conn: conn,
+      store: store,
+      merchant: merchant
+    } do
+      product = Factory.create_product!(store)
+      variant = Factory.create_variant!(product, store, %{stock_quantity: 10, sku: "EDIT-001"})
+
+      main = Emakola.Inventory.ensure_default_location!(store.id)
+      {:ok, stall} = Emakola.Inventory.create_location(merchant, store.id, %{name: "Stall"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/inventory")
+
+      render_click(view, "start_edit", %{"id" => variant.id})
+
+      view
+      |> form("#stock-edit-form", %{"location_id" => stall.id, "stock" => "7"})
+      |> render_submit()
+
+      levels = Emakola.Inventory.levels(variant.id)
+      assert %{quantity: 7} = Enum.find(levels, &(&1.location_id == stall.id))
+      assert %{quantity: 10} = Enum.find(levels, &(&1.location_id == main.id))
+
+      assert Ash.reload!(variant, authorize?: false).stock_quantity == 17
+    end
+  end
+
   describe "tenant isolation" do
     test "does not show variants from other stores", %{conn: conn, store: _store} do
       other_store = Factory.create_store!()

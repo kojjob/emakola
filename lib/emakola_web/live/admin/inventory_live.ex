@@ -3,8 +3,9 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   Inventory management dashboard for the merchant admin.
 
   Displays stock overview stats (total SKUs, in stock, low stock, out of stock),
-  a filterable table of all variants with inline stock adjustment controls, and
-  search by product title or SKU.
+  a locations manager (add/rename/set-default/deactivate), a filterable table
+  of all variants with inline stock adjustment controls and per-location
+  breakdowns, a stock transfer modal, and search by product title or SKU.
   """
   use EmakolaWeb, :live_view
 
@@ -28,11 +29,19 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         stats: %{total: 0, in_stock: 0, low_stock: 0, out_of_stock: 0},
         editing_variant_id: nil,
         edit_stock_value: "",
+        edit_location_id: nil,
         suppliers: [],
-        dropship_variant: nil
+        dropship_variant: nil,
+        locations: [],
+        location_totals: %{},
+        levels_by_variant: %{},
+        multi_location?: false,
+        show_location_form: false,
+        renaming_location_id: nil,
+        transfer_variant: nil
       )
       |> load_suppliers()
-      |> load_variants()
+      |> reload_inventory()
 
     {:ok, socket}
   end
@@ -70,14 +79,21 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   def handle_event("adjust_stock", %{"id" => variant_id, "delta" => delta_str}, socket) do
     delta = String.to_integer(delta_str)
 
+    # Store scoping: the variant must be in the session-resolved store's
+    # list — params are never trusted for tenancy.
     case find_variant(socket.assigns.all_variants, variant_id) do
       nil ->
         {:noreply, put_flash(socket, :error, "Variant not found")}
 
       variant ->
-        case Emakola.Catalog.adjust_variant_stock(variant, %{delta: delta}, authorize?: false) do
-          {:ok, _updated} ->
-            {:noreply, load_variants(socket)}
+        # Funnel through the Inventory domain (quick +/- always hits the
+        # default location) so the level, the variant total, and the
+        # movement ledger stay in sync.
+        location = Emakola.Inventory.ensure_default_location!(socket.assigns.store_id)
+
+        case Emakola.Inventory.adjust(variant.id, location.id, delta, :adjustment) do
+          {:ok, _} ->
+            {:noreply, reload_inventory(socket)}
 
           {:error, _error} ->
             {:noreply, put_flash(socket, :error, "Could not adjust stock")}
@@ -88,43 +104,62 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   @impl true
   def handle_event("start_edit", %{"id" => variant_id}, socket) do
     variant = find_variant(socket.assigns.all_variants, variant_id)
-    current_stock = if variant, do: Integer.to_string(variant.stock_quantity), else: ""
+    default = Enum.find(socket.assigns.locations, & &1.default)
+    default_id = default && default.id
+
+    current_stock =
+      if variant && default_id,
+        do: Integer.to_string(location_quantity(socket, variant, default_id)),
+        else: ""
 
     {:noreply,
      assign(socket,
        editing_variant_id: variant_id,
-       edit_stock_value: current_stock
+       edit_stock_value: current_stock,
+       edit_location_id: default_id
      )}
   end
 
   @impl true
   def handle_event("cancel_edit", _params, socket) do
-    {:noreply, assign(socket, editing_variant_id: nil, edit_stock_value: "")}
+    {:noreply, close_editor(socket)}
   end
 
   @impl true
-  def handle_event("save_stock", %{"variant_id" => variant_id, "stock" => stock_str}, socket) do
+  def handle_event("edit_location_changed", %{"location_id" => location_id} = params, socket) do
+    if location_id == socket.assigns.edit_location_id do
+      {:noreply, assign(socket, edit_stock_value: params["stock"] || "")}
+    else
+      # Location switched — re-prefill with that location's current stock.
+      variant = find_variant(socket.assigns.all_variants, socket.assigns.editing_variant_id)
+      location = find_location(socket.assigns.locations, location_id)
+
+      value =
+        if variant && location,
+          do: Integer.to_string(location_quantity(socket, variant, location.id)),
+          else: ""
+
+      {:noreply, assign(socket, edit_location_id: location_id, edit_stock_value: value)}
+    end
+  end
+
+  @impl true
+  def handle_event(
+        "save_stock",
+        %{"variant_id" => variant_id, "location_id" => location_id, "stock" => stock_str},
+        socket
+      ) do
+    variant = find_variant(socket.assigns.all_variants, variant_id)
+    # Location must belong to this store — validated against the
+    # server-loaded list, never the raw param.
+    location = find_location(socket.assigns.locations, location_id)
+
     case Integer.parse(stock_str) do
       {new_stock, _} when new_stock >= 0 ->
-        variant = find_variant(socket.assigns.all_variants, variant_id)
-
-        if variant do
-          delta = new_stock - variant.stock_quantity
-
-          case Emakola.Catalog.adjust_variant_stock(variant, %{delta: delta}, authorize?: false) do
-            {:ok, _updated} ->
-              socket =
-                socket
-                |> assign(editing_variant_id: nil, edit_stock_value: "")
-                |> load_variants()
-
-              {:noreply, socket}
-
-            {:error, _error} ->
-              {:noreply, put_flash(socket, :error, "Could not update stock")}
-          end
-        else
-          {:noreply, put_flash(socket, :error, "Variant not found")}
+        cond do
+          is_nil(variant) -> {:noreply, put_flash(socket, :error, "Variant not found")}
+          is_nil(location) -> {:noreply, put_flash(socket, :error, "Location not found")}
+          true -> save_stock_at_location(socket, variant, location, new_stock)
         end
 
       _ ->
@@ -160,6 +195,163 @@ defmodule EmakolaWeb.Admin.InventoryLive do
     end
   end
 
+  # ── Location management ──
+  #
+  # Every handler passes the session-resolved actor + store into the
+  # Inventory context, which enforces store membership — params only
+  # ever carry the location id, validated inside the context against
+  # the same store.
+
+  @impl true
+  def handle_event("toggle_location_form", _params, socket) do
+    {:noreply, assign(socket, show_location_form: !socket.assigns.show_location_form)}
+  end
+
+  @impl true
+  def handle_event("create_location", %{"name" => name}, socket) do
+    case Emakola.Inventory.create_location(actor(socket), socket.assigns.store_id, %{name: name}) do
+      {:ok, _location} ->
+        {:noreply,
+         socket
+         |> assign(show_location_form: false)
+         |> put_flash(:info, "Location added")
+         |> reload_inventory()}
+
+      {:error, :forbidden} ->
+        {:noreply, put_flash(socket, :error, "You don't have access to this store")}
+
+      {:error, _error} ->
+        {:noreply,
+         put_flash(socket, :error, "Could not add location — names must be unique per store")}
+    end
+  end
+
+  @impl true
+  def handle_event("start_rename_location", %{"id" => location_id}, socket) do
+    {:noreply, assign(socket, renaming_location_id: location_id)}
+  end
+
+  @impl true
+  def handle_event("cancel_rename_location", _params, socket) do
+    {:noreply, assign(socket, renaming_location_id: nil)}
+  end
+
+  @impl true
+  def handle_event("rename_location", %{"location_id" => location_id, "name" => name}, socket) do
+    case Emakola.Inventory.rename_location(
+           actor(socket),
+           socket.assigns.store_id,
+           location_id,
+           name
+         ) do
+      {:ok, _location} ->
+        {:noreply,
+         socket
+         |> assign(renaming_location_id: nil)
+         |> put_flash(:info, "Location renamed")
+         |> reload_inventory()}
+
+      {:error, _error} ->
+        {:noreply,
+         put_flash(socket, :error, "Could not rename location — names must be unique per store")}
+    end
+  end
+
+  @impl true
+  def handle_event("set_default_location", %{"id" => location_id}, socket) do
+    case Emakola.Inventory.set_default_location(
+           actor(socket),
+           socket.assigns.store_id,
+           location_id
+         ) do
+      {:ok, _location} ->
+        {:noreply, socket |> put_flash(:info, "Default location updated") |> reload_inventory()}
+
+      {:error, _error} ->
+        {:noreply, put_flash(socket, :error, "Could not update the default location")}
+    end
+  end
+
+  @impl true
+  def handle_event("deactivate_location", %{"id" => location_id}, socket) do
+    case Emakola.Inventory.deactivate_location(
+           actor(socket),
+           socket.assigns.store_id,
+           location_id
+         ) do
+      {:ok, _location} ->
+        {:noreply, socket |> put_flash(:info, "Location deactivated") |> reload_inventory()}
+
+      {:error, :default_location} ->
+        {:noreply, put_flash(socket, :error, "The default location can't be deactivated")}
+
+      {:error, :location_holds_stock} ->
+        {:noreply,
+         put_flash(socket, :error, "Move its stock first — this location still holds stock")}
+
+      {:error, _error} ->
+        {:noreply, put_flash(socket, :error, "Could not deactivate location")}
+    end
+  end
+
+  # ── Stock transfer ──
+
+  @impl true
+  def handle_event("open_transfer", %{"id" => variant_id}, socket) do
+    variant = find_variant(socket.assigns.all_variants, variant_id)
+    {:noreply, assign(socket, transfer_variant: variant)}
+  end
+
+  @impl true
+  def handle_event("save_transfer", %{"transfer" => params}, socket) do
+    variant = socket.assigns.transfer_variant
+    # Locations must belong to this store — validated against the
+    # server-loaded list, never the raw params.
+    from = find_location(socket.assigns.locations, params["from_location_id"])
+    to = find_location(socket.assigns.locations, params["to_location_id"])
+    quantity = parse_positive_int(params["quantity"])
+
+    cond do
+      is_nil(variant) -> {:noreply, put_flash(socket, :error, "Variant not found")}
+      is_nil(from) or is_nil(to) -> {:noreply, put_flash(socket, :error, "Location not found")}
+      is_nil(quantity) -> {:noreply, put_flash(socket, :error, "Enter a quantity greater than 0")}
+      true -> run_transfer(socket, variant, from, to, quantity)
+    end
+  end
+
+  defp run_transfer(socket, variant, from, to, quantity) do
+    case Emakola.Inventory.transfer(variant.id, from.id, to.id, quantity) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> assign(transfer_variant: nil)
+         |> put_flash(:info, "Stock transferred")
+         |> reload_inventory()}
+
+      {:error, :same_location} ->
+        {:noreply, put_flash(socket, :error, "Choose two different locations")}
+
+      {:error, _error} ->
+        {:noreply, put_flash(socket, :error, "Not enough stock at the source location")}
+    end
+  end
+
+  defp save_stock_at_location(socket, variant, location, new_stock) do
+    delta = new_stock - location_quantity(socket, variant, location.id)
+
+    if delta == 0 do
+      {:noreply, close_editor(socket)}
+    else
+      case Emakola.Inventory.adjust(variant.id, location.id, delta, :adjustment) do
+        {:ok, _} -> {:noreply, socket |> close_editor() |> reload_inventory()}
+        {:error, _error} -> {:noreply, put_flash(socket, :error, "Could not update stock")}
+      end
+    end
+  end
+
+  defp close_editor(socket),
+    do: assign(socket, editing_variant_id: nil, edit_stock_value: "", edit_location_id: nil)
+
   defp save_dropship_variant(socket, variant, supplier_id, params) do
     attrs = %{
       supplier_id: supplier_id,
@@ -191,7 +383,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
       <%!-- Stat Cards --%>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <.stat_card label="Total SKUs" value={Integer.to_string(@stats.total)} color="slate">
+        <.stat_card label="Total SKUs" value={Integer.to_string(@stats.total)} icon_bg="bg-slate-100">
           <:icon>
             <svg
               class="w-5 h-5 text-slate-600"
@@ -208,7 +400,11 @@ defmodule EmakolaWeb.Admin.InventoryLive do
             </svg>
           </:icon>
         </.stat_card>
-        <.stat_card label="In Stock" value={Integer.to_string(@stats.in_stock)} color="emerald">
+        <.stat_card
+          label="In Stock"
+          value={Integer.to_string(@stats.in_stock)}
+          icon_bg="bg-emerald-50"
+        >
           <:icon>
             <svg
               class="w-5 h-5 text-emerald-600"
@@ -225,7 +421,11 @@ defmodule EmakolaWeb.Admin.InventoryLive do
             </svg>
           </:icon>
         </.stat_card>
-        <.stat_card label="Low Stock" value={Integer.to_string(@stats.low_stock)} color="amber">
+        <.stat_card
+          label="Low Stock"
+          value={Integer.to_string(@stats.low_stock)}
+          icon_bg="bg-amber-50"
+        >
           <:icon>
             <svg
               class="w-5 h-5 text-amber-600"
@@ -245,7 +445,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         <.stat_card
           label="Out of Stock"
           value={Integer.to_string(@stats.out_of_stock)}
-          color="red"
+          icon_bg="bg-red-50"
         >
           <:icon>
             <svg
@@ -264,6 +464,15 @@ defmodule EmakolaWeb.Admin.InventoryLive do
           </:icon>
         </.stat_card>
       </div>
+
+      <%!-- Locations Manager --%>
+      <.locations_card
+        :if={@store_id}
+        locations={@locations}
+        totals={@location_totals}
+        renaming_id={@renaming_location_id}
+        show_form={@show_location_form}
+      />
 
       <%!-- Filter Bar --%>
       <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -357,11 +566,25 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                   <td class="px-4 py-3.5">
                     <%= if @editing_variant_id == variant.id do %>
                       <form
+                        id="stock-edit-form"
                         phx-submit="save_stock"
+                        phx-change="edit_location_changed"
                         phx-value-id={variant.id}
                         class="flex items-center gap-2"
                       >
                         <input type="hidden" name="variant_id" value={variant.id} />
+                        <select
+                          name="location_id"
+                          class="px-2 py-1 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                        >
+                          <option
+                            :for={location <- Enum.filter(@locations, & &1.active)}
+                            value={location.id}
+                            selected={location.id == @edit_location_id}
+                          >
+                            {location.name}
+                          </option>
+                        </select>
                         <input
                           type="number"
                           name="stock"
@@ -419,6 +642,10 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                       >
                         {variant.stock_quantity}
                       </button>
+                      <.location_breakdown
+                        :if={@multi_location?}
+                        entries={breakdown_entries(variant, @levels_by_variant, @locations)}
+                      />
                     <% end %>
                   </td>
                   <td class="px-4 py-3.5">
@@ -466,6 +693,17 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                         </svg>
                       </button>
                       <button
+                        :if={@multi_location?}
+                        phx-click={
+                          JS.push("open_transfer", value: %{id: variant.id})
+                          |> show_modal("transfer-modal")
+                        }
+                        class="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                        title="Transfer between locations"
+                      >
+                        <.icon name="hero-arrows-right-left" class="w-3.5 h-3.5" />
+                      </button>
+                      <button
                         phx-click={
                           JS.push("edit_dropship", value: %{id: variant.id})
                           |> show_modal("dropship-modal")
@@ -502,10 +740,16 @@ defmodule EmakolaWeb.Admin.InventoryLive do
               <.stock_status_badge quantity={variant.stock_quantity} />
             </div>
             <div class="flex items-center justify-between">
-              <p class="text-sm text-slate-600">
-                <span class="text-slate-400">Stock:</span>
-                <span class="font-mono font-semibold">{variant.stock_quantity}</span>
-              </p>
+              <div>
+                <p class="text-sm text-slate-600">
+                  <span class="text-slate-400">Stock:</span>
+                  <span class="font-mono font-semibold">{variant.stock_quantity}</span>
+                </p>
+                <.location_breakdown
+                  :if={@multi_location?}
+                  entries={breakdown_entries(variant, @levels_by_variant, @locations)}
+                />
+              </div>
               <div class="flex items-center gap-1">
                 <button
                   phx-click="adjust_stock"
@@ -543,6 +787,17 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                       d="M12 4.5v15m7.5-7.5h-15"
                     />
                   </svg>
+                </button>
+                <button
+                  :if={@multi_location?}
+                  phx-click={
+                    JS.push("open_transfer", value: %{id: variant.id})
+                    |> show_modal("transfer-modal")
+                  }
+                  class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100"
+                  title="Transfer between locations"
+                >
+                  <.icon name="hero-arrows-right-left" class="w-4 h-4" />
                 </button>
                 <button
                   phx-click={
@@ -618,6 +873,9 @@ defmodule EmakolaWeb.Admin.InventoryLive do
           </div>
         </form>
       </.modal>
+
+      <%!-- Transfer stock modal --%>
+      <.transfer_modal variant={@transfer_variant} locations={@locations} />
     </div>
     """
   end
@@ -650,6 +908,34 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
   # ── Data Loading ──
 
+  defp reload_inventory(socket) do
+    socket
+    |> load_locations()
+    |> load_variants()
+    |> load_levels()
+  end
+
+  defp load_locations(socket) do
+    case socket.assigns.store_id do
+      nil ->
+        assign(socket, locations: [], multi_location?: false)
+
+      store_id ->
+        Emakola.Inventory.ensure_default_location!(store_id)
+
+        locations =
+          case Emakola.Inventory.list_locations(actor(socket), store_id) do
+            {:ok, locations} -> locations
+            _ -> []
+          end
+
+        assign(socket,
+          locations: locations,
+          multi_location?: Enum.count(locations, & &1.active) > 1
+        )
+    end
+  end
+
   defp load_variants(socket) do
     store_id = socket.assigns.store_id
     all_variants = fetch_variants(store_id)
@@ -658,6 +944,47 @@ defmodule EmakolaWeb.Admin.InventoryLive do
     socket
     |> assign(all_variants: all_variants, stats: stats)
     |> apply_filters()
+  end
+
+  defp load_levels(socket) do
+    %{store_id: store_id, locations: locations, all_variants: all_variants} = socket.assigns
+
+    levels_by_variant =
+      with store_id when not is_nil(store_id) <- store_id,
+           {:ok, levels_map} <- Emakola.Inventory.levels_by_variant(actor(socket), store_id) do
+        levels_map
+      else
+        _ -> %{}
+      end
+
+    assign(socket,
+      levels_by_variant: levels_by_variant,
+      location_totals: compute_location_totals(locations, all_variants, levels_by_variant)
+    )
+  end
+
+  # Per-location totals from the level rows, plus the stock of variants
+  # that have never been seeded with levels — that stock implicitly lives
+  # at the default location (the domain seeds it from the total on first
+  # write).
+  defp compute_location_totals(locations, all_variants, levels_by_variant) do
+    base = Map.new(locations, &{&1.id, 0})
+
+    seeded =
+      for {_variant_id, levels} <- levels_by_variant, level <- levels, reduce: base do
+        acc -> Map.update(acc, level.location_id, level.quantity, &(&1 + level.quantity))
+      end
+
+    unseeded_total =
+      all_variants
+      |> Enum.filter(&(&1.track_inventory and not Map.has_key?(levels_by_variant, &1.id)))
+      |> Enum.map(&max(&1.stock_quantity, 0))
+      |> Enum.sum()
+
+    case Enum.find(locations, & &1.default) do
+      nil -> seeded
+      default -> Map.update(seeded, default.id, unseeded_total, &(&1 + unseeded_total))
+    end
   end
 
   defp apply_filters(socket) do
@@ -730,6 +1057,59 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   end
 
   # ── Helpers ──
+
+  defp actor(socket), do: socket.assigns[:current_merchant]
+
+  defp find_location(locations, id), do: Enum.find(locations, &(&1.id == id))
+
+  # The variant's current stock at a location. A variant with no level
+  # rows has never been written through the domain — its whole total
+  # implicitly sits at the default location (levels seed lazily,
+  # default-first, so a missing default row means no rows at all).
+  defp location_quantity(socket, variant, location_id) do
+    levels = Map.get(socket.assigns.levels_by_variant, variant.id, [])
+    default = Enum.find(socket.assigns.locations, & &1.default)
+
+    case Enum.find(levels, &(&1.location_id == location_id)) do
+      %{quantity: quantity} ->
+        quantity
+
+      nil ->
+        if (levels == [] and default) && default.id == location_id,
+          do: max(variant.stock_quantity, 0),
+          else: 0
+    end
+  end
+
+  # Entries for the per-location breakdown line: {name, qty} for active
+  # locations holding stock. Unseeded tracked variants show their total
+  # at the default location.
+  defp breakdown_entries(%{track_inventory: false}, _levels_by_variant, _locations), do: []
+
+  defp breakdown_entries(variant, levels_by_variant, locations) do
+    case Map.get(levels_by_variant, variant.id) do
+      nil ->
+        default = Enum.find(locations, & &1.default)
+
+        if default && variant.stock_quantity > 0,
+          do: [{default.name, variant.stock_quantity}],
+          else: []
+
+      levels ->
+        for level <- levels, level.location.active, level.quantity > 0 do
+          {level.location.name, level.quantity}
+        end
+    end
+  end
+
+  defp parse_positive_int(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {quantity, _} when quantity > 0 -> quantity
+      _ -> nil
+    end
+  end
+
+  defp parse_positive_int(_), do: nil
 
   defp load_suppliers(socket) do
     case socket.assigns.store_id do

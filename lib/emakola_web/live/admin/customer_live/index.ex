@@ -52,57 +52,38 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
       <%!-- KPI Cards --%>
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <.kpi_card
+        <.stat_card
           label="Total Customers"
           value={length(@customers) |> Integer.to_string()}
-          icon="hero-users"
           icon_bg="bg-emerald-50"
-          icon_color="text-emerald-600"
-        />
-        <.kpi_card
+        >
+          <:icon><.icon name="hero-users" class="size-[18px] text-emerald-600" /></:icon>
+        </.stat_card>
+        <.stat_card
           label="Active"
           value={length(@customers) |> Integer.to_string()}
-          icon="hero-check-circle"
           icon_bg="bg-violet-50"
-          icon_color="text-violet-600"
-        />
-        <.kpi_card
+        >
+          <:icon><.icon name="hero-check-circle" class="size-[18px] text-violet-600" /></:icon>
+        </.stat_card>
+        <.stat_card
           label="New This Month"
           value={count_new_this_month(@customers) |> Integer.to_string()}
-          icon="hero-user-plus"
           icon_bg="bg-amber-50"
-          icon_color="text-amber-600"
-        />
-        <.kpi_card
+        >
+          <:icon><.icon name="hero-user-plus" class="size-[18px] text-amber-600" /></:icon>
+        </.stat_card>
+        <.stat_card
           label="Avg. Order Value"
           value={calculate_avg_order_value(@customers)}
-          icon="hero-currency-dollar"
           icon_bg="bg-rose-50"
-          icon_color="text-rose-600"
-        />
+        >
+          <:icon><.icon name="hero-currency-dollar" class="size-[18px] text-rose-600" /></:icon>
+        </.stat_card>
       </div>
 
       <%!-- Filter Bar --%>
-      <div class="bg-white rounded-2xl shadow-sm p-4">
-        <div class="flex flex-col lg:flex-row gap-3">
-          <form phx-change="search" phx-debounce="300" class="flex-1">
-            <div class="relative">
-              <.icon
-                name="hero-magnifying-glass"
-                class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400"
-              />
-              <input
-                type="search"
-                name="search"
-                value={@search_query}
-                placeholder="Search by name or email..."
-                class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
-                autocomplete="off"
-              />
-            </div>
-          </form>
-        </div>
-      </div>
+      <.table_toolbar search_query={@search_query} placeholder="Search by name or email..." />
 
       <%!-- Customers Table (desktop) --%>
       <%= if @customers == [] do %>
@@ -221,28 +202,6 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
           Showing <span class="font-semibold text-slate-700">{length(@customers)}</span> customers
         </p>
       </div>
-    </div>
-    """
-  end
-
-  # ── Components ──
-
-  attr :label, :string, required: true
-  attr :value, :string, required: true
-  attr :icon, :string, required: true
-  attr :icon_bg, :string, required: true
-  attr :icon_color, :string, required: true
-
-  defp kpi_card(assigns) do
-    ~H"""
-    <div class="bg-white rounded-2xl shadow-sm p-5 hover:shadow-md hover:border-slate-300 transition-all duration-300">
-      <div class="flex items-center justify-between mb-4">
-        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">{@label}</span>
-        <div class={"w-9 h-9 #{@icon_bg} rounded-xl flex items-center justify-center"}>
-          <.icon name={@icon} class={"size-[18px] #{@icon_color}"} />
-        </div>
-      </div>
-      <p class="text-3xl font-bold text-slate-900 font-mono tracking-tight">{@value}</p>
     </div>
     """
   end

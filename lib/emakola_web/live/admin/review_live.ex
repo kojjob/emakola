@@ -161,7 +161,7 @@ defmodule EmakolaWeb.Admin.ReviewLive do
                   else: ""}
               </td>
               <td class="px-4 py-3">
-                <.status_badge status={review.status} />
+                <.review_status_badge status={review.status} />
               </td>
               <td class="px-4 py-3 text-right">
                 <button
@@ -198,7 +198,7 @@ defmodule EmakolaWeb.Admin.ReviewLive do
 
   attr :status, :atom, required: true
 
-  defp status_badge(assigns) do
+  defp review_status_badge(assigns) do
     ~H"""
     <span class={[
       "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",

@@ -311,7 +311,7 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
                   />
                 </td>
                 <td class="px-6 py-4">
-                  <.status_badge status={discount.status} />
+                  <.discount_status_badge status={discount.status} />
                 </td>
                 <td class="px-6 py-4 text-xs text-slate-500 hidden lg:table-cell">
                   {discount.valid_period}
@@ -371,7 +371,7 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
               ]}>
                 {discount.code}
               </span>
-              <.status_badge status={discount.status} />
+              <.discount_status_badge status={discount.status} />
             </div>
             <div class="flex items-center justify-between text-sm mt-2">
               <span class="text-slate-500">{discount.value_display}</span>
@@ -615,7 +615,7 @@ defmodule EmakolaWeb.Admin.DiscountLive.Index do
 
   attr :status, :atom, required: true
 
-  defp status_badge(assigns) do
+  defp discount_status_badge(assigns) do
     ~H"""
     <span class={[
       "inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full",

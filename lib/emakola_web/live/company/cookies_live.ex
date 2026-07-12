@@ -11,21 +11,15 @@ defmodule EmakolaWeb.Company.CookiesLive do
        page_title: "Cookie Policy — Makola",
        meta_description: "How and why Makola uses cookies and similar technologies.",
        og_image: url(~p"/images/og-image.png"),
-       canonical_url: url(~p"/cookies"),
-       mobile_menu_open: false
+       canonical_url: url(~p"/cookies")
      ), layout: false}
-  end
-
-  @impl true
-  def handle_event("toggle_mobile_menu", _params, socket) do
-    {:noreply, assign(socket, mobile_menu_open: !socket.assigns.mobile_menu_open)}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-white font-body antialiased">
-      <.landing_nav mobile_menu_open={@mobile_menu_open} />
+      <.landing_nav />
       <main>
         <.legal_layout
           title="Cookie Policy"

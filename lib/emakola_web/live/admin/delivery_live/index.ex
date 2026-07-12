@@ -50,7 +50,9 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
       store_id: store.id,
       name: params["name"],
       fee: fee_pesewas,
-      estimated_days: estimated_days
+      estimated_days: estimated_days,
+      free_above_pesewas: parse_optional_fee(params["free_above"]),
+      per_kg_fee_pesewas: parse_optional_fee(params["per_kg_fee"])
     }
 
     case socket.assigns.editing_zone do
@@ -167,6 +169,18 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
   defp parse_fee(fee) when is_integer(fee), do: fee
   defp parse_fee(_), do: 0
 
+  # Optional GHS inputs: blank/invalid means "not configured" (nil), keeping
+  # the zone on flat per-zone pricing.
+  defp parse_optional_fee(fee_str) when is_binary(fee_str) do
+    case Float.parse(fee_str) do
+      {amount, _} -> round(amount * 100)
+      :error -> nil
+    end
+  end
+
+  defp parse_optional_fee(fee) when is_integer(fee), do: fee
+  defp parse_optional_fee(_), do: nil
+
   defp parse_int(val, default) when is_binary(val) do
     case Integer.parse(val) do
       {n, _} -> n
@@ -260,6 +274,40 @@ defmodule EmakolaWeb.Admin.DeliveryLive.Index do
                 value={(@editing_zone && @editing_zone.estimated_days) || 1}
                 min="1"
                 required
+                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                Free above (GH&#8373;)
+              </label>
+              <input
+                type="number"
+                name="zone[free_above]"
+                value={
+                  @editing_zone && @editing_zone.free_above_pesewas &&
+                    format_fee(@editing_zone.free_above_pesewas)
+                }
+                placeholder="Optional — order subtotal for free delivery"
+                step="0.01"
+                min="0"
+                class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                Per kg fee (GH&#8373;)
+              </label>
+              <input
+                type="number"
+                name="zone[per_kg_fee]"
+                value={
+                  @editing_zone && @editing_zone.per_kg_fee_pesewas &&
+                    format_fee(@editing_zone.per_kg_fee_pesewas)
+                }
+                placeholder="Optional — added per started kg"
+                step="0.01"
+                min="0"
                 class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
               />
             </div>

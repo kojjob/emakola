@@ -10,6 +10,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   """
   use EmakolaWeb, :live_view
 
+  require Ash.Query
   require Logger
 
   import EmakolaWeb.Storefront.Path
@@ -34,6 +35,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       Enum.reduce(cart, 0, fn item, acc -> acc + item.unit_price * item.quantity end)
 
     cart_count = Enum.reduce(cart, 0, fn item, acc -> acc + item.quantity end)
+
+    cart_weight_grams = cart_weight_grams(cart, store.id)
 
     categories =
       try do
@@ -68,6 +71,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      |> assign(:cart, cart)
      |> assign(:cart_count, cart_count)
      |> assign(:cart_total, cart_total)
+     |> assign(:cart_weight_grams, cart_weight_grams)
      |> assign(:utm_attribution, utm_attribution)
      |> assign(:sales_team_economics, sales_team_economics)
      |> assign(:step, 1)
@@ -627,7 +631,10 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     store_id = socket.assigns.store.id
 
     fee =
-      case Emakola.Shipping.calculate_fee(store_id, region) do
+      case Emakola.Shipping.calculate_fee(store_id, region,
+             subtotal_pesewas: socket.assigns.cart_total,
+             total_weight_grams: socket.assigns.cart_weight_grams
+           ) do
         {:ok, configured_fee} ->
           configured_fee
 
@@ -636,6 +643,24 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       end
 
     assign(socket, :delivery_fee, fee)
+  end
+
+  # Total cart weight in grams for weight-based delivery pricing. Variants
+  # without a configured weight count as 0.
+  defp cart_weight_grams([], _store_id), do: 0
+
+  defp cart_weight_grams(cart, store_id) do
+    variant_ids = Enum.map(cart, & &1.variant_id)
+
+    weights =
+      Emakola.Catalog.Variant
+      |> Ash.Query.filter(id in ^variant_ids and store_id == ^store_id)
+      |> Ash.read!(authorize?: false)
+      |> Map.new(&{&1.id, &1.weight_grams})
+
+    cart
+    |> Enum.map(&%{weight_grams: Map.get(weights, &1.variant_id), quantity: &1.quantity})
+    |> Emakola.Shipping.total_weight_grams()
   end
 
   defp validate_contact_fields(assigns) do

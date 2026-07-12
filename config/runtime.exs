@@ -199,17 +199,33 @@ if config_env() == :prod do
   # SMS notifications — required in prod (order/stock notifications are
   # business-critical, so missing credentials fail the boot, not silently
   # no-op). Workers resolve :sms_provider; the channel reads its own
-  # keyword config.
+  # keyword config. SMS_PROVIDER=arkesel switches the channel to Arkesel's
+  # v2 contract (api-key header + sender/message/recipients payload) and
+  # makes SMS_API_URL optional (defaults to the Arkesel endpoint).
   config :emakola, :sms_provider, Emakola.Notifications.Channels.SMS
 
+  sms_provider_mode =
+    case System.get_env("SMS_PROVIDER", "generic") do
+      "arkesel" -> :arkesel
+      _generic -> :generic
+    end
+
+  sms_api_url =
+    System.get_env("SMS_API_URL") ||
+      if sms_provider_mode == :arkesel do
+        # The channel's own Arkesel default; nil lets it apply.
+        nil
+      else
+        raise("environment variable SMS_API_URL is missing (or set SMS_PROVIDER=arkesel).")
+      end
+
   config :emakola, Emakola.Notifications.Channels.SMS,
+    provider: sms_provider_mode,
     api_key:
       System.get_env("SMS_API_KEY") ||
         raise("environment variable SMS_API_KEY is missing."),
     sender_id: System.get_env("SMS_SENDER_ID") || "Makola",
-    api_url:
-      System.get_env("SMS_API_URL") ||
-        raise("environment variable SMS_API_URL is missing.")
+    api_url: sms_api_url
 
   # WhatsApp Business Cloud API — credentials required in prod.
   # Workers resolve :whatsapp_provider and call send_message/4, which the

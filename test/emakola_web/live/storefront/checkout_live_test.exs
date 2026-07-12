@@ -337,5 +337,38 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
 
       assert html =~ "GH\u20B5 25"
     end
+
+    test "zone with per-kg pricing charges base fee plus weight surcharge",
+         %{conn: conn, store: store, variant: variant} do
+      # 600g x qty 2 = 1200g -> rounds up to 2kg -> 1500 + 2 * 500 = 2500
+      variant
+      |> Ash.Changeset.for_update(:update, %{weight_grams: 600})
+      |> Ash.update!(authorize?: false)
+
+      create_delivery_zone!(store, name: "Greater Accra", fee: 1500, per_kg_fee_pesewas: 500)
+
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      html = render_change(view, "update_details", %{"region" => "greater_accra"})
+
+      assert html =~ "GH\u20B5 25"
+    end
+
+    test "zone with free-above threshold ships free when subtotal qualifies",
+         %{conn: conn, store: store, variant: variant} do
+      # Cart subtotal is 5000 x qty 2 = 10_000, meeting the threshold exactly.
+      create_delivery_zone!(store, name: "Greater Accra", fee: 1500, free_above_pesewas: 10_000)
+
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      html = render_change(view, "update_details", %{"region" => "greater_accra"})
+
+      # Order total stays at the GH\u20B5 100 subtotal \u2014 a charged 1500 fee would
+      # render a GH\u20B5 115 total instead.
+      assert html =~ "GH\u20B5 100"
+      refute html =~ "GH\u20B5 115"
+    end
   end
 end

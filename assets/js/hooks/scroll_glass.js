@@ -1,22 +1,29 @@
 /**
- * ScrollGlass Hook — Toggles `.scrolled` class on a nav element
- * when the page scrolls past a threshold (40px).
+ * ScrollGlass — Toggles `.scrolled` class on a nav element when the page
+ * scrolls past a threshold (40px).
  *
- * Usage: <nav id="main-nav" phx-hook="ScrollGlass">
+ * Two entry points share bindScrollGlass:
+ *  - LiveView hook:  <nav phx-hook="ScrollGlass">
+ *  - Dead pages:     <nav data-scroll-glass> (bound by app.js)
  */
+export function bindScrollGlass(el) {
+  const threshold = parseInt(el.dataset.scrollThreshold || "40", 10)
+  const onScroll = () => {
+    if (window.scrollY > threshold) {
+      el.classList.add("scrolled")
+    } else {
+      el.classList.remove("scrolled")
+    }
+  }
+  window.addEventListener("scroll", onScroll, { passive: true })
+  // Check initial state
+  onScroll()
+  return onScroll
+}
+
 const ScrollGlass = {
   mounted() {
-    this.threshold = parseInt(this.el.dataset.scrollThreshold || "40", 10)
-    this.onScroll = () => {
-      if (window.scrollY > this.threshold) {
-        this.el.classList.add("scrolled")
-      } else {
-        this.el.classList.remove("scrolled")
-      }
-    }
-    window.addEventListener("scroll", this.onScroll, { passive: true })
-    // Check initial state
-    this.onScroll()
+    this.onScroll = bindScrollGlass(this.el)
   },
 
   destroyed() {

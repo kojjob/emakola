@@ -13,14 +13,8 @@ defmodule EmakolaWeb.Company.AboutLive do
          "Makola helps West African merchants sell online with mobile money, WhatsApp orders, and storefronts built for low-bandwidth phones.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/about"),
-       json_ld: EmakolaWeb.Helpers.SEO.json_ld_organization(),
-       mobile_menu_open: false
+       json_ld: EmakolaWeb.Helpers.SEO.json_ld_organization()
      ), layout: false}
-  end
-
-  @impl true
-  def handle_event("toggle_mobile_menu", _params, socket) do
-    {:noreply, assign(socket, mobile_menu_open: !socket.assigns.mobile_menu_open)}
   end
 
   @impl true
@@ -31,7 +25,7 @@ defmodule EmakolaWeb.Company.AboutLive do
       phx-hook="ScrollReveal"
       class="min-h-screen bg-white font-body antialiased"
     >
-      <.landing_nav mobile_menu_open={@mobile_menu_open} />
+      <.landing_nav />
       <main>
         <.marketing_hero
           eyebrow="Our story"

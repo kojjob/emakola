@@ -151,9 +151,18 @@ defmodule Emakola.Suppliers.InventoryReservations do
           Emakola.Repo.rollback(:insufficient_inventory)
 
         true ->
-          source_variant
-          |> Ash.Changeset.for_update(:adjust_stock, %{delta: -quantity})
-          |> Ash.update!(authorize?: false)
+          # Funnel through the Inventory domain (hold at the supplier's
+          # default location) so total==sum(levels) holds and the ledger
+          # records the hold. Same-transaction re-lock is re-entrant.
+          hold_location = Emakola.Inventory.ensure_default_location!(policy.supplier_store_id)
+
+          {:ok, _} =
+            Emakola.Inventory.adjust(
+              source_variant.id,
+              hold_location.id,
+              -quantity,
+              :reservation_hold
+            )
 
           now = DateTime.utc_now()
 
@@ -265,9 +274,16 @@ defmodule Emakola.Suppliers.InventoryReservations do
         remaining = reservation.quantity - reservation.consumed_quantity
 
         if remaining > 0 do
-          locked_variant!(reservation.source_variant_id)
-          |> Ash.Changeset.for_update(:adjust_stock, %{delta: remaining})
-          |> Ash.update!(authorize?: false)
+          release_location =
+            Emakola.Inventory.ensure_default_location!(reservation.supplier_store_id)
+
+          {:ok, _} =
+            Emakola.Inventory.adjust(
+              reservation.source_variant_id,
+              release_location.id,
+              remaining,
+              :reservation_release
+            )
         end
 
         reservation
