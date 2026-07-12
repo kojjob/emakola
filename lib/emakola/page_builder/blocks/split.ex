@@ -19,6 +19,8 @@ defmodule Emakola.PageBuilder.Blocks.Split do
 
   use Phoenix.Component
 
+  alias Emakola.PageBuilder.SafeUrl
+
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   @impl true
@@ -62,7 +64,7 @@ defmodule Emakola.PageBuilder.Blocks.Split do
           <div class={image_order_class(@content[:image_position])}>
             <%= if @content[:image_url] do %>
               <.optimized_image
-                src={@content[:image_url]}
+                src={SafeUrl.safe_url(@content[:image_url])}
                 alt={@content[:heading] || ""}
                 class="w-full aspect-[4/3] object-cover rounded-2xl"
               />
@@ -89,7 +91,7 @@ defmodule Emakola.PageBuilder.Blocks.Split do
             </div>
             <a
               :if={@content[:cta_label]}
-              href={@content[:cta_url] || "/products"}
+              href={SafeUrl.safe_url(@content[:cta_url]) || "/products"}
               class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-stone-900 text-white text-sm font-semibold hover:bg-stone-700 transition-colors"
             >
               {@content[:cta_label]}

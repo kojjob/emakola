@@ -19,6 +19,8 @@ defmodule Emakola.PageBuilder.Blocks.ImageBanner do
 
   use Phoenix.Component
 
+  alias Emakola.PageBuilder.SafeUrl
+
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   @impl true
@@ -50,7 +52,7 @@ defmodule Emakola.PageBuilder.Blocks.ImageBanner do
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <%= if @content[:image_url] do %>
           <%= if @content[:link_url] do %>
-            <a href={@content[:link_url]} class="block">
+            <a href={SafeUrl.safe_url(@content[:link_url])} class="block">
               <.banner_image content={@content} aspect_class={@aspect_class} />
             </a>
           <% else %>
@@ -89,7 +91,7 @@ defmodule Emakola.PageBuilder.Blocks.ImageBanner do
     ~H"""
     <div class={["overflow-hidden rounded-2xl", @aspect_class]}>
       <.optimized_image
-        src={@content[:image_url]}
+        src={SafeUrl.safe_url(@content[:image_url])}
         alt={@content[:alt] || ""}
         class="w-full h-full object-cover"
       />

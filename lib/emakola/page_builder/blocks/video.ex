@@ -20,6 +20,8 @@ defmodule Emakola.PageBuilder.Blocks.Video do
 
   use Phoenix.Component
 
+  alias Emakola.PageBuilder.SafeUrl
+
   @impl true
   def type, do: "video"
 
@@ -72,7 +74,7 @@ defmodule Emakola.PageBuilder.Blocks.Video do
               <% {:file, file_url} -> %>
                 <video
                   src={file_url}
-                  poster={@content[:poster_url]}
+                  poster={SafeUrl.safe_url(@content[:poster_url])}
                   controls
                   preload="metadata"
                   class="absolute inset-0 w-full h-full object-contain"
@@ -106,7 +108,7 @@ defmodule Emakola.PageBuilder.Blocks.Video do
   Recognises a video URL and returns either:
   - `{:youtube, embed_url}` for any YouTube URL
   - `{:vimeo, embed_url}` for any Vimeo URL
-  - `{:file, url}` for direct http(s)/relative file URLs
+  - `{:file, url}` for direct http(s)/site-relative file URLs per `SafeUrl`
   - `:invalid` for nil, blank, or unrecognised input
   """
   def video_embed(nil), do: :invalid
@@ -120,11 +122,8 @@ defmodule Emakola.PageBuilder.Blocks.Video do
       vimeo_id = extract_vimeo_id(url) ->
         {:vimeo, "https://player.vimeo.com/video/#{vimeo_id}"}
 
-      String.match?(url, ~r/^https?:\/\//) ->
-        {:file, url}
-
-      String.starts_with?(url, "/") ->
-        {:file, url}
+      safe = SafeUrl.safe_url(url) ->
+        {:file, safe}
 
       true ->
         :invalid
