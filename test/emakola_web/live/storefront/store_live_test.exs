@@ -24,6 +24,19 @@ defmodule EmakolaWeb.Storefront.StoreLiveTest do
       assert html =~ ~s(href="#market-content")
       assert html =~ ~s(id="market-content")
     end
+
+    test "the newsletter section form submits through the platform hook", %{conn: conn} do
+      store = Factory.create_store!(%{theme_config: %{"theme" => "market"}})
+
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}")
+
+      html =
+        view
+        |> form("#market-newsletter-form", %{"email" => "efua@example.com"})
+        |> render_submit()
+
+      assert html =~ "Thanks for subscribing"
+    end
   end
 
   test "emits LocalBusiness JSON-LD derived from the store profile", %{conn: conn} do

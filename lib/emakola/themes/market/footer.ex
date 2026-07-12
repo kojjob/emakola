@@ -5,13 +5,14 @@ defmodule Emakola.Themes.Market.Footer do
   previously borrowed Atelier's footer, leaving a cold seam under the
   warm stone home.
 
-  Content parity with the Atelier columns footer it replaces: newsletter
-  band, brand block, shop / company / contact link columns, social links,
-  payment badges, secure-checkout mark, copyright. Differences by design:
+  Content parity with the Atelier columns footer it replaces: brand block,
+  shop / company / contact link columns, social links, payment badges,
+  secure-checkout mark, copyright. Email capture is NOT here — the
+  `market/newsletter` section owns it, so merchants can toggle/reorder it
+  and the page never carries two subscribe forms. Differences by design:
   one variant (no `footer_style` token switching), social icons render
   only when the merchant configured a URL, and the brand description
-  renders only when the store has one — no invented prose. The merchant's
-  primary colour appears only in the CTA role (the Subscribe button).
+  renders only when the store has one — no invented prose.
   """
   use Phoenix.Component
 
@@ -39,52 +40,13 @@ defmodule Emakola.Themes.Market.Footer do
       ])
 
     social_links = Map.get(footer_config, :social_links) || %{}
-    newsletter = get_in(theme, [:newsletter]) || %{}
 
     assigns =
       assigns
       |> assign(:company_links, company_links)
       |> assign(:social_links, social_links)
-      |> assign(:newsletter, newsletter)
-      |> assign(:show_newsletter, Map.get(newsletter, :enabled, true))
 
     ~H"""
-    <section :if={@show_newsletter} class="border-t border-stone-200 bg-white">
-      <div class="mx-auto max-w-[1280px] px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
-        <div class="mx-auto max-w-2xl text-center">
-          <h3 class="mb-3 text-2xl font-bold tracking-tight text-stone-900 [font-family:var(--dt-heading-font,inherit)] sm:text-3xl">
-            {Map.get(@newsletter, :title, "Stay in the Loop")}
-          </h3>
-          <p class="mb-6 text-sm leading-relaxed text-stone-600 sm:text-base">
-            {Map.get(
-              @newsletter,
-              :subtitle,
-              "Get the latest products, deals, and updates delivered to your inbox."
-            )}
-          </p>
-          <form
-            class="mx-auto flex max-w-lg flex-col gap-3 sm:flex-row"
-            phx-submit="subscribe_newsletter"
-          >
-            <input
-              type="email"
-              name="email"
-              placeholder="Enter your email"
-              required
-              class="min-h-[48px] flex-1 rounded-full border border-stone-200 bg-white px-5 py-3.5 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900"
-            />
-            <button
-              type="submit"
-              class="min-h-[48px] cursor-pointer whitespace-nowrap rounded-full bg-store-accent px-6 py-3.5 text-sm font-semibold leading-none text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 motion-safe:transition-opacity motion-safe:active:scale-[0.98]"
-            >
-              {Map.get(@newsletter, :button_text, "Subscribe")}
-            </button>
-          </form>
-          <p class="mt-3 text-xs text-stone-400">No spam. Unsubscribe anytime.</p>
-        </div>
-      </div>
-    </section>
-
     <footer class="bg-stone-900 text-white">
       <%!-- Mobile bottom padding clears the fixed market_bottom_nav tab bar. --%>
       <div class="mx-auto max-w-[1280px] px-4 pb-28 pt-14 sm:px-6 sm:py-20 lg:px-8">

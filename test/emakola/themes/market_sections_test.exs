@@ -5,7 +5,7 @@ defmodule Emakola.Themes.MarketSectionsTest do
   import Phoenix.LiveViewTest, only: [rendered_to_string: 1]
 
   alias Emakola.Themes.Market.Components
-  alias Emakola.Themes.Market.Sections.Hero
+  alias Emakola.Themes.Market.Sections.{Hero, Newsletter, Trust}
   alias Emakola.Themes.Market.Shared
   alias Emakola.Themes.{Market, Sections, ThemeResolver}
 
@@ -57,7 +57,7 @@ defmodule Emakola.Themes.MarketSectionsTest do
   end
 
   describe "sections/0" do
-    test "lists the five home sections in visual order, hero first" do
+    test "lists the seven home sections in visual order, hero first" do
       keys = Enum.map(Market.sections(), & &1.key())
 
       assert keys == [
@@ -65,7 +65,9 @@ defmodule Emakola.Themes.MarketSectionsTest do
                "market/category_strip",
                "market/featured",
                "market/product_grid",
-               "market/about"
+               "market/about",
+               "market/trust",
+               "market/newsletter"
              ]
     end
 
@@ -113,11 +115,15 @@ defmodule Emakola.Themes.MarketSectionsTest do
       assert html =~ "tabular-nums"
       # About
       assert html =~ "About the Shop"
+      # Trust names the real rails; newsletter owns capture — exactly one form
+      assert html =~ "MTN MoMo"
+      assert length(String.split(html, ~s(phx-submit="subscribe_newsletter"))) == 2
 
       # Flat sibling order: hero -> categories -> featured -> grid -> about
+      # -> trust -> newsletter
       assert String.match?(
                html,
-               ~r/market-hero-heading.*Product categories.*Featured product.*Shop All.*About the Shop/s
+               ~r/market-hero-heading.*Product categories.*Featured product.*Shop All.*About the Shop.*We Accept.*market-newsletter-form/s
              )
     end
 
@@ -201,12 +207,11 @@ defmodule Emakola.Themes.MarketSectionsTest do
       assert html =~ ~s(href="/s/stall/policies#privacy")
     end
 
-    test "carries the newsletter form wired to the platform hook" do
+    test "no longer carries a newsletter band — the market/newsletter section owns capture" do
       html = render_footer(@component_store)
 
-      assert html =~ ~s(phx-submit="subscribe_newsletter")
-      assert html =~ ~s(type="email")
-      assert html =~ "Subscribe"
+      refute html =~ ~s(phx-submit="subscribe_newsletter")
+      refute html =~ ~s(type="email")
     end
 
     test "keeps the payment and trust badges and the store's identity" do
@@ -419,6 +424,101 @@ defmodule Emakola.Themes.MarketSectionsTest do
       for setting <- Hero.settings_schema() do
         assert Map.has_key?(setting, :default)
       end
+    end
+  end
+
+  defp render_trust(store, settings_overrides \\ %{}) do
+    defaults =
+      for setting <- Trust.settings_schema(),
+          into: %{},
+          do: {setting.key, setting.default}
+
+    render_component(&Trust.render/1, %{
+      store: store,
+      settings: Map.merge(defaults, settings_overrides)
+    })
+  end
+
+  defp render_newsletter(store, settings_overrides \\ %{}) do
+    defaults =
+      for setting <- Newsletter.settings_schema(),
+          into: %{},
+          do: {setting.key, setting.default}
+
+    render_component(&Newsletter.render/1, %{
+      store: store,
+      settings: Map.merge(defaults, settings_overrides)
+    })
+  end
+
+  describe "trust section" do
+    test "names only the payment rails the platform really supports" do
+      html = render_trust(@component_store)
+
+      assert html =~ "We Accept"
+      assert html =~ "MTN MoMo"
+      assert html =~ "Telecel Cash"
+      assert html =~ "AirtelTigo Money"
+      assert html =~ "Visa"
+      assert html =~ "Mastercard"
+    end
+
+    test "delivery and returns point at the store's own policies, with no invented SLA" do
+      html = render_trust(@component_store)
+
+      assert html =~ ~s(href="/s/stall/policies)
+      refute html =~ ~r/\d+(-\d+)?\s*business days|returns? (accepted|within) \d+\s*days?/i
+    end
+
+    test "support links to WhatsApp when the store has a number, contact page otherwise" do
+      html = render_trust(@component_store)
+
+      refute html =~ "wa.me/"
+      assert html =~ ~s(href="/s/stall/contact")
+
+      with_whatsapp = Map.put(@component_store, :whatsapp_number, "233200000000")
+      html = render_trust(with_whatsapp)
+
+      assert html =~ "wa.me/233200000000"
+    end
+
+    test "a merchant heading replaces the default" do
+      html = render_trust(@component_store, %{"heading" => "Buy with your phone"})
+
+      assert html =~ "Buy with your phone"
+      refute html =~ "Shop with confidence"
+    end
+
+    test "keeps the warm stone palette" do
+      html = render_trust(@component_store)
+
+      refute html =~ ~r/(?<![a-zA-Z])slate-\d/
+      refute html =~ ~r/(?<![a-zA-Z])gray-\d/
+    end
+  end
+
+  describe "newsletter section" do
+    test "renders the platform-handled subscribe form" do
+      html = render_newsletter(@component_store)
+
+      assert html =~ ~s(id="market-newsletter-form")
+      assert html =~ ~s(phx-submit="subscribe_newsletter")
+      assert html =~ ~s(type="email")
+      assert html =~ ~s(name="email")
+      assert html =~ "Subscribe"
+    end
+
+    test "copy is honest — no fake incentive" do
+      html = render_newsletter(@component_store)
+
+      refute html =~ ~r/\d+\s*%|discount|% off|free shipping/i
+    end
+
+    test "a merchant heading replaces the default" do
+      html = render_newsletter(@component_store, %{"heading" => "Market mornings"})
+
+      assert html =~ "Market mornings"
+      refute html =~ "Stay in the loop"
     end
   end
 

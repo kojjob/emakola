@@ -24,7 +24,9 @@ defmodule Emakola.Themes.Market do
       Emakola.Themes.Market.Sections.CategoryStrip,
       Emakola.Themes.Market.Sections.Featured,
       Emakola.Themes.Market.Sections.ProductGrid,
-      Emakola.Themes.Market.Sections.About
+      Emakola.Themes.Market.Sections.About,
+      Emakola.Themes.Market.Sections.Trust,
+      Emakola.Themes.Market.Sections.Newsletter
     ]
 
   def fonts,
