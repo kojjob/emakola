@@ -214,4 +214,30 @@ defmodule Emakola.Themes.SectionRendererTest do
     refute html =~ "background-color"
     assert html =~ "beta"
   end
+
+  test "preview: true forces wrappers with data-section-id on unstyled defaults", %{store: store} do
+    html =
+      %{
+        store: store,
+        theme_module: FakeTheme,
+        products: [],
+        categories: [],
+        preview: true,
+        __changed__: nil
+      }
+      |> SectionRenderer.home()
+      |> rendered_to_string()
+
+    assert html =~ ~s(data-section-id="faketheme/alpha")
+    assert html =~ ~s(data-section-id="faketheme/beta")
+  end
+
+  test "without preview, unstyled defaults still render bare", %{store: store} do
+    html =
+      %{store: store, theme_module: FakeTheme, products: [], categories: [], __changed__: nil}
+      |> SectionRenderer.home()
+      |> rendered_to_string()
+
+    refute html =~ "data-section-id"
+  end
 end
