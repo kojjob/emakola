@@ -269,7 +269,8 @@ defmodule Emakola.Themes.Chale.ProductDetail do
               if(@purchasable,
                 do:
                   "cursor-pointer rounded-xl border border-[#E3E0DA] bg-store-accent text-white shadow-sm hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-offset-2 motion-safe:transition-opacity motion-safe:active:translate-y-0.5",
-                else: "cursor-not-allowed rounded-xl border border-[#E3E0DA] bg-zinc-200 text-zinc-500"
+                else:
+                  "cursor-not-allowed rounded-xl border border-[#E3E0DA] bg-zinc-200 text-zinc-500"
               )
             ]}
           >
