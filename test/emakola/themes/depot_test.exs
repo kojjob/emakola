@@ -826,7 +826,7 @@ defmodule Emakola.Themes.DepotTest do
       assert html =~ ~s(phx-click="decrement_quantity")
       assert html =~ ~s(phx-click="add_to_cart")
       # Line total = 3 × GH₵ 450, integer minor-unit arithmetic
-      assert html =~ "GH₵ 1350"
+      assert html =~ "GH₵ 1,350"
     end
 
     test "an out-of-stock variant disables the CTA" do

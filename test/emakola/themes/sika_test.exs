@@ -295,7 +295,7 @@ defmodule Emakola.Themes.SikaTest do
       assert length(String.split(html, "<img")) - 1 == 1
 
       assert html =~ "Nsuo Band"
-      assert html =~ "GH₵ 4800"
+      assert html =~ "GH₵ 4,800"
     end
   end
 
@@ -313,7 +313,7 @@ defmodule Emakola.Themes.SikaTest do
       refute html =~ "<img"
       assert html =~ "Nsuo Band"
       # 480_000 pesewas stated plainly — no chip, no shouting
-      assert html =~ "GH₵ 4800"
+      assert html =~ "GH₵ 4,800"
       assert html =~ "tabular-nums"
       assert html =~ ~s(href="/s/vitrine/products/nsuo-band")
       assert html =~ "View piece"
@@ -543,7 +543,7 @@ defmodule Emakola.Themes.SikaTest do
       assert length(String.split(html, "<h1")) == 2
       assert html =~ "The collection"
       assert html =~ "Asase Signet"
-      assert html =~ "GH₵ 2500"
+      assert html =~ "GH₵ 2,500"
       assert html =~ "1 piece"
       assert cart_reachable_on_desktop?(html)
       refute html =~ ~s(phx-click="add_to_cart")
@@ -659,7 +659,7 @@ defmodule Emakola.Themes.SikaTest do
 
       assert length(String.split(html, "<h1")) == 2
       assert html =~ "Sika Signet"
-      assert html =~ "GH₵ 9500"
+      assert html =~ "GH₵ 9,500"
       assert html =~ "tabular-nums"
       # Hallmark reference stamp carries the SKU
       assert html =~ "SK-001"

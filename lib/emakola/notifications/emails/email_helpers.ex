@@ -24,7 +24,7 @@ defmodule Emakola.Notifications.Emails.EmailHelpers do
   def format_money(minor_units, currency) when is_integer(minor_units) do
     major = div(minor_units, 100)
     minor = rem(abs(minor_units), 100)
-    formatted_major = format_with_thousands(major)
+    formatted_major = Emakola.Money.group_thousands(major)
 
     "#{currency_symbol(currency)}#{formatted_major}.#{String.pad_leading(Integer.to_string(minor), 2, "0")}"
   end
@@ -87,17 +87,4 @@ defmodule Emakola.Notifications.Emails.EmailHelpers do
   defp currency_symbol("NGN"), do: "\u20A6"
   defp currency_symbol("USD"), do: "$"
   defp currency_symbol(_), do: ""
-
-  defp format_with_thousands(number) when number < 1000, do: Integer.to_string(number)
-
-  defp format_with_thousands(number) do
-    number
-    |> Integer.to_string()
-    |> String.graphemes()
-    |> Enum.reverse()
-    |> Enum.chunk_every(3)
-    |> Enum.map(&Enum.reverse/1)
-    |> Enum.reverse()
-    |> Enum.map_join(",", &Enum.join/1)
-  end
 end

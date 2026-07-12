@@ -17,6 +17,9 @@ defmodule EmakolaWeb.Helpers.Currency do
       iex> EmakolaWeb.Helpers.Currency.format_price(15000)
       "GH\\u20B5 150"
 
+      iex> EmakolaWeb.Helpers.Currency.format_price(480000)
+      "GH\\u20B5 4,800"
+
       iex> EmakolaWeb.Helpers.Currency.format_price(5050, "NGN")
       "\\u20A6 50.50"
 
@@ -25,7 +28,7 @@ defmodule EmakolaWeb.Helpers.Currency do
   """
   @spec format_price(integer(), String.t()) :: String.t()
   def format_price(amount_minor_units, currency \\ "GHS") when is_integer(amount_minor_units) do
-    major = div(amount_minor_units, 100)
+    major = amount_minor_units |> div(100) |> Emakola.Money.group_thousands()
     minor = rem(amount_minor_units, 100)
     symbol = currency_symbol(currency)
 

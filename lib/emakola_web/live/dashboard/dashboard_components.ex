@@ -218,18 +218,9 @@ defmodule EmakolaWeb.DashboardComponents do
   end
 
   defp format_money(amount_pesewas, currency \\ "GHS") do
-    major = div(amount_pesewas, 100)
+    major = amount_pesewas |> div(100) |> abs() |> Emakola.Money.group_thousands()
     minor = rem(abs(amount_pesewas), 100)
-
-    formatted =
-      major
-      |> abs()
-      |> Integer.to_string()
-      |> String.reverse()
-      |> String.replace(~r/.{3}(?=.)/, "\\0,")
-      |> String.reverse()
-
     sign = if amount_pesewas < 0, do: "-", else: ""
-    "#{sign}#{currency} #{formatted}.#{String.pad_leading(to_string(minor), 2, "0")}"
+    "#{sign}#{currency} #{major}.#{String.pad_leading(to_string(minor), 2, "0")}"
   end
 end
