@@ -130,4 +130,26 @@ defmodule EmakolaWeb.OnboardingThemePickerTest do
                inspect(store.theme_config["theme"])
     end
   end
+
+  describe "save_theme/3" do
+    import ExUnit.CaptureLog
+
+    test "a rejected theme write is logged, not swallowed" do
+      store = create_store!()
+      # A merchant with no membership on the store — the update policy
+      # rejects the write, exercising the error branch deterministically.
+      stranger = create_merchant!()
+
+      log =
+        capture_log(fn ->
+          assert {:error, %Emakola.Stores.Store{}} =
+                   OnboardingLive.save_theme(store, "atelier", stranger)
+        end)
+
+      assert log =~ store.id,
+             "the failed theme write did not log the store id — silent in production"
+
+      assert log =~ "atelier"
+    end
+  end
 end

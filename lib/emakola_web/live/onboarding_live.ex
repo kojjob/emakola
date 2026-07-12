@@ -10,6 +10,11 @@ defmodule EmakolaWeb.OnboardingLive do
 
   use EmakolaWeb, :live_view
 
+  require Logger
+
+  @theme_save_flash "Your store is ready, but we couldn't apply your theme — " <>
+                      "you can set it anytime from Admin → Theme."
+
   @currencies [
     %{code: "GHS", label: "GHS — Ghana Cedi", flag: "\u{1F1EC}\u{1F1ED}"},
     %{code: "NGN", label: "NGN — Nigerian Naira", flag: "\u{1F1F3}\u{1F1EC}"},
@@ -481,9 +486,10 @@ defmodule EmakolaWeb.OnboardingLive do
         if next == socket.assigns.total_steps do
           # Moving to final step — create the store
           case create_store(socket.assigns) do
-            {:ok, store} ->
+            {:ok, store, theme_flash} ->
               {:noreply,
                socket
+               |> maybe_flash_theme_failure(theme_flash)
                |> assign(error: nil, step: next, created_store: store)}
 
             {:error, reason} ->
@@ -503,9 +509,10 @@ defmodule EmakolaWeb.OnboardingLive do
     socket = assign(socket, product_name: "", product_price: "")
     # Move to final step — create the store
     case create_store(socket.assigns) do
-      {:ok, store} ->
+      {:ok, store, theme_flash} ->
         {:noreply,
          socket
+         |> maybe_flash_theme_failure(theme_flash)
          |> assign(error: nil, step: socket.assigns.total_steps, created_store: store)}
 
       {:error, reason} ->
@@ -591,8 +598,13 @@ defmodule EmakolaWeb.OnboardingLive do
              ),
            {:ok, _membership} <- create_membership_for_user(user, store) do
         maybe_create_product(assigns, store)
-        store = maybe_save_theme(assigns, store)
-        {:ok, store}
+
+        # A failed theme write must not fail onboarding — the merchant still
+        # gets their store — but it is logged and surfaced, never swallowed.
+        case maybe_save_theme(assigns, store) do
+          {:ok, store} -> {:ok, store, nil}
+          {:error, store} -> {:ok, store, @theme_save_flash}
+        end
       else
         {:error, %Ash.Error.Invalid{} = error} ->
           {:error, Exception.message(error)}
@@ -640,16 +652,34 @@ defmodule EmakolaWeb.OnboardingLive do
   defp maybe_save_theme(assigns, store) do
     selected_theme = Map.get(assigns, :selected_theme, "market")
     actor = Map.get(assigns, :current_user)
+    save_theme(store, selected_theme, actor)
+  end
 
+  # Public for the test exercising the error branch — a rejected theme
+  # write must never be silent: the store falls back to the default theme
+  # and, without the log, that failure is invisible in production forever.
+  @doc false
+  def save_theme(store, theme_id, actor) do
     case Emakola.Stores.update_store_settings(
            store,
-           %{theme_config: %{"theme" => selected_theme}},
+           %{theme_config: %{"theme" => theme_id}},
            actor: actor
          ) do
-      {:ok, updated_store} -> updated_store
-      {:error, _} -> store
+      {:ok, updated_store} ->
+        {:ok, updated_store}
+
+      {:error, error} ->
+        Logger.error(
+          "Onboarding theme save failed for store #{store.id} " <>
+            "(theme=#{theme_id}): #{inspect(error)}"
+        )
+
+        {:error, store}
     end
   end
+
+  defp maybe_flash_theme_failure(socket, nil), do: socket
+  defp maybe_flash_theme_failure(socket, message), do: put_flash(socket, :error, message)
 
   defp parse_price(price) when is_binary(price) do
     case Float.parse(price) do
