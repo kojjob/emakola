@@ -18,6 +18,21 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
     |> Ash.update!(authorize?: false)
   end
 
+  # The "Add section" picker always lists every theme section (Hero,
+  # Category Pills, Featured Products, Trust, Newsletter, in that fixed
+  # canonical order) further down the same page, regardless of the draft's
+  # actual order — see @theme_module.sections() in the template. Matching
+  # against the full rendered html would let that static list satisfy an
+  # order assertion by coincidence even if the draggable rows above it were
+  # untouched, so reorder tests cut the page at the "Theme sections"
+  # heading and assert only against the rows portion.
+  defp rows_only(html), do: html |> String.split("Theme sections") |> List.first()
+
+  # Isolates the live-preview subtree — the marker is the preview wrapper's
+  # own (unique) class — from the draggable rail rows, which since Task 5
+  # also carry `data-section-id`.
+  defp preview_only(html), do: html |> String.split("section-preview-content") |> List.last()
+
   describe "without a store" do
     test "redirects to onboarding", %{conn: conn} do
       merchant = create_merchant!()
@@ -91,6 +106,93 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
       assert String.match?(html, ~r/Hero.*Category Pills.*Featured Products.*Trust.*Newsletter/s)
     end
 
+    test "reorder event applies a full id order", %{conn: conn} do
+      {:ok, view, _} = live(conn, "/admin/design/sections")
+
+      order = [
+        "starter/newsletter",
+        "starter/trust",
+        "starter/featured_products",
+        "starter/category_pills",
+        "starter/hero"
+      ]
+
+      html = render_hook(view, "reorder", %{"order" => order})
+
+      assert String.match?(
+               html,
+               ~r/Newsletter.*Trust.*Featured Products.*Category Pills.*Hero/s
+             )
+    end
+
+    test "reorder ignores an unknown id in the payload", %{conn: conn} do
+      {:ok, view, _} = live(conn, "/admin/design/sections")
+
+      order = [
+        "starter/newsletter",
+        "starter/does-not-exist",
+        "starter/hero",
+        "starter/category_pills",
+        "starter/featured_products",
+        "starter/trust"
+      ]
+
+      html = render_hook(view, "reorder", %{"order" => order})
+      rows_html = rows_only(html)
+
+      refute rows_html =~ "does-not-exist"
+
+      assert String.match?(
+               rows_html,
+               ~r/Newsletter.*Hero.*Category Pills.*Featured Products.*Trust/s
+             )
+    end
+
+    test "reorder keeps an id missing from the payload in its original relative order, appended at the end",
+         %{conn: conn} do
+      {:ok, view, _} = live(conn, "/admin/design/sections")
+
+      html = render_hook(view, "reorder", %{"order" => ["starter/newsletter"]})
+      rows_html = rows_only(html)
+
+      assert String.match?(
+               rows_html,
+               ~r/Newsletter.*Hero.*Category Pills.*Featured Products.*Trust/s
+             )
+    end
+
+    test "a reorder payload whose order isn't a list is a no-op and doesn't crash the view", %{
+      conn: conn
+    } do
+      {:ok, view, _} = live(conn, "/admin/design/sections")
+
+      html = render_hook(view, "reorder", %{"order" => "not-a-list"})
+      rows_html = rows_only(html)
+
+      assert Process.alive?(view.pid)
+
+      assert String.match?(
+               rows_html,
+               ~r/Hero.*Category Pills.*Featured Products.*Trust.*Newsletter/s
+             )
+    end
+
+    test "a reorder payload with non-binary elements drops them without crashing the view", %{
+      conn: conn
+    } do
+      {:ok, view, _} = live(conn, "/admin/design/sections")
+
+      html = render_hook(view, "reorder", %{"order" => [1, 2, 3]})
+      rows_html = rows_only(html)
+
+      assert Process.alive?(view.pid)
+
+      assert String.match?(
+               rows_html,
+               ~r/Hero.*Category Pills.*Featured Products.*Trust.*Newsletter/s
+             )
+    end
+
     test "the unsaved-changes guard is mounted and its dirty flag tracks the draft", %{conn: conn} do
       {:ok, view, html} = live(conn, "/admin/design/sections")
 
@@ -126,13 +228,16 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
 
     test "preview reflects the draft immediately (no publish)", %{conn: conn} do
       {:ok, view, html} = live(conn, "/admin/design/sections")
-      assert html =~ ~s(data-section-id="starter/newsletter")
+      # The draggable rail row also carries `data-section-id` now (Task 5),
+      # so this scopes to the preview subtree specifically — the marker is
+      # the preview wrapper's own class, which is unique to that div.
+      assert preview_only(html) =~ ~s(data-section-id="starter/newsletter")
 
       view
       |> element(~s([phx-click="toggle_section"][phx-value-id="starter/newsletter"]))
       |> render_click()
 
-      refute render(view) =~ ~s(data-section-id="starter/newsletter")
+      refute preview_only(render(view)) =~ ~s(data-section-id="starter/newsletter")
     end
 
     test "an unresolvable saved section type renders as a disabled missing-section row instead of crashing",

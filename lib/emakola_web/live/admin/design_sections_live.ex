@@ -86,6 +86,20 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
   # leaves the draft untouched rather than crashing the editor.
   def handle_event("move_section", _params, socket), do: {:noreply, socket}
 
+  # Drag-and-drop reordering (SectionSortable hook, assets/js/hooks/section_sortable.js)
+  # pushes the full post-drop id order in one event. `order` is
+  # client-controlled, so it's reconciled against the draft rather than
+  # trusted verbatim — see reorder_draft/2.
+  @impl true
+  def handle_event("reorder", %{"order" => order}, socket) when is_list(order) do
+    {:noreply, assign(socket, draft: reorder_draft(socket.assigns.draft, order), dirty: true)}
+  end
+
+  # A malformed payload (missing/non-list "order", or reachable only by
+  # tampering) leaves the draft untouched rather than crashing the editor —
+  # mirrors move_section's unrecognized-direction fallback above.
+  def handle_event("reorder", _params, socket), do: {:noreply, socket}
+
   @impl true
   def handle_event("publish", _params, socket) do
     %{store: store, theme_module: theme_module, draft: draft} = socket.assigns
@@ -335,6 +349,25 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
     else
       entries
     end
+  end
+
+  # Reconciles a client-submitted id order against the draft: non-binary
+  # elements and unknown ids (not present in the draft — including
+  # duplicates) are dropped, and any draft ids the payload omits keep their
+  # original relative order, appended after the ids the payload did place.
+  defp reorder_draft(draft, order) do
+    known_ids = Enum.map(draft, & &1["id"])
+
+    placed_ids =
+      order
+      |> Enum.filter(&is_binary/1)
+      |> Enum.uniq()
+      |> Enum.filter(&(&1 in known_ids))
+
+    placed = Enum.map(placed_ids, fn id -> Enum.find(draft, &(&1["id"] == id)) end)
+    remaining = Enum.reject(draft, &(&1["id"] in placed_ids))
+
+    placed ++ remaining
   end
 
   # Resolves each draft entry's display label AND settings schema from the
@@ -694,9 +727,18 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <section class="lg:col-span-6">
-          <.admin_card padding={:none} class="divide-y divide-border">
+          <.admin_card
+            id="section-rows"
+            phx-hook="SectionSortable"
+            padding={:none}
+            class="divide-y divide-border"
+          >
             <div :for={row <- @rows}>
-              <div class={["flex items-center gap-3 px-4 py-3.5", row.missing? && "opacity-60"]}>
+              <div
+                class={["flex items-center gap-3 px-4 py-3.5", row.missing? && "opacity-60"]}
+                draggable={to_string(!row.missing?)}
+                data-section-id={row.id}
+              >
                 <.icon name="hero-bars-2" class="size-4 shrink-0 text-text-muted" />
 
                 <div class="min-w-0 flex-1">
