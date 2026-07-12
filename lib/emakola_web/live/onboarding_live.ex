@@ -10,29 +10,36 @@ defmodule EmakolaWeb.OnboardingLive do
 
   use EmakolaWeb, :live_view
 
+  require Logger
+
+  @theme_save_flash "Your store is ready, but we couldn't apply your theme — " <>
+                      "you can set it anytime from Admin → Theme."
+
   @currencies [
     %{code: "GHS", label: "GHS — Ghana Cedi", flag: "\u{1F1EC}\u{1F1ED}"},
     %{code: "NGN", label: "NGN — Nigerian Naira", flag: "\u{1F1F3}\u{1F1EC}"},
     %{code: "USD", label: "USD — US Dollar", flag: "\u{1F1FA}\u{1F1F8}"}
   ]
 
-  # Canonical theme list — kept in sync with `EmakolaWeb.Admin.ThemeLive`'s
-  # @theme_metadata so the onboarding picker shows the same set the merchant
-  # would see in the admin Theme page. Colors are derived at runtime from
-  # each theme module's defaults() in build_themes/0 — no hardcoded color
-  # duplication so picker stays in sync if a theme's brand colors change.
-  @theme_metadata [
-    %{id: "starter", name: "Starter", description: "Clean & modern — fits any store"},
-    %{id: "market", name: "Market", description: "Simple commerce for everyday stores"},
-    %{id: "atelier", name: "Atelier", description: "Premium editorial aesthetic"},
-    %{id: "vibrant", name: "Vibrant", description: "Bold West African energy"},
-    %{id: "bold", name: "Bold", description: "Editorial & dramatic"},
-    %{id: "fresh", name: "Fresh", description: "Food & grocery"},
-    %{id: "fashion", name: "Fashion", description: "Editorial boutique"},
-    %{id: "beauty", name: "Beauty", description: "Skincare & cosmetics"},
-    %{id: "pharmacy", name: "Pharmacy", description: "Wellness & medicines"},
-    %{id: "home_living", name: "Home Living", description: "Furniture & home goods"},
-    %{id: "electronics", name: "Electronics", description: "Phones, audio & gadgets"}
+  # Editorial copy per theme, in the order the picker presents them.
+  # Coverage comes from ThemeResolver.offerable_theme_ids/0 (the single
+  # theme-offer authority); names and colors come from each theme module.
+  # Only the one-line descriptions live here. An offerable theme missing
+  # from this list raises in build_themes/0 — a loud test failure instead
+  # of a silent omission.
+  @theme_descriptions [
+    {"starter", "Clean & modern — fits any store"},
+    {"market", "Simple commerce for everyday stores"},
+    {"atelier", "Premium editorial aesthetic"},
+    {"vibrant", "Bold West African energy"},
+    {"bold", "Editorial & dramatic"},
+    {"fresh", "Food & grocery"},
+    {"fashion", "Editorial boutique"},
+    {"beauty", "Skincare & cosmetics"},
+    {"pharmacy", "Wellness & medicines"},
+    {"home_living", "Furniture & home goods"},
+    {"electronics", "Phones, audio & gadgets"},
+    {"spotlight", "One hero product, centre stage"}
   ]
 
   def mount(_params, session, socket) do
@@ -57,6 +64,7 @@ defmodule EmakolaWeb.OnboardingLive do
          currency: "GHS",
          currencies: @currencies,
          themes: build_themes(),
+         preview_font_urls: preview_font_urls(),
          selected_theme: "market",
          product_name: "",
          product_price: "",
@@ -69,6 +77,15 @@ defmodule EmakolaWeb.OnboardingLive do
   def render(assigns) do
     ~H"""
     <div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <%!-- Webfonts for the theme previews. root.html.heex only loads the
+           admin fonts (Inter, Manrope, JetBrains Mono), so without these
+           links every serif/display preview silently renders in its
+           Georgia/system fallback — the merchant would not be seeing the
+           theme they are choosing. Loaded here (not globally) so admin
+           pages don't pay for fonts they never render; browsers honour
+           <link rel="stylesheet"> in the body. Rendered from step 1 so
+           the faces are warm before the picker appears. --%>
+      <link :for={url <- @preview_font_urls} rel="stylesheet" href={url} />
       <div class="w-full max-w-lg space-y-8">
         <%!-- Step indicator --%>
         <div class="text-center">
@@ -200,39 +217,143 @@ defmodule EmakolaWeb.OnboardingLive do
             Pick a look for your storefront. You can customize it later.
           </p>
 
-          <div class="space-y-3 text-left">
+          <div class="grid grid-cols-2 gap-3 sm:gap-4 text-left">
             <button
               :for={theme <- @themes}
+              type="button"
               phx-click="select_theme"
               phx-value-theme-id={theme.id}
+              aria-pressed={to_string(theme.id == @selected_theme)}
               class={[
-                "w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left",
+                "flex w-full flex-col overflow-hidden rounded-2xl border-2 text-left",
+                "transition-all duration-200 motion-reduce:transition-none",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2",
                 if(theme.id == @selected_theme,
-                  do: "border-emerald-500 bg-emerald-50/50",
-                  else: "border-gray-200 hover:border-gray-300 bg-white"
+                  do: "border-emerald-500 ring-1 ring-emerald-500 shadow-lg shadow-emerald-500/10",
+                  else:
+                    "border-gray-200 bg-white hover:border-gray-300 hover:shadow-md motion-safe:hover:-translate-y-0.5"
                 )
               ]}
             >
-              <div class="flex gap-1 shrink-0">
+              <%!-- Miniature storefront painted from the theme's own tokens.
+                   Decorative: the accessible name is the label row below. --%>
+              <div
+                aria-hidden="true"
+                class="pointer-events-none select-none"
+                style={"background-color: #{theme.colors.background};"}
+              >
+                <%!-- Nav bar --%>
                 <div
-                  :for={color <- theme.colors}
-                  class="w-6 h-6 rounded-full border border-gray-200"
-                  style={"background: #{color}"}
+                  class="flex items-center justify-between border-b border-black/5 px-2.5 py-1.5"
+                  style={"background-color: #{theme.colors.surface};"}
+                >
+                  <div
+                    class="h-1.5 w-7 rounded-full"
+                    style={"background-color: #{theme.colors.primary};"}
+                  >
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <div
+                      class="h-1 w-3 rounded-full opacity-25"
+                      style={"background-color: #{theme.colors.primary};"}
+                    >
+                    </div>
+                    <div
+                      class="h-1 w-3 rounded-full opacity-25"
+                      style={"background-color: #{theme.colors.primary};"}
+                    >
+                    </div>
+                    <div
+                      class="h-1.5 w-1.5 rounded-full"
+                      style={"background-color: #{theme.colors.accent};"}
+                    >
+                    </div>
+                  </div>
+                </div>
+                <%!-- Hero: the merchant's shop sign in the theme's heading font --%>
+                <div class="px-2.5 pb-2 pt-2.5">
+                  <p
+                    class="truncate text-[11px] font-bold leading-tight"
+                    style={"color: #{theme.colors.text}; font-family: #{theme.font_stack};"}
+                  >
+                    {preview_store_name(@store_name)}
+                  </p>
+                  <div
+                    class="mt-1 h-1 w-10 rounded-full opacity-30"
+                    style={"background-color: #{theme.colors.text};"}
+                  >
+                  </div>
+                  <div
+                    class="mt-1.5 h-3 w-11 rounded-full"
+                    style={"background-color: #{theme.colors.accent};"}
+                  >
+                  </div>
+                </div>
+                <%!-- 2×2 product grid with price chips --%>
+                <div class="grid grid-cols-2 gap-1.5 px-2.5 pb-2.5">
+                  <div
+                    :for={{minor, index} <- Enum.with_index(preview_prices())}
+                    class="overflow-hidden rounded-md shadow-sm"
+                    style={"background-color: #{theme.colors.surface};"}
+                  >
+                    <div
+                      class={[
+                        "h-6 w-full sm:h-7",
+                        if(rem(index, 2) == 0, do: "opacity-75", else: "opacity-40")
+                      ]}
+                      style={"background-color: #{if rem(index, 3) == 0, do: theme.colors.accent, else: theme.colors.primary};"}
+                    >
+                    </div>
+                    <div class="space-y-1 px-1.5 py-1">
+                      <div
+                        class="h-0.5 w-3/4 rounded-full opacity-25"
+                        style={"background-color: #{theme.colors.text};"}
+                      >
+                      </div>
+                      <p
+                        class="text-[7px] font-semibold leading-none"
+                        style={"color: #{theme.colors.text};"}
+                      >
+                        {format_minor_price(minor, @currency)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <%!-- Footer band --%>
+                <div class="h-2.5 w-full" style={"background-color: #{theme.colors.primary};"}></div>
+              </div>
+
+              <%!-- Label row --%>
+              <div class={[
+                "flex flex-1 items-start justify-between gap-2 border-t p-3",
+                if(theme.id == @selected_theme,
+                  do: "border-emerald-100 bg-emerald-50",
+                  else: "border-gray-100 bg-white"
+                )
+              ]}>
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-gray-900">{theme.name}</p>
+                  <p class="mt-0.5 text-xs leading-snug text-gray-500">{theme.description}</p>
+                </div>
+                <div
+                  :if={theme.id == @selected_theme}
+                  class="mt-0.5 shrink-0 rounded-full bg-emerald-500 p-0.5 text-white"
+                >
+                  <svg
+                    class="h-3 w-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="3"
+                    stroke="currentColor"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                </div>
+                <div
+                  :if={theme.id != @selected_theme}
+                  class="mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 border-gray-200"
                 >
                 </div>
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="text-sm font-semibold text-gray-900">{theme.name}</p>
-                <p class="text-xs text-gray-500">{theme.description}</p>
-              </div>
-              <div :if={theme.id == @selected_theme} class="shrink-0">
-                <svg class="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
               </div>
             </button>
           </div>
@@ -448,7 +569,13 @@ defmodule EmakolaWeb.OnboardingLive do
   end
 
   def handle_event("select_theme", %{"theme-id" => theme_id}, socket) do
-    {:noreply, assign(socket, selected_theme: theme_id)}
+    # theme-id comes from the client — only ids the picker actually offers
+    # may be selected (and later persisted). Crafted ids are ignored.
+    if theme_id in offered_theme_ids() do
+      {:noreply, assign(socket, selected_theme: theme_id)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("update_product", params, socket) do
@@ -466,9 +593,10 @@ defmodule EmakolaWeb.OnboardingLive do
         if next == socket.assigns.total_steps do
           # Moving to final step — create the store
           case create_store(socket.assigns) do
-            {:ok, store} ->
+            {:ok, store, theme_flash} ->
               {:noreply,
                socket
+               |> maybe_flash_theme_failure(theme_flash)
                |> assign(error: nil, step: next, created_store: store)}
 
             {:error, reason} ->
@@ -488,9 +616,10 @@ defmodule EmakolaWeb.OnboardingLive do
     socket = assign(socket, product_name: "", product_price: "")
     # Move to final step — create the store
     case create_store(socket.assigns) do
-      {:ok, store} ->
+      {:ok, store, theme_flash} ->
         {:noreply,
          socket
+         |> maybe_flash_theme_failure(theme_flash)
          |> assign(error: nil, step: socket.assigns.total_steps, created_store: store)}
 
       {:error, reason} ->
@@ -576,8 +705,13 @@ defmodule EmakolaWeb.OnboardingLive do
              ),
            {:ok, _membership} <- create_membership_for_user(user, store) do
         maybe_create_product(assigns, store)
-        store = maybe_save_theme(assigns, store)
-        {:ok, store}
+
+        # A failed theme write must not fail onboarding — the merchant still
+        # gets their store — but it is logged and surfaced, never swallowed.
+        case maybe_save_theme(assigns, store) do
+          {:ok, store} -> {:ok, store, nil}
+          {:error, store} -> {:ok, store, @theme_save_flash}
+        end
       else
         {:error, %Ash.Error.Invalid{} = error} ->
           {:error, Exception.message(error)}
@@ -625,16 +759,34 @@ defmodule EmakolaWeb.OnboardingLive do
   defp maybe_save_theme(assigns, store) do
     selected_theme = Map.get(assigns, :selected_theme, "market")
     actor = Map.get(assigns, :current_user)
+    save_theme(store, selected_theme, actor)
+  end
 
+  # Public for the test exercising the error branch — a rejected theme
+  # write must never be silent: the store falls back to the default theme
+  # and, without the log, that failure is invisible in production forever.
+  @doc false
+  def save_theme(store, theme_id, actor) do
     case Emakola.Stores.update_store_settings(
            store,
-           %{theme_config: %{"theme" => selected_theme}},
+           %{theme_config: %{"theme" => theme_id}},
            actor: actor
          ) do
-      {:ok, updated_store} -> updated_store
-      {:error, _} -> store
+      {:ok, updated_store} ->
+        {:ok, updated_store}
+
+      {:error, error} ->
+        Logger.error(
+          "Onboarding theme save failed for store #{store.id} " <>
+            "(theme=#{theme_id}): #{inspect(error)}"
+        )
+
+        {:error, store}
     end
   end
+
+  defp maybe_flash_theme_failure(socket, nil), do: socket
+  defp maybe_flash_theme_failure(socket, message), do: put_flash(socket, :error, message)
 
   defp parse_price(price) when is_binary(price) do
     case Float.parse(price) do
@@ -648,39 +800,112 @@ defmodule EmakolaWeb.OnboardingLive do
   defp format_price(price_str, currency) do
     case Float.parse(price_str) do
       {amount, _} ->
-        symbol =
-          case currency do
-            "GHS" -> "GH\u20B5"
-            "NGN" -> "\u20A6"
-            "USD" -> "$"
-            _ -> currency
-          end
-
-        "#{symbol}#{:erlang.float_to_binary(amount, decimals: 2)}"
+        "#{currency_symbol(currency)}#{:erlang.float_to_binary(amount, decimals: 2)}"
 
       _ ->
         ""
     end
   end
 
+  defp currency_symbol("GHS"), do: "GH\u20B5"
+  defp currency_symbol("NGN"), do: "\u20A6"
+  defp currency_symbol("USD"), do: "$"
+  defp currency_symbol(currency), do: currency
+
   defp step_button_label(step, total_steps) when step < total_steps, do: "Continue"
   defp step_button_label(_, _), do: "Go to Dashboard"
 
-  # Build the theme picker list with colors derived at runtime from each
-  # theme module's defaults(). Colors stay as a 3-element list so the
-  # existing render (`for color <- theme.colors`) keeps working without
-  # template changes.
+  @doc """
+  Theme ids the picker offers — delegated to the single theme-offer
+  authority, `Emakola.Themes.ThemeResolver.offerable_theme_ids/0`.
+  """
+  def offered_theme_ids, do: Emakola.Themes.ThemeResolver.offerable_theme_ids()
+
+  # Build the theme picker list. Coverage derives from ThemeResolver
+  # (via offered_theme_ids/0); names, colors, and fonts come from each
+  # theme module's name/0 and defaults() so the previews stay honest when
+  # a theme's brand changes. Only the editorial descriptions are local.
   defp build_themes do
-    Enum.map(@theme_metadata, fn meta ->
-      defaults = Emakola.Themes.ThemeResolver.theme_module(meta.id).defaults()
+    offered = offered_theme_ids()
+    described = Enum.map(@theme_descriptions, &elem(&1, 0))
 
-      colors = [
-        defaults.colors.primary,
-        defaults.colors.accent,
-        Map.get(defaults.colors, :background, "#FFFFFF")
-      ]
+    case offered -- described do
+      [] ->
+        :ok
 
-      Map.put(meta, :colors, colors)
-    end)
+      missing ->
+        raise "themes offerable per ThemeResolver but missing from the onboarding " <>
+                "picker: #{inspect(missing)} — add editorial copy to @theme_descriptions " <>
+                "or cull them in ThemeResolver.@culled_themes"
+    end
+
+    for {id, description} <- @theme_descriptions, id in offered do
+      theme_mod = Emakola.Themes.ThemeResolver.theme_module(id)
+      defaults = theme_mod.defaults()
+
+      %{
+        id: id,
+        name: theme_mod.name(),
+        description: description,
+        colors: %{
+          primary: defaults.colors.primary,
+          accent: defaults.colors.accent,
+          background: Map.get(defaults.colors, :background, "#FFFFFF"),
+          surface: Map.get(defaults.colors, :surface, "#FFFFFF"),
+          text: Map.get(defaults.colors, :text, defaults.colors.primary)
+        },
+        font_stack: heading_font_stack(defaults.fonts.heading)
+      }
+    end
+  end
+
+  # Every Google Fonts stylesheet the offered previews need, deduplicated
+  # across themes — the same per-theme fonts/0 URL lists the storefront
+  # layout links (all carry display=swap). Derived from the offered set,
+  # so a newly offered theme's preview loads its real faces automatically.
+  defp preview_font_urls do
+    offered_theme_ids()
+    |> Enum.flat_map(&Emakola.Themes.ThemeResolver.theme_module(&1).fonts())
+    |> Enum.uniq()
+  end
+
+  # Serif display faces fall back to a serif so the mock still reads
+  # "editorial" when the exact face isn't loaded; everything else falls
+  # back to the system sans (same generic-fallback style as
+  # Emakola.Themes.DesignTokens). Unknown future serifs degrade to sans —
+  # cosmetic only, the colors still carry the preview.
+  @serif_heading_fonts ["Cormorant Garamond", "Playfair Display", "Fraunces", "Cormorant", "Lora"]
+
+  defp heading_font_stack(heading) do
+    fallback =
+      if heading in @serif_heading_fonts, do: "Georgia, serif", else: "system-ui, sans-serif"
+
+    "'#{heading}', #{fallback}"
+  end
+
+  # Price chips for the preview mocks — integer minor units (pesewas/kobo),
+  # formatted without ever touching a float.
+  @preview_prices_minor [12_000, 8_500, 24_000, 6_500]
+
+  defp preview_prices, do: @preview_prices_minor
+
+  defp format_minor_price(minor, currency) when is_integer(minor) do
+    whole = div(minor, 100)
+
+    case rem(minor, 100) do
+      0 ->
+        "#{currency_symbol(currency)}#{whole}"
+
+      cents ->
+        "#{currency_symbol(currency)}#{whole}." <>
+          String.pad_leading(Integer.to_string(cents), 2, "0")
+    end
+  end
+
+  defp preview_store_name(store_name) do
+    case String.trim(store_name) do
+      "" -> "Your Store"
+      name -> name
+    end
   end
 end

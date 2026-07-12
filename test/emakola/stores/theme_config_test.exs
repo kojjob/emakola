@@ -45,10 +45,26 @@ defmodule Emakola.Stores.ThemeConfigTest do
       assert :ok = ThemeConfig.validate(%{"sections" => %{"show_featured" => true}})
     end
 
-    test "all valid theme names pass" do
-      for theme <-
-            ~w(atelier beauty bold electronics fashion fresh home_living market pharmacy starter vibrant) do
-        assert :ok = ThemeConfig.validate(%{"theme" => theme})
+    test "every offerable theme validates — the allowlist cannot drift" do
+      offerable = Emakola.Themes.ThemeResolver.offerable_theme_ids()
+      refute Enum.empty?(offerable), "no offerable themes — this test would be vacuous"
+
+      # Spotlight is the theme the old hardcoded list silently dropped.
+      assert "spotlight" in offerable
+
+      for theme <- offerable do
+        assert :ok = ThemeConfig.validate(%{"theme" => theme}),
+               "offerable theme #{inspect(theme)} is rejected by ThemeConfig.validate/1"
+      end
+    end
+
+    test "culled themes are rejected" do
+      culled = Emakola.Themes.ThemeResolver.culled_theme_ids()
+      refute Enum.empty?(culled), "no culled themes — this test would be vacuous"
+
+      for theme <- culled do
+        assert {:error, msg} = ThemeConfig.validate(%{"theme" => theme})
+        assert msg =~ "invalid theme name"
       end
     end
 
