@@ -86,7 +86,8 @@ defmodule Emakola.Themes.Market.Footer do
     </section>
 
     <footer class="bg-stone-900 text-white">
-      <div class="mx-auto max-w-[1280px] px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      <%!-- Mobile bottom padding clears the fixed market_bottom_nav tab bar. --%>
+      <div class="mx-auto max-w-[1280px] px-4 pb-28 pt-14 sm:px-6 sm:py-20 lg:px-8">
         <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:gap-8">
           <div>
             <a

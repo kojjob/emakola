@@ -3,6 +3,29 @@ defmodule EmakolaWeb.Storefront.StoreLiveTest do
   import Phoenix.LiveViewTest
   alias Emakola.Factory
 
+  describe "Market home chrome (theme-owned nav)" do
+    test "renders a banner header with cart, search, and category navigation", %{conn: conn} do
+      store =
+        Factory.create_store!(%{
+          name: "Adjoa's Stall",
+          slug: "adjoa-stall-nav",
+          theme_config: %{"theme" => "market"}
+        })
+
+      Factory.create_category!(store, %{name: "Fresh Peppers"})
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+
+      assert html =~ ~r/<header[^>]*role="banner"/
+      assert html =~ ~r/<a[^>]*href="\/s\/adjoa-stall-nav\/cart"/
+      assert html =~ ~r/aria-label="Search products"/
+      assert html =~ ~s(href="/s/adjoa-stall-nav/category/fresh-peppers")
+      # Skip link + landmarks floor
+      assert html =~ ~s(href="#market-content")
+      assert html =~ ~s(id="market-content")
+    end
+  end
+
   test "emits LocalBusiness JSON-LD derived from the store profile", %{conn: conn} do
     store =
       Factory.create_store!(%{

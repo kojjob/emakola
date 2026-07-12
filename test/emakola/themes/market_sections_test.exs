@@ -145,6 +145,27 @@ defmodule Emakola.Themes.MarketSectionsTest do
       assert html =~ "Hand-picked goods from Makola market."
     end
 
+    test "the home page carries Market's own chrome: skip link, banner nav, bottom nav" do
+      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "market"}})
+
+      html = render_home(store)
+
+      # Skip link lands on the section content
+      assert html =~ ~s(href="#market-content")
+      assert html =~ ~s(id="market-content")
+      # Banner header with cart + search, before the sections
+      assert html =~ ~r/<header[^>]*role="banner"/
+      assert html =~ ~r/<a[^>]*href="\/s\/#{store.slug}\/cart"/
+      assert html =~ ~r/aria-label="Search products"/
+      # Mobile bottom nav
+      assert html =~ ~s(href="/s/#{store.slug}/wishlist")
+      # Chrome order: header -> sections -> footer
+      assert String.match?(
+               html,
+               ~r/role="banner".*market-hero-heading.*bg-stone-900/s
+             )
+    end
+
     test "the home footer is Market's own warm chrome, not Atelier's" do
       {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "market"}})
 
@@ -219,6 +240,104 @@ defmodule Emakola.Themes.MarketSectionsTest do
       assert html =~ "wa.me/233200000000"
       assert html =~ "mailto:hi@stall.example"
       assert html =~ "tel:+233200000000"
+    end
+  end
+
+  defp render_nav(attrs \\ %{}) do
+    render_component(
+      &Shared.market_nav/1,
+      Map.merge(%{store: @component_store, categories: [], cart_count: 0}, attrs)
+    )
+  end
+
+  defp render_bottom_nav(attrs \\ %{}) do
+    render_component(
+      &Shared.market_bottom_nav/1,
+      Map.merge(%{store: @component_store, cart_count: 0}, attrs)
+    )
+  end
+
+  describe "market_nav/1" do
+    test "renders a sticky banner header with the store name linking home" do
+      html = render_nav()
+
+      assert html =~ ~r/<header[^>]*role="banner"/
+      assert html =~ "sticky top-0"
+      assert html =~ ~r/<a[^>]*href="\/s\/stall"[^>]*>/
+      assert html =~ "Stall Front"
+    end
+
+    test "search is reachable as a plain link to the products path" do
+      html = render_nav()
+
+      assert html =~ ~r/<a[^>]*href="\/s\/stall\/products"[^>]*aria-label="Search products"/
+    end
+
+    test "the cart link points at the store cart route and carries the live count" do
+      html = render_nav(%{cart_count: 3})
+
+      assert html =~ ~r/<a[^>]*href="\/s\/stall\/cart"/
+      assert html =~ "Shopping cart, 3 items"
+      assert html =~ ~r/>\s*3\s*</
+    end
+
+    test "no count badge renders for an empty cart" do
+      html = render_nav(%{cart_count: 0})
+
+      assert html =~ "Shopping cart, 0 items"
+      refute html =~ ~r/rounded-full[^>]*>\s*0\s*</
+    end
+
+    test "category links render for desktop navigation" do
+      html =
+        render_nav(%{
+          categories: [
+            %{name: "Fresh Peppers", slug: "fresh-peppers"},
+            %{name: "Shea", slug: "shea"}
+          ]
+        })
+
+      assert html =~ ~s(href="/s/stall/category/fresh-peppers")
+      assert html =~ "Fresh Peppers"
+      assert html =~ ~s(href="/s/stall/category/shea")
+    end
+
+    test "stays in the warm stone palette with visible keyboard focus" do
+      html = render_nav()
+
+      assert html =~ "stone-"
+      assert html =~ "focus-visible:"
+      refute html =~ ~r/(?<![a-zA-Z])slate-\d/
+      refute html =~ ~r/(?<![a-zA-Z])gray-\d/
+    end
+  end
+
+  describe "market_bottom_nav/1" do
+    test "renders Home, Search, Saved and Cart links to the real routes" do
+      html = render_bottom_nav()
+
+      assert html =~ ~r/<a[^>]*href="\/s\/stall"[^>]*>/
+      assert html =~ "Home"
+      assert html =~ ~s(href="/s/stall/products")
+      assert html =~ "Search"
+      assert html =~ ~s(href="/s/stall/wishlist")
+      assert html =~ "Saved"
+      assert html =~ ~s(href="/s/stall/cart")
+      assert html =~ "Cart"
+    end
+
+    test "is mobile-only chrome with the cart count badge" do
+      html = render_bottom_nav(%{cart_count: 5})
+
+      assert html =~ "sm:hidden"
+      assert html =~ ~r/>\s*5\s*</
+    end
+
+    test "marks the home tab current and keeps the warm palette" do
+      html = render_bottom_nav()
+
+      assert html =~ ~s(aria-current="page")
+      refute html =~ ~r/(?<![a-zA-Z])slate-\d/
     end
   end
 
