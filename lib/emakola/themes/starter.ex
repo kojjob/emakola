@@ -22,6 +22,18 @@ defmodule Emakola.Themes.Starter do
   def id, do: "starter"
   def name, do: "Starter"
 
+  @doc """
+  Returns the home sections, in today's default visual order.
+  """
+  def sections,
+    do: [
+      Emakola.Themes.Starter.Sections.Hero,
+      Emakola.Themes.Starter.Sections.CategoryPills,
+      Emakola.Themes.Starter.Sections.FeaturedProducts,
+      Emakola.Themes.Starter.Sections.Trust,
+      Emakola.Themes.Starter.Sections.Newsletter
+    ]
+
   def fonts,
     do: [
       "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"

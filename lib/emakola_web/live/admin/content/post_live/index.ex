@@ -218,7 +218,7 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Index do
                 <.type_badge type={post.type} />
               </td>
               <td class="px-6 py-4">
-                <.status_badge status={post.status} />
+                <.post_status_badge status={post.status} />
               </td>
               <td class="px-6 py-4 text-sm text-slate-500">{post.view_count}</td>
               <td class="px-6 py-4 text-right">
@@ -279,7 +279,7 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Index do
     """
   end
 
-  defp status_badge(assigns) do
+  defp post_status_badge(assigns) do
     {label, color} =
       case assigns.status do
         :draft -> {"Draft", "bg-slate-100 text-slate-600"}

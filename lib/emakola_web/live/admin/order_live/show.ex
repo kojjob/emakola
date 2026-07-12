@@ -169,7 +169,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
             <h1 class="text-xl font-bold text-slate-900">
               {if @order, do: @order.order_number, else: "Loading..."}
             </h1>
-            <.status_pill :if={@order} status={@order.status} variant={:order} />
+            <.status_badge :if={@order} status={@order.status} variant={:order} />
           </div>
           <p :if={@order} class="text-sm text-slate-500 mt-0.5">
             Placed {format_datetime(@order.inserted_at)}
@@ -488,7 +488,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                 </div>
                 <div class="flex items-center justify-between text-sm">
                   <span class="text-slate-500">Status</span>
-                  <.status_pill status={@payment.status} variant={:payment} />
+                  <.status_badge status={@payment.status} variant={:payment} />
                 </div>
                 <div class="flex items-center justify-between text-sm">
                   <span class="text-slate-500">Amount</span>

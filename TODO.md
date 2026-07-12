@@ -157,16 +157,43 @@
 
 ## OPEN — Architecture
 
-- [ ] **Promote `Emakola.Inventory` to a real Ash domain** — currently a service
-      shell (`inventory.ex:23` says "intentionally NOT a `use Ash.Domain` yet");
-      stock is still a single `stock_quantity` integer on `Variant`. Add stock
-      levels + multi-location when warranted.
+- [x] **Promote `Emakola.Inventory` to a real Ash domain** — CORE DONE
+      2026-07-11 (full multi-location per decision). Domain owns `Location`
+      (one default per store, partial unique index), `StockLevel`
+      (variant × location, non-negative CHECK), and the insert-only
+      `StockMovement` ledger. Invariant: `variant.stock_quantity` stays the
+      fast-read total == Σ levels, maintained by the single write funnel
+      (`restock/adjust/transfer/decrement_for_sale!`) under a FOR UPDATE
+      variant lock; sales cascade default-first then stock-descending.
+      Migration backfilled a "Main" location + level per tracked variant;
+      later variants seed lazily. All four writers rewired (checkout
+      decrement, Earn reservations hold/release, admin adjust, catalog
+<<<<<<< HEAD
+      interface unused). UI follow-up SHIPPED 2026-07-11: admin inventory
+      page gained the locations manager (add/rename/set-default/deactivate
+      with guard flashes), per-location breakdown lines on variant rows,
+      a location picker on the stock editor, and the transfer modal.
+- [ ] **Extract remaining inline Ash anonymous functions into Change modules** —
+      `LineItem` price snapshot already uses `Changes.DenormalizeVariant`; the
+      `Order` number generation (`order.ex:274`) and status-transition
+      `after_action` notification dispatches are still inline `change(fn …)`.
+||||||| 1daf9ab
+      interface unused). REMAINING (UI follow-up): locations management,
+      per-location stock matrix, restock location picker, transfer modal.
+- [ ] **Extract remaining inline Ash anonymous functions into Change modules** —
+      `LineItem` price snapshot already uses `Changes.DenormalizeVariant`; the
+      `Order` number generation (`order.ex:274`) and status-transition
+      `after_action` notification dispatches are still inline `change(fn …)`.
+=======
+      interface unused). REMAINING (UI follow-up): locations management,
+      per-location stock matrix, restock location picker, transfer modal.
 - [x] **Extract remaining inline Ash anonymous functions into Change modules** —
       DONE 2026-07-11. `Changes.GenerateOrderNumber` (create), parameterized
       `Changes.NotifyStatusChange` (shipped/delivered/cancelled dispatches), and
       `Changes.NotifyConfirmation` (confirm fanout: notification + Earn
       conversion + supplier fulfillments); the Order module's dispatch helpers
       moved with them. Behavior-preserving — 234 order tests unchanged.
+>>>>>>> origin/main
 
 ## OPEN — Makola Earn / zero-capital supplier network
 
@@ -217,6 +244,8 @@
   - [x] Build Phase C — privacy-safe Opportunity Radar, bounded ethical pricing, and
         aggregate-only supplier demand alerts.
   - [ ] Run Phase C's live controlled evaluation against the popularity-only baseline.
+        *(Harness shipped 2026-07-11: `RadarEvaluation` deterministic arms + baseline
+        ranking + `mix emakola.radar_eval` report; the live run awaits pilot traffic.)*
   - [x] Build Phase D — group buys, consent-based sales teams, and micro-franchises.
     - [x] Add Phase D schemas and authorized service foundations with threshold/payment checks,
           exact consented team splits, package terms, and explicit anti-MLM structure.
@@ -254,12 +283,34 @@
 
 ## OPEN — White-label design system (remaining phases)
 
-- [ ] **Phase 2 — Section editor (Shopify-style)** — not started: section type
-      registry, `home_sections` JSON array, `SectionSortable` JS hook, the
-      admin Section Editor UI, per-section settings, backwards-compat, tests.
+- [ ] **Phase 2 — Section editor (Shopify-style)**
+  - [x] Core infrastructure + two reference themes — DONE 2026-07-11: section
+        contract/registry (`Emakola.Themes.Section`, `Sections`), the
+        block-bridge (`block/<type>` into the page-builder library),
+        `HomeSections` per-theme layout storage (sanitized: type resolution,
+        URL scoping, padding/color allowlists), and `SectionRenderer` (style
+        wrapper only for styled entries — byte-identical defaults); Starter
+        and Atelier decomposed into registered sections. Spec:
+        `docs/superpowers/specs/2026-07-11-section-editor-design.md`.
+  - [ ] Remaining: the admin Section Editor UI (`SectionSortable` JS hook,
+        per-section settings forms, backwards-compat, tests), the seven new
+        themes (Sika, Fie, Chale, Dede, Depot, Pace, Ntoma — locked
+        2026-07-11), and the cull-gated fan-out of surviving existing themes
+        into sections.
       *(Phase 1 page coverage and most of Phase 3 — `DesignTokens`,
       `design_tokens` config, the admin Design tab — are DONE; only a standalone
       `FontLoader` was folded into `DesignTokens`.)*
+- [ ] **Security: sanitize URL-position block content (href/src) at the
+      block-render boundary** — `block/<type>` section entries bridge the
+      page-builder block library verbatim (`BlockSection.settings_schema/0`
+      is `[]`, so `HomeSections` URL scoping is skipped by design — see
+      `home_sections_integration_test.exs`). A `javascript:`/`data:` value
+      in a block's href/src-position field (e.g. `hero_banner`'s `cta_url`,
+      or the equivalent on `split`/`image_banner`/`audio`) renders as a
+      live, clickable link — a stored-XSS vector, and the same pre-existing
+      gap in the page builder's own unsanitized content bar. Closing both
+      paths MUST land before or with the section-editor UI PR (above),
+      which makes `put_layout` merchant-reachable for the first time.
 
 ## OPEN — Infrastructure / CI
 

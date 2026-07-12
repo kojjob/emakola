@@ -70,6 +70,11 @@ Acceptance: a new merchant can reach a reviewable storefront and first Sales Kit
 - [x] Alert suppliers to unmet demand without exposing individual customer behavior.
 - [ ] Complete the live controlled evaluation proving the radar beats a popularity-only baseline
       in fulfilled sales without increasing refunds or complaints.
+  - [x] Evaluation harness shipped: deterministic store-hash arms
+        (`Emakola.Suppliers.RadarEvaluation`), popularity-only baseline ranking wired
+        into the Earn Network radar surface, and `mix emakola.radar_eval` reporting
+        fulfilled sales/refunds/revenue per arm from the existing conversion ledger.
+  - [ ] Run the evaluation on real concierge-pilot traffic and judge the exit criterion.
 
 Acceptance: recommendations beat a popularity-only baseline in fulfilled sales without increasing refund or complaint rates.
 

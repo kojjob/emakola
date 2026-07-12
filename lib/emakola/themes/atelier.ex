@@ -50,6 +50,20 @@ defmodule Emakola.Themes.Atelier do
   def id, do: "atelier"
   def name, do: "Atelier"
 
+  @doc """
+  Returns the home sections, in today's default visual order.
+  """
+  def sections,
+    do: [
+      Emakola.Themes.Atelier.Sections.Hero,
+      Emakola.Themes.Atelier.Sections.CategoryCircles,
+      Emakola.Themes.Atelier.Sections.FeaturedProducts,
+      Emakola.Themes.Atelier.Sections.NewArrivals,
+      Emakola.Themes.Atelier.Sections.Trust,
+      Emakola.Themes.Atelier.Sections.DeliveryZones,
+      Emakola.Themes.Atelier.Sections.Newsletter
+    ]
+
   def fonts, do: []
 
   def defaults do
