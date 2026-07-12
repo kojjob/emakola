@@ -17,13 +17,11 @@ defmodule Emakola.Themes.ProductDetailVariantsTest do
 
   @themes [
     {Emakola.Themes.Spotlight, "spotlight"},
-    {Emakola.Themes.Akoma, "akoma"},
     {Emakola.Themes.Pharmacy, "pharmacy"},
     {Emakola.Themes.Beauty, "beauty"},
     {Emakola.Themes.HomeLiving, "home_living"},
     {Emakola.Themes.Electronics, "electronics"},
-    {Emakola.Themes.Fashion, "fashion"},
-    {Emakola.Themes.Heritage, "heritage"}
+    {Emakola.Themes.Fashion, "fashion"}
   ]
 
   setup do

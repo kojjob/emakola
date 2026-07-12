@@ -58,16 +58,6 @@ defmodule Emakola.Stores.ThemeConfigTest do
       end
     end
 
-    test "culled themes are rejected" do
-      culled = Emakola.Themes.ThemeResolver.culled_theme_ids()
-      refute Enum.empty?(culled), "no culled themes — this test would be vacuous"
-
-      for theme <- culled do
-        assert {:error, msg} = ThemeConfig.validate(%{"theme" => theme})
-        assert msg =~ "invalid theme name"
-      end
-    end
-
     test "invalid theme name returns error" do
       assert {:error, msg} = ThemeConfig.validate(%{"theme" => "neon"})
       assert msg =~ "invalid theme name"

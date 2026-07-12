@@ -53,37 +53,26 @@ defmodule EmakolaWeb.Admin.ThemeLiveTest do
       end
     end
 
-    test "every offerable theme is offered and no culled theme appears", %{conn: conn} do
+    test "every offerable theme is offered", %{conn: conn} do
       offerable = Emakola.Themes.ThemeResolver.offerable_theme_ids()
-      culled = Emakola.Themes.ThemeResolver.culled_theme_ids()
 
       refute Enum.empty?(offerable), "no offerable themes — this test would be vacuous"
-
-      refute Enum.empty?(culled),
-             "no culled themes — the culled half of this test would be vacuous"
 
       {:ok, view, _html} = live(conn, ~p"/admin/theme")
 
       for id <- offerable do
         assert has_element?(view, "button[phx-value-theme-id=\"#{id}\"]"),
                "theme #{inspect(id)} is offerable per ThemeResolver but the admin " <>
-                 "picker does not offer it — add metadata to Admin.ThemeLive or cull " <>
-                 "it in ThemeResolver.@culled_themes"
-      end
-
-      for id <- culled do
-        refute has_element?(view, "button[phx-value-theme-id=\"#{id}\"]"),
-               "theme #{inspect(id)} is culled but still offered in the admin picker"
+                 "picker does not offer it — add metadata to Admin.ThemeLive"
       end
     end
 
-    test "a crafted or culled theme-id is ignored, not persisted", %{conn: conn, store: store} do
+    test "a crafted theme-id is ignored, not persisted", %{conn: conn, store: store} do
       {:ok, view, _html} = live(conn, ~p"/admin/theme")
 
-      # "akoma" is registered but culled; "totally-fake" is unregistered.
-      # Neither is offered, so neither may be smuggled in via a crafted event.
+      # "totally-fake" is unregistered — a crafted event must not smuggle it
+      # past the picker.
       before_html = render(view)
-      render_click(view, "select_theme", %{"theme-id" => "akoma"})
       render_click(view, "select_theme", %{"theme-id" => "totally-fake"})
 
       assert render(view) == before_html,
@@ -93,7 +82,7 @@ defmodule EmakolaWeb.Admin.ThemeLiveTest do
 
       reloaded = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
 
-      refute get_in(reloaded.theme_config, ["theme"]) in ["akoma", "totally-fake"],
+      refute get_in(reloaded.theme_config, ["theme"]) == "totally-fake",
              "a crafted theme-id was written to the store: " <>
                inspect(get_in(reloaded.theme_config, ["theme"]))
     end
