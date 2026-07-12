@@ -28,6 +28,7 @@ defmodule Emakola.Themes.ThemeResolver do
     "depot" => Emakola.Themes.Depot,
     "fie" => Emakola.Themes.Fie,
     "ntoma" => Emakola.Themes.Ntoma,
+    "akwaaba" => Emakola.Themes.Akwaaba,
     "pace" => Emakola.Themes.Pace,
     "sika" => Emakola.Themes.Sika
   }
