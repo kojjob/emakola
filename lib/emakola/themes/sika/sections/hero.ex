@@ -79,7 +79,16 @@ defmodule Emakola.Themes.Sika.Sections.Hero do
         >
         </div>
 
-        <div class="relative grid items-center gap-10 px-6 py-14 sm:px-10 sm:py-20 lg:grid-cols-[1fr_1fr_0.8fr] lg:gap-8 lg:px-14">
+        <%!-- The pitch stands together: eyebrow, headline, the merchant's own
+        words, the rails they accept and the way in — one column, read top to
+        bottom. It used to be split across three, with the photograph wedged
+        between the headline and its own buy button, and a third column that
+        emptied out entirely on a store with no description: the rails and the
+        CTA were left floating mid-air, attached to nothing. --%>
+        <div class={[
+          "relative grid items-center gap-10 px-6 py-14 sm:px-10 sm:py-20 lg:px-14",
+          @image && "lg:grid-cols-2 lg:gap-16"
+        ]}>
           <div>
             <p class="text-[0.6875rem] font-semibold uppercase tracking-[0.3em] text-[#C2A15B]">
               {@eyebrow}
@@ -91,17 +100,12 @@ defmodule Emakola.Themes.Sika.Sections.Hero do
             >
               {@headline}
             </h1>
-          </div>
 
-          <%!-- The CTA column is ordered BEFORE the photograph on a phone. The
-          image is ~500px tall; leading with it buries the buy button under the
-          fixed bottom bar, and most of our shoppers are on phones. --%>
-          <div class="order-2 lg:order-3">
-            <p :if={@subheadline} class="max-w-xs leading-relaxed text-[#F7F3EA]/70">
+            <p :if={@subheadline} class="mt-6 max-w-md leading-relaxed text-[#F7F3EA]/70">
               {@subheadline}
             </p>
 
-            <ul class="mt-5 flex flex-wrap gap-2" aria-label="Payment methods accepted">
+            <ul class="mt-7 flex flex-wrap gap-2" aria-label="Payment methods accepted">
               <li
                 :for={rail <- ["MTN MoMo", "Telecel Cash", "Visa"]}
                 class="border border-[#C2A15B]/40 px-3 py-1.5 text-[0.6875rem] uppercase tracking-widest text-[#F7F3EA]/80"
@@ -112,13 +116,15 @@ defmodule Emakola.Themes.Sika.Sections.Hero do
 
             <a
               href={store_path(@store.slug, "/products")}
-              class="mt-6 inline-flex items-center gap-3 bg-[#C2A15B] px-7 py-4 text-[0.6875rem] font-semibold uppercase tracking-[0.25em] text-[#1F332C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F7F3EA] focus-visible:ring-offset-2 focus-visible:ring-offset-store-accent motion-safe:transition-opacity motion-safe:hover:opacity-90"
+              class="mt-7 inline-flex items-center gap-3 bg-[#C2A15B] px-7 py-4 text-[0.6875rem] font-semibold uppercase tracking-[0.25em] text-[#1F332C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F7F3EA] focus-visible:ring-offset-2 focus-visible:ring-offset-store-accent motion-safe:transition-opacity motion-safe:hover:opacity-90"
             >
               {@cta_label}
             </a>
           </div>
 
-          <div :if={@image} class="relative order-3 lg:order-2">
+          <%!-- The vitrine. On a phone it follows the pitch, so the buy button
+          is never buried under ~500px of photograph. --%>
+          <div :if={@image} class="relative w-full lg:max-w-md lg:justify-self-end">
             <div class="border border-[#C2A15B]/30 p-2">
               <.optimized_image
                 src={@image}
@@ -130,31 +136,22 @@ defmodule Emakola.Themes.Sika.Sections.Hero do
               />
             </div>
 
+            <%!-- The price tag, not a second picture: the piece is already in
+            the frame it hangs off. --%>
             <div
               :if={@hero_product}
-              class="absolute -bottom-3 -left-3 flex items-center gap-3 bg-[#FBFAF7] p-2.5 pr-4 shadow-lg"
+              class="absolute -bottom-4 -left-4 max-w-[14rem] border border-[#C2A15B]/40 bg-[#FBFAF7] px-5 py-3 shadow-lg"
             >
-              <div class="h-12 w-12 flex-shrink-0 overflow-hidden bg-[#EDE8DC]">
-                <.optimized_image
-                  src={@image}
-                  alt=""
-                  width={96}
-                  height={96}
-                  class="h-full w-full object-cover"
-                />
-              </div>
-              <div class="min-w-0">
-                <p class="truncate text-sm text-[#211D16] [font-family:var(--dt-heading-font,Marcellus,Georgia,serif)]">
-                  {@hero_product.title}
-                </p>
-                <p class="text-sm font-semibold tabular-nums text-[#6E675C]">
-                  {Currency.format_price_range(
-                    @hero_product.min_price,
-                    @hero_product.max_price,
-                    @store.currency
-                  )}
-                </p>
-              </div>
+              <p class="truncate text-sm text-[#211D16] [font-family:var(--dt-heading-font,Marcellus,Georgia,serif)]">
+                {@hero_product.title}
+              </p>
+              <p class="mt-0.5 text-sm font-semibold tabular-nums text-[#6E675C]">
+                {Currency.format_price_range(
+                  @hero_product.min_price,
+                  @hero_product.max_price,
+                  @store.currency
+                )}
+              </p>
             </div>
           </div>
         </div>

@@ -283,6 +283,20 @@ defmodule Emakola.Themes.SikaTest do
       refute html =~ "<img"
       refute html =~ "animate-pulse"
     end
+
+    test "the price card names and prices the piece — it does not reprint its photograph" do
+      product = component_product(%{images: [%{url: "/uploads/signet.jpg"}]})
+
+      html = render_section(Hero, %{store: @component_store, products: [product]})
+
+      # The card used to carry a 48px thumbnail of the very photograph it sits
+      # on top of — the same image twice, a few pixels apart. The vitrine shows
+      # the piece once; the card is its price tag.
+      assert length(String.split(html, "<img")) - 1 == 1
+
+      assert html =~ "Nsuo Band"
+      assert html =~ "GH₵ 4800"
+    end
   end
 
   # ── collection section ──────────────────────────────────────────
