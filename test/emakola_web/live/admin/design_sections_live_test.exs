@@ -476,6 +476,55 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
       refute Map.has_key?(entry["settings"], "not_in_schema")
     end
 
+    # Same class and reachability as the integer crash above, but a DIFFERENT
+    # sink: a declared :string field passes the schema filter, so a crafted
+    # map reaches the draft verbatim and is then rendered by the editor's OWN
+    # settings form (rows/1 -> setting_field/1 -> value={@current}).
+    # Phoenix.HTML.Safe has no Map impl, so the form re-render raises —
+    # upstream of sanitize_entry/2, which only guards the section-render
+    # (preview/storefront) path.
+    test "a map value in a string-typed setting falls back to the default instead of crashing the view",
+         %{conn: conn, store: store} do
+      {:ok, view, _} = live(conn, "/admin/design/sections")
+
+      render_change(view, "update_settings", %{
+        "id" => "starter/hero",
+        "settings" => %{"heading" => %{"a" => "1"}}
+      })
+
+      assert Process.alive?(view.pid)
+
+      view |> element(~s(button[phx-click="publish"])) |> render_click()
+
+      saved = HomeSections.saved_layout(Ash.reload!(store, authorize?: false), "starter")
+      entry = Enum.find(saved, &(&1["id"] == "starter/hero"))
+
+      # Starter hero's schema declares heading's default as "".
+      assert entry["settings"]["heading"] == ""
+    end
+
+    test "a map value in a text-typed setting falls back to the default instead of crashing the view",
+         %{conn: conn} do
+      {:ok, view, _} = live(conn, "/admin/design/sections")
+
+      add_html =
+        view
+        |> element(~s([phx-click="add_section"][phx-value-type="block/text_section"]))
+        |> render_click()
+
+      [_, id] = Regex.run(~r/phx-value-id="(block\/text_section-\d+)"/, add_html)
+
+      # TextSection's default_content gives `body` a :text-typed field, which
+      # renders @current into the textarea body.
+      render_change(view, "update_settings", %{
+        "id" => id,
+        "settings" => %{"body" => %{"a" => "1"}}
+      })
+
+      assert Process.alive?(view.pid)
+      assert render(view) =~ "Builder block"
+    end
+
     test "an unrecognized event is logged and does not crash the view", %{conn: conn} do
       {:ok, view, _} = live(conn, "/admin/design/sections")
 

@@ -279,7 +279,16 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
   defp coerce_value(%{type: :integer, default: default}, value),
     do: coerce_integer(value, default)
 
-  defp coerce_value(_field, value), do: value
+  defp coerce_value(_field, value) when is_binary(value), do: value
+
+  # Every remaining field type (:string, :text, :image_url, :link, and any
+  # unknown) renders `@current` straight into a HEEx attribute or element
+  # body in setting_field/1. Phoenix.HTML.Safe has no Map/List impl, so a
+  # crafted non-scalar raises inside the editor's OWN settings-form
+  # re-render — which is upstream of HomeSections.sanitize_entry/2. That
+  # sanitizer only guards the SECTION-render path (preview + storefront);
+  # the form re-renders the raw draft and never passes through it.
+  defp coerce_value(%{default: default}, _value), do: default
 
   # A field can arrive as a map (or list) through ordinary bracket-notation
   # form tampering — settings[count][a]=1 — the same nested serialization
