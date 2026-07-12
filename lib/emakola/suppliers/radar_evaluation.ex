@@ -13,8 +13,6 @@ defmodule Emakola.Suppliers.RadarEvaluation do
   prints the running comparison.
   """
 
-  require Ash.Query
-
   alias Emakola.Suppliers.{SalesShareConversion, SalesSharing}
 
   @doc "Deterministic evaluation arm for a store."
