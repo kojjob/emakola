@@ -260,7 +260,10 @@ defmodule EmakolaWeb.Router do
 
     live_session :storefront_auth,
       layout: {EmakolaWeb.Layouts, :storefront},
-      on_mount: [{EmakolaWeb.Hooks.ResolveStore, :default}],
+      on_mount: [
+        {EmakolaWeb.Hooks.ResolveStore, :default},
+        {EmakolaWeb.Hooks.NewsletterSubscription, :default}
+      ],
       session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
       live "/login", CustomerLoginLive
       live "/register", CustomerRegisterLive
@@ -308,7 +311,8 @@ defmodule EmakolaWeb.Router do
       layout: {EmakolaWeb.Layouts, :storefront},
       on_mount: [
         {EmakolaWeb.Hooks.ResolveStore, :default},
-        {EmakolaWeb.Hooks.ResolveCustomer, :default}
+        {EmakolaWeb.Hooks.ResolveCustomer, :default},
+        {EmakolaWeb.Hooks.NewsletterSubscription, :default}
       ],
       session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
       live "/", StoreLive
@@ -522,7 +526,10 @@ defmodule EmakolaWeb.Router do
 
     live_session :storefront_auth_root,
       layout: {EmakolaWeb.Layouts, :storefront},
-      on_mount: [{EmakolaWeb.Hooks.ResolveStoreFromHost, :default}],
+      on_mount: [
+        {EmakolaWeb.Hooks.ResolveStoreFromHost, :default},
+        {EmakolaWeb.Hooks.NewsletterSubscription, :default}
+      ],
       session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
       live "/login", CustomerLoginLive
       live "/register", CustomerRegisterLive
@@ -539,7 +546,8 @@ defmodule EmakolaWeb.Router do
       layout: {EmakolaWeb.Layouts, :storefront},
       on_mount: [
         {EmakolaWeb.Hooks.ResolveStoreFromHost, :default},
-        {EmakolaWeb.Hooks.ResolveCustomer, :default}
+        {EmakolaWeb.Hooks.ResolveCustomer, :default},
+        {EmakolaWeb.Hooks.NewsletterSubscription, :default}
       ],
       session: {EmakolaWeb.Plugs.CartSession, :live_session_data, []} do
       live "/", StoreLive

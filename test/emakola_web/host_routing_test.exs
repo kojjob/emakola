@@ -73,6 +73,27 @@ defmodule EmakolaWeb.HostRoutingTest do
       refute_redirected(view, "/")
       assert html =~ "empty" or html =~ "Shopping Bag"
     end
+
+    test "the newsletter form subscribes on the host-routed storefront (:storefront_root)", %{
+      conn: conn,
+      store: store
+    } do
+      require Ash.Query
+
+      conn = %{conn | host: "#{store.slug}.makola.io"}
+      {:ok, view, _html} = live(conn, "/")
+
+      html = render_submit(view, "subscribe_newsletter", %{"email" => "host@example.com"})
+
+      assert html =~ "Thanks for subscribing"
+
+      assert [subscriber] =
+               Emakola.Customers.NewsletterSubscriber
+               |> Ash.Query.filter(store_id == ^store.id)
+               |> Ash.read!(authorize?: false)
+
+      assert Ash.CiString.value(subscriber.email) == "host@example.com"
+    end
   end
 
   describe "a host with no store" do
