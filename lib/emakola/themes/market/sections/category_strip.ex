@@ -23,6 +23,11 @@ defmodule Emakola.Themes.Market.Sections.CategoryStrip do
 
   @impl true
   def render(assigns) do
+    # The circle used to show a photograph only when the merchant had set
+    # `category.image_url`, which nobody does — so the strip was a row of
+    # lettered blanks. The store's real category cover fills it now.
+    assigns = assign(assigns, :covers, Map.get(assigns, :category_photos) || %{})
+
     ~H"""
     <nav
       :if={@categories != []}
@@ -40,9 +45,10 @@ defmodule Emakola.Themes.Market.Sections.CategoryStrip do
           role="listitem"
         >
           <div class="h-[68px] w-[68px] rounded-full bg-stone-200 p-[3px] group-hover:bg-store-accent group-focus-visible:bg-store-accent motion-safe:transition-[background-color,transform] motion-safe:group-hover:scale-105">
-            <%= if Shared.category_image(category) do %>
+            <% cover = Shared.category_image(category) || Map.get(@covers, category.id) %>
+            <%= if cover do %>
               <.optimized_image
-                src={Shared.category_image(category)}
+                src={cover}
                 alt={category.name}
                 priority={:low}
                 class="h-full w-full rounded-full border-2 border-white object-cover"

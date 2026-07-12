@@ -27,7 +27,16 @@ defmodule Emakola.Themes.Akwaaba.Sections.Categories do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :tiles, tiles(assigns.categories, assigns.products))
+    assigns =
+      assign(
+        assigns,
+        :tiles,
+        tiles(
+          assigns.categories,
+          Map.get(assigns, :products, []),
+          Map.get(assigns, :category_photos) || %{}
+        )
+      )
 
     ~H"""
     <section
@@ -94,17 +103,24 @@ defmodule Emakola.Themes.Akwaaba.Sections.Categories do
   end
 
   # A category's tile photo is the photo of the first product filed under it.
-  defp tiles(categories, products) do
+  defp tiles(categories, products, covers) do
     for category <- Enum.take(categories, 6) do
-      image =
-        products
-        |> Enum.find(&(Map.get(&1, :category_id) == category.id))
-        |> case do
-          nil -> nil
-          product -> Shared.first_image(product)
-        end
-
-      {category, image}
+      {category, cover(category, products, covers)}
     end
+  end
+
+  # The store's real category cover first — it is read from the catalogue, so a
+  # category outside the page's capped product preview still gets a photograph.
+  # The preview stays as the fallback for callers that pass no covers (admin
+  # preview, tests). Both are scoped to the category itself: a tile is a promise
+  # about what is behind it.
+  defp cover(category, products, covers) do
+    Map.get(covers, category.id) ||
+      products
+      |> Enum.find(&(Map.get(&1, :category_id) == category.id))
+      |> case do
+        nil -> nil
+        product -> Shared.first_image(product)
+      end
   end
 end

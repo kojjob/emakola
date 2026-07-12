@@ -181,6 +181,38 @@ defmodule Emakola.Themes.AkwaabaTest do
       html = render_section(Categories, %{store: @store, products: [], categories: []})
       refute html =~ "Shop by category"
     end
+
+    test "a tile wears the store's real category cover, even when no product on the page is in it" do
+      # The page only ever loads a capped product preview; the cover comes from
+      # the catalogue itself, so a category outside that preview is still shown.
+      category = %{id: "cat-9", name: "Jewellery", slug: "jewellery"}
+
+      html =
+        render_section(Categories, %{
+          store: @store,
+          products: [],
+          categories: [category],
+          category_photos: %{"cat-9" => "/uploads/pendant.jpg"}
+        })
+
+      assert html =~ "/uploads/pendant.jpg"
+      refute html =~ "from-[#F3D3C0]"
+    end
+
+    test "a tile never wears a cover belonging to a different category" do
+      category = %{id: "cat-food", name: "Food", slug: "food"}
+
+      html =
+        render_section(Categories, %{
+          store: @store,
+          products: [],
+          categories: [category],
+          category_photos: %{"cat-apparel" => "/uploads/dress.jpg"}
+        })
+
+      refute html =~ "/uploads/dress.jpg"
+      assert html =~ "from-[#F3D3C0]"
+    end
   end
 
   describe "product card" do
