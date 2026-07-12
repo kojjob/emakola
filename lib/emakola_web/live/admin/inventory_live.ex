@@ -75,8 +75,13 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         {:noreply, put_flash(socket, :error, "Variant not found")}
 
       variant ->
-        case Emakola.Catalog.adjust_variant_stock(variant, %{delta: delta}, authorize?: false) do
-          {:ok, _updated} ->
+        # Funnel through the Inventory domain (default location; the
+        # per-location picker arrives with the locations UI) so the level,
+        # the variant total, and the movement ledger stay in sync.
+        location = Emakola.Inventory.ensure_default_location!(socket.assigns.store_id)
+
+        case Emakola.Inventory.adjust(variant.id, location.id, delta, :adjustment) do
+          {:ok, _} ->
             {:noreply, load_variants(socket)}
 
           {:error, _error} ->
