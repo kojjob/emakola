@@ -26,15 +26,14 @@ defmodule EmakolaWeb.Admin.DesignLiveTest do
       assert html =~ "/admin/design/sections"
     end
 
-    # Only Starter/Atelier implement sections/0 — for every other theme the
-    # section editor redirects away, so the card must not render a link that
-    # goes nowhere. Market is the platform default (factory stores resolve to
-    # it), so this is most merchants.
+    # Only Starter/Atelier/Market implement sections/0 — for every other
+    # theme the section editor redirects away, so the card must not render a
+    # link that goes nowhere.
     test "does not render for a store on a non-sectionized theme", %{conn: conn} do
       {merchant, store} = create_merchant_with_store!()
 
       store
-      |> Ash.Changeset.for_update(:update, %{theme_config: %{"theme" => "market"}})
+      |> Ash.Changeset.for_update(:update, %{theme_config: %{"theme" => "bold"}})
       |> Ash.update!(authorize?: false)
 
       {:ok, _view, html} = live(log_in(conn, merchant), "/admin/design")

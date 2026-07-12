@@ -15,6 +15,17 @@ defmodule Emakola.Themes.Market do
 
   def id, do: "market"
 
+  @doc """
+  Returns the home sections, in the default visual order.
+  """
+  def sections,
+    do: [
+      Emakola.Themes.Market.Sections.CategoryStrip,
+      Emakola.Themes.Market.Sections.Featured,
+      Emakola.Themes.Market.Sections.ProductGrid,
+      Emakola.Themes.Market.Sections.About
+    ]
+
   def fonts,
     do: ["https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"]
 
