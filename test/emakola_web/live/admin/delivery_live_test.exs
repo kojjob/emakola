@@ -48,6 +48,69 @@ defmodule EmakolaWeb.Admin.DeliveryLiveTest do
 
       assert html =~ "Greater Accra"
     end
+
+    test "zone form renders free-above and per-kg pricing inputs", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings/delivery")
+
+      html = view |> element("[phx-click=\"show_form\"]") |> render_click()
+
+      assert html =~ "Free above"
+      assert html =~ "Per kg fee"
+      assert html =~ "zone[free_above]"
+      assert html =~ "zone[per_kg_fee]"
+    end
+
+    test "saves free-above and per-kg values in pesewas", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings/delivery")
+
+      view |> element("[phx-click=\"show_form\"]") |> render_click()
+
+      view
+      |> form("#new-zone-form", %{
+        zone: %{
+          name: "Tiered Accra",
+          fee: "15.00",
+          estimated_days: 1,
+          free_above: "200.00",
+          per_kg_fee: "5.00"
+        }
+      })
+      |> render_submit()
+
+      zone =
+        Emakola.Shipping.list_delivery_zones!(store.id, authorize?: false)
+        |> Enum.find(&(&1.name == "Tiered Accra"))
+
+      assert zone.fee == 1500
+      assert zone.free_above_pesewas == 20_000
+      assert zone.per_kg_fee_pesewas == 500
+    end
+
+    test "blank tier inputs leave the zone flat (ship-dark)", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings/delivery")
+
+      view |> element("[phx-click=\"show_form\"]") |> render_click()
+
+      view
+      |> form("#new-zone-form", %{
+        zone: %{
+          name: "Flat Accra",
+          fee: "15.00",
+          estimated_days: 1,
+          free_above: "",
+          per_kg_fee: ""
+        }
+      })
+      |> render_submit()
+
+      zone =
+        Emakola.Shipping.list_delivery_zones!(store.id, authorize?: false)
+        |> Enum.find(&(&1.name == "Flat Accra"))
+
+      assert zone.fee == 1500
+      assert zone.free_above_pesewas == nil
+      assert zone.per_kg_fee_pesewas == nil
+    end
   end
 
   defp setup_authenticated_merchant(conn) do

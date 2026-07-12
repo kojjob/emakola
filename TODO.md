@@ -129,8 +129,13 @@
       sender/message/recipients payload, endpoint defaulted — closes the
       LAUNCH_TODO header warning). Generic Bearer gateways remain the default.
       Ship-dark: dev/test stay on LogSMS/Mox.
-- [ ] **Delivery fee beyond flat-per-zone** — `Emakola.Shipping.calculate_fee/2`
-      does zone lookup only; add weight-based / tiered rules if needed.
+- [x] **Delivery fee beyond flat-per-zone** — DONE 2026-07-11. `DeliveryZone`
+      gained `free_above_pesewas` (order subtotal free-shipping threshold) and
+      `per_kg_fee_pesewas` (surcharge per started kg of `variant.weight_grams`);
+      `calculate_fee/3` accepts subtotal/weight context (free-above wins),
+      checkout passes both, zone admin form has the two GHS inputs.
+      Follow-up: merchants can't set variant weights via UI yet (API/CSV only) —
+      add a weight input to the product/variant admin form.
 - [x] **Low-stock WhatsApp channel** — DONE 2026-07-11. The daily digest now also
       goes to `store.whatsapp_number` via the `low_stock_digest` template,
       tolerating an unapproved Meta template exactly like the announcement
