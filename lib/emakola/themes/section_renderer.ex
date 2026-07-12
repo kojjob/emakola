@@ -33,7 +33,7 @@ defmodule Emakola.Themes.SectionRenderer do
 
     ~H"""
     <%= for {entry, module, meta} <- @resolved_entries do %>
-      <%= if styled?(entry["style"]) do %>
+      <%= if assigns[:preview] || styled?(entry["style"]) do %>
         <div
           class={padding_class(entry["style"])}
           style={wrapper_style(entry["style"])}
@@ -51,8 +51,8 @@ defmodule Emakola.Themes.SectionRenderer do
 
   # Spec amendment (88963c2): the wrapper is emitted only when the entry is
   # actually styled — unstyled entries render bare so default storefronts
-  # keep today's exact DOM; the editor preview forces wrappers in preview
-  # mode (next PR). Junk style keys that resolve to neither count as unstyled.
+  # keep today's exact DOM; preview mode forces wrappers for editor anchors.
+  # Junk style keys that resolve to neither count as unstyled.
   defp styled?(style) do
     padding_class(style) != nil or wrapper_style(style) != nil
   end

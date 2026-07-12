@@ -292,11 +292,17 @@
         wrapper only for styled entries — byte-identical defaults); Starter
         and Atelier decomposed into registered sections. Spec:
         `docs/superpowers/specs/2026-07-11-section-editor-design.md`.
-  - [ ] Remaining: the admin Section Editor UI (`SectionSortable` JS hook,
-        per-section settings forms, backwards-compat, tests), the seven new
-        themes (Sika, Fie, Chale, Dede, Depot, Pace, Ntoma — locked
-        2026-07-11), and the cull-gated fan-out of surviving existing themes
-        into sections.
+  - [x] Admin Section Editor UI — DONE 2026-07-12:
+        `EmakolaWeb.Admin.DesignSectionsLive` at `/admin/design/sections`
+        (rows with hand-rolled drag-and-drop + keyboard reorder, toggle,
+        per-section settings/style forms, add/remove for custom instances,
+        in-process live preview, draft/publish/reset with an unsaved-changes
+        guard), linked from the Design tab. End-to-end sealed: a reorder
+        published through the editor renders on the live storefront
+        (`home_sections_integration_test.exs`).
+  - [ ] Remaining: the seven new themes (Sika, Fie, Chale, Dede, Depot, Pace,
+        Ntoma — locked 2026-07-11), and the cull-gated fan-out of surviving
+        existing themes into sections.
       *(Phase 1 page coverage and most of Phase 3 — `DesignTokens`,
       `design_tokens` config, the admin Design tab — are DONE; only a standalone
       `FontLoader` was folded into `DesignTokens`.)*

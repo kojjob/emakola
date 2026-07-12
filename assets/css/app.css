@@ -676,3 +676,15 @@ html.high-contrast {
     .about-underline { stroke-dashoffset: 0; animation: none; }
   }
 }
+
+/* Section editor drag-and-drop reorder (assets/js/hooks/section_sortable.js):
+   drop-indicator classes toggled on dragover — a colored edge shows which
+   side of the hovered row the dragged section will land on. */
+@layer components {
+  .section-drop-above {
+    box-shadow: inset 0 2px 0 0 var(--color-primary);
+  }
+  .section-drop-below {
+    box-shadow: inset 0 -2px 0 0 var(--color-primary);
+  }
+}

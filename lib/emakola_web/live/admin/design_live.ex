@@ -21,6 +21,14 @@ defmodule EmakolaWeb.Admin.DesignLive do
       store ->
         resolved = ThemeResolver.resolve(store.theme_config || %{})
 
+        # Gates the "Homepage sections" hand-off card — the section editor
+        # redirects away for themes without sections/0 support, so don't
+        # render a link that goes nowhere.
+        sections_editable? =
+          resolved.theme_id
+          |> ThemeResolver.theme_module()
+          |> Emakola.Themes.Sections.sectionized?()
+
         {:ok,
          socket
          |> assign(
@@ -28,6 +36,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
            active_nav: :design,
            store: store,
            design_tokens: resolved.design_tokens,
+           sections_editable?: sections_editable?,
            preview_key: System.unique_integer([:positive]),
            saving: false,
            saved: false
@@ -686,6 +695,28 @@ defmodule EmakolaWeb.Admin.DesignLive do
               </.option_tile>
             </div>
           </div>
+
+          <%!-- Hand-off CTA → Section editor (sectionized themes only) --%>
+          <.link
+            :if={@sections_editable?}
+            navigate="/admin/design/sections"
+            class="block bg-gradient-to-br from-sky-50 to-sky-100 hover:from-sky-100 hover:to-sky-200 rounded-2xl p-4 transition-colors group"
+          >
+            <div class="flex items-start gap-3">
+              <div class="w-9 h-9 rounded-xl bg-sky-200 group-hover:bg-sky-300 flex items-center justify-center shrink-0 transition-colors">
+                <span class="material-symbols-outlined text-lg text-sky-700">view_agenda</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-sky-900">Homepage sections</p>
+                <p class="text-[11px] text-sky-700 mt-0.5 leading-relaxed">
+                  Reorder, show, hide, and configure the sections on your home page
+                </p>
+              </div>
+              <span class="material-symbols-outlined text-base text-sky-600 group-hover:translate-x-0.5 transition-transform shrink-0">
+                arrow_forward
+              </span>
+            </div>
+          </.link>
 
           <%!-- Hand-off CTA → back to Theme picker --%>
           <.link

@@ -450,6 +450,7 @@ defmodule EmakolaWeb.Router do
       # Theme customizer
       live "/admin/theme", Admin.ThemeLive
       live "/admin/design", Admin.DesignLive
+      live "/admin/design/sections", Admin.DesignSectionsLive
 
       # Marketing
       live "/admin/campaigns", Admin.CampaignLive.Index

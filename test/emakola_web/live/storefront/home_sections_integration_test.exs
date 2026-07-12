@@ -162,4 +162,54 @@ defmodule EmakolaWeb.Storefront.HomeSectionsIntegrationTest do
     {:ok, _view, html} = live(conn, "/s/#{store.slug}")
     assert html =~ "javascript:alert(1)"
   end
+
+  # The seal for the section-editor UI (Task 6): every prior test in this
+  # file drives persistence directly through `HomeSections.put_layout/4` —
+  # proving the STORAGE/RENDER half of the pipeline, which Tasks 1-5 (core)
+  # already own. This test is NOT RED-first — `DesignSectionsLive` was
+  # already built and covered unit-by-unit in
+  # `design_sections_live_test.exs` — it seals the remaining, previously
+  # unverified half: that a merchant driving the ADMIN EDITOR (mount,
+  # drag-reorder, Publish) produces the exact same effect on the LIVE
+  # STOREFRONT as a direct `put_layout` call. A `put_layout`-only test would
+  # re-test the core PR; this one proves the editor's write path and the
+  # storefront's read path agree.
+  test "a reorder published through the section editor renders on the live storefront", %{
+    conn: conn
+  } do
+    {merchant, store} = create_merchant_with_store!()
+    store = set_starter_theme!(store)
+
+    token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
+
+    conn =
+      conn
+      |> Phoenix.ConnTest.init_test_session(%{})
+      |> Plug.Conn.put_session(:user_token, token)
+
+    {:ok, view, _html} = live(conn, "/admin/design/sections")
+
+    # Full id order: Trust moves ahead of Hero (default order is Hero ->
+    # Category Pills -> Featured Products -> Trust -> Newsletter).
+    order = [
+      "starter/trust",
+      "starter/hero",
+      "starter/category_pills",
+      "starter/featured_products",
+      "starter/newsletter"
+    ]
+
+    render_hook(view, "reorder", %{"order" => order})
+    render_click(view, "publish")
+
+    saved = HomeSections.saved_layout(Ash.reload!(store, authorize?: false), "starter")
+    assert ["starter/trust", "starter/hero" | _] = Enum.map(saved, & &1["id"])
+
+    {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+
+    # Trust ("Secure Payment") now renders before Hero ("Your New Favorite
+    # Store") on the public storefront — the editor's write path and the
+    # storefront's read path agree.
+    assert String.match?(html, ~r/Secure Payment.*Your New Favorite Store/s)
+  end
 end
