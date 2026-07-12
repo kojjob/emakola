@@ -4,7 +4,11 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
   home-page sections (spec: docs/superpowers/specs/2026-07-11-section-editor-design.md).
 
   All mutations happen on a draft assign; nothing persists to the store
-  until Publish. Add/remove section controls arrive in Task 4.
+  until Publish.
+
+  Settings/style edits, and add/remove of custom section instances, land
+  here (Task 4). Default theme sections can be hidden but never removed
+  — see `custom_entry?/1`.
 
   The right-hand preview renders the DRAFT layout in-process through
   `Emakola.Themes.SectionRenderer.home/1` — see `render_preview/1`.
@@ -13,6 +17,7 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
 
   require Logger
 
+  alias Emakola.PageBuilder
   alias Emakola.Themes.HomeSections
   alias Emakola.Themes.Sections
   alias Emakola.Themes.ThemeResolver
@@ -88,10 +93,16 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
 
     case HomeSections.put_layout(actor, store, theme_module.id(), draft) do
       {:ok, updated_store} ->
+        # Sanitization is server-side and happens inside put_layout — reload
+        # the draft from what was actually persisted so the merchant sees
+        # what sanitization kept (e.g. a rejected `javascript:` URL comes
+        # back cleared) rather than the values they submitted.
+        persisted = HomeSections.saved_layout(updated_store, theme_module.id()) || []
+
         {:noreply,
          socket
-         |> assign(store: updated_store, dirty: false)
-         |> put_flash(:info, "Sections published to your live storefront.")}
+         |> assign(store: updated_store, draft: persisted, dirty: false)
+         |> put_flash(:info, publish_flash_message(persisted, draft))}
 
       {:error, :forbidden} ->
         {:noreply,
@@ -130,6 +141,135 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
 
       {:error, _other} ->
         {:noreply, put_flash(socket, :error, "Couldn't reset your sections. Please try again.")}
+    end
+  end
+
+  # Settings/style edits go into the draft VERBATIM — no client-side URL or
+  # color filtering. That allowlisting stays server-side in
+  # HomeSections.put_layout/4 at publish time (see publish/2 above), which
+  # is the only path that ever writes to the store. Numeric coercion here
+  # is not a security boundary — it's crash prevention for the in-process
+  # preview: BlockSection-bridged content (e.g. ProductGrid's `count`) feeds
+  # straight into functions like Enum.take/2 that require an integer.
+  @impl true
+  def handle_event("update_settings", %{"id" => id, "settings" => settings}, socket)
+      when is_map(settings) do
+    draft =
+      update_entry(socket.assigns.draft, id, fn entry ->
+        Map.put(entry, "settings", coerce_settings(entry["type"], settings))
+      end)
+
+    {:noreply, assign(socket, draft: draft, dirty: true)}
+  end
+
+  @impl true
+  def handle_event("update_style", %{"id" => id, "style" => style}, socket)
+      when is_map(style) do
+    draft = update_entry(socket.assigns.draft, id, &Map.put(&1, "style", style))
+    {:noreply, assign(socket, draft: draft, dirty: true)}
+  end
+
+  # Only a resolvable type is appended — an unresolvable one would just
+  # render as a "Missing section" row (rows/1 already handles that
+  # gracefully), so rejecting it here avoids adding dead weight to the
+  # draft from a tampered payload.
+  @impl true
+  def handle_event("add_section", %{"type" => type}, socket) do
+    case Sections.resolve(type) do
+      {:ok, _} ->
+        entry = %{
+          "id" => "#{type}-#{System.unique_integer([:positive])}",
+          "type" => type,
+          "enabled" => true,
+          "settings" => %{},
+          "style" => %{}
+        }
+
+        {:noreply, assign(socket, draft: socket.assigns.draft ++ [entry], dirty: true)}
+
+      :error ->
+        {:noreply, socket}
+    end
+  end
+
+  # The remove control only RENDERS for custom instances (see
+  # custom_entry?/1), but that's a UI affordance, not the enforcement — this
+  # guard is what actually keeps a default theme section un-deletable, even
+  # against a crafted event bypassing the missing button.
+  @impl true
+  def handle_event("remove_section", %{"id" => id}, socket) do
+    draft = socket.assigns.draft
+
+    case Enum.find(draft, &(&1["id"] == id)) do
+      %{} = entry ->
+        if custom_entry?(entry) do
+          {:noreply, assign(socket, draft: Enum.reject(draft, &(&1["id"] == id)), dirty: true)}
+        else
+          {:noreply, socket}
+        end
+
+      nil ->
+        {:noreply, socket}
+    end
+  end
+
+  # Catch-all — MUST stay the last handle_event/3 clause. The preview's DOM
+  # guards (pointer-events-none/inert, see render_preview/1) can't stop a JS
+  # hook that pushEvents; an unrecognized event name here would otherwise
+  # raise FunctionClauseError and crash the LiveView, silently destroying
+  # the merchant's unpublished draft. Logging (not silently no-op'ing) means
+  # a typo'd event name in this module's own markup still surfaces.
+  @impl true
+  def handle_event(event, _params, socket) do
+    Logger.warning("[design_sections] unhandled event #{inspect(event)}")
+    {:noreply, socket}
+  end
+
+  defp publish_flash_message(persisted, submitted) do
+    if persisted == submitted do
+      "Sections published to your live storefront."
+    else
+      "Sections published — some values were dropped by safety checks " <>
+        "(an unsafe link or color, most likely). Review the affected section below."
+    end
+  end
+
+  defp update_entry(draft, id, fun) do
+    Enum.map(draft, fn entry -> if entry["id"] == id, do: fun.(entry), else: entry end)
+  end
+
+  # A saved entry counts as "custom" — removable, unlike a default theme
+  # section which can only be hidden — when its id was generated (add_section
+  # always mints "#{type}-#{unique_integer}", so id != type) or it's a
+  # bridged content block, which has no "default" instance at all.
+  defp custom_entry?(entry) do
+    type = entry["type"] || ""
+    entry["id"] != type or String.starts_with?(type, "block/")
+  end
+
+  defp coerce_settings(type, params) do
+    schema = schema_for_type(type)
+
+    for {key, value} <- params, into: %{} do
+      case Enum.find(schema, &(&1.key == key)) do
+        %{type: :boolean} -> {key, value == "true"}
+        %{type: :integer, default: default} -> {key, coerce_integer(value, default)}
+        _other -> {key, value}
+      end
+    end
+  end
+
+  defp coerce_integer(value, default) do
+    case Integer.parse(to_string(value)) do
+      {int, _rest} -> int
+      :error -> if is_integer(default), do: default, else: 0
+    end
+  end
+
+  defp schema_for_type(type) do
+    case Sections.resolve(type) do
+      {:ok, {module, meta}} -> schema_for(module, meta)
+      :error -> []
     end
   end
 
@@ -177,32 +317,87 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
     end
   end
 
-  # Resolves each draft entry's display label from the section registry ONCE
-  # per render (Sections.resolve/1 rebuilds the registry index on every call,
-  # so the template must not call it per-attribute). Saved types that no
-  # longer resolve (a theme's section list changed since the layout was
-  # saved) are marked `missing?` and render as an inert row instead of
-  # crashing the editor.
+  # Resolves each draft entry's display label AND settings schema from the
+  # section registry ONCE per render (Sections.resolve/1 rebuilds the
+  # registry index on every call, so the template must not call it
+  # per-attribute). Saved types that no longer resolve (a theme's section
+  # list changed since the layout was saved) are marked `missing?` and
+  # render as an inert row instead of crashing the editor.
   defp rows(draft) do
     last_index = length(draft) - 1
 
     for {entry, index} <- Enum.with_index(draft) do
-      {label, missing?} =
-        case Sections.resolve(entry["type"]) do
-          {:ok, {module, _meta}} -> {module.label(), false}
-          :error -> {entry["type"] || entry["id"], true}
-        end
-
-      %{
+      base = %{
         id: entry["id"],
-        label: label,
-        missing?: missing?,
-        enabled?: entry["enabled"] == true,
         first?: index == 0,
         last?: index == last_index
       }
+
+      case Sections.resolve(entry["type"]) do
+        {:ok, {module, meta}} ->
+          Map.merge(base, %{
+            label: module.label(),
+            missing?: false,
+            enabled?: entry["enabled"] == true,
+            custom?: custom_entry?(entry),
+            schema: schema_for(module, meta),
+            settings: entry["settings"] || %{},
+            style: entry["style"] || %{}
+          })
+
+        :error ->
+          Map.merge(base, %{
+            label: entry["type"] || entry["id"],
+            missing?: true,
+            enabled?: false,
+            custom?: false,
+            schema: [],
+            settings: %{},
+            style: %{}
+          })
+      end
     end
   end
+
+  # Block-bridged entries (Sections.BlockSection) declare no schema of
+  # their own — their editable settings come from the block's
+  # default_content/0, scalar keys only. List/map-valued content (FAQ
+  # items, testimonial lists) is dropped by layout sanitization on write,
+  # so offering a form field for it would be a lie — see BlockSection's
+  # moduledoc.
+  defp schema_for(Sections.BlockSection, %{block_module: block_module}) do
+    block_module.default_content()
+    |> Enum.filter(fn {_key, value} -> scalar_setting?(value) end)
+    |> Enum.map(fn {key, value} ->
+      key_str = Atom.to_string(key)
+
+      %{
+        key: key_str,
+        type: block_setting_type(key_str, value),
+        label: humanize(key_str),
+        default: value
+      }
+    end)
+  end
+
+  defp schema_for(module, _meta), do: module.settings_schema()
+
+  defp scalar_setting?(value),
+    do: is_binary(value) or is_boolean(value) or is_integer(value) or is_nil(value)
+
+  defp block_setting_type(_key, value) when is_boolean(value), do: :boolean
+  defp block_setting_type(_key, value) when is_integer(value), do: :integer
+  defp block_setting_type("image_url", _value), do: :image_url
+
+  defp block_setting_type(key, _value) do
+    cond do
+      String.ends_with?(key, "_url") -> :link
+      String.ends_with?(key, "body") -> :text
+      true -> :string
+    end
+  end
+
+  defp humanize(key), do: key |> String.replace("_", " ") |> String.capitalize()
 
   # ── Live preview ────────────────────────────────────────────────
   # The preview is a PICTURE of the storefront, not a working one. It
@@ -290,6 +485,158 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
     "--theme-primary: #{primary}; --theme-accent: #{accent}; --theme-bg: #{background};"
   end
 
+  # ── Settings + style forms ──────────────────────────────────────
+  # Both forms push the ENTIRE form's current field values on every change
+  # (standard phx-change behavior), so the "id" comes from phx-value-id on
+  # the <form> itself, matching the update_settings/update_style event
+  # contract exactly: %{"id" => id, "settings"/"style" => params}.
+
+  attr :row, :map, required: true
+  attr :categories, :list, required: true
+
+  defp section_settings_form(assigns) do
+    ~H"""
+    <form
+      phx-change="update_settings"
+      phx-value-id={@row.id}
+      class="grid grid-cols-1 gap-4 sm:grid-cols-2"
+    >
+      <p :if={@row.schema == []} class="col-span-full text-sm text-text-muted">
+        This section has no editable settings.
+      </p>
+      <.setting_field
+        :for={field <- @row.schema}
+        field={field}
+        value={Map.get(@row.settings, field.key)}
+        categories={@categories}
+      />
+    </form>
+    """
+  end
+
+  attr :field, :map, required: true
+  attr :value, :any, default: nil
+  attr :categories, :list, default: []
+
+  defp setting_field(assigns) do
+    assigns = assign(assigns, :current, assigns.value || assigns.field.default)
+
+    ~H"""
+    <label class={["block", @field.type == :text && "sm:col-span-2"]}>
+      <span class="mb-1 block text-xs font-medium text-text-muted">{@field.label}</span>
+      <%= case @field.type do %>
+        <% :text -> %>
+          <textarea
+            name={"settings[#{@field.key}]"}
+            rows="3"
+            phx-debounce="300"
+            class={setting_input_classes()}
+          >{@current}</textarea>
+        <% :boolean -> %>
+          <span class="flex items-center pt-1.5">
+            <input type="hidden" name={"settings[#{@field.key}]"} value="false" />
+            <input
+              type="checkbox"
+              name={"settings[#{@field.key}]"}
+              value="true"
+              checked={@current == true}
+              class="size-4 rounded border-border text-primary focus:ring-2 focus:ring-primary/30"
+            />
+          </span>
+        <% :integer -> %>
+          <input
+            type="number"
+            name={"settings[#{@field.key}]"}
+            value={@current}
+            phx-debounce="300"
+            class={setting_input_classes()}
+          />
+        <% type when type in [:image_url, :link] -> %>
+          <input
+            type="url"
+            name={"settings[#{@field.key}]"}
+            value={@current}
+            placeholder="https://"
+            phx-debounce="300"
+            class={setting_input_classes()}
+          />
+        <% :category -> %>
+          <select name={"settings[#{@field.key}]"} class={setting_input_classes()}>
+            <option value="">Select a category</option>
+            <option
+              :for={category <- @categories}
+              value={category.id}
+              selected={@current == category.id}
+            >
+              {category.name}
+            </option>
+          </select>
+        <% _string_or_unknown -> %>
+          <input
+            type="text"
+            name={"settings[#{@field.key}]"}
+            value={@current}
+            phx-debounce="300"
+            class={setting_input_classes()}
+          />
+      <% end %>
+    </label>
+    """
+  end
+
+  attr :row, :map, required: true
+
+  defp section_style_form(assigns) do
+    ~H"""
+    <form
+      phx-change="update_style"
+      phx-value-id={@row.id}
+      class="grid grid-cols-1 gap-4 sm:grid-cols-3"
+    >
+      <label class="block">
+        <span class="mb-1 block text-xs font-medium text-text-muted">Background color</span>
+        <input
+          type="color"
+          name="style[bg]"
+          value={@row.style["bg"] || "#ffffff"}
+          class="h-10 w-full cursor-pointer rounded-control border border-border p-1"
+        />
+      </label>
+      <label class="block">
+        <span class="mb-1 block text-xs font-medium text-text-muted">Text color</span>
+        <input
+          type="color"
+          name="style[text]"
+          value={@row.style["text"] || "#0f172a"}
+          class="h-10 w-full cursor-pointer rounded-control border border-border p-1"
+        />
+      </label>
+      <label class="block">
+        <span class="mb-1 block text-xs font-medium text-text-muted">Padding</span>
+        <select name="style[padding]" class={setting_input_classes()}>
+          <option
+            :for={{padding, text} <- padding_options()}
+            value={padding}
+            selected={@row.style["padding"] == padding}
+          >
+            {text}
+          </option>
+        </select>
+      </label>
+    </form>
+    """
+  end
+
+  defp setting_input_classes,
+    do:
+      "w-full rounded-control border border-border bg-surface px-3 py-2 text-sm text-text " <>
+        "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+
+  # Mirrors HomeSections' padding allowlist (~w(none sm md lg)) exactly —
+  # these are the only values put_layout/4 will keep at publish.
+  defp padding_options,
+    do: [{"none", "None"}, {"sm", "Small"}, {"md", "Medium"}, {"lg", "Large"}]
+
   @impl true
   def render(assigns) do
     assigns = assign(assigns, :rows, rows(assigns.draft))
@@ -328,104 +675,193 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <section class="lg:col-span-6">
           <.admin_card padding={:none} class="divide-y divide-border">
-            <div
-              :for={row <- @rows}
-              class={["flex items-center gap-3 px-4 py-3.5", row.missing? && "opacity-60"]}
-            >
-              <.icon name="hero-bars-2" class="size-4 shrink-0 text-text-muted" />
+            <div :for={row <- @rows}>
+              <div class={["flex items-center gap-3 px-4 py-3.5", row.missing? && "opacity-60"]}>
+                <.icon name="hero-bars-2" class="size-4 shrink-0 text-text-muted" />
 
-              <div class="min-w-0 flex-1">
-                <p class="truncate text-sm font-semibold text-text">{row.label}</p>
-              </div>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-semibold text-text">{row.label}</p>
+                </div>
 
-              <span
-                :if={row.missing?}
-                class="inline-flex items-center whitespace-nowrap rounded-full bg-danger-soft px-2.5 py-0.5 text-xs font-semibold text-danger"
-              >
-                Missing section
-              </span>
-              <span
-                :if={!row.missing? && !row.enabled?}
-                class="inline-flex items-center whitespace-nowrap rounded-full bg-surface-subtle px-2.5 py-0.5 text-xs font-semibold text-text-muted"
-              >
-                Hidden
-              </span>
+                <span
+                  :if={row.missing?}
+                  class="inline-flex items-center whitespace-nowrap rounded-full bg-danger-soft px-2.5 py-0.5 text-xs font-semibold text-danger"
+                >
+                  Missing section
+                </span>
+                <span
+                  :if={!row.missing? && !row.enabled?}
+                  class="inline-flex items-center whitespace-nowrap rounded-full bg-surface-subtle px-2.5 py-0.5 text-xs font-semibold text-text-muted"
+                >
+                  Hidden
+                </span>
 
-              <%!-- Missing sections render inert placeholders — no phx-click
+                <%!-- Missing sections render inert placeholders — no phx-click
               wiring at all, so a stale/removed section type can never
               trigger a handler. --%>
-              <div :if={row.missing?} class="flex items-center gap-0.5 opacity-30">
-                <span class="p-1.5">
-                  <.icon name="hero-chevron-up" class="size-4 text-text-muted" />
-                </span>
-                <span class="p-1.5">
-                  <.icon name="hero-chevron-down" class="size-4 text-text-muted" />
-                </span>
-              </div>
-              <div :if={!row.missing?} class="flex items-center gap-0.5">
-                <button
-                  type="button"
-                  phx-click="move_section"
-                  phx-value-id={row.id}
-                  phx-value-dir="up"
-                  disabled={row.first?}
-                  class="rounded-control p-1.5 text-text-muted transition-colors hover:bg-surface-subtle hover:text-text disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-                  aria-label={"Move #{row.label} up"}
+                <div :if={row.missing?} class="flex items-center gap-0.5 opacity-30">
+                  <span class="p-1.5">
+                    <.icon name="hero-chevron-up" class="size-4 text-text-muted" />
+                  </span>
+                  <span class="p-1.5">
+                    <.icon name="hero-chevron-down" class="size-4 text-text-muted" />
+                  </span>
+                </div>
+                <div :if={!row.missing?} class="flex items-center gap-0.5">
+                  <button
+                    type="button"
+                    phx-click="move_section"
+                    phx-value-id={row.id}
+                    phx-value-dir="up"
+                    disabled={row.first?}
+                    class="rounded-control p-1.5 text-text-muted transition-colors hover:bg-surface-subtle hover:text-text disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                    aria-label={"Move #{row.label} up"}
+                  >
+                    <.icon name="hero-chevron-up" class="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    phx-click="move_section"
+                    phx-value-id={row.id}
+                    phx-value-dir="down"
+                    disabled={row.last?}
+                    class="rounded-control p-1.5 text-text-muted transition-colors hover:bg-surface-subtle hover:text-text disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
+                    aria-label={"Move #{row.label} down"}
+                  >
+                    <.icon name="hero-chevron-down" class="size-4" />
+                  </button>
+                </div>
+
+                <span
+                  :if={row.missing?}
+                  aria-hidden="true"
+                  class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-border bg-surface-subtle opacity-40"
                 >
-                  <.icon name="hero-chevron-up" class="size-4" />
+                  <span class="inline-block size-4 translate-x-1 transform rounded-full bg-white shadow" />
+                </span>
+                <button
+                  :if={!row.missing?}
+                  type="button"
+                  phx-click="toggle_section"
+                  phx-value-id={row.id}
+                  role="switch"
+                  aria-checked={to_string(row.enabled?)}
+                  aria-label={"Toggle #{row.label}"}
+                  class={[
+                    "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
+                    if(row.enabled?,
+                      do: "bg-primary",
+                      else: "bg-surface-subtle border border-border"
+                    )
+                  ]}
+                >
+                  <span class={[
+                    "inline-block size-4 transform rounded-full bg-white shadow transition-transform",
+                    if(row.enabled?, do: "translate-x-6", else: "translate-x-1")
+                  ]} />
+                </button>
+
+                <%!-- Missing sections stay fully inert — no settings panel,
+              no phx-click wiring — same rule as the reorder/toggle
+              controls above. --%>
+                <button
+                  :if={row.missing?}
+                  type="button"
+                  disabled
+                  class="p-1.5 text-text-muted opacity-30"
+                  aria-label="Section settings unavailable"
+                >
+                  <.icon name="hero-chevron-right" class="size-4" />
                 </button>
                 <button
+                  :if={!row.missing?}
                   type="button"
-                  phx-click="move_section"
-                  phx-value-id={row.id}
-                  phx-value-dir="down"
-                  disabled={row.last?}
-                  class="rounded-control p-1.5 text-text-muted transition-colors hover:bg-surface-subtle hover:text-text disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
-                  aria-label={"Move #{row.label} down"}
+                  phx-click={JS.toggle(to: "#section-panel-#{row.id}")}
+                  class="rounded-control p-1.5 text-text-muted transition-colors hover:bg-surface-subtle hover:text-text"
+                  aria-label={"Edit #{row.label} settings"}
+                  aria-expanded="false"
+                  aria-controls={"section-panel-#{row.id}"}
                 >
-                  <.icon name="hero-chevron-down" class="size-4" />
+                  <.icon name="hero-chevron-right" class="size-4" />
                 </button>
               </div>
 
-              <span
-                :if={row.missing?}
-                aria-hidden="true"
-                class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-border bg-surface-subtle opacity-40"
-              >
-                <span class="inline-block size-4 translate-x-1 transform rounded-full bg-white shadow" />
-              </span>
-              <button
+              <div
                 :if={!row.missing?}
-                type="button"
-                phx-click="toggle_section"
-                phx-value-id={row.id}
-                role="switch"
-                aria-checked={to_string(row.enabled?)}
-                aria-label={"Toggle #{row.label}"}
-                class={[
-                  "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
-                  if(row.enabled?,
-                    do: "bg-primary",
-                    else: "bg-surface-subtle border border-border"
-                  )
-                ]}
+                id={"section-panel-#{row.id}"}
+                class="hidden border-t border-border bg-surface-subtle/60 px-4 py-4"
               >
-                <span class={[
-                  "inline-block size-4 transform rounded-full bg-white shadow transition-transform",
-                  if(row.enabled?, do: "translate-x-6", else: "translate-x-1")
-                ]} />
-              </button>
+                <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                  Settings
+                </p>
+                <.section_settings_form row={row} categories={@categories} />
 
-              <button
-                type="button"
-                disabled
-                class="p-1.5 text-text-muted opacity-30"
-                aria-label="Section settings (coming soon)"
-              >
-                <.icon name="hero-chevron-right" class="size-4" />
-              </button>
+                <p class="mb-3 mt-5 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                  Style
+                </p>
+                <.section_style_form row={row} />
+
+                <div :if={row.custom?} class="mt-5 flex justify-end border-t border-border pt-4">
+                  <.admin_button
+                    variant={:danger}
+                    size={:sm}
+                    phx-click="remove_section"
+                    phx-value-id={row.id}
+                    data-confirm="Remove this section? This can't be undone."
+                  >
+                    <.icon name="hero-trash" class="size-3.5" /> Remove section
+                  </.admin_button>
+                </div>
+              </div>
             </div>
           </.admin_card>
+
+          <div class="relative mt-4">
+            <button
+              type="button"
+              phx-click={JS.toggle(to: "#add-section-picker")}
+              class="flex w-full items-center justify-center gap-2 rounded-control border-2 border-dashed border-border px-4 py-3 text-sm font-semibold text-text-muted transition-colors hover:border-primary hover:text-primary"
+              aria-expanded="false"
+              aria-controls="add-section-picker"
+            >
+              <.icon name="hero-plus" class="size-4" /> Add section
+            </button>
+
+            <div
+              id="add-section-picker"
+              class="hidden absolute inset-x-0 top-full z-10 mt-2 max-h-96 overflow-y-auto rounded-card border border-border bg-surface p-3 shadow-lg"
+            >
+              <p class="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                Theme sections
+              </p>
+              <div class="mb-4 grid grid-cols-2 gap-2">
+                <button
+                  :for={section <- @theme_module.sections()}
+                  type="button"
+                  phx-click="add_section"
+                  phx-value-type={section.key()}
+                  class="rounded-control border border-border px-3 py-2 text-left text-sm text-text transition-colors hover:border-primary hover:bg-primary-soft/40"
+                >
+                  {section.label()}
+                </button>
+              </div>
+
+              <p class="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                Content blocks
+              </p>
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  :for={block <- PageBuilder.blocks()}
+                  type="button"
+                  phx-click="add_section"
+                  phx-value-type={"block/#{block.type()}"}
+                  class="rounded-control border border-border px-3 py-2 text-left text-sm text-text transition-colors hover:border-primary hover:bg-primary-soft/40"
+                >
+                  {block.name()}
+                </button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <aside class="lg:col-span-6 lg:sticky lg:top-4 lg:self-start">
