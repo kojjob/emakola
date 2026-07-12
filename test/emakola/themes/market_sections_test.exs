@@ -5,6 +5,7 @@ defmodule Emakola.Themes.MarketSectionsTest do
   import Phoenix.LiveViewTest, only: [rendered_to_string: 1]
 
   alias Emakola.Themes.Market.Components
+  alias Emakola.Themes.Market.Sections.Hero
   alias Emakola.Themes.{Market, Sections, ThemeResolver}
 
   @component_store %{
@@ -37,11 +38,22 @@ defmodule Emakola.Themes.MarketSectionsTest do
     |> rendered_to_string()
   end
 
+  defp render_hero(store, settings_overrides \\ %{}) do
+    defaults =
+      for setting <- Hero.settings_schema(), into: %{}, do: {setting.key, setting.default}
+
+    render_component(&Hero.render/1, %{
+      store: store,
+      settings: Map.merge(defaults, settings_overrides)
+    })
+  end
+
   describe "sections/0" do
-    test "lists the four home sections in visual order" do
+    test "lists the five home sections in visual order, hero first" do
       keys = Enum.map(Market.sections(), & &1.key())
 
       assert keys == [
+               "market/hero",
                "market/category_strip",
                "market/featured",
                "market/product_grid",
@@ -69,7 +81,7 @@ defmodule Emakola.Themes.MarketSectionsTest do
   end
 
   describe "home render through SectionRenderer" do
-    test "renders all four sections in order with their landmarks" do
+    test "renders all five sections in order with their landmarks" do
       {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "market"}})
       create_category!(store, %{name: "Fresh Peppers"})
       product = create_product!(store, %{title: "Kente Tote Bag", status: :active})
@@ -77,6 +89,9 @@ defmodule Emakola.Themes.MarketSectionsTest do
 
       html = render_home(store)
 
+      # Hero carries the page's single h1, defaulting to the store name
+      assert html =~ ~r/<h1[^>]*id="market-hero-heading"[^>]*>\s*#{store.name}\s*<\/h1>/
+      assert length(String.split(html, "<h1")) == 2
       # Category strip (nav must be labelled for screen readers)
       assert html =~ ~s(aria-label="Product categories")
       assert html =~ "Fresh Peppers"
@@ -91,10 +106,10 @@ defmodule Emakola.Themes.MarketSectionsTest do
       # About
       assert html =~ "About the Shop"
 
-      # Flat sibling order: categories -> featured -> grid -> about
+      # Flat sibling order: hero -> categories -> featured -> grid -> about
       assert String.match?(
                html,
-               ~r/Product categories.*Featured product.*Shop All.*About the Shop/s
+               ~r/market-hero-heading.*Product categories.*Featured product.*Shop All.*About the Shop/s
              )
     end
 
@@ -105,6 +120,8 @@ defmodule Emakola.Themes.MarketSectionsTest do
 
       refute html =~ ~s(aria-label="Product categories")
       refute html =~ "Shop All"
+      # The hero still opens the page with the store name as its h1
+      assert html =~ ~r/<h1[^>]*id="market-hero-heading"[^>]*>\s*#{store.name}\s*<\/h1>/
       assert html =~ "About the Shop"
     end
 
@@ -118,6 +135,87 @@ defmodule Emakola.Themes.MarketSectionsTest do
       html = render_home(store)
 
       assert html =~ "Hand-picked goods from Makola market."
+    end
+  end
+
+  describe "hero/1" do
+    test "carries the page's h1, defaulting to the store name" do
+      html = render_hero(@component_store)
+
+      assert html =~ ~r/<h1[^>]*id="market-hero-heading"[^>]*>\s*Stall Front\s*<\/h1>/
+    end
+
+    test "a merchant headline replaces the store name in the h1" do
+      html = render_hero(@component_store, %{"headline" => "Fresh from the stall"})
+
+      assert html =~ ~r/<h1[^>]*id="market-hero-heading"[^>]*>\s*Fresh from the stall\s*<\/h1>/
+    end
+
+    test "the subheadline falls back to the store description" do
+      store = %{@component_store | description: "Everything fresh, every morning."}
+
+      html = render_hero(store)
+
+      assert html =~ "Everything fresh, every morning."
+    end
+
+    test "a merchant subheadline replaces the store description" do
+      store = %{@component_store | description: "Everything fresh, every morning."}
+
+      html = render_hero(store, %{"subheadline" => "Same-day delivery in Accra."})
+
+      assert html =~ "Same-day delivery in Accra."
+      refute html =~ "Everything fresh, every morning."
+    end
+
+    test "photo-optional: no image renders a finished typographic composition" do
+      html = render_hero(@component_store)
+
+      refute html =~ "<img"
+      # Monumental store-initial watermark (decorative, hidden from AT)
+      assert html =~ ~r/aria-hidden="true"[^>]*>\s*S\s*</s
+      assert html =~ ~r/<h1[^>]*>\s*Stall Front\s*<\/h1>/
+      assert html =~ "Shop all"
+    end
+
+    test "renders a local upload as the stall-front image with alt text" do
+      html = render_hero(@component_store, %{"image_url" => "/uploads/stall-front.jpg"})
+
+      assert html =~ ~s(src="/uploads/stall-front.jpg")
+      assert html =~ ~s(alt="Stall Front storefront")
+    end
+
+    test "non-local image URLs never reach the src position" do
+      for url <- ["https://evil.example/x.jpg", "javascript:alert(1)", "data:text/html,x"] do
+        html = render_hero(@component_store, %{"image_url" => url})
+
+        refute html =~ "<img"
+        refute html =~ url
+      end
+    end
+
+    test "the CTA links to the server-generated products path" do
+      html = render_hero(@component_store)
+
+      assert html =~ ~s(href="/s/stall/products")
+      assert html =~ "Shop all"
+    end
+
+    test "a merchant CTA label replaces the default" do
+      html = render_hero(@component_store, %{"cta_label" => "See the goods"})
+
+      assert html =~ "See the goods"
+      refute html =~ "Shop all"
+    end
+
+    test "every setting declares a default the editor can coerce against" do
+      keys = Enum.map(Hero.settings_schema(), & &1.key)
+
+      assert keys == ["headline", "subheadline", "cta_label", "image_url"]
+
+      for setting <- Hero.settings_schema() do
+        assert Map.has_key?(setting, :default)
+      end
     end
   end
 

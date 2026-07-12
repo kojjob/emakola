@@ -20,6 +20,7 @@ defmodule Emakola.Themes.Market do
   """
   def sections,
     do: [
+      Emakola.Themes.Market.Sections.Hero,
       Emakola.Themes.Market.Sections.CategoryStrip,
       Emakola.Themes.Market.Sections.Featured,
       Emakola.Themes.Market.Sections.ProductGrid,
