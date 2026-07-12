@@ -6,7 +6,8 @@ defmodule EmakolaWeb.ScreensTest do
 
   describe "Landing page" do
     test "renders landing page", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/")
+      # Dead render — the landing page is served by LandingController now.
+      html = conn |> get("/") |> html_response(200)
       assert html =~ "Makola"
     end
   end

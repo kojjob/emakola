@@ -23,9 +23,10 @@
 - [ ] **3. Resend** — API key; add + DNS-verify the sending domain for real
       delivery (sandbox only mails yourself). (§2)
 - [ ] **4. Arkesel SMS** — request Sender ID `Emakola` (NCA approval <1 day)
-      → API key → top up credits. ⚠️ Then ONE real test send: our channel
-      sends `Authorization: Bearer`; Arkesel v2 may expect an `api-key`
-      header — adapt `lib/emakola/notifications/channels/sms.ex` if so. (§3)
+      → API key → top up credits. The channel speaks Arkesel v2 natively:
+      set `SMS_PROVIDER=arkesel` (api-key header + payload + endpoint all
+      handled; `SMS_API_URL` becomes optional). Then ONE real test send to
+      confirm credits/sender-ID. (§3)
 - [ ] **5. WhatsApp credentials** — permanent **System User** token (the
       API-Setup page token expires in 24 h — don't ship it) + Phone Number ID.
       (§4a–4b)

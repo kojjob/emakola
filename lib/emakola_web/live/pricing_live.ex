@@ -12,21 +12,15 @@ defmodule EmakolaWeb.PricingLive do
          "Makola pricing: start free with 3.5% per sale, or grow with plans from GHS 29/month. Mobile money payments and WhatsApp notifications on every plan.",
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/pricing"),
-       json_ld: pricing_json_ld(),
-       mobile_menu_open: false
+       json_ld: pricing_json_ld()
      ), layout: false}
-  end
-
-  @impl true
-  def handle_event("toggle_mobile_menu", _params, socket) do
-    {:noreply, assign(socket, mobile_menu_open: !socket.assigns.mobile_menu_open)}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-white font-body antialiased">
-      <.landing_nav mobile_menu_open={@mobile_menu_open} />
+      <.landing_nav />
       <main class="pt-16">
         <section class="py-20 px-4">
           <div class="max-w-5xl mx-auto">

@@ -123,7 +123,7 @@
             </span>
           </div>
           <div class="min-w-0">
-            <div class="text-[0.9375rem] font-semibold text-[#0F172A] truncate leading-tight">
+            <div class="text-[0.9375rem] font-semibold text-slate-900 truncate leading-tight">
               {@store.name}
             </div>
             <div class="flex items-center gap-1 text-xs text-[#94A3B8] leading-tight">
@@ -140,7 +140,7 @@
           <button
             :if={assigns[:store]}
             phx-click={EmakolaWeb.SearchComponents.show_search()}
-            class="flex items-center justify-center w-10 h-10 rounded-full text-[#0F172A] hover:bg-[#F1F5F9] transition-colors"
+            class="flex items-center justify-center w-10 h-10 rounded-full text-slate-900 hover:bg-[#F1F5F9] transition-colors"
             aria-label="Search products"
             type="button"
           >
@@ -162,7 +162,7 @@
           <a
             :if={assigns[:store]}
             href={EmakolaWeb.Storefront.Path.store_path(@store.slug, "/cart")}
-            class="flex items-center justify-center w-10 h-10 rounded-full text-[#0F172A] hover:bg-[#F1F5F9] transition-colors relative"
+            class="flex items-center justify-center w-10 h-10 rounded-full text-slate-900 hover:bg-[#F1F5F9] transition-colors relative"
             aria-label={"Shopping bag#{if assigns[:cart_count] && @cart_count > 0, do: ", #{@cart_count} items", else: ""}"}
           >
             <svg
@@ -231,7 +231,7 @@
     class="bg-white border-t border-[#E2E8F0] mt-auto"
   >
     <div class="max-w-[1280px] mx-auto px-4 sm:px-6 py-8 pb-24 text-center">
-      <p :if={assigns[:store]} class="text-[0.9375rem] font-semibold text-[#0F172A] mb-1">
+      <p :if={assigns[:store]} class="text-[0.9375rem] font-semibold text-slate-900 mb-1">
         {@store.name}
       </p>
       <p :if={assigns[:store]} class="text-[0.8125rem] text-[#94A3B8] mb-4">
