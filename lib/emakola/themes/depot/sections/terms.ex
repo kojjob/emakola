@@ -39,13 +39,13 @@ defmodule Emakola.Themes.Depot.Sections.Terms do
 
     ~H"""
     <section
-      class="bg-zinc-50 px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
+      class="bg-[#FAF9F7] px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
       aria-labelledby="depot-terms-heading"
     >
-      <div class="mx-auto max-w-[1120px] border-2 border-zinc-900 bg-white">
+      <div class="mx-auto max-w-[1120px] border border-[#E7E5E1] shadow-sm bg-white">
         <h2
           id="depot-terms-heading"
-          class="border-b-2 border-zinc-900 px-5 py-4 text-lg font-bold tracking-tight text-zinc-900 [font-family:var(--dt-heading-font,inherit)]"
+          class="border-b border-[#E7E5E1] px-5 py-4 text-lg font-bold tracking-tight text-zinc-900 [font-family:var(--dt-heading-font,inherit)]"
         >
           {if @settings["heading"] not in [nil, ""],
             do: @settings["heading"],
@@ -93,14 +93,14 @@ defmodule Emakola.Themes.Depot.Sections.Terms do
           </div>
         </div>
 
-        <div class="border-t border-zinc-200 px-5 py-4">
+        <div class="border-t border-[#E7E5E1] px-5 py-4">
           <p class="mb-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
             We accept
           </p>
           <ul class="flex flex-wrap items-center gap-2" aria-label="Payment methods">
             <li
               :for={rail <- ["MTN MoMo", "Telecel Cash", "AirtelTigo Money", "Visa", "Mastercard"]}
-              class="inline-flex items-center border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-bold tracking-wide text-zinc-800"
+              class="inline-flex items-center border border-[#E7E5E1] bg-[#FAF9F7] px-2.5 py-1 text-[11px] font-bold tracking-wide text-zinc-800"
             >
               {rail}
             </li>

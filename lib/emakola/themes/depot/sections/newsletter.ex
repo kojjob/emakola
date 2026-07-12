@@ -24,10 +24,10 @@ defmodule Emakola.Themes.Depot.Sections.Newsletter do
   def render(assigns) do
     ~H"""
     <section
-      class="bg-zinc-50 px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
+      class="bg-[#FAF9F7] px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
       aria-labelledby="depot-newsletter-heading"
     >
-      <div class="mx-auto max-w-[1120px] border-2 border-zinc-900 bg-white p-6 sm:p-8">
+      <div class="mx-auto max-w-[1120px] border border-[#E7E5E1] shadow-sm bg-white p-6 sm:p-8">
         <div class="mx-auto max-w-xl text-center">
           <h2
             id="depot-newsletter-heading"

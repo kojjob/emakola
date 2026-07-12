@@ -13,16 +13,17 @@ defmodule Emakola.Themes.Depot.ProductList do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Depot.Shared
   alias EmakolaWeb.Helpers.Currency
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-zinc-50">
+    <div class="min-h-screen bg-[#FAF9F7]">
       <Shared.depot_nav store={@store} categories={@categories} cart_count={@cart_count} />
 
-      <div class="border-b border-zinc-200 bg-white">
+      <div class="border-b border-[#E7E5E1] bg-white">
         <div class="mx-auto max-w-[1120px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
           <p class="mb-2 font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.2em] text-zinc-500">
             {@store.name}
@@ -102,7 +103,7 @@ defmodule Emakola.Themes.Depot.ProductList do
         </div>
 
         <%= if @products == [] do %>
-          <div class="border-2 border-dashed border-zinc-300 bg-white px-6 py-14 text-center sm:py-16">
+          <div class="border border-dashed border-[#D8D4CC] bg-white px-6 py-14 text-center sm:py-16">
             <h2 class="mb-1.5 text-lg font-bold tracking-tight text-zinc-900">No items match</h2>
             <p class="mx-auto mb-6 max-w-sm text-sm leading-relaxed text-zinc-600">
               Nothing in the catalogue matches your search. Try another term or clear the filters.
@@ -111,25 +112,25 @@ defmodule Emakola.Themes.Depot.ProductList do
               :if={@search_query != "" || @selected_category}
               phx-click="filter_category"
               phx-value-category_id="all"
-              class="inline-flex items-center border-2 border-zinc-900 px-5 py-2.5 text-sm font-bold text-zinc-900 hover:bg-zinc-900 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 motion-safe:transition-colors"
+              class="inline-flex items-center border border-[#E7E5E1] shadow-sm px-5 py-2.5 text-sm font-bold text-zinc-900 hover:bg-zinc-900 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 motion-safe:transition-colors"
             >
               Clear all filters
             </button>
           </div>
         <% else %>
-          <div class="overflow-x-auto border-2 border-zinc-900 bg-white">
+          <div class="overflow-x-auto border border-[#E7E5E1] bg-white shadow-sm">
             <table class="w-full text-left">
               <thead>
-                <tr class="border-b-2 border-zinc-900">
+                <tr class="bg-[#18181B] text-white">
                   <th
                     scope="col"
-                    class="py-2.5 pl-4 pr-3 text-left font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-zinc-500 sm:pl-5"
+                    class="py-2.5 pl-4 pr-3 text-left font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-white/70 sm:pl-5"
                   >
                     Item
                   </th>
                   <th
                     scope="col"
-                    class="px-3 py-2.5 text-right font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-zinc-500"
+                    class="px-3 py-2.5 text-right font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-white/70"
                   >
                     Price
                   </th>
@@ -141,23 +142,40 @@ defmodule Emakola.Themes.Depot.ProductList do
               <tbody>
                 <tr
                   :for={product <- @products}
-                  class="border-b border-zinc-200 last:border-b-0 hover:bg-zinc-50 motion-safe:transition-colors"
+                  class="group border-b border-[#E7E5E1] last:border-b-0 hover:bg-[#FAF9F7] motion-safe:transition-colors"
                 >
-                  <td class="py-3 pl-4 pr-3 sm:pl-5">
-                    <a
-                      href={store_path(@store.slug, "/products/#{product.slug}")}
-                      class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
-                    >
-                      <span class="block text-sm font-semibold leading-snug text-zinc-900">
-                        {product.title}
-                      </span>
+                  <td class="border-l-2 border-transparent py-3 pl-4 pr-3 group-hover:border-[#C2410C] sm:pl-5">
+                    <div class="flex items-center gap-3">
+                      <.optimized_image
+                        :if={Shared.first_image(product)}
+                        src={Shared.first_image(product)}
+                        alt=""
+                        width={96}
+                        height={96}
+                        class="h-11 w-11 flex-shrink-0 border border-[#E7E5E1] object-cover"
+                      />
                       <span
-                        :if={Shared.variant_count(product) > 1}
-                        class="mt-0.5 block text-xs tabular-nums text-zinc-500"
+                        :if={!Shared.first_image(product)}
+                        aria-hidden="true"
+                        class="flex h-11 w-11 flex-shrink-0 items-center justify-center border border-[#E7E5E1] bg-[#F1EFEA] font-mono text-sm font-semibold text-[#A8A29E]"
                       >
-                        {Shared.variant_count(product)} options
+                        {String.first(product.title)}
                       </span>
-                    </a>
+                      <a
+                        href={store_path(@store.slug, "/products/#{product.slug}")}
+                        class="min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C2410C] focus-visible:ring-offset-2"
+                      >
+                        <span class="block text-sm font-semibold leading-snug text-zinc-900">
+                          {product.title}
+                        </span>
+                        <span
+                          :if={Shared.variant_count(product) > 1}
+                          class="mt-0.5 block text-xs tabular-nums text-zinc-500"
+                        >
+                          {Shared.variant_count(product)} options
+                        </span>
+                      </a>
+                    </div>
                   </td>
                   <td class="px-3 py-3 text-right text-sm font-bold tabular-nums text-zinc-900">
                     {Currency.format_price_range(
@@ -197,7 +215,7 @@ defmodule Emakola.Themes.Depot.ProductList do
           <div :if={@has_more} class="mt-6 text-center">
             <button
               phx-click="load_more"
-              class="inline-flex items-center gap-2 border-2 border-zinc-900 px-8 py-3 text-sm font-bold text-zinc-900 hover:bg-zinc-900 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 motion-safe:transition-colors"
+              class="inline-flex items-center gap-2 border border-[#E7E5E1] shadow-sm px-8 py-3 text-sm font-bold text-zinc-900 hover:bg-zinc-900 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 motion-safe:transition-colors"
             >
               Load more
             </button>
