@@ -46,7 +46,8 @@ defmodule EmakolaWeb.OnboardingLive do
     {"chale", "Streetwear & sneakers — drops, sizes, hype"},
     {"dede", "Food & catering — order fast, order on WhatsApp"},
     {"pace", "Activewear & techwear — built for motion"},
-    {"depot", "Wholesale — quick-order tables for repeat buyers"}
+    {"depot", "Wholesale — quick-order tables for repeat buyers"},
+    {"akwaaba", "Photo-led — let your product shots do the selling"}
   ]
 
   def mount(_params, session, socket) do
