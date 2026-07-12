@@ -18,10 +18,20 @@ defmodule Emakola.PageBuilder.SafeUrl do
     trimmed = String.trim(url)
 
     cond do
-      trimmed =~ ~r{^https?://}i -> url
-      String.starts_with?(trimmed, "//") -> nil
-      String.starts_with?(trimmed, "/") -> url
-      true -> nil
+      trimmed =~ ~r{^https?://}i ->
+        trimmed
+
+      # Browsers treat \ as / in http(s) URL parsing, so ANY pairing of
+      # slash/backslash in the first two chars (//, /\, \/, \\) is
+      # protocol-relative to a foreign host — reject all four spellings.
+      trimmed =~ ~r{^[/\\][/\\]} ->
+        nil
+
+      String.starts_with?(trimmed, "/") ->
+        trimmed
+
+      true ->
+        nil
     end
   end
 

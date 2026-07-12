@@ -11,6 +11,8 @@ defmodule Emakola.PageBuilder.SafeUrlTest do
 
     assert safe_url("/s/tiny-stitches/products/kente-tote") ==
              "/s/tiny-stitches/products/kente-tote"
+
+    assert safe_url("  https://wa.me/233201234567  ") == "https://wa.me/233201234567"
   end
 
   test "rejects executable and non-http schemes" do
@@ -28,6 +30,11 @@ defmodule Emakola.PageBuilder.SafeUrlTest do
     assert safe_url("jav\tascript:alert(1)") == nil
     assert safe_url("//evil.example.com") == nil
     assert safe_url("products") == nil
+    assert safe_url("/\\evil.com") == nil
+    assert safe_url("/\\/evil.com") == nil
+    assert safe_url("/\\\\evil.com/x?y=1") == nil
+    assert safe_url("\\\\evil.com") == nil
+    assert safe_url("\\/evil.com") == nil
   end
 
   test "rejects non-binaries and blanks" do
