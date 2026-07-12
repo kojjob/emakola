@@ -157,6 +157,23 @@
       Migration backfilled a "Main" location + level per tracked variant;
       later variants seed lazily. All four writers rewired (checkout
       decrement, Earn reservations hold/release, admin adjust, catalog
+<<<<<<< HEAD
+      interface unused). UI follow-up SHIPPED 2026-07-11: admin inventory
+      page gained the locations manager (add/rename/set-default/deactivate
+      with guard flashes), per-location breakdown lines on variant rows,
+      a location picker on the stock editor, and the transfer modal.
+- [ ] **Extract remaining inline Ash anonymous functions into Change modules** —
+      `LineItem` price snapshot already uses `Changes.DenormalizeVariant`; the
+      `Order` number generation (`order.ex:274`) and status-transition
+      `after_action` notification dispatches are still inline `change(fn …)`.
+||||||| 1daf9ab
+      interface unused). REMAINING (UI follow-up): locations management,
+      per-location stock matrix, restock location picker, transfer modal.
+- [ ] **Extract remaining inline Ash anonymous functions into Change modules** —
+      `LineItem` price snapshot already uses `Changes.DenormalizeVariant`; the
+      `Order` number generation (`order.ex:274`) and status-transition
+      `after_action` notification dispatches are still inline `change(fn …)`.
+=======
       interface unused). REMAINING (UI follow-up): locations management,
       per-location stock matrix, restock location picker, transfer modal.
 - [x] **Extract remaining inline Ash anonymous functions into Change modules** —
@@ -165,6 +182,7 @@
       `Changes.NotifyConfirmation` (confirm fanout: notification + Earn
       conversion + supplier fulfillments); the Order module's dispatch helpers
       moved with them. Behavior-preserving — 234 order tests unchanged.
+>>>>>>> origin/main
 
 ## OPEN — Makola Earn / zero-capital supplier network
 

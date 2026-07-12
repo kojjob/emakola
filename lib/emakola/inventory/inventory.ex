@@ -153,6 +153,15 @@ defmodule Emakola.Inventory do
     end
   end
 
+  def rename_location(actor, store_id, location_id, name) do
+    with :ok <- ensure_store_access(actor, store_id),
+         {:ok, location} <- store_location(store_id, location_id) do
+      location
+      |> Ash.Changeset.for_update(:rename, %{name: name})
+      |> Ash.update(authorize?: false)
+    end
+  end
+
   def set_default_location(actor, store_id, location_id) do
     with :ok <- ensure_store_access(actor, store_id),
          {:ok, location} <- store_location(store_id, location_id) do
@@ -285,6 +294,26 @@ defmodule Emakola.Inventory do
     |> Ash.Query.load(:location)
     |> Ash.read!(authorize?: false)
     |> Enum.sort_by(fn level -> {!level.location.default, level.location.name} end)
+  end
+
+  @doc """
+  All stock levels for a store in one read, keyed by variant id, each
+  variant's levels sorted default-location-first (same order as `levels/1`).
+  Powers the admin per-location breakdown without an N+1.
+  """
+  def levels_by_variant(actor, store_id) do
+    with :ok <- ensure_store_access(actor, store_id) do
+      {:ok,
+       StockLevel
+       |> Ash.Query.filter(store_id == ^store_id)
+       |> Ash.Query.load(:location)
+       |> Ash.read!(authorize?: false)
+       |> Enum.group_by(& &1.variant_id)
+       |> Map.new(fn {variant_id, levels} ->
+         {variant_id,
+          Enum.sort_by(levels, fn level -> {!level.location.default, level.location.name} end)}
+       end)}
+    end
   end
 
   # ── Internals ──────────────────────────────────────────────────
