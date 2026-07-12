@@ -51,6 +51,10 @@ defmodule Emakola.Customers do
       define(:list_wishlist, action: :list_by_customer, args: [:customer_id, :store_id])
     end
 
+    resource Emakola.Customers.NewsletterSubscriber do
+      define(:subscribe_to_newsletter, action: :subscribe)
+    end
+
     resource Emakola.Customers.FavoriteStore do
       define(:favorite_store, action: :create)
       define(:unfavorite_store, action: :destroy)
