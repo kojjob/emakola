@@ -195,7 +195,7 @@ defmodule Emakola.Themes.Atelier.Sections.Hero do
   # Returns true only for local upload paths (not stock photo URLs)
   defp prepare_hero_assigns(assigns) do
     theme = assigns[:theme] || %{}
-    valid_images = collect_valid_hero_images(theme)
+    valid_images = collect_valid_hero_images(theme, Map.get(assigns, :products, []))
     image_count = length(valid_images)
     hero_carousel = get_in(theme, [:hero, :carousel]) || false
     store_name = Map.get(assigns.store, :name, "Our Store")
@@ -209,14 +209,25 @@ defmodule Emakola.Themes.Atelier.Sections.Hero do
     |> assign_hero_text(theme, store_name)
   end
 
-  defp collect_valid_hero_images(theme) do
+  defp collect_valid_hero_images(theme, products) do
     images = get_in(theme, [:hero, :images]) || []
     single = get_in(theme, [:hero, :image_url])
 
-    cond do
-      is_list(images) && images != [] -> Enum.filter(images, &valid_hero_image?/1)
-      valid_hero_image?(single) -> [single]
-      true -> []
+    configured =
+      cond do
+        is_list(images) && images != [] -> Enum.filter(images, &valid_hero_image?/1)
+        valid_hero_image?(single) -> [single]
+        true -> []
+      end
+
+    # A store that has never opened the theme editor has no configured hero
+    # image, so this hero fell back to a bare gradient — the shop's own
+    # photography was sitting further down the same page, unused. Product
+    # images are our own upload records, already rendered by every card on
+    # this page, so they don't pass through the merchant-typed-URL gate.
+    case configured do
+      [] -> products |> Enum.take(3) |> Enum.map(&Shared.first_image/1) |> Enum.reject(&is_nil/1)
+      found -> found
     end
   end
 
