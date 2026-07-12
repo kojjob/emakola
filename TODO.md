@@ -72,6 +72,17 @@
       socket-stable nonce) then drop `'unsafe-inline'` from `style-src-elem`.
 - [x] **Fix `RawBodyReader` moduledoc** — now accurately documents generic payment and
       third-party webhook signature verification.
+- [x] **Sanitize URL-position block content** — DONE 2026-07-12. Page-builder
+      block content (`hero_banner`, `image_banner`, `split`, `audio`, `video`)
+      rendered merchant-controlled URLs straight into `href`/`src`/`poster`
+      with no scheme validation — a `javascript:` value would render as a
+      live link. Fixed at the render boundary with
+      `Emakola.PageBuilder.SafeUrl.safe_url/1` (http(s) or site-relative
+      only; everything else, including all protocol-relative spellings,
+      becomes `nil` and HEEx omits the attribute), applied at all nine URL
+      sinks. Covers both write paths in one move — the pre-existing page
+      editor and the section block-bridge — plus all already-stored data.
+      Design: `docs/superpowers/specs/2026-07-12-block-url-sanitization-design.md`.
 
 ## OPEN — Refactor / decomposition (still over the 200-line guideline)
 

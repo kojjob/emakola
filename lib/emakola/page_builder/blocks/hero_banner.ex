@@ -21,6 +21,8 @@ defmodule Emakola.PageBuilder.Blocks.HeroBanner do
 
   use Phoenix.Component
 
+  alias Emakola.PageBuilder.SafeUrl
+
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   @impl true
@@ -55,7 +57,7 @@ defmodule Emakola.PageBuilder.Blocks.HeroBanner do
       <%= if @content[:image_url] do %>
         <div class="relative aspect-[4/5] sm:aspect-[16/9] lg:aspect-[21/9] max-h-[80vh]">
           <.optimized_image
-            src={@content[:image_url]}
+            src={SafeUrl.safe_url(@content[:image_url])}
             alt={@content[:headline] || @store.name}
             priority={:high}
             class="absolute inset-0 w-full h-full object-cover"
@@ -115,7 +117,7 @@ defmodule Emakola.PageBuilder.Blocks.HeroBanner do
           <div class={["flex flex-wrap gap-3", justify_class(@align_class)]}>
             <a
               :if={@content[:cta_label]}
-              href={@content[:cta_url] || "/products"}
+              href={SafeUrl.safe_url(@content[:cta_url]) || "/products"}
               class="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-[#1C1917] rounded-full text-sm sm:text-base font-bold hover:bg-[#FEF3C7] active:scale-[0.97] transition-all shadow-lg shadow-black/20"
               style="font-family: 'Inter', sans-serif;"
             >
@@ -123,7 +125,7 @@ defmodule Emakola.PageBuilder.Blocks.HeroBanner do
             </a>
             <a
               :if={@content[:secondary_cta_label]}
-              href={@content[:secondary_cta_url] || "/products"}
+              href={SafeUrl.safe_url(@content[:secondary_cta_url]) || "/products"}
               class="inline-flex items-center gap-2 px-6 py-3.5 bg-white/10 text-white rounded-full text-sm sm:text-base font-semibold hover:bg-white/20 backdrop-blur-sm transition-all border border-white/30"
               style="font-family: 'Inter', sans-serif;"
             >
