@@ -11,16 +11,14 @@ defmodule EmakolaWeb.Admin.ThemeLive do
 
   alias Emakola.Themes.ThemeResolver
 
-  # Visual metadata for each theme. Colors are derived at runtime from each
-  # theme module's defaults() so the picker stays in sync with what
-  # `select_theme` actually applies — no hardcoded color duplication.
+  # Visual metadata for each theme, in the order the picker presents them.
+  # Coverage comes from ThemeResolver.offerable_theme_ids/0 (the single
+  # theme-offer authority); colors are derived at runtime from each theme
+  # module's defaults() so the picker stays in sync with what `select_theme`
+  # actually applies. Only the editorial copy (name, description, icon)
+  # lives here — an offerable theme missing from this list raises in
+  # build_themes/0, a loud test failure instead of a silent omission.
   @theme_metadata [
-    %{
-      id: "akoma",
-      name: "Akoma",
-      description: "Clean & modern (Be Yours)",
-      icon: "deployed_code"
-    },
     %{id: "market", name: "Market", description: "Simple & clean", icon: "storefront"},
     %{id: "atelier", name: "Atelier", description: "Premium & elegant", icon: "diamond"},
     %{id: "vibrant", name: "Vibrant", description: "Bold & colorful", icon: "palette"},
@@ -56,12 +54,6 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       name: "Fashion",
       description: "Editorial boutique",
       icon: "checkroom"
-    },
-    %{
-      id: "heritage",
-      name: "Heritage",
-      description: "Artisan crafts & heirloom",
-      icon: "auto_stories"
     },
     %{id: "spotlight", name: "Spotlight", description: "Single-product showcase", icon: "star"}
   ]
@@ -950,11 +942,26 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       []
   end
 
-  # Builds the theme picker list by combining static metadata (name, icon,
-  # description) with each theme module's actual defaults — so the picker
-  # cards display the same colors that `select_theme` will apply.
+  # Builds the theme picker list. Coverage derives from ThemeResolver
+  # (offerable_theme_ids/0); the static metadata contributes only editorial
+  # copy (name, icon, description) and presentation order. Colors come from
+  # each theme module's actual defaults — so the picker cards display the
+  # same colors that `select_theme` will apply.
   defp build_themes do
-    Enum.map(@theme_metadata, fn meta ->
+    offerable = ThemeResolver.offerable_theme_ids()
+    described = Enum.map(@theme_metadata, & &1.id)
+
+    case offerable -- described do
+      [] ->
+        :ok
+
+      missing ->
+        raise "themes offerable per ThemeResolver but missing from the admin theme " <>
+                "picker: #{inspect(missing)} — add metadata to @theme_metadata or cull " <>
+                "them in ThemeResolver.@culled_themes"
+    end
+
+    for meta <- @theme_metadata, meta.id in offerable do
       defaults = ThemeResolver.theme_module(meta.id).defaults()
 
       Map.merge(meta, %{
@@ -964,7 +971,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
           background: Map.get(defaults.colors, :background, "#FFFFFF")
         }
       })
-    end)
+    end
   end
 
   defp first_hero_image(hero_images, fallback_url) do
@@ -1023,17 +1030,23 @@ defmodule EmakolaWeb.Admin.ThemeLive do
 
   @impl true
   def handle_event("select_theme", %{"theme-id" => theme_id}, socket) do
-    theme_mod = ThemeResolver.theme_module(theme_id)
-    defaults = theme_mod.defaults()
+    # theme-id comes from the client — only themes the picker offers may be
+    # selected (and later persisted by save_theme). Crafted or culled ids
+    # are ignored.
+    if theme_id in ThemeResolver.offerable_theme_ids() do
+      defaults = ThemeResolver.theme_module(theme_id).defaults()
 
-    {:noreply,
-     assign(socket,
-       theme_id: theme_id,
-       primary_color: defaults.colors.primary,
-       accent_color: defaults.colors.accent,
-       bg_color: defaults.colors.background,
-       saved: false
-     )}
+      {:noreply,
+       assign(socket,
+         theme_id: theme_id,
+         primary_color: defaults.colors.primary,
+         accent_color: defaults.colors.accent,
+         bg_color: defaults.colors.background,
+         saved: false
+       )}
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
