@@ -44,7 +44,7 @@ defmodule Emakola.Themes.Akwaaba.Sections.Hero do
 
   @impl true
   def render(assigns) do
-    hero_product = List.first(assigns.products)
+    hero_product = assigns |> Map.get(:products, []) |> List.first()
 
     assigns =
       assigns
@@ -61,7 +61,7 @@ defmodule Emakola.Themes.Akwaaba.Sections.Hero do
         valid_image(assigns.settings["image_url"]) ||
           (hero_product && Shared.first_image(hero_product))
       )
-      |> assign(:rating, rating(assigns.products))
+      |> assign(:rating, rating(Map.get(assigns, :products, [])))
 
     ~H"""
     <section
