@@ -123,9 +123,12 @@
 
 ## PARTIAL — Feature gaps
 
-- [ ] **Real SMS provider** — `notifications/channels/sms.ex` + rate limiting
-      exist, but only the `LogSMS` mock is wired; plug in Arkesel/Hubtel
-      (overlaps `LAUNCH_TODO.md` item 4).
+- [x] **Real SMS provider** — DONE 2026-07-11. The channel was already wired in
+      prod (`runtime.exs` sets `:sms_provider` to `Channels.SMS`); it now speaks
+      Arkesel v2 natively via `SMS_PROVIDER=arkesel` (api-key header,
+      sender/message/recipients payload, endpoint defaulted — closes the
+      LAUNCH_TODO header warning). Generic Bearer gateways remain the default.
+      Ship-dark: dev/test stay on LogSMS/Mox.
 - [ ] **Delivery fee beyond flat-per-zone** — `Emakola.Shipping.calculate_fee/2`
       does zone lookup only; add weight-based / tiered rules if needed.
 - [ ] **Low-stock WhatsApp channel** — `low_stock_alert_worker.ex` sends email
@@ -251,9 +254,10 @@
 
 ## OPEN — Cleanup (low effort)
 
-- [ ] **Collapse the duplicate SMS hierarchy** — `notifications/sms_provider.ex`
-      (behaviour) and `channels/sms_behaviour.ex` (higher-level) both exist;
-      consolidate or clearly document the split.
+- [x] **Collapse the duplicate SMS hierarchy** — DONE 2026-07-11. Single
+      `SMSProvider` behaviour (`send_sms/3` + optional `send_order_sms/2`);
+      `Channels.SMSBehaviour` deleted, `Channels.SMS` declares `SMSProvider`,
+      `SMSChannelMock` repointed. Workers' `:sms_provider` resolution unchanged.
 
 ---
 
