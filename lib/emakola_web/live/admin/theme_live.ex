@@ -957,8 +957,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
 
       missing ->
         raise "themes offerable per ThemeResolver but missing from the admin theme " <>
-                "picker: #{inspect(missing)} — add metadata to @theme_metadata or cull " <>
-                "them in ThemeResolver.@culled_themes"
+                "picker: #{inspect(missing)} — add metadata to @theme_metadata"
     end
 
     for meta <- @theme_metadata, meta.id in offerable do

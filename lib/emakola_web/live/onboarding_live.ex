@@ -835,8 +835,7 @@ defmodule EmakolaWeb.OnboardingLive do
 
       missing ->
         raise "themes offerable per ThemeResolver but missing from the onboarding " <>
-                "picker: #{inspect(missing)} — add editorial copy to @theme_descriptions " <>
-                "or cull them in ThemeResolver.@culled_themes"
+                "picker: #{inspect(missing)} — add editorial copy to @theme_descriptions"
     end
 
     for {id, description} <- @theme_descriptions, id in offered do

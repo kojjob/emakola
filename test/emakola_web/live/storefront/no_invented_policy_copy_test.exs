@@ -11,7 +11,7 @@ defmodule EmakolaWeb.Storefront.NoInventedPolicyCopyTest do
 
   alias Emakola.Factory
 
-  @all_themes ~w(akoma atelier beauty bold electronics fashion fresh heritage
+  @all_themes ~w(atelier beauty bold electronics fashion fresh
                  home_living market pharmacy spotlight starter vibrant)
 
   @invented_sla ~r/\d+(-\d+)?\s*business days|returns? (accepted|within) \d+\s*days?/i

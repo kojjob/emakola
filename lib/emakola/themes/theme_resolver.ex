@@ -10,14 +10,12 @@ defmodule Emakola.Themes.ThemeResolver do
   """
 
   @theme_modules %{
-    "akoma" => Emakola.Themes.Akoma,
     "atelier" => Emakola.Themes.Atelier,
     "beauty" => Emakola.Themes.Beauty,
     "bold" => Emakola.Themes.Bold,
     "electronics" => Emakola.Themes.Electronics,
     "fashion" => Emakola.Themes.Fashion,
     "fresh" => Emakola.Themes.Fresh,
-    "heritage" => Emakola.Themes.Heritage,
     "home_living" => Emakola.Themes.HomeLiving,
     "market" => Emakola.Themes.Market,
     "pharmacy" => Emakola.Themes.Pharmacy,
@@ -26,11 +24,12 @@ defmodule Emakola.Themes.ThemeResolver do
     "vibrant" => Emakola.Themes.Vibrant
   }
 
-  # Kojo's cull, 2026-07-12 — zero live stores on either theme; both modules
-  # are pending deletion. Culled themes stay registered (existing configs
-  # still resolve) but are never offered to merchants. Prune this list when
-  # the modules are removed from @theme_modules.
-  @culled_themes ~w(akoma heritage)
+  # Akoma and Heritage were culled (zero live stores on either) and their
+  # theme modules removed outright on 2026-07-12 — see
+  # test/emakola/themes/akoma_test.exs's history for the old module tests.
+  # There is currently no culling mechanism: every registered theme is
+  # offerable. Reintroduce a `@culled_themes` list (and prune it here) if a
+  # future theme needs to be registered without being offered.
 
   @default_theme "market"
 
@@ -135,20 +134,11 @@ defmodule Emakola.Themes.ThemeResolver do
   picker and allowlist (onboarding, admin theme picker, theme_config
   validation).
 
-  Everything registered in `theme_ids/0` except the culled themes, so a
-  newly registered theme is offered everywhere unless it is deliberately
-  culled here.
+  Currently every registered theme is offerable — there is no culling
+  mechanism (see the comment above `@theme_modules`).
   """
   @spec offerable_theme_ids() :: [String.t()]
-  def offerable_theme_ids, do: theme_ids() -- @culled_themes
-
-  @doc """
-  Theme IDs deliberately withheld from merchants (see `@culled_themes`).
-  Public so coverage guard tests can assert every registered theme is
-  either offered or explicitly culled.
-  """
-  @spec culled_theme_ids() :: [String.t()]
-  def culled_theme_ids, do: @culled_themes
+  def offerable_theme_ids, do: theme_ids()
 
   # Deep-merges an overrides map (string keys) into a defaults map (atom keys).
   # Converts string keys to atoms in the process.

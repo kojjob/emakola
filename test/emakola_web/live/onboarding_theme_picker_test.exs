@@ -1,12 +1,12 @@
 defmodule EmakolaWeb.OnboardingThemePickerTest do
   @moduledoc """
-  The onboarding theme picker (step 2) must offer every registered theme
-  unless it is explicitly excluded, must reject crafted theme ids, and must
-  show each theme as a miniature storefront painted from its own tokens.
+  The onboarding theme picker (step 2) must offer every registered theme,
+  must reject crafted theme ids, and must show each theme as a miniature
+  storefront painted from its own tokens.
 
   The coverage guard here is the point: a theme added to ThemeResolver that
-  is neither described in the picker nor explicitly excluded fails loudly
-  instead of silently vanishing from onboarding (as Spotlight did).
+  is not described in the picker fails loudly instead of silently vanishing
+  from onboarding (as Spotlight did).
   """
   use EmakolaWeb.ConnCase, async: true
 
@@ -55,14 +55,10 @@ defmodule EmakolaWeb.OnboardingThemePickerTest do
   end
 
   describe "theme coverage" do
-    test "every offerable theme is offered and no culled theme appears", %{conn: conn} do
+    test "every offerable theme is offered", %{conn: conn} do
       offerable = ThemeResolver.offerable_theme_ids()
-      culled = ThemeResolver.culled_theme_ids()
 
       refute Enum.empty?(offerable), "no offerable themes — this test would be vacuous"
-
-      refute Enum.empty?(culled),
-             "no culled themes — the culled half of this test would be vacuous"
 
       {view, _merchant} = reach_theme_step(conn, "Coverage Shop")
       html = render(view)
@@ -70,13 +66,7 @@ defmodule EmakolaWeb.OnboardingThemePickerTest do
       for id <- offerable do
         assert html =~ ~s(phx-value-theme-id="#{id}"),
                "theme #{inspect(id)} is offerable per ThemeResolver but the onboarding " <>
-                 "picker does not offer it — describe it in OnboardingLive or cull it " <>
-                 "in ThemeResolver.@culled_themes"
-      end
-
-      for id <- culled do
-        refute html =~ ~s(phx-value-theme-id="#{id}"),
-               "theme #{inspect(id)} is culled but still rendered in the picker"
+                 "picker does not offer it — describe it in OnboardingLive"
       end
     end
 
@@ -113,21 +103,6 @@ defmodule EmakolaWeb.OnboardingThemePickerTest do
 
       assert store.theme_config["theme"] == "market",
              "a crafted theme-id was written to the store: " <>
-               inspect(store.theme_config["theme"])
-    end
-
-    test "a registered but excluded theme-id is ignored, not persisted", %{conn: conn} do
-      {view, merchant} = reach_theme_step(conn, "Excluded Shop")
-
-      # "akoma" exists in ThemeResolver but is deliberately not offered —
-      # a crafted event must not smuggle it past the picker.
-      render_click(view, "select_theme", %{"theme-id" => "akoma"})
-      finish_onboarding(view)
-
-      store = store_for(merchant)
-
-      assert store.theme_config["theme"] == "market",
-             "an excluded theme-id was written to the store: " <>
                inspect(store.theme_config["theme"])
     end
   end

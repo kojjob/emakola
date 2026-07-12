@@ -10,7 +10,7 @@ defmodule EmakolaWeb.Storefront.NoFabricatedRatingsTest do
 
   alias Emakola.Factory
 
-  @all_themes ~w(akoma atelier beauty bold electronics fashion fresh heritage
+  @all_themes ~w(atelier beauty bold electronics fashion fresh
                  home_living market pharmacy spotlight starter vibrant)
 
   # Literals the audit found hardcoded in templates: "4.5", "(4.8)",

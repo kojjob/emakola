@@ -10,7 +10,7 @@ defmodule EmakolaWeb.Storefront.FallbackChromeTest do
 
   alias Emakola.Factory
 
-  @all_themes ~w(akoma atelier beauty bold electronics fashion fresh heritage
+  @all_themes ~w(atelier beauty bold electronics fashion fresh
                  home_living market pharmacy spotlight starter vibrant)
 
   describe "theme-owned chrome on fallback pages" do
@@ -22,15 +22,6 @@ defmodule EmakolaWeb.Storefront.FallbackChromeTest do
       # Beauty nav header (cream, blurred, sand border) and footer (espresso)
       assert html =~ "bg-[#F5EFE5]/95"
       assert html =~ "bg-[#3D2F25]"
-    end
-
-    test "an Akoma store's cart renders Akoma's chrome", %{conn: conn} do
-      store = Factory.create_store!(%{theme_config: %{"theme" => "akoma"}})
-
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/cart")
-
-      # Akoma nav/footer sage border
-      assert html =~ "border-[#E8EAE7]"
     end
 
     test "a Bold store's cart renders Bold's chrome", %{conn: conn} do
@@ -67,15 +58,6 @@ defmodule EmakolaWeb.Storefront.FallbackChromeTest do
 
       # Fresh lemon-cream footer
       assert html =~ "bg-[#FEFCE8]"
-    end
-
-    test "a Heritage store's cart renders Heritage's chrome", %{conn: conn} do
-      store = Factory.create_store!(%{theme_config: %{"theme" => "heritage"}})
-
-      {:ok, _view, html} = live(conn, "/s/#{store.slug}/cart")
-
-      # Heritage oxblood footer
-      assert html =~ "bg-[#7A1F1F]"
     end
 
     test "a Home & Living store's cart renders Home & Living's chrome", %{conn: conn} do
