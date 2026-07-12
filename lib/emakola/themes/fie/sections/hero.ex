@@ -45,6 +45,12 @@ defmodule Emakola.Themes.Fie.Sections.Hero do
 
   @impl true
   def render(assigns) do
+    # Photo-FALLBACK, not photo-optional: the hero used to show an image only
+    # if the merchant had set one in the editor — which no new store has — so
+    # every real storefront opened on an empty band. It now falls back to the
+    # shop's own first product photograph.
+    hero_product = assigns |> Map.get(:products, []) |> List.first()
+
     custom_headline = present(assigns.settings["headline"])
 
     assigns =
@@ -56,7 +62,12 @@ defmodule Emakola.Themes.Fie.Sections.Hero do
         present(assigns.settings["subheadline"]) || present(assigns.store.description)
       )
       |> assign(:cta_label, present(assigns.settings["cta_label"]) || "Browse the catalogue")
-      |> assign(:image, valid_image(assigns.settings["image_url"]))
+      |> assign(:hero_product, hero_product)
+      |> assign(
+        :image,
+        valid_image(assigns.settings["image_url"]) ||
+          (hero_product && Emakola.Themes.Fie.Shared.first_image(hero_product))
+      )
       |> assign(:index_line, index_line(length(Map.get(assigns, :categories) || [])))
 
     ~H"""
@@ -126,12 +137,25 @@ defmodule Emakola.Themes.Fie.Sections.Hero do
             <.optimized_image
               :if={@image}
               src={@image}
-              alt={"#{@store.name} catalogue cover"}
+              alt={(@hero_product && @hero_product.title) || "#{@store.name} catalogue cover"}
               priority={:high}
               width={640}
               height={800}
               class="absolute inset-0 h-full w-full object-cover"
             />
+            <div
+              :if={@image && @hero_product}
+              class="absolute bottom-4 left-4 max-w-[14rem] border border-[#EBDAD3] bg-white px-4 py-2.5 shadow-sm"
+            >
+              <p class="truncate text-xs font-semibold text-stone-900">{@hero_product.title}</p>
+              <p class="text-xs font-semibold tabular-nums text-store-accent">
+                {EmakolaWeb.Helpers.Currency.format_price_range(
+                  @hero_product.min_price,
+                  @hero_product.max_price,
+                  @store.currency
+                )}
+              </p>
+            </div>
           </div>
         </div>
       </div>

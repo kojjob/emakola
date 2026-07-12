@@ -1,15 +1,22 @@
 defmodule Emakola.Themes.Sika.Sections.Hero do
   @moduledoc """
-  Sika home hero — the engraved title page. Carries the page's `<h1>`.
+  Sika home hero — the vitrine. Carries the page's `<h1>`.
 
-  Photo-optional by design: with no image it is a centred typographic
-  composition — the display headline over the caught-light rule, with a
-  pair of hairline rings (a band catching light) as the only ornament.
-  With a local upload the piece sits beside the text in a vitrine mat.
+  The composition is the one from the reference storefront: a saturated panel
+  holding the top of the page, the display headline set large, the merchant's
+  photograph carried beside it with a price chip floating over its corner, and
+  the buy button sitting in the proof column. Sika paints it in its own colours —
+  deep malachite and caught gold, set in Marcellus — so it reads as a jeweller's
+  window rather than a fashion shop.
 
-  The CTA always links to the server-generated products path — a
-  merchant-controlled href here would be a stored-XSS sink, so no URL
-  setting exists. The image setting renders local upload paths only.
+  **Photo-fallback, not photo-optional.** The image resolves: the merchant's own
+  upload → the first piece's photograph → type alone. The hero used to render an
+  image only when a merchant had set one in the editor, which no new store has —
+  so in practice every Sika storefront opened on an empty slab of type.
+
+  The CTA always links to the server-generated products path: a
+  merchant-controlled href would be a stored-XSS sink, so no URL setting exists,
+  and the image setting still renders local upload paths only.
   """
   @behaviour Emakola.Themes.Section
 
@@ -19,6 +26,7 @@ defmodule Emakola.Themes.Sika.Sections.Hero do
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Sika.Shared
+  alias EmakolaWeb.Helpers.Currency
 
   @impl true
   def key, do: "sika/hero"
@@ -37,11 +45,14 @@ defmodule Emakola.Themes.Sika.Sections.Hero do
 
   @impl true
   def render(assigns) do
+    hero_product = assigns |> Map.get(:products, []) |> List.first()
     custom_headline = Shared.present(assigns.settings["headline"])
 
     assigns =
       assigns
-      |> assign(:custom_headline, custom_headline)
+      # When a merchant writes their own headline, the shop's name would
+      # otherwise disappear from its own hero — so it takes the eyebrow.
+      |> assign(:eyebrow, (custom_headline && assigns.store.name) || "The collection")
       |> assign(:headline, custom_headline || assigns.store.name)
       |> assign(
         :subheadline,
@@ -52,68 +63,109 @@ defmodule Emakola.Themes.Sika.Sections.Hero do
         :cta_label,
         Shared.present(assigns.settings["cta_label"]) || "View the collection"
       )
-      |> assign(:image, valid_image(assigns.settings["image_url"]))
+      |> assign(:hero_product, hero_product)
+      |> assign(
+        :image,
+        valid_image(assigns.settings["image_url"]) ||
+          (hero_product && Shared.first_image(hero_product))
+      )
 
     ~H"""
-    <section
-      class="relative overflow-hidden px-4 py-16 sm:px-6 sm:py-24 lg:px-8"
-      aria-labelledby="sika-hero-heading"
-    >
-      <div
-        :if={!@image}
-        class="pointer-events-none absolute -right-24 top-1/2 hidden -translate-y-1/2 select-none sm:block"
-        aria-hidden="true"
-      >
-        <div class="h-80 w-80 rounded-full border border-[#C2A15B]/25 lg:h-[26rem] lg:w-[26rem]">
+    <section class="bg-[#FBFAF7] px-3 pt-3 sm:px-5 sm:pt-5" aria-labelledby="sika-hero-heading">
+      <div class="relative overflow-hidden rounded-[1.75rem] bg-store-accent sm:rounded-[2.25rem]">
+        <div
+          class="pointer-events-none absolute -right-20 -top-24 h-[24rem] w-[24rem] rounded-full border border-[#C2A15B]/20"
+          aria-hidden="true"
+        >
         </div>
-        <div class="absolute inset-8 rounded-full border border-[#C2A15B]/15"></div>
-      </div>
-      <div class={[
-        "relative mx-auto max-w-[1200px]",
-        @image && "grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16"
-      ]}>
-        <div class={if(@image, do: "max-w-xl", else: "mx-auto max-w-2xl text-center")}>
-          <p
-            :if={@custom_headline}
-            class="mb-4 text-[0.6875rem] font-semibold uppercase tracking-[0.25em] text-[#6E675C]"
-          >
-            {@store.name}
-          </p>
-          <h1
-            id="sika-hero-heading"
-            class="text-4xl leading-[1.08] text-[#211D16] [font-family:var(--dt-heading-font,Marcellus,Georgia,serif)] sm:text-5xl lg:text-6xl"
-          >
-            {@headline}
-          </h1>
-          <Shared.caught_light class={["mt-6 w-16", !@image && "mx-auto"]} />
-          <p :if={@subheadline} class="mt-6 text-base leading-relaxed text-[#6E675C] sm:text-lg">
-            {@subheadline}
-          </p>
-          <a
-            href={store_path(@store.slug, "/products")}
-            class="mt-9 inline-block bg-store-accent px-9 py-4 text-[0.75rem] font-semibold uppercase tracking-[0.25em] text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#211D16] focus-visible:ring-offset-2 motion-safe:transition-opacity"
-          >
-            {@cta_label}
-          </a>
-        </div>
-        <div :if={@image} class="border border-[#E8E3D9] bg-white p-2 sm:p-3">
-          <.optimized_image
-            src={@image}
-            alt={"#{@store.name} — featured piece"}
-            priority={:high}
-            width={640}
-            height={640}
-            class="aspect-square w-full object-cover"
-          />
+
+        <div class="relative grid items-center gap-10 px-6 py-14 sm:px-10 sm:py-20 lg:grid-cols-[1fr_1fr_0.8fr] lg:gap-8 lg:px-14">
+          <div>
+            <p class="text-[0.6875rem] font-semibold uppercase tracking-[0.3em] text-[#C2A15B]">
+              {@eyebrow}
+            </p>
+
+            <h1
+              id="sika-hero-heading"
+              class="mt-5 text-4xl leading-[1.06] text-[#F7F3EA] [font-family:var(--dt-heading-font,Marcellus,Georgia,serif)] sm:text-5xl lg:text-6xl"
+            >
+              {@headline}
+            </h1>
+          </div>
+
+          <%!-- The CTA column is ordered BEFORE the photograph on a phone. The
+          image is ~500px tall; leading with it buries the buy button under the
+          fixed bottom bar, and most of our shoppers are on phones. --%>
+          <div class="order-2 lg:order-3">
+            <p :if={@subheadline} class="max-w-xs leading-relaxed text-[#F7F3EA]/70">
+              {@subheadline}
+            </p>
+
+            <ul class="mt-5 flex flex-wrap gap-2" aria-label="Payment methods accepted">
+              <li
+                :for={rail <- ["MTN MoMo", "Telecel Cash", "Visa"]}
+                class="border border-[#C2A15B]/40 px-3 py-1.5 text-[0.6875rem] uppercase tracking-widest text-[#F7F3EA]/80"
+              >
+                {rail}
+              </li>
+            </ul>
+
+            <a
+              href={store_path(@store.slug, "/products")}
+              class="mt-6 inline-flex items-center gap-3 bg-[#C2A15B] px-7 py-4 text-[0.6875rem] font-semibold uppercase tracking-[0.25em] text-[#1F332C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F7F3EA] focus-visible:ring-offset-2 focus-visible:ring-offset-store-accent motion-safe:transition-opacity motion-safe:hover:opacity-90"
+            >
+              {@cta_label}
+            </a>
+          </div>
+
+          <div :if={@image} class="relative order-3 lg:order-2">
+            <div class="border border-[#C2A15B]/30 p-2">
+              <.optimized_image
+                src={@image}
+                alt={(@hero_product && @hero_product.title) || @store.name}
+                priority={:high}
+                width={720}
+                height={900}
+                class="aspect-[4/5] w-full object-cover"
+              />
+            </div>
+
+            <div
+              :if={@hero_product}
+              class="absolute -bottom-3 -left-3 flex items-center gap-3 bg-[#FBFAF7] p-2.5 pr-4 shadow-lg"
+            >
+              <div class="h-12 w-12 flex-shrink-0 overflow-hidden bg-[#EDE8DC]">
+                <.optimized_image
+                  src={@image}
+                  alt=""
+                  width={96}
+                  height={96}
+                  class="h-full w-full object-cover"
+                />
+              </div>
+              <div class="min-w-0">
+                <p class="truncate text-sm text-[#211D16] [font-family:var(--dt-heading-font,Marcellus,Georgia,serif)]">
+                  {@hero_product.title}
+                </p>
+                <p class="text-sm font-semibold tabular-nums text-[#6E675C]">
+                  {Currency.format_price_range(
+                    @hero_product.min_price,
+                    @hero_product.max_price,
+                    @store.currency
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
     """
   end
 
-  # Local upload paths only — the write path (HomeSections.sanitize_entry)
-  # already blocks non-http(s) schemes for :image_url settings; this
-  # render-side gate additionally keeps remote URLs out of the src position.
+  # Local upload paths only — the write path already blocks non-http(s) schemes
+  # for :image_url settings; this render-side gate keeps remote URLs out of the
+  # src position entirely.
   defp valid_image(url) when is_binary(url) do
     if String.starts_with?(url, "/uploads/") or String.starts_with?(url, "/images/"),
       do: url,

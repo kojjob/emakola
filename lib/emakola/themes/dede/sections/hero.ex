@@ -39,6 +39,12 @@ defmodule Emakola.Themes.Dede.Sections.Hero do
 
   @impl true
   def render(assigns) do
+    # Photo-FALLBACK, not photo-optional: the hero used to show an image only
+    # if the merchant had set one in the editor — which no new store has — so
+    # every real storefront opened on an empty band. It now falls back to the
+    # shop's own first product photograph.
+    hero_product = assigns |> Map.get(:products, []) |> List.first()
+
     custom_headline = present(assigns.settings["headline"])
 
     assigns =
@@ -50,7 +56,12 @@ defmodule Emakola.Themes.Dede.Sections.Hero do
         present(assigns.settings["subheadline"]) || present(assigns.store.description)
       )
       |> assign(:cta_label, present(assigns.settings["cta_label"]) || "See the menu")
-      |> assign(:image, valid_image(assigns.settings["image_url"]))
+      |> assign(:hero_product, hero_product)
+      |> assign(
+        :image,
+        valid_image(assigns.settings["image_url"]) ||
+          (hero_product && Emakola.Themes.Dede.Shared.first_image(hero_product))
+      )
       |> assign(:whatsapp, Shared.whatsapp_link(assigns.store))
 
     ~H"""
@@ -99,18 +110,30 @@ defmodule Emakola.Themes.Dede.Sections.Hero do
             </a>
           </div>
         </div>
-        <div
-          :if={@image}
-          class="overflow-hidden rounded-2xl border-2 border-[#F3EDDF]/15 sm:w-64"
-        >
-          <.optimized_image
-            src={@image}
-            alt={"#{@store.name} kitchen"}
-            priority={:high}
-            width={512}
-            height={512}
-            class="aspect-square w-full object-cover"
-          />
+        <div :if={@image} class="relative sm:w-64">
+          <div class="overflow-hidden rounded-2xl border-2 border-[#F3EDDF]/15">
+            <.optimized_image
+              src={@image}
+              alt={(@hero_product && @hero_product.title) || "#{@store.name} kitchen"}
+              priority={:high}
+              width={512}
+              height={512}
+              class="aspect-square w-full object-cover"
+            />
+          </div>
+          <div
+            :if={@hero_product}
+            class="absolute -bottom-4 -left-3 max-w-[13rem] rounded-xl bg-[#F3EDDF] px-4 py-2.5 shadow-lg"
+          >
+            <p class="truncate text-xs font-semibold text-[#2B1B12]">{@hero_product.title}</p>
+            <p class="text-xs font-bold tabular-nums text-store-accent">
+              {EmakolaWeb.Helpers.Currency.format_price_range(
+                @hero_product.min_price,
+                @hero_product.max_price,
+                @store.currency
+              )}
+            </p>
+          </div>
         </div>
       </div>
     </section>
