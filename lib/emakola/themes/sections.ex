@@ -6,7 +6,19 @@ defmodule Emakola.Themes.Sections do
   """
 
   # Fan-out appends here, one module per decomposed theme.
-  @sectionized_themes [Emakola.Themes.Starter, Emakola.Themes.Atelier, Emakola.Themes.Market]
+  @sectionized_themes [
+    Emakola.Themes.Starter,
+    Emakola.Themes.Atelier,
+    Emakola.Themes.Market,
+    # Born sectionized (2026-07-12) — built after the editor, so no retrofit.
+    Emakola.Themes.Chale,
+    Emakola.Themes.Dede,
+    Emakola.Themes.Depot,
+    Emakola.Themes.Fie,
+    Emakola.Themes.Ntoma,
+    Emakola.Themes.Pace,
+    Emakola.Themes.Sika
+  ]
 
   @doc """
   All sectionized theme modules — the compile-time list plus the
