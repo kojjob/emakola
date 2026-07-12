@@ -22,10 +22,12 @@ this fix must land before or with the editor PR.
 One helper, applied at every sink:
 
 - `Emakola.PageBuilder.SafeUrl.safe_url/1`:
-  - binary matching `^https?://` → returned unchanged
-  - binary starting with `/` (site-relative) → returned unchanged
-  - anything else (other schemes, protocol-relative `//`, non-binaries,
-    whitespace-prefixed scheme smuggling — trim before testing) → `nil`
+  - binary matching `^https?://` (case-insensitive, after trim) → returned trimmed
+  - binary starting with `/` (site-relative, after trim) → returned trimmed
+  - anything else → `nil`: other schemes, non-binaries, bare-relative, and
+    ALL protocol-relative spellings — browsers treat `\` as `/` in http(s)
+    parsing, so `//`, `/\`, `\/`, `\\` prefixes are all foreign-host
+    references (reviewer-caught 2026-07-12, browser-verified) and all reject
 - Call sites (`safe_url(...)` wrapping, block fallbacks preserved):
   | Block | Sinks |
   |---|---|
@@ -33,7 +35,7 @@ One helper, applied at every sink:
   | image_banner | `link_url` (href), `image_url` (src) |
   | split | `image_url` (src), `cta_url` (href, fallback preserved) |
   | audio | `audio_url` (src) |
-  | video | `poster_url` only (poster attr; `video_url` already guarded by `video_embed/1`) |
+  | video | `poster_url` (poster attr) + `video_embed/1`'s direct-file branch routed through `safe_url/1` (its hand-rolled http(s)-or-`/` check shares the backslash gap; YouTube/Vimeo id-extraction branches unchanged) |
 
 `nil` in HEEx omits the attribute entirely — an invalid URL degrades to a
 dead link/empty media slot, never an executable one.
@@ -69,5 +71,8 @@ CTAs; add per-scheme when a merchant need appears). Protocol-relative
 ## Out of scope
 
 - Page-editor write-side validation (follow-up polish, not the boundary).
-- `video_embed/1` (already safe; untouched).
 - Section-settings write-side rules (already shipped in PR #296).
+
+(Amended 2026-07-12: `video_embed/1` was originally listed here as "already
+safe"; Task-1 review proved its direct-file branch shares the backslash
+protocol-relative gap, so its file-URL path is now in scope via `safe_url/1`.)

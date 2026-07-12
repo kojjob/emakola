@@ -12,7 +12,7 @@
 
 - Spec: `docs/superpowers/specs/2026-07-12-block-url-sanitization-design.md`.
 - Scheme policy (exact): binary matching `~r{^https?://}i` after trim → pass unchanged; trimmed leading `//` → nil; trimmed leading `/` → pass; everything else (incl. non-binaries, "", bare-relative like `products`, `mailto:`, `tel:`) → nil.
-- `video_embed/1` in video.ex is already safe — do NOT touch it; only `poster_url` in that block.
+- `video_embed/1`'s YouTube/Vimeo id-extraction branches are safe — do NOT touch them. Its direct-file branch (the `^https?://` / leading-`/` cond clauses) shares the backslash protocol-relative gap and MUST be routed through `SafeUrl.safe_url/1` (amended 2026-07-12 after Task-1 review).
 - Legitimate URLs must render byte-identically (existing block/page/storefront suites unchanged).
 - Gates before each commit: `mix format` (changed files), `mix compile --warnings-as-errors` clean for your files, `mix credo --strict` clean on your files, listed tests green — read the `Result:` line, never piped exit codes.
 - Branch: `fix/block-url-sanitization` (exists, carries the spec).
@@ -187,7 +187,7 @@ defmodule Emakola.PageBuilder.BlockUrlRenderTest do
     refute html =~ "javascript:"
   end
 
-  test "video neutralizes the poster (video_url already guarded)" do
+  test "video neutralizes the poster" do
     html =
       render_block("video", %{
         "video_url" => "https://youtube.com/watch?v=abc123",
@@ -195,6 +195,13 @@ defmodule Emakola.PageBuilder.BlockUrlRenderTest do
       })
 
     refute html =~ "javascript:"
+  end
+
+  test "video rejects backslash protocol-relative direct-file URLs" do
+    # /\evil.com parses protocol-relative in browsers; the block must not
+    # render a <video src> for it (video_embed returns :invalid → no section).
+    html = render_block("video", %{"video_url" => "/\\evil.com/x.mp4"})
+    refute html =~ "evil.com"
   end
 
   test "legitimate URLs render unchanged" do
@@ -227,6 +234,19 @@ split.ex        ~92:  href={SafeUrl.safe_url(@content[:cta_url]) || "/products"}
 audio.ex        ~58:  <audio src={SafeUrl.safe_url(@content[:audio_url])} controls ...>
 video.ex     poster:  poster={SafeUrl.safe_url(@content[:poster_url])}
 ```
+
+Additionally in `video.ex`, replace `video_embed/1`'s two direct-file cond clauses:
+
+```elixir
+# BEFORE (two clauses):
+#   String.match?(url, ~r/^https?:\/\//) -> {:file, url}
+#   String.starts_with?(url, "/") -> {:file, url}
+# AFTER (one clause, unified policy):
+      safe = SafeUrl.safe_url(url) ->
+        {:file, safe}
+```
+
+(keep the youtube/vimeo clauses above it and the `true -> :invalid` fallback; `cond` binds `safe` only when non-nil, so `:invalid` still wins for rejected URLs. Update video.ex's `@doc` for `video_embed/1` to say "http(s)/site-relative per `SafeUrl`".)
 
 Change nothing else in the templates. If a listed line has drifted, locate the same attribute and apply the same wrap.
 
