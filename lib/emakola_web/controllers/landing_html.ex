@@ -1,5 +1,11 @@
-defmodule EmakolaWeb.LandingLive do
-  use EmakolaWeb, :live_view
+defmodule EmakolaWeb.LandingHTML do
+  @moduledoc """
+  The landing page as a dead view — no LiveView process per anonymous
+  visitor. Scroll effects bind via data attributes (app.js) and the mobile
+  menu is pure client state in `landing_nav`, so nothing here needs a socket.
+  """
+
+  use EmakolaWeb, :html
 
   import EmakolaWeb.LandingComponents, only: [landing_nav: 1, landing_footer: 1]
 
@@ -23,35 +29,14 @@ defmodule EmakolaWeb.LandingLive do
      "Yes, automatically on WhatsApp and SMS: order confirmations, shipping updates, and delivery notifications."}
   ]
 
-  @impl true
-  def mount(_params, _session, socket) do
-    {:ok,
-     assign(socket,
-       page_title: "Makola — Start Selling Online in Ghana | Mobile Money & Dropshipping",
-       meta_description:
-         "Create your online store in Ghana. Accept MTN MoMo and Vodafone Cash, dropship from local suppliers, and send WhatsApp order updates. Free to start.",
-       og_image: url(~p"/images/og-image.png"),
-       canonical_url: url(~p"/"),
-       preload_image: "/images/landing/hero-market-woman.jpg",
-       json_ld: json_ld(),
-       mobile_menu_open: false
-     ), layout: false}
-  end
-
-  @impl true
-  def handle_event("toggle_mobile_menu", _params, socket) do
-    {:noreply, assign(socket, mobile_menu_open: !socket.assigns.mobile_menu_open)}
-  end
-
-  @impl true
-  def render(assigns) do
+  def home(assigns) do
     ~H"""
     <div
       id="landing-scroll"
-      phx-hook="ScrollReveal"
+      data-scroll-reveal
       class="min-h-screen bg-[#0c1526] text-[#f1f5f9] font-body antialiased"
     >
-      <.landing_nav mobile_menu_open={@mobile_menu_open} />
+      <.landing_nav />
       <main>
         <.hero />
         <.store_wall />
@@ -637,7 +622,9 @@ defmodule EmakolaWeb.LandingLive do
     ]
   end
 
-  defp json_ld do
+  # Public: the controller passes this to the root layout's JSON-LD slot.
+  @doc false
+  def json_ld do
     base = EmakolaWeb.Endpoint.url()
 
     %{

@@ -82,7 +82,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
                 href={@wa_link}
                 target="_blank"
                 rel="noopener"
-                class="rounded-full px-7 py-3.5 text-sm font-semibold border border-[#25D366] text-[#128C3A] hover:bg-[#25D366]/5"
+                class="rounded-full px-7 py-3.5 text-sm font-semibold border border-whatsapp text-[#128C3A] hover:bg-whatsapp/5"
               >
                 Order on WhatsApp
               </a>
@@ -272,7 +272,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
               href={@wa_link}
               target="_blank"
               rel="noopener"
-              class="block sm:inline-block mt-3 sm:ml-3 text-center rounded-full px-8 py-4 text-sm font-semibold border border-[#25D366] text-[#128C3A] hover:bg-[#25D366]/5"
+              class="block sm:inline-block mt-3 sm:ml-3 text-center rounded-full px-8 py-4 text-sm font-semibold border border-whatsapp text-[#128C3A] hover:bg-whatsapp/5"
             >
               Order on WhatsApp
             </a>

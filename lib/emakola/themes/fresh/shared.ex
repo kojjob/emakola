@@ -381,7 +381,7 @@ defmodule Emakola.Themes.Fresh.Shared do
                 href={"https://wa.me/#{String.replace(@store.whatsapp_number || "", "+", "")}"}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="flex items-center gap-2 text-sm text-[#78350F] hover:text-[#25D366] transition-colors"
+                class="flex items-center gap-2 text-sm text-[#78350F] hover:text-whatsapp transition-colors"
                 style="font-family: 'Inter', sans-serif;"
               >
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
