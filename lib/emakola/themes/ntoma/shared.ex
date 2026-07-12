@@ -548,6 +548,44 @@ defmodule Emakola.Themes.Ntoma.Shared do
   end
 
   @doc """
+  The calico panel a card shows when a piece has no photograph: a tonal ground
+  crossed by warp and weft hairlines, carrying the piece's serif initial.
+
+  Ntoma is the cloth theme, so its empty state is woven rather than blank. This
+  is not decoration for its own sake — a merchant's very first look at their own
+  storefront is an image-less one, and a grid of flat swatches reads as broken
+  when it is merely empty.
+
+  It sits beneath the photograph (`absolute inset-0`) rather than instead of it,
+  so a real image simply covers it; nothing has to decide between the two.
+  """
+  attr :initial, :string, required: true
+  attr :scale, :atom, default: :grid, values: [:grid, :feature]
+
+  def weave_tile(assigns) do
+    ~H"""
+    <div
+      class="absolute inset-0 bg-gradient-to-br from-[#F5EBDA] via-[#F0E3CE] to-[#E4D0AF]"
+      aria-hidden="true"
+    >
+      <div class="absolute inset-0 bg-[repeating-linear-gradient(90deg,_rgba(43,23,8,0.055)_0px,_rgba(43,23,8,0.055)_1px,_transparent_1px,_transparent_7px)]">
+      </div>
+      <div class="absolute inset-0 bg-[repeating-linear-gradient(0deg,_rgba(43,23,8,0.04)_0px,_rgba(43,23,8,0.04)_1px,_transparent_1px,_transparent_7px)]">
+      </div>
+      <div class="absolute inset-0 flex items-center justify-center">
+        <span class={[
+          "select-none font-semibold text-[#C6A671] [font-family:var(--dt-heading-font,'Fraunces',Georgia,serif)]",
+          @scale == :feature && "text-9xl",
+          @scale == :grid && "text-7xl"
+        ]}>
+          {@initial}
+        </span>
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
   Grid product card: portrait frame, placeholder-first — the calico panel
   carries the piece's serif initial and the price tag, so the card is
   finished before (or without) the photograph. `show_add={false}` renders a
@@ -570,14 +608,7 @@ defmodule Emakola.Themes.Ntoma.Shared do
         href={store_path(@store.slug, "/products/#{@product.slug}")}
         class="relative block aspect-[3/4] overflow-hidden border border-[#E6D5B8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B1708] focus-visible:ring-offset-2"
       >
-        <div
-          class="absolute inset-0 flex items-center justify-center bg-[#F0E3CE]"
-          aria-hidden="true"
-        >
-          <span class="select-none text-7xl font-semibold text-[#CFB183] [font-family:var(--dt-heading-font,'Fraunces',Georgia,serif)]">
-            {String.first(@product.title)}
-          </span>
-        </div>
+        <.weave_tile initial={String.first(@product.title)} />
         <.optimized_image
           :if={@image}
           src={@image}
@@ -671,14 +702,7 @@ defmodule Emakola.Themes.Ntoma.Shared do
         class="relative block aspect-[4/3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2B1708] md:aspect-auto md:h-full md:min-h-[360px]"
         aria-label={"View #{@product.title}"}
       >
-        <div
-          class="absolute inset-0 flex items-center justify-center bg-[#F0E3CE]"
-          aria-hidden="true"
-        >
-          <span class="select-none text-9xl font-semibold text-[#CFB183] [font-family:var(--dt-heading-font,'Fraunces',Georgia,serif)]">
-            {String.first(@product.title)}
-          </span>
-        </div>
+        <.weave_tile initial={String.first(@product.title)} scale={:feature} />
         <.optimized_image
           :if={@image}
           src={@image}

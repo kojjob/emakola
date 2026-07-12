@@ -649,6 +649,57 @@ defmodule Emakola.Themes.NtomaTest do
     end
   end
 
+  describe "woven placeholder (no-image empty state)" do
+    # Ntoma is the textile theme, so a product with no photo gets a woven ground
+    # rather than a blank swatch: warp (vertical) and weft (horizontal) hairlines
+    # over a tonal gradient. A brand-new store has no images yet, and this is the
+    # first thing its merchant sees — "designed" and "broken" must not look alike.
+    test "product_card weaves the empty state instead of leaving it blank" do
+      html =
+        render_component(&Shared.product_card/1, %{
+          product: component_product(),
+          store: @component_store
+        })
+
+      refute html =~ "<img"
+      assert html =~ "bg-gradient-to-br", "the ground should be tonal, not one flat fill"
+      assert html =~ "repeating-linear-gradient(90deg", "missing the warp (vertical threads)"
+      assert html =~ "repeating-linear-gradient(0deg", "missing the weft (horizontal threads)"
+      assert html =~ ~r/>\s*A\s*</, "the product's initial should still sit on the weave"
+    end
+
+    test "featured_card weaves too — the two sit on the same page and must not disagree" do
+      html =
+        render_component(&Shared.featured_card/1, %{
+          product: component_product(),
+          store: @component_store
+        })
+
+      assert html =~ "repeating-linear-gradient(90deg"
+      assert html =~ "repeating-linear-gradient(0deg"
+    end
+
+    test "the weave is decorative — hidden from assistive tech, and covered by a real photo" do
+      woven =
+        render_component(&Shared.product_card/1, %{
+          product: component_product(),
+          store: @component_store
+        })
+
+      assert woven =~ ~s(aria-hidden="true")
+
+      photographed =
+        render_component(&Shared.product_card/1, %{
+          product: component_product(%{images: [%{thumbnail_url: "/uploads/dress.jpg"}]}),
+          store: @component_store
+        })
+
+      # The weave is a floor, not a branch: the image simply covers it.
+      assert photographed =~ ~s(src="/uploads/dress.jpg")
+      assert photographed =~ "repeating-linear-gradient(90deg"
+    end
+  end
+
   describe "product_card/1" do
     test "looks finished with no image: serif initial, price tag, add to cart — no <img>" do
       html =
