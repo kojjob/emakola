@@ -36,6 +36,12 @@ const UnsavedChanges = {
       // (not an exit) — let it through.
       if (!link || this.el.contains(link)) return
 
+      // Modifier/middle/new-tab clicks open the link in a new tab or
+      // window rather than navigating this one — the editor's draft is
+      // untouched, so there is nothing to warn about, and swallowing the
+      // click on cancel would wrongly block the new tab from opening.
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0 || link.target === "_blank") return
+
       const leave = window.confirm(
         "You have unsaved section changes. Leave without publishing?"
       )

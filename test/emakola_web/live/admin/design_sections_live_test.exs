@@ -118,6 +118,17 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
       assert HomeSections.saved_layout(Ash.reload!(store, authorize?: false), "starter") == nil
     end
 
+    test "preview reflects the draft immediately (no publish)", %{conn: conn} do
+      {:ok, view, html} = live(conn, "/admin/design/sections")
+      assert html =~ ~s(data-section-id="starter/newsletter")
+
+      view
+      |> element(~s([phx-click="toggle_section"][phx-value-id="starter/newsletter"]))
+      |> render_click()
+
+      refute render(view) =~ ~s(data-section-id="starter/newsletter")
+    end
+
     test "an unresolvable saved section type renders as a disabled missing-section row instead of crashing",
          %{conn: conn, store: store} do
       store

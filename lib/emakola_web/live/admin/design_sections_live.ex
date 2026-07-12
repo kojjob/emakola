@@ -4,14 +4,20 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
   home-page sections (spec: docs/superpowers/specs/2026-07-11-section-editor-design.md).
 
   All mutations happen on a draft assign; nothing persists to the store
-  until Publish. Left panel only — the live preview column arrives in
-  Task 3, add/remove section controls in Task 4.
+  until Publish. Add/remove section controls arrive in Task 4.
+
+  The right-hand preview renders the DRAFT layout in-process through
+  `Emakola.Themes.SectionRenderer.home/1` — see `render_preview/1`.
   """
   use EmakolaWeb, :live_view
+
+  require Logger
 
   alias Emakola.Themes.HomeSections
   alias Emakola.Themes.Sections
   alias Emakola.Themes.ThemeResolver
+
+  @preview_product_limit 6
 
   @impl true
   def mount(_params, _session, socket) do
@@ -27,14 +33,30 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
         resolved = ThemeResolver.resolve(store.theme_config || %{}, store)
         theme_module = ThemeResolver.theme_module(resolved.theme_id)
 
+        # Preview storefront data (products/categories/delivery zones) is
+        # only fetched on the connected mount — never the disconnected one
+        # — so this admin-only page never doubles up on DB reads the way
+        # the public storefront's SEO-driven mount intentionally does.
+        {products, categories, delivery_zones} =
+          if connected?(socket) do
+            {load_preview_products(store), load_preview_categories(store),
+             load_preview_delivery_zones(store)}
+          else
+            {[], [], []}
+          end
+
         {:ok,
          assign(socket,
            page_title: "Sections",
            active_nav: :design,
            store: store,
            theme_module: theme_module,
+           theme: resolved,
            draft: HomeSections.effective_layout(store, theme_module),
-           dirty: false
+           dirty: false,
+           products: products,
+           categories: categories,
+           delivery_zones: delivery_zones
          )}
     end
   end
@@ -111,6 +133,35 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
     end
   end
 
+  # ── Preview data loading ────────────────────────────────────────
+  # Mirrors EmakolaWeb.Storefront.StoreLive's home mount (store_live.ex)
+  # context calls, with a small limit — the preview doesn't need the full
+  # catalog, just enough for every theme section to have real data to
+  # render (grids, category pills/circles, delivery-zone copy).
+
+  defp load_preview_products(store) do
+    Emakola.Catalog.Product
+    |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
+    |> Ash.Query.limit(@preview_product_limit)
+    |> Ash.read!(authorize?: false)
+  end
+
+  defp load_preview_categories(store) do
+    Emakola.Catalog.list_root_categories!(store.id)
+  end
+
+  defp load_preview_delivery_zones(store) do
+    Emakola.Shipping.list_delivery_zones!(store.id)
+    |> Enum.filter(& &1.active)
+  rescue
+    exception ->
+      Logger.error(
+        "[design_sections_live] loading delivery zones raised: #{Exception.message(exception)}"
+      )
+
+      []
+  end
+
   # Reorder is a pure adjacent swap on the draft list; out-of-range moves
   # (first row "up", last row "down") are a no-op rather than an error.
   defp swap_adjacent(entries, id, dir) do
@@ -151,6 +202,71 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
         last?: index == last_index
       }
     end
+  end
+
+  # ── Live preview ────────────────────────────────────────────────
+  # Renders the DRAFT layout — not the saved one — by swapping a
+  # struct-copied store's theme_config into a preview store, mirroring
+  # HomeSections.put_layout/4's own map construction: `home_sections` is
+  # seeded with the envelope key when absent (put_in on a missing key
+  # path would raise), then the active theme's entry is replaced with the
+  # in-memory draft. This copy is never persisted — it exists only for
+  # the duration of this render — so publishing remains the only way to
+  # write the draft to the database.
+  attr :store, :map, required: true
+  attr :theme_module, :atom, required: true
+  attr :theme, :map, required: true
+  attr :draft, :list, required: true
+  attr :products, :list, required: true
+  attr :categories, :list, required: true
+  attr :delivery_zones, :list, required: true
+
+  defp render_preview(assigns) do
+    section_assigns = %{
+      __changed__: nil,
+      preview: true,
+      store: preview_store(assigns.store, assigns.theme_module, assigns.draft),
+      theme_module: assigns.theme_module,
+      theme: assigns.theme,
+      products: assigns.products,
+      categories: assigns.categories,
+      delivery_zones: assigns.delivery_zones
+    }
+
+    assigns =
+      assigns
+      |> assign(:section_assigns, section_assigns)
+      |> assign(:frame_style, theme_style_vars(assigns.theme))
+
+    ~H"""
+    <div style={@frame_style} class="mx-auto max-w-[1280px] bg-white">
+      {Emakola.Themes.SectionRenderer.home(@section_assigns)}
+    </div>
+    """
+  end
+
+  defp preview_store(store, theme_module, draft) do
+    existing = store.theme_config || %{}
+    section_map = Map.get(existing, "home_sections", %{"v" => 1})
+    config = Map.put(existing, "home_sections", Map.put(section_map, theme_module.id(), draft))
+    %{store | theme_config: config}
+  end
+
+  # Only the three CSS custom properties section templates actually
+  # consume (`var(--theme-primary, …)` etc.) — no section or shared
+  # component under lib/emakola/themes references the design-token
+  # font/button-radius variables the storefront layout also defines, so
+  # reproducing those here would be dead weight. Colors are merchant
+  # input flowing into a style attribute, so they go through the same
+  # hex-only allowlist the storefront layout uses.
+  defp theme_style_vars(theme) do
+    colors = Map.get(theme, :colors) || %{}
+
+    primary = EmakolaWeb.Helpers.CssColor.safe_css_color(colors[:primary], "#6366F1")
+    accent = EmakolaWeb.Helpers.CssColor.safe_css_color(colors[:accent], "#1E293B")
+    background = EmakolaWeb.Helpers.CssColor.safe_css_color(colors[:background], "#FFFFFF")
+
+    "--theme-primary: #{primary}; --theme-accent: #{accent}; --theme-bg: #{background};"
   end
 
   @impl true
@@ -291,11 +407,31 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
           </.admin_card>
         </section>
 
-        <aside class="lg:col-span-6">
-          <.admin_card class="flex h-full min-h-[320px] items-center justify-center border-dashed text-center">
-            <div>
-              <p class="text-sm font-semibold text-text">Live preview</p>
-              <p class="mt-1 text-xs text-text-muted">Arrives in Task 3</p>
+        <aside class="lg:col-span-6 lg:sticky lg:top-4 lg:self-start">
+          <.admin_card padding={:none} class="overflow-hidden">
+            <div class="flex items-center gap-3 border-b border-border bg-surface-subtle px-4 py-2.5">
+              <div class="flex items-center gap-1.5" aria-hidden="true">
+                <span class="size-2.5 rounded-full bg-slate-300"></span>
+                <span class="size-2.5 rounded-full bg-slate-300"></span>
+                <span class="size-2.5 rounded-full bg-slate-300"></span>
+              </div>
+              <div class="flex-1 truncate rounded-control border border-border bg-surface px-3 py-1 text-center text-xs text-text-muted">
+                {@store.slug}.makola.io
+              </div>
+              <span class="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-text-muted">
+                <span class="size-1.5 rounded-full bg-success"></span> Live preview
+              </span>
+            </div>
+            <div class="max-h-[calc(100vh-14rem)] overflow-y-auto">
+              <.render_preview
+                store={@store}
+                theme_module={@theme_module}
+                theme={@theme}
+                draft={@draft}
+                products={@products}
+                categories={@categories}
+                delivery_zones={@delivery_zones}
+              />
             </div>
           </.admin_card>
         </aside>
