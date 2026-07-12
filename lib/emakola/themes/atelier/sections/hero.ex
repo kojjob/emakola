@@ -84,9 +84,15 @@ defmodule Emakola.Themes.Atelier.Sections.Hero do
             </style>
           <% end %>
 
-          <%!-- Scrim: two-layer overlay guarantees text contrast on ANY image --%>
-          <div class="absolute inset-0 bg-black/30"></div>
-          <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent">
+          <%!-- Scrim: the hero now carries the shop's own product photography,
+          which can be bright and busy where the type sits. A flat dim would
+          kill the photograph, so the weight goes where the words are — a wash
+          up from the base and across from the left — leaving the right side of
+          the image clean. --%>
+          <div class="absolute inset-0 bg-black/25"></div>
+          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent">
+          </div>
+          <div class="absolute inset-0 bg-gradient-to-r from-black/70 via-black/20 to-transparent">
           </div>
         <% else %>
           <%!-- Gradient fallback when no valid hero images exist --%>
@@ -109,68 +115,109 @@ defmodule Emakola.Themes.Atelier.Sections.Hero do
         class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pb-16 sm:pb-24 pt-32"
         style="text-shadow: 0 1px 3px rgba(0,0,0,0.4);"
       >
-        <div class="max-w-3xl">
-          <%!-- Badge --%>
-          <span
-            class="inline-block px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase mb-6 text-white"
-            style="background: var(--theme-accent, #166534); text-shadow: none;"
-          >
-            {@hero_subtitle}
-          </span>
-
-          <%!-- Heading --%>
-          <h1
-            class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white leading-[1.02] mb-6 tracking-tight"
-            style="text-shadow: 0 2px 8px rgba(0,0,0,0.5);"
-          >
-            {Home.hero_title_html(
-              if @settings["heading"] not in [nil, ""],
-                do: @settings["heading"],
-                else: @hero_title
-            )}
-          </h1>
-
-          <%!-- Description --%>
-          <p
-            class="text-base sm:text-lg text-white max-w-xl leading-relaxed mb-8"
-            style="text-shadow: 0 1px 4px rgba(0,0,0,0.6);"
-          >
-            {if @settings["subheading"] not in [nil, ""],
-              do: @settings["subheading"],
-              else: @hero_description}
-          </p>
-
-          <%!-- CTA Buttons --%>
-          <div class="flex flex-col sm:flex-row gap-4">
-            <a
-              href={store_path(@store.slug, "/products")}
-              class="inline-flex items-center justify-center gap-2 px-8 py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-300 hover:opacity-90 min-h-[48px]"
-              style="background: var(--theme-accent, #166534);"
+        <div class={[
+          "grid items-end gap-10",
+          @hero_product_image && "lg:grid-cols-5 lg:gap-16"
+        ]}>
+          <div class={["max-w-3xl", @hero_product_image && "lg:col-span-3"]}>
+            <%!-- The badge only exists if the merchant wrote one. An empty pill
+          is worse than no pill, and an invented one is worse than both. --%>
+            <span
+              :if={@hero_subtitle}
+              class="inline-block px-4 py-1.5 rounded-full text-xs font-semibold tracking-wider uppercase mb-6 text-white"
+              style="background: var(--theme-accent, #166534); text-shadow: none;"
             >
-              {if @settings["cta_label"] not in [nil, ""],
-                do: @settings["cta_label"],
-                else: @cta_text}
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2.5"
+              {@hero_subtitle}
+            </span>
+
+            <%!-- Heading — the store's own name unless it says otherwise --%>
+            <h1
+              class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white leading-[1.02] mb-6 tracking-tight"
+              style="text-shadow: 0 2px 8px rgba(0,0,0,0.5);"
+            >
+              {Home.hero_title_html(
+                if @settings["heading"] not in [nil, ""],
+                  do: @settings["heading"],
+                  else: @hero_title
+              )}
+            </h1>
+
+            <% description =
+              if @settings["subheading"] not in [nil, ""],
+                do: @settings["subheading"],
+                else: @hero_description %>
+            <p
+              :if={description}
+              class="text-base sm:text-lg text-white max-w-xl leading-relaxed mb-8"
+              style="text-shadow: 0 1px 4px rgba(0,0,0,0.6);"
+            >
+              {description}
+            </p>
+
+            <%!-- CTA Buttons --%>
+            <div class="flex flex-col sm:flex-row gap-4">
+              <a
+                href={store_path(@store.slug, "/products")}
+                class="inline-flex items-center justify-center gap-2 px-8 py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white transition-all duration-300 hover:opacity-90 min-h-[48px]"
+                style="background: var(--theme-accent, #166534);"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-                />
-              </svg>
-            </a>
-            <a
-              href={store_path(@store.slug, "/about")}
-              class="inline-flex items-center justify-center px-8 py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white border-2 border-white/40 hover:bg-white/10 transition-all duration-300 min-h-[48px]"
-            >
-              {@cta_secondary_text}
-            </a>
+                {if @settings["cta_label"] not in [nil, ""],
+                  do: @settings["cta_label"],
+                  else: @cta_text}
+                <svg
+                  class="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+                  />
+                </svg>
+              </a>
+              <a
+                href={store_path(@store.slug, "/about")}
+                class="inline-flex items-center justify-center px-8 py-4 text-sm font-bold uppercase tracking-wider rounded-lg text-white border-2 border-white/40 hover:bg-white/10 transition-all duration-300 min-h-[48px]"
+              >
+                {@cta_secondary_text}
+              </a>
+            </div>
           </div>
+
+          <%!-- The shop's own photography, standing in a portrait frame instead
+          of stretched across the band behind the type. It is one real product,
+          named and priced from its own record, and it goes to that product. --%>
+          <a
+            :if={@hero_product_image}
+            href={store_path(@store.slug, "/products/#{@hero_product.slug}")}
+            class="group block w-full lg:col-span-2 lg:justify-self-end"
+          >
+            <div class="overflow-hidden rounded-2xl ring-1 ring-white/20 shadow-2xl">
+              <.optimized_image
+                src={@hero_product_image}
+                alt={@hero_product.title}
+                priority={:high}
+                width={640}
+                height={800}
+                class="aspect-[4/5] w-full object-cover transition-transform duration-700 motion-safe:group-hover:scale-105"
+              />
+            </div>
+            <div class="mt-4 flex items-baseline justify-between gap-4">
+              <p class="truncate text-sm font-semibold text-white">
+                {@hero_product.title}
+              </p>
+              <p class="shrink-0 text-sm font-bold tabular-nums text-white/80">
+                {EmakolaWeb.Helpers.Currency.format_price_range(
+                  @hero_product.min_price,
+                  @hero_product.max_price,
+                  @store.currency
+                )}
+              </p>
+            </div>
+          </a>
         </div>
 
         <%!-- Carousel Progress Indicators --%>
@@ -192,60 +239,85 @@ defmodule Emakola.Themes.Atelier.Sections.Hero do
     """
   end
 
-  # Returns true only for local upload paths (not stock photo URLs)
+  # The hero carries one of two very different kinds of picture, and they want
+  # different frames.
+  #
+  # Hero art the merchant uploads is COMPOSED for a full-bleed band, so it fills
+  # the viewport behind the type — that full-height wash is Atelier's signature.
+  #
+  # A product photograph is not that. It is a tall portrait of a single thing,
+  # and stretching one across a 100vh landscape band crops away half its height:
+  # a model's head goes out the top and the storefront opens on a pair of legs.
+  # So when the shop has never set hero art, we do not fake it — we stand the
+  # product photograph in a portrait frame beside the type, over Atelier's own
+  # gradient ground, the way every other theme frames the same picture.
   defp prepare_hero_assigns(assigns) do
     theme = assigns[:theme] || %{}
-    valid_images = collect_valid_hero_images(theme, Map.get(assigns, :products, []))
-    image_count = length(valid_images)
+    configured = configured_hero_images(theme)
+    image_count = length(configured)
     hero_carousel = get_in(theme, [:hero, :carousel]) || false
     store_name = Map.get(assigns.store, :name, "Our Store")
+    hero_product = if configured == [], do: hero_product(Map.get(assigns, :products, []))
 
     assigns
-    |> assign(:valid_images, valid_images)
+    |> assign(:valid_images, configured)
     |> assign(:has_images, image_count > 0)
     |> assign(:use_carousel, image_count > 1 && hero_carousel)
     |> assign(:image_count, image_count)
     |> assign(:total_duration, max(image_count, 1) * 7)
+    |> assign(:hero_product, hero_product)
+    |> assign(:hero_product_image, hero_product && Shared.first_image(hero_product))
     |> assign_hero_text(theme, store_name)
   end
 
-  defp collect_valid_hero_images(theme, products) do
+  defp configured_hero_images(theme) do
     images = get_in(theme, [:hero, :images]) || []
     single = get_in(theme, [:hero, :image_url])
 
-    configured =
-      cond do
-        is_list(images) && images != [] -> Enum.filter(images, &valid_hero_image?/1)
-        valid_hero_image?(single) -> [single]
-        true -> []
-      end
-
-    # A store that has never opened the theme editor has no configured hero
-    # image, so this hero fell back to a bare gradient — the shop's own
-    # photography was sitting further down the same page, unused. Product
-    # images are our own upload records, already rendered by every card on
-    # this page, so they don't pass through the merchant-typed-URL gate.
-    case configured do
-      [] -> products |> Enum.take(3) |> Enum.map(&Shared.first_image/1) |> Enum.reject(&is_nil/1)
-      found -> found
+    cond do
+      is_list(images) && images != [] -> Enum.filter(images, &valid_hero_image?/1)
+      valid_hero_image?(single) -> [single]
+      true -> []
     end
   end
 
+  # Product images are our own upload records, already rendered by every card on
+  # this page, so they do not pass through the merchant-typed-URL gate that the
+  # theme's image_url setting does.
+  defp hero_product(products) do
+    Enum.find(products, &Shared.first_image/1)
+  end
+
+  # The hero used to fall back to copy the merchant never wrote: a headline
+  # ("Crafting Trust, Curating Excellence."), a badge ("The 2024 Collection")
+  # and a paragraph about the soul of West African craftsmanship. It was the
+  # <h1> of every Atelier storefront that had not overridden it — a shop
+  # selling rice announced itself as a curator of masterpieces.
+  #
+  # The store speaks for itself now: its own name is the headline, its own
+  # description the standfirst. Where it has said nothing, we print nothing.
   defp assign_hero_text(assigns, theme, store_name) do
+    store = Map.get(assigns, :store, %{})
+
     assigns
-    |> assign(:hero_subtitle, get_in(theme, [:hero, :subtitle]) || "Welcome to #{store_name}")
-    |> assign(
-      :hero_title,
-      get_in(theme, [:hero, :title]) || "Crafting Trust,\nCurating Excellence."
-    )
+    |> assign(:hero_subtitle, present(get_in(theme, [:hero, :subtitle])))
+    |> assign(:hero_title, present(get_in(theme, [:hero, :title])) || store_name)
     |> assign(
       :hero_description,
-      get_in(theme, [:hero, :description]) ||
-        "Experience the soul of West African craftsmanship. Every piece tells a story of heritage, precision, and modern elegance."
+      present(get_in(theme, [:hero, :description])) || present(Map.get(store, :description))
     )
-    |> assign(:cta_text, get_in(theme, [:hero, :cta_text]) || "Shop Now")
-    |> assign(:cta_secondary_text, get_in(theme, [:hero, :cta_secondary_text]) || "Our Story")
+    |> assign(:cta_text, present(get_in(theme, [:hero, :cta_text])) || "Shop now")
+    |> assign(
+      :cta_secondary_text,
+      present(get_in(theme, [:hero, :cta_secondary_text])) || "Our story"
+    )
   end
+
+  defp present(value) when is_binary(value) do
+    if String.trim(value) == "", do: nil, else: value
+  end
+
+  defp present(_value), do: nil
 
   defp valid_hero_image?(nil), do: false
   defp valid_hero_image?(""), do: false

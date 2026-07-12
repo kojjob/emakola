@@ -29,10 +29,9 @@ defmodule Emakola.Themes.AtelierSectionsTest do
 
     # Landmarks -- one distinctive literal per block, picked from the
     # CURRENT atelier/home.ex before extraction (Task 7 reuses these).
-    # Hero -- no static literal exists in the moved markup itself, so this
-    # falls back to the theme default (badge subtitle text), same
-    # theme-default indirection Task 5 used for Starter's Hero.
-    assert html =~ "The 2024 Collection"
+    # Hero -- the store speaks for itself: its own name is the h1. The theme
+    # ships no invented headline for it to fall back to.
+    assert html =~ store.name
     # Category Circles
     assert html =~ "Shop by Category"
     # Featured Products
@@ -46,6 +45,61 @@ defmodule Emakola.Themes.AtelierSectionsTest do
     # Newsletter -- falls back to the hardcoded literal because the theme's
     # newsletter map has no :heading key (only :title/:subtitle/:button_text)
     assert html =~ "Stay Updated."
+  end
+
+  describe "the hero speaks as the merchant, never for them" do
+    test "a store that wrote nothing gets its own name as the h1 — no invented headline" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{
+          theme_config: %{"theme" => "atelier"},
+          name: "Kwame Provisions"
+        })
+
+      create_product!(store, %{status: :active})
+
+      html = render_home(store)
+
+      assert html =~ ~r/<h1[^>]*>[^<]*Kwame Provisions/s
+
+      # The copy Atelier used to ship in the merchant's voice. A shop selling
+      # rice does not "craft trust" or curate a 2024 collection, and it never
+      # said it did — this is the same lie as a fabricated review.
+      refute html =~ "Crafting Trust"
+      refute html =~ "Curating Excellence"
+      refute html =~ "The 2024 Collection"
+      refute html =~ "soul of West African craftsmanship"
+      refute html =~ "Explore Masterpieces"
+      refute html =~ "Meet the Artisans"
+    end
+
+    test "a store with no description gets no invented one" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{theme_config: %{"theme" => "atelier"}, description: nil})
+
+      html = render_home(store)
+
+      refute html =~ "Every piece tells a story"
+    end
+
+    test "the merchant's own words always win" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{
+          theme_config: %{
+            "theme" => "atelier",
+            "hero" => %{
+              "title" => "Fresh stock, every Friday",
+              "subtitle" => "Since 2011",
+              "description" => "We sell rice, oil and shito."
+            }
+          }
+        })
+
+      html = render_home(store)
+
+      assert html =~ "Fresh stock, every Friday"
+      assert html =~ "Since 2011"
+      assert html =~ "We sell rice, oil and shito."
+    end
   end
 
   defp render_home(store) do
