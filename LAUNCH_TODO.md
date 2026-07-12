@@ -77,9 +77,10 @@
 - [ ] **Hubtel (optional second gateway)** — set `HUBTEL_CLIENT_ID`,
       `HUBTEL_CLIENT_SECRET` **and** `HUBTEL_WEBHOOK_ALLOWLIST` together
       (the webhook is IP-allowlisted and fails closed) — or leave all unset.
-- [ ] **Monitoring** — nothing is wired (Sentry in old docs is not a
-      dependency). Until something is chosen, `fly logs` is the only window;
-      pick Sentry/AppSignal once real traffic starts.
+- [ ] **Monitoring** — Sentry is fully wired ship-dark (dep + Finch transport +
+      LoggerHandler for crashes/error-level logs). Activate with
+      `fly secrets set SENTRY_DSN=… --app emakola` (project DSN from sentry.io);
+      unset = inert. Until then `fly logs` is the only window.
 - [ ] **Verify `conn.remote_ip` reflects the real client IP behind the Fly
       proxy** — mobile API pre-auth rate limits key on it (10/min sign-in
       per IP). If it's the edge IP, all mobile clients share one bucket.

@@ -852,6 +852,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
         events,
         socket.assigns.current_store.id
       )
+      |> Emakola.Suppliers.RadarEvaluation.rank(socket.assigns.current_store.id)
 
     OpportunitySignals.emit_supplier_alerts(radar)
     alerts = OpportunitySignals.supplier_alerts(socket.assigns.current_store.id) |> result_rows()
