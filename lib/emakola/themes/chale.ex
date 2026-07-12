@@ -92,9 +92,9 @@ defmodule Emakola.Themes.Chale do
       },
       footer: %{social_links: %{instagram: "", twitter: "", facebook: ""}},
       css_variables: %{
-        "--theme-primary" => "#DC143C",
-        "--theme-accent" => "#09090B",
-        "--theme-bg" => "#F4F4F5",
+        "--theme-primary" => "#2547E8",
+        "--theme-accent" => "#101114",
+        "--theme-bg" => "#F7F5F1",
         "--theme-font-heading" => "'Anton', sans-serif",
         "--theme-font-body" => "'Archivo', sans-serif"
       }
@@ -104,9 +104,9 @@ defmodule Emakola.Themes.Chale do
   @impl true
   def css_variables do
     %{
-      "--theme-primary" => "#DC143C",
-      "--theme-accent" => "#09090B",
-      "--theme-bg" => "#F4F4F5"
+      "--theme-primary" => "#2547E8",
+      "--theme-accent" => "#101114",
+      "--theme-bg" => "#F7F5F1"
     }
   end
 
