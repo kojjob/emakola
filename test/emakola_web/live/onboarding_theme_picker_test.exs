@@ -131,6 +131,77 @@ defmodule EmakolaWeb.OnboardingThemePickerTest do
     end
   end
 
+  describe "storefront previews" do
+    test "each offered theme's mock is painted from its own tokens", %{conn: conn} do
+      {view, _merchant} = reach_theme_step(conn, "Kente House")
+      html = render(view)
+
+      offered = OnboardingLive.offered_theme_ids()
+
+      for id <- offered do
+        defaults = ThemeResolver.theme_module(id).defaults()
+
+        assert html =~ defaults.colors.primary,
+               "theme #{inspect(id)}'s primary color is not painted in the picker"
+
+        assert html =~ defaults.colors.accent,
+               "theme #{inspect(id)}'s accent color is not painted in the picker"
+
+        assert html =~ defaults.fonts.heading,
+               "theme #{inspect(id)}'s heading font is not used in its preview"
+      end
+
+      # The merchant's own store name is the shop sign in every mock —
+      # once per preview, so at least one occurrence per offered theme.
+      occurrences = length(String.split(html, "Kente House")) - 1
+
+      assert occurrences >= length(offered),
+             "expected the store name in all #{length(offered)} previews, " <>
+               "found it #{occurrences} time(s)"
+    end
+
+    test "price chips show money from integer minor units, never floats", %{conn: conn} do
+      {view, _merchant} = reach_theme_step(conn, "Money Shop")
+      html = render(view)
+
+      # 12_000 pesewas → GH₵120 (whole), 8_500 → GH₵85: formatted from
+      # integers, so no float artifacts like GH₵120.0 can appear.
+      assert html =~ "GH₵120"
+      assert html =~ "GH₵85"
+      refute html =~ ~r/GH₵\d+\.\d(?!\d)/, "price chip rendered a float artifact"
+    end
+
+    test "price chips follow the currency chosen in step 1", %{conn: conn} do
+      merchant = create_merchant!()
+      conn = sign_in(conn, merchant)
+
+      {:ok, view, _html} = live(conn, "/onboarding")
+      render_change(view, "update_store_name", %{"store_name" => "Naira Shop"})
+      render_change(view, "update_currency", %{"currency" => "NGN"})
+      render_click(view, "next_step")
+
+      html = render(view)
+      assert html =~ "₦120"
+      refute html =~ "GH₵120"
+    end
+
+    test "exactly one card is marked selected via aria-pressed", %{conn: conn} do
+      {view, _merchant} = reach_theme_step(conn, "Aria Shop")
+
+      # Market is the default selection.
+      assert has_element?(view, ~s{button[phx-value-theme-id="market"][aria-pressed="true"]})
+      assert length(String.split(render(view), ~s(aria-pressed="true"))) - 1 == 1
+
+      view
+      |> element(~s{button[phx-value-theme-id="spotlight"]})
+      |> render_click()
+
+      assert has_element?(view, ~s{button[phx-value-theme-id="spotlight"][aria-pressed="true"]})
+      refute has_element?(view, ~s{button[phx-value-theme-id="market"][aria-pressed="true"]})
+      assert length(String.split(render(view), ~s(aria-pressed="true"))) - 1 == 1
+    end
+  end
+
   describe "save_theme/3" do
     import ExUnit.CaptureLog
 
