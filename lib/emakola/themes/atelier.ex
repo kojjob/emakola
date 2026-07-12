@@ -30,11 +30,15 @@ defmodule Emakola.Themes.Atelier do
       trust: true,
       newsletter: true
     },
+    # No invented copy. A headline, a badge and a description the merchant
+    # never wrote are words put in their mouth on their own storefront — the
+    # same lie as a fabricated review. Empty here means "the store speaks for
+    # itself": its name becomes the h1, its description the standfirst.
     hero: %{
       image_url: "",
-      subtitle: "The 2024 Collection",
-      title: "Crafting Trust,\nCurating Excellence.",
-      description: "Discover handcrafted masterpieces from West Africa's finest artisans."
+      subtitle: "",
+      title: "",
+      description: ""
     },
     brand_story: %{
       image_url: "",
@@ -74,12 +78,11 @@ defmodule Emakola.Themes.Atelier do
         image_url: "",
         images: [],
         carousel: false,
-        title: "Crafting Trust,\nCurating Excellence.",
-        subtitle: "The 2024 Collection",
-        description:
-          "Experience the soul of West African craftsmanship. Every piece tells a story of heritage, precision, and modern elegance.",
-        cta_text: "Explore Masterpieces",
-        cta_secondary_text: "Meet the Artisans",
+        title: "",
+        subtitle: "",
+        description: "",
+        cta_text: "Shop now",
+        cta_secondary_text: "Our story",
         cta_url: "/products"
       },
       nav: %{search_placeholder: "Search products...", transparent: false},
