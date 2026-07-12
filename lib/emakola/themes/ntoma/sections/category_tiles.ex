@@ -126,9 +126,14 @@ defmodule Emakola.Themes.Ntoma.Sections.CategoryTiles do
   # the shopper acts on. Categories with nothing to show keep the finished
   # calico-and-initial state, which is a deliberate empty state, not a gap.
   defp photos_by_category(assigns) do
+    # `category_photos` is the store's real catalogue cover per category, read
+    # straight from the DB by the storefront. The product-derived map below is
+    # the fallback for callers that don't supply it (admin preview, tests).
+    covers = Map.get(assigns, :category_photos) || %{}
+
     assigns
     |> Map.get(:products, [])
-    |> Enum.reduce(%{}, fn product, acc ->
+    |> Enum.reduce(covers, fn product, acc ->
       with category_id when is_binary(category_id) <- Map.get(product, :category_id),
            false <- Map.has_key?(acc, category_id),
            image when is_binary(image) <- Shared.first_image(product) do

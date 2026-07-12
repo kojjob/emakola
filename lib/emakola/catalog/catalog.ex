@@ -93,4 +93,50 @@ defmodule Emakola.Catalog do
 
     resource(Emakola.Catalog.DigitalFile)
   end
+
+  @doc """
+  One representative photograph per category — the cover a storefront's
+  category tiles wear.
+
+  Themes used to source these from the home page's product assign, which is a
+  capped preview: any category whose products fell outside it showed an empty
+  box. This reads the store's catalogue directly instead.
+
+  Strictly scoped, because a tile is a promise about what is behind it:
+
+  - the photo always comes from a product really in that category
+  - only `:active` products lend one — a draft is not on sale
+  - the query is filtered by `store_id`, so covers never cross a tenant
+
+  Returns a map of `category_id => image URL`. A category with nothing to show
+  is simply absent, and the theme keeps its own empty state.
+  """
+  @spec category_covers(Ecto.UUID.t(), [Ecto.UUID.t()]) :: %{Ecto.UUID.t() => String.t()}
+  def category_covers(_store_id, []), do: %{}
+
+  def category_covers(store_id, category_ids) when is_list(category_ids) do
+    require Ash.Query
+
+    Emakola.Catalog.Product
+    |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store_id, status: :active})
+    |> Ash.Query.filter(category_id in ^category_ids)
+    |> Ash.Query.load(:images)
+    |> Ash.read!(authorize?: false)
+    |> Enum.reduce(%{}, fn product, covers ->
+      case cover_url(product) do
+        nil -> covers
+        url -> Map.put_new(covers, product.category_id, url)
+      end
+    end)
+  end
+
+  defp cover_url(%{images: images}) when is_list(images) do
+    Enum.find_value(images, fn
+      %{thumbnail_url: url} when is_binary(url) -> url
+      %{url: url} when is_binary(url) -> url
+      _ -> nil
+    end)
+  end
+
+  defp cover_url(_product), do: nil
 end

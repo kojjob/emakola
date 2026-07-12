@@ -35,6 +35,9 @@ defmodule EmakolaWeb.Storefront.StoreLive do
      socket
      |> assign(:products, products)
      |> assign(:categories, categories)
+     # Category tiles used to source their photo from `products` above — a
+     # capped preview — so any category outside it rendered as an empty box.
+     |> assign(:category_photos, load_category_photos(store, categories))
      |> assign(:public_coupons, public_coupons)
      |> assign(:cart_session_id, cart_session_id)
      |> assign(:cart_count, cart_count)
@@ -175,6 +178,10 @@ defmodule EmakolaWeb.Storefront.StoreLive do
 
   defp load_root_categories(store) do
     Emakola.Catalog.list_root_categories!(store.id)
+  end
+
+  defp load_category_photos(store, categories) do
+    Emakola.Catalog.category_covers(store.id, Enum.map(categories, & &1.id))
   end
 
   defp load_public_coupons(store) do
