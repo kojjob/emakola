@@ -26,7 +26,7 @@ defmodule Emakola.Themes.Chale.Sections.Newsletter do
       class="px-4 py-6 pb-10 sm:px-6 sm:py-8 lg:px-8"
       aria-labelledby="chale-newsletter-heading"
     >
-      <div class="mx-auto max-w-[1280px] border-2 border-zinc-950 bg-zinc-950 p-6 text-center text-white shadow-[6px_6px_0_0_#D4D4D8] sm:p-10">
+      <div class="mx-auto max-w-[1280px] rounded-xl bg-[#101114] p-6 text-center text-white shadow-md sm:p-10">
         <h2
           id="chale-newsletter-heading"
           class="text-2xl font-bold uppercase tracking-tight [font-family:var(--chale-display)] sm:text-3xl"
@@ -50,7 +50,7 @@ defmodule Emakola.Themes.Chale.Sections.Newsletter do
             name="email"
             placeholder="your@email.com"
             required
-            class="min-h-[48px] flex-1 border-2 border-white bg-white px-4 py-3 text-sm text-zinc-950 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-store-accent"
+            class="min-h-[48px] flex-1 border-2 border-white bg-white px-4 py-3 text-sm text-[#101114] placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-store-accent"
           />
           <button
             type="submit"

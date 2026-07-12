@@ -57,20 +57,20 @@ defmodule Emakola.Themes.Chale.Shared do
 
   def chale_nav(assigns) do
     ~H"""
-    <header role="banner" class="sticky top-0 z-50 border-b-2 border-zinc-950 bg-white">
+    <header role="banner" class="sticky top-0 z-50 border-b border-[#E3E0DA] bg-white">
       <div class="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
         <div class="flex h-14 items-center justify-between gap-3 sm:h-16">
           <a
             href={store_path(@store.slug, "/")}
-            class="flex min-w-0 items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2"
+            class="flex min-w-0 items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-offset-2"
           >
             <span
-              class="flex h-9 w-9 flex-shrink-0 items-center justify-center bg-zinc-950 text-base font-bold uppercase text-white [font-family:var(--chale-display)]"
+              class="flex h-9 w-9 flex-shrink-0 items-center justify-center bg-[#101114] text-base font-bold uppercase text-white [font-family:var(--chale-display)]"
               aria-hidden="true"
             >
               {String.first(@store.name)}
             </span>
-            <span class="truncate text-lg font-bold uppercase tracking-tight text-zinc-950 [font-family:var(--chale-display)] sm:text-xl">
+            <span class="truncate text-lg font-bold uppercase tracking-tight text-[#101114] [font-family:var(--chale-display)] sm:text-xl">
               {@store.name}
             </span>
           </a>
@@ -83,7 +83,7 @@ defmodule Emakola.Themes.Chale.Shared do
             <a
               :for={category <- Enum.take(@categories, 5)}
               href={store_path(@store.slug, "/category/#{category.slug}")}
-              class="whitespace-nowrap text-xs font-bold uppercase tracking-widest text-zinc-600 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 motion-safe:transition-colors"
+              class="whitespace-nowrap text-xs font-bold uppercase tracking-widest text-zinc-600 hover:text-[#101114] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-offset-2 motion-safe:transition-colors"
             >
               {category.name}
             </a>
@@ -93,7 +93,7 @@ defmodule Emakola.Themes.Chale.Shared do
             <a
               href={store_path(@store.slug, "/products")}
               aria-label="Search products"
-              class="flex h-11 w-11 items-center justify-center text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 motion-safe:transition-colors"
+              class="flex h-11 w-11 items-center justify-center text-zinc-600 hover:bg-[#F7F5F1] hover:text-[#101114] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] motion-safe:transition-colors"
             >
               <svg
                 class="h-[22px] w-[22px]"
@@ -113,7 +113,7 @@ defmodule Emakola.Themes.Chale.Shared do
             <a
               href={store_path(@store.slug, "/cart")}
               aria-label={"Shopping cart, #{@cart_count} items"}
-              class="relative flex h-11 w-11 items-center justify-center text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 motion-safe:transition-colors"
+              class="relative flex h-11 w-11 items-center justify-center text-zinc-600 hover:bg-[#F7F5F1] hover:text-[#101114] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] motion-safe:transition-colors"
             >
               <svg
                 class="h-[22px] w-[22px]"
@@ -156,7 +156,7 @@ defmodule Emakola.Themes.Chale.Shared do
   def chale_bottom_nav(assigns) do
     ~H"""
     <nav
-      class="safe-area-inset-bottom fixed inset-x-0 bottom-0 z-40 border-t-2 border-zinc-950 bg-white sm:hidden"
+      class="safe-area-inset-bottom fixed inset-x-0 bottom-0 z-40 border-t border-[#E3E0DA] bg-white sm:hidden"
       aria-label="Store"
     >
       <div class="flex h-14 items-center justify-around">
@@ -164,8 +164,8 @@ defmodule Emakola.Themes.Chale.Shared do
           href={store_path(@store.slug, "/")}
           aria-current={if @active == :home, do: "page"}
           class={[
-            "flex flex-col items-center gap-0.5 px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950",
-            if(@active == :home, do: "text-zinc-950", else: "text-zinc-400 hover:text-zinc-950")
+            "flex flex-col items-center gap-0.5 px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8]",
+            if(@active == :home, do: "text-[#101114]", else: "text-zinc-400 hover:text-[#101114]")
           ]}
         >
           <svg
@@ -188,8 +188,8 @@ defmodule Emakola.Themes.Chale.Shared do
           href={store_path(@store.slug, "/products")}
           aria-current={if @active == :shop, do: "page"}
           class={[
-            "flex flex-col items-center gap-0.5 px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950",
-            if(@active == :shop, do: "text-zinc-950", else: "text-zinc-400 hover:text-zinc-950")
+            "flex flex-col items-center gap-0.5 px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8]",
+            if(@active == :shop, do: "text-[#101114]", else: "text-zinc-400 hover:text-[#101114]")
           ]}
         >
           <svg
@@ -212,8 +212,8 @@ defmodule Emakola.Themes.Chale.Shared do
           href={store_path(@store.slug, "/wishlist")}
           aria-current={if @active == :saved, do: "page"}
           class={[
-            "flex flex-col items-center gap-0.5 px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950",
-            if(@active == :saved, do: "text-zinc-950", else: "text-zinc-400 hover:text-zinc-950")
+            "flex flex-col items-center gap-0.5 px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8]",
+            if(@active == :saved, do: "text-[#101114]", else: "text-zinc-400 hover:text-[#101114]")
           ]}
         >
           <svg
@@ -237,8 +237,8 @@ defmodule Emakola.Themes.Chale.Shared do
           aria-current={if @active == :cart, do: "page"}
           aria-label={"Cart, #{@cart_count} items"}
           class={[
-            "relative flex flex-col items-center gap-0.5 px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950",
-            if(@active == :cart, do: "text-zinc-950", else: "text-zinc-400 hover:text-zinc-950")
+            "relative flex flex-col items-center gap-0.5 px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8]",
+            if(@active == :cart, do: "text-[#101114]", else: "text-zinc-400 hover:text-[#101114]")
           ]}
         >
           <span class="relative">
@@ -287,7 +287,7 @@ defmodule Emakola.Themes.Chale.Shared do
     ~H"""
     <%!-- Explicit role: the layout nests theme content inside <main>,
     which strips <footer>'s implicit contentinfo landmark. --%>
-    <footer role="contentinfo" class="border-t-2 border-zinc-950 bg-zinc-950 text-white">
+    <footer role="contentinfo" class="border-t border-[#E3E0DA] bg-[#101114] text-white">
       <%!-- Mobile bottom padding clears the fixed chale_bottom_nav tab bar. --%>
       <div class="mx-auto max-w-[1280px] px-4 pb-28 pt-12 sm:px-6 sm:py-16 lg:px-8">
         <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:gap-8">
@@ -388,7 +388,7 @@ defmodule Emakola.Themes.Chale.Shared do
               </span>
               <span
                 :for={rail <- ["MTN MoMo", "Telecel Cash", "Visa", "Mastercard"]}
-                class="inline-flex items-center border border-zinc-700 bg-zinc-900 px-2.5 py-1 text-[10px] font-bold tracking-wide text-zinc-200"
+                class="inline-flex items-center border border-zinc-700 bg-[#101114] px-2.5 py-1 text-[10px] font-bold tracking-wide text-zinc-200"
               >
                 {rail}
               </span>
@@ -455,8 +455,8 @@ defmodule Emakola.Themes.Chale.Shared do
 
     ~H"""
     <span class={[
-      "inline-block border-2 border-zinc-950 bg-white font-bold tabular-nums tracking-tight text-zinc-950",
-      "shadow-[3px_3px_0_0_#09090B] [font-family:var(--chale-display)]",
+      "inline-block rounded-xl border border-[#E3E0DA] bg-white font-bold tabular-nums tracking-tight text-[#101114]",
+      "shadow-sm [font-family:var(--chale-display)]",
       if(@size == :lg,
         do: "px-4 py-2 text-2xl leading-none sm:text-3xl",
         else: "px-2 py-1 text-[0.8125rem] leading-none"
@@ -491,7 +491,7 @@ defmodule Emakola.Themes.Chale.Shared do
     <div class="group">
       <a
         href={store_path(@store.slug, "/products/#{@product.slug}")}
-        class="relative block aspect-square overflow-hidden border-2 border-zinc-950 shadow-[4px_4px_0_0_#09090B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 motion-safe:transition-transform motion-safe:group-hover:-translate-y-0.5"
+        class="relative block aspect-square overflow-hidden rounded-xl border border-[#E3E0DA] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-offset-2 motion-safe:transition-transform motion-safe:group-hover:-translate-y-0.5"
       >
         <div
           class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-300"
@@ -512,7 +512,7 @@ defmodule Emakola.Themes.Chale.Shared do
         <div :if={@sold_out} class="absolute inset-0 z-[5] bg-white/60" aria-hidden="true"></div>
         <span
           :if={@sold_out}
-          class="absolute right-2 top-3 z-10 -rotate-3 bg-zinc-950 px-2 py-1 text-[0.6875rem] font-bold uppercase tracking-widest text-white"
+          class="absolute right-2 top-3 z-10 -rotate-3 bg-[#101114] px-2 py-1 text-[0.6875rem] font-bold uppercase tracking-widest text-white"
         >
           Sold out
         </span>
@@ -523,9 +523,9 @@ defmodule Emakola.Themes.Chale.Shared do
       <div class="mt-3 flex items-start justify-between gap-2">
         <a
           href={store_path(@store.slug, "/products/#{@product.slug}")}
-          class="min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2"
+          class="min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-offset-2"
         >
-          <h3 class="truncate text-sm font-bold uppercase tracking-wide text-zinc-950">
+          <h3 class="truncate text-sm font-bold uppercase tracking-wide text-[#101114]">
             {@product.title}
           </h3>
         </a>
@@ -534,7 +534,7 @@ defmodule Emakola.Themes.Chale.Shared do
           type="button"
           phx-click="add_to_cart"
           phx-value-product-id={@product.id}
-          class="flex h-9 w-9 flex-shrink-0 cursor-pointer items-center justify-center bg-zinc-950 text-white hover:bg-store-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 motion-safe:transition-colors motion-safe:active:scale-95"
+          class="flex h-9 w-9 flex-shrink-0 cursor-pointer items-center justify-center bg-[#101114] text-white hover:bg-store-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-offset-2 motion-safe:transition-colors motion-safe:active:scale-95"
           aria-label={"Add #{@product.title} to cart"}
         >
           <svg
