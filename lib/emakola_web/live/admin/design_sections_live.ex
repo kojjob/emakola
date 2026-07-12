@@ -205,6 +205,23 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
   end
 
   # ── Live preview ────────────────────────────────────────────────
+  # The preview is a PICTURE of the storefront, not a working one. It
+  # renders real theme markup, which carries live bindings this LiveView
+  # has no handlers for (Atelier's product_card/1 ships
+  # phx-click="add_to_cart"; every theme's newsletter section ships
+  # phx-submit="subscribe_newsletter"). Clicking one would raise
+  # FunctionClauseError in handle_event/3, crash the LiveView, and
+  # silently destroy the draft — which lives in socket assigns by design.
+  #
+  # So the content wrapper is made non-interactive rather than the editor
+  # growing a stub handler per binding: `pointer-events-none` kills mouse
+  # activation (and, for free, the hover affordances that would imply the
+  # preview is clickable), and `inert` additionally removes descendants
+  # from the tab order and the accessibility tree — without it a merchant
+  # could still Tab into a preview button and press Enter. Both are
+  # theme-agnostic, so the upcoming themes are covered by construction.
+  # The guard sits on the CONTENT only; the panel's own chrome stays live.
+  #
   # Renders the DRAFT layout — not the saved one — by swapping a
   # struct-copied store's theme_config into a preview store, mirroring
   # HomeSections.put_layout/4's own map construction: `home_sections` is
@@ -239,7 +256,11 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
       |> assign(:frame_style, theme_style_vars(assigns.theme))
 
     ~H"""
-    <div style={@frame_style} class="mx-auto max-w-[1280px] bg-white">
+    <div
+      class="section-preview-content pointer-events-none mx-auto max-w-[1280px] bg-white"
+      style={@frame_style}
+      inert
+    >
       {Emakola.Themes.SectionRenderer.home(@section_assigns)}
     </div>
     """

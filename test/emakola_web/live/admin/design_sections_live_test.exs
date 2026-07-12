@@ -12,6 +12,12 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
     |> Ash.update!(authorize?: false)
   end
 
+  defp set_atelier_theme!(store) do
+    store
+    |> Ash.Changeset.for_update(:update, %{theme_config: %{"theme" => "atelier"}})
+    |> Ash.update!(authorize?: false)
+  end
+
   describe "without a store" do
     test "redirects to onboarding", %{conn: conn} do
       merchant = create_merchant!()
@@ -155,6 +161,62 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
 
       assert html =~ "Missing section"
       refute html =~ "phx-click=\"toggle_section\" phx-value-id=\"starter/ghost\""
+    end
+  end
+
+  describe "preview interactivity guard (Atelier)" do
+    setup %{conn: conn} do
+      {merchant, store} = create_merchant_with_store!()
+      store = set_atelier_theme!(store)
+
+      # Atelier's featured_products puts the FIRST product in a
+      # hero_product_card and only the rest through product_card/1 — the
+      # component that carries phx-click="add_to_cart". Several products
+      # are needed for the dangerous markup to appear at all.
+      for _ <- 1..3, do: create_product!(store, %{status: :active})
+
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
+
+      conn =
+        conn
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:user_token, token)
+
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    # The preview renders REAL theme markup, which carries live bindings the
+    # editor has no handlers for — Atelier's product_card/1 ships
+    # phx-click="add_to_cart" and is rendered by the default-enabled
+    # featured_products section. Without a guard, a merchant clicking a
+    # preview product raises FunctionClauseError in handle_event/3, the
+    # LiveView crashes, and the draft (socket assigns only, by design) is
+    # silently destroyed. The guard is pointer-events on the content wrapper
+    # — theme-agnostic, so it covers the upcoming themes too.
+    test "the preview content wrapper is non-interactive, and it is the guard — not missing markup — that protects the draft",
+         %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/admin/design/sections")
+
+      # The dangerous markup really is rendered...
+      assert html =~ ~s(phx-click="add_to_cart")
+      assert html =~ "atelier-product-card"
+
+      # ...and the wrapper around the rendered sections neutralises it —
+      # pointer-events for the mouse, inert for the keyboard (a merchant
+      # could otherwise Tab to the button and press Enter).
+      assert html =~ "section-preview-content"
+      assert html =~ "pointer-events-none"
+      assert html =~ "inert"
+    end
+
+    test "the panel's own chrome stays interactive", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/admin/design/sections")
+
+      # The guard must sit on the preview CONTENT, not the whole panel —
+      # the editor's own controls must keep working.
+      assert view
+             |> element(~s([phx-click="toggle_section"][phx-value-id="atelier/newsletter"]))
+             |> has_element?()
     end
   end
 end
