@@ -1,12 +1,12 @@
 defmodule Emakola.Themes.Ntoma.Sections.Wordmark do
   @moduledoc """
-  Ntoma's signature: the gold featured band carrying the store's own name
-  at display scale.
+  Ntoma's signature: the band carrying the store's own name at display scale.
 
   A small Accra tailor gets their name set like a fashion house — that is
   the emotional payload of this theme, and it costs zero image bytes. The
-  band is Ntoma's own chrome (a fixed gold, like Market's stone footer),
-  edged with the woven selvedge strip. The merchant may add a tagline; the
+  band is set on the theme's paper and edged with the woven selvedge strip;
+  the gold lives in the selvedge, not in a full-bleed slab, so the buy button
+  stays the loudest thing on the page. The merchant may add a tagline; the
   quiet link always points at the server-generated products path.
   """
   @behaviour Emakola.Themes.Section
@@ -38,7 +38,11 @@ defmodule Emakola.Themes.Ntoma.Sections.Wordmark do
       |> assign(:cta_label, present(assigns.settings["cta_label"]) || "Shop all")
 
     ~H"""
-    <section class="overflow-hidden bg-[#E0A32E]" aria-labelledby="ntoma-wordmark-heading">
+    <section class="overflow-hidden bg-[#FFFBF2]" aria-labelledby="ntoma-wordmark-heading">
+      <%!-- The band used to be a full-bleed slab of gold, which shouted louder
+      than any buy button on the page. The gold survives where it means
+      something — the woven selvedge that edges the cloth — and the name itself
+      now carries the band, set on the theme's own paper. --%>
       <Shared.woven_strip class="h-1.5" />
       <div class="mx-auto max-w-[1280px] px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         <h2
@@ -57,7 +61,7 @@ defmodule Emakola.Themes.Ntoma.Sections.Wordmark do
           </p>
           <a
             href={store_path(@store.slug, "/products")}
-            class="group inline-flex min-h-[44px] items-center gap-2 border-b-2 border-[#2B1708] text-sm font-bold uppercase tracking-[0.16em] text-[#2B1708] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B1708] focus-visible:ring-offset-2 focus-visible:ring-offset-[#E0A32E]"
+            class="group inline-flex min-h-[44px] items-center gap-2 border-b-2 border-[#2B1708] text-sm font-bold uppercase tracking-[0.16em] text-[#2B1708] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B1708] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FFFBF2]"
           >
             {@cta_label}
             <svg

@@ -41,6 +41,8 @@ defmodule Emakola.Themes.Ntoma.Sections.CategoryTiles do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :photos, photos_by_category(assigns))
+
     ~H"""
     <section
       :if={@categories != []}
@@ -62,7 +64,7 @@ defmodule Emakola.Themes.Ntoma.Sections.CategoryTiles do
               :for={{category, index} <- Enum.with_index(@categories)}
               href={store_path(@store.slug, "/category/#{category.slug}")}
               class={[
-                "group relative block overflow-hidden border border-[#E6D5B8] bg-[#F0E3CE] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B1708] focus-visible:ring-offset-2",
+                "group relative block overflow-hidden border border-[#E6D5B8] bg-[#F0E3CE] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B1708] focus-visible:ring-offset-2 motion-safe:transition-shadow motion-safe:hover:shadow-md",
                 tile_span(index)
               ]}
             >
@@ -72,9 +74,10 @@ defmodule Emakola.Themes.Ntoma.Sections.CategoryTiles do
               >
                 {String.first(category.name)}
               </span>
-              <%= if Shared.category_image(category) do %>
+              <% photo = tile_photo(category, @photos) %>
+              <%= if photo do %>
                 <.optimized_image
-                  src={Shared.category_image(category)}
+                  src={photo}
                   alt=""
                   priority={:low}
                   width={480}
@@ -86,7 +89,7 @@ defmodule Emakola.Themes.Ntoma.Sections.CategoryTiles do
               <% end %>
               <span class={[
                 "absolute bottom-3 left-3.5 right-3.5 flex items-center justify-between gap-2 text-base font-semibold [font-family:var(--dt-heading-font,'Fraunces',Georgia,serif)]",
-                if(Shared.category_image(category), do: "text-[#FAF4EA]", else: "text-[#2B1708]")
+                if(photo, do: "text-[#FAF4EA]", else: "text-[#2B1708]")
               ]}>
                 <span class="truncate">{category.name}</span>
                 <svg
@@ -113,4 +116,30 @@ defmodule Emakola.Themes.Ntoma.Sections.CategoryTiles do
   end
 
   defp tile_span(index), do: Enum.at(@span_cycle, rem(index, length(@span_cycle)))
+
+  # The tile used to show a photograph only when the merchant had set
+  # `category.image_url` — which nobody does — so in practice every tile on
+  # every real storefront was an empty calico box. It now falls back to a
+  # photograph from a product that is REALLY IN that category.
+  #
+  # Strictly in that category: a Food tile wearing a photo of a dress is a lie
+  # the shopper acts on. Categories with nothing to show keep the finished
+  # calico-and-initial state, which is a deliberate empty state, not a gap.
+  defp photos_by_category(assigns) do
+    assigns
+    |> Map.get(:products, [])
+    |> Enum.reduce(%{}, fn product, acc ->
+      with category_id when is_binary(category_id) <- Map.get(product, :category_id),
+           false <- Map.has_key?(acc, category_id),
+           image when is_binary(image) <- Shared.first_image(product) do
+        Map.put(acc, category_id, image)
+      else
+        _ -> acc
+      end
+    end)
+  end
+
+  defp tile_photo(category, photos) do
+    Shared.category_image(category) || Map.get(photos, Map.get(category, :id))
+  end
 end
