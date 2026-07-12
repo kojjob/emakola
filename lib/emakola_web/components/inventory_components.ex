@@ -2,9 +2,9 @@ defmodule EmakolaWeb.InventoryComponents do
   @moduledoc """
   Shared UI components for the inventory management page.
 
-  Provides stock status badges, stat cards, the multi-location manager
-  card, per-location breakdown lines, and the stock transfer modal used
-  by the admin inventory dashboard.
+  Provides stock status badges, the multi-location manager card,
+  per-location breakdown lines, and the stock transfer modal used by the
+  admin inventory dashboard.
   """
   use Phoenix.Component
 
@@ -39,38 +39,6 @@ defmodule EmakolaWeb.InventoryComponents do
       </span>
       {@label}
     </span>
-    """
-  end
-
-  @doc """
-  Renders an overview stat card with icon area, value, and label.
-  """
-  attr :label, :string, required: true
-  attr :value, :string, required: true
-  attr :color, :string, required: true
-
-  slot :icon, required: true
-
-  def stat_card(assigns) do
-    ~H"""
-    <div class="bg-white rounded-2xl border border-slate-200 p-5">
-      <div class="flex items-center gap-3">
-        <div class={[
-          "flex items-center justify-center w-10 h-10 rounded-xl",
-          icon_bg_class(@color)
-        ]}>
-          {render_slot(@icon)}
-        </div>
-        <div>
-          <p class={["text-2xl font-bold", value_color_class(@color)]}>
-            {@value}
-          </p>
-          <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">
-            {@label}
-          </p>
-        </div>
-      </div>
-    </div>
     """
   end
 
@@ -308,16 +276,4 @@ defmodule EmakolaWeb.InventoryComponents do
   defp stock_status(qty) when qty >= 10, do: {"In Stock", "bg-emerald-50 text-emerald-700", false}
   defp stock_status(qty) when qty >= 1, do: {"Low Stock", "bg-amber-50 text-amber-700", false}
   defp stock_status(_qty), do: {"Out of Stock", "bg-red-50 text-red-700", true}
-
-  defp icon_bg_class("emerald"), do: "bg-emerald-50"
-  defp icon_bg_class("amber"), do: "bg-amber-50"
-  defp icon_bg_class("red"), do: "bg-red-50"
-  defp icon_bg_class("slate"), do: "bg-slate-100"
-  defp icon_bg_class(_), do: "bg-slate-100"
-
-  defp value_color_class("emerald"), do: "text-emerald-600"
-  defp value_color_class("amber"), do: "text-amber-600"
-  defp value_color_class("red"), do: "text-red-600"
-  defp value_color_class("slate"), do: "text-slate-800"
-  defp value_color_class(_), do: "text-slate-800"
 end

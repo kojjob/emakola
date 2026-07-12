@@ -53,8 +53,8 @@ defmodule EmakolaWeb.ReturnComponents do
           <div class={[
             "w-3 h-3 rounded-full border-2",
             cond do
-              step.current -> "bg-store-accent border-[#B45309]"
-              step.completed -> "bg-store-accent border-[#B45309]"
+              step.current -> "bg-store-accent border-amber-700"
+              step.completed -> "bg-store-accent border-amber-700"
               true -> "bg-white border-stone-300"
             end
           ]} />

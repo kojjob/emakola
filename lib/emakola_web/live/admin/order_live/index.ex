@@ -169,7 +169,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
                     {format_price(order.total, order.currency)}
                   </td>
                   <td class="px-4 py-3.5">
-                    <.status_pill status={order.status} variant={:order} />
+                    <.status_badge status={order.status} variant={:order} />
                   </td>
                   <td class="px-4 py-3.5">
                     <.link
@@ -215,7 +215,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
                   {customer_name(order)}
                 </p>
               </div>
-              <.status_pill status={order.status} variant={:order} />
+              <.status_badge status={order.status} variant={:order} />
             </div>
             <div class="flex items-center justify-between text-sm">
               <span class="text-slate-400">{format_date(order.inserted_at)}</span>

@@ -20,13 +20,26 @@ defmodule Emakola.Shipping do
   form (e.g. `"greater_accra"`) or a human zone name (`"Greater Accra"`).
   Match is case-insensitive and treats `_` and ` ` as equivalent.
 
+  ## Options
+    * `:subtotal_pesewas` — merchandise subtotal of the cart. When the zone
+      has `free_above_pesewas` set and the subtotal reaches it, delivery is
+      free.
+    * `:total_weight_grams` — total cart weight (see `total_weight_grams/1`).
+      When the zone has `per_kg_fee_pesewas` set, the fee becomes
+      `fee + per_kg_fee_pesewas * ceil(weight / 1kg)`.
+
+  Precedence: free-above wins (fee 0), otherwise base fee + weight surcharge.
+  Without options — or on zones without the tier/weight fields — this is
+  today's flat per-zone fee.
+
   ## Returns
     * `{:ok, fee_in_pesewas}` when an active matching zone exists
     * `{:error, :no_zone}` otherwise — caller decides the fallback (e.g. a
       default fee or rejecting the region)
   """
-  @spec calculate_fee(binary(), binary()) :: {:ok, integer()} | {:error, :no_zone}
-  def calculate_fee(store_id, region) when is_binary(store_id) and is_binary(region) do
+  @spec calculate_fee(binary(), binary(), keyword()) :: {:ok, integer()} | {:error, :no_zone}
+  def calculate_fee(store_id, region, opts \\ [])
+      when is_binary(store_id) and is_binary(region) and is_list(opts) do
     normalised_target = normalise_region(region)
 
     Emakola.Shipping.DeliveryZone
@@ -35,9 +48,43 @@ defmodule Emakola.Shipping do
     |> Enum.find(fn zone -> normalise_region(zone.name) == normalised_target end)
     |> case do
       nil -> {:error, :no_zone}
-      zone -> {:ok, zone.fee}
+      zone -> {:ok, zone_fee(zone, opts)}
     end
   end
+
+  @doc """
+  Sums cart weight in grams from `%{weight_grams: integer | nil, quantity: integer}`
+  items. Variants without a configured weight count as 0.
+  """
+  @spec total_weight_grams([%{weight_grams: integer() | nil, quantity: integer()}]) ::
+          non_neg_integer()
+  def total_weight_grams(items) when is_list(items) do
+    Enum.reduce(items, 0, fn item, acc -> acc + (item.weight_grams || 0) * item.quantity end)
+  end
+
+  defp zone_fee(zone, opts) do
+    subtotal = Keyword.get(opts, :subtotal_pesewas)
+    weight = Keyword.get(opts, :total_weight_grams)
+
+    if free_above?(zone, subtotal) do
+      0
+    else
+      zone.fee + weight_surcharge(zone, weight)
+    end
+  end
+
+  defp free_above?(%{free_above_pesewas: threshold}, subtotal)
+       when is_integer(threshold) and is_integer(subtotal),
+       do: subtotal >= threshold
+
+  defp free_above?(_zone, _subtotal), do: false
+
+  # Integer ceiling: div(grams + 999, 1000) charges every started kg.
+  defp weight_surcharge(%{per_kg_fee_pesewas: per_kg}, grams)
+       when is_integer(per_kg) and is_integer(grams) and grams > 0,
+       do: per_kg * div(grams + 999, 1000)
+
+  defp weight_surcharge(_zone, _grams), do: 0
 
   defp normalise_region(value) do
     value

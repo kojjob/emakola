@@ -6,7 +6,7 @@ defmodule EmakolaWeb.DashboardComponents do
 
   use Phoenix.Component
 
-  import EmakolaWeb.AdminComponents, only: [admin_card: 1, status_pill: 1]
+  import EmakolaWeb.AdminComponents, only: [admin_card: 1, status_badge: 1]
 
   attr :period, :string, required: true
   attr :periods, :list, required: true
@@ -198,7 +198,7 @@ defmodule EmakolaWeb.DashboardComponents do
                   {format_money(order.total)}
                 </td>
                 <td class="px-6 py-3 text-right">
-                  <.status_pill status={order.status} variant={:order} />
+                  <.status_badge status={order.status} variant={:order} />
                 </td>
               </tr>
             </tbody>

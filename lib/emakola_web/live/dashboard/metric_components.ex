@@ -5,7 +5,7 @@ defmodule EmakolaWeb.DashboardMetricComponents do
 
   use Phoenix.Component
 
-  import EmakolaWeb.AdminComponents, only: [admin_card: 1]
+  import EmakolaWeb.AdminComponents, only: [admin_card: 1, stat_card: 1]
 
   attr :total_revenue, :integer, required: true
   attr :revenue_change, :float, default: nil
@@ -54,16 +54,14 @@ defmodule EmakolaWeb.DashboardMetricComponents do
 
   defp kpi_card(assigns) do
     ~H"""
-    <.admin_card padding={:none} class="p-5 hover:shadow-md transition-shadow">
-      <div class="flex items-center justify-between mb-3">
-        <span class="text-sm font-medium text-slate-500">{@label}</span>
-        <div class="w-9 h-9 rounded-control bg-primary-soft flex items-center justify-center">
-          <span class="material-symbols-outlined text-lg text-primary">{@icon}</span>
-        </div>
-      </div>
-      <p class="text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums">{@value}</p>
-      <.change_indicator change={@change} />
-    </.admin_card>
+    <.stat_card label={@label} value={@value}>
+      <:icon>
+        <span class="material-symbols-outlined text-lg text-primary">{@icon}</span>
+      </:icon>
+      <:delta>
+        <.change_indicator change={@change} />
+      </:delta>
+    </.stat_card>
     """
   end
 

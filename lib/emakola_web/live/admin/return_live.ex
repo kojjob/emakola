@@ -202,7 +202,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
           class={[
             "bg-white rounded-2xl shadow-sm p-5 cursor-pointer transition-all hover:shadow-md",
             if(@selected_return && @selected_return.id == return.id,
-              do: "ring-2 ring-[#B45309]",
+              do: "ring-2 ring-amber-700",
               else: ""
             )
           ]}
@@ -317,7 +317,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
               name="notes"
               rows="3"
               placeholder="Add notes about this decision..."
-              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-[#B45309] focus:border-[#B45309] focus:outline-none"
+              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-amber-700 focus:border-amber-700 focus:outline-none"
             >{@action_notes}</textarea>
           </div>
           <div>
@@ -330,7 +330,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
               name="amount"
               value={@refund_amount_input}
               placeholder="0.00"
-              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-[#B45309] focus:border-[#B45309] focus:outline-none"
+              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-amber-700 focus:border-amber-700 focus:outline-none"
             />
           </div>
           <div class="flex gap-3">

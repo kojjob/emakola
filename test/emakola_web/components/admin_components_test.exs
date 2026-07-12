@@ -68,10 +68,10 @@ defmodule EmakolaWeb.AdminComponentsTest do
     end
   end
 
-  describe "status_pill/1" do
+  describe "status_badge/1" do
     test "renders the status text" do
       html =
-        render_component(&AdminComponents.status_pill/1, %{
+        render_component(&AdminComponents.status_badge/1, %{
           status: "pending",
           variant: :order
         })
@@ -81,10 +81,10 @@ defmodule EmakolaWeb.AdminComponentsTest do
 
     test "applies order-variant colors based on status" do
       paid_html =
-        render_component(&AdminComponents.status_pill/1, %{status: :delivered, variant: :order})
+        render_component(&AdminComponents.status_badge/1, %{status: :delivered, variant: :order})
 
       cancelled_html =
-        render_component(&AdminComponents.status_pill/1, %{status: :cancelled, variant: :order})
+        render_component(&AdminComponents.status_badge/1, %{status: :cancelled, variant: :order})
 
       assert paid_html =~ "success-soft"
       assert cancelled_html =~ "danger"
@@ -92,10 +92,10 @@ defmodule EmakolaWeb.AdminComponentsTest do
 
     test "accepts atom or string status" do
       atom_html =
-        render_component(&AdminComponents.status_pill/1, %{status: :pending, variant: :order})
+        render_component(&AdminComponents.status_badge/1, %{status: :pending, variant: :order})
 
       string_html =
-        render_component(&AdminComponents.status_pill/1, %{status: "pending", variant: :order})
+        render_component(&AdminComponents.status_badge/1, %{status: "pending", variant: :order})
 
       # Both should produce the same colour class
       assert atom_html =~ "warning"
@@ -104,7 +104,7 @@ defmodule EmakolaWeb.AdminComponentsTest do
 
     test "falls back to slate for unknown status" do
       html =
-        render_component(&AdminComponents.status_pill/1, %{
+        render_component(&AdminComponents.status_badge/1, %{
           status: "wat",
           variant: :order
         })
@@ -114,7 +114,7 @@ defmodule EmakolaWeb.AdminComponentsTest do
 
     test "supports payment variant" do
       html =
-        render_component(&AdminComponents.status_pill/1, %{
+        render_component(&AdminComponents.status_badge/1, %{
           status: :success,
           variant: :payment
         })
@@ -124,13 +124,13 @@ defmodule EmakolaWeb.AdminComponentsTest do
 
     test "supports product variant" do
       published =
-        render_component(&AdminComponents.status_pill/1, %{
+        render_component(&AdminComponents.status_badge/1, %{
           status: :active,
           variant: :product
         })
 
       draft =
-        render_component(&AdminComponents.status_pill/1, %{
+        render_component(&AdminComponents.status_badge/1, %{
           status: :draft,
           variant: :product
         })
@@ -234,6 +234,104 @@ defmodule EmakolaWeb.AdminComponentsTest do
         """)
 
       refute html =~ "p-6"
+    end
+  end
+
+  describe "stat_card/1" do
+    test "renders label and value on the canonical card" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.stat_card label="Revenue" value="GHS 1,200.00" />
+        """)
+
+      assert html =~ "Revenue"
+      assert html =~ "GHS 1,200.00"
+      assert html =~ "rounded-card"
+      assert html =~ "tabular-nums"
+    end
+
+    test "renders icon slot inside a coloured chip" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.stat_card label="Low Stock" value="3" icon_bg="bg-amber-50">
+          <:icon><span data-test="icon">!</span></:icon>
+        </AdminComponents.stat_card>
+        """)
+
+      assert html =~ ~s|data-test="icon"|
+      assert html =~ "bg-amber-50"
+    end
+
+    test "omits the icon chip when no icon slot is given" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.stat_card label="Orders" value="12" />
+        """)
+
+      refute html =~ "bg-primary-soft"
+    end
+
+    test "renders delta slot under the value" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.stat_card label="Orders" value="12">
+          <:delta><span data-test="delta">+4%</span></:delta>
+        </AdminComponents.stat_card>
+        """)
+
+      assert html =~ ~s|data-test="delta"|
+      assert html =~ "+4%"
+    end
+  end
+
+  describe "table_toolbar/1" do
+    test "renders debounced search form with default event" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.table_toolbar search_query="ada" placeholder="Search products..." />
+        """)
+
+      assert html =~ ~s|phx-change="search"|
+      assert html =~ ~s|phx-debounce="300"|
+      assert html =~ ~s|name="search"|
+      assert html =~ ~s|value="ada"|
+      assert html =~ ~s|placeholder="Search products..."|
+    end
+
+    test "accepts a custom search event" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.table_toolbar search_query="" search_event="search_inventory" />
+        """)
+
+      assert html =~ ~s|phx-change="search_inventory"|
+    end
+
+    test "renders filters and actions slots" do
+      assigns = %{}
+
+      html =
+        rendered_to_string(~H"""
+        <AdminComponents.table_toolbar search_query="">
+          <:filters><span data-test="filters">tabs</span></:filters>
+          <:actions><span data-test="actions">export</span></:actions>
+        </AdminComponents.table_toolbar>
+        """)
+
+      assert html =~ ~s|data-test="filters"|
+      assert html =~ ~s|data-test="actions"|
     end
   end
 
