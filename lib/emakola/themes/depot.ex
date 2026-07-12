@@ -3,12 +3,19 @@ defmodule Emakola.Themes.Depot do
   The Depot theme — B2B / wholesale quick-order storefront.
 
   Built for suppliers whose buyers are shop owners restocking, not
-  consumers browsing: the home page leads with a dense order sheet (SKU,
-  price, stock on hand, add) instead of photography, the catalogue is a
-  scannable table, and the product page reads like a spec sheet. Trust is
-  commercial — real stock levels, payment rails, the store's own policies
-  — rather than lifestyle imagery. Text-dense and image-light by design,
-  which also makes it the fastest theme on metered data.
+  consumers browsing: the home page leads with a dense order sheet
+  (line number, thumbnail, SKU, price, stock on hand, add) instead of
+  a photographic hero, the catalogue is the same scannable table, and
+  the product page reads like a spec sheet. Trust is commercial — real
+  stock levels, payment rails, the store's own policies — rather than
+  lifestyle imagery.
+
+  The visual language is the trade counter: a concrete ground, hairline
+  rules, IBM Plex Mono for every figure, an ink masthead bar over the
+  sheet, and burnt orange (`#C2410C`) as the single signal colour — the
+  line under the cursor, the add button, the focus ring. There is no
+  lifestyle photography anywhere; the only images are the one-per-row
+  thumbnails a buyer uses to identify a carton at a glance.
 
   Delegates rendering to specialised submodules:
   - `Emakola.Themes.Depot.Home` — home chrome around the section stack

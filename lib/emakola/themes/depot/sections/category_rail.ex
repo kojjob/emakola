@@ -26,7 +26,7 @@ defmodule Emakola.Themes.Depot.Sections.CategoryRail do
     ~H"""
     <nav
       :if={@categories != []}
-      class="border-b border-zinc-200 bg-white px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
+      class="border-b border-[#E7E5E1] bg-white px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
       aria-labelledby="depot-lines-heading"
     >
       <div class="mx-auto max-w-[1120px]">

@@ -371,9 +371,78 @@ defmodule Emakola.Themes.DepotTest do
       assert html =~ "This week in stock"
       refute html =~ "Order sheet"
     end
+
+    test "a line carries the product's own photograph" do
+      product =
+        component_product(%{
+          images: [%{thumbnail_url: "/uploads/palm.jpg", url: "/uploads/p.jpg"}]
+        })
+
+      html = render_section(OrderSheet, %{store: @component_store, products: [product]})
+
+      assert html =~ "/uploads/palm.jpg"
+      # The thumbnail is an identification aid beside the title it repeats,
+      # so it is decorative to a screen reader, not a second announcement.
+      assert html =~ ~r/<img[^>]*alt=""/
+    end
+
+    test "a line with no photograph falls back to a lettered tile, never a broken image" do
+      html =
+        render_section(OrderSheet, %{store: @component_store, products: [component_product()]})
+
+      refute html =~ "<img"
+      assert html =~ ~r/aria-hidden="true"[^>]*>\s*P\s*</
+    end
+
+    test "the sheet numbers its lines the way a manifest does" do
+      products = [
+        component_product(),
+        component_product(%{id: "prod-2", title: "Rice 25kg", slug: "rice-25kg"})
+      ]
+
+      html = render_section(OrderSheet, %{store: @component_store, products: products})
+
+      assert html =~ "01"
+      assert html =~ "02"
+    end
   end
 
   describe "masthead section" do
+    test "the spec block states only facts the store really has" do
+      html =
+        render_section(Hero, %{
+          store: @component_store,
+          categories: [
+            %{id: "c1", name: "Oils", slug: "oils"},
+            %{id: "c2", name: "Rice", slug: "rice"}
+          ]
+        })
+
+      assert html =~ "GHS"
+      assert html =~ "Categories"
+      assert html =~ ~r/<dd[^>]*>\s*2\s*<\/dd>/
+    end
+
+    test "the spec block never counts the products, because the home page only gets a preview" do
+      products = for i <- 1..3, do: component_product(%{id: "p#{i}"})
+
+      html =
+        render_section(Hero, %{
+          store: @component_store,
+          products: products,
+          categories: []
+        })
+
+      refute html =~ "Lines"
+      refute html =~ "products in stock"
+    end
+
+    test "renders without categories or products at all" do
+      html = render_section(Hero, %{store: @component_store})
+
+      assert html =~ "Volta Trade Depot"
+    end
+
     test "carries the h1, defaulting to the store name" do
       html = render_section(Hero, %{store: @component_store})
 
