@@ -96,4 +96,38 @@ defmodule EmakolaWeb.OnboardingThemePickerTest do
                inspect(store.theme_config["theme"])
     end
   end
+
+  describe "crafted theme ids" do
+    test "an unregistered theme-id is ignored, not persisted", %{conn: conn} do
+      {view, merchant} = reach_theme_step(conn, "Crafted Shop")
+
+      before_html = render(view)
+      render_click(view, "select_theme", %{"theme-id" => "totally-fake"})
+
+      assert render(view) == before_html,
+             "a crafted theme-id changed the picker state"
+
+      finish_onboarding(view)
+      store = store_for(merchant)
+
+      assert store.theme_config["theme"] == "market",
+             "a crafted theme-id was written to the store: " <>
+               inspect(store.theme_config["theme"])
+    end
+
+    test "a registered but excluded theme-id is ignored, not persisted", %{conn: conn} do
+      {view, merchant} = reach_theme_step(conn, "Excluded Shop")
+
+      # "akoma" exists in ThemeResolver but is deliberately not offered —
+      # a crafted event must not smuggle it past the picker.
+      render_click(view, "select_theme", %{"theme-id" => "akoma"})
+      finish_onboarding(view)
+
+      store = store_for(merchant)
+
+      assert store.theme_config["theme"] == "market",
+             "an excluded theme-id was written to the store: " <>
+               inspect(store.theme_config["theme"])
+    end
+  end
 end

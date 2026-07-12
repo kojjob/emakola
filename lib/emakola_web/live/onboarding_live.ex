@@ -457,7 +457,13 @@ defmodule EmakolaWeb.OnboardingLive do
   end
 
   def handle_event("select_theme", %{"theme-id" => theme_id}, socket) do
-    {:noreply, assign(socket, selected_theme: theme_id)}
+    # theme-id comes from the client — only ids the picker actually offers
+    # may be selected (and later persisted). Crafted ids are ignored.
+    if theme_id in offered_theme_ids() do
+      {:noreply, assign(socket, selected_theme: theme_id)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("update_product", params, socket) do
