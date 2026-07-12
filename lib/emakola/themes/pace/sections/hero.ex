@@ -39,6 +39,12 @@ defmodule Emakola.Themes.Pace.Sections.Hero do
 
   @impl true
   def render(assigns) do
+    # Photo-FALLBACK, not photo-optional: the hero used to show an image only
+    # if the merchant had set one in the editor — which no new store has — so
+    # every real storefront opened on an empty band. It now falls back to the
+    # shop's own first product photograph.
+    hero_product = assigns |> Map.get(:products, []) |> List.first()
+
     custom_headline = present(assigns.settings["headline"])
 
     assigns =
@@ -50,7 +56,12 @@ defmodule Emakola.Themes.Pace.Sections.Hero do
         present(assigns.settings["subheadline"]) || present(assigns.store.description)
       )
       |> assign(:cta_label, present(assigns.settings["cta_label"]) || "Shop the lineup")
-      |> assign(:image, valid_image(assigns.settings["image_url"]))
+      |> assign(:hero_product, hero_product)
+      |> assign(
+        :image,
+        valid_image(assigns.settings["image_url"]) ||
+          (hero_product && Emakola.Themes.Pace.Shared.first_image(hero_product))
+      )
       |> assign(:marquee_copy, String.duplicate("#{String.upcase(assigns.store.name)} /// ", 4))
 
     ~H"""
@@ -114,7 +125,7 @@ defmodule Emakola.Themes.Pace.Sections.Hero do
         >
           <.optimized_image
             src={@image}
-            alt={"#{@store.name} gear"}
+            alt={(@hero_product && @hero_product.title) || "#{@store.name} gear"}
             priority={:high}
             width={640}
             height={480}
@@ -124,6 +135,21 @@ defmodule Emakola.Themes.Pace.Sections.Hero do
             class="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent"
             aria-hidden="true"
           >
+          </div>
+          <div
+            :if={@hero_product}
+            class="absolute bottom-4 left-4 max-w-[15rem] rounded-2xl bg-white/95 px-4 py-2.5 backdrop-blur"
+          >
+            <p class="truncate text-xs font-semibold uppercase tracking-wide text-slate-900">
+              {@hero_product.title}
+            </p>
+            <p class="text-xs font-bold tabular-nums text-store-accent">
+              {EmakolaWeb.Helpers.Currency.format_price_range(
+                @hero_product.min_price,
+                @hero_product.max_price,
+                @store.currency
+              )}
+            </p>
           </div>
         </div>
       </div>

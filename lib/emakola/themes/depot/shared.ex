@@ -14,6 +14,7 @@ defmodule Emakola.Themes.Depot.Shared do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias EmakolaWeb.Helpers.Currency
 
@@ -52,7 +53,7 @@ defmodule Emakola.Themes.Depot.Shared do
 
   def depot_nav(assigns) do
     ~H"""
-    <header role="banner" class="sticky top-0 z-50 border-b-2 border-zinc-900 bg-white">
+    <header role="banner" class="sticky top-0 z-50 border-b border-[#E7E5E1] bg-white">
       <div class="mx-auto max-w-[1120px] px-4 sm:px-6 lg:px-8">
         <div class="flex h-14 items-center justify-between gap-3 sm:h-16">
           <a
@@ -108,7 +109,7 @@ defmodule Emakola.Themes.Depot.Shared do
             <a
               href={store_path(@store.slug, "/cart")}
               aria-label={"Your order, #{@cart_count} items"}
-              class="flex h-11 items-center gap-2 border-2 border-zinc-900 px-3.5 text-sm font-bold text-zinc-900 hover:bg-zinc-900 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 motion-safe:transition-colors"
+              class="flex h-11 items-center gap-2 border border-[#E7E5E1] shadow-sm px-3.5 text-sm font-bold text-zinc-900 hover:bg-zinc-900 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 motion-safe:transition-colors"
             >
               <svg
                 class="h-5 w-5"
@@ -152,7 +153,7 @@ defmodule Emakola.Themes.Depot.Shared do
   def depot_bottom_nav(assigns) do
     ~H"""
     <nav
-      class="safe-area-inset-bottom fixed inset-x-0 bottom-0 z-40 border-t-2 border-zinc-900 bg-white sm:hidden"
+      class="safe-area-inset-bottom fixed inset-x-0 bottom-0 z-40 border-t border-[#E7E5E1] bg-white sm:hidden"
       aria-label="Store"
     >
       <div class="flex h-14 items-stretch">
@@ -270,7 +271,7 @@ defmodule Emakola.Themes.Depot.Shared do
     ~H"""
     <%!-- Explicit role: the layout nests theme content inside <main>,
     which strips <footer>'s implicit contentinfo landmark. --%>
-    <footer role="contentinfo" class="border-t-2 border-zinc-900 bg-zinc-950 text-white">
+    <footer role="contentinfo" class="border-t border-[#E7E5E1] bg-zinc-950 text-white">
       <%!-- Mobile bottom padding clears the fixed depot_bottom_nav tab bar. --%>
       <div class="mx-auto max-w-[1120px] px-4 pb-28 pt-14 sm:px-6 sm:py-16 lg:px-8">
         <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] lg:gap-8">
@@ -482,6 +483,7 @@ defmodule Emakola.Themes.Depot.Shared do
   """
   attr :product, :map, required: true
   attr :store, :map, required: true
+  attr :index, :integer, default: nil
 
   def order_row(assigns) do
     lead = lead_variant(assigns.product)
@@ -493,22 +495,51 @@ defmodule Emakola.Themes.Depot.Shared do
       |> assign(:multi, variant_count(assigns.product) > 1)
       |> assign(:sold_out, sold_out?(assigns.product))
       |> assign(:compare_at, compare_at_price(assigns.product))
+      |> assign(:image, first_image(assigns.product))
+      |> assign(:line_no, line_number(assigns[:index]))
 
     ~H"""
-    <tr class="border-b border-zinc-200 last:border-b-0 hover:bg-zinc-50 motion-safe:transition-colors">
-      <td class="py-3 pl-4 pr-3 sm:pl-5">
-        <a
-          href={store_path(@store.slug, "/products/#{@product.slug}")}
-          class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2"
-        >
-          <span class="block text-sm font-semibold leading-snug text-zinc-900">
-            {@product.title}
+    <tr class="group border-b border-[#E7E5E1] last:border-b-0 hover:bg-[#FAF9F7] motion-safe:transition-colors">
+      <%!-- The line number is the manifest's own structure: these rows are a
+      numbered sequence on a sheet, not a decorative list. The rule down the
+      left is Depot's signal colour, lit on the line under the cursor. --%>
+      <td class="w-10 border-l-2 border-transparent py-3 pl-3 pr-0 align-middle font-mono text-[0.6875rem] tabular-nums text-[#A8A29E] group-hover:border-[#C2410C] sm:pl-4">
+        {@line_no}
+      </td>
+      <td class="py-3 pl-3 pr-3 sm:pl-4">
+        <div class="flex items-center gap-3">
+          <%!-- Identification aid beside the title it repeats: decorative to a
+          screen reader, which already hears the product name on the next line. --%>
+          <.optimized_image
+            :if={@image}
+            src={@image}
+            alt=""
+            width={96}
+            height={96}
+            class="h-11 w-11 flex-shrink-0 border border-[#E7E5E1] object-cover"
+          />
+          <span
+            :if={!@image}
+            aria-hidden="true"
+            class="flex h-11 w-11 flex-shrink-0 items-center justify-center border border-[#E7E5E1] bg-[#F1EFEA] font-mono text-sm font-semibold text-[#A8A29E]"
+          >
+            {String.first(@product.title)}
           </span>
-        </a>
-        <span class="mt-1 flex items-center gap-2.5 sm:hidden">
-          <span class="font-mono text-[0.6875rem] text-zinc-500">{@sku}</span>
-          <.stock_indicator variant={@lead} />
-        </span>
+          <div class="min-w-0">
+            <a
+              href={store_path(@store.slug, "/products/#{@product.slug}")}
+              class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C2410C] focus-visible:ring-offset-2"
+            >
+              <span class="block text-sm font-semibold leading-snug text-zinc-900">
+                {@product.title}
+              </span>
+            </a>
+            <span class="mt-1 flex items-center gap-2.5 sm:hidden">
+              <span class="font-mono text-[0.6875rem] text-zinc-500">{@sku}</span>
+              <.stock_indicator variant={@lead} />
+            </span>
+          </div>
+        </div>
       </td>
       <td class="hidden px-3 py-3 font-mono text-xs text-zinc-500 sm:table-cell">{@sku}</td>
       <td class="hidden px-3 py-3 md:table-cell">
@@ -538,7 +569,7 @@ defmodule Emakola.Themes.Depot.Shared do
               type="button"
               disabled
               aria-disabled="true"
-              class="inline-flex h-9 cursor-not-allowed items-center border border-zinc-200 bg-zinc-100 px-3 text-xs font-bold text-zinc-400"
+              class="inline-flex h-9 cursor-not-allowed items-center border border-[#E7E5E1] bg-zinc-100 px-3 text-xs font-bold text-zinc-400"
             >
               Out
             </button>
@@ -548,7 +579,7 @@ defmodule Emakola.Themes.Depot.Shared do
               phx-click="add_to_cart"
               phx-value-product-id={@product.id}
               aria-label={"Add #{@product.title} to your order"}
-              class="inline-flex h-9 cursor-pointer items-center gap-1 bg-zinc-900 px-3.5 text-xs font-bold text-white hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2 motion-safe:transition-colors motion-safe:active:scale-95"
+              class="inline-flex h-9 cursor-pointer items-center gap-1 bg-zinc-900 px-3.5 text-xs font-bold text-white hover:bg-[#C2410C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C2410C] focus-visible:ring-offset-2 motion-safe:transition-colors motion-safe:active:scale-95"
             >
               <svg
                 class="h-3.5 w-3.5"
@@ -567,6 +598,13 @@ defmodule Emakola.Themes.Depot.Shared do
     </tr>
     """
   end
+
+  # Manifest line numbers are 1-based and zero-padded: 01, 02 … 10.
+  defp line_number(index) when is_integer(index) and index >= 0 do
+    index |> Kernel.+(1) |> Integer.to_string() |> String.pad_leading(2, "0")
+  end
+
+  defp line_number(_index), do: nil
 
   @doc """
   Stock on hand as a square status pip plus honest label, straight from

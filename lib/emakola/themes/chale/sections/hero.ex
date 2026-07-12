@@ -2,11 +2,11 @@ defmodule Emakola.Themes.Chale.Sections.Hero do
   @moduledoc """
   Chale home hero — the poster stapled to the wall.
 
-  Carries the page's `<h1>`. Photo-optional by design: with no image the
-  hero is a pure type poster — the store name (or the merchant's headline)
-  at display scale in black on concrete, closed by the crimson tape strip.
-  With a local upload it becomes a split poster: type beside a square,
-  hard-framed photo.
+  Carries the page's `<h1>`. Photo-FALLBACK: the merchant's own hero upload,
+  then the shop's first product photograph, then type alone. With a photo it
+  is a split poster — display type beside a square image carrying a floating
+  price chip; without one it is a pure type poster, the store name at display
+  scale in ink on bone, closed by the frieze.
 
   The CTA always links to the server-generated products path — a
   merchant-controlled href here would be a stored-XSS sink, so no URL
@@ -36,6 +36,12 @@ defmodule Emakola.Themes.Chale.Sections.Hero do
 
   @impl true
   def render(assigns) do
+    # Photo-FALLBACK, not photo-optional: the hero used to show an image only
+    # if the merchant had set one in the editor — which no new store has — so
+    # every real storefront opened on an empty band. It now falls back to the
+    # shop's own first product photograph.
+    hero_product = assigns |> Map.get(:products, []) |> List.first()
+
     custom_headline = present(assigns.settings["headline"])
 
     assigns =
@@ -47,7 +53,12 @@ defmodule Emakola.Themes.Chale.Sections.Hero do
         present(assigns.settings["subheadline"]) || present(assigns.store.description)
       )
       |> assign(:cta_label, present(assigns.settings["cta_label"]) || "Shop the drop")
-      |> assign(:image, valid_image(assigns.settings["image_url"]))
+      |> assign(:hero_product, hero_product)
+      |> assign(
+        :image,
+        valid_image(assigns.settings["image_url"]) ||
+          (hero_product && Emakola.Themes.Chale.Shared.first_image(hero_product))
+      )
 
     ~H"""
     <section class="border-b border-[#E3E0DA] bg-[#F7F5F1]" aria-labelledby="chale-hero-heading">
@@ -97,18 +108,32 @@ defmodule Emakola.Themes.Chale.Sections.Hero do
             </span>
           </a>
         </div>
-        <div
-          :if={@image}
-          class="overflow-hidden rounded-xl border border-[#E3E0DA] bg-white shadow-md"
-        >
-          <.optimized_image
-            src={@image}
-            alt={"#{@store.name} storefront"}
-            priority={:high}
-            width={640}
-            height={640}
-            class="aspect-square w-full object-cover"
-          />
+        <div :if={@image} class="relative">
+          <div class="overflow-hidden rounded-xl border border-[#E3E0DA] bg-white shadow-md">
+            <.optimized_image
+              src={@image}
+              alt={(@hero_product && @hero_product.title) || "#{@store.name} storefront"}
+              priority={:high}
+              width={640}
+              height={640}
+              class="aspect-square w-full object-cover"
+            />
+          </div>
+          <div
+            :if={@hero_product}
+            class="absolute -bottom-4 left-5 flex items-center gap-3 rounded-xl border border-[#E3E0DA] bg-white px-4 py-2.5 shadow-sm"
+          >
+            <p class="max-w-[9rem] truncate text-xs font-bold uppercase tracking-wider text-[#101114]">
+              {@hero_product.title}
+            </p>
+            <p class="text-xs font-bold tabular-nums text-store-accent">
+              {EmakolaWeb.Helpers.Currency.format_price_range(
+                @hero_product.min_price,
+                @hero_product.max_price,
+                @store.currency
+              )}
+            </p>
+          </div>
         </div>
       </div>
       <%!-- The frieze: the poster's bottom edge. It used to be a saturated

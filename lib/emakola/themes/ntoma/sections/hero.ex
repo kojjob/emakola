@@ -40,6 +40,12 @@ defmodule Emakola.Themes.Ntoma.Sections.Hero do
 
   @impl true
   def render(assigns) do
+    # Photo-FALLBACK, not photo-optional: the hero used to show an image only
+    # if the merchant had set one in the editor — which no new store has — so
+    # every real storefront opened on an empty band. It now falls back to the
+    # shop's own first product photograph.
+    hero_product = assigns |> Map.get(:products, []) |> List.first()
+
     custom_headline = present(assigns.settings["headline"])
 
     assigns =
@@ -51,7 +57,12 @@ defmodule Emakola.Themes.Ntoma.Sections.Hero do
         present(assigns.settings["subheadline"]) || present(assigns.store.description)
       )
       |> assign(:cta_label, present(assigns.settings["cta_label"]) || "Shop the collection")
-      |> assign(:image, valid_image(assigns.settings["image_url"]))
+      |> assign(:hero_product, hero_product)
+      |> assign(
+        :image,
+        valid_image(assigns.settings["image_url"]) ||
+          (hero_product && Emakola.Themes.Ntoma.Shared.first_image(hero_product))
+      )
 
     ~H"""
     <section
@@ -101,15 +112,30 @@ defmodule Emakola.Themes.Ntoma.Sections.Hero do
               </svg>
             </a>
           </div>
-          <div :if={@image} class="lg:col-span-5">
+          <div :if={@image} class="relative lg:col-span-5">
             <.optimized_image
               src={@image}
-              alt={"#{@store.name} collection"}
+              alt={(@hero_product && @hero_product.title) || "#{@store.name} collection"}
               priority={:high}
               width={560}
               height={700}
               class="aspect-[4/5] w-full border border-[#E6D5B8] object-cover"
             />
+            <div
+              :if={@hero_product}
+              class="absolute -bottom-4 -left-3 max-w-[14rem] border border-[#E6D5B8] bg-[#FAF4EA] px-4 py-3 shadow-lg"
+            >
+              <p class="truncate text-sm text-[#2B1708] [font-family:var(--dt-heading-font,Fraunces,Georgia,serif)]">
+                {@hero_product.title}
+              </p>
+              <p class="text-xs font-semibold tabular-nums text-store-accent">
+                {EmakolaWeb.Helpers.Currency.format_price_range(
+                  @hero_product.min_price,
+                  @hero_product.max_price,
+                  @store.currency
+                )}
+              </p>
+            </div>
           </div>
         </div>
       </div>

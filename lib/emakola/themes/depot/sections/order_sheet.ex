@@ -2,13 +2,17 @@ defmodule Emakola.Themes.Depot.Sections.OrderSheet do
   @moduledoc """
   Depot's signature — the quick-order sheet.
 
-  A dense, scannable table: item, SKU, stock on hand, price, add. A
-  returning buyer fills an order without leaving the screen. Every column
-  is a field `Emakola.Catalog` really exposes; single-variant rows
-  quick-add one unit via the home page's `add_to_cart` handler, and
-  multi-variant rows route to the product page instead of blind-adding an
-  arbitrary variant. Zero images by design — the table is fast on metered
-  data because there is nothing to load but text.
+  A dense, scannable table: line number, thumbnail, item, SKU, stock on
+  hand, price, add. A returning buyer fills an order without leaving the
+  screen. Every column is a field `Emakola.Catalog` really exposes;
+  single-variant rows quick-add one unit via the home page's
+  `add_to_cart` handler, and multi-variant rows route to the product page
+  instead of blind-adding an arbitrary variant.
+
+  The lines are numbered because they are a numbered sequence on a sheet —
+  the structure is the manifest's own, not decoration. Each carries one
+  small thumbnail: a trade buyer identifies a carton faster by sight than
+  by SKU string, which is worth the single request per row.
 
   A store with zero products renders an intentional stocking-up state:
   a brand-new depot must never look broken to its first visitor.
@@ -36,7 +40,7 @@ defmodule Emakola.Themes.Depot.Sections.OrderSheet do
     ~H"""
     <section
       :if={@products != []}
-      class="bg-zinc-50 px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
+      class="bg-[#FAF9F7] px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
       aria-labelledby="depot-order-sheet-heading"
     >
       <div class="mx-auto max-w-[1120px]">
@@ -51,31 +55,40 @@ defmodule Emakola.Themes.Depot.Sections.OrderSheet do
             Add puts one unit in your order — open an item for quantities and options.
           </p>
         </div>
-        <div class="overflow-x-auto border-2 border-zinc-900 bg-white">
+        <div class="overflow-x-auto border border-[#E7E5E1] bg-white shadow-sm">
           <table class="w-full text-left">
+            <%!-- The header is the manifest's masthead bar: ink, mono, set in
+            small caps. It anchors the sheet the way a printed docket does. --%>
             <thead>
-              <tr class="border-b-2 border-zinc-900">
+              <tr class="bg-[#18181B] text-white">
                 <th
                   scope="col"
-                  class="py-2.5 pl-4 pr-3 text-left font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-zinc-500 sm:pl-5"
+                  class="w-10 py-2.5 pl-5 pr-0 text-left font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-white/50 sm:pl-6"
+                >
+                  <span aria-hidden="true">#</span>
+                  <span class="sr-only">Line</span>
+                </th>
+                <th
+                  scope="col"
+                  class="py-2.5 pl-3 pr-3 text-left font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-white/70 sm:pl-4"
                 >
                   Item
                 </th>
                 <th
                   scope="col"
-                  class="hidden px-3 py-2.5 text-left font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-zinc-500 sm:table-cell"
+                  class="hidden px-3 py-2.5 text-left font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-white/70 sm:table-cell"
                 >
                   SKU
                 </th>
                 <th
                   scope="col"
-                  class="hidden px-3 py-2.5 text-left font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-zinc-500 md:table-cell"
+                  class="hidden px-3 py-2.5 text-left font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-white/70 md:table-cell"
                 >
                   Stock
                 </th>
                 <th
                   scope="col"
-                  class="px-3 py-2.5 text-right font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-zinc-500"
+                  class="px-3 py-2.5 text-right font-mono text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-white/70"
                 >
                   Price
                 </th>
@@ -85,7 +98,12 @@ defmodule Emakola.Themes.Depot.Sections.OrderSheet do
               </tr>
             </thead>
             <tbody>
-              <Shared.order_row :for={product <- @products} product={product} store={@store} />
+              <Shared.order_row
+                :for={{product, index} <- Enum.with_index(@products)}
+                product={product}
+                store={@store}
+                index={index}
+              />
             </tbody>
           </table>
         </div>
@@ -115,11 +133,11 @@ defmodule Emakola.Themes.Depot.Sections.OrderSheet do
     </section>
     <section
       :if={@products == []}
-      class="bg-zinc-50 px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
+      class="bg-[#FAF9F7] px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
       aria-labelledby="depot-order-sheet-empty-heading"
     >
-      <div class="mx-auto max-w-[1120px] border-2 border-dashed border-zinc-300 bg-white px-6 py-14 text-center sm:py-16">
-        <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center border-2 border-zinc-200">
+      <div class="mx-auto max-w-[1120px] border border-dashed border-[#D8D4CC] bg-white px-6 py-14 text-center sm:py-16">
+        <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center border border-[#E7E5E1]">
           <svg
             class="h-6 w-6 text-zinc-400"
             fill="none"

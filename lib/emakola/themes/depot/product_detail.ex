@@ -23,7 +23,7 @@ defmodule Emakola.Themes.Depot.ProductDetail do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-zinc-50">
+    <div class="min-h-screen bg-[#FAF9F7]">
       <Shared.depot_nav store={@store} categories={@categories} cart_count={@cart_count} />
 
       <nav
@@ -57,7 +57,7 @@ defmodule Emakola.Themes.Depot.ProductDetail do
         <div class="lg:grid lg:grid-cols-2 lg:gap-10">
           <%!-- Image column — placeholder-first, finished without a photo --%>
           <div class="lg:sticky lg:top-24 lg:self-start">
-            <div class="relative aspect-square overflow-hidden border-2 border-zinc-900 bg-white">
+            <div class="relative aspect-square overflow-hidden border border-[#E7E5E1] shadow-sm bg-white">
               <div
                 class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-200"
                 aria-hidden="true"
@@ -87,7 +87,7 @@ defmodule Emakola.Themes.Depot.ProductDetail do
                   "aspect-square cursor-pointer overflow-hidden border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 motion-safe:transition-colors",
                   if(idx == @current_image_index,
                     do: "border-zinc-900",
-                    else: "border-zinc-200 opacity-70 hover:border-zinc-400 hover:opacity-100"
+                    else: "border-[#E7E5E1] opacity-70 hover:border-zinc-400 hover:opacity-100"
                   )
                 ]}
               >
@@ -203,7 +203,7 @@ defmodule Emakola.Themes.Depot.ProductDetail do
               <div class="flex items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
                   <span class="text-sm font-semibold text-zinc-900">Quantity</span>
-                  <div class="flex items-center border-2 border-zinc-900 bg-white">
+                  <div class="flex items-center border border-[#E7E5E1] shadow-sm bg-white">
                     <button
                       phx-click="decrement_quantity"
                       disabled={@quantity <= 1}
@@ -310,7 +310,7 @@ defmodule Emakola.Themes.Depot.ProductDetail do
               <p class="text-sm leading-relaxed text-zinc-700">{@product.description}</p>
             </section>
 
-            <p class="mt-7 border-t border-zinc-200 pt-4 text-xs text-zinc-500">
+            <p class="mt-7 border-t border-[#E7E5E1] pt-4 text-xs text-zinc-500">
               Delivery &amp; returns —
               <a
                 href={store_path(@store.slug, "/policies#shipping")}
@@ -334,11 +334,11 @@ defmodule Emakola.Themes.Depot.ProductDetail do
           >
             Also stocked
           </h2>
-          <ul class="divide-y divide-zinc-200 border-2 border-zinc-900 bg-white">
+          <ul class="divide-y divide-zinc-200 border border-[#E7E5E1] shadow-sm bg-white">
             <li :for={related <- @related_products}>
               <a
                 href={store_path(@store.slug, "/products/#{related.slug}")}
-                class="flex items-center justify-between gap-4 px-4 py-3 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900 motion-safe:transition-colors sm:px-5"
+                class="flex items-center justify-between gap-4 px-4 py-3 hover:bg-[#FAF9F7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-900 motion-safe:transition-colors sm:px-5"
               >
                 <span class="min-w-0 truncate text-sm font-semibold text-zinc-900">
                   {related.title}
