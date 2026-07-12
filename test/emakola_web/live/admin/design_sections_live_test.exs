@@ -540,6 +540,47 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
       assert Process.alive?(view.pid)
     end
 
+    # The remaining shape from the same raw-write source: an entry that IS a
+    # map but whose "type" is missing or non-binary. Sections.resolve/1 only
+    # has binary heads, so an unguarded call raises FunctionClauseError — a
+    # hard mount crash that locks the merchant out of the editor entirely.
+    for {label, entry} <- [
+          {"a missing \"type\"", %{"id" => "ghost", "enabled" => true}},
+          {"a non-binary \"type\"", %{"id" => "ghost", "type" => 7, "enabled" => true}}
+        ] do
+      test "an entry with #{label} renders as missing instead of crashing the editor",
+           %{conn: conn, store: store} do
+        store
+        |> Ash.Changeset.for_update(:update, %{
+          theme_config: %{
+            "theme" => "starter",
+            "home_sections" => %{
+              "v" => 1,
+              "starter" => [
+                unquote(Macro.escape(entry)),
+                %{
+                  "id" => "starter/hero",
+                  "type" => "starter/hero",
+                  "enabled" => true,
+                  "settings" => %{},
+                  "style" => %{}
+                }
+              ]
+            }
+          }
+        })
+        |> Ash.update!(authorize?: false)
+
+        {:ok, view, html} = live(conn, "/admin/design/sections")
+
+        assert Process.alive?(view.pid)
+        # The good entry still renders, and the junk one degrades to the
+        # existing "Missing section" row rather than taking the page down.
+        assert rows_only(html) =~ "Hero"
+        assert rows_only(html) =~ "Missing section"
+      end
+    end
+
     test "the add-section picker groups theme sections and content blocks", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/admin/design/sections")
 

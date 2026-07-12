@@ -41,6 +41,13 @@ defmodule Emakola.Themes.Sections do
     end
   end
 
+  # Layouts written raw (migration, seed, direct Ash update) can hold entries
+  # whose "type" is missing or non-binary. Fail closed here rather than at each
+  # call site: callers already handle :error by degrading to a "Missing section"
+  # row, and a guard that has to be remembered at every call site eventually
+  # won't be.
+  def resolve(_non_binary), do: :error
+
   defp theme_section_index do
     for theme <- sectionized_themes(),
         section <- theme.sections(),
