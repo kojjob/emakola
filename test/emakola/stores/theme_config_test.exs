@@ -47,7 +47,7 @@ defmodule Emakola.Stores.ThemeConfigTest do
 
     test "every offerable theme validates — the allowlist cannot drift" do
       offerable = Emakola.Themes.ThemeResolver.offerable_theme_ids()
-      assert offerable != [], "no offerable themes — this test would be vacuous"
+      refute Enum.empty?(offerable), "no offerable themes — this test would be vacuous"
 
       # Spotlight is the theme the old hardcoded list silently dropped.
       assert "spotlight" in offerable
@@ -60,7 +60,7 @@ defmodule Emakola.Stores.ThemeConfigTest do
 
     test "culled themes are rejected" do
       culled = Emakola.Themes.ThemeResolver.culled_theme_ids()
-      assert culled != [], "no culled themes — this test would be vacuous"
+      refute Enum.empty?(culled), "no culled themes — this test would be vacuous"
 
       for theme <- culled do
         assert {:error, msg} = ThemeConfig.validate(%{"theme" => theme})

@@ -59,8 +59,10 @@ defmodule EmakolaWeb.OnboardingThemePickerTest do
       offerable = ThemeResolver.offerable_theme_ids()
       culled = ThemeResolver.culled_theme_ids()
 
-      assert offerable != [], "no offerable themes — this test would be vacuous"
-      assert culled != [], "no culled themes — the culled half of this test would be vacuous"
+      refute Enum.empty?(offerable), "no offerable themes — this test would be vacuous"
+
+      refute Enum.empty?(culled),
+             "no culled themes — the culled half of this test would be vacuous"
 
       {view, _merchant} = reach_theme_step(conn, "Coverage Shop")
       html = render(view)
@@ -198,6 +200,59 @@ defmodule EmakolaWeb.OnboardingThemePickerTest do
       assert has_element?(view, ~s{button[phx-value-theme-id="spotlight"][aria-pressed="true"]})
       refute has_element?(view, ~s{button[phx-value-theme-id="market"][aria-pressed="true"]})
       assert length(String.split(render(view), ~s(aria-pressed="true"))) - 1 == 1
+    end
+  end
+
+  describe "preview font fidelity" do
+    # The whole point of the previews: the merchant sees the real theme.
+    # root.html.heex only loads the admin fonts (Inter, Manrope, JetBrains
+    # Mono), so unless the onboarding page links each theme's own webfonts,
+    # every serif/display preview silently renders in its Georgia fallback.
+
+    test "every offered theme's webfont stylesheets are linked on the page", %{conn: conn} do
+      {view, _merchant} = reach_theme_step(conn, "Font Shop")
+      html = render(view)
+
+      urls =
+        OnboardingLive.offered_theme_ids()
+        |> Enum.flat_map(&ThemeResolver.theme_module(&1).fonts())
+        |> Enum.uniq()
+
+      refute Enum.empty?(urls), "no offered theme declares webfonts — this test would be vacuous"
+
+      for url <- urls do
+        assert url =~ "display=swap",
+               "theme font URL without display=swap would block text rendering: #{url}"
+
+        assert html =~ ~s(href="#{Plug.HTML.html_escape(url)}") or html =~ ~s(href="#{url}"),
+               "font stylesheet not linked on the onboarding page: #{url}"
+      end
+    end
+
+    test "each webfont preview carries its theme's real heading face", %{conn: conn} do
+      {view, _merchant} = reach_theme_step(conn, "Serif Shop")
+
+      webfont_themes =
+        for id <- OnboardingLive.offered_theme_ids(),
+            heading = ThemeResolver.theme_module(id).defaults().fonts.heading,
+            heading != "system-ui",
+            do: {id, heading}
+
+      headings = Enum.map(webfont_themes, &elem(&1, 1))
+
+      # Guard against vacuousness: the display/serif faces the fallback
+      # stacks were hiding must be among the checked set.
+      assert "Playfair Display" in headings
+      assert "Cormorant Garamond" in headings
+
+      for {id, heading} <- webfont_themes do
+        card = view |> element(~s{button[phx-value-theme-id="#{id}"]}) |> render()
+
+        assert card =~ "font-family: '#{heading}'" or
+                 card =~ "font-family: &#39;#{heading}&#39;",
+               "theme #{inspect(id)}'s preview does not set its heading font " <>
+                 "#{inspect(heading)} on the shop sign"
+      end
     end
   end
 

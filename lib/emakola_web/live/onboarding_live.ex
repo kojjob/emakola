@@ -64,6 +64,7 @@ defmodule EmakolaWeb.OnboardingLive do
          currency: "GHS",
          currencies: @currencies,
          themes: build_themes(),
+         preview_font_urls: preview_font_urls(),
          selected_theme: "market",
          product_name: "",
          product_price: "",
@@ -76,6 +77,15 @@ defmodule EmakolaWeb.OnboardingLive do
   def render(assigns) do
     ~H"""
     <div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <%!-- Webfonts for the theme previews. root.html.heex only loads the
+           admin fonts (Inter, Manrope, JetBrains Mono), so without these
+           links every serif/display preview silently renders in its
+           Georgia/system fallback — the merchant would not be seeing the
+           theme they are choosing. Loaded here (not globally) so admin
+           pages don't pay for fonts they never render; browsers honour
+           <link rel="stylesheet"> in the body. Rendered from step 1 so
+           the faces are warm before the picker appears. --%>
+      <link :for={url <- @preview_font_urls} rel="stylesheet" href={url} />
       <div class="w-full max-w-lg space-y-8">
         <%!-- Step indicator --%>
         <div class="text-center">
@@ -847,6 +857,16 @@ defmodule EmakolaWeb.OnboardingLive do
         font_stack: heading_font_stack(defaults.fonts.heading)
       }
     end
+  end
+
+  # Every Google Fonts stylesheet the offered previews need, deduplicated
+  # across themes — the same per-theme fonts/0 URL lists the storefront
+  # layout links (all carry display=swap). Derived from the offered set,
+  # so a newly offered theme's preview loads its real faces automatically.
+  defp preview_font_urls do
+    offered_theme_ids()
+    |> Enum.flat_map(&Emakola.Themes.ThemeResolver.theme_module(&1).fonts())
+    |> Enum.uniq()
   end
 
   # Serif display faces fall back to a serif so the mock still reads

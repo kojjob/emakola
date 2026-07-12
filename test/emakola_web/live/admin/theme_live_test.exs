@@ -57,8 +57,10 @@ defmodule EmakolaWeb.Admin.ThemeLiveTest do
       offerable = Emakola.Themes.ThemeResolver.offerable_theme_ids()
       culled = Emakola.Themes.ThemeResolver.culled_theme_ids()
 
-      assert offerable != [], "no offerable themes — this test would be vacuous"
-      assert culled != [], "no culled themes — the culled half of this test would be vacuous"
+      refute Enum.empty?(offerable), "no offerable themes — this test would be vacuous"
+
+      refute Enum.empty?(culled),
+             "no culled themes — the culled half of this test would be vacuous"
 
       {:ok, view, _html} = live(conn, ~p"/admin/theme")
 
