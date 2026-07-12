@@ -43,10 +43,12 @@ defmodule Emakola.Themes.Vibrant.ProductDetail do
   attr :related_products, :list, default: []
   attr :categories, :list, default: []
   attr :theme, :map, required: true
+  attr :cart_count, :integer, default: 0
 
   def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-[#FFFBEB]">
+      <Shared.vibrant_nav store={@store} cart_count={@cart_count} />
       <div class="max-w-[1280px] mx-auto lg:grid lg:grid-cols-2 lg:gap-10 lg:px-8 lg:py-8">
         <%!-- Image Gallery (rounded corners, warm bg) --%>
         <section

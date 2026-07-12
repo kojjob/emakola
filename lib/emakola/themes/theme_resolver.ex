@@ -115,6 +115,15 @@ defmodule Emakola.Themes.ThemeResolver do
     Map.get(@theme_modules, theme_id, Emakola.Themes.Market)
   end
 
+  @doc """
+  Every registered theme ID.
+
+  The storefront nav audit iterates this, so a theme added to `@theme_modules`
+  is covered without anyone remembering to list it in the test.
+  """
+  @spec theme_ids() :: [String.t()]
+  def theme_ids, do: Map.keys(@theme_modules)
+
   # Deep-merges an overrides map (string keys) into a defaults map (atom keys).
   # Converts string keys to atoms in the process.
   defp deep_merge_atomize(defaults, overrides) when is_map(defaults) and is_map(overrides) do
