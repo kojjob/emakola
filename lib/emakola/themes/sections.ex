@@ -8,7 +8,19 @@ defmodule Emakola.Themes.Sections do
   # Fan-out appends here, one module per decomposed theme.
   @sectionized_themes [Emakola.Themes.Starter, Emakola.Themes.Atelier]
 
-  def sectionized_themes, do: @sectionized_themes
+  @doc """
+  All sectionized theme modules — the compile-time list plus the
+  `extra_sectionized_themes` test seam, so this and `resolve/1` share one
+  source of truth.
+  """
+  def sectionized_themes, do: @sectionized_themes ++ extra_sectionized_themes()
+
+  @doc """
+  Whether a theme module supports section editing (implements `sections/0`
+  and is registered here). Gates the admin section editor — every other
+  theme module has no `sections/0` and would crash callers.
+  """
+  def sectionized?(theme_module), do: theme_module in sectionized_themes()
 
   def resolve("block/" <> block_type) do
     case Emakola.PageBuilder.block_module_for(block_type) do
@@ -30,7 +42,7 @@ defmodule Emakola.Themes.Sections do
   end
 
   defp theme_section_index do
-    for theme <- @sectionized_themes ++ extra_sectionized_themes(),
+    for theme <- sectionized_themes(),
         section <- theme.sections(),
         into: %{} do
       {section.key(), section}

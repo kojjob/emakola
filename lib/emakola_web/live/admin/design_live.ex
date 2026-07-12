@@ -21,6 +21,14 @@ defmodule EmakolaWeb.Admin.DesignLive do
       store ->
         resolved = ThemeResolver.resolve(store.theme_config || %{})
 
+        # Gates the "Homepage sections" hand-off card — the section editor
+        # redirects away for themes without sections/0 support, so don't
+        # render a link that goes nowhere.
+        sections_editable? =
+          resolved.theme_id
+          |> ThemeResolver.theme_module()
+          |> Emakola.Themes.Sections.sectionized?()
+
         {:ok,
          socket
          |> assign(
@@ -28,6 +36,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
            active_nav: :design,
            store: store,
            design_tokens: resolved.design_tokens,
+           sections_editable?: sections_editable?,
            preview_key: System.unique_integer([:positive]),
            saving: false,
            saved: false
@@ -687,8 +696,9 @@ defmodule EmakolaWeb.Admin.DesignLive do
             </div>
           </div>
 
-          <%!-- Hand-off CTA → Section editor --%>
+          <%!-- Hand-off CTA → Section editor (sectionized themes only) --%>
           <.link
+            :if={@sections_editable?}
             navigate="/admin/design/sections"
             class="block bg-gradient-to-br from-sky-50 to-sky-100 hover:from-sky-100 hover:to-sky-200 rounded-2xl p-4 transition-colors group"
           >

@@ -38,39 +38,70 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
         resolved = ThemeResolver.resolve(store.theme_config || %{}, store)
         theme_module = ThemeResolver.theme_module(resolved.theme_id)
 
-        # Preview storefront data (products/categories/delivery zones) is
-        # only fetched on the connected mount — never the disconnected one
-        # — so this admin-only page never doubles up on DB reads the way
-        # the public storefront's SEO-driven mount intentionally does.
-        {products, categories, delivery_zones} =
-          if connected?(socket) do
-            {load_preview_products(store), load_preview_categories(store),
-             load_preview_delivery_zones(store)}
-          else
-            {[], [], []}
-          end
-
-        {:ok,
-         assign(socket,
-           page_title: "Sections",
-           active_nav: :design,
-           store: store,
-           theme_module: theme_module,
-           theme: resolved,
-           draft: HomeSections.effective_layout(store, theme_module),
-           dirty: false,
-           products: products,
-           categories: categories,
-           delivery_zones: delivery_zones
-         )}
+        if Sections.sectionized?(theme_module) do
+          mount_editor(socket, store, resolved, theme_module)
+        else
+          # Only sectionized themes implement sections/0 — for every other
+          # theme (including the platform default) proceeding would crash
+          # at effective_layout and in the add-section picker.
+          {:ok,
+           socket
+           |> assign(page_title: "Sections", active_nav: :design)
+           |> put_flash(
+             :error,
+             "The #{resolved.theme_name} theme doesn't support section editing yet."
+           )
+           |> redirect(to: "/admin/design")}
+        end
     end
+  end
+
+  defp mount_editor(socket, store, resolved, theme_module) do
+    # Preview storefront data (products/categories/delivery zones) is
+    # only fetched on the connected mount — never the disconnected one
+    # — so this admin-only page never doubles up on DB reads the way
+    # the public storefront's SEO-driven mount intentionally does.
+    {products, categories, delivery_zones} =
+      if connected?(socket) do
+        {load_preview_products(store), load_preview_categories(store),
+         load_preview_delivery_zones(store)}
+      else
+        {[], [], []}
+      end
+
+    # Layouts written raw (migration, direct Ash update) can hold non-map
+    # junk; the storefront's SectionRenderer skips those entries, and the
+    # editor must too — rows/1 and every draft-walking handler assume maps.
+    draft =
+      store
+      |> HomeSections.effective_layout(theme_module)
+      |> Enum.filter(&is_map/1)
+
+    {:ok,
+     assign(socket,
+       page_title: "Sections",
+       active_nav: :design,
+       store: store,
+       theme_module: theme_module,
+       theme: resolved,
+       draft: draft,
+       dirty: false,
+       products: products,
+       categories: categories,
+       delivery_zones: delivery_zones
+     )}
   end
 
   @impl true
   def handle_event("toggle_section", %{"id" => id}, socket) do
+    # Map.put rather than Map.update! — a layout written raw (migration,
+    # direct Ash update) can lack the "enabled" key, and update! would
+    # raise KeyError, crashing the view and destroying the draft.
     draft =
       Enum.map(socket.assigns.draft, fn entry ->
-        if entry["id"] == id, do: Map.update!(entry, "enabled", &(!&1)), else: entry
+        if entry["id"] == id,
+          do: Map.put(entry, "enabled", entry["enabled"] != true),
+          else: entry
       end)
 
     {:noreply, assign(socket, draft: draft, dirty: true)}
@@ -179,6 +210,15 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
   @impl true
   def handle_event("update_style", %{"id" => id, "style" => style}, socket)
       when is_map(style) do
+    # Only the style form's own keys, and only binary values — the form
+    # re-renders the draft raw (value={@row.style["bg"] || "#ffffff"}; a
+    # map is truthy, so `||` doesn't save it) and Phoenix.HTML.Safe has no
+    # Map impl. Same close-by-exclusion as coerce_settings/coerce_value.
+    style =
+      style
+      |> Map.take(~w(bg text padding))
+      |> Map.filter(fn {_key, value} -> is_binary(value) end)
+
     draft = update_entry(socket.assigns.draft, id, &Map.put(&1, "style", style))
     {:noreply, assign(socket, draft: draft, dirty: true)}
   end
@@ -186,13 +226,16 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
   # Only a resolvable type is appended — an unresolvable one would just
   # render as a "Missing section" row (rows/1 already handles that
   # gracefully), so rejecting it here avoids adding dead weight to the
-  # draft from a tampered payload.
+  # draft from a tampered payload. The is_binary guard mirrors the
+  # storefront renderer's: Sections.resolve/1 only accepts binaries, so a
+  # tampered non-binary type falls through to the logged catch-all below
+  # instead of crashing the view.
   @impl true
-  def handle_event("add_section", %{"type" => type}, socket) do
+  def handle_event("add_section", %{"type" => type}, socket) when is_binary(type) do
     case Sections.resolve(type) do
       {:ok, _} ->
         entry = %{
-          "id" => "#{type}-#{System.unique_integer([:positive])}",
+          "id" => mint_section_id(type, socket.assigns.draft),
           "type" => type,
           "enabled" => true,
           "settings" => %{},
@@ -245,6 +288,27 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
     else
       "Sections published — some values were dropped by safety checks " <>
         "(an unsafe link or color, most likely). Review the affected section below."
+    end
+  end
+
+  # System.unique_integer/1 is unique only within one VM run: a draft
+  # persisted before a deploy/restart can already contain an id the fresh
+  # VM's counter mints again, and reorder_draft/swap_adjacent/update_entry
+  # all rely on within-draft id uniqueness (a duplicate collapses both
+  # sections). Regenerate while the candidate collides so the invariant
+  # holds by construction.
+  @doc false
+  # Public with an injectable generator so the collision-skip loop is
+  # deterministically testable — a real collision can't be forced inside
+  # one VM run. Mirrors HomeSections.sanitize_entry/2's
+  # public-for-testability pattern.
+  def mint_section_id(type, draft, gen \\ fn -> System.unique_integer([:positive]) end) do
+    id = "#{type}-#{gen.()}"
+
+    if Enum.any?(draft, &(&1["id"] == id)) do
+      mint_section_id(type, draft, gen)
+    else
+      id
     end
   end
 

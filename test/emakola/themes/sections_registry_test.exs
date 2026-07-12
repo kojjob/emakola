@@ -46,4 +46,38 @@ defmodule Emakola.Themes.SectionsRegistryTest do
 
     assert keys == Enum.uniq(keys)
   end
+
+  describe "sectionized?/1" do
+    test "is true for every registered sectionized theme" do
+      assert Sections.sectionized?(Emakola.Themes.Starter)
+      assert Sections.sectionized?(Emakola.Themes.Atelier)
+    end
+
+    test "is false for a theme without sections support" do
+      refute Sections.sectionized?(Emakola.Themes.Market)
+    end
+  end
+end
+
+defmodule Emakola.Themes.SectionsRegistrySeamTest do
+  # Mutates the `:emakola, :extra_sectionized_themes` application env (the
+  # test seam resolve/1 consults), so it must not run async — a separate
+  # module (not a describe block) so the registry tests above keep running
+  # async: true.
+  use ExUnit.Case, async: false
+
+  alias Emakola.Themes.Sections
+
+  defmodule SeamTheme do
+    def id, do: "seam"
+    def sections, do: []
+  end
+
+  test "sectionized_themes/0 and sectionized?/1 include the extra_sectionized_themes seam" do
+    Application.put_env(:emakola, :extra_sectionized_themes, [SeamTheme])
+    on_exit(fn -> Application.delete_env(:emakola, :extra_sectionized_themes) end)
+
+    assert SeamTheme in Sections.sectionized_themes()
+    assert Sections.sectionized?(SeamTheme)
+  end
 end

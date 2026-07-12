@@ -47,6 +47,60 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
     end
   end
 
+  describe "with a non-sectionized theme store" do
+    setup %{conn: conn} do
+      {merchant, store} = create_merchant_with_store!()
+
+      # Market is the platform default theme and — like every theme except
+      # Starter/Atelier — implements no sections/0.
+      store =
+        store
+        |> Ash.Changeset.for_update(:update, %{theme_config: %{"theme" => "market"}})
+        |> Ash.update!(authorize?: false)
+
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
+
+      conn =
+        conn
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:user_token, token)
+
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "redirects to the design studio with a flash instead of crashing", %{conn: conn} do
+      assert {:error, {:redirect, %{to: "/admin/design", flash: flash}}} =
+               live(conn, "/admin/design/sections")
+
+      assert flash["error"] =~ "section editing"
+    end
+  end
+
+  # System.unique_integer/1 is unique only within one VM run: a draft
+  # persisted before a deploy/restart can already contain an id the fresh
+  # VM's counter mints again, and reorder_draft/swap_adjacent/update_entry
+  # all rely on within-draft id uniqueness (a duplicate collapses both
+  # sections). The generator is injected because a real collision can't be
+  # forced deterministically inside a single VM run.
+  describe "mint_section_id/3" do
+    test "regenerates when the minted id already exists in the draft" do
+      draft = [%{"id" => "block/text_section-5"}]
+      counter = :counters.new(1, [])
+      :counters.put(counter, 1, 4)
+
+      gen = fn ->
+        :counters.add(counter, 1, 1)
+        :counters.get(counter, 1)
+      end
+
+      assert EmakolaWeb.Admin.DesignSectionsLive.mint_section_id(
+               "block/text_section",
+               draft,
+               gen
+             ) == "block/text_section-6"
+    end
+  end
+
   describe "with a starter-theme store" do
     setup %{conn: conn} do
       {merchant, store} = create_merchant_with_store!()
@@ -63,8 +117,14 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
 
     test "lists the active theme's sections in order", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/admin/design/sections")
-      assert html =~ "Hero"
-      assert String.match?(html, ~r/Hero.*Category Pills.*Featured Products.*Trust.*Newsletter/s)
+      rows_html = rows_only(html)
+
+      assert rows_html =~ "Hero"
+
+      assert String.match?(
+               rows_html,
+               ~r/Hero.*Category Pills.*Featured Products.*Trust.*Newsletter/s
+             )
     end
 
     test "toggle + publish persists a disabled section", %{
@@ -103,7 +163,10 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
 
       html = render_click(view, "move_section", %{"id" => "starter/hero", "dir" => "sideways"})
 
-      assert String.match?(html, ~r/Hero.*Category Pills.*Featured Products.*Trust.*Newsletter/s)
+      assert String.match?(
+               rows_only(html),
+               ~r/Hero.*Category Pills.*Featured Products.*Trust.*Newsletter/s
+             )
     end
 
     test "reorder event applies a full id order", %{conn: conn} do
@@ -362,7 +425,119 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
       {:ok, view, _} = live(conn, "/admin/design/sections")
 
       html = render_click(view, "remove_section", %{"id" => "starter/hero"})
-      assert html =~ "Hero"
+
+      # Scoped via rows_only/1 — the add-section picker below the rows always
+      # renders a "Hero" button, so matching the full page would pass even if
+      # the handler HAD deleted the hero row. The row's own toggle control
+      # proves the row itself survived.
+      assert rows_only(html) =~ ~s(phx-click="toggle_section" phx-value-id="starter/hero")
+    end
+
+    # The style form renders the draft's style values raw
+    # (value={@row.style["bg"] || "#ffffff"} — a map is TRUTHY, so `||` does
+    # not save it), and Phoenix.HTML.Safe has no Map impl: storing a crafted
+    # non-binary style value crashes the view's own re-render and destroys
+    # the unpublished draft. Same class as the settings sink above.
+    test "a map value in a style field is dropped instead of crashing the view", %{conn: conn} do
+      {:ok, view, _} = live(conn, "/admin/design/sections")
+
+      html =
+        render_change(view, "update_style", %{
+          "id" => "starter/hero",
+          "style" => %{"bg" => %{"a" => "1"}, "text" => "#112233"}
+        })
+
+      assert Process.alive?(view.pid)
+      # The binary value in the same payload is kept — the handler filters
+      # values, it doesn't drop the whole event.
+      assert html =~ ~s(value="#112233")
+    end
+
+    # Sections.resolve/1's heads only accept binaries — the storefront's
+    # SectionRenderer guards this exact call (`with true <- is_binary(type)`)
+    # but the editor passed the client payload straight through.
+    test "add_section with a non-binary type falls through to the logged catch-all instead of crashing",
+         %{conn: conn} do
+      {:ok, view, _} = live(conn, "/admin/design/sections")
+
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          render_click(view, "add_section", %{"type" => 5})
+        end)
+
+      assert Process.alive?(view.pid)
+      assert log =~ "unhandled event"
+      assert rows_only(render(view)) =~ "Hero"
+    end
+
+    # A layout written raw (migration, direct Ash update) rather than through
+    # put_layout can lack the "enabled" key — Map.update! raises KeyError on
+    # it. The storefront renderer tolerates such entries; the editor must too.
+    test "toggling an entry saved without an enabled key enables it instead of crashing",
+         %{conn: conn, store: store} do
+      store
+      |> Ash.Changeset.for_update(:update, %{
+        theme_config: %{
+          "theme" => "starter",
+          "home_sections" => %{
+            "v" => 1,
+            "starter" => [%{"id" => "starter/hero", "type" => "starter/hero"}]
+          }
+        }
+      })
+      |> Ash.update!(authorize?: false)
+
+      {:ok, view, html} = live(conn, "/admin/design/sections")
+
+      # Without the key the row renders as hidden...
+      assert rows_only(html) =~ "Hidden"
+
+      html =
+        view
+        |> element(~s([phx-click="toggle_section"][phx-value-id="starter/hero"]))
+        |> render_click()
+
+      assert Process.alive?(view.pid)
+      # ...and toggling enables it instead of raising KeyError.
+      refute rows_only(html) =~ "Hidden"
+    end
+
+    # Same raw-write source: a non-map entry (e.g. a bare string) in the
+    # layout array. The storefront's SectionRenderer skips non-map entries —
+    # the editor's rows/1 and draft-walking handlers must match.
+    test "a non-map entry in a raw-written layout is skipped instead of crashing the editor",
+         %{conn: conn, store: store} do
+      store
+      |> Ash.Changeset.for_update(:update, %{
+        theme_config: %{
+          "theme" => "starter",
+          "home_sections" => %{
+            "v" => 1,
+            "starter" => [
+              "junk",
+              %{
+                "id" => "starter/hero",
+                "type" => "starter/hero",
+                "enabled" => true,
+                "settings" => %{},
+                "style" => %{}
+              }
+            ]
+          }
+        }
+      })
+      |> Ash.update!(authorize?: false)
+
+      {:ok, view, html} = live(conn, "/admin/design/sections")
+
+      assert rows_only(html) =~ "Hero"
+
+      # Draft-walking handlers must survive too — toggle walks every entry.
+      view
+      |> element(~s([phx-click="toggle_section"][phx-value-id="starter/hero"]))
+      |> render_click()
+
+      assert Process.alive?(view.pid)
     end
 
     test "the add-section picker groups theme sections and content blocks", %{conn: conn} do
