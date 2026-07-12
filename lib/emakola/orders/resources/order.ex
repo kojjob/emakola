@@ -16,46 +16,6 @@ defmodule Emakola.Orders.Order do
     authorizers: [Ash.Policy.Authorizer],
     extensions: [AshJsonApi.Resource]
 
-  require Logger
-
-  # Dispatches an order lifecycle notification and logs any failure without
-  # raising. This runs inside the Ash transaction via after_action; a raise
-  # here would roll back the successful status update, so we must never
-  # propagate notification errors to the caller.
-  @doc false
-  def dispatch_notification(order, event) do
-    case Emakola.Notifications.Dispatcher.dispatch(order, event) do
-      {:ok, _job} ->
-        :ok
-
-      {:error, reason} ->
-        Logger.error(
-          "[orders] #{inspect(event)} notification dispatch failed: #{inspect(reason)}",
-          order_id: order.id,
-          store_id: Map.get(order, :store_id),
-          event: event
-        )
-
-        :ok
-    end
-  end
-
-  # Returns the IDs of pending supplier-owned fulfillments for `order`.
-  # Used by the :confirm after_action to pass the IDs to the Notifications
-  # Dispatcher so it does not need to query back into Orders.
-  @doc false
-  def load_pending_supplier_ids(order) do
-    case Ash.load(order, :fulfillments, authorize?: false) do
-      {:ok, loaded} ->
-        loaded.fulfillments
-        |> Enum.filter(fn f -> not is_nil(f.supplier_id) and f.status == :pending end)
-        |> Enum.map(& &1.id)
-
-      _ ->
-        []
-    end
-  end
-
   multitenancy do
     strategy(:attribute)
     attribute(:store_id)
@@ -271,21 +231,7 @@ defmodule Emakola.Orders.Order do
         :attribution
       ])
 
-      change(fn changeset, _context ->
-        date = Date.utc_today() |> Calendar.strftime("%Y%m%d")
-
-        # Cryptographically random 6-char suffix. 4 random bytes →
-        # base32 → keep first 6 alphanumerics. Collision space is
-        # ~1 billion per (store_id, date), so practical collision rate
-        # is ~0% under any realistic order volume.
-        random =
-          :crypto.strong_rand_bytes(4)
-          |> Base.encode32(padding: false, case: :upper)
-          |> binary_part(0, 6)
-
-        order_number = "ORD-#{date}-#{random}"
-        Ash.Changeset.force_change_attribute(changeset, :order_number, order_number)
-      end)
+      change(Emakola.Orders.Changes.GenerateOrderNumber)
     end
 
     update :update do
@@ -318,20 +264,7 @@ defmodule Emakola.Orders.Order do
 
       change(set_attribute(:status, :confirmed))
 
-      change(
-        after_action(fn _changeset, order, _context ->
-          dispatch_notification(order, :order_confirmed)
-          Emakola.Suppliers.SalesSharing.record_conversion(order)
-          pending_supplier_ids = load_pending_supplier_ids(order)
-
-          Emakola.Notifications.Dispatcher.dispatch_supplier_fulfillments(
-            order.id,
-            pending_supplier_ids
-          )
-
-          {:ok, order}
-        end)
-      )
+      change(Emakola.Orders.Changes.NotifyConfirmation)
 
       change(Emakola.Orders.Changes.EnqueueFulfillment)
 
@@ -362,13 +295,7 @@ defmodule Emakola.Orders.Order do
       )
 
       change(set_attribute(:status, :shipped))
-
-      change(
-        after_action(fn _changeset, order, _context ->
-          dispatch_notification(order, :order_shipped)
-          {:ok, order}
-        end)
-      )
+      change({Emakola.Orders.Changes.NotifyStatusChange, event: :order_shipped})
     end
 
     update :mark_delivered do
@@ -381,13 +308,7 @@ defmodule Emakola.Orders.Order do
       )
 
       change(set_attribute(:status, :delivered))
-
-      change(
-        after_action(fn _changeset, order, _context ->
-          dispatch_notification(order, :order_delivered)
-          {:ok, order}
-        end)
-      )
+      change({Emakola.Orders.Changes.NotifyStatusChange, event: :order_delivered})
     end
 
     update :cancel do
@@ -401,13 +322,7 @@ defmodule Emakola.Orders.Order do
       )
 
       change(set_attribute(:status, :cancelled))
-
-      change(
-        after_action(fn _changeset, order, _context ->
-          dispatch_notification(order, :order_cancelled)
-          {:ok, order}
-        end)
-      )
+      change({Emakola.Orders.Changes.NotifyStatusChange, event: :order_cancelled})
     end
 
     update :update_notes do

@@ -70,6 +70,7 @@ defmodule Emakola.Inventory.Workers.LowStockAlertWorker do
 
       send_merchant_email_alerts(store, low_stock_variants)
       send_merchant_sms_digest(store, length(low_stock_variants))
+      send_merchant_whatsapp_digest(store, length(low_stock_variants))
     end
   end
 
@@ -86,6 +87,46 @@ defmodule Emakola.Inventory.Workers.LowStockAlertWorker do
 
   defp sms_provider do
     Application.get_env(:emakola, :sms_provider, Emakola.Notifications.Providers.LogSMS)
+  end
+
+  # Mirrors the SMS digest on the store's WhatsApp number. Tolerates an
+  # unapproved Meta template (ship-dark until "low_stock_digest" goes live)
+  # the same way AnnouncementDeliveryWorker does.
+  defp send_merchant_whatsapp_digest(%{whatsapp_number: number} = store, count)
+       when is_binary(number) and number != "" do
+    case whatsapp_provider().send_message(
+           number,
+           "low_stock_digest",
+           %{count: count, store_name: store.name},
+           store_id: store.id
+         ) do
+      {:ok, _} ->
+        :ok
+
+      {:error, {:unknown_template, _}} ->
+        Logger.info(
+          "[LowStockAlertWorker] whatsapp 'low_stock_digest' template not live; skipping store #{store.id}"
+        )
+
+        :ok
+
+      {:error, reason} ->
+        Logger.error(
+          "[LowStockAlertWorker] whatsapp digest failed for store #{store.id}: #{inspect(reason)}"
+        )
+
+        :ok
+    end
+  end
+
+  defp send_merchant_whatsapp_digest(_store, _count), do: :ok
+
+  defp whatsapp_provider do
+    Application.get_env(
+      :emakola,
+      :whatsapp_provider,
+      Emakola.Notifications.Providers.LogWhatsApp
+    )
   end
 
   defp send_merchant_email_alerts(store, low_stock_variants) do
