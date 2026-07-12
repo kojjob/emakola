@@ -26,6 +26,12 @@ defmodule Emakola.Themes.ThemeResolver do
     "vibrant" => Emakola.Themes.Vibrant
   }
 
+  # Kojo's cull, 2026-07-12 — zero live stores on either theme; both modules
+  # are pending deletion. Culled themes stay registered (existing configs
+  # still resolve) but are never offered to merchants. Prune this list when
+  # the modules are removed from @theme_modules.
+  @culled_themes ~w(akoma heritage)
+
   @default_theme "market"
 
   # Keys every theme shares, merged explicitly in resolve/2 below.
@@ -123,6 +129,26 @@ defmodule Emakola.Themes.ThemeResolver do
   """
   @spec theme_ids() :: [String.t()]
   def theme_ids, do: Map.keys(@theme_modules)
+
+  @doc """
+  Theme IDs merchants may choose — the single authority for every theme
+  picker and allowlist (onboarding, admin theme picker, theme_config
+  validation).
+
+  Everything registered in `theme_ids/0` except the culled themes, so a
+  newly registered theme is offered everywhere unless it is deliberately
+  culled here.
+  """
+  @spec offerable_theme_ids() :: [String.t()]
+  def offerable_theme_ids, do: theme_ids() -- @culled_themes
+
+  @doc """
+  Theme IDs deliberately withheld from merchants (see `@culled_themes`).
+  Public so coverage guard tests can assert every registered theme is
+  either offered or explicitly culled.
+  """
+  @spec culled_theme_ids() :: [String.t()]
+  def culled_theme_ids, do: @culled_themes
 
   # Deep-merges an overrides map (string keys) into a defaults map (atom keys).
   # Converts string keys to atoms in the process.

@@ -199,6 +199,30 @@ defmodule Emakola.Themes.ThemeResolverTest do
     end
   end
 
+  describe "offerable_theme_ids/0" do
+    test "offerable = every registered theme minus the culled ones" do
+      assert ThemeResolver.offerable_theme_ids() ==
+               ThemeResolver.theme_ids() -- ThemeResolver.culled_theme_ids()
+    end
+
+    test "culled themes are registered — a stale cull entry fails loudly" do
+      # When the Akoma/Heritage modules are finally deleted (and removed from
+      # @theme_modules), the cull list must be pruned with them.
+      assert ThemeResolver.culled_theme_ids() -- ThemeResolver.theme_ids() == [],
+             "culled_theme_ids/0 lists ids no longer registered: " <>
+               inspect(ThemeResolver.culled_theme_ids() -- ThemeResolver.theme_ids())
+    end
+
+    test "akoma and heritage are culled, spotlight is offerable" do
+      offerable = ThemeResolver.offerable_theme_ids()
+
+      refute "akoma" in offerable
+      refute "heritage" in offerable
+      assert "spotlight" in offerable
+      assert "market" in offerable
+    end
+  end
+
   describe "theme_module/1" do
     test "returns Atelier module for atelier" do
       assert ThemeResolver.theme_module("atelier") == Emakola.Themes.Atelier
