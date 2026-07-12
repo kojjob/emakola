@@ -23,4 +23,35 @@ defmodule Emakola.Money do
         if String.trim(value || "") == "", do: :skip, else: :error
     end
   end
+
+  @doc """
+  Groups a major-unit integer with thousands separators: `4800` -> `"4,800"`.
+
+  Every money formatter on the platform calls this. Four of them used to carry
+  their own copy of the grouping and five had none at all, so the same amount
+  printed three different ways: `GH₵ 4800` on a storefront, `GHS 12500.00` on
+  the platform finance screen, `GH₵ 12,500.00` in the merchant's dashboard.
+
+  ## Examples
+
+      iex> Emakola.Money.group_thousands(4800)
+      "4,800"
+
+      iex> Emakola.Money.group_thousands(-1500)
+      "-1,500"
+  """
+  @spec group_thousands(integer()) :: String.t()
+  def group_thousands(major) when is_integer(major) do
+    sign = if major < 0, do: "-", else: ""
+
+    grouped =
+      major
+      |> abs()
+      |> Integer.to_string()
+      |> String.reverse()
+      |> String.replace(~r/\d{3}(?=\d)/, "\\0,")
+      |> String.reverse()
+
+    sign <> grouped
+  end
 end

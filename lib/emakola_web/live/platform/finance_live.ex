@@ -285,7 +285,8 @@ defmodule EmakolaWeb.Platform.FinanceLive do
   defp format_amount(nil), do: "GHS 0.00"
 
   defp format_amount(cents) when is_integer(cents) do
-    "GHS #{div(cents, 100)}.#{String.pad_leading(to_string(rem(cents, 100)), 2, "0")}"
+    major = cents |> div(100) |> Emakola.Money.group_thousands()
+    "GHS #{major}.#{String.pad_leading(to_string(rem(cents, 100)), 2, "0")}"
   end
 
   defp format_amount(_), do: "GHS 0.00"

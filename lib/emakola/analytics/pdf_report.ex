@@ -219,18 +219,8 @@ defmodule Emakola.Analytics.PdfReport do
 
   @doc false
   def format_amount(minor_units) when is_integer(minor_units) do
-    whole = div(minor_units, 100)
+    whole_str = minor_units |> div(100) |> Emakola.Money.group_thousands()
     frac = rem(abs(minor_units), 100)
-
-    whole_str =
-      whole
-      |> Integer.to_string()
-      |> String.graphemes()
-      |> Enum.reverse()
-      |> Enum.chunk_every(3)
-      |> Enum.map(&Enum.join/1)
-      |> Enum.join(",")
-      |> String.reverse()
 
     "#{whole_str}.#{String.pad_leading(Integer.to_string(frac), 2, "0")}"
   end

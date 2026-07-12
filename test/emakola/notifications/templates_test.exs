@@ -55,7 +55,7 @@ defmodule Emakola.Notifications.TemplatesTest do
     end
 
     test "formats large amounts" do
-      assert Templates.format_amount(1_000_000) == "10000.00"
+      assert Templates.format_amount(1_000_000) == "10,000.00"
     end
   end
 
@@ -134,13 +134,13 @@ defmodule Emakola.Notifications.TemplatesTest do
   describe "Nigerian Naira support" do
     test "order_confirmed_sms uses NGN symbol" do
       msg = Templates.order_confirmed_sms(ngn_order(), ngn_store())
-      assert msg =~ "₦1500.00"
+      assert msg =~ "₦1,500.00"
       assert msg =~ "Lagos Mart"
     end
 
     test "new_order_merchant_sms uses NGN symbol" do
       msg = Templates.new_order_merchant_sms(ngn_order(), ngn_store())
-      assert msg =~ "₦1500.00"
+      assert msg =~ "₦1,500.00"
     end
   end
 

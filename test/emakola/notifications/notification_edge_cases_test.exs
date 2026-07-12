@@ -299,7 +299,7 @@ defmodule Emakola.Notifications.NotificationEdgeCasesTest do
     end
 
     test "very large amount (1_000_000_00 pesewas = GHS 1,000,000) formats correctly" do
-      assert Templates.format_amount(1_000_000_00) == "1000000.00"
+      assert Templates.format_amount(1_000_000_00) == "1,000,000.00"
     end
 
     test "single digit minor units pad correctly" do
@@ -329,7 +329,7 @@ defmodule Emakola.Notifications.NotificationEdgeCasesTest do
       sms = Templates.order_placed_sms(order, store)
       # ₦ (naira symbol)
       assert sms =~ "₦"
-      assert sms =~ "2500.00"
+      assert sms =~ "2,500.00"
     end
 
     test "unknown currency shows no symbol" do

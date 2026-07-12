@@ -239,7 +239,7 @@ defmodule Emakola.Notifications.Channels.WhatsApp do
   end
 
   defp format_amount(minor_units) when is_integer(minor_units) do
-    major = div(minor_units, 100)
+    major = minor_units |> div(100) |> Emakola.Money.group_thousands()
     minor = rem(abs(minor_units), 100)
     "#{major}.#{String.pad_leading(Integer.to_string(minor), 2, "0")}"
   end
