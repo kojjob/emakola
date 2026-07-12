@@ -10,7 +10,7 @@ Mox.defmock(Emakola.Payments.HubtelClientMock, for: Emakola.Payments.HubtelClien
 Mox.defmock(Emakola.SMSProviderMock, for: Emakola.Notifications.SMSProvider)
 Mox.defmock(Emakola.WhatsAppProviderMock, for: Emakola.Notifications.WhatsAppProvider)
 Mox.defmock(Emakola.WhatsAppChannelMock, for: Emakola.Notifications.Channels.WhatsAppBehaviour)
-Mox.defmock(Emakola.SMSChannelMock, for: Emakola.Notifications.Channels.SMSBehaviour)
+Mox.defmock(Emakola.SMSChannelMock, for: Emakola.Notifications.SMSProvider)
 Mox.defmock(Emakola.StorageMock, for: Emakola.Storage)
 Mox.defmock(Emakola.PushProviderMock, for: Emakola.Notifications.PushProvider)
 Mox.defmock(Emakola.Content.GeneratorMock, for: Emakola.Content.Generator)

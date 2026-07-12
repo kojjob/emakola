@@ -46,6 +46,19 @@ defmodule Emakola.Shipping.DeliveryZone do
       public?(true)
     end
 
+    # Single free-shipping threshold (merchandise subtotal, in pesewas). A
+    # tier ladder can replace this if merchants ask for multiple thresholds.
+    attribute :free_above_pesewas, :integer do
+      public?(true)
+      constraints(min: 0)
+    end
+
+    # Optional per-kg surcharge (pesewas) added on top of the base fee.
+    attribute :per_kg_fee_pesewas, :integer do
+      public?(true)
+      constraints(min: 0)
+    end
+
     attribute :active, :boolean do
       default(true)
       public?(true)
@@ -82,11 +95,19 @@ defmodule Emakola.Shipping.DeliveryZone do
     defaults([:read, :destroy])
 
     create :create do
-      accept([:store_id, :name, :fee, :estimated_days, :active])
+      accept([
+        :store_id,
+        :name,
+        :fee,
+        :estimated_days,
+        :active,
+        :free_above_pesewas,
+        :per_kg_fee_pesewas
+      ])
     end
 
     update :update do
-      accept([:name, :fee, :estimated_days, :active])
+      accept([:name, :fee, :estimated_days, :active, :free_above_pesewas, :per_kg_fee_pesewas])
     end
 
     read :list_by_store do
