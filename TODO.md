@@ -145,10 +145,12 @@
       shell (`inventory.ex:23` says "intentionally NOT a `use Ash.Domain` yet");
       stock is still a single `stock_quantity` integer on `Variant`. Add stock
       levels + multi-location when warranted.
-- [ ] **Extract remaining inline Ash anonymous functions into Change modules** —
-      `LineItem` price snapshot already uses `Changes.DenormalizeVariant`; the
-      `Order` number generation (`order.ex:274`) and status-transition
-      `after_action` notification dispatches are still inline `change(fn …)`.
+- [x] **Extract remaining inline Ash anonymous functions into Change modules** —
+      DONE 2026-07-11. `Changes.GenerateOrderNumber` (create), parameterized
+      `Changes.NotifyStatusChange` (shipped/delivered/cancelled dispatches), and
+      `Changes.NotifyConfirmation` (confirm fanout: notification + Earn
+      conversion + supplier fulfillments); the Order module's dispatch helpers
+      moved with them. Behavior-preserving — 234 order tests unchanged.
 
 ## OPEN — Makola Earn / zero-capital supplier network
 
