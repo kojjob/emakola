@@ -7,6 +7,10 @@ defmodule Emakola.Themes.Market.Shared do
   """
   use Phoenix.Component
 
+  # ── Footer (delegated) ──
+
+  defdelegate footer(assigns), to: Emakola.Themes.Market.Footer
+
   # ── CSS Variable Injection ──
 
   @doc """

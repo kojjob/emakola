@@ -6,6 +6,7 @@ defmodule Emakola.Themes.MarketSectionsTest do
 
   alias Emakola.Themes.Market.Components
   alias Emakola.Themes.Market.Sections.Hero
+  alias Emakola.Themes.Market.Shared
   alias Emakola.Themes.{Market, Sections, ThemeResolver}
 
   @component_store %{
@@ -46,6 +47,13 @@ defmodule Emakola.Themes.MarketSectionsTest do
       store: store,
       settings: Map.merge(defaults, settings_overrides)
     })
+  end
+
+  defp render_footer(store, attrs \\ %{}) do
+    render_component(
+      &Shared.footer/1,
+      Map.merge(%{store: store, categories: [], theme: %{}}, attrs)
+    )
   end
 
   describe "sections/0" do
@@ -135,6 +143,82 @@ defmodule Emakola.Themes.MarketSectionsTest do
       html = render_home(store)
 
       assert html =~ "Hand-picked goods from Makola market."
+    end
+
+    test "the home footer is Market's own warm chrome, not Atelier's" do
+      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "market"}})
+
+      html = render_home(store)
+
+      assert html =~ "bg-stone-900"
+      refute html =~ "#111111"
+    end
+  end
+
+  describe "footer/1" do
+    test "renders in Market's warm stone palette, with no cold classes" do
+      html = render_footer(@component_store)
+
+      assert html =~ "bg-stone-900"
+      refute html =~ "#111111"
+      refute html =~ ~r/(?<![a-zA-Z])slate-\d/
+      refute html =~ ~r/(?<![a-zA-Z])gray-\d/
+    end
+
+    test "keeps the shop and company links" do
+      html =
+        render_footer(@component_store, %{
+          categories: [%{name: "Fresh Peppers", slug: "fresh-peppers"}]
+        })
+
+      assert html =~ "All Products"
+      assert html =~ ~s(href="/s/stall/products")
+      assert html =~ "Fresh Peppers"
+      assert html =~ ~s(href="/s/stall/category/fresh-peppers")
+      assert html =~ "Our Story"
+      assert html =~ "FAQ"
+      assert html =~ ~s(href="/s/stall/policies#privacy")
+    end
+
+    test "carries the newsletter form wired to the platform hook" do
+      html = render_footer(@component_store)
+
+      assert html =~ ~s(phx-submit="subscribe_newsletter")
+      assert html =~ ~s(type="email")
+      assert html =~ "Subscribe"
+    end
+
+    test "keeps the payment and trust badges and the store's identity" do
+      html = render_footer(@component_store)
+
+      assert html =~ "MTN MoMo"
+      assert html =~ "Telecel Cash"
+      assert html =~ "Visa"
+      assert html =~ "Mastercard"
+      assert html =~ "Secure Checkout"
+      assert html =~ "Powered by"
+      assert html =~ "&copy; #{Date.utc_today().year} Stall Front"
+    end
+
+    test "contact links render only when the store has them" do
+      html = render_footer(@component_store)
+
+      refute html =~ "wa.me/"
+      refute html =~ "mailto:"
+      refute html =~ "tel:"
+
+      store =
+        Map.merge(@component_store, %{
+          whatsapp_number: "233200000000",
+          contact_email: "hi@stall.example",
+          contact_phone: "+233200000000"
+        })
+
+      html = render_footer(store)
+
+      assert html =~ "wa.me/233200000000"
+      assert html =~ "mailto:hi@stall.example"
+      assert html =~ "tel:+233200000000"
     end
   end
 

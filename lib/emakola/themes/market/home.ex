@@ -3,8 +3,8 @@ defmodule Emakola.Themes.Market.Home do
   Market theme — home page chrome.
 
   Renders theme styles, the store's effective home-section layout via
-  `SectionRenderer` (category strip, featured product, product grid, about),
-  and the shared footer. Section markup lives in
+  `SectionRenderer` (hero, category strip, featured product, product grid,
+  about), and Market's own footer. Section markup lives in
   `Emakola.Themes.Market.Sections.*`; each section is a top-level sibling
   owning its own horizontal padding.
   """
@@ -22,7 +22,7 @@ defmodule Emakola.Themes.Market.Home do
       {SectionRenderer.home(assigns)}
     </div>
 
-    <Emakola.Themes.Atelier.Shared.footer store={@store} categories={@categories} />
+    <Shared.footer store={@store} categories={@categories} theme={@theme} />
     """
   end
 end
