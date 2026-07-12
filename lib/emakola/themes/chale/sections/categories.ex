@@ -23,7 +23,7 @@ defmodule Emakola.Themes.Chale.Sections.Categories do
     ~H"""
     <nav
       :if={@categories != []}
-      class="border-b-2 border-zinc-950 bg-white py-4"
+      class="border-b border-[#E3E0DA] bg-white py-4"
       aria-label="Product categories"
     >
       <div
@@ -34,7 +34,7 @@ defmodule Emakola.Themes.Chale.Sections.Categories do
           :for={category <- @categories}
           href={store_path(@store.slug, "/category/#{category.slug}")}
           role="listitem"
-          class="flex-shrink-0 border-2 border-zinc-950 bg-white px-4 py-2 text-xs font-bold uppercase tracking-widest text-zinc-950 hover:bg-zinc-950 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 motion-safe:transition-colors"
+          class="flex-shrink-0 rounded-xl bg-white px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#101114] hover:bg-[#101114] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-offset-2 motion-safe:transition-colors"
         >
           {category.name}
         </a>

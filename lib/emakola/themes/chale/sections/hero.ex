@@ -50,7 +50,7 @@ defmodule Emakola.Themes.Chale.Sections.Hero do
       |> assign(:image, valid_image(assigns.settings["image_url"]))
 
     ~H"""
-    <section class="border-b-2 border-zinc-950 bg-zinc-100" aria-labelledby="chale-hero-heading">
+    <section class="border-b border-[#E3E0DA] bg-[#F7F5F1]" aria-labelledby="chale-hero-heading">
       <div class={[
         "mx-auto max-w-[1280px] px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20",
         @image && "grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-12"
@@ -64,7 +64,7 @@ defmodule Emakola.Themes.Chale.Sections.Hero do
           </p>
           <h1
             id="chale-hero-heading"
-            class="text-5xl font-bold uppercase leading-[0.95] tracking-tight text-zinc-950 [font-family:var(--chale-display)] sm:text-7xl lg:text-8xl"
+            class="text-5xl font-bold uppercase leading-[0.95] tracking-tight text-[#101114] [font-family:var(--chale-display)] sm:text-7xl lg:text-8xl"
           >
             {@headline}
           </h1>
@@ -76,9 +76,9 @@ defmodule Emakola.Themes.Chale.Sections.Hero do
           </p>
           <a
             href={store_path(@store.slug, "/products")}
-            class="group mt-8 inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-100"
+            class="group mt-8 inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F7F5F1]"
           >
-            <span class="flex items-center gap-2 border-2 border-zinc-950 bg-store-accent px-7 py-4 text-sm font-bold uppercase tracking-widest text-white shadow-[4px_4px_0_0_#09090B] motion-safe:transition-transform motion-safe:group-hover:-translate-y-0.5 motion-safe:group-active:translate-y-0">
+            <span class="flex items-center gap-2 rounded-xl bg-store-accent px-7 py-4 text-sm font-bold uppercase tracking-widest text-white shadow-sm motion-safe:transition-all motion-safe:hover:shadow-md motion-safe:group-hover:shadow-md motion-safe:group-hover:-translate-y-0.5 motion-safe:group-active:translate-y-0">
               {@cta_label}
               <svg
                 class="h-4 w-4"
@@ -99,7 +99,7 @@ defmodule Emakola.Themes.Chale.Sections.Hero do
         </div>
         <div
           :if={@image}
-          class="overflow-hidden border-2 border-zinc-950 bg-white shadow-[6px_6px_0_0_#09090B]"
+          class="overflow-hidden rounded-xl border border-[#E3E0DA] bg-white shadow-md"
         >
           <.optimized_image
             src={@image}
@@ -111,11 +111,18 @@ defmodule Emakola.Themes.Chale.Sections.Hero do
           />
         </div>
       </div>
-      <%!-- The tape strip: a static crimson frieze — packing tape on the
-      poster's bottom edge. Decorative, so hidden from assistive tech. --%>
-      <div class="overflow-hidden border-t-2 border-zinc-950 bg-store-accent py-2" aria-hidden="true">
-        <p class="whitespace-nowrap text-[0.6875rem] font-bold uppercase tracking-[0.3em] text-white">
-          <span :for={_i <- 1..8} class="mx-3">{@store.name} &#10022; Fresh stock</span>
+      <%!-- The frieze: the poster's bottom edge. It used to be a saturated
+      band, which now fights the CTA for the eye — the accent is spent in one
+      place. Ink on bone between hairlines, with the accent only on the mark.
+      Decorative, so hidden from assistive tech. --%>
+      <div
+        class="overflow-hidden border-y border-[#E3E0DA] bg-white py-2.5"
+        aria-hidden="true"
+      >
+        <p class="whitespace-nowrap text-[0.6875rem] font-semibold uppercase tracking-[0.3em] text-[#5B5750]">
+          <span :for={_i <- 1..8} class="mx-3">
+            {@store.name} <span class="text-store-accent">&#10022;</span> Fresh stock
+          </span>
         </p>
       </div>
     </section>

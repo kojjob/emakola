@@ -1,12 +1,14 @@
 defmodule Emakola.Themes.Chale do
   @moduledoc """
-  Chale theme — streetwear. Crimson on light concrete grey, black type.
+  Chale theme — streetwear. Cobalt on bone, ink type.
 
   "Chale" is Accra's most everyday word — mate, bro. This is the theme for
-  sneakers, graphic tees and caps: drop culture, Instagram-native sellers,
-  poster-on-a-wall energy rather than boutique refinement. Concrete
-  (zinc) is the ground, crimson is the only heat, and black display type
-  does the shouting.
+  sneakers, graphic tees and caps: drop culture, Instagram-native sellers.
+  The display type still does the shouting, but the surfaces no longer
+  join in: bone is the ground, hairlines and soft elevation replace the
+  hard black frames and offset "sticker" shadows, and the accent — a
+  single confident cobalt — is spent in one place, on the buy button.
+  The clothes supply the rest of the colour.
 
   Render modules:
   - `Emakola.Themes.Chale.Home` — store landing page (chrome + sections)
@@ -50,12 +52,12 @@ defmodule Emakola.Themes.Chale do
       id: :chale,
       name: "Chale",
       colors: %{
-        primary: "#DC143C",
-        accent: "#09090B",
-        background: "#F4F4F5",
-        text: "#09090B",
-        text_secondary: "#52525B",
-        border: "#D4D4D8"
+        primary: "#2547E8",
+        accent: "#101114",
+        background: "#F7F5F1",
+        text: "#101114",
+        text_secondary: "#5B5750",
+        border: "#E3E0DA"
       },
       fonts: %{
         heading: "Anton",

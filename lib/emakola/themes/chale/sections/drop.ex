@@ -42,7 +42,7 @@ defmodule Emakola.Themes.Chale.Sections.Drop do
         <div class="mb-4 flex items-center gap-3">
           <h2
             id="chale-drop-heading"
-            class="text-2xl font-bold uppercase tracking-tight text-zinc-950 [font-family:var(--chale-display)] sm:text-3xl"
+            class="text-2xl font-bold uppercase tracking-tight text-[#101114] [font-family:var(--chale-display)] sm:text-3xl"
           >
             {@heading}
           </h2>
@@ -54,10 +54,10 @@ defmodule Emakola.Themes.Chale.Sections.Drop do
           </span>
         </div>
 
-        <div class="border-2 border-zinc-950 bg-white shadow-[6px_6px_0_0_#09090B] md:grid md:grid-cols-2">
+        <div class="rounded-xl border border-[#E3E0DA] bg-white shadow-md md:grid md:grid-cols-2">
           <a
             href={store_path(@store.slug, "/products/#{@product.slug}")}
-            class="relative block aspect-square focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-inset md:border-r-2 md:border-zinc-950"
+            class="relative block aspect-square focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-inset md:border-r-2 md:border-[#E3E0DA]"
             aria-label={"View #{@product.title}"}
           >
             <div
@@ -80,7 +80,7 @@ defmodule Emakola.Themes.Chale.Sections.Drop do
             <div :if={@sold_out} class="absolute inset-0 z-[5] bg-white/60" aria-hidden="true"></div>
             <span
               :if={@sold_out}
-              class="absolute right-4 top-4 z-10 -rotate-3 bg-zinc-950 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white"
+              class="absolute right-4 top-4 z-10 -rotate-3 bg-[#101114] px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-white"
             >
               Sold out
             </span>
@@ -90,10 +90,10 @@ defmodule Emakola.Themes.Chale.Sections.Drop do
           </a>
 
           <div class="p-5 sm:p-6 md:flex md:flex-col md:justify-center md:p-8">
-            <h3 class="mb-2 text-2xl font-bold uppercase leading-[0.95] tracking-tight text-zinc-950 [font-family:var(--chale-display)] sm:text-3xl">
+            <h3 class="mb-2 text-2xl font-bold uppercase leading-[0.95] tracking-tight text-[#101114] [font-family:var(--chale-display)] sm:text-3xl">
               <a
                 href={store_path(@store.slug, "/products/#{@product.slug}")}
-                class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2"
+                class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-offset-2"
               >
                 {@product.title}
               </a>
@@ -109,7 +109,7 @@ defmodule Emakola.Themes.Chale.Sections.Drop do
               type="button"
               phx-click="add_to_cart"
               phx-value-product-id={@product.id}
-              class="mt-2 w-full cursor-pointer border-2 border-zinc-950 bg-store-accent px-6 py-4 text-sm font-bold uppercase tracking-widest text-white shadow-[4px_4px_0_0_#09090B] hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 motion-safe:transition-opacity motion-safe:active:translate-y-0.5"
+              class="mt-2 w-full cursor-pointer rounded-xl bg-store-accent px-6 py-4 text-sm font-bold uppercase tracking-widest text-white shadow-sm hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-offset-2 motion-safe:transition-opacity motion-safe:active:translate-y-0.5"
             >
               Add to cart
             </button>
@@ -118,7 +118,7 @@ defmodule Emakola.Themes.Chale.Sections.Drop do
               type="button"
               disabled
               aria-disabled="true"
-              class="mt-2 w-full cursor-not-allowed border-2 border-zinc-300 bg-zinc-200 px-6 py-4 text-sm font-bold uppercase tracking-widest text-zinc-500"
+              class="mt-2 w-full cursor-not-allowed rounded-xl border border-[#E3E0DA] bg-zinc-200 px-6 py-4 text-sm font-bold uppercase tracking-widest text-zinc-500"
             >
               Sold out
             </button>

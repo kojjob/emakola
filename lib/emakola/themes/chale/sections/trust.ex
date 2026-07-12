@@ -40,10 +40,10 @@ defmodule Emakola.Themes.Chale.Sections.Trust do
 
     ~H"""
     <section class="px-4 py-6 sm:px-6 sm:py-8 lg:px-8" aria-labelledby="chale-trust-heading">
-      <div class="mx-auto max-w-[1280px] border-2 border-zinc-950 bg-white p-6 sm:p-8">
+      <div class="mx-auto max-w-[1280px] rounded-xl border border-[#E3E0DA] bg-white p-6 sm:p-8">
         <h2
           id="chale-trust-heading"
-          class="mb-6 text-center text-2xl font-bold uppercase tracking-tight text-zinc-950 [font-family:var(--chale-display)]"
+          class="mb-6 text-center text-2xl font-bold uppercase tracking-tight text-[#101114] [font-family:var(--chale-display)]"
         >
           {if @settings["heading"] not in [nil, ""],
             do: @settings["heading"],
@@ -52,7 +52,7 @@ defmodule Emakola.Themes.Chale.Sections.Trust do
 
         <div class="mb-7 grid grid-cols-1 gap-5 text-center sm:grid-cols-3 sm:gap-6">
           <div class="flex flex-col items-center">
-            <span class="mb-2.5 flex h-11 w-11 items-center justify-center border-2 border-zinc-950 bg-zinc-100 text-zinc-950">
+            <span class="mb-2.5 flex h-11 w-11 items-center justify-center rounded-xl border border-[#E3E0DA] bg-[#F7F5F1] text-[#101114]">
               <svg
                 class="h-5 w-5"
                 fill="none"
@@ -68,14 +68,14 @@ defmodule Emakola.Themes.Chale.Sections.Trust do
                 />
               </svg>
             </span>
-            <span class="text-sm font-bold uppercase tracking-wide text-zinc-950">
+            <span class="text-sm font-bold uppercase tracking-wide text-[#101114]">
               Secure checkout
             </span>
             <span class="mt-0.5 text-xs text-zinc-600">Payments processed securely</span>
           </div>
 
           <div class="flex flex-col items-center">
-            <span class="mb-2.5 flex h-11 w-11 items-center justify-center border-2 border-zinc-950 bg-zinc-100 text-zinc-950">
+            <span class="mb-2.5 flex h-11 w-11 items-center justify-center rounded-xl border border-[#E3E0DA] bg-[#F7F5F1] text-[#101114]">
               <svg
                 class="h-5 w-5"
                 fill="none"
@@ -91,19 +91,19 @@ defmodule Emakola.Themes.Chale.Sections.Trust do
                 />
               </svg>
             </span>
-            <span class="text-sm font-bold uppercase tracking-wide text-zinc-950">
+            <span class="text-sm font-bold uppercase tracking-wide text-[#101114]">
               Delivery &amp; returns
             </span>
             <a
               href={store_path(@store.slug, "/policies#shipping")}
-              class="mt-0.5 text-xs font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-2 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950"
+              class="mt-0.5 text-xs font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-2 hover:text-[#101114] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8]"
             >
               See this store's policies
             </a>
           </div>
 
           <div class="flex flex-col items-center">
-            <span class="mb-2.5 flex h-11 w-11 items-center justify-center border-2 border-zinc-950 bg-zinc-100 text-zinc-950">
+            <span class="mb-2.5 flex h-11 w-11 items-center justify-center rounded-xl border border-[#E3E0DA] bg-[#F7F5F1] text-[#101114]">
               <svg
                 class="h-5 w-5"
                 fill="none"
@@ -119,11 +119,11 @@ defmodule Emakola.Themes.Chale.Sections.Trust do
                 />
               </svg>
             </span>
-            <span class="text-sm font-bold uppercase tracking-wide text-zinc-950">Questions?</span>
+            <span class="text-sm font-bold uppercase tracking-wide text-[#101114]">Questions?</span>
             <a
               href={@support_href}
               {if String.starts_with?(@support_href, "https://"), do: [target: "_blank", rel: "noopener noreferrer"], else: []}
-              class="mt-0.5 text-xs font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-2 hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950"
+              class="mt-0.5 text-xs font-medium text-zinc-600 underline decoration-zinc-400 underline-offset-2 hover:text-[#101114] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8]"
             >
               {if String.starts_with?(@support_href, "https://"),
                 do: "Chat with the seller on WhatsApp",
@@ -132,14 +132,14 @@ defmodule Emakola.Themes.Chale.Sections.Trust do
           </div>
         </div>
 
-        <div class="border-t-2 border-zinc-950 pt-5">
+        <div class="border-t border-[#E3E0DA] pt-5">
           <p class="mb-3 text-center text-[0.625rem] font-bold uppercase tracking-[0.25em] text-zinc-500">
             We accept
           </p>
           <ul class="flex flex-wrap items-center justify-center gap-2" aria-label="Payment methods">
             <li
               :for={rail <- ["MTN MoMo", "Telecel Cash", "AirtelTigo Money", "Visa", "Mastercard"]}
-              class="inline-flex items-center border-2 border-zinc-950 bg-zinc-100 px-2.5 py-1 text-[11px] font-bold tracking-wide text-zinc-950"
+              class="inline-flex items-center rounded-xl border border-[#E3E0DA] bg-[#F7F5F1] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#101114]"
             >
               {rail}
             </li>

@@ -30,7 +30,7 @@ defmodule Emakola.Themes.Chale.ProductDetail do
       )
 
     ~H"""
-    <div class="min-h-screen bg-zinc-100">
+    <div class="min-h-screen bg-[#F7F5F1]">
       <Shared.theme_styles theme={@theme} />
       <%!-- Theme banner nav: the bottom bar below is mobile-only, so without
       this the cart would be unreachable from this page on desktop. --%>
@@ -44,7 +44,7 @@ defmodule Emakola.Themes.Chale.ProductDetail do
           <li>
             <a
               href={store_path(@store.slug, "/")}
-              class="hover:text-zinc-950 motion-safe:transition-colors"
+              class="hover:text-[#101114] motion-safe:transition-colors"
             >
               Home
             </a>
@@ -53,20 +53,20 @@ defmodule Emakola.Themes.Chale.ProductDetail do
           <li>
             <a
               href={store_path(@store.slug, "/products")}
-              class="hover:text-zinc-950 motion-safe:transition-colors"
+              class="hover:text-[#101114] motion-safe:transition-colors"
             >
               Shop
             </a>
           </li>
           <li aria-hidden="true">/</li>
-          <li class="max-w-[240px] truncate text-zinc-950">{@product.title}</li>
+          <li class="max-w-[240px] truncate text-[#101114]">{@product.title}</li>
         </ol>
       </nav>
 
       <div class="mx-auto max-w-[1280px] px-4 py-6 sm:px-6 lg:grid lg:grid-cols-2 lg:gap-12 lg:px-8">
         <%!-- Gallery: square, hard-framed, finished before the photo lands --%>
         <div class="lg:sticky lg:top-24 lg:self-start">
-          <div class="relative aspect-square overflow-hidden border-2 border-zinc-950 bg-white shadow-[6px_6px_0_0_#09090B]">
+          <div class="relative aspect-square overflow-hidden rounded-xl border border-[#E3E0DA] bg-white shadow-md">
             <div
               class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-300"
               aria-hidden="true"
@@ -107,10 +107,10 @@ defmodule Emakola.Themes.Chale.ProductDetail do
               aria-selected={to_string(index == @current_image_index)}
               aria-label={"View image #{index + 1}"}
               class={[
-                "h-16 w-16 flex-shrink-0 cursor-pointer overflow-hidden border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2",
+                "h-16 w-16 flex-shrink-0 cursor-pointer overflow-hidden border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-offset-2",
                 if(index == @current_image_index,
-                  do: "border-zinc-950",
-                  else: "border-zinc-300 opacity-70 hover:border-zinc-950 hover:opacity-100"
+                  do: "border-[#E3E0DA]",
+                  else: "border-[#E3E0DA] opacity-70 hover:border-[#E3E0DA] hover:opacity-100"
                 )
               ]}
             >
@@ -135,12 +135,12 @@ defmodule Emakola.Themes.Chale.ProductDetail do
             Just dropped
           </span>
 
-          <h1 class="text-3xl font-bold uppercase leading-[0.95] tracking-tight text-zinc-950 [font-family:var(--chale-display)] sm:text-4xl lg:text-5xl">
+          <h1 class="text-3xl font-bold uppercase leading-[0.95] tracking-tight text-[#101114] [font-family:var(--chale-display)] sm:text-4xl lg:text-5xl">
             {@product.title}
           </h1>
 
           <div class="mt-4 flex flex-wrap items-baseline gap-3">
-            <p class="text-3xl font-bold tabular-nums tracking-tight text-zinc-950 [font-family:var(--chale-display)] sm:text-4xl">
+            <p class="text-3xl font-bold tabular-nums tracking-tight text-[#101114] [font-family:var(--chale-display)] sm:text-4xl">
               <%= if @selected_variant do %>
                 {Currency.format_price(@selected_variant.price, @store.currency)}
               <% else %>
@@ -179,7 +179,7 @@ defmodule Emakola.Themes.Chale.ProductDetail do
             aria-label="Product options"
           >
             <div :for={option_type <- @option_types}>
-              <p class="mb-2.5 text-xs font-bold uppercase tracking-widest text-zinc-950">
+              <p class="mb-2.5 text-xs font-bold uppercase tracking-widest text-[#101114]">
                 {option_type.name}
               </p>
               <div
@@ -215,14 +215,14 @@ defmodule Emakola.Themes.Chale.ProductDetail do
 
           <%!-- Quantity + add to cart --%>
           <div class="mt-6 flex items-center gap-3">
-            <span class="text-xs font-bold uppercase tracking-widest text-zinc-950">Quantity</span>
-            <div class="flex items-center border-2 border-zinc-950 bg-white">
+            <span class="text-xs font-bold uppercase tracking-widest text-[#101114]">Quantity</span>
+            <div class="flex items-center rounded-xl border border-[#E3E0DA] bg-white">
               <button
                 type="button"
                 phx-click="decrement_quantity"
                 disabled={@quantity <= 1}
                 aria-label="Decrease quantity"
-                class="flex h-11 w-11 cursor-pointer items-center justify-center text-zinc-950 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:text-zinc-300 motion-safe:transition-colors"
+                class="flex h-11 w-11 cursor-pointer items-center justify-center text-[#101114] hover:bg-[#F7F5F1] disabled:cursor-not-allowed disabled:text-zinc-300 motion-safe:transition-colors"
               >
                 <svg
                   class="h-4 w-4"
@@ -235,7 +235,7 @@ defmodule Emakola.Themes.Chale.ProductDetail do
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14" />
                 </svg>
               </button>
-              <span class="flex h-11 w-11 select-none items-center justify-center border-x-2 border-zinc-950 text-sm font-bold tabular-nums text-zinc-950">
+              <span class="flex h-11 w-11 select-none items-center justify-center border-x-2 border-[#E3E0DA] text-sm font-bold tabular-nums text-[#101114]">
                 {@quantity}
               </span>
               <button
@@ -243,7 +243,7 @@ defmodule Emakola.Themes.Chale.ProductDetail do
                 phx-click="increment_quantity"
                 disabled={@quantity >= 10}
                 aria-label="Increase quantity"
-                class="flex h-11 w-11 cursor-pointer items-center justify-center text-zinc-950 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:text-zinc-300 motion-safe:transition-colors"
+                class="flex h-11 w-11 cursor-pointer items-center justify-center text-[#101114] hover:bg-[#F7F5F1] disabled:cursor-not-allowed disabled:text-zinc-300 motion-safe:transition-colors"
               >
                 <svg
                   class="h-4 w-4"
@@ -268,8 +268,8 @@ defmodule Emakola.Themes.Chale.ProductDetail do
               "mt-5 w-full px-6 py-4 text-sm font-bold uppercase tracking-widest",
               if(@purchasable,
                 do:
-                  "cursor-pointer border-2 border-zinc-950 bg-store-accent text-white shadow-[4px_4px_0_0_#09090B] hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 motion-safe:transition-opacity motion-safe:active:translate-y-0.5",
-                else: "cursor-not-allowed border-2 border-zinc-300 bg-zinc-200 text-zinc-500"
+                  "cursor-pointer rounded-xl border border-[#E3E0DA] bg-store-accent text-white shadow-sm hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-offset-2 motion-safe:transition-opacity motion-safe:active:translate-y-0.5",
+                else: "cursor-not-allowed rounded-xl border border-[#E3E0DA] bg-zinc-200 text-zinc-500"
               )
             ]}
           >
@@ -281,7 +281,7 @@ defmodule Emakola.Themes.Chale.ProductDetail do
             href={@whatsapp_href}
             target="_blank"
             rel="noopener noreferrer"
-            class="mt-3 flex w-full items-center justify-center gap-2 border-2 border-zinc-950 bg-white px-6 py-3.5 text-sm font-bold uppercase tracking-widest text-zinc-950 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 motion-safe:transition-colors"
+            class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#E3E0DA] bg-white px-6 py-3.5 text-sm font-bold uppercase tracking-widest text-[#101114] hover:bg-[#F7F5F1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8] focus-visible:ring-offset-2 motion-safe:transition-colors"
           >
             <svg
               class="h-5 w-5 text-whatsapp"
@@ -303,12 +303,12 @@ defmodule Emakola.Themes.Chale.ProductDetail do
           </p>
 
           <%!-- Promise-free: the merchant's own policies are authoritative --%>
-          <div class="mt-6 border-t-2 border-zinc-950 pt-4 text-sm text-zinc-600">
+          <div class="mt-6 border-t border-[#E3E0DA] pt-4 text-sm text-zinc-600">
             <p>
               Delivery &amp; returns —
               <a
                 href={store_path(@store.slug, "/policies#shipping")}
-                class="font-medium text-zinc-950 underline decoration-zinc-400 underline-offset-2 hover:decoration-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950"
+                class="font-medium text-[#101114] underline decoration-zinc-400 underline-offset-2 hover:decoration-[#2547E8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2547E8]"
               >
                 see this store's policies
               </a>
@@ -325,7 +325,7 @@ defmodule Emakola.Themes.Chale.ProductDetail do
       >
         <h2
           id="chale-related-heading"
-          class="mb-5 text-2xl font-bold uppercase tracking-tight text-zinc-950 [font-family:var(--chale-display)] sm:text-3xl"
+          class="mb-5 text-2xl font-bold uppercase tracking-tight text-[#101114] [font-family:var(--chale-display)] sm:text-3xl"
         >
           More like this
         </h2>
@@ -374,7 +374,7 @@ defmodule Emakola.Themes.Chale.ProductDetail do
       <% is_nil(@variant) -> %>
         <span class="text-sm font-medium text-zinc-500">Select options</span>
       <% @variant.track_inventory and @variant.stock_quantity <= 0 -> %>
-        <span class="inline-block bg-zinc-950 px-2 py-1 text-xs font-bold uppercase tracking-widest text-white">
+        <span class="inline-block bg-[#101114] px-2 py-1 text-xs font-bold uppercase tracking-widest text-white">
           Sold out
         </span>
       <% @variant.track_inventory and @variant.stock_quantity < 5 -> %>
@@ -382,7 +382,7 @@ defmodule Emakola.Themes.Chale.ProductDetail do
           Only {@variant.stock_quantity} left
         </span>
       <% true -> %>
-        <span class="text-sm font-bold uppercase tracking-wide text-zinc-950">In stock</span>
+        <span class="text-sm font-bold uppercase tracking-wide text-[#101114]">In stock</span>
     <% end %>
     """
   end
@@ -400,12 +400,12 @@ defmodule Emakola.Themes.Chale.ProductDetail do
     base =
       "flex h-12 min-w-[48px] cursor-pointer items-center justify-center border-2 px-4 " <>
         "text-sm font-bold uppercase focus-visible:outline-none focus-visible:ring-2 " <>
-        "focus-visible:ring-zinc-950 focus-visible:ring-offset-2 motion-safe:transition-colors"
+        "focus-visible:ring-[#2547E8] focus-visible:ring-offset-2 motion-safe:transition-colors"
 
     cond do
-      selected? -> "#{base} border-zinc-950 bg-zinc-950 text-white"
-      gone? -> "#{base} border-zinc-300 bg-white text-zinc-400 line-through"
-      true -> "#{base} border-zinc-950 bg-white text-zinc-950 hover:bg-zinc-100"
+      selected? -> "#{base} border-[#E3E0DA] bg-[#101114] text-white"
+      gone? -> "#{base} border-[#E3E0DA] bg-white text-zinc-400 line-through"
+      true -> "#{base} border-[#E3E0DA] bg-white text-[#101114] hover:bg-[#F7F5F1]"
     end
   end
 end
