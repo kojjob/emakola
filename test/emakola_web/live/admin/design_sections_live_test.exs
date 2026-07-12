@@ -313,6 +313,64 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
       assert html =~ "Builder block"
     end
 
+    # A settings field can arrive as a map through ordinary bracket-notation
+    # form-field tampering (settings[count][a]=1) — the same nested
+    # serialization this module relies on for style[bg]. `to_string/1` has no
+    # String.Chars impl for a map, so an unguarded coercion raises
+    # Protocol.UndefinedError inside handle_event, crashing the LiveView and
+    # silently destroying the merchant's unpublished draft.
+    test "a map value in an integer-typed setting falls back to the default instead of crashing the view",
+         %{conn: conn, store: store} do
+      {:ok, view, _} = live(conn, "/admin/design/sections")
+
+      add_html =
+        view
+        |> element(~s([phx-click="add_section"][phx-value-type="block/product_grid"]))
+        |> render_click()
+
+      [_, id] = Regex.run(~r/phx-value-id="(block\/product_grid-\d+)"/, add_html)
+
+      render_change(view, "update_settings", %{
+        "id" => id,
+        "settings" => %{"count" => %{"a" => "1"}}
+      })
+
+      assert Process.alive?(view.pid)
+
+      view |> element(~s(button[phx-click="publish"])) |> render_click()
+
+      saved = HomeSections.saved_layout(Ash.reload!(store, authorize?: false), "starter")
+      entry = Enum.find(saved, &(&1["id"] == id))
+
+      # ProductGrid's default_content puts count: 8 — the crafted map must
+      # neither crash nor survive into the layout.
+      assert entry["settings"]["count"] == 8
+    end
+
+    # Write-side sanitize_settings filters by value TYPE, not key membership,
+    # so an undeclared scalar key would otherwise survive all the way to the
+    # persisted layout. Junk-in-own-store rather than a tenancy leak, but the
+    # editor must only ever write keys the section's schema declares.
+    test "an undeclared settings key is rejected and never reaches the persisted layout", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, view, _} = live(conn, "/admin/design/sections")
+
+      render_change(view, "update_settings", %{
+        "id" => "starter/hero",
+        "settings" => %{"heading" => "Real heading", "not_in_schema" => "junk"}
+      })
+
+      view |> element(~s(button[phx-click="publish"])) |> render_click()
+
+      saved = HomeSections.saved_layout(Ash.reload!(store, authorize?: false), "starter")
+      entry = Enum.find(saved, &(&1["id"] == "starter/hero"))
+
+      assert entry["settings"]["heading"] == "Real heading"
+      refute Map.has_key?(entry["settings"], "not_in_schema")
+    end
+
     test "an unrecognized event is logged and does not crash the view", %{conn: conn} do
       {:ok, view, _} = live(conn, "/admin/design/sections")
 

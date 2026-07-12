@@ -247,24 +247,44 @@ defmodule EmakolaWeb.Admin.DesignSectionsLive do
     entry["id"] != type or String.starts_with?(type, "block/")
   end
 
+  # Driven by the SCHEMA, not by the submitted params: only keys the section
+  # actually declares are kept. Iterating the params instead would let a
+  # crafted payload inject arbitrary extra keys — write-side
+  # sanitize_settings filters by value TYPE, not key membership, so junk
+  # scalars would otherwise survive all the way to the persisted layout.
   defp coerce_settings(type, params) do
-    schema = schema_for_type(type)
-
-    for {key, value} <- params, into: %{} do
-      case Enum.find(schema, &(&1.key == key)) do
-        %{type: :boolean} -> {key, value == "true"}
-        %{type: :integer, default: default} -> {key, coerce_integer(value, default)}
-        _other -> {key, value}
-      end
+    for %{key: key} = field <- schema_for_type(type),
+        Map.has_key?(params, key),
+        into: %{} do
+      {key, coerce_value(field, Map.get(params, key))}
     end
   end
 
-  defp coerce_integer(value, default) do
-    case Integer.parse(to_string(value)) do
+  defp coerce_value(%{type: :boolean}, value), do: value == "true"
+
+  defp coerce_value(%{type: :integer, default: default}, value),
+    do: coerce_integer(value, default)
+
+  defp coerce_value(_field, value), do: value
+
+  # A field can arrive as a map (or list) through ordinary bracket-notation
+  # form tampering — settings[count][a]=1 — the same nested serialization
+  # this module relies on for style[bg]. `to_string/1` has no String.Chars
+  # impl for those, so an unguarded coercion raises Protocol.UndefinedError
+  # inside handle_event, crashing the LiveView and silently destroying the
+  # merchant's unpublished draft. Mirrors CssColor.safe_css_color/2's
+  # explicit non-binary fallback, which is what keeps update_style safe.
+  defp coerce_integer(value, default) when is_binary(value) do
+    case Integer.parse(value) do
       {int, _rest} -> int
-      :error -> if is_integer(default), do: default, else: 0
+      :error -> integer_default(default)
     end
   end
+
+  defp coerce_integer(_value, default), do: integer_default(default)
+
+  defp integer_default(default) when is_integer(default), do: default
+  defp integer_default(_default), do: 0
 
   defp schema_for_type(type) do
     case Sections.resolve(type) do
