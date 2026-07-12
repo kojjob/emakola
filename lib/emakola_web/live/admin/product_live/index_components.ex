@@ -66,7 +66,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                 </div>
               </td>
               <td class="px-4 py-3">
-                <.status_pill status={product.status} variant={:product} />
+                <.status_badge status={product.status} variant={:product} />
               </td>
               <td class="px-4 py-3 text-sm text-slate-500">
                 {category_name(product.category_id, @categories)}
@@ -153,7 +153,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                 </p>
               </div>
             </div>
-            <.status_pill status={product.status} variant={:product} />
+            <.status_badge status={product.status} variant={:product} />
           </div>
           <div class="flex items-center justify-between text-sm">
             <span class="text-slate-500 font-mono">
@@ -215,7 +215,7 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
                 {@quick_view_product.title}
               </h3>
               <div class="flex items-center gap-2 mt-1">
-                <.status_pill status={@quick_view_product.status} variant={:product} />
+                <.status_badge status={@quick_view_product.status} variant={:product} />
                 <span class="text-xs text-slate-500">
                   {category_name(@quick_view_product.category_id, @categories)}
                 </span>
