@@ -21,19 +21,12 @@ defmodule EmakolaWeb.OnboardingLive do
     %{code: "USD", label: "USD — US Dollar", flag: "\u{1F1FA}\u{1F1F8}"}
   ]
 
-  # The picker offers every theme registered in ThemeResolver except this
-  # explicit exclusion list — coverage is derived, not hand-maintained, so a
-  # newly registered theme cannot silently vanish from onboarding.
-  #
-  # akoma + heritage: culled by Kojo's decision (zero live stores; both are
-  # slated for deletion). Remove them here once the modules are gone.
-  @excluded_theme_ids ~w(akoma heritage)
-
   # Editorial copy per theme, in the order the picker presents them.
-  # Names and colors come from each theme module; only the one-line
-  # descriptions live here. A registered, non-excluded theme missing from
-  # this list raises in build_themes/0 — a loud test failure instead of a
-  # silent omission.
+  # Coverage comes from ThemeResolver.offerable_theme_ids/0 (the single
+  # theme-offer authority); names and colors come from each theme module.
+  # Only the one-line descriptions live here. An offerable theme missing
+  # from this list raises in build_themes/0 — a loud test failure instead
+  # of a silent omission.
   @theme_descriptions [
     {"starter", "Clean & modern — fits any store"},
     {"market", "Simple commerce for everyday stores"},
@@ -813,19 +806,10 @@ defmodule EmakolaWeb.OnboardingLive do
   defp step_button_label(_, _), do: "Go to Dashboard"
 
   @doc """
-  Theme ids the picker offers: everything registered in
-  `Emakola.Themes.ThemeResolver` minus the explicit exclusion list.
+  Theme ids the picker offers — delegated to the single theme-offer
+  authority, `Emakola.Themes.ThemeResolver.offerable_theme_ids/0`.
   """
-  def offered_theme_ids do
-    Emakola.Themes.ThemeResolver.theme_ids() -- @excluded_theme_ids
-  end
-
-  @doc """
-  Theme ids deliberately kept out of the picker. Public so the coverage
-  guard test can assert every registered theme is either offered or
-  explicitly excluded.
-  """
-  def excluded_theme_ids, do: @excluded_theme_ids
+  def offered_theme_ids, do: Emakola.Themes.ThemeResolver.offerable_theme_ids()
 
   # Build the theme picker list. Coverage derives from ThemeResolver
   # (via offered_theme_ids/0); names, colors, and fonts come from each
@@ -840,9 +824,9 @@ defmodule EmakolaWeb.OnboardingLive do
         :ok
 
       missing ->
-        raise "themes registered in ThemeResolver but missing from the onboarding " <>
+        raise "themes offerable per ThemeResolver but missing from the onboarding " <>
                 "picker: #{inspect(missing)} — add editorial copy to @theme_descriptions " <>
-                "or exclude them explicitly in @excluded_theme_ids"
+                "or cull them in ThemeResolver.@culled_themes"
     end
 
     for {id, description} <- @theme_descriptions, id in offered do

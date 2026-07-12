@@ -55,27 +55,26 @@ defmodule EmakolaWeb.OnboardingThemePickerTest do
   end
 
   describe "theme coverage" do
-    test "every registered theme is offered unless explicitly excluded", %{conn: conn} do
-      registered = ThemeResolver.theme_ids()
-      excluded = OnboardingLive.excluded_theme_ids()
+    test "every offerable theme is offered and no culled theme appears", %{conn: conn} do
+      offerable = ThemeResolver.offerable_theme_ids()
+      culled = ThemeResolver.culled_theme_ids()
 
-      assert excluded -- registered == [],
-             "excluded_theme_ids/0 lists ids not registered in ThemeResolver: " <>
-               inspect(excluded -- registered)
+      assert offerable != [], "no offerable themes — this test would be vacuous"
+      assert culled != [], "no culled themes — the culled half of this test would be vacuous"
 
       {view, _merchant} = reach_theme_step(conn, "Coverage Shop")
       html = render(view)
 
-      for id <- registered -- excluded do
+      for id <- offerable do
         assert html =~ ~s(phx-value-theme-id="#{id}"),
-               "theme #{inspect(id)} is registered in ThemeResolver but the onboarding " <>
-                 "picker does not offer it — describe it in OnboardingLive or add it to " <>
-                 "the explicit exclusion list"
+               "theme #{inspect(id)} is offerable per ThemeResolver but the onboarding " <>
+                 "picker does not offer it — describe it in OnboardingLive or cull it " <>
+                 "in ThemeResolver.@culled_themes"
       end
 
-      for id <- excluded do
+      for id <- culled do
         refute html =~ ~s(phx-value-theme-id="#{id}"),
-               "theme #{inspect(id)} is explicitly excluded but still rendered in the picker"
+               "theme #{inspect(id)} is culled but still rendered in the picker"
       end
     end
 
