@@ -21,7 +21,15 @@ defmodule Emakola.Themes.ThemeResolver do
     "pharmacy" => Emakola.Themes.Pharmacy,
     "spotlight" => Emakola.Themes.Spotlight,
     "starter" => Emakola.Themes.Starter,
-    "vibrant" => Emakola.Themes.Vibrant
+    "vibrant" => Emakola.Themes.Vibrant,
+    # The seven built section-native from the start (2026-07-12).
+    "chale" => Emakola.Themes.Chale,
+    "dede" => Emakola.Themes.Dede,
+    "depot" => Emakola.Themes.Depot,
+    "fie" => Emakola.Themes.Fie,
+    "ntoma" => Emakola.Themes.Ntoma,
+    "pace" => Emakola.Themes.Pace,
+    "sika" => Emakola.Themes.Sika
   }
 
   # Akoma and Heritage were culled (zero live stores on either) and their

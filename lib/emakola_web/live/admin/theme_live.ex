@@ -55,7 +55,19 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       description: "Editorial boutique",
       icon: "checkroom"
     },
-    %{id: "spotlight", name: "Spotlight", description: "Single-product showcase", icon: "star"}
+    %{id: "spotlight", name: "Spotlight", description: "Single-product showcase", icon: "star"},
+    %{id: "ntoma", name: "Ntoma", description: "Fashion & tailoring", icon: "checkroom"},
+    %{id: "sika", name: "Sika", description: "Jewellery & gold", icon: "diamond"},
+    %{id: "fie", name: "Fie", description: "Home & décor", icon: "chair"},
+    %{
+      id: "chale",
+      name: "Chale",
+      description: "Streetwear & sneakers",
+      icon: "local_fire_department"
+    },
+    %{id: "dede", name: "Dede", description: "Food & catering", icon: "restaurant"},
+    %{id: "pace", name: "Pace", description: "Activewear & techwear", icon: "sprint"},
+    %{id: "depot", name: "Depot", description: "Wholesale quick-order", icon: "inventory_2"}
   ]
 
   @color_presets [

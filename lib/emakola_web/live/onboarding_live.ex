@@ -39,7 +39,14 @@ defmodule EmakolaWeb.OnboardingLive do
     {"pharmacy", "Wellness & medicines"},
     {"home_living", "Furniture & home goods"},
     {"electronics", "Phones, audio & gadgets"},
-    {"spotlight", "One hero product, centre stage"}
+    {"spotlight", "One hero product, centre stage"},
+    {"ntoma", "Fashion & tailoring — cloth, cut, and print"},
+    {"sika", "Jewellery & gold — few pieces, each precious"},
+    {"fie", "Home & décor — a quiet gallery for your work"},
+    {"chale", "Streetwear & sneakers — drops, sizes, hype"},
+    {"dede", "Food & catering — order fast, order on WhatsApp"},
+    {"pace", "Activewear & techwear — built for motion"},
+    {"depot", "Wholesale — quick-order tables for repeat buyers"}
   ]
 
   def mount(_params, session, socket) do
