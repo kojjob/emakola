@@ -98,8 +98,15 @@ defmodule Emakola.Themes.Akwaaba.Sections.Hero do
           </div>
 
           <%!-- The photograph. With an empty catalogue this column simply does
-          not render and the type holds the panel alone. --%>
-          <div :if={@image} class="relative mx-auto w-full max-w-md lg:max-w-none">
+          not render and the type holds the panel alone.
+
+          It is ordered LAST on a phone. The photograph is ~500px tall, so
+          leading with it pushes "Shop now" — the buy button — below the fold and
+          under the fixed bottom bar. Most of our shoppers are on phones; the
+          money button does not get to hide behind the merchandise. On a wide
+          screen there is room for all three columns and the natural order
+          returns. --%>
+          <div :if={@image} class="relative order-3 mx-auto w-full max-w-md lg:order-2 lg:max-w-none">
             <.optimized_image
               src={@image}
               alt={(@hero_product && @hero_product.title) || @store.name}
@@ -145,7 +152,7 @@ defmodule Emakola.Themes.Akwaaba.Sections.Hero do
           storefront — a lie their customers would act on and the merchant would
           wear. So: a real rating when the store has real reviews, and otherwise
           the plain truth — the rails they actually accept. --%>
-          <div class="mt-2 lg:mt-0">
+          <div class="order-2 mt-2 lg:order-3 lg:mt-0">
             <div :if={@rating} class="flex items-baseline gap-2 text-white">
               <span class="text-3xl font-semibold tabular-nums [font-family:var(--akwaaba-display)]">
                 {@rating.average}
