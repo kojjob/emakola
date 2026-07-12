@@ -425,33 +425,16 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       </div>
 
       <%!-- Search & Filters --%>
-      <div class="flex flex-col sm:flex-row gap-3">
-        <form phx-change="search" phx-debounce="300" class="flex-1">
-          <div class="relative">
-            <.icon
-              name="hero-magnifying-glass"
-              class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500"
-            />
-            <input
-              type="text"
-              name="search"
-              value={@search_query}
-              placeholder="Search products..."
-              class="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg border border-slate-200
-                     bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500
-                     placeholder:text-slate-500/50"
-              autocomplete="off"
-            />
+      <.table_toolbar search_query={@search_query} placeholder="Search products...">
+        <:filters>
+          <div class="flex gap-1 bg-slate-100 rounded-lg p-1 overflow-x-auto">
+            <.status_tab status={:all} current={@status_filter} label="All" />
+            <.status_tab status={:draft} current={@status_filter} label="Draft" />
+            <.status_tab status={:active} current={@status_filter} label="Active" />
+            <.status_tab status={:archived} current={@status_filter} label="Archived" />
           </div>
-        </form>
-
-        <div class="flex gap-1 bg-slate-100 rounded-lg p-1 overflow-x-auto">
-          <.status_tab status={:all} current={@status_filter} label="All" />
-          <.status_tab status={:draft} current={@status_filter} label="Draft" />
-          <.status_tab status={:active} current={@status_filter} label="Active" />
-          <.status_tab status={:archived} current={@status_filter} label="Archived" />
-        </div>
-      </div>
+        </:filters>
+      </.table_toolbar>
 
       <%!-- Product List --%>
       <.product_list

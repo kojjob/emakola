@@ -1,11 +1,12 @@
 defmodule EmakolaWeb.AdminComponents do
   @moduledoc """
-  Shared admin UI primitives — page headers, status badges, empty states.
+  Shared admin UI primitives — page headers, status badges, stat tiles,
+  table toolbars, empty states.
 
   These are extracted from repeated inline markup across admin LiveViews
   (`product_live/index`, `order_live/{index,show}`, `customer_live/index`,
   `coupon_live`, `inventory_live`, etc.) so call sites no longer reinvent
-  the title-row, status pill, and empty-state shapes.
+  the title-row, status badge, stat-tile, toolbar, and empty-state shapes.
   """
 
   use Phoenix.Component
@@ -165,11 +166,108 @@ defmodule EmakolaWeb.AdminComponents do
   end
 
   # ─────────────────────────────────────────────────────────────────────
-  # status_pill/1
+  # stat_card/1
   # ─────────────────────────────────────────────────────────────────────
 
   @doc """
-  Renders a colour-coded status pill.
+  Renders a KPI stat tile — label, value, optional icon chip, and optional
+  trend/delta row.
+
+  The icon slot renders inside a coloured chip (`icon_bg`, defaults to the
+  primary soft token); the delta slot renders under the value for trend
+  indicators.
+
+  ## Examples
+
+      <.stat_card label="Revenue" value="GHS 1,200.00" />
+
+      <.stat_card label="Low Stock" value="3" icon_bg="bg-amber-50">
+        <:icon><.icon name="hero-exclamation-triangle" class="size-[18px] text-amber-600" /></:icon>
+      </.stat_card>
+  """
+  attr :label, :string, required: true
+  attr :value, :string, required: true
+  attr :icon_bg, :string, default: "bg-primary-soft"
+
+  slot :icon
+  slot :delta
+
+  def stat_card(assigns) do
+    ~H"""
+    <.admin_card padding={:none} class="p-5 hover:shadow-md transition-shadow">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-medium text-slate-500">{@label}</span>
+        <div
+          :if={@icon != []}
+          class={["w-9 h-9 rounded-control flex items-center justify-center", @icon_bg]}
+        >
+          {render_slot(@icon)}
+        </div>
+      </div>
+      <p class="text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums">{@value}</p>
+      {render_slot(@delta)}
+    </.admin_card>
+    """
+  end
+
+  # ─────────────────────────────────────────────────────────────────────
+  # table_toolbar/1
+  # ─────────────────────────────────────────────────────────────────────
+
+  @doc """
+  Renders the standard index-page toolbar — debounced search input with
+  optional filter chips and right-side actions.
+
+  ## Examples
+
+      <.table_toolbar search_query={@search_query} placeholder="Search products...">
+        <:filters>
+          <.status_tab status={:all} current={@status_filter} label="All" />
+        </:filters>
+      </.table_toolbar>
+  """
+  attr :search_query, :string, required: true
+  attr :search_event, :string, default: "search"
+  attr :placeholder, :string, default: "Search..."
+
+  slot :filters
+  slot :actions
+
+  def table_toolbar(assigns) do
+    ~H"""
+    <div class="flex flex-col sm:flex-row gap-3">
+      <form phx-change={@search_event} phx-debounce="300" class="flex-1">
+        <div class="relative">
+          <.icon
+            name="hero-magnifying-glass"
+            class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400"
+          />
+          <input
+            type="search"
+            name="search"
+            value={@search_query}
+            placeholder={@placeholder}
+            class="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-700
+                   placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30
+                   focus:border-emerald-500 transition-all"
+            autocomplete="off"
+          />
+        </div>
+      </form>
+      {render_slot(@filters)}
+      <div :if={@actions != []} class="flex items-center gap-3">
+        {render_slot(@actions)}
+      </div>
+    </div>
+    """
+  end
+
+  # ─────────────────────────────────────────────────────────────────────
+  # status_badge/1
+  # ─────────────────────────────────────────────────────────────────────
+
+  @doc """
+  Renders a colour-coded status badge.
 
   Variant determines the colour mapping:
 
@@ -182,13 +280,13 @@ defmodule EmakolaWeb.AdminComponents do
 
   ## Examples
 
-      <.status_pill status={@order.status} variant={:order} />
-      <.status_pill status="pending" variant={:payment} />
+      <.status_badge status={@order.status} variant={:order} />
+      <.status_badge status="pending" variant={:payment} />
   """
   attr :status, :any, required: true
   attr :variant, :atom, default: :order, values: [:order, :payment, :delivery, :product]
 
-  def status_pill(assigns) do
+  def status_badge(assigns) do
     status_atom = normalise_status(assigns.status)
     color = status_color(assigns.variant, status_atom)
 
