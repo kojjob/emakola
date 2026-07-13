@@ -325,6 +325,24 @@ defmodule Emakola.Themes.Bold.Shared do
   # ── Helpers ──
 
   @doc """
+  Whether a legacy `@theme.sections.<name>` toggle is on. Absent toggles
+  default to on, so a store that never touched them keeps every section.
+
+  Lives here (rather than in `Home`) because each extracted section carries
+  its own gate — dropping it would resurrect sections merchants had turned
+  off the old way.
+  """
+  def section_enabled?(theme, section_name) do
+    case theme do
+      %{sections: sections} when is_map(sections) ->
+        Map.get(sections, section_name, true)
+
+      _ ->
+        true
+    end
+  end
+
+  @doc """
   Extract first image URL from a product's images association.
   """
   def first_image(product) do

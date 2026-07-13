@@ -19,6 +19,19 @@ defmodule Emakola.Themes.Bold do
   def id, do: "bold"
   def name, do: "Bold"
 
+  @doc """
+  Returns the home sections, in today's default visual order.
+  """
+  def sections,
+    do: [
+      Emakola.Themes.Bold.Sections.Hero,
+      Emakola.Themes.Bold.Sections.Categories,
+      Emakola.Themes.Bold.Sections.Featured,
+      Emakola.Themes.Bold.Sections.EditorialBanner,
+      Emakola.Themes.Bold.Sections.ProductGrid,
+      Emakola.Themes.Bold.Sections.Newsletter
+    ]
+
   def fonts,
     do: [
       "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap"
