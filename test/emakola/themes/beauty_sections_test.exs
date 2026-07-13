@@ -24,6 +24,26 @@ defmodule Emakola.Themes.BeautySectionsTest do
     on_exit(fn -> Application.delete_env(:emakola, :extra_sectionized_themes) end)
   end
 
+  defp render_section(section, store, overrides) do
+    defaults =
+      for setting <- section.settings_schema(), into: %{}, do: {setting.key, setting.default}
+
+    %{
+      store: store,
+      products: [],
+      categories: [],
+      testimonials: [],
+      review_photos: [],
+      theme: ThemeResolver.resolve(store.theme_config || %{}, store),
+      settings: Map.merge(defaults, overrides),
+      section_meta: %{},
+      cart_count: 0,
+      __changed__: nil
+    }
+    |> section.render()
+    |> rendered_to_string()
+  end
+
   defp render_home(store) do
     theme = ThemeResolver.resolve(store.theme_config || %{}, store)
 
@@ -136,7 +156,11 @@ defmodule Emakola.Themes.BeautySectionsTest do
       assert html =~ "Join the beauty list"
     end
 
-    test "the brand strip renders when the merchant switches it on" do
+    # Switching the strip on used to be enough to put five italic "As featured
+    # in" placeholders on the page — press coverage this shop had never had.
+    # The toggle alone buys nothing now: the strip lists the publications the
+    # merchant names, and a merchant who has named none has no strip.
+    test "switching the brand strip on does not conjure press coverage" do
       {_merchant, store} =
         create_merchant_with_store!(%{
           theme_config: %{"theme" => "beauty", "sections" => %{"featured_in" => true}}
@@ -144,7 +168,25 @@ defmodule Emakola.Themes.BeautySectionsTest do
 
       html = render_home(store)
 
+      refute html =~ "As featured in"
+      # ...and the rest of the page is untouched
+      assert html =~ "Elevate Your Essence"
+    end
+
+    test "the brand strip names the publications the merchant named" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{
+          theme_config: %{"theme" => "beauty", "sections" => %{"featured_in" => true}}
+        })
+
+      html =
+        render_section(Beauty.Sections.FeaturedIn, store, %{
+          "publications" => "Vogue Ghana, Citi FM"
+        })
+
       assert html =~ "As featured in"
+      assert html =~ "Vogue Ghana"
+      assert html =~ "Citi FM"
     end
 
     test "a store with no products renders the page without the products block" do

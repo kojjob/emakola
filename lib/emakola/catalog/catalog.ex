@@ -173,4 +173,31 @@ defmodule Emakola.Catalog do
     |> Ash.Query.load(:customer)
     |> Ash.read!(authorize?: false)
   end
+
+  @doc """
+  The photographs the store's customers attached to their reviews, newest first.
+
+  Fashion's "Worn by you." strip used to lay out six camera glyphs where these
+  belonged — the shape of customer photography with nothing inside it. These are
+  the real ones: `Catalog.Review.images`, the same list the product page already
+  renders under each review.
+
+  Same guarantees as `store_testimonials/2` — only `:published` reviews (a
+  merchant-hidden review takes its photos down with it), scoped by `store_id`,
+  and a review is only possible for someone who actually bought the thing.
+
+  A store whose customers have posted no photographs gets `[]`, and the strip
+  renders nothing at all.
+  """
+  @spec store_review_photos(Ecto.UUID.t(), pos_integer()) :: [map()]
+  def store_review_photos(store_id, limit \\ 12) do
+    require Ash.Query
+
+    Emakola.Catalog.Review
+    |> Ash.Query.filter(store_id == ^store_id and status == :published)
+    |> Ash.Query.sort(inserted_at: :desc)
+    |> Ash.read!(authorize?: false)
+    |> Enum.flat_map(& &1.images)
+    |> Enum.take(limit)
+  end
 end

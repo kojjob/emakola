@@ -41,6 +41,8 @@ defmodule EmakolaWeb.Storefront.StoreLive do
      # Themes that show testimonials used to invent them. They get the store's
      # real published reviews now, or an empty list and no section.
      |> assign(:testimonials, Emakola.Catalog.store_testimonials(store.id))
+     # Likewise the "customer photos" strip, which used to be six camera glyphs.
+     |> assign(:review_photos, Emakola.Catalog.store_review_photos(store.id))
      |> assign(:public_coupons, public_coupons)
      |> assign(:cart_session_id, cart_session_id)
      |> assign(:cart_count, cart_count)
