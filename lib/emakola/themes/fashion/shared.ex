@@ -184,6 +184,21 @@ defmodule Emakola.Themes.Fashion.Shared do
     ]
   end
 
+  @doc """
+  Whether a home section is switched on in the theme config.
+
+  Predates the section editor: Fashion's home blocks have always been gated by
+  `theme.sections.<key>`, defaulting to on. Each extracted section keeps its own
+  gate, so a merchant who switched one off in the theme customiser still sees it
+  off.
+  """
+  def section_enabled?(theme, name) do
+    case get_in(theme, [:sections, name]) do
+      false -> false
+      _ -> true
+    end
+  end
+
   def first_image(product) do
     case product.images do
       [%{thumbnail_url: url} | _] when is_binary(url) -> url
