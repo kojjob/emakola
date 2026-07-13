@@ -1,0 +1,158 @@
+defmodule Emakola.Themes.Electronics.Sections.Hero do
+  @moduledoc """
+  Electronics home hero -- extracted verbatim from electronics/home.ex.
+
+  The teal hero band carries Electronics' nav as its first child: the
+  translucent header (`bg-[#134E4A]/85`) only reads as a header because it
+  sits on the hero's teal. Lifting it out into page chrome would float it
+  over the cream body and wash it out, so it stays inside the section it
+  was drawn against.
+  """
+  @behaviour Emakola.Themes.Section
+
+  use Phoenix.Component
+
+  import Emakola.Themes.Electronics.Sections.Helpers
+  import EmakolaWeb.Storefront.Path
+
+  alias Emakola.Themes.Electronics.Shared
+
+  @impl true
+  def key, do: "electronics/hero"
+  @impl true
+  def label, do: "Hero"
+
+  @impl true
+  def settings_schema do
+    [
+      %{key: "heading", type: :string, label: "Heading", default: ""},
+      %{key: "subheading", type: :string, label: "Subheading", default: ""},
+      %{key: "cta_label", type: :string, label: "Button label", default: ""}
+    ]
+  end
+
+  @impl true
+  def render(assigns) do
+    title = setting(assigns[:settings], "heading", get_in(assigns.theme, [:hero, :title]))
+
+    assigns =
+      assigns
+      |> assign(:cart_count, assigns[:cart_count] || 0)
+      |> assign(:hero_title_first, title_first(title))
+      |> assign(:hero_title_second, title_second(title))
+      |> assign(
+        :hero_subtitle,
+        setting(assigns[:settings], "subheading", get_in(assigns.theme, [:hero, :subtitle]))
+      )
+      |> assign(
+        :hero_cta_text,
+        setting(
+          assigns[:settings],
+          "cta_label",
+          get_in(assigns.theme, [:hero, :cta_text]) || "Shop Now"
+        )
+      )
+      |> assign(:hero_image_url, hero_image_url(assigns))
+
+    ~H"""
+    <%!-- HERO: split layout, deep teal left, vibrant product right --%>
+    <section :if={section_enabled?(@theme, :hero)} class="bg-[#134E4A]">
+      <Shared.electronics_nav store={@store} cart_count={@cart_count} on_dark={true} />
+
+      <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 lg:py-20">
+        <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+          <div class="text-white">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0EA5E9]/20 text-[#0EA5E9] text-[11px] font-bold uppercase tracking-[0.18em] mb-5">
+              <span class="material-symbols-outlined" style="font-size: 14px;">flash_on</span>
+              New Arrivals
+            </span>
+            <h1 class="electronics-heading text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] mb-3">
+              {@hero_title_first}
+            </h1>
+            <p
+              :if={@hero_title_second}
+              class="electronics-heading text-2xl sm:text-3xl lg:text-4xl text-[#0EA5E9] font-bold mb-6"
+            >
+              {@hero_title_second}
+            </p>
+            <p :if={@hero_subtitle} class="text-base text-white/75 leading-relaxed mb-8 max-w-md">
+              {@hero_subtitle}
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <a
+                href={store_path(@store.slug, "/products")}
+                class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-white text-[#134E4A] text-sm font-bold hover:bg-[#F5EFE5] transition-colors min-h-[48px]"
+              >
+                {@hero_cta_text}
+                <span class="material-symbols-outlined" style="font-size: 18px;">
+                  arrow_forward
+                </span>
+              </a>
+              <a
+                href={store_path(@store.slug, "/about")}
+                class="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full border border-white/20 text-white text-sm font-semibold hover:bg-white/5 transition-colors min-h-[48px]"
+              >
+                Learn more
+              </a>
+            </div>
+          </div>
+
+          <div class="relative">
+            <div class="aspect-square rounded-3xl overflow-hidden bg-gradient-to-br from-[#1A6E69] to-[#0E3F3B] flex items-center justify-center">
+              <%= if @hero_image_url do %>
+                <img src={@hero_image_url} alt="Electronics" class="w-full h-full object-cover" />
+              <% else %>
+                <span class="material-symbols-outlined text-[#0EA5E9]/40" style="font-size: 200px;">
+                  headphones
+                </span>
+              <% end %>
+            </div>
+            <%!-- Floating spec card --%>
+            <div class="absolute bottom-6 left-6 sm:bottom-8 sm:left-8 bg-white rounded-2xl px-5 py-4 shadow-xl">
+              <p class="text-[10px] uppercase tracking-wider text-[#6B7280] font-semibold mb-1">
+                Battery
+              </p>
+              <p class="electronics-mono text-base font-bold text-[#134E4A]">40hrs · BT 5.3</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  defp hero_image_url(assigns) do
+    case get_in(assigns.theme, [:hero, :images]) || [] do
+      [first | _] when is_binary(first) ->
+        first
+
+      _ ->
+        case get_in(assigns.theme, [:hero, :image_url]) do
+          url when is_binary(url) and url != "" -> url
+          _ -> nil
+        end
+    end
+  end
+
+  # Splits the hero title at the first comma so the headline can be
+  # "Upgrade Your Gear" then sky-blue "Upgrade Yourself" on a second line.
+  defp title_first(nil), do: "Upgrade Your Gear"
+
+  defp title_first(title) when is_binary(title) do
+    case String.split(title, ",", parts: 2) do
+      [first, _] -> String.trim(first)
+      [single] -> single
+    end
+  end
+
+  # The second headline line only exists when the title contains a comma
+  # ("Upgrade Your Gear, Upgrade Yourself") — never append copy of our own.
+  defp title_second(title) when is_binary(title) do
+    case String.split(title, ",", parts: 2) do
+      [_, second] -> String.trim(second)
+      _ -> nil
+    end
+  end
+
+  defp title_second(_title), do: nil
+end
