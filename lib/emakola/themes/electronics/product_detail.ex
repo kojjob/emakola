@@ -112,10 +112,10 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
                     Map.get(@store, :currency, "GHS")
                   )}
                 </span>
-                <span class="inline-flex items-center gap-1 text-xs text-[#10B981] font-semibold">
-                  <span class="material-symbols-outlined" style="font-size: 14px;">verified</span>
-                  1-year warranty
-                </span>
+                <%!-- A "1-year warranty" badge used to sit beside the price on
+                     every Electronics product. No merchant offered it, none could
+                     remove it, and there is no warranty field to derive one from.
+                     Warranty terms belong on the store's policies page. --%>
               </div>
 
               <%!-- Description --%>

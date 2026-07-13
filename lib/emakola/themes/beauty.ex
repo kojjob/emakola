@@ -126,10 +126,15 @@ defmodule Emakola.Themes.Beauty do
             answer:
               "Yes — every product is tested for skin compatibility before launch and reformulated with feedback from our beauty community."
           },
+          # This shipped answering "within 1–4 business days. Free delivery on
+          # orders over GHS 200" for every Beauty store, none of which had set
+          # either number. The FAQ is merchant-editable, so the honest default
+          # is to point at the delivery terms the merchant actually configures
+          # rather than to invent some.
           %{
             question: "Do you ship across Ghana?",
             answer:
-              "We deliver across all 16 regions of Ghana within 1–4 business days. Free delivery on orders over GHS 200."
+              "Our delivery zones, fees and times are listed on our policies page and shown at checkout."
           },
           %{
             question: "Are your ingredients ethically sourced?",

@@ -38,6 +38,8 @@ defmodule Emakola.Themes.FreshSectionsTest do
       products: products,
       categories: categories,
       theme: theme,
+      # Mirrors StoreLive: the delivery banner states the store's own zones.
+      delivery_zones: Emakola.Shipping.list_delivery_zones!(store.id),
       cart_count: 0,
       __changed__: nil
     }
@@ -61,8 +63,13 @@ defmodule Emakola.Themes.FreshSectionsTest do
       # Featured picks
       assert html =~ "Today's Picks"
       # Delivery banner
-      assert html =~ "Same-Day Delivery in Accra"
-      assert html =~ "Order before noon and get your fresh produce delivered the same day."
+      # The banner used to headline "Same-Day Delivery in Accra" and promise a
+      # noon cutoff on every Fresh store. This one has configured no delivery
+      # zones, so it promises nothing and points at its policies instead.
+      assert html =~ "Delivery &amp; returns"
+      assert html =~ "This store sets its own delivery times and returns terms."
+      refute html =~ "Same-Day Delivery in Accra"
+      refute html =~ "Order before noon"
       # Product grid
       assert html =~ ~s(id="fresh-shop-all")
       assert html =~ "Shop All Products"
@@ -86,7 +93,7 @@ defmodule Emakola.Themes.FreshSectionsTest do
 
       assert String.match?(
                html,
-               ~r/Fresh to Your Door.*Shop by Category.*Today's Picks.*Same-Day Delivery in Accra.*fresh-shop-all.*Get Weekly Deals/s
+               ~r/Fresh to Your Door.*Shop by Category.*Today's Picks.*Delivery &amp; returns.*fresh-shop-all.*Get Weekly Deals/s
              )
     end
 
@@ -95,12 +102,30 @@ defmodule Emakola.Themes.FreshSectionsTest do
 
       assert html =~ ~s(aria-label="Search products")
       assert html =~ ~r/<a[^>]*href="\/s\/[^"]+\/cart"/
-      assert html =~ "Farm fresh to your door."
+      # The footer's invented "Farm fresh to your door. Quality produce ...
+      # delivered with care." blurb and its "Fresh Guarantee" / "Same Day
+      # Delivery" badges are gone — the store speaks for itself.
+      refute html =~ "Farm fresh to your door."
+      refute html =~ "Fresh Guarantee"
+      refute html =~ "Same Day Delivery"
 
       assert String.match?(
                html,
                ~r/Search products.*Fresh to Your Door.*Get Weekly Deals.*<footer/s
              )
+    end
+
+    test "a store that really does deliver same-day in Accra still says so" do
+      store = seed_store!()
+      create_delivery_zone!(store, %{name: "Accra", fee: 1000, estimated_days: 0})
+
+      html = render_home(store)
+
+      # Same-day reaches the page only because the merchant configured a zone
+      # with estimated_days: 0 — the same row the checkout charges from.
+      assert html =~ "Same day"
+      assert html =~ "We deliver to Accra"
+      refute html =~ "This store sets its own delivery times"
     end
 
     test "an empty catalogue drops the category, featured and grid blocks" do
@@ -113,7 +138,7 @@ defmodule Emakola.Themes.FreshSectionsTest do
       refute html =~ "Shop All Products"
       # Hero, delivery banner and newsletter still stand
       assert html =~ "Fresh to Your Door"
-      assert html =~ "Same-Day Delivery in Accra"
+      assert html =~ "Delivery &amp; returns"
       assert html =~ "Get Weekly Deals"
     end
 
@@ -149,7 +174,7 @@ defmodule Emakola.Themes.FreshSectionsTest do
       html = render_home(store)
 
       refute html =~ "Get Weekly Deals"
-      refute html =~ "Same-Day Delivery in Accra"
+      refute html =~ "Delivery &amp; returns"
       assert html =~ "Fresh to Your Door"
       assert html =~ "Shop All Products"
     end

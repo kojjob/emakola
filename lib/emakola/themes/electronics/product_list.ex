@@ -32,8 +32,8 @@ defmodule Emakola.Themes.Electronics.ProductList do
           <h1 class="electronics-heading text-4xl sm:text-5xl font-extrabold mb-3">
             {page_title(@search_query, @active_category_slug, @categories)}
           </h1>
-          <p class="text-sm text-white/75 max-w-xl">
-            Genuine products. 1-year warranty. Free shipping over GHS 500.
+          <p :if={@store.description not in [nil, ""]} class="text-sm text-white/75 max-w-xl">
+            {@store.description}
           </p>
         </div>
       </section>

@@ -81,7 +81,6 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      |> assign(:fullname, "")
      |> assign(:address, "")
      |> assign(:region, "greater_accra")
-     |> assign(:delivery_fee, 1500)
      |> assign(:notes, "")
      |> assign(:processing, false)
      |> assign(:order, nil)
@@ -96,7 +95,12 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      |> assign(:show_mobile_summary, false)
      |> assign(:form_errors, %{})
      |> assign(:timer_seconds, 180)
-     |> assign(:page_title, "Checkout - #{store.name}")}
+     |> assign(:page_title, "Checkout - #{store.name}")
+     # Resolve the default region's fee and estimate from the store's own
+     # delivery zone up front. `delivery_fee` used to be hardcoded to 1500 at
+     # mount and only corrected once the customer touched the form, so the first
+     # thing a shopper read was a fee that had nothing to do with this store.
+     |> update_delivery_fee()}
   end
 
   # -- Event Handlers -------------------------------------------------------
@@ -630,20 +634,45 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     region = socket.assigns.region
     store_id = socket.assigns.store.id
 
-    fee =
-      case Emakola.Shipping.calculate_fee(store_id, region,
-             subtotal_pesewas: socket.assigns.cart_total,
-             total_weight_grams: socket.assigns.cart_weight_grams
-           ) do
-        {:ok, configured_fee} ->
-          configured_fee
+    {fee, estimate} =
+      case Emakola.Shipping.find_zone(store_id, region) do
+        {:ok, zone} ->
+          {zone_fee(socket, zone), delivery_estimate(zone)}
 
         {:error, :no_zone} ->
-          Map.get(@default_region_fees, region, @default_region_fee)
+          {Map.get(@default_region_fees, region, @default_region_fee), nil}
       end
 
-    assign(socket, :delivery_fee, fee)
+    socket
+    |> assign(:delivery_fee, fee)
+    |> assign(:delivery_estimate, estimate)
   end
+
+  defp zone_fee(socket, zone) do
+    case Emakola.Shipping.calculate_fee(socket.assigns.store.id, zone.name,
+           subtotal_pesewas: socket.assigns.cart_total,
+           total_weight_grams: socket.assigns.cart_weight_grams
+         ) do
+      {:ok, fee} -> fee
+      {:error, :no_zone} -> zone.fee
+    end
+  end
+
+  # The checkout used to print a delivery estimate keyed off the region alone —
+  # "1-2 business days" for Greater Accra, "3-5" for everywhere else — while
+  # charging a fee taken from the merchant's own delivery zone. The price was
+  # the merchant's; the promise beside it was ours, and no merchant could change
+  # it. Both now come from the same row. A store that has configured no zone for
+  # this region has promised no timeline, so the checkout states none.
+  defp delivery_estimate(%{estimated_days: days}) when is_integer(days) do
+    case days do
+      0 -> "Same day"
+      1 -> "Next day"
+      n -> "About #{n} days"
+    end
+  end
+
+  defp delivery_estimate(_zone), do: nil
 
   # Total cart weight in grams for weight-based delivery pricing. Variants
   # without a configured weight count as 0.

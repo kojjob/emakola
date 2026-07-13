@@ -21,6 +21,7 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Atelier.Shared
+  alias Emakola.Themes.Delivery
   alias EmakolaWeb.Helpers.Currency
 
   @doc """
@@ -210,8 +211,13 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                 <Shared.price_display product={@product} store={@store} size="lg" />
               </div>
 
-              <%!-- Free Delivery callout --%>
+              <%!-- Delivery callout. This used to read "Free Delivery within
+                   Accra & Kumasi" on every Atelier product, for every store —
+                   a promise no merchant made. It now states the store's own
+                   delivery zones, and says nothing when it has configured
+                   none. --%>
               <p
+                :if={delivery_callout(assigns)}
                 class="text-sm font-medium mb-6 flex items-center gap-2"
                 style="color: var(--theme-accent);"
               >
@@ -223,6 +229,7 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                   stroke="currentColor"
                   stroke-width="2"
                   stroke-linecap="round"
+                  aria-hidden="true"
                 >
                   <path d="M1 3h15v13H1z" /><path d="M16 8h4l3 3v5h-7V8z" /><circle
                     cx="5.5"
@@ -230,7 +237,7 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                     r="2.5"
                   /><circle cx="18.5" cy="18.5" r="2.5" />
                 </svg>
-                Free Delivery within Accra &amp; Kumasi
+                {delivery_callout(assigns)}
               </p>
 
               <%!-- Description Card --%>
@@ -608,4 +615,6 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
   end
 
   defp product_title_with_accent(title), do: title
+
+  defp delivery_callout(assigns), do: Delivery.callout(assigns)
 end

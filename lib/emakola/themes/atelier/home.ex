@@ -16,6 +16,7 @@ defmodule Emakola.Themes.Atelier.Home do
 
   alias Phoenix.LiveView.JS
   alias Emakola.Themes.Atelier.Shared
+  alias Emakola.Themes.Delivery
   alias Emakola.Themes.SectionRenderer
 
   @doc """
@@ -45,6 +46,7 @@ defmodule Emakola.Themes.Atelier.Home do
       <.announcement_bar
         public_coupons={assigns[:public_coupons] || []}
         store={@store}
+        delivery_zones={assigns[:delivery_zones] || []}
       />
 
       <Shared.navbar
@@ -71,6 +73,7 @@ defmodule Emakola.Themes.Atelier.Home do
 
   attr :public_coupons, :list, default: []
   attr :store, :map, required: true
+  attr :delivery_zones, :list, default: []
 
   defp announcement_bar(assigns) do
     coupon = List.first(assigns.public_coupons)
@@ -86,9 +89,16 @@ defmodule Emakola.Themes.Atelier.Home do
       assigns
       |> assign(:coupon, coupon)
       |> assign(:message, message)
+      |> assign(:delivery_note, Delivery.callout(assigns))
 
     ~H"""
+    <%!-- With no coupon running, this bar used to read "Free delivery in Accra &
+         Kumasi on orders over GHS 100" — a promise every Atelier store made and
+         none had authored. It now carries the store's own delivery terms, and
+         when the store has neither a coupon nor a configured zone the bar has
+         nothing true to say, so it does not render. --%>
     <div
+      :if={@coupon || @delivery_note}
       id="announcement-bar"
       class="py-2 text-white text-center text-xs sm:text-sm relative"
       style="background-color: #B45309;"
@@ -99,7 +109,7 @@ defmodule Emakola.Themes.Atelier.Home do
             Use code <span class="font-bold">{@coupon.code}</span> for {@message}
           </p>
         <% else %>
-          <p>Free delivery in Accra & Kumasi on orders over GHS 100</p>
+          <p>{@delivery_note}</p>
         <% end %>
       </div>
       <button

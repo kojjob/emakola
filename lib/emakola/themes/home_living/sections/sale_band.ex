@@ -13,6 +13,7 @@ defmodule Emakola.Themes.HomeLiving.Sections.SaleBand do
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Delivery
   alias Emakola.Themes.HomeLiving.Shared
 
   @impl true
@@ -25,7 +26,7 @@ defmodule Emakola.Themes.HomeLiving.Sections.SaleBand do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :items, sale_band_items(assigns.theme))
+    assigns = assign(assigns, :items, sale_band_items(assigns))
 
     ~H"""
     <section
@@ -49,18 +50,39 @@ defmodule Emakola.Themes.HomeLiving.Sections.SaleBand do
     """
   end
 
-  defp sale_band_items(theme) do
-    case get_in(theme, [:sale_band, :items]) do
+  defp sale_band_items(assigns) do
+    case get_in(assigns.theme, [:sale_band, :items]) do
       items when is_list(items) and items != [] -> items
-      _ -> default_sale_band()
+      _ -> default_sale_band(assigns)
     end
   end
 
-  defp default_sale_band do
-    [
-      %{icon: "local_shipping", title: "Free Delivery", subtitle: "Orders GHS 500+"},
-      %{icon: "verified_user", title: "Safe Payment", subtitle: "MoMo & cards"},
-      %{icon: "schedule", title: "Daily Curation", subtitle: "Hand-picked"}
-    ]
+  # The band used to open with "Free Delivery — Orders GHS 500+" on every Home
+  # Living store, a threshold no merchant had set. The delivery tile is now the
+  # store's own (see `Emakola.Themes.Delivery`), and a store with no configured
+  # zones simply doesn't get one.
+  defp default_sale_band(assigns) do
+    zones = Delivery.zones(assigns)
+
+    delivery =
+      cond do
+        line = Delivery.free_delivery_detail(zones, assigns.store.currency) ->
+          %{icon: "local_shipping", title: "Free delivery", subtitle: line}
+
+        estimate = Delivery.estimate(zones) ->
+          %{icon: "local_shipping", title: estimate, subtitle: Delivery.zone_names(zones)}
+
+        true ->
+          nil
+      end
+
+    Enum.reject(
+      [
+        delivery,
+        %{icon: "verified_user", title: "Safe Payment", subtitle: "MoMo & cards"},
+        %{icon: "schedule", title: "Daily Curation", subtitle: "Hand-picked"}
+      ],
+      &is_nil/1
+    )
   end
 end

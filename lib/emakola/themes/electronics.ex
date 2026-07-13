@@ -66,8 +66,7 @@ defmodule Emakola.Themes.Electronics do
         images: [],
         carousel: false,
         title: "Upgrade Your Gear",
-        subtitle:
-          "The latest phones, audio, and accessories — genuine products with 1-year warranty.",
+        subtitle: "The latest phones, audio, and accessories.",
         cta_text: "Shop Now",
         cta_url: "/products"
       },
@@ -91,27 +90,21 @@ defmodule Emakola.Themes.Electronics do
           %{label: "Wearables"}
         ]
       },
+      # `subtitle: nil` and `items: []` — blank, but the keys must stay. They
+      # used to ship "1-year warranty" and "Free shipping over GHS 500" as theme
+      # defaults, so every Electronics store made a warranty and a shipping
+      # promise its merchant had never made. There is no warranty data model to
+      # derive one from, so that claim is gone outright; blank, the trust section
+      # states the store's OWN delivery terms (Emakola.Themes.Delivery) and falls
+      # back to the merchant's policies page when it has configured no zones.
+      #
+      # Do NOT delete these keys: ThemeResolver.deep_merge_atomize/2 drops any
+      # override whose key is absent from the defaults, so removing them would
+      # silently discard the copy of every merchant who wrote their own.
       trust: %{
         title: "Why thousands trust us",
-        subtitle:
-          "Genuine products. 1-year warranty. Free shipping over GHS 500 — from gamers to professionals and everyone in between.",
-        items: [
-          %{
-            icon: "verified_user",
-            label: "Genuine products",
-            subtitle: "Sourced direct"
-          },
-          %{
-            icon: "shield",
-            label: "1-year warranty",
-            subtitle: "Hassle-free returns"
-          },
-          %{
-            icon: "local_shipping",
-            label: "Fast shipping",
-            subtitle: "Free over GHS 500"
-          }
-        ]
+        subtitle: nil,
+        items: []
       },
       cta_band: %{
         title: "Explore our latest collection",

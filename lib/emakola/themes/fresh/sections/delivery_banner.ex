@@ -1,12 +1,25 @@
 defmodule Emakola.Themes.Fresh.Sections.DeliveryBanner do
   @moduledoc """
-  Fresh home delivery banner — the theme's `:promo` block. Extracted verbatim
-  from `fresh/home.ex`, including the three feature tiles.
+  Fresh home delivery banner — the theme's `:promo` block.
+
+  It used to headline "Same-Day Delivery in Accra" and promise "Order before
+  noon and get your fresh produce delivered the same day. Quality guaranteed."
+  on every Fresh storefront — including a merchant in Tamale who had never
+  delivered to Accra and never offered a noon cutoff. There is no cutoff field
+  to derive one from, so the cutoff is gone entirely.
+
+  The banner now states the store's OWN delivery zones (see
+  `Emakola.Themes.Delivery`): a store that has configured same-day Accra
+  delivery still says so, and a store that has configured nothing says nothing
+  and points at its policies page instead.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
+  alias Emakola.Themes.Delivery
   alias Emakola.Themes.Fresh.Shared
 
   @impl true
@@ -14,13 +27,20 @@ defmodule Emakola.Themes.Fresh.Sections.DeliveryBanner do
   @impl true
   def label, do: "Delivery Banner"
 
-  # No settings: the heading and feature tiles are static template text, kept
-  # verbatim so the storefront's output is unchanged.
   @impl true
   def settings_schema, do: []
 
   @impl true
   def render(assigns) do
+    zones = Delivery.zones(assigns)
+
+    assigns =
+      assigns
+      |> assign(:estimate, Delivery.estimate(zones))
+      |> assign(:zone_names, Delivery.zone_names(zones))
+      |> assign(:free_delivery, Delivery.free_delivery_detail(zones, assigns.store.currency))
+      |> assign(:policies_href, store_path(assigns.store.slug, "/policies#shipping"))
+
     ~H"""
     <section :if={Shared.section_enabled?(@theme, :promo)} class="py-8">
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -33,6 +53,7 @@ defmodule Emakola.Themes.Fresh.Sections.DeliveryBanner do
                 stroke="currentColor"
                 stroke-width="1.5"
                 viewBox="0 0 24 24"
+                aria-hidden="true"
               >
                 <path
                   stroke-linecap="round"
@@ -44,105 +65,116 @@ defmodule Emakola.Themes.Fresh.Sections.DeliveryBanner do
                 class="text-2xl sm:text-3xl font-bold text-cta-dark"
                 style="font-family: 'Nunito', sans-serif;"
               >
-                Same-Day Delivery in Accra
+                {if @zone_names, do: "We deliver to #{@zone_names}", else: "Delivery & returns"}
               </h3>
             </div>
+
             <p
               class="text-[#78350F] text-base mb-8 max-w-lg"
               style="font-family: 'Inter', sans-serif;"
             >
-              Order before noon and get your fresh produce delivered the same day. Quality guaranteed.
+              <%= if @zone_names do %>
+                {if(@free_delivery,
+                  do: "Free delivery — #{@free_delivery}.",
+                  else: "Delivery fees and times are set by this store."
+                )}
+              <% else %>
+                This store sets its own delivery times and returns terms.
+                <a
+                  href={@policies_href}
+                  class="font-semibold underline decoration-[#059669]/40 underline-offset-2 hover:text-cta-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#059669] rounded"
+                >
+                  See its policies
+                </a>
+              <% end %>
             </p>
+
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div class="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm">
-                <div class="w-10 h-10 rounded-full bg-[#059669]/10 flex items-center justify-center flex-shrink-0">
-                  <svg
-                    class="w-5 h-5 text-[#059669]"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <p
-                    class="text-sm font-bold text-cta-dark"
-                    style="font-family: 'Nunito', sans-serif;"
-                  >
-                    Fresh Guarantee
-                  </p>
-                  <p class="text-xs text-[#78350F]" style="font-family: 'Inter', sans-serif;">
-                    Quality checked produce
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm">
-                <div class="w-10 h-10 rounded-full bg-[#059669]/10 flex items-center justify-center flex-shrink-0">
-                  <svg
-                    class="w-5 h-5 text-[#059669]"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <p
-                    class="text-sm font-bold text-cta-dark"
-                    style="font-family: 'Nunito', sans-serif;"
-                  >
-                    Same Day Delivery
-                  </p>
-                  <p class="text-xs text-[#78350F]" style="font-family: 'Inter', sans-serif;">
-                    Order before 12pm
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm">
-                <div class="w-10 h-10 rounded-full bg-[#059669]/10 flex items-center justify-center flex-shrink-0">
-                  <svg
-                    class="w-5 h-5 text-[#059669]"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M9 12.75L11.25 15 15 9.75m-6-7.19l-2.12 2.12a1.5 1.5 0 01-1.061.44H4.5A2.25 2.25 0 002.25 9v1.069c0 .398.158.78.44 1.06l2.12 2.122c.282.281.44.663.44 1.06V16.5a2.25 2.25 0 002.25 2.25h1.069c.397 0 .78.158 1.06.44l2.122 2.12a1.5 1.5 0 002.12 0l2.122-2.12a1.5 1.5 0 011.06-.44H18.75A2.25 2.25 0 0021 16.5v-1.069a1.5 1.5 0 01.44-1.06l2.12-2.122a1.5 1.5 0 000-2.12l-2.12-2.122a1.5 1.5 0 01-.44-1.06V4.5A2.25 2.25 0 0018.75 2.25h-1.069a1.5 1.5 0 01-1.06-.44l-2.122-2.12a1.5 1.5 0 00-2.12 0z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <p
-                    class="text-sm font-bold text-cta-dark"
-                    style="font-family: 'Nunito', sans-serif;"
-                  >
-                    Secure Payment
-                  </p>
-                  <p class="text-xs text-[#78350F]" style="font-family: 'Inter', sans-serif;">
-                    MoMo, Card & Cash
-                  </p>
-                </div>
-              </div>
+              <.tile :if={@estimate} title={@estimate} subtitle={@zone_names}>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </.tile>
+
+              <.tile :if={@free_delivery} title="Free delivery" subtitle={@free_delivery}>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </.tile>
+
+              <.tile
+                :if={!@estimate && !@free_delivery}
+                title="Delivery & returns"
+                subtitle="See this store's policies"
+                href={@policies_href}
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </.tile>
+
+              <.tile title="Secure payment" subtitle="MoMo, Telecel Cash & card">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                />
+              </.tile>
             </div>
           </div>
         </div>
       </div>
     </section>
+    """
+  end
+
+  attr :title, :string, required: true
+  attr :subtitle, :string, default: nil
+  attr :href, :string, default: nil
+  slot :inner_block, required: true
+
+  defp tile(assigns) do
+    ~H"""
+    <div class="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm">
+      <div class="w-10 h-10 rounded-full bg-[#059669]/10 flex items-center justify-center flex-shrink-0">
+        <svg
+          class="w-5 h-5 text-[#059669]"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          {render_slot(@inner_block)}
+        </svg>
+      </div>
+      <div class="min-w-0">
+        <p class="text-sm font-bold text-cta-dark" style="font-family: 'Nunito', sans-serif;">
+          {@title}
+        </p>
+        <a
+          :if={@href && @subtitle}
+          href={@href}
+          class="text-xs text-[#78350F] underline decoration-[#78350F]/30 underline-offset-2 hover:text-cta-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#059669] rounded"
+          style="font-family: 'Inter', sans-serif;"
+        >
+          {@subtitle}
+        </a>
+        <p
+          :if={!@href && @subtitle}
+          class="text-xs text-[#78350F]"
+          style="font-family: 'Inter', sans-serif;"
+        >
+          {@subtitle}
+        </p>
+      </div>
+    </div>
     """
   end
 end

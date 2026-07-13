@@ -61,7 +61,7 @@ defmodule Emakola.Themes.Fresh do
         images: [],
         carousel: false,
         title: "Fresh to Your Door",
-        subtitle: "Farm-fresh groceries delivered same day in Accra",
+        subtitle: "Fresh produce and groceries, picked for you",
         cta_text: "Start Shopping",
         cta_url: "/products"
       },

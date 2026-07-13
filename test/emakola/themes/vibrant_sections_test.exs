@@ -45,6 +45,8 @@ defmodule Emakola.Themes.VibrantSectionsTest do
       products: products,
       categories: categories,
       theme: ThemeResolver.resolve(store.theme_config || %{}, store),
+      # Mirrors StoreLive: the delivery strip states the store's own zones.
+      delivery_zones: Emakola.Shipping.list_delivery_zones!(store.id),
       cart_count: 0,
       __changed__: nil
     }
@@ -150,18 +152,46 @@ defmodule Emakola.Themes.VibrantSectionsTest do
       assert length(String.split(html, ~s(phx-submit="subscribe_newsletter"))) == 3
     end
 
-    test "the service strip closes the page with its five pills" do
+    # The strip used to close every Vibrant page with "Free delivery — Orders
+    # over GH₵200", "Reply within an hour" and "Easy returns — 14-day window".
+    # This store has configured no delivery zones, so it has promised none of
+    # that, and the strip now says so.
+    test "the service strip promises nothing a store with no zones hasn't promised" do
       html = render_home(seed_store())
 
-      assert html =~ "Free delivery"
-      assert html =~ "Orders over GH₵200"
+      assert html =~ "Delivery &amp; returns"
+      # HEEx escapes interpolated values, so the apostrophe arrives as &#39;
+      assert html =~ "See this store"
+      assert html =~ "/policies#shipping"
+
+      # What the platform really does support
       assert html =~ "Mobile money"
-      assert html =~ "MoMo, Vodafone, Card"
-      assert html =~ "WhatsApp support"
-      assert html =~ "Reply within an hour"
-      assert html =~ "Every item, every time"
-      assert html =~ "Easy returns"
-      assert html =~ "14-day window"
+      assert html =~ "MTN MoMo, Telecel Cash, AirtelTigo, card"
+      assert html =~ "Secure checkout"
+
+      refute html =~ "Free delivery"
+      refute html =~ "Orders over GH₵200"
+      refute html =~ "Reply within an hour"
+      refute html =~ "14-day window"
+      # Vodafone Cash has been Telecel Cash since 2024
+      refute html =~ "Vodafone"
+    end
+
+    test "a store that configured a free-delivery zone says so, in its own numbers" do
+      store = seed_store()
+
+      create_delivery_zone!(store, %{
+        name: "Accra",
+        fee: 1500,
+        estimated_days: 1,
+        free_above_pesewas: 20_000
+      })
+
+      html = render_home(store)
+
+      assert html =~ "Free delivery"
+      assert html =~ "Over GH₵ 200 · Accra"
+      refute html =~ "See this store"
     end
 
     test "three pattern dividers give the page its rhythm" do
@@ -187,7 +217,7 @@ defmodule Emakola.Themes.VibrantSectionsTest do
 
       assert String.match?(
                html,
-               ~r/vibrant-pattern.*Why shop with us.*vibrant-editors-picks.*vibrant-occasions.*Add to bag.*vibrant-shop-all.*Meet the Maker.*First dibs on new arrivals.*Free delivery/s
+               ~r/vibrant-pattern.*Why shop with us.*vibrant-editors-picks.*vibrant-occasions.*Add to bag.*vibrant-shop-all.*Meet the Maker.*First dibs on new arrivals.*Secure checkout/s
              )
     end
 
@@ -200,7 +230,7 @@ defmodule Emakola.Themes.VibrantSectionsTest do
       assert html =~ "Locally crafted"
       assert html =~ "Meet the Maker"
       assert html =~ "First dibs on new arrivals"
-      assert html =~ "Free delivery"
+      assert html =~ "Secure checkout"
       # Product- and category-gated blocks stay away
       refute html =~ ~s(id="vibrant-editors-picks")
       refute html =~ ~s(id="vibrant-occasions")

@@ -10,6 +10,7 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
 
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
+  alias Emakola.Themes.Delivery
   alias Emakola.Themes.Fashion.Shared
 
   attr :store, :map, required: true
@@ -183,7 +184,12 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
                 </button>
               </div>
 
-              <%!-- Trust strip --%>
+              <%!-- Trust strip. Two of these three tiles used to read "Free over
+                   GHS 500" and "14-day returns" — a threshold and a returns
+                   window no Fashion merchant had set, on every product they
+                   sold. Delivery now states the store's own zones (nothing when
+                   it has configured none), and returns point at the merchant's
+                   policies page, which is authoritative. --%>
               <div class="grid grid-cols-3 gap-3 pt-7 border-t border-[#E7E5E4]">
                 <div class="flex flex-col items-start">
                   <span class="material-symbols-outlined text-[#5B21B6] mb-1" style="font-size: 22px;">
@@ -193,21 +199,24 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
                     Hand-sewn
                   </p>
                 </div>
-                <div class="flex flex-col items-start">
+                <div :if={Delivery.callout(assigns)} class="flex flex-col items-start">
                   <span class="material-symbols-outlined text-[#5B21B6] mb-1" style="font-size: 22px;">
                     local_shipping
                   </span>
                   <p class="text-[10px] uppercase tracking-[0.18em] font-semibold text-[#1C1917]">
-                    Free over GHS 500
+                    {Delivery.callout(assigns)}
                   </p>
                 </div>
                 <div class="flex flex-col items-start">
                   <span class="material-symbols-outlined text-[#5B21B6] mb-1" style="font-size: 22px;">
                     swap_horiz
                   </span>
-                  <p class="text-[10px] uppercase tracking-[0.18em] font-semibold text-[#1C1917]">
-                    14-day returns
-                  </p>
+                  <a
+                    href={store_path(@store.slug, "/policies#returns")}
+                    class="text-[10px] uppercase tracking-[0.18em] font-semibold text-[#1C1917] underline decoration-[#A8A29E] underline-offset-2 hover:text-[#5B21B6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B21B6] rounded"
+                  >
+                    Returns policy
+                  </a>
                 </div>
               </div>
             </div>

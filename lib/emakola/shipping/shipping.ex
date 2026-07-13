@@ -40,6 +40,23 @@ defmodule Emakola.Shipping do
   @spec calculate_fee(binary(), binary(), keyword()) :: {:ok, integer()} | {:error, :no_zone}
   def calculate_fee(store_id, region, opts \\ [])
       when is_binary(store_id) and is_binary(region) and is_list(opts) do
+    case find_zone(store_id, region) do
+      {:ok, zone} -> {:ok, zone_fee(zone, opts)}
+      {:error, :no_zone} -> {:error, :no_zone}
+    end
+  end
+
+  @doc """
+  The active zone a `store_id` + region pair resolves to, matched the same way
+  `calculate_fee/3` matches it (case-insensitive, `_` and ` ` equivalent).
+
+  Callers that need the zone's own terms — its `estimated_days`, say — rather
+  than just its fee should use this, so that what the storefront promises and
+  what the checkout charges come from the same row.
+  """
+  @spec find_zone(binary(), binary()) ::
+          {:ok, Emakola.Shipping.DeliveryZone.t()} | {:error, :no_zone}
+  def find_zone(store_id, region) when is_binary(store_id) and is_binary(region) do
     normalised_target = normalise_region(region)
 
     Emakola.Shipping.DeliveryZone
@@ -48,7 +65,7 @@ defmodule Emakola.Shipping do
     |> Enum.find(fn zone -> normalise_region(zone.name) == normalised_target end)
     |> case do
       nil -> {:error, :no_zone}
-      zone -> {:ok, zone_fee(zone, opts)}
+      zone -> {:ok, zone}
     end
   end
 
