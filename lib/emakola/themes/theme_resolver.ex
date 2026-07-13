@@ -84,11 +84,6 @@ defmodule Emakola.Themes.ThemeResolver do
       nav: deep_merge_atomize(defaults.nav, Map.get(config, "nav", %{})),
       sections: deep_merge_atomize(defaults.sections, Map.get(config, "sections", %{})),
       trust: deep_merge_atomize(defaults.trust, Map.get(config, "trust", %{})),
-      testimonials:
-        deep_merge_atomize(
-          Map.get(defaults, :testimonials, %{title: nil, items: []}),
-          Map.get(config, "testimonials", %{})
-        ),
       closing_cta:
         deep_merge_atomize(
           Map.get(defaults, :closing_cta, %{title: nil, subtitle: nil, button_text: nil}),

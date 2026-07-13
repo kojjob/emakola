@@ -78,10 +78,11 @@ defmodule Emakola.Themes.BeautySectionsTest do
       assert html =~ "Why your skin deserves the best"
       assert html =~ "Proven Effectiveness"
       assert html =~ "Eco-friendly Packaging"
-      # Testimonials
-      assert html =~ "Testimonials"
-      assert html =~ "Loved by our community"
-      assert html =~ "Akua M."
+      # Testimonials — the invented ones ("Akua M., Accra") are GONE. With no
+      # real reviews on this store the section does not render at all, so the
+      # landmark here is their absence.
+      refute html =~ "Akua M."
+      refute html =~ "What buyers say"
       # FAQ
       assert html =~ "Frequently Asked Questions"
       assert html =~ "Do you ship across Ghana?"
@@ -107,7 +108,7 @@ defmodule Emakola.Themes.BeautySectionsTest do
 
       assert String.match?(
                html,
-               ~r/Book Now.*Elevate Your Essence.*Curated for your routine.*Why your skin deserves the best.*Loved by our community.*Frequently Asked Questions.*Ready for flawless skin.*Join the beauty list.*Crafted with care/s
+               ~r/Book Now.*Elevate Your Essence.*Curated for your routine.*Why your skin deserves the best.*Frequently Asked Questions.*Ready for flawless skin.*Join the beauty list.*Crafted with care/s
              )
     end
 
@@ -128,7 +129,7 @@ defmodule Emakola.Themes.BeautySectionsTest do
 
       html = render_home(store)
 
-      refute html =~ "Loved by our community"
+      refute html =~ "What buyers say"
       refute html =~ "Frequently Asked Questions"
       # The rest of the page is untouched
       assert html =~ "Elevate Your Essence"
@@ -255,7 +256,7 @@ defmodule Emakola.Themes.BeautySectionsTest do
 
       html = render_home(store)
 
-      refute html =~ "Loved by our community"
+      refute html =~ "What buyers say"
       # why_us now stands before the hero
       assert String.match?(html, ~r/Why your skin deserves the best.*Elevate Your Essence/s)
     end

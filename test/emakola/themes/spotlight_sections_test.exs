@@ -79,11 +79,12 @@ defmodule Emakola.Themes.SpotlightSectionsTest do
       assert html =~ "Made simply"
       assert html =~ "Fairly priced"
 
-      # Testimonials (theme.testimonials)
-      assert html =~ ~s(id="testimonials")
-      assert html =~ "Loved by everyday people"
-      assert html =~ "Ama D."
-      assert html =~ "Exactly what I was looking for. Simple, reliable, and it just works."
+      # Testimonials — the invented ones ("Ama D., Accra") are GONE. This store
+      # has no real reviews, so the section does not render at all.
+      refute html =~ ~s(id="testimonials")
+      refute html =~ "What buyers say"
+      refute html =~ "Ama D."
+      refute html =~ "Exactly what I was looking for. Simple, reliable, and it just works."
 
       # Closing CTA (theme.closing_cta)
       assert html =~ "One product, done properly."
@@ -102,7 +103,7 @@ defmodule Emakola.Themes.SpotlightSectionsTest do
       #            -> closing CTA -> newsletter
       assert String.match?(
                html,
-               ~r/The one you reach for.*What makes it different.*reasons it works.*Loved by everyday people.*One product, done properly\..*Stay in the loop/s
+               ~r/The one you reach for.*What makes it different.*reasons it works.*One product, done properly\..*Stay in the loop/s
              )
     end
 
@@ -159,7 +160,7 @@ defmodule Emakola.Themes.SpotlightSectionsTest do
       html = render_home(store)
 
       refute html =~ "What makes it different"
-      refute html =~ "Loved by everyday people"
+      refute html =~ "What buyers say"
       refute html =~ "One product, done properly."
       refute html =~ "Stay in the loop"
       # Ingredients has no toggle today — it always renders
@@ -208,8 +209,6 @@ defmodule Emakola.Themes.SpotlightSectionsTest do
 
       overrides = [
         {Spotlight.Sections.Benefits, "heading", "Why it wins", "What makes it different"},
-        {Spotlight.Sections.Testimonials, "heading", "In their words",
-         "Loved by everyday people"},
         {Spotlight.Sections.Newsletter, "heading", "Get the drops", "Stay in the loop"},
         {Spotlight.Sections.ClosingCta, "heading", "Make it count", "One product, done properly."}
       ]
