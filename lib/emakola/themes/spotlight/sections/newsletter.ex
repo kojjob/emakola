@@ -1,12 +1,11 @@
 defmodule Emakola.Themes.Spotlight.Sections.Newsletter do
   @moduledoc """
-  Spotlight home newsletter band — extracted verbatim from
-  spotlight/home.ex.
+  Spotlight home newsletter band.
 
-  Note the form is inert today: it carries no `phx-submit` and its button is
-  a `type="button"`, exactly as before the retrofit. Wiring it to the
-  platform's `subscribe_newsletter` handler would change the storefront, so
-  it is left alone here and tracked separately. Still gated by the legacy
+  The form fires `subscribe_newsletter`, handled platform-wide by
+  `EmakolaWeb.Hooks.NewsletterSubscription`. It was the most thoroughly inert
+  of the six: no `phx-submit`, no `name` on the input, and a `type="button"`
+  submit that would not even have submitted the form. Still gated by the legacy
   `@theme.sections.newsletter` toggle underneath the section editor's own
   `enabled` flag.
   """
@@ -47,13 +46,17 @@ defmodule Emakola.Themes.Spotlight.Sections.Newsletter do
           do: @settings["subheading"],
           else: get_in(@theme, [:newsletter, :subtitle])}
       </p>
-      <form class="flex max-w-md mx-auto mt-6 gap-2">
+      <form class="flex max-w-md mx-auto mt-6 gap-2" phx-submit="subscribe_newsletter">
+        <label for="spotlight-newsletter-email" class="sr-only">Email address</label>
         <input
           type="email"
+          id="spotlight-newsletter-email"
+          name="email"
+          required
           placeholder="you@email.com"
           class="flex-1 px-4 py-3 rounded-full border border-[#ECE7DE] text-sm focus:outline-none focus:border-[var(--theme-accent,#7C3AED)]"
         />
-        <button type="button" class="rounded-full spot-cta px-6 py-3 text-sm font-semibold">
+        <button type="submit" class="rounded-full spot-cta px-6 py-3 text-sm font-semibold">
           {if @settings["cta_label"] not in [nil, ""],
             do: @settings["cta_label"],
             else: get_in(@theme, [:newsletter, :button_text]) || "Subscribe"}

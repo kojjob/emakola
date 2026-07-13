@@ -2,10 +2,10 @@ defmodule Emakola.Themes.Beauty.Sections.Newsletter do
   @moduledoc """
   Beauty newsletter band on walnut.
 
-  Note: the form is not wired to a handler — it carries no `phx-submit`, no
-  `action` and no `name` on its input, so submitting it does nothing. That is
-  how the theme shipped; the retrofit moves it verbatim rather than quietly
-  changing what the storefront does. See the retrofit report.
+  The form fires `subscribe_newsletter`, handled platform-wide by
+  `EmakolaWeb.Hooks.NewsletterSubscription`. It previously carried no
+  `phx-submit` and no `name` on its input, so a shopper could type an email,
+  press Subscribe, and never be subscribed to anything.
   """
   @behaviour Emakola.Themes.Section
 
@@ -41,11 +41,16 @@ defmodule Emakola.Themes.Beauty.Sections.Newsletter do
             do: @settings["subheading"],
             else: newsletter_subtitle(@theme)}
         </p>
-        <form class="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+        <form
+          class="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto"
+          phx-submit="subscribe_newsletter"
+        >
           <label for="beauty-newsletter-email" class="sr-only">Email</label>
           <input
             type="email"
             id="beauty-newsletter-email"
+            name="email"
+            required
             placeholder="Enter your email"
             class="flex-1 px-5 py-3.5 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-[#FAF6EE]/50 focus:outline-none focus:ring-2 focus:ring-[#C9925E] text-sm"
           />

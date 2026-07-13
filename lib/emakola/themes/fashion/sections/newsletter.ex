@@ -1,11 +1,11 @@
 defmodule Emakola.Themes.Fashion.Sections.Newsletter do
   @moduledoc """
-  Fashion home newsletter band — extracted verbatim from fashion/home.ex.
+  Fashion home newsletter band.
 
-  The form is carried across exactly as it stands today: no `phx-submit`, no
-  `name` on the input. It captures nothing — see the retrofit report; wiring it
-  to the platform's `subscribe_newsletter` handler is a behaviour change and
-  belongs in its own commit.
+  The form fires `subscribe_newsletter`, handled platform-wide by
+  `EmakolaWeb.Hooks.NewsletterSubscription`. It previously carried no
+  `phx-submit` and no `name` on its input, so it captured nothing — a shopper
+  could join "the List" and end up on no list at all.
   """
   @behaviour Emakola.Themes.Section
 
@@ -56,11 +56,16 @@ defmodule Emakola.Themes.Fashion.Sections.Newsletter do
         <p class="text-sm text-white/70 mb-8 italic fashion-heading">
           {@newsletter_subtitle}
         </p>
-        <form class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+        <form
+          class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+          phx-submit="subscribe_newsletter"
+        >
           <label for="fashion-newsletter-email" class="sr-only">Email</label>
           <input
             type="email"
             id="fashion-newsletter-email"
+            name="email"
+            required
             placeholder="Enter your email"
             class="flex-1 px-5 py-3.5 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#D97706] text-sm"
           />

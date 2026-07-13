@@ -1,11 +1,11 @@
 defmodule Emakola.Themes.Electronics.Sections.Newsletter do
   @moduledoc """
-  Electronics home newsletter band -- extracted verbatim from
-  electronics/home.ex.
+  Electronics home newsletter band.
 
-  The form is carried over exactly as it stands today: it posts nowhere and
-  fires no LiveView event. Wiring it to the platform's `subscribe_newsletter`
-  handler is a behaviour change, not an extraction, so it is left alone here.
+  The form fires `subscribe_newsletter`, handled platform-wide by
+  `EmakolaWeb.Hooks.NewsletterSubscription`. It previously posted nowhere and
+  fired no LiveView event, so a shopper could type an email, press Subscribe,
+  and never be subscribed to anything.
   """
   @behaviour Emakola.Themes.Section
 
@@ -48,11 +48,16 @@ defmodule Emakola.Themes.Electronics.Sections.Newsletter do
           {@heading}
         </h2>
         <p class="text-sm text-white/70 mb-7">{@subheading}</p>
-        <form class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+        <form
+          class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+          phx-submit="subscribe_newsletter"
+        >
           <label for="electronics-newsletter-email" class="sr-only">Email</label>
           <input
             type="email"
             id="electronics-newsletter-email"
+            name="email"
+            required
             placeholder="Enter your email"
             class="flex-1 px-5 py-3.5 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#0EA5E9] text-sm"
           />
