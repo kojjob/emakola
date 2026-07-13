@@ -4,10 +4,10 @@ defmodule Emakola.Themes.Electronics.Sections.Trust do
 
   Its default subheading used to read "Genuine products. 1-year warranty. Free
   shipping." — three promises the merchant never made, on a theme any reseller
-  could install. There is no warranty data model, so the warranty claim is gone
-  outright; the delivery line is now the store's OWN (see
-  `Emakola.Themes.Delivery`), and a store with no configured zones points at
-  its policies page instead.
+  could install. The delivery line is now the store's OWN (see
+  `Emakola.Themes.Delivery`) and the warranty is the merchant's own too (see
+  `Emakola.Themes.Terms`) — stated only if they stated it. A store that has
+  configured neither points at its policies page instead.
   """
   @behaviour Emakola.Themes.Section
 
@@ -17,6 +17,7 @@ defmodule Emakola.Themes.Electronics.Sections.Trust do
   import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Delivery
+  alias Emakola.Themes.Terms
 
   @impl true
   def key, do: "electronics/trust"
@@ -42,7 +43,7 @@ defmodule Emakola.Themes.Electronics.Sections.Trust do
         :subheading,
         setting(assigns[:settings], "subheading", trust_subtitle(assigns.theme, zones, assigns))
       )
-      |> assign(:has_zones, zones != [])
+      |> assign(:stated_nothing, zones == [] and Terms.badges(assigns) == [])
       |> assign(:policies_href, store_path(assigns.store.slug, "/policies#shipping"))
 
     ~H"""
@@ -55,7 +56,7 @@ defmodule Emakola.Themes.Electronics.Sections.Trust do
         <p class="text-base text-[#4B5563] leading-relaxed">
           {@subheading}
         </p>
-        <p :if={!@has_zones} class="mt-3 text-sm">
+        <p :if={@stated_nothing} class="mt-3 text-sm">
           <a
             href={@policies_href}
             class="text-[#4B5563] underline decoration-[#9CA3AF] underline-offset-2 hover:text-[#134E4A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9] rounded"
@@ -74,17 +75,22 @@ defmodule Emakola.Themes.Electronics.Sections.Trust do
     get_in(theme, [:trust, :subtitle]) || derived_subtitle(zones, assigns)
   end
 
+  # Every clause here is something the merchant actually configured, plus the
+  # one thing that is true of every store on the platform. A shop that has set
+  # up nothing is left with just that last clause — which is the point.
   defp derived_subtitle(zones, assigns) do
-    delivery =
-      Delivery.free_delivery_line(zones, assigns.store.currency) ||
-        case Delivery.estimate(zones) do
-          nil -> nil
-          estimate -> "Delivery to #{Delivery.zone_names(zones)} — #{String.downcase(estimate)}"
-        end
+    claims = [delivery_claim(zones, assigns) | Terms.badges(assigns)]
 
-    case delivery do
-      nil -> "Secure checkout with mobile money and card."
-      line -> "#{line}. Secure checkout with mobile money and card."
-    end
+    (Enum.reject(claims, &is_nil/1) ++ ["Secure checkout with mobile money and card"])
+    |> Enum.join(". ")
+    |> Kernel.<>(".")
+  end
+
+  defp delivery_claim(zones, assigns) do
+    Delivery.free_delivery_line(zones, assigns.store.currency) ||
+      case Delivery.estimate(zones) do
+        nil -> nil
+        estimate -> "Delivery to #{Delivery.zone_names(zones)} — #{String.downcase(estimate)}"
+      end
   end
 end

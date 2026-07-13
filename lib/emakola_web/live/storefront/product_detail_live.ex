@@ -71,6 +71,9 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
          |> stream(:group_buys, group_buys)
          |> assign(:categories, categories)
          |> assign(:delivery_zones, load_delivery_zones(store))
+         # The merchant's own returns window and warranty. Themes hardcoded
+         # these; now a store that has stated no terms states none.
+         |> assign(:page_content, EmakolaWeb.Storefront.ContentLoader.load(store.id))
          |> assign(:cart_session_id, cart_session_id)
          |> assign(:cart_count, cart_count)
          |> assign(:page_title, "#{product.title} - #{store.name}")

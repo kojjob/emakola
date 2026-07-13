@@ -35,6 +35,9 @@ defmodule Emakola.Stores.StorePageContent do
     :about_cta_text,
     :faq_items,
     :shipping_returns,
+    :returns_window_days,
+    :warranty_months,
+    :warranty_terms,
     :privacy_policy,
     :terms_of_service,
     :contact_note,
@@ -103,6 +106,33 @@ defmodule Emakola.Stores.StorePageContent do
 
     # Policies
     attribute :shipping_returns, :string do
+      public?(true)
+    end
+
+    # The merchant's own returns and warranty terms — what the SHOPPER sees.
+    #
+    # The number drives the compact badge a theme can state honestly ("30-day
+    # returns"); `shipping_returns` and `warranty_terms` carry the prose it links
+    # to. Themes used to hardcode "30-day returns" and "1-year warranty" with no
+    # merchant behind them; a `nil` here means the merchant has stated no term,
+    # so the storefront states none and points at the policies page instead.
+    #
+    # The merchant is the seller of record, so THEIR terms are what a customer
+    # is quoted, on every product in the shop. A supplier's own terms (see
+    # `Emakola.Suppliers.SupplierOffer`) are what that supplier will honour back
+    # to the merchant — shown to the merchant in the supply network, so a promise
+    # more generous than the supplier's is one they make knowingly.
+    attribute :returns_window_days, :integer do
+      constraints(min: 0)
+      public?(true)
+    end
+
+    attribute :warranty_months, :integer do
+      constraints(min: 0)
+      public?(true)
+    end
+
+    attribute :warranty_terms, :string do
       public?(true)
     end
 

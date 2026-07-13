@@ -146,4 +146,77 @@ defmodule EmakolaWeb.Storefront.NoInventedPolicyCopyTest do
       assert html =~ "Accra"
     end
   end
+
+  describe "a store that stated its returns and warranty states them" do
+    # The mirror image of the tests above: a merchant who HAS made a promise
+    # must see it kept on the page. Silence is only correct for silence.
+    for theme <- ~w(electronics fashion home_living pace fresh) do
+      @theme theme
+
+      test "#{theme} PDP prints the merchant's own window, not a template's", %{conn: conn} do
+        {store, product} = seed(@theme)
+        state_terms!(store, %{returns_window_days: 30, warranty_months: 12})
+
+        {:ok, _view, html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
+
+        assert html =~ "30-day returns",
+               "the #{@theme} PDP hid the returns window its merchant actually set"
+      end
+    end
+
+    test "electronics prints whole years as years beside the price", %{conn: conn} do
+      {store, product} = seed("electronics")
+      state_terms!(store, %{warranty_months: 24})
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
+
+      assert html =~ "2-year warranty"
+    end
+
+    test "a stated final-sale policy is shown, not swallowed", %{conn: conn} do
+      {store, product} = seed("fashion")
+      state_terms!(store, %{returns_window_days: 0})
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
+
+      # A zero-day window is a policy a shopper must be able to read BEFORE
+      # paying — treating it as "unset" would quietly restore the old default.
+      assert html =~ "No returns"
+    end
+
+    test "the policies page carries the same numbers and the warranty prose", %{conn: conn} do
+      {store, _product} = seed("starter")
+
+      state_terms!(store, %{
+        returns_window_days: 14,
+        warranty_months: 6,
+        warranty_terms: "Covers manufacturing defects, not water damage."
+      })
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/policies")
+
+      assert html =~ "14-day returns"
+      assert html =~ "6-month warranty"
+      assert html =~ "Covers manufacturing defects, not water damage."
+    end
+
+    test "the policies page invents no window for a store that stated none", %{conn: conn} do
+      {store, _product} = seed("starter")
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/policies")
+
+      assert html =~ "Returns &amp; Warranty"
+      refute html =~ @invented_promise
+    end
+  end
+
+  defp state_terms!(store, attrs) do
+    {:ok, content} =
+      Emakola.Stores.create_page_content(
+        Map.put(attrs, :store_id, store.id),
+        authorize?: false
+      )
+
+    content
+  end
 end

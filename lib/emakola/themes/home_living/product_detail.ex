@@ -11,6 +11,7 @@ defmodule Emakola.Themes.HomeLiving.ProductDetail do
 
   alias Emakola.Themes.Delivery
   alias Emakola.Themes.HomeLiving.Shared
+  alias Emakola.Themes.Terms
 
   attr :store, :map, required: true
   attr :theme, :map, required: true
@@ -191,8 +192,9 @@ defmodule Emakola.Themes.HomeLiving.ProductDetail do
                 </div>
                 <%!-- "5-day shipping" and "30-day returns" used to sit here on
                      every Home Living product, for every store, set by nobody.
-                     Delivery is the store's own now; returns point at the
-                     merchant's policies page. --%>
+                     Delivery is the store's own now, and so is the returns
+                     window below — a merchant who has stated none gets the plain
+                     link to their policies page instead of an invented number. --%>
                 <div :if={Delivery.callout(assigns)} class="flex flex-col items-start">
                   <span class="material-symbols-outlined text-[#65A30D] mb-1" style="font-size: 22px;">
                     local_shipping
@@ -209,7 +211,7 @@ defmodule Emakola.Themes.HomeLiving.ProductDetail do
                     href={store_path(@store.slug, "/policies#returns")}
                     class="text-[10px] uppercase tracking-wider font-semibold text-[#3F2D1A] underline decoration-[#A8A29E] underline-offset-2 hover:text-[#65A30D] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#65A30D] rounded"
                   >
-                    Returns policy
+                    {Terms.returns(Terms.content(assigns)) || "Returns policy"}
                   </a>
                 </div>
               </div>

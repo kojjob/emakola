@@ -12,6 +12,7 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
 
   alias Emakola.Themes.Delivery
   alias Emakola.Themes.Fashion.Shared
+  alias Emakola.Themes.Terms
 
   attr :store, :map, required: true
   attr :theme, :map, required: true
@@ -188,8 +189,9 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
                    GHS 500" and "14-day returns" — a threshold and a returns
                    window no Fashion merchant had set, on every product they
                    sold. Delivery now states the store's own zones (nothing when
-                   it has configured none), and returns point at the merchant's
-                   policies page, which is authoritative. --%>
+                   it has configured none) and the returns tile states the
+                   merchant's own window, falling back to a plain link to their
+                   policies page when they have stated none. --%>
               <div class="grid grid-cols-3 gap-3 pt-7 border-t border-[#E7E5E4]">
                 <div class="flex flex-col items-start">
                   <span class="material-symbols-outlined text-[#5B21B6] mb-1" style="font-size: 22px;">
@@ -215,7 +217,7 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
                     href={store_path(@store.slug, "/policies#returns")}
                     class="text-[10px] uppercase tracking-[0.18em] font-semibold text-[#1C1917] underline decoration-[#A8A29E] underline-offset-2 hover:text-[#5B21B6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B21B6] rounded"
                   >
-                    Returns policy
+                    {Terms.returns(Terms.content(assigns)) || "Returns policy"}
                   </a>
                 </div>
               </div>

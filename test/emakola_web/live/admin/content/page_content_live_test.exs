@@ -99,6 +99,63 @@ defmodule EmakolaWeb.Admin.Content.PageContentLiveTest do
       assert content.shipping_returns == "2-day delivery."
       assert content.privacy_policy == "We keep data safe."
     end
+
+    test "saves the merchant's returns window and warranty", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/content/pages")
+
+      render_hook(view, "update_scalar", %{"field" => "returns_window_days", "value" => "30"})
+      render_hook(view, "update_scalar", %{"field" => "warranty_months", "value" => "12"})
+
+      render_hook(view, "update_scalar", %{
+        "field" => "warranty_terms",
+        "value" => "Covers manufacturing defects."
+      })
+
+      render_hook(view, "save_policies", %{})
+
+      content = content_row(store)
+      assert content.returns_window_days == 30
+      assert content.warranty_months == 12
+      assert content.warranty_terms == "Covers manufacturing defects."
+    end
+
+    test "a blank window clears the promise rather than storing zero", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/content/pages")
+
+      render_hook(view, "update_scalar", %{"field" => "returns_window_days", "value" => "30"})
+      render_hook(view, "save_policies", %{})
+      assert content_row(store).returns_window_days == 30
+
+      render_hook(view, "update_scalar", %{"field" => "returns_window_days", "value" => ""})
+      render_hook(view, "save_policies", %{})
+
+      # nil is "no promise made", which is a different statement from 0 ("final
+      # sale"). Collapsing a cleared field into 0 would publish a returns ban
+      # the merchant never set.
+      assert content_row(store).returns_window_days == nil
+    end
+
+    test "zero days round-trips as a stated final-sale policy", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/content/pages")
+
+      render_hook(view, "switch_tab", %{"tab" => "policies"})
+      render_hook(view, "update_scalar", %{"field" => "returns_window_days", "value" => "0"})
+      html = render_hook(view, "save_policies", %{})
+
+      assert content_row(store).returns_window_days == 0
+      # And it comes back into the form as "0", not as an empty box.
+      assert html =~ ~s(value="0")
+    end
+
+    test "a non-numeric window is rejected, not silently discarded", %{conn: conn, store: store} do
+      {:ok, view, _html} = live(conn, ~p"/admin/content/pages")
+
+      render_hook(view, "update_scalar", %{"field" => "returns_window_days", "value" => "thirty"})
+      html = render_hook(view, "save_policies", %{})
+
+      assert html =~ "Could not save"
+      refute content_row(store).returns_window_days
+    end
   end
 
   defp content_row(store) do

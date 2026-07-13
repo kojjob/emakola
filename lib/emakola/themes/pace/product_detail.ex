@@ -15,6 +15,7 @@ defmodule Emakola.Themes.Pace.ProductDetail do
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Pace.Shared
+  alias Emakola.Themes.Terms
   alias EmakolaWeb.Helpers.Currency
 
   def render(assigns) do
@@ -308,6 +309,14 @@ defmodule Emakola.Themes.Pace.ProductDetail do
                       </span>
                     </summary>
                     <p class="pb-5 text-sm leading-relaxed text-slate-600">
+                      <%!-- The merchant's own terms, when they have stated any.
+                           The policies page stays the authority either way. --%>
+                      <span
+                        :if={Terms.badges(assigns) != []}
+                        class="mb-1 block font-semibold text-slate-950"
+                      >
+                        {Enum.join(Terms.badges(assigns), " · ")}
+                      </span>
                       See the
                       <a
                         href={store_path(@store.slug, "/policies")}

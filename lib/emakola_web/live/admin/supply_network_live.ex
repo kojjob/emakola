@@ -1252,6 +1252,19 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     end
   end
 
+  # The supplier's own returns/warranty commitment, reusing the same formatter
+  # the storefront uses — a SupplierOffer carries the same `returns_window_days`
+  # and `warranty_months` shape as a merchant's page content, so "30-day
+  # returns" means the same thing on both sides of the deal.
+  defp supplier_terms(offer), do: Emakola.Themes.Terms.badges(%{page_content: offer})
+
+  defp supplier_backing_line(offer) do
+    case supplier_terms(offer) do
+      [] -> "Nothing stated — any returns or warranty you offer, you fund yourself."
+      badges -> Enum.join(badges, " · ")
+    end
+  end
+
   defp hustle_opportunity(offer) do
     terms =
       Enum.max_by(offer.offer_variants, &(&1.suggested_retail_price - &1.supplier_price), fn ->
@@ -2640,6 +2653,24 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
                   </p>
                   <p class="mt-1 text-sm font-bold text-emerald-700">{earning_range(offer)}</p>
                 </div>
+              </div>
+              <%!-- What the SUPPLIER will take back from you. Your shoppers are
+                   quoted your own returns policy, not this — you are the seller
+                   of record — so any promise you make beyond this line is one
+                   you absorb yourself. Better to see it before you import. --%>
+              <div class="mt-3 rounded-2xl border border-slate-100 bg-white px-3 py-2">
+                <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                  Supplier backs
+                </p>
+                <p class={[
+                  "mt-1 text-xs font-semibold",
+                  if(supplier_terms(offer) == [], do: "text-amber-700", else: "text-slate-700")
+                ]}>
+                  {supplier_backing_line(offer)}
+                </p>
+                <p :if={offer.return_terms} class="mt-1 text-[11px] leading-snug text-slate-500">
+                  {offer.return_terms}
+                </p>
               </div>
               <button
                 id={"import-offer-#{offer.id}"}

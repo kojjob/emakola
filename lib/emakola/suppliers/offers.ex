@@ -48,6 +48,28 @@ defmodule Emakola.Suppliers.Offers do
     end
   end
 
+  @doc """
+  Revises what this supplier will honour back to the reseller — the returns
+  window, the warranty, and the prose behind them.
+
+  Deliberately allowed on a *published* offer, unlike `add_variant/3`: the
+  resellers already carrying these goods need the current terms, not the ones
+  the offer launched with, and forcing a supplier to unpublish (which pauses
+  every reseller's listing) just to correct a warranty would guarantee stale
+  terms stay live.
+
+  These terms are never quoted to a shopper. The merchant is the seller of
+  record, so the storefront states the merchant's own policy; these are shown to
+  the merchant so they can see what is — and is not — behind them.
+  """
+  def update_terms(actor, offer, attrs) do
+    with :ok <- ensure_access(actor, offer.wholesaler_store_id) do
+      offer
+      |> Ash.Changeset.for_update(:update_terms, attrs)
+      |> Ash.update(authorize?: false)
+    end
+  end
+
   def pause(actor, offer), do: owner_update_and_pause_listings(actor, offer, :pause)
   def archive(actor, offer), do: owner_update_and_pause_listings(actor, offer, :archive)
 
