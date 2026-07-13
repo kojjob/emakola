@@ -1,13 +1,12 @@
 defmodule Emakola.Themes.HomeLiving.Sections.Newsletter do
   @moduledoc """
-  Home Living newsletter band — extracted verbatim from home_living/home.ex.
+  Home Living newsletter band.
 
-  Note the form is inert today: it carries no `phx-submit` and no action, so
-  the submit button does nothing, exactly as before the retrofit. Wiring it to
-  the platform's `subscribe_newsletter` handler would change the storefront,
-  so it is left alone here and tracked separately. Still gated by the legacy
-  `@theme.sections.newsletter` toggle underneath the section editor's own
-  `enabled` flag.
+  The form fires `subscribe_newsletter`, handled platform-wide by
+  `EmakolaWeb.Hooks.NewsletterSubscription`. It was inert before: no
+  `phx-submit`, no action, so the submit button did nothing at all. Still gated
+  by the legacy `@theme.sections.newsletter` toggle underneath the section
+  editor's own `enabled` flag.
   """
   @behaviour Emakola.Themes.Section
 
@@ -56,11 +55,16 @@ defmodule Emakola.Themes.HomeLiving.Sections.Newsletter do
           {@heading}
         </h2>
         <p class="text-sm text-white/70 mb-7">{@subheading}</p>
-        <form class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+        <form
+          class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+          phx-submit="subscribe_newsletter"
+        >
           <label for="home-living-newsletter-email" class="sr-only">Email</label>
           <input
             type="email"
             id="home-living-newsletter-email"
+            name="email"
+            required
             placeholder="Enter your email"
             class="flex-1 px-5 py-3.5 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-[#84CC16] text-sm"
           />

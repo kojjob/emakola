@@ -1,10 +1,11 @@
 defmodule Emakola.Themes.Pharmacy.Sections.Newsletter do
   @moduledoc """
-  Pharmacy home newsletter band — forest green, centred. Extracted verbatim
-  from `pharmacy/home.ex`, including its form, which carries no `phx-submit`
-  and is therefore not wired to the platform's newsletter handler. Wiring it
-  up would change the storefront; it is reported, not fixed, by the
-  sectionization.
+  Pharmacy home newsletter band — forest green, centred.
+
+  The form fires `subscribe_newsletter`, handled platform-wide by
+  `EmakolaWeb.Hooks.NewsletterSubscription`. It previously carried no
+  `phx-submit`, so a shopper could ask for health tips from the pharmacy and
+  never be subscribed to anything.
   """
   @behaviour Emakola.Themes.Section
 
@@ -42,11 +43,16 @@ defmodule Emakola.Themes.Pharmacy.Sections.Newsletter do
             do: @settings["subtitle"],
             else: newsletter_subtitle(@theme)}
         </p>
-        <form class="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+        <form
+          class="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto"
+          phx-submit="subscribe_newsletter"
+        >
           <label for="pharmacy-newsletter-email" class="sr-only">Email</label>
           <input
             type="email"
             id="pharmacy-newsletter-email"
+            name="email"
+            required
             placeholder="Enter your email"
             class="flex-1 px-5 py-3.5 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-[#F9F6F0]/60 focus:outline-none focus:ring-2 focus:ring-[#A7E5C5] text-sm"
           />
