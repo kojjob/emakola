@@ -245,6 +245,23 @@ defmodule Emakola.Themes.Vibrant.Shared do
   # ── Helpers ──
 
   @doc """
+  Whether a legacy `@theme.sections.*` toggle leaves a home block visible.
+
+  The pre-section home gated every block on these booleans; the sections carry
+  the same gates so a store that hid a block through the old theme customiser
+  keeps it hidden. Defaults to visible for any theme map without the toggle.
+  """
+  def section_enabled?(theme, section_name) do
+    case theme do
+      %{sections: sections} when is_map(sections) ->
+        Map.get(sections, section_name, true)
+
+      _ ->
+        true
+    end
+  end
+
+  @doc """
   Extract first image URL from a product's images association.
   """
   def first_image(product) do
