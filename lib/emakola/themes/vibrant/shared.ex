@@ -262,6 +262,25 @@ defmodule Emakola.Themes.Vibrant.Shared do
   end
 
   @doc """
+  True when every loaded variant is out of stock —
+  `Emakola.Catalog.Variant.in_stock?/1` is the single purchasability rule.
+
+  Products whose variants aren't loaded (or that have none) fail open to
+  purchasable: the `add_to_cart` handler re-checks stock server-side, so the
+  worst case is a button that reports "Sorry, that's out of stock" instead of
+  one that was never offered.
+  """
+  def sold_out?(product) do
+    case product do
+      %{variants: [_ | _] = variants} ->
+        not Enum.any?(variants, &Emakola.Catalog.Variant.in_stock?/1)
+
+      _ ->
+        false
+    end
+  end
+
+  @doc """
   Extract first image URL from a product's images association.
   """
   def first_image(product) do

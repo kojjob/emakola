@@ -57,14 +57,13 @@ defmodule Emakola.Themes.Vibrant.Sections.Featured do
   attr :store, :map, required: true
 
   defp featured_card(assigns) do
-    assigns = assign(assigns, :image, Shared.first_image(assigns.product))
+    assigns =
+      assigns
+      |> assign(:image, Shared.first_image(assigns.product))
+      |> assign(:sold_out, Shared.sold_out?(assigns.product))
 
     ~H"""
-    <a
-      href={store_path(@store.slug, "/products/#{@product.slug}")}
-      class="block bg-white rounded-3xl overflow-hidden border border-[#FDE68A]/60 hover:shadow-2xl hover:shadow-amber-200/40 transition-all duration-300 md:grid md:grid-cols-2"
-      aria-label={"Featured product: #{@product.title}"}
-    >
+    <div class="relative bg-white rounded-3xl overflow-hidden border border-[#FDE68A]/60 hover:shadow-2xl hover:shadow-amber-200/40 transition-all duration-300 md:grid md:grid-cols-2">
       <div class="w-full aspect-[16/10] md:aspect-auto md:h-full md:min-h-[380px] bg-[#FEF3C7]/30 overflow-hidden">
         <.optimized_image
           :if={@image}
@@ -92,7 +91,15 @@ defmodule Emakola.Themes.Vibrant.Sections.Featured do
           class="text-2xl sm:text-3xl font-bold text-[#1C1917] mb-2 leading-tight"
           style="font-family: 'Manrope', sans-serif;"
         >
-          {@product.title}
+          <%!-- Stretched link: the ::before covers the whole card, so the card
+               stays clickable end to end while the bag button below stays a
+               real button rather than an <a>-in-<a>. --%>
+          <a
+            href={store_path(@store.slug, "/products/#{@product.slug}")}
+            class="before:absolute before:inset-0 before:rounded-3xl focus-visible:outline-none focus-visible:before:ring-2 focus-visible:before:ring-[#1C1917] focus-visible:before:ring-offset-2"
+          >
+            {@product.title}
+          </a>
         </h2>
         <p
           :if={@product.description}
@@ -104,7 +111,14 @@ defmodule Emakola.Themes.Vibrant.Sections.Featured do
         <p class="text-2xl font-bold text-[var(--theme-primary,#B45309)] mb-5 tabular-nums">
           {Currency.format_price_range(@product.min_price, @product.max_price, @store.currency)}
         </p>
-        <span class="flex items-center justify-center gap-2 w-full py-4 px-6 bg-[#1C1917] text-white rounded-full text-base font-bold hover:bg-[#292524] active:scale-[0.97] transition-all shadow-lg shadow-stone-900/20 leading-none">
+        <button
+          :if={!@sold_out}
+          type="button"
+          phx-click="add_to_cart"
+          phx-value-product-id={@product.id}
+          aria-label={"Add to bag: #{@product.title}"}
+          class="relative flex items-center justify-center gap-2 w-full py-4 px-6 bg-[#1C1917] text-white rounded-full text-base font-bold cursor-pointer hover:bg-[#292524] active:scale-[0.97] transition-all shadow-lg shadow-stone-900/20 leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1C1917] focus-visible:ring-offset-2"
+        >
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
             <path
               stroke-linecap="round"
@@ -113,9 +127,15 @@ defmodule Emakola.Themes.Vibrant.Sections.Featured do
             />
           </svg>
           Add to bag
-        </span>
+        </button>
+        <p
+          :if={@sold_out}
+          class="relative w-full py-4 px-6 bg-[#F5F5F4] text-[#78716C] rounded-full text-base font-bold text-center leading-none"
+        >
+          Sold out
+        </p>
       </div>
-    </a>
+    </div>
     """
   end
 end
