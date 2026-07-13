@@ -32,6 +32,21 @@ defmodule Emakola.Themes.Beauty do
   @impl true
   def name, do: "Beauty"
 
+  @doc """
+  Returns the home sections, in the default visual order.
+  """
+  def sections,
+    do: [
+      Emakola.Themes.Beauty.Sections.Hero,
+      Emakola.Themes.Beauty.Sections.FeaturedIn,
+      Emakola.Themes.Beauty.Sections.FeaturedProducts,
+      Emakola.Themes.Beauty.Sections.WhyUs,
+      Emakola.Themes.Beauty.Sections.Testimonials,
+      Emakola.Themes.Beauty.Sections.Faq,
+      Emakola.Themes.Beauty.Sections.ClosingCta,
+      Emakola.Themes.Beauty.Sections.Newsletter
+    ]
+
   def fonts,
     do: [
       "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Manrope:wght@400;500;600;700;800&display=swap"

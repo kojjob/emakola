@@ -1,0 +1,263 @@
+defmodule Emakola.Themes.BeautySectionsTest do
+  @moduledoc """
+  Characterization + contract tests for the Beauty theme's section retrofit.
+
+  The `home render` block was written against the pre-retrofit `Beauty.Home`
+  and must keep passing byte-for-byte afterwards: the retrofit moves markup
+  into `Emakola.Themes.Beauty.Sections.*` without changing a single rendered
+  landmark for a store that never touched the section editor.
+  """
+
+  # async: false — registers Beauty through the :extra_sectionized_themes
+  # application-env seam (global state) so SectionRenderer can resolve
+  # "beauty/*" keys before the central registration lands.
+  use Emakola.DataCase, async: false
+
+  import Emakola.Factory
+  import Phoenix.LiveViewTest, only: [rendered_to_string: 1]
+
+  alias Emakola.Themes.Beauty
+  alias Emakola.Themes.{HomeSections, Sections, ThemeResolver}
+
+  setup do
+    Application.put_env(:emakola, :extra_sectionized_themes, [Beauty])
+    on_exit(fn -> Application.delete_env(:emakola, :extra_sectionized_themes) end)
+  end
+
+  defp render_home(store) do
+    theme = ThemeResolver.resolve(store.theme_config || %{}, store)
+
+    products =
+      Emakola.Catalog.Product
+      |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store.id, status: :active})
+      |> Ash.read!(authorize?: false)
+
+    categories = Emakola.Catalog.list_root_categories!(store.id)
+
+    %{
+      store: store,
+      products: products,
+      categories: categories,
+      theme: theme,
+      cart_count: 0,
+      __changed__: nil
+    }
+    |> Beauty.render_home()
+    |> rendered_to_string()
+  end
+
+  defp seeded_store do
+    {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "beauty"}})
+    create_category!(store, %{name: "Shea Butters"})
+    product = create_product!(store, %{title: "Baobab Face Oil", status: :active})
+    create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
+    store
+  end
+
+  # ── characterization: today's rendered home, landmark by landmark ──
+
+  describe "home render" do
+    test "every visual block renders its own copy, verbatim" do
+      html = render_home(seeded_store())
+
+      # Nav (chrome, inside the hero band)
+      assert html =~ "Book Now"
+      # Hero
+      assert html =~ "Botanical Beauty"
+      assert html =~ "Elevate Your Essence"
+      assert html =~ "Shop the Collection"
+      assert html =~ "Our Story"
+      assert html =~ "Beauty, Personalized Care"
+      # Featured products
+      assert html =~ "Our Products"
+      assert html =~ "Curated for your routine"
+      assert html =~ "Baobab Face Oil"
+      assert html =~ "GH₵ 123.45"
+      assert html =~ "See all products"
+      # Why us
+      assert html =~ "Why your skin deserves the best"
+      assert html =~ "Proven Effectiveness"
+      assert html =~ "Eco-friendly Packaging"
+      # Testimonials
+      assert html =~ "Testimonials"
+      assert html =~ "Loved by our community"
+      assert html =~ "Akua M."
+      # FAQ
+      assert html =~ "Frequently Asked Questions"
+      assert html =~ "Do you ship across Ghana?"
+      # Closing CTA
+      assert html =~ "Ready for flawless skin and luscious hair?"
+      assert html =~ "Shop Now"
+      # Newsletter
+      assert html =~ "Join the beauty list"
+      assert html =~ "Subscribe"
+      # Footer (chrome)
+      assert html =~ "Crafted with care"
+    end
+
+    test "the hero owns the page's single h1" do
+      html = render_home(seeded_store())
+
+      assert html =~ ~r/<h1[^>]*>\s*Elevate Your Essence\s*<\/h1>/
+      assert length(String.split(html, "<h1")) == 2
+    end
+
+    test "the blocks keep today's visual order" do
+      html = render_home(seeded_store())
+
+      assert String.match?(
+               html,
+               ~r/Book Now.*Elevate Your Essence.*Curated for your routine.*Why your skin deserves the best.*Loved by our community.*Frequently Asked Questions.*Ready for flawless skin.*Join the beauty list.*Crafted with care/s
+             )
+    end
+
+    test "the brand strip stays off — its section default is disabled" do
+      html = render_home(seeded_store())
+
+      refute html =~ "As featured in"
+    end
+
+    test "a section switched off in theme_config disappears, as it does today" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{
+          theme_config: %{
+            "theme" => "beauty",
+            "sections" => %{"testimonials" => false, "faq" => false}
+          }
+        })
+
+      html = render_home(store)
+
+      refute html =~ "Loved by our community"
+      refute html =~ "Frequently Asked Questions"
+      # The rest of the page is untouched
+      assert html =~ "Elevate Your Essence"
+      assert html =~ "Join the beauty list"
+    end
+
+    test "the brand strip renders when the merchant switches it on" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{
+          theme_config: %{"theme" => "beauty", "sections" => %{"featured_in" => true}}
+        })
+
+      html = render_home(store)
+
+      assert html =~ "As featured in"
+    end
+
+    test "a store with no products renders the page without the products block" do
+      {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "beauty"}})
+
+      html = render_home(store)
+
+      refute html =~ "Curated for your routine"
+      assert html =~ "Elevate Your Essence"
+      assert html =~ "Why your skin deserves the best"
+      assert html =~ "Join the beauty list"
+    end
+
+    test "merchant hero and closing copy override the theme defaults" do
+      {_merchant, store} =
+        create_merchant_with_store!(%{
+          theme_config: %{
+            "theme" => "beauty",
+            "hero" => %{"title" => "Glow, softly"},
+            "closing_cta" => %{"title" => "Ready when you are"}
+          }
+        })
+
+      html = render_home(store)
+
+      assert html =~ ~r/<h1[^>]*>\s*Glow, softly\s*<\/h1>/
+      assert html =~ "Ready when you are"
+      refute html =~ "Elevate Your Essence"
+      refute html =~ "Ready for flawless skin and luscious hair?"
+    end
+  end
+
+  # ── section contract ────────────────────────────────────────────
+
+  describe "sections/0" do
+    test "lists the eight home sections in today's visual order, hero first" do
+      assert Enum.map(Beauty.sections(), & &1.key()) == [
+               "beauty/hero",
+               "beauty/featured_in",
+               "beauty/featured_products",
+               "beauty/why_us",
+               "beauty/testimonials",
+               "beauty/faq",
+               "beauty/closing_cta",
+               "beauty/newsletter"
+             ]
+    end
+
+    test "every settings_schema entry declares a default the editor can coerce" do
+      for section <- Beauty.sections(), setting <- section.settings_schema() do
+        assert Map.has_key?(setting, :default),
+               "#{inspect(section)} setting #{inspect(setting[:key])} must declare default:"
+      end
+    end
+
+    test "every section key resolves through the registry seam" do
+      assert Sections.sectionized?(Beauty)
+
+      for section <- Beauty.sections() do
+        assert {:ok, {resolved, %{}}} = Sections.resolve(section.key())
+        assert resolved == section
+      end
+    end
+  end
+
+  # ── merchant edits reach the extracted sections ─────────────────
+
+  describe "a published layout" do
+    test "its settings override the theme copy" do
+      {merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "beauty"}})
+
+      layout =
+        Beauty
+        |> HomeSections.default_layout()
+        |> Enum.map(fn
+          %{"type" => "beauty/hero"} = entry ->
+            %{entry | "settings" => %{"headline" => "Softness, bottled"}}
+
+          %{"type" => "beauty/newsletter"} = entry ->
+            %{entry | "settings" => %{"heading" => "The ritual letter"}}
+
+          entry ->
+            entry
+        end)
+
+      {:ok, store} = HomeSections.put_layout(merchant, store, "beauty", layout)
+
+      html = render_home(store)
+
+      assert html =~ ~r/<h1[^>]*>\s*Softness, bottled\s*<\/h1>/
+      assert html =~ "The ritual letter"
+      refute html =~ "Elevate Your Essence"
+      refute html =~ "Join the beauty list"
+    end
+
+    test "a disabled entry drops its block, and reordering moves one" do
+      {merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "beauty"}})
+
+      [hero, featured_in, products, why_us | rest] = HomeSections.default_layout(Beauty)
+
+      layout =
+        [why_us, hero, featured_in, products | rest]
+        |> Enum.map(fn
+          %{"type" => "beauty/testimonials"} = entry -> %{entry | "enabled" => false}
+          entry -> entry
+        end)
+
+      {:ok, store} = HomeSections.put_layout(merchant, store, "beauty", layout)
+
+      html = render_home(store)
+
+      refute html =~ "Loved by our community"
+      # why_us now stands before the hero
+      assert String.match?(html, ~r/Why your skin deserves the best.*Elevate Your Essence/s)
+    end
+  end
+end
