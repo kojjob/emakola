@@ -20,6 +20,17 @@ defmodule Emakola.Themes.Spotlight do
       "https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Inter:wght@400;500;600;700&display=swap"
     ]
 
+  @doc "Home sections in visual order — the long-form single-product funnel."
+  def sections,
+    do: [
+      Emakola.Themes.Spotlight.Sections.Hero,
+      Emakola.Themes.Spotlight.Sections.Benefits,
+      Emakola.Themes.Spotlight.Sections.Ingredients,
+      Emakola.Themes.Spotlight.Sections.Testimonials,
+      Emakola.Themes.Spotlight.Sections.ClosingCta,
+      Emakola.Themes.Spotlight.Sections.Newsletter
+    ]
+
   @doc "Ingredient/feature breakdown cards (theme-default content; not yet admin-editable)."
   def ingredients do
     [

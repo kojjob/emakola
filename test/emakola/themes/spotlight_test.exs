@@ -1,7 +1,18 @@
 defmodule Emakola.Themes.SpotlightTest do
-  use ExUnit.Case, async: true
+  # async: false — the Home tests render through SectionRenderer, which
+  # resolves "spotlight/*" keys through the section registry. Spotlight is
+  # registered centrally (Sections.@sectionized_themes) once the theme
+  # fan-out lands; until then this test registers it through the
+  # :extra_sectionized_themes application-env seam (global state), the same
+  # way sika_test.exs does.
+  use ExUnit.Case, async: false
 
   alias Emakola.Themes.ThemeResolver
+
+  setup do
+    Application.put_env(:emakola, :extra_sectionized_themes, [Emakola.Themes.Spotlight])
+    on_exit(fn -> Application.delete_env(:emakola, :extra_sectionized_themes) end)
+  end
 
   describe "registration & contract" do
     test "resolver resolves spotlight with the light palette" do
@@ -250,7 +261,19 @@ defmodule Emakola.Themes.SpotlightTest do
 
   describe "Home" do
     test "renders hero from first product and funnels to its page" do
-      store = %{slug: "demo", name: "Demo Store", description: nil, currency: "GHS"}
+      # The home renders its blocks through SectionRenderer, which reads the
+      # store's saved section layout — so the stand-in store carries the
+      # :id and :theme_config every real Store has. Empty theme_config means
+      # "never touched the editor", i.e. the theme's default section order.
+      store = %{
+        id: "store-demo",
+        slug: "demo",
+        name: "Demo Store",
+        description: nil,
+        currency: "GHS",
+        theme_config: %{}
+      }
+
       theme = ThemeResolver.resolve(%{"theme" => "spotlight"})
       product = %{slug: "lively", title: "Lively Drink", min_price: 9900, images: []}
 
@@ -273,7 +296,15 @@ defmodule Emakola.Themes.SpotlightTest do
     end
 
     test "empty products renders a coming-soon hero without raising" do
-      store = %{slug: "demo", name: "Demo Store", description: nil, currency: "GHS"}
+      store = %{
+        id: "store-demo",
+        slug: "demo",
+        name: "Demo Store",
+        description: nil,
+        currency: "GHS",
+        theme_config: %{}
+      }
+
       theme = ThemeResolver.resolve(%{"theme" => "spotlight"})
 
       assigns = %{
@@ -295,7 +326,14 @@ defmodule Emakola.Themes.SpotlightTest do
     end
 
     test "hides newsletter when disabled" do
-      store = %{slug: "demo", name: "Demo Store", description: nil, currency: "GHS"}
+      store = %{
+        id: "store-demo",
+        slug: "demo",
+        name: "Demo Store",
+        description: nil,
+        currency: "GHS",
+        theme_config: %{}
+      }
 
       theme =
         ThemeResolver.resolve(%{"theme" => "spotlight", "sections" => %{"newsletter" => false}})

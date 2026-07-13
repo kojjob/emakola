@@ -9,6 +9,18 @@ defmodule Emakola.Themes.HomeLiving.Shared do
   import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
+  @doc """
+  The legacy `@theme.sections.<name>` toggle, moved out of home.ex verbatim so
+  the extracted sections can keep honouring it. A store that switched a block
+  off before the section editor existed must stay switched off.
+  """
+  def section_enabled?(theme, name) do
+    case get_in(theme, [:sections, name]) do
+      false -> false
+      _other -> true
+    end
+  end
+
   attr :theme, :map, required: true
 
   def theme_styles(assigns) do

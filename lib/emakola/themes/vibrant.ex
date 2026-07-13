@@ -20,6 +20,23 @@ defmodule Emakola.Themes.Vibrant do
   def id, do: "vibrant"
   def name, do: "Vibrant"
 
+  @doc """
+  Returns the home sections, in the default visual order — the order the
+  pre-section home rendered them in.
+  """
+  def sections,
+    do: [
+      Emakola.Themes.Vibrant.Sections.Hero,
+      Emakola.Themes.Vibrant.Sections.TrustBadges,
+      Emakola.Themes.Vibrant.Sections.EditorsPicks,
+      Emakola.Themes.Vibrant.Sections.Occasions,
+      Emakola.Themes.Vibrant.Sections.Featured,
+      Emakola.Themes.Vibrant.Sections.ProductGrid,
+      Emakola.Themes.Vibrant.Sections.Artisan,
+      Emakola.Themes.Vibrant.Sections.Newsletter,
+      Emakola.Themes.Vibrant.Sections.ServiceStrip
+    ]
+
   def fonts,
     do: [
       "https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"

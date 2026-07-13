@@ -439,6 +439,21 @@ defmodule Emakola.Themes.Fresh.Shared do
   # ── Helpers ──
 
   @doc """
+  Whether a legacy `@theme.sections.<name>` toggle leaves a home block on.
+  Lifted out of `Fresh.Home` so each extracted section keeps its own gate —
+  stores that switched a block off the old way still see it off.
+  """
+  def section_enabled?(theme, section_name) do
+    case theme do
+      %{sections: sections} when is_map(sections) ->
+        Map.get(sections, section_name, true)
+
+      _ ->
+        true
+    end
+  end
+
+  @doc """
   Extract first image URL from a product's images association.
   """
   def first_image(product) do

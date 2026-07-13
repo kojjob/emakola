@@ -54,8 +54,13 @@ defmodule Emakola.Themes.SectionsRegistryTest do
       assert Sections.sectionized?(Emakola.Themes.Market)
     end
 
-    test "is false for a theme without sections support" do
-      refute Sections.sectionized?(Emakola.Themes.Bold)
+    # This used to name Bold as the un-sectionized example. Since the legacy
+    # retrofit (2026-07-13) EVERY theme in the lineup is sectionized, so there
+    # is no real theme left to stand here — only a module that is not a theme
+    # at all. If a future theme ships without sections/0, its merchants cannot
+    # reach the editor; SectionizedRegistrationTest is what guards that.
+    test "is false for a module that is not a sectionized theme" do
+      refute Sections.sectionized?(Emakola.Themes.DesignTokens)
     end
   end
 end

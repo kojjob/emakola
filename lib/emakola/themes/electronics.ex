@@ -23,6 +23,21 @@ defmodule Emakola.Themes.Electronics do
   @impl true
   def name, do: "Electronics"
 
+  @doc """
+  Returns the home sections, in the default visual order.
+  """
+  def sections,
+    do: [
+      Emakola.Themes.Electronics.Sections.Hero,
+      Emakola.Themes.Electronics.Sections.CategoryStrip,
+      Emakola.Themes.Electronics.Sections.Immersive,
+      Emakola.Themes.Electronics.Sections.Featured,
+      Emakola.Themes.Electronics.Sections.Trust,
+      Emakola.Themes.Electronics.Sections.Bestsellers,
+      Emakola.Themes.Electronics.Sections.CtaBand,
+      Emakola.Themes.Electronics.Sections.Newsletter
+    ]
+
   def fonts,
     do: [
       "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"

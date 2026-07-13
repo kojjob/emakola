@@ -28,6 +28,21 @@ defmodule Emakola.Themes.Pharmacy do
   @impl true
   def name, do: "Pharmacy"
 
+  @doc """
+  Returns the home sections, in the default visual order.
+  """
+  def sections,
+    do: [
+      Emakola.Themes.Pharmacy.Sections.Hero,
+      Emakola.Themes.Pharmacy.Sections.Stats,
+      Emakola.Themes.Pharmacy.Sections.Trending,
+      Emakola.Themes.Pharmacy.Sections.HighlightCards,
+      Emakola.Themes.Pharmacy.Sections.CategoryStrip,
+      Emakola.Themes.Pharmacy.Sections.ProductGrid,
+      Emakola.Themes.Pharmacy.Sections.Trust,
+      Emakola.Themes.Pharmacy.Sections.Newsletter
+    ]
+
   def fonts,
     do: [
       "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap"

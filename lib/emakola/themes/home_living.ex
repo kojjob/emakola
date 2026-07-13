@@ -31,6 +31,19 @@ defmodule Emakola.Themes.HomeLiving do
       "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Inter:wght@400;500;600;700&display=swap"
     ]
 
+  @doc "Home sections in visual order — the hero carries the theme's nav."
+  def sections,
+    do: [
+      Emakola.Themes.HomeLiving.Sections.Hero,
+      Emakola.Themes.HomeLiving.Sections.CategoryStrip,
+      Emakola.Themes.HomeLiving.Sections.SaleBand,
+      Emakola.Themes.HomeLiving.Sections.FeaturedProducts,
+      Emakola.Themes.HomeLiving.Sections.EditorPick,
+      Emakola.Themes.HomeLiving.Sections.Trust,
+      Emakola.Themes.HomeLiving.Sections.BrandStory,
+      Emakola.Themes.HomeLiving.Sections.Newsletter
+    ]
+
   def defaults do
     %{
       id: :home_living,

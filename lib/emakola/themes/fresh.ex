@@ -19,6 +19,19 @@ defmodule Emakola.Themes.Fresh do
   def id, do: "fresh"
   def name, do: "Fresh"
 
+  @doc """
+  The home sections, in the order they render on an untouched storefront.
+  """
+  def sections,
+    do: [
+      Emakola.Themes.Fresh.Sections.Hero,
+      Emakola.Themes.Fresh.Sections.CategoryCircles,
+      Emakola.Themes.Fresh.Sections.Featured,
+      Emakola.Themes.Fresh.Sections.DeliveryBanner,
+      Emakola.Themes.Fresh.Sections.ProductGrid,
+      Emakola.Themes.Fresh.Sections.Newsletter
+    ]
+
   def fonts,
     do: [
       "https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap"

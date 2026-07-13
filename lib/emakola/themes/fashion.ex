@@ -24,6 +24,21 @@ defmodule Emakola.Themes.Fashion do
   @impl true
   def name, do: "Fashion"
 
+  @doc """
+  Returns the home sections, in the default visual order.
+  """
+  def sections,
+    do: [
+      Emakola.Themes.Fashion.Sections.Hero,
+      Emakola.Themes.Fashion.Sections.EditorialIntro,
+      Emakola.Themes.Fashion.Sections.Lookbook,
+      Emakola.Themes.Fashion.Sections.FeaturedProducts,
+      Emakola.Themes.Fashion.Sections.NewArrivalsBand,
+      Emakola.Themes.Fashion.Sections.Ugc,
+      Emakola.Themes.Fashion.Sections.BrandStory,
+      Emakola.Themes.Fashion.Sections.Newsletter
+    ]
+
   def fonts,
     do: [
       "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Inter:wght@400;500;600;700&display=swap"
