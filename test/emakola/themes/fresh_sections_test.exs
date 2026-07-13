@@ -7,8 +7,6 @@ defmodule Emakola.Themes.FreshSectionsTest do
   import Emakola.Factory
   import Phoenix.LiveViewTest, only: [rendered_to_string: 1]
 
-  require Ash.Query
-
   alias Emakola.Themes.{Fresh, Sections, ThemeResolver}
 
   setup do
