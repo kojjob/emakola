@@ -26,10 +26,17 @@ defmodule EmakolaWeb.Admin.DesignLiveTest do
       assert html =~ "/admin/design/sections"
     end
 
-    # Only Starter/Atelier/Market implement sections/0 — for every other
-    # theme the section editor redirects away, so the card must not render a
-    # link that goes nowhere.
-    test "does not render for a store on a non-sectionized theme", %{conn: conn} do
+    # This test used to assert the OPPOSITE: Bold was the example of a theme
+    # whose merchants got no card, because only Starter/Atelier/Market
+    # implemented sections/0. The legacy retrofit (2026-07-13) sectionized the
+    # last nine themes, so every theme in the lineup now offers the editor and
+    # there is no real theme left to stand for the negative case.
+    #
+    # The card's gate (`Sections.sectionized?/1`) stays in place for any future
+    # theme that ships without sections/0 — it is simply unreachable today.
+    test "renders for a store on a legacy theme, now that those are sectionized too", %{
+      conn: conn
+    } do
       {merchant, store} = create_merchant_with_store!()
 
       store
@@ -38,8 +45,8 @@ defmodule EmakolaWeb.Admin.DesignLiveTest do
 
       {:ok, _view, html} = live(log_in(conn, merchant), "/admin/design")
 
-      refute html =~ "Homepage sections"
-      refute html =~ "/admin/design/sections"
+      assert html =~ "Homepage sections"
+      assert html =~ "/admin/design/sections"
     end
   end
 end

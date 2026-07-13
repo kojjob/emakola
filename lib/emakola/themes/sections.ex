@@ -18,7 +18,23 @@ defmodule Emakola.Themes.Sections do
     Emakola.Themes.Ntoma,
     Emakola.Themes.Akwaaba,
     Emakola.Themes.Pace,
-    Emakola.Themes.Sika
+    Emakola.Themes.Sika,
+    # The legacy retrofit (2026-07-13) — the last nine. Registration is NOT
+    # bookkeeping: a theme that implements sections/0 but is missing here
+    # renders a BLANK storefront. resolve/1 fails on its own keys and
+    # SectionRenderer skips every one of them, logging a warning nobody reads.
+    # For Fashion, Beauty, Electronics and HomeLiving — whose nav lives inside
+    # the hero section — it means the shop loses its navigation entirely.
+    # SectionizedRegistrationTest holds that line so it can never happen again.
+    Emakola.Themes.Beauty,
+    Emakola.Themes.Bold,
+    Emakola.Themes.Electronics,
+    Emakola.Themes.Fashion,
+    Emakola.Themes.Fresh,
+    Emakola.Themes.HomeLiving,
+    Emakola.Themes.Pharmacy,
+    Emakola.Themes.Spotlight,
+    Emakola.Themes.Vibrant
   ]
 
   @doc """

@@ -47,12 +47,21 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
     end
   end
 
-  describe "with a non-sectionized theme store" do
+  # This describe block used to be "with a non-sectionized theme store", and it
+  # asserted that a Bold merchant opening the editor was REDIRECTED away with
+  # "your theme doesn't support section editing". That was the whole point of
+  # the legacy retrofit (2026-07-13): Bold and the other eight now implement
+  # sections/0, so their merchants land in the editor instead of bouncing off
+  # it. There is no theme left in the lineup that redirects.
+  #
+  # The mount guard stays in DesignSectionsLive for any future theme shipped
+  # without sections/0 — it is simply unreachable today, and
+  # SectionizedRegistrationTest fails CI if a sectionized theme ever goes
+  # unregistered (which would blank its storefront, not just its editor).
+  describe "with a retrofitted legacy theme store" do
     setup %{conn: conn} do
       {merchant, store} = create_merchant_with_store!()
 
-      # Bold — like every theme except Starter/Atelier/Market — implements
-      # no sections/0.
       store =
         store
         |> Ash.Changeset.for_update(:update, %{theme_config: %{"theme" => "bold"}})
@@ -68,11 +77,11 @@ defmodule EmakolaWeb.Admin.DesignSectionsLiveTest do
       %{conn: conn, merchant: merchant, store: store}
     end
 
-    test "redirects to the design studio with a flash instead of crashing", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/admin/design", flash: flash}}} =
-               live(conn, "/admin/design/sections")
+    test "the editor opens, listing the theme's own sections", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/admin/design/sections")
 
-      assert flash["error"] =~ "section editing"
+      assert html =~ "Hero"
+      assert html =~ "Newsletter"
     end
   end
 
