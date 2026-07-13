@@ -9,6 +9,7 @@ defmodule Emakola.Themes.HomeLiving.ProductDetail do
   import EmakolaWeb.Storefront.Path
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
+  alias Emakola.Themes.Delivery
   alias Emakola.Themes.HomeLiving.Shared
 
   attr :store, :map, required: true
@@ -188,21 +189,28 @@ defmodule Emakola.Themes.HomeLiving.ProductDetail do
                     Quality materials
                   </p>
                 </div>
-                <div class="flex flex-col items-start">
+                <%!-- "5-day shipping" and "30-day returns" used to sit here on
+                     every Home Living product, for every store, set by nobody.
+                     Delivery is the store's own now; returns point at the
+                     merchant's policies page. --%>
+                <div :if={Delivery.callout(assigns)} class="flex flex-col items-start">
                   <span class="material-symbols-outlined text-[#65A30D] mb-1" style="font-size: 22px;">
                     local_shipping
                   </span>
                   <p class="text-[10px] uppercase tracking-wider font-semibold text-[#3F2D1A]">
-                    5-day shipping
+                    {Delivery.callout(assigns)}
                   </p>
                 </div>
                 <div class="flex flex-col items-start">
                   <span class="material-symbols-outlined text-[#65A30D] mb-1" style="font-size: 22px;">
                     swap_horiz
                   </span>
-                  <p class="text-[10px] uppercase tracking-wider font-semibold text-[#3F2D1A]">
-                    30-day returns
-                  </p>
+                  <a
+                    href={store_path(@store.slug, "/policies#returns")}
+                    class="text-[10px] uppercase tracking-wider font-semibold text-[#3F2D1A] underline decoration-[#A8A29E] underline-offset-2 hover:text-[#65A30D] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#65A30D] rounded"
+                  >
+                    Returns policy
+                  </a>
                 </div>
               </div>
             </div>

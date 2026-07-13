@@ -19,6 +19,7 @@ defmodule Emakola.Themes.Market.ProductDetail do
     only: [image_placeholder: 1, bottom_nav: 1, optimized_image: 1]
 
   alias EmakolaWeb.Helpers.Currency
+  alias Emakola.Themes.Delivery
   alias Emakola.Themes.Market.Shared
 
   def render(assigns) do
@@ -441,23 +442,31 @@ defmodule Emakola.Themes.Market.ProductDetail do
               </p>
             </section>
 
-            <%!-- Trust Badges --%>
+            <%!-- Trust Badges. Market's HOME trust strip has always been the
+                 honest one — it links delivery and returns to the store's own
+                 policies. Its PDP did not: it promised "Free Delivery — Orders
+                 over GHS 500" and "Easy Returns — 7 day policy" on every
+                 product, numbers no merchant had set. Now the delivery badge is
+                 the store's own (absent when it has configured no zones) and
+                 returns link where they always should have. --%>
             <section class="px-4 sm:px-6 lg:px-0 py-5 border-b border-[#E2E8F0] lg:border-b lg:border-[#E2E8F0]/60">
               <div class="grid grid-cols-3 gap-3">
                 <.trust_badge
+                  :if={Delivery.callout(assigns)}
                   icon="truck"
-                  title="Free Delivery"
-                  subtitle="Orders over GHS 500"
+                  title="Delivery"
+                  subtitle={Delivery.callout(assigns)}
                 />
                 <.trust_badge
                   icon="shield"
                   title="Secure Payment"
-                  subtitle="100% protected"
+                  subtitle="Processed securely"
                 />
                 <.trust_badge
                   icon="refresh"
-                  title="Easy Returns"
-                  subtitle="7 day policy"
+                  title="Returns"
+                  subtitle="See this store's policies"
+                  href={store_path(@store.slug, "/policies#returns")}
                 />
               </div>
             </section>
@@ -763,13 +772,23 @@ defmodule Emakola.Themes.Market.ProductDetail do
   attr :icon, :string, required: true
   attr :title, :string, required: true
   attr :subtitle, :string, required: true
+  attr :href, :string, default: nil
 
   defp trust_badge(assigns) do
     ~H"""
     <div class="flex flex-col items-center text-center p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]/60">
       <.trust_icon name={@icon} />
       <span class="text-xs font-semibold text-[#0F172A] mt-1.5 leading-tight">{@title}</span>
-      <span class="text-[0.625rem] text-[#94A3B8] leading-tight mt-0.5">{@subtitle}</span>
+      <a
+        :if={@href}
+        href={@href}
+        class="text-[0.625rem] text-[#94A3B8] leading-tight mt-0.5 underline decoration-[#CBD5E1] underline-offset-2 hover:text-[#0F172A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-store-accent rounded"
+      >
+        {@subtitle}
+      </a>
+      <span :if={!@href} class="text-[0.625rem] text-[#94A3B8] leading-tight mt-0.5">
+        {@subtitle}
+      </span>
     </div>
     """
   end

@@ -1,17 +1,23 @@
 defmodule Emakola.Themes.HomeLiving.Sections.Trust do
   @moduledoc """
-  Home Living trust strip — extracted verbatim from home_living/home.ex.
+  Home Living trust strip.
 
-  The items come from `@theme.trust.items` (icon/label/subtitle maps), which
-  no flat setting type can express, so the section declares no settings and
-  keeps reading the theme config. Still gated by the legacy
-  `@theme.sections.trust` toggle underneath the section editor's own `enabled`
-  flag.
+  The shipped items used to promise "Ships in 5 days — Across Ghana" and
+  "30-day returns — No questions asked" on every Home Living storefront. The
+  merchant wrote neither and could not remove either.
+
+  The delivery item is now built from the store's OWN zones (see
+  `Emakola.Themes.Delivery`) and, when the store has configured none, says
+  nothing but points at the merchant's policies page. Merchants who set their
+  own `@theme.trust.items` still get theirs, unchanged.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
+  import EmakolaWeb.Storefront.Path
+
+  alias Emakola.Themes.Delivery
   alias Emakola.Themes.HomeLiving.Shared
 
   @impl true
@@ -24,7 +30,7 @@ defmodule Emakola.Themes.HomeLiving.Sections.Trust do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :items, trust_items(assigns.theme))
+    assigns = assign(assigns, :items, trust_items(assigns))
 
     ~H"""
     <section :if={Shared.section_enabled?(@theme, :trust)} class="bg-white py-12 sm:py-16">
@@ -38,7 +44,10 @@ defmodule Emakola.Themes.HomeLiving.Sections.Trust do
             </div>
             <div>
               <p class="text-base font-semibold text-[#1F2937] mb-0.5">{item.label}</p>
-              <p class="text-xs text-[#4B5563]">{item.subtitle}</p>
+              <%!-- href is only ever a server-generated relative path (see
+                   delivery_item/1); anything else renders as plain text, so a
+                   merchant's own theme config can't turn this into a link. --%>
+              <.maybe_link href={Map.get(item, :href)} label={item.subtitle} />
             </div>
           </div>
         </div>
@@ -47,18 +56,56 @@ defmodule Emakola.Themes.HomeLiving.Sections.Trust do
     """
   end
 
-  defp trust_items(theme) do
-    case get_in(theme, [:trust, :items]) do
+  attr :href, :any, default: nil
+  attr :label, :string, default: nil
+
+  defp maybe_link(assigns) do
+    ~H"""
+    <a
+      :if={is_binary(@href) and String.starts_with?(@href, "/")}
+      href={@href}
+      class="text-xs text-[#4B5563] underline decoration-[#9CA3AF] underline-offset-2 hover:text-[#1F2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#84CC16] rounded"
+    >
+      {@label}
+    </a>
+    <p :if={not (is_binary(@href) and String.starts_with?(@href, "/"))} class="text-xs text-[#4B5563]">
+      {@label}
+    </p>
+    """
+  end
+
+  defp trust_items(assigns) do
+    case get_in(assigns.theme, [:trust, :items]) do
       items when is_list(items) and items != [] -> items
-      _ -> default_trust()
+      _ -> default_trust(assigns)
     end
   end
 
-  defp default_trust do
+  defp default_trust(assigns) do
     [
       %{icon: "category", label: "Quality materials", subtitle: "Solid wood, natural fibres"},
-      %{icon: "local_shipping", label: "Ships in 5 days", subtitle: "Across Ghana"},
-      %{icon: "swap_horiz", label: "30-day returns", subtitle: "No questions asked"}
+      delivery_item(assigns),
+      %{icon: "verified_user", label: "Secure payment", subtitle: "Mobile money & card"}
     ]
+  end
+
+  defp delivery_item(assigns) do
+    zones = Delivery.zones(assigns)
+
+    cond do
+      line = Delivery.free_delivery_detail(zones, assigns.store.currency) ->
+        %{icon: "local_shipping", label: "Free delivery", subtitle: line}
+
+      estimate = Delivery.estimate(zones) ->
+        %{icon: "local_shipping", label: estimate, subtitle: Delivery.zone_names(zones)}
+
+      true ->
+        %{
+          icon: "local_shipping",
+          label: "Delivery & returns",
+          subtitle: "See this store's policies",
+          href: store_path(assigns.store.slug, "/policies#shipping")
+        }
+    end
   end
 end

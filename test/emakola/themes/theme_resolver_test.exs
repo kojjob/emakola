@@ -172,11 +172,27 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert is_list(result.stats.items)
     end
 
-    test "home_living rooms, feature_tiles and sale_band pass through" do
+    test "home_living rooms and feature_tiles pass through; sale_band invents no delivery tile" do
       result = ThemeResolver.resolve(%{"theme" => "home_living"})
 
       assert result.rooms.title == "Shop by room"
       assert is_list(result.feature_tiles.items)
+
+      # sale_band used to ship `items` containing "Free Delivery — On orders GHS
+      # 500+", so every Home Living store made a promise its merchant never had.
+      # It ships an EMPTY list now: the section builds the delivery tile from the
+      # store's own delivery zones and omits it entirely when there are none. The
+      # key itself must survive — deep_merge_atomize/2 drops overrides whose key
+      # is absent from the defaults, so a merchant's own items depend on it.
+      assert result.sale_band.items == []
+    end
+
+    test "a merchant's own sale_band items still pass through" do
+      items = [%{"icon" => "bolt", "title" => "Same-week build", "subtitle" => "Made to order"}]
+
+      result =
+        ThemeResolver.resolve(%{"theme" => "home_living", "sale_band" => %{"items" => items}})
+
       assert is_list(result.sale_band.items)
     end
 

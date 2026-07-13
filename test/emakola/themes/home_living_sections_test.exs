@@ -53,6 +53,8 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
 
     %{
       store: store,
+      # Mirrors StoreLive: the sale band and trust strip state the store's own zones.
+      delivery_zones: Emakola.Shipping.list_delivery_zones!(store.id),
       products: products,
       categories: categories,
       theme: theme,
@@ -81,8 +83,11 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       assert html =~ "by categories"
       assert html =~ "Living Room"
 
-      # Sale band — the four-feature terracotta bar
-      assert html =~ "Free Delivery"
+      # Sale band — the terracotta bar. It used to open with "Free Delivery —
+      # On orders GHS 500+"; this store has configured no delivery zones, so it
+      # gets no delivery tile at all rather than an invented one.
+      refute html =~ "Free Delivery"
+      refute html =~ "On orders GHS 500+"
       assert html =~ "Safe Payment"
       assert html =~ "Daily Curation"
 
@@ -98,10 +103,16 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       assert html =~ "Featured pick"
       assert html =~ "Shop now"
 
-      # Trust strip
+      # Trust strip. "Ships in 5 days" and "30-day returns" were promises no
+      # merchant made; with no zones configured the strip points at the store's
+      # own policies instead.
       assert html =~ "Quality materials"
-      assert html =~ "Ships in 5 days"
-      assert html =~ "30-day returns"
+      assert html =~ "Delivery &amp; returns"
+      # HEEx escapes interpolated values, so the apostrophe arrives as &#39;
+      assert html =~ "See this store"
+      assert html =~ "/policies#shipping"
+      refute html =~ "Ships in 5 days"
+      refute html =~ "30-day returns"
 
       # Brand story
       assert html =~ "Our story"
@@ -120,7 +131,7 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       # -> editor pick -> trust -> brand story -> newsletter -> footer
       assert String.match?(
                html,
-               ~r/Masterpieces Crafted From Solid Wood.*by categories.*Daily Curation.*Popular products.*Featured pick.*Ships in 5 days.*Built in Ghana, made for life\..*New pieces, in your inbox.*Designed for living/s
+               ~r/Masterpieces Crafted From Solid Wood.*by categories.*Daily Curation.*Popular products.*Featured pick.*Quality materials.*Built in Ghana, made for life\..*New pieces, in your inbox.*Designed for living/s
              )
     end
 
@@ -137,7 +148,7 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       refute html =~ "Popular products"
       refute html =~ "Featured pick"
       # ...and the rest of the page still renders
-      assert html =~ "Ships in 5 days"
+      assert html =~ "Quality materials"
       assert html =~ "Built in Ghana, made for life."
       assert html =~ "New pieces, in your inbox"
       assert html =~ "Designed for living"

@@ -13,6 +13,8 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   require Ash.Query
 
   import EmakolaWeb.Storefront.Path
@@ -68,6 +70,7 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
          |> assign(:group_buy_forms, group_buy_forms(group_buys))
          |> stream(:group_buys, group_buys)
          |> assign(:categories, categories)
+         |> assign(:delivery_zones, load_delivery_zones(store))
          |> assign(:cart_session_id, cart_session_id)
          |> assign(:cart_count, cart_count)
          |> assign(:page_title, "#{product.title} - #{store.name}")
@@ -520,6 +523,22 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
     |> assign(:already_reviewed, false)
     |> assign(:review_customer_id, nil)
     |> assign(:review_order_id, nil)
+  end
+
+  # The PDP's delivery callouts state the store's own terms rather than a
+  # hardcoded promise, so it needs the same zones the home page loads. A
+  # failure here must not take the product page down — the callouts simply
+  # fall back to linking the store's policies page.
+  defp load_delivery_zones(store) do
+    Emakola.Shipping.list_delivery_zones!(store.id)
+    |> Enum.filter(& &1.active)
+  rescue
+    exception ->
+      Logger.error(
+        "[product_detail_live] loading delivery zones raised: #{Exception.message(exception)}"
+      )
+
+      []
   end
 
   # -- SEO --

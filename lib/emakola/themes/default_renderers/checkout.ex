@@ -342,7 +342,16 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                         </div>
                         <div>
                           <p class="text-sm font-semibold text-stone-900">Standard Delivery</p>
-                          <p class="text-xs text-stone-600 mt-0.5">{delivery_estimate(@region)}</p>
+                          <%!-- The store's own estimate, from the same delivery
+                               zone the fee on the right is charged from. A store
+                               that has configured no zone for this region has
+                               promised no timeline, so none is shown. --%>
+                          <p :if={@delivery_estimate} class="text-xs text-stone-600 mt-0.5">
+                            {@delivery_estimate}
+                          </p>
+                          <p :if={!@delivery_estimate} class="text-xs text-stone-600 mt-0.5">
+                            The seller will confirm your delivery time
+                          </p>
                         </div>
                       </div>
                       <span class="text-sm font-semibold text-stone-900">
@@ -1046,11 +1055,6 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
   end
 
   # ── Display helpers ─────────────────────────────────────────────
-
-  defp delivery_estimate("greater_accra"), do: "1-2 business days"
-  defp delivery_estimate("ashanti"), do: "2-4 business days"
-  defp delivery_estimate("central"), do: "2-4 business days"
-  defp delivery_estimate(_), do: "3-5 business days"
 
   defp momo_brand_color("momo"), do: "#FFC107"
   defp momo_brand_color("vodafone"), do: "#E60000"

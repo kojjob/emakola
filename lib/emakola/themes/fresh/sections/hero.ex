@@ -92,7 +92,7 @@ defmodule Emakola.Themes.Fresh.Sections.Hero do
 
                 true ->
                   @theme.hero.subtitle ||
-                    "Farm-fresh groceries delivered same day in Accra. Quality produce you can trust."
+                    "Fresh produce and groceries from #{@store.name}."
               end}
             </p>
             <div class="flex flex-wrap gap-3">

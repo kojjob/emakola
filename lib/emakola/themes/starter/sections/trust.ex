@@ -1,10 +1,24 @@
 defmodule Emakola.Themes.Starter.Sections.Trust do
-  @moduledoc "Starter home trust section -- extracted verbatim from starter/home.ex."
+  @moduledoc """
+  Starter home trust section.
+
+  It shipped promising "Quick delivery within Accra and nationwide shipping
+  available" and "Hassle-free returns within 7 days of delivery" — a delivery
+  area and a returns window no Starter merchant had set. Starter is the theme a
+  brand-new store gets by default, so this was the very first thing most
+  Makola storefronts said, and it was not true.
+
+  Delivery is now the store's own (see `Emakola.Themes.Delivery`) and returns
+  point at the merchant's policies page.
+  """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
   import Emakola.Themes.Starter.Sections.Helpers
+  import EmakolaWeb.Storefront.Path
+
+  alias Emakola.Themes.Delivery
 
   @impl true
   def key, do: "starter/trust"
@@ -16,6 +30,11 @@ defmodule Emakola.Themes.Starter.Sections.Trust do
 
   @impl true
   def render(assigns) do
+    assigns =
+      assigns
+      |> assign(:delivery_note, Delivery.callout(assigns))
+      |> assign(:returns_href, store_path(assigns.store.slug, "/policies#returns"))
+
     ~H"""
     <section
       :if={section_enabled?(@theme, :trust)}
@@ -78,10 +97,21 @@ defmodule Emakola.Themes.Starter.Sections.Trust do
               class="text-sm font-semibold text-[#0F172A] mb-1"
               style="font-family: 'Inter', sans-serif;"
             >
-              Fast Delivery
+              Delivery
             </h3>
-            <p class="text-xs text-[#64748B]" style="font-family: 'Inter', sans-serif;">
-              Quick delivery within Accra and nationwide shipping available.
+            <p
+              :if={@delivery_note}
+              class="text-xs text-[#64748B]"
+              style="font-family: 'Inter', sans-serif;"
+            >
+              {@delivery_note}
+            </p>
+            <p
+              :if={!@delivery_note}
+              class="text-xs text-[#64748B]"
+              style="font-family: 'Inter', sans-serif;"
+            >
+              This store sets its own delivery zones, fees and times.
             </p>
           </div>
 
@@ -106,10 +136,15 @@ defmodule Emakola.Themes.Starter.Sections.Trust do
               class="text-sm font-semibold text-[#0F172A] mb-1"
               style="font-family: 'Inter', sans-serif;"
             >
-              Easy Returns
+              Returns
             </h3>
             <p class="text-xs text-[#64748B]" style="font-family: 'Inter', sans-serif;">
-              Hassle-free returns within 7 days of delivery.
+              <a
+                href={@returns_href}
+                class="underline decoration-[#CBD5E1] underline-offset-2 hover:text-[#0F172A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-primary,#6366F1)] rounded"
+              >
+                See this store's returns policy
+              </a>
             </p>
           </div>
         </div>

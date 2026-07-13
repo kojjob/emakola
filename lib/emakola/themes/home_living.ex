@@ -68,8 +68,7 @@ defmodule Emakola.Themes.HomeLiving do
         images: [],
         carousel: false,
         title: "Masterpieces Crafted From Solid Wood",
-        subtitle:
-          "Modern furniture and home goods, made for the way you live. Free delivery on orders over GHS 500.",
+        subtitle: "Modern furniture and home goods, made for the way you live.",
         cta_text: "Explore More",
         cta_url: "/products"
       },
@@ -100,33 +99,21 @@ defmodule Emakola.Themes.HomeLiving do
           %{title: "Modern Sofa", icon: "weekend"}
         ]
       },
-      sale_band: %{
-        items: [
-          %{icon: "local_shipping", title: "Free Delivery", subtitle: "On orders GHS 500+"},
-          %{icon: "verified_user", title: "Safe Payment", subtitle: "Mobile money & card"},
-          %{icon: "schedule", title: "Daily Curation", subtitle: "Hand-picked pieces"}
-        ]
-      },
+      # `items: []` — empty, but the key must stay. These lists used to ship
+      # "Free Delivery — On orders GHS 500+", "Ships in 5 days" and "30-day
+      # returns" as theme defaults, so every Home Living store made promises its
+      # merchant had never made. Empty, the sections build the delivery tile from
+      # the store's OWN delivery zones (Emakola.Themes.Delivery) and omit it when
+      # there are none.
+      #
+      # Do NOT delete the key: ThemeResolver.deep_merge_atomize/2 drops any
+      # override whose key is absent from the defaults, so removing `items:`
+      # would silently discard the items of every merchant who set their own.
+      sale_band: %{items: []},
       trust: %{
         title: "Crafted to live with",
         subtitle: "Quality materials, designed for everyday life.",
-        items: [
-          %{
-            icon: "category",
-            label: "Quality materials",
-            subtitle: "Solid wood, natural fibres"
-          },
-          %{
-            icon: "local_shipping",
-            label: "Ships in 5 days",
-            subtitle: "Across Ghana"
-          },
-          %{
-            icon: "swap_horiz",
-            label: "30-day returns",
-            subtitle: "No questions asked"
-          }
-        ]
+        items: []
       },
       newsletter: %{
         title: "New pieces, in your inbox",

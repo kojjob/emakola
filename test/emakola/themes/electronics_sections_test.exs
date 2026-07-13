@@ -45,6 +45,8 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
       products: products,
       categories: categories,
       theme: ThemeResolver.resolve(store.theme_config || %{}, store),
+      # Mirrors StoreLive: the trust statement states the store's own zones.
+      delivery_zones: Emakola.Shipping.list_delivery_zones!(store.id),
       cart_count: 0,
       __changed__: nil
     }
@@ -91,9 +93,16 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
       # Price formatted from integer minor units
       assert html =~ "GH₵ 123.45"
 
-      # Trust statement
+      # Trust statement. Its default subheading used to read "Genuine products.
+      # 1-year warranty. Free shipping over GHS 500." — a warranty and a shipping
+      # threshold this merchant never set. With no delivery zones configured it
+      # states only what is true and links the store's own policies.
       assert html =~ "Why thousands trust us"
-      assert html =~ "Genuine products. 1-year warranty."
+      assert html =~ "Secure checkout with mobile money and card."
+      assert html =~ "See this store"
+      assert html =~ "/policies#shipping"
+      refute html =~ "1-year warranty"
+      refute html =~ "Free shipping"
 
       # Best sellers
       assert html =~ "Best selling product"

@@ -119,9 +119,11 @@ defmodule Emakola.Themes.Electronics.Shared do
               </div>
               <span class="electronics-heading text-2xl font-bold">{@store.name}</span>
             </div>
-            <p class="text-sm text-white/65 leading-relaxed max-w-md">
-              {@store.description ||
-                "Genuine electronics with 1-year warranty. Fast shipping across Ghana."}
+            <p
+              :if={@store.description not in [nil, ""]}
+              class="text-sm text-white/65 leading-relaxed max-w-md"
+            >
+              {@store.description}
             </p>
           </div>
           <div>

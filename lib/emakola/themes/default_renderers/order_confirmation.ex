@@ -148,8 +148,11 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
                     </svg>
                   </div>
                 </div>
+                <%!-- This step used to read "2-5 business days" for every order
+                     of every store — a delivery window nobody had set, shown
+                     after the customer had already paid. The seller confirms the
+                     date; the platform does not invent one. --%>
                 <p class="text-xs font-medium text-[#78716C]">Delivered</p>
-                <p class="text-[10px] text-[#A8A29E] mt-0.5">2-5 business days</p>
               </div>
             </div>
           </div>
