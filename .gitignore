@@ -151,3 +151,7 @@ stitch-store-preview.png
 # Demo & smoke-test screenshot/recording artifacts
 /demo-shots/
 /smoke-shots/
+
+# Playwright writes screenshots to the repo root when given a bare filename.
+/*.png
+/*.jpeg
