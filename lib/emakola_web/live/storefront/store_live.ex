@@ -38,6 +38,9 @@ defmodule EmakolaWeb.Storefront.StoreLive do
      # Category tiles used to source their photo from `products` above — a
      # capped preview — so any category outside it rendered as an empty box.
      |> assign(:category_photos, load_category_photos(store, categories))
+     # Themes that show testimonials used to invent them. They get the store's
+     # real published reviews now, or an empty list and no section.
+     |> assign(:testimonials, Emakola.Catalog.store_testimonials(store.id))
      |> assign(:public_coupons, public_coupons)
      |> assign(:cart_session_id, cart_session_id)
      |> assign(:cart_count, cart_count)

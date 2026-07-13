@@ -119,26 +119,6 @@ defmodule Emakola.Themes.Spotlight do
           }
         ]
       },
-      testimonials: %{
-        title: "Loved by everyday people",
-        items: [
-          %{
-            name: "Ama D.",
-            location: "Accra",
-            quote: "Exactly what I was looking for. Simple, reliable, and it just works."
-          },
-          %{
-            name: "Kofi B.",
-            location: "Kumasi",
-            quote: "Quality you can feel. I've reordered three times now."
-          },
-          %{
-            name: "Esi M.",
-            location: "Takoradi",
-            quote: "Beautiful, honest product. The whole experience feels considered."
-          }
-        ]
-      },
       newsletter: %{
         title: "Stay in the loop",
         subtitle: "New drops and members-only offers, straight to your inbox.",

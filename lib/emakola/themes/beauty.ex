@@ -143,35 +143,6 @@ defmodule Emakola.Themes.Beauty do
           }
         ]
       },
-      testimonials: %{
-        title: "Loved by our community",
-        items: [
-          %{
-            name: "Akua M.",
-            location: "Accra",
-            quote:
-              "The shea body butter is everything! My skin has never felt this soft. I'll never go back to my old brand."
-          },
-          %{
-            name: "Nana A.",
-            location: "Kumasi",
-            quote:
-              "Beautiful packaging, beautiful results. The ingredients list is short and I can pronounce everything in it."
-          },
-          %{
-            name: "Yaa K.",
-            location: "Takoradi",
-            quote:
-              "Finally a brand that gets melanin. The botanical face oil is glow in a bottle. Five stars."
-          },
-          %{
-            name: "Ama D.",
-            location: "Tema",
-            quote:
-              "Customer service is top-tier. They helped me build a routine for my sensitive skin and it works."
-          }
-        ]
-      },
       newsletter: %{
         title: "Join the beauty list",
         subtitle: "New launches, restocks, and rituals — delivered monthly.",

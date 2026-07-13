@@ -1,15 +1,22 @@
 defmodule Emakola.Themes.Beauty.Sections.Testimonials do
   @moduledoc """
-  Beauty testimonials — four quote cards with an initial avatar.
+  Beauty testimonials — the store's own published reviews.
 
-  Quotes come from the theme's `testimonials.items` config, falling back to
-  the theme's built-in set. Both the fallback quotes and the fixed five-star
-  row are pre-existing invented social proof, carried over verbatim by the
-  section retrofit rather than silently changed — see the retrofit report.
+  This section used to print four invented ones: named strangers ("Akua M.",
+  Accra) saying things nobody said, under a hardcoded five-star row, shipped as
+  theme defaults and rendered on every Beauty storefront that had not
+  overridden them. A shop that had never sold a single jar opened with four
+  glowing reviews and twenty stars.
+
+  A testimonial is a real review now, or there is no section. The quote is the
+  reviewer's words, the name is theirs (first name only, as the product page
+  does it), and the stars are the rating they actually gave.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
+
+  alias Emakola.Themes.Testimonial
 
   @impl true
   def key, do: "beauty/testimonials"
@@ -24,32 +31,37 @@ defmodule Emakola.Themes.Beauty.Sections.Testimonials do
 
   @impl true
   def render(assigns) do
+    assigns = assign(assigns, :reviews, Testimonial.list(assigns))
+
     ~H"""
-    <section :if={section_enabled?(@theme, :testimonials)} class="bg-[#F5EFE5] py-16 sm:py-24">
+    <section
+      :if={@reviews != [] && section_enabled?(@theme, :testimonials)}
+      class="bg-[#F5EFE5] py-16 sm:py-24"
+    >
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12">
           <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#8C5A24] mb-3">
-            Testimonials
+            Reviews
           </p>
           <h2 class="beauty-heading text-4xl sm:text-5xl font-semibold text-[#3D2F25]">
             {if @settings["heading"] not in [nil, ""],
               do: @settings["heading"],
-              else: testimonials_title(@theme)}
+              else: "What buyers say"}
           </h2>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <div :for={t <- testimonials_items(@theme)} class="beauty-card p-6">
+          <div :for={review <- @reviews} class="beauty-card p-6">
             <div class="w-12 h-12 rounded-full bg-[#C9925E]/30 flex items-center justify-center mb-4 text-[#6B4423] beauty-heading font-semibold">
-              {String.first(t.name)}
+              {String.first(Testimonial.name(review))}
             </div>
-            <div class="flex items-center gap-1 mb-3">
-              <span :for={_ <- 1..5} class="text-[#8C5A24]" style="font-size: 14px;">★</span>
-            </div>
+            <Testimonial.stars rating={review.rating} class="text-[#8C5A24] mb-3" />
             <p class="text-sm text-[#3D2F25] leading-relaxed mb-4 line-clamp-5">
-              "{t.quote}"
+              "{review.body}"
             </p>
-            <p class="text-sm font-semibold text-[#6B4423]">{t.name}</p>
-            <p class="text-xs text-[#6B4423]/60">{t.location}</p>
+            <p class="text-sm font-semibold text-[#6B4423]">{Testimonial.name(review)}</p>
+            <p :if={review.verified_purchase} class="text-xs text-[#6B4423]/60">
+              Verified purchase
+            </p>
           </div>
         </div>
       </div>
@@ -62,24 +74,5 @@ defmodule Emakola.Themes.Beauty.Sections.Testimonials do
       false -> false
       _ -> true
     end
-  end
-
-  defp testimonials_title(theme),
-    do: get_in(theme, [:testimonials, :title]) || "Loved by our community"
-
-  defp testimonials_items(theme) do
-    case get_in(theme, [:testimonials, :items]) do
-      items when is_list(items) and items != [] -> items
-      _ -> default_testimonials()
-    end
-  end
-
-  defp default_testimonials do
-    [
-      %{name: "Akua M.", location: "Accra", quote: "My skin has never felt this soft."},
-      %{name: "Nana A.", location: "Kumasi", quote: "Beautiful packaging, beautiful results."},
-      %{name: "Yaa K.", location: "Takoradi", quote: "Glow in a bottle. Five stars."},
-      %{name: "Ama D.", location: "Tema", quote: "Customer service is top-tier."}
-    ]
   end
 end

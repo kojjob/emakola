@@ -139,4 +139,38 @@ defmodule Emakola.Catalog do
   end
 
   defp cover_url(_product), do: nil
+
+  @doc """
+  The store's own published reviews, for themes that show testimonials.
+
+  Themes used to ship *invented* ones: named strangers ("Akua M., Accra") with
+  quotes nobody wrote, under a hardcoded five-star row, printed on every
+  storefront that had not overridden them. A shop that had never sold anything
+  still opened with four glowing reviews. That is a lie told to a customer
+  about a product, and no amount of it is acceptable.
+
+  A testimonial is now a real review or it does not exist:
+
+  - only `:published` reviews (a merchant-hidden review stays hidden)
+  - scoped by `store_id`, so one shop never wears another's praise
+  - the reviewer is loaded so the theme can name them; the rating is the
+    reviewer's own, so the stars tell the truth
+
+  The resource does the rest of the work: a review requires an `order_id`, so
+  only someone who actually bought the thing can say anything about it, and
+  `body` is required, so there are no wordless testimonials to filter out.
+
+  A store with no reviews gets `[]`, and the theme renders nothing at all.
+  """
+  @spec store_testimonials(Ecto.UUID.t(), pos_integer()) :: [Emakola.Catalog.Review.t()]
+  def store_testimonials(store_id, limit \\ 4) do
+    require Ash.Query
+
+    Emakola.Catalog.Review
+    |> Ash.Query.filter(store_id == ^store_id and status == :published)
+    |> Ash.Query.sort(inserted_at: :desc)
+    |> Ash.Query.limit(limit)
+    |> Ash.Query.load(:customer)
+    |> Ash.read!(authorize?: false)
+  end
 end

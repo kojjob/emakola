@@ -33,7 +33,6 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
       |> assign(:currency, Map.get(assigns.store, :currency, "GHS"))
       |> assign(:wa_link, Shared.whatsapp_link(assigns.store, assigns.product.title))
       |> assign(:trust, get_in(assigns.theme, [:trust]) || %{})
-      |> assign(:testimonials, get_in(assigns.theme, [:testimonials]) || %{})
       |> assign(:closing, get_in(assigns.theme, [:closing_cta]) || %{})
       |> assign(:ingredients, Emakola.Themes.Spotlight.ingredients())
 
@@ -286,29 +285,11 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
         </div>
       </section>
 
-      <%!-- TESTIMONIALS --%>
-      <section
-        phx-hook="ScrollReveal"
-        id="testimonials"
-        class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16"
-      >
-        <h2 class="spot-heading text-3xl font-bold text-center mb-10">
-          {Map.get(@testimonials, :title, "Loved by everyday people")}
-        </h2>
-        <div class="grid md:grid-cols-3 gap-6">
-          <figure
-            :for={t <- Map.get(@testimonials, :items, [])}
-            data-reveal
-            class="rounded-2xl bg-white border border-[#ECE7DE] p-6"
-          >
-            <div class="text-[var(--theme-accent,#7C3AED)]">★★★★★</div>
-            <blockquote class="text-sm text-[#16130F] mt-3 leading-relaxed">"{t.quote}"</blockquote>
-            <figcaption class="text-xs text-[#6B675F] mt-4 font-semibold">
-              {t.name}<span :if={Map.get(t, :location)} class="font-normal"> · {t.location}</span>
-            </figcaption>
-          </figure>
-        </div>
-      </section>
+      <%!-- The invented testimonials used to sit HERE, immediately above the
+           real reviews: three named strangers under a literal ★★★★★, praising
+           a product they had never bought, inches from what actual buyers said
+           about it. The product's own reviews are the only testimonial a
+           product page needs. --%>
 
       <%!-- REVIEWS (only when LiveView provides review assigns) --%>
       <%!-- No id here: review_section/1 already renders id="reviews", and a

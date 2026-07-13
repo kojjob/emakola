@@ -336,15 +336,9 @@ defmodule EmakolaWeb.ReviewComponents do
   defp format_rating(rating), do: "#{rating}"
 
   @doc false
-  def reviewer_name(review) do
-    case review do
-      %{customer: %{name: name}} when is_binary(name) and name != "" ->
-        name |> String.split() |> List.first()
-
-      _ ->
-        "Customer"
-    end
-  end
+  # One convention for naming a buyer, shared with the storefront themes, so a
+  # review reads the same on the product page and in a shop's testimonials.
+  defdelegate reviewer_name(review), to: Emakola.Themes.Testimonial, as: :name
 
   @doc false
   def relative_time(nil), do: ""
