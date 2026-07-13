@@ -231,6 +231,22 @@ defmodule Emakola.Themes.Pharmacy.Shared do
     """
   end
 
+  # ── Section Gates ──
+
+  @doc """
+  Whether a legacy `@theme.sections.<name>` toggle leaves a section on.
+
+  Lived in `Pharmacy.Home` until the sections were extracted; the section
+  modules carry their own gates now, so it has to be reachable from all of
+  them (mirrors `Atelier.Shared.section_enabled?/2`).
+  """
+  def section_enabled?(theme, section_name) do
+    case get_in(theme, [:sections, section_name]) do
+      false -> false
+      _ -> true
+    end
+  end
+
   # ── Image Helpers ──
 
   def first_image(product) do
