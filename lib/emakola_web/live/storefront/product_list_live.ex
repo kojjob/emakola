@@ -123,6 +123,14 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
   end
 
   @impl true
+  # Product cards are theme chrome and several themes put a quick-add button on
+  # this page. Without this clause the button raised FunctionClauseError and took
+  # the page down — the same button works fine on the home page.
+  def handle_event("add_to_cart", %{"product-id" => product_id}, socket) do
+    EmakolaWeb.Storefront.QuickAdd.add_to_cart(socket, product_id)
+  end
+
+  @impl true
   def handle_event("load_more", _params, socket) do
     next_page = socket.assigns.page + 1
 
