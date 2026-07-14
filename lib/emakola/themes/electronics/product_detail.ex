@@ -2,6 +2,10 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
   @moduledoc """
   Electronics theme product detail — gallery + monospace price +
   deep-teal "Add to Cart" CTA + warranty pill + stock-aware badge.
+
+  The warranty pill states the merchant's own warranty and appears only when
+  they have set one. It used to read "1-year warranty" on every product in
+  every Electronics store, offered by nobody.
   """
 
   use Phoenix.Component
@@ -10,6 +14,7 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Electronics.Shared
+  alias Emakola.Themes.Terms
 
   attr :store, :map, required: true
   attr :theme, :map, required: true
@@ -112,10 +117,19 @@ defmodule Emakola.Themes.Electronics.ProductDetail do
                     Map.get(@store, :currency, "GHS")
                   )}
                 </span>
-                <%!-- A "1-year warranty" badge used to sit beside the price on
-                     every Electronics product. No merchant offered it, none could
-                     remove it, and there is no warranty field to derive one from.
-                     Warranty terms belong on the store's policies page. --%>
+                <%!-- What the MERCHANT promises. A "1-year warranty" badge used
+                     to sit here on every Electronics product regardless of store,
+                     offered by nobody; these state the merchant's own terms, and
+                     a merchant who has stated none gets no badge at all. The
+                     policies page carries the detail behind them. --%>
+                <a
+                  :for={badge <- Terms.badges(assigns)}
+                  href={store_path(@store.slug, "/policies#returns")}
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#134E4A]/10 text-[#134E4A] text-xs font-semibold hover:bg-[#134E4A]/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0EA5E9]"
+                >
+                  <span class="material-symbols-outlined" style="font-size: 14px;">verified</span>
+                  {badge}
+                </a>
               </div>
 
               <%!-- Description --%>

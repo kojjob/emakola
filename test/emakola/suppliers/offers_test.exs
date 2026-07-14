@@ -185,6 +185,42 @@ defmodule Emakola.Suppliers.OffersTest do
              Offers.list_available(context.wholesaler_actor, context.reseller.id)
   end
 
+  describe "update_terms/3 — what the supplier will honour back to the reseller" do
+    test "the owning supplier states a returns window and a warranty", context do
+      offer = draft_offer!(context, :markup)
+
+      assert {:ok, updated} =
+               Offers.update_terms(context.wholesaler_actor, offer, %{
+                 returns_window_days: 7,
+                 warranty_months: 6,
+                 warranty_terms: "Manufacturing defects only."
+               })
+
+      assert updated.returns_window_days == 7
+      assert updated.warranty_months == 6
+      assert updated.warranty_terms == "Manufacturing defects only."
+    end
+
+    test "terms can be corrected on a LIVE offer without unpublishing it", context do
+      published = publish_offer!(context)
+
+      assert {:ok, updated} =
+               Offers.update_terms(context.wholesaler_actor, published, %{returns_window_days: 14})
+
+      # Unpublishing to fix a warranty would pause every reseller's listing, so
+      # suppliers would leave stale terms live instead. The offer stays up.
+      assert updated.status == :published
+      assert updated.returns_window_days == 14
+    end
+
+    test "a reseller cannot rewrite their supplier's terms", context do
+      offer = draft_offer!(context, :markup)
+
+      assert {:error, :forbidden} =
+               Offers.update_terms(context.reseller_actor, offer, %{returns_window_days: 365})
+    end
+  end
+
   defp draft_offer!(context, earning_model) do
     {:ok, offer} =
       Offers.create_draft(context.wholesaler_actor, %{

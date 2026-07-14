@@ -36,7 +36,32 @@ defmodule Emakola.Suppliers.SupplierOffer do
     end
 
     attribute(:delivery_areas, {:array, :string}, allow_nil?: false, default: [], public?: true)
+
+    # What THIS supplier will honour back to the reseller on these goods.
+    #
+    # `return_terms` has always existed here and was never shown to anyone: the
+    # PDP loads this very offer to print "Fulfilled by verified partner X" and
+    # then discards everything but the name. These terms are the supplier's
+    # commitment, not a promise to the shopper — the merchant is the seller of
+    # record, so what a customer is quoted is the merchant's own policy
+    # (`Emakola.Stores.StorePageContent`).
+    #
+    # They are surfaced to the MERCHANT in the supply network, so a merchant who
+    # offers a 30-day return on goods a supplier only takes back for 7 is
+    # absorbing that difference knowingly rather than blind.
     attribute(:return_terms, :string, public?: true)
+
+    attribute :returns_window_days, :integer do
+      constraints(min: 0)
+      public?(true)
+    end
+
+    attribute :warranty_months, :integer do
+      constraints(min: 0)
+      public?(true)
+    end
+
+    attribute(:warranty_terms, :string, public?: true)
     attribute(:published_at, :utc_datetime_usec, public?: true)
     timestamps()
   end
@@ -79,7 +104,26 @@ defmodule Emakola.Suppliers.SupplierOffer do
         :source_product_id,
         :earning_model,
         :delivery_areas,
-        :return_terms
+        :return_terms,
+        :returns_window_days,
+        :warranty_months,
+        :warranty_terms
+      ])
+    end
+
+    # A supplier revising what they will honour. Kept separate from the status
+    # transitions above so terms can be corrected on a live offer without
+    # unpublishing it — the resellers carrying these goods need the current
+    # terms, not the ones the offer launched with.
+    update :update_terms do
+      require_atomic?(false)
+
+      accept([
+        :delivery_areas,
+        :return_terms,
+        :returns_window_days,
+        :warranty_months,
+        :warranty_terms
       ])
     end
 

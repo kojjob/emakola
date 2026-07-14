@@ -9,7 +9,14 @@ defmodule EmakolaWeb.Admin.Content.PageContentLive do
   use EmakolaWeb, :live_view
 
   @scalar_fields ~w(about_headline about_intro about_story about_cta_heading about_cta_text
-                    shipping_returns privacy_policy terms_of_service contact_note contact_hours)
+                    shipping_returns returns_window_days warranty_months warranty_terms
+                    privacy_policy terms_of_service contact_note contact_hours)
+
+  # Held as strings in the draft like every other field, coerced on save. A
+  # value that is neither blank nor a number is passed to Ash as-is so it comes
+  # back as a validation error — a merchant who typed "thirty" must be told,
+  # not silently recorded as promising nothing.
+  @integer_fields ~w(returns_window_days warranty_months)
 
   @list_fields ~w(about_steps about_values faq_items)
 
@@ -23,7 +30,8 @@ defmodule EmakolaWeb.Admin.Content.PageContentLive do
                   about_steps about_values)
   @contact_attrs ~w(contact_note contact_hours)
   @faq_attrs ~w(faq_items)
-  @policy_attrs ~w(shipping_returns privacy_policy terms_of_service)
+  @policy_attrs ~w(shipping_returns returns_window_days warranty_months warranty_terms
+                   privacy_policy terms_of_service)
 
   @impl true
   def mount(_params, _session, socket) do
@@ -259,6 +267,40 @@ defmodule EmakolaWeb.Admin.Content.PageContentLive do
                   value={@draft["shipping_returns"]}
                   rows={5}
                 />
+
+                <div class="rounded-control border border-slate-200 p-4 space-y-4">
+                  <div>
+                    <h4 class="text-sm font-bold text-slate-900">Returns &amp; warranty</h4>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                      What you promise the shopper. These appear on your product pages.
+                      Leave them blank and your storefront promises nothing — it will never
+                      invent a number on your behalf.
+                    </p>
+                  </div>
+                  <div class="grid gap-4 sm:grid-cols-2">
+                    <.number_field
+                      field="returns_window_days"
+                      label="Returns window (days)"
+                      value={@draft["returns_window_days"]}
+                      placeholder="e.g. 30"
+                      hint="Enter 0 if you sell final-sale only — shoppers will see “No returns”."
+                    />
+                    <.number_field
+                      field="warranty_months"
+                      label="Warranty (months)"
+                      value={@draft["warranty_months"]}
+                      placeholder="e.g. 12"
+                      hint="12 shows as “1-year warranty”. Leave blank if you offer none."
+                    />
+                  </div>
+                  <.textarea_field
+                    field="warranty_terms"
+                    label="What the warranty covers"
+                    value={@draft["warranty_terms"]}
+                    rows={4}
+                  />
+                </div>
+
                 <.textarea_field
                   field="privacy_policy"
                   label="Privacy Policy"
@@ -326,6 +368,37 @@ defmodule EmakolaWeb.Admin.Content.PageContentLive do
         phx-debounce="300"
         class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
       />
+    </div>
+    """
+  end
+
+  attr :field, :string, required: true
+  attr :label, :string, required: true
+  attr :value, :string, default: ""
+  attr :placeholder, :string, default: ""
+  attr :hint, :string, default: nil
+
+  defp number_field(assigns) do
+    ~H"""
+    <div>
+      <label for={"field-#{@field}"} class="block text-sm font-medium text-slate-700 mb-1.5">
+        {@label}
+      </label>
+      <input
+        type="number"
+        id={"field-#{@field}"}
+        name="value"
+        min="0"
+        step="1"
+        inputmode="numeric"
+        value={@value}
+        placeholder={@placeholder}
+        phx-change="update_scalar"
+        phx-value-field={@field}
+        phx-debounce="300"
+        class="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-control text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+      />
+      <p :if={@hint} class="mt-1 text-xs text-slate-500">{@hint}</p>
     </div>
     """
   end
@@ -431,6 +504,9 @@ defmodule EmakolaWeb.Admin.Content.PageContentLive do
       "about_values" => normalize_rows(content.about_values, ["title", "description"]),
       "faq_items" => normalize_rows(content.faq_items, ["question", "answer"]),
       "shipping_returns" => content.shipping_returns || "",
+      "returns_window_days" => to_input(content.returns_window_days),
+      "warranty_months" => to_input(content.warranty_months),
+      "warranty_terms" => content.warranty_terms || "",
       "privacy_policy" => content.privacy_policy || "",
       "terms_of_service" => content.terms_of_service || "",
       "contact_note" => content.contact_note || "",
@@ -446,15 +522,33 @@ defmodule EmakolaWeb.Admin.Content.PageContentLive do
     end)
   end
 
+  # An unset integer is "" in the draft; a set one of 0 must survive as "0",
+  # because a zero-day returns window is a policy ("final sale"), not a blank.
+  defp to_input(nil), do: ""
+  defp to_input(value), do: to_string(value)
+
   # Builds the persist params for the given keys, dropping fully-blank list rows.
   defp clean_attrs(draft, keys) do
     Map.new(keys, fn key ->
       case Map.get(draft, key) do
         rows when is_list(rows) -> {key, clean_rows(rows)}
+        scalar when key in @integer_fields -> {key, to_integer(scalar)}
         scalar -> {key, scalar}
       end
     end)
   end
+
+  # Blank clears the promise. Anything else that is not a whole number is handed
+  # to Ash untouched so it fails validation and the merchant is told — quietly
+  # turning a typo into "no returns offered" would be the worse bug.
+  defp to_integer(value) when is_binary(value) do
+    case value |> String.trim() |> Integer.parse() do
+      {integer, ""} -> integer
+      _ -> if String.trim(value) == "", do: nil, else: value
+    end
+  end
+
+  defp to_integer(value), do: value
 
   defp clean_rows(rows) do
     Enum.reject(rows, fn row ->

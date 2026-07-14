@@ -20,6 +20,7 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   alias Emakola.Themes.Fresh.Shared
+  alias Emakola.Themes.Terms
   alias EmakolaWeb.Helpers.Currency
 
   @doc """
@@ -473,6 +474,9 @@ defmodule Emakola.Themes.Fresh.ProductDetail do
                 class="px-5 pb-5 text-sm text-[#78350F] leading-relaxed"
                 style="font-family: 'Inter', sans-serif;"
               >
+                <p :if={Terms.badges(assigns) != []} class="mb-1 font-bold text-cta-dark">
+                  {Enum.join(Terms.badges(assigns), " · ")}
+                </p>
                 <p>
                   Not happy with freshness? See our
                   <a

@@ -43,6 +43,9 @@ defmodule EmakolaWeb.Storefront.StoreLive do
      |> assign(:testimonials, Emakola.Catalog.store_testimonials(store.id))
      # Likewise the "customer photos" strip, which used to be six camera glyphs.
      |> assign(:review_photos, Emakola.Catalog.store_review_photos(store.id))
+     # Returns and warranty: the merchant's own terms, which themes used to
+     # invent. No row and no numbers means they have promised nothing.
+     |> assign(:page_content, EmakolaWeb.Storefront.ContentLoader.load(store.id))
      |> assign(:public_coupons, public_coupons)
      |> assign(:cart_session_id, cart_session_id)
      |> assign(:cart_count, cart_count)

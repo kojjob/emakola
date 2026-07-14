@@ -3,14 +3,20 @@ defmodule Emakola.Themes.DefaultRenderers.Policies do
   Default render for the storefront policies page.
 
   Used by `EmakolaWeb.Storefront.PoliciesLive` when no theme overrides
-  `:render_policies`. One page with three anchored sections — shipping/returns,
-  privacy and terms. Each section the merchant has not written falls back to a
-  neutral, store-name-driven template so a brand-new store still has usable
-  policies.
+  `:render_policies`. One page with four anchored sections — shipping, returns
+  and warranty, privacy and terms. Each section the merchant has not written
+  falls back to a neutral, store-name-driven template so a brand-new store still
+  has usable policies.
+
+  The returns section is the authority every theme's returns badge links to
+  (`/policies#returns`), and carries the merchant's stated window and warranty —
+  the same numbers `Emakola.Themes.Terms` prints on the product page, from the
+  same row, so the shop cannot quote two different windows.
   """
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Terms
   alias EmakolaWeb.Storefront.ContentLoader
 
   def render(assigns) do
@@ -20,17 +26,26 @@ defmodule Emakola.Themes.DefaultRenderers.Policies do
     sections = [
       %{
         id: "shipping",
-        title: "Shipping & Returns",
+        title: "Shipping",
+        badges: [],
         body: ContentLoader.field(pc, :shipping_returns) || default_shipping(store)
+      },
+      %{
+        id: "returns",
+        title: "Returns & Warranty",
+        badges: Terms.badges(%{page_content: pc}),
+        body: Terms.warranty_terms(pc) || default_returns(store)
       },
       %{
         id: "privacy",
         title: "Privacy Policy",
+        badges: [],
         body: ContentLoader.field(pc, :privacy_policy) || default_privacy(store)
       },
       %{
         id: "terms",
         title: "Terms of Service",
+        badges: [],
         body: ContentLoader.field(pc, :terms_of_service) || default_terms(store)
       }
     ]
@@ -62,6 +77,14 @@ defmodule Emakola.Themes.DefaultRenderers.Policies do
 
       <section :for={section <- @sections} id={section.id} class="mb-12 scroll-mt-24">
         <h2 class="text-xl sm:text-2xl font-bold text-stone-900 mb-4">{section.title}</h2>
+        <ul :if={section.badges != []} class="flex flex-wrap gap-2 mb-4">
+          <li
+            :for={badge <- section.badges}
+            class="px-3 py-1 rounded-full bg-stone-100 text-stone-900 text-sm font-semibold"
+          >
+            {badge}
+          </li>
+        </ul>
         <div class="text-stone-600 leading-relaxed whitespace-pre-line">{section.body}</div>
       </section>
     </div>
@@ -78,6 +101,16 @@ defmodule Emakola.Themes.DefaultRenderers.Policies do
     "#{store.name} aims to process and dispatch your order promptly after it is confirmed. " <>
       "Delivery times depend on your location and the option chosen at checkout. " <>
       "If something is not right with your order, contact us and we will help arrange a return or exchange."
+  end
+
+  # Deliberately states no window and no warranty: a merchant who has set
+  # neither has promised neither, and this page is where a shopper comes to find
+  # out. Inventing "30 days" here is exactly the failure this section exists to
+  # end. Contacting the shop is the one thing that is always true.
+  defp default_returns(store) do
+    "Contact #{store.name} if something is not right with your order and we will help arrange a return, " <>
+      "exchange or repair. Returns windows and warranty cover vary by product — ask us before you buy " <>
+      "if you need to be sure."
   end
 
   defp default_privacy(store) do

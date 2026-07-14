@@ -14,8 +14,9 @@ defmodule Emakola.Themes.Delivery do
   so every function here returns `nil` for it, and the theme falls back to
   linking the merchant's own policies page — which is authoritative.
 
-  Returns and warranty terms have no data model at all, so there is nothing to
-  derive and nothing to say: those live on the policies page only.
+  Returns and warranty are not derived — they are a promise, so only the
+  merchant can make one. They live in `Emakola.Themes.Terms`, which reads what
+  the merchant typed and says nothing when they have typed nothing.
   """
 
   alias EmakolaWeb.Helpers.Currency

@@ -141,10 +141,16 @@ defmodule Emakola.Themes.Beauty do
             answer:
               "All our shea, cocoa, and baobab is sourced directly from West African women's cooperatives. Fair trade, every batch."
           },
+          # This answer used to read "Unopened products can be returned within 14
+          # days. We also offer a satisfaction guarantee on first-time purchases."
+          # — a returns window and a guarantee shipped as a theme default, so
+          # every Beauty store made both promises without a merchant ever
+          # agreeing to honour either. A merchant's real window now comes from
+          # their own terms (see `Emakola.Themes.Terms`) and is stated on the
+          # product page; the policies page carries the detail.
           %{
             question: "What is your return policy?",
-            answer:
-              "Unopened products can be returned within 14 days. We also offer a satisfaction guarantee on first-time purchases."
+            answer: "Our returns window and warranty terms are listed on our policies page."
           }
         ]
       },

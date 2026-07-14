@@ -212,6 +212,38 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     assert has_element?(view, "#opportunity-radar-items article", "GH₵65.00")
   end
 
+  # A merchant is the seller of record: whatever they promise a shopper, they
+  # owe, whether or not their supplier stands behind it. So the offer card has
+  # to say what the supplier actually backs BEFORE the merchant imports it.
+  test "an offer card states what the supplier will honour back to the merchant", ctx do
+    offer = create_partner_offer!(ctx)
+    connect_partner!(ctx)
+
+    {:ok, _updated} =
+      Offers.update_terms(ctx.partner_merchant, offer, %{
+        returns_window_days: 7,
+        warranty_months: 6,
+        return_terms: "Faulty goods only, in original packaging."
+      })
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+
+    assert has_element?(view, "#earn-offers article", "7-day returns")
+    assert has_element?(view, "#earn-offers article", "6-month warranty")
+    assert has_element?(view, "#earn-offers article", "Faulty goods only, in original packaging.")
+  end
+
+  test "an offer backed by nothing says so, rather than staying quiet", ctx do
+    create_partner_offer!(ctx)
+    connect_partner!(ctx)
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+
+    # Silence here would read as "fine" — the merchant needs to know the gap is
+    # theirs to fund before they promise a shopper 30 days.
+    assert has_element?(view, "#earn-offers article", "Nothing stated")
+  end
+
   test "creates an income goal and renders an explainable seven-day plan", ctx do
     create_partner_offer!(ctx)
     connect_partner!(ctx)
