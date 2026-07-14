@@ -69,8 +69,11 @@ defmodule Emakola.Themes.Fashion do
         # Was "Made by Tailors. Worn by You." — the page's h1 on every Fashion
         # store, telling the shopper who sewed the clothes. Nobody knew.
         title: "The new collection",
-        subtitle:
-          "Curated drops in Ankara, kente, and ready-to-wear — designed in Accra, shipped across Ghana.",
+        # "designed in Accra, shipped across Ghana" went out under every Fashion
+        # store's hero. The platform knows neither where the goods were designed
+        # nor where this merchant delivers — that is theirs to say (delivery zones
+        # drive the real thing, see Emakola.Themes.Delivery).
+        subtitle: "Ankara, kente and ready-to-wear.",
         cta_text: "Shop the Drop",
         cta_url: "/products"
       },
@@ -105,7 +108,7 @@ defmodule Emakola.Themes.Fashion do
       },
       newsletter: %{
         title: "First access. No noise.",
-        subtitle: "Be the first to shop new drops, runway looks, and editor picks.",
+        subtitle: "Be the first to hear when new pieces land.",
         button_text: "Join the List"
       },
       # "Crafted with care / Made by tailors. Worn by you." — who sewed the

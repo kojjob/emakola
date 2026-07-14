@@ -101,9 +101,10 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       # goods by hand, every day. Gone.
       refute html =~ "Daily Curation"
 
-      # Featured products grid
-      assert html =~ "Bestsellers"
-      assert html =~ "Popular products"
+      # Featured products grid. "Bestsellers"/"Popular products" ranked the
+      # first eight products in catalog order by nothing at all.
+      assert html =~ "From the shop"
+      assert html =~ "Featured products"
       assert html =~ "View all"
       assert html =~ "Oak Dining Table"
       # Price from integer minor units — 12_345 pesewas
@@ -147,7 +148,7 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       # -> editor pick -> trust -> brand story -> newsletter -> footer
       assert String.match?(
                html,
-               ~r/Furniture and home goods.*by categories.*Popular products.*Featured pick.*Our story.*New pieces, in your inbox.*Designed for living/s
+               ~r/Furniture and home goods.*by categories.*Featured products.*Featured pick.*Our story.*New pieces, in your inbox.*Designed for living/s
              )
     end
 
@@ -163,7 +164,7 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       # goods by hand, every day. Gone.
       refute html =~ "Daily Curation"
       # No products: the grid and the editor's pick stay out of the page
-      refute html =~ "Popular products"
+      refute html =~ "Featured products"
       refute html =~ "Featured pick"
       # ...and the rest of the page still renders
       # "Quality materials — Solid wood, natural fibres" told every Home Living

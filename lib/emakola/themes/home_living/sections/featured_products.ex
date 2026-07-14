@@ -21,7 +21,7 @@ defmodule Emakola.Themes.HomeLiving.Sections.FeaturedProducts do
   @impl true
   def key, do: "home_living/featured_products"
   @impl true
-  def label, do: "Popular products"
+  def label, do: "Featured products"
 
   @impl true
   def settings_schema do
@@ -39,8 +39,8 @@ defmodule Emakola.Themes.HomeLiving.Sections.FeaturedProducts do
     assigns =
       assigns
       |> assign(:featured_products, Enum.take(products, limit(assigns.settings["limit"])))
-      |> assign(:eyebrow, present(assigns.settings["eyebrow"]) || "Bestsellers")
-      |> assign(:heading, present(assigns.settings["heading"]) || "Popular products")
+      |> assign(:eyebrow, present(assigns.settings["eyebrow"]) || "From the shop")
+      |> assign(:heading, present(assigns.settings["heading"]) || "Featured products")
 
     ~H"""
     <section

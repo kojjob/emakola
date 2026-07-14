@@ -69,7 +69,9 @@ defmodule Emakola.Themes.Electronics.Sections.Trust do
     """
   end
 
-  defp trust_title(theme), do: get_in(theme, [:trust, :title]) || "Why thousands trust us"
+  # Blanking the theme default is not enough on its own — this `||` fallback
+  # would put the claim straight back. Both sites had to change.
+  defp trust_title(theme), do: get_in(theme, [:trust, :title]) || "Why shop here"
 
   defp trust_subtitle(theme, zones, assigns) do
     get_in(theme, [:trust, :subtitle]) || derived_subtitle(zones, assigns)

@@ -122,9 +122,11 @@ defmodule Emakola.Themes.PharmacySectionsTest do
       assert html =~ "Your Trusted Healthcare Service"
       assert html =~ "Years serving Accra"
 
-      # Trending products
-      assert html =~ "Trending now"
-      assert html =~ "Trending products for you"
+      # A hardcoded "Trending now" eyebrow sat above the first four products in
+      # catalog order. On a pharmacy, a fake popularity signal on medicine is
+      # worse than merchandising puff.
+      refute html =~ "Trending now"
+      assert html =~ "From our shelves"
       assert html =~ "See all"
 
       # Highlight feature cards
@@ -149,7 +151,7 @@ defmodule Emakola.Themes.PharmacySectionsTest do
       # -> grid -> trust -> newsletter
       assert String.match?(
                html,
-               ~r/Pharmacy you can trust.*Your Trusted Healthcare Service.*Trending products for you.*Shop now.*Cough Syrups.*#{Regex.escape(grid_title)}.*Registered with the Pharmacy Council.*Stay healthy, stay informed/s
+               ~r/Pharmacy you can trust.*Your Trusted Healthcare Service.*From our shelves.*Shop now.*Cough Syrups.*#{Regex.escape(grid_title)}.*Registered with the Pharmacy Council.*Stay healthy, stay informed/s
              )
     end
 
@@ -181,7 +183,7 @@ defmodule Emakola.Themes.PharmacySectionsTest do
 
       refute html =~ "Your Trusted Healthcare Service"
       # …while the rest of the page is untouched
-      assert html =~ "Trending products for you"
+      assert html =~ "From our shelves"
     end
 
     test "a section switched off the legacy way stays off" do
@@ -202,7 +204,7 @@ defmodule Emakola.Themes.PharmacySectionsTest do
 
       html = render_home(store, %{"trust" => @merchant_trust})
 
-      refute html =~ "Trending products for you"
+      refute html =~ "From our shelves"
       refute html =~ "Shop now"
       # Hero, trust, newsletter and the chrome still stand
       assert html =~ "Professional Pharmacy Services You Can Trust"
@@ -296,7 +298,7 @@ defmodule Emakola.Themes.PharmacySectionsTest do
 
       assert String.match?(
                html,
-               ~r/Registered with the Pharmacy Council.*Pharmacy you can trust.*Trending products for you/s
+               ~r/Registered with the Pharmacy Council.*Pharmacy you can trust.*From our shelves/s
              )
 
       refute html =~ "Stay healthy, stay informed"

@@ -36,8 +36,9 @@ defmodule Emakola.Themes.AtelierSectionsTest do
     assert html =~ "Shop by Category"
     # Featured Products
     assert html =~ "Featured Masterpieces"
-    # New Arrivals
-    assert html =~ "New Arrivals"
+    # The overflow grid. It shows the OLDEST of the newest-first batch, so it
+    # was never "New Arrivals" — it is simply more of the shop.
+    assert html =~ "More from the shop"
     # Trust
     assert html =~ "We Accept"
     # Delivery Zones

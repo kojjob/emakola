@@ -99,8 +99,9 @@ defmodule Emakola.Themes.FashionSectionsTest do
       assert html =~ "Volume IV · Drop No. 12"
       assert html =~ "Curated drops, made by hand."
 
-      # Lookbook 2x2 grid
-      assert html =~ "Editor's picks."
+      # Lookbook 2x2 grid. "Editor's picks." named an editor this shop does not
+      # have, over the first four products in catalog order.
+      assert html =~ "The lookbook."
       assert html =~ "Cover Look"
       assert html =~ "See all"
 
@@ -136,7 +137,7 @@ defmodule Emakola.Themes.FashionSectionsTest do
       # new arrivals -> brand story -> newsletter -> footer
       assert String.match?(
                html,
-               ~r/The Spring Edit.*Curated drops, made by hand\..*Editor's picks\..*Just dropped\..*Back in stock, briefly\..*First access\. No noise\./s
+               ~r/The Spring Edit.*Curated drops, made by hand\..*The lookbook\..*Just dropped\..*Back in stock, briefly\..*First access\. No noise\./s
              )
     end
 
@@ -164,7 +165,7 @@ defmodule Emakola.Themes.FashionSectionsTest do
       refute html =~ "Sewn in Accra."
       refute html =~ "small batches"
       # The product-fed blocks vanish rather than render empty frames
-      refute html =~ "Editor's picks."
+      refute html =~ "The lookbook."
       refute html =~ "Just dropped."
       refute html =~ "Back in stock, briefly."
       assert length(String.split(html, "<h1")) == 2

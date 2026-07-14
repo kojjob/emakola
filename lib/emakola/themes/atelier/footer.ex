@@ -534,20 +534,18 @@ defmodule Emakola.Themes.Atelier.Footer do
                   View All
                 </a>
               </li>
+              <%!-- Both links carried a ?sort= param that nothing reads — the
+                   product list has no sort handling at all — so "Best Sellers"
+                   showed the plain catalogue under a bestseller label, ranked by
+                   nothing. There is no sales ranking to link to, so that link is
+                   gone. The list is already newest-first, so New Arrivals is
+                   true once the dead param comes off. --%>
               <li>
                 <a
-                  href={store_path(@store.slug, "/products?sort=newest")}
+                  href={store_path(@store.slug, "/products")}
                   class="text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer inline-flex items-center min-h-[44px]"
                 >
                   New Arrivals
-                </a>
-              </li>
-              <li>
-                <a
-                  href={store_path(@store.slug, "/products?sort=popular")}
-                  class="text-gray-400 hover:text-white text-sm transition-colors duration-200 cursor-pointer inline-flex items-center min-h-[44px]"
-                >
-                  Best Sellers
                 </a>
               </li>
             </ul>

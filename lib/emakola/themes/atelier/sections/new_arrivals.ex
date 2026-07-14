@@ -41,7 +41,7 @@ defmodule Emakola.Themes.Atelier.Sections.NewArrivals do
         <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-cta-dark">
           {if @settings["heading"] not in [nil, ""],
             do: @settings["heading"],
-            else: "New Arrivals"}
+            else: "More from the shop"}
         </h2>
         <a
           href={store_path(@store.slug, "/products")}

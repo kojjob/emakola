@@ -15,7 +15,7 @@ defmodule Emakola.Themes.Electronics.Sections.Featured do
   @impl true
   def key, do: "electronics/featured"
   @impl true
-  def label, do: "Popular products"
+  def label, do: "Featured products"
 
   @impl true
   def settings_schema do
@@ -30,7 +30,7 @@ defmodule Emakola.Themes.Electronics.Sections.Featured do
       assigns
       |> assign(:featured_products, Enum.take(products, 4))
       |> assign(:featured_deal, List.first(products))
-      |> assign(:heading, setting(assigns[:settings], "heading", "Popular product"))
+      |> assign(:heading, setting(assigns[:settings], "heading", "Featured products"))
 
     ~H"""
     <%!-- POPULAR PRODUCTS GRID + FEATURED DEAL --%>

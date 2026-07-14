@@ -88,8 +88,8 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
       # that someone at this shop auditioned the gear on three criteria. Nobody did.
       refute html =~ "Hand-picked"
 
-      # Popular products + featured deal card
-      assert html =~ "Popular product"
+      # Featured products + featured deal card
+      assert html =~ "Featured products"
       assert html =~ "Gadget 1"
       assert html =~ "Add to Cart"
       # Price formatted from integer minor units
@@ -99,7 +99,7 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
       # 1-year warranty. Free shipping over GHS 500." — a warranty and a shipping
       # threshold this merchant never set. With no delivery zones configured it
       # states only what is true and links the store's own policies.
-      assert html =~ "Why thousands trust us"
+      assert html =~ "Why shop here"
       assert html =~ "Secure checkout with mobile money and card."
       assert html =~ "See this store"
       assert html =~ "/policies#shipping"
@@ -107,7 +107,7 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
       refute html =~ "Free shipping"
 
       # Best sellers
-      assert html =~ "Best selling product"
+      assert html =~ "More from the shop"
 
       # Dark CTA band
       assert html =~ "Explore our latest collection"
@@ -123,7 +123,7 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
       # Today's visual order, top to bottom
       assert String.match?(
                html,
-               ~r/Upgrade Your Gear.*Noise Cancellation.*Immersive Sound,.*Popular product.*Why thousands trust us.*Best selling product.*Explore our latest collection.*Subscribe to our newsletter.*All rights reserved/s
+               ~r/Upgrade Your Gear.*Noise Cancellation.*Immersive Sound,.*Featured products.*Why shop here.*More from the shop.*Explore our latest collection.*Subscribe to our newsletter.*All rights reserved/s
              )
     end
 
@@ -135,14 +135,14 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
 
       assert html =~ "Upgrade Your Gear"
       assert html =~ "Noise Cancellation"
-      assert html =~ "Why thousands trust us"
+      assert html =~ "Why shop here"
       assert html =~ "Explore our latest collection"
       assert html =~ "Subscribe to our newsletter"
 
       # The product-backed blocks stand down rather than render empty grids
       refute html =~ "Immersive Sound,"
-      refute html =~ "Popular product"
-      refute html =~ "Best selling product"
+      refute html =~ "Featured products"
+      refute html =~ "More from the shop"
     end
 
     test "the legacy @theme.sections toggles still hide their blocks" do
@@ -156,7 +156,7 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
 
       html = render_home(store)
 
-      refute html =~ "Why thousands trust us"
+      refute html =~ "Why shop here"
       refute html =~ "Subscribe to our newsletter"
       assert html =~ "Upgrade Your Gear"
     end
@@ -183,7 +183,7 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
       assert html =~ "The new drop"
       assert html =~ "Get the drops first"
       refute html =~ "Upgrade Your Gear"
-      refute html =~ "Why thousands trust us"
+      refute html =~ "Why shop here"
     end
   end
 

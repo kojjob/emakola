@@ -44,11 +44,17 @@ defmodule Emakola.Themes.Vibrant.Sections.TrustBadges do
     """
   end
 
+  # This took the store and ignored it, then vouched for the goods: "Locally
+  # crafted" and "Authenticated", under the hero, on every Vibrant storefront.
+  # The platform does not know where a merchant's goods were made and does not
+  # authenticate anything. Both claims are gone.
+  #
+  # What is left is true of every store on the platform, which is what makes it
+  # safe to say without asking the merchant.
   defp trust_badges_for(_store) do
     [
-      %{icon: "public", label: "Locally crafted", variant: :provenance},
-      %{icon: "verified", label: "Authenticated", variant: :default},
-      %{icon: "payments", label: "Mobile Money", variant: :default}
+      %{icon: "payments", label: "Mobile Money", variant: :default},
+      %{icon: "lock", label: "Secure checkout", variant: :default}
     ]
   end
 end

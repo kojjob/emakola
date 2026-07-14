@@ -16,7 +16,7 @@ defmodule Emakola.Themes.Electronics.Sections.Bestsellers do
   @impl true
   def key, do: "electronics/bestsellers"
   @impl true
-  def label, do: "Best sellers"
+  def label, do: "More products"
 
   @impl true
   def settings_schema do
@@ -25,12 +25,16 @@ defmodule Emakola.Themes.Electronics.Sections.Bestsellers do
 
   @impl true
   def render(assigns) do
+    # These are products 5-7 in catalog order. Nothing here is derived from
+    # sales: the platform knows what each store has sold, and this never asked.
+    # Calling them "Best selling" told every shopper a fact about a ranking that
+    # does not exist. They are simply more of the shop, so that is what they say.
     best_sellers = assigns[:products] |> Kernel.||([]) |> Enum.drop(4) |> Enum.take(3)
 
     assigns =
       assigns
       |> assign(:best_sellers, best_sellers)
-      |> assign(:heading, setting(assigns[:settings], "heading", "Best selling product"))
+      |> assign(:heading, setting(assigns[:settings], "heading", "More from the shop"))
 
     ~H"""
     <%!-- BEST SELLERS --%>
