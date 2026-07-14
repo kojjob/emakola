@@ -9,6 +9,8 @@ defmodule Emakola.Themes.Beauty.Sections.Faq do
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Item
+
   @impl true
   def key, do: "beauty/faq"
 
@@ -44,7 +46,7 @@ defmodule Emakola.Themes.Beauty.Sections.Faq do
           <details :for={item <- faq_items(@theme)} class="beauty-card group">
             <summary class="flex items-center justify-between p-5 cursor-pointer list-none">
               <span class="text-base font-semibold text-[#3D2F25] pr-4">
-                {item.question}
+                {Item.field(item, :question)}
               </span>
               <span
                 class="material-symbols-outlined text-[#C9925E] transition-transform group-open:rotate-45"
@@ -54,7 +56,7 @@ defmodule Emakola.Themes.Beauty.Sections.Faq do
               </span>
             </summary>
             <div class="px-5 pb-5 -mt-1">
-              <p class="text-sm text-[#3D2F25]/80 leading-relaxed">{item.answer}</p>
+              <p class="text-sm text-[#3D2F25]/80 leading-relaxed">{Item.field(item, :answer)}</p>
             </div>
           </details>
         </div>

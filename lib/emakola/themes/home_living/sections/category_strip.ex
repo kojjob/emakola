@@ -15,6 +15,8 @@ defmodule Emakola.Themes.HomeLiving.Sections.CategoryStrip do
 
   import EmakolaWeb.Storefront.Path
 
+  alias Emakola.Themes.Item
+
   @impl true
   def key, do: "home_living/category_strip"
   @impl true
@@ -46,10 +48,10 @@ defmodule Emakola.Themes.HomeLiving.Sections.CategoryStrip do
                 class="material-symbols-outlined text-[#1F2937] group-hover:text-[#84CC16] transition-colors"
                 style="font-size: 28px;"
               >
-                {room.icon}
+                {Item.field(room, :icon, "chair")}
               </span>
               <p class="text-sm font-semibold mt-3">
-                {room.name}
+                {Item.field(room, :name)}
               </p>
             </a>
           </div>

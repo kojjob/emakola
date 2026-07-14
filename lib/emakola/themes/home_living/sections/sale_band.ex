@@ -15,6 +15,7 @@ defmodule Emakola.Themes.HomeLiving.Sections.SaleBand do
 
   alias Emakola.Themes.Delivery
   alias Emakola.Themes.HomeLiving.Shared
+  alias Emakola.Themes.Item
 
   @impl true
   def key, do: "home_living/sale_band"
@@ -37,11 +38,11 @@ defmodule Emakola.Themes.HomeLiving.Sections.SaleBand do
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
           <div :for={item <- @items} class="flex items-center gap-3">
             <span class="material-symbols-outlined text-white" style="font-size: 32px;">
-              {item.icon}
+              {Item.field(item, :icon, "local_offer")}
             </span>
             <div>
-              <p class="text-sm font-bold leading-tight">{item.title}</p>
-              <p class="text-[11px] text-white/75 leading-tight">{item.subtitle}</p>
+              <p class="text-sm font-bold leading-tight">{Item.field(item, :title)}</p>
+              <p class="text-[11px] text-white/75 leading-tight">{Item.field(item, :subtitle)}</p>
             </div>
           </div>
         </div>
