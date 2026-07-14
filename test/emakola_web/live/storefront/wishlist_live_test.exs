@@ -58,20 +58,20 @@ defmodule EmakolaWeb.Storefront.WishlistLiveTest do
       refute html =~ "Kente Dress"
     end
 
-    test "add to bag button triggers event", %{conn: conn, store: store} do
+    # This asserted the toast appeared for product_id "placeholder-1" — a product
+    # that does not exist. It passed because the handler threw the id away and
+    # flashed "Added to bag" unconditionally, without ever touching the cart.
+    # That was the bug. A product the store does not sell must not be reported as
+    # added; the real behaviour is covered in WishlistAddToBagTest.
+    test "add to bag does not claim to add a product that does not exist", %{
+      conn: conn,
+      store: store
+    } do
       {:ok, view, _html} = live(conn, "/s/#{store.slug}/wishlist")
 
-      # Add item
-      render_click(view, "add_to_wishlist", %{
-        "product_id" => "placeholder-1",
-        "title" => "Kente Dress",
-        "price" => "28000",
-        "image_url" => "/images/placeholder.jpg"
-      })
+      html = render_click(view, "add_to_bag", %{"product_id" => Ecto.UUID.generate()})
 
-      html = render_click(view, "add_to_bag", %{"product_id" => "placeholder-1"})
-
-      assert html =~ "Added to bag"
+      refute html =~ "Added to bag"
     end
 
     test "displays saved items count", %{conn: conn, store: store} do

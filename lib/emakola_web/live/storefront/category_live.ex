@@ -89,51 +89,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
 
   @impl true
   def handle_event("add_to_cart", %{"product-id" => product_id}, socket) do
-    case Emakola.Catalog.get_active_product(socket.assigns.store.id, product_id,
-           authorize?: false
-         ) do
-      {:ok, product} ->
-        product = Ash.load!(product, [:variants, :images], authorize?: false)
-        variant = product.variants |> Enum.sort_by(& &1.position) |> List.first()
-
-        if variant && Emakola.Catalog.Variant.in_stock?(variant) do
-          image_url =
-            case product.images do
-              [img | _] -> img.thumbnail_url || img.url
-              _ -> nil
-            end
-
-          Emakola.Cart.CartStore.add_item(
-            socket.assigns.cart_session_id,
-            socket.assigns.store.id,
-            %{
-              variant_id: variant.id,
-              quantity: 1,
-              product_title: product.title,
-              variant_info: variant.sku || "",
-              unit_price: variant.price,
-              sku: variant.sku,
-              image_url: image_url
-            }
-          )
-
-          cart_count =
-            Emakola.Cart.CartStore.cart_count(
-              socket.assigns.cart_session_id,
-              socket.assigns.store.id
-            )
-
-          {:noreply,
-           socket
-           |> assign(:cart_count, cart_count)
-           |> put_flash(:info, "#{product.title} added to cart")}
-        else
-          {:noreply, put_flash(socket, :error, "Out of stock")}
-        end
-
-      _ ->
-        {:noreply, put_flash(socket, :error, "Product not found")}
-    end
+    EmakolaWeb.Storefront.QuickAdd.add_to_cart(socket, product_id)
   end
 
   @impl true

@@ -40,8 +40,10 @@ defmodule Emakola.Themes.Fashion.Sections.Lookbook do
             <p class="text-[11px] uppercase tracking-[0.3em] text-[#9A5B00] mb-2">
               Lookbook
             </p>
+            <%!-- "Editor's picks." over the first four products in catalog
+                 order. There is no editor and nothing was picked. --%>
             <h2 class="fashion-display text-3xl sm:text-4xl lg:text-5xl text-[#1C1917]">
-              Editor's picks.
+              The lookbook.
             </h2>
           </div>
           <a

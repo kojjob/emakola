@@ -101,8 +101,12 @@ defmodule Emakola.Themes.Electronics do
       # Do NOT delete these keys: ThemeResolver.deep_merge_atomize/2 drops any
       # override whose key is absent from the defaults, so removing them would
       # silently discard the copy of every merchant who wrote their own.
+      # "Why thousands trust us" shipped here. A merchant who opened yesterday
+      # and has never sold anything told every visitor that thousands of people
+      # trust them. The platform has no idea how many customers this store has,
+      # and if it did, it would be zero.
       trust: %{
-        title: "Why thousands trust us",
+        title: "Why shop here",
         subtitle: nil,
         items: []
       },

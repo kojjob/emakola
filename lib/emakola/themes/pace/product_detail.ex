@@ -162,7 +162,7 @@ defmodule Emakola.Themes.Pace.ProductDetail do
                         :for={ov <- ot.option_values}
                         phx-click="select_option"
                         phx-value-option_type_id={ot.id}
-                        phx-value-value={ov.id}
+                        phx-value-option_value_id={ov.id}
                         role="radio"
                         aria-checked={to_string(Map.get(@selected_options, ot.id) == ov.id)}
                         class={[

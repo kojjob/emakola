@@ -10,10 +10,12 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
   """
   use EmakolaWeb, :live_view
 
+  alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.StoreResolver
+  alias EmakolaWeb.Storefront.QuickAdd
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     slug = socket.assigns.store.slug
 
     case StoreResolver.resolve(slug) do
@@ -24,12 +26,18 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
         # never forwards, so the authenticated path was always nil.)
         customer = store_customer(socket.assigns[:current_customer], store)
 
+        # The page never read the shopper's cart session and hardcoded the count
+        # to 0, so the header's cart badge read empty here even with a full cart
+        # — and "Add to Bag" had no cart to add to.
+        cart_session_id = session["cart_session_id"]
+
         socket =
           socket
           |> assign(:store, store)
           |> assign(:current_customer, customer)
           |> assign(:categories, [])
-          |> assign(:cart_count, 0)
+          |> assign(:cart_session_id, cart_session_id)
+          |> assign(:cart_count, CartStore.cart_count(cart_session_id, store.id))
           |> assign(:flash_bag, nil)
           |> assign(:page_title, "My Wishlist - #{store.name}")
           |> load_wishlist()
@@ -136,15 +144,21 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
     end
   end
 
+  # This matched the event, threw the product id away, and told the shopper
+  # "Added to bag" without ever touching the cart. The toast only shows now when
+  # something actually landed in the cart — QuickAdd assigns :cart_count on
+  # success and flashes an error otherwise (out of stock, no variant).
   @impl true
-  def handle_event("add_to_bag", %{"product_id" => _product_id}, socket) do
-    {:noreply,
-     socket
-     |> assign(:flash_bag, "Added to bag")
-     |> then(fn s ->
-       Process.send_after(self(), :clear_flash_bag, 2000)
-       s
-     end)}
+  def handle_event("add_to_bag", %{"product_id" => product_id}, socket) do
+    before = socket.assigns.cart_count
+    {:noreply, socket} = QuickAdd.add_to_cart(socket, product_id)
+
+    if socket.assigns.cart_count > before do
+      Process.send_after(self(), :clear_flash_bag, 2000)
+      {:noreply, assign(socket, :flash_bag, "Added to bag")}
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true

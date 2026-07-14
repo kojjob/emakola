@@ -5,11 +5,17 @@ defmodule Emakola.Themes.Pharmacy.Sections.Stats do
 
   Renders only when the merchant has supplied stat items in the theme config
   (`stats.items`), exactly as before: the platform invents no numbers.
+
+  Because it renders *only* on merchant items, and merchant items arrive
+  string-keyed from jsonb, the old `stat.icon` dot access raised a `KeyError` on
+  every store that used this section and never on a default — the reason it went
+  unseen. Fields go through `Emakola.Themes.Item`, which reads either key shape.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Item
   alias Emakola.Themes.Pharmacy.Shared
 
   @impl true
@@ -53,15 +59,15 @@ defmodule Emakola.Themes.Pharmacy.Sections.Stats do
           <div :for={stat <- @stats_items} class="pharmacy-card p-6 sm:p-7 flex items-center gap-4">
             <div class="w-12 h-12 rounded-full bg-[#A7E5C5] flex items-center justify-center flex-shrink-0">
               <span class="material-symbols-outlined text-[#14543E]" style="font-size: 22px;">
-                {stat.icon}
+                {Item.field(stat, :icon, "insights")}
               </span>
             </div>
             <div>
               <p class="pharmacy-heading text-2xl sm:text-3xl font-semibold text-[#14543E]">
-                {stat.value}
+                {Item.field(stat, :value)}
               </p>
               <p class="text-xs text-[#4B5563] uppercase tracking-wider mt-0.5">
-                {stat.label}
+                {Item.field(stat, :label)}
               </p>
             </div>
           </div>

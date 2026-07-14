@@ -97,7 +97,9 @@ defmodule Emakola.Themes.ProductDetailVariantsTest do
       end
 
       # The selected value must show as visually selected via the
-      # phx-value-value=<option_value.id> attribute
+      # phx-value-option_value_id=<option_value.id> attribute. (It was
+      # phx-value-value, which the browser overwrites with the button's own empty
+      # .value before sending — see EmakolaWeb.PhxValueCollisionTest.)
       assert html =~ first_value.id,
              "#{@label}: selected option_value id should appear in HTML"
 

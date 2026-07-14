@@ -21,6 +21,7 @@ defmodule Emakola.Themes.HomeLiving.Sections.Trust do
 
   alias Emakola.Themes.Delivery
   alias Emakola.Themes.HomeLiving.Shared
+  alias Emakola.Themes.Item
   alias Emakola.Themes.Terms
 
   @impl true
@@ -52,15 +53,15 @@ defmodule Emakola.Themes.HomeLiving.Sections.Trust do
           <div :for={item <- @items} class="flex items-center gap-4">
             <div class="w-14 h-14 rounded-2xl bg-[#84CC16]/15 flex items-center justify-center flex-shrink-0">
               <span class="material-symbols-outlined text-[#1F2937]" style="font-size: 26px;">
-                {item.icon}
+                {Item.field(item, :icon, "check_circle")}
               </span>
             </div>
             <div>
-              <p class="text-base font-semibold text-[#1F2937] mb-0.5">{item.label}</p>
+              <p class="text-base font-semibold text-[#1F2937] mb-0.5">{Item.field(item, :label)}</p>
               <%!-- href is only ever a server-generated relative path (see
                    delivery_item/1); anything else renders as plain text, so a
                    merchant's own theme config can't turn this into a link. --%>
-              <.maybe_link href={Map.get(item, :href)} label={item.subtitle} />
+              <.maybe_link href={Item.field(item, :href)} label={Item.field(item, :subtitle)} />
             </div>
           </div>
         </div>

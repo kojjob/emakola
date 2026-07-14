@@ -84,9 +84,14 @@ defmodule Emakola.Themes.Vibrant do
         about: true,
         newsletter: true
       },
+      # "Trusted by Thousands" shipped here, and the merchant is shown it as
+      # their own store copy in the admin theme preview. No Vibrant section reads
+      # this yet, so it is one wired section away from telling shoppers the same.
+      # "Fast delivery" went with it — that is the merchant's promise to make,
+      # not the platform's (see Emakola.Themes.Delivery).
       trust: %{
-        title: "Trusted by Thousands",
-        subtitle: "Shop with confidence — secure payments and fast delivery."
+        title: "Why shop here",
+        subtitle: "Shop with confidence — secure mobile money payments."
       },
       newsletter: %{
         title: "Join Our Community",

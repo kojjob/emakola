@@ -24,9 +24,12 @@ defmodule EmakolaWeb.Storefront.NoInventedProvenanceTest do
   import Phoenix.LiveViewTest
 
   alias Emakola.Factory
+  alias Emakola.Themes.ThemeResolver
 
-  @all_themes ~w(atelier beauty bold electronics fashion fresh
-                 home_living market pharmacy spotlight starter vibrant)
+  # Every registered theme, not a hand-maintained list. Eight themes were missing
+  # from the list this replaces, and a hand-list cannot cover a theme added
+  # tomorrow.
+  @all_themes ThemeResolver.theme_ids()
 
   # Claims about provenance, materials, ethics, licensing and efficacy. These
   # are facts about goods and about the merchant's business — not adjectives.
@@ -39,8 +42,10 @@ defmodule EmakolaWeb.Storefront.NoInventedProvenanceTest do
     | verified\s+pharmacy
     | genuine\s+medicines?
     | hand[\s-]?(?:made|picked|sewn|woven|crafted)
+    | (?:made|sewn|woven|picked)\s+by\s+hand
     | handcrafted
     | handpicked
+    | designed\s+in\s+\w+
     | small\s+batch(?:es)?
     | our\s+artisans
     | recyclable
@@ -51,6 +56,33 @@ defmodule EmakolaWeb.Storefront.NoInventedProvenanceTest do
     | crafted\s+(?:from|with\s+care)
     | solid\s+wood
     | dermatologist[\s-]?tested
+  /ix
+
+  # Claims about OTHER PEOPLE — that a crowd trusts this shop, that these goods
+  # sell well, that someone curated them. A brand-new store with no orders and no
+  # reviews must not tell shoppers thousands of others got there first.
+  #
+  # Real social proof is fine and is not matched here: actual review counts and
+  # star ratings come from published reviews (Emakola.Themes.Testimonial), and
+  # sale badges come from a real compare_at_price. Only fabrications are banned.
+  #
+  # `apos` matches a literal apostrophe OR the HTML entities HEEx escapes it to.
+  # Vibrant's "Editor's Pick" badge walked straight through an earlier version of
+  # this regex, because by the time the claim reaches the page it reads
+  # "Editor&#39;s Pick" and a plain ' no longer matches.
+  # The `#` must be escaped: these regexes use /x, where a bare # starts a
+  # comment and would swallow the rest of the pattern.
+  @apos "(?:'|’|&\\#39;|&\\#x27;)"
+  @invented_social_proof ~r/
+      thousands\s+(?:trust|of\s+(?:happy\s+)?customers)
+    | trusted\s+by
+    | join\s+\d[\d,+]*\s+(?:shoppers|customers)
+    | best[\s-]?sell(?:er|ers|ing)
+    | trending\s+(?:now|products?)
+    | most\s+popular
+    | popular\s+products?
+    | editor#{@apos}?s?\s+pick
+    | customer#{@apos}?s?\s+favourite
   /ix
 
   defp seed(theme) do
@@ -89,6 +121,28 @@ defmodule EmakolaWeb.Storefront.NoInventedProvenanceTest do
 
         refute html =~ @invented_claim,
                "the #{@theme} product list claims something about how these goods were made"
+      end
+    end
+  end
+
+  describe "a store with no customers claims no customers" do
+    for theme <- @all_themes do
+      @theme theme
+
+      # Seeded with several products and NO orders and NO reviews — a shop on its
+      # first day. Anything the storefront says about popularity here, it invented.
+      test "#{theme} home page", %{conn: conn} do
+        {store, _product} = seed(@theme)
+
+        for title <- ["Red Notebook", "Green Notebook", "Black Notebook", "White Notebook"] do
+          extra = Factory.create_product!(store, %{status: :active, title: title})
+          Factory.create_variant!(extra, store, %{price: 5000, stock_quantity: 10})
+        end
+
+        {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+
+        refute html =~ @invented_social_proof,
+               "the #{@theme} home page tells shoppers this store is popular — it has no orders and no reviews"
       end
     end
   end

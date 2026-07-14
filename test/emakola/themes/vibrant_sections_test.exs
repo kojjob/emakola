@@ -86,18 +86,22 @@ defmodule Emakola.Themes.VibrantSectionsTest do
       html = render_home(seed_store())
 
       assert html =~ ~s(aria-label="Why shop with us")
-      assert html =~ "Locally crafted"
-      assert html =~ "Authenticated"
+      # "Locally crafted" and "Authenticated" vouched for goods the platform
+      # knows nothing about. What is left is true of every store here.
+      refute html =~ "Locally crafted"
+      refute html =~ "Authenticated"
       assert html =~ "Mobile Money"
+      assert html =~ "Secure checkout"
     end
 
     test "editor's picks pairs the first two products" do
       html = render_home(seed_store())
 
       assert html =~ ~s(id="vibrant-editors-picks")
-      assert html =~ "This Week"
-      assert html =~ "Editor's picks"
-      assert html =~ "Editor's Pick"
+      # No editor, no picking, not weekly — these are just the first two products.
+      refute html =~ "This Week"
+      refute html =~ "Editor"
+      assert html =~ "Featured"
       assert html =~ "Adinkra Wrapper"
       assert html =~ "Bolga Basket"
       assert html =~ "Shop now"
@@ -230,7 +234,7 @@ defmodule Emakola.Themes.VibrantSectionsTest do
       html = render_home(store)
 
       assert html =~ ~r/<h1[^>]*>\s*Discover Unique Finds\s*<\/h1>/
-      assert html =~ "Locally crafted"
+      refute html =~ "Locally crafted"
       assert html =~ "Meet the Maker"
       assert html =~ "First dibs on new arrivals"
       assert html =~ "Secure checkout"

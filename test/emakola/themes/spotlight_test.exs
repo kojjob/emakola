@@ -184,7 +184,7 @@ defmodule Emakola.Themes.SpotlightTest do
       assert out =~ "Add to cart"
       assert out =~ "https://wa.me/233201234567"
       assert out =~ ~s(phx-click="select_option")
-      assert out =~ ~s(phx-value-value="ov_b")
+      assert out =~ ~s(phx-value-option_value_id="ov_b")
       assert out =~ "Blueberry"
       assert out =~ "Mint"
     end

@@ -23,11 +23,11 @@ defmodule Emakola.Themes.Vibrant.Sections.EditorsPicks do
   def key, do: "vibrant/editors_picks"
 
   @impl true
-  def label, do: "Editor's picks"
+  def label, do: "Featured"
 
   @impl true
   def settings_schema do
-    [%{key: "eyebrow", type: :string, label: "Eyebrow", default: "This Week"}]
+    [%{key: "eyebrow", type: :string, label: "Eyebrow", default: ""}]
   end
 
   @impl true
@@ -42,7 +42,10 @@ defmodule Emakola.Themes.Vibrant.Sections.EditorsPicks do
         :enabled,
         Shared.section_enabled?(assigns.theme, :featured) and length(products) >= 2
       )
-      |> assign(:eyebrow, present(settings["eyebrow"]) || "This Week")
+      # Blanking the schema default is not enough: this `||` would put "This
+      # Week" straight back. There is no weekly cycle and nobody picked these —
+      # they are the first two products. No eyebrow unless the merchant writes one.
+      |> assign(:eyebrow, present(settings["eyebrow"]))
 
     ~H"""
     <section
@@ -52,7 +55,10 @@ defmodule Emakola.Themes.Vibrant.Sections.EditorsPicks do
     >
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="mb-6 sm:mb-8">
-          <p class="text-[11px] font-semibold tracking-[0.2em] uppercase text-[var(--theme-primary,#B45309)] mb-2">
+          <p
+            :if={@eyebrow}
+            class="text-[11px] font-semibold tracking-[0.2em] uppercase text-[var(--theme-primary,#B45309)] mb-2"
+          >
             {@eyebrow}
           </p>
           <h2
@@ -60,7 +66,7 @@ defmodule Emakola.Themes.Vibrant.Sections.EditorsPicks do
             class="text-2xl sm:text-3xl font-bold text-[#1C1917]"
             style="font-family: 'Manrope', sans-serif;"
           >
-            Editor's picks
+            Featured
           </h2>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
@@ -97,14 +103,14 @@ defmodule Emakola.Themes.Vibrant.Sections.EditorsPicks do
       href={store_path(@store.slug, "/products/#{@product.slug}")}
       class="group flex flex-col sm:flex-row gap-5 rounded-3xl overflow-hidden p-5 sm:p-6 transition-all duration-300 hover:shadow-xl hover:shadow-amber-200/40"
       style={"background-color: #{@bg};"}
-      aria-label={"Editor's pick: #{@product.title}"}
+      aria-label={"Featured: #{@product.title}"}
     >
       <div class="flex-1 min-w-0 flex flex-col justify-center order-2 sm:order-1">
         <span
           class="text-[10px] font-bold tracking-[0.2em] uppercase mb-2"
           style={"color: #{@text_color};"}
         >
-          Editor's Pick
+          Featured
         </span>
         <h3
           class="text-xl sm:text-2xl font-bold text-[#1C1917] leading-tight mb-2"

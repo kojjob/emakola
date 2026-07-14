@@ -979,7 +979,7 @@ defmodule Emakola.Themes.NtomaTest do
 
       assert html =~ ~s(phx-click="select_option")
       assert html =~ ~s(phx-value-option_type_id="ot-1")
-      assert html =~ ~s(phx-value-value="ov-1")
+      assert html =~ ~s(phx-value-option_value_id="ov-1")
       assert html =~ ~s(role="radiogroup")
     end
 

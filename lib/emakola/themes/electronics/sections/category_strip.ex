@@ -11,6 +11,8 @@ defmodule Emakola.Themes.Electronics.Sections.CategoryStrip do
   import Emakola.Themes.Electronics.Sections.Helpers
   import EmakolaWeb.Storefront.Path
 
+  alias Emakola.Themes.Item
+
   @impl true
   def key, do: "electronics/category_strip"
   @impl true
@@ -35,9 +37,9 @@ defmodule Emakola.Themes.Electronics.Sections.CategoryStrip do
             :for={item <- @strip_items}
             href={store_path(@store.slug, "/products")}
             class={"inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold transition-colors min-h-[40px] " <>
-              if(Map.get(item, :active), do: "bg-[var(--theme-primary,#134E4A)] text-white", else: "bg-white border border-[#E5E7EB] text-[#1F2937] hover:border-[#0EA5E9] hover:text-[#134E4A]")}
+              if(Item.field(item, :active), do: "bg-[var(--theme-primary,#134E4A)] text-white", else: "bg-white border border-[#E5E7EB] text-[#1F2937] hover:border-[#0EA5E9] hover:text-[#134E4A]")}
           >
-            {item.label}
+            {Item.field(item, :label)}
           </a>
           <a
             href={store_path(@store.slug, "/products")}

@@ -190,8 +190,8 @@ defmodule Emakola.Themes.Bold.ProductDetail do
                 <button
                   :for={ov <- ot.option_values}
                   phx-click="select_option"
-                  phx-value-type={ot.name}
-                  phx-value-value={ov.value}
+                  phx-value-option_type_id={ot.id}
+                  phx-value-option_value_id={ov.id}
                   role="radio"
                   aria-checked={Map.get(@selected_options, ot.id) == ov.id}
                   class={[

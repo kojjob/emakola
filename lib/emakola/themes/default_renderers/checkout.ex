@@ -359,18 +359,13 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                       </span>
                     </div>
 
-                    <%!-- Express Delivery --%>
-                    <div class="flex items-center justify-between p-4 sm:p-5 bg-white border-2 border-stone-200 rounded-xl opacity-50">
-                      <div class="flex items-center gap-4">
-                        <div class="w-5 h-5 rounded-full border-2 border-stone-300 flex items-center justify-center shrink-0">
-                        </div>
-                        <div>
-                          <p class="text-sm font-semibold text-stone-900">Express Delivery</p>
-                          <p class="text-xs text-stone-600 mt-0.5">Next business day</p>
-                        </div>
-                      </div>
-                      <span class="text-xs font-medium text-stone-400">Coming soon</span>
-                    </div>
+                    <%!-- An "Express Delivery — Next business day" row sat here
+                         on every store's checkout: a div styled as an unselected
+                         radio at opacity-50 with a "Coming soon" pill. It read as
+                         a delivery option the shopper could pick, it was inert,
+                         and no merchant on the platform offers next-business-day
+                         delivery. A checkout is the last place to advertise
+                         something that does not exist. --%>
                   </div>
                 </section>
 

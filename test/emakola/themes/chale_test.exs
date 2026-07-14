@@ -836,7 +836,7 @@ defmodule Emakola.Themes.ChaleTest do
 
       assert html =~ ~s(phx-click="select_option")
       assert html =~ ~s(phx-value-option_type_id="ot-size")
-      assert html =~ ~s(phx-value-value="ov-l")
+      assert html =~ ~s(phx-value-option_value_id="ov-l")
       assert html =~ ~s(aria-label="L — sold out")
       assert html =~ "line-through"
       refute html =~ ~s(aria-label="S — sold out")

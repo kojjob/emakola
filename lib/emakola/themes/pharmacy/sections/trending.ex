@@ -19,7 +19,7 @@ defmodule Emakola.Themes.Pharmacy.Sections.Trending do
   def key, do: "pharmacy/trending"
 
   @impl true
-  def label, do: "Trending products"
+  def label, do: "Featured products"
 
   @impl true
   def settings_schema do
@@ -39,13 +39,14 @@ defmodule Emakola.Themes.Pharmacy.Sections.Trending do
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between mb-8">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wider text-[#14543E]/70 mb-2">
-              Trending now
-            </p>
+            <%!-- A hardcoded "Trending now" eyebrow sat here — not even a
+                 setting — above the first four products in catalog order. There
+                 is no trend, and on a pharmacy a fake popularity signal on
+                 medicine is worse than merchandising puff. --%>
             <h2 class="pharmacy-heading text-3xl sm:text-4xl font-medium text-[#14543E]">
               {if @settings["heading"] not in [nil, ""],
                 do: @settings["heading"],
-                else: "Trending products for you"}
+                else: "From our shelves"}
             </h2>
           </div>
           <a
