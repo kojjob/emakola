@@ -182,7 +182,7 @@ defmodule Emakola.Themes.Ntoma.ProductDetail do
                   :for={option_value <- option_type.option_values}
                   phx-click="select_option"
                   phx-value-option_type_id={option_type.id}
-                  phx-value-value={option_value.id}
+                  phx-value-option_value_id={option_value.id}
                   role="radio"
                   aria-checked={Map.get(@selected_options, option_type.id) == option_value.id}
                   class={[

@@ -232,7 +232,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
                     type="button"
                     phx-click="select_option"
                     phx-value-option_type_id={option_type.id}
-                    phx-value-value={ov.id}
+                    phx-value-option_value_id={ov.id}
                     class={"min-h-[44px] px-5 py-2.5 rounded-full text-sm border transition-colors " <> if(Map.get(@selected_options, option_type.id) == ov.id, do: "border-[var(--theme-accent,#7C3AED)] bg-[var(--theme-accent,#7C3AED)] text-white font-medium", else: "border-[#ECE7DE] bg-white hover:border-[var(--theme-accent,#7C3AED)]")}
                   >
                     {ov.value}

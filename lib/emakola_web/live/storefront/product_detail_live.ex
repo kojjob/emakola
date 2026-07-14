@@ -103,7 +103,16 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   end
 
   @impl true
-  def handle_event("select_option", %{"option_type_id" => ot_id, "value" => value}, socket) do
+  # The param is `option_value_id`, NOT `value`. LiveView overwrites `value` with
+  # the element's own .value property before the event leaves the browser, and a
+  # <button>'s .value is "" — so every variant picker on every theme sent
+  # %{"option_type_id" => "...", "value" => ""} and no shopper could pick a size.
+  # See EmakolaWeb.PhxValueCollisionTest.
+  def handle_event(
+        "select_option",
+        %{"option_type_id" => ot_id, "option_value_id" => value},
+        socket
+      ) do
     selected_options = Map.put(socket.assigns.selected_options, ot_id, value)
 
     variant =

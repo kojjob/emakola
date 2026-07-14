@@ -106,7 +106,11 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
     {:noreply, assign(socket, slug: Slug.slugify(value || ""), saved: false)}
   end
 
-  def handle_event("update_field", %{"field" => "published", "value" => value}, socket) do
+  # `new_value`, not `value`: this is a <button>, and LiveView overwrites the
+  # `value` param with the button's own .value property ("") before the event is
+  # sent. `"" == "true"` is false, so the publish toggle could only ever
+  # un-publish a page — it could never publish one.
+  def handle_event("update_field", %{"field" => "published", "new_value" => value}, socket) do
     {:noreply, assign(socket, published: value == "true", saved: false)}
   end
 
@@ -427,7 +431,7 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
                 type="button"
                 phx-click="update_field"
                 phx-value-field="published"
-                phx-value-value={if @published, do: "false", else: "true"}
+                phx-value-new_value={if @published, do: "false", else: "true"}
                 class={[
                   "relative w-11 h-6 rounded-full transition-colors",
                   if(@published, do: "bg-emerald-500", else: "bg-slate-300")

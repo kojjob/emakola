@@ -2,16 +2,20 @@ defmodule EmakolaWeb.Storefront.VariantPickerTest do
   @moduledoc """
   Picking a size or colour must select it, on every theme.
 
-  `ProductDetailLive.handle_event/3` matches `select_option` on
-  `%{"option_type_id" => _, "value" => _}`, and `selected_options` maps an option
-  type's id to an option *value's id*. Fresh and Bold sent `phx-value-type`
-  (the option type's NAME) and the value's display string instead — so neither
-  param matched, `handle_event/3` fell through with no catch-all clause, and
-  choosing a size on a Fresh or Bold product page raised FunctionClauseError and
-  killed the page.
+  Two separate bugs met here.
 
-  Asserted across every theme, because the seventeen that were right are what
-  made the two that were wrong invisible.
+  Fresh and Bold sent `phx-value-type` — the option type's NAME — and the value's
+  display string. Neither param matched `handle_event/3`, which has no catch-all,
+  so choosing a size on a Fresh or Bold product page raised FunctionClauseError
+  and killed the page.
+
+  The other seventeen themes looked correct and were not. They sent
+  `phx-value-value`, which LiveView overwrites with the element's own `.value`
+  property before the event leaves the browser — and a `<button>`'s `.value` is
+  `""`. So every theme's variant picker sent an empty value and NO shopper could
+  select a size or colour on ANY theme. The param is `option_value_id` now.
+  See EmakolaWeb.PhxValueCollisionTest; that bug is invisible to this test,
+  because render_click does not run the browser's serialization step.
   """
   use EmakolaWeb.ConnCase, async: true
 
@@ -48,7 +52,7 @@ defmodule EmakolaWeb.Storefront.VariantPickerTest do
         if html =~ ~s(phx-click="select_option") do
           assert has_element?(
                    view,
-                   ~s([phx-click="select_option"][phx-value-option_type_id="#{ctx.option_type.id}"][phx-value-value="#{ctx.large.id}"])
+                   ~s([phx-click="select_option"][phx-value-option_type_id="#{ctx.option_type.id}"][phx-value-option_value_id="#{ctx.large.id}"])
                  ),
                  "the #{@theme} variant picker does not send option_type_id + the value's id"
 
@@ -56,7 +60,7 @@ defmodule EmakolaWeb.Storefront.VariantPickerTest do
           selected =
             render_click(view, "select_option", %{
               "option_type_id" => ctx.option_type.id,
-              "value" => ctx.large.id
+              "option_value_id" => ctx.large.id
             })
 
           assert selected =~ "Large"
