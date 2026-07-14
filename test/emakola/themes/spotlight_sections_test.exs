@@ -23,8 +23,26 @@ defmodule Emakola.Themes.SpotlightSectionsTest do
     on_exit(fn -> Application.delete_env(:emakola, :extra_sectionized_themes) end)
   end
 
-  defp seeded_store do
-    {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "spotlight"}})
+  # The benefits and ingredients blocks used to ship claims about the goods —
+  # "Radical transparency — clear components, clearly listed", "Made simply",
+  # "Fairly priced", "Made to last" — on every Spotlight store, for products the
+  # platform has never seen. Both are the merchant's to write now, so the tests
+  # that expect those blocks on the page have to put something in them.
+  @merchant_claims %{
+    "trust" => %{
+      "title" => "What makes it different",
+      "items" => [
+        %{icon: "eco", title: "Cold-pressed", description: "Pressed the morning it ships."}
+      ]
+    },
+    "ingredients" => %{
+      "items" => [%{name: "Two ingredients", description: "Fruit and water. That is the list."}]
+    }
+  }
+
+  defp seeded_store(config \\ %{}) do
+    theme_config = Map.merge(%{"theme" => "spotlight"}, config)
+    {_merchant, store} = create_merchant_with_store!(%{theme_config: theme_config})
     create_category!(store, %{name: "Drinks"})
     product = create_product!(store, %{title: "Lively Drink", status: :active})
     create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
@@ -59,7 +77,7 @@ defmodule Emakola.Themes.SpotlightSectionsTest do
 
   describe "home render" do
     test "renders every block's landmark copy, one h1, in today's visual order" do
-      html = render_home(seeded_store())
+      html = render_home(seeded_store(@merchant_claims))
 
       # Hero — the overline, the hero product as the page's h1, tagline, CTA
       assert html =~ "The one you reach for"
@@ -67,17 +85,19 @@ defmodule Emakola.Themes.SpotlightSectionsTest do
       assert html =~ "Clean, honest, and made to be part of your everyday rhythm."
       assert html =~ "Choose yours"
 
-      # Benefits (theme.trust)
+      # Benefits (theme.trust) — the merchant's claims, not the theme's
       assert html =~ ~s(id="benefits")
       assert html =~ "What makes it different"
-      assert html =~ "Radical transparency"
-      assert html =~ "Clear components, clearly listed — nothing hidden."
+      assert html =~ "Cold-pressed"
+      assert html =~ "Pressed the morning it ships."
+      refute html =~ "Radical transparency"
 
-      # Ingredients — the count is derived from Spotlight.ingredients/0
+      # Ingredients — the count is derived from what the merchant wrote
       assert html =~ ~s(id="ingredients")
-      assert html =~ "#{length(Spotlight.ingredients())} reasons it works"
-      assert html =~ "Made simply"
-      assert html =~ "Fairly priced"
+      assert html =~ "1 reasons it works"
+      assert html =~ "Two ingredients"
+      refute html =~ "Made simply"
+      refute html =~ "Fairly priced"
 
       # Testimonials — the invented ones ("Ama D., Accra") are GONE. This store
       # has no real reviews, so the section does not render at all.
@@ -125,8 +145,9 @@ defmodule Emakola.Themes.SpotlightSectionsTest do
       # With no product the hero falls back to the theme's own title
       assert html =~ ~r/<h1[^>]*>\s*One product\.\s*<\/h1>/
       assert length(String.split(html, "<h1")) == 2
-      # The rest of the page still stands
-      assert html =~ "What makes it different"
+      # The rest of the page still stands. The benefits block does NOT: it used
+      # to carry four claims about the goods that no merchant had written.
+      refute html =~ "What makes it different"
       assert html =~ "Stay in the loop"
     end
 
@@ -163,8 +184,9 @@ defmodule Emakola.Themes.SpotlightSectionsTest do
       refute html =~ "What buyers say"
       refute html =~ "One product, done properly."
       refute html =~ "Stay in the loop"
-      # Ingredients has no toggle today — it always renders
-      assert html =~ "reasons it works"
+      # Ingredients has no toggle, but it renders only when the merchant has
+      # written some — and this store has not.
+      refute html =~ "reasons it works"
     end
   end
 
@@ -204,7 +226,7 @@ defmodule Emakola.Themes.SpotlightSectionsTest do
 
   describe "settings" do
     test "a merchant heading replaces the theme-config copy, block by block" do
-      store = seeded_store()
+      store = seeded_store(@merchant_claims)
       theme = ThemeResolver.resolve(store.theme_config || %{}, store)
 
       overrides = [
@@ -222,7 +244,7 @@ defmodule Emakola.Themes.SpotlightSectionsTest do
     end
 
     test "blank settings fall back to today's theme-config copy" do
-      store = seeded_store()
+      store = seeded_store(@merchant_claims)
       theme = ThemeResolver.resolve(store.theme_config || %{}, store)
 
       assert render_section(Spotlight.Sections.Benefits, store, theme) =~

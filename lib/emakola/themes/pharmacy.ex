@@ -93,26 +93,22 @@ defmodule Emakola.Themes.Pharmacy do
           "We believe in building lasting relationships with our patients, offering not just medications, but comprehensive health support that helps you live your best life.",
         items: []
       },
+      # Blank, but the keys must stay. This block used to certify every store
+      # that installed the Pharmacy theme as a "Licensed pharmacy" selling
+      # "Genuine medicines — sourced from trusted brands", under the heading
+      # "Licensed & Trusted". A merchant picked a colour scheme; the platform
+      # vouched for their licence and their supply chain.
+      #
+      # A pharmacy that IS licensed says so itself, in its own words, and owns
+      # the claim. Blank, the trust strip does not render at all.
+      #
+      # Do NOT delete these keys: ThemeResolver.deep_merge_atomize/2 drops any
+      # override whose key is absent from the defaults, so removing them would
+      # silently discard the credentials of every merchant who wrote their own.
       trust: %{
-        title: "Licensed & Trusted",
-        subtitle: "Verified pharmacy. Genuine medicines. Discreet delivery.",
-        items: [
-          %{
-            icon: "verified_user",
-            label: "Licensed pharmacy",
-            subtitle: "Professional care"
-          },
-          %{
-            icon: "local_pharmacy",
-            label: "Genuine medicines",
-            subtitle: "Sourced from trusted brands"
-          },
-          %{
-            icon: "local_shipping",
-            label: "Discreet delivery",
-            subtitle: "Across Ghana, fast"
-          }
-        ]
+        title: nil,
+        subtitle: nil,
+        items: []
       },
       newsletter: %{
         title: "Stay healthy, stay informed",

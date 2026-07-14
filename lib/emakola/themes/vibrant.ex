@@ -67,7 +67,10 @@ defmodule Emakola.Themes.Vibrant do
         images: [],
         carousel: false,
         title: "Discover Unique Finds",
-        subtitle: "Handcrafted with Love",
+        # Was "Handcrafted with Love" — a claim about how every product in every
+        # Vibrant store was made. The hero subtitle is merchant-editable, so the
+        # honest default describes the page, not the goods.
+        subtitle: "Shop the collection",
         cta_text: "Explore Now",
         cta_url: "/products"
       },

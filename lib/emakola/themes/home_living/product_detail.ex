@@ -180,14 +180,17 @@ defmodule Emakola.Themes.HomeLiving.ProductDetail do
                 </button>
               </div>
 
-              <%!-- Trust strip --%>
+              <%!-- Trust strip. A "Quality materials" tile led this on every
+                   product; the platform has no materials field and no idea what
+                   the thing is made of. Secure payment is true of every store
+                   here, which is what makes it worth saying. --%>
               <div class="grid grid-cols-3 gap-3 pt-6 border-t border-[#E8DBC8]">
                 <div class="flex flex-col items-start">
                   <span class="material-symbols-outlined text-[#65A30D] mb-1" style="font-size: 22px;">
-                    category
+                    lock
                   </span>
                   <p class="text-[10px] uppercase tracking-wider font-semibold text-[#3F2D1A]">
-                    Quality materials
+                    Secure payment
                   </p>
                 </div>
                 <%!-- "5-day shipping" and "30-day returns" used to sit here on

@@ -27,8 +27,16 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
   end
 
   defp seed_store! do
+    # The brand story is the merchant's own description now. Its default used to
+    # read "We work with local craftspeople … Solid wood, natural fibres … 
+    # Delivered across all 16 regions of Ghana" — makers, materials and reach,
+    # on every store that installed the theme. A store with no description has no
+    # story, and gets no section.
     {_merchant, store} =
-      create_merchant_with_store!(%{theme_config: %{"theme" => "home_living"}})
+      create_merchant_with_store!(%{
+        theme_config: %{"theme" => "home_living"},
+        description: "We have sold second-hand furniture in Kaneshie since 2019."
+      })
 
     create_category!(store, %{name: "Living Room"})
 
@@ -74,7 +82,7 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       # Hero — charcoal signboard, the theme's default headline, lime CTA.
       # The nav lives INSIDE the hero section (today's markup) and is the
       # only cart link on the page.
-      assert html =~ "Masterpieces Crafted From Solid Wood"
+      assert html =~ "Furniture and home goods"
       assert html =~ "Explore More"
       assert html =~ ~s(href="/s/#{store.slug}/cart")
       assert length(String.split(html, "<h1")) == 2
@@ -89,7 +97,9 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       refute html =~ "Free Delivery"
       refute html =~ "On orders GHS 500+"
       assert html =~ "Safe Payment"
-      assert html =~ "Daily Curation"
+      # "Daily Curation — Hand-picked" claimed someone at the shop selected these
+      # goods by hand, every day. Gone.
+      refute html =~ "Daily Curation"
 
       # Featured products grid
       assert html =~ "Bestsellers"
@@ -106,7 +116,10 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       # Trust strip. "Ships in 5 days" and "30-day returns" were promises no
       # merchant made; with no zones configured the strip points at the store's
       # own policies instead.
-      assert html =~ "Quality materials"
+      # "Quality materials — Solid wood, natural fibres" told every Home Living
+      # shopper what the furniture was made of. The platform has no materials
+      # field and the shop may be selling plastic stools.
+      refute html =~ "Quality materials"
       assert html =~ "Delivery &amp; returns"
       # HEEx escapes interpolated values, so the apostrophe arrives as &#39;
       assert html =~ "See this store"
@@ -114,9 +127,12 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       refute html =~ "Ships in 5 days"
       refute html =~ "30-day returns"
 
-      # Brand story
+      # Brand story — the merchant's own words, under a heading that claims
+      # nothing. "Built in Ghana, made for life." was the theme's, for everyone.
       assert html =~ "Our story"
-      assert html =~ "Built in Ghana, made for life."
+      assert html =~ "We have sold second-hand furniture in Kaneshie since 2019."
+      refute html =~ "Built in Ghana"
+      refute html =~ "Solid wood"
       assert html =~ "Read more"
 
       # Newsletter
@@ -131,7 +147,7 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       # -> editor pick -> trust -> brand story -> newsletter -> footer
       assert String.match?(
                html,
-               ~r/Masterpieces Crafted From Solid Wood.*by categories.*Daily Curation.*Popular products.*Featured pick.*Quality materials.*Built in Ghana, made for life\..*New pieces, in your inbox.*Designed for living/s
+               ~r/Furniture and home goods.*by categories.*Popular products.*Featured pick.*Our story.*New pieces, in your inbox.*Designed for living/s
              )
     end
 
@@ -141,15 +157,23 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
 
       html = render_home(store)
 
-      assert html =~ "Masterpieces Crafted From Solid Wood"
+      assert html =~ "Furniture and home goods"
       assert html =~ "by categories"
-      assert html =~ "Daily Curation"
+      # "Daily Curation — Hand-picked" claimed someone at the shop selected these
+      # goods by hand, every day. Gone.
+      refute html =~ "Daily Curation"
       # No products: the grid and the editor's pick stay out of the page
       refute html =~ "Popular products"
       refute html =~ "Featured pick"
       # ...and the rest of the page still renders
-      assert html =~ "Quality materials"
-      assert html =~ "Built in Ghana, made for life."
+      # "Quality materials — Solid wood, natural fibres" told every Home Living
+      # shopper what the furniture was made of. The platform has no materials
+      # field and the shop may be selling plastic stools.
+      refute html =~ "Quality materials"
+      # Was "Built in Ghana, made for life." — where the goods were made and how
+      # long they last, for every store on the theme.
+      refute html =~ "Built in Ghana"
+      assert html =~ "Our story"
       assert html =~ "New pieces, in your inbox"
       assert html =~ "Designed for living"
       assert length(String.split(html, "<h1")) == 2
@@ -176,7 +200,7 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
       refute html =~ "Built in Ghana, made for life."
       refute html =~ "New pieces, in your inbox"
       # Untouched blocks still render
-      assert html =~ "Masterpieces Crafted From Solid Wood"
+      assert html =~ "Furniture and home goods"
       assert html =~ "by categories"
     end
   end

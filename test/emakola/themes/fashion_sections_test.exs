@@ -34,8 +34,23 @@ defmodule Emakola.Themes.FashionSectionsTest do
 
   # The new-arrivals band takes products 5..8, so a store needs more than four
   # products before the whole page is on screen.
-  defp seeded_store! do
-    {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "fashion"}})
+  # The editorial intro and the brand story are the merchant's own words now.
+  # They used to be theme defaults that credited two workshops which do not
+  # exist ("the Mensah collective", "the Kwame house") and told every shopper the
+  # clothes were "sewn in small batches by tailors and artisans across Accra".
+  # A store that writes nothing gets neither section, so the tests that expect
+  # them on the page have to write something.
+  @merchant_story %{
+    "editorial_intro" => %{
+      "eyebrow" => "Volume IV · Drop No. 12",
+      "title" => "Curated drops, made by hand.",
+      "body" => "Every piece is cut and sewn by the four tailors in our Osu workshop."
+    }
+  }
+
+  defp seeded_store!(config \\ %{}) do
+    theme_config = Map.merge(%{"theme" => "fashion"}, config)
+    {_merchant, store} = create_merchant_with_store!(%{theme_config: theme_config})
     create_category!(store, %{name: "Ankara"})
 
     for n <- 1..6 do
@@ -72,11 +87,11 @@ defmodule Emakola.Themes.FashionSectionsTest do
 
   describe "home render (characterization)" do
     test "every visual block keeps its own copy, in today's order, under one h1" do
-      html = render_home(seeded_store!())
+      html = render_home(seeded_store!(@merchant_story))
 
       # Magazine-cover hero — the page's only h1
       assert html =~ "The Spring Edit"
-      assert html =~ "Made by Tailors. Worn by You."
+      assert html =~ "The new collection"
       assert html =~ "Shop the Drop"
       assert length(String.split(html, "<h1")) == 2
 
@@ -98,17 +113,18 @@ defmodule Emakola.Themes.FashionSectionsTest do
       assert html =~ "Back in stock, briefly."
       assert html =~ "Shop the Restock"
 
-      # Brand story
-      assert html =~ "Sewn in Accra."
-      assert html =~ "Worn worldwide."
-      assert html =~ "Read the journal"
+      # Brand story — the merchant's own, or absent. This store's description is
+      # its story; "Sewn in Accra. Worn worldwide." was the theme's, for everyone.
+      refute html =~ "Sewn in Accra."
 
       # Newsletter
       assert html =~ "First access. No noise."
       assert html =~ "Join the List"
 
       # Masthead footer
-      assert html =~ "Made in Ghana"
+      # "Made in Ghana" sat in the footer of every Fashion store — a
+      # country-of-origin claim for shops importing from anywhere.
+      refute html =~ "Made in Ghana"
 
       # Prices are formatted from integer minor units
       assert html =~ "GH₵ 123.45"
@@ -120,7 +136,7 @@ defmodule Emakola.Themes.FashionSectionsTest do
       # new arrivals -> brand story -> newsletter -> footer
       assert String.match?(
                html,
-               ~r/The Spring Edit.*Curated drops, made by hand\..*Editor's picks\..*Just dropped\..*Back in stock, briefly\..*Sewn in Accra\..*First access\. No noise\..*Made in Ghana/s
+               ~r/The Spring Edit.*Curated drops, made by hand\..*Editor's picks\..*Just dropped\..*Back in stock, briefly\..*First access\. No noise\./s
              )
     end
 
@@ -135,15 +151,18 @@ defmodule Emakola.Themes.FashionSectionsTest do
       assert html =~ "Volume IV · #{DateTime.utc_now().year}"
     end
 
-    test "an empty store keeps the hero, editorial, story and newsletter" do
+    test "an empty store keeps the hero and newsletter, and claims nothing" do
       {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "fashion"}})
 
       html = render_home(store)
 
-      assert html =~ "Made by Tailors. Worn by You."
-      assert html =~ "Curated drops, made by hand."
-      assert html =~ "Sewn in Accra."
+      assert html =~ "The new collection"
       assert html =~ "First access. No noise."
+      # The editorial intro and brand story are gone: both were claims about who
+      # made the clothes, and this merchant has made none.
+      refute html =~ "Curated drops, made by hand."
+      refute html =~ "Sewn in Accra."
+      refute html =~ "small batches"
       # The product-fed blocks vanish rather than render empty frames
       refute html =~ "Editor's picks."
       refute html =~ "Just dropped."
@@ -240,7 +259,7 @@ defmodule Emakola.Themes.FashionSectionsTest do
     end
 
     test "a disabled section leaves the page, and the rest keep their order" do
-      store = seeded_store!()
+      store = seeded_store!(@merchant_story)
 
       layout =
         for section <- Fashion.sections() do
@@ -256,7 +275,7 @@ defmodule Emakola.Themes.FashionSectionsTest do
       html = store |> put_layout!(layout) |> render_home()
 
       refute html =~ "Editor's picks."
-      assert html =~ "Made by Tailors. Worn by You."
+      assert html =~ "The new collection"
       assert html =~ "Just dropped."
 
       assert String.match?(

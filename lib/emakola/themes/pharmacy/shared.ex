@@ -129,9 +129,11 @@ defmodule Emakola.Themes.Pharmacy.Shared do
               </div>
               <span class="text-xl font-semibold pharmacy-heading">{@store.name}</span>
             </div>
+            <%!-- Fell back to "Verified pharmacy. Genuine medicines." for any
+                 store that had written no description — certifying a licence and
+                 a supply chain on behalf of a merchant who never claimed either. --%>
             <p class="text-sm text-[#F9F6F0]/80 leading-relaxed">
-              {@store.description ||
-                "Verified pharmacy. Genuine medicines. Discreet delivery across Ghana."}
+              {@store.description || "Health and wellbeing products from #{@store.name}."}
             </p>
           </div>
 
@@ -201,22 +203,39 @@ defmodule Emakola.Themes.Pharmacy.Shared do
             </ul>
           </div>
 
+          <%!-- This column badged every Pharmacy store as a "Licensed pharmacy"
+               selling "Genuine medicines" — a licence and a supply chain the
+               platform certified on the merchant's behalf. It now links to the
+               policies the merchant actually wrote, which are both true and more
+               use to someone deciding whether to buy medicine here. --%>
           <div>
             <h4 class="text-sm font-semibold uppercase tracking-wider mb-4 text-[#A7E5C5]">
-              Trust
+              Policies
             </h4>
             <ul class="space-y-3 text-sm text-[#F9F6F0]/80">
-              <li class="flex items-center gap-2">
-                <span class="material-symbols-outlined" style="font-size: 16px;">verified_user</span>
-                Licensed pharmacy
+              <li>
+                <a
+                  href={store_path(@store.slug, "/policies#shipping")}
+                  class="hover:text-white transition-colors"
+                >
+                  Shipping
+                </a>
               </li>
-              <li class="flex items-center gap-2">
-                <span class="material-symbols-outlined" style="font-size: 16px;">local_pharmacy</span>
-                Genuine medicines
+              <li>
+                <a
+                  href={store_path(@store.slug, "/policies#returns")}
+                  class="hover:text-white transition-colors"
+                >
+                  Returns &amp; warranty
+                </a>
               </li>
-              <li class="flex items-center gap-2">
-                <span class="material-symbols-outlined" style="font-size: 16px;">local_shipping</span>
-                Discreet delivery
+              <li>
+                <a
+                  href={store_path(@store.slug, "/policies#privacy")}
+                  class="hover:text-white transition-colors"
+                >
+                  Privacy
+                </a>
               </li>
             </ul>
           </div>

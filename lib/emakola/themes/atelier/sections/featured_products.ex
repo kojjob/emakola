@@ -41,7 +41,10 @@ defmodule Emakola.Themes.Atelier.Sections.FeaturedProducts do
               do: @settings["heading"],
               else: "Featured Masterpieces"}
           </h2>
-          <p class="text-sm text-[#78716C] mt-1 hidden sm:block">Handpicked by our artisans</p>
+          <%!-- "Handpicked by our artisans" — the shop has artisans, and they
+               chose these. Neither is something the platform knows; a store
+               reselling phone cases said it too. --%>
+          <p class="text-sm text-[#78716C] mt-1 hidden sm:block">From the collection</p>
         </div>
         <a
           href={store_path(@store.slug, "/products")}

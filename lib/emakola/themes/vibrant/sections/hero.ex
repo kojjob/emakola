@@ -193,8 +193,10 @@ defmodule Emakola.Themes.Vibrant.Sections.Hero do
   defp store_subtitle(%{store: %{description: desc}}) when is_binary(desc) and desc != "",
     do: desc
 
-  defp store_subtitle(_),
-    do: "Hand-picked pieces from our latest collection. Crafted with care, ready to ship."
+  # Was "Hand-picked pieces from our latest collection. Crafted with care, ready
+  # to ship." — who selected the goods and how they were made, written for a
+  # merchant who had not filled in their store description.
+  defp store_subtitle(%{store: %{name: name}}), do: "Shop the collection at #{name}."
 
   defp theme_image(assigns) do
     case get_in(assigns, [:theme, :hero, :image_url]) do

@@ -11,6 +11,7 @@ defmodule Emakola.Themes.Spotlight.Sections.Benefits do
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Item
   alias Emakola.Themes.Spotlight.Shared
 
   @impl true
@@ -28,8 +29,11 @@ defmodule Emakola.Themes.Spotlight.Sections.Benefits do
     assigns = assign(assigns, :trust, get_in(assigns.theme, [:trust]) || %{})
 
     ~H"""
+    <%!-- No items means the merchant has claimed nothing about their goods, so
+         there is nothing to show — a heading over an empty grid is worse than no
+         section. --%>
     <section
-      :if={Shared.section_enabled?(@theme, :why_us)}
+      :if={Map.get(@trust, :items, []) != [] && Shared.section_enabled?(@theme, :why_us)}
       id="benefits"
       phx-hook="ScrollReveal"
       class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16"
@@ -46,10 +50,10 @@ defmodule Emakola.Themes.Spotlight.Sections.Benefits do
           class="rounded-2xl bg-white border border-[#ECE7DE] p-6 text-center"
         >
           <span class="material-symbols-outlined text-[var(--theme-accent,#7C3AED)] text-3xl">
-            {Map.get(item, :icon, "star")}
+            {Item.field(item, :icon, "star")}
           </span>
-          <h3 class="spot-heading text-base font-semibold mt-3">{item.title}</h3>
-          <p class="text-sm text-[#6B675F] mt-1 leading-relaxed">{item.description}</p>
+          <h3 class="spot-heading text-base font-semibold mt-3">{Item.field(item, :title)}</h3>
+          <p class="text-sm text-[#6B675F] mt-1 leading-relaxed">{Item.field(item, :description)}</p>
         </div>
       </div>
     </section>

@@ -33,8 +33,11 @@ defmodule Emakola.Themes.HomeLiving.ProductList do
           <h1 class="home-living-heading text-4xl sm:text-5xl font-medium text-[#3F2D1A] mb-3">
             {page_title(@search_query, @active_category_slug, @categories)}
           </h1>
-          <p class="text-sm text-[#92400E]/80 max-w-xl">
-            Crafted in small batches with quality materials. Designed to live with.
+          <%!-- Was "Crafted in small batches with quality materials." — how every
+               product in every Home Living store was manufactured, printed above
+               the grid whether or not any of it was true. --%>
+          <p :if={@store.description} class="text-sm text-[#92400E]/80 max-w-xl">
+            {@store.description}
           </p>
         </div>
       </section>

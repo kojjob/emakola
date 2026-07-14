@@ -47,7 +47,7 @@ defmodule Emakola.Themes.Fashion.Sections.Hero do
       |> assign(:issue_date, issue_date())
       |> assign(
         :hero_title,
-        setting_or(assigns, "heading", theme.hero.title || "Made by Tailors. Worn by You.")
+        setting_or(assigns, "heading", theme.hero.title || "The new collection")
       )
       |> assign(:hero_subtitle, setting_or(assigns, "subheading", theme.hero.subtitle))
       |> assign(

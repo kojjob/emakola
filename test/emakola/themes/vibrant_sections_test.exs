@@ -67,7 +67,10 @@ defmodule Emakola.Themes.VibrantSectionsTest do
       # Gradient hero (no merchant hero image configured)
       assert html =~ ~s(id="vibrant-pattern")
       assert html =~ ~r/<h1[^>]*>\s*Discover Unique Finds\s*<\/h1>/
-      assert html =~ "Handcrafted with Love"
+      # Was "Handcrafted with Love" — how every product in every Vibrant store
+      # was made, in the hero subtitle.
+      assert html =~ "Shop the collection"
+      refute html =~ "Handcrafted"
       assert html =~ "Shop the collection"
       assert html =~ "Chat with us"
       assert html =~ "wa.me/233200000000"

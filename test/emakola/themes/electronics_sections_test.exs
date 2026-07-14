@@ -84,7 +84,9 @@ defmodule Emakola.Themes.ElectronicsSectionsTest do
       assert html =~ "Immersive Sound,"
       assert html =~ "Unmatched Comfort"
       assert html =~ "Premium audio gear"
-      assert html =~ "Hand-picked for clarity, comfort, and battery life."
+      # Was "Hand-picked for clarity, comfort, and battery life." — an assertion
+      # that someone at this shop auditioned the gear on three criteria. Nobody did.
+      refute html =~ "Hand-picked"
 
       # Popular products + featured deal card
       assert html =~ "Popular product"
