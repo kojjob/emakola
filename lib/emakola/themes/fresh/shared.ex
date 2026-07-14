@@ -128,53 +128,83 @@ defmodule Emakola.Themes.Fresh.Shared do
   @doc """
   Circle with warm amber border, category image, and name below.
   Like a farmers market sign.
+
+  Renders as a **link** when `href` is given — that is the home page, which has
+  no product list to filter, so the shopper is going to the category's own page.
+  Renders as a **filter button** otherwise: the product list narrows in place.
+
+  Both were broken, and both crashed rather than doing nothing, because
+  `handle_event/3` has no catch-all clause and an unmatched event raises:
+
+    * On the home page it fired `filter_category` at `StoreLive`, which has no
+      such handler at all. Every category on the Fresh home page killed the page.
+    * On the product list it sent `phx-value-id`, but `ProductListLive` matches
+      on `%{"category_id" => _}`, as the ten other themes send.
   """
   attr :category, :map, required: true
-  attr :store_slug, :string, required: true
+  attr :href, :string, default: nil
   attr :active, :boolean, default: false
 
   def category_circle(assigns) do
     ~H"""
-    <button
-      phx-click="filter_category"
-      phx-value-id={@category.id}
+    <a
+      :if={@href}
+      href={@href}
       class="flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer"
       role="listitem"
     >
-      <div class={[
-        "w-[76px] h-[76px] rounded-full p-[3px] group-hover:scale-110 transition-transform duration-200",
-        if(@active,
-          do: "bg-gradient-to-br from-[#059669] to-[#047857] shadow-lg shadow-emerald-200",
-          else: "bg-gradient-to-br from-[#92400E] to-[#B45309] shadow-sm"
-        )
-      ]}>
-        <%= if category_image(@category) do %>
-          <.optimized_image
-            src={category_image(@category)}
-            alt={@category.name}
-            priority={:low}
-            class="w-full h-full rounded-full object-cover border-[3px] border-[#FEFCE8]"
-            width={70}
-            height={70}
-          />
-        <% else %>
-          <div class="w-full h-full rounded-full bg-[#FEFCE8] border-[3px] border-[#FEFCE8] flex items-center justify-center">
-            <span class="text-xl font-bold text-[#92400E]">
-              {String.first(@category.name)}
-            </span>
-          </div>
-        <% end %>
-      </div>
-      <span class={[
-        "text-xs font-semibold text-center whitespace-nowrap max-w-[80px] truncate",
-        if(@active,
-          do: "text-[#059669]",
-          else: "text-[#78350F] group-hover:text-[#059669]"
-        )
-      ]}>
-        {@category.name}
-      </span>
+      <.circle_face category={@category} active={@active} />
+    </a>
+    <button
+      :if={!@href}
+      phx-click="filter_category"
+      phx-value-category_id={@category.id}
+      class="flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer"
+      role="listitem"
+    >
+      <.circle_face category={@category} active={@active} />
     </button>
+    """
+  end
+
+  attr :category, :map, required: true
+  attr :active, :boolean, required: true
+
+  defp circle_face(assigns) do
+    ~H"""
+    <div class={[
+      "w-[76px] h-[76px] rounded-full p-[3px] group-hover:scale-110 transition-transform duration-200",
+      if(@active,
+        do: "bg-gradient-to-br from-[#059669] to-[#047857] shadow-lg shadow-emerald-200",
+        else: "bg-gradient-to-br from-[#92400E] to-[#B45309] shadow-sm"
+      )
+    ]}>
+      <%= if category_image(@category) do %>
+        <.optimized_image
+          src={category_image(@category)}
+          alt={@category.name}
+          priority={:low}
+          class="w-full h-full rounded-full object-cover border-[3px] border-[#FEFCE8]"
+          width={70}
+          height={70}
+        />
+      <% else %>
+        <div class="w-full h-full rounded-full bg-[#FEFCE8] border-[3px] border-[#FEFCE8] flex items-center justify-center">
+          <span class="text-xl font-bold text-[#92400E]">
+            {String.first(@category.name)}
+          </span>
+        </div>
+      <% end %>
+    </div>
+    <span class={[
+      "text-xs font-semibold text-center whitespace-nowrap max-w-[80px] truncate",
+      if(@active,
+        do: "text-[#059669]",
+        else: "text-[#78350F] group-hover:text-[#059669]"
+      )
+    ]}>
+      {@category.name}
+    </span>
     """
   end
 

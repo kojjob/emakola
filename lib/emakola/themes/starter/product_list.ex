@@ -177,7 +177,8 @@ defmodule Emakola.Themes.Starter.ProductList do
             </p>
             <button
               :if={@search_query != "" || @selected_category}
-              phx-click="clear_filters"
+              phx-click="filter_category"
+              phx-value-category_id="all"
               class="text-sm font-medium text-[var(--theme-primary,#6366F1)] hover:text-[#4F46E5] transition-colors"
               style="font-family: 'Inter', sans-serif;"
             >

@@ -1,11 +1,18 @@
 defmodule Emakola.Themes.Fresh.Sections.CategoryCircles do
   @moduledoc """
   Fresh home category circles — farmers-market signboards in a horizontal
-  scroller. Extracted verbatim from `fresh/home.ex`.
+  scroller.
+
+  They are links to each category's own page. They used to be buttons firing
+  `filter_category` at `StoreLive`, which handles no such event: every tap raised
+  FunctionClauseError, killed the LiveView and reset the page under the shopper.
+  There is no product list on the home page to filter in the first place.
   """
   @behaviour Emakola.Themes.Section
 
   use Phoenix.Component
+
+  import EmakolaWeb.Storefront.Path
 
   alias Emakola.Themes.Fresh.Shared
 
@@ -38,10 +45,13 @@ defmodule Emakola.Themes.Fresh.Sections.CategoryCircles do
           class="flex gap-5 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           role="list"
         >
+          <%!-- Links, not filter buttons. These fired `filter_category` at
+               StoreLive, which has no such handler — every category on the Fresh
+               home page raised FunctionClauseError and took the page down. --%>
           <Shared.category_circle
             :for={category <- @categories}
             category={category}
-            store_slug={@store.slug}
+            href={store_path(@store.slug, "/category/#{category.slug}")}
           />
         </div>
       </div>
