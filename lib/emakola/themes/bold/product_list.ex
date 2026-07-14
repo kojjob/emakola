@@ -73,8 +73,13 @@ defmodule Emakola.Themes.Bold.ProductList do
           :if={@categories != []}
           class="flex items-center gap-5 sm:gap-6 overflow-x-auto pb-6 mb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         >
+          <%!-- `clear_filters` is handled by the platform's store directory, never
+               by ProductListLive — this button raised FunctionClauseError. The
+               "show everything" control is `filter_category` with "all", which is
+               what the other ten themes send. --%>
           <button
-            phx-click="clear_filters"
+            phx-click="filter_category"
+            phx-value-category_id="all"
             class={[
               "flex-shrink-0 text-sm font-medium tracking-wide uppercase border-b-2 pb-1 transition-colors",
               if(is_nil(@selected_category) and (@search_query == "" or is_nil(@search_query)),
@@ -89,7 +94,7 @@ defmodule Emakola.Themes.Bold.ProductList do
           <button
             :for={cat <- @categories}
             phx-click="filter_category"
-            phx-value-id={cat.id}
+            phx-value-category_id={cat.id}
             class={[
               "flex-shrink-0 text-sm font-medium tracking-wide uppercase border-b-2 pb-1 transition-colors",
               if(@selected_category == cat.id,
@@ -161,7 +166,8 @@ defmodule Emakola.Themes.Bold.ProductList do
             </p>
             <button
               :if={@search_query != "" || @selected_category}
-              phx-click="clear_filters"
+              phx-click="filter_category"
+              phx-value-category_id="all"
               class="text-sm font-medium text-[#0F172A] border-b border-[#0F172A] hover:text-[#F59E0B] hover:border-[#F59E0B] transition-colors pb-0.5"
               style="font-family: 'Inter', sans-serif;"
             >

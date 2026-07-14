@@ -126,7 +126,7 @@ defmodule Emakola.Themes.Fresh.ProductList do
         >
           <button
             phx-click="filter_category"
-            phx-value-id="all"
+            phx-value-category_id="all"
             class={[
               "flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer"
             ]}
@@ -167,7 +167,6 @@ defmodule Emakola.Themes.Fresh.ProductList do
           <Shared.category_circle
             :for={cat <- @categories}
             category={cat}
-            store_slug={@store.slug}
             active={@selected_category == cat.id}
           />
         </div>
@@ -195,7 +194,7 @@ defmodule Emakola.Themes.Fresh.ProductList do
             <button
               :if={@search_query != "" || @selected_category}
               phx-click="filter_category"
-              phx-value-id="all"
+              phx-value-category_id="all"
               class="text-sm font-bold text-[#059669] hover:text-[#047857] transition-colors"
             >
               Clear filters
