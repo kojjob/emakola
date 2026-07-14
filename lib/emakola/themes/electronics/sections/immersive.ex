@@ -56,8 +56,11 @@ defmodule Emakola.Themes.Electronics.Sections.Immersive do
               <p class="electronics-heading text-2xl font-bold text-white mb-1">
                 Premium audio gear
               </p>
+              <%!-- Was "Hand-picked for clarity, comfort, and battery life." —
+                   an assertion that someone at this shop auditioned the gear on
+                   three specific criteria. Nobody did. --%>
               <p class="text-sm text-white/70 mb-4">
-                Hand-picked for clarity, comfort, and battery life.
+                Browse the range.
               </p>
               <a
                 href={store_path(@store.slug, "/products")}

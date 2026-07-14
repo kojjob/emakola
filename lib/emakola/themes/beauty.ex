@@ -91,41 +91,50 @@ defmodule Emakola.Themes.Beauty do
         closing_cta: true,
         newsletter: true
       },
+      # Blank, but the keys must stay. Every Beauty store used to tell shoppers
+      # its products were "ethically sourced", its formulas had "Proven
+      # Effectiveness", its jars were "Recyclable glass … biodegradable inserts",
+      # and its ingredients were "Sourced from West African shea, cocoa, and
+      # baobab". A merchant reselling imported soap published all four.
+      #
+      # These are claims about what is in the jar, how it was made, and what it
+      # does — none of which the platform knows, and the last of which is a
+      # cosmetics efficacy claim. A merchant with a real sourcing story writes it
+      # here (or in the section editor) and it is theirs. Blank, nothing renders.
+      #
+      # Do NOT delete these keys: ThemeResolver.deep_merge_atomize/2 drops any
+      # override whose key is absent from the defaults, so removing them would
+      # silently discard the story of every merchant who wrote their own.
       trust: %{
         title: "Beauty you can trust",
-        subtitle: "Botanical, thoughtfully formulated, ethically sourced."
+        subtitle: nil
       },
       why_us: %{
         title: "Why your skin deserves the best",
-        items: [
-          %{
-            icon: "spa",
-            title: "Proven Effectiveness",
-            description: "Each formula is made with active botanical ingredients you can feel."
-          },
-          %{
-            icon: "compost",
-            title: "Eco-friendly Packaging",
-            description:
-              "Recyclable glass jars and biodegradable inserts. Beauty that doesn't harm the planet."
-          },
-          %{
-            icon: "local_florist",
-            title: "Botanical Skin Love, Made for You",
-            description:
-              "Sourced from West African shea, cocoa, and baobab — gentle on melanin, kind to your routine."
-          }
-        ]
+        items: []
       },
       faq: %{
         title: "Frequently Asked Questions",
         subtitle: "Got questions? We've got answers.",
         items: [
-          %{
-            question: "Are your products tested for skin compatibility?",
-            answer:
-              "Yes — every product is tested for skin compatibility before launch and reformulated with feedback from our beauty community."
-          },
+          # Two questions used to sit here that no default could answer honestly,
+          # because the question presupposes the answer:
+          #
+          #   "Are your products tested for skin compatibility?" — "Yes, every
+          #   product is tested … and reformulated with feedback from our beauty
+          #   community." (a safety-testing claim)
+          #
+          #   "Are your ingredients ethically sourced?" — "All our shea, cocoa,
+          #   and baobab is sourced directly from West African women's
+          #   cooperatives. Fair trade, every batch." (a supply-chain claim that
+          #   named a sourcing model the merchant may have no connection to)
+          #
+          # Neither can be softened into a neutral default the way the delivery
+          # and returns answers below can — there is no honest way to half-answer
+          # "is this tested?". A merchant who tests, or who sources this way, adds
+          # the question back and answers it in their own words. It is then their
+          # claim, which is the only thing that makes it worth anything.
+          #
           # This shipped answering "within 1–4 business days. Free delivery on
           # orders over GHS 200" for every Beauty store, none of which had set
           # either number. The FAQ is merchant-editable, so the honest default
@@ -135,11 +144,6 @@ defmodule Emakola.Themes.Beauty do
             question: "Do you ship across Ghana?",
             answer:
               "Our delivery zones, fees and times are listed on our policies page and shown at checkout."
-          },
-          %{
-            question: "Are your ingredients ethically sourced?",
-            answer:
-              "All our shea, cocoa, and baobab is sourced directly from West African women's cooperatives. Fair trade, every batch."
           },
           # This answer used to read "Unopened products can be returned within 14
           # days. We also offer a satisfaction guarantee on first-time purchases."

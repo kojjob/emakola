@@ -44,10 +44,17 @@ defmodule Emakola.Themes.SpotlightTest do
       assert vars["--theme-accent"] == "#7C3AED"
     end
 
-    test "ingredients/0 returns a non-empty list of name+description maps" do
-      items = Emakola.Themes.Spotlight.ingredients()
-      assert length(items) >= 3
-      assert Enum.all?(items, &(is_binary(&1.name) and is_binary(&1.description)))
+    test "ingredients/1 returns what the merchant wrote, and nothing otherwise" do
+      # Five were hardcoded here ("Made simply — clean, honest components",
+      # "Fairly priced", "Made to last") and printed on every Spotlight store's
+      # products. Claims about manufacture, materials and pricing, for goods the
+      # platform has never seen.
+      assert Emakola.Themes.Spotlight.ingredients() == []
+      assert Emakola.Themes.Spotlight.ingredients(%{ingredients: %{items: []}}) == []
+
+      written = [%{name: "Cold-pressed", description: "Pressed the morning it ships."}]
+
+      assert Emakola.Themes.Spotlight.ingredients(%{ingredients: %{items: written}}) == written
     end
   end
 
@@ -182,11 +189,32 @@ defmodule Emakola.Themes.SpotlightTest do
       assert out =~ "Mint"
     end
 
-    test "renders ingredients and benefits content", %{assigns: a} do
+    test "renders the benefits and ingredients the MERCHANT wrote", %{assigns: a} do
+      theme =
+        a.theme
+        |> Map.put(:trust, %{
+          title: "What makes it different",
+          items: [
+            %{icon: "eco", title: "Cold-pressed", description: "Pressed the morning it ships."}
+          ]
+        })
+        |> Map.put(:ingredients, %{
+          items: [%{name: "Two ingredients", description: "Fruit and water. That is the list."}]
+        })
+
+      out = spdp(%{a | theme: theme})
+
+      assert out =~ "Cold-pressed"
+      assert out =~ "Two ingredients"
+    end
+
+    test "a merchant who wrote no claims has none made for them", %{assigns: a} do
       out = spdp(a)
-      # from theme.trust
-      assert out =~ "Radical transparency"
-      assert out =~ hd(Emakola.Themes.Spotlight.ingredients()).name
+
+      # "Radical transparency", "Made simply", "Fairly priced" and the rest were
+      # theme defaults on every Spotlight product page.
+      refute out =~ "Radical transparency"
+      refute out =~ "reasons it works"
     end
 
     test "no raise when review assigns absent (variants-test shape)", %{assigns: a} do

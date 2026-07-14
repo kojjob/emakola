@@ -37,9 +37,12 @@ defmodule Emakola.Themes.Atelier.Footer do
       Map.get(
         footer_config,
         :description,
+        # Was "Curating excellence from West Africa's finest artisans." — a claim
+        # about who makes the goods and how they were chosen, given to any store
+        # that had not written its own description.
         if(assigns.store.description,
           do: assigns.store.description,
-          else: "Curating excellence from West Africa's finest artisans."
+          else: assigns.store.tagline || "Shop the collection at #{assigns.store.name}."
         )
       )
 

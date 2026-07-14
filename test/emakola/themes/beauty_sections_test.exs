@@ -66,8 +66,28 @@ defmodule Emakola.Themes.BeautySectionsTest do
     |> rendered_to_string()
   end
 
-  defp seeded_store do
-    {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "beauty"}})
+  # The why-us cards are the merchant's own now. They used to ship "Proven
+  # Effectiveness — dermatologist-tested formulas", "Eco-friendly Packaging —
+  # recyclable glass and biodegradable inserts" and "Sourced from West African
+  # shea, cocoa, and baobab": an efficacy claim, a packaging claim and a sourcing
+  # claim, on every store that installed the theme. A store that writes none gets
+  # no block, so the tests that expect one have to write something.
+  @merchant_why_us %{
+    "why_us" => %{
+      "title" => "Why your skin deserves the best",
+      "items" => [
+        %{
+          icon: "spa",
+          title: "Small-batch shea",
+          description: "Whipped in Tamale, 40 jars a week."
+        }
+      ]
+    }
+  }
+
+  defp seeded_store(config \\ %{}) do
+    theme_config = Map.merge(%{"theme" => "beauty"}, config)
+    {_merchant, store} = create_merchant_with_store!(%{theme_config: theme_config})
     create_category!(store, %{name: "Shea Butters"})
     product = create_product!(store, %{title: "Baobab Face Oil", status: :active})
     create_variant!(product, store, %{price: 12_345, stock_quantity: 5})
@@ -78,7 +98,7 @@ defmodule Emakola.Themes.BeautySectionsTest do
 
   describe "home render" do
     test "every visual block renders its own copy, verbatim" do
-      html = render_home(seeded_store())
+      html = render_home(seeded_store(@merchant_why_us))
 
       # Nav (chrome, inside the hero band)
       assert html =~ "Book Now"
@@ -94,10 +114,11 @@ defmodule Emakola.Themes.BeautySectionsTest do
       assert html =~ "Baobab Face Oil"
       assert html =~ "GH₵ 123.45"
       assert html =~ "See all products"
-      # Why us
+      # Why us — the merchant's cards, never the theme's
       assert html =~ "Why your skin deserves the best"
-      assert html =~ "Proven Effectiveness"
-      assert html =~ "Eco-friendly Packaging"
+      assert html =~ "Small-batch shea"
+      refute html =~ "Proven Effectiveness"
+      refute html =~ "Eco-friendly Packaging"
       # Testimonials — the invented ones ("Akua M., Accra") are GONE. With no
       # real reviews on this store the section does not render at all, so the
       # landmark here is their absence.
@@ -113,7 +134,10 @@ defmodule Emakola.Themes.BeautySectionsTest do
       assert html =~ "Join the beauty list"
       assert html =~ "Subscribe"
       # Footer (chrome)
-      assert html =~ "Crafted with care"
+      # "Crafted with care" sat in the footer of every Beauty store — who made
+      # the products, asserted by the theme. Gone; the merchant's tagline shows
+      # there instead when they have written one.
+      refute html =~ "Crafted with care"
     end
 
     test "the hero owns the page's single h1" do
@@ -124,11 +148,11 @@ defmodule Emakola.Themes.BeautySectionsTest do
     end
 
     test "the blocks keep today's visual order" do
-      html = render_home(seeded_store())
+      html = render_home(seeded_store(@merchant_why_us))
 
       assert String.match?(
                html,
-               ~r/Book Now.*Elevate Your Essence.*Curated for your routine.*Why your skin deserves the best.*Frequently Asked Questions.*Ready for flawless skin.*Join the beauty list.*Crafted with care/s
+               ~r/Book Now.*Elevate Your Essence.*Curated for your routine.*Why your skin deserves the best.*Frequently Asked Questions.*Ready for flawless skin.*Join the beauty list/s
              )
     end
 
@@ -196,8 +220,10 @@ defmodule Emakola.Themes.BeautySectionsTest do
 
       refute html =~ "Curated for your routine"
       assert html =~ "Elevate Your Essence"
-      assert html =~ "Why your skin deserves the best"
       assert html =~ "Join the beauty list"
+      # The why-us block is gone with the products: its three cards were claims
+      # about formulation, packaging and sourcing that no merchant had written.
+      refute html =~ "Why your skin deserves the best"
     end
 
     test "merchant hero and closing copy override the theme defaults" do
@@ -283,7 +309,10 @@ defmodule Emakola.Themes.BeautySectionsTest do
     end
 
     test "a disabled entry drops its block, and reordering moves one" do
-      {merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "beauty"}})
+      {merchant, store} =
+        create_merchant_with_store!(%{
+          theme_config: Map.merge(%{"theme" => "beauty"}, @merchant_why_us)
+        })
 
       [hero, featured_in, products, why_us | rest] = HomeSections.default_layout(Beauty)
 

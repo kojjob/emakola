@@ -31,27 +31,24 @@ defmodule Emakola.Themes.Spotlight do
       Emakola.Themes.Spotlight.Sections.Newsletter
     ]
 
-  @doc "Ingredient/feature breakdown cards (theme-default content; not yet admin-editable)."
-  def ingredients do
-    [
-      %{
-        name: "Made simply",
-        description: "Clean, honest components — nothing hidden, nothing unnecessary."
-      },
-      %{
-        name: "Made with care",
-        description: "Produced with attention to detail at every step."
-      },
-      %{
-        name: "Everyday quality",
-        description: "Built for daily use — dependable, consistent, and well-made."
-      },
-      %{name: "Fairly priced", description: "Honest pricing with no surprises at checkout."},
-      %{
-        name: "Made to last",
-        description: "Considered design and materials that hold up over time."
-      }
-    ]
+  @doc """
+  The "reasons it works" the merchant has written, from their theme config.
+
+  This used to be a hardcoded list of five: "Made simply — clean, honest
+  components", "Produced with attention to detail at every step", "materials
+  that hold up over time", "Honest pricing with no surprises". Every Spotlight
+  store published all five, on its home page and on every product page, about
+  goods the platform has never seen. They were claims about manufacture, about
+  materials and about pricing, and no merchant wrote a word of them.
+
+  A merchant who can stand behind such a claim writes it. Empty, the section
+  does not render.
+  """
+  def ingredients(theme \\ %{}) do
+    case get_in(theme, [:ingredients, :items]) do
+      items when is_list(items) -> Enum.filter(items, &Emakola.Themes.Item.has?(&1, :name))
+      _ -> []
+    end
   end
 
   def defaults do
@@ -94,31 +91,31 @@ defmodule Emakola.Themes.Spotlight do
         closing_cta: true,
         newsletter: true
       },
+      # Blank, but the key must stay. These four cards claimed, for every store
+      # that installed Spotlight: "Radical transparency — clear components,
+      # clearly listed", "Everyday quality", "Made with care — crafted to a
+      # standard we'd be proud to use ourselves", and "Honestly made —
+      # responsibly sourced and fairly priced, start to finish."
+      #
+      # The last is an ethical sourcing and pricing claim; the rest are claims
+      # about manufacture and quality. All four were written by the theme, for
+      # goods it has never seen, and shipped on by default. A merchant who can
+      # stand behind such a claim writes it; blank, the section does not render.
+      #
+      # Do NOT delete this key: ThemeResolver.deep_merge_atomize/2 drops any
+      # override whose key is absent from the defaults.
       trust: %{
         title: "What makes it different",
-        items: [
-          %{
-            icon: "visibility",
-            title: "Radical transparency",
-            description: "Clear components, clearly listed — nothing hidden."
-          },
-          %{
-            icon: "bolt",
-            title: "Everyday quality",
-            description: "Dependable and consistent, built for daily use."
-          },
-          %{
-            icon: "favorite",
-            title: "Made with care",
-            description: "Crafted to a standard we'd be proud to use ourselves."
-          },
-          %{
-            icon: "eco",
-            title: "Honestly made",
-            description: "Responsibly sourced and fairly priced — start to finish."
-          }
-        ]
+        items: []
       },
+      # Also blank, and also a key that must survive resolution. See
+      # `ingredients/1` for the five claims that used to live here.
+      #
+      # Wrapped in a map rather than a bare list on purpose: ThemeResolver's
+      # extra_sections/2 merges merchant overrides only into MAP-valued defaults
+      # and passes any other shape (a bare list included) straight through as the
+      # theme default — so `ingredients: []` would have been unsettable, silently.
+      ingredients: %{items: []},
       newsletter: %{
         title: "Stay in the loop",
         subtitle: "New drops and members-only offers, straight to your inbox.",

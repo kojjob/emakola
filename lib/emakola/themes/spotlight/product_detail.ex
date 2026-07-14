@@ -10,6 +10,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
 
   import EmakolaWeb.Storefront.Path
 
+  alias Emakola.Themes.Item
   alias Emakola.Themes.Spotlight.Shared
 
   import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
@@ -34,7 +35,7 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
       |> assign(:wa_link, Shared.whatsapp_link(assigns.store, assigns.product.title))
       |> assign(:trust, get_in(assigns.theme, [:trust]) || %{})
       |> assign(:closing, get_in(assigns.theme, [:closing_cta]) || %{})
-      |> assign(:ingredients, Emakola.Themes.Spotlight.ingredients())
+      |> assign(:ingredients, Emakola.Themes.Spotlight.ingredients(assigns.theme))
 
     ~H"""
     <div class="spot-body min-h-screen">
@@ -135,8 +136,11 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
         </div>
       </section>
 
-      <%!-- BENEFITS --%>
+      <%!-- BENEFITS — the merchant's claims, or nothing. Four were hardcoded
+           ("Radical transparency", "Honestly made — responsibly sourced and
+           fairly priced") on every Spotlight product. --%>
       <section
+        :if={Map.get(@trust, :items, []) != []}
         id="benefits"
         phx-hook="ScrollReveal"
         class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16"
@@ -151,10 +155,12 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
             class="rounded-2xl bg-white border border-[#ECE7DE] p-6 text-center"
           >
             <span class="material-symbols-outlined text-[var(--theme-accent,#7C3AED)] text-3xl">
-              {Map.get(item, :icon, "star")}
+              {Item.field(item, :icon, "star")}
             </span>
-            <h3 class="spot-heading text-base font-semibold mt-3">{item.title}</h3>
-            <p class="text-sm text-[#6B675F] mt-1 leading-relaxed">{item.description}</p>
+            <h3 class="spot-heading text-base font-semibold mt-3">{Item.field(item, :title)}</h3>
+            <p class="text-sm text-[#6B675F] mt-1 leading-relaxed">
+              {Item.field(item, :description)}
+            </p>
           </div>
         </div>
       </section>
@@ -178,8 +184,11 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
         </div>
       </section>
 
-      <%!-- INGREDIENTS --%>
+      <%!-- INGREDIENTS — the merchant's own claims, or nothing. Five were
+           hardcoded here ("Made simply", "Fairly priced", "Made to last"…) and
+           printed on every Spotlight product regardless of what it was. --%>
       <section
+        :if={@ingredients != []}
         id="ingredients"
         phx-hook="ScrollReveal"
         class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16"
@@ -190,8 +199,8 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
         </p>
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-8">
           <div :for={ing <- @ingredients} data-reveal class="border-t border-[#ECE7DE] pt-4">
-            <h3 class="spot-heading text-lg font-semibold">{ing.name}</h3>
-            <p class="text-sm text-[#6B675F] mt-1 leading-relaxed">{ing.description}</p>
+            <h3 class="spot-heading text-lg font-semibold">{Item.field(ing, :name)}</h3>
+            <p class="text-sm text-[#6B675F] mt-1 leading-relaxed">{Item.field(ing, :description)}</p>
           </div>
         </div>
       </section>

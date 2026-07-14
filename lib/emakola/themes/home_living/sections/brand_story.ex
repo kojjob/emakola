@@ -16,7 +16,11 @@ defmodule Emakola.Themes.HomeLiving.Sections.BrandStory do
 
   alias Emakola.Themes.HomeLiving.Shared
 
-  @default_body "We work with local craftspeople to bring you furniture that lasts. Solid wood, natural fibres, no fast-furniture shortcuts. Delivered across all 16 regions of Ghana."
+  # No default body. It used to read: "We work with local craftspeople to bring
+  # you furniture that lasts. Solid wood, natural fibres, no fast-furniture
+  # shortcuts. Delivered across all 16 regions of Ghana." — who makes the goods,
+  # what they are made of, and where they reach, published by every store that
+  # installed the theme. The story is the merchant's own or there is no story.
 
   @impl true
   def key, do: "home_living/brand_story"
@@ -39,15 +43,20 @@ defmodule Emakola.Themes.HomeLiving.Sections.BrandStory do
       |> assign(:eyebrow, present(assigns.settings["eyebrow"]) || "Our story")
       |> assign(
         :heading,
-        present(assigns.settings["heading"]) || "Built in Ghana, made for life."
+        # Was "Built in Ghana, made for life." — where the goods were made and
+        # how long they last, on every store that installed the theme.
+        present(assigns.settings["heading"]) || "Our story"
       )
       |> assign(
         :body,
-        present(assigns.settings["body"]) || assigns.store.description || @default_body
+        present(assigns.settings["body"]) || present(assigns.store.description)
       )
 
     ~H"""
-    <section :if={Shared.section_enabled?(@theme, :brand_story)} class="bg-[#FAF7F2] py-16 sm:py-24">
+    <section
+      :if={@body && Shared.section_enabled?(@theme, :brand_story)}
+      class="bg-[#FAF7F2] py-16 sm:py-24"
+    >
       <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <div class="aspect-[4/3] rounded-3xl bg-gradient-to-br from-[#374151] to-[#1F2937] flex items-center justify-center overflow-hidden">

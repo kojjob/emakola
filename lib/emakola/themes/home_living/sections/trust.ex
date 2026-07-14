@@ -94,9 +94,13 @@ defmodule Emakola.Themes.HomeLiving.Sections.Trust do
     end
   end
 
+  # A "Quality materials — Solid wood, natural fibres" tile used to lead this
+  # strip, telling every Home Living shopper what the furniture was made of. The
+  # platform has no materials field and the shop may be selling plastic stools,
+  # so it is gone: what is left is delivery and returns the merchant configured,
+  # and payment security, which is true of every store on the platform.
   defp default_trust(assigns) do
     [
-      %{icon: "category", label: "Quality materials", subtitle: "Solid wood, natural fibres"},
       delivery_item(assigns),
       terms_item(assigns),
       %{icon: "verified_user", label: "Secure payment", subtitle: "Mobile money & card"}

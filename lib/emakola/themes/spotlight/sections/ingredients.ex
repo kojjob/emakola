@@ -11,6 +11,7 @@ defmodule Emakola.Themes.Spotlight.Sections.Ingredients do
 
   use Phoenix.Component
 
+  alias Emakola.Themes.Item
   alias Emakola.Themes.Spotlight
 
   @impl true
@@ -25,10 +26,17 @@ defmodule Emakola.Themes.Spotlight.Sections.Ingredients do
 
   @impl true
   def render(assigns) do
-    assigns = assign(assigns, :ingredients, Spotlight.ingredients())
+    assigns = assign(assigns, :ingredients, Spotlight.ingredients(assigns.theme))
 
     ~H"""
-    <section id="ingredients" phx-hook="ScrollReveal" class="bg-white border-y border-[#ECE7DE]">
+    <%!-- No claims written means no claims made: the section is absent rather
+         than showing "0 reasons it works" over an empty grid. --%>
+    <section
+      :if={@ingredients != []}
+      id="ingredients"
+      phx-hook="ScrollReveal"
+      class="bg-white border-y border-[#ECE7DE]"
+    >
       <div class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <h2 class="spot-heading text-3xl font-bold mb-10">
           <%= if @settings["heading"] not in [nil, ""] do %>
@@ -39,8 +47,8 @@ defmodule Emakola.Themes.Spotlight.Sections.Ingredients do
         </h2>
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-8">
           <div :for={ing <- @ingredients} data-reveal class="border-t border-[#ECE7DE] pt-4">
-            <h3 class="spot-heading text-lg font-semibold">{ing.name}</h3>
-            <p class="text-sm text-[#6B675F] mt-1 leading-relaxed">{ing.description}</p>
+            <h3 class="spot-heading text-lg font-semibold">{Item.field(ing, :name)}</h3>
+            <p class="text-sm text-[#6B675F] mt-1 leading-relaxed">{Item.field(ing, :description)}</p>
           </div>
         </div>
       </div>

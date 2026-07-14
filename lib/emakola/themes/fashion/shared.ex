@@ -114,8 +114,11 @@ defmodule Emakola.Themes.Fashion.Shared do
           <p class="fashion-display text-3xl sm:text-4xl tracking-[0.25em] uppercase">
             {@store.name}
           </p>
-          <p class="text-xs tracking-[0.18em] uppercase text-[#FAF6EE]/60 mt-3">
-            Made in Ghana
+          <%!-- "Made in Ghana" sat in this footer on every Fashion store — a
+               country-of-origin claim, which is a regulated one in most markets,
+               made on behalf of shops importing from anywhere. --%>
+          <p :if={@store.tagline} class="text-xs tracking-[0.18em] uppercase text-[#FAF6EE]/60 mt-3">
+            {@store.tagline}
           </p>
         </div>
 

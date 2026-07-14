@@ -67,7 +67,11 @@ defmodule Emakola.Themes.HomeLiving do
         image_url: "",
         images: [],
         carousel: false,
-        title: "Masterpieces Crafted From Solid Wood",
+        # Was "Masterpieces Crafted From Solid Wood" — the material every Home
+        # Living store's goods were made of, asserted by the theme. The hero
+        # title is the most editable field on the storefront; its default should
+        # describe the page, not the furniture.
+        title: "Furniture and home goods",
         subtitle: "Modern furniture and home goods, made for the way you live.",
         cta_text: "Explore More",
         cta_url: "/products"

@@ -6,6 +6,14 @@ defmodule Emakola.Themes.PharmacySectionsTest do
   keep passing verbatim after the sectionization: it pins today's copy, the
   single h1, and the visual order of every block. A landmark that moves is a
   storefront regression, not a stale test.
+
+  ONE landmark was deliberately moved. The trust strip used to be a theme
+  default reading "Licensed & Trusted / Verified pharmacy. Genuine medicines.",
+  which certified every store that installed this theme as a licensed pharmacy
+  selling genuine medicine — a regulatory claim the merchant never made. It is
+  now merchant-stated: `@merchant_trust` below is what a real pharmacy would
+  write, and a store that writes nothing gets no strip at all. The order tests
+  therefore seed it rather than expecting the platform to supply it.
   """
 
   # async: false — registers Pharmacy through the :extra_sectionized_themes
@@ -31,6 +39,16 @@ defmodule Emakola.Themes.PharmacySectionsTest do
   @stat_items [
     %{icon: "verified_user", value: "12", label: "Years serving Accra"}
   ]
+
+  # What a pharmacy that IS licensed writes for itself. The platform states none
+  # of this on anyone's behalf.
+  @merchant_trust %{
+    "title" => "Registered with the Pharmacy Council",
+    "subtitle" => "Superintendent pharmacist on site. Licence PCG-1184.",
+    "items" => [
+      %{icon: "verified_user", label: "Licence PCG-1184", subtitle: "Renewed 2026"}
+    ]
+  }
 
   defp seed_store! do
     {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "pharmacy"}})
@@ -92,7 +110,8 @@ defmodule Emakola.Themes.PharmacySectionsTest do
       # own landmark.
       grid_title = store |> load_products() |> Enum.at(4) |> Map.fetch!(:title)
 
-      html = render_home(store, %{"stats" => %{"items" => @stat_items}})
+      html =
+        render_home(store, %{"stats" => %{"items" => @stat_items}, "trust" => @merchant_trust})
 
       # Hero — the page's single h1
       assert html =~ "Pharmacy you can trust"
@@ -117,9 +136,10 @@ defmodule Emakola.Themes.PharmacySectionsTest do
       # Product grid (the "more" products the trending strip dropped)
       assert html =~ grid_title
 
-      # Trust strip
-      assert html =~ "Licensed &amp; Trusted"
-      assert html =~ "Verified pharmacy. Genuine medicines. Discreet delivery."
+      # Trust strip — the MERCHANT's credentials, and never the platform's.
+      assert html =~ "Registered with the Pharmacy Council"
+      assert html =~ "Superintendent pharmacist on site. Licence PCG-1184."
+      refute html =~ "Verified pharmacy. Genuine medicines. Discreet delivery."
 
       # Newsletter
       assert html =~ "Stay healthy, stay informed"
@@ -129,8 +149,20 @@ defmodule Emakola.Themes.PharmacySectionsTest do
       # -> grid -> trust -> newsletter
       assert String.match?(
                html,
-               ~r/Pharmacy you can trust.*Your Trusted Healthcare Service.*Trending products for you.*Shop now.*Cough Syrups.*#{Regex.escape(grid_title)}.*Licensed &amp; Trusted.*Stay healthy, stay informed/s
+               ~r/Pharmacy you can trust.*Your Trusted Healthcare Service.*Trending products for you.*Shop now.*Cough Syrups.*#{Regex.escape(grid_title)}.*Registered with the Pharmacy Council.*Stay healthy, stay informed/s
              )
+    end
+
+    test "a store that has claimed no credentials is not given any" do
+      store = seed_store!()
+
+      html = render_home(store)
+
+      # The whole strip is gone, not merely emptied: no heading over a blank
+      # grid, and above all no licence the merchant never claimed to hold.
+      refute html =~ "Licensed"
+      refute html =~ "Genuine medicines"
+      refute html =~ ~r/pharmacy-trust/
     end
 
     test "prices render from integer minor units" do
@@ -155,22 +187,26 @@ defmodule Emakola.Themes.PharmacySectionsTest do
     test "a section switched off the legacy way stays off" do
       store = seed_store!()
 
-      html = render_home(store, %{"sections" => %{"newsletter" => false}})
+      html =
+        render_home(store, %{
+          "sections" => %{"newsletter" => false},
+          "trust" => @merchant_trust
+        })
 
       refute html =~ "Stay healthy, stay informed"
-      assert html =~ "Licensed &amp; Trusted"
+      assert html =~ "Registered with the Pharmacy Council"
     end
 
     test "an empty store renders the chrome without the product blocks" do
       {_merchant, store} = create_merchant_with_store!(%{theme_config: %{"theme" => "pharmacy"}})
 
-      html = render_home(store)
+      html = render_home(store, %{"trust" => @merchant_trust})
 
       refute html =~ "Trending products for you"
       refute html =~ "Shop now"
       # Hero, trust, newsletter and the chrome still stand
       assert html =~ "Professional Pharmacy Services You Can Trust"
-      assert html =~ "Licensed &amp; Trusted"
+      assert html =~ "Registered with the Pharmacy Council"
       assert html =~ "Stay healthy, stay informed"
     end
 
@@ -254,13 +290,13 @@ defmodule Emakola.Themes.PharmacySectionsTest do
       [hero, _stats, trending, _highlights, _categories, _grid, trust, newsletter] = layout()
 
       html =
-        render_home(store, %{},
+        render_home(store, %{"trust" => @merchant_trust},
           layout: [trust, hero, trending, Map.put(newsletter, "enabled", false)]
         )
 
       assert String.match?(
                html,
-               ~r/Licensed &amp; Trusted.*Pharmacy you can trust.*Trending products for you/s
+               ~r/Registered with the Pharmacy Council.*Pharmacy you can trust.*Trending products for you/s
              )
 
       refute html =~ "Stay healthy, stay informed"

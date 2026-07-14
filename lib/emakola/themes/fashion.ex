@@ -66,7 +66,9 @@ defmodule Emakola.Themes.Fashion do
         image_url: "",
         images: [],
         carousel: false,
-        title: "Made by Tailors. Worn by You.",
+        # Was "Made by Tailors. Worn by You." — the page's h1 on every Fashion
+        # store, telling the shopper who sewed the clothes. Nobody knew.
+        title: "The new collection",
         subtitle:
           "Curated drops in Ankara, kente, and ready-to-wear — designed in Accra, shipped across Ghana.",
         cta_text: "Shop the Drop",
@@ -85,20 +87,33 @@ defmodule Emakola.Themes.Fashion do
         brand_story: true,
         newsletter: true
       },
+      # `title` and `body` blank, but the keys must stay. The body used to credit
+      # two workshops that DO NOT EXIST — "the bold Ankara prints of the Mensah
+      # collective", "the heritage kente of the Kwame house" — and told every
+      # shopper each piece was "sewn in small batches by tailors and artisans
+      # across Accra". A shop reselling imported dresses published all of it.
+      #
+      # Who made the clothes is the shop's claim to make. Blank, the section does
+      # not render; a merchant who writes their story gets exactly their story.
+      #
+      # Do NOT delete these keys: ThemeResolver.deep_merge_atomize/2 drops any
+      # override whose key is absent from the defaults.
       editorial_intro: %{
-        eyebrow: "Volume IV · Drop No. 12",
-        title: "Curated drops, made by hand.",
-        body:
-          "Each piece in our spring edit is sewn in small batches by tailors and artisans across Accra. From the bold Ankara prints of the Mensah collective to the heritage kente of the Kwame house — wear stories, not just clothes."
+        eyebrow: "From the Editor",
+        title: nil,
+        body: nil
       },
       newsletter: %{
         title: "First access. No noise.",
         subtitle: "Be the first to shop new drops, runway looks, and editor picks.",
         button_text: "Join the List"
       },
+      # "Crafted with care / Made by tailors. Worn by you." — who sewed the
+      # clothes, asserted for every shop on the theme. The heading stays (it
+      # claims nothing); the maker claim is the merchant's to write.
       trust: %{
-        title: "Crafted with care",
-        subtitle: "Made by tailors. Worn by you."
+        title: "Chosen with care",
+        subtitle: nil
       },
       footer: %{social_links: %{instagram: "", twitter: "", facebook: ""}},
       css_variables: %{

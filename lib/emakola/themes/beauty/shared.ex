@@ -185,7 +185,9 @@ defmodule Emakola.Themes.Beauty.Shared do
 
         <div class="border-t border-[#FAF6EE]/15 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#FAF6EE]/50">
           <p>&copy; {DateTime.utc_now().year} {@store.name}. All rights reserved.</p>
-          <p>Crafted with care</p>
+          <%!-- Was "Crafted with care" — who made the products, in the footer of
+               every Beauty store. --%>
+          <p :if={@store.tagline}>{@store.tagline}</p>
         </div>
       </div>
     </footer>

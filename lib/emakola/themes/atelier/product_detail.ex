@@ -245,22 +245,33 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
                 <p class="text-sm text-gray-700 leading-relaxed mb-4">
                   {@product.description}
                 </p>
-                <%!-- Spec boxes --%>
+                <%!-- Spec boxes. These used to fill themselves in: a product with
+                     no dimensions recorded was published as "One Size", and one
+                     with no material recorded as "Handcrafted". Both are facts
+                     about the object, invented because the box would otherwise
+                     have been empty. A spec the merchant never recorded is not a
+                     spec, so the box is simply not there. --%>
                 <div class="grid grid-cols-2 gap-3">
-                  <div class="bg-white rounded-lg p-3 border border-gray-100">
+                  <div
+                    :if={product_spec(@product, :dimensions)}
+                    class="bg-white rounded-lg p-3 border border-gray-100"
+                  >
                     <span class="block text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">
                       Dimensions
                     </span>
                     <span class="text-sm font-mono text-gray-800">
-                      {product_spec(@product, :dimensions, "One Size")}
+                      {product_spec(@product, :dimensions)}
                     </span>
                   </div>
-                  <div class="bg-white rounded-lg p-3 border border-gray-100">
+                  <div
+                    :if={product_spec(@product, :material)}
+                    class="bg-white rounded-lg p-3 border border-gray-100"
+                  >
                     <span class="block text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">
                       Material
                     </span>
                     <span class="text-sm font-mono text-gray-800">
-                      {product_spec(@product, :material, "Handcrafted")}
+                      {product_spec(@product, :material)}
                     </span>
                   </div>
                 </div>
@@ -581,7 +592,9 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
     end
   end
 
-  defp product_spec(product, key, fallback) do
+  # No fallback argument any more. A spec the merchant never recorded has no
+  # value, and the caller renders no box — it does not get one made up for it.
+  defp product_spec(product, key) do
     metadata = Map.get(product, :metadata) || %{}
 
     cond do
@@ -592,7 +605,7 @@ defmodule Emakola.Themes.Atelier.ProductDetail do
         Map.get(metadata, Atom.to_string(key))
 
       true ->
-        fallback
+        nil
     end
   end
 

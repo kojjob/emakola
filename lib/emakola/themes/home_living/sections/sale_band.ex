@@ -76,11 +76,13 @@ defmodule Emakola.Themes.HomeLiving.Sections.SaleBand do
           nil
       end
 
+    # "Daily Curation — Hand-picked" claimed someone at the shop selected these
+    # goods by hand, every day. The other two tiles are true of every store on
+    # the platform; that one was true of none of them by default.
     Enum.reject(
       [
         delivery,
-        %{icon: "verified_user", title: "Safe Payment", subtitle: "MoMo & cards"},
-        %{icon: "schedule", title: "Daily Curation", subtitle: "Hand-picked"}
+        %{icon: "verified_user", title: "Safe Payment", subtitle: "MoMo & cards"}
       ],
       &is_nil/1
     )

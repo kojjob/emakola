@@ -192,13 +192,18 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
                    it has configured none) and the returns tile states the
                    merchant's own window, falling back to a plain link to their
                    policies page when they have stated none. --%>
+              <%!-- A "Hand-sewn" tile used to sit here on every Fashion product,
+                   including the ones that were not. Whether a garment was sewn by
+                   hand is a fact about the garment; the platform has no field for
+                   it and no way to know. Secure payment is true of every store on
+                   the platform, so it is the honest thing to put in its place. --%>
               <div class="grid grid-cols-3 gap-3 pt-7 border-t border-[#E7E5E4]">
                 <div class="flex flex-col items-start">
                   <span class="material-symbols-outlined text-[#5B21B6] mb-1" style="font-size: 22px;">
-                    handyman
+                    lock
                   </span>
                   <p class="text-[10px] uppercase tracking-[0.18em] font-semibold text-[#1C1917]">
-                    Hand-sewn
+                    Secure payment
                   </p>
                 </div>
                 <div :if={Delivery.callout(assigns)} class="flex flex-col items-start">

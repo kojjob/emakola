@@ -100,7 +100,13 @@ defmodule Emakola.Themes.ThemeResolverTest do
       assert result.colors.background == "#F9F6F0"
       assert result.sections.hero == true
       assert result.sections.featured_products == true
-      assert result.trust.title =~ "Trusted"
+      # The trust block ships blank on purpose: it used to certify every store
+      # on this theme as a "Licensed pharmacy" selling "Genuine medicines". The
+      # KEY must survive resolution (deep_merge_atomize/2 discards overrides for
+      # keys absent from the defaults), but the platform states nothing in it.
+      assert Map.has_key?(result, :trust)
+      assert result.trust.title == nil
+      assert result.trust.items == []
     end
 
     test "beauty theme returns correct defaults" do

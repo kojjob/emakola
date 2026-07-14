@@ -260,10 +260,12 @@ defmodule Emakola.Themes.Market.Components do
         About the Shop
       </h2>
       <p class="mx-auto mb-4 max-w-[480px] text-sm leading-relaxed text-stone-600">
+        <%!-- The fallback said the products were "quality" and "handpicked for
+             you" — two claims about goods the platform has never seen, on behalf
+             of a merchant who simply had not written a description yet. --%>
         {if @store.description,
           do: @store.description,
-          else:
-            "Welcome to #{@store.name}. Browse our collection of quality products handpicked for you."}
+          else: "Welcome to #{@store.name}. Browse the collection."}
       </p>
       <a
         :if={Map.get(@store, :whatsapp_number)}
