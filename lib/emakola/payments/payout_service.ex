@@ -42,11 +42,10 @@ defmodule Emakola.Payments.PayoutService do
 
   @doc "A store's outstanding un-split successful payments (the manual-payout backlog)."
   def outstanding_payments(store_id) do
+    # "Outstanding" is defined once, on the resource — see
+    # Payment.outstanding_for_payout.
     Payment
-    |> Ash.Query.filter(
-      store_id == ^store_id and status == :success and split_mode == :none and
-        payout_held == false and is_nil(paid_out_at)
-    )
+    |> Ash.Query.for_read(:outstanding_for_payout, %{store_id: store_id})
     |> Ash.read!(authorize?: false)
   end
 
@@ -65,10 +64,7 @@ defmodule Emakola.Payments.PayoutService do
       Emakola.Repo.transaction(fn ->
         payments =
           Payment
-          |> Ash.Query.filter(
-            store_id == ^store_id and status == :success and split_mode == :none and
-              payout_held == false and is_nil(paid_out_at)
-          )
+          |> Ash.Query.for_read(:outstanding_for_payout, %{store_id: store_id})
           |> Ash.Query.lock("FOR UPDATE")
           |> Ash.read!(authorize?: false)
 

@@ -36,9 +36,7 @@ defmodule Emakola.Platform.FinanceStats do
   @doc "Total successful payments the platform still owes merchants (un-split, minor units)."
   def total_outstanding_payouts do
     Payment
-    |> Ash.Query.filter(
-      status == :success and split_mode == :none and payout_held == false and is_nil(paid_out_at)
-    )
+    |> Ash.Query.for_read(:outstanding_for_payout, %{store_id: nil})
     |> sum_amount()
   end
 
@@ -88,11 +86,11 @@ defmodule Emakola.Platform.FinanceStats do
 
   defp net_amount(split), do: split.amount - split.reversed_amount
 
+  # "Outstanding" is defined once, on the resource — see
+  # Payment.outstanding_for_payout. PayoutService pays out what this reports.
   defp unsplit_success_payments do
     Payment
-    |> Ash.Query.filter(
-      status == :success and split_mode == :none and payout_held == false and is_nil(paid_out_at)
-    )
+    |> Ash.Query.for_read(:outstanding_for_payout, %{store_id: nil})
     |> Ash.read!(authorize?: false)
   end
 
