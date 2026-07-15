@@ -8,8 +8,6 @@ defmodule Emakola.Payments.PayoutService do
   `payout_id`) so it leaves the backlog and can never be paid twice. The actual
   gateway transfer is executed asynchronously by `Workers.PayoutWorker`.
   """
-  require Ash.Query
-
   alias Emakola.Payments
   alias Emakola.Payments.Payment
   alias Emakola.Stores
