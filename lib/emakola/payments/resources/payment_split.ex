@@ -132,6 +132,17 @@ defmodule Emakola.Payments.PaymentSplit do
     end
   end
 
+  identities do
+    # One split per (payment, role, supplier, credit agreement). Every revenue
+    # number the platform reports is a sum over this table, so a checkout retry
+    # must not be able to double-record an allocation. `nils_distinct?: false`
+    # because supplier_id/credit_agreement_id are nil for most roles — two
+    # :platform rows for the same payment must collide.
+    identity :unique_allocation, [:payment_id, :role, :supplier_id, :credit_agreement_id] do
+      nils_distinct?(false)
+    end
+  end
+
   multitenancy do
     strategy(:attribute)
     attribute(:store_id)
@@ -184,7 +195,28 @@ defmodule Emakola.Payments.PaymentSplit do
     update :mark_settled do
       require_atomic?(false)
       accept([:paystack_split_reference])
+
+      # Only a pending split can settle. Without this, a replayed
+      # charge.success interleaving with refund.processed could flip a
+      # :reversed split back to :settled — resurrecting clawed-back money.
+      # (The webhook handler filters to :pending anyway; this is the backstop.)
+      validate attribute_in(:status, [:pending]) do
+        message("can only settle a pending split")
+      end
+
       change(set_attribute(:status, :settled))
+    end
+
+    # Stamps the gateway's settlement id on an already-settled split — the
+    # proof that the money actually moved, distinct from "the charge was
+    # accepted" (which is what :settled means). No status change.
+    update :record_settlement_reference do
+      require_atomic?(false)
+      accept([:paystack_split_reference])
+
+      validate attribute_in(:status, [:settled, :partially_reversed, :reversed]) do
+        message("cannot stamp a settlement reference on a pending split")
+      end
     end
 
     update :record_reversal do

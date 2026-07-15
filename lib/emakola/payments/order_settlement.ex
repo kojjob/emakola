@@ -112,8 +112,25 @@ defmodule Emakola.Payments.OrderSettlement do
     end
   end
 
+  # Idempotent: a retry (checkout crash between payment creation and here, or a
+  # partial write) records only the allocations that are missing, keyed the same
+  # way as the DB's unique_allocation constraint — so the invariant "splits sum
+  # to the charge" survives a crash mid-loop. The constraint itself backstops
+  # concurrent double-calls this read-then-write cannot see.
   def record_splits!(payment, allocations) do
-    Enum.each(allocations, fn alloc ->
+    {:ok, existing} = Emakola.Payments.list_payment_splits(payment.id, authorize?: false)
+
+    recorded =
+      MapSet.new(existing, fn split ->
+        {split.role, split.supplier_id, split.credit_agreement_id}
+      end)
+
+    allocations
+    |> Enum.reject(fn alloc ->
+      key = {alloc.role, Map.get(alloc, :supplier_id), Map.get(alloc, :credit_agreement_id)}
+      MapSet.member?(recorded, key)
+    end)
+    |> Enum.each(fn alloc ->
       Emakola.Payments.create_payment_split!(
         %{
           store_id: payment.store_id,

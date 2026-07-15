@@ -93,7 +93,13 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
       fee_store = Factory.create_store!(%{name: "Fee Palace"})
       verified_payout!(fee_store, "ACCT_fee")
       payment = success_payment!(fee_store, %{amount: 10_000, split_mode: :dropship_split})
-      platform_fee_split!(payment, 200)
+
+      # Settled, not pending: only confirmed fees count as revenue now, and a
+      # store whose only activity is an unconfirmed fee has no finance row.
+      payment
+      |> platform_fee_split!(200)
+      |> Ash.Changeset.for_update(:mark_settled, %{})
+      |> Ash.update!(authorize?: false)
 
       {:ok, _view, html} = live(conn, ~p"/platform/finance")
 

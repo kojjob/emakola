@@ -143,6 +143,52 @@ defmodule Emakola.Payments.Gateways.Paystack do
     end
   end
 
+  @doc """
+  Every transaction in a Paystack settlement batch, all pages walked.
+
+  Returns `{:ok, [%{reference: ..., status: ...}]}`. Used by settlement
+  reconciliation: the settlement webhook says a batch was paid out; this list
+  says exactly which charges were in it — membership is never guessed.
+  """
+  def settlement_transactions(settlement_id) do
+    collect_settlement_pages(settlement_id, 1, [])
+  end
+
+  # A settlement is a day's payouts — a handful of pages at perPage=200. The
+  # cap is a runaway guard, not an expected limit; hitting it fails loudly
+  # rather than silently reconciling half a batch.
+  @max_settlement_pages 50
+
+  defp collect_settlement_pages(_settlement_id, page, _acc)
+       when page > @max_settlement_pages do
+    {:error, {:settlement_pagination_overflow, @max_settlement_pages}}
+  end
+
+  defp collect_settlement_pages(settlement_id, page, acc) do
+    case paystack_client().list_settlement_transactions(settlement_id, page) do
+      {:ok, %{"status" => true, "data" => transactions} = response} ->
+        acc = acc ++ Enum.map(transactions, &%{reference: &1["reference"], status: &1["status"]})
+
+        page_count =
+          case get_in(response, ["meta", "pageCount"]) do
+            n when is_integer(n) and n > 0 -> n
+            _ -> 1
+          end
+
+        if page < page_count do
+          collect_settlement_pages(settlement_id, page + 1, acc)
+        else
+          {:ok, acc}
+        end
+
+      {:ok, %{"status" => false, "message" => message}} ->
+        {:error, {:paystack_error, message}}
+
+      {:error, reason} ->
+        {:error, {:gateway_error, reason}}
+    end
+  end
+
   @impl true
   def verify_webhook(body, headers) do
     secret = secret_key()
