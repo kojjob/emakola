@@ -13,4 +13,6 @@ defmodule Emakola.Payments.PaystackClientBehaviour do
   @callback create_subaccount(map()) :: {:ok, map()} | {:error, term()}
   @callback create_transfer_recipient(map()) :: {:ok, map()} | {:error, term()}
   @callback initiate_transfer(map()) :: {:ok, map()} | {:error, term()}
+  @callback list_settlement_transactions(term(), pos_integer()) ::
+              {:ok, map()} | {:error, term()}
 end

@@ -23,6 +23,12 @@ defmodule Emakola.Platform.FinanceStatsTest do
     )
   end
 
+  defp settle!(split) do
+    split
+    |> Ash.Changeset.for_update(:mark_settled, %{})
+    |> Ash.update!(authorize?: false)
+  end
+
   defp verified_payout!(store, code) do
     Emakola.Stores.StorePayoutAccount
     |> Ash.Changeset.for_create(:create, %{store_id: store.id})
@@ -32,12 +38,46 @@ defmodule Emakola.Platform.FinanceStatsTest do
   end
 
   describe "total_platform_fees/0" do
-    test "sums platform-role splits" do
+    test "sums settled platform-role splits" do
+      store = Factory.create_store!()
+      payment = success_payment!(store, %{amount: 10_000, split_mode: :dropship_split})
+      payment |> platform_fee_split!(200) |> settle!()
+
+      assert FinanceStats.total_platform_fees() == 200
+    end
+
+    test "a pending fee is not revenue — the charge has not been confirmed" do
       store = Factory.create_store!()
       payment = success_payment!(store, %{amount: 10_000, split_mode: :dropship_split})
       platform_fee_split!(payment, 200)
 
-      assert FinanceStats.total_platform_fees() == 200
+      assert FinanceStats.total_platform_fees() == 0
+    end
+
+    test "a reversed fee is not revenue — the money was clawed back" do
+      store = Factory.create_store!()
+      payment = success_payment!(store, %{amount: 10_000, split_mode: :dropship_split})
+
+      payment
+      |> platform_fee_split!(200)
+      |> settle!()
+      |> Ash.Changeset.for_update(:mark_reversed, %{})
+      |> Ash.update!(authorize?: false)
+
+      assert FinanceStats.total_platform_fees() == 0
+    end
+
+    test "a partially reversed fee counts only what was kept" do
+      store = Factory.create_store!()
+      payment = success_payment!(store, %{amount: 10_000, split_mode: :dropship_split})
+
+      payment
+      |> platform_fee_split!(200)
+      |> settle!()
+      |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: 50})
+      |> Ash.update!(authorize?: false)
+
+      assert FinanceStats.total_platform_fees() == 150
     end
 
     test "is zero with no splits" do
@@ -87,7 +127,7 @@ defmodule Emakola.Platform.FinanceStatsTest do
       fee_store = Factory.create_store!(%{name: "Fee Co"})
       verified_payout!(fee_store, "ACCT_fee")
       payment = success_payment!(fee_store, %{amount: 10_000, split_mode: :dropship_split})
-      platform_fee_split!(payment, 200)
+      payment |> platform_fee_split!(200) |> settle!()
 
       rows = FinanceStats.per_store_finance()
       by_id = Map.new(rows, &{&1.store.id, &1})

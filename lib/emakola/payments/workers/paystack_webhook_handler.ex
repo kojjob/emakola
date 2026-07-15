@@ -10,6 +10,9 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   - charge.failed — marks payment failed, broadcasts
   - refund.processed — marks payment refunded, reverses splits, broadcasts
   - transfer.success / transfer.failed / transfer.reversed — finalizes merchant payouts
+  - settlement / settlement.success — reconciles splits against the paid-out
+    batch: fetches the settlement's transaction list and stamps
+    paystack_split_reference on the splits routed to that destination
 
   Idempotent: deduplicated at insert time (24h unique window) and guarded by a
   terminal-state check inside `perform/1`.
@@ -52,6 +55,15 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
 
       "transfer.reversed" ->
         finalize_payout(data, :reversed)
+
+      # A settlement batch was paid out. These used to fall through to the
+      # unknown-event clause and be silently dropped, so :settled stayed the
+      # ledger's last word — "charge accepted", never "money actually moved".
+      "settlement" ->
+        handle_settlement(data)
+
+      "settlement.success" ->
+        handle_settlement(data)
 
       _unknown ->
         Logger.warning("[paystack_webhook] unhandled event: #{inspect(event)}")
@@ -319,6 +331,68 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
     Emakola.Payments.RefundLiability.rollback_recoveries!(payment, splits)
     Emakola.Payments.RefundLiability.reconcile!(payment, splits)
     Emakola.Suppliers.PartnerCredit.reconcile_refund(payment, splits)
+  end
+
+  # Reconciles the split ledger against a paid-out settlement batch. Membership
+  # is never guessed: the documented Settlement API lists exactly which charges
+  # were in the batch, and only THEIR splits get stamped — and only the splits
+  # routed to this settlement's destination (the subaccount for a subaccount
+  # settlement; the nil-subaccount platform rows for a main-account one).
+  defp handle_settlement(%{"id" => settlement_id} = data) when not is_nil(settlement_id) do
+    destination = get_in(data, ["subaccount", "subaccount_code"])
+
+    case Emakola.Payments.Gateways.Paystack.settlement_transactions(settlement_id) do
+      {:ok, transactions} ->
+        Enum.each(transactions, fn tx ->
+          stamp_settled_splits(tx.reference, to_string(settlement_id), destination)
+        end)
+
+        :ok
+
+      # Transient API failure — let Oban retry; insert-time uniqueness and the
+      # is-nil-reference filter make the retry safe.
+      {:error, reason} ->
+        {:error, {:settlement_reconciliation_failed, reason}}
+    end
+  end
+
+  defp handle_settlement(data) do
+    Logger.warning("[paystack_webhook] settlement event without an id: #{inspect(data)}")
+    :ok
+  end
+
+  defp stamp_settled_splits(reference, settlement_id, destination) do
+    case find_payment(reference) do
+      {:ok, payment} ->
+        payment
+        |> payment_splits()
+        |> Enum.filter(&(&1.subaccount_code == destination))
+        |> Enum.filter(&is_nil(&1.paystack_split_reference))
+        |> Enum.each(&stamp_split(&1, settlement_id, reference))
+
+      # A charge that is not ours (another integration on the same account).
+      {:error, _} ->
+        :ok
+    end
+  end
+
+  # A split still :pending when its money has demonstrably been PAID OUT means
+  # we never processed the charge.success — that needs a human, not a silent
+  # status jump that would skip the settle-time side effects (recoveries,
+  # partner credit).
+  defp stamp_split(%{status: :pending} = split, settlement_id, reference) do
+    Logger.warning(
+      "[paystack_webhook] settlement #{settlement_id} includes charge #{reference} " <>
+        "whose split #{split.id} is still :pending — charge.success was never processed"
+    )
+  end
+
+  defp stamp_split(split, settlement_id, _reference) do
+    split
+    |> Ash.Changeset.for_update(:record_settlement_reference, %{
+      paystack_split_reference: settlement_id
+    })
+    |> Ash.update!(authorize?: false)
   end
 
   defp payment_splits(payment) do

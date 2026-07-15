@@ -68,6 +68,19 @@ defmodule Emakola.Payments.PaystackClient do
     )
   end
 
+  @impl true
+  def list_settlement_transactions(settlement_id, page) do
+    # settlement_id comes from Paystack's own webhook payload (an integer id),
+    # never from user input; URI-encode anyway so a malformed payload cannot
+    # change the request path.
+    id = settlement_id |> to_string() |> URI.encode_www_form()
+
+    http_client().get(
+      "#{base_url()}/settlement/#{id}/transactions?perPage=200&page=#{page}",
+      headers: auth_headers()
+    )
+  end
+
   # -- Private helpers -------------------------------------------------------
 
   defp auth_headers do

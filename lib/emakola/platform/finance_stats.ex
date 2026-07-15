@@ -20,11 +20,17 @@ defmodule Emakola.Platform.FinanceStats do
   alias Emakola.Payments.Payment
   alias Emakola.Payments.PaymentSplit
 
-  @doc "Total platform fees collected (minor units)."
+  @doc """
+  Total platform fees collected (minor units).
+
+  Only confirmed money counts: a `:pending` split is a charge the gateway has
+  not confirmed, and a reversed amount was clawed back by a refund. This page
+  used to sum every `:platform` row regardless of status, overstating revenue.
+  """
   def total_platform_fees do
-    PaymentSplit
-    |> Ash.Query.filter(role == :platform)
-    |> sum_amount()
+    platform_fee_splits()
+    |> Enum.map(&net_amount/1)
+    |> Enum.sum()
   end
 
   @doc "Total successful payments the platform still owes merchants (un-split, minor units)."
@@ -43,8 +49,8 @@ defmodule Emakola.Platform.FinanceStats do
   Each row: `%{store, fees_collected, outstanding_owed, payouts_ready?}`.
   """
   def per_store_finance do
-    fees_by_store = sum_amount_by_store(platform_fee_splits())
-    owed_by_store = sum_amount_by_store(unsplit_success_payments())
+    fees_by_store = sum_by_store(platform_fee_splits(), &net_amount/1)
+    owed_by_store = sum_by_store(unsplit_success_payments(), & &1.amount)
     ready = verified_payout_store_ids()
 
     store_ids = Enum.uniq(Map.keys(fees_by_store) ++ Map.keys(owed_by_store))
@@ -72,11 +78,15 @@ defmodule Emakola.Platform.FinanceStats do
     end
   end
 
+  # Confirmed fee rows only — never :pending. Reversals are netted per row by
+  # net_amount/1 (a fully :reversed row nets to zero).
   defp platform_fee_splits do
     PaymentSplit
-    |> Ash.Query.filter(role == :platform)
+    |> Ash.Query.filter(role == :platform and status != :pending)
     |> Ash.read!(authorize?: false)
   end
+
+  defp net_amount(split), do: split.amount - split.reversed_amount
 
   defp unsplit_success_payments do
     Payment
@@ -86,9 +96,9 @@ defmodule Emakola.Platform.FinanceStats do
     |> Ash.read!(authorize?: false)
   end
 
-  defp sum_amount_by_store(rows) do
+  defp sum_by_store(rows, value_fun) do
     Enum.reduce(rows, %{}, fn row, acc ->
-      Map.update(acc, row.store_id, row.amount, &(&1 + row.amount))
+      Map.update(acc, row.store_id, value_fun.(row), &(&1 + value_fun.(row)))
     end)
   end
 

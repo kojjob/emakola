@@ -143,6 +143,10 @@ defmodule Emakola.Payments.RefundLiabilityTest do
           create_split!(store, payment, %{
             role: :wholesaler,
             recipient_store_id: recipient.id,
+            # Real wholesaler splits always carry a supplier: SplitCalculator
+            # groups by supplier_id, one row each. The unique_allocation
+            # constraint enforces that shape here too.
+            supplier_id: Ash.UUID.generate(),
             amount: amount
           })
         end
@@ -161,6 +165,10 @@ defmodule Emakola.Payments.RefundLiabilityTest do
           create_split!(store, payment, %{
             role: :wholesaler,
             recipient_store_id: recipient.id,
+            # Real wholesaler splits always carry a supplier: SplitCalculator
+            # groups by supplier_id, one row each. The unique_allocation
+            # constraint enforces that shape here too.
+            supplier_id: Ash.UUID.generate(),
             amount: amount
           })
         end
