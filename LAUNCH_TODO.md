@@ -1,8 +1,13 @@
 # LAUNCH TODO — Setups Between Here and a Real Launch
 
-> **State (2026-06-11):** https://emakola.fly.dev is **LIVE** — London region,
-> ~50ms, healthy, migrations run — on **dummy provider keys** with an **empty
-> database**. This file tracks every remaining setup, in order.
+> **State (2026-07-15):** https://makola.io is **LIVE** on the full main
+> branch (v37, deployed 2026-07-14; migrations 72→107) — still on **dummy
+> provider keys** (verified today: PAYSTACK_*, RESEND_API_KEY, SMS_API_KEY,
+> WHATSAPP_* are all placeholders; STORE_SUBDOMAIN_BASE is already set). The
+> database is NOT empty: besides the seeded demo stores, **five real merchant
+> signups** exist (eunix-ventures, savero-fashion, taliored-by-two,
+> bediides-outlet, dave-elec) — any purge must never touch them. This file
+> tracks every remaining setup, in order.
 > How-tos: `docs/PROVIDER_SETUP.md` (credentials, illustrated) ·
 > `docs/DEPLOYMENT.md` (infra mechanics).
 >
@@ -33,11 +38,17 @@
 - [ ] **6. Replace the dummy secrets** — one command with real values
       (template in `PROVIDER_SETUP.md` §7):
       `fly secrets set RESEND_API_KEY=… PAYSTACK_SECRET_KEY=… PAYSTACK_PUBLIC_KEY=… SMS_API_KEY=… WHATSAPP_API_TOKEN=… WHATSAPP_PHONE_NUMBER_ID=… --app emakola`
-- [ ] **7. Decide store data: seed vs organic** —
-      **seed**: 3 demo stores incl. the dropshipping showcase (⚠️ fixed
-      password `Password123!` — must be removed/changed before real
-      customers) · **organic**: register at `/auth/register` and build the
-      first store by hand.
+- [x] **7. Decide store data: seed vs organic** — DECIDED (seeded 2026-06-11,
+      and organic signups arrived on their own). Cleanup is now step 7b:
+- [ ] **7b. Purge the demo/test stores** — `Emakola.Stores.DemoPurge` (PR #329)
+      deletes a store's whole graph via runtime FK-closure, one transaction,
+      images through Ash so bucket files get cleaned. Confirmed purge list:
+      `kente-kingdom`, `accra-fresh`, `tiny-stitches` (all seeded orders and
+      payments live here), `claude-test-store`, `subdomain-smoke-test`
+      (ownerless). ⚠️ `savero` belongs to kojo@pricelysis.com — owner's call.
+      Flow: deploy → `bin/emakola rpc "Emakola.Stores.DemoPurge.preview(...)"`
+      → fresh volume snapshot → `execute(...)`. Also delete the three demo
+      `users` rows (kwame@/adjoa@/efua@ — the `Password123!` accounts).
 - [ ] **8. Smoke test with real keys** (`PROVIDER_SETUP.md` §8) —
       `/api/health` → register → onboard → test order (Paystack test card
       `4084 0840 8408 4081`) → order SMS + email arrive → product image
@@ -55,15 +66,17 @@
 
 ## 🌐 Before opening to the public
 
-- [ ] **Custom domain** — Cloudflare DNS (A/AAAA + `www` + `*` wildcard for
+- [x] **Custom domain** — DONE 2026-06-20: makola.io is PHX_HOST, www + wss
+      verified, STORE_SUBDOMAIN_BASE set. Original steps kept for reference:
+      Cloudflare DNS (A/AAAA + `www` + `*` wildcard for
       merchant subdomains; **DNS-only/grey cloud first**) → `fly certs add
       emakola.com` and `'*.emakola.com'` → wait for **Ready** →
       `fly secrets set PHX_HOST=emakola.com` → optionally flip Cloudflare to
       Proxied. (§9)
 - [ ] **Paystack live keys** — after business verification; swap with the
       same `fly secrets set`.
-- [ ] **Purge demo credentials** — if step 7 seeded, delete or re-password
-      the `Password123!` demo accounts.
+- [ ] **Purge demo credentials** — superseded by step **7b** above
+      (`Emakola.Stores.DemoPurge`, PR #329).
 - [ ] **Rotate Postgres credentials** — `fly postgres attach` echoes the DB
       password into terminal output; rotate if those transcripts are ever
       shared.
