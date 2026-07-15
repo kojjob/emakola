@@ -155,8 +155,13 @@ defmodule Emakola.Payments.PaymentSplit do
       authorize_if(always())
     end
 
-    # Merchant actors: verify store membership for reads and updates.
-    policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
+    # Merchant actors: store membership grants READS ONLY. The ledger's update
+    # actions (mark_settled, mark_reversed, record_reversal, ...) mutate money
+    # state and are system-only — every legitimate caller runs
+    # `authorize?: false` from webhook/settlement code. Without this scoping, a
+    # future feature exposing any PaymentSplit update would hand merchants a
+    # lever over their own splits' status.
+    policy [actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant), action_type(:read)] do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 

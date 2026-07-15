@@ -117,6 +117,47 @@ defmodule Emakola.Payments.PaymentSplitIntegrityTest do
       assert settled.status == :settled
     end
 
+    test "a merchant actor cannot mutate the ledger, even on their own store" do
+      {merchant, store} = Emakola.Factory.create_merchant_with_store!()
+      payment = Emakola.Factory.create_payment!(store)
+
+      split =
+        Emakola.Payments.create_payment_split!(
+          %{store_id: store.id, payment_id: payment.id, role: :platform, amount: 10_000},
+          authorize?: false
+        )
+
+      # Reads with store access: fine.
+      assert {:ok, _} =
+               Emakola.Payments.list_payment_splits(payment.id,
+                 actor: merchant,
+                 tenant: store.id
+               )
+
+      # Money-state mutations are system-only (authorize?: false from webhook
+      # code). A merchant must never hold a lever over their own splits' status.
+      assert {:error, %Ash.Error.Forbidden{}} =
+               split
+               |> Ash.Changeset.for_update(:mark_reversed, %{}, actor: merchant)
+               |> Ash.update()
+
+      # Settled first, so the status validation cannot mask the policy check:
+      # this must fail on FORBIDDEN, not on invalid status.
+      settled =
+        split
+        |> Ash.Changeset.for_update(:mark_settled, %{})
+        |> Ash.update!(authorize?: false)
+
+      assert {:error, %Ash.Error.Forbidden{}} =
+               settled
+               |> Ash.Changeset.for_update(
+                 :record_settlement_reference,
+                 %{paystack_split_reference: "evil"},
+                 actor: merchant
+               )
+               |> Ash.update()
+    end
+
     test "a reversed split cannot be flipped back to settled by a replayed webhook" do
       %{store: store, payment: payment} = seed_payment!()
 
