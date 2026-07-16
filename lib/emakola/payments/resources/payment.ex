@@ -263,6 +263,24 @@ defmodule Emakola.Payments.Payment do
       filter(expr(payout_id == ^arg(:payout_id)))
     end
 
+    # THE definition of money the platform holds and still owes a merchant:
+    # the charge succeeded, was not split at source (split-at-source pays the
+    # merchant directly via their subaccount), is not under a payout hold, and
+    # has not already been covered by a payout. This predicate decides what
+    # gets paid out AND what /platform/finance reports as owed — it used to be
+    # four hand-copied filters that could drift apart; change it ONLY here.
+    read :outstanding_for_payout do
+      argument(:store_id, :uuid, allow_nil?: true)
+
+      filter(
+        expr(
+          status == :success and split_mode == :none and payout_held == false and
+            is_nil(paid_out_at) and
+            (is_nil(^arg(:store_id)) or store_id == ^arg(:store_id))
+        )
+      )
+    end
+
     read :by_gateway_reference do
       argument(:gateway_reference, :string, allow_nil?: false)
 
