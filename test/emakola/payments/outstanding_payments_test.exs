@@ -15,11 +15,9 @@ defmodule Emakola.Payments.OutstandingPaymentsTest do
   """
   use Emakola.DataCase, async: true
 
-  require Ash.Query
-
   alias Emakola.Payments.Payment
 
-  defp success_payment!(store, attrs \\ %{}) do
+  defp success_payment!(store, attrs) do
     store
     |> Emakola.Factory.create_payment!(attrs)
     |> Ash.Changeset.for_update(:mark_success, %{})
