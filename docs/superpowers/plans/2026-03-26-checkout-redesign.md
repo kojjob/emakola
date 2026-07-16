@@ -1028,7 +1028,7 @@ timer_seconds =
 - [ ] **Step 2: Replace amber waiting box with rich status UI**
 
 Replace the `:awaiting_payment` div with:
-- Brand-colored phone icon (yellow halo for MTN, red for Vodafone)
+- Brand-colored phone icon (yellow halo for MTN, red for Telecel)
 - 3-step progress tracker with green checks for completed steps
 - MM:SS countdown timer with `font-variant-numeric: tabular-nums`
 - USSD fallback hint

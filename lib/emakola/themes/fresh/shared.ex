@@ -423,7 +423,7 @@ defmodule Emakola.Themes.Fresh.Shared do
               MoMo
             </span>
             <span class="px-2.5 py-1 bg-white border border-[#D9F99D] rounded text-xs font-semibold text-[#78350F]">
-              Vodafone Cash
+              Telecel Cash
             </span>
             <span class="px-2.5 py-1 bg-white border border-[#D9F99D] rounded text-xs font-semibold text-[#78350F]">
               Card

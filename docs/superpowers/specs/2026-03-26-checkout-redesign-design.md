@@ -75,7 +75,7 @@ Redesign the checkout experience (cart, checkout, payment waiting, and order con
 
 - 2x2 grid of payment cards
   - MTN Mobile Money: yellow accent (#FFC107)
-  - Vodafone Cash: red accent (#E60000)
+  - Telecel Cash: red accent (#E60000)
   - Card Payment: blue accent (#3B82F6)
   - Cash on Delivery: grey accent (#64748B)
 - Selected card: accent border + checkmark icon
@@ -234,7 +234,7 @@ LiveView at `lib/emakola_web/live/admin/coupon_live.ex`
 Replaces the amber box in `CheckoutLive`. Shown when `payment_status == :awaiting_payment`.
 
 ### UI Elements
-- Phone icon with MoMo brand-color halo (yellow for MTN, red for Vodafone)
+- Phone icon with MoMo brand-color halo (yellow for MTN, red for Telecel)
 - "Approve on your phone" heading
 - 3-step progress tracker:
   1. Order created -- green check, shows order number

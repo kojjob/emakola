@@ -412,7 +412,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                       </div>
                     </button>
 
-                    <%!-- Vodafone Cash --%>
+                    <%!-- Telecel Cash --%>
                     <button
                       type="button"
                       phx-click="select_payment"
@@ -439,7 +439,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                         <span class="text-white font-extrabold text-sm tracking-tight">VODA</span>
                       </div>
                       <div>
-                        <p class="text-sm font-bold text-stone-900">Vodafone Cash</p>
+                        <p class="text-sm font-bold text-stone-900">Telecel Cash</p>
                         <p class="text-xs text-stone-500 mt-0.5">Mobile Money</p>
                       </div>
                     </button>
@@ -1056,7 +1056,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
   defp momo_brand_color(_), do: "#F59E0B"
 
   defp momo_brand_name("momo"), do: "MTN Mobile Money"
-  defp momo_brand_name("vodafone"), do: "Vodafone Cash"
+  defp momo_brand_name("vodafone"), do: "Telecel Cash"
   defp momo_brand_name(_), do: "Mobile Money"
 
   defp format_timer(seconds) do

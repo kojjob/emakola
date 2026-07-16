@@ -19,8 +19,8 @@ defmodule EmakolaWeb.LandingHTML do
      "Anyone with something to sell: market traders, seamstresses and tailors, hair stylists, beauticians and cosmetics sellers, barbers, tradesmen, food vendors, and electronics shops. Themed storefronts fit each trade."},
     {"How much does Makola cost?",
      "Makola is free to start — you pay 3.5% per sale on the Starter plan. Paid plans start at GHS 29 per month with lower transaction rates."},
-    {"Can I accept MTN MoMo and Vodafone Cash?",
-     "Yes. Makola supports MTN MoMo, Vodafone Cash, AirtelTigo, and card payments through Paystack and Hubtel."},
+    {"Can I accept MTN MoMo and Telecel Cash?",
+     "Yes. Makola supports MTN MoMo, Telecel Cash, AirtelTigo, and card payments through Paystack and Hubtel."},
     {"What is dropshipping on Makola?",
      "Dropshipping lets you sell products your suppliers hold. When an order comes in, the supplier fulfills it and Makola tracks supplier costs and settlements automatically."},
     {"Can I sell digital products?",
@@ -140,7 +140,7 @@ defmodule EmakolaWeb.LandingHTML do
               Get paid in seconds
             </h2>
             <p class="text-base text-[#5f6b7a]">
-              MTN MoMo, Vodafone Cash, AirtelTigo, and cards. The money lands before
+              MTN MoMo, Telecel Cash, AirtelTigo, and cards. The money lands before
               the customer hangs up.
             </p>
           </div>

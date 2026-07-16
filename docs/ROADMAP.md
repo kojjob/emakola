@@ -61,7 +61,7 @@
 - [x] Payment webhook handling (Oban workers, idempotent, signature verification)
 - [x] HTTPClient behaviour for testability (Mox in tests)
 - [ ] MTN Mobile Money via Paystack (API ready, needs channel config)
-- [ ] Vodafone Cash / AirtelTigo (same — channel config)
+- [ ] Telecel Cash / AirtelTigo (same — channel config)
 - [ ] Cash on delivery option
 - [ ] "Waiting for payment" screen with polling
 
@@ -81,7 +81,7 @@
 - [x] Revenue overview (sum of successful payments)
 - [x] Order count, active products, customer count KPI cards
 - [x] Top products with progress bars
-- [x] Recent orders table (with payment method: MoMo, Vodafone Cash, Card)
+- [x] Recent orders table (with payment method: MoMo, Telecel Cash, Card)
 - [x] Low-stock alerts with severity coloring
 - [x] SVG revenue area chart
 - [x] Sales by category donut chart
@@ -105,7 +105,7 @@
 - [x] Product detail: image gallery, pill variant selectors, quantity stepper, WhatsApp CTA
 - [x] Product list: sidebar categories, quick-view overlay, search + filters
 - [x] Cart: shopping bag layout, order summary sidebar, trust badges
-- [x] Checkout: 3-step flow (Payment → Details → Confirm), MTN MoMo/Vodafone/Card
+- [x] Checkout: 3-step flow (Payment → Details → Confirm), MTN MoMo/Telecel/Card
 - [x] Reusable modal component (centered + slide-over), confirm_modal for destructive actions
 
 ### 🔄 Milestone 1.9 — Remaining Prototype Pages + Marketing

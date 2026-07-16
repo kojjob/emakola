@@ -180,7 +180,7 @@ defmodule Emakola.Themes.VibrantSectionsTest do
       refute html =~ "Orders over GH₵200"
       refute html =~ "Reply within an hour"
       refute html =~ "14-day window"
-      # Vodafone Cash has been Telecel Cash since 2024
+      # Telecel Cash has been Telecel Cash since 2024
       refute html =~ "Vodafone"
     end
 

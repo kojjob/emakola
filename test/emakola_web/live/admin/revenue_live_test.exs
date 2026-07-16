@@ -85,7 +85,7 @@ defmodule EmakolaWeb.Admin.RevenueLiveTest do
       assert html =~ "Revenue by Payment Method"
       assert html =~ "MTN MoMo"
       assert html =~ "52%"
-      assert html =~ "Vodafone Cash"
+      assert html =~ "Telecel Cash"
       assert html =~ "Card"
       assert html =~ "Cash on Delivery"
     end

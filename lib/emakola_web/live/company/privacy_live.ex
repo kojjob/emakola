@@ -90,7 +90,7 @@ defmodule EmakolaWeb.Company.PrivacyLive do
           <:section id="payments" title="Payment processing">
             <p class="text-[#5f6b7a] leading-relaxed">
               Payments on the Makola platform are processed by third-party payment providers
-              including Paystack, Hubtel, and mobile-money operators (MTN MoMo, Vodafone Cash,
+              including Paystack, Hubtel, and mobile-money operators (MTN MoMo, Telecel Cash,
               AirtelTigo). Payment data — including card details and mobile-money account numbers
               — is transmitted directly to and stored by these providers under their own security
               standards and privacy policies.

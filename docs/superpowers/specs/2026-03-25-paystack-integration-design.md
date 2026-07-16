@@ -7,7 +7,7 @@
 
 ## Goal
 
-Integrate Paystack as the primary payment gateway for Emakola, enabling merchants to accept card payments, mobile money (MTN MoMo, Vodafone Cash, AirtelTigo), and bank transfers via Paystack's hosted checkout page.
+Integrate Paystack as the primary payment gateway for Emakola, enabling merchants to accept card payments, mobile money (MTN MoMo, Telecel Cash, AirtelTigo), and bank transfers via Paystack's hosted checkout page.
 
 ## Architecture
 

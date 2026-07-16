@@ -11,7 +11,7 @@ Emakola is a Shopify-like ecommerce platform built for West Africa, launching in
 
 **Tech Stack**: Elixir, Phoenix 1.8+, Ash 3.x, LiveView, PostgreSQL 15+, TailwindCSS, Oban
 
-**Key Differentiator**: Mobile money as primary checkout (MTN MoMo, Vodafone Cash), WhatsApp-first communication, rider delivery marketplace, 3G-optimized performance — things Shopify doesn't do.
+**Key Differentiator**: Mobile money as primary checkout (MTN MoMo, Telecel Cash), WhatsApp-first communication, rider delivery marketplace, 3G-optimized performance — things Shopify doesn't do.
 
 ---
 
@@ -23,7 +23,7 @@ Emakola is a Shopify-like ecommerce platform built for West Africa, launching in
 - **Typography**: Inter (UI) + JetBrains Mono (numbers/prices)
 - **Admin**: Dark emerald sidebar accent with white content area
 - **Storefront**: Instagram-Native theme (circle avatar, story categories, card-based products)
-- **Checkout**: Payment-First flow (familiar MoMo/Vodafone logos before any form input)
+- **Checkout**: Payment-First flow (familiar MoMo/Telecel logos before any form input)
 - **Mobile Admin**: Hybrid approach (quick actions on phone, full management on desktop)
 
 ### 2. Architecture Documentation (~/Projects/emakola/docs/)
@@ -82,7 +82,7 @@ Emakola is a Shopify-like ecommerce platform built for West Africa, launching in
 #### Emakola-Branded Prototypes (in progress)
 Building from the approved design spec:
 - `emakola-admin-dashboard.html` — Dark emerald sidebar, GH₵ KPIs, Ghanaian data
-- `emakola-admin-orders.html` — Orders with MTN MoMo/Vodafone payment icons
+- `emakola-admin-orders.html` — Orders with MTN MoMo/Telecel payment icons
 - `emakola-admin-products.html` — West African fashion products grid
 - `emakola-storefront-home.html` — Instagram-native layout (planned)
 - `emakola-storefront-product.html` — Product detail (planned)
@@ -99,7 +99,7 @@ Building from the approved design spec:
 **Why**: Target merchants are Instagram sellers. Their customers already browse Instagram daily. A store that feels like a natural extension removes friction. Story-style categories, circle avatars, and card-based products are patterns 100% of users understand.
 
 ### 2. Payment-First Checkout
-**Why**: Showing familiar MTN MoMo and Vodafone Cash logos immediately builds trust before asking for personal info. Critical for first-time online shoppers in Ghana who may be anxious about digital payments.
+**Why**: Showing familiar MTN MoMo and Telecel Cash logos immediately builds trust before asking for personal info. Critical for first-time online shoppers in Ghana who may be anxious about digital payments.
 
 ### 3. Rider Marketplace for Delivery
 **Why**: Delivery in Ghana is fragmented — individual motorbike riders with no central dispatch. Emakola solves this by connecting merchants with independent riders via WhatsApp dispatch. We don't employ riders (no liability), we provide matching and tracking. This is a differentiator Shopify can't touch.

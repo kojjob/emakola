@@ -129,7 +129,7 @@ for 50,000 emails.
 ## Step 5: Paystack (Payments)
 
 Paystack processes payments — credit cards, debit cards, MTN MoMo,
-Vodafone Cash, and other mobile money providers in Ghana.
+Telecel Cash, and other mobile money providers in Ghana.
 
 **How to set up:**
 
