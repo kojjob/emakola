@@ -161,7 +161,7 @@ defmodule EmakolaWeb.LandingLiveTest do
 
       assert html =~ "Trusted by"
       assert html =~ "MTN MoMo"
-      assert html =~ "Vodafone Cash"
+      assert html =~ "Telecel Cash"
       assert html =~ "Paystack"
       assert html =~ "Hubtel"
     end
@@ -265,7 +265,7 @@ defmodule EmakolaWeb.LandingLive do
      assign(socket,
        page_title: "Emakola — Online Stores for Ghana | Accept Mobile Money",
        meta_description:
-         "Launch your online store in Ghana. Accept MTN MoMo, Vodafone Cash, and card payments. WhatsApp order notifications. Join 500+ merchants on Emakola.",
+         "Launch your online store in Ghana. Accept MTN MoMo, Telecel Cash, and card payments. WhatsApp order notifications. Join 500+ merchants on Emakola.",
        og_title: "Emakola — Sell Online in Ghana",
        og_description:
          "The easiest way to create an online store in West Africa. Mobile money payments, WhatsApp notifications, and more.",
@@ -440,7 +440,7 @@ Insert after the `</nav>` closing tag and before the comment `<!-- SECTIONS 2-8 
                   Launch Your Online Store in Ghana
                 </h1>
                 <p class="text-base text-[#8896ab] mb-8 max-w-md">
-                  Accept MTN MoMo, Vodafone Cash, and card payments. Notify customers on WhatsApp.
+                  Accept MTN MoMo, Telecel Cash, and card payments. Notify customers on WhatsApp.
                   Manage everything from one dashboard.
                 </p>
                 <div class="flex flex-wrap gap-3 mb-8">
@@ -465,7 +465,7 @@ Insert after the `</nav>` closing tag and before the comment `<!-- SECTIONS 2-8 
                   </div>
                   <div class="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[#1a2744] bg-[#0c1526]/50 text-xs text-[#8896ab]">
                     <span class="material-symbols-outlined text-base">payments</span>
-                    Vodafone Cash
+                    Telecel Cash
                   </div>
                   <div class="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[#1a2744] bg-[#0c1526]/50 text-xs text-[#8896ab]">
                     <span class="material-symbols-outlined text-base">credit_card</span>
@@ -563,7 +563,7 @@ Insert after the hero `</section>`:
               </span>
               <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
                 <span class="text-sm font-semibold text-[#3f3f46]">MTN MoMo</span>
-                <span class="text-sm font-semibold text-[#3f3f46]">Vodafone Cash</span>
+                <span class="text-sm font-semibold text-[#3f3f46]">Telecel Cash</span>
                 <span class="text-sm font-semibold text-[#3f3f46]">AirtelTigo</span>
                 <span class="text-sm font-semibold text-[#3f3f46]">Paystack</span>
                 <span class="text-sm font-semibold text-[#3f3f46]">Hubtel</span>
@@ -639,7 +639,7 @@ Insert after the hero `</section>`:
                     </div>
                     <h4 class="text-lg font-semibold text-[#0c1526] mb-2">Pay with MoMo</h4>
                     <p class="text-sm text-[#5f6b7a]">
-                      Checkout securely with MTN MoMo, Vodafone Cash, or card
+                      Checkout securely with MTN MoMo, Telecel Cash, or card
                     </p>
                   </div>
                   <div class="text-center">
@@ -707,7 +707,7 @@ Insert after how-it-works `</section>`:
                   </span>
                   <h3 class="text-lg font-semibold text-[#0c1526] mb-2">Mobile Money Payments</h3>
                   <p class="text-sm text-[#5f6b7a]">
-                    Accept MTN MoMo, Vodafone Cash, and AirtelTigo Money. Automatic payment confirmation and reconciliation.
+                    Accept MTN MoMo, Telecel Cash, and AirtelTigo Money. Automatic payment confirmation and reconciliation.
                   </p>
                 </div>
                 <div

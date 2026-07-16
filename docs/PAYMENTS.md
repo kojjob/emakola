@@ -7,7 +7,7 @@
 | Method | Provider | Market Share | Integration |
 |--------|----------|-------------|-------------|
 | Mobile Money (MTN MoMo) | MTN | ~45% of digital payments | Paystack / Hubtel API |
-| Mobile Money (Vodafone Cash) | Vodafone | ~20% | Paystack / Hubtel API |
+| Mobile Money (Telecel Cash) | Telecel | ~20% | Paystack / Hubtel API |
 | Mobile Money (AirtelTigo) | AirtelTigo | ~10% | Hubtel API |
 | Debit/Credit Cards | Visa/Mastercard | ~15% | Paystack |
 | Cash on Delivery | — | ~30% of ecommerce | Internal workflow |
@@ -57,7 +57,7 @@ end
 # Mobile money via Hubtel
 defmodule Emakola.Payments.Gateways.Hubtel do
   @behaviour Emakola.Payments.Gateway
-  # Handles: MTN MoMo, Vodafone Cash, AirtelTigo
+  # Handles: MTN MoMo, Telecel Cash, AirtelTigo
 end
 
 # Flutterwave (Nigeria expansion)

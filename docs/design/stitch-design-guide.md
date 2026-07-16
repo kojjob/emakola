@@ -48,7 +48,7 @@
 1. **Admin Dashboard** -- KPIs (GH₵), revenue charts, order snapshots
 2. **Product Inventory** -- Grid management of items
 3. **Product Editor** -- Forms for creating/editing products
-4. **Order List** -- Tracking sales with MoMo/Vodafone status
+4. **Order List** -- Tracking sales with MoMo/Telecel status
 5. **Order Detail** -- Fulfillment and customer data
 6. **Customer Directory** -- CRM for the merchant
 7. **Settings** -- Store config (WhatsApp, Domain, Payments)
@@ -61,7 +61,7 @@
 4. **Product Detail (Mobile)** -- High-intent layout with MoMo branding
 5. **Premium Product Detail (Mobile)** -- Enhanced with artisan stories, heritage sections
 6. **Cart Summary (Mobile)** -- Shopping bag summary
-7. **Checkout (Mobile)** -- Payment-first flow (MTN/Vodafone)
+7. **Checkout (Mobile)** -- Payment-first flow (MTN/Telecel)
 8. **Thank You (Mobile)** -- Post-purchase confirmation
 9. **High-Fidelity Storefront** -- Polished storefront version
 10. **High-Fidelity Landing Page** -- Marketing-grade landing

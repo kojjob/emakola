@@ -53,7 +53,7 @@ Joined: March 2026
 ### Requirements
 - Valid Ghana Card (government ID)
 - Registered motorcycle
-- Active MTN/Vodafone number (for MoMo payouts)
+- Active MTN/Telecel number (for MoMo payouts)
 - Smartphone with WhatsApp
 - Pass background check (future phase)
 

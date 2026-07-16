@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Emakola** is a multi-tenant ecommerce platform for West Africa, launching in Ghana first, then expanding to Nigeria. Think Shopify localized for West African merchants: mobile money payments (MTN MoMo, Vodafone Cash, AirtelTigo), local payment gateways (Paystack, Hubtel), WhatsApp/SMS order notifications, and storefronts optimized for low-bandwidth mobile devices.
+**Emakola** is a multi-tenant ecommerce platform for West Africa, launching in Ghana first, then expanding to Nigeria. Think Shopify localized for West African merchants: mobile money payments (MTN MoMo, Telecel Cash, AirtelTigo), local payment gateways (Paystack, Hubtel), WhatsApp/SMS order notifications, and storefronts optimized for low-bandwidth mobile devices.
 
 ### Stack
 - **Language**: Elixir 1.18+ / Erlang OTP 27+

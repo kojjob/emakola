@@ -678,8 +678,8 @@ defmodule EmakolaWeb.LandingLive do
      "Anyone with something to sell: market traders, seamstresses and tailors, hair stylists, beauticians and cosmetics sellers, barbers, tradesmen, food vendors, and electronics shops. Themed storefronts fit each trade."},
     {"How much does Emakola cost?",
      "Emakola is free to start — you pay 3.5% per sale on the Starter plan. Paid plans start at GHS 29 per month with lower transaction rates."},
-    {"Can I accept MTN MoMo and Vodafone Cash?",
-     "Yes. Emakola supports MTN MoMo, Vodafone Cash, AirtelTigo, and card payments through Paystack and Hubtel."},
+    {"Can I accept MTN MoMo and Telecel Cash?",
+     "Yes. Emakola supports MTN MoMo, Telecel Cash, AirtelTigo, and card payments through Paystack and Hubtel."},
     {"What is dropshipping on Emakola?",
      "Dropshipping lets you sell products your suppliers hold. When an order comes in, the supplier fulfills it and Emakola tracks supplier costs and settlements automatically."},
     {"Can I sell digital products?",
@@ -694,7 +694,7 @@ defmodule EmakolaWeb.LandingLive do
      assign(socket,
        page_title: "Emakola — Start Selling Online in Ghana | Mobile Money & Dropshipping",
        meta_description:
-         "Create your online store in Ghana. Accept MTN MoMo and Vodafone Cash, dropship from local suppliers, and send WhatsApp order updates. Free to start.",
+         "Create your online store in Ghana. Accept MTN MoMo and Telecel Cash, dropship from local suppliers, and send WhatsApp order updates. Free to start.",
        og_title: "Emakola — Start Selling Online in Ghana",
        og_description:
          "The ecommerce platform for West African merchants. Mobile money payments, dropshipping, WhatsApp notifications.",
@@ -908,7 +908,7 @@ end
               Get paid in seconds
             </h2>
             <p class="text-base text-[#5f6b7a]">
-              MTN MoMo, Vodafone Cash, AirtelTigo, and cards. The money lands before
+              MTN MoMo, Telecel Cash, AirtelTigo, and cards. The money lands before
               the customer hangs up.
             </p>
           </div>

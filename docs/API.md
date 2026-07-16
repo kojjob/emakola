@@ -688,7 +688,7 @@ Content-Type: application/json
 | Method | Code | Countries |
 |--------|------|-----------|
 | MTN Mobile Money | `mobile_money` + `mtn` | Ghana |
-| Vodafone Cash | `mobile_money` + `vodafone` | Ghana |
+| Telecel Cash | `mobile_money` + `vodafone` | Ghana |
 | AirtelTigo Money | `mobile_money` + `airteltigo` | Ghana |
 | Card (Visa/Mastercard) | `card` | All |
 | Bank Transfer | `bank_transfer` | Nigeria |

@@ -94,7 +94,7 @@ All 9 sections rendered in a single LiveView with no layout wrapper (`layout: fa
 
 ### Key content
 - Headline: "Sell Online. Get Paid with Mobile Money."
-- Sub: "Launch your West African store in minutes. Accept MTN MoMo, Vodafone Cash, Paystack and Hubtel."
+- Sub: "Launch your West African store in minutes. Accept MTN MoMo, Telecel Cash, Paystack and Hubtel."
 - Stats: 2,400+ stores · GH₵ 8M+ sales · 99.9% uptime
 - Testimonials: Amara Asante (Osu), Kofi Mensah (Kumasi), Esi Boateng (East Legon)
 - Pricing: Free forever / GH₵ 49/mo Growth (featured) / GH₵ 99/mo Pro
@@ -229,7 +229,7 @@ Mirrors `product_list_live.ex` with a category filter applied by default from th
 1. Dark header with back button + "Checkout" title
 2. 3-step progress (Bag ✓ → Delivery → Payment)
 3. Step 2 — Delivery form: name, phone, address, city, region
-4. Step 3 — Payment method selection (MTN MoMo, Vodafone Cash, AirtelTigo, Paystack/Card, Cash on Delivery)
+4. Step 3 — Payment method selection (MTN MoMo, Telecel Cash, AirtelTigo, Paystack/Card, Cash on Delivery)
 5. Order summary sidebar (desktop) / collapsed (mobile)
 6. "Place Order · GH₵ X" CTA
 

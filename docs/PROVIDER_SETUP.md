@@ -62,7 +62,7 @@ gantt
 
 ---
 
-## 1️⃣ Paystack — payments (cards + MTN MoMo + Vodafone Cash)
+## 1️⃣ Paystack — payments (cards + MTN MoMo + Telecel Cash)
 
 ```mermaid
 flowchart TD
