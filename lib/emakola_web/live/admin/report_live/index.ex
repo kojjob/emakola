@@ -485,14 +485,14 @@ defmodule EmakolaWeb.Admin.ReportLive.Index do
         <%!-- Stacked horizontal bar --%>
         <div class="w-full h-7 rounded-full overflow-hidden flex mb-5">
           <div class="h-full" style="width:52%; background:#FFC107;" title="MTN MoMo 52%"></div>
-          <div class="h-full" style="width:18%; background:#E60000;" title="Vodafone Cash 18%"></div>
+          <div class="h-full" style="width:18%; background:#E60000;" title="Telecel Cash 18%"></div>
           <div class="h-full" style="width:16%; background:#3B82F6;" title="Card 16%"></div>
           <div class="h-full" style="width:14%; background:#94A3B8;" title="COD 14%"></div>
         </div>
 
         <div class="space-y-3.5">
           <.payment_row color="#FFC107" name="MTN MoMo" rate="96.2%" count="148" trend={:up} />
-          <.payment_row color="#E60000" name="Vodafone Cash" rate="94.8%" count="51" trend={:flat} />
+          <.payment_row color="#E60000" name="Telecel Cash" rate="94.8%" count="51" trend={:flat} />
           <.payment_row color="#3B82F6" name="Card" rate="98.1%" count="45" trend={:up} />
           <.payment_row color="#94A3B8" name="Cash on Delivery" rate="100%" count="40" trend={:down} />
         </div>

@@ -78,7 +78,7 @@ defmodule EmakolaWeb.Admin.ReportLiveTest do
 
       assert html =~ "Payment Methods"
       assert html =~ "MTN MoMo"
-      assert html =~ "Vodafone Cash"
+      assert html =~ "Telecel Cash"
     end
 
     test "renders order status breakdown", %{conn: conn} do

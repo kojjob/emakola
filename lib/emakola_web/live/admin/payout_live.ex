@@ -180,7 +180,7 @@ defmodule EmakolaWeb.Admin.PayoutLive do
             >
               <option value="mtn" selected={dest(@account, "provider") == "mtn"}>MTN MoMo</option>
               <option value="vodafone" selected={dest(@account, "provider") == "vodafone"}>
-                Telecel / Vodafone Cash
+                Telecel / Telecel Cash
               </option>
               <option value="airteltigo" selected={dest(@account, "provider") == "airteltigo"}>
                 AirtelTigo Money

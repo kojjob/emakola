@@ -76,7 +76,7 @@ defmodule EmakolaWeb.Company.AboutLive do
           </p>
           <p class="text-base text-[#5f6b7a] leading-relaxed">
             Makola is online retail rebuilt for West Africa: mobile money first
-            (MTN MoMo, Vodafone Cash, AirtelTigo), WhatsApp and SMS order alerts, and
+            (MTN MoMo, Telecel Cash, AirtelTigo), WhatsApp and SMS order alerts, and
             storefronts optimized for low-bandwidth devices. We handle the technology so
             merchants can focus on selling.
           </p>

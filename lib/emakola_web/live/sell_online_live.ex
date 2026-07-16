@@ -29,7 +29,7 @@ defmodule EmakolaWeb.SellOnlineLive do
     |> assign(:page_title, "Sell Online in #{region}, Ghana — Start Your Shop | Makola")
     |> assign(
       :meta_description,
-      "Start an online shop in #{region}, Ghana. Accept MTN MoMo and Vodafone Cash, " <>
+      "Start an online shop in #{region}, Ghana. Accept MTN MoMo and Telecel Cash, " <>
         "send WhatsApp order updates, and reach customers across #{region}. Free to start."
     )
     |> assign(:canonical_url, Canonical.url("/sell-online/#{slug}"))
@@ -79,7 +79,7 @@ defmodule EmakolaWeb.SellOnlineLive do
           Start your online shop in {@region}, Ghana
         </h1>
         <p class="mt-4 max-w-2xl text-lg text-stone-600">
-          Reach customers across {@region} with a shop that takes MTN MoMo and Vodafone Cash,
+          Reach customers across {@region} with a shop that takes MTN MoMo and Telecel Cash,
           sends order updates on WhatsApp, and loads fast on any phone. Free to start.
         </p>
 
@@ -102,7 +102,7 @@ defmodule EmakolaWeb.SellOnlineLive do
           <div>
             <dt class="font-semibold text-stone-900">Mobile money built in</dt>
             <dd class="mt-1 text-sm text-stone-600">
-              MTN MoMo, Vodafone Cash and AirtelTigo, plus cards — settled to your account.
+              MTN MoMo, Telecel Cash and AirtelTigo, plus cards — settled to your account.
             </dd>
           </div>
           <div>
