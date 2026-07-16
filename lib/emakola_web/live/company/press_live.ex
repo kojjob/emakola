@@ -74,7 +74,7 @@ defmodule EmakolaWeb.Company.PressLive do
             </p>
             <p class="text-base text-[#5f6b7a] leading-relaxed">
               Makola lets merchants in Ghana and Nigeria launch online stores built for how
-              commerce actually works here: mobile money first (MTN MoMo, Vodafone Cash,
+              commerce actually works here: mobile money first (MTN MoMo, Telecel Cash,
               AirtelTigo), local payment gateways (Paystack, Hubtel), WhatsApp and SMS
               notifications, and storefronts optimized for low-bandwidth phones.
             </p>

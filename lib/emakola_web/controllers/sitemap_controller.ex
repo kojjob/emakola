@@ -149,7 +149,7 @@ defmodule EmakolaWeb.SitemapController do
 
     > Makola is an ecommerce platform for merchants in Ghana and West Africa.
 
-    Makola helps merchants create an online store, accept MTN MoMo, Vodafone Cash,
+    Makola helps merchants create an online store, accept MTN MoMo, Telecel Cash,
     AirtelTigo and card payments, manage local supplier dropshipping, and send
     automatic WhatsApp and SMS order updates.
 
@@ -484,7 +484,7 @@ defmodule EmakolaWeb.SitemapController do
 
     ## About
 
-    #{store.name} is an online store on the Makola platform, serving customers primarily in Ghana and West Africa. The store accepts mobile money payments (MTN MoMo, Vodafone Cash, AirtelTigo) via Paystack and Hubtel, as well as card payments.
+    #{store.name} is an online store on the Makola platform, serving customers primarily in Ghana and West Africa. The store accepts mobile money payments (MTN MoMo, Telecel Cash, AirtelTigo) via Paystack and Hubtel, as well as card payments.
 
     - Store URL: #{store_url}
     - Currency: #{currency}

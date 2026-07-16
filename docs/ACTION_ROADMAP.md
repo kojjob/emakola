@@ -137,7 +137,7 @@ image-upload endpoints must be added before the Flutter merchant app can build t
 - [x] Webhook controller with signature verification
 - [x] HTTPClient behaviour for testability (Mox in tests)
 - [ ] MTN Mobile Money via Paystack (API ready, needs mobile money channel config)
-- [ ] Vodafone Cash / AirtelTigo (same — channel config)
+- [ ] Telecel Cash / AirtelTigo (same — channel config)
 - [ ] Cash on delivery option
 - [ ] "Waiting for payment" screen with polling
 
@@ -202,7 +202,7 @@ image-upload endpoints must be added before the Flutter merchant app can build t
 - [x] Product detail: image gallery, pill variant selectors, quantity stepper, WhatsApp CTA
 - [x] Product list: sidebar categories, quick-view overlay, search + filters
 - [x] Cart: shopping bag layout, order summary sidebar, trust badges
-- [x] Checkout: 3-step flow (Payment → Details → Confirm), MTN MoMo/Vodafone/Card selection
+- [x] Checkout: 3-step flow (Payment → Details → Confirm), MTN MoMo/Telecel/Card selection
 - [x] Reusable modal + confirm_modal components (centered, slide-over, destructive)
 - [ ] Campaigns page (matching `emakola-admin-campaigns.html`)
 - [ ] Discounts page (matching `emakola-admin-discounts.html`)

@@ -64,7 +64,7 @@
 │  │  ├── Flutterwave    ├── SMS (Hubtel) ├── Korier           ││
 │  │  ├── Hubtel         └── Email        ├── GIG Logistics    ││
 │  │  ├── MTN MoMo                        └── Kwik Delivery    ││
-│  │  ├── Vodafone Cash                                        ││
+│  │  ├── Telecel Cash                                        ││
 │  │  ├── AirtelTigo                                           ││
 │  │  └── Cash on Delivery                                     ││
 │  └───────────────────────────────────────────────────────────┘│

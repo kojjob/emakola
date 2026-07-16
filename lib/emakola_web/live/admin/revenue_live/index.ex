@@ -474,7 +474,7 @@ defmodule EmakolaWeb.Admin.RevenueLive.Index do
             dot_color="bg-yellow-400"
           />
           <.payment_bar
-            name="Vodafone Cash"
+            name="Telecel Cash"
             amount="GH&#8373; 6,925"
             pct="18%"
             bar_color="bg-red-500"
@@ -787,7 +787,7 @@ defmodule EmakolaWeb.Admin.RevenueLive.Index do
   defp method_dot(_), do: "bg-slate-400"
 
   defp method_label("momo"), do: "MoMo"
-  defp method_label("vodafone"), do: "Vodafone"
+  defp method_label("vodafone"), do: "Telecel"
   defp method_label("card"), do: "Card"
   defp method_label("cod"), do: "COD"
   defp method_label(_), do: "Other"

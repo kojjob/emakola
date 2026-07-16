@@ -212,7 +212,7 @@ intended for parallel execution.
 ### Infrastructure
 - [ ] OG image generation for stores and products
 - [ ] Performance profiling
-- [ ] MTN MoMo / Vodafone Cash direct integrations (bypass Paystack)
+- [ ] MTN MoMo / Telecel Cash direct integrations (bypass Paystack)
 - [ ] Rider/delivery tracking integration
 - [ ] Clean up duplicate `SMSProvider` / `SMSBehaviour` hierarchy
 - [ ] Fix `RawBodyReader` moduledoc (references Stripe — copy-paste artifact)

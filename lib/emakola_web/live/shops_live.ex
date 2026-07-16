@@ -40,7 +40,7 @@ defmodule EmakolaWeb.ShopsLive do
     |> assign(
       :meta_description,
       "Discover #{count} online #{plural("shop", count)} in #{region}, Ghana. " <>
-        "Buy from local sellers and pay with MTN MoMo, Vodafone Cash and more on Makola."
+        "Buy from local sellers and pay with MTN MoMo, Telecel Cash and more on Makola."
     )
     |> assign(:canonical_url, Canonical.url("/shops/#{slug}"))
     |> assign(
@@ -71,7 +71,7 @@ defmodule EmakolaWeb.ShopsLive do
         question: "How do I buy from a shop in #{region}?",
         answer:
           "Open any shop below, add what you want to your cart, and pay with mobile money " <>
-            "(MTN MoMo, Vodafone Cash) or card at checkout."
+            "(MTN MoMo, Telecel Cash) or card at checkout."
       },
       %{
         question: "Do shops in #{region} deliver?",
@@ -106,7 +106,7 @@ defmodule EmakolaWeb.ShopsLive do
         </h1>
         <p class="mt-3 max-w-2xl text-stone-600">
           Browse local online shops in {@region} — market traders, tailors, food vendors and more.
-          Pay securely with MTN MoMo, Vodafone Cash or card, and get it delivered.
+          Pay securely with MTN MoMo, Telecel Cash or card, and get it delivered.
         </p>
 
         <div :if={@stores == []} class="mt-10 rounded-lg border border-stone-200 bg-stone-50 p-6">

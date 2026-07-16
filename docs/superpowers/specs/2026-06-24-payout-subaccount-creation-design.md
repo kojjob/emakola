@@ -9,7 +9,7 @@ and `OrderSettlement.prepare` always falls through to `{:no_split}` — no order
 the merchant their share, and the platform can't take a fee as the split remainder.
 
 **Ops gate (resolved by research):** Paystack Ghana's List Banks returns mobile-money
-providers as settlement destinations (`MTN`, `VOD` for Vodafone/Telecel, AirtelTigo), each
+providers as settlement destinations (`MTN`, `VOD` for Telecel/Telecel, AirtelTigo), each
 `type: "mobile_money"`, `currency: "GHS"`. So a subaccount can settle to a merchant's MoMo
 number — split-at-source is viable.
 

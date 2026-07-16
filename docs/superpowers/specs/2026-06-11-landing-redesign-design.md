@@ -78,7 +78,7 @@ testimonial names), not real merchant data. No backend query.
 ### 4. Feature stories (light section)
 Three alternating photo + floating-UI-card rows:
 1. **"Get paid in seconds"** — smiling woman photo; floating card: "Payment
-   received / + GHS 85.00 · MoMo / ✓ In your wallet". Copy: "MTN MoMo, Vodafone
+   received / + GHS 85.00 · MoMo / ✓ In your wallet". Copy: "MTN MoMo, Telecel
    Cash, AirtelTigo, and cards. The money lands before the customer hangs up."
 2. **"Customers kept in the loop"** — group-around-laptop photo; floating
    WhatsApp bubble: "Order #1042 confirmed! Hi Akosua — your order ships today."
@@ -139,7 +139,7 @@ plain-language sentences written to be quotable by search/AI engines:
    storefronts fit each trade.
 3. **How much does Emakola cost?** — Free to start (3.5% per sale), paid plans
    from GHS 29/month with lower rates. Link to `/pricing`.
-4. **Can I accept MTN MoMo and Vodafone Cash?** — Yes. MTN MoMo, Vodafone Cash,
+4. **Can I accept MTN MoMo and Telecel Cash?** — Yes. MTN MoMo, Telecel Cash,
    AirtelTigo, and card payments via Paystack and Hubtel.
 5. **What is dropshipping on Emakola?** — Sell products your suppliers hold;
    when an order comes in, the supplier fulfills it and Emakola tracks supplier

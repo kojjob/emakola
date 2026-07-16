@@ -11,7 +11,7 @@ defmodule EmakolaWeb.LandingController do
       layout: false,
       page_title: "Makola — Start Selling Online in Ghana | Mobile Money & Dropshipping",
       meta_description:
-        "Create your online store in Ghana. Accept MTN MoMo and Vodafone Cash, dropship from local suppliers, and send WhatsApp order updates. Free to start.",
+        "Create your online store in Ghana. Accept MTN MoMo and Telecel Cash, dropship from local suppliers, and send WhatsApp order updates. Free to start.",
       og_image: url(~p"/images/og-image.png"),
       canonical_url: url(~p"/"),
       preload_image: "/images/landing/hero-market-woman.jpg",

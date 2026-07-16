@@ -427,7 +427,7 @@ Create `lib/emakola_web/live/company/about_live.ex` using the page skeleton with
     </p>
     <p class="text-[#5f6b7a] leading-relaxed mb-4">
       Emakola is online retail rebuilt for West Africa: mobile money first
-      (MTN MoMo, Vodafone Cash, AirtelTigo), WhatsApp and SMS order alerts, and
+      (MTN MoMo, Telecel Cash, AirtelTigo), WhatsApp and SMS order alerts, and
       storefronts optimized for low-bandwidth devices. We handle the technology so
       merchants can focus on selling.
     </p>
@@ -671,7 +671,7 @@ Expected: FAIL.
     </p>
     <p class="text-[#5f6b7a] leading-relaxed">
       <strong>Long:</strong> Emakola lets merchants in Ghana and Nigeria launch online stores
-      built for how commerce actually works here: mobile money first (MTN MoMo, Vodafone Cash,
+      built for how commerce actually works here: mobile money first (MTN MoMo, Telecel Cash,
       AirtelTigo), local payment gateways (Paystack, Hubtel), WhatsApp and SMS notifications,
       and storefronts optimized for low-bandwidth phones.
     </p>

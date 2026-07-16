@@ -50,10 +50,10 @@ Full-viewport-height split into two halves. Content within each half is constrai
 **Left half — Merchants (dark navy background `#0c1526`):**
 - Label: "FOR MERCHANTS" (gold `#d4a843`, uppercase, tracked)
 - Headline: "Launch Your Online Store in Ghana"
-- Subtext: "Accept MTN MoMo, Vodafone Cash, and card payments. Notify customers on WhatsApp. Manage everything from one dashboard."
+- Subtext: "Accept MTN MoMo, Telecel Cash, and card payments. Notify customers on WhatsApp. Manage everything from one dashboard."
 - Primary CTA: "Start Selling" (blue `#2563eb` button)
 - Secondary CTA: "Watch Demo" (ghost button) — links to `#features` section (scrolls down). Can be updated to a video modal later.
-- Payment provider badges below: MTN MoMo, Vodafone Cash, Paystack, Hubtel (small bordered cards with names/logos)
+- Payment provider badges below: MTN MoMo, Telecel Cash, Paystack, Hubtel (small bordered cards with names/logos)
 
 **Right half — Shoppers (light background `#f7f8fa`):**
 - Label: "FOR SHOPPERS" (blue `#2563eb`, uppercase, tracked)
@@ -68,7 +68,7 @@ Full-viewport-height split into two halves. Content within each half is constrai
 
 - Light background (`#f0f1f4`)
 - Centered row: "Trusted by 500+ merchants across Ghana"
-- Payment partner logos: MTN MoMo, Vodafone Cash, AirtelTigo Money, Paystack, Hubtel
+- Payment partner logos: MTN MoMo, Telecel Cash, AirtelTigo Money, Paystack, Hubtel
 - Use actual brand logos or clean text representations with brand colors
 
 ### 4. How It Works
@@ -82,7 +82,7 @@ Two sub-sections stacked vertically with a visual separator (horizontal line or 
 
 **For Shoppers (3 steps):**
 1. Browse Stores — "Discover local businesses and products"
-2. Pay with MoMo — "Checkout securely with MTN MoMo, Vodafone Cash, or card"
+2. Pay with MoMo — "Checkout securely with MTN MoMo, Telecel Cash, or card"
 3. Track Your Order — "Get real-time updates on WhatsApp"
 
 Each step: numbered circle icon + heading + one-line description. Scroll-reveal animation (keep existing `ScrollReveal` hook).
@@ -98,7 +98,7 @@ Each step: numbered circle icon + heading + one-line description. Scroll-reveal 
 
 | Feature | Size | Description |
 |---------|------|-------------|
-| Mobile Money Payments | Large (2-col) | "Accept MTN MoMo, Vodafone Cash, and AirtelTigo Money. Automatic payment confirmation and reconciliation." |
+| Mobile Money Payments | Large (2-col) | "Accept MTN MoMo, Telecel Cash, and AirtelTigo Money. Automatic payment confirmation and reconciliation." |
 | WhatsApp Notifications | Standard | "Order confirmations, shipping updates, and delivery alerts sent directly to your customers on WhatsApp." |
 | Merchant Dashboard | Standard | "Track sales, orders, inventory, and customer analytics from a single dashboard." |
 | Multi-Store Management | Large (2-col) | "Run multiple stores from one account. Each store gets its own storefront, products, and settings." |
@@ -174,7 +174,7 @@ Use placeholder testimonial content that sounds authentic to Ghanaian merchants.
 ## SEO Updates
 
 - `page_title`: "Emakola — Online Stores for Ghana | Accept Mobile Money"
-- `meta_description`: "Launch your online store in Ghana. Accept MTN MoMo, Vodafone Cash, and card payments. WhatsApp order notifications. Join 500+ merchants on Emakola."
+- `meta_description`: "Launch your online store in Ghana. Accept MTN MoMo, Telecel Cash, and card payments. WhatsApp order notifications. Join 500+ merchants on Emakola."
 - `og_title`: "Emakola — Sell Online in Ghana"
 - `og_description`: "The easiest way to create an online store in West Africa. Mobile money payments, WhatsApp notifications, and more."
 

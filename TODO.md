@@ -115,7 +115,7 @@
       "~1968 literals" were mostly per-theme palettes (a theme's identity IS its
       hex palette — flattening them to global tokens would be wrong), so only
       true brand colors were swept: all WhatsApp (`#25D366`/`#1FAF55` → 
-      `-whatsapp`/`-whatsapp-dark`, 22×) and Vodafone (`#E60000` → `-voda`, 3×)
+      `-whatsapp`/`-whatsapp-dark`, 22×) and Telecel (`#E60000` → `-voda`, 3×)
       literals everywhere, plus spelling normalizations in `lib/emakola_web`
       (non-theme) files (`#B45309` → `amber-700`, `#0F172A` → `slate-900`).
       MTN/emerald/gold literals were already fully swept by earlier passes.
@@ -356,7 +356,7 @@
 ### Infrastructure / payments
 - [ ] OG image generation for stores and products
 - [ ] MTN MoMo direct integration (bypass Paystack)
-- [ ] Vodafone Cash direct integration
+- [ ] Telecel Cash direct integration
 - [ ] Rider/delivery tracking integration
 - [ ] Decide: build a dedicated mobile admin view, or declare the responsive
       admin sufficient

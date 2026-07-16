@@ -17,7 +17,7 @@ Emakola is a Shopify-like ecommerce platform for West Africa, launching in Ghana
 | Platform personality | **Clean & Professional** | Platform disappears, merchant's brand is the star |
 | Admin color application | **Green Sidebar Accent** | Dark emerald nav anchor, clean white content area |
 | Default storefront theme | **Story-Led** | Matches Instagram merchants selling through storytelling |
-| Checkout flow | **Payment Method First** | Familiar MoMo/Vodafone logos build trust before form input |
+| Checkout flow | **Payment Method First** | Familiar MoMo/Telecel logos build trust before form input |
 | Admin mobile strategy | **Hybrid** | Mobile for quick actions (orders/notifications), desktop for full management |
 | Storefront visual style | **Instagram-Native** | Circle avatar, story categories, card products — patterns users know |
 
@@ -161,7 +161,7 @@ Lightweight companion for on-the-go order management. NOT a full admin.
 │ │       Pay with MoMo     │ │     Active: green border + check
 │ └─────────────────────────┘ │
 │ ┌─────────────────────────┐ │
-│ │ [VOD] Vodafone Cash     │ │
+│ │ [VOD] Telecel Cash     │ │
 │ └─────────────────────────┘ │
 │ ┌─────────────────────────┐ │
 │ │ [💳] Card Payment       │ │
@@ -187,7 +187,7 @@ Lightweight companion for on-the-go order management. NOT a full admin.
 
 **Per payment method:**
 - **MTN MoMo**: Branded MTN yellow UI, phone number input, "Confirm — You'll get a prompt on your phone", waiting state with spinner
-- **Vodafone Cash**: Branded Vodafone red UI, same flow as MoMo
+- **Telecel Cash**: Branded Telecel red UI, same flow as MoMo
 - **Card**: Redirect to Paystack hosted checkout page (PCI compliant)
 - **Cash on Delivery**: Confirm order, show "Pay GH₵ X when your order arrives"
 

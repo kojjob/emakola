@@ -37,7 +37,7 @@ end
 | `:market_nigeria` | Nigeria features enabled | Off |
 | `:market_francophone` | French West Africa | Off |
 | `:momo_mtn` | MTN MoMo payment method | On (Ghana) |
-| `:momo_vodafone` | Vodafone Cash | On (Ghana) |
+| `:momo_vodafone` | Telecel Cash | On (Ghana) |
 | `:momo_airteltigo` | AirtelTigo Money | On (Ghana) |
 
 ### Experiment Flags (A/B testing)

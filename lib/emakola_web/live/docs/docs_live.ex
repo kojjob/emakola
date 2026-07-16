@@ -112,7 +112,7 @@ defmodule EmakolaWeb.Docs.DocsLive do
                   Mobile money first. Makola routes payments through a
                   <.inline_code>Gateway</.inline_code>
                   behaviour with Paystack and Hubtel
-                  implementations — covering MTN MoMo, Vodafone Cash, and AirtelTigo.
+                  implementations — covering MTN MoMo, Telecel Cash, and AirtelTigo.
                 </p>
 
                 <div class="space-y-8">
