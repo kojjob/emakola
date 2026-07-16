@@ -338,14 +338,22 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   # were in the batch, and only THEIR splits get stamped — and only the splits
   # routed to this settlement's destination (the subaccount for a subaccount
   # settlement; the nil-subaccount platform rows for a main-account one).
+  # References per lookup batch. A settlement is a day's payouts; without
+  # batching, reconciliation cost two queries PER TRANSACTION — a 10k-charge
+  # settlement meant ~20k sequential queries hogging a :webhooks queue slot.
+  # Batched it is two queries per 500 references.
+  @stamp_batch_size 500
+
   defp handle_settlement(%{"id" => settlement_id} = data) when not is_nil(settlement_id) do
     destination = get_in(data, ["subaccount", "subaccount_code"])
 
     case Emakola.Payments.Gateways.Paystack.settlement_transactions(settlement_id) do
       {:ok, transactions} ->
-        Enum.each(transactions, fn tx ->
-          stamp_settled_splits(tx.reference, to_string(settlement_id), destination)
-        end)
+        transactions
+        |> Enum.map(& &1.reference)
+        |> Enum.reject(&is_nil/1)
+        |> Enum.chunk_every(@stamp_batch_size)
+        |> Enum.each(&stamp_settled_splits(&1, to_string(settlement_id), destination))
 
         :ok
 
@@ -361,19 +369,27 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
     :ok
   end
 
-  defp stamp_settled_splits(reference, settlement_id, destination) do
-    case find_payment(reference) do
-      {:ok, payment} ->
-        payment
-        |> payment_splits()
-        |> Enum.filter(&(&1.subaccount_code == destination))
-        |> Enum.filter(&is_nil(&1.paystack_split_reference))
-        |> Enum.each(&stamp_split(&1, settlement_id, reference))
+  # One payments read and one splits read per batch of references. References
+  # that are not ours (another integration on the same Paystack account) simply
+  # match no payment and drop out. The destination filter stays in Elixir:
+  # `subaccount_code == destination` must also match nil == nil for
+  # main-account settlements, which an expr pin does not express cleanly.
+  defp stamp_settled_splits(references, settlement_id, destination) do
+    reference_by_payment_id =
+      Payment
+      |> Ash.Query.filter(gateway_reference in ^references)
+      |> Ash.read!(authorize?: false)
+      |> Map.new(&{&1.id, &1.gateway_reference})
 
-      # A charge that is not ours (another integration on the same account).
-      {:error, _} ->
-        :ok
-    end
+    payment_ids = Map.keys(reference_by_payment_id)
+
+    Emakola.Payments.PaymentSplit
+    |> Ash.Query.filter(payment_id in ^payment_ids and is_nil(paystack_split_reference))
+    |> Ash.read!(authorize?: false)
+    |> Enum.filter(&(&1.subaccount_code == destination))
+    |> Enum.each(fn split ->
+      stamp_split(split, settlement_id, Map.get(reference_by_payment_id, split.payment_id))
+    end)
   end
 
   # A split still :pending when its money has demonstrably been PAID OUT means

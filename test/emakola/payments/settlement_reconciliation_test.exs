@@ -111,6 +111,45 @@ defmodule Emakola.Payments.SettlementReconciliationTest do
     end
   end
 
+  describe "a settlement covering many payments" do
+    # Reconciliation batches its lookups (references -> payments -> splits in
+    # bulk, not two queries per transaction), so this proves the
+    # reference-to-payment mapping survives batching: each payment's splits get
+    # stamped, and none bleed onto the other payment.
+    test "stamps every covered payment's matching splits", ctx do
+      other =
+        ctx.store
+        |> Emakola.Factory.create_payment!(%{amount: 300_000, split_mode: :platform_fee})
+        |> Ash.Changeset.for_update(:mark_success, %{})
+        |> Ash.update!(authorize?: false)
+
+      other_merchant =
+        ctx.store
+        |> split!(other, %{role: :merchant, amount: 294_000, subaccount_code: "SUB_m"})
+        |> settle!()
+
+      other_platform =
+        ctx.store
+        |> split!(other, %{role: :platform, amount: 6_000})
+        |> settle!()
+
+      expect(Emakola.Payments.PaystackClientMock, :list_settlement_transactions, fn 555, 1 ->
+        transactions_page([ctx.payment.gateway_reference, other.gateway_reference])
+      end)
+
+      event =
+        settlement_event(%{"id" => 555, "subaccount" => %{"subaccount_code" => "SUB_m"}})
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+
+      assert fresh(ctx.merchant_split).paystack_split_reference == "555"
+      assert fresh(other_merchant).paystack_split_reference == "555"
+      # Platform rows settle to the main account, not this subaccount.
+      assert fresh(ctx.platform_split).paystack_split_reference == nil
+      assert fresh(other_platform).paystack_split_reference == nil
+    end
+  end
+
   describe "a main-account settlement" do
     test "stamps the platform's nil-subaccount splits", ctx do
       expect(Emakola.Payments.PaystackClientMock, :list_settlement_transactions, fn 99, 1 ->
