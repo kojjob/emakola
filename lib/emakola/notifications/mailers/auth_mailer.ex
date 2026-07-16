@@ -18,6 +18,25 @@ defmodule Emakola.Notifications.AuthMailer do
     |> Mailer.deliver()
   end
 
+  # The link lands on the interactive confirm page (require_interaction? — a GET
+  # from an email-scanner bot must not be able to confirm; the page POSTs).
+  def confirm_email(email, token) do
+    url = "#{EmakolaWeb.Endpoint.url()}/confirm/merchant?confirm=#{token}"
+
+    new()
+    |> to(email)
+    |> from(Mailer.from_address("Makola"))
+    |> subject("Confirm your Makola email")
+    |> html_body("""
+    <h2>Confirm your email</h2>
+    <p>Click the button on the next page to confirm this address for your Makola account.</p>
+    <a href="#{url}">Confirm my email</a>
+    <p>If you didn't create a Makola account, ignore this email.</p>
+    """)
+    |> text_body("Confirm your Makola email: #{url}")
+    |> Mailer.deliver()
+  end
+
   def magic_link(email, token) do
     url = "#{EmakolaWeb.Endpoint.url()}/auth/magic-link?token=#{token}"
 

@@ -26,6 +26,27 @@ defmodule Emakola.Customers.Customer do
       end)
     end
 
+    add_ons do
+      # Arms prevent_hijacking? below. Deliberately minimal for customers:
+      # confirm_on_create? false because there is no per-store-branded customer
+      # email flow yet — so a password-registered customer simply stays
+      # unconfirmed, which is the SAFE state (an OAuth login can never absorb
+      # their account; they keep signing in with their password). Pure-OAuth
+      # customers auto-confirm (the provider verified the address) and are
+      # unaffected. When store-branded customer email lands, flip
+      # confirm_on_create? and give the sender a real mailer.
+      confirmation :confirm_new_customer do
+        monitor_fields([:email])
+        confirm_on_create?(false)
+        confirm_on_update?(false)
+        # No links are ever emailed (see above), but the library rightly
+        # refuses GET-confirmable tokens outright, so this is set regardless.
+        require_interaction?(true)
+        auto_confirm_actions([:register_with_oauth2])
+        sender(Emakola.Customers.Senders.LogOnlyConfirmationSender)
+      end
+    end
+
     strategies do
       password :password do
         identity_field(:email)
@@ -39,7 +60,7 @@ defmodule Emakola.Customers.Customer do
       # :unique_store_email (store_id from the request tenant).
       # AshAuthentication.UserIdentity has no multitenancy support, so an
       # identity table would make the same social account ambiguous across
-      # stores. prevent_hijacking? false — same debt as the merchant strategies
+      # stores. prevent_hijacking? true — armed by the confirmation add-on above,
       # (no email-confirmation flow yet).
       google :google do
         client_id(fn _, _ -> Emakola.OAuthConfig.fetch(:google, :client_id) end)
@@ -47,7 +68,7 @@ defmodule Emakola.Customers.Customer do
         redirect_uri(fn _, _ -> Emakola.OAuthConfig.redirect_uri() end)
         register_action_name(:register_with_oauth2)
         sign_in_action_name(:sign_in_with_oauth2)
-        prevent_hijacking?(false)
+        prevent_hijacking?(true)
       end
 
       oauth2 :facebook do
@@ -61,7 +82,7 @@ defmodule Emakola.Customers.Customer do
         authorization_params(scope: "email public_profile")
         register_action_name(:register_with_oauth2)
         sign_in_action_name(:sign_in_with_oauth2)
-        prevent_hijacking?(false)
+        prevent_hijacking?(true)
       end
 
       apple :apple do
@@ -72,7 +93,7 @@ defmodule Emakola.Customers.Customer do
         redirect_uri(fn _, _ -> Emakola.OAuthConfig.redirect_uri() end)
         register_action_name(:register_with_oauth2)
         sign_in_action_name(:sign_in_with_oauth2)
-        prevent_hijacking?(false)
+        prevent_hijacking?(true)
       end
     end
   end

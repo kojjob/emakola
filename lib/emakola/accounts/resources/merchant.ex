@@ -23,6 +23,27 @@ defmodule Emakola.Accounts.Merchant do
       end)
     end
 
+    add_ons do
+      # Arms prevent_hijacking? on every OAuth strategy below: registration via
+      # a provider is an UPSERT on :unique_email (that is how "link my Google"
+      # works), and without confirmed-ness to check, that upsert doubles as an
+      # account takeover of any unconfirmed password account. Sign-in is NOT
+      # gated on confirmation — an unconfirmed account is already safe (it
+      # cannot be OAuth-linked), and prod email delivery may be down.
+      confirmation :confirm_new_merchant do
+        monitor_fields([:email])
+        confirm_on_create?(true)
+        confirm_on_update?(true)
+        # A bare GET must not confirm (mail scanners prefetch links); the
+        # /confirm/merchant page renders a button that POSTs the token.
+        require_interaction?(true)
+        # Proof of mailbox ownership is proof enough: magic-link sign-in and
+        # provider-verified OAuth emails confirm without a second round trip.
+        auto_confirm_actions([:sign_in_with_magic_link, :register_with_oauth2])
+        sender(Emakola.Accounts.Senders.ConfirmationSender)
+      end
+    end
+
     strategies do
       password :password do
         identity_field(:email)
@@ -46,8 +67,8 @@ defmodule Emakola.Accounts.Merchant do
         identity_resource(Emakola.Accounts.MerchantIdentity)
         register_action_name(:register_with_oauth2)
         sign_in_action_name(:sign_in_with_oauth2)
-        # See the prevent_hijacking? note on :facebook — same debt applies here.
-        prevent_hijacking?(false)
+        # See the prevent_hijacking? note on :facebook — armed the same way.
+        prevent_hijacking?(true)
       end
 
       # Facebook has no built-in strategy — generic oauth2 against the Graph API.
@@ -63,14 +84,11 @@ defmodule Emakola.Accounts.Merchant do
         user_url("https://graph.facebook.com/me?fields=id,name,email")
         authorization_params(scope: "email public_profile")
         identity_resource(Emakola.Accounts.MerchantIdentity)
-        # SECURITY DEBT (applies to all 3 OAuth strategies here): with a password
-        # strategy on the email field, ash_authentication wants an email
-        # confirmation add-on so an *unverified* password account can't be
-        # hijacked by linking an OAuth login to it by email. The app has no
-        # confirmation flow yet (and prod email is on dummy keys), so we accept
-        # linking-by-provider-verified-email for now. MUST add a confirmation
-        # add-on before activating OAuth for real users.
-        prevent_hijacking?(false)
+        # Armed by the confirmation add-on above: an OAuth login can only link
+        # to an email whose account is CONFIRMED — an unconfirmed password
+        # account (which anyone could have registered with someone else's
+        # email) can never be absorbed or taken over via a provider login.
+        prevent_hijacking?(true)
         register_action_name(:register_with_oauth2)
         sign_in_action_name(:sign_in_with_oauth2)
       end
@@ -86,8 +104,8 @@ defmodule Emakola.Accounts.Merchant do
         identity_resource(Emakola.Accounts.MerchantIdentity)
         register_action_name(:register_with_oauth2)
         sign_in_action_name(:sign_in_with_oauth2)
-        # See the prevent_hijacking? note on :facebook — same debt applies here.
-        prevent_hijacking?(false)
+        # See the prevent_hijacking? note on :facebook — armed the same way.
+        prevent_hijacking?(true)
       end
     end
   end
