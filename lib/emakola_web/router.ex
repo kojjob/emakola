@@ -204,6 +204,15 @@ defmodule EmakolaWeb.Router do
     auth_routes(AuthController, [Emakola.Accounts.Merchant, Emakola.Customers.Customer],
       path: "/oauth"
     )
+
+    # The interactive email-confirmation page (require_interaction? true): the
+    # emailed link GETs this page, which renders a button that POSTs the token
+    # to the strategy route under /oauth — so a mail scanner prefetching the
+    # link cannot confirm an account.
+    confirm_route(Emakola.Accounts.Merchant, :confirm_new_merchant,
+      path: "/confirm/merchant",
+      auth_routes_prefix: "/oauth"
+    )
   end
 
   # Platform staff session controller (exchanges a short-lived signed login

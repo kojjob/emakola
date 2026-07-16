@@ -64,6 +64,24 @@
       ⚠️ Paystack holds a **new subaccount's first payout** until it's verified in
       the Paystack dashboard.
 
+## 🔑 Social login activation (optional, post-launch OK)
+
+The OAuth stack is fully built and ships dark; the hijack guard (email
+confirmation add-on, PR pending) is armed. To activate a provider, set its
+secrets — the sign-in buttons appear automatically, nothing else to deploy:
+
+- **Google**: `fly secrets set GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=… --app emakola`
+  (console.cloud.google.com → OAuth client; authorized redirect
+  `https://makola.io/oauth/merchant/google/callback` and
+  `…/oauth/customer/google/callback`)
+- **Facebook**: `FACEBOOK_CLIENT_ID` + `FACEBOOK_CLIENT_SECRET` (Meta app;
+  same callback pattern with `facebook`). Endpoints/scopes in merchant.ex
+  should be sanity-checked against the Meta app config during setup.
+- **Apple**: `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`,
+  `APPLE_PRIVATE_KEY_PATH` (needs the .p8 key ON DISK in the image — extra
+  release plumbing; defer unless demanded).
+- Redirect base derives from PHX_HOST automatically (`https://<host>/oauth`).
+
 ## 🌐 Before opening to the public
 
 - [x] **Custom domain** — DONE 2026-06-20: makola.io is PHX_HOST, www + wss
