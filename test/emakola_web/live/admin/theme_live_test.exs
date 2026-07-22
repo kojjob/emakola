@@ -32,6 +32,29 @@ defmodule EmakolaWeb.Admin.ThemeLiveTest do
       %{conn: conn, merchant: merchant, store: store}
     end
 
+    test "hero images upload to platform storage, not local disk", %{conn: conn} do
+      Mox.stub(Emakola.StorageMock, :upload, fn _binary, path, _opts ->
+        {:ok, "https://cdn.example.com/#{path}"}
+      end)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/theme")
+      Mox.allow(Emakola.StorageMock, self(), view.pid)
+
+      photo =
+        file_input(view, "#hero-upload-form", :hero_images, [
+          %{name: "hero.png", content: <<137, 80, 78, 71>>, type: "image/png"}
+        ])
+
+      render_upload(photo, "hero.png")
+
+      html =
+        view
+        |> element("#hero-upload-form")
+        |> render_submit()
+
+      assert html =~ "https://cdn.example.com/stores/"
+    end
+
     test "renders the 3-column customizer", %{conn: conn} do
       {:ok, view, html} = live(conn, ~p"/admin/theme")
 

@@ -10,9 +10,8 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
   Live preview (right pane): renders the page through the same
   `Emakola.PageBuilder.Renderer` pipeline used on the storefront.
 
-  Media uploads (image/audio/video) go to local disk under
-  `priv/static/uploads/pages/` for now. Production will swap to S3
-  via `Emakola.S3` (existing AWS config).
+  Media uploads (image/audio/video) go through `Emakola.Storage`
+  (S3 in prod, local disk in dev).
   """
 
   use EmakolaWeb, :live_view
@@ -257,14 +256,22 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
     store_id = socket.assigns.store.id
 
     uploaded =
-      consume_uploaded_entries(socket, :block_media, fn %{path: path}, entry ->
+      socket
+      |> consume_uploaded_entries(:block_media, fn %{path: path}, entry ->
         ext = Path.extname(entry.client_name) |> String.downcase()
-        filename = "#{store_id}_#{System.os_time(:millisecond)}#{ext}"
+        filename = "#{System.os_time(:millisecond)}#{ext}"
         sanitized = String.replace(filename, ~r/[^a-zA-Z0-9._-]/, "_")
-        dest = Path.join(media_upload_dir(), sanitized)
-        File.cp!(path, dest)
-        {:ok, "/uploads/#{@upload_dir_segment}/#{sanitized}"}
+        storage_path = "stores/#{store_id}/#{@upload_dir_segment}/#{sanitized}"
+
+        # Emakola.Storage (S3 in prod) — local disk is ephemeral on Fly.
+        case Emakola.Storage.upload(File.read!(path), storage_path,
+               content_type: entry.client_type
+             ) do
+          {:ok, url} -> {:ok, url}
+          {:error, _reason} -> {:ok, nil}
+        end
       end)
+      |> Enum.reject(&is_nil/1)
 
     case uploaded do
       [url | _] ->
@@ -998,12 +1005,6 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
       nil -> "widgets"
       mod -> mod.icon()
     end
-  end
-
-  defp media_upload_dir do
-    dir = Path.join([:code.priv_dir(:emakola), "static", "uploads", @upload_dir_segment])
-    File.mkdir_p!(dir)
-    dir
   end
 
   defp fetch_owned_page(store, id) when is_binary(id) do

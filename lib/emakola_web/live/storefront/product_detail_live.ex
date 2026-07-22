@@ -620,28 +620,32 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
 
   defp first_product_image_url(_), do: nil
 
-  # Consumes the LiveView upload entries for :review_photos, copies each
-  # file to priv/static/uploads/reviews, and returns the list of image
-  # maps in the shape Review.images expects.
+  # Consumes the LiveView upload entries for :review_photos, uploads each
+  # to Emakola.Storage (S3 in prod — local disk is ephemeral on Fly), and
+  # returns the list of image maps in the shape Review.images expects.
+  # Photos whose upload fails are dropped from the review, not fatal.
   #
   # Returns [] when no entries — safe to call unconditionally.
   defp consume_review_photo_uploads(socket) do
-    consume_uploaded_entries(socket, :review_photos, fn %{path: path}, entry ->
+    store_id = socket.assigns.store.id
+
+    socket
+    |> consume_uploaded_entries(:review_photos, fn %{path: path}, entry ->
       filename =
         "#{System.os_time(:millisecond)}_#{entry.client_name}"
         |> String.replace(~r/[^a-zA-Z0-9._-]/, "_")
 
-      dest = Path.join(reviews_upload_dir(), filename)
-      File.cp!(path, dest)
+      storage_path = "stores/#{store_id}/reviews/#{filename}"
 
-      url = "/uploads/reviews/#{filename}"
-      {:ok, %{"url" => url, "thumbnail_url" => url, "alt" => ""}}
+      case Emakola.Storage.upload(File.read!(path), storage_path, content_type: entry.client_type) do
+        {:ok, url} ->
+          {:ok, %{"url" => url, "thumbnail_url" => url, "alt" => ""}}
+
+        {:error, reason} ->
+          Logger.error("[product_detail] review photo upload failed: #{inspect(reason)}")
+          {:ok, nil}
+      end
     end)
-  end
-
-  defp reviews_upload_dir do
-    dir = Path.join([:code.priv_dir(:emakola), "static", "uploads", "reviews"])
-    File.mkdir_p!(dir)
-    dir
+    |> Enum.reject(&is_nil/1)
   end
 end

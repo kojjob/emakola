@@ -1134,14 +1134,26 @@ defmodule EmakolaWeb.Admin.ThemeLive do
     store_id = socket.assigns.store.id
 
     uploaded_urls =
-      consume_uploaded_entries(socket, :hero_images, fn %{path: path}, entry ->
-        filename = "#{store_id}_#{System.os_time(:millisecond)}_#{entry.client_name}"
+      socket
+      |> consume_uploaded_entries(:hero_images, fn %{path: path}, entry ->
+        filename = "#{System.os_time(:millisecond)}_#{entry.client_name}"
         # Sanitize filename
         filename = String.replace(filename, ~r/[^a-zA-Z0-9._-]/, "_")
-        dest = Path.join(heroes_upload_dir(), filename)
-        File.cp!(path, dest)
-        {:ok, "/uploads/heroes/#{filename}"}
+        storage_path = "stores/#{store_id}/heroes/#{filename}"
+
+        # Emakola.Storage (S3 in prod) — local disk is ephemeral on Fly.
+        case Emakola.Storage.upload(File.read!(path), storage_path,
+               content_type: entry.client_type
+             ) do
+          {:ok, url} ->
+            {:ok, url}
+
+          {:error, reason} ->
+            Logger.error("[theme_live] hero image upload failed: #{inspect(reason)}")
+            {:ok, nil}
+        end
       end)
+      |> Enum.reject(&is_nil/1)
 
     existing = socket.assigns.hero_images
     # Cap at 5 total
@@ -1288,11 +1300,5 @@ defmodule EmakolaWeb.Admin.ThemeLive do
   @impl true
   def handle_event("reset_defaults", _params, socket) do
     {:noreply, socket}
-  end
-
-  defp heroes_upload_dir do
-    dir = Path.join([:code.priv_dir(:emakola), "static", "uploads", "heroes"])
-    File.mkdir_p!(dir)
-    dir
   end
 end
