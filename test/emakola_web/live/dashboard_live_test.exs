@@ -48,6 +48,17 @@ defmodule EmakolaWeb.DashboardLiveTest do
       assert html =~ "Avg Order"
     end
 
+    test "disconnected render defers data loading until the socket connects", %{
+      conn: conn,
+      order: order
+    } do
+      html = conn |> get(~p"/dashboard") |> html_response(200)
+
+      # The dead render is a shell — the ~12 dashboard queries only run on
+      # the connected mount (covered by "renders recent orders" below).
+      refute html =~ order.order_number
+    end
+
     test "topbar New button links to the product create page", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/dashboard")
 
