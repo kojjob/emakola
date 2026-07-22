@@ -61,7 +61,10 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
       saved: false
     )
     |> allow_upload(:block_media,
-      accept: ~w(.jpg .jpeg .png .webp .mp4 .webm .mov .mp3 .m4a .wav .ogg),
+      # .m4a/.ogg are deliberately absent: they have no entry in MIME's
+      # default table, and unknown extensions make allow_upload raise at
+      # mount (which took this whole editor down).
+      accept: ~w(.jpg .jpeg .png .webp .mp4 .webm .mov .mp3 .wav),
       max_entries: 1,
       max_file_size: 100_000_000
     )
