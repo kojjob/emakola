@@ -216,14 +216,17 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
     customers =
       if store_id do
-        results =
-          if search_query != "" do
-            Emakola.Customers.search_customers!(store_id, search_query, authorize?: false)
-          else
-            Emakola.Customers.list_customers_by_store!(store_id, authorize?: false)
-          end
-
-        Enum.take(results, @customers_limit)
+        if search_query != "" do
+          Emakola.Customers.search_customers!(store_id, search_query,
+            query: [limit: @customers_limit],
+            authorize?: false
+          )
+        else
+          Emakola.Customers.list_customers_by_store!(store_id,
+            query: [limit: @customers_limit],
+            authorize?: false
+          )
+        end
       else
         []
       end

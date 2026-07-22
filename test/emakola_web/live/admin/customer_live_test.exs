@@ -43,6 +43,16 @@ defmodule EmakolaWeb.Admin.CustomerLiveTest do
       assert html =~ "Manage your customer base"
     end
 
+    test "caps the customer list at 100", %{conn: conn, store: store} do
+      for i <- 1..101 do
+        Factory.create_customer!(store, email: "bulk#{i}@example.com")
+      end
+
+      {:ok, _view, html} = live(conn, ~p"/admin/customers")
+
+      assert html =~ ">100</span> customers"
+    end
+
     test "renders search input", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/admin/customers")
 
