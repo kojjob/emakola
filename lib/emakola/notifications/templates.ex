@@ -120,15 +120,15 @@ defmodule Emakola.Notifications.Templates do
   # ── Connection notification templates ────────────────────────────
 
   def connection_sms(:requested, counterparty) do
-    "#{counterparty} wants to stock your products. Review the request on your Earn Network page: #{admin_url("/admin/settings/supply-network")}"
+    "#{counterparty} wants to stock your products. Review the request on your Earn Network page: #{admin_url(destination_path(:requested))}"
   end
 
   def connection_sms(:approved, counterparty) do
-    "#{counterparty} approved your connection. Wholesale pricing is now visible in your Supplier Catalog: #{admin_url("/admin/supply/catalog")}"
+    "#{counterparty} approved your connection. Wholesale pricing is now visible in your Supplier Catalog: #{admin_url(destination_path(:approved))}"
   end
 
   def connection_sms(:rejected, counterparty) do
-    "#{counterparty} declined your connection request. You can browse other suppliers in the Supplier Catalog: #{admin_url("/admin/supply/catalog")}"
+    "#{counterparty} declined your connection request. You can browse other suppliers in the Supplier Catalog: #{admin_url(destination_path(:rejected))}"
   end
 
   def connection_push(:requested, counterparty),
@@ -145,9 +145,9 @@ defmodule Emakola.Notifications.Templates do
 
   def connection_whatsapp_params(event, counterparty) do
     %{
-      "counterparty" => counterparty,
-      "event" => to_string(event),
-      "url" => admin_url(destination_path(event))
+      counterparty: counterparty,
+      event: to_string(event),
+      url: admin_url(destination_path(event))
     }
   end
 
@@ -219,15 +219,8 @@ defmodule Emakola.Notifications.Templates do
   defp currency_symbol(_), do: ""
 
   defp admin_url(path) do
-    host = admin_host()
+    host = storefront_host()
     "https://#{host}#{path}"
-  end
-
-  defp admin_host do
-    case Application.get_env(:emakola, EmakolaWeb.Endpoint)[:url][:host] do
-      nil -> "emakola.com"
-      host -> host
-    end
   end
 
   defp destination_path(:requested), do: "/admin/settings/supply-network"

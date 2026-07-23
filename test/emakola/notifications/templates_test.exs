@@ -279,12 +279,25 @@ defmodule Emakola.Notifications.TemplatesTest do
                Templates.connection_push(:rejected, "Kumasi Textiles")
     end
 
-    test "whatsapp template name and params" do
+    test "whatsapp template name and params use atom-key contract" do
       assert Templates.whatsapp_template_for(:supply_connection) ==
                "supply_connection_update"
 
       params = Templates.connection_whatsapp_params(:requested, "Adwoa's Boutique")
-      assert is_map(params)
+      assert %{counterparty: "Adwoa's Boutique", event: "requested", url: url} = params
+      assert url =~ "/admin/settings/supply-network"
+    end
+
+    test "whatsapp params for approved connection route to catalog" do
+      params = Templates.connection_whatsapp_params(:approved, "Kumasi Textiles")
+      assert %{counterparty: "Kumasi Textiles", event: "approved", url: url} = params
+      assert url =~ "/admin/supply/catalog"
+    end
+
+    test "whatsapp params for rejected connection route to catalog" do
+      params = Templates.connection_whatsapp_params(:rejected, "Kumasi Textiles")
+      assert %{counterparty: "Kumasi Textiles", event: "rejected", url: url} = params
+      assert url =~ "/admin/supply/catalog"
     end
   end
 end
