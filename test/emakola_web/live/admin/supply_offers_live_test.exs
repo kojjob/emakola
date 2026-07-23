@@ -486,6 +486,51 @@ defmodule EmakolaWeb.Admin.SupplyOffersLiveTest do
     end
   end
 
+  describe "supplier -> catalog loop" do
+    test "an offer published through the form is discoverable by another store", %{conn: conn} do
+      {supplier, supplier_store} = Factory.create_merchant_with_store!(%{name: "Loop Supply"})
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(supplier))
+
+      conn =
+        conn
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:user_token, token)
+
+      product = Factory.create_product!(supplier_store, status: :active, title: "Loop Soap")
+      variant = Factory.create_variant!(product, supplier_store, price: 2_000, stock_quantity: 9)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/offers/new")
+
+      render_change(view, "select_product", %{"product_id" => product.id})
+
+      render_change(view, "set_variant_price", %{
+        "variant-id" => variant.id,
+        "field" => "supplier",
+        "value" => "12"
+      })
+
+      render_change(view, "set_variant_price", %{
+        "variant-id" => variant.id,
+        "field" => "suggested",
+        "value" => "20"
+      })
+
+      render_click(view, "toggle_region", %{"region" => "Volta"})
+      render_change(view, "set_region_fee", %{"region" => "Volta", "value" => "8"})
+
+      view |> element("button[phx-click=publish]") |> render_click()
+
+      {reseller, reseller_store} = Factory.create_merchant_with_store!(%{name: "Loop Reseller"})
+
+      assert {:ok, [entry]} =
+               Emakola.Suppliers.Offers.list_discoverable(reseller, reseller_store.id)
+
+      assert entry.offer.source_product.title == "Loop Soap"
+      assert entry.offer.dispatch_fees == %{"Volta" => 800}
+      assert entry.connected? == false
+    end
+  end
+
   # -- fixtures ---------------------------------------------------------------
 
   def create_draft_offer!(merchant, store, title) do
