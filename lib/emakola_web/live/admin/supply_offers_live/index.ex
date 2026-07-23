@@ -122,9 +122,8 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Index do
             Products you supply to other stores on the network
           </p>
         </div>
-        <%!-- TEMP: plain-string href until Task 3 registers Admin.SupplyOffersLive.Form; then restore ~p --%>
         <.link
-          navigate="/admin/supply/offers/new"
+          navigate={~p"/admin/supply/offers/new"}
           class="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5"
         >
           New offer
@@ -171,17 +170,16 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Index do
             {status_label(offer.status)}
           </span>
           <div class="flex items-center gap-2">
-            <%!-- TEMP: plain-string href until Task 3 registers Admin.SupplyOffersLive.Form; then restore ~p --%>
             <.link
               :if={offer.status in [:draft, :paused]}
-              navigate={"/admin/supply/offers/#{offer.id}/edit"}
+              navigate={~p"/admin/supply/offers/#{offer.id}/edit"}
               class="text-sm font-medium text-slate-600 hover:text-slate-900"
             >
               Edit
             </.link>
             <.link
               :if={offer.status == :published}
-              navigate={"/admin/supply/offers/#{offer.id}/edit"}
+              navigate={~p"/admin/supply/offers/#{offer.id}/edit"}
               class="text-sm font-medium text-slate-600 hover:text-slate-900"
             >
               Edit terms

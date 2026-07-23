@@ -457,6 +457,8 @@ defmodule EmakolaWeb.Router do
       live "/admin/supply/catalog", Admin.SupplyCatalogLive.Index
       live "/admin/supply/catalog/:offer_id", Admin.SupplyCatalogLive.Show
       live "/admin/supply/offers", Admin.SupplyOffersLive.Index
+      live "/admin/supply/offers/new", Admin.SupplyOffersLive.Form, :new
+      live "/admin/supply/offers/:id/edit", Admin.SupplyOffersLive.Form, :edit
       live "/admin/suppliers/:id", Admin.SupplierLive.Show
 
       # Theme customizer
