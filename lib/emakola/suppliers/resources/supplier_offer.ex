@@ -37,6 +37,9 @@ defmodule Emakola.Suppliers.SupplierOffer do
 
     attribute(:delivery_areas, {:array, :string}, allow_nil?: false, default: [], public?: true)
 
+    # Supplier-quoted dispatch fee per delivery area, integer pesewas.
+    attribute(:dispatch_fees, :map, allow_nil?: false, default: %{}, public?: true)
+
     # What THIS supplier will honour back to the reseller on these goods.
     #
     # `return_terms` has always existed here and was never shown to anyone: the
@@ -104,6 +107,7 @@ defmodule Emakola.Suppliers.SupplierOffer do
         :source_product_id,
         :earning_model,
         :delivery_areas,
+        :dispatch_fees,
         :return_terms,
         :returns_window_days,
         :warranty_months,
@@ -120,6 +124,7 @@ defmodule Emakola.Suppliers.SupplierOffer do
 
       accept([
         :delivery_areas,
+        :dispatch_fees,
         :return_terms,
         :returns_window_days,
         :warranty_months,
@@ -154,5 +159,9 @@ defmodule Emakola.Suppliers.SupplierOffer do
       filter(expr(wholesaler_store_id == ^arg(:store_id)))
       prepare(build(sort: [inserted_at: :desc], load: [:source_product, :offer_variants]))
     end
+  end
+
+  validations do
+    validate(Emakola.Suppliers.Validations.DispatchFees)
   end
 end

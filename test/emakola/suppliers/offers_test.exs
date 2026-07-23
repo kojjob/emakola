@@ -221,6 +221,47 @@ defmodule Emakola.Suppliers.OffersTest do
     end
   end
 
+  describe "dispatch_fees" do
+    test "accepts per-area non-negative integer fees within delivery_areas", context do
+      offer = draft_offer!(context, :markup)
+
+      assert {:ok, updated} =
+               Offers.update_terms(context.wholesaler_actor, offer, %{
+                 dispatch_fees: %{"Greater Accra" => 1_500}
+               })
+
+      assert updated.dispatch_fees == %{"Greater Accra" => 1_500}
+    end
+
+    test "defaults to an empty map", context do
+      offer = draft_offer!(context, :markup)
+      assert offer.dispatch_fees == %{}
+    end
+
+    test "rejects a fee for an area not in delivery_areas", context do
+      offer = draft_offer!(context, :markup)
+
+      assert {:error, _} =
+               Offers.update_terms(context.wholesaler_actor, offer, %{
+                 dispatch_fees: %{"Volta" => 1_000}
+               })
+    end
+
+    test "rejects negative and non-integer fees", context do
+      offer = draft_offer!(context, :markup)
+
+      assert {:error, _} =
+               Offers.update_terms(context.wholesaler_actor, offer, %{
+                 dispatch_fees: %{"Greater Accra" => -5}
+               })
+
+      assert {:error, _} =
+               Offers.update_terms(context.wholesaler_actor, offer, %{
+                 dispatch_fees: %{"Greater Accra" => "15"}
+               })
+    end
+  end
+
   defp draft_offer!(context, earning_model) do
     {:ok, offer} =
       Offers.create_draft(context.wholesaler_actor, %{
