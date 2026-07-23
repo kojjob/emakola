@@ -27,6 +27,15 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
       assert has_element?(view, "button", "New Product")
     end
 
+    test "caps the product list at 100 rows", %{conn: conn, store: store} do
+      for i <- 1..101, do: Factory.create_product!(store, %{title: "Bulk Product #{i}"})
+
+      {:ok, _view, html} = live(conn, ~p"/admin/products")
+
+      # 1 header <tr> + 100 product rows
+      assert length(String.split(html, "<tr")) - 1 == 101
+    end
+
     test "renders status filter tabs", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/admin/products")
 
