@@ -200,12 +200,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
   defp save_error_message(:invalid_fixed_commission_terms),
     do: "Wholesale + commission must equal the customer price exactly."
 
-  # The unique_product_offer identity violation normally surfaces as
-  # Ash.Error.Invalid, but the Postgres index created by the migration
-  # (`supplier_offers_wholesaler_store_id_source_product_id_index`) doesn't
-  # match the name Ash's identity expects, so Ecto's constraint match misses
-  # and it comes through unmapped as Ash.Error.Unknown instead. Handle both.
-  defp save_error_message(%mod{} = error) when mod in [Ash.Error.Invalid, Ash.Error.Unknown] do
+  defp save_error_message(%Ash.Error.Invalid{} = error) do
     if duplicate_offer_error?(error) do
       "You already have an offer for this product — edit it from My Offers instead."
     else
@@ -215,11 +210,8 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
 
   defp save_error_message(_), do: "The offer could not be saved right now."
 
-  defp duplicate_offer_error?(%{errors: errors}) do
-    Enum.any?(errors, fn e ->
-      msg = Exception.message(e)
-      String.contains?(msg, "already been taken") or String.contains?(msg, "product_offer")
-    end)
+  defp duplicate_offer_error?(%Ash.Error.Invalid{errors: errors}) do
+    Enum.any?(errors, fn e -> Exception.message(e) =~ "already been taken" end)
   end
 
   # Rows with any input are parsed strictly; fully blank rows are skipped.
