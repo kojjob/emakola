@@ -72,6 +72,7 @@ defmodule Emakola.Notifications.Templates do
   def whatsapp_template_for(:order_shipped), do: "order_shipped"
   def whatsapp_template_for(:order_delivered), do: "order_delivered"
   def whatsapp_template_for(:order_cancelled), do: "order_cancelled"
+  def whatsapp_template_for(:supply_connection), do: "supply_connection_update"
 
   def whatsapp_params(order, store) do
     %{
@@ -114,6 +115,40 @@ defmodule Emakola.Notifications.Templates do
   def low_stock_digest_sms(count, store_name) do
     "#{count} items are running low on stock at #{store_name}. " <>
       "Check your dashboard for details."
+  end
+
+  # ── Connection notification templates ────────────────────────────
+
+  def connection_sms(:requested, counterparty) do
+    "#{counterparty} wants to stock your products. Review the request on your Earn Network page: #{admin_url("/admin/settings/supply-network")}"
+  end
+
+  def connection_sms(:approved, counterparty) do
+    "#{counterparty} approved your connection. Wholesale pricing is now visible in your Supplier Catalog: #{admin_url("/admin/supply/catalog")}"
+  end
+
+  def connection_sms(:rejected, counterparty) do
+    "#{counterparty} declined your connection request. You can browse other suppliers in the Supplier Catalog: #{admin_url("/admin/supply/catalog")}"
+  end
+
+  def connection_push(:requested, counterparty),
+    do: %{title: "New supply request", body: "#{counterparty} wants to stock your products."}
+
+  def connection_push(:approved, counterparty),
+    do: %{
+      title: "Connection approved",
+      body: "#{counterparty} approved your connection — wholesale pricing is unlocked."
+    }
+
+  def connection_push(:rejected, counterparty),
+    do: %{title: "Connection declined", body: "#{counterparty} declined your connection request."}
+
+  def connection_whatsapp_params(event, counterparty) do
+    %{
+      "counterparty" => counterparty,
+      "event" => to_string(event),
+      "url" => admin_url(destination_path(event))
+    }
   end
 
   # ── Formatting helpers ─────────────────────────────────────────
@@ -182,4 +217,19 @@ defmodule Emakola.Notifications.Templates do
   defp currency_symbol("NGN"), do: "\u20A6"
   defp currency_symbol("USD"), do: "$"
   defp currency_symbol(_), do: ""
+
+  defp admin_url(path) do
+    host = admin_host()
+    "https://#{host}#{path}"
+  end
+
+  defp admin_host do
+    case Application.get_env(:emakola, EmakolaWeb.Endpoint)[:url][:host] do
+      nil -> "emakola.com"
+      host -> host
+    end
+  end
+
+  defp destination_path(:requested), do: "/admin/settings/supply-network"
+  defp destination_path(_), do: "/admin/supply/catalog"
 end

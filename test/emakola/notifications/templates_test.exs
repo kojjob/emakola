@@ -242,4 +242,49 @@ defmodule Emakola.Notifications.TemplatesTest do
       assert params.ship_to == "(no address provided)"
     end
   end
+
+  # ── Connection notification templates ──────────────────────────
+
+  describe "connection notifications copy" do
+    test "requested SMS names the reseller and points at the Earn Network page" do
+      msg = Templates.connection_sms(:requested, "Adwoa's Boutique")
+      assert msg =~ "Adwoa's Boutique"
+      assert msg =~ "wants to stock your products"
+      assert msg =~ "/admin/settings/supply-network"
+    end
+
+    test "approved SMS names the wholesaler and points at the catalog" do
+      msg = Templates.connection_sms(:approved, "Kumasi Textiles")
+      assert msg =~ "Kumasi Textiles"
+      assert msg =~ "approved your connection"
+      assert msg =~ "/admin/supply/catalog"
+    end
+
+    test "rejected SMS is honest and non-dead-end" do
+      msg = Templates.connection_sms(:rejected, "Kumasi Textiles")
+      assert msg =~ "declined"
+      assert msg =~ "/admin/supply/catalog"
+    end
+
+    test "push payloads carry event-appropriate titles" do
+      assert %{title: "New supply request", body: body} =
+               Templates.connection_push(:requested, "Adwoa's Boutique")
+
+      assert body =~ "Adwoa's Boutique"
+
+      assert %{title: "Connection approved"} =
+               Templates.connection_push(:approved, "Kumasi Textiles")
+
+      assert %{title: "Connection declined"} =
+               Templates.connection_push(:rejected, "Kumasi Textiles")
+    end
+
+    test "whatsapp template name and params" do
+      assert Templates.whatsapp_template_for(:supply_connection) ==
+               "supply_connection_update"
+
+      params = Templates.connection_whatsapp_params(:requested, "Adwoa's Boutique")
+      assert is_map(params)
+    end
+  end
 end
