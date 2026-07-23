@@ -119,37 +119,49 @@ defmodule Emakola.Notifications.Templates do
 
   # ── Connection notification templates ────────────────────────────
 
-  def connection_sms(:requested, counterparty) do
+  def connection_sms(:requested, counterparty, :wants_to_stock) do
     "#{counterparty} wants to stock your products. Review the request on your Earn Network page: #{admin_url(destination_path(:requested))}"
   end
 
-  def connection_sms(:approved, counterparty) do
+  def connection_sms(:requested, counterparty, :wants_to_supply) do
+    "#{counterparty} wants to supply you products. Review the request on your Earn Network page: #{admin_url(destination_path(:requested))}"
+  end
+
+  def connection_sms(:approved, counterparty, _direction) do
     "#{counterparty} approved your connection. Wholesale pricing is now visible in your Supplier Catalog: #{admin_url(destination_path(:approved))}"
   end
 
-  def connection_sms(:rejected, counterparty) do
+  def connection_sms(:rejected, counterparty, _direction) do
     "#{counterparty} declined your connection request. You can browse other suppliers in the Supplier Catalog: #{admin_url(destination_path(:rejected))}"
   end
 
-  def connection_push(:requested, counterparty),
+  def connection_push(:requested, counterparty, :wants_to_stock),
     do: %{title: "New supply request", body: "#{counterparty} wants to stock your products."}
 
-  def connection_push(:approved, counterparty),
+  def connection_push(:requested, counterparty, :wants_to_supply),
+    do: %{title: "New supply request", body: "#{counterparty} wants to supply you products."}
+
+  def connection_push(:approved, counterparty, _direction),
     do: %{
       title: "Connection approved",
       body: "#{counterparty} approved your connection — wholesale pricing is unlocked."
     }
 
-  def connection_push(:rejected, counterparty),
+  def connection_push(:rejected, counterparty, _direction),
     do: %{title: "Connection declined", body: "#{counterparty} declined your connection request."}
 
-  def connection_whatsapp_params(event, counterparty) do
+  def connection_whatsapp_params(event, counterparty, direction) do
     %{
       counterparty: counterparty,
-      event: to_string(event),
+      event: connection_event_phrase(event, direction),
       url: admin_url(destination_path(event))
     }
   end
+
+  defp connection_event_phrase(:requested, :wants_to_stock), do: "sent you a new supply request"
+  defp connection_event_phrase(:requested, :wants_to_supply), do: "offered to supply you products"
+  defp connection_event_phrase(:approved, _direction), do: "approved your request"
+  defp connection_event_phrase(:rejected, _direction), do: "declined your request"
 
   # ── Formatting helpers ─────────────────────────────────────────
 

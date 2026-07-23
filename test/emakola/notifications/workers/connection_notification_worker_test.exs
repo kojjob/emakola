@@ -46,6 +46,17 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorkerTest do
     connection
   end
 
+  defp request_connection_wholesaler_initiated!(wholesaler_store, reseller_store, w_merchant) do
+    {:ok, connection} =
+      Network.request(w_merchant, %{
+        wholesaler_store_id: wholesaler_store.id,
+        reseller_store_id: reseller_store.id,
+        requested_by_store_id: wholesaler_store.id
+      })
+
+    connection
+  end
+
   defp perform(connection_id, event) do
     ConnectionNotificationWorker.perform(%Oban.Job{
       args: %{"connection_id" => connection_id, "event" => event}
@@ -55,7 +66,7 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorkerTest do
   # ── requested ──────────────────────────────────────────────────
 
   describe "requested" do
-    test "notifies wholesaler owners on all three channels with reseller name" do
+    test "notifies wholesaler owners on all three channels with reseller name (reseller-initiated)" do
       {w_merchant, w_store} = create_wholesaler!()
       {r_merchant, r_store} = create_reseller!()
       register_device!(w_merchant, w_store, "fcm-wholesaler-1")
@@ -66,6 +77,7 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorkerTest do
       |> expect(:send_sms, fn to, message, opts ->
         assert to == "+233240000001"
         assert message =~ r_store.name
+        assert message =~ "wants to stock your products"
         assert opts[:store_id] == w_store.id
         {:ok, %{}}
       end)
@@ -75,7 +87,7 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorkerTest do
         assert to == "+233240000001"
         assert template == "supply_connection_update"
         assert params.counterparty == r_store.name
-        assert params.event == "requested"
+        assert params.event == "sent you a new supply request"
         assert opts[:store_id] == w_store.id
         {:ok, %{}}
       end)
@@ -89,12 +101,48 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorkerTest do
 
       assert :ok == perform(connection.id, "requested")
     end
+
+    test "notifies reseller owners on all three channels with wholesaler name (wholesaler-initiated)" do
+      {w_merchant, w_store} = create_wholesaler!()
+      {r_merchant, r_store} = create_reseller!()
+      register_device!(r_merchant, r_store, "fcm-reseller-3")
+
+      connection = request_connection_wholesaler_initiated!(w_store, r_store, w_merchant)
+
+      Emakola.SMSProviderMock
+      |> expect(:send_sms, fn to, message, opts ->
+        assert to == "+233240000002"
+        assert message =~ w_store.name
+        assert message =~ "wants to supply you products"
+        assert opts[:store_id] == r_store.id
+        {:ok, %{}}
+      end)
+
+      Emakola.WhatsAppProviderMock
+      |> expect(:send_message, fn to, template, params, opts ->
+        assert to == "+233240000002"
+        assert template == "supply_connection_update"
+        assert params.counterparty == w_store.name
+        assert params.event == "offered to supply you products"
+        assert opts[:store_id] == r_store.id
+        {:ok, %{}}
+      end)
+
+      Emakola.PushProviderMock
+      |> expect(:send_push, fn token, notification ->
+        assert token == "fcm-reseller-3"
+        assert notification.body =~ w_store.name
+        {:ok, %{}}
+      end)
+
+      assert :ok == perform(connection.id, "requested")
+    end
   end
 
   # ── approved ───────────────────────────────────────────────────
 
   describe "approved" do
-    test "notifies reseller owners, copy names the wholesaler" do
+    test "notifies reseller owners, copy names the wholesaler (reseller-initiated)" do
       {w_merchant, w_store} = create_wholesaler!()
       {r_merchant, r_store} = create_reseller!()
       register_device!(r_merchant, r_store, "fcm-reseller-1")
@@ -113,7 +161,7 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorkerTest do
       Emakola.WhatsAppProviderMock
       |> expect(:send_message, fn _to, "supply_connection_update", params, opts ->
         assert params.counterparty == w_store.name
-        assert params.event == "approved"
+        assert params.event == "approved your request"
         assert opts[:store_id] == r_store.id
         {:ok, %{}}
       end)
@@ -121,6 +169,39 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorkerTest do
       Emakola.PushProviderMock
       |> expect(:send_push, fn "fcm-reseller-1", notification ->
         assert notification.body =~ w_store.name
+        {:ok, %{}}
+      end)
+
+      assert :ok == perform(connection.id, "approved")
+    end
+
+    test "notifies wholesaler owners, copy names the reseller (wholesaler-initiated)" do
+      {w_merchant, w_store} = create_wholesaler!()
+      {r_merchant, r_store} = create_reseller!()
+      register_device!(w_merchant, w_store, "fcm-wholesaler-4")
+
+      connection = request_connection_wholesaler_initiated!(w_store, r_store, w_merchant)
+      {:ok, connection} = Network.approve(r_merchant, connection)
+
+      Emakola.SMSProviderMock
+      |> expect(:send_sms, fn to, message, opts ->
+        assert to == "+233240000001"
+        assert message =~ r_store.name
+        assert opts[:store_id] == w_store.id
+        {:ok, %{}}
+      end)
+
+      Emakola.WhatsAppProviderMock
+      |> expect(:send_message, fn _to, "supply_connection_update", params, opts ->
+        assert params.counterparty == r_store.name
+        assert params.event == "approved your request"
+        assert opts[:store_id] == w_store.id
+        {:ok, %{}}
+      end)
+
+      Emakola.PushProviderMock
+      |> expect(:send_push, fn "fcm-wholesaler-4", notification ->
+        assert notification.body =~ r_store.name
         {:ok, %{}}
       end)
 
@@ -151,7 +232,7 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorkerTest do
       Emakola.WhatsAppProviderMock
       |> expect(:send_message, fn _to, "supply_connection_update", params, opts ->
         assert params.counterparty == w_store.name
-        assert params.event == "rejected"
+        assert params.event == "declined your request"
         assert opts[:store_id] == r_store.id
         {:ok, %{}}
       end)

@@ -122,7 +122,8 @@ defmodule Emakola.Suppliers.NetworkTest do
           requested_by_store_id: ctx.reseller.id
         })
 
-      # Clear the requested job
+      # all_enqueued is read-only — the requested job is still present, so we
+      # filter by event below to isolate the one this action enqueues.
       all_enqueued(worker: Emakola.Notifications.Workers.ConnectionNotificationWorker)
 
       {:ok, approved} = Network.approve(ctx.wholesaler_actor, pending)
@@ -143,7 +144,8 @@ defmodule Emakola.Suppliers.NetworkTest do
           requested_by_store_id: ctx.wholesaler.id
         })
 
-      # Clear the requested job
+      # all_enqueued is read-only — the requested job is still present, so we
+      # filter by event below to isolate the one this action enqueues.
       all_enqueued(worker: Emakola.Notifications.Workers.ConnectionNotificationWorker)
 
       {:ok, rejected} = Network.reject(ctx.reseller_actor, pending, "not a good fit")

@@ -1,10 +1,17 @@
 defmodule Emakola.Notifications.Workers.ConnectionNotificationWorker do
   @moduledoc """
   Notifies the counterparty of a supply-connection lifecycle event on all
-  channels, best-effort per channel:
+  channels, best-effort per channel. `Network.request` is bidirectional
+  (either the reseller or the wholesaler can initiate), so routing follows
+  `requested_by_store_id` rather than a fixed store role:
 
-    * "requested" → the wholesaler store's owners (a reseller wants in)
-    * "approved" / "rejected" → the reseller store's owners (the decision)
+    * "requested" → the NON-requesting store's owners (someone wants in)
+    * "approved" / "rejected" → the REQUESTING store's owners (the decision)
+
+  Copy is direction-aware: a reseller-initiated request reads "wants to
+  stock your products" (`:wants_to_stock`); a wholesaler-initiated one reads
+  "wants to supply you products" (`:wants_to_supply`). Approved/rejected
+  copy is the same either way.
 
   Enqueued by Emakola.Suppliers.Network after the domain write succeeds.
   Unique per (connection_id, event); missing data logs and returns :ok.
@@ -41,7 +48,7 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorker do
   end
 
   defp deliver(connection, event) do
-    {target_store_id, counterparty_name} = routing(connection, event)
+    {target_store_id, counterparty_name, direction} = routing(connection, event)
     event_atom = String.to_existing_atom(event)
     recipients = owner_merchants(target_store_id)
 
@@ -52,27 +59,47 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorker do
     end
 
     Enum.each(recipients, fn merchant ->
-      attempt(fn -> send_sms(merchant, event_atom, counterparty_name, target_store_id) end, "sms")
+      attempt(
+        fn -> send_sms(merchant, event_atom, counterparty_name, direction, target_store_id) end,
+        "sms"
+      )
 
       attempt(
-        fn -> send_whatsapp(merchant, event_atom, counterparty_name, target_store_id) end,
+        fn ->
+          send_whatsapp(merchant, event_atom, counterparty_name, direction, target_store_id)
+        end,
         "whatsapp"
       )
     end)
 
     attempt(
-      fn -> send_push(target_store_id, event_atom, counterparty_name, connection) end,
+      fn -> send_push(target_store_id, event_atom, counterparty_name, direction, connection) end,
       "push"
     )
 
     :ok
   end
 
-  defp routing(connection, "requested"),
-    do: {connection.wholesaler_store_id, connection.reseller_store.name}
+  # Routing follows requested_by_store_id, not a fixed store role — the
+  # requester may be either side of the connection.
+  defp routing(connection, "requested") do
+    if requester_is_wholesaler?(connection) do
+      {connection.reseller_store_id, connection.wholesaler_store.name, :wants_to_supply}
+    else
+      {connection.wholesaler_store_id, connection.reseller_store.name, :wants_to_stock}
+    end
+  end
 
-  defp routing(connection, _decision),
-    do: {connection.reseller_store_id, connection.wholesaler_store.name}
+  defp routing(connection, _decision) do
+    if requester_is_wholesaler?(connection) do
+      {connection.wholesaler_store_id, connection.reseller_store.name, :wants_to_supply}
+    else
+      {connection.reseller_store_id, connection.wholesaler_store.name, :wants_to_stock}
+    end
+  end
+
+  defp requester_is_wholesaler?(connection),
+    do: connection.requested_by_store_id == connection.wholesaler_store_id
 
   defp attempt(fun, channel) do
     fun.()
@@ -83,32 +110,34 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorker do
       )
   end
 
-  defp send_sms(%{phone: phone}, event, counterparty, store_id) when is_binary(phone) do
-    sms_provider().send_sms(phone, Templates.connection_sms(event, counterparty),
+  defp send_sms(%{phone: phone}, event, counterparty, direction, store_id)
+       when is_binary(phone) do
+    sms_provider().send_sms(phone, Templates.connection_sms(event, counterparty, direction),
       store_id: store_id
     )
   end
 
-  defp send_sms(_merchant, _event, _counterparty, _store_id), do: :ok
+  defp send_sms(_merchant, _event, _counterparty, _direction, _store_id), do: :ok
 
-  defp send_whatsapp(%{phone: phone}, event, counterparty, store_id) when is_binary(phone) do
+  defp send_whatsapp(%{phone: phone}, event, counterparty, direction, store_id)
+       when is_binary(phone) do
     whatsapp_provider().send_message(
       phone,
       Templates.whatsapp_template_for(:supply_connection),
-      Templates.connection_whatsapp_params(event, counterparty),
+      Templates.connection_whatsapp_params(event, counterparty, direction),
       store_id: store_id
     )
   end
 
-  defp send_whatsapp(_merchant, _event, _counterparty, _store_id), do: :ok
+  defp send_whatsapp(_merchant, _event, _counterparty, _direction, _store_id), do: :ok
 
   # Mirrors PushNotificationWorker's provider invocation + device-token
   # resolution exactly: same for_store query, same token iteration, same
   # unregistered-token pruning and error handling.
-  defp send_push(store_id, event, counterparty, connection) do
+  defp send_push(store_id, event, counterparty, direction, connection) do
     store_id
     |> device_tokens_for_store()
-    |> Enum.each(&deliver_push(&1, event, counterparty, connection))
+    |> Enum.each(&deliver_push(&1, event, counterparty, direction, connection))
   end
 
   defp device_tokens_for_store(store_id) do
@@ -117,10 +146,10 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorker do
     |> Ash.read!(authorize?: false, tenant: store_id)
   end
 
-  defp deliver_push(device_token, event, counterparty, connection) do
+  defp deliver_push(device_token, event, counterparty, direction, connection) do
     notification =
       event
-      |> Templates.connection_push(counterparty)
+      |> Templates.connection_push(counterparty, direction)
       |> Map.put(:data, %{"connection_id" => connection.id, "event" => to_string(event)})
 
     case push_provider().send_push(device_token.token, notification) do

@@ -246,57 +246,102 @@ defmodule Emakola.Notifications.TemplatesTest do
   # ── Connection notification templates ──────────────────────────
 
   describe "connection notifications copy" do
-    test "requested SMS names the reseller and points at the Earn Network page" do
-      msg = Templates.connection_sms(:requested, "Adwoa's Boutique")
+    test "requested SMS from a reseller (:wants_to_stock) names them and points at Earn Network" do
+      msg = Templates.connection_sms(:requested, "Adwoa's Boutique", :wants_to_stock)
       assert msg =~ "Adwoa's Boutique"
       assert msg =~ "wants to stock your products"
       assert msg =~ "/admin/settings/supply-network"
     end
 
-    test "approved SMS names the wholesaler and points at the catalog" do
-      msg = Templates.connection_sms(:approved, "Kumasi Textiles")
-      assert msg =~ "Kumasi Textiles"
-      assert msg =~ "approved your connection"
-      assert msg =~ "/admin/supply/catalog"
+    test "requested SMS from a wholesaler (:wants_to_supply) names them and offers supply" do
+      msg = Templates.connection_sms(:requested, "Kumasi Wholesale Depot", :wants_to_supply)
+      assert msg =~ "Kumasi Wholesale Depot"
+      assert msg =~ "wants to supply you products"
+      assert msg =~ "/admin/settings/supply-network"
     end
 
-    test "rejected SMS is honest and non-dead-end" do
-      msg = Templates.connection_sms(:rejected, "Kumasi Textiles")
-      assert msg =~ "declined"
-      assert msg =~ "/admin/supply/catalog"
+    test "approved SMS names the counterparty and points at the catalog, either direction" do
+      for direction <- [:wants_to_stock, :wants_to_supply] do
+        msg = Templates.connection_sms(:approved, "Kumasi Textiles", direction)
+        assert msg =~ "Kumasi Textiles"
+        assert msg =~ "approved your connection"
+        assert msg =~ "/admin/supply/catalog"
+      end
     end
 
-    test "push payloads carry event-appropriate titles" do
+    test "rejected SMS is honest and non-dead-end, either direction" do
+      for direction <- [:wants_to_stock, :wants_to_supply] do
+        msg = Templates.connection_sms(:rejected, "Kumasi Textiles", direction)
+        assert msg =~ "declined"
+        assert msg =~ "/admin/supply/catalog"
+      end
+    end
+
+    test "push payloads carry event-appropriate copy, direction-aware for requested" do
       assert %{title: "New supply request", body: body} =
-               Templates.connection_push(:requested, "Adwoa's Boutique")
+               Templates.connection_push(:requested, "Adwoa's Boutique", :wants_to_stock)
 
       assert body =~ "Adwoa's Boutique"
+      assert body =~ "wants to stock your products"
+
+      assert %{title: "New supply request", body: supply_body} =
+               Templates.connection_push(:requested, "Kumasi Wholesale Depot", :wants_to_supply)
+
+      assert supply_body =~ "Kumasi Wholesale Depot"
+      assert supply_body =~ "wants to supply you products"
 
       assert %{title: "Connection approved"} =
-               Templates.connection_push(:approved, "Kumasi Textiles")
+               Templates.connection_push(:approved, "Kumasi Textiles", :wants_to_stock)
 
       assert %{title: "Connection declined"} =
-               Templates.connection_push(:rejected, "Kumasi Textiles")
+               Templates.connection_push(:rejected, "Kumasi Textiles", :wants_to_stock)
     end
 
-    test "whatsapp template name and params use atom-key contract" do
+    test "whatsapp template name and params use atom-key contract with a display-ready event phrase" do
       assert Templates.whatsapp_template_for(:supply_connection) ==
                "supply_connection_update"
 
-      params = Templates.connection_whatsapp_params(:requested, "Adwoa's Boutique")
-      assert %{counterparty: "Adwoa's Boutique", event: "requested", url: url} = params
+      params =
+        Templates.connection_whatsapp_params(:requested, "Adwoa's Boutique", :wants_to_stock)
+
+      assert %{counterparty: "Adwoa's Boutique", event: "sent you a new supply request", url: url} =
+               params
+
+      assert url =~ "/admin/settings/supply-network"
+    end
+
+    test "whatsapp params for a wholesaler-initiated request phrase it as an offer" do
+      params =
+        Templates.connection_whatsapp_params(
+          :requested,
+          "Kumasi Wholesale Depot",
+          :wants_to_supply
+        )
+
+      assert %{
+               counterparty: "Kumasi Wholesale Depot",
+               event: "offered to supply you products",
+               url: url
+             } = params
+
       assert url =~ "/admin/settings/supply-network"
     end
 
     test "whatsapp params for approved connection route to catalog" do
-      params = Templates.connection_whatsapp_params(:approved, "Kumasi Textiles")
-      assert %{counterparty: "Kumasi Textiles", event: "approved", url: url} = params
+      params = Templates.connection_whatsapp_params(:approved, "Kumasi Textiles", :wants_to_stock)
+
+      assert %{counterparty: "Kumasi Textiles", event: "approved your request", url: url} =
+               params
+
       assert url =~ "/admin/supply/catalog"
     end
 
     test "whatsapp params for rejected connection route to catalog" do
-      params = Templates.connection_whatsapp_params(:rejected, "Kumasi Textiles")
-      assert %{counterparty: "Kumasi Textiles", event: "rejected", url: url} = params
+      params = Templates.connection_whatsapp_params(:rejected, "Kumasi Textiles", :wants_to_stock)
+
+      assert %{counterparty: "Kumasi Textiles", event: "declined your request", url: url} =
+               params
+
       assert url =~ "/admin/supply/catalog"
     end
   end
