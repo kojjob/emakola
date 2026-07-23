@@ -273,11 +273,13 @@ defmodule Emakola.Suppliers.OffersTest do
     end
   end
 
-  defp draft_offer!(context, earning_model) do
+  defp draft_offer!(context, earning_model, opts \\ []) do
+    product = Keyword.get(opts, :product, context.product)
+
     {:ok, offer} =
       Offers.create_draft(context.wholesaler_actor, %{
         wholesaler_store_id: context.wholesaler.id,
-        source_product_id: context.product.id,
+        source_product_id: product.id,
         earning_model: earning_model,
         delivery_areas: ["Greater Accra"],
         return_terms: "Returns accepted within seven days"
@@ -286,23 +288,9 @@ defmodule Emakola.Suppliers.OffersTest do
     offer
   end
 
-  defp publish_offer!(context) do
-    require Ash.Query
-
-    # Check if product has an unpublished offer; if so, try product_2
-    product =
-      case Emakola.Suppliers.SupplierOffer
-           |> Ash.Query.filter(
-             source_product_id == ^context.product.id and
-               wholesaler_store_id == ^context.wholesaler.id
-           )
-           |> Ash.Query.limit(1)
-           |> Ash.read(authorize?: false) do
-        {:ok, [_]} -> context.product_2
-        _ -> context.product
-      end
-
-    variant = if product.id == context.product_2.id, do: context.variant_2, else: context.variant
+  defp publish_offer!(context, opts \\ []) do
+    product = Keyword.get(opts, :product, context.product)
+    variant = Keyword.get(opts, :variant, context.variant)
 
     {:ok, offer} =
       Offers.create_draft(context.wholesaler_actor, %{
@@ -360,7 +348,7 @@ defmodule Emakola.Suppliers.OffersTest do
 
       assert {:ok, []} = Offers.list_discoverable(context.reseller_actor, context.reseller.id)
 
-      published = publish_offer!(context)
+      published = publish_offer!(context, product: context.product_2, variant: context.variant_2)
 
       assert {:ok, []} =
                Offers.list_discoverable(context.wholesaler_actor, context.wholesaler.id)
