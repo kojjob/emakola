@@ -389,6 +389,39 @@ defmodule Emakola.Suppliers.OffersTest do
                Offers.get_discoverable(context.reseller_actor, context.reseller.id, published.id)
     end
 
+    test "reports :unavailable for a rejected prior connection", context do
+      published = publish_offer!(context)
+
+      {:ok, conn} =
+        Network.request(context.reseller_actor, %{
+          wholesaler_store_id: context.wholesaler.id,
+          reseller_store_id: context.reseller.id,
+          requested_by_store_id: context.reseller.id
+        })
+
+      {:ok, _rejected} = Network.reject(context.wholesaler_actor, conn, "Not a fit right now")
+
+      assert {:ok, %{connection_status: :unavailable}} =
+               Offers.get_discoverable(context.reseller_actor, context.reseller.id, published.id)
+    end
+
+    test "reports :unavailable for a suspended prior connection", context do
+      published = publish_offer!(context)
+
+      {:ok, conn} =
+        Network.request(context.reseller_actor, %{
+          wholesaler_store_id: context.wholesaler.id,
+          reseller_store_id: context.reseller.id,
+          requested_by_store_id: context.reseller.id
+        })
+
+      {:ok, active} = Network.approve(context.wholesaler_actor, conn)
+      {:ok, _suspended} = Network.suspend(context.wholesaler_actor, active, "Quality issues")
+
+      assert {:ok, %{connection_status: :unavailable}} =
+               Offers.get_discoverable(context.reseller_actor, context.reseller.id, published.id)
+    end
+
     test "is :not_found for paused offers and the store's own offers", context do
       published = publish_offer!(context)
       {:ok, _} = Offers.pause(context.wholesaler_actor, published)

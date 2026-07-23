@@ -32,9 +32,11 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
   end
 
   @impl true
-  def handle_event("search", %{"search" => query}, socket) do
+  def handle_event("search", %{"search" => query}, socket) when is_binary(query) do
     {:noreply, assign(socket, search: query)}
   end
+
+  def handle_event("search", _params, socket), do: {:noreply, socket}
 
   defp load_entries(socket) do
     with %{id: store_id} <- socket.assigns[:current_store],

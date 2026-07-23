@@ -106,8 +106,13 @@ defmodule Emakola.Suppliers.Offers do
 
   @doc """
   One discoverable offer for the catalog detail page, with the reseller's
-  connection status toward its wholesaler. `{:error, :not_found}` for drafts,
-  paused/archived offers, undiscoverable products, and the store's own offers.
+  connection status toward its wholesaler:
+  `:connected | :pending | :unavailable | :none`. A rejected, suspended, or
+  terminated prior connection reports `:unavailable` rather than `:none` —
+  `Network.request/2` rejects a duplicate request against any-status prior
+  connection, so a fresh request could never succeed. `{:error, :not_found}`
+  for drafts, paused/archived offers, undiscoverable products, and the
+  store's own offers.
   """
   def get_discoverable(actor, reseller_store_id, offer_id) do
     with :ok <- ensure_access(actor, reseller_store_id) do
@@ -221,6 +226,7 @@ defmodule Emakola.Suppliers.Offers do
          |> Ash.read(authorize?: false) do
       {:ok, [%{status: :active} | _]} -> :connected
       {:ok, [%{status: :pending} | _]} -> :pending
+      {:ok, [_ | _]} -> :unavailable
       _ -> :none
     end
   end

@@ -55,8 +55,11 @@ Decisions locked with Kojo:
   active-connection wholesaler ids to compute `connected?`.
 - `get_discoverable(actor, store_id, offer_id)` →
   `{:ok, %{offer: offer, connection_status: status}}` where
-  `status ∈ :connected | :pending | :none`; `{:error, :not_found}`
-  when unpublished/undiscoverable/own offer.
+  `status ∈ :connected | :pending | :unavailable | :none`; `{:error, :not_found}`
+  when unpublished/undiscoverable/own offer. Rejected, suspended, or
+  terminated connections surface as `:unavailable` (managed from the Earn
+  Network page) because `Network.request/2` rejects a duplicate request
+  against any-status prior connection.
 - Both use the service's existing `ensure_access/2` actor check.
 
 ## 3. UI

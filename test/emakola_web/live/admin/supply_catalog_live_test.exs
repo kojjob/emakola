@@ -58,6 +58,28 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       assert html =~ "Kente Stole"
       refute html =~ "Shea Butter 500g"
     end
+
+    test "a search event without a \"search\" key does not crash the view", %{conn: conn} do
+      create_published_offer!()
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog")
+
+      render_change(view, "search", %{})
+
+      assert render(view) =~ "Supplier catalog"
+    end
+
+    test "a search event with a non-binary \"search\" value does not crash the view", %{
+      conn: conn
+    } do
+      create_published_offer!()
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog")
+
+      render_change(view, "search", %{"search" => %{"evil" => "map"}})
+
+      assert render(view) =~ "Supplier catalog"
+    end
   end
 
   describe "catalog show" do
@@ -207,6 +229,69 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
                |> Ash.Query.filter(reseller_store_id == ^reseller.id)
                |> Ash.read!(authorize?: false)
     end
+
+    test "rejected connection: shows an unavailable notice, no live request button, wholesale still hidden",
+         %{conn: conn, reseller_actor: reseller_actor, reseller: reseller} do
+      fixture = create_published_offer!()
+      reject!(reseller_actor, reseller, fixture)
+
+      {:ok, view, html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      assert html =~ "Connection unavailable"
+      assert html =~ "Manage it from your Earn Network page"
+      refute has_element?(view, "button[phx-click=request_connection]")
+      # wholesale price (3_000 pesewas) must NOT leak
+      refute html =~ EmakolaWeb.Helpers.Currency.format_price(3_000)
+    end
+
+    test "request_connection while connection is unavailable shows the specific flash, not the generic one",
+         %{conn: conn, reseller_actor: reseller_actor, reseller: reseller} do
+      fixture = create_published_offer!()
+      reject!(reseller_actor, reseller, fixture)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      # No button is rendered (crafted event), same server-side re-check
+      # discipline as import_offer.
+      html = render_click(view, "request_connection", %{})
+
+      assert html =~ "A connection with this supplier already exists"
+      assert html =~ "Earn Network page"
+
+      require Ash.Query
+
+      assert [%{status: :rejected}] =
+               Emakola.Suppliers.SupplyConnection
+               |> Ash.Query.filter(
+                 reseller_store_id == ^reseller.id and
+                   wholesaler_store_id == ^fixture.wholesaler.id
+               )
+               |> Ash.read!(authorize?: false)
+    end
+
+    test "crafted request_connection while already connected: no crash, specific flash, exactly one connection row",
+         %{conn: conn, reseller_actor: reseller_actor, reseller: reseller} do
+      fixture = create_published_offer!()
+      connect!(reseller_actor, reseller, fixture)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      # No "Request connection" button is rendered while connected — this is
+      # a crafted event, not a real click.
+      html = render_click(view, "request_connection", %{})
+
+      assert html =~ "A connection with this supplier already exists"
+
+      require Ash.Query
+
+      assert [%{status: :active}] =
+               Emakola.Suppliers.SupplyConnection
+               |> Ash.Query.filter(
+                 reseller_store_id == ^reseller.id and
+                   wholesaler_store_id == ^fixture.wholesaler.id
+               )
+               |> Ash.read!(authorize?: false)
+    end
   end
 
   # -- fixtures --------------------------------------------------------------
@@ -272,5 +357,17 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
 
     {:ok, active} = Network.approve(fixture.wholesaler_actor, conn)
     active
+  end
+
+  def reject!(reseller_actor, reseller, fixture) do
+    {:ok, conn} =
+      Network.request(reseller_actor, %{
+        wholesaler_store_id: fixture.wholesaler.id,
+        reseller_store_id: reseller.id,
+        requested_by_store_id: reseller.id
+      })
+
+    {:ok, rejected} = Network.reject(fixture.wholesaler_actor, conn, "Not a fit right now")
+    rejected
   end
 end

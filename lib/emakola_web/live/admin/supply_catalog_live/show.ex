@@ -59,6 +59,14 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
          |> assign(connection_status: :pending)
          |> put_flash(:info, "Connection requested. The supplier will review it.")}
 
+      {:error, :connection_exists} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "A connection with this supplier already exists — manage it from your Earn Network page."
+         )}
+
       {:error, _reason} ->
         {:noreply, put_flash(socket, :error, "Could not request this connection right now.")}
     end
@@ -155,7 +163,10 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
             <%!-- CTA block (buttons activated in later tasks: Task 6 wires
             "Request connection", Task 7 wires "Add to my store") --%>
             <div id="catalog-cta" class="rounded-2xl border border-slate-200 p-4 space-y-2">
-              <p :if={@connection_status != :connected} class="text-sm text-slate-600">
+              <p
+                :if={@connection_status != :connected and @connection_status != :unavailable}
+                class="text-sm text-slate-600"
+              >
                 Connect to see wholesale pricing and add this product to your store.
               </p>
 
@@ -173,6 +184,22 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
               >
                 Request sent
               </button>
+              <div :if={@connection_status == :unavailable} class="space-y-1.5">
+                <button
+                  disabled
+                  class="w-full rounded-xl bg-slate-200 text-slate-500 text-sm font-semibold px-4 py-2.5"
+                >
+                  Connection unavailable
+                </button>
+                <p class="text-xs text-slate-500">
+                  <.link
+                    navigate={~p"/admin/settings/supply-network"}
+                    class="text-emerald-700 hover:text-emerald-800 font-medium"
+                  >
+                    Manage it from your Earn Network page
+                  </.link>
+                </p>
+              </div>
               <button
                 :if={@connection_status == :connected}
                 phx-click="import_offer"
