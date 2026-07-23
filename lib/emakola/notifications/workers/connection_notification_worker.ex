@@ -52,8 +52,12 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorker do
     end
 
     Enum.each(recipients, fn merchant ->
-      attempt(fn -> send_sms(merchant, event_atom, counterparty_name) end, "sms")
-      attempt(fn -> send_whatsapp(merchant, event_atom, counterparty_name) end, "whatsapp")
+      attempt(fn -> send_sms(merchant, event_atom, counterparty_name, target_store_id) end, "sms")
+
+      attempt(
+        fn -> send_whatsapp(merchant, event_atom, counterparty_name, target_store_id) end,
+        "whatsapp"
+      )
     end)
 
     attempt(
@@ -79,22 +83,24 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorker do
       )
   end
 
-  defp send_sms(%{phone: phone}, event, counterparty) when is_binary(phone) do
-    sms_provider().send_sms(phone, Templates.connection_sms(event, counterparty), [])
+  defp send_sms(%{phone: phone}, event, counterparty, store_id) when is_binary(phone) do
+    sms_provider().send_sms(phone, Templates.connection_sms(event, counterparty),
+      store_id: store_id
+    )
   end
 
-  defp send_sms(_merchant, _event, _counterparty), do: :ok
+  defp send_sms(_merchant, _event, _counterparty, _store_id), do: :ok
 
-  defp send_whatsapp(%{phone: phone}, event, counterparty) when is_binary(phone) do
+  defp send_whatsapp(%{phone: phone}, event, counterparty, store_id) when is_binary(phone) do
     whatsapp_provider().send_message(
       phone,
       Templates.whatsapp_template_for(:supply_connection),
       Templates.connection_whatsapp_params(event, counterparty),
-      []
+      store_id: store_id
     )
   end
 
-  defp send_whatsapp(_merchant, _event, _counterparty), do: :ok
+  defp send_whatsapp(_merchant, _event, _counterparty, _store_id), do: :ok
 
   # Mirrors PushNotificationWorker's provider invocation + device-token
   # resolution exactly: same for_store query, same token iteration, same

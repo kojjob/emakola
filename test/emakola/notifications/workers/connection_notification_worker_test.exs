@@ -63,18 +63,20 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorkerTest do
       connection = request_connection!(w_store, r_store, r_merchant)
 
       Emakola.SMSProviderMock
-      |> expect(:send_sms, fn to, message, _opts ->
+      |> expect(:send_sms, fn to, message, opts ->
         assert to == "+233240000001"
         assert message =~ r_store.name
+        assert opts[:store_id] == w_store.id
         {:ok, %{}}
       end)
 
       Emakola.WhatsAppProviderMock
-      |> expect(:send_message, fn to, template, params, _opts ->
+      |> expect(:send_message, fn to, template, params, opts ->
         assert to == "+233240000001"
         assert template == "supply_connection_update"
         assert params.counterparty == r_store.name
         assert params.event == "requested"
+        assert opts[:store_id] == w_store.id
         {:ok, %{}}
       end)
 
@@ -101,16 +103,18 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorkerTest do
       {:ok, connection} = Network.approve(w_merchant, connection)
 
       Emakola.SMSProviderMock
-      |> expect(:send_sms, fn to, message, _opts ->
+      |> expect(:send_sms, fn to, message, opts ->
         assert to == "+233240000002"
         assert message =~ w_store.name
+        assert opts[:store_id] == r_store.id
         {:ok, %{}}
       end)
 
       Emakola.WhatsAppProviderMock
-      |> expect(:send_message, fn _to, "supply_connection_update", params, _opts ->
+      |> expect(:send_message, fn _to, "supply_connection_update", params, opts ->
         assert params.counterparty == w_store.name
         assert params.event == "approved"
+        assert opts[:store_id] == r_store.id
         {:ok, %{}}
       end)
 
@@ -136,17 +140,19 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorkerTest do
       {:ok, connection} = Network.reject(w_merchant, connection, "Not accepting new resellers")
 
       Emakola.SMSProviderMock
-      |> expect(:send_sms, fn to, message, _opts ->
+      |> expect(:send_sms, fn to, message, opts ->
         assert to == "+233240000002"
         assert message =~ "declined"
         assert message =~ w_store.name
+        assert opts[:store_id] == r_store.id
         {:ok, %{}}
       end)
 
       Emakola.WhatsAppProviderMock
-      |> expect(:send_message, fn _to, "supply_connection_update", params, _opts ->
+      |> expect(:send_message, fn _to, "supply_connection_update", params, opts ->
         assert params.counterparty == w_store.name
         assert params.event == "rejected"
+        assert opts[:store_id] == r_store.id
         {:ok, %{}}
       end)
 
@@ -191,10 +197,16 @@ defmodule Emakola.Notifications.Workers.ConnectionNotificationWorkerTest do
       connection = request_connection!(w_store, r_store, r_merchant)
 
       Emakola.SMSProviderMock
-      |> expect(:send_sms, fn _to, _message, _opts -> raise "sms provider down" end)
+      |> expect(:send_sms, fn _to, _message, opts ->
+        assert opts[:store_id] == w_store.id
+        raise "sms provider down"
+      end)
 
       Emakola.WhatsAppProviderMock
-      |> expect(:send_message, fn _to, _template, _params, _opts -> {:ok, %{}} end)
+      |> expect(:send_message, fn _to, _template, _params, opts ->
+        assert opts[:store_id] == w_store.id
+        {:ok, %{}}
+      end)
 
       Emakola.PushProviderMock
       |> expect(:send_push, fn _token, _notification -> {:ok, %{}} end)
