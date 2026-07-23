@@ -158,6 +158,55 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
                )
                |> Ash.read!(authorize?: false)
     end
+
+    test "import_offer creates a reseller listing when connected", %{
+      conn: conn,
+      reseller_actor: reseller_actor,
+      reseller: reseller
+    } do
+      fixture = create_published_offer!()
+      connect!(reseller_actor, reseller, fixture)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      html =
+        view
+        |> element("button[phx-click=import_offer]")
+        |> render_click()
+
+      assert html =~ "added to your store"
+
+      require Ash.Query
+
+      assert [_listing] =
+               Emakola.Suppliers.ResellerListing
+               |> Ash.Query.filter(
+                 reseller_store_id == ^reseller.id and offer_id == ^fixture.offer.id
+               )
+               |> Ash.read!(authorize?: false)
+    end
+
+    test "import_offer is rejected server-side when not connected", %{
+      conn: conn,
+      reseller: reseller
+    } do
+      fixture = create_published_offer!()
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      # No import button is rendered, but a crafted event must ALSO be
+      # rejected — the gate is server-side, not markup-deep.
+      html = render_click(view, "import_offer", %{})
+
+      refute html =~ "added to your store"
+
+      require Ash.Query
+
+      assert [] =
+               Emakola.Suppliers.ResellerListing
+               |> Ash.Query.filter(reseller_store_id == ^reseller.id)
+               |> Ash.read!(authorize?: false)
+    end
   end
 
   # -- fixtures --------------------------------------------------------------

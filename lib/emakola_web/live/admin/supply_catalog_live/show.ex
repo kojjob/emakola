@@ -64,6 +64,30 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
     end
   end
 
+  @impl true
+  def handle_event("import_offer", _params, socket) do
+    actor = socket.assigns.current_merchant
+    store = socket.assigns.current_store
+
+    # Server-side gate: re-check discoverability AND the connection before
+    # importing — a crafted event must not bypass the markup gate.
+    with {:ok, %{offer: offer, connection_status: :connected}} <-
+           Offers.get_discoverable(actor, store.id, socket.assigns.offer_id),
+         {:ok, _listing} <- Emakola.Suppliers.ListingImporter.import(actor, store.id, offer) do
+      {:noreply,
+       put_flash(socket, :info, "Product added to your store. Its images are being prepared.")}
+    else
+      {:error, :listing_exists} ->
+        {:noreply, put_flash(socket, :info, "Already in your store.")}
+
+      {:ok, %{connection_status: _not_connected}} ->
+        {:noreply, put_flash(socket, :error, "Connect with this supplier first.")}
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "This product could not be added right now.")}
+    end
+  end
+
   defp margin(variant), do: variant.suggested_retail_price - variant.supplier_price
 
   defp margin_pct(variant) do
@@ -151,8 +175,8 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
               </button>
               <button
                 :if={@connection_status == :connected}
-                disabled
-                class="w-full rounded-xl bg-emerald-600 text-white text-sm font-semibold px-4 py-2.5 opacity-90"
+                phx-click="import_offer"
+                class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5"
               >
                 Add to my store
               </button>
