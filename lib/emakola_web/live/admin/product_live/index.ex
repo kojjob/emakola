@@ -485,8 +485,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
           search: search,
           status: status_arg
         })
+        |> Ash.Query.limit(@admin_products_limit)
         |> Ash.read!(authorize?: false)
-        |> Enum.take(@admin_products_limit)
       rescue
         exception ->
           Logger.error(
