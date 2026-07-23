@@ -56,10 +56,16 @@ first image, earning-model badge, variant count, status pill
 | draft | Edit · Publish · Archive |
 | published | Pause · Archive |
 | paused | Edit · Republish · Archive |
-| archived | (none — terminal) |
+| archived | Unarchive |
 
 Publish/republish surface economics errors as flash. "New offer" CTA.
-Empty state explains what offers are and links to the catalog.
+Empty state explains what offers are and links to the catalog. Archive is
+not terminal: an archived offer returns to `draft` via Unarchive
+(`Offers.unarchive/2`), from which it can be edited and republished. Archive
+is destructive enough (it drops a live offer out of the catalog and, via
+`owner_update_and_pause_listings`, pauses every reseller's listing of it) that
+the Archive button carries a `data-confirm` before it fires; Unarchive does
+not, since it only restores editability.
 
 ## 3. Form — `/admin/supply/offers/new`, `/admin/supply/offers/:id/edit`
 (`Admin.SupplyOffersLive.Form`)
@@ -78,8 +84,10 @@ Empty state explains what offers are and links to the catalog.
 - **Delivery areas**: checkboxes for the 16 Ghana regions (module constant,
   canonical strings — keeps `dispatch_fees` keys consistent across
   suppliers). Checking a region reveals an optional dispatch-fee input
-  (GH₵); blank = no quote (catalog shows "— (ask supplier)"). Unchecking a
-  region clears its fee (the validation requires fees ⊆ areas).
+  (GH₵); a fee of `0` is accepted as free dispatch and stored as `0`, and
+  blank means no quote (catalog shows "— (ask supplier)") — the two are
+  distinct states, not the same thing. Unchecking a region clears its fee
+  (the validation requires fees ⊆ areas).
 - **Terms**: return terms (textarea), returns window days, warranty months,
   warranty terms.
 - **Buttons**: "Save draft" (create or update everything, stay) and
@@ -89,9 +97,15 @@ Empty state explains what offers are and links to the catalog.
 - **Restricted edit** (published offers): pricing table read-only with a
   note ("Pricing is locked while the offer is live — pause to edit");
   terms/areas/fees remain editable via `update_terms`.
-- Draft/paused edit: full form; variant rows can be priced, re-priced, or
-  removed (`update_variant`/`remove_variant`); newly added product variants
-  appear as unpriced rows addable via `add_variant`.
+- **Variant table renders every one of the product's variants, priced or
+  not** — not just the ones with persisted terms — on both `:new` and
+  `:edit`. This matters on `:new` too: a partial save (some rows persist,
+  one fails) must not make the failed row's inputs disappear on retry.
+  Draft/paused edit: variant rows can be priced (`add_variant`), re-priced
+  (`update_variant`), or removed (`remove_variant`) via a per-row "Remove"
+  button shown only for rows with persisted terms on an editable (non-locked)
+  offer; a crafted `remove_variant` for a terms id that isn't part of the
+  offer flashes and changes nothing.
 
 ## 4. Money & input safety
 
