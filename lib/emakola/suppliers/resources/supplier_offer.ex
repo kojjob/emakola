@@ -157,7 +157,13 @@ defmodule Emakola.Suppliers.SupplierOffer do
     read :owned_by_store do
       argument(:store_id, :uuid, allow_nil?: false)
       filter(expr(wholesaler_store_id == ^arg(:store_id)))
-      prepare(build(sort: [inserted_at: :desc], load: [:source_product, :offer_variants]))
+
+      prepare(
+        build(
+          sort: [inserted_at: :desc],
+          load: [source_product: :images, offer_variants: :source_variant]
+        )
+      )
     end
   end
 

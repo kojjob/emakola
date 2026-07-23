@@ -273,6 +273,78 @@ defmodule Emakola.Suppliers.OffersTest do
     end
   end
 
+  describe "update_variant/4 and remove_variant/3" do
+    test "reprices and removes variants while the offer is a draft", context do
+      offer = draft_offer!(context, :markup)
+
+      {:ok, terms} =
+        Offers.add_variant(context.wholesaler_actor, offer, %{
+          source_variant_id: context.variant.id,
+          supplier_price: 3_000,
+          suggested_retail_price: 4_000
+        })
+
+      assert {:ok, updated} =
+               Offers.update_variant(context.wholesaler_actor, offer, terms, %{
+                 supplier_price: 3_200,
+                 suggested_retail_price: 4_800
+               })
+
+      assert updated.supplier_price == 3_200
+
+      assert :ok = Offers.remove_variant(context.wholesaler_actor, offer, updated)
+
+      assert {:error, :offer_requires_variants} =
+               Offers.publish(context.wholesaler_actor, offer)
+    end
+
+    test "allows editing while paused, and republish re-validates economics", context do
+      published = publish_offer!(context)
+      {:ok, paused} = Offers.pause(context.wholesaler_actor, published)
+
+      [terms] =
+        paused |> Ash.load!(:offer_variants, authorize?: false) |> Map.get(:offer_variants)
+
+      assert {:ok, updated} =
+               Offers.update_variant(context.wholesaler_actor, paused, terms, %{
+                 supplier_price: 3_500,
+                 suggested_retail_price: 4_000
+               })
+
+      assert updated.supplier_price == 3_500
+      assert {:ok, _} = Offers.publish(context.wholesaler_actor, paused)
+    end
+
+    test "rejects edits on published offers and for foreign actors", context do
+      published = publish_offer!(context)
+
+      [terms] =
+        published |> Ash.load!(:offer_variants, authorize?: false) |> Map.get(:offer_variants)
+
+      assert {:error, :offer_not_editable} =
+               Offers.update_variant(context.wholesaler_actor, published, terms, %{
+                 supplier_price: 1
+               })
+
+      assert {:error, :offer_not_editable} =
+               Offers.remove_variant(context.wholesaler_actor, published, terms)
+
+      {:ok, paused} = Offers.pause(context.wholesaler_actor, published)
+
+      assert {:error, :forbidden} =
+               Offers.update_variant(context.reseller_actor, paused, terms, %{supplier_price: 1})
+    end
+  end
+
+  describe "GhanaRegions" do
+    test "exposes the 16 canonical regions" do
+      regions = Emakola.Suppliers.GhanaRegions.all()
+      assert length(regions) == 16
+      assert "Greater Accra" in regions
+      assert "Bono East" in regions
+    end
+  end
+
   defp draft_offer!(context, earning_model, opts \\ []) do
     product = Keyword.get(opts, :product, context.product)
 

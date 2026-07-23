@@ -38,6 +38,30 @@ defmodule Emakola.Suppliers.Offers do
     end
   end
 
+  @doc """
+  Reprices one variant's terms. Allowed only while the offer is editable
+  (`:draft` or `:paused`) — published economics are locked because importers
+  priced against them; republish re-validates economics.
+  """
+  def update_variant(actor, offer, variant, attrs) do
+    with :ok <- ensure_access(actor, offer.wholesaler_store_id),
+         :ok <- ensure_editable(offer) do
+      variant
+      |> Ash.Changeset.for_update(:update_terms, attrs)
+      |> Ash.update(authorize?: false)
+    end
+  end
+
+  @doc "Removes one variant's terms from an editable (draft/paused) offer."
+  def remove_variant(actor, offer, variant) do
+    with :ok <- ensure_access(actor, offer.wholesaler_store_id),
+         :ok <- ensure_editable(offer) do
+      variant
+      |> Ash.Changeset.for_destroy(:destroy)
+      |> Ash.destroy(authorize?: false)
+    end
+  end
+
   def publish(actor, offer) do
     with :ok <- ensure_access(actor, offer.wholesaler_store_id),
          {:ok, product} <- get_product(offer.source_product_id),
