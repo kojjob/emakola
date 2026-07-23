@@ -359,4 +359,52 @@ defmodule Emakola.Suppliers.OffersTest do
       assert id == published.id
     end
   end
+
+  describe "get_discoverable/3" do
+    test "returns the offer with :none when no connection exists", context do
+      published = publish_offer!(context)
+
+      assert {:ok, %{offer: offer, connection_status: :none}} =
+               Offers.get_discoverable(context.reseller_actor, context.reseller.id, published.id)
+
+      assert offer.id == published.id
+    end
+
+    test "reports :pending and :connected connection states", context do
+      published = publish_offer!(context)
+
+      {:ok, conn} =
+        Network.request(context.reseller_actor, %{
+          wholesaler_store_id: context.wholesaler.id,
+          reseller_store_id: context.reseller.id,
+          requested_by_store_id: context.reseller.id
+        })
+
+      assert {:ok, %{connection_status: :pending}} =
+               Offers.get_discoverable(context.reseller_actor, context.reseller.id, published.id)
+
+      {:ok, _} = Network.approve(context.wholesaler_actor, conn)
+
+      assert {:ok, %{connection_status: :connected}} =
+               Offers.get_discoverable(context.reseller_actor, context.reseller.id, published.id)
+    end
+
+    test "is :not_found for paused offers and the store's own offers", context do
+      published = publish_offer!(context)
+      {:ok, _} = Offers.pause(context.wholesaler_actor, published)
+
+      assert {:error, :not_found} =
+               Offers.get_discoverable(context.reseller_actor, context.reseller.id, published.id)
+
+      republished =
+        publish_offer!(context, product: context.product_2, variant: context.variant_2)
+
+      assert {:error, :not_found} =
+               Offers.get_discoverable(
+                 context.wholesaler_actor,
+                 context.wholesaler.id,
+                 republished.id
+               )
+    end
+  end
 end

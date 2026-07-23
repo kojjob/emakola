@@ -104,6 +104,46 @@ defmodule Emakola.Suppliers.Offers do
     end
   end
 
+  @doc """
+  One discoverable offer for the catalog detail page, with the reseller's
+  connection status toward its wholesaler. `{:error, :not_found}` for drafts,
+  paused/archived offers, undiscoverable products, and the store's own offers.
+  """
+  def get_discoverable(actor, reseller_store_id, offer_id) do
+    with :ok <- ensure_access(actor, reseller_store_id) do
+      query =
+        SupplierOffer
+        |> Ash.Query.filter(
+          id == ^offer_id and status == :published and
+            wholesaler_store_id != ^reseller_store_id
+        )
+        |> Ash.Query.load([
+          :wholesaler_store,
+          source_product: :images,
+          offer_variants: :source_variant
+        ])
+
+      case Ash.read_one(query, authorize?: false) do
+        {:ok, nil} ->
+          {:error, :not_found}
+
+        {:ok, offer} ->
+          if discoverable?(offer) do
+            {:ok,
+             %{
+               offer: offer,
+               connection_status: connection_status(reseller_store_id, offer.wholesaler_store_id)
+             }}
+          else
+            {:error, :not_found}
+          end
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end
+  end
+
   defp owner_update(actor, offer, action) do
     with :ok <- ensure_access(actor, offer.wholesaler_store_id) do
       offer
@@ -167,6 +207,21 @@ defmodule Emakola.Suppliers.Offers do
          |> Ash.read(authorize?: false) do
       {:ok, connections} -> {:ok, Enum.map(connections, & &1.wholesaler_store_id)}
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp connection_status(reseller_store_id, wholesaler_store_id) do
+    case SupplyConnection
+         |> Ash.Query.filter(
+           reseller_store_id == ^reseller_store_id and
+             wholesaler_store_id == ^wholesaler_store_id
+         )
+         |> Ash.Query.sort(inserted_at: :desc)
+         |> Ash.Query.limit(1)
+         |> Ash.read(authorize?: false) do
+      {:ok, [%{status: :active} | _]} -> :connected
+      {:ok, [%{status: :pending} | _]} -> :pending
+      _ -> :none
     end
   end
 
