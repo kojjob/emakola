@@ -86,6 +86,24 @@ defmodule Emakola.Suppliers.Offers do
     end
   end
 
+  @doc """
+  Every published, discoverable offer on the network EXCEPT the store's own —
+  the browse-all supplier catalog. Each entry carries `connected?` so callers
+  can gate wholesale pricing. Query-capped at 200 (scaling boundary; see spec).
+  """
+  def list_discoverable(actor, reseller_store_id) do
+    with :ok <- ensure_access(actor, reseller_store_id),
+         {:ok, connected_ids} <- connected_wholesaler_ids(reseller_store_id),
+         {:ok, offers} <- discoverable_offers(reseller_store_id) do
+      connected = MapSet.new(connected_ids)
+
+      {:ok,
+       Enum.map(offers, fn offer ->
+         %{offer: offer, connected?: MapSet.member?(connected, offer.wholesaler_store_id)}
+       end)}
+    end
+  end
+
   defp owner_update(actor, offer, action) do
     with :ok <- ensure_access(actor, offer.wholesaler_store_id) do
       offer
@@ -111,6 +129,22 @@ defmodule Emakola.Suppliers.Offers do
     case SupplierOffer
          |> Ash.Query.filter(status == :published and wholesaler_store_id in ^wholesaler_ids)
          |> Ash.Query.sort(published_at: :desc)
+         |> Ash.Query.load([
+           :wholesaler_store,
+           source_product: :images,
+           offer_variants: :source_variant
+         ])
+         |> Ash.read(authorize?: false) do
+      {:ok, offers} -> {:ok, Enum.filter(offers, &discoverable?/1)}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp discoverable_offers(excluding_store_id) do
+    case SupplierOffer
+         |> Ash.Query.filter(status == :published and wholesaler_store_id != ^excluding_store_id)
+         |> Ash.Query.sort(published_at: :desc)
+         |> Ash.Query.limit(200)
          |> Ash.Query.load([
            :wholesaler_store,
            source_product: :images,
