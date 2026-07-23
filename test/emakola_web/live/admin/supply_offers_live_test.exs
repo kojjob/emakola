@@ -264,6 +264,140 @@ defmodule EmakolaWeb.Admin.SupplyOffersLiveTest do
     end
   end
 
+  describe "offer form (publish + models + restricted edit)" do
+    setup %{conn: conn} do
+      {merchant, store} = Factory.create_merchant_with_store!(%{name: "Publish Supply"})
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
+
+      conn =
+        conn
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:user_token, token)
+
+      product = Factory.create_product!(store, status: :active, title: "Kente Sash")
+      variant = Factory.create_variant!(product, store, price: 8_000, stock_quantity: 5)
+
+      %{conn: conn, merchant: merchant, store: store, product: product, variant: variant}
+    end
+
+    test "publish from the form makes the offer live", %{
+      conn: conn,
+      store: store,
+      product: product,
+      variant: variant
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/offers/new")
+
+      render_change(view, "select_product", %{"product_id" => product.id})
+
+      render_change(view, "set_variant_price", %{
+        "variant-id" => variant.id,
+        "field" => "supplier",
+        "value" => "50"
+      })
+
+      render_change(view, "set_variant_price", %{
+        "variant-id" => variant.id,
+        "field" => "suggested",
+        "value" => "80"
+      })
+
+      render_click(view, "toggle_region", %{"region" => "Ashanti"})
+
+      view |> element("button[phx-click=publish]") |> render_click()
+
+      require Ash.Query
+
+      [offer] =
+        Emakola.Suppliers.SupplierOffer
+        |> Ash.Query.filter(wholesaler_store_id == ^store.id)
+        |> Ash.read!(authorize?: false)
+
+      assert offer.status == :published
+    end
+
+    test "fixed commission must reconcile exactly", %{
+      conn: conn,
+      product: product,
+      variant: variant
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/offers/new")
+
+      render_change(view, "select_product", %{"product_id" => product.id})
+      render_click(view, "select_model", %{"model" => "fixed_commission"})
+
+      for {field, value} <- [{"supplier", "50"}, {"suggested", "80"}, {"commission", "20"}] do
+        render_change(view, "set_variant_price", %{
+          "variant-id" => variant.id,
+          "field" => field,
+          "value" => value
+        })
+      end
+
+      html = view |> element("button[phx-click=save_draft]") |> render_click()
+      assert html =~ "must equal the customer price exactly"
+
+      render_change(view, "set_variant_price", %{
+        "variant-id" => variant.id,
+        "field" => "commission",
+        "value" => "30"
+      })
+
+      view |> element("button[phx-click=save_draft]") |> render_click()
+
+      require Ash.Query
+
+      [offer] =
+        Emakola.Suppliers.SupplierOffer
+        |> Ash.Query.filter(source_product_id == ^product.id)
+        |> Ash.Query.load(:offer_variants)
+        |> Ash.read!(authorize?: false)
+
+      assert [%{fixed_commission_amount: 3_000}] = offer.offer_variants
+    end
+
+    test "published offers open in restricted edit", %{
+      conn: conn,
+      merchant: merchant,
+      store: store,
+      product: product,
+      variant: variant
+    } do
+      {:ok, offer} =
+        Offers.create_draft(merchant, %{
+          wholesaler_store_id: store.id,
+          source_product_id: product.id,
+          earning_model: :markup,
+          delivery_areas: ["Greater Accra"]
+        })
+
+      {:ok, _} =
+        Offers.add_variant(merchant, offer, %{
+          source_variant_id: variant.id,
+          supplier_price: 5_000,
+          suggested_retail_price: 8_000
+        })
+
+      {:ok, _} = Offers.publish(merchant, offer)
+
+      {:ok, view, html} = live(conn, ~p"/admin/supply/offers/#{offer.id}/edit")
+
+      assert html =~ "Pricing is locked while the offer is live"
+      assert has_element?(view, "input[name=value][disabled]")
+
+      render_change(view, "set_term", %{"field" => "return_terms", "value" => "14-day returns"})
+      view |> element("button[phx-click=save_draft]") |> render_click()
+
+      reloaded = Ash.get!(Emakola.Suppliers.SupplierOffer, offer.id, authorize?: false)
+      assert reloaded.return_terms == "14-day returns"
+      # pricing untouched
+      [terms] =
+        reloaded |> Ash.load!(:offer_variants, authorize?: false) |> Map.get(:offer_variants)
+
+      assert terms.supplier_price == 5_000
+    end
+  end
+
   # -- fixtures ---------------------------------------------------------------
 
   def create_draft_offer!(merchant, store, title) do

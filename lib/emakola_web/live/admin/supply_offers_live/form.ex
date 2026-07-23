@@ -167,22 +167,68 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
     save(socket)
   end
 
+  def handle_event("publish", _params, socket) do
+    case do_save(socket) do
+      {:ok, offer} ->
+        case Offers.publish(socket.assigns.current_merchant, offer) do
+          {:ok, _} ->
+            {:noreply,
+             socket
+             |> put_flash(:info, "Offer published — it is now live in the catalog.")
+             |> push_navigate(to: ~p"/admin/supply/offers")}
+
+          {:error, reason} ->
+            {:noreply,
+             socket
+             |> put_flash(:error, publish_error_message(reason))
+             |> push_navigate(to: ~p"/admin/supply/offers/#{offer.id}/edit")}
+        end
+
+      {:error_socket, socket} ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_event(_event, _params, socket), do: {:noreply, socket}
 
   # ── Save ──
 
-  defp save(%{assigns: %{product: nil}} = socket) do
-    {:noreply, assign(socket, errors: %{base: "Pick a product first."})}
+  defp save(socket) do
+    case do_save(socket) do
+      {:ok, offer} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Draft saved.")
+         |> push_navigate(to: ~p"/admin/supply/offers/#{offer.id}/edit")}
+
+      {:error_socket, socket} ->
+        {:noreply, socket}
+    end
   end
 
-  defp save(socket) do
+  defp do_save(%{assigns: %{product: nil}} = socket),
+    do: {:error_socket, assign(socket, errors: %{base: "Pick a product first."})}
+
+  # Published offers: terms-only save — pricing rows are locked in the UI and
+  # deliberately not written here either.
+  defp do_save(%{assigns: %{locked?: true, offer: offer}} = socket) do
+    case parse_fees(socket) do
+      {:ok, fees} ->
+        case Offers.update_terms(socket.assigns.current_merchant, offer, term_attrs(socket, fees)) do
+          {:ok, offer} -> {:ok, offer}
+          {:error, _} -> {:error_socket, put_flash(socket, :error, "Terms could not be saved.")}
+        end
+
+      {:error, errors} ->
+        {:error_socket, assign(socket, errors: errors)}
+    end
+  end
+
+  defp do_save(socket) do
     with {:ok, priced} <- parse_rows(socket),
          {:ok, fees} <- parse_fees(socket),
-         {:ok, offer} <- upsert_offer(socket, priced, fees) do
-      {:noreply,
-       socket
-       |> put_flash(:info, "Draft saved.")
-       |> push_navigate(to: ~p"/admin/supply/offers/#{offer.id}/edit")}
+         {:ok, socket} <- upsert_offer(socket, priced, fees) do
+      {:ok, socket.assigns.offer}
     else
       # `%{} = errors` also matches Ash error structs (they're maps too), so
       # this must be guarded to only catch our own plain validation-error maps
@@ -190,12 +236,33 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
       # unique_product_offer identity violation) gets assigned to @errors
       # instead of flashed, and `@errors[:base]` crashes on the struct.
       {:error, errors} when is_map(errors) and not is_struct(errors) ->
-        {:noreply, assign(socket, errors: errors)}
+        {:error_socket, assign(socket, errors: errors)}
+
+      # upsert_offer/3 already created (or reused) the offer before its later
+      # step failed — the 3rd element is the socket with that offer bound to
+      # @offer, so a retry reuses it instead of calling create_draft again and
+      # tripping the unique_product_offer identity.
+      {:error, reason, socket} ->
+        {:error_socket, put_flash(socket, :error, save_error_message(reason))}
 
       {:error, reason} ->
-        {:noreply, put_flash(socket, :error, save_error_message(reason))}
+        {:error_socket, put_flash(socket, :error, save_error_message(reason))}
     end
   end
+
+  defp publish_error_message(:source_product_not_sellable),
+    do: "The source product must be active before publishing."
+
+  defp publish_error_message(:offer_requires_variants),
+    do: "Add at least one priced variant before publishing."
+
+  defp publish_error_message(:offer_requires_available_variant),
+    do: "The source product has no available stock to offer."
+
+  defp publish_error_message(:invalid_offer_economics),
+    do: "Fix the pricing first — every priced variant needs valid economics."
+
+  defp publish_error_message(_), do: "The offer could not be published right now."
 
   defp save_error_message(:invalid_fixed_commission_terms),
     do: "Wholesale + commission must equal the customer price exactly."
@@ -289,9 +356,39 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
   defp upsert_offer(socket, priced, fees) do
     actor = socket.assigns.current_merchant
     store = socket.assigns.current_store
+    term_attrs = term_attrs(socket, fees)
+
+    case ensure_offer(socket, actor, store, term_attrs) do
+      {:ok, offer} ->
+        result =
+          with :ok <- save_rows(actor, offer, priced),
+               {:ok, offer} <- Offers.update_terms(actor, offer, term_attrs) do
+            {:ok, offer}
+          else
+            {:error, reason} -> {:error, reason, offer}
+          end
+
+        # Bind the offer (with variants preloaded — @offer drives
+        # source_variants/1 in this view) regardless of outcome: a retry
+        # after a partial failure must find it via @offer rather than call
+        # create_draft again and trip the unique_product_offer identity.
+        case result do
+          {:ok, offer} -> {:ok, assign(socket, offer: with_variants(offer))}
+          {:error, reason, offer} -> {:error, reason, assign(socket, offer: with_variants(offer))}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp with_variants(offer),
+    do: Ash.load!(offer, [offer_variants: :source_variant], authorize?: false)
+
+  defp term_attrs(socket, fees) do
     terms = socket.assigns.terms
 
-    term_attrs = %{
+    %{
       delivery_areas: MapSet.to_list(socket.assigns.areas),
       dispatch_fees: fees,
       return_terms: presence(terms["return_terms"]),
@@ -299,12 +396,6 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
       warranty_months: parse_int(terms["warranty_months"]),
       warranty_terms: presence(terms["warranty_terms"])
     }
-
-    with {:ok, offer} <- ensure_offer(socket, actor, store, term_attrs),
-         :ok <- save_rows(actor, offer, priced),
-         {:ok, offer} <- Offers.update_terms(actor, offer, term_attrs) do
-      {:ok, offer}
-    end
   end
 
   defp ensure_offer(%{assigns: %{offer: %{} = offer}}, _actor, _store, _terms), do: {:ok, offer}
@@ -621,8 +712,20 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
               phx-click="save_draft"
               class="rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold px-5 py-2.5"
             >
-              Save draft
+              {if @locked?, do: "Save terms", else: "Save draft"}
             </button>
+            <button
+              :if={!@locked?}
+              phx-click="publish"
+              class="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-5 py-2.5"
+            >
+              {if @offer && @offer.status == :paused, do: "Republish", else: "Publish"}
+            </button>
+            <p :if={@locked?} class="text-xs text-slate-500">
+              Pricing is locked while the offer is live — pause it from
+              <.link navigate={~p"/admin/supply/offers"} class="text-emerald-700">My Offers</.link>
+              to edit prices. Terms, areas, and fees save normally.
+            </p>
           </div>
         </div>
       </div>
