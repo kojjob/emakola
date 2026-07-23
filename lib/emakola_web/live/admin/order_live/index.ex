@@ -271,8 +271,8 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
           status: status_arg,
           search: search_arg
         })
+        |> Ash.Query.limit(@orders_per_page)
         |> Ash.read!(authorize?: false)
-        |> Enum.take(@orders_per_page)
       rescue
         exception ->
           Logger.error(

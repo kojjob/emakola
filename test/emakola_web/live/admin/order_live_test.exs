@@ -33,6 +33,15 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       assert html =~ "No orders found"
     end
 
+    test "caps the order list at 50 rows", %{conn: conn, store: store, customer: customer} do
+      for _ <- 1..51, do: create_order!(store.id, customer.id, :pending)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/orders")
+
+      # 1 header <tr> + 50 order rows
+      assert length(String.split(html, "<tr")) - 1 == 51
+    end
+
     test "filters orders by status", %{conn: conn, store: store, customer: customer} do
       pending_order = create_order!(store.id, customer.id, :pending)
       confirmed_order = create_order!(store.id, customer.id, :confirmed)
