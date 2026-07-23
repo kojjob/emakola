@@ -305,14 +305,29 @@ defmodule Emakola.Suppliers.OffersTest do
       [terms] =
         paused |> Ash.load!(:offer_variants, authorize?: false) |> Map.get(:offer_variants)
 
+      # Equal prices pass resource validation but must fail service-level markup rule
       assert {:ok, updated} =
                Offers.update_variant(context.wholesaler_actor, paused, terms, %{
                  supplier_price: 3_500,
-                 suggested_retail_price: 4_000
+                 suggested_retail_price: 3_500
                })
 
       assert updated.supplier_price == 3_500
-      assert {:ok, _} = Offers.publish(context.wholesaler_actor, paused)
+
+      assert {:error, :invalid_offer_economics} =
+               Offers.publish(context.wholesaler_actor, paused)
+    end
+
+    test "rejects edits with suggested_retail_price <= supplier_price", context do
+      offer = draft_offer!(context, :markup)
+
+      # Resource-level validation: suggested must be strictly > supplier
+      assert {:error, _} =
+               Offers.add_variant(context.wholesaler_actor, offer, %{
+                 source_variant_id: context.variant.id,
+                 supplier_price: 3_500,
+                 suggested_retail_price: 3_400
+               })
     end
 
     test "rejects edits on published offers and for foreign actors", context do
