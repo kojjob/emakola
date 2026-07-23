@@ -132,6 +132,32 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       # "Ashanti" is a delivery area with no fee quoted
       assert html =~ "ask supplier"
     end
+
+    test "request_connection creates a pending connection and flips the CTA", %{
+      conn: conn,
+      reseller: reseller
+    } do
+      fixture = create_published_offer!()
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      html =
+        view
+        |> element("button[phx-click=request_connection]")
+        |> render_click()
+
+      assert html =~ "Request sent"
+
+      require Ash.Query
+
+      assert [%{status: :pending}] =
+               Emakola.Suppliers.SupplyConnection
+               |> Ash.Query.filter(
+                 reseller_store_id == ^reseller.id and
+                   wholesaler_store_id == ^fixture.wholesaler.id
+               )
+               |> Ash.read!(authorize?: false)
+    end
   end
 
   # -- fixtures --------------------------------------------------------------

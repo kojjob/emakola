@@ -41,6 +41,29 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
     end
   end
 
+  @impl true
+  def handle_event("request_connection", _params, socket) do
+    store = socket.assigns.current_store
+
+    result =
+      Emakola.Suppliers.Network.request(socket.assigns.current_merchant, %{
+        wholesaler_store_id: socket.assigns.offer.wholesaler_store_id,
+        reseller_store_id: store.id,
+        requested_by_store_id: store.id
+      })
+
+    case result do
+      {:ok, _connection} ->
+        {:noreply,
+         socket
+         |> assign(connection_status: :pending)
+         |> put_flash(:info, "Connection requested. The supplier will review it.")}
+
+      {:error, _reason} ->
+        {:noreply, put_flash(socket, :error, "Could not request this connection right now.")}
+    end
+  end
+
   defp margin(variant), do: variant.suggested_retail_price - variant.supplier_price
 
   defp margin_pct(variant) do
@@ -114,8 +137,8 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
 
               <button
                 :if={@connection_status == :none}
-                disabled
-                class="w-full rounded-xl bg-emerald-600 text-white text-sm font-semibold px-4 py-2.5 opacity-90"
+                phx-click="request_connection"
+                class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5"
               >
                 Request connection
               </button>
