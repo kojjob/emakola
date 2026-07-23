@@ -323,7 +323,7 @@ defmodule Emakola.Themes.Atelier.Sections.Hero do
   defp valid_hero_image?(""), do: false
 
   defp valid_hero_image?(url) when is_binary(url) do
-    String.starts_with?(url, "/uploads/") || String.starts_with?(url, "/images/")
+    Emakola.Storage.trusted_media_url?(url)
   end
 
   defp valid_hero_image?(_), do: false

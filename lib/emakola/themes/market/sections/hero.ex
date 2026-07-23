@@ -168,14 +168,12 @@ defmodule Emakola.Themes.Market.Sections.Hero do
 
   defp present(_value), do: nil
 
-  # Local upload paths only — mirrors Atelier's valid_hero_image?/1. The
+  # Platform-owned media URLs only — mirrors Atelier's valid_hero_image?/1. The
   # write path (HomeSections.sanitize_entry) already blocks non-http(s)
   # schemes for :image_url settings; this render-side gate additionally
   # keeps remote URLs out of the src position.
   defp valid_image(url) when is_binary(url) do
-    if String.starts_with?(url, "/uploads/") or String.starts_with?(url, "/images/"),
-      do: url,
-      else: nil
+    if Emakola.Storage.trusted_media_url?(url), do: url, else: nil
   end
 
   defp valid_image(_url), do: nil

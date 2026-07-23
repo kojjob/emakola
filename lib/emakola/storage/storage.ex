@@ -37,4 +37,19 @@ defmodule Emakola.Storage do
   def replicate(source_url, path, opts \\ []), do: impl().replicate(source_url, path, opts)
   def delete(path), do: impl().delete(path)
   def presigned_url(path, opts \\ []), do: impl().presigned_url(path, opts)
+
+  @doc """
+  Whether a URL points at media this platform serves or stores: a local
+  upload path (`Local` adapter), a bundled static asset, or an object on
+  the configured S3 public host. Render-side gates (theme hero sections)
+  use this to keep arbitrary remote URLs out of `src` positions.
+  """
+  @spec trusted_media_url?(term()) :: boolean()
+  def trusted_media_url?(url) when is_binary(url) do
+    String.starts_with?(url, "/uploads/") or
+      String.starts_with?(url, "/images/") or
+      String.starts_with?(url, Emakola.Storage.S3.public_base_url())
+  end
+
+  def trusted_media_url?(_url), do: false
 end

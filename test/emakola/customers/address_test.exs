@@ -179,5 +179,55 @@ defmodule Emakola.Customers.AddressTest do
 
       assert reloaded.is_default == true
     end
+
+    test "customer actor cannot set another customer's address as default", %{
+      store: store,
+      customer: customer
+    } do
+      victim = create_customer!(store, email: "victim@example.com")
+      victim_addr = create_address!(victim, store, line_1: "Victim St", city: "Accra")
+
+      assert {:error, %Ash.Error.Forbidden{}} =
+               Emakola.Customers.Address
+               |> Ash.ActionInput.for_action(:set_as_default, %{address_id: victim_addr.id},
+                 actor: customer
+               )
+               |> Ash.run_action()
+
+      reloaded = Ash.get!(Emakola.Customers.Address, victim_addr.id, authorize?: false)
+      assert reloaded.is_default == false
+    end
+
+    test "customer actor can set their own address as default", %{
+      store: store,
+      customer: customer
+    } do
+      addr = create_address!(customer, store, line_1: "Mine", city: "Accra")
+
+      assert {:ok, _} =
+               Emakola.Customers.Address
+               |> Ash.ActionInput.for_action(:set_as_default, %{address_id: addr.id},
+                 actor: customer
+               )
+               |> Ash.run_action()
+
+      reloaded = Ash.get!(Emakola.Customers.Address, addr.id, authorize?: false)
+      assert reloaded.is_default == true
+    end
+
+    test "non-customer actor is rejected", %{store: store, customer: customer} do
+      merchant = create_merchant!()
+      addr = create_address!(customer, store, line_1: "Guarded", city: "Accra")
+
+      assert {:error, %Ash.Error.Forbidden{}} =
+               Emakola.Customers.Address
+               |> Ash.ActionInput.for_action(:set_as_default, %{address_id: addr.id},
+                 actor: merchant
+               )
+               |> Ash.run_action()
+
+      reloaded = Ash.get!(Emakola.Customers.Address, addr.id, authorize?: false)
+      assert reloaded.is_default == false
+    end
   end
 end

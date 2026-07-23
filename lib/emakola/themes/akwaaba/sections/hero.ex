@@ -227,12 +227,10 @@ defmodule Emakola.Themes.Akwaaba.Sections.Hero do
 
   defp present(_value), do: nil
 
-  # Local upload paths only — a remote URL in a src position sourced from
+  # Platform-owned media URLs only — a remote URL in a src position sourced from
   # merchant settings is a stored-XSS sink.
   defp valid_image(url) when is_binary(url) do
-    if String.starts_with?(url, "/uploads/") or String.starts_with?(url, "/images/"),
-      do: url,
-      else: nil
+    if Emakola.Storage.trusted_media_url?(url), do: url, else: nil
   end
 
   defp valid_image(_url), do: nil

@@ -168,9 +168,7 @@ defmodule Emakola.Themes.Pace.Sections.Hero do
   # :image_url settings; this render-side gate additionally keeps remote
   # URLs out of the src position.
   defp valid_image(url) when is_binary(url) do
-    if String.starts_with?(url, "/uploads/") or String.starts_with?(url, "/images/"),
-      do: url,
-      else: nil
+    if Emakola.Storage.trusted_media_url?(url), do: url, else: nil
   end
 
   defp valid_image(_url), do: nil
