@@ -46,6 +46,9 @@ defmodule EmakolaWeb.Storefront.StoreLive do
      # Returns and warranty: the merchant's own terms, which themes used to
      # invent. No row and no numbers means they have promised nothing.
      |> assign(:page_content, EmakolaWeb.Storefront.ContentLoader.load(store.id))
+     # Fetched once at mount — render_theme_home must stay DB-free because
+     # render/1 re-runs on every diff pass (e.g. each search keystroke).
+     |> assign(:published_home_page, Emakola.Pages.fetch_published_page(store, "home"))
      |> assign(:public_coupons, public_coupons)
      |> assign(:cart_session_id, cart_session_id)
      |> assign(:cart_count, cart_count)
@@ -121,7 +124,7 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   # to the active theme's home renderer (existing behaviour, zero risk to
   # stores that haven't opted in).
   defp render_theme_home(assigns) do
-    case Emakola.Pages.fetch_published_page(assigns.store, "home") do
+    case assigns.published_home_page do
       {:ok, page} ->
         Emakola.PageBuilder.Renderer.page(%{
           __changed__: nil,

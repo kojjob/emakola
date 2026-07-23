@@ -3,6 +3,42 @@ defmodule EmakolaWeb.Storefront.StoreLiveTest do
   import Phoenix.LiveViewTest
   alias Emakola.Factory
 
+  describe "page-builder home override" do
+    test "renders the published home page instead of the theme home", %{conn: conn} do
+      store = Factory.create_store!(%{theme_config: %{"theme" => "market"}})
+
+      {:ok, _page} =
+        Emakola.Pages.create_page(
+          %{
+            store_id: store.id,
+            slug: "home",
+            title: "Custom Home",
+            published: true,
+            blocks: [
+              %{
+                "id" => "b1",
+                "type" => "text_section",
+                "content" => %{"title" => "Handmade in Accra"}
+              }
+            ]
+          },
+          authorize?: false
+        )
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+
+      assert html =~ "Handmade in Accra"
+    end
+
+    test "falls through to the theme home when no page is published", %{conn: conn} do
+      store = Factory.create_store!(%{theme_config: %{"theme" => "market"}})
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+
+      assert html =~ ~r/<header[^>]*role="banner"/
+    end
+  end
+
   describe "Market home chrome (theme-owned nav)" do
     test "renders a banner header with cart, search, and category navigation", %{conn: conn} do
       store =
