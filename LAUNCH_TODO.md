@@ -176,3 +176,6 @@ also needs a real device token, which only the Phase 1 Flutter client mints
       webhook route, no env reads — deliberately NOT in the setup guide).
       When subscription billing becomes a real feature: SDK + route +
       `STRIPE_*` secrets + its own PROVIDER_SETUP section.
+- [ ] **Requester-side supply-invite throttle** (N/day per requesting store)
+      before real SMS keys go live — hostile invites currently consume the
+      victim store's SMS rate bucket.

@@ -36,13 +36,22 @@ New `Emakola.Notifications.Workers.ConnectionNotificationWorker` (Oban,
 
 ## 2. Triggers & recipients
 
+`Network.request` is bidirectional — either the wholesaler or the reseller
+may initiate (`requested_by_store_id` carries which one), and
+`counterparty_update` always makes the *other* store the approver/rejecter.
+Routing therefore follows `requested_by_store_id`, not a fixed store role.
 `Emakola.Suppliers.Network` enqueues AFTER the domain write succeeds:
 
-| Service call | Event | Recipients |
-|---|---|---|
-| `request/2` | `"requested"` | wholesaler store's owner-role members |
-| `approve/2` | `"approved"` | reseller store's owner-role members |
-| `reject/2` | `"rejected"` | reseller store's owner-role members |
+| Service call | Event | Recipients | Counterparty name in copy |
+|---|---|---|---|
+| `request/2` | `"requested"` | the NON-requesting store's owner-role members | the requesting store |
+| `approve/2` | `"approved"` | the requesting store's owner-role members | the deciding (non-requesting) store |
+| `reject/2` | `"rejected"` | the requesting store's owner-role members | the deciding (non-requesting) store |
+
+Copy for `"requested"` is direction-aware: `:wants_to_stock` when the
+reseller initiated ("wants to stock your products"), `:wants_to_supply` when
+the wholesaler initiated ("wants to supply you products"). Approved/rejected
+copy reads the same regardless of who initiated.
 
 Recipients = merchants via `StoreMembership` (role `:owner`) for the target
 store. Per-recipient contact: `merchant.phone` for SMS/WhatsApp (silently
@@ -113,3 +122,7 @@ LiveView seal:
 - Suspend/terminate/reactivate notices; email channel; a notification-feed
   UI; per-merchant notification preferences; charging dispatch fees
   (sub-project 3).
+- Requester-side invite throttle + Earn opt-in gate for slug invites —
+  tracked fast-follow gated on real SMS keys (final-review I2:
+  recipient-scoped rate limiting doesn't throttle attackers and hostile
+  invites consume the victim's SMS bucket).
