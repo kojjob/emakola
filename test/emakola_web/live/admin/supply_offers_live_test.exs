@@ -356,6 +356,94 @@ defmodule EmakolaWeb.Admin.SupplyOffersLiveTest do
       assert [%{fixed_commission_amount: 3_000}] = offer.offer_variants
     end
 
+    test "a multi-variant save retries the failed row without duplicating the persisted one", %{
+      conn: conn,
+      store: store,
+      product: product,
+      variant: variant
+    } do
+      variant_b = Factory.create_variant!(product, store, price: 8_000, stock_quantity: 5)
+
+      # save_rows/3 processes rows in `parse_rows/1`'s `priced` list order,
+      # which — because that list is built by prepending during a reduce
+      # over the socket's `rows` map (itself ordered ascending by key term
+      # order for binary/UUID keys, not insertion order) — ends up
+      # *descending* by variant id. Price whichever id sorts last validly so
+      # it's the row that persists before the other (invalid) row halts the
+      # save — reproducing the "first row succeeds, second fails" scenario
+      # deterministically regardless of which random UUID each variant gets.
+      {ok_variant, bad_variant} =
+        if variant.id > variant_b.id, do: {variant, variant_b}, else: {variant_b, variant}
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/offers/new")
+
+      render_change(view, "select_product", %{"product_id" => product.id})
+
+      render_change(view, "set_variant_price", %{
+        "variant-id" => ok_variant.id,
+        "field" => "supplier",
+        "value" => "30"
+      })
+
+      render_change(view, "set_variant_price", %{
+        "variant-id" => ok_variant.id,
+        "field" => "suggested",
+        "value" => "50"
+      })
+
+      # Equal supplier/suggested prices parse fine but fail the strictly-
+      # greater markup economics check at add_variant time.
+      render_change(view, "set_variant_price", %{
+        "variant-id" => bad_variant.id,
+        "field" => "supplier",
+        "value" => "40"
+      })
+
+      render_change(view, "set_variant_price", %{
+        "variant-id" => bad_variant.id,
+        "field" => "suggested",
+        "value" => "40"
+      })
+
+      html = view |> element("button[phx-click=save_draft]") |> render_click()
+
+      assert html =~ "could not be saved"
+
+      require Ash.Query
+
+      [offer] =
+        Emakola.Suppliers.SupplierOffer
+        |> Ash.Query.filter(source_product_id == ^product.id)
+        |> Ash.Query.load(:offer_variants)
+        |> Ash.read!(authorize?: false)
+
+      assert offer.status == :draft
+      assert [%{source_variant_id: persisted_id}] = offer.offer_variants
+      assert persisted_id == ok_variant.id
+
+      # fix the bad row and retry
+      render_change(view, "set_variant_price", %{
+        "variant-id" => bad_variant.id,
+        "field" => "suggested",
+        "value" => "60"
+      })
+
+      assert {:error, {:live_redirect, _}} =
+               view |> element("button[phx-click=save_draft]") |> render_click()
+
+      reloaded =
+        Emakola.Suppliers.SupplierOffer
+        |> Ash.Query.filter(source_product_id == ^product.id)
+        |> Ash.Query.load(:offer_variants)
+        |> Ash.read!(authorize?: false)
+        |> List.first()
+
+      assert length(reloaded.offer_variants) == 2
+
+      assert Enum.any?(reloaded.offer_variants, &(&1.source_variant_id == ok_variant.id))
+      assert Enum.any?(reloaded.offer_variants, &(&1.source_variant_id == bad_variant.id))
+    end
+
     test "published offers open in restricted edit", %{
       conn: conn,
       merchant: merchant,

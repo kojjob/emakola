@@ -360,25 +360,36 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
 
     case ensure_offer(socket, actor, store, term_attrs) do
       {:ok, offer} ->
-        result =
-          with :ok <- save_rows(actor, offer, priced),
-               {:ok, offer} <- Offers.update_terms(actor, offer, term_attrs) do
-            {:ok, offer}
-          else
-            {:error, reason} -> {:error, reason, offer}
-          end
-
         # Bind the offer (with variants preloaded — @offer drives
-        # source_variants/1 in this view) regardless of outcome: a retry
-        # after a partial failure must find it via @offer rather than call
-        # create_draft again and trip the unique_product_offer identity.
-        case result do
-          {:ok, offer} -> {:ok, assign(socket, offer: with_variants(offer))}
-          {:error, reason, offer} -> {:error, reason, assign(socket, offer: with_variants(offer))}
+        # source_variants/1 in this view) and the row state (successful
+        # add_variant calls get their new terms_id recorded — see
+        # save_rows/4) regardless of outcome: a retry after a partial
+        # failure must find both via @offer/@rows rather than call
+        # create_draft/add_variant again for rows already persisted, which
+        # would trip the unique_product_offer/unique_offer_variant identities.
+        case save_rows_and_terms(actor, offer, priced, socket.assigns.rows, term_attrs) do
+          {:ok, offer, rows} ->
+            {:ok, assign(socket, offer: with_variants(offer), rows: rows)}
+
+          {:error, reason, offer, rows} ->
+            {:error, reason, assign(socket, offer: with_variants(offer), rows: rows)}
         end
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  defp save_rows_and_terms(actor, offer, priced, rows, term_attrs) do
+    case save_rows(actor, offer, priced, rows) do
+      {:ok, rows} ->
+        case Offers.update_terms(actor, offer, term_attrs) do
+          {:ok, offer} -> {:ok, offer, rows}
+          {:error, reason} -> {:error, reason, offer, rows}
+        end
+
+      {:error, reason, rows} ->
+        {:error, reason, offer, rows}
     end
   end
 
@@ -411,8 +422,12 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
     )
   end
 
-  defp save_rows(actor, offer, priced) do
-    Enum.reduce_while(priced, :ok, fn {vid, terms_id, attrs}, :ok ->
+  # Persists each row and returns `{:ok, rows}` | `{:error, reason, rows}`.
+  # A row that persists this attempt via add_variant has its new terms_id
+  # recorded in `rows` so a retry after a later row's failure goes through
+  # update_variant instead of re-adding (and tripping unique_offer_variant).
+  defp save_rows(actor, offer, priced, rows) do
+    Enum.reduce_while(priced, {:ok, rows}, fn {vid, terms_id, attrs}, {:ok, rows} ->
       result =
         if terms_id do
           variant = Enum.find(offer.offer_variants, &(&1.id == terms_id))
@@ -422,8 +437,12 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
         end
 
       case result do
-        {:ok, _} -> {:cont, :ok}
-        {:error, reason} -> {:halt, {:error, reason}}
+        {:ok, terms} ->
+          rows = if terms_id, do: rows, else: put_in(rows, [vid, :terms_id], terms.id)
+          {:cont, {:ok, rows}}
+
+        {:error, reason} ->
+          {:halt, {:error, reason, rows}}
       end
     end)
   end
