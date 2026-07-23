@@ -2602,6 +2602,17 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
           </span>
         </div>
 
+        <p class="text-xs text-slate-500 mb-3">
+          Browsing has moved:
+          <.link navigate="/admin/supply/catalog" class="text-emerald-700 font-medium">
+            Supplier Catalog
+          </.link>
+          · manage your own offers in
+          <.link navigate="/admin/supply/offers" class="text-emerald-700 font-medium">
+            My Offers
+          </.link>
+        </p>
+
         <div id="earn-offers" phx-update="stream" class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           <div
             id="offers-empty"

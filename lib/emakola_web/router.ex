@@ -456,6 +456,7 @@ defmodule EmakolaWeb.Router do
       live "/admin/settings/supply-network", Admin.SupplyNetworkLive
       live "/admin/supply/catalog", Admin.SupplyCatalogLive.Index
       live "/admin/supply/catalog/:offer_id", Admin.SupplyCatalogLive.Show
+      live "/admin/supply/offers", Admin.SupplyOffersLive.Index
       live "/admin/suppliers/:id", Admin.SupplierLive.Show
 
       # Theme customizer
