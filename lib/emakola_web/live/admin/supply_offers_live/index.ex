@@ -37,6 +37,10 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Index do
     lifecycle(socket, id, &Offers.archive/2, "Offer archived.")
   end
 
+  def handle_event("unarchive_offer", %{"id" => id}, socket) when is_binary(id) do
+    lifecycle(socket, id, &Offers.unarchive/2, "Offer restored to draft.")
+  end
+
   def handle_event(_event, _params, socket), do: {:noreply, socket}
 
   defp lifecycle(socket, id, fun, success_message) do
@@ -204,9 +208,18 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Index do
               :if={offer.status != :archived}
               phx-click="archive_offer"
               phx-value-id={offer.id}
+              data-confirm="Archiving is permanent for this offer — you can restore it later from the archived state. Continue?"
               class="text-sm font-medium text-slate-400 hover:text-slate-600"
             >
               Archive
+            </button>
+            <button
+              :if={offer.status == :archived}
+              phx-click="unarchive_offer"
+              phx-value-id={offer.id}
+              class="text-sm font-medium text-slate-600 hover:text-slate-900"
+            >
+              Unarchive
             </button>
           </div>
         </div>

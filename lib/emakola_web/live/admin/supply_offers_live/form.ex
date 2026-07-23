@@ -189,6 +189,24 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
     end
   end
 
+  def handle_event("remove_variant", %{"terms-id" => terms_id}, socket)
+      when is_binary(terms_id) do
+    offer = socket.assigns.offer
+    variant = offer && Enum.find(offer.offer_variants, &(&1.id == terms_id))
+
+    case variant && Offers.remove_variant(socket.assigns.current_merchant, offer, variant) do
+      :ok ->
+        {:noreply,
+         assign(socket,
+           offer: with_variants(offer),
+           rows: Map.delete(socket.assigns.rows, variant.source_variant_id)
+         )}
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "That row could not be removed right now.")}
+    end
+  end
+
   def handle_event(_event, _params, socket), do: {:noreply, socket}
 
   # ── Save ──
@@ -345,6 +363,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
       Enum.reduce(socket.assigns.fees, {%{}, %{}}, fn {region, value}, {acc, errs} ->
         case Money.parse_price(value || "") do
           {:ok, pesewas} -> {Map.put(acc, region, pesewas), errs}
+          :zero -> {Map.put(acc, region, 0), errs}
           :skip -> {acc, errs}
           _ -> {acc, Map.put(errs, {:fee, region}, "must be a valid amount")}
         end
@@ -473,13 +492,16 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
     end
   end
 
-  defp source_variants(%{offer: %{} = offer}),
-    do: Enum.map(offer.offer_variants, & &1.source_variant)
-
+  # ALL of the product's variants, priced or not — not just the ones with
+  # persisted terms. Matching on `%{offer: %{}}` first used to hide any row
+  # that hadn't (yet) persisted, so a partial-failure retry on :new lost the
+  # failed rows' inputs, and :edit never offered unpriced product variants
+  # for `add_variant`. Row pricing/terms_id still comes from `@rows`.
   defp source_variants(%{product: %{} = product}), do: product.variants
   defp source_variants(_assigns), do: []
 
   defp row_value(rows, vid, field), do: get_in(rows, [vid, field]) || ""
+  defp row_terms_id(rows, vid), do: get_in(rows, [vid, :terms_id])
 
   @impl true
   def render(assigns) do
@@ -616,6 +638,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
                     <th class="px-4 py-2.5">Customer price</th>
                     <th class="px-4 py-2.5">Commission</th>
                   <% end %>
+                  <th class="px-4 py-2.5"></th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
@@ -669,6 +692,17 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
                       />
                     </td>
                   <% end %>
+                  <td class="px-4 py-3">
+                    <button
+                      :if={!@locked? && row_terms_id(@rows, variant.id)}
+                      phx-click="remove_variant"
+                      phx-value-terms-id={row_terms_id(@rows, variant.id)}
+                      data-confirm="Remove this variant's pricing from the offer?"
+                      class="text-xs font-medium text-red-600 hover:text-red-800"
+                    >
+                      Remove
+                    </button>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -760,7 +794,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
 
   defp price_input(assigns) do
     ~H"""
-    <form phx-change="set_variant_price">
+    <form id={"variant-price-#{@variant_id}-#{@field}"} phx-change="set_variant_price">
       <input type="hidden" name="variant-id" value={@variant_id} />
       <input type="hidden" name="field" value={@field} />
       <input

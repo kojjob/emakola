@@ -102,6 +102,55 @@ defmodule EmakolaWeb.Admin.SupplyOffersLiveTest do
       reloaded = Ash.get!(Emakola.Suppliers.SupplierOffer, foreign.id, authorize?: false)
       assert reloaded.status == :draft
     end
+
+    test "archiving asks for confirmation before it happens", %{
+      conn: conn,
+      merchant: merchant,
+      store: store
+    } do
+      _offer = create_draft_offer!(merchant, store, "Confirmable")
+
+      {:ok, _view, html} = live(conn, ~p"/admin/supply/offers")
+
+      assert html =~ "Archiving is permanent for this offer"
+    end
+
+    test "an archived offer has no lifecycle actions except Unarchive, which returns it to draft",
+         %{conn: conn, merchant: merchant, store: store} do
+      offer = create_draft_offer!(merchant, store, "Archived Row")
+      {:ok, archived} = Offers.archive(merchant, offer)
+
+      {:ok, view, html} = live(conn, ~p"/admin/supply/offers")
+
+      assert html =~ "Archived"
+
+      refute has_element?(
+               view,
+               ~s{button[phx-click=publish_offer][phx-value-id="#{archived.id}"]}
+             )
+
+      refute has_element?(view, ~s{button[phx-click=pause_offer][phx-value-id="#{archived.id}"]})
+
+      refute has_element?(
+               view,
+               ~s{button[phx-click=archive_offer][phx-value-id="#{archived.id}"]}
+             )
+
+      assert has_element?(
+               view,
+               ~s{button[phx-click=unarchive_offer][phx-value-id="#{archived.id}"]}
+             )
+
+      html2 =
+        view
+        |> element(~s{button[phx-click=unarchive_offer][phx-value-id="#{archived.id}"]})
+        |> render_click()
+
+      assert html2 =~ "Draft"
+
+      reloaded = Ash.get!(Emakola.Suppliers.SupplierOffer, archived.id, authorize?: false)
+      assert reloaded.status == :draft
+    end
   end
 
   describe "offer form (new, markup)" do
@@ -201,6 +250,44 @@ defmodule EmakolaWeb.Admin.SupplyOffersLiveTest do
                Emakola.Suppliers.SupplierOffer
                |> Ash.Query.filter(wholesaler_store_id == ^store.id)
                |> Ash.read!(authorize?: false)
+    end
+
+    test "a GH₵0 dispatch fee saves as free dispatch, not a parse error", %{
+      conn: conn,
+      store: store,
+      variant: variant,
+      product: product
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/offers/new")
+
+      render_change(view, "select_product", %{"product_id" => product.id})
+
+      render_change(view, "set_variant_price", %{
+        "variant-id" => variant.id,
+        "field" => "supplier",
+        "value" => "10"
+      })
+
+      render_change(view, "set_variant_price", %{
+        "variant-id" => variant.id,
+        "field" => "suggested",
+        "value" => "20"
+      })
+
+      render_click(view, "toggle_region", %{"region" => "Greater Accra"})
+      render_change(view, "set_region_fee", %{"region" => "Greater Accra", "value" => "0"})
+
+      assert {:error, {:live_redirect, _}} =
+               view |> element("button[phx-click=save_draft]") |> render_click()
+
+      require Ash.Query
+
+      [offer] =
+        Emakola.Suppliers.SupplierOffer
+        |> Ash.Query.filter(wholesaler_store_id == ^store.id)
+        |> Ash.read!(authorize?: false)
+
+      assert offer.dispatch_fees == %{"Greater Accra" => 0}
     end
 
     test "unchecking a region clears its fee", %{conn: conn, product: product} do
@@ -421,12 +508,14 @@ defmodule EmakolaWeb.Admin.SupplyOffersLiveTest do
       assert [%{source_variant_id: persisted_id}] = offer.offer_variants
       assert persisted_id == ok_variant.id
 
-      # fix the bad row and retry
-      render_change(view, "set_variant_price", %{
-        "variant-id" => bad_variant.id,
-        "field" => "suggested",
-        "value" => "60"
-      })
+      # Fix the bad row and retry — driven through the actual rendered input
+      # (not a direct event dispatch) so this fails if the row's input isn't
+      # in the DOM after the partial failure, which is exactly the bug: the
+      # table used to switch to only-persisted variants on a partial save,
+      # so the failed row's inputs vanished.
+      view
+      |> element("#variant-price-#{bad_variant.id}-suggested")
+      |> render_change(%{"value" => "60"})
 
       assert {:error, {:live_redirect, _}} =
                view |> element("button[phx-click=save_draft]") |> render_click()
@@ -483,6 +572,121 @@ defmodule EmakolaWeb.Admin.SupplyOffersLiveTest do
         reloaded |> Ash.load!(:offer_variants, authorize?: false) |> Map.get(:offer_variants)
 
       assert terms.supplier_price == 5_000
+    end
+  end
+
+  describe "offer form (:edit — unpriced product variants and remove)" do
+    setup %{conn: conn} do
+      {merchant, store} = Factory.create_merchant_with_store!(%{name: "Edit Row Supply"})
+      token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))
+
+      conn =
+        conn
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:user_token, token)
+
+      product = Factory.create_product!(store, status: :active, title: "Two Variant Product")
+
+      variant =
+        Factory.create_variant!(product, store, price: 5_000, sku: "V1", stock_quantity: 5)
+
+      variant_b =
+        Factory.create_variant!(product, store, price: 6_000, sku: "V2", stock_quantity: 5)
+
+      {:ok, offer} =
+        Offers.create_draft(merchant, %{
+          wholesaler_store_id: store.id,
+          source_product_id: product.id,
+          earning_model: :markup,
+          delivery_areas: ["Greater Accra"]
+        })
+
+      {:ok, terms} =
+        Offers.add_variant(merchant, offer, %{
+          source_variant_id: variant.id,
+          supplier_price: 3_000,
+          suggested_retail_price: 4_000
+        })
+
+      %{
+        conn: conn,
+        merchant: merchant,
+        store: store,
+        product: product,
+        variant: variant,
+        variant_b: variant_b,
+        offer: offer,
+        terms: terms
+      }
+    end
+
+    test "an unpriced product variant renders and pricing it adds it (add_variant path)", %{
+      conn: conn,
+      offer: offer,
+      variant_b: variant_b
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/offers/#{offer.id}/edit")
+
+      assert has_element?(view, "#variant-price-#{variant_b.id}-supplier")
+
+      view
+      |> element("#variant-price-#{variant_b.id}-supplier")
+      |> render_change(%{"value" => "20"})
+
+      view
+      |> element("#variant-price-#{variant_b.id}-suggested")
+      |> render_change(%{"value" => "35"})
+
+      view |> element("button[phx-click=save_draft]") |> render_click()
+
+      reloaded =
+        Emakola.Suppliers.SupplierOffer
+        |> Ash.get!(offer.id, authorize?: false)
+        |> Ash.load!(:offer_variants, authorize?: false)
+
+      assert length(reloaded.offer_variants) == 2
+      assert Enum.any?(reloaded.offer_variants, &(&1.source_variant_id == variant_b.id))
+    end
+
+    test "Remove destroys the row's terms and it renders unpriced after", %{
+      conn: conn,
+      offer: offer,
+      variant: variant,
+      terms: terms
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/offers/#{offer.id}/edit")
+
+      remove_selector = ~s{button[phx-click=remove_variant][phx-value-terms-id="#{terms.id}"]}
+      assert has_element?(view, remove_selector)
+
+      view |> element(remove_selector) |> render_click()
+
+      refute has_element?(view, remove_selector)
+      assert has_element?(view, "#variant-price-#{variant.id}-supplier")
+
+      require Ash.Query
+
+      remaining =
+        Emakola.Suppliers.SupplierOfferVariant
+        |> Ash.Query.filter(offer_id == ^offer.id)
+        |> Ash.read!(authorize?: false)
+
+      assert remaining == []
+    end
+
+    test "a crafted remove_variant with a foreign terms-id no-ops with a flash", %{
+      conn: conn,
+      offer: offer,
+      terms: terms
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/offers/#{offer.id}/edit")
+
+      html = render_click(view, "remove_variant", %{"terms-id" => Ash.UUID.generate()})
+
+      assert html =~ "could not be removed"
+
+      reloaded = Ash.get!(Emakola.Suppliers.SupplierOfferVariant, terms.id, authorize?: false)
+      assert reloaded.id == terms.id
     end
   end
 
