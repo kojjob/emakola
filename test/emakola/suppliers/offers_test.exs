@@ -17,13 +17,24 @@ defmodule Emakola.Suppliers.OffersTest do
         stock_quantity: 10
       )
 
+    product_2 = create_product!(wholesaler, status: :active, title: "Shared cocoa")
+
+    variant_2 =
+      create_variant!(product_2, wholesaler,
+        price: 8_000,
+        sku: "COCOA-500",
+        stock_quantity: 15
+      )
+
     {:ok,
      wholesaler_actor: wholesaler_actor,
      wholesaler: wholesaler,
      reseller_actor: reseller_actor,
      reseller: reseller,
      product: product,
-     variant: variant}
+     variant: variant,
+     product_2: product_2,
+     variant_2: variant_2}
   end
 
   test "creates terms that reference, rather than copy, existing catalog records", context do
@@ -221,11 +232,54 @@ defmodule Emakola.Suppliers.OffersTest do
     end
   end
 
-  defp draft_offer!(context, earning_model) do
+  describe "dispatch_fees" do
+    test "accepts per-area non-negative integer fees within delivery_areas", context do
+      offer = draft_offer!(context, :markup)
+
+      assert {:ok, updated} =
+               Offers.update_terms(context.wholesaler_actor, offer, %{
+                 dispatch_fees: %{"Greater Accra" => 1_500}
+               })
+
+      assert updated.dispatch_fees == %{"Greater Accra" => 1_500}
+    end
+
+    test "defaults to an empty map", context do
+      offer = draft_offer!(context, :markup)
+      assert offer.dispatch_fees == %{}
+    end
+
+    test "rejects a fee for an area not in delivery_areas", context do
+      offer = draft_offer!(context, :markup)
+
+      assert {:error, _} =
+               Offers.update_terms(context.wholesaler_actor, offer, %{
+                 dispatch_fees: %{"Volta" => 1_000}
+               })
+    end
+
+    test "rejects negative and non-integer fees", context do
+      offer = draft_offer!(context, :markup)
+
+      assert {:error, _} =
+               Offers.update_terms(context.wholesaler_actor, offer, %{
+                 dispatch_fees: %{"Greater Accra" => -5}
+               })
+
+      assert {:error, _} =
+               Offers.update_terms(context.wholesaler_actor, offer, %{
+                 dispatch_fees: %{"Greater Accra" => "15"}
+               })
+    end
+  end
+
+  defp draft_offer!(context, earning_model, opts \\ []) do
+    product = Keyword.get(opts, :product, context.product)
+
     {:ok, offer} =
       Offers.create_draft(context.wholesaler_actor, %{
         wholesaler_store_id: context.wholesaler.id,
-        source_product_id: context.product.id,
+        source_product_id: product.id,
         earning_model: earning_model,
         delivery_areas: ["Greater Accra"],
         return_terms: "Returns accepted within seven days"
@@ -234,12 +288,22 @@ defmodule Emakola.Suppliers.OffersTest do
     offer
   end
 
-  defp publish_offer!(context) do
-    offer = draft_offer!(context, :markup)
+  defp publish_offer!(context, opts \\ []) do
+    product = Keyword.get(opts, :product, context.product)
+    variant = Keyword.get(opts, :variant, context.variant)
+
+    {:ok, offer} =
+      Offers.create_draft(context.wholesaler_actor, %{
+        wholesaler_store_id: context.wholesaler.id,
+        source_product_id: product.id,
+        earning_model: :markup,
+        delivery_areas: ["Greater Accra"],
+        return_terms: "Returns accepted within seven days"
+      })
 
     {:ok, _terms} =
       Offers.add_variant(context.wholesaler_actor, offer, %{
-        source_variant_id: context.variant.id,
+        source_variant_id: variant.id,
         supplier_price: 3_000,
         suggested_retail_price: 4_000,
         max_retail_price: 5_000
@@ -247,5 +311,133 @@ defmodule Emakola.Suppliers.OffersTest do
 
     {:ok, published} = Offers.publish(context.wholesaler_actor, offer)
     published
+  end
+
+  describe "list_discoverable/2" do
+    test "includes published offers from UNconnected wholesalers, flagged connected?: false",
+         context do
+      published = publish_offer!(context)
+
+      assert {:ok, [entry]} =
+               Offers.list_discoverable(context.reseller_actor, context.reseller.id)
+
+      assert entry.offer.id == published.id
+      assert entry.connected? == false
+    end
+
+    test "flags offers from connected wholesalers with connected?: true", context do
+      publish_offer!(context)
+
+      {:ok, conn} =
+        Network.request(context.reseller_actor, %{
+          wholesaler_store_id: context.wholesaler.id,
+          reseller_store_id: context.reseller.id,
+          requested_by_store_id: context.reseller.id
+        })
+
+      {:ok, _} = Network.approve(context.wholesaler_actor, conn)
+
+      assert {:ok, [entry]} =
+               Offers.list_discoverable(context.reseller_actor, context.reseller.id)
+
+      assert entry.connected? == true
+    end
+
+    test "excludes the store's own offers and drafts", context do
+      _draft_only = draft_offer!(context, :markup)
+
+      assert {:ok, []} = Offers.list_discoverable(context.reseller_actor, context.reseller.id)
+
+      published = publish_offer!(context, product: context.product_2, variant: context.variant_2)
+
+      assert {:ok, []} =
+               Offers.list_discoverable(context.wholesaler_actor, context.wholesaler.id)
+
+      assert {:ok, [%{offer: %{id: id}}]} =
+               Offers.list_discoverable(context.reseller_actor, context.reseller.id)
+
+      assert id == published.id
+    end
+  end
+
+  describe "get_discoverable/3" do
+    test "returns the offer with :none when no connection exists", context do
+      published = publish_offer!(context)
+
+      assert {:ok, %{offer: offer, connection_status: :none}} =
+               Offers.get_discoverable(context.reseller_actor, context.reseller.id, published.id)
+
+      assert offer.id == published.id
+    end
+
+    test "reports :pending and :connected connection states", context do
+      published = publish_offer!(context)
+
+      {:ok, conn} =
+        Network.request(context.reseller_actor, %{
+          wholesaler_store_id: context.wholesaler.id,
+          reseller_store_id: context.reseller.id,
+          requested_by_store_id: context.reseller.id
+        })
+
+      assert {:ok, %{connection_status: :pending}} =
+               Offers.get_discoverable(context.reseller_actor, context.reseller.id, published.id)
+
+      {:ok, _} = Network.approve(context.wholesaler_actor, conn)
+
+      assert {:ok, %{connection_status: :connected}} =
+               Offers.get_discoverable(context.reseller_actor, context.reseller.id, published.id)
+    end
+
+    test "reports :unavailable for a rejected prior connection", context do
+      published = publish_offer!(context)
+
+      {:ok, conn} =
+        Network.request(context.reseller_actor, %{
+          wholesaler_store_id: context.wholesaler.id,
+          reseller_store_id: context.reseller.id,
+          requested_by_store_id: context.reseller.id
+        })
+
+      {:ok, _rejected} = Network.reject(context.wholesaler_actor, conn, "Not a fit right now")
+
+      assert {:ok, %{connection_status: :unavailable}} =
+               Offers.get_discoverable(context.reseller_actor, context.reseller.id, published.id)
+    end
+
+    test "reports :unavailable for a suspended prior connection", context do
+      published = publish_offer!(context)
+
+      {:ok, conn} =
+        Network.request(context.reseller_actor, %{
+          wholesaler_store_id: context.wholesaler.id,
+          reseller_store_id: context.reseller.id,
+          requested_by_store_id: context.reseller.id
+        })
+
+      {:ok, active} = Network.approve(context.wholesaler_actor, conn)
+      {:ok, _suspended} = Network.suspend(context.wholesaler_actor, active, "Quality issues")
+
+      assert {:ok, %{connection_status: :unavailable}} =
+               Offers.get_discoverable(context.reseller_actor, context.reseller.id, published.id)
+    end
+
+    test "is :not_found for paused offers and the store's own offers", context do
+      published = publish_offer!(context)
+      {:ok, _} = Offers.pause(context.wholesaler_actor, published)
+
+      assert {:error, :not_found} =
+               Offers.get_discoverable(context.reseller_actor, context.reseller.id, published.id)
+
+      republished =
+        publish_offer!(context, product: context.product_2, variant: context.variant_2)
+
+      assert {:error, :not_found} =
+               Offers.get_discoverable(
+                 context.wholesaler_actor,
+                 context.wholesaler.id,
+                 republished.id
+               )
+    end
   end
 end

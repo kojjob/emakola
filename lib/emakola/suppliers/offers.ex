@@ -86,6 +86,69 @@ defmodule Emakola.Suppliers.Offers do
     end
   end
 
+  @doc """
+  Every published, discoverable offer on the network EXCEPT the store's own —
+  the browse-all supplier catalog. Each entry carries `connected?` so callers
+  can gate wholesale pricing. Query-capped at 200 (scaling boundary; see spec).
+  """
+  def list_discoverable(actor, reseller_store_id) do
+    with :ok <- ensure_access(actor, reseller_store_id),
+         {:ok, connected_ids} <- connected_wholesaler_ids(reseller_store_id),
+         {:ok, offers} <- discoverable_offers(reseller_store_id) do
+      connected = MapSet.new(connected_ids)
+
+      {:ok,
+       Enum.map(offers, fn offer ->
+         %{offer: offer, connected?: MapSet.member?(connected, offer.wholesaler_store_id)}
+       end)}
+    end
+  end
+
+  @doc """
+  One discoverable offer for the catalog detail page, with the reseller's
+  connection status toward its wholesaler:
+  `:connected | :pending | :unavailable | :none`. A rejected, suspended, or
+  terminated prior connection reports `:unavailable` rather than `:none` —
+  `Network.request/2` rejects a duplicate request against any-status prior
+  connection, so a fresh request could never succeed. `{:error, :not_found}`
+  for drafts, paused/archived offers, undiscoverable products, and the
+  store's own offers.
+  """
+  def get_discoverable(actor, reseller_store_id, offer_id) do
+    with :ok <- ensure_access(actor, reseller_store_id) do
+      query =
+        SupplierOffer
+        |> Ash.Query.filter(
+          id == ^offer_id and status == :published and
+            wholesaler_store_id != ^reseller_store_id
+        )
+        |> Ash.Query.load([
+          :wholesaler_store,
+          source_product: :images,
+          offer_variants: :source_variant
+        ])
+
+      case Ash.read_one(query, authorize?: false) do
+        {:ok, nil} ->
+          {:error, :not_found}
+
+        {:ok, offer} ->
+          if discoverable?(offer) do
+            {:ok,
+             %{
+               offer: offer,
+               connection_status: connection_status(reseller_store_id, offer.wholesaler_store_id)
+             }}
+          else
+            {:error, :not_found}
+          end
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end
+  end
+
   defp owner_update(actor, offer, action) do
     with :ok <- ensure_access(actor, offer.wholesaler_store_id) do
       offer
@@ -122,6 +185,22 @@ defmodule Emakola.Suppliers.Offers do
     end
   end
 
+  defp discoverable_offers(excluding_store_id) do
+    case SupplierOffer
+         |> Ash.Query.filter(status == :published and wholesaler_store_id != ^excluding_store_id)
+         |> Ash.Query.sort(published_at: :desc)
+         |> Ash.Query.limit(200)
+         |> Ash.Query.load([
+           :wholesaler_store,
+           source_product: :images,
+           offer_variants: :source_variant
+         ])
+         |> Ash.read(authorize?: false) do
+      {:ok, offers} -> {:ok, Enum.filter(offers, &discoverable?/1)}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
   defp discoverable?(offer) do
     offer.source_product.status == :active and offer.source_product.moderation_status == :ok and
       Enum.any?(offer.offer_variants, &source_available?(&1.source_variant))
@@ -133,6 +212,22 @@ defmodule Emakola.Suppliers.Offers do
          |> Ash.read(authorize?: false) do
       {:ok, connections} -> {:ok, Enum.map(connections, & &1.wholesaler_store_id)}
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp connection_status(reseller_store_id, wholesaler_store_id) do
+    case SupplyConnection
+         |> Ash.Query.filter(
+           reseller_store_id == ^reseller_store_id and
+             wholesaler_store_id == ^wholesaler_store_id
+         )
+         |> Ash.Query.sort(inserted_at: :desc)
+         |> Ash.Query.limit(1)
+         |> Ash.read(authorize?: false) do
+      {:ok, [%{status: :active} | _]} -> :connected
+      {:ok, [%{status: :pending} | _]} -> :pending
+      {:ok, [_ | _]} -> :unavailable
+      _ -> :none
     end
   end
 

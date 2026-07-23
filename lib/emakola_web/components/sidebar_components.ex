@@ -260,6 +260,12 @@ defmodule EmakolaWeb.SidebarComponents do
           active={@active_nav == :supply_network}
         />
         <.sidebar_link
+          href="/admin/supply/catalog"
+          title="Supplier Catalog"
+          icon="truck"
+          active={@active_nav == :supply_catalog}
+        />
+        <.sidebar_link
           href="/admin/returns"
           title="Returns"
           icon="returns"
