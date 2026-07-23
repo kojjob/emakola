@@ -123,10 +123,9 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        <%!-- TEMP: plain-string href until Task 5 registers Admin.SupplyCatalogLive.Show; then restore ~p --%>
         <.link
           :for={%{offer: offer, connected?: connected?} <- filtered(@entries, @search)}
-          navigate={"/admin/supply/catalog/#{offer.id}"}
+          navigate={~p"/admin/supply/catalog/#{offer.id}"}
           class="group rounded-2xl border border-slate-200 bg-white overflow-hidden hover:shadow-md transition-shadow"
         >
           <div class="aspect-[4/3] bg-slate-100 overflow-hidden">

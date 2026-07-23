@@ -60,6 +60,80 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
     end
   end
 
+  describe "catalog show" do
+    setup %{conn: conn} do
+      {reseller_actor, reseller} = Factory.create_merchant_with_store!(%{name: "Reseller Shop"})
+
+      token =
+        EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(reseller_actor))
+
+      conn =
+        conn
+        |> Phoenix.ConnTest.init_test_session(%{})
+        |> Plug.Conn.put_session(:user_token, token)
+
+      %{conn: conn, reseller_actor: reseller_actor, reseller: reseller}
+    end
+
+    test "unconnected: shows retail, dispatch fees, terms — locks wholesale + margin", %{
+      conn: conn
+    } do
+      fixture = create_published_offer!()
+
+      {:ok, _view, html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      assert html =~ "Shea Butter 500g"
+      # suggested retail (4_500 pesewas) is public
+      assert html =~ EmakolaWeb.Helpers.Currency.format_price(4_500)
+      assert html =~ "Greater Accra"
+      # dispatch fee (1_500 pesewas) is public
+      assert html =~ EmakolaWeb.Helpers.Currency.format_price(1_500)
+      assert html =~ "Returns accepted within seven days"
+      # wholesale price (3_000 pesewas) must NOT leak
+      refute html =~ EmakolaWeb.Helpers.Currency.format_price(3_000)
+      assert html =~ "Request connection"
+      assert html =~ "Connect to see wholesale pricing"
+    end
+
+    test "connected: shows wholesale price and margin", %{
+      conn: conn,
+      reseller_actor: reseller_actor,
+      reseller: reseller
+    } do
+      fixture = create_published_offer!()
+      connect!(reseller_actor, reseller, fixture)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      # wholesale price (3_000 pesewas)
+      assert html =~ EmakolaWeb.Helpers.Currency.format_price(3_000)
+      # margin = 4500 - 3000 = 1500 pesewas at 50.0% — assert the percentage,
+      # because format_price(1_500) collides with the dispatch fee (also 1_500)
+      assert html =~ "50.0%"
+      # max retail cap (6_000 pesewas) is connection-gated info
+      assert html =~ EmakolaWeb.Helpers.Currency.format_price(6_000)
+      assert html =~ "Add to my store"
+      refute html =~ "Request connection"
+    end
+
+    test "a paused offer redirects back to the catalog", %{conn: conn} do
+      fixture = create_published_offer!()
+      {:ok, _} = Offers.pause(fixture.wholesaler_actor, fixture.offer)
+
+      assert {:error, {:live_redirect, %{to: "/admin/supply/catalog"}}} =
+               live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+    end
+
+    test "an area without a quoted fee shows the placeholder", %{conn: conn} do
+      fixture = create_published_offer!()
+
+      {:ok, _view, html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      # "Ashanti" is a delivery area with no fee quoted
+      assert html =~ "ask supplier"
+    end
+  end
+
   # -- fixtures --------------------------------------------------------------
 
   def create_published_offer!(opts \\ []) do
