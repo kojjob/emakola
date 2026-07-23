@@ -37,6 +37,27 @@ defmodule Emakola.Suppliers.OffersTest do
      variant_2: variant_2}
   end
 
+  test "a duplicate add_variant for an already-terms'd variant is a clean identity error",
+       context do
+    offer = draft_offer!(context, :markup)
+
+    {:ok, _terms} =
+      Offers.add_variant(context.wholesaler_actor, offer, %{
+        source_variant_id: context.variant.id,
+        supplier_price: 3_000,
+        suggested_retail_price: 4_000
+      })
+
+    assert {:error, %Ash.Error.Invalid{} = error} =
+             Offers.add_variant(context.wholesaler_actor, offer, %{
+               source_variant_id: context.variant.id,
+               supplier_price: 3_100,
+               suggested_retail_price: 4_100
+             })
+
+    assert Exception.message(error) =~ "already been taken"
+  end
+
   test "creates terms that reference, rather than copy, existing catalog records", context do
     offer = draft_offer!(context, :markup)
 
@@ -348,6 +369,65 @@ defmodule Emakola.Suppliers.OffersTest do
 
       assert {:error, :forbidden} =
                Offers.update_variant(context.reseller_actor, paused, terms, %{supplier_price: 1})
+    end
+
+    test "rejects a variant that belongs to a DIFFERENT offer, even one the actor also owns",
+         context do
+      own_offer = draft_offer!(context, :markup)
+
+      foreign_product = create_product!(context.reseller, status: :active)
+      foreign_variant = create_variant!(foreign_product, context.reseller, stock_quantity: 5)
+
+      {:ok, foreign_offer} =
+        Offers.create_draft(context.reseller_actor, %{
+          wholesaler_store_id: context.reseller.id,
+          source_product_id: foreign_product.id,
+          earning_model: :markup
+        })
+
+      {:ok, foreign_terms} =
+        Offers.add_variant(context.reseller_actor, foreign_offer, %{
+          source_variant_id: foreign_variant.id,
+          supplier_price: 3_000,
+          suggested_retail_price: 4_000
+        })
+
+      assert {:error, :variant_not_owned} =
+               Offers.update_variant(context.wholesaler_actor, own_offer, foreign_terms, %{
+                 supplier_price: 1
+               })
+
+      assert {:error, :variant_not_owned} =
+               Offers.remove_variant(context.wholesaler_actor, own_offer, foreign_terms)
+
+      reloaded =
+        Ash.get!(Emakola.Suppliers.SupplierOfferVariant, foreign_terms.id, authorize?: false)
+
+      assert reloaded.supplier_price == 3_000
+    end
+  end
+
+  describe "unarchive/2" do
+    test "returns an archived offer to draft", context do
+      offer = draft_offer!(context, :markup)
+      {:ok, archived} = Offers.archive(context.wholesaler_actor, offer)
+      assert archived.status == :archived
+
+      assert {:ok, unarchived} = Offers.unarchive(context.wholesaler_actor, archived)
+      assert unarchived.status == :draft
+    end
+
+    test "rejects unarchiving a non-archived offer", context do
+      offer = draft_offer!(context, :markup)
+
+      assert {:error, %Ash.Error.Invalid{}} = Offers.unarchive(context.wholesaler_actor, offer)
+    end
+
+    test "rejects a foreign actor", context do
+      offer = draft_offer!(context, :markup)
+      {:ok, archived} = Offers.archive(context.wholesaler_actor, offer)
+
+      assert {:error, :forbidden} = Offers.unarchive(context.reseller_actor, archived)
     end
   end
 

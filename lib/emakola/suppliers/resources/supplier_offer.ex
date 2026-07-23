@@ -154,6 +154,13 @@ defmodule Emakola.Suppliers.SupplierOffer do
       change(set_attribute(:status, :archived))
     end
 
+    update :unarchive do
+      require_atomic?(false)
+      accept([])
+      validate({Emakola.Validations.StatusGuard, from: [:archived]})
+      change(set_attribute(:status, :draft))
+    end
+
     read :owned_by_store do
       argument(:store_id, :uuid, allow_nil?: false)
       filter(expr(wholesaler_store_id == ^arg(:store_id)))
@@ -161,7 +168,7 @@ defmodule Emakola.Suppliers.SupplierOffer do
       prepare(
         build(
           sort: [inserted_at: :desc],
-          load: [source_product: :images, offer_variants: :source_variant]
+          load: [source_product: [:images, :variants], offer_variants: :source_variant]
         )
       )
     end
