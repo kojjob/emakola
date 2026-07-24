@@ -27,8 +27,12 @@ defmodule Emakola.Payments.OrderSettlement do
   def prepare(order_id, store_id) do
     order = Ash.get!(Emakola.Orders.Order, order_id, authorize?: false, tenant: store_id)
     line_items = load_line_items(order_id, store_id)
+    dispatch_fees = load_dispatch_fees(order_id)
 
-    case DropshipSettlement.prepare(line_items, store_id, fee_rate_bps: fee_rate_bps()) do
+    case DropshipSettlement.prepare(line_items, store_id,
+           fee_rate_bps: fee_rate_bps(),
+           dispatch_fees: dispatch_fees
+         ) do
       {:split, %{allocations: allocations}} ->
         # The split is computed on the subtotal; the customer is charged the
         # order total. Delivery (minus any discount) belongs to the dropshipper,
@@ -174,6 +178,15 @@ defmodule Emakola.Payments.OrderSettlement do
     allocations
     |> Enum.filter(&(&1[:subaccount_code] && &1.amount > 0))
     |> Enum.map(&%{subaccount: &1.subaccount_code, share: &1.amount})
+  end
+
+  # Dispatch fee snapshots recorded per supplier at checkout (Task 2), keyed
+  # for SplitCalculator to fold into each wholesaler's allocation.
+  defp load_dispatch_fees(order_id) do
+    for f <- Emakola.Orders.list_fulfillments_by_order!(order_id, authorize?: false),
+        f.supplier_id,
+        into: %{},
+        do: {f.supplier_id, f.dispatch_fee}
   end
 
   defp load_line_items(order_id, store_id) do
