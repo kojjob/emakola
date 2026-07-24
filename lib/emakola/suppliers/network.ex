@@ -19,8 +19,9 @@ defmodule Emakola.Suppliers.Network do
     with :ok <- ensure_distinct(wholesaler_id, reseller_id),
          :ok <- ensure_participant(requester_id, wholesaler_id, reseller_id),
          :ok <- ensure_access(actor, requester_id),
-         :ok <- ensure_connection_absent(wholesaler_id, reseller_id) do
-      Suppliers.request_supply_connection(attrs, authorize?: false)
+         :ok <- ensure_connection_absent(wholesaler_id, reseller_id),
+         {:ok, connection} <- Suppliers.request_supply_connection(attrs, authorize?: false) do
+      {:ok, notify(connection, "requested")}
     end
   end
 
@@ -30,10 +31,19 @@ defmodule Emakola.Suppliers.Network do
     end
   end
 
-  def approve(actor, connection), do: counterparty_update(actor, connection, :approve, %{})
+  def approve(actor, connection) do
+    case counterparty_update(actor, connection, :approve, %{}) do
+      {:ok, updated} -> {:ok, notify(updated, "approved")}
+      error -> error
+    end
+  end
 
-  def reject(actor, connection, reason),
-    do: counterparty_update(actor, connection, :reject, %{status_reason: reason})
+  def reject(actor, connection, reason) do
+    case counterparty_update(actor, connection, :reject, %{status_reason: reason}) do
+      {:ok, updated} -> {:ok, notify(updated, "rejected")}
+      error -> error
+    end
+  end
 
   def suspend(actor, connection, reason),
     do: participant_update(actor, connection, :suspend, %{status_reason: reason})
@@ -126,5 +136,22 @@ defmodule Emakola.Suppliers.Network do
       {:ok, [_existing]} -> {:error, :connection_exists}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  defp notify(connection, event) do
+    %{connection_id: connection.id, event: event}
+    |> Emakola.Notifications.Workers.ConnectionNotificationWorker.new()
+    |> Oban.insert()
+    |> case do
+      {:ok, _job} ->
+        :ok
+
+      {:error, reason} ->
+        require Logger
+        Logger.error("[Network] notification enqueue failed: #{inspect(reason)}")
+        :ok
+    end
+
+    connection
   end
 end

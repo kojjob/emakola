@@ -185,6 +185,26 @@ defmodule Emakola.Notifications.Channels.WhatsAppTest do
                ["ORD-456", "Kumasi Crafts", "2x Kente Scarf", "12 High St, Accra"]
     end
 
+    test "sends the supply_connection_update template" do
+      params = %{
+        counterparty: "Kumasi Crafts",
+        event: "requested",
+        url: "https://emakola.com/admin/settings/supply-network"
+      }
+
+      assert {:ok, result} =
+               WhatsApp.send_message("+233244123456", "supply_connection_update", params,
+                 store_id: Ash.UUID.generate()
+               )
+
+      assert result.template == "supply_connection_update"
+
+      [component] = result.body["request_body"].template.components
+
+      assert Enum.map(component.parameters, & &1.text) ==
+               ["Kumasi Crafts", "requested", "https://emakola.com/admin/settings/supply-network"]
+    end
+
     test "returns an error for an unknown template instead of guessing param order" do
       assert {:error, {:unknown_template, "nope"}} =
                WhatsApp.send_message("+233244123456", "nope", %{a: "b"}, [])

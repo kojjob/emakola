@@ -1,5 +1,6 @@
 defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
   use EmakolaWeb.ConnCase, async: true
+  use Oban.Testing, repo: Emakola.Repo
 
   import Phoenix.LiveViewTest
 
@@ -179,6 +180,19 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
                    wholesaler_store_id == ^fixture.wholesaler.id
                )
                |> Ash.read!(authorize?: false)
+    end
+
+    test "request_connection enqueues the wholesaler notification", %{conn: conn} do
+      fixture = create_published_offer!()
+
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+
+      view |> element("button[phx-click=request_connection]") |> render_click()
+
+      assert [job] =
+               all_enqueued(worker: Emakola.Notifications.Workers.ConnectionNotificationWorker)
+
+      assert job.args["event"] == "requested"
     end
 
     test "import_offer creates a reseller listing when connected", %{
