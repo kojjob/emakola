@@ -19,9 +19,9 @@
 
 ## 🚀 Launch-critical — do in this order
 
-- [ ] **1. Submit the 6 WhatsApp templates to Meta TODAY** — approval takes
+- [ ] **1. Submit the 7 WhatsApp templates to Meta TODAY** — approval takes
       1–3 days and gates nothing else, so start it first. Exact names,
-      `{{n}}` parameter order, and copy-paste bodies: `PROVIDER_SETUP.md` §4c.
+      `{{n}}` parameter order, and copy-paste bodies: `PROVIDER_SETUP.md` §4c (includes `supply_connection_update`).
 - [ ] **2. Paystack** — account (country: **Ghana**) → test keys → webhook URL
       `https://emakola.fly.dev/webhooks/paystack` → enable the Mobile Money
       channel. (§1)
@@ -176,3 +176,6 @@ also needs a real device token, which only the Phase 1 Flutter client mints
       webhook route, no env reads — deliberately NOT in the setup guide).
       When subscription billing becomes a real feature: SDK + route +
       `STRIPE_*` secrets + its own PROVIDER_SETUP section.
+- [ ] **Requester-side supply-invite throttle** (N/day per requesting store)
+      before real SMS keys go live — hostile invites currently consume the
+      victim store's SMS rate bucket.

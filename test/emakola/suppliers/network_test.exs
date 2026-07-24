@@ -1,5 +1,6 @@
 defmodule Emakola.Suppliers.NetworkTest do
   use Emakola.DataCase, async: true
+  use Oban.Testing, repo: Emakola.Repo
 
   import Emakola.Factory
 
@@ -94,5 +95,85 @@ defmodule Emakola.Suppliers.NetworkTest do
 
     assert {:ok, _} = Network.request(ctx.reseller_actor, attrs)
     assert {:error, :connection_exists} = Network.request(ctx.reseller_actor, attrs)
+  end
+
+  describe "connection notifications" do
+    test "request enqueues a requested notification", ctx do
+      {:ok, conn} =
+        Network.request(ctx.reseller_actor, %{
+          wholesaler_store_id: ctx.wholesaler.id,
+          reseller_store_id: ctx.reseller.id,
+          requested_by_store_id: ctx.reseller.id,
+          terms: %{"currency" => "GHS"}
+        })
+
+      assert [job] =
+               all_enqueued(worker: Emakola.Notifications.Workers.ConnectionNotificationWorker)
+
+      assert job.args["connection_id"] == conn.id
+      assert job.args["event"] == "requested"
+    end
+
+    test "approve enqueues approved notification", ctx do
+      {:ok, pending} =
+        Network.request(ctx.reseller_actor, %{
+          wholesaler_store_id: ctx.wholesaler.id,
+          reseller_store_id: ctx.reseller.id,
+          requested_by_store_id: ctx.reseller.id
+        })
+
+      # all_enqueued is read-only — the requested job is still present, so we
+      # filter by event below to isolate the one this action enqueues.
+      all_enqueued(worker: Emakola.Notifications.Workers.ConnectionNotificationWorker)
+
+      {:ok, approved} = Network.approve(ctx.wholesaler_actor, pending)
+
+      jobs = all_enqueued(worker: Emakola.Notifications.Workers.ConnectionNotificationWorker)
+      approved_jobs = Enum.filter(jobs, fn j -> j.args["event"] == "approved" end)
+
+      assert [job] = approved_jobs
+      assert job.args["connection_id"] == approved.id
+      assert job.args["event"] == "approved"
+    end
+
+    test "reject enqueues rejected notification", ctx do
+      {:ok, pending} =
+        Network.request(ctx.wholesaler_actor, %{
+          wholesaler_store_id: ctx.wholesaler.id,
+          reseller_store_id: ctx.reseller.id,
+          requested_by_store_id: ctx.wholesaler.id
+        })
+
+      # all_enqueued is read-only — the requested job is still present, so we
+      # filter by event below to isolate the one this action enqueues.
+      all_enqueued(worker: Emakola.Notifications.Workers.ConnectionNotificationWorker)
+
+      {:ok, rejected} = Network.reject(ctx.reseller_actor, pending, "not a good fit")
+
+      jobs = all_enqueued(worker: Emakola.Notifications.Workers.ConnectionNotificationWorker)
+      rejected_jobs = Enum.filter(jobs, fn j -> j.args["event"] == "rejected" end)
+
+      assert [job] = rejected_jobs
+      assert job.args["connection_id"] == rejected.id
+      assert job.args["event"] == "rejected"
+    end
+
+    test "no duplicate jobs for the same connection+event", ctx do
+      attrs = %{
+        wholesaler_store_id: ctx.wholesaler.id,
+        reseller_store_id: ctx.reseller.id,
+        requested_by_store_id: ctx.reseller.id
+      }
+
+      {:ok, _conn1} = Network.request(ctx.reseller_actor, attrs)
+
+      # Second request fails, but we should still have exactly one requested job
+      {:error, :connection_exists} = Network.request(ctx.reseller_actor, attrs)
+
+      jobs = all_enqueued(worker: Emakola.Notifications.Workers.ConnectionNotificationWorker)
+      requested_jobs = Enum.filter(jobs, fn j -> j.args["event"] == "requested" end)
+
+      assert length(requested_jobs) == 1
+    end
   end
 end
