@@ -5,8 +5,15 @@ defmodule EmakolaWeb.StoresLiveTest do
 
   describe "GET /stores (public directory)" do
     test "renders publicly without authentication", %{conn: conn} do
-      assert {:ok, _view, html} = live(conn, "/stores")
-      assert html =~ "Browse the marketplace"
+      assert {:ok, view, _html} = live(conn, "/stores")
+      assert has_element?(view, "#stores-page")
+      assert has_element?(view, "#stores-hero")
+      assert has_element?(view, "#stores-search-form")
+      assert has_element?(view, "#stores-discovery-controls")
+      assert has_element?(view, ~s(#stores-grid[phx-update="stream"]))
+      assert has_element?(view, "#stores-region-filter")
+      assert has_element?(view, "#stores-sort-filter")
+      assert has_element?(view, "#stores-map-button")
     end
 
     test "lists active stores with links to their storefronts", %{conn: conn} do
@@ -20,30 +27,27 @@ defmodule EmakolaWeb.StoresLiveTest do
 
       Factory.create_store!(%{name: "Kente Collective", slug: "kente-collective"})
 
-      {:ok, _view, html} = live(conn, "/stores")
+      {:ok, view, _html} = live(conn, "/stores")
 
-      assert html =~ "Akosua&#39;s Boutique"
-      assert html =~ "Kente Collective"
-      assert html =~ ~s|href="/s/akosua-boutique"|
-      assert html =~ ~s|href="/s/kente-collective"|
-      assert html =~ "Accra"
+      assert has_element?(view, ~s(a[href="/s/akosua-boutique"]))
+      assert has_element?(view, ~s(a[href="/s/kente-collective"]))
+      assert has_element?(view, "#stores-grid")
     end
 
     test "excludes inactive stores", %{conn: conn} do
       Factory.create_store!(%{name: "Live Shop", slug: "live-shop"})
       Factory.create_store!(%{name: "Hidden Shop", slug: "hidden-shop", active: false})
 
-      {:ok, _view, html} = live(conn, "/stores")
+      {:ok, view, _html} = live(conn, "/stores")
 
-      assert html =~ "Live Shop"
-      refute html =~ "Hidden Shop"
+      assert has_element?(view, ~s(a[href="/s/live-shop"]))
+      refute has_element?(view, ~s(a[href="/s/hidden-shop"]))
     end
 
     test "shows empty state when no active stores exist", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/stores")
+      {:ok, view, _html} = live(conn, "/stores")
 
-      assert html =~ "marketplace is just getting started" or
-               html =~ "No stores match your filters"
+      assert has_element?(view, "#stores-empty-state")
     end
 
     test "search narrows the visible stores", %{conn: conn} do
@@ -52,10 +56,12 @@ defmodule EmakolaWeb.StoresLiveTest do
 
       {:ok, view, _html} = live(conn, "/stores")
 
-      html = render_hook(view, "update_search", %{"value" => "coffee"})
+      view
+      |> form("#stores-search-form", search: %{query: "coffee"})
+      |> render_change()
 
-      assert html =~ "Coffee World"
-      refute html =~ "Ankara Threads"
+      assert has_element?(view, ~s(a[href="/s/coffee-world"]))
+      refute has_element?(view, ~s(a[href="/s/ankara-threads"]))
     end
 
     test "theme filter chip narrows by theme_config[\"theme\"]", %{conn: conn} do
@@ -74,13 +80,12 @@ defmodule EmakolaWeb.StoresLiveTest do
       {:ok, view, _html} = live(conn, "/stores")
 
       # Click the Beauty chip — only Beauty Spot should remain
-      html =
-        view
-        |> element(~s|button[phx-click="select_theme"][phx-value-theme="beauty"]|)
-        |> render_click()
+      view
+      |> element(~s|button[phx-click="select_theme"][phx-value-theme="beauty"]|)
+      |> render_click()
 
-      assert html =~ "Beauty Spot"
-      refute html =~ "Tech Hub"
+      assert has_element?(view, ~s(a[href="/s/beauty-spot"]))
+      refute has_element?(view, ~s(a[href="/s/tech-hub"]))
     end
 
     test "region filter narrows by region", %{conn: conn} do
@@ -98,13 +103,14 @@ defmodule EmakolaWeb.StoresLiveTest do
 
       {:ok, view, _html} = live(conn, "/stores")
 
-      html =
-        view
-        |> element("select[phx-change=select_region]")
-        |> render_change(%{"region" => "ashanti"})
+      view
+      |> form("#stores-filter-form",
+        filters: %{region: "ashanti", sort: "featured"}
+      )
+      |> render_change()
 
-      assert html =~ "Kumasi Crafts"
-      refute html =~ "Accra Goods"
+      assert has_element?(view, ~s(a[href="/s/kumasi-crafts"]))
+      refute has_element?(view, ~s(a[href="/s/accra-goods"]))
     end
 
     test "sort dropdown switches the order", %{conn: conn} do
@@ -113,16 +119,14 @@ defmodule EmakolaWeb.StoresLiveTest do
 
       {:ok, view, _html} = live(conn, "/stores")
 
-      html =
-        view
-        |> element("select[phx-change=select_sort]")
-        |> render_change(%{"sort" => "name"})
+      view
+      |> form("#stores-filter-form",
+        filters: %{region: "", sort: "name"}
+      )
+      |> render_change()
 
-      # Both still visible — just verifying the sort event handler works
-      # without raising. Render order can't be reliably asserted via string
-      # search since both names appear in the same HTML chunk.
-      assert html =~ "Aaa Shop"
-      assert html =~ "Zzz Shop"
+      assert has_element?(view, ~s(a[href="/s/aaa-shop"]))
+      assert has_element?(view, ~s(a[href="/s/zzz-shop"]))
     end
 
     test "featured carousel renders when at least one featured store exists", %{conn: conn} do
@@ -134,26 +138,18 @@ defmodule EmakolaWeb.StoresLiveTest do
         tagline: "Hand-picked excellence"
       })
 
-      {:ok, _view, html} = live(conn, "/stores")
+      {:ok, view, _html} = live(conn, "/stores")
 
-      assert html =~ "Spotlight on Ghana"
-      assert html =~ "Carousel Star"
-      assert html =~ "Hand-picked excellence"
+      assert has_element?(view, "#featured-stores")
+      assert has_element?(view, ~s(#featured-stores a[href="/s/carousel-star"]))
     end
 
-    test "editor's picks section renders for stores with featured_rank ≤ 6", %{conn: conn} do
-      Factory.create_store!(%{
-        name: "Pick One",
-        slug: "pick-one",
-        featured: true,
-        featured_rank: 2,
-        tagline: "Bold pick"
-      })
+    test "renders the merchant CTA and shared marketing chrome", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/stores")
 
-      {:ok, _view, html} = live(conn, "/stores")
-
-      assert html =~ "Editor"
-      assert html =~ "Pick One"
+      assert has_element?(view, "#main-nav")
+      assert has_element?(view, "#stores-sell-cta")
+      assert has_element?(view, ~s(#stores-sell-cta a[href="/auth/register"]))
     end
 
     test "curation strips hide when filters are active", %{conn: conn} do
@@ -171,18 +167,14 @@ defmodule EmakolaWeb.StoresLiveTest do
         theme_config: %{"theme" => "beauty"}
       })
 
-      {:ok, view, html} = live(conn, "/stores")
+      {:ok, view, _html} = live(conn, "/stores")
+      assert has_element?(view, "#featured-stores")
 
-      # No filters → carousel is shown
-      assert html =~ "Spotlight on Ghana"
+      view
+      |> element(~s|button[phx-click="select_theme"][phx-value-theme="beauty"]|)
+      |> render_click()
 
-      # Apply theme filter → carousel must disappear
-      html =
-        view
-        |> element(~s|button[phx-click="select_theme"][phx-value-theme="beauty"]|)
-        |> render_click()
-
-      refute html =~ "Spotlight on Ghana"
+      refute has_element?(view, "#featured-stores")
     end
 
     test "featured stores show the Featured pill on their card", %{conn: conn} do
@@ -193,10 +185,10 @@ defmodule EmakolaWeb.StoresLiveTest do
         featured_rank: 1
       })
 
-      {:ok, _view, html} = live(conn, "/stores")
+      {:ok, view, _html} = live(conn, "/stores")
 
-      assert html =~ "Top Shop"
-      assert html =~ "Featured"
+      assert has_element?(view, ~s(#featured-stores a[href="/s/top-shop"]))
+      assert has_element?(view, "#featured-stores .hero-star-solid")
     end
   end
 end

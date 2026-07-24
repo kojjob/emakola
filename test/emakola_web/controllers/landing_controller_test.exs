@@ -42,12 +42,26 @@ defmodule EmakolaWeb.LandingControllerTest do
 
     test "mobile menu is client-side toggled", %{conn: conn} do
       html = conn |> get("/") |> html_response(200)
+      document = LazyHTML.from_document(html)
 
       # The menu ships hidden and the button flips it purely client-side
       # (Phoenix.LiveView.JS commands) — no server event, no LiveView process.
       assert html =~ ~s(id="landing-mobile-menu")
       assert html =~ "animate-slide-down"
       assert html =~ ~s(id="landing-menu-button")
+
+      assert document
+             |> LazyHTML.query("#landing-menu-button[aria-expanded=false]")
+             |> Enum.any?()
+
+      assert document
+             |> LazyHTML.query("#landing-menu-closed-icon[aria-hidden=true] .hero-bars-3")
+             |> Enum.any?()
+
+      assert document
+             |> LazyHTML.query("#landing-menu-open-icon[aria-hidden=true] .hero-x-mark")
+             |> Enum.any?()
+
       refute html =~ "toggle_mobile_menu"
     end
   end
