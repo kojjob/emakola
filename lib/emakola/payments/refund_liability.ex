@@ -14,7 +14,10 @@ defmodule Emakola.Payments.RefundLiability do
 
   require Ash.Query
 
+  alias Emakola.Orders.Fulfillment
   alias Emakola.Payments.PaymentSplit
+
+  @dispatched_statuses [:shipped, :delivered]
 
   # Targets are cumulative-quota differences (not per-split floors), so the
   # reversals sum exactly to the splits' proportional share of the refund —
@@ -22,11 +25,12 @@ defmodule Emakola.Payments.RefundLiability do
   def reconcile!(payment, splits) do
     splits
     |> Enum.sort_by(& &1.id)
-    |> Enum.reduce({0, 0}, fn split, {amount_before, target_before} ->
-      amount_after = amount_before + split.amount
+    |> with_reversible_bases(payment)
+    |> Enum.reduce({0, 0}, fn {split, base}, {base_before, target_before} ->
+      base_after = base_before + base
 
       target_after =
-        proportional_amount(amount_after, payment.refunded_amount, payment.amount)
+        proportional_amount(base_after, payment.refunded_amount, payment.amount)
 
       reversed_amount = target_after - target_before
 
@@ -36,10 +40,73 @@ defmodule Emakola.Payments.RefundLiability do
         |> Ash.update!(authorize?: false)
       end
 
-      {amount_after, target_after}
+      {base_after, target_after}
     end)
 
     :ok
+  end
+
+  # A supplier that already dispatched keeps its dispatch fee: the courier cost
+  # is spent whether or not the customer gets refunded. The fee is subtracted
+  # from that wholesaler's reversible base and added to the dropshipper's, so
+  # the merchant who chose to refund absorbs that portion of the reversal.
+  # Redistribution leaves the total untouched — `Σ base == payment.amount` is
+  # exactly what keeps the reversals summing to `payment.refunded_amount`.
+  defp with_reversible_bases(splits, payment) do
+    unprotected = Enum.map(splits, &{&1, &1.amount})
+
+    if is_nil(payment.order_id) do
+      unprotected
+    else
+      apply_protection(splits, unprotected, payment.order_id)
+    end
+  end
+
+  defp apply_protection(splits, unprotected, order_id) do
+    fees = protected_fees(splits, order_id)
+    total = fees |> Map.values() |> Enum.sum()
+    dropshipper = Enum.find(splits, &(&1.role == :dropshipper))
+
+    if total == 0 or is_nil(dropshipper) or dispatch_fee_waived?(order_id) do
+      unprotected
+    else
+      Enum.map(splits, fn split ->
+        if split.id == dropshipper.id do
+          {split, split.amount + total}
+        else
+          {split, split.amount - Map.get(fees, split.id, 0)}
+        end
+      end)
+    end
+  end
+
+  # One fulfillment query per reconcile, never one per split. Merchant-owned
+  # groups (nil supplier_id) have no supplier to protect.
+  defp protected_fees(splits, order_id) do
+    fees =
+      Fulfillment
+      |> Ash.Query.filter(
+        order_id == ^order_id and status in ^@dispatched_statuses and dispatch_fee > 0 and
+          not is_nil(supplier_id)
+      )
+      |> Ash.read!(authorize?: false)
+      |> Map.new(&{&1.supplier_id, &1.dispatch_fee})
+
+    for %{role: :wholesaler, supplier_id: supplier_id} = split <- splits,
+        is_map_key(fees, supplier_id),
+        into: %{},
+        # A fee larger than the allocation cannot claw back more than the
+        # split holds — the base floors at zero, never negative.
+        do: {split.id, min(fees[supplier_id], split.amount)}
+  end
+
+  # The merchant marked the supplier at fault, so protection is waived. Returns
+  # are frequently absent; anything but an explicit waiver means "no waiver".
+  defp dispatch_fee_waived?(order_id) do
+    case Emakola.Orders.get_return_by_order(order_id, authorize?: false) do
+      {:ok, [%{refund_dispatch_fee?: waived} | _]} -> waived
+      _ -> false
+    end
   end
 
   @doc "Reserves recipient liabilities and returns gateway-ready net allocations."

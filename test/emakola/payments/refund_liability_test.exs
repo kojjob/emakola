@@ -181,6 +181,301 @@ defmodule Emakola.Payments.RefundLiabilityTest do
     end
   end
 
+  # A supplier that has already DISPATCHED keeps its dispatch fee when the
+  # order is refunded — the courier cost is real and already spent. The
+  # refunding merchant's own (:dropshipper) split absorbs that portion of the
+  # reversal. Every test asserts the invariant: the reversals sum exactly to
+  # `payment.refunded_amount`. On a full refund each reversal equals its base,
+  # so those tests also assert `Σ base == payment.amount` directly.
+  describe "dispatch-fee protection" do
+    setup do
+      store = create_store!(name: "Dispatch protection store")
+      order = create_order!(store)
+      payment = create_payment!(store, amount: 10_000, order_id: order.id)
+      supplier = create_supplier!(store, name: "Dispatched supplier")
+
+      {:ok, store: store, order: order, payment: payment, supplier: supplier}
+    end
+
+    test "a shipped supplier's dispatch fee shifts onto the dropshipper", ctx do
+      %{store: store, order: order, payment: payment, supplier: supplier} = ctx
+
+      create_fulfillment!(order, store, %{
+        supplier_id: supplier.id,
+        status: :shipped,
+        dispatch_fee: 500
+      })
+
+      splits = standard_splits(store, payment, supplier)
+
+      RefundLiability.reconcile!(%{payment | refunded_amount: 10_000}, splits)
+
+      # bases: wholesaler 6_000 - 500, dropshipper 3_000 + 500, platform 1_000
+      assert reversals(splits) == [5_500, 3_500, 1_000]
+      assert Enum.sum(reversals(splits)) == 10_000
+    end
+
+    test "a supplier that has not dispatched keeps today's proportional numbers", ctx do
+      %{store: store, order: order, payment: payment, supplier: supplier} = ctx
+
+      create_fulfillment!(order, store, %{
+        supplier_id: supplier.id,
+        status: :pending,
+        dispatch_fee: 500
+      })
+
+      splits = standard_splits(store, payment, supplier)
+
+      RefundLiability.reconcile!(%{payment | refunded_amount: 10_000}, splits)
+
+      assert reversals(splits) == [6_000, 3_000, 1_000]
+      assert Enum.sum(reversals(splits)) == 10_000
+    end
+
+    test "only the dispatched supplier is protected when suppliers differ", ctx do
+      %{store: store, order: order, payment: payment, supplier: delivered_supplier} = ctx
+      notified_supplier = create_supplier!(store, name: "Notified supplier")
+
+      create_fulfillment!(order, store, %{
+        supplier_id: delivered_supplier.id,
+        status: :delivered,
+        dispatch_fee: 400
+      })
+
+      create_fulfillment!(order, store, %{
+        supplier_id: notified_supplier.id,
+        status: :notified,
+        dispatch_fee: 300
+      })
+
+      splits = [
+        create_split!(store, payment, %{
+          role: :wholesaler,
+          supplier_id: delivered_supplier.id,
+          amount: 4_000
+        }),
+        create_split!(store, payment, %{
+          role: :wholesaler,
+          supplier_id: notified_supplier.id,
+          amount: 3_000
+        }),
+        create_split!(store, payment, %{role: :dropshipper, amount: 2_000}),
+        create_split!(store, payment, %{role: :platform, amount: 1_000})
+      ]
+
+      RefundLiability.reconcile!(%{payment | refunded_amount: 10_000}, splits)
+
+      # Only the :delivered supplier's 400 is protected; the :notified one's 300 is not.
+      assert reversals(splits) == [3_600, 3_000, 2_400, 1_000]
+      assert Enum.sum(reversals(splits)) == 10_000
+    end
+
+    test "protection scales through a partial refund", ctx do
+      %{store: store, order: order, payment: payment, supplier: supplier} = ctx
+
+      create_fulfillment!(order, store, %{
+        supplier_id: supplier.id,
+        status: :shipped,
+        dispatch_fee: 500
+      })
+
+      splits = standard_splits(store, payment, supplier)
+
+      RefundLiability.reconcile!(%{payment | refunded_amount: 4_000}, splits)
+
+      # 40% of each protected base: 5_500, 3_500, 1_000
+      assert reversals(splits) == [2_200, 1_400, 400]
+      assert Enum.sum(reversals(splits)) == 4_000
+
+      # Driving the same splits to a full refund exposes the bases themselves,
+      # proving Σ base == payment.amount — the equality the invariant rests on.
+      RefundLiability.reconcile!(%{payment | refunded_amount: 10_000}, splits)
+
+      assert reversals(splits) == [5_500, 3_500, 1_000]
+      assert Enum.sum(reversals(splits)) == 10_000
+    end
+
+    test "cumulative partial refunds never double-count the protected fee", ctx do
+      %{store: store, order: order, payment: payment, supplier: supplier} = ctx
+
+      create_fulfillment!(order, store, %{
+        supplier_id: supplier.id,
+        status: :shipped,
+        dispatch_fee: 500
+      })
+
+      splits = standard_splits(store, payment, supplier)
+
+      RefundLiability.reconcile!(%{payment | refunded_amount: 3_000}, splits)
+
+      assert reversals(splits) == [1_650, 1_050, 300]
+      assert Enum.sum(reversals(splits)) == 3_000
+
+      # `refunded_amount` is cumulative at the gateway: a second 30% refund
+      # arrives as 6_000 total, and reversals must land on 60% of each base.
+      RefundLiability.reconcile!(%{payment | refunded_amount: 6_000}, splits)
+
+      assert reversals(splits) == [3_300, 2_100, 600]
+      assert Enum.sum(reversals(splits)) == 6_000
+    end
+
+    test "a supplier-at-fault return waives the protection", ctx do
+      %{store: store, order: order, payment: payment, supplier: supplier} = ctx
+
+      create_fulfillment!(order, store, %{
+        supplier_id: supplier.id,
+        status: :shipped,
+        dispatch_fee: 500
+      })
+
+      approve_return!(store, order, refund_dispatch_fee?: true)
+      splits = standard_splits(store, payment, supplier)
+
+      RefundLiability.reconcile!(%{payment | refunded_amount: 10_000}, splits)
+
+      assert reversals(splits) == [6_000, 3_000, 1_000]
+      assert Enum.sum(reversals(splits)) == 10_000
+    end
+
+    test "a return that does not blame the supplier leaves protection intact", ctx do
+      %{store: store, order: order, payment: payment, supplier: supplier} = ctx
+
+      create_fulfillment!(order, store, %{
+        supplier_id: supplier.id,
+        status: :shipped,
+        dispatch_fee: 500
+      })
+
+      approve_return!(store, order, refund_dispatch_fee?: false)
+      splits = standard_splits(store, payment, supplier)
+
+      RefundLiability.reconcile!(%{payment | refunded_amount: 10_000}, splits)
+
+      assert reversals(splits) == [5_500, 3_500, 1_000]
+      assert Enum.sum(reversals(splits)) == 10_000
+    end
+
+    test "falls back to plain amounts when the payment has no order", ctx do
+      %{store: store, order: order, supplier: supplier} = ctx
+
+      create_fulfillment!(order, store, %{
+        supplier_id: supplier.id,
+        status: :shipped,
+        dispatch_fee: 500
+      })
+
+      orderless_payment = create_payment!(store, amount: 10_000)
+      splits = standard_splits(store, orderless_payment, supplier)
+
+      RefundLiability.reconcile!(%{orderless_payment | refunded_amount: 10_000}, splits)
+
+      assert reversals(splits) == [6_000, 3_000, 1_000]
+      assert Enum.sum(reversals(splits)) == 10_000
+    end
+
+    test "falls back to plain amounts when the order has no fulfillments", ctx do
+      %{store: store, payment: payment, supplier: supplier} = ctx
+
+      splits = standard_splits(store, payment, supplier)
+
+      RefundLiability.reconcile!(%{payment | refunded_amount: 10_000}, splits)
+
+      assert reversals(splits) == [6_000, 3_000, 1_000]
+      assert Enum.sum(reversals(splits)) == 10_000
+    end
+
+    test "falls back to plain amounts when every dispatch fee is zero", ctx do
+      %{store: store, order: order, payment: payment, supplier: supplier} = ctx
+
+      create_fulfillment!(order, store, %{
+        supplier_id: supplier.id,
+        status: :shipped,
+        dispatch_fee: 0
+      })
+
+      splits = standard_splits(store, payment, supplier)
+
+      RefundLiability.reconcile!(%{payment | refunded_amount: 10_000}, splits)
+
+      assert reversals(splits) == [6_000, 3_000, 1_000]
+      assert Enum.sum(reversals(splits)) == 10_000
+    end
+
+    test "falls back to plain amounts when there is no dropshipper split", ctx do
+      %{store: store, order: order, payment: payment, supplier: supplier} = ctx
+
+      create_fulfillment!(order, store, %{
+        supplier_id: supplier.id,
+        status: :shipped,
+        dispatch_fee: 500
+      })
+
+      splits = [
+        create_split!(store, payment, %{
+          role: :wholesaler,
+          supplier_id: supplier.id,
+          amount: 9_000
+        }),
+        create_split!(store, payment, %{role: :platform, amount: 1_000})
+      ]
+
+      RefundLiability.reconcile!(%{payment | refunded_amount: 10_000}, splits)
+
+      assert reversals(splits) == [9_000, 1_000]
+      assert Enum.sum(reversals(splits)) == 10_000
+    end
+
+    test "a dispatch fee larger than the split is clamped to the split amount", ctx do
+      %{store: store, order: order, payment: payment, supplier: supplier} = ctx
+
+      create_fulfillment!(order, store, %{
+        supplier_id: supplier.id,
+        status: :shipped,
+        dispatch_fee: 2_000
+      })
+
+      splits = [
+        create_split!(store, payment, %{role: :wholesaler, supplier_id: supplier.id, amount: 500}),
+        create_split!(store, payment, %{role: :dropshipper, amount: 8_500}),
+        create_split!(store, payment, %{role: :platform, amount: 1_000})
+      ]
+
+      RefundLiability.reconcile!(%{payment | refunded_amount: 10_000}, splits)
+
+      # min(2_000, 500) = 500 protected — the wholesaler base floors at 0, never negative.
+      assert reversals(splits) == [0, 9_000, 1_000]
+      assert Enum.sum(reversals(splits)) == 10_000
+
+      # The dropshipper absorbs more than its own allocation. That over-reversal
+      # is intended and representable — clamping it would break the invariant.
+      [_wholesaler, dropshipper, _platform] = splits
+      assert fresh(dropshipper).reversed_amount > dropshipper.amount
+      assert fresh(dropshipper).status == :reversed
+    end
+  end
+
+  defp standard_splits(store, payment, supplier) do
+    [
+      create_split!(store, payment, %{role: :wholesaler, supplier_id: supplier.id, amount: 6_000}),
+      create_split!(store, payment, %{role: :dropshipper, amount: 3_000}),
+      create_split!(store, payment, %{role: :platform, amount: 1_000})
+    ]
+  end
+
+  defp reversals(splits), do: Enum.map(splits, &fresh(&1).reversed_amount)
+
+  defp approve_return!(store, order, attrs) do
+    Emakola.Orders.Return
+    |> Ash.Changeset.for_create(:request_return, %{
+      store_id: store.id,
+      order_id: order.id,
+      reason: :changed_mind
+    })
+    |> Ash.create!(authorize?: false)
+    |> Ash.Changeset.for_update(:approve, Map.new(attrs))
+    |> Ash.update!(authorize?: false)
+  end
+
   defp create_split!(store, payment, attrs) do
     attrs
     |> Map.merge(%{store_id: store.id, payment_id: payment.id})
