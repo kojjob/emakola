@@ -15,7 +15,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
   def mount(_params, _session, socket) do
     socket =
       assign(socket,
-        page_title: "Supplier catalog",
+        page_title: "Browse Suppliers",
         active_nav: :supply_catalog,
         search: ""
       )
@@ -96,7 +96,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 pb-12">
       <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6 pt-2">
         <div>
-          <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Supplier catalog</h1>
+          <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Browse Suppliers</h1>
           <p class="text-sm text-slate-500 mt-1">
             Products you can stock from suppliers across the network
           </p>

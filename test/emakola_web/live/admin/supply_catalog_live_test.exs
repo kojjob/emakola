@@ -67,7 +67,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
 
       render_change(view, "search", %{})
 
-      assert render(view) =~ "Supplier catalog"
+      assert render(view) =~ "Browse Suppliers"
     end
 
     test "a search event with a non-binary \"search\" value does not crash the view", %{
@@ -79,7 +79,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
 
       render_change(view, "search", %{"search" => %{"evil" => "map"}})
 
-      assert render(view) =~ "Supplier catalog"
+      assert render(view) =~ "Browse Suppliers"
     end
   end
 

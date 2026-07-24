@@ -152,7 +152,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
           navigate={~p"/admin/supply/catalog"}
           class="text-sm text-slate-500 hover:text-slate-700"
         >
-          ← Supplier catalog
+          ← Browse Suppliers
         </.link>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
