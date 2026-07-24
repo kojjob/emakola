@@ -70,6 +70,12 @@ defmodule Emakola.Orders.Return do
       public?(true)
     end
 
+    attribute :refund_dispatch_fee?, :boolean do
+      allow_nil?(false)
+      default(false)
+      public?(true)
+    end
+
     attribute :currency, :string do
       default("GHS")
       allow_nil?(false)
@@ -141,7 +147,7 @@ defmodule Emakola.Orders.Return do
 
     update :approve do
       require_atomic?(false)
-      accept([:admin_notes, :refund_amount])
+      accept([:admin_notes, :refund_amount, :refund_dispatch_fee?])
 
       validate(fn changeset, _context ->
         status = Ash.Changeset.get_attribute(changeset, :status)
