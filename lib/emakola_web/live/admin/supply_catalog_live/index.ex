@@ -15,7 +15,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
   def mount(_params, _session, socket) do
     socket =
       assign(socket,
-        page_title: "Supplier catalog",
+        page_title: "Browse Suppliers",
         active_nav: :supply_catalog,
         search: ""
       )
@@ -96,7 +96,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 pb-12">
       <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6 pt-2">
         <div>
-          <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Supplier catalog</h1>
+          <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Browse Suppliers</h1>
           <p class="text-sm text-slate-500 mt-1">
             Products you can stock from suppliers across the network
           </p>
@@ -121,7 +121,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
         :if={!@loading and filtered(@entries, @search) == []}
         class="py-16 text-center text-sm text-slate-500"
       >
-        No supplier products match. Suppliers publish offers from their Earn Network page.
+        No supplier products match. Suppliers publish offers from their Partners page.
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -140,7 +140,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
           </div>
           <div class="p-4 space-y-1.5">
             <div class="flex items-start justify-between gap-2">
-              <p class="font-semibold text-sm text-slate-900 truncate">
+              <p class="min-w-0 flex-1 font-semibold text-sm text-slate-900 truncate">
                 {offer.source_product.title}
               </p>
               <span

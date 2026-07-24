@@ -47,6 +47,47 @@ defmodule EmakolaWeb.Admin.SupplyOffersLiveTest do
       assert html =~ "Publish"
     end
 
+    test "renders a thumbnail image for an offer whose product has one", %{
+      conn: conn,
+      merchant: merchant,
+      store: store
+    } do
+      product = Factory.create_product!(store, status: :active, title: "Shea Butter Bar")
+      variant = Factory.create_variant!(product, store, price: 5_000, stock_quantity: 10)
+      Factory.create_image!(product, store)
+
+      {:ok, offer} =
+        Offers.create_draft(merchant, %{
+          wholesaler_store_id: store.id,
+          source_product_id: product.id,
+          earning_model: :markup,
+          delivery_areas: ["Greater Accra"]
+        })
+
+      {:ok, _} =
+        Offers.add_variant(merchant, offer, %{
+          source_variant_id: variant.id,
+          supplier_price: 3_000,
+          suggested_retail_price: 4_500
+        })
+
+      {:ok, _view, html} = live(conn, ~p"/admin/supply/offers")
+
+      assert html =~ "<img"
+    end
+
+    test "renders a fallback block for an offer whose product has no image", %{
+      conn: conn,
+      merchant: merchant,
+      store: store
+    } do
+      _offer = create_draft_offer!(merchant, store, "No Image Product")
+
+      {:ok, _view, html} = live(conn, ~p"/admin/supply/offers")
+
+      refute html =~ "<img"
+    end
+
     test "publishes a draft from the index", %{conn: conn, merchant: merchant, store: store} do
       offer = create_draft_offer!(merchant, store, "Kente Stole")
 
@@ -150,6 +191,47 @@ defmodule EmakolaWeb.Admin.SupplyOffersLiveTest do
 
       reloaded = Ash.get!(Emakola.Suppliers.SupplierOffer, archived.id, authorize?: false)
       assert reloaded.status == :draft
+    end
+
+    test "does not render the platform announcement banner", %{conn: conn} do
+      {:ok, ann} =
+        Emakola.Notifications.create_announcement(
+          %{
+            title: "Welcome to Makola Payouts",
+            body: "You can now add your payout details.",
+            channels: [:banner],
+            audience: :all,
+            publish_at: ~U[2026-06-20 00:00:00Z]
+          },
+          authorize?: false
+        )
+
+      {:ok, _} = Emakola.Notifications.publish_announcement(ann, authorize?: false)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/supply/offers")
+
+      refute html =~ "Welcome to Makola Payouts"
+    end
+
+    test "sidebar groups Marketplace links under renamed titles at unchanged hrefs", %{
+      conn: conn
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/offers")
+
+      for label <- [
+            "Main",
+            "Sell",
+            "Marketplace",
+            "Customers & Marketing",
+            "Content & Design",
+            "Insights"
+          ] do
+        assert has_element?(view, "p.nav-section-label", label)
+      end
+
+      assert has_element?(view, ~s{a[href="/admin/supply/catalog"]}, "Browse Suppliers")
+      assert has_element?(view, ~s{a[href="/admin/settings/supply-network"]}, "Partners")
+      assert has_element?(view, ~s{a[href="/admin/settings/suppliers"]}, "My Contacts")
     end
   end
 
@@ -618,6 +700,16 @@ defmodule EmakolaWeb.Admin.SupplyOffersLiveTest do
         offer: offer,
         terms: terms
       }
+    end
+
+    test "the edit page shows a product context header with title and status", %{
+      conn: conn,
+      offer: offer
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/offers/#{offer.id}/edit")
+
+      assert has_element?(view, "h2", "Two Variant Product")
+      assert has_element?(view, "h2 ~ span", "Draft")
     end
 
     test "an unpriced product variant renders and pricing it adds it (add_variant path)", %{

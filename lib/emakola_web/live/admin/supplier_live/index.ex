@@ -19,7 +19,7 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
     socket =
       socket
       |> assign(
-        page_title: "Suppliers",
+        page_title: "My Contacts",
         active_nav: :suppliers,
         store: store,
         suppliers: [],
@@ -217,7 +217,7 @@ defmodule EmakolaWeb.Admin.SupplierLive.Index do
             <.link navigate={~p"/admin/settings"} class="text-slate-400 hover:text-slate-600">
               <.icon name="hero-arrow-left" class="size-4" />
             </.link>
-            <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Suppliers</h1>
+            <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">My Contacts</h1>
           </div>
           <p class="text-sm text-slate-500">Manage dropship suppliers and track what you owe them</p>
         </div>

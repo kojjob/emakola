@@ -120,19 +120,19 @@ defmodule Emakola.Notifications.Templates do
   # ── Connection notification templates ────────────────────────────
 
   def connection_sms(:requested, counterparty, :wants_to_stock) do
-    "#{counterparty} wants to stock your products. Review the request on your Earn Network page: #{admin_url(destination_path(:requested))}"
+    "#{counterparty} wants to stock your products. Review the request on your Partners page: #{admin_url(destination_path(:requested))}"
   end
 
   def connection_sms(:requested, counterparty, :wants_to_supply) do
-    "#{counterparty} wants to supply you products. Review the request on your Earn Network page: #{admin_url(destination_path(:requested))}"
+    "#{counterparty} wants to supply you products. Review the request on your Partners page: #{admin_url(destination_path(:requested))}"
   end
 
   def connection_sms(:approved, counterparty, _direction) do
-    "#{counterparty} approved your connection. Wholesale pricing is now visible in your Supplier Catalog: #{admin_url(destination_path(:approved))}"
+    "#{counterparty} approved your connection. Wholesale pricing is now visible on your Browse Suppliers page: #{admin_url(destination_path(:approved))}"
   end
 
   def connection_sms(:rejected, counterparty, _direction) do
-    "#{counterparty} declined your connection request. You can browse other suppliers in the Supplier Catalog: #{admin_url(destination_path(:rejected))}"
+    "#{counterparty} declined your connection request. You can browse other suppliers on your Browse Suppliers page: #{admin_url(destination_path(:rejected))}"
   end
 
   def connection_push(:requested, counterparty, :wants_to_stock),
