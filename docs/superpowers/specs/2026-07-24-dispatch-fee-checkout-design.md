@@ -72,6 +72,13 @@ items are already grouped by `supplier_id` for fulfillments):
   settlement reads the snapshots only.
 - Hand-written migrations (`ash.codegen` unusable), reversible.
 
+NOTE (verified in review): coupons are currently structurally disallowed on
+network carts (`NetworkCheckoutEligibility` rejects coupon_id), and only
+network carts can carry dispatch fees — so discount ≠ 0 with a fee is
+unreachable through real checkout today. The settlement math nonetheless
+handles discount ≠ 0 correctly (see the discount tests), so enabling network
+coupons later requires no settlement change.
+
 ## 3. Splits
 
 `SplitCalculator.calculate/2` (dropship path only):
