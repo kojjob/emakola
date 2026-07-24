@@ -4,9 +4,6 @@ defmodule Emakola.Suppliers.GhanaRegions do
   keeps `dispatch_fees` keys consistent across suppliers (the DispatchFees
   validation requires fee keys ⊆ delivery_areas, and future filtering by
   area depends on exact string equality).
-
-  Provides functions to canonicalize region names and generate select options
-  with snake_case parameters.
   """
 
   @regions [
@@ -33,6 +30,9 @@ defmodule Emakola.Suppliers.GhanaRegions do
 
   @doc """
   Canonicalize a snake_case parameter to the canonical region name.
+
+  Provides functions to canonicalize region names and generate select options
+  with snake_case parameters.
 
   Returns the canonical region name (e.g., "Greater Accra") if the param matches,
   or nil if it doesn't match or the input is not a binary.
