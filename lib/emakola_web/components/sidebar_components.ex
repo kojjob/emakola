@@ -262,8 +262,14 @@ defmodule EmakolaWeb.SidebarComponents do
         <.sidebar_link
           href="/admin/supply/catalog"
           title="Supplier Catalog"
-          icon="truck"
+          icon="package"
           active={@active_nav == :supply_catalog}
+        />
+        <.sidebar_link
+          href="/admin/supply/offers"
+          title="My Offers"
+          icon="tag"
+          active={@active_nav == :supply_offers}
         />
         <.sidebar_link
           href="/admin/returns"

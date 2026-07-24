@@ -82,5 +82,18 @@ defmodule Emakola.Suppliers.SupplierOfferVariant do
         :fixed_commission_amount
       ])
     end
+
+    update :update_terms do
+      require_atomic?(false)
+
+      accept([
+        :supplier_price,
+        :suggested_retail_price,
+        :max_retail_price,
+        :fixed_commission_amount
+      ])
+    end
+
+    destroy(:destroy)
   end
 end

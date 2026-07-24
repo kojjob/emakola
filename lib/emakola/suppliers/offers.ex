@@ -38,6 +38,32 @@ defmodule Emakola.Suppliers.Offers do
     end
   end
 
+  @doc """
+  Reprices one variant's terms. Allowed only while the offer is editable
+  (`:draft` or `:paused`) — published economics are locked because importers
+  priced against them; republish re-validates economics.
+  """
+  def update_variant(actor, offer, variant, attrs) do
+    with :ok <- ensure_access(actor, offer.wholesaler_store_id),
+         :ok <- ensure_editable(offer),
+         :ok <- ensure_offer_variant(variant, offer) do
+      variant
+      |> Ash.Changeset.for_update(:update_terms, attrs)
+      |> Ash.update(authorize?: false)
+    end
+  end
+
+  @doc "Removes one variant's terms from an editable (draft/paused) offer."
+  def remove_variant(actor, offer, variant) do
+    with :ok <- ensure_access(actor, offer.wholesaler_store_id),
+         :ok <- ensure_editable(offer),
+         :ok <- ensure_offer_variant(variant, offer) do
+      variant
+      |> Ash.Changeset.for_destroy(:destroy)
+      |> Ash.destroy(authorize?: false)
+    end
+  end
+
   def publish(actor, offer) do
     with :ok <- ensure_access(actor, offer.wholesaler_store_id),
          {:ok, product} <- get_product(offer.source_product_id),
@@ -72,6 +98,14 @@ defmodule Emakola.Suppliers.Offers do
 
   def pause(actor, offer), do: owner_update_and_pause_listings(actor, offer, :pause)
   def archive(actor, offer), do: owner_update_and_pause_listings(actor, offer, :archive)
+
+  @doc """
+  Restores an archived offer to `:draft` so it can be edited and republished.
+  Unlike `pause/2` and `archive/2`, there are no live reseller listings to
+  pause — an archived offer was never discoverable — so this is a plain
+  owner-authorized update.
+  """
+  def unarchive(actor, offer), do: owner_update(actor, offer, :unarchive)
 
   def list_owned(actor, store_id) do
     with :ok <- ensure_access(actor, store_id) do
@@ -295,6 +329,9 @@ defmodule Emakola.Suppliers.Offers do
        do: :ok
 
   defp ensure_variant_owner(_, _), do: {:error, :variant_not_owned}
+
+  defp ensure_offer_variant(%{offer_id: offer_id}, %{id: offer_id}), do: :ok
+  defp ensure_offer_variant(_, _), do: {:error, :variant_not_owned}
 
   defp source_available?(variant), do: variant.available and Variant.in_stock?(variant)
 
