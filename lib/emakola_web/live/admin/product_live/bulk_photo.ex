@@ -8,6 +8,7 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
     {:ok,
      socket
      |> assign(:store_id, socket.assigns.current_store.id)
+     |> assign(:active_nav, :products)
      |> assign(:max_photos, @max_photos)
      |> assign(:cards, %{})
      |> assign(:publishing, false)

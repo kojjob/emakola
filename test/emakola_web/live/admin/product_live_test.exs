@@ -72,6 +72,26 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
       assert html =~ "Title"
       assert html =~ "Save as Draft"
     end
+
+    test "does not render the platform announcement banner", %{conn: conn} do
+      {:ok, ann} =
+        Emakola.Notifications.create_announcement(
+          %{
+            title: "Welcome to Makola Payouts",
+            body: "You can now add your payout details.",
+            channels: [:banner],
+            audience: :all,
+            publish_at: ~U[2026-06-20 00:00:00Z]
+          },
+          authorize?: false
+        )
+
+      {:ok, _} = Emakola.Notifications.publish_announcement(ann, authorize?: false)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/products/new")
+
+      refute html =~ "Welcome to Makola Payouts"
+    end
   end
 
   describe "ProductLive.Form create (authenticated merchant)" do
