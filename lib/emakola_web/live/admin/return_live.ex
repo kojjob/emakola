@@ -37,7 +37,8 @@ defmodule EmakolaWeb.Admin.ReturnLive do
            status_filter: "all",
            selected_return: nil,
            action_notes: "",
-           refund_amount_input: ""
+           refund_amount_input: "",
+           refund_dispatch_fee: false
          )}
     end
   end
@@ -61,7 +62,8 @@ defmodule EmakolaWeb.Admin.ReturnLive do
      assign(socket,
        selected_return: selected,
        action_notes: "",
-       refund_amount_input: ""
+       refund_amount_input: "",
+       refund_dispatch_fee: false
      )}
   end
 
@@ -81,19 +83,32 @@ defmodule EmakolaWeb.Admin.ReturnLive do
   end
 
   @impl true
-  def handle_event("approve_return", _params, socket) do
-    return = socket.assigns.selected_return
+  def handle_event("toggle_dispatch_fee", _params, socket) do
+    {:noreply, assign(socket, refund_dispatch_fee: !socket.assigns.refund_dispatch_fee)}
+  end
 
+  @impl true
+  def handle_event("approve_return", _params, socket) do
+    # Approving a return sends the customer's money back through the gateway,
+    # so it goes through RefundService with the merchant as actor. A blank or
+    # unparseable amount becomes nil and the service refuses it — this used to
+    # be `Float.parse`, which silently approved a return that refunded nothing.
     refund_amount =
-      case Float.parse(socket.assigns.refund_amount_input) do
-        {amount, _} -> round(amount * 100)
-        :error -> nil
+      case Emakola.Money.parse_price(socket.assigns.refund_amount_input) do
+        {:ok, pesewas} -> pesewas
+        _ -> nil
       end
 
-    case Emakola.Orders.approve_return(
-           return,
-           %{admin_notes: socket.assigns.action_notes, refund_amount: refund_amount},
-           authorize?: false
+    params = %{
+      admin_notes: socket.assigns.action_notes,
+      refund_amount: refund_amount,
+      refund_dispatch_fee?: socket.assigns.refund_dispatch_fee
+    }
+
+    case Emakola.Payments.RefundService.issue(
+           socket.assigns.current_merchant,
+           socket.assigns.selected_return,
+           params
          ) do
       {:ok, _updated} ->
         returns = load_returns(socket.assigns.store.id, socket.assigns.status_filter)
@@ -103,8 +118,8 @@ defmodule EmakolaWeb.Admin.ReturnLive do
          |> assign(returns: returns, selected_return: nil)
          |> put_flash(:info, "Return approved")}
 
-      {:error, _error} ->
-        {:noreply, put_flash(socket, :error, "Failed to approve return")}
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, refund_error(reason))}
     end
   end
 
@@ -333,6 +348,17 @@ defmodule EmakolaWeb.Admin.ReturnLive do
               class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-amber-700 focus:border-amber-700 focus:outline-none"
             />
           </div>
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              phx-click="toggle_dispatch_fee"
+              checked={@refund_dispatch_fee}
+              class="mt-0.5 w-4 h-4 rounded border-stone-300 text-amber-700 focus:ring-amber-700"
+            />
+            <span class="text-sm text-cta-dark">
+              Supplier is at fault — also refund their dispatch fee
+            </span>
+          </label>
           <div class="flex gap-3">
             <button
               phx-click="approve_return"
@@ -364,6 +390,20 @@ defmodule EmakolaWeb.Admin.ReturnLive do
   end
 
   # -- Private --
+
+  defp refund_error(:gateway_unsupported),
+    do: "Refunds for this payment must be issued in the provider dashboard."
+
+  defp refund_error(:amount_exceeds_refundable),
+    do: "That is more than the amount still refundable on this payment."
+
+  defp refund_error(:payment_not_found),
+    do: "No payment was found for this order, so there is nothing to refund."
+
+  defp refund_error(:invalid_amount),
+    do: "Enter the amount to refund in GHS, for example 48.50."
+
+  defp refund_error(_reason), do: "Failed to approve return"
 
   defp load_returns(store_id, status_filter \\ "all") do
     returns = Emakola.Orders.list_returns_by_store!(store_id, authorize?: false)

@@ -87,22 +87,107 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
     end
 
     test "approves a return", %{conn: conn, store: store} do
-      _return = create_return!(store)
+      order = create_order!(store, :delivered)
+      return = create_return!(store, order)
+      create_successful_payment!(store, order)
 
       {:ok, view, _html} = live(conn, ~p"/admin/returns")
-
-      returns =
-        Emakola.Orders.Return
-        |> Ash.Query.for_read(:list_by_store, %{store_id: store.id})
-        |> Ash.read!(authorize?: false)
-
-      return = hd(returns)
 
       render_click(view, "select_return", %{"id" => return.id})
       render_click(view, "update_refund_amount", %{"amount" => "48.50"})
       html = render_click(view, "approve_return")
 
       assert html =~ "Return approved"
+
+      # Parsed as pesewas, not floats — 48.50 GHS is exactly 4850.
+      assert reload(return).status == :approved
+      assert reload(return).refund_amount == 4850
+    end
+
+    test "passes the supplier-at-fault choice through to the refund", %{conn: conn, store: store} do
+      order = create_order!(store, :delivered)
+      return = create_return!(store, order)
+      create_successful_payment!(store, order)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      render_click(view, "select_return", %{"id" => return.id})
+      render_click(view, "update_refund_amount", %{"amount" => "48.50"})
+
+      view
+      |> element("input[phx-click='toggle_dispatch_fee']")
+      |> render_click()
+
+      html = render_click(view, "approve_return")
+
+      assert html =~ "Return approved"
+      assert reload(return).refund_dispatch_fee? == true
+    end
+
+    test "defaults the supplier-at-fault choice to false", %{conn: conn, store: store} do
+      order = create_order!(store, :delivered)
+      return = create_return!(store, order)
+      create_successful_payment!(store, order)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      render_click(view, "select_return", %{"id" => return.id})
+      render_click(view, "update_refund_amount", %{"amount" => "48.50"})
+      render_click(view, "approve_return")
+
+      assert reload(return).refund_dispatch_fee? == false
+    end
+
+    test "points the merchant at the provider dashboard when the gateway cannot refund", %{
+      conn: conn,
+      store: store
+    } do
+      order = create_order!(store, :delivered)
+      return = create_return!(store, order)
+      create_successful_payment!(store, order, gateway: :hubtel)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      render_click(view, "select_return", %{"id" => return.id})
+      render_click(view, "update_refund_amount", %{"amount" => "48.50"})
+      html = render_click(view, "approve_return")
+
+      assert html =~ "Refunds for this payment must be issued in the provider dashboard."
+      assert reload(return).status == :requested
+    end
+
+    test "refuses to approve without a valid refund amount", %{conn: conn, store: store} do
+      order = create_order!(store, :delivered)
+      return = create_return!(store, order)
+      create_successful_payment!(store, order)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      render_click(view, "select_return", %{"id" => return.id})
+      render_click(view, "update_refund_amount", %{"amount" => "not money"})
+      html = render_click(view, "approve_return")
+
+      refute html =~ "Return approved"
+      assert reload(return).status == :requested
+      assert is_nil(reload(return).refund_amount)
+    end
+
+    test "refuses an amount larger than the payment", %{conn: conn, store: store} do
+      order = create_order!(store, :delivered)
+      return = create_return!(store, order)
+      payment = create_successful_payment!(store, order, amount: 5_000)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      render_click(view, "select_return", %{"id" => return.id})
+      render_click(view, "update_refund_amount", %{"amount" => "50.01"})
+      html = render_click(view, "approve_return")
+
+      refute html =~ "Return approved"
+      assert reload(return).status == :requested
+
+      assert Ash.get!(Emakola.Payments.Payment, payment.id, authorize?: false).refunded_amount ==
+               0
     end
 
     test "denies a return", %{conn: conn, store: store} do
@@ -221,6 +306,24 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
     |> Ash.Changeset.for_create(:request_return, params)
     |> Ash.create!(authorize?: false)
   end
+
+  defp create_successful_payment!(store, order, attrs \\ []) do
+    default = %{
+      store_id: store.id,
+      order_id: order.id,
+      amount: 500_000,
+      gateway: :paystack,
+      gateway_reference: "PAY-test-#{System.unique_integer([:positive])}-ref"
+    }
+
+    Emakola.Payments.Payment
+    |> Ash.Changeset.for_create(:create, Map.merge(default, Map.new(attrs)))
+    |> Ash.create!(authorize?: false)
+    |> Ash.Changeset.for_update(:mark_success, %{})
+    |> Ash.update!(authorize?: false)
+  end
+
+  defp reload(return), do: Ash.get!(Emakola.Orders.Return, return.id, authorize?: false)
 
   defp create_approved_return!(store, order) do
     return = create_return!(store, order)
