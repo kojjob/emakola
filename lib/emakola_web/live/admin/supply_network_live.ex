@@ -108,6 +108,10 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
           {:error, :stores_must_differ} ->
             {:noreply, put_flash(socket, :error, "Choose another store, not your own.")}
 
+          {:error, :invite_rate_limited} ->
+            {:noreply,
+             put_flash(socket, :error, "Invite limit reached — please try again later.")}
+
           {:error, _reason} ->
             {:noreply, put_flash(socket, :error, "The invitation could not be sent.")}
         end
