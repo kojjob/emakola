@@ -100,7 +100,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      # delivery zone up front. `delivery_fee` used to be hardcoded to 1500 at
      # mount and only corrected once the customer touched the form, so the first
      # thing a shopper read was a fee that had nothing to do with this store.
-     |> update_delivery_fee()}
+     |> update_delivery_fee()
+     |> update_dispatch_fees()}
   end
 
   # -- Event Handlers -------------------------------------------------------
@@ -129,7 +130,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      |> assign(:notes, Map.get(params, "notes", socket.assigns.notes))
      |> assign(:coupon_code, Map.get(params, "coupon_code", socket.assigns.coupon_code))
      |> assign(:form_errors, %{})
-     |> update_delivery_fee()}
+     |> update_delivery_fee()
+     |> update_dispatch_fees()}
   end
 
   @impl true
@@ -143,6 +145,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       |> assign(:region, Map.get(params, "region", "greater_accra"))
       |> assign(:notes, Map.get(params, "notes", ""))
       |> update_delivery_fee()
+      |> update_dispatch_fees()
 
     errors = validate_contact_fields(socket.assigns)
 
@@ -218,6 +221,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       |> assign(:region, Map.get(params, "region", socket.assigns.region))
       |> assign(:notes, Map.get(params, "notes", socket.assigns.notes))
       |> update_delivery_fee()
+      |> update_dispatch_fees()
 
     errors = validate_contact_fields(socket.assigns)
 
@@ -649,6 +653,41 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     |> assign(:delivery_estimate, estimate)
   end
 
+  # Live preview of the per-supplier dispatch fees CheckoutService.checkout!
+  # will snapshot on the order. The LV's cart items are CartStore entries
+  # (product_title/unit_price/sku display fields), not the
+  # `%{variant_id, quantity}` + variants-map shape dispatch_fees_for/3
+  # expects, so we adapt: build items from the cart and re-fetch the
+  # variants (for supplier_id) in one query, mirroring cart_weight_grams's
+  # pattern below.
+  defp update_dispatch_fees(socket) do
+    items =
+      Enum.map(socket.assigns.cart, fn item ->
+        %{variant_id: item.variant_id, quantity: item.quantity}
+      end)
+
+    variants = dispatch_variants(socket.assigns.cart, socket.assigns.store.id)
+
+    dispatch_fee_total =
+      items
+      |> CheckoutService.dispatch_fees_for(variants, socket.assigns.region)
+      |> Map.values()
+      |> Enum.sum()
+
+    assign(socket, :dispatch_fee_total, dispatch_fee_total)
+  end
+
+  defp dispatch_variants([], _store_id), do: %{}
+
+  defp dispatch_variants(cart, store_id) do
+    variant_ids = Enum.map(cart, & &1.variant_id)
+
+    Emakola.Catalog.Variant
+    |> Ash.Query.filter(id in ^variant_ids and store_id == ^store_id)
+    |> Ash.read!(authorize?: false)
+    |> Map.new(&{&1.id, &1})
+  end
+
   defp zone_fee(socket, zone) do
     case Emakola.Shipping.calculate_fee(socket.assigns.store.id, zone.name,
            subtotal_pesewas: socket.assigns.cart_total,
@@ -728,7 +767,11 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   end
 
   defp calculate_order_total(assigns) do
-    max(assigns.cart_total - assigns.discount_amount + effective_delivery_fee(assigns), 0)
+    max(
+      assigns.cart_total - assigns.discount_amount + effective_delivery_fee(assigns) +
+        assigns.dispatch_fee_total,
+      0
+    )
   end
 
   defp effective_delivery_fee(assigns) do

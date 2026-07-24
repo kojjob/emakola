@@ -6,6 +6,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
   require Ash.Query
 
   alias Emakola.Cart.CartStore
+  alias Emakola.Suppliers.{ListingImporter, Network, Offers}
+  alias EmakolaWeb.Helpers.Currency
 
   setup do
     store = create_store!(%{name: "Checkout Shop", slug: "checkout-shop", currency: "GHS"})
@@ -387,5 +389,118 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       assert html =~ "GH\u20B5 100"
       refute html =~ "GH\u20B5 115"
     end
+  end
+
+  # -- Supplier Dispatch Fee --
+
+  describe "supplier dispatch fee" do
+    test "supplier dispatch line appears for dropship carts and updates with region", %{
+      conn: conn
+    } do
+      {reseller_actor, reseller} = create_merchant_with_store!(%{name: "Dispatch Reseller"})
+      verified_payout!(reseller, "ACCT_reseller")
+      {wholesaler_actor, wholesaler} = create_dropship_wholesaler!(reseller_actor, reseller)
+
+      drop =
+        import_offer!(wholesaler_actor, wholesaler, reseller_actor, reseller, %{
+          "Greater Accra" => 1_500,
+          "Ashanti" => 2_500
+        })
+
+      session_id = Ecto.UUID.generate()
+
+      CartStore.add_item(session_id, reseller.id, %{
+        variant_id: drop.variant.id,
+        product_title: "Dispatch Item",
+        variant_info: "SKU",
+        unit_price: 5_000,
+        quantity: 1,
+        sku: "SKU"
+      })
+
+      conn = init_test_session(conn, %{"cart_session_id" => session_id})
+      {:ok, view, html} = live(conn, "/s/#{reseller.slug}/checkout")
+
+      assert html =~ "Supplier dispatch"
+      assert html =~ Currency.format_price(1_500)
+
+      html = render_change(view, "update_details", %{"region" => "ashanti"})
+
+      assert html =~ "Supplier dispatch"
+      assert html =~ Currency.format_price(2_500)
+      refute html =~ Currency.format_price(1_500)
+    end
+
+    test "no dispatch line for merchant-only carts", %{conn: conn, store: store, variant: variant} do
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+
+      refute html =~ "Supplier dispatch"
+    end
+  end
+
+  # -- Supplier dispatch fixtures ------------------------------------------
+  # Real network flow (Offers -> publish -> ListingImporter), mirrored from
+  # Emakola.Orders.CheckoutServiceTest, so the imported variant carries a
+  # genuine ResellerListingVariant/offer chain for dispatch_fees_for/3 to read.
+
+  defp create_dropship_wholesaler!(reseller_actor, reseller) do
+    {wholesaler_actor, wholesaler} =
+      create_merchant_with_store!(%{
+        name: "Dispatch Wholesaler #{System.unique_integer([:positive])}"
+      })
+
+    {:ok, connection} =
+      Network.request(wholesaler_actor, %{
+        wholesaler_store_id: wholesaler.id,
+        reseller_store_id: reseller.id,
+        requested_by_store_id: wholesaler.id
+      })
+
+    {:ok, _active} = Network.approve(reseller_actor, connection)
+    verified_payout!(wholesaler, "ACCT_wholesaler_#{System.unique_integer([:positive])}")
+
+    {wholesaler_actor, wholesaler}
+  end
+
+  defp import_offer!(wholesaler_actor, wholesaler, reseller_actor, reseller, dispatch_fees) do
+    product =
+      create_product!(wholesaler,
+        status: :active,
+        title: "Dispatch Item #{System.unique_integer([:positive])}"
+      )
+
+    source_variant =
+      create_variant!(product, wholesaler,
+        price: 6_000,
+        sku: "SRC-#{System.unique_integer([:positive])}",
+        stock_quantity: 50
+      )
+
+    {:ok, offer} =
+      Offers.create_draft(wholesaler_actor, %{
+        wholesaler_store_id: wholesaler.id,
+        source_product_id: product.id,
+        earning_model: :markup,
+        delivery_areas: Map.keys(dispatch_fees)
+      })
+
+    {:ok, _terms} =
+      Offers.add_variant(wholesaler_actor, offer, %{
+        source_variant_id: source_variant.id,
+        supplier_price: 4_000,
+        suggested_retail_price: 5_000,
+        max_retail_price: 5_800
+      })
+
+    {:ok, published} = Offers.publish(wholesaler_actor, offer)
+
+    {:ok, priced} =
+      Offers.update_terms(wholesaler_actor, published, %{dispatch_fees: dispatch_fees})
+
+    {:ok, listing} = ListingImporter.import(reseller_actor, reseller.id, priced)
+
+    [variant | _] = listing.reseller_product.variants
+    %{variant: variant, supplier_id: listing.supplier_id, offer: priced}
   end
 end

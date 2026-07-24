@@ -778,6 +778,12 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                           else: Currency.format_price(@effective_delivery_fee, @store.currency)}
                       </span>
                     </div>
+                    <div :if={@dispatch_fee_total > 0} class="flex justify-between">
+                      <span class="text-stone-500">Supplier dispatch</span>
+                      <span class="font-medium text-stone-900">
+                        {Currency.format_price(@dispatch_fee_total, @store.currency)}
+                      </span>
+                    </div>
                     <div :if={@discount_amount > 0} class="flex justify-between">
                       <div class="flex items-center gap-1.5">
                         <span class="text-stone-500">Promo</span>
