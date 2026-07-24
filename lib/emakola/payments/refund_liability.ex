@@ -6,6 +6,12 @@ defmodule Emakola.Payments.RefundLiability do
   `PaymentSplit.reversed_amount` is the recoverable balance source of truth,
   making partial refunds cumulative without duplicating the allocation ledger.
 
+  A dispatched supplier's fee is held back from its reversible base and shifted
+  onto the dropshipper's. That shift is computed at the first reversal and
+  pinned in `PaymentSplit.protected_dispatch_fee`, so every later refund event
+  for the payment reuses it rather than recomputing against state that has
+  since changed.
+
   Future gateway splits reserve that debt before payment initiation. The
   recipient's share is reduced by the reserved amount and the platform
   remainder grows by the same amount, preserving the charge total. A successful
@@ -52,23 +58,58 @@ defmodule Emakola.Payments.RefundLiability do
   # the merchant who chose to refund absorbs that portion of the reversal.
   # Redistribution leaves the total untouched — `Σ base == payment.amount` is
   # exactly what keeps the reversals summing to `payment.refunded_amount`.
+  #
+  # The protection is derived ONCE, at the first reversal, then persisted and
+  # replayed. Its inputs keep moving after a refund lands (a fulfillment ships,
+  # a return starts blaming the supplier) while `record_reversal` only ratchets
+  # upward — so re-deriving would let a split whose target had DROPPED stay
+  # frozen at its old figure while the others advanced, recording more than the
+  # customer was ever refunded.
   defp with_reversible_bases(splits, payment) do
-    unprotected = Enum.map(splits, &{&1, &1.amount})
-
-    if is_nil(payment.order_id) do
-      unprotected
+    if pinned?(splits) do
+      redistribute(splits, Map.new(splits, &{&1.id, &1.protected_dispatch_fee}))
     else
-      apply_protection(splits, unprotected, payment.order_id)
+      fees = derived_fees(splits, payment)
+
+      splits
+      |> Enum.map(&pin_fee!(&1, Map.get(fees, &1.id, 0)))
+      |> redistribute(fees)
     end
   end
 
-  defp apply_protection(splits, unprotected, order_id) do
+  # Either mark means an earlier call already fixed the bases for this payment.
+  # Both are needed: a first refund of zero records no reversal, and a payment
+  # with nothing to protect persists no fee.
+  defp pinned?(splits) do
+    Enum.any?(splits, &(&1.reversed_amount > 0 or &1.protected_dispatch_fee > 0))
+  end
+
+  # Reads live Fulfillment/Return state. Only ever called on the first reversal.
+  defp derived_fees(splits, %{order_id: order_id}) when not is_nil(order_id) do
     fees = protected_fees(splits, order_id)
+    total = fees |> Map.values() |> Enum.sum()
+
+    # Short-circuits before the Return read, so the common no-protection case
+    # never pays for that query.
+    if total == 0 or not Enum.any?(splits, &(&1.role == :dropshipper)) or
+         dispatch_fee_waived?(order_id) do
+      %{}
+    else
+      fees
+    end
+  end
+
+  defp derived_fees(_splits, _payment), do: %{}
+
+  # Moves the protected fees off their wholesalers and onto the dropshipper.
+  # Without a dropshipper there is nowhere to move them to, so nothing moves:
+  # the sum invariant outranks the protection.
+  defp redistribute(splits, fees) do
     total = fees |> Map.values() |> Enum.sum()
     dropshipper = Enum.find(splits, &(&1.role == :dropshipper))
 
-    if total == 0 or is_nil(dropshipper) or dispatch_fee_waived?(order_id) do
-      unprotected
+    if total == 0 or is_nil(dropshipper) do
+      Enum.map(splits, &{&1, &1.amount})
     else
       Enum.map(splits, fn split ->
         if split.id == dropshipper.id do
@@ -78,6 +119,14 @@ defmodule Emakola.Payments.RefundLiability do
         end
       end)
     end
+  end
+
+  defp pin_fee!(split, 0), do: split
+
+  defp pin_fee!(split, fee) do
+    split
+    |> Ash.Changeset.for_update(:pin_dispatch_protection, %{protected_dispatch_fee: fee})
+    |> Ash.update!(authorize?: false)
   end
 
   # One fulfillment query per reconcile, never one per split. Merchant-owned
@@ -90,7 +139,18 @@ defmodule Emakola.Payments.RefundLiability do
           not is_nil(supplier_id)
       )
       |> Ash.read!(authorize?: false)
-      |> Map.new(&{&1.supplier_id, &1.dispatch_fee})
+      # A supplier can hold more than one dispatched fulfillment on an order,
+      # and each dispatch cost a real courier run, so the fees SUM. Addition is
+      # order-independent — unlike keying a map on supplier_id, which silently
+      # kept whichever row the database happened to return last.
+      |> Enum.reduce(%{}, fn fulfillment, acc ->
+        Map.update(
+          acc,
+          fulfillment.supplier_id,
+          fulfillment.dispatch_fee,
+          &(&1 + fulfillment.dispatch_fee)
+        )
+      end)
 
     for %{role: :wholesaler, supplier_id: supplier_id} = split <- splits,
         is_map_key(fees, supplier_id),

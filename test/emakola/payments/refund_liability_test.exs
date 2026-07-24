@@ -174,7 +174,7 @@ defmodule Emakola.Payments.RefundLiabilityTest do
         end
 
       RefundLiability.reconcile!(%{payment | refunded_amount: 500}, splits)
-      RefundLiability.reconcile!(%{payment | refunded_amount: 1_001}, splits)
+      RefundLiability.reconcile!(%{payment | refunded_amount: 1_001}, reread(splits))
 
       # A full refund reverses every split completely — no pesewa left behind.
       assert Enum.map(splits, &fresh(&1).reversed_amount) == [333, 333, 335]
@@ -289,7 +289,7 @@ defmodule Emakola.Payments.RefundLiabilityTest do
 
       # Driving the same splits to a full refund exposes the bases themselves,
       # proving Σ base == payment.amount — the equality the invariant rests on.
-      RefundLiability.reconcile!(%{payment | refunded_amount: 10_000}, splits)
+      RefundLiability.reconcile!(%{payment | refunded_amount: 10_000}, reread(splits))
 
       assert reversals(splits) == [5_500, 3_500, 1_000]
       assert Enum.sum(reversals(splits)) == 10_000
@@ -313,7 +313,7 @@ defmodule Emakola.Payments.RefundLiabilityTest do
 
       # `refunded_amount` is cumulative at the gateway: a second 30% refund
       # arrives as 6_000 total, and reversals must land on 60% of each base.
-      RefundLiability.reconcile!(%{payment | refunded_amount: 6_000}, splits)
+      RefundLiability.reconcile!(%{payment | refunded_amount: 6_000}, reread(splits))
 
       assert reversals(splits) == [3_300, 2_100, 600]
       assert Enum.sum(reversals(splits)) == 6_000
@@ -454,6 +454,82 @@ defmodule Emakola.Payments.RefundLiabilityTest do
     end
   end
 
+  # Protection is derived from MUTABLE state (Fulfillment.status,
+  # Return.refund_dispatch_fee?), but `record_reversal` only ever ratchets
+  # upward. If a later refund event re-derived the bases, a split whose new
+  # target had dropped would stay frozen at its old, higher figure while the
+  # others advanced — and the recorded total would exceed the money actually
+  # refunded. The fix pins the protection at the FIRST reversal, so both
+  # directions of a mid-refund state flip are inert.
+  describe "protection is pinned at the first reversal" do
+    setup do
+      store = create_store!(name: "Pinned protection store")
+      order = create_order!(store)
+      payment = create_payment!(store, amount: 10_000, order_id: order.id)
+      supplier = create_supplier!(store, name: "Pinned supplier")
+
+      {:ok, store: store, order: order, payment: payment, supplier: supplier}
+    end
+
+    test "waiving the fee after a partial refund does not claw the fee twice", ctx do
+      %{store: store, order: order, payment: payment, supplier: supplier} = ctx
+
+      create_fulfillment!(order, store, %{
+        supplier_id: supplier.id,
+        status: :shipped,
+        dispatch_fee: 500
+      })
+
+      splits = standard_splits(store, payment, supplier)
+
+      # 90% against protected bases 5_500 / 3_500 / 1_000.
+      RefundLiability.reconcile!(%{payment | refunded_amount: 9_000}, splits)
+      assert reversals(splits) == [4_950, 3_150, 900]
+
+      # Only NOW does the merchant approve the return blaming the supplier.
+      approve_return!(store, order, refund_dispatch_fee?: true)
+
+      RefundLiability.reconcile!(%{payment | refunded_amount: 10_000}, reread(splits))
+
+      # Re-deriving here would target the unprotected 6_000/3_000/1_000, and
+      # the dropshipper — already at 3_150 — would freeze above its new 3_000
+      # target while the other two advanced, recording 10_150 on a 10_000
+      # payment. The pin keeps the original bases in force.
+      assert Enum.sum(reversals(splits)) == 10_000
+      assert reversals(splits) == [5_500, 3_500, 1_000]
+    end
+
+    test "a fulfillment dispatching between two partials does not claw twice", ctx do
+      %{store: store, order: order, payment: payment, supplier: supplier} = ctx
+
+      fulfillment =
+        create_fulfillment!(order, store, %{
+          supplier_id: supplier.id,
+          status: :pending,
+          dispatch_fee: 500
+        })
+
+      splits = standard_splits(store, payment, supplier)
+
+      # 90% against unprotected bases 6_000 / 3_000 / 1_000 — nothing had shipped.
+      RefundLiability.reconcile!(%{payment | refunded_amount: 9_000}, splits)
+      assert reversals(splits) == [5_400, 2_700, 900]
+
+      # The supplier ships between the two refund events.
+      fulfillment
+      |> Ash.Changeset.for_update(:mark_shipped, %{})
+      |> Ash.update!(authorize?: false)
+
+      RefundLiability.reconcile!(%{payment | refunded_amount: 9_500}, reread(splits))
+
+      # The mirror image: protection turning ON would drop the wholesaler's
+      # target to 5_225, below the 5_400 already on record, freezing it and
+      # recording 9_675 against a 9_500 refund.
+      assert Enum.sum(reversals(splits)) == 9_500
+      assert reversals(splits) == [5_700, 2_850, 950]
+    end
+  end
+
   defp standard_splits(store, payment, supplier) do
     [
       create_split!(store, payment, %{role: :wholesaler, supplier_id: supplier.id, amount: 6_000}),
@@ -463,6 +539,12 @@ defmodule Emakola.Payments.RefundLiabilityTest do
   end
 
   defp reversals(splits), do: Enum.map(splits, &fresh(&1).reversed_amount)
+
+  # Production re-reads the splits on every refund webhook — `reverse_splits/1`
+  # calls `payment_splits/1` first. A sequential-refund test that reuses the
+  # in-memory structs carries a stale `reversed_amount` of 0 into the next
+  # call, which hides exactly the staleness bugs the real caller would hit.
+  defp reread(splits), do: Enum.map(splits, &fresh/1)
 
   defp approve_return!(store, order, attrs) do
     Emakola.Orders.Return
