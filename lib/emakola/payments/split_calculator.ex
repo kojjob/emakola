@@ -31,7 +31,10 @@ defmodule Emakola.Payments.SplitCalculator do
     * `:subaccounts` — map of `supplier_id => subaccount_code`
     * `:dropshipper_subaccount` — the dropshipper store's subaccount code
     * `:dispatch_fees` — map of `supplier_id => pesewas` (default `%{}`); each
-      fee is added to that wholesaler's allocation and to the returned `total`
+      fee is added to that wholesaler's allocation and to the returned `total`.
+      Keys must be a subset of the line items' supplier ids — amounts for
+      absent suppliers would inflate `total` without an owning allocation
+      (now caught by `OrderSettlement.prepare/2`'s sum-invariant guard).
   """
   def calculate(line_items, opts) do
     fee_rate_bps = Keyword.fetch!(opts, :fee_rate_bps)

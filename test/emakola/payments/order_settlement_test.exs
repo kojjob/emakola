@@ -6,6 +6,7 @@ defmodule Emakola.Payments.OrderSettlementTest do
   """
   use Emakola.DataCase, async: true
   import Emakola.Factory
+  import ExUnit.CaptureLog
 
   alias Emakola.Payments.OrderSettlement
   alias Emakola.Suppliers.{ListingImporter, Network, Offers}
@@ -397,6 +398,141 @@ defmodule Emakola.Payments.OrderSettlementTest do
 
       assert total == order.total
       assert total == Enum.sum(Enum.map(allocs, & &1.amount))
+    end
+
+    # Promoted from a reviewer probe: pins the exact per-allocation numbers
+    # (not just the sum invariant) for a cart mixing multiple suppliers,
+    # delivery, discount, and dispatch fees all at once.
+    test "multi-supplier + delivery + discount + fees: exact allocations, sum invariant holds",
+         %{reseller_actor: reseller_actor, reseller: reseller} do
+      {wa_actor, wa} = create_dropship_wholesaler!(reseller_actor, reseller)
+      {wb_actor, wb} = create_dropship_wholesaler!(reseller_actor, reseller)
+
+      drop_a = import_offer!(wa_actor, wa, reseller_actor, reseller, %{"Greater Accra" => 1_500})
+      drop_b = import_offer!(wb_actor, wb, reseller_actor, reseller, %{"Greater Accra" => 3_000})
+
+      items = [
+        %{variant_id: drop_a.variant.id, quantity: 1},
+        %{variant_id: drop_b.variant.id, quantity: 1}
+      ]
+
+      assert {:ok, order} =
+               Emakola.Orders.CheckoutService.checkout!(reseller.id, items,
+                 region: "greater_accra",
+                 delivery_fee: 1_000
+               )
+
+      # subtotal 10_000 (5_000 retail x2) + delivery 1_000 + fees (1_500+3_000)
+      assert order.total == 15_500
+
+      # Coupons are structurally forbidden on network carts
+      # (NetworkCheckoutEligibility); apply the discount directly to the
+      # order, the same way CheckoutService's own transaction does, to
+      # exercise the invariant with fee + delivery + discount all present.
+      order =
+        order
+        |> Ash.Changeset.for_update(:update, %{discount_amount: 500, total: order.total - 500})
+        |> Ash.update!(authorize?: false)
+
+      assert {:split, %{total: total, allocations: allocs}} =
+               OrderSettlement.prepare(order.id, reseller.id)
+
+      by = fn role -> Enum.filter(allocs, &(&1.role == role)) end
+      w = fn sid -> Enum.find(by.(:wholesaler), &(&1.supplier_id == sid)) end
+
+      # Hand-derived: retail 5_000 / cost 4_000 / margin 1_000 per supplier
+      # line; bps 1_000 (10%) -> dropshipper net 900, platform fee 100 per
+      # line.
+      assert w.(drop_a.supplier_id).amount == 4_000 + 1_500
+      assert w.(drop_b.supplier_id).amount == 4_000 + 3_000
+      assert [%{amount: 200}] = by.(:platform)
+      # dropshipper: margin net 900+900=1_800 + (delivery 1_000 - discount 500)
+      assert [%{amount: 2_300}] = by.(:dropshipper)
+
+      assert total == order.total
+      assert total == 15_000
+      assert Enum.sum(Enum.map(allocs, & &1.amount)) == order.total
+    end
+
+    # Promoted from a reviewer probe: RefundLiability.reserve! against a
+    # fee-inflated wholesaler allocation.
+    test "RefundLiability.reserve! carves liability from a fee-inflated wholesaler share; sums stay exact",
+         %{reseller_actor: reseller_actor, reseller: reseller} do
+      {wholesaler_actor, wholesaler} = create_dropship_wholesaler!(reseller_actor, reseller)
+
+      drop =
+        import_offer!(wholesaler_actor, wholesaler, reseller_actor, reseller, %{
+          "Greater Accra" => 1_500
+        })
+
+      # Outstanding refund debt of 700 pesewas owed BY the wholesaler.
+      refundable_liability!(reseller, wholesaler, 700)
+
+      assert {:ok, order} =
+               Emakola.Orders.CheckoutService.checkout!(
+                 reseller.id,
+                 [%{variant_id: drop.variant.id, quantity: 1}],
+                 region: "greater_accra"
+               )
+
+      assert order.total == 6_500
+
+      assert {:split, %{total: total, allocations: allocs}} =
+               OrderSettlement.prepare(order.id, reseller.id)
+
+      wholesaler_alloc = find_role(allocs, :wholesaler)
+      platform_alloc = find_role(allocs, :platform)
+      dropshipper_alloc = find_role(allocs, :dropshipper)
+
+      # Hand-derived: gross share cost 4_000 + fee 1_500 = 5_500; 700 reserved
+      # for the refund debt.
+      assert wholesaler_alloc.amount == 5_500 - 700
+      assert wholesaler_alloc.recovery_amount == 700
+      # Platform: margin fee 100 + recovered 700.
+      assert platform_alloc.amount == 100 + 700
+      # Dropshipper: margin net 900, untouched (no delivery fee this time).
+      assert dropshipper_alloc.amount == 900
+
+      assert total == order.total
+      assert Enum.sum(Enum.map(allocs, & &1.amount)) == order.total
+    end
+  end
+
+  # -- Runtime sum-invariant guard -----------------------------------------
+  # SplitCalculator's `total` is derived independently of `allocations`
+  # (subtotal + dispatch fee values vs. per-supplier grouped allocations), so
+  # a dispatch fee keyed to a supplier absent from the line items would
+  # inflate `total`/`order.total` without a matching allocation. This guard
+  # is the runtime backstop; it's unit-tested directly against hand-built
+  # allocations since every real code path's sums are correct by construction.
+
+  describe "sum_matches_total?/2 — runtime sum-invariant guard" do
+    test "returns true and does not log when allocations sum to order.total" do
+      order = %{id: Ash.UUID.generate(), total: 1_000}
+      allocations = [%{amount: 600}, %{amount: 400}]
+
+      log =
+        capture_log(fn ->
+          assert OrderSettlement.sum_matches_total?(order, allocations)
+        end)
+
+      assert log == ""
+    end
+
+    test "returns false and logs an error naming the order id and both sums on mismatch" do
+      order = %{id: Ash.UUID.generate(), total: 1_000}
+      # 600 + 500 = 1_100, not 1_000 — e.g. a dispatch fee for a supplier
+      # absent from the order's line items.
+      allocations = [%{amount: 600}, %{amount: 500}]
+
+      log =
+        capture_log(fn ->
+          refute OrderSettlement.sum_matches_total?(order, allocations)
+        end)
+
+      assert log =~ order.id
+      assert log =~ "1100"
+      assert log =~ "1000"
     end
   end
 

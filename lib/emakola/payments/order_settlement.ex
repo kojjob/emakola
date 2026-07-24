@@ -19,6 +19,7 @@ defmodule Emakola.Payments.OrderSettlement do
   """
 
   require Ash.Query
+  require Logger
 
   alias Emakola.Payments.DropshipSettlement
   alias Emakola.Payments.PlatformFee
@@ -48,13 +49,17 @@ defmodule Emakola.Payments.OrderSettlement do
             |> Emakola.Suppliers.PartnerCredit.carve_sales_proceeds(store_id)
             |> RefundLiability.reserve!()
 
-          {:split,
-           %{
-             total: order.total,
-             allocations: allocations,
-             shares: gateway_shares(allocations),
-             mode: :dropship_split
-           }}
+          if sum_matches_total?(order, allocations) do
+            {:split,
+             %{
+               total: order.total,
+               allocations: allocations,
+               shares: gateway_shares(allocations),
+               mode: :dropship_split
+             }}
+          else
+            {:no_split, :allocation_sum_mismatch}
+          end
         else
           {:no_split, :unrepresentable_split}
         end
@@ -89,13 +94,17 @@ defmodule Emakola.Payments.OrderSettlement do
             |> Emakola.Suppliers.PartnerCredit.carve_sales_proceeds(store_id)
             |> RefundLiability.reserve!()
 
-          {:split,
-           %{
-             total: order.total,
-             allocations: allocations,
-             shares: gateway_shares(allocations),
-             mode: :platform_fee
-           }}
+          if sum_matches_total?(order, allocations) do
+            {:split,
+             %{
+               total: order.total,
+               allocations: allocations,
+               shares: gateway_shares(allocations),
+               mode: :platform_fee
+             }}
+          else
+            {:no_split, :allocation_sum_mismatch}
+          end
         else
           {:no_split, :unrepresentable_split}
         end
@@ -154,6 +163,26 @@ defmodule Emakola.Payments.OrderSettlement do
   end
 
   def release_recovery_reservations!(allocations), do: RefundLiability.release!(allocations)
+
+  # Runtime backstop for the "allocations sum to the charge" invariant, which
+  # is otherwise only guaranteed by construction (see SplitCalculator's
+  # dispatch_fees docstring for how it can drift). A dispatch fee keyed to a
+  # supplier absent from the order's line items is the known way this fires.
+  @doc false
+  def sum_matches_total?(order, allocations) do
+    sum = Enum.sum(Enum.map(allocations, & &1.amount))
+
+    if sum == order.total do
+      true
+    else
+      Logger.error(
+        "OrderSettlement allocation sum mismatch for order #{order.id}: " <>
+          "allocations sum to #{sum}, order.total is #{order.total}"
+      )
+
+      false
+    end
+  end
 
   defp adjust_dropshipper(allocations, 0), do: allocations
 

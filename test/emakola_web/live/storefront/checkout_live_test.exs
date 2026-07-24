@@ -503,7 +503,10 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       drop =
         import_offer!(wholesaler_actor, wholesaler, reseller_actor, reseller, %{
           "Greater Accra" => 1_500,
-          "Ashanti" => 2_500
+          # Deliberately distinct from Ashanti's default DELIVERY fee (2_500)
+          # so the post-region-change assertion can't pass vacuously against
+          # the Shipping line instead of the Supplier dispatch line.
+          "Ashanti" => 2_700
         })
 
       session_id = Ecto.UUID.generate()
@@ -526,7 +529,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       html = render_change(view, "update_details", %{"region" => "ashanti"})
 
       assert html =~ "Supplier dispatch"
-      assert html =~ Currency.format_price(2_500)
+      assert html =~ Currency.format_price(2_700)
       refute html =~ Currency.format_price(1_500)
     end
 
