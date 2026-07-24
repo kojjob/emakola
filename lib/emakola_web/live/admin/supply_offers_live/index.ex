@@ -130,7 +130,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Index do
   def render(assigns) do
     ~H"""
     <div class="max-w-5xl mx-auto px-4 sm:px-6 pb-12">
-      <div class="flex items-end justify-between gap-3 mb-6 pt-2">
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6 pt-2">
         <div>
           <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">My Offers</h1>
           <p class="text-sm text-slate-500 mt-1">
@@ -155,7 +155,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Index do
         <p class="text-xs text-slate-500 mt-1 max-w-md mx-auto">
           Publish an offer and any merchant on the network can find it in the
           <.link navigate={~p"/admin/supply/catalog"} class="text-emerald-700">
-            Supplier Catalog
+            Browse Suppliers
           </.link>
           and stock your product in their store.
         </p>

@@ -140,7 +140,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
           </div>
           <div class="p-4 space-y-1.5">
             <div class="flex items-start justify-between gap-2">
-              <p class="font-semibold text-sm text-slate-900 truncate">
+              <p class="min-w-0 flex-1 font-semibold text-sm text-slate-900 truncate">
                 {offer.source_product.title}
               </p>
               <span

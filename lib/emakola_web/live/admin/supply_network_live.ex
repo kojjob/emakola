@@ -2605,7 +2605,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
         <p class="text-xs text-slate-500 mb-3">
           Browsing has moved:
           <.link navigate="/admin/supply/catalog" class="text-emerald-700 font-medium">
-            Supplier Catalog
+            Browse Suppliers
           </.link>
           · manage your own offers in
           <.link navigate="/admin/supply/offers" class="text-emerald-700 font-medium">
