@@ -3,7 +3,7 @@ defmodule Emakola.Suppliers.OffersTest do
 
   import Emakola.Factory
 
-  alias Emakola.Suppliers.{Network, Offers}
+  alias Emakola.Suppliers.{GhanaRegions, Network, Offers}
 
   setup do
     {wholesaler_actor, wholesaler} = create_merchant_with_store!(%{name: "Offer wholesaler"})
@@ -311,6 +311,24 @@ defmodule Emakola.Suppliers.OffersTest do
 
     {:ok, published} = Offers.publish(context.wholesaler_actor, offer)
     published
+  end
+
+  describe "GhanaRegions" do
+    test "from_param canonicalizes snake_case params" do
+      assert GhanaRegions.from_param("greater_accra") == "Greater Accra"
+      assert GhanaRegions.from_param("bono_east") == "Bono East"
+      assert GhanaRegions.from_param("other") == nil
+      assert GhanaRegions.from_param("atlantis") == nil
+      assert GhanaRegions.from_param(nil) == nil
+    end
+
+    test "select_options covers all 16 regions plus Other" do
+      options = GhanaRegions.select_options()
+      assert length(options) == 17
+      assert {"Greater Accra", "greater_accra"} in options
+      assert {"Western North", "western_north"} in options
+      assert List.last(options) == {"Other", "other"}
+    end
   end
 
   describe "list_discoverable/2" do

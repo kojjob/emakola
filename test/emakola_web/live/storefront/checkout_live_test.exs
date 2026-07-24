@@ -313,6 +313,23 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     end
   end
 
+  # -- Region Select --
+
+  describe "region select" do
+    test "renders all 16 canonical regions plus Other", %{conn: conn, store: store} do
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+
+      # Count option elements in the region select
+      option_count = Regex.scan(~r/<option[^>]*>/, html) |> length()
+      assert option_count >= 17, "Expected at least 17 options (16 regions + Other)"
+
+      # Verify some specific regions are present
+      assert html =~ ~s(<option value="bono_east")
+      assert html =~ ~s(<option value="western_north")
+      assert html =~ ~s(<option value="other")
+    end
+  end
+
   # -- Delivery Fee --
 
   describe "delivery fee calculation" do

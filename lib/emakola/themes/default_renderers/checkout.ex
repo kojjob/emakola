@@ -18,6 +18,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
 
   import EmakolaWeb.Storefront.Path
 
+  alias Emakola.Suppliers.GhanaRegions
   alias EmakolaWeb.Helpers.Currency
 
   def render(assigns) do
@@ -285,16 +286,9 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                           name="region"
                           class="cursor-pointer w-full bg-white border border-stone-200 rounded-xl px-4 py-3.5 text-sm text-stone-900 appearance-none focus:ring-2 focus:ring-store-accent/30 focus:border-store-accent transition-all"
                         >
-                          <option value="greater_accra" selected={@region == "greater_accra"}>
-                            Greater Accra
-                          </option>
-                          <option value="ashanti" selected={@region == "ashanti"}>Ashanti</option>
-                          <option value="central" selected={@region == "central"}>Central</option>
-                          <option value="western" selected={@region == "western"}>Western</option>
-                          <option value="eastern" selected={@region == "eastern"}>Eastern</option>
-                          <option value="northern" selected={@region == "northern"}>Northern</option>
-                          <option value="volta" selected={@region == "volta"}>Volta</option>
-                          <option value="other" selected={@region == "other"}>Other</option>
+                          <%= for {label, param} <- GhanaRegions.select_options() do %>
+                            <option value={param} selected={@region == param}>{label}</option>
+                          <% end %>
                         </select>
                         <div class="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                           <svg

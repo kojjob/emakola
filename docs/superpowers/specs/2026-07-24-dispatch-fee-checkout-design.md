@@ -43,13 +43,14 @@ Decisions locked with Kojo (2026-07-24):
 ## 1. Region alignment (prerequisite)
 
 The checkout region `<select>` upgrades to the canonical 16
-`Emakola.Suppliers.GhanaRegions.all()` + `"Other"`. Option values become the
-canonical strings (display and value identical); the fuzzy
-`Shipping.find_zone/2` match keeps existing merchant `DeliveryZone` rows
-working (case/underscore-insensitive — verified). The selected canonical
-string is used verbatim for `dispatch_fees` lookup. Any theme/renderer that
-duplicates the region list gets the same source-of-truth constant (grep for
-the old 7-key list across `lib/emakola/themes/`).
+`Emakola.Suppliers.GhanaRegions` + `"Other"`. Option values use snake_case
+parameters (e.g., `"greater_accra"`, `"western_north"`); `GhanaRegions.from_param/1`
+canonicalizes them to the label (e.g., `"Greater Accra"`) for `dispatch_fees`
+lookup. The fuzzy `Shipping.find_zone/2` match keeps existing merchant
+`DeliveryZone` rows working (case/underscore-insensitive — verified). Any
+theme/renderer that duplicates the region list gets the same source-of-truth
+constant via `GhanaRegions.select_options()` (grep for the old 7-key list
+across `lib/emakola/themes/`).
 
 ## 2. Fee computation & snapshot
 
