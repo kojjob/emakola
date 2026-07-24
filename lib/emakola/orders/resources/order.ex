@@ -74,6 +74,11 @@ defmodule Emakola.Orders.Order do
       public?(true)
     end
 
+    # Sum of the per-supplier dispatch fees snapshotted onto this order's
+    # fulfillments at checkout (see Fulfillment.dispatch_fee). Included once
+    # in `total`; never recomputed from live offer terms.
+    attribute(:dispatch_fee_total, :integer, allow_nil?: false, default: 0, public?: true)
+
     attribute :currency, :string do
       default("GHS")
       allow_nil?(false)
@@ -245,6 +250,7 @@ defmodule Emakola.Orders.Order do
         :billing_address,
         :delivery_fee,
         :discount_amount,
+        :dispatch_fee_total,
         :coupon_id
       ])
     end

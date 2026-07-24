@@ -67,6 +67,12 @@ defmodule Emakola.Orders.Fulfillment do
       public?(true)
     end
 
+    # Snapshot of the supplier dispatch fee charged at checkout, integer
+    # pesewas — the max across the supplier's offers in the cart, resolved
+    # once inside the checkout transaction. Never recomputed from the offer
+    # afterward, so later offer edits don't change an already-placed order.
+    attribute(:dispatch_fee, :integer, allow_nil?: false, default: 0, public?: true)
+
     timestamps()
   end
 
@@ -127,7 +133,7 @@ defmodule Emakola.Orders.Fulfillment do
     defaults([:read])
 
     create :create do
-      accept([:store_id, :order_id, :supplier_id, :status])
+      accept([:store_id, :order_id, :supplier_id, :status, :dispatch_fee])
     end
 
     # ── Status transitions ──

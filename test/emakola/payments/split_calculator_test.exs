@@ -154,6 +154,61 @@ defmodule Emakola.Payments.SplitCalculatorTest do
     end
   end
 
+  describe "calculate/2 — dispatch fees" do
+    test "wholesaler amount includes its dispatch fee; total grows by the fee" do
+      items = [%{unit_price: 5_000, cost_price: 800, quantity: 2, supplier_id: "s1"}]
+
+      opts = [
+        fee_rate_bps: 1_000,
+        subaccounts: %{"s1" => "ACCT_1"},
+        dropshipper_subaccount: "ACCT_drop",
+        dispatch_fees: %{"s1" => 1_500}
+      ]
+
+      %{total: total, allocations: allocs} = SplitCalculator.calculate(items, opts)
+
+      # wholesaler cost 1600 + dispatch fee 1500 = 3100
+      assert %{role: :wholesaler, amount: 3_100} = find_role(allocs, :wholesaler)
+      # retail 10000 + dispatch fee 1500 = 11500
+      assert total == 11_500
+      assert total == Enum.sum(Enum.map(allocs, & &1.amount))
+    end
+
+    test "each wholesaler's fee applies only to its own allocation" do
+      items = [
+        %{unit_price: 5_000, cost_price: 800, quantity: 1, supplier_id: "s1"},
+        %{unit_price: 2_000, cost_price: 500, quantity: 2, supplier_id: "s2"}
+      ]
+
+      opts = [
+        fee_rate_bps: 1_000,
+        subaccounts: %{"s1" => "ACCT_1", "s2" => "ACCT_2"},
+        dropshipper_subaccount: "ACCT_drop",
+        dispatch_fees: %{"s1" => 300, "s2" => 700}
+      ]
+
+      %{total: total, allocations: allocs} = SplitCalculator.calculate(items, opts)
+      wholesalers = Enum.filter(allocs, &(&1.role == :wholesaler))
+
+      assert %{amount: 1_100} = Enum.find(wholesalers, &(&1.supplier_id == "s1"))
+      assert %{amount: 1_700} = Enum.find(wholesalers, &(&1.supplier_id == "s2"))
+      assert total == Enum.sum(Enum.map(allocs, & &1.amount))
+    end
+
+    test "omitting :dispatch_fees behaves exactly like a %{} fee map" do
+      items = [%{unit_price: 5_000, cost_price: 800, quantity: 2, supplier_id: "s1"}]
+
+      base_opts = [
+        fee_rate_bps: 1_000,
+        subaccounts: %{"s1" => "ACCT_1"},
+        dropshipper_subaccount: "ACCT_drop"
+      ]
+
+      assert SplitCalculator.calculate(items, base_opts) ==
+               SplitCalculator.calculate(items, base_opts ++ [dispatch_fees: %{}])
+    end
+  end
+
   defp find_role(allocations, role) do
     Enum.find(allocations, &(&1.role == role))
   end

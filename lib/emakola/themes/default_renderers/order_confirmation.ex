@@ -247,6 +247,15 @@ defmodule Emakola.Themes.DefaultRenderers.OrderConfirmation do
                 {Currency.format_price(@order.delivery_fee, @store.currency)}
               </span>
             </div>
+            <div
+              :if={order_has_field?(@order, :dispatch_fee_total) && @order.dispatch_fee_total > 0}
+              class="flex justify-between text-sm"
+            >
+              <span class="text-[#78716C]">Supplier dispatch</span>
+              <span class="text-[#44403C] tabular-nums">
+                {Currency.format_price(@order.dispatch_fee_total, @store.currency)}
+              </span>
+            </div>
             <div class="flex justify-between items-baseline pt-3 border-t border-[#E7E5E4]">
               <span class="text-sm font-semibold text-cta-dark">Total</span>
               <span class="text-xl font-bold text-cta-dark tabular-nums">

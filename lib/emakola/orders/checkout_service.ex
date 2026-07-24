@@ -29,6 +29,9 @@ defmodule Emakola.Orders.CheckoutService do
       - `:shipping_address` — map
       - `:billing_address` — map
       - `:delivery_fee` — integer in minor units (optional, default 0)
+      - `:region` — snake_case Ghana region param (optional; resolves
+        supplier dispatch fees via `GhanaRegions.from_param/1` — absent or
+        unresolvable means all dispatch fees are 0)
 
   ## Returns
     - `{:ok, order}` on success
@@ -102,6 +105,48 @@ defmodule Emakola.Orders.CheckoutService do
 
   def calculate_discount(%{discount_type: :free_shipping}, _subtotal, delivery_fee) do
     delivery_fee
+  end
+
+  @doc """
+  Per-supplier dispatch fees for a cart, pesewas. MAX across the supplier's
+  offers in the cart (one parcel per supplier per order — locked decision),
+  0 for unquoted regions, "other", or unresolvable listings. Pure: region
+  resolution via GhanaRegions.from_param/1.
+  """
+  def dispatch_fees_for(items, variants, region_param) do
+    case Emakola.Suppliers.GhanaRegions.from_param(region_param) do
+      nil ->
+        %{}
+
+      region ->
+        supplier_variant_ids =
+          items
+          |> Enum.map(& &1.variant_id)
+          |> Enum.filter(fn vid -> Map.fetch!(variants, vid).supplier_id != nil end)
+
+        fees_by_supplier(supplier_variant_ids, region)
+    end
+  end
+
+  defp fees_by_supplier([], _region), do: %{}
+
+  defp fees_by_supplier(variant_ids, region) do
+    listing_variants =
+      Emakola.Suppliers.ResellerListingVariant
+      |> Ash.Query.filter(reseller_variant_id in ^variant_ids)
+      |> Ash.Query.load(listing: :offer)
+      |> Ash.read!(authorize?: false)
+
+    listing_variants
+    |> Enum.group_by(& &1.listing.supplier_id)
+    |> Map.new(fn {supplier_id, lvs} ->
+      max_fee =
+        lvs
+        |> Enum.map(fn lv -> Map.get(lv.listing.offer.dispatch_fees || %{}, region, 0) end)
+        |> Enum.max(fn -> 0 end)
+
+      {supplier_id, max_fee}
+    end)
   end
 
   # -- Validations -----------------------------------------------------
@@ -216,9 +261,13 @@ defmodule Emakola.Orders.CheckoutService do
         })
         |> Ash.create!(authorize?: false)
 
+      # Per-supplier dispatch fees for the customer's region, resolved once
+      # inside the transaction — never accepted as a client-supplied amount.
+      dispatch_fees = dispatch_fees_for(items, variants, Keyword.get(opts, :region))
+
       # Split the order into one fulfillment per distinct supplier_id
       # (including the nil key for merchant-owned/own-stock items).
-      fulfillment_ids = create_fulfillments(store_id, order.id, items, variants)
+      fulfillment_ids = create_fulfillments(store_id, order.id, items, variants, dispatch_fees)
 
       # 4. Create line items. Stock is NOT decremented here — it's reserved
       #    nowhere at checkout and decremented only when payment confirms the
@@ -239,8 +288,9 @@ defmodule Emakola.Orders.CheckoutService do
           |> Ash.create!(authorize?: false)
         end)
 
-      # 4a. Record what we owe each supplier for their dropship fulfillment.
-      create_ledger_entries(store_id, items, variants, fulfillment_ids)
+      # 4a. Record what we owe each supplier for their dropship fulfillment,
+      #     including their dispatch fee.
+      create_ledger_entries(store_id, items, variants, fulfillment_ids, dispatch_fees)
 
       # 4b. Check for low-stock threshold crossings and enqueue alerts
       check_low_stock_alerts(store_id, items, variants)
@@ -273,7 +323,8 @@ defmodule Emakola.Orders.CheckoutService do
             end
         end
 
-      total = subtotal + delivery_fee - discount_amount
+      dispatch_fee_total = dispatch_fees |> Map.values() |> Enum.sum()
+      total = subtotal + delivery_fee + dispatch_fee_total - discount_amount
 
       order =
         order
@@ -282,6 +333,7 @@ defmodule Emakola.Orders.CheckoutService do
           total: total,
           delivery_fee: delivery_fee,
           discount_amount: discount_amount,
+          dispatch_fee_total: dispatch_fee_total,
           coupon_id: coupon_id
         })
         |> Ash.update!(authorize?: false)
@@ -392,8 +444,9 @@ defmodule Emakola.Orders.CheckoutService do
 
   # Creates one Fulfillment per distinct supplier_id across the cart's
   # variants (the nil key is the merchant-owned/own-stock group). Returns a
-  # map of `supplier_id => fulfillment_id` for line-item assignment.
-  defp create_fulfillments(store_id, order_id, items, variants) do
+  # map of `supplier_id => fulfillment_id` for line-item assignment. Each
+  # fulfillment snapshots its supplier's dispatch fee (0 for the nil group).
+  defp create_fulfillments(store_id, order_id, items, variants, dispatch_fees) do
     items
     |> Enum.map(fn %{variant_id: vid} -> Map.fetch!(variants, vid).supplier_id end)
     |> Enum.uniq()
@@ -404,7 +457,8 @@ defmodule Emakola.Orders.CheckoutService do
           store_id: store_id,
           order_id: order_id,
           supplier_id: supplier_id,
-          status: :pending
+          status: :pending,
+          dispatch_fee: Map.get(dispatch_fees, supplier_id, 0)
         })
         |> Ash.create!(authorize?: false)
 
@@ -415,9 +469,10 @@ defmodule Emakola.Orders.CheckoutService do
   # -- Supplier payout ledger ---------------------------------------------
 
   # Creates one SupplierLedgerEntry per non-nil supplier, recording the total
-  # supplier cost owed for that supplier's fulfillment. The nil-supplier
-  # merchant group is skipped (nothing is owed to an external supplier).
-  defp create_ledger_entries(store_id, items, variants, fulfillment_ids) do
+  # supplier cost owed for that supplier's fulfillment plus their dispatch
+  # fee (added once per supplier, not per line). The nil-supplier merchant
+  # group is skipped (nothing is owed to an external supplier).
+  defp create_ledger_entries(store_id, items, variants, fulfillment_ids, dispatch_fees) do
     items
     |> Enum.group_by(fn %{variant_id: vid} -> Map.fetch!(variants, vid).supplier_id end)
     |> Enum.each(fn
@@ -425,14 +480,17 @@ defmodule Emakola.Orders.CheckoutService do
         :ok
 
       {supplier_id, group_items} ->
-        amount_owed =
+        cost_sum =
           Enum.reduce(group_items, 0, fn %{variant_id: vid, quantity: qty}, acc ->
             cost = Map.fetch!(variants, vid).cost_price || 0
             acc + cost * qty
           end)
 
-        # Skip suppliers with no recorded cost — a zero-amount entry would be
-        # a misleading "owed" record. The fulfillment itself still exists.
+        amount_owed = cost_sum + Map.get(dispatch_fees, supplier_id, 0)
+
+        # Skip suppliers with no recorded cost and no dispatch fee — a
+        # zero-amount entry would be a misleading "owed" record. The
+        # fulfillment itself still exists.
         if amount_owed > 0 do
           Emakola.Suppliers.SupplierLedgerEntry
           |> Ash.Changeset.for_create(:create, %{
