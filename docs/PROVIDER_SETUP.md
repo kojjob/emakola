@@ -151,11 +151,11 @@ flowchart TD
     F --> G["Add Assets → your app → full control"]
     G --> H["Generate New Token<br/>perms: whatsapp_business_messaging<br/>+ whatsapp_business_management<br/>expiry: <b>Never</b>"]
     H --> I(("✅ WHATSAPP_API_TOKEN<br/>⚠️ the API-Setup page token<br/>dies in 24h — don't ship it"))
-    C --> J["WhatsApp Manager →<br/>Message Templates → Create ×6"]
+    C --> J["WhatsApp Manager →<br/>Message Templates → Create ×7"]
     J --> K["⏳ Meta review 1–3 days<br/>status must be <b>Approved</b>"]
 ```
 
-### 4c. The six templates — exact contract with the code
+### 4c. The seven templates — exact contract with the code
 
 The code (`Emakola.Notifications.Channels.WhatsApp`) sends **positional**
 params. Template **names** and **{{n}} order** must match EXACTLY:
@@ -179,6 +179,9 @@ flowchart LR
     subgraph Supplier["supplier_fulfillment (dropshipping)"]
         S1["{{1}} order_number<br/>{{2}} supplier_name<br/>{{3}} items list<br/>{{4}} ship-to address"]
     end
+    subgraph Connection["supply_connection_update (Makola Earn)"]
+        C1["{{1}} counterparty store name<br/>{{2}} event phrase<br/>{{3}} URL"]
+    end
 ```
 
 **Copy-paste bodies** (edit tone freely — placeholder ORDER may not change):
@@ -191,6 +194,7 @@ flowchart LR
 | `order_delivered` | Order {{1}} from {{2}} has been delivered. Thank you for shopping with us! |
 | `order_cancelled` | Order {{1}} at {{2}} ({{4}} {{3}}) has been cancelled. Contact us with any questions. |
 | `supplier_fulfillment` | New order {{1}} for {{2}}. Items: {{3}}. Ship to: {{4}}. Please confirm and share a tracking number. |
+| `supply_connection_update` | {{1}} {{2}} on Makola. Review it here: {{3}} |
 
 ### 4d. WhatsApp / phone OTP sign-in (`auth_code` template)
 
