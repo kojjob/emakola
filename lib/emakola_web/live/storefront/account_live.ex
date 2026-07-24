@@ -107,26 +107,50 @@ defmodule EmakolaWeb.Storefront.AccountLive do
   @impl true
   def handle_event("submit_return_request", _params, socket) do
     order = socket.assigns.return_order
+    customer = socket.assigns.customer
+    store = socket.assigns.store
 
-    order_returns =
-      Map.put(socket.assigns.order_returns, order.order_number, %{
-        status: :requested,
-        reason:
-          Emakola.SafeAtom.to_atom_in(
-            socket.assigns.return_reason,
-            [:defective, :wrong_item, :not_as_described, :changed_mind, :other],
-            :other
-          )
-      })
+    reason =
+      Emakola.SafeAtom.to_atom_in(
+        socket.assigns.return_reason,
+        [:defective, :wrong_item, :not_as_described, :changed_mind, :other],
+        :other
+      )
 
-    {:noreply,
-     socket
-     |> assign(
-       show_return_modal: false,
-       return_order: nil,
-       order_returns: order_returns
-     )
-     |> put_flash(:info, "Return request submitted for Order ##{order.order_number}")}
+    case Emakola.Orders.request_return(
+           %{
+             store_id: store.id,
+             order_id: order.id,
+             customer_id: customer.id,
+             reason: reason,
+             reason_detail: socket.assigns.return_detail,
+             currency: order.currency
+           },
+           actor: customer,
+           tenant: store.id
+         ) do
+      {:ok, _return} ->
+        order_returns =
+          Map.put(socket.assigns.order_returns, order.order_number, %{
+            status: :requested,
+            reason: reason
+          })
+
+        {:noreply,
+         socket
+         |> assign(
+           show_return_modal: false,
+           return_order: nil,
+           order_returns: order_returns
+         )
+         |> put_flash(:info, "Return request submitted for Order ##{order.order_number}")}
+
+      {:error, _reason} ->
+        {:noreply,
+         socket
+         |> assign(show_return_modal: false, return_order: nil)
+         |> put_flash(:error, "We couldn't submit that return request.")}
+    end
   end
 
   @impl true
