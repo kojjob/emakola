@@ -116,6 +116,22 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLiveTest do
     assert connection.status == :pending
   end
 
+  test "throttled invite shows a rate-limit flash instead of sending", ctx do
+    for _ <- 1..3 do
+      Emakola.RateLimit.check_rate("supply_invite:burst:#{ctx.store.id}", 3, 60_000)
+    end
+
+    {:ok, view, _html} = live(ctx.conn, ~p"/admin/settings/supply-network")
+
+    view
+    |> form("#supply-connection-form",
+      connection: %{partner_slug: ctx.partner.slug, relationship: "resell"}
+    )
+    |> render_submit()
+
+    assert render(view) =~ "Invite limit reached"
+  end
+
   test "shows a useful error for an unknown store", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/admin/settings/supply-network")
 
