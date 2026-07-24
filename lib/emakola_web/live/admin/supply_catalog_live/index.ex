@@ -121,7 +121,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Index do
         :if={!@loading and filtered(@entries, @search) == []}
         class="py-16 text-center text-sm text-slate-500"
       >
-        No supplier products match. Suppliers publish offers from their Earn Network page.
+        No supplier products match. Suppliers publish offers from their Partners page.
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

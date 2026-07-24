@@ -30,7 +30,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     {:ok,
      socket
      |> assign(
-       page_title: "Earn Network",
+       page_title: "Partners",
        active_nav: :supply_network,
        connection_count: 0,
        offer_count: 0,

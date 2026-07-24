@@ -151,6 +151,27 @@ defmodule EmakolaWeb.Admin.SupplyOffersLiveTest do
       reloaded = Ash.get!(Emakola.Suppliers.SupplierOffer, archived.id, authorize?: false)
       assert reloaded.status == :draft
     end
+
+    test "sidebar groups Marketplace links under renamed titles at unchanged hrefs", %{
+      conn: conn
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/supply/offers")
+
+      for label <- [
+            "Main",
+            "Sell",
+            "Marketplace",
+            "Customers & Marketing",
+            "Content & Design",
+            "Insights"
+          ] do
+        assert has_element?(view, "p.nav-section-label", label)
+      end
+
+      assert has_element?(view, ~s{a[href="/admin/supply/catalog"]}, "Browse Suppliers")
+      assert has_element?(view, ~s{a[href="/admin/settings/supply-network"]}, "Partners")
+      assert has_element?(view, ~s{a[href="/admin/settings/suppliers"]}, "My Contacts")
+    end
   end
 
   describe "offer form (new, markup)" do

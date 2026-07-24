@@ -246,10 +246,11 @@ defmodule Emakola.Notifications.TemplatesTest do
   # ── Connection notification templates ──────────────────────────
 
   describe "connection notifications copy" do
-    test "requested SMS from a reseller (:wants_to_stock) names them and points at Earn Network" do
+    test "requested SMS from a reseller (:wants_to_stock) names them and points at Partners" do
       msg = Templates.connection_sms(:requested, "Adwoa's Boutique", :wants_to_stock)
       assert msg =~ "Adwoa's Boutique"
       assert msg =~ "wants to stock your products"
+      assert msg =~ "Partners page"
       assert msg =~ "/admin/settings/supply-network"
     end
 
@@ -257,6 +258,7 @@ defmodule Emakola.Notifications.TemplatesTest do
       msg = Templates.connection_sms(:requested, "Kumasi Wholesale Depot", :wants_to_supply)
       assert msg =~ "Kumasi Wholesale Depot"
       assert msg =~ "wants to supply you products"
+      assert msg =~ "Partners page"
       assert msg =~ "/admin/settings/supply-network"
     end
 

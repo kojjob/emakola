@@ -64,7 +64,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
          put_flash(
            socket,
            :error,
-           "A connection with this supplier already exists — manage it from your Earn Network page."
+           "A connection with this supplier already exists — manage it from your Partners page."
          )}
 
       {:error, _reason} ->
@@ -196,7 +196,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
                     navigate={~p"/admin/settings/supply-network"}
                     class="text-emerald-700 hover:text-emerald-800 font-medium"
                   >
-                    Manage it from your Earn Network page
+                    Manage it from your Partners page
                   </.link>
                 </p>
               </div>

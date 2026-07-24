@@ -120,11 +120,11 @@ defmodule Emakola.Notifications.Templates do
   # ── Connection notification templates ────────────────────────────
 
   def connection_sms(:requested, counterparty, :wants_to_stock) do
-    "#{counterparty} wants to stock your products. Review the request on your Earn Network page: #{admin_url(destination_path(:requested))}"
+    "#{counterparty} wants to stock your products. Review the request on your Partners page: #{admin_url(destination_path(:requested))}"
   end
 
   def connection_sms(:requested, counterparty, :wants_to_supply) do
-    "#{counterparty} wants to supply you products. Review the request on your Earn Network page: #{admin_url(destination_path(:requested))}"
+    "#{counterparty} wants to supply you products. Review the request on your Partners page: #{admin_url(destination_path(:requested))}"
   end
 
   def connection_sms(:approved, counterparty, _direction) do
