@@ -420,6 +420,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       notes: notes,
       shipping_address: shipping_address,
       delivery_fee: delivery_fee,
+      region: socket.assigns.region,
       attribution: socket.assigns[:utm_attribution] || %{}
     ]
 
