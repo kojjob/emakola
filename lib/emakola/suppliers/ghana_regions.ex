@@ -1,6 +1,9 @@
 defmodule Emakola.Suppliers.GhanaRegions do
   @moduledoc """
-  Canonical 16 regions of Ghana plus "Other".
+  Canonical delivery-area names for supplier offers. Using one fixed list
+  keeps `dispatch_fees` keys consistent across suppliers (the DispatchFees
+  validation requires fee keys ⊆ delivery_areas, and future filtering by
+  area depends on exact string equality).
 
   Provides functions to canonicalize region names and generate select options
   with snake_case parameters.
@@ -9,21 +12,24 @@ defmodule Emakola.Suppliers.GhanaRegions do
   @regions [
     "Greater Accra",
     "Ashanti",
-    "Central",
     "Western",
+    "Western North",
+    "Central",
     "Eastern",
-    "Northern",
     "Volta",
+    "Oti",
+    "Northern",
+    "Savannah",
+    "North East",
     "Upper East",
     "Upper West",
-    "North East",
     "Bono",
     "Bono East",
-    "Ahafo",
-    "Oti",
-    "Savannah",
-    "Western North"
+    "Ahafo"
   ]
+
+  @spec all() :: [String.t()]
+  def all, do: @regions
 
   @doc """
   Canonicalize a snake_case parameter to the canonical region name.
@@ -76,6 +82,7 @@ defmodule Emakola.Suppliers.GhanaRegions do
 
   Returns a list of `{label, param}` tuples suitable for use in an HTML select.
   The canonical region names are labels, and snake_case params are values.
+  Appends "Other" as the final option.
 
   ## Examples
 
