@@ -437,6 +437,37 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
 
       refute html =~ "Supplier dispatch"
     end
+
+    test "stale cart referencing a deleted variant does not crash mount", %{conn: conn} do
+      {reseller_actor, reseller} = create_merchant_with_store!(%{name: "Dispatch Reseller"})
+      verified_payout!(reseller, "ACCT_reseller")
+      {wholesaler_actor, wholesaler} = create_dropship_wholesaler!(reseller_actor, reseller)
+
+      drop =
+        import_offer!(wholesaler_actor, wholesaler, reseller_actor, reseller, %{
+          "Greater Accra" => 1_500,
+          "Ashanti" => 2_500
+        })
+
+      session_id = Ecto.UUID.generate()
+
+      CartStore.add_item(session_id, reseller.id, %{
+        variant_id: drop.variant.id,
+        product_title: "Dispatch Item",
+        variant_info: "SKU",
+        unit_price: 5_000,
+        quantity: 1,
+        sku: "SKU"
+      })
+
+      drop.variant |> Ash.destroy!(authorize?: false)
+
+      conn = init_test_session(conn, %{"cart_session_id" => session_id})
+      {:ok, _view, html} = live(conn, "/s/#{reseller.slug}/checkout")
+
+      assert html =~ "Secure Checkout"
+      refute html =~ "Supplier dispatch"
+    end
   end
 
   # -- Supplier dispatch fixtures ------------------------------------------

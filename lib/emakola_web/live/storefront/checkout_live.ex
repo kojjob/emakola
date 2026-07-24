@@ -37,6 +37,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     cart_count = Enum.reduce(cart, 0, fn item, acc -> acc + item.quantity end)
 
     cart_weight_grams = cart_weight_grams(cart, store.id)
+    dispatch_variants = dispatch_variants(cart, store.id)
 
     categories =
       try do
@@ -72,6 +73,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      |> assign(:cart_count, cart_count)
      |> assign(:cart_total, cart_total)
      |> assign(:cart_weight_grams, cart_weight_grams)
+     |> assign(:dispatch_variants, dispatch_variants)
      |> assign(:utm_attribution, utm_attribution)
      |> assign(:sales_team_economics, sales_team_economics)
      |> assign(:step, 1)
@@ -657,16 +659,20 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   # will snapshot on the order. The LV's cart items are CartStore entries
   # (product_title/unit_price/sku display fields), not the
   # `%{variant_id, quantity}` + variants-map shape dispatch_fees_for/3
-  # expects, so we adapt: build items from the cart and re-fetch the
-  # variants (for supplier_id) in one query, mirroring cart_weight_grams's
-  # pattern below.
+  # expects, so we adapt: build items from the cart against the
+  # `:dispatch_variants` map cached at mount (mirroring cart_weight_grams's
+  # pattern), keeping this a pure recompute with no DB hit on every
+  # keystroke of the contact form. Items whose variant no longer exists
+  # (the map is stale, or was never populated for it) are dropped before
+  # calling dispatch_fees_for/3, which otherwise assumes every item has a
+  # matching variant.
   defp update_dispatch_fees(socket) do
-    items =
-      Enum.map(socket.assigns.cart, fn item ->
-        %{variant_id: item.variant_id, quantity: item.quantity}
-      end)
+    variants = socket.assigns.dispatch_variants
 
-    variants = dispatch_variants(socket.assigns.cart, socket.assigns.store.id)
+    items =
+      socket.assigns.cart
+      |> Enum.filter(&Map.has_key?(variants, &1.variant_id))
+      |> Enum.map(fn item -> %{variant_id: item.variant_id, quantity: item.quantity} end)
 
     dispatch_fee_total =
       items
