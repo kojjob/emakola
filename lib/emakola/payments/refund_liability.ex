@@ -71,9 +71,14 @@ defmodule Emakola.Payments.RefundLiability do
     else
       fees = derived_fees(splits, payment)
 
-      splits
-      |> Enum.map(&pin_fee!(&1, Map.get(fees, &1.id, 0)))
-      |> redistribute(fees)
+      {:ok, bases} =
+        Emakola.Repo.transaction(fn ->
+          splits
+          |> Enum.map(&pin_fee!(&1, Map.get(fees, &1.id, 0)))
+          |> redistribute(fees)
+        end)
+
+      bases
     end
   end
 

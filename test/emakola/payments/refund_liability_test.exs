@@ -530,6 +530,89 @@ defmodule Emakola.Payments.RefundLiabilityTest do
     end
   end
 
+  # Post-review hardening (2026-07-25): the derive branch pinned each split's
+  # protected_dispatch_fee with its own `pin_fee!` write, unwrapped by a
+  # transaction. If the process died between two of those writes and Oban
+  # retried the webhook, `pinned?/1` would see the surviving pin and take the
+  # pinned path forever — permanently freezing the OTHER split's protection at
+  # zero. Wrapping the writes in `Emakola.Repo.transaction` makes the pin
+  # all-or-nothing: a failure partway through must leave every split unpinned.
+  describe "derive-branch pins are atomic across splits" do
+    setup do
+      store = create_store!(name: "Atomic pin store")
+      order = create_order!(store)
+      payment = create_payment!(store, amount: 10_000, order_id: order.id)
+      supplier_a = create_supplier!(store, name: "Atomic supplier A")
+      supplier_b = create_supplier!(store, name: "Atomic supplier B")
+
+      {:ok,
+       store: store,
+       order: order,
+       payment: payment,
+       supplier_a: supplier_a,
+       supplier_b: supplier_b}
+    end
+
+    test "a write failing partway through the pin loop leaves no split pinned", ctx do
+      %{
+        store: store,
+        order: order,
+        payment: payment,
+        supplier_a: supplier_a,
+        supplier_b: supplier_b
+      } = ctx
+
+      create_fulfillment!(order, store, %{
+        supplier_id: supplier_a.id,
+        status: :shipped,
+        dispatch_fee: 500
+      })
+
+      create_fulfillment!(order, store, %{
+        supplier_id: supplier_b.id,
+        status: :shipped,
+        dispatch_fee: 300
+      })
+
+      [first, second] =
+        [
+          create_split!(store, payment, %{
+            role: :wholesaler,
+            supplier_id: supplier_a.id,
+            amount: 5_000
+          }),
+          create_split!(store, payment, %{
+            role: :wholesaler,
+            supplier_id: supplier_b.id,
+            amount: 4_000
+          })
+        ]
+        |> Enum.sort_by(& &1.id)
+
+      dropshipper = create_split!(store, payment, %{role: :dropshipper, amount: 1_000})
+
+      # Delete the split that sorts second (reconcile!/2 processes splits in
+      # id order), so `first`'s pin write commits before the loop reaches
+      # `second` and raises — a clean stand-in for a crash between two
+      # `pin_fee!` calls without contorting production code to allow it.
+      Emakola.Repo.delete_all(
+        Ecto.Query.from(s in "payment_splits", where: s.id == type(^second.id, Ecto.UUID))
+      )
+
+      splits = [first, second, dropshipper]
+
+      # `Ash.update!`'s failure surfaces as a MatchError on the `{:ok, _}`
+      # unwrap (same as `reserve!`/`release!`/`apply_recovery!` above) rather
+      # than the underlying Ash error, because the rollback this triggers is
+      # caught by the outermost `Repo.transaction` — ours.
+      assert_raise MatchError, fn ->
+        RefundLiability.reconcile!(%{payment | refunded_amount: 10_000}, splits)
+      end
+
+      assert fresh(first).protected_dispatch_fee == 0
+    end
+  end
+
   defp standard_splits(store, payment, supplier) do
     [
       create_split!(store, payment, %{role: :wholesaler, supplier_id: supplier.id, amount: 6_000}),
