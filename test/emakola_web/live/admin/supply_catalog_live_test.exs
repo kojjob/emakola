@@ -116,7 +116,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       refute html =~ EmakolaWeb.Helpers.Currency.format_price(3_000)
       assert html =~ "Request connection"
       assert html =~ "Connect to see wholesale pricing"
-      refute html =~ "Your margin"
+      refute html =~ "margin-stat-tiles"
     end
 
     test "connected: shows wholesale price and margin", %{
@@ -127,7 +127,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       fixture = create_published_offer!()
       connect!(reseller_actor, reseller, fixture)
 
-      {:ok, _view, html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+      {:ok, view, html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
 
       # wholesale price (3_000 pesewas)
       assert html =~ EmakolaWeb.Helpers.Currency.format_price(3_000)
@@ -138,10 +138,10 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       assert html =~ EmakolaWeb.Helpers.Currency.format_price(6_000)
       assert html =~ "Add to my store"
       refute html =~ "Request connection"
-      # stat tiles above the variants table
-      assert html =~ "Suggested retail"
-      assert html =~ "Wholesale"
-      assert html =~ "Your margin"
+      # stat tiles above the variants table — prove they're rendered
+      assert has_element?(view, "#margin-stat-tiles", "Suggested retail")
+      assert has_element?(view, "#margin-stat-tiles", "Wholesale")
+      assert has_element?(view, "#margin-stat-tiles", "Your margin")
     end
 
     test "a paused offer redirects back to the catalog", %{conn: conn} do

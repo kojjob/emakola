@@ -283,7 +283,11 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
         </div>
 
         <%!-- Margin economics stat tiles (connected only) --%>
-        <div :if={@connection_status == :connected} class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div
+          :if={@connection_status == :connected}
+          id="margin-stat-tiles"
+          class="grid grid-cols-1 sm:grid-cols-3 gap-4"
+        >
           <% tiles = stat_tiles(@offer) %>
           <div class="rounded-2xl border border-slate-200 bg-white p-4">
             <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -308,18 +312,9 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
               <tr class="text-left text-xs uppercase tracking-wide text-slate-500 bg-slate-50">
                 <th class="px-4 py-2.5">Variant</th>
                 <th class="px-4 py-2.5 text-right">Suggested retail</th>
+                <th class="px-4 py-2.5 text-right">Wholesale</th>
                 <th class="px-4 py-2.5 text-right">
-                  {if @connection_status == :connected, do: "Wholesale", else: "🔒"}
-                </th>
-                <th class="px-4 py-2.5 text-right">
-                  <%= cond do %>
-                    <% @connection_status != :connected -> %>
-                      🔒
-                    <% @offer.earning_model == :fixed_commission -> %>
-                      Commission
-                    <% true -> %>
-                      Your margin
-                  <% end %>
+                  {if @offer.earning_model == :fixed_commission, do: "Commission", else: "Your margin"}
                 </th>
               </tr>
             </thead>
