@@ -20,7 +20,7 @@ defmodule EmakolaWeb.Admin.SupplierLiveTest do
     test "renders suppliers page", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/admin/settings/suppliers")
 
-      assert html =~ "Suppliers"
+      assert html =~ "My Contacts"
     end
 
     test "lists existing suppliers", %{conn: conn, store: store} do

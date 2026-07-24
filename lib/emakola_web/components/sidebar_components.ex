@@ -228,6 +228,11 @@ defmodule EmakolaWeb.SidebarComponents do
           icon="grid"
           active={@active_nav == :dashboard}
         />
+        <%!-- Sell --%>
+        <p class="nav-section-label px-3 text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em] mt-6 mb-1.5">
+          Sell
+        </p>
+
         <.sidebar_link
           href="/admin/products"
           title="Products"
@@ -241,6 +246,12 @@ defmodule EmakolaWeb.SidebarComponents do
           active={@active_nav == :inventory}
         />
         <.sidebar_link
+          href="/admin/categories"
+          title="Categories"
+          icon="folder"
+          active={@active_nav == :categories}
+        />
+        <.sidebar_link
           href="/admin/orders"
           title="Orders"
           icon="bag"
@@ -248,20 +259,20 @@ defmodule EmakolaWeb.SidebarComponents do
           badge={if @pending_order_count > 0, do: to_string(@pending_order_count)}
         />
         <.sidebar_link
-          href="/admin/settings/suppliers"
-          title="Suppliers"
-          icon="truck"
-          active={@active_nav == :suppliers}
+          href="/admin/returns"
+          title="Returns"
+          icon="returns"
+          active={@active_nav == :returns}
         />
-        <.sidebar_link
-          href="/admin/settings/supply-network"
-          title="Earn Network"
-          icon="users"
-          active={@active_nav == :supply_network}
-        />
+
+        <%!-- Marketplace --%>
+        <p class="nav-section-label px-3 text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em] mt-6 mb-1.5">
+          Marketplace
+        </p>
+
         <.sidebar_link
           href="/admin/supply/catalog"
-          title="Supplier Catalog"
+          title="Browse Suppliers"
           icon="package"
           active={@active_nav == :supply_catalog}
         />
@@ -272,17 +283,23 @@ defmodule EmakolaWeb.SidebarComponents do
           active={@active_nav == :supply_offers}
         />
         <.sidebar_link
-          href="/admin/returns"
-          title="Returns"
-          icon="returns"
-          active={@active_nav == :returns}
+          href="/admin/settings/supply-network"
+          title="Partners"
+          icon="users"
+          active={@active_nav == :supply_network}
         />
         <.sidebar_link
-          href="/admin/payments"
-          title="Payments"
-          icon="payments"
-          active={@active_nav == :payments}
+          href="/admin/settings/suppliers"
+          title="My Contacts"
+          icon="truck"
+          active={@active_nav == :suppliers}
         />
+
+        <%!-- Customers & Marketing --%>
+        <p class="nav-section-label px-3 text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em] mt-6 mb-1.5">
+          Customers & Marketing
+        </p>
+
         <.sidebar_link
           href="/admin/customers"
           title="Customers"
@@ -290,17 +307,11 @@ defmodule EmakolaWeb.SidebarComponents do
           active={@active_nav == :customers}
         />
         <.sidebar_link
-          href="/admin/categories"
-          title="Categories"
-          icon="folder"
-          active={@active_nav == :categories}
+          href="/admin/payments"
+          title="Payments"
+          icon="payments"
+          active={@active_nav == :payments}
         />
-
-        <%!-- Marketing --%>
-        <p class="nav-section-label px-3 text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em] mt-6 mb-1.5">
-          Marketing
-        </p>
-
         <.sidebar_link
           href="/admin/discounts"
           title="Discounts"
@@ -313,6 +324,12 @@ defmodule EmakolaWeb.SidebarComponents do
           icon="megaphone"
           active={@active_nav == :campaigns}
         />
+
+        <%!-- Content & Design --%>
+        <p class="nav-section-label px-3 text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em] mt-6 mb-1.5">
+          Content & Design
+        </p>
+
         <.sidebar_link
           href="/admin/theme"
           title="Theme"
@@ -325,12 +342,6 @@ defmodule EmakolaWeb.SidebarComponents do
           icon="pencil-square"
           active={@active_nav == :design}
         />
-
-        <%!-- Content --%>
-        <p class="nav-section-label px-3 text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em] mt-6 mb-1.5">
-          Content
-        </p>
-
         <.sidebar_link
           href="/admin/content/posts"
           title="Blog & Pages"
@@ -350,9 +361,9 @@ defmodule EmakolaWeb.SidebarComponents do
           active={@active_nav == :page_content}
         />
 
-        <%!-- Analytics --%>
+        <%!-- Insights --%>
         <p class="nav-section-label px-3 text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em] mt-6 mb-1.5">
-          Analytics
+          Insights
         </p>
 
         <.sidebar_link

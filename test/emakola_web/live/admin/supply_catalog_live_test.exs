@@ -67,7 +67,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
 
       render_change(view, "search", %{})
 
-      assert render(view) =~ "Supplier catalog"
+      assert render(view) =~ "Browse Suppliers"
     end
 
     test "a search event with a non-binary \"search\" value does not crash the view", %{
@@ -79,7 +79,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
 
       render_change(view, "search", %{"search" => %{"evil" => "map"}})
 
-      assert render(view) =~ "Supplier catalog"
+      assert render(view) =~ "Browse Suppliers"
     end
   end
 
@@ -116,6 +116,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       refute html =~ EmakolaWeb.Helpers.Currency.format_price(3_000)
       assert html =~ "Request connection"
       assert html =~ "Connect to see wholesale pricing"
+      refute html =~ "margin-stat-tiles"
     end
 
     test "connected: shows wholesale price and margin", %{
@@ -126,7 +127,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       fixture = create_published_offer!()
       connect!(reseller_actor, reseller, fixture)
 
-      {:ok, _view, html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
+      {:ok, view, html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
 
       # wholesale price (3_000 pesewas)
       assert html =~ EmakolaWeb.Helpers.Currency.format_price(3_000)
@@ -137,6 +138,10 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       assert html =~ EmakolaWeb.Helpers.Currency.format_price(6_000)
       assert html =~ "Add to my store"
       refute html =~ "Request connection"
+      # stat tiles above the variants table — prove they're rendered
+      assert has_element?(view, "#margin-stat-tiles", "Suggested retail")
+      assert has_element?(view, "#margin-stat-tiles", "Wholesale")
+      assert has_element?(view, "#margin-stat-tiles", "Your margin")
     end
 
     test "a paused offer redirects back to the catalog", %{conn: conn} do
@@ -252,7 +257,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       {:ok, view, html} = live(conn, ~p"/admin/supply/catalog/#{fixture.offer.id}")
 
       assert html =~ "Connection unavailable"
-      assert html =~ "Manage it from your Earn Network page"
+      assert html =~ "Manage it from your Partners page"
       refute has_element?(view, "button[phx-click=request_connection]")
       # wholesale price (3_000 pesewas) must NOT leak
       refute html =~ EmakolaWeb.Helpers.Currency.format_price(3_000)
@@ -270,7 +275,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       html = render_click(view, "request_connection", %{})
 
       assert html =~ "A connection with this supplier already exists"
-      assert html =~ "Earn Network page"
+      assert html =~ "Partners page"
 
       require Ash.Query
 

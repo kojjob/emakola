@@ -100,6 +100,17 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Index do
   defp status_class(:paused), do: "bg-amber-50 text-amber-700"
   defp status_class(:archived), do: "bg-slate-100 text-slate-400"
 
+  defp first_image_url(offer) do
+    case offer.source_product.images do
+      [_ | _] = images ->
+        img = images |> Enum.sort_by(&Map.get(&1, :position, 0)) |> List.first()
+        Map.get(img, :thumbnail_url) || Map.get(img, :url)
+
+      _ ->
+        nil
+    end
+  end
+
   defp price_summary(offer) do
     case offer.offer_variants do
       [] ->
@@ -119,7 +130,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Index do
   def render(assigns) do
     ~H"""
     <div class="max-w-5xl mx-auto px-4 sm:px-6 pb-12">
-      <div class="flex items-end justify-between gap-3 mb-6 pt-2">
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6 pt-2">
         <div>
           <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">My Offers</h1>
           <p class="text-sm text-slate-500 mt-1">
@@ -144,7 +155,7 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Index do
         <p class="text-xs text-slate-500 mt-1 max-w-md mx-auto">
           Publish an offer and any merchant on the network can find it in the
           <.link navigate={~p"/admin/supply/catalog"} class="text-emerald-700">
-            Supplier Catalog
+            Browse Suppliers
           </.link>
           and stock your product in their store.
         </p>
@@ -155,6 +166,15 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Index do
           :for={offer <- @offers}
           class="rounded-2xl border border-slate-200 bg-white p-4 flex flex-wrap items-center gap-4"
         >
+          <div class="shrink-0 w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center overflow-hidden">
+            <img
+              :if={first_image_url(offer)}
+              src={first_image_url(offer)}
+              alt={offer.source_product.title}
+              class="w-full h-full object-cover"
+            />
+            <.icon :if={!first_image_url(offer)} name="hero-photo" class="size-5 text-slate-400" />
+          </div>
           <div class="min-w-0 flex-1">
             <p class="font-semibold text-sm text-slate-900 truncate">
               {offer.source_product.title}

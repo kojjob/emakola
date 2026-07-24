@@ -35,6 +35,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
             socket
             |> assign(
               page_title: "Edit Product",
+              active_nav: :products,
               product: product,
               form_data: product_to_form_data(product),
               errors: %{},
@@ -56,6 +57,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
           socket
           |> assign(
             page_title: "New Product",
+            active_nav: :products,
             product: nil,
             form_data: %{
               "title" => "",

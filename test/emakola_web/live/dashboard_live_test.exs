@@ -197,6 +197,33 @@ defmodule EmakolaWeb.DashboardLiveTest do
     end
   end
 
+  describe "platform announcements" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "an active announcement banner renders on the dashboard", %{conn: conn} do
+      {:ok, ann} =
+        Emakola.Notifications.create_announcement(
+          %{
+            title: "Welcome to Makola Payouts",
+            body: "You can now add your payout details.",
+            channels: [:banner],
+            audience: :all,
+            publish_at: ~U[2026-06-20 00:00:00Z]
+          },
+          authorize?: false
+        )
+
+      {:ok, _} = Emakola.Notifications.publish_announcement(ann, authorize?: false)
+
+      {:ok, _view, html} = live(conn, ~p"/dashboard")
+
+      assert html =~ "Welcome to Makola Payouts"
+    end
+  end
+
   defp setup_authenticated_merchant(conn, store_attrs \\ %{}) do
     {merchant, store} = Factory.create_merchant_with_store!(store_attrs)
     token = EmakolaWeb.AuthTokens.sign_subject(AshAuthentication.user_to_subject(merchant))

@@ -52,6 +52,7 @@ defmodule EmakolaWeb.Admin.ProductLive.DigitalFiles do
         {:ok,
          socket
          |> assign(:store_id, store_id)
+         |> assign(:active_nav, :products)
          |> assign(:product, product)
          |> assign(:page_title, "Digital files — #{product.title}")
          |> assign(:files, list_files(product.id, store_id))
