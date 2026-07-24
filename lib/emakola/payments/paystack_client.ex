@@ -34,10 +34,15 @@ defmodule Emakola.Payments.PaystackClient do
 
   @impl true
   def create_refund(params) do
+    # Bounded and non-retrying: this call runs inside the RefundService
+    # transaction holding a row lock and a pooled connection, and a retried
+    # refund POST whose first response was merely lost is a double refund.
     http_client().post(
       "#{base_url()}/refund",
       json: params,
-      headers: auth_headers()
+      headers: auth_headers(),
+      receive_timeout: 10_000,
+      retry: false
     )
   end
 
