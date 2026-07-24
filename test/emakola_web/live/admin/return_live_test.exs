@@ -190,6 +190,90 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
                0
     end
 
+    test "survives a second approve click after the first one succeeded", %{
+      conn: conn,
+      store: store
+    } do
+      order = create_order!(store, :delivered)
+      return = create_return!(store, order)
+      create_successful_payment!(store, order)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      render_click(view, "select_return", %{"id" => return.id})
+      render_click(view, "update_refund_amount", %{"amount" => "48.50"})
+      assert render_click(view, "approve_return") =~ "Return approved"
+
+      # The queued second click arrives after the handler cleared the
+      # selection. It used to reach `nil.order_id` and kill the LiveView.
+      render_click(view, "approve_return")
+
+      assert render(view) =~ "Review and manage customer return requests"
+      assert reload(return).status == :approved
+    end
+
+    test "tells the second tab the return was already handled", %{conn: conn, store: store} do
+      order = create_order!(store, :delivered)
+      return = create_return!(store, order)
+      create_successful_payment!(store, order)
+
+      {:ok, tab_a, _html} = live(conn, ~p"/admin/returns")
+      {:ok, tab_b, _html} = live(conn, ~p"/admin/returns")
+
+      # Both tabs hold the return as :requested.
+      for tab <- [tab_a, tab_b] do
+        render_click(tab, "select_return", %{"id" => return.id})
+        render_click(tab, "update_refund_amount", %{"amount" => "48.50"})
+      end
+
+      assert render_click(tab_a, "approve_return") =~ "Return approved"
+
+      html = render_click(tab_b, "approve_return")
+
+      assert html =~ "This return has already been handled"
+      refute html =~ "Return approved"
+      assert reload(return).status == :approved
+    end
+
+    test "disables the approve button while the refund is in flight", %{
+      conn: conn,
+      store: store
+    } do
+      return = create_return!(store)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      render_click(view, "select_return", %{"id" => return.id})
+
+      assert has_element?(
+               view,
+               "button[phx-click='approve_return'][phx-disable-with='Approving...']"
+             )
+    end
+
+    test "approves a cash-on-delivery return, then offers Mark as Refunded", %{
+      conn: conn,
+      store: store
+    } do
+      # Cash on delivery creates no Payment row — there is nothing to reverse
+      # at the gateway, and the merchant settles the cash by hand.
+      order = create_order!(store, :delivered)
+      return = create_return!(store, order)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      render_click(view, "select_return", %{"id" => return.id})
+      render_click(view, "update_refund_amount", %{"amount" => "48.50"})
+      html = render_click(view, "approve_return")
+
+      assert html =~ "Return approved"
+      assert reload(return).status == :approved
+      assert reload(return).refund_amount == 4850
+
+      # The return is no longer stuck: the merchant can close it out.
+      assert render_click(view, "select_return", %{"id" => return.id}) =~ "Mark as Refunded"
+    end
+
     test "denies a return", %{conn: conn, store: store} do
       _return = create_return!(store)
 

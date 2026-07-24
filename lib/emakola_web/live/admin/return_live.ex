@@ -88,6 +88,14 @@ defmodule EmakolaWeb.Admin.ReturnLive do
   end
 
   @impl true
+  def handle_event("approve_return", _params, %{assigns: %{selected_return: nil}} = socket) do
+    # A double click queues a second approve that lands after the first one
+    # cleared the selection. There is nothing left to approve, and reaching the
+    # service with nil used to kill the LiveView.
+    {:noreply, socket}
+  end
+
+  @impl true
   def handle_event("approve_return", _params, socket) do
     # Approving a return sends the customer's money back through the gateway,
     # so it goes through RefundService with the merchant as actor. A blank or
@@ -362,6 +370,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
           <div class="flex gap-3">
             <button
               phx-click="approve_return"
+              phx-disable-with="Approving..."
               class="cursor-pointer bg-green-600 text-white text-xs font-semibold uppercase tracking-wider px-6 py-2.5 rounded-[20px] hover:bg-green-700 transition-colors"
             >
               Approve
@@ -390,6 +399,9 @@ defmodule EmakolaWeb.Admin.ReturnLive do
   end
 
   # -- Private --
+
+  defp refund_error(:already_processed),
+    do: "This return has already been handled — reload the page to see where it stands."
 
   defp refund_error(:gateway_unsupported),
     do: "Refunds for this payment must be issued in the provider dashboard."

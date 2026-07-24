@@ -131,19 +131,17 @@ defmodule Emakola.Payments.RefundServiceTest do
       assert reload(ctx.return).status == :requested
     end
 
-    test "returns :payment_not_found when the order was never paid", ctx do
-      unpaid_order = create_order!(ctx.store, status: :delivered)
-      unpaid_return = create_return!(ctx.store, unpaid_order)
-
-      assert {:error, :payment_not_found} =
+    test "refuses a nil return instead of crashing on it", ctx do
+      assert {:error, :no_return_selected} =
                RefundService.issue(
                  ctx.merchant,
-                 unpaid_return,
+                 nil,
                  %{refund_amount: 1_000, admin_notes: "", refund_dispatch_fee?: false},
                  GatewayMock
                )
 
-      assert reload(unpaid_return).status == :requested
+      assert reload(ctx.payment).refunded_amount == 0
+      assert reload(ctx.return).status == :requested
     end
 
     test "refuses a merchant with no membership in the return's store", ctx do
@@ -159,6 +157,107 @@ defmodule Emakola.Payments.RefundServiceTest do
 
       assert reload(ctx.payment).refunded_amount == 0
       assert reload(ctx.return).status == :requested
+    end
+  end
+
+  describe "issue/4 — concurrent approves" do
+    test "a second approve from the same stale struct never reaches the gateway", ctx do
+      # Exactly one call is allowed. A second reaching the gateway raises
+      # Mox.UnexpectedCallError — that IS the "called once" assertion, and a
+      # second real call would refund the customer twice.
+      expect(GatewayMock, :process_refund, 1, fn _reference, _amount -> {:ok, %{}} end)
+
+      params = %{refund_amount: 12_500, admin_notes: "", refund_dispatch_fee?: false}
+
+      # Both callers hold the struct as it was read: status :requested. This is
+      # what two open LiveViews (or a queued double click) actually pass in.
+      stale = ctx.return
+
+      assert {:ok, approved} = RefundService.issue(ctx.merchant, stale, params, GatewayMock)
+      assert approved.status == :approved
+
+      assert {:error, :already_processed} =
+               RefundService.issue(ctx.merchant, stale, params, GatewayMock)
+
+      assert reload(ctx.payment).refunded_amount == 0
+      assert reload(ctx.return).status == :approved
+    end
+
+    test "refuses a return that has already been denied", ctx do
+      denied =
+        ctx.return
+        |> Ash.Changeset.for_update(:deny, %{})
+        |> Ash.update!(authorize?: false)
+
+      # The caller still holds the :requested struct.
+      assert {:error, :already_processed} =
+               RefundService.issue(
+                 ctx.merchant,
+                 ctx.return,
+                 %{refund_amount: 12_500, admin_notes: "", refund_dispatch_fee?: false},
+                 GatewayMock
+               )
+
+      assert reload(denied).status == :denied
+      assert reload(ctx.payment).refunded_amount == 0
+    end
+  end
+
+  describe "issue/4 — cash on delivery (order with no payment)" do
+    # No `expect/3` is registered here, so ANY gateway call raises
+    # Mox.UnexpectedCallError. There is no charge to reverse: the merchant
+    # hands the cash back out of band.
+
+    test "approves a return on an order that was never charged", ctx do
+      cod_order = create_order!(ctx.store, status: :delivered)
+      cod_return = create_return!(ctx.store, cod_order)
+
+      assert {:ok, approved} =
+               RefundService.issue(
+                 ctx.merchant,
+                 cod_return,
+                 %{
+                   refund_amount: 1_000,
+                   admin_notes: "Cash returned at the shop",
+                   refund_dispatch_fee?: false
+                 },
+                 GatewayMock
+               )
+
+      assert approved.status == :approved
+      assert approved.refund_amount == 1_000
+      assert approved.admin_notes == "Cash returned at the shop"
+      assert reload(cod_return).status == :approved
+    end
+
+    test "still refuses a blank amount on an uncharged order", ctx do
+      cod_order = create_order!(ctx.store, status: :delivered)
+      cod_return = create_return!(ctx.store, cod_order)
+
+      assert {:error, :invalid_amount} =
+               RefundService.issue(
+                 ctx.merchant,
+                 cod_return,
+                 %{refund_amount: nil, admin_notes: "", refund_dispatch_fee?: false},
+                 GatewayMock
+               )
+
+      assert reload(cod_return).status == :requested
+    end
+  end
+
+  describe "gateway_for/1" do
+    test "routes a Hubtel charge back through Hubtel" do
+      assert RefundService.gateway_for(%{gateway: :hubtel}) == Emakola.Payments.Gateways.Hubtel
+    end
+
+    test "routes every other charge to the configured gateway" do
+      configured = Application.get_env(:emakola, :payment_gateway)
+
+      # config/test.exs points :payment_gateway at the in-repo mock gateway;
+      # the point is that routing reads config rather than hardcoding Paystack.
+      assert configured == Emakola.Payments.Gateways.Mock
+      assert RefundService.gateway_for(%{gateway: :paystack}) == configured
     end
   end
 
