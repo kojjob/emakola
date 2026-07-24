@@ -262,11 +262,12 @@ defmodule Emakola.Notifications.TemplatesTest do
       assert msg =~ "/admin/settings/supply-network"
     end
 
-    test "approved SMS names the counterparty and points at the catalog, either direction" do
+    test "approved SMS names the counterparty and points at Browse Suppliers, either direction" do
       for direction <- [:wants_to_stock, :wants_to_supply] do
         msg = Templates.connection_sms(:approved, "Kumasi Textiles", direction)
         assert msg =~ "Kumasi Textiles"
         assert msg =~ "approved your connection"
+        assert msg =~ "Browse Suppliers page"
         assert msg =~ "/admin/supply/catalog"
       end
     end
@@ -275,6 +276,7 @@ defmodule Emakola.Notifications.TemplatesTest do
       for direction <- [:wants_to_stock, :wants_to_supply] do
         msg = Templates.connection_sms(:rejected, "Kumasi Textiles", direction)
         assert msg =~ "declined"
+        assert msg =~ "Browse Suppliers page"
         assert msg =~ "/admin/supply/catalog"
       end
     end

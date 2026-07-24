@@ -9,7 +9,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
 
   alias Emakola.Suppliers.Offers
 
-  import EmakolaWeb.Helpers.Currency, only: [format_price: 1]
+  import EmakolaWeb.Helpers.Currency, only: [format_price: 1, format_price_range: 3]
 
   @impl true
   def mount(%{"offer_id" => offer_id}, _session, socket) do
@@ -104,6 +104,41 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
 
   defp sorted_images(product) do
     Enum.sort_by(product.images || [], &Map.get(&1, :position, 0))
+  end
+
+  # Margin economics for the stat tiles above the variants table. A single
+  # variant reads its own numbers; multiple variants collapse to a min–max
+  # range (format_price_range/3 already collapses to one price when
+  # min == max). Uses the same retail-minus-wholesale margin() as the
+  # per-row markup display regardless of earning model, so a fixed-commission
+  # offer's tile still reflects what the reseller would keep on a straight
+  # resale — the per-row table is what shows the actual commission amount.
+  defp stat_tiles(offer) do
+    variants = offer.offer_variants
+    retail_prices = Enum.map(variants, & &1.suggested_retail_price)
+    wholesale_prices = Enum.map(variants, & &1.supplier_price)
+    margins = Enum.map(variants, &margin/1)
+    margin_pcts = Enum.map(variants, &margin_pct/1)
+
+    {retail_min, retail_max} = Enum.min_max(retail_prices)
+    {wholesale_min, wholesale_max} = Enum.min_max(wholesale_prices)
+
+    %{
+      retail: format_price_range(retail_min, retail_max, "GHS"),
+      wholesale: format_price_range(wholesale_min, wholesale_max, "GHS"),
+      margin: margin_tile(margins, margin_pcts)
+    }
+  end
+
+  defp margin_tile(margins, margin_pcts) do
+    {min_margin, max_margin} = Enum.min_max(margins)
+    {min_pct, max_pct} = Enum.min_max(margin_pcts)
+
+    if min_margin == max_margin and min_pct == max_pct do
+      "#{format_price(min_margin)} (#{min_pct}%)"
+    else
+      "#{format_price_range(min_margin, max_margin, "GHS")} (#{min_pct}%–#{max_pct}%)"
+    end
   end
 
   @impl true
@@ -247,6 +282,25 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
           </div>
         </div>
 
+        <%!-- Margin economics stat tiles (connected only) --%>
+        <div :if={@connection_status == :connected} class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <% tiles = stat_tiles(@offer) %>
+          <div class="rounded-2xl border border-slate-200 bg-white p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Suggested retail
+            </p>
+            <p class="text-2xl font-bold text-slate-900 mt-1">{tiles.retail}</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Wholesale</p>
+            <p class="text-2xl font-bold text-slate-900 mt-1">{tiles.wholesale}</p>
+          </div>
+          <div class="rounded-2xl border border-slate-200 bg-white p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Your margin</p>
+            <p class="text-2xl font-bold text-emerald-700 mt-1">{tiles.margin}</p>
+          </div>
+        </div>
+
         <%!-- Variants table --%>
         <div class="rounded-2xl border border-slate-200 overflow-x-auto">
           <table class="w-full text-sm">
@@ -254,9 +308,18 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
               <tr class="text-left text-xs uppercase tracking-wide text-slate-500 bg-slate-50">
                 <th class="px-4 py-2.5">Variant</th>
                 <th class="px-4 py-2.5 text-right">Suggested retail</th>
-                <th class="px-4 py-2.5 text-right">Wholesale</th>
                 <th class="px-4 py-2.5 text-right">
-                  {if @offer.earning_model == :fixed_commission, do: "Commission", else: "Your margin"}
+                  {if @connection_status == :connected, do: "Wholesale", else: "🔒"}
+                </th>
+                <th class="px-4 py-2.5 text-right">
+                  <%= cond do %>
+                    <% @connection_status != :connected -> %>
+                      🔒
+                    <% @offer.earning_model == :fixed_commission -> %>
+                      Commission
+                    <% true -> %>
+                      Your margin
+                  <% end %>
                 </th>
               </tr>
             </thead>

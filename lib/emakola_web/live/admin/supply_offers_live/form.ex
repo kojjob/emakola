@@ -97,6 +97,27 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
   defp pesewas_to_input(nil), do: ""
   defp pesewas_to_input(pesewas), do: :erlang.float_to_binary(pesewas / 100, decimals: 2)
 
+  defp first_image_url(product) do
+    case product.images do
+      [_ | _] = images ->
+        img = images |> Enum.sort_by(&Map.get(&1, :position, 0)) |> List.first()
+        Map.get(img, :thumbnail_url) || Map.get(img, :url)
+
+      _ ->
+        nil
+    end
+  end
+
+  defp status_label(:draft), do: "Draft"
+  defp status_label(:published), do: "Published"
+  defp status_label(:paused), do: "Paused"
+  defp status_label(:archived), do: "Archived"
+
+  defp status_class(:draft), do: "bg-slate-100 text-slate-600"
+  defp status_class(:published), do: "bg-emerald-50 text-emerald-700"
+  defp status_class(:paused), do: "bg-amber-50 text-amber-700"
+  defp status_class(:archived), do: "bg-slate-100 text-slate-400"
+
   # ── Events ──
 
   @impl true
@@ -523,6 +544,35 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
           <p :if={@errors[:base]} class="text-sm text-red-600 mt-1">{@errors[:base]}</p>
         </div>
 
+        <%!-- Product context header (edit only) --%>
+        <div
+          :if={@action == :edit && @product}
+          class="rounded-2xl border border-slate-200 bg-white p-4 flex items-center gap-4"
+        >
+          <div class="shrink-0 w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center overflow-hidden">
+            <img
+              :if={first_image_url(@product)}
+              src={first_image_url(@product)}
+              alt={@product.title}
+              class="w-full h-full object-cover"
+            />
+            <.icon
+              :if={!first_image_url(@product)}
+              name="hero-photo"
+              class="size-5 text-slate-400"
+            />
+          </div>
+          <div class="min-w-0 flex-1">
+            <h2 class="font-semibold text-sm text-slate-900 truncate">{@product.title}</h2>
+            <span class={[
+              "inline-block mt-1 text-[10px] font-semibold uppercase tracking-wide rounded-full px-2 py-0.5",
+              status_class(@offer.status)
+            ]}>
+              {status_label(@offer.status)}
+            </span>
+          </div>
+        </div>
+
         <%!-- Product picker (new only) --%>
         <div :if={@action == :new} class="rounded-2xl border border-slate-200 p-4">
           <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -550,39 +600,38 @@ defmodule EmakolaWeb.Admin.SupplyOffersLive.Form do
             Delivery areas &amp; dispatch fees
           </p>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div
-              :for={region <- Emakola.Suppliers.GhanaRegions.all()}
-              class="flex items-center gap-3"
-            >
-              <button
-                phx-click="toggle_region"
-                phx-value-region={region}
-                class={[
-                  "flex-1 text-left rounded-xl border px-3 py-2 text-sm",
-                  if(MapSet.member?(@areas, region),
-                    do: "border-emerald-600 bg-emerald-50 text-emerald-800",
-                    else: "border-slate-200 text-slate-600"
-                  )
-                ]}
-              >
-                {region}
-              </button>
-              <form
-                :if={MapSet.member?(@areas, region)}
-                phx-change="set_region_fee"
-                class="w-28"
-              >
-                <input type="hidden" name="region" value={region} />
-                <input
-                  type="text"
-                  name="value"
-                  value={@fees[region] || ""}
-                  placeholder="Fee GH₵"
-                  phx-debounce="300"
-                  class="w-full rounded-xl border border-slate-300 px-2 py-1.5 text-sm"
-                />
-              </form>
-              <p :if={@errors[{:fee, region}]} class="text-xs text-red-600">
+            <div :for={region <- Emakola.Suppliers.GhanaRegions.all()} class="space-y-1">
+              <div class="flex items-center gap-3">
+                <button
+                  phx-click="toggle_region"
+                  phx-value-region={region}
+                  class={[
+                    "flex-1 min-w-0 text-left rounded-xl border px-3 py-2 text-sm",
+                    if(MapSet.member?(@areas, region),
+                      do: "border-emerald-600 bg-emerald-50 text-emerald-800",
+                      else: "border-slate-200 text-slate-600"
+                    )
+                  ]}
+                >
+                  {region}
+                </button>
+                <form
+                  :if={MapSet.member?(@areas, region)}
+                  phx-change="set_region_fee"
+                  class="w-28 shrink-0"
+                >
+                  <input type="hidden" name="region" value={region} />
+                  <input
+                    type="text"
+                    name="value"
+                    value={@fees[region] || ""}
+                    placeholder="Fee GH₵"
+                    phx-debounce="300"
+                    class="w-full rounded-xl border border-slate-300 px-2 py-1.5 text-sm text-right"
+                  />
+                </form>
+              </div>
+              <p :if={@errors[{:fee, region}]} class="text-xs text-red-600 text-right">
                 {@errors[{:fee, region}]}
               </p>
             </div>

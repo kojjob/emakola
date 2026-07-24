@@ -116,6 +116,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       refute html =~ EmakolaWeb.Helpers.Currency.format_price(3_000)
       assert html =~ "Request connection"
       assert html =~ "Connect to see wholesale pricing"
+      refute html =~ "Your margin"
     end
 
     test "connected: shows wholesale price and margin", %{
@@ -137,6 +138,10 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLiveTest do
       assert html =~ EmakolaWeb.Helpers.Currency.format_price(6_000)
       assert html =~ "Add to my store"
       refute html =~ "Request connection"
+      # stat tiles above the variants table
+      assert html =~ "Suggested retail"
+      assert html =~ "Wholesale"
+      assert html =~ "Your margin"
     end
 
     test "a paused offer redirects back to the catalog", %{conn: conn} do
