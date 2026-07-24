@@ -1,6 +1,7 @@
 defmodule Emakola.Suppliers.NetworkTest do
   use Emakola.DataCase, async: true
   use Oban.Testing, repo: Emakola.Repo
+  require Ash.Query
 
   import Emakola.Factory
 
@@ -174,6 +175,60 @@ defmodule Emakola.Suppliers.NetworkTest do
       requested_jobs = Enum.filter(jobs, fn j -> j.args["event"] == "requested" end)
 
       assert length(requested_jobs) == 1
+    end
+  end
+
+  # Module level, ABOVE the describe — ExUnit raises on defp inside describe.
+  # Hammer's :fix_window buckets are epoch-aligned; if the test starts
+  # within guard_ms of a boundary, counts split across two windows (PR #174).
+  defp await_fresh_window(window_ms, guard_ms) do
+    remaining = window_ms - rem(System.system_time(:millisecond), window_ms)
+    if remaining < guard_ms, do: Process.sleep(remaining + 10)
+  end
+
+  defp request_attrs(ctx, partner) do
+    %{
+      wholesaler_store_id: partner.id,
+      reseller_store_id: ctx.reseller.id,
+      requested_by_store_id: ctx.reseller.id,
+      terms: %{"currency" => "GHS"}
+    }
+  end
+
+  describe "invite throttle" do
+    test "the 4th request within a minute is denied and creates nothing", ctx do
+      await_fresh_window(60_000, 3_000)
+
+      for partner <- [create_store!(), create_store!(), create_store!()] do
+        assert {:ok, _} = Network.request(ctx.reseller_actor, request_attrs(ctx, partner))
+      end
+
+      fourth = create_store!()
+
+      assert {:error, :invite_rate_limited} =
+               Network.request(ctx.reseller_actor, request_attrs(ctx, fourth))
+
+      fourth_id = fourth.id
+
+      assert {:ok, []} =
+               Emakola.Suppliers.SupplyConnection
+               |> Ash.Query.filter(wholesaler_store_id == ^fourth_id)
+               |> Ash.read(authorize?: false)
+
+      assert length(
+               all_enqueued(worker: Emakola.Notifications.Workers.ConnectionNotificationWorker)
+             ) == 3
+    end
+
+    test "the 11th request in a day is denied even when the burst window is fresh", ctx do
+      for _ <- 1..10 do
+        Emakola.RateLimit.check_rate("supply_invite:day:#{ctx.reseller.id}", 10, 86_400_000)
+      end
+
+      partner = create_store!()
+
+      assert {:error, :invite_rate_limited} =
+               Network.request(ctx.reseller_actor, request_attrs(ctx, partner))
     end
   end
 end

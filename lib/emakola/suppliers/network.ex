@@ -8,8 +8,14 @@ defmodule Emakola.Suppliers.Network do
 
   require Ash.Query
 
+  alias Emakola.RateLimit
   alias Emakola.Suppliers
   alias Emakola.Suppliers.SupplyConnection
+
+  @invite_burst_limit 3
+  @invite_burst_window_ms 60_000
+  @invite_day_limit 10
+  @invite_day_window_ms 86_400_000
 
   def request(actor, attrs) do
     wholesaler_id = attrs[:wholesaler_store_id]
@@ -20,6 +26,7 @@ defmodule Emakola.Suppliers.Network do
          :ok <- ensure_participant(requester_id, wholesaler_id, reseller_id),
          :ok <- ensure_access(actor, requester_id),
          :ok <- ensure_connection_absent(wholesaler_id, reseller_id),
+         :ok <- ensure_invite_quota(requester_id),
          {:ok, connection} <- Suppliers.request_supply_connection(attrs, authorize?: false) do
       {:ok, notify(connection, "requested")}
     end
@@ -124,6 +131,25 @@ defmodule Emakola.Suppliers.Network do
   end
 
   defp ensure_access(_, _), do: {:error, :forbidden}
+
+  defp ensure_invite_quota(store_id) do
+    with {:allow, _} <-
+           RateLimit.check_rate(
+             "supply_invite:burst:#{store_id}",
+             @invite_burst_limit,
+             @invite_burst_window_ms
+           ),
+         {:allow, _} <-
+           RateLimit.check_rate(
+             "supply_invite:day:#{store_id}",
+             @invite_day_limit,
+             @invite_day_window_ms
+           ) do
+      :ok
+    else
+      {:deny, _} -> {:error, :invite_rate_limited}
+    end
+  end
 
   defp ensure_connection_absent(wholesaler_id, reseller_id) do
     case SupplyConnection
