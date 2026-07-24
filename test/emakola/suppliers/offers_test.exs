@@ -431,15 +431,6 @@ defmodule Emakola.Suppliers.OffersTest do
     end
   end
 
-  describe "GhanaRegions" do
-    test "exposes the 16 canonical regions" do
-      regions = Emakola.Suppliers.GhanaRegions.all()
-      assert length(regions) == 16
-      assert "Greater Accra" in regions
-      assert "Bono East" in regions
-    end
-  end
-
   defp draft_offer!(context, earning_model, opts \\ []) do
     product = Keyword.get(opts, :product, context.product)
 
@@ -481,6 +472,13 @@ defmodule Emakola.Suppliers.OffersTest do
   end
 
   describe "GhanaRegions" do
+    test "exposes the 16 canonical regions" do
+      regions = Emakola.Suppliers.GhanaRegions.all()
+      assert length(regions) == 16
+      assert "Greater Accra" in regions
+      assert "Bono East" in regions
+    end
+
     test "from_param canonicalizes snake_case params" do
       assert GhanaRegions.from_param("greater_accra") == "Greater Accra"
       assert GhanaRegions.from_param("bono_east") == "Bono East"
