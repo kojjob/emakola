@@ -30,18 +30,24 @@ defmodule Emakola.Payments.SplitCalculator do
     * `:fee_rate_bps` — platform fee on dropship margin, in basis points
     * `:subaccounts` — map of `supplier_id => subaccount_code`
     * `:dropshipper_subaccount` — the dropshipper store's subaccount code
+    * `:dispatch_fees` — map of `supplier_id => pesewas` (default `%{}`); each
+      fee is added to that wholesaler's allocation and to the returned `total`.
+      Keys must be a subset of the line items' supplier ids — amounts for
+      absent suppliers would inflate `total` without an owning allocation
+      (now caught by `OrderSettlement.prepare/2`'s sum-invariant guard).
   """
   def calculate(line_items, opts) do
     fee_rate_bps = Keyword.fetch!(opts, :fee_rate_bps)
     subaccounts = Keyword.fetch!(opts, :subaccounts)
     dropshipper_subaccount = Keyword.fetch!(opts, :dropshipper_subaccount)
+    dispatch_fees = Keyword.get(opts, :dispatch_fees, %{})
 
     parts = Enum.map(line_items, &line_part(&1, fee_rate_bps))
 
     %{
-      total: Enum.sum(Enum.map(parts, & &1.retail)),
+      total: Enum.sum(Enum.map(parts, & &1.retail)) + Enum.sum(Map.values(dispatch_fees)),
       allocations:
-        wholesaler_allocations(parts, subaccounts) ++
+        wholesaler_allocations(parts, subaccounts, dispatch_fees) ++
           [platform_allocation(parts), dropshipper_allocation(parts, dropshipper_subaccount)]
     }
   end
@@ -70,7 +76,7 @@ defmodule Emakola.Payments.SplitCalculator do
     %{supplier_id: nil, retail: retail, cost: 0, platform_fee: 0, dropshipper_net: retail}
   end
 
-  defp wholesaler_allocations(parts, subaccounts) do
+  defp wholesaler_allocations(parts, subaccounts, dispatch_fees) do
     parts
     |> Enum.reject(&is_nil(&1.supplier_id))
     |> Enum.group_by(& &1.supplier_id)
@@ -79,7 +85,8 @@ defmodule Emakola.Payments.SplitCalculator do
         role: :wholesaler,
         supplier_id: supplier_id,
         subaccount_code: Map.get(subaccounts, supplier_id),
-        amount: Enum.sum(Enum.map(supplier_parts, & &1.cost))
+        amount:
+          Enum.sum(Enum.map(supplier_parts, & &1.cost)) + Map.get(dispatch_fees, supplier_id, 0)
       }
     end)
   end

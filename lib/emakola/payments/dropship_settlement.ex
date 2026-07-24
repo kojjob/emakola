@@ -22,10 +22,12 @@ defmodule Emakola.Payments.DropshipSettlement do
   Prepare a split for `line_items` sold by `dropshipper_store_id`.
 
   `line_items` are maps with `:unit_price`, `:cost_price`, `:quantity`, and
-  `:supplier_id` (nil for own-stock). `opts` requires `:fee_rate_bps`.
+  `:supplier_id` (nil for own-stock). `opts` requires `:fee_rate_bps` and
+  accepts `:dispatch_fees` (map of `supplier_id => pesewas`, default `%{}`).
   """
   def prepare(line_items, dropshipper_store_id, opts) do
     fee_rate_bps = Keyword.fetch!(opts, :fee_rate_bps)
+    dispatch_fees = Keyword.get(opts, :dispatch_fees, %{})
 
     supplier_ids =
       line_items |> Enum.map(& &1.supplier_id) |> Enum.reject(&is_nil/1) |> Enum.uniq()
@@ -39,7 +41,8 @@ defmodule Emakola.Payments.DropshipSettlement do
         SplitCalculator.calculate(line_items,
           fee_rate_bps: fee_rate_bps,
           subaccounts: subaccounts,
-          dropshipper_subaccount: dropshipper_code
+          dropshipper_subaccount: dropshipper_code,
+          dispatch_fees: dispatch_fees
         )
 
       enriched = Enum.map(allocations, &add_recipient(&1, resolved, dropshipper_store_id))
