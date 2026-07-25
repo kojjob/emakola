@@ -88,6 +88,16 @@ defmodule EmakolaWeb.Admin.ReturnLive do
   end
 
   @impl true
+  def handle_event("noop_submit", _params, socket) do
+    # The notes/amount inputs live in their own <form> so LiveView can send
+    # phx-change events (browsers refuse phx-change from an input with no
+    # form ancestor). Neither form has a submit button, but pressing Enter
+    # while focused in one still fires a submit — this swallows it so Enter
+    # can never trigger a refund.
+    {:noreply, socket}
+  end
+
+  @impl true
   def handle_event("toggle_dispatch_fee", _params, socket) do
     {:noreply, assign(socket, refund_dispatch_fee: !socket.assigns.refund_dispatch_fee)}
   end
@@ -367,13 +377,15 @@ defmodule EmakolaWeb.Admin.ReturnLive do
             <label class="block text-xs font-medium uppercase tracking-wider text-stone-500 mb-2">
               Notes
             </label>
-            <textarea
-              phx-change="update_notes"
-              name="notes"
-              rows="3"
-              placeholder="Add notes about this decision..."
-              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-amber-700 focus:border-amber-700 focus:outline-none"
-            >{@action_notes}</textarea>
+            <form phx-submit="noop_submit" class="contents">
+              <textarea
+                phx-change="update_notes"
+                name="notes"
+                rows="3"
+                placeholder="Add notes about this decision..."
+                class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-amber-700 focus:border-amber-700 focus:outline-none"
+              >{@action_notes}</textarea>
+            </form>
           </div>
           <%!-- Refund guidance --%>
           <div :if={@selected_payment} class="space-y-3">
@@ -408,14 +420,16 @@ defmodule EmakolaWeb.Admin.ReturnLive do
             <label class="block text-xs font-medium uppercase tracking-wider text-stone-500 mb-2">
               Refund Amount (GHS)
             </label>
-            <input
-              type="text"
-              phx-change="update_refund_amount"
-              name="amount"
-              value={@refund_amount_input}
-              placeholder="0.00"
-              class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-amber-700 focus:border-amber-700 focus:outline-none"
-            />
+            <form phx-submit="noop_submit" class="contents">
+              <input
+                type="text"
+                phx-change="update_refund_amount"
+                name="amount"
+                value={@refund_amount_input}
+                placeholder="0.00"
+                class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-amber-700 focus:border-amber-700 focus:outline-none"
+              />
+            </form>
             <p :if={@amount_exceeds_suggested_max?} class="mt-2 text-xs font-medium text-amber-700">
               Above the suggested limit of {Currency.format_price(
                 @suggested_max,

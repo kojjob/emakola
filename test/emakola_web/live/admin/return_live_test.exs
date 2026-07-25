@@ -88,6 +88,35 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
       assert html =~ "Deny"
     end
 
+    test "every phx-change element in the approve panel has a form ancestor", %{
+      conn: conn,
+      store: store
+    } do
+      # Structural guard, not a behavior test: render_change/render_click invoke
+      # handle_event/3 directly and bypass the browser entirely, so no amount of
+      # passing behavior tests proves these bindings actually work in a real
+      # browser. A phx-change on an <input>/<textarea> with no <form> ancestor
+      # makes LiveView's JS client throw "form events require the input to be
+      # inside a form" on every keystroke — silently, since nothing in the
+      # Elixir test suite executes that JS. We assert the DOM shape instead.
+      return = create_return!(store)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      html = render_click(view, "select_return", %{"id" => return.id})
+
+      doc = LazyHTML.from_document(html)
+
+      all_phx_change = doc |> LazyHTML.query("[phx-change]") |> Enum.count()
+      inside_form = doc |> LazyHTML.query("form [phx-change]") |> Enum.count()
+
+      assert all_phx_change > 0, "expected the approve panel to render phx-change inputs"
+
+      assert all_phx_change == inside_form,
+             "found #{all_phx_change - inside_form} phx-change element(s) outside a <form> — " <>
+               "the browser will refuse to send their events"
+    end
+
     test "approves a return", %{conn: conn, store: store} do
       order = create_order!(store, :delivered)
       return = create_return!(store, order)
