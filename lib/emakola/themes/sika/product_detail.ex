@@ -210,6 +210,19 @@ defmodule Emakola.Themes.Sika.ProductDetail do
               </div>
             </div>
 
+            <%!-- Built from the store's own delivery zones; renders nothing when it
+                 has configured none. Never a theme default — a hardcoded "free
+                 delivery in Accra" would be a promise the merchant never made. --%>
+            <p
+              :if={Emakola.Themes.Delivery.callout(assigns)}
+              class="mb-3 flex items-center gap-2 text-sm font-medium"
+            >
+              <span
+                aria-hidden="true"
+                class="inline-block h-1.5 w-1.5 rounded-full bg-current opacity-60"
+              />
+              {Emakola.Themes.Delivery.callout(assigns)}
+            </p>
             <button
               id="sika-add-to-cart"
               phx-click="add_to_cart"

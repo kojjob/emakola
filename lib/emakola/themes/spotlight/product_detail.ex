@@ -68,6 +68,19 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
                 {format_rating(@product)} ({@product.review_count})
               </span>
             </div>
+            <%!-- Built from the store's own delivery zones; renders nothing when it
+                 has configured none. Never a theme default — a hardcoded "free
+                 delivery in Accra" would be a promise the merchant never made. --%>
+            <p
+              :if={Emakola.Themes.Delivery.callout(assigns)}
+              class="mb-3 flex items-center gap-2 text-sm font-medium"
+            >
+              <span
+                aria-hidden="true"
+                class="inline-block h-1.5 w-1.5 rounded-full bg-current opacity-60"
+              />
+              {Emakola.Themes.Delivery.callout(assigns)}
+            </p>
             <div class="flex flex-wrap gap-3 mt-7">
               <button
                 type="button"
@@ -299,6 +312,21 @@ defmodule Emakola.Themes.Spotlight.ProductDetail do
            a product they had never bought, inches from what actual buyers said
            about it. The product's own reviews are the only testimonial a
            product page needs. --%>
+
+      <%!-- Related products link only. The detail page's `add_to_cart` takes no
+           params and adds `@selected_variant` — the product being viewed — so a
+           buy control on a related card would add the wrong product. --%>
+      <section
+        :if={assigns[:related_products] not in [nil, []]}
+        class="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16"
+      >
+        <h2 class="spot-heading text-2xl font-extrabold text-[#16130F]">You may also like</h2>
+        <ul class="mt-8 grid grid-cols-2 gap-x-5 gap-y-10 lg:grid-cols-4">
+          <li :for={related <- Enum.take(assigns[:related_products], 4)}>
+            <Shared.product_card product={related} store={@store} />
+          </li>
+        </ul>
+      </section>
 
       <%!-- REVIEWS (only when LiveView provides review assigns) --%>
       <%!-- No id here: review_section/1 already renders id="reviews", and a

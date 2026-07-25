@@ -239,6 +239,25 @@ defmodule Emakola.Themes.HomeLiving.ProductDetail do
         </div>
       </section>
 
+      <%!-- Guarded and defaulted: this module is also rendered by
+           component tests that build assigns without the review keys,
+           where reading @reviews would raise. --%>
+      <EmakolaWeb.ReviewComponents.review_section
+        :if={assigns[:reviews] != nil}
+        store={@store}
+        product={@product}
+        reviews={assigns[:reviews] || []}
+        can_review={assigns[:can_review] || false}
+        already_reviewed={assigns[:already_reviewed] || false}
+        review_form_rating={assigns[:review_form_rating] || 0}
+        review_form_title={assigns[:review_form_title] || ""}
+        review_form_body={assigns[:review_form_body] || ""}
+        review_submitting={assigns[:review_submitting] || false}
+        avg_rating={Map.get(@product, :avg_rating)}
+        review_count={Map.get(@product, :review_count, 0)}
+        uploads={assigns[:uploads]}
+      />
+
       <Shared.home_living_footer store={@store} />
     </div>
     """

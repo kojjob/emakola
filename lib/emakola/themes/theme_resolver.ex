@@ -16,6 +16,7 @@ defmodule Emakola.Themes.ThemeResolver do
     "electronics" => Emakola.Themes.Electronics,
     "fashion" => Emakola.Themes.Fashion,
     "fresh" => Emakola.Themes.Fresh,
+    "heirloom" => Emakola.Themes.Heirloom,
     "home_living" => Emakola.Themes.HomeLiving,
     "market" => Emakola.Themes.Market,
     "pharmacy" => Emakola.Themes.Pharmacy,

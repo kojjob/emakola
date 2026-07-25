@@ -255,6 +255,19 @@ defmodule Emakola.Themes.Depot.ProductDetail do
                 </div>
               </div>
 
+              <%!-- Built from the store's own delivery zones; renders nothing when it
+                   has configured none. Never a theme default — a hardcoded "free
+                   delivery in Accra" would be a promise the merchant never made. --%>
+              <p
+                :if={Emakola.Themes.Delivery.callout(assigns)}
+                class="mb-3 flex items-center gap-2 text-sm font-medium"
+              >
+                <span
+                  aria-hidden="true"
+                  class="inline-block h-1.5 w-1.5 rounded-full bg-current opacity-60"
+                />
+                {Emakola.Themes.Delivery.callout(assigns)}
+              </p>
               <button
                 phx-click="add_to_cart"
                 disabled={
@@ -352,6 +365,25 @@ defmodule Emakola.Themes.Depot.ProductDetail do
         </section>
       </div>
     </div>
+
+    <%!-- Guarded and defaulted: this module is also rendered by
+         component tests that build assigns without the review keys,
+         where reading @reviews would raise. --%>
+    <EmakolaWeb.ReviewComponents.review_section
+      :if={assigns[:reviews] != nil}
+      store={@store}
+      product={@product}
+      reviews={assigns[:reviews] || []}
+      can_review={assigns[:can_review] || false}
+      already_reviewed={assigns[:already_reviewed] || false}
+      review_form_rating={assigns[:review_form_rating] || 0}
+      review_form_title={assigns[:review_form_title] || ""}
+      review_form_body={assigns[:review_form_body] || ""}
+      review_submitting={assigns[:review_submitting] || false}
+      avg_rating={Map.get(@product, :avg_rating)}
+      review_count={Map.get(@product, :review_count, 0)}
+      uploads={assigns[:uploads]}
+    />
 
     <Shared.footer store={@store} categories={@categories} />
     <Shared.depot_bottom_nav store={@store} cart_count={@cart_count} active={:catalogue} />

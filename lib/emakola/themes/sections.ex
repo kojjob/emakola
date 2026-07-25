@@ -34,7 +34,11 @@ defmodule Emakola.Themes.Sections do
     Emakola.Themes.HomeLiving,
     Emakola.Themes.Pharmacy,
     Emakola.Themes.Spotlight,
-    Emakola.Themes.Vibrant
+    Emakola.Themes.Vibrant,
+    # Born sectionized (2026-07-25). Heirloom's nav is chrome rather than part
+    # of its hero, so a missed registration here costs it its sections but not
+    # its navigation — still a blank page, just a navigable one.
+    Emakola.Themes.Heirloom
   ]
 
   @doc """

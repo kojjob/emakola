@@ -134,3 +134,7 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# See the note in config/test.exs: without this, `mix phx.server` and every
+# `mix run` script boots a headless Chrome pool it never uses.
+config :emakola, ChromicPDF, on_demand: true

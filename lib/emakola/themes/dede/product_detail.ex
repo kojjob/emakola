@@ -186,6 +186,19 @@ defmodule Emakola.Themes.Dede.ProductDetail do
               </div>
             </div>
 
+            <%!-- Built from the store's own delivery zones; renders nothing when it
+                 has configured none. Never a theme default — a hardcoded "free
+                 delivery in Accra" would be a promise the merchant never made. --%>
+            <p
+              :if={Emakola.Themes.Delivery.callout(assigns)}
+              class="mb-3 flex items-center gap-2 text-sm font-medium"
+            >
+              <span
+                aria-hidden="true"
+                class="inline-block h-1.5 w-1.5 rounded-full bg-current opacity-60"
+              />
+              {Emakola.Themes.Delivery.callout(assigns)}
+            </p>
             <%!-- Order bar: sticks to the bottom of a phone screen so the
             order action stays under the thumb; sits inline on desktop. --%>
             <div class="sticky bottom-0 z-30 -mx-4 mt-6 space-y-2 border-t-2 border-[#26211A]/10 bg-[#FAF5EA] px-4 py-3 sm:static sm:z-auto sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">

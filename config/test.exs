@@ -111,3 +111,16 @@ config :emakola, disable_rate_limiter: true
 # Tests that specifically exercise the plug override this per-test.
 config :emakola, :hubtel_webhook_allowlist, []
 config :emakola, :hubtel_webhook_allowlist_disabled, true
+
+# ChromicPDF spawns a headless Chrome session pool at application boot unless
+# told to work on demand. `config/runtime.exs` sets `on_demand: true`, but only
+# inside its `config_env() == :prod` block — so in test `application.ex` started
+# ChromicPDF with `[]`, eagerly launching Chrome workers that then timed out and
+# retried for the life of the run. That flooded output with
+# "Timeout in Channel.run_protocol/3" and turned a ~2 minute suite into ~40
+# minutes, which was enough resource starvation to make unrelated LiveView tests
+# flake.
+#
+# Safe to defer: `test_helper.exs` excludes the :pdf tag, so no test renders a
+# PDF. If one ever does, Chrome starts lazily at that point.
+config :emakola, ChromicPDF, on_demand: true

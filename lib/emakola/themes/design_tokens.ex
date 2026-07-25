@@ -115,16 +115,63 @@ defmodule Emakola.Themes.DesignTokens do
   def body_size("spacious"), do: "text-lg leading-loose"
   def body_size(_), do: body_size("default")
 
+  @doc """
+  The root font-size the typography scale resolves to.
+
+  `heading_size/1` and `body_size/1` above hand back Tailwind classes, which
+  only work if a theme thinks to apply them — none do, so the control did
+  nothing on any storefront. This returns a root font-size instead, because
+  every theme sizes type AND spacing in Tailwind's rem units: setting it on
+  `:root` scales the whole page proportionally, on all 21 themes, with no
+  per-theme work.
+
+  Proportional scaling is what the control means. Its options are labelled
+  with density icons (`density_small` / `density_medium` / `density_large`),
+  so a merchant choosing "Compact" is asking for a tighter page, not merely
+  smaller headings.
+
+  Returns `nil` for the default so the layout emits no rule at all and
+  untouched storefronts keep the browser's own root size.
+  """
+  @spec root_font_size(String.t() | nil) :: String.t() | nil
+  def root_font_size("compact"), do: "93.75%"
+  def root_font_size("spacious"), do: "112.5%"
+  def root_font_size(_default), do: nil
+
   # -- Font Families --
 
-  @doc "Returns the CSS font-family string for headings."
+  @doc """
+  Returns the CSS font-family string for headings.
+
+  Fonts are the tokens that genuinely reach every storefront (see `reach/1`),
+  so widening the choice here is worth more than adding controls that do not.
+
+  Every face is chosen to survive this market: full Latin coverage, real
+  weight range, and legible on a cheap Android screen. Each option costs one
+  Google Fonts request and only when the merchant picks it — the default stays
+  on system fonts and downloads nothing.
+  """
   def heading_font_family("serif"), do: "'Cormorant', Georgia, serif"
   def heading_font_family("display"), do: "'Playfair Display', Georgia, serif"
+  def heading_font_family("geometric"), do: "'Outfit', system-ui, sans-serif"
+  def heading_font_family("editorial"), do: "'Fraunces', Georgia, serif"
+  def heading_font_family("grotesk"), do: "'Space Grotesk', system-ui, sans-serif"
+  def heading_font_family("condensed"), do: "'Archivo Narrow', system-ui, sans-serif"
   def heading_font_family("sans"), do: "inherit"
   def heading_font_family(_), do: "inherit"
 
-  @doc "Returns the CSS font-family string for body text."
+  @doc """
+  Returns the CSS font-family string for body text.
+
+  Body faces are held to a stricter bar than headings: they are read at 14-16px
+  on small screens, so the list is limited to faces with large x-heights and
+  open apertures. A display face belongs in `heading_font_family/1`, never
+  here.
+  """
   def body_font_family("serif"), do: "'Lora', Georgia, serif"
+  def body_font_family("humanist"), do: "'Inter', system-ui, sans-serif"
+  def body_font_family("geometric"), do: "'Outfit', system-ui, sans-serif"
+  def body_font_family("neutral"), do: "'Work Sans', system-ui, sans-serif"
   def body_font_family("sans"), do: "inherit"
   def body_font_family(_), do: "inherit"
 
@@ -136,13 +183,95 @@ defmodule Emakola.Themes.DesignTokens do
     do:
       "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap"
 
+  def heading_font_url("geometric"),
+    do: "https://fonts.googleapis.com/css2?family=Outfit:wght@200;400;500;600;700&display=swap"
+
+  def heading_font_url("editorial"),
+    do:
+      "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap"
+
+  def heading_font_url("grotesk"),
+    do: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+
+  def heading_font_url("condensed"),
+    do:
+      "https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;600;700&display=swap"
+
   def heading_font_url(_), do: nil
 
   @doc "Returns Google Fonts URL for the body font, or nil if system font."
   def body_font_url("serif"),
     do: "https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap"
 
+  def body_font_url("humanist"),
+    do: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+
+  def body_font_url("geometric"),
+    do: "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap"
+
+  def body_font_url("neutral"),
+    do: "https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap"
+
   def body_font_url(_), do: nil
+
+  # -- How far each token actually reaches --
+
+  @doc """
+  Whether changing a token changes a real storefront, and where.
+
+  The Design Studio renders its own preview through this module while the
+  storefront renders independently, so a control could move the preview and
+  change nothing on the live shop. Six of the ten did exactly that: merchants
+  picked a setting, watched the preview change, saved, opened their store and
+  found it identical.
+
+  This is the single place that states the truth, so the admin UI can say it
+  out loud instead of implying every control works.
+
+  - `:all_themes` — emitted as CSS by `storefront.html.heex`, so it lands on
+    every theme with no per-theme cooperation.
+  - `{:some_themes, ids}` — only these themes read the token.
+  - `:not_wired` — nothing on any storefront reads it yet. The control is
+    shown disabled rather than silently doing nothing.
+
+  `DesignTokensReachStorefrontTest` holds `:all_themes` honest: every token
+  claiming it must be shown changing rendered storefront output. Moving a
+  token out of `:not_wired` without that test passing is the exact regression
+  this function exists to prevent.
+  """
+  @spec reach(String.t() | atom()) :: :all_themes | {:some_themes, [String.t()]} | :not_wired
+  def reach(token) when is_atom(token), do: reach(Atom.to_string(token))
+
+  def reach("heading_font"), do: :all_themes
+  def reach("body_font"), do: :all_themes
+  def reach("typography_scale"), do: :all_themes
+
+  # Atelier calls button_classes/1 and footer_style/1 directly. The layout also
+  # defines `.dt-btn { border-radius: var(--dt-btn-radius) }`, but NO theme
+  # applies that class — the hook was built and never used, so it reaches
+  # nothing on its own.
+  def reach("button_style"), do: {:some_themes, ["atelier"]}
+  def reach("footer_style"), do: {:some_themes, ["atelier"]}
+
+  def reach(_structural), do: :not_wired
+
+  @doc "Human-readable note for the admin UI, or nil when the token just works."
+  @spec reach_note(String.t() | atom()) :: String.t() | nil
+  def reach_note(token) do
+    case reach(token) do
+      :all_themes ->
+        nil
+
+      {:some_themes, [id]} ->
+        "Only the #{String.capitalize(id)} theme uses this today."
+
+      {:some_themes, ids} ->
+        "Only these themes use this today: #{Enum.map_join(ids, ", ", &String.capitalize/1)}."
+
+      :not_wired ->
+        "Not yet supported by any theme — changing this won't affect your store."
+    end
+  end
 
   # -- All available options (for admin UI) --
 
@@ -192,11 +321,18 @@ defmodule Emakola.Themes.DesignTokens do
       heading_font: [
         %{value: "sans", label: "Sans Serif", icon: "title", preview: "Aa"},
         %{value: "serif", label: "Serif", icon: "format_size", preview: "Aa"},
-        %{value: "display", label: "Display", icon: "text_format", preview: "Aa"}
+        %{value: "display", label: "Display", icon: "text_format", preview: "Aa"},
+        %{value: "geometric", label: "Geometric", icon: "circle", preview: "Aa"},
+        %{value: "editorial", label: "Editorial", icon: "auto_stories", preview: "Aa"},
+        %{value: "grotesk", label: "Grotesk", icon: "square", preview: "Aa"},
+        %{value: "condensed", label: "Condensed", icon: "compress", preview: "Aa"}
       ],
       body_font: [
         %{value: "sans", label: "Sans Serif", icon: "notes", preview: "Aa Bb Cc"},
-        %{value: "serif", label: "Serif", icon: "format_size", preview: "Aa Bb Cc"}
+        %{value: "serif", label: "Serif", icon: "format_size", preview: "Aa Bb Cc"},
+        %{value: "humanist", label: "Humanist", icon: "article", preview: "Aa Bb Cc"},
+        %{value: "geometric", label: "Geometric", icon: "circle", preview: "Aa Bb Cc"},
+        %{value: "neutral", label: "Neutral", icon: "subject", preview: "Aa Bb Cc"}
       ]
     }
   end

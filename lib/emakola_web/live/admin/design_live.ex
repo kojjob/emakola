@@ -161,6 +161,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
               <span class="material-symbols-outlined text-xl text-emerald-600">smart_button</span>
               <h2 class="text-base font-bold text-slate-800">Buttons</h2>
             </div>
+            <.reach_note token="button_style" />
             <div class="space-y-2">
               <.option_tile
                 token="button_style"
@@ -207,6 +208,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
               <span class="material-symbols-outlined text-xl text-emerald-600">crop_portrait</span>
               <h2 class="text-base font-bold text-slate-800">Cards</h2>
             </div>
+            <.reach_note token="card_style" />
             <div class="space-y-2">
               <.option_tile
                 token="card_style"
@@ -250,6 +252,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
               <span class="material-symbols-outlined text-xl text-emerald-600">grid_view</span>
               <h2 class="text-base font-bold text-slate-800">Product Grid</h2>
             </div>
+            <.reach_note token="product_grid_columns" />
             <div class="space-y-2">
               <.option_tile
                 token="product_grid_columns"
@@ -620,6 +623,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
               <span class="material-symbols-outlined text-xl text-emerald-600">image</span>
               <h2 class="text-base font-bold text-slate-800">Hero Layout</h2>
             </div>
+            <.reach_note token="hero_layout" />
             <div class="space-y-2">
               <.option_tile
                 token="hero_layout"
@@ -653,6 +657,7 @@ defmodule EmakolaWeb.Admin.DesignLive do
               <span class="material-symbols-outlined text-xl text-emerald-600">space_dashboard</span>
               <h2 class="text-base font-bold text-slate-800">Footer Style</h2>
             </div>
+            <.reach_note token="footer_style" />
             <div class="space-y-2">
               <.option_tile
                 token="footer_style"
@@ -778,6 +783,32 @@ defmodule EmakolaWeb.Admin.DesignLive do
   end
 
   # ── Components ──
+
+  attr :token, :string, required: true
+
+  # Says out loud when a control does not reach the merchant's storefront.
+  #
+  # This studio renders its preview through `DesignTokens` while the storefront
+  # renders independently, so a control could move the preview and change
+  # nothing on the live shop — and several did. Rather than let the preview keep
+  # implying otherwise, each affected group carries its own caveat, sourced from
+  # `DesignTokens.reach/1` so there is one place to update as tokens get wired.
+  #
+  # A comment rather than @doc: this is a defp, where @doc is discarded and
+  # warns — and CI compiles with --warnings-as-errors.
+  defp reach_note(assigns) do
+    assigns = assign(assigns, :note, Emakola.Themes.DesignTokens.reach_note(assigns.token))
+
+    ~H"""
+    <p
+      :if={@note}
+      class="mb-3 flex items-start gap-1.5 rounded-lg bg-amber-50 px-2.5 py-2 text-[11px] font-medium leading-snug text-amber-800"
+    >
+      <span class="material-symbols-outlined text-sm leading-none">info</span>
+      {@note}
+    </p>
+    """
+  end
 
   attr :token, :string, required: true
   attr :value, :string, required: true

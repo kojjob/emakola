@@ -51,7 +51,8 @@
   heading_font = Emakola.Themes.DesignTokens.heading_font_family(tokens[:heading_font] || "sans")
   body_font = Emakola.Themes.DesignTokens.body_font_family(tokens[:body_font] || "sans")
   heading_url = Emakola.Themes.DesignTokens.heading_font_url(tokens[:heading_font] || "sans")
-  body_url = Emakola.Themes.DesignTokens.body_font_url(tokens[:body_font] || "sans") %>
+  body_url = Emakola.Themes.DesignTokens.body_font_url(tokens[:body_font] || "sans")
+  root_font_size = Emakola.Themes.DesignTokens.root_font_size(tokens[:typography_scale]) %>
   <%= if heading_url do %>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
@@ -76,6 +77,19 @@
       <%= if body_font != "inherit" do %>--dt-body-font: <%= body_font %>;<% end %>
       --dt-btn-radius: <%= case tokens[:button_style] do "pill" -> "9999px"; "square" -> "0px"; _ -> "0.5rem" end %>;
     }
+    <%!--
+      Typography scale, applied at the root so it scales type AND spacing
+      together — every theme sizes both in Tailwind's rem units, so this is
+      the one place the control can work on all 21 without per-theme markup.
+      Emitted only when the merchant moved off the default.
+
+      root_font_size/1 pattern-matches "compact"/"spacious" and returns a
+      hardcoded value, falling through to nil, so a merchant-supplied
+      theme_config value can never reach this <style> block.
+    --%>
+    <%= if root_font_size do %>
+    :root { font-size: <%= root_font_size %>; }
+    <% end %>
     <%= if heading_font != "inherit" do %>
     h1, h2, h3, h4, h5, h6 { font-family: var(--dt-heading-font) !important; }
     <% end %>

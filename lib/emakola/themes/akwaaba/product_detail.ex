@@ -132,6 +132,19 @@ defmodule Emakola.Themes.Akwaaba.ProductDetail do
               </div>
             </div>
 
+            <%!-- Built from the store's own delivery zones; renders nothing when it
+                 has configured none. Never a theme default — a hardcoded "free
+                 delivery in Accra" would be a promise the merchant never made. --%>
+            <p
+              :if={Emakola.Themes.Delivery.callout(assigns)}
+              class="mb-3 flex items-center gap-2 text-sm font-medium"
+            >
+              <span
+                aria-hidden="true"
+                class="inline-block h-1.5 w-1.5 rounded-full bg-current opacity-60"
+              />
+              {Emakola.Themes.Delivery.callout(assigns)}
+            </p>
             <div class="mt-8 flex flex-wrap items-center gap-4">
               <div class="flex items-center gap-1 rounded-full border border-zinc-200 p-1">
                 <button
@@ -179,6 +192,21 @@ defmodule Emakola.Themes.Akwaaba.ProductDetail do
             </div>
           </div>
         </div>
+
+        <%!-- `show_add={false}` is not cosmetic. The detail page's `add_to_cart`
+             takes no params and adds `@selected_variant` — the product being
+             viewed — so an add button on a related card would put the WRONG
+             product in the bag. Related cards link; they do not buy. --%>
+        <section :if={assigns[:related_products] not in [nil, []]} class="mt-20">
+          <h2 class="text-2xl text-[color:var(--akwaaba-ink)] [font-family:var(--akwaaba-display)]">
+            More from {@store.name}
+          </h2>
+          <ul class="mt-6 grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-4 lg:gap-x-6">
+            <li :for={related <- Enum.take(assigns[:related_products], 4)}>
+              <Shared.product_card product={related} store={@store} show_add={false} />
+            </li>
+          </ul>
+        </section>
 
         <EmakolaWeb.ReviewComponents.review_section
           store={@store}
