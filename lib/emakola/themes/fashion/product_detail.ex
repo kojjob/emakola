@@ -252,6 +252,21 @@ defmodule Emakola.Themes.Fashion.ProductDetail do
         </div>
       </section>
 
+      <EmakolaWeb.ReviewComponents.review_section
+        store={@store}
+        product={@product}
+        reviews={@reviews}
+        can_review={@can_review}
+        already_reviewed={@already_reviewed}
+        review_form_rating={@review_form_rating}
+        review_form_title={@review_form_title}
+        review_form_body={@review_form_body}
+        review_submitting={@review_submitting}
+        avg_rating={@product.avg_rating}
+        review_count={@product.review_count}
+        uploads={@uploads}
+      />
+
       <Shared.fashion_footer store={@store} />
     </div>
     """
