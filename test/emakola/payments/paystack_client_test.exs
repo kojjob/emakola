@@ -87,6 +87,23 @@ defmodule Emakola.Payments.PaystackClientTest do
       assert {:ok, %{"status" => true}} = PaystackClient.create_refund(params)
     end
 
+    test "bounds the request so a degraded gateway cannot pin a pooled connection" do
+      # The refund call runs inside the RefundService transaction, holding a
+      # FOR UPDATE lock and a pooled connection for its duration. Req's default
+      # retry would also re-POST a refund whose response was merely lost —
+      # which is a double-refund, not a retry.
+      Emakola.HTTPClientMock
+      |> expect(:post, fn _url, opts ->
+        assert opts[:receive_timeout] == 10_000
+        assert opts[:retry] == false
+
+        {:ok, %{"status" => true}}
+      end)
+
+      assert {:ok, _} =
+               PaystackClient.create_refund(%{transaction: "PAY-ref-123", amount: 250_000})
+    end
+
     test "returns error on failure" do
       Emakola.HTTPClientMock
       |> expect(:post, fn _url, _opts ->
