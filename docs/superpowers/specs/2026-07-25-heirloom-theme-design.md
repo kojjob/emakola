@@ -121,8 +121,68 @@ CSS-checkbox state, per the project's LiveView guidance.
 
 ## 6. Inner pages
 
-`product_list` and `product_detail` are built in Heirloom's visual language at
-the same feature scope as peer themes (`home_living`) — no new capabilities.
+`product_list` is built in Heirloom's visual language at peer scope.
+
+### 6a. Product detail — full capability
+
+Kojo's ask: "do what a full PDP requires to function perfectly." An audit of
+`ProductDetailLive` against all 20 existing themes found that **no theme wires
+its full event set**, so "match a peer theme" is the wrong bar. Heirloom
+implements every capability the LiveView actually supports.
+
+`ProductDetailLive` exposes 12 events. Ownership splits cleanly:
+
+**The theme must render these — all data is already in assigns:**
+
+| Capability | Events / assigns | Themes doing it today |
+|---|---|---|
+| Image gallery | `select_image` (`index`), `prev_image`, `next_image`, `@current_image_index` | 20/20 partial — only Atelier has prev/next |
+| Quantity stepper | `increment_quantity`, `decrement_quantity`, `@quantity` | 20/20 |
+| Variant selection | `select_option`, `@option_types`, `@selected_options`, `@selected_variant` | 19/20 |
+| Add to cart | `add_to_cart`, disabled on sold-out | 20/20 |
+| Price / stock state | `@selected_variant` sale + compare-at, via `Money` | 20/20 |
+| Related products | `@related_products` | 18/20 |
+| Reviews | `ReviewComponents.review_section` — covers `set_review_rating`, `submit_review`, `validate_review`, `cancel_review_photo` incl. photo uploads, plus `@can_review` / `@already_reviewed` | 14/20 |
+| Share | `StorefrontComponents.share_strip` — `share-product` with `platform` | 2/20 |
+| **Delivery zones** | `@delivery_zones`, rendered through `Emakola.Themes.Delivery` | **0/20** |
+| **Partner fulfillment** | `@partner_fulfillment` | **0/20** |
+
+The last two are loaded on every product page and rendered by no theme at all.
+Both are honest by construction — delivery info comes from the store's own
+zones, not a theme default — so Heirloom renders them, and hides each when
+its data is absent.
+
+**Not the theme's job — do not build:**
+
+- **Group buy.** `ProductDetailLive.render/1` renders the theme's output and
+  then appends its own `group_buy` section (streams + `join_group_buy`).
+  Every theme gets it free; a theme that rendered its own would double it.
+  Its emerald-gradient styling will sit oddly against Heirloom's warm
+  neutrals, but restyling it changes all 20 themes and is out of scope here.
+- **SEO.** `json_ld`, `meta_description`, `og_image`, `page_title` are
+  assigned by the LiveView and emitted by the layout.
+
+### 6b. The variant-picker landmine
+
+Option buttons **must** use:
+
+```heex
+phx-click="select_option"
+phx-value-option_type_id={option_type.id}
+phx-value-option_value_id={option_value.id}
+```
+
+Never `phx-value-value`. The browser overwrites that attribute with the
+element's own `.value`, which is `""` on a `<button>` — it silently broke
+variant selection on every theme at once. `EmakolaWeb.PhxValueCollisionTest`
+guards it, and `product_detail_live.ex:108` carries the incident comment.
+
+Storefront LiveViews have no catch-all `handle_event/3`, so a mistyped event
+name crashes the page rather than no-opping. Event names are copied from the
+handler heads, not from memory.
+
+### 6c. Other pages
+
 Optional callbacks (`about`, `contact`, `faq`, `policies`, cart, checkout,
 blog, …) fall through to `DefaultRenderers`, as most themes do.
 
@@ -138,6 +198,17 @@ TDD per section. `test/emakola/themes/heirloom_sections_test.exs` mirrors
 - registration in both registries (covered by `SectionizedRegistrationTest`)
 - the three provenance guards pick the theme up automatically
 
+`test/emakola_web/live/storefront/heirloom_product_detail_test.exs` drives the
+PDP through `ProductDetailLive` rather than rendering the theme module in
+isolation — the only way to prove the wiring is real:
+
+- each option-picker click changes `@selected_variant` (catches the
+  `phx-value` collision, which no render-only test can see)
+- gallery next/prev/select move `@current_image_index`
+- quantity stepper bounds, add-to-cart, sold-out disabling
+- review submission path renders via `review_section`
+- delivery zones and partner fulfillment render when present, vanish when not
+
 Success criteria: `mix test`, `mix format --check-formatted`, and
 `mix credo --strict` all clean.
 
@@ -146,3 +217,8 @@ Success criteria: `mix test`, `mix format --check-formatted`, and
 - A `heirloom-demo` seed store for click-through (dev DB only; can follow).
 - Section-editor preview thumbnails.
 - Any change to existing themes.
+- Restyling the shared group-buy section (owned by `ProductDetailLive`,
+  affects all 20 themes).
+- Backporting delivery zones, partner fulfillment or `prev/next` gallery
+  controls to the other 19 themes. The audit in §6a shows they're missing
+  everywhere; worth a follow-up ticket, not this branch.
