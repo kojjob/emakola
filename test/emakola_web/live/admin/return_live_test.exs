@@ -135,10 +135,30 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
       assert reload(return).refund_amount == 4850
     end
 
+    test "caps the notes textarea at the length the approve accepts", %{conn: conn, store: store} do
+      # An over-long note fails the approve changeset. The service now discovers
+      # that before it asks the gateway, but the browser should not let the
+      # merchant hit it at all.
+      return = create_return!(store)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      render_click(view, "select_return", %{"id" => return.id})
+
+      assert has_element?(view, "textarea[phx-change='update_notes'][maxlength='2000']")
+    end
+
     test "passes the supplier-at-fault choice through to the refund", %{conn: conn, store: store} do
       order = create_order!(store, :delivered)
       return = create_return!(store, order)
       create_successful_payment!(store, order)
+      supplier = create_supplier!(store)
+
+      create_fulfillment!(store, order,
+        supplier_id: supplier.id,
+        status: :shipped,
+        dispatch_fee: 750
+      )
 
       {:ok, view, _html} = live(conn, ~p"/admin/returns")
 
@@ -206,13 +226,20 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
       assert html =~ "shipped"
     end
 
-    test "shows the at-fault toggle once a fulfillment has dispatched", %{
+    test "shows the at-fault toggle once a SUPPLIER's fulfillment has dispatched", %{
       conn: conn,
       store: store
     } do
       order = create_order!(store, :delivered)
       return = create_return!(store, order)
       create_successful_payment!(store, order)
+      supplier = create_supplier!(store)
+
+      create_fulfillment!(store, order,
+        supplier_id: supplier.id,
+        status: :shipped,
+        dispatch_fee: 750
+      )
 
       {:ok, view, _html} = live(conn, ~p"/admin/returns")
 
@@ -221,8 +248,12 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
       assert has_element?(view, "input[phx-click='toggle_dispatch_fee']")
     end
 
-    test "hides the at-fault toggle when nothing has dispatched yet", %{conn: conn, store: store} do
-      order = create_order!(store, :pending)
+    test "hides the at-fault toggle on a dispatched own-stock order", %{conn: conn, store: store} do
+      # Every order gets a merchant-owned fulfillment group (nil supplier_id,
+      # no dispatch fee) at checkout, so an own-stock order that has shipped
+      # has a dispatched fulfillment — but no supplier to be at fault and no
+      # dispatch fee to waive. This is the majority case.
+      order = create_order!(store, :delivered)
       return = create_return!(store, order)
       create_successful_payment!(store, order)
 
@@ -231,6 +262,49 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
       render_click(view, "select_return", %{"id" => return.id})
 
       refute has_element?(view, "input[phx-click='toggle_dispatch_fee']")
+    end
+
+    test "hides the at-fault toggle when nothing has dispatched yet", %{conn: conn, store: store} do
+      order = create_order!(store, :pending)
+      return = create_return!(store, order)
+      create_successful_payment!(store, order)
+      supplier = create_supplier!(store)
+
+      create_fulfillment!(store, order,
+        supplier_id: supplier.id,
+        status: :pending,
+        dispatch_fee: 750
+      )
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      render_click(view, "select_return", %{"id" => return.id})
+
+      refute has_element?(view, "input[phx-click='toggle_dispatch_fee']")
+    end
+
+    test "refunds an order whose first payment attempt failed", %{conn: conn, store: store} do
+      # A failed first attempt leaves its Payment row behind and the retry adds
+      # a second one. The refund has to find the successful charge, not give up
+      # and treat the order as cash on delivery.
+      order = create_order!(store, :delivered)
+      return = create_return!(store, order)
+      create_failed_payment!(store, order, amount: 10_000)
+      create_successful_payment!(store, order, amount: 10_000)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      html = render_click(view, "select_return", %{"id" => return.id})
+
+      assert html =~ "Refundable balance"
+      assert html =~ Currency.format_price(10_000)
+
+      render_click(view, "update_refund_amount", %{"amount" => "48.50"})
+      html = render_click(view, "approve_return")
+
+      assert html =~ "Return approved"
+      assert reload(return).status == :approved
+      assert reload(return).refund_amount == 4850
     end
 
     test "warns without disabling approve when the amount exceeds the protected balance", %{
@@ -563,6 +637,22 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
     |> Ash.Changeset.for_create(:create, Map.merge(default, Map.new(attrs)))
     |> Ash.create!(authorize?: false)
     |> Ash.Changeset.for_update(:mark_success, %{})
+    |> Ash.update!(authorize?: false)
+  end
+
+  defp create_failed_payment!(store, order, attrs \\ []) do
+    default = %{
+      store_id: store.id,
+      order_id: order.id,
+      amount: 500_000,
+      gateway: :paystack,
+      gateway_reference: "PAY-failed-#{System.unique_integer([:positive])}-ref"
+    }
+
+    Emakola.Payments.Payment
+    |> Ash.Changeset.for_create(:create, Map.merge(default, Map.new(attrs)))
+    |> Ash.create!(authorize?: false)
+    |> Ash.Changeset.for_update(:mark_failed, %{})
     |> Ash.update!(authorize?: false)
   end
 

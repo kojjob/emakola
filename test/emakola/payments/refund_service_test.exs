@@ -160,6 +160,123 @@ defmodule Emakola.Payments.RefundServiceTest do
     end
   end
 
+  describe "issue/4 — the approve write fails" do
+    # No `expect/3` is registered in the first test, so ANY call to
+    # GatewayMock.process_refund/2 raises Mox.UnexpectedCallError. A gateway
+    # refund cannot be un-asked: if the approve fails AFTER the gateway
+    # accepted, the transaction rolls the return back to :requested while the
+    # customer's money is already moving, and the merchant's natural retry
+    # refunds them a second time. Every approve failure must therefore be
+    # discovered before the gateway is asked for anything.
+
+    test "asks the gateway zero times when the approve is rejected", ctx do
+      # `Return.admin_notes` is capped at 2,000 characters — a merchant pasting
+      # a long note is a real, merchant-triggerable approve failure.
+      assert {:error, _reason} =
+               RefundService.issue(
+                 ctx.merchant,
+                 ctx.return,
+                 %{
+                   refund_amount: 12_500,
+                   admin_notes: String.duplicate("a", 2_001),
+                   refund_dispatch_fee?: false
+                 },
+                 GatewayMock
+               )
+
+      assert reload(ctx.return).status == :requested
+      assert reload(ctx.payment).refunded_amount == 0
+    end
+
+    test "a retry after a rejected approve refunds the customer only once", ctx do
+      # Exactly one call is allowed across BOTH attempts. A second reaching the
+      # gateway raises Mox.UnexpectedCallError — that IS the "no double refund"
+      # assertion, and in production it would be a second real refund.
+      expect(GatewayMock, :process_refund, 1, fn _reference, _amount -> {:ok, %{}} end)
+
+      assert {:error, _reason} =
+               RefundService.issue(
+                 ctx.merchant,
+                 ctx.return,
+                 %{
+                   refund_amount: 12_500,
+                   admin_notes: String.duplicate("a", 2_001),
+                   refund_dispatch_fee?: false
+                 },
+                 GatewayMock
+               )
+
+      assert {:ok, approved} =
+               RefundService.issue(
+                 ctx.merchant,
+                 ctx.return,
+                 %{
+                   refund_amount: 12_500,
+                   admin_notes: "Shorter note",
+                   refund_dispatch_fee?: false
+                 },
+                 GatewayMock
+               )
+
+      assert approved.status == :approved
+      assert reload(ctx.payment).refunded_amount == 0
+    end
+  end
+
+  describe "issue/4 — an order charged more than once" do
+    test "refunds against the successful charge when an earlier attempt failed", ctx do
+      # A customer whose first attempt fails retries checkout, which creates a
+      # SECOND Payment row for the same order (`checkout_live`'s retry_payment).
+      order = create_order!(ctx.store, status: :delivered)
+
+      ctx.store
+      |> create_payment!(order_id: order.id, amount: 50_000)
+      |> mark_failed!()
+
+      succeeded =
+        ctx.store
+        |> create_payment!(order_id: order.id, amount: 50_000)
+        |> mark_success!()
+
+      return = create_return!(ctx.store, order)
+
+      expect(GatewayMock, :process_refund, fn reference, amount ->
+        assert reference == succeeded.gateway_reference
+        assert amount == 12_500
+        {:ok, %{}}
+      end)
+
+      assert {:ok, approved} =
+               RefundService.issue(
+                 ctx.merchant,
+                 return,
+                 %{refund_amount: 12_500, admin_notes: "", refund_dispatch_fee?: false},
+                 GatewayMock
+               )
+
+      assert approved.status == :approved
+      assert approved.refund_amount == 12_500
+    end
+
+    test "does not mistake a fully refunded charge for an uncharged order", ctx do
+      # A full refund flips the payment to :refunded. That is still a captured
+      # charge with an exhausted balance — treating it as cash on delivery
+      # would approve a return that moves no money and say nothing.
+      fully_refunded = mark_refunded!(ctx.payment, 50_000)
+
+      assert {:error, :amount_exceeds_refundable} =
+               RefundService.issue(
+                 ctx.merchant,
+                 ctx.return,
+                 %{refund_amount: 1_000, admin_notes: "", refund_dispatch_fee?: false},
+                 GatewayMock
+               )
+
+      assert reload(fully_refunded).refunded_amount == 50_000
+      assert reload(ctx.return).status == :requested
+    end
+  end
+
   describe "issue/4 — concurrent approves" do
     test "a second approve from the same stale struct never reaches the gateway", ctx do
       # Exactly one call is allowed. A second reaching the gateway raises
@@ -302,6 +419,12 @@ defmodule Emakola.Payments.RefundServiceTest do
   defp mark_success!(payment) do
     payment
     |> Ash.Changeset.for_update(:mark_success, %{})
+    |> Ash.update!(authorize?: false)
+  end
+
+  defp mark_failed!(payment) do
+    payment
+    |> Ash.Changeset.for_update(:mark_failed, %{})
     |> Ash.update!(authorize?: false)
   end
 

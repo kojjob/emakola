@@ -195,7 +195,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
       |> assign(
         :show_dispatch_toggle?,
         not is_nil(assigns.selected_payment) and
-          Enum.any?(assigns.selected_fulfillments, &dispatched?/1)
+          Enum.any?(assigns.selected_fulfillments, &supplier_dispatched?/1)
       )
       |> assign(
         :suggested_max,
@@ -382,6 +382,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
                 phx-change="update_notes"
                 name="notes"
                 rows="3"
+                maxlength="2000"
                 placeholder="Add notes about this decision..."
                 class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-amber-700 focus:border-amber-700 focus:outline-none"
               >{@action_notes}</textarea>
@@ -516,10 +517,7 @@ defmodule EmakolaWeb.Admin.ReturnLive do
     opts = [actor: socket.assigns.current_merchant, tenant: return.store_id]
 
     payment =
-      case Emakola.Payments.get_payment_by_order(
-             return.order_id,
-             opts ++ [not_found_error?: false]
-           ) do
+      case Emakola.Payments.RefundService.captured_payment(return.order_id, opts) do
         {:ok, payment} -> payment
         _ -> nil
       end
@@ -532,6 +530,14 @@ defmodule EmakolaWeb.Admin.ReturnLive do
   defp load_refund_context(_socket, _return), do: {nil, []}
 
   defp dispatched?(%{status: status}), do: status in [:shipped, :delivered]
+
+  # The at-fault toggle waives a SUPPLIER's dispatch-fee protection. Every order
+  # also gets a merchant-owned fulfillment group at checkout (nil supplier_id,
+  # no dispatch fee), so gating on dispatch alone would offer the toggle on
+  # every delivered own-stock order — where there is no supplier to blame and
+  # no fee to waive.
+  defp supplier_dispatched?(%{supplier_id: nil}), do: false
+  defp supplier_dispatched?(fulfillment), do: dispatched?(fulfillment)
 
   defp supplier_fulfillments(fulfillments), do: Enum.filter(fulfillments, & &1.supplier_id)
 

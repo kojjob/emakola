@@ -183,6 +183,31 @@ defmodule EmakolaWeb.Storefront.AccountLiveTest do
       assert return.status == :requested
     end
 
+    test "shows a return the customer already requested after a reload", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      # The request is a database row, not page state: reloading the account
+      # page must still show it, or the customer thinks it never went through.
+      order = Factory.create_order!(store, %{customer_id: customer.id, status: :delivered})
+
+      Emakola.Orders.Return
+      |> Ash.Changeset.for_create(:request_return, %{
+        store_id: store.id,
+        order_id: order.id,
+        customer_id: customer.id,
+        reason: :defective,
+        currency: order.currency
+      })
+      |> Ash.create!(authorize?: false)
+
+      {:ok, view, html} = live(conn, "/s/#{store.slug}/account")
+
+      assert html =~ "Return:"
+      refute has_element?(view, "button[phx-click='show_return_modal']")
+    end
+
     test "resubmitting a return request for the same order shows a friendly error instead of crashing",
          %{conn: conn, store: store, customer: customer} do
       order = Factory.create_order!(store, %{customer_id: customer.id, status: :delivered})

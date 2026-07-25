@@ -218,5 +218,13 @@ defmodule Emakola.Orders.Return do
       argument(:order_id, :uuid, allow_nil?: false)
       filter(expr(order_id == ^arg(:order_id)))
     end
+
+    # Every return the customer has requested in this store, in one query — the
+    # account page shows the status against each order it lists.
+    read :list_by_customer do
+      argument(:customer_id, :uuid, allow_nil?: false)
+      filter(expr(customer_id == ^arg(:customer_id)))
+      prepare(build(sort: [inserted_at: :desc]))
+    end
   end
 end

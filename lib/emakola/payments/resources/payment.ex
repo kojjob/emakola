@@ -317,6 +317,21 @@ defmodule Emakola.Payments.Payment do
       filter(expr(order_id == ^arg(:order_id)))
     end
 
+    # An order can carry several Payment rows: a customer whose first attempt
+    # fails retries checkout and is charged again, leaving the failed row
+    # behind. Only a CAPTURED charge can be refunded — `:success`, or
+    # `:refunded` once refunds consumed it — never a `:pending`/`:failed`
+    # attempt. Oldest first, so callers taking the first row always pick the
+    # same charge: the one that settled the order and whose splits a refund
+    # reverses.
+    read :captured_by_order do
+      argument(:order_id, :uuid, allow_nil?: false)
+
+      filter(expr(order_id == ^arg(:order_id) and status in [:success, :refunded]))
+
+      prepare(build(sort: [inserted_at: :asc]))
+    end
+
     # Platform refund oversight — refunded payments across all stores
     # (Payment is global?: true; called with authorize?: false from the admin).
     read :list_refunded do

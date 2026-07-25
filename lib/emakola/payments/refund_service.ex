@@ -14,8 +14,16 @@ defmodule Emakola.Payments.RefundService do
   Approving claims the Return row `FOR UPDATE` and re-reads its status from the
   database before the gateway is asked, so two merchants (or two tabs, or a
   double click) holding the same stale struct cannot refund a customer twice.
-  The claim, the gateway call and the approval share one transaction: if the
+  The claim, the approval and the gateway call share one transaction: if the
   gateway refuses, nothing moves.
+
+  The approval is written BEFORE the gateway is asked, and rolled back if the
+  gateway refuses. The reverse order looks safer but is not: a refund the
+  gateway accepted cannot be un-asked, so a failing approve after acceptance
+  (an over-long `admin_notes` is enough) would roll the return back to
+  `:requested` with the customer's money already moving, and the merchant's
+  natural retry would refund them a second time. Only the DB write can be
+  undone, so it runs first and the irreversible step runs last.
 
   On acceptance the return is approved, recording the amount, the merchant's
   notes and whether the supplier is at fault (`refund_dispatch_fee?`, which
@@ -52,8 +60,8 @@ defmodule Emakola.Payments.RefundService do
       with {:ok, claimed} <- claim(return.id),
            {:ok, payment} <- payment_for(actor, claimed),
            :ok <- validate_amount(payment, params[:refund_amount]),
-           :ok <- request_refund(payment, params[:refund_amount], gateway),
-           {:ok, approved} <- approve(actor, claimed, params) do
+           {:ok, approved} <- approve(actor, claimed, params),
+           :ok <- request_refund(payment, params[:refund_amount], gateway) do
         approved
       else
         {:error, reason} -> Emakola.Repo.rollback(reason)
@@ -77,16 +85,32 @@ defmodule Emakola.Payments.RefundService do
     end
   end
 
-  # A merchant order is paid by at most one charge, found by order_id. The read
-  # runs as the merchant against the return's store, so a merchant without a
-  # membership there never learns whether the charge exists. `{:ok, nil}` is the
-  # ordinary cash-on-delivery case; only a failed read is `:payment_not_found`.
+  @doc """
+  The charge a refund for `order_id` would reverse, or `nil` when the order was
+  never captured (cash on delivery).
+
+  Public so the returns page can show the merchant the same charge — and the
+  same refundable balance — the service will act on.
+  """
+  def captured_payment(order_id, opts) do
+    case Emakola.Payments.list_captured_payments_by_order(order_id, opts) do
+      # `:captured_by_order` sorts oldest first, so this is the charge that
+      # settled the order. An order should never hold two captured charges;
+      # if a double charge ever does, refunding the settling one keeps the
+      # refund aligned with the splits the webhook reverses.
+      {:ok, payments} -> {:ok, List.first(payments)}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # An order can hold more than one Payment row — a failed attempt leaves its
+  # row behind when the customer retries checkout — so the refund targets the
+  # order's captured charge rather than assuming a single row. The read runs as
+  # the merchant against the return's store, so a merchant without a membership
+  # there never learns whether the charge exists. `{:ok, nil}` is the ordinary
+  # cash-on-delivery case; only a failed read is `:payment_not_found`.
   defp payment_for(actor, return) do
-    case Emakola.Payments.get_payment_by_order(return.order_id,
-           actor: actor,
-           tenant: return.store_id,
-           not_found_error?: false
-         ) do
+    case captured_payment(return.order_id, actor: actor, tenant: return.store_id) do
       {:ok, payment} -> {:ok, payment}
       _ -> {:error, :payment_not_found}
     end

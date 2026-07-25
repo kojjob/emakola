@@ -47,6 +47,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
 
         orders = load_orders(customer.id, store.id)
         addresses = load_addresses(customer.id, store.id)
+        order_returns = load_order_returns(customer, store, orders)
 
         {:ok,
          socket
@@ -62,7 +63,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
          |> assign(:return_order, nil)
          |> assign(:return_reason, nil)
          |> assign(:return_detail, "")
-         |> assign(:order_returns, %{})}
+         |> assign(:order_returns, order_returns)}
     end
   end
 
@@ -176,6 +177,28 @@ defmodule EmakolaWeb.Storefront.AccountLive do
       )
 
       []
+  end
+
+  # A return request is a row, not page state: without this the customer's
+  # request disappears from the page the moment they reload. Keyed by order
+  # number because that is what the order list renders. One query for the
+  # customer's returns, mapped against the orders already loaded.
+  defp load_order_returns(customer, store, orders) do
+    order_numbers = Map.new(orders, &{&1.id, &1.order_number})
+
+    case Emakola.Orders.list_returns_by_customer(customer.id,
+           actor: customer,
+           tenant: store.id
+         ) do
+      {:ok, returns} ->
+        returns
+        |> Enum.filter(&Map.has_key?(order_numbers, &1.order_id))
+        |> Map.new(&{order_numbers[&1.order_id], %{status: &1.status, reason: &1.reason}})
+
+      {:error, error} ->
+        Logger.error("[account_live] load_order_returns failed: #{inspect(error)}")
+        %{}
+    end
   end
 
   defp load_addresses(customer_id, store_id) do
