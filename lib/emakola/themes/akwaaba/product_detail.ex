@@ -100,6 +100,38 @@ defmodule Emakola.Themes.Akwaaba.ProductDetail do
               {@product.description}
             </p>
 
+            <div :if={@option_types != []} class="mt-8 space-y-5">
+              <div :for={option_type <- @option_types}>
+                <p class="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">
+                  {option_type.name}
+                </p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <button
+                    :for={option_value <- option_type.option_values || []}
+                    type="button"
+                    phx-click="select_option"
+                    phx-value-option_type_id={option_type.id}
+                    phx-value-option_value_id={option_value.id}
+                    aria-pressed={
+                      to_string(Map.get(@selected_options, option_type.id) == option_value.id)
+                    }
+                    class={[
+                      "min-h-[44px] rounded-full border px-5 text-sm font-semibold motion-safe:transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--akwaaba-sun)]",
+                      if(Map.get(@selected_options, option_type.id) == option_value.id,
+                        do:
+                          "border-[color:var(--akwaaba-ink)] bg-[color:var(--akwaaba-ink)] text-white",
+                        else:
+                          "border-zinc-200 bg-white text-[color:var(--akwaaba-ink)] hover:border-[color:var(--akwaaba-sun)]"
+                      )
+                    ]}
+                  >
+                    {option_value.value}
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div class="mt-8 flex flex-wrap items-center gap-4">
               <div class="flex items-center gap-1 rounded-full border border-zinc-200 p-1">
                 <button
