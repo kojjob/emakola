@@ -144,13 +144,11 @@ implements every capability the LiveView actually supports.
 | Related products | `@related_products` | 18/20 |
 | Reviews | `ReviewComponents.review_section` — covers `set_review_rating`, `submit_review`, `validate_review`, `cancel_review_photo` incl. photo uploads, plus `@can_review` / `@already_reviewed` | 14/20 |
 | Share | `StorefrontComponents.share_strip` — `share-product` with `platform` | 2/20 |
-| **Delivery zones** | `@delivery_zones`, rendered through `Emakola.Themes.Delivery` | **0/20** |
-| **Partner fulfillment** | `@partner_fulfillment` | **0/20** |
+| **Delivery callout** | `Emakola.Themes.Delivery.callout/1` (reads `@delivery_zones`) | **4/20** |
 
-The last two are loaded on every product page and rendered by no theme at all.
-Both are honest by construction — delivery info comes from the store's own
-zones, not a theme default — so Heirloom renders them, and hides each when
-its data is absent.
+The delivery callout is honest by construction — it derives from the store's
+own zones rather than a theme default, and `Delivery.zones/1` returns `[]`
+when the store has set none, so the block disappears. Heirloom renders it.
 
 **Not the theme's job — do not build:**
 
@@ -159,6 +157,10 @@ its data is absent.
   Every theme gets it free; a theme that rendered its own would double it.
   Its emerald-gradient styling will sit oddly against Heirloom's warm
   neutrals, but restyling it changes all 20 themes and is out of scope here.
+- **Partner fulfillment.** Same story — `ProductDetailLive.render/1` emits the
+  "Fulfilled by verified partner …" disclosure banner above the theme's
+  output (`product_detail_live.ex:320`). It is a compliance disclosure, not
+  theme chrome, and a theme that rendered its own would duplicate it.
 - **SEO.** `json_ld`, `meta_description`, `og_image`, `page_title` are
   assigned by the LiveView and emitted by the layout.
 
@@ -219,6 +221,53 @@ Success criteria: `mix test`, `mix format --check-formatted`, and
 - Any change to existing themes.
 - Restyling the shared group-buy section (owned by `ProductDetailLive`,
   affects all 20 themes).
-- Backporting delivery zones, partner fulfillment or `prev/next` gallery
-  controls to the other 19 themes. The audit in §6a shows they're missing
-  everywhere; worth a follow-up ticket, not this branch.
+
+Cross-theme PDP parity was originally listed here as a follow-up. Kojo has
+since asked for it explicitly — see §9.
+
+## 9. Cross-theme PDP parity
+
+Kojo's ask: "make sure all the other themes are enhanced and improved and
+function perfectly." Audit of all 20 `product_detail.ex` files:
+
+| Capability | Have it | Missing |
+|---|---|---|
+| Image select, quantity stepper, add to cart | 20/20 | — |
+| Variant selection (`select_option`) | 19/20 | **akwaaba** |
+| Related products | 18/20 | akwaaba, spotlight |
+| Reviews (`ReviewComponents.review_section`) | 14/20 | beauty, depot, electronics, fashion, home_living, pharmacy |
+| Delivery callout (`Themes.Delivery.callout/1`) | 4/20 | the other 16 |
+| Gallery prev/next | 1/20 (atelier) | the other 19 |
+| Share (`share_strip`) | 2/20 (starter, vibrant) | the other 18 |
+
+Graded by severity, because these are not the same kind of problem:
+
+**P0 — broken.** Akwaaba renders no variant picker at all. On a store with
+sized or coloured products, a shopper cannot choose one; `@selected_variant`
+stays at its default and add-to-cart silently adds the wrong thing. Same class
+of defect as the `phx-value-value` outage, and equally invisible to a render
+test. Fix first, alone, so it can ship without waiting for the rest.
+
+**P1 — functionality loaded but never shown.** Reviews on 6 themes (the store's
+real reviews are queried on every PDP request and thrown away), related
+products on 2, delivery callout on 16. All are wiring existing shared
+components into existing markup.
+
+**P2 — genuine enhancement.** Gallery prev/next arrows (19) and share (18).
+These are additive UX, not repairs; thumbnail selection already works
+everywhere, and share is plausibly a deliberate omission on minimal themes.
+
+Each theme keeps its own visual language — this is wiring shared components
+into each theme's existing markup and restyling to fit, not homogenising 20
+storefronts into one look.
+
+### Sequencing
+
+Three branches, merged bottom-up (stacked PRs cascade badly otherwise):
+
+1. `fix/akwaaba-variant-picker` — P0, off `main`, ships immediately.
+2. `feature/heirloom-theme` — this branch, §1–§8.
+3. `feature/theme-pdp-parity` — P1 then P2 across the 19 themes.
+
+Splitting keeps the P0 fix from being held hostage by a 20-theme diff, and
+keeps the Heirloom review readable.
