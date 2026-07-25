@@ -17,7 +17,13 @@ identical. That is worse than a missing feature: a missing feature is honest.
 This one shows the change, confirms the save, and silently discards it, and
 it is invisible to testing because the preview agrees with the merchant.
 
-## 2. Verified state of all ten controls
+## 2. Verified state of the controls
+
+`DesignTokens` defines ten tokens, but the studio **renders only eight**.
+`navbar_layout` and `product_card_style` appear in `update_token`'s allowlist
+and have no UI at all — they can be persisted by a crafted event and are shown
+to nobody. Dead in a different way from the rest, and worth deleting unless
+someone intends to build them.
 
 Measured by call-site grep across `lib/`, not inferred.
 
@@ -54,6 +60,25 @@ Guarded: emitted only when the merchant leaves the default, and
 fall-through, so a merchant-writable `theme_config` string cannot reach the
 `<style>` block. `design_tokens_reach_storefront_test.exs` covers both, plus
 an injection attempt.
+
+## 3a. The studio now says what it cannot do
+
+`DesignTokens.reach/1` is the single place that states how far each token
+travels — `:all_themes`, `{:some_themes, ids}`, or `:not_wired` — and
+`DesignLive` prints a caveat under every control that is not `:all_themes`.
+A merchant opening Cards, Product Grid or Hero Layout is told plainly that
+changing it will not affect their store, instead of being shown a preview
+that moves.
+
+This is a stopgap, deliberately. It removes the dishonesty today without
+pretending the features exist; §4 is still what makes them real. The value of
+doing it first is that the studio stops costing merchants trust while the
+larger decision waits.
+
+`reach/1` is held honest by `DesignTokensReachStorefrontTest`: every token
+claiming `:all_themes` must be shown changing rendered storefront output, and
+`card_style` is asserted to change *nothing*, so the caveat cannot become
+slander if someone wires it later without updating the claim.
 
 ## 4. The remaining five, and why they are a product decision
 

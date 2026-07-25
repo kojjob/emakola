@@ -62,6 +62,58 @@ defmodule EmakolaWeb.Storefront.DesignTokensReachStorefrontTest do
     end
   end
 
+  describe "reach/1 tells the truth" do
+    # The Design Studio now prints a caveat under any control that does not
+    # reach the merchant's storefront, sourced from DesignTokens.reach/1.
+    # That caveat is only worth anything if the claim behind it is checked:
+    # a token promoted to :all_themes without actually being wired would put
+    # the studio right back to implying something false.
+
+    @all_theme_tokens ["heading_font", "body_font", "typography_scale"]
+
+    test "every :all_themes token is proven to change the storefront" do
+      # Each token here must have a test above showing rendered output change.
+      # Adding one without that test is the regression this guards.
+      for token <- @all_theme_tokens do
+        assert Emakola.Themes.DesignTokens.reach(token) == :all_themes
+        assert Emakola.Themes.DesignTokens.reach_note(token) == nil
+      end
+    end
+
+    test "a control that reaches nothing says so" do
+      for token <- ["card_style", "hero_layout", "product_grid_columns"] do
+        assert Emakola.Themes.DesignTokens.reach(token) == :not_wired
+
+        assert Emakola.Themes.DesignTokens.reach_note(token) =~ "won't affect your store"
+      end
+    end
+
+    test "a control only some themes read names them" do
+      assert Emakola.Themes.DesignTokens.reach("button_style") == {:some_themes, ["atelier"]}
+      assert Emakola.Themes.DesignTokens.reach_note("button_style") =~ "Atelier"
+    end
+
+    test "card_style really does change nothing, so the caveat is not slander", %{conn: conn} do
+      plain = store_with(%{})
+      bordered = store_with(%{"card_style" => "bordered"})
+
+      {:ok, _v, plain_html} = live(conn, "/s/#{plain.slug}")
+      {:ok, _v, bordered_html} = live(conn, "/s/#{bordered.slug}")
+
+      # Slugs differ, so compare the emitted style block rather than the page.
+      assert style_block(plain_html) == style_block(bordered_html),
+             "card_style now changes the storefront — promote it out of :not_wired " <>
+               "in DesignTokens.reach/1 so the studio stops warning about it"
+    end
+
+    defp style_block(html) do
+      case Regex.run(~r|<style>(.*?)</style>|s, html) do
+        [_, block] -> String.trim(block)
+        _ -> ""
+      end
+    end
+  end
+
   describe "fonts" do
     test "a heading font choice reaches the storefront", %{conn: conn} do
       store = store_with(%{"heading_font" => "display"})
