@@ -786,16 +786,16 @@ defmodule EmakolaWeb.Admin.DesignLive do
 
   attr :token, :string, required: true
 
-  @doc """
-  Says out loud when a control does not reach the merchant's storefront.
-
-  This studio renders its preview through `DesignTokens` while the storefront
-  renders independently, so a control could move the preview and change
-  nothing on the live shop — and several did. Rather than let the preview
-  keep implying otherwise, each affected group carries its own caveat, sourced
-  from `DesignTokens.reach/1` so there is one place to update as tokens get
-  wired.
-  """
+  # Says out loud when a control does not reach the merchant's storefront.
+  #
+  # This studio renders its preview through `DesignTokens` while the storefront
+  # renders independently, so a control could move the preview and change
+  # nothing on the live shop — and several did. Rather than let the preview keep
+  # implying otherwise, each affected group carries its own caveat, sourced from
+  # `DesignTokens.reach/1` so there is one place to update as tokens get wired.
+  #
+  # A comment rather than @doc: this is a defp, where @doc is discarded and
+  # warns — and CI compiles with --warnings-as-errors.
   defp reach_note(assigns) do
     assigns = assign(assigns, :note, Emakola.Themes.DesignTokens.reach_note(assigns.token))
 
