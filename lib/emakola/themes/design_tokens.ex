@@ -115,6 +115,29 @@ defmodule Emakola.Themes.DesignTokens do
   def body_size("spacious"), do: "text-lg leading-loose"
   def body_size(_), do: body_size("default")
 
+  @doc """
+  The root font-size the typography scale resolves to.
+
+  `heading_size/1` and `body_size/1` above hand back Tailwind classes, which
+  only work if a theme thinks to apply them — none do, so the control did
+  nothing on any storefront. This returns a root font-size instead, because
+  every theme sizes type AND spacing in Tailwind's rem units: setting it on
+  `:root` scales the whole page proportionally, on all 21 themes, with no
+  per-theme work.
+
+  Proportional scaling is what the control means. Its options are labelled
+  with density icons (`density_small` / `density_medium` / `density_large`),
+  so a merchant choosing "Compact" is asking for a tighter page, not merely
+  smaller headings.
+
+  Returns `nil` for the default so the layout emits no rule at all and
+  untouched storefronts keep the browser's own root size.
+  """
+  @spec root_font_size(String.t() | nil) :: String.t() | nil
+  def root_font_size("compact"), do: "93.75%"
+  def root_font_size("spacious"), do: "112.5%"
+  def root_font_size(_default), do: nil
+
   # -- Font Families --
 
   @doc "Returns the CSS font-family string for headings."
