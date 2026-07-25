@@ -140,14 +140,38 @@ defmodule Emakola.Themes.DesignTokens do
 
   # -- Font Families --
 
-  @doc "Returns the CSS font-family string for headings."
+  @doc """
+  Returns the CSS font-family string for headings.
+
+  Fonts are the tokens that genuinely reach every storefront (see `reach/1`),
+  so widening the choice here is worth more than adding controls that do not.
+
+  Every face is chosen to survive this market: full Latin coverage, real
+  weight range, and legible on a cheap Android screen. Each option costs one
+  Google Fonts request and only when the merchant picks it — the default stays
+  on system fonts and downloads nothing.
+  """
   def heading_font_family("serif"), do: "'Cormorant', Georgia, serif"
   def heading_font_family("display"), do: "'Playfair Display', Georgia, serif"
+  def heading_font_family("geometric"), do: "'Outfit', system-ui, sans-serif"
+  def heading_font_family("editorial"), do: "'Fraunces', Georgia, serif"
+  def heading_font_family("grotesk"), do: "'Space Grotesk', system-ui, sans-serif"
+  def heading_font_family("condensed"), do: "'Archivo Narrow', system-ui, sans-serif"
   def heading_font_family("sans"), do: "inherit"
   def heading_font_family(_), do: "inherit"
 
-  @doc "Returns the CSS font-family string for body text."
+  @doc """
+  Returns the CSS font-family string for body text.
+
+  Body faces are held to a stricter bar than headings: they are read at 14-16px
+  on small screens, so the list is limited to faces with large x-heights and
+  open apertures. A display face belongs in `heading_font_family/1`, never
+  here.
+  """
   def body_font_family("serif"), do: "'Lora', Georgia, serif"
+  def body_font_family("humanist"), do: "'Inter', system-ui, sans-serif"
+  def body_font_family("geometric"), do: "'Outfit', system-ui, sans-serif"
+  def body_font_family("neutral"), do: "'Work Sans', system-ui, sans-serif"
   def body_font_family("sans"), do: "inherit"
   def body_font_family(_), do: "inherit"
 
@@ -159,11 +183,34 @@ defmodule Emakola.Themes.DesignTokens do
     do:
       "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap"
 
+  def heading_font_url("geometric"),
+    do: "https://fonts.googleapis.com/css2?family=Outfit:wght@200;400;500;600;700&display=swap"
+
+  def heading_font_url("editorial"),
+    do:
+      "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap"
+
+  def heading_font_url("grotesk"),
+    do: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+
+  def heading_font_url("condensed"),
+    do:
+      "https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@400;500;600;700&display=swap"
+
   def heading_font_url(_), do: nil
 
   @doc "Returns Google Fonts URL for the body font, or nil if system font."
   def body_font_url("serif"),
     do: "https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap"
+
+  def body_font_url("humanist"),
+    do: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+
+  def body_font_url("geometric"),
+    do: "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap"
+
+  def body_font_url("neutral"),
+    do: "https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap"
 
   def body_font_url(_), do: nil
 
@@ -274,11 +321,18 @@ defmodule Emakola.Themes.DesignTokens do
       heading_font: [
         %{value: "sans", label: "Sans Serif", icon: "title", preview: "Aa"},
         %{value: "serif", label: "Serif", icon: "format_size", preview: "Aa"},
-        %{value: "display", label: "Display", icon: "text_format", preview: "Aa"}
+        %{value: "display", label: "Display", icon: "text_format", preview: "Aa"},
+        %{value: "geometric", label: "Geometric", icon: "circle", preview: "Aa"},
+        %{value: "editorial", label: "Editorial", icon: "auto_stories", preview: "Aa"},
+        %{value: "grotesk", label: "Grotesk", icon: "square", preview: "Aa"},
+        %{value: "condensed", label: "Condensed", icon: "compress", preview: "Aa"}
       ],
       body_font: [
         %{value: "sans", label: "Sans Serif", icon: "notes", preview: "Aa Bb Cc"},
-        %{value: "serif", label: "Serif", icon: "format_size", preview: "Aa Bb Cc"}
+        %{value: "serif", label: "Serif", icon: "format_size", preview: "Aa Bb Cc"},
+        %{value: "humanist", label: "Humanist", icon: "article", preview: "Aa Bb Cc"},
+        %{value: "geometric", label: "Geometric", icon: "circle", preview: "Aa Bb Cc"},
+        %{value: "neutral", label: "Neutral", icon: "subject", preview: "Aa Bb Cc"}
       ]
     }
   end

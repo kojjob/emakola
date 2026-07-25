@@ -114,6 +114,66 @@ defmodule EmakolaWeb.Storefront.DesignTokensReachStorefrontTest do
     end
   end
 
+  describe "every offered font is actually loadable" do
+    # An option in the picker whose family has no matching webfont URL renders
+    # as the fallback and looks like nothing happened — the same silent
+    # failure as a control that reaches nothing, one layer down.
+
+    alias Emakola.Themes.DesignTokens
+
+    test "every heading option resolves to a family, and non-system ones load a webfont" do
+      for %{value: value, label: label} <- DesignTokens.options().heading_font do
+        family = DesignTokens.heading_font_family(value)
+        url = DesignTokens.heading_font_url(value)
+
+        if value == "sans" do
+          assert family == "inherit"
+          assert is_nil(url)
+        else
+          refute family == "inherit", "heading option #{label} (#{value}) resolves to no family"
+
+          assert url, "heading option #{label} (#{value}) has a family but loads no webfont"
+
+          # The family's first quoted name must appear in the URL, or the page
+          # requests one font and asks for another.
+          [_, quoted] = Regex.run(~r/'([^']+)'/, family)
+
+          assert String.contains?(url, String.replace(quoted, " ", "+")),
+                 "#{label}: family #{quoted} does not match its Google Fonts URL"
+        end
+      end
+    end
+
+    test "every body option resolves to a family, and non-system ones load a webfont" do
+      for %{value: value, label: label} <- DesignTokens.options().body_font do
+        family = DesignTokens.body_font_family(value)
+        url = DesignTokens.body_font_url(value)
+
+        if value == "sans" do
+          assert family == "inherit"
+          assert is_nil(url)
+        else
+          refute family == "inherit", "body option #{label} (#{value}) resolves to no family"
+          assert url, "body option #{label} (#{value}) has a family but loads no webfont"
+
+          [_, quoted] = Regex.run(~r/'([^']+)'/, family)
+
+          assert String.contains?(url, String.replace(quoted, " ", "+")),
+                 "#{label}: family #{quoted} does not match its Google Fonts URL"
+        end
+      end
+    end
+
+    test "a newly offered heading font reaches the storefront", %{conn: conn} do
+      store = store_with(%{"heading_font" => "grotesk"})
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+
+      assert html =~ "Space Grotesk"
+      assert html =~ "Space+Grotesk"
+    end
+  end
+
   describe "fonts" do
     test "a heading font choice reaches the storefront", %{conn: conn} do
       store = store_with(%{"heading_font" => "display"})
