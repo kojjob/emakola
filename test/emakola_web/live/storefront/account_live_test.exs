@@ -155,5 +155,86 @@ defmodule EmakolaWeb.Storefront.AccountLiveTest do
 
       assert html =~ "AM"
     end
+
+    test "submitting a return request persists a Return row with the chosen reason", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = Factory.create_order!(store, %{customer_id: customer.id, status: :delivered})
+
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/account")
+
+      view
+      |> render_click("show_return_modal", %{"order" => to_string(order.order_number)})
+
+      view
+      |> render_click("set_return_reason", %{"reason" => "defective"})
+
+      html = view |> render_click("submit_return_request", %{})
+
+      assert html =~ "Return request submitted for Order ##{order.order_number}"
+
+      assert [return] = Emakola.Orders.list_returns_by_store!(store.id, authorize?: false)
+      assert return.order_id == order.id
+      assert return.store_id == store.id
+      assert return.customer_id == customer.id
+      assert return.reason == :defective
+      assert return.status == :requested
+    end
+
+    test "shows a return the customer already requested after a reload", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      # The request is a database row, not page state: reloading the account
+      # page must still show it, or the customer thinks it never went through.
+      order = Factory.create_order!(store, %{customer_id: customer.id, status: :delivered})
+
+      Emakola.Orders.Return
+      |> Ash.Changeset.for_create(:request_return, %{
+        store_id: store.id,
+        order_id: order.id,
+        customer_id: customer.id,
+        reason: :defective,
+        currency: order.currency
+      })
+      |> Ash.create!(authorize?: false)
+
+      {:ok, view, html} = live(conn, "/s/#{store.slug}/account")
+
+      assert html =~ "Return:"
+      refute has_element?(view, "button[phx-click='show_return_modal']")
+    end
+
+    test "resubmitting a return request for the same order shows a friendly error instead of crashing",
+         %{conn: conn, store: store, customer: customer} do
+      order = Factory.create_order!(store, %{customer_id: customer.id, status: :delivered})
+
+      Emakola.Orders.Return
+      |> Ash.Changeset.for_create(:request_return, %{
+        store_id: store.id,
+        order_id: order.id,
+        customer_id: customer.id,
+        reason: :defective,
+        currency: order.currency
+      })
+      |> Ash.create!(authorize?: false)
+
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/account")
+
+      view
+      |> render_click("show_return_modal", %{"order" => to_string(order.order_number)})
+
+      view
+      |> render_click("set_return_reason", %{"reason" => "wrong_item"})
+
+      html = view |> render_click("submit_return_request", %{})
+
+      assert html =~ "We couldn&#39;t submit that return request."
+
+      assert [_return] = Emakola.Orders.list_returns_by_store!(store.id, authorize?: false)
+    end
   end
 end

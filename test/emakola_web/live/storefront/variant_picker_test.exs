@@ -49,22 +49,31 @@ defmodule EmakolaWeb.Storefront.VariantPickerTest do
 
         {:ok, view, html} = live(conn, "/s/#{ctx.store.slug}/products/#{ctx.product.slug}")
 
-        if html =~ ~s(phx-click="select_option") do
-          assert has_element?(
-                   view,
-                   ~s([phx-click="select_option"][phx-value-option_type_id="#{ctx.option_type.id}"][phx-value-option_value_id="#{ctx.large.id}"])
-                 ),
-                 "the #{@theme} variant picker does not send option_type_id + the value's id"
+        # No `if` guard here. The seeded product always has an option type with
+        # two values, so every theme must render a picker for it. These
+        # assertions used to sit inside `if html =~ select_option`, which meant
+        # a theme rendering no picker AT ALL skipped every one of them and
+        # passed — which is exactly how Akwaaba shipped a product page where no
+        # variant can be chosen.
+        assert html =~ ~s(phx-click="select_option"),
+               "the #{@theme} product page renders no variant picker, so a shopper " <>
+                 "cannot choose a size or colour and add_to_cart can only ever add " <>
+                 "the default variant"
 
-          # Would raise FunctionClauseError and kill the page before the fix.
-          selected =
-            render_click(view, "select_option", %{
-              "option_type_id" => ctx.option_type.id,
-              "option_value_id" => ctx.large.id
-            })
+        assert has_element?(
+                 view,
+                 ~s([phx-click="select_option"][phx-value-option_type_id="#{ctx.option_type.id}"][phx-value-option_value_id="#{ctx.large.id}"])
+               ),
+               "the #{@theme} variant picker does not send option_type_id + the value's id"
 
-          assert selected =~ "Large"
-        end
+        # Would raise FunctionClauseError and kill the page before the fix.
+        selected =
+          render_click(view, "select_option", %{
+            "option_type_id" => ctx.option_type.id,
+            "option_value_id" => ctx.large.id
+          })
+
+        assert selected =~ "Large"
       end
     end
   end
