@@ -7,6 +7,8 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
 
   import Phoenix.LiveViewTest
 
+  alias EmakolaWeb.Helpers.Currency
+
   setup %{conn: conn} do
     {merchant, store} = create_authenticated_merchant!()
     conn = authenticate_conn(conn, merchant)
@@ -136,6 +138,97 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
       render_click(view, "approve_return")
 
       assert reload(return).refund_dispatch_fee? == false
+    end
+
+    test "shows the refundable balance on the return's payment", %{conn: conn, store: store} do
+      order = create_order!(store, :delivered)
+      return = create_return!(store, order)
+      create_successful_payment!(store, order, amount: 10_000)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      html = render_click(view, "select_return", %{"id" => return.id})
+
+      assert html =~ "Refundable balance"
+      assert html =~ Currency.format_price(10_000)
+    end
+
+    test "shows each supplier's dispatch fee alongside its dispatch state", %{
+      conn: conn,
+      store: store
+    } do
+      order = create_order!(store, :delivered)
+      return = create_return!(store, order)
+      create_successful_payment!(store, order, amount: 10_000)
+      supplier = create_supplier!(store)
+
+      create_fulfillment!(store, order,
+        supplier_id: supplier.id,
+        status: :shipped,
+        dispatch_fee: 750
+      )
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      html = render_click(view, "select_return", %{"id" => return.id})
+
+      assert html =~ supplier.name
+      assert html =~ Currency.format_price(750)
+      assert html =~ "shipped"
+    end
+
+    test "shows the at-fault toggle once a fulfillment has dispatched", %{
+      conn: conn,
+      store: store
+    } do
+      order = create_order!(store, :delivered)
+      return = create_return!(store, order)
+      create_successful_payment!(store, order)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      render_click(view, "select_return", %{"id" => return.id})
+
+      assert has_element?(view, "input[phx-click='toggle_dispatch_fee']")
+    end
+
+    test "hides the at-fault toggle when nothing has dispatched yet", %{conn: conn, store: store} do
+      order = create_order!(store, :pending)
+      return = create_return!(store, order)
+      create_successful_payment!(store, order)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      render_click(view, "select_return", %{"id" => return.id})
+
+      refute has_element?(view, "input[phx-click='toggle_dispatch_fee']")
+    end
+
+    test "warns without disabling approve when the amount exceeds the protected balance", %{
+      conn: conn,
+      store: store
+    } do
+      order = create_order!(store, :delivered)
+      return = create_return!(store, order)
+      create_successful_payment!(store, order, amount: 10_000)
+      supplier = create_supplier!(store)
+
+      create_fulfillment!(store, order,
+        supplier_id: supplier.id,
+        status: :shipped,
+        dispatch_fee: 3_000
+      )
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      render_click(view, "select_return", %{"id" => return.id})
+      html = render_click(view, "update_refund_amount", %{"amount" => "90.00"})
+
+      # Refundable 10,000 - protected 3,000 (dispatch_fee on the shipped
+      # fulfillment) = a suggested max of 7,000; 9,000 pesewas exceeds it.
+      assert html =~ "Above the suggested limit"
+      assert html =~ Currency.format_price(7_000)
+      refute has_element?(view, "button[phx-click='approve_return'][disabled]")
     end
 
     test "points the merchant at the provider dashboard when the gateway cannot refund", %{
@@ -369,10 +462,47 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
       |> Ash.Changeset.for_create(:create, %{store_id: store.id})
       |> Ash.create!(authorize?: false)
 
+    order =
+      order
+      |> Ash.Changeset.for_update(:update, %{})
+      |> Ash.Changeset.force_change_attribute(:status, status)
+      |> Ash.update!(authorize?: false)
+
+    # Every order gets at least one fulfillment at checkout in production
+    # (see Emakola.Orders.Fulfillment's moduledoc). The refund guidance
+    # panel's at-fault toggle is gated on fulfillment dispatch state, so
+    # fixtures need a real one here too — a merchant-owned (no dispatch fee)
+    # fulfillment whose status tracks the order's.
+    create_fulfillment!(store, order, status: fulfillment_dispatch_status(status))
+
     order
-    |> Ash.Changeset.for_update(:update, %{})
-    |> Ash.Changeset.force_change_attribute(:status, status)
-    |> Ash.update!(authorize?: false)
+  end
+
+  defp fulfillment_dispatch_status(:delivered), do: :delivered
+  defp fulfillment_dispatch_status(_status), do: :pending
+
+  defp create_supplier!(store, attrs \\ []) do
+    default = %{
+      store_id: store.id,
+      name: "Supplier #{System.unique_integer([:positive])}"
+    }
+
+    Emakola.Suppliers.Supplier
+    |> Ash.Changeset.for_create(:create, Map.merge(default, Map.new(attrs)))
+    |> Ash.create!(authorize?: false)
+  end
+
+  defp create_fulfillment!(store, order, attrs) do
+    default = %{
+      store_id: store.id,
+      order_id: order.id,
+      status: :pending,
+      dispatch_fee: 0
+    }
+
+    Emakola.Orders.Fulfillment
+    |> Ash.Changeset.for_create(:create, Map.merge(default, Map.new(attrs)))
+    |> Ash.create!(authorize?: false)
   end
 
   defp create_return!(store, order \\ nil, attrs \\ []) do

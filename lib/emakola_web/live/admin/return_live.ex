@@ -38,7 +38,9 @@ defmodule EmakolaWeb.Admin.ReturnLive do
            selected_return: nil,
            action_notes: "",
            refund_amount_input: "",
-           refund_dispatch_fee: false
+           refund_dispatch_fee: false,
+           selected_payment: nil,
+           selected_fulfillments: []
          )}
     end
   end
@@ -57,13 +59,16 @@ defmodule EmakolaWeb.Admin.ReturnLive do
   @impl true
   def handle_event("select_return", %{"id" => id}, socket) do
     selected = Enum.find(socket.assigns.returns, &(&1.id == id))
+    {payment, fulfillments} = load_refund_context(socket, selected)
 
     {:noreply,
      assign(socket,
        selected_return: selected,
        action_notes: "",
        refund_amount_input: "",
-       refund_dispatch_fee: false
+       refund_dispatch_fee: false,
+       selected_payment: payment,
+       selected_fulfillments: fulfillments
      )}
   end
 
@@ -173,6 +178,33 @@ defmodule EmakolaWeb.Admin.ReturnLive do
 
   @impl true
   def render(assigns) do
+    assigns =
+      assigns
+      |> assign(:refundable_balance, refundable_balance(assigns.selected_payment))
+      |> assign(:supplier_fulfillments, supplier_fulfillments(assigns.selected_fulfillments))
+      |> assign(
+        :show_dispatch_toggle?,
+        not is_nil(assigns.selected_payment) and
+          Enum.any?(assigns.selected_fulfillments, &dispatched?/1)
+      )
+      |> assign(
+        :suggested_max,
+        suggested_max(
+          assigns.selected_payment,
+          assigns.selected_fulfillments,
+          assigns.refund_dispatch_fee
+        )
+      )
+      |> assign(
+        :amount_exceeds_suggested_max?,
+        exceeds_suggested_max?(
+          assigns.refund_amount_input,
+          assigns.selected_payment,
+          assigns.selected_fulfillments,
+          assigns.refund_dispatch_fee
+        )
+      )
+
     ~H"""
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <.admin_page_header
@@ -343,6 +375,35 @@ defmodule EmakolaWeb.Admin.ReturnLive do
               class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-amber-700 focus:border-amber-700 focus:outline-none"
             >{@action_notes}</textarea>
           </div>
+          <%!-- Refund guidance --%>
+          <div :if={@selected_payment} class="space-y-3">
+            <.stat_card
+              label="Refundable balance"
+              value={Currency.format_price(@refundable_balance, @selected_return.currency)}
+            />
+
+            <div
+              :if={@supplier_fulfillments != []}
+              class="rounded-2xl border border-stone-200 divide-y divide-stone-100"
+            >
+              <div
+                :for={f <- @supplier_fulfillments}
+                class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 px-4 py-3"
+              >
+                <div class="min-w-0 flex items-center gap-2">
+                  <p class="text-sm font-medium text-cta-dark truncate">{f.supplier.name}</p>
+                  <.status_badge status={f.status} variant={:delivery} />
+                </div>
+                <span class="text-sm font-semibold text-cta-dark">
+                  {Currency.format_price(f.dispatch_fee, @selected_return.currency)}
+                </span>
+              </div>
+            </div>
+          </div>
+          <p :if={is_nil(@selected_payment)} class="text-sm text-stone-500">
+            No gateway payment on this order — there is nothing to refund automatically.
+          </p>
+
           <div>
             <label class="block text-xs font-medium uppercase tracking-wider text-stone-500 mb-2">
               Refund Amount (GHS)
@@ -355,8 +416,17 @@ defmodule EmakolaWeb.Admin.ReturnLive do
               placeholder="0.00"
               class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm text-cta-dark focus:ring-2 focus:ring-amber-700 focus:border-amber-700 focus:outline-none"
             />
+            <p :if={@amount_exceeds_suggested_max?} class="mt-2 text-xs font-medium text-amber-700">
+              Above the suggested limit of {Currency.format_price(
+                @suggested_max,
+                @selected_return.currency
+              )} — this refund would dip into a dispatched supplier's protected dispatch fee.
+            </p>
           </div>
-          <label class="flex items-start gap-3 cursor-pointer">
+          <label
+            :if={@show_dispatch_toggle?}
+            class="flex items-start gap-3 cursor-pointer rounded-2xl border border-stone-200 px-4 py-3 hover:border-amber-300 transition-colors"
+          >
             <input
               type="checkbox"
               phx-click="toggle_dispatch_fee"
@@ -423,6 +493,57 @@ defmodule EmakolaWeb.Admin.ReturnLive do
     case status_filter do
       "all" -> returns
       status -> Enum.filter(returns, &(Atom.to_string(&1.status) == status))
+    end
+  end
+
+  # Loaded once when a return is selected, not per render — the guidance
+  # panel only appears for requested returns, so nothing else needs it.
+  defp load_refund_context(socket, %{status: :requested} = return) do
+    opts = [actor: socket.assigns.current_merchant, tenant: return.store_id]
+
+    payment =
+      case Emakola.Payments.get_payment_by_order(
+             return.order_id,
+             opts ++ [not_found_error?: false]
+           ) do
+        {:ok, payment} -> payment
+        _ -> nil
+      end
+
+    fulfillments = Emakola.Orders.list_fulfillments_by_order!(return.order_id, opts)
+
+    {payment, fulfillments}
+  end
+
+  defp load_refund_context(_socket, _return), do: {nil, []}
+
+  defp dispatched?(%{status: status}), do: status in [:shipped, :delivered]
+
+  defp supplier_fulfillments(fulfillments), do: Enum.filter(fulfillments, & &1.supplier_id)
+
+  defp protected_dispatch_fees(fulfillments) do
+    fulfillments
+    |> Enum.filter(&dispatched?/1)
+    |> Enum.map(& &1.dispatch_fee)
+    |> Enum.sum()
+  end
+
+  defp refundable_balance(nil), do: nil
+  defp refundable_balance(payment), do: payment.amount - (payment.refunded_amount || 0)
+
+  defp suggested_max(nil, _fulfillments, _waived?), do: nil
+
+  defp suggested_max(payment, fulfillments, waived?) do
+    protected = if waived?, do: 0, else: protected_dispatch_fees(fulfillments)
+    max(refundable_balance(payment) - protected, 0)
+  end
+
+  defp exceeds_suggested_max?(_input, nil, _fulfillments, _waived?), do: false
+
+  defp exceeds_suggested_max?(input, payment, fulfillments, waived?) do
+    case Emakola.Money.parse_price(input) do
+      {:ok, pesewas} -> pesewas > suggested_max(payment, fulfillments, waived?)
+      _ -> false
     end
   end
 end
