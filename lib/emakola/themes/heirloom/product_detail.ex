@@ -247,19 +247,23 @@ defmodule Emakola.Themes.Heirloom.ProductDetail do
           </div>
         </div>
 
+        <%!-- Guarded and defaulted: this module is also rendered by
+             component tests that build assigns without the review keys,
+             where reading @reviews would raise. --%>
         <EmakolaWeb.ReviewComponents.review_section
+          :if={assigns[:reviews] != nil}
           store={@store}
           product={@product}
-          reviews={@reviews}
-          can_review={@can_review}
-          already_reviewed={@already_reviewed}
-          review_form_rating={@review_form_rating}
-          review_form_title={@review_form_title}
-          review_form_body={@review_form_body}
-          review_submitting={@review_submitting}
-          avg_rating={@product.avg_rating}
-          review_count={@product.review_count}
-          uploads={@uploads}
+          reviews={assigns[:reviews] || []}
+          can_review={assigns[:can_review] || false}
+          already_reviewed={assigns[:already_reviewed] || false}
+          review_form_rating={assigns[:review_form_rating] || 0}
+          review_form_title={assigns[:review_form_title] || ""}
+          review_form_body={assigns[:review_form_body] || ""}
+          review_submitting={assigns[:review_submitting] || false}
+          avg_rating={Map.get(@product, :avg_rating)}
+          review_count={Map.get(@product, :review_count, 0)}
+          uploads={assigns[:uploads]}
         />
 
         <section :if={@related != []} class="mt-20">

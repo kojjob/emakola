@@ -57,6 +57,47 @@ defmodule EmakolaWeb.Storefront.PdpParityTest do
     end
   end
 
+  describe "every theme's product page states the store's own delivery terms" do
+    # `Delivery.callout/1` builds this line from the store's configured zones
+    # and returns nil when there are none, so the paragraph is honest by
+    # construction — it cannot promise delivery the merchant has not offered.
+    # Sixteen themes loaded @delivery_zones on every request and rendered none
+    # of it.
+    for theme <- @themes do
+      @theme theme
+
+      test "#{theme}", %{conn: conn} do
+        ctx = seed(@theme)
+        create_delivery_zone!(ctx.store, %{name: "Accra", estimated_days: 1})
+
+        {:ok, _view, html} = live(conn, "/s/#{ctx.store.slug}/products/#{ctx.product.slug}")
+
+        assert html =~ "Next day",
+               "the #{@theme} product page never renders the delivery callout, so the " <>
+                 "store's own zones are loaded on every request and discarded"
+      end
+    end
+  end
+
+  describe "every theme's product page offers the store's other products" do
+    for theme <- @themes do
+      @theme theme
+
+      test "#{theme}", %{conn: conn} do
+        ctx = seed(@theme)
+
+        sibling = create_product!(ctx.store, %{title: "Nkonwa Side Table", status: :active})
+        create_variant!(sibling, ctx.store, %{price: 60_000, stock_quantity: 2})
+
+        {:ok, _view, html} = live(conn, "/s/#{ctx.store.slug}/products/#{ctx.product.slug}")
+
+        assert html =~ "Nkonwa Side Table",
+               "the #{@theme} product page never renders @related_products, so a shopper " <>
+                 "reaching a dead end has nothing else in the store offered to them"
+      end
+    end
+  end
+
   describe "every theme's product page lets a shopper choose a quantity" do
     for theme <- @themes do
       @theme theme
