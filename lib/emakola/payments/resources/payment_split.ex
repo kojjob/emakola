@@ -80,6 +80,17 @@ defmodule Emakola.Payments.PaymentSplit do
       public?(true)
     end
 
+    # Dispatch fee withheld from this split's reversible base, frozen at the
+    # first reversal. Protection is derived from state that keeps moving (a
+    # fulfillment ships, a return blames the supplier), but reversals only
+    # ratchet upward — so the derivation is persisted once and every later
+    # refund event reuses it instead of recomputing against newer facts.
+    attribute :protected_dispatch_fee, :integer do
+      allow_nil?(false)
+      default(0)
+      public?(true)
+    end
+
     attribute :recovered_amount, :integer do
       allow_nil?(false)
       default(0)
@@ -222,6 +233,13 @@ defmodule Emakola.Payments.PaymentSplit do
       validate attribute_in(:status, [:settled, :partially_reversed, :reversed]) do
         message("cannot stamp a settlement reference on a pending split")
       end
+    end
+
+    # Written once, by the first `RefundLiability.reconcile!/2` for a payment.
+    # Pinning the fee is what makes later refund events replay the same bases.
+    update :pin_dispatch_protection do
+      require_atomic?(false)
+      accept([:protected_dispatch_fee])
     end
 
     update :record_reversal do

@@ -70,6 +70,12 @@ defmodule Emakola.Orders.Return do
       public?(true)
     end
 
+    attribute :refund_dispatch_fee?, :boolean do
+      allow_nil?(false)
+      default(false)
+      public?(true)
+    end
+
     attribute :currency, :string do
       default("GHS")
       allow_nil?(false)
@@ -141,7 +147,7 @@ defmodule Emakola.Orders.Return do
 
     update :approve do
       require_atomic?(false)
-      accept([:admin_notes, :refund_amount])
+      accept([:admin_notes, :refund_amount, :refund_dispatch_fee?])
 
       validate(fn changeset, _context ->
         status = Ash.Changeset.get_attribute(changeset, :status)
@@ -211,6 +217,14 @@ defmodule Emakola.Orders.Return do
     read :get_by_order do
       argument(:order_id, :uuid, allow_nil?: false)
       filter(expr(order_id == ^arg(:order_id)))
+    end
+
+    # Every return the customer has requested in this store, in one query — the
+    # account page shows the status against each order it lists.
+    read :list_by_customer do
+      argument(:customer_id, :uuid, allow_nil?: false)
+      filter(expr(customer_id == ^arg(:customer_id)))
+      prepare(build(sort: [inserted_at: :desc]))
     end
   end
 end
