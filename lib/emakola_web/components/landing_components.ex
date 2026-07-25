@@ -9,6 +9,8 @@ defmodule EmakolaWeb.LandingComponents do
 
   use Phoenix.Component
 
+  import EmakolaWeb.CoreComponents, only: [icon: 1]
+
   alias Phoenix.LiveView.JS
 
   # ─────────────────────────────────────────────────────────────────────
@@ -37,7 +39,7 @@ defmodule EmakolaWeb.LandingComponents do
           </a>
           <div class="hidden md:flex items-center gap-6">
             <a
-              href="/#how-it-works"
+              href="/how-it-works"
               class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors"
             >
               How it works
@@ -76,11 +78,17 @@ defmodule EmakolaWeb.LandingComponents do
             aria-label="Toggle menu"
             aria-expanded="false"
           >
-            <span id="landing-menu-closed-icon" class="material-symbols-outlined text-2xl">
-              menu
+            <span
+              id="landing-menu-closed-icon"
+              aria-hidden="true"
+            >
+              <.icon name="hero-bars-3" class="size-6" />
             </span>
-            <span id="landing-menu-open-icon" class="material-symbols-outlined text-2xl hidden">
-              close
+            <span
+              id="landing-menu-open-icon"
+              aria-hidden="true"
+            >
+              <.icon name="hero-x-mark" class="size-6" />
             </span>
           </button>
         </div>
@@ -94,7 +102,7 @@ defmodule EmakolaWeb.LandingComponents do
       id="landing-mobile-menu"
       class="hidden md:hidden fixed inset-0 top-16 z-40 bg-[#0c1526] flex-col items-center justify-start pt-12 gap-6 animate-slide-down [&:not(.hidden)]:flex"
     >
-      <a href="/#how-it-works" phx-click={toggle_mobile_menu()} class="text-lg text-[#e2e8f0]">
+      <a href="/how-it-works" phx-click={toggle_mobile_menu()} class="text-lg text-[#e2e8f0]">
         How it works
       </a>
       <a href="/#features" phx-click={toggle_mobile_menu()} class="text-lg text-[#e2e8f0]">
@@ -119,8 +127,6 @@ defmodule EmakolaWeb.LandingComponents do
   # LiveViews without any parent handle_event or server round-trip.
   defp toggle_mobile_menu do
     JS.toggle_class("hidden", to: "#landing-mobile-menu")
-    |> JS.toggle_class("hidden", to: "#landing-menu-closed-icon")
-    |> JS.toggle_class("hidden", to: "#landing-menu-open-icon")
     |> JS.toggle_attribute({"aria-expanded", "true", "false"}, to: "#landing-menu-button")
   end
 
@@ -140,6 +146,7 @@ defmodule EmakolaWeb.LandingComponents do
       <div class="max-w-5xl mx-auto">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
           <.footer_column title="Product">
+            <:link href="/how-it-works">How it works</:link>
             <:link href="/#features">Features</:link>
             <:link href="/pricing">Pricing</:link>
             <:link href="/#features">Demo</:link>

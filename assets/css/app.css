@@ -677,6 +677,183 @@ html.high-contrast {
   }
 }
 
+/* How Makola Works: restrained motion that explains movement through the
+   network without making the page feel like a dashboard demo. */
+@layer components {
+  /* The button's accessible state is the single source of truth for which
+     mobile-menu icon is visible. */
+  #landing-menu-button[aria-expanded="false"] #landing-menu-open-icon,
+  #landing-menu-button[aria-expanded="true"] #landing-menu-closed-icon {
+    display: none;
+  }
+
+  #landing-menu-button[aria-expanded="false"] #landing-menu-closed-icon,
+  #landing-menu-button[aria-expanded="true"] #landing-menu-open-icon {
+    display: inline-block;
+  }
+
+  .market-hero-rise {
+    opacity: 0;
+    animation: market-hero-rise 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes market-hero-rise {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .market-float {
+    animation: market-float 4s ease-in-out infinite;
+  }
+
+  .market-float-delay {
+    animation-delay: -2s;
+  }
+
+  @keyframes market-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-7px); }
+  }
+
+  .market-flow-line {
+    position: relative;
+    width: 100%;
+    height: 2px;
+    overflow: visible;
+    background: linear-gradient(90deg, #cbd5ce, #34d399, #cbd5ce);
+  }
+
+  .market-flow-dot {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    display: block;
+    width: 9px;
+    height: 9px;
+    border: 2px solid #ffffff;
+    border-radius: 999px;
+    background: #059669;
+    box-shadow: 0 0 0 4px rgb(5 150 105 / 0.12);
+    animation: market-flow-travel 2.8s ease-in-out infinite;
+  }
+
+  .market-flow-delay-2 .market-flow-dot { animation-delay: 0.35s; }
+  .market-flow-delay-3 .market-flow-dot { animation-delay: 0.7s; }
+
+  @keyframes market-flow-travel {
+    0% { left: 0; opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+    15%, 85% { opacity: 1; }
+    100% { left: 100%; opacity: 0; transform: translate(-50%, -50%) scale(1); }
+  }
+
+  .settlement-ring::after {
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    content: "";
+    border: 2px solid #ffffff;
+    border-radius: 999px;
+    background: #e4bd63;
+    box-shadow: 0 0 0 5px rgb(228 189 99 / 0.16);
+    transform-origin: 0 calc(8rem + 5px);
+    animation: settlement-orbit 6s linear infinite;
+  }
+
+  @keyframes settlement-orbit {
+    to { rotate: 360deg; }
+  }
+
+  @media (min-width: 640px) {
+    .settlement-ring::after {
+      transform-origin: 0 calc(9rem + 5px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .market-hero-rise {
+      opacity: 1;
+      animation: none;
+    }
+
+    .market-float,
+    .market-flow-dot,
+    .settlement-ring::after {
+      animation: none;
+    }
+  }
+}
+
+/* Public store directory: a tactile market texture, restrained entrances,
+   and richer fallbacks for shops that have not uploaded photography yet. */
+@layer components {
+  .stores-market-grid {
+    background-image:
+      linear-gradient(rgb(228 189 99 / 0.11) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(228 189 99 / 0.11) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(to bottom, black, transparent 88%);
+  }
+
+  .stores-rise {
+    opacity: 0;
+    animation: stores-rise 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .stores-rise-delay {
+    animation-delay: 130ms;
+  }
+
+  @keyframes stores-rise {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .stores-float {
+    animation: stores-float 4.5s ease-in-out infinite;
+  }
+
+  @keyframes stores-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .stores-card-pattern::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+    opacity: 0.22;
+    background-image:
+      radial-gradient(circle at 20% 20%, white 0 2px, transparent 2.5px),
+      linear-gradient(135deg, transparent 42%, rgb(255 255 255 / 0.22) 42% 48%, transparent 48%);
+    background-size: 28px 28px, 44px 44px;
+    mix-blend-mode: soft-light;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stores-rise {
+      opacity: 1;
+      animation: none;
+    }
+
+    .stores-float {
+      animation: none;
+    }
+  }
+}
+
 /* Section editor drag-and-drop reorder (assets/js/hooks/section_sortable.js):
    drop-indicator classes toggled on dragover — a colored edge shows which
    side of the hovered row the dragged section will land on. */
