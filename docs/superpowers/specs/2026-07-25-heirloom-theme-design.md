@@ -48,15 +48,26 @@ lib/emakola/themes/heirloom/
     team.ex  product_showcase.ex  clients.ex  faq.ex  newsletter.ex
 ```
 
-Registration in **both** registries, or the storefront breaks:
+A new theme must be registered in **four** places, not two. Missing any of
+them fails differently, and two of the four fail loudly at mount:
 
-- `ThemeResolver` — `"heirloom" => Emakola.Themes.Heirloom`
-- `Sections.@sectionized_themes` — append `Emakola.Themes.Heirloom`
+| Registry | Where | Cost of omission |
+|---|---|---|
+| `ThemeResolver` | `"heirloom" => Emakola.Themes.Heirloom` | theme unusable |
+| `Sections.@sectionized_themes` | append the module | **silent** blank home page |
+| `OnboardingLive.@theme_descriptions` | `{"heirloom", "..."}` | `RuntimeError` on every `/onboarding` mount |
+| `ThemeLive.@theme_metadata` | `%{id:, name:, description:, icon:}` | `RuntimeError` on every `/admin/theme` mount |
 
-Heirloom's nav lives inside the hero section (same as Fashion, Beauty,
-Electronics, HomeLiving), so a missing `Sections` entry costs the shop its
-navigation entirely, not just one section. `SectionizedRegistrationTest`
-holds this line.
+The last two are guarded by `build_themes/0` in each LiveView, which diffs
+`ThemeResolver.offerable_theme_ids/0` against its own list and raises with the
+missing ids. Registering Heirloom without them took out 47 tests across
+onboarding and the theme customizer — every test that mounts either page,
+whatever it was actually asserting.
+
+Only the `Sections` omission is silent, and it is the worst: Heirloom's nav is
+chrome rather than part of its hero, so it would lose its sections but keep
+its navigation — a plausible-looking, empty shop.
+`SectionizedRegistrationTest` holds that line.
 
 ## 3. Section mapping
 

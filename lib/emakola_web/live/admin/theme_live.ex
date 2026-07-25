@@ -44,6 +44,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
       icon: "chair"
     },
     %{
+      id: "heirloom",
+      name: "Heirloom",
+      description: "Furniture & interiors",
+      icon: "weekend"
+    },
+    %{
       id: "electronics",
       name: "Electronics",
       description: "Phones, audio & gadgets",

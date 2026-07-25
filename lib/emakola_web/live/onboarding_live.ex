@@ -38,6 +38,7 @@ defmodule EmakolaWeb.OnboardingLive do
     {"beauty", "Skincare & cosmetics"},
     {"pharmacy", "Wellness & medicines"},
     {"home_living", "Furniture & home goods"},
+    {"heirloom", "Furniture & interiors — warm neutrals, photography first"},
     {"electronics", "Phones, audio & gadgets"},
     {"spotlight", "One hero product, centre stage"},
     {"ntoma", "Fashion & tailoring — cloth, cut, and print"},
