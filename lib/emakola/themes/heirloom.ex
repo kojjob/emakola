@@ -39,10 +39,23 @@ defmodule Emakola.Themes.Heirloom do
       "https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500;600;700;800&display=swap"
     ]
 
-  @doc "Home sections, in default visual order."
+  @doc """
+  Home sections, in default visual order.
+
+  The reference's ninth band — the full-bleed wordmark over the newsletter —
+  is not a section. It lives in `Shared.footer/1` chrome alongside the nav,
+  so neither survives on the merchant's ability to keep a section enabled.
+  """
   def sections,
     do: [
-      Emakola.Themes.Heirloom.Sections.Hero
+      Emakola.Themes.Heirloom.Sections.Hero,
+      Emakola.Themes.Heirloom.Sections.BrandStory,
+      Emakola.Themes.Heirloom.Sections.CategoryGallery,
+      Emakola.Themes.Heirloom.Sections.OurStory,
+      Emakola.Themes.Heirloom.Sections.Team,
+      Emakola.Themes.Heirloom.Sections.ProductShowcase,
+      Emakola.Themes.Heirloom.Sections.Clients,
+      Emakola.Themes.Heirloom.Sections.Faq
     ]
 
   @doc """

@@ -159,4 +159,121 @@ defmodule EmakolaWeb.Storefront.HeirloomThemeTest do
       assert html =~ "Nothing here yet"
     end
   end
+
+  describe "sections that carry merchant claims" do
+    # Each of these renders nothing until its merchant supplies content. The
+    # paired absent/present assertions are what prove the gate: the same
+    # string is missing on a default store and present once configured, so a
+    # gate that silently stopped working would fail one of the two.
+
+    test "the team section is absent by default and present once configured", %{conn: conn} do
+      default_store = heirloom_store()
+      {:ok, _view, default_html} = live(conn, "/s/#{default_store.slug}")
+      refute default_html =~ "Ama Serwaa"
+
+      configured =
+        heirloom_store(%{
+          theme_config: %{
+            "theme" => "heirloom",
+            "team" => %{
+              "items" => [%{"name" => "Ama Serwaa", "role" => "Master joiner"}]
+            }
+          }
+        })
+
+      {:ok, _view, html} = live(conn, "/s/#{configured.slug}")
+
+      assert html =~ "Ama Serwaa"
+      assert html =~ "Master joiner"
+    end
+
+    test "a team member with no name is dropped", %{conn: conn} do
+      store =
+        heirloom_store(%{
+          theme_config: %{
+            "theme" => "heirloom",
+            "team" => %{"items" => [%{"name" => "", "role" => "Anonymous"}]}
+          }
+        })
+
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}")
+
+      refute html =~ "Anonymous"
+    end
+
+    test "our story is absent by default and present once configured", %{conn: conn} do
+      default_store = heirloom_store()
+      {:ok, _view, default_html} = live(conn, "/s/#{default_store.slug}")
+      refute default_html =~ "How we joint a drawer"
+
+      configured =
+        heirloom_store(%{
+          theme_config: %{
+            "theme" => "heirloom",
+            "our_story" => %{
+              "tabs" => [%{"title" => "How we joint a drawer", "body" => "Slowly."}]
+            }
+          }
+        })
+
+      {:ok, _view, html} = live(conn, "/s/#{configured.slug}")
+
+      assert html =~ "How we joint a drawer"
+      assert html =~ "Slowly."
+    end
+
+    test "stockists are absent by default and present once configured", %{conn: conn} do
+      default_store = heirloom_store()
+      {:ok, _view, default_html} = live(conn, "/s/#{default_store.slug}")
+      refute default_html =~ "Stocked at"
+
+      configured =
+        heirloom_store(%{
+          theme_config: %{
+            "theme" => "heirloom",
+            "stockists" => %{"items" => [%{"name" => "Osu Design Store"}]}
+          }
+        })
+
+      {:ok, _view, html} = live(conn, "/s/#{configured.slug}")
+
+      assert html =~ "Stocked at"
+      assert html =~ "Osu Design Store"
+    end
+
+    test "the brand story is absent by default and present once written", %{conn: conn} do
+      default_store = heirloom_store()
+      {:ok, _view, default_html} = live(conn, "/s/#{default_store.slug}")
+      refute default_html =~ "We started in a shed in Osu"
+
+      configured =
+        heirloom_store(%{
+          theme_config: %{
+            "theme" => "heirloom",
+            "brand_story" => %{"body" => "We started in a shed in Osu"}
+          }
+        })
+
+      {:ok, _view, html} = live(conn, "/s/#{configured.slug}")
+
+      assert html =~ "We started in a shed in Osu"
+    end
+
+    test "the FAQ reads the store's real questions", %{conn: conn} do
+      default_store = heirloom_store()
+      {:ok, _view, default_html} = live(conn, "/s/#{default_store.slug}")
+      refute default_html =~ "Do you deliver to Kumasi?"
+
+      configured = heirloom_store()
+
+      create_page_content!(configured, %{
+        faq_items: [%{"question" => "Do you deliver to Kumasi?", "answer" => "Yes, weekly."}]
+      })
+
+      {:ok, _view, html} = live(conn, "/s/#{configured.slug}")
+
+      assert html =~ "Do you deliver to Kumasi?"
+      assert html =~ "Yes, weekly."
+    end
+  end
 end
