@@ -18,6 +18,7 @@ defmodule Emakola.Themes.Heirloom.Sections.CategoryGallery do
   use Phoenix.Component
 
   import EmakolaWeb.Storefront.Path
+  import EmakolaWeb.StorefrontComponents, only: [optimized_image: 1]
 
   @impl true
   def key, do: "heirloom/category_gallery"
@@ -33,10 +34,12 @@ defmodule Emakola.Themes.Heirloom.Sections.CategoryGallery do
   @impl true
   def render(assigns) do
     categories = Map.get(assigns, :categories) || []
+    products = Map.get(assigns, :products) || []
 
     assigns =
       assigns
       |> assign(:categories, categories)
+      |> assign(:covers, covers(categories, products))
       |> assign(:heading, present(assigns.settings["heading"]))
 
     ~H"""
@@ -60,11 +63,28 @@ defmodule Emakola.Themes.Heirloom.Sections.CategoryGallery do
             class="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--hl-accent)] focus-visible:ring-offset-4"
           >
             <div class="relative flex aspect-[3/4] items-end overflow-hidden rounded-[28px] bg-[color:var(--hl-tile)] p-6">
+              <.optimized_image
+                :if={@covers[category.id]}
+                src={@covers[category.id]}
+                alt=""
+                width={760}
+                height={1010}
+                class="absolute inset-0 h-full w-full object-cover motion-safe:transition-transform motion-safe:duration-500 group-hover:scale-[1.04]"
+              />
               <div
                 aria-hidden="true"
-                class="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent opacity-0 motion-safe:transition-opacity group-hover:opacity-100"
+                class={[
+                  "absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent",
+                  !@covers[category.id] && "hidden"
+                ]}
               />
-              <p class="relative text-xl font-light text-[color:var(--hl-ink)] [font-family:var(--hl-display)] group-hover:text-white">
+              <p class={[
+                "relative text-xl font-light [font-family:var(--hl-display)]",
+                if(@covers[category.id],
+                  do: "text-white",
+                  else: "text-[color:var(--hl-ink)]"
+                )
+              ]}>
                 {category.name}
               </p>
             </div>
@@ -73,6 +93,36 @@ defmodule Emakola.Themes.Heirloom.Sections.CategoryGallery do
       </ul>
     </section>
     """
+  end
+
+  # A category has no image of its own, so each card borrows the first image
+  # from a product filed under it. Categories with no product yet fall back to
+  # the plain tile — a labelled swatch rather than a broken frame.
+  defp covers(categories, products) do
+    by_category =
+      products
+      |> Enum.filter(&Map.get(&1, :category_id))
+      |> Enum.group_by(& &1.category_id)
+
+    for category <- categories, into: %{} do
+      cover =
+        by_category
+        |> Map.get(category.id, [])
+        |> Enum.find_value(&first_image/1)
+
+      {category.id, cover}
+    end
+  end
+
+  defp first_image(product) do
+    case Map.get(product, :images) do
+      [_ | _] = images ->
+        image = images |> Enum.sort_by(& &1.position) |> List.first()
+        image.thumbnail_url || image.url
+
+      _none ->
+        nil
+    end
   end
 
   defp present(value) when is_binary(value) do

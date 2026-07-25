@@ -58,15 +58,20 @@ defmodule Emakola.Themes.Heirloom.Sections.OurStory do
         </p>
 
         <div class="mt-10 space-y-20">
+          <%!-- Track list is comma-free on purpose. Two minmax() calls in one
+               arbitrary value silently fail to generate in Tailwind: the class
+               lands in the markup, no rule is ever emitted for it, and the grid
+               collapses to a single column with no error anywhere. Constrain
+               the column with max-w instead. --%>
           <article
             :for={tab <- @tabs}
-            class="grid items-start gap-10 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16"
+            class="grid items-start gap-8 lg:grid-cols-[18rem_1fr] lg:gap-16"
           >
-            <h3 class="text-3xl font-light tracking-tight text-[color:var(--hl-ink)] [font-family:var(--hl-display)] sm:text-4xl">
+            <h3 class="text-3xl font-light leading-tight tracking-tight text-[color:var(--hl-ink)] [font-family:var(--hl-display)] sm:text-4xl lg:sticky lg:top-8">
               {field(tab, "title")}
             </h3>
 
-            <div class="grid gap-8 sm:grid-cols-2 sm:items-start">
+            <div class="lg:max-w-[34rem]">
               <div
                 :if={field(tab, "image_url") != ""}
                 class="overflow-hidden rounded-[28px] bg-[color:var(--hl-tile)]"
@@ -74,14 +79,14 @@ defmodule Emakola.Themes.Heirloom.Sections.OurStory do
                 <.optimized_image
                   src={field(tab, "image_url")}
                   alt=""
-                  width={720}
-                  height={540}
+                  width={1088}
+                  height={816}
                   class="aspect-[4/3] w-full object-cover"
                 />
               </div>
               <p
                 :if={field(tab, "body") != ""}
-                class="max-w-prose text-sm leading-relaxed text-[color:var(--hl-muted)]"
+                class="mt-6 max-w-prose text-sm leading-relaxed text-[color:var(--hl-muted)]"
               >
                 {field(tab, "body")}
               </p>
