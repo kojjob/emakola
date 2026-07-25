@@ -640,7 +640,7 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
     |> Ash.update!(authorize?: false)
   end
 
-  defp create_failed_payment!(store, order, attrs \\ []) do
+  defp create_failed_payment!(store, order, attrs) do
     default = %{
       store_id: store.id,
       order_id: order.id,
