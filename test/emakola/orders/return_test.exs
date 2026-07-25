@@ -132,6 +132,28 @@ defmodule Emakola.Orders.ReturnTest do
                |> Ash.Changeset.for_update(:approve, %{})
                |> Ash.update(authorize?: false)
     end
+
+    test "accepts and persists refund_dispatch_fee?: true", %{store: store, order: order} do
+      return = create_return!(store, order)
+
+      approved =
+        return
+        |> Ash.Changeset.for_update(:approve, %{refund_dispatch_fee?: true})
+        |> Ash.update!(authorize?: false)
+
+      assert approved.refund_dispatch_fee? == true
+    end
+
+    test "defaults refund_dispatch_fee? to false", %{store: store, order: order} do
+      return = create_return!(store, order)
+
+      approved =
+        return
+        |> Ash.Changeset.for_update(:approve, %{})
+        |> Ash.update!(authorize?: false)
+
+      assert approved.refund_dispatch_fee? == false
+    end
   end
 
   describe "deny" do

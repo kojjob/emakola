@@ -47,6 +47,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
 
         orders = load_orders(customer.id, store.id)
         addresses = load_addresses(customer.id, store.id)
+        order_returns = load_order_returns(customer, store, orders)
 
         {:ok,
          socket
@@ -62,7 +63,7 @@ defmodule EmakolaWeb.Storefront.AccountLive do
          |> assign(:return_order, nil)
          |> assign(:return_reason, nil)
          |> assign(:return_detail, "")
-         |> assign(:order_returns, %{})}
+         |> assign(:order_returns, order_returns)}
     end
   end
 
@@ -107,26 +108,50 @@ defmodule EmakolaWeb.Storefront.AccountLive do
   @impl true
   def handle_event("submit_return_request", _params, socket) do
     order = socket.assigns.return_order
+    customer = socket.assigns.customer
+    store = socket.assigns.store
 
-    order_returns =
-      Map.put(socket.assigns.order_returns, order.order_number, %{
-        status: :requested,
-        reason:
-          Emakola.SafeAtom.to_atom_in(
-            socket.assigns.return_reason,
-            [:defective, :wrong_item, :not_as_described, :changed_mind, :other],
-            :other
-          )
-      })
+    reason =
+      Emakola.SafeAtom.to_atom_in(
+        socket.assigns.return_reason,
+        [:defective, :wrong_item, :not_as_described, :changed_mind, :other],
+        :other
+      )
 
-    {:noreply,
-     socket
-     |> assign(
-       show_return_modal: false,
-       return_order: nil,
-       order_returns: order_returns
-     )
-     |> put_flash(:info, "Return request submitted for Order ##{order.order_number}")}
+    case Emakola.Orders.request_return(
+           %{
+             store_id: store.id,
+             order_id: order.id,
+             customer_id: customer.id,
+             reason: reason,
+             reason_detail: socket.assigns.return_detail,
+             currency: order.currency
+           },
+           actor: customer,
+           tenant: store.id
+         ) do
+      {:ok, _return} ->
+        order_returns =
+          Map.put(socket.assigns.order_returns, order.order_number, %{
+            status: :requested,
+            reason: reason
+          })
+
+        {:noreply,
+         socket
+         |> assign(
+           show_return_modal: false,
+           return_order: nil,
+           order_returns: order_returns
+         )
+         |> put_flash(:info, "Return request submitted for Order ##{order.order_number}")}
+
+      {:error, _reason} ->
+        {:noreply,
+         socket
+         |> assign(show_return_modal: false, return_order: nil)
+         |> put_flash(:error, "We couldn't submit that return request.")}
+    end
   end
 
   @impl true
@@ -152,6 +177,28 @@ defmodule EmakolaWeb.Storefront.AccountLive do
       )
 
       []
+  end
+
+  # A return request is a row, not page state: without this the customer's
+  # request disappears from the page the moment they reload. Keyed by order
+  # number because that is what the order list renders. One query for the
+  # customer's returns, mapped against the orders already loaded.
+  defp load_order_returns(customer, store, orders) do
+    order_numbers = Map.new(orders, &{&1.id, &1.order_number})
+
+    case Emakola.Orders.list_returns_by_customer(customer.id,
+           actor: customer,
+           tenant: store.id
+         ) do
+      {:ok, returns} ->
+        returns
+        |> Enum.filter(&Map.has_key?(order_numbers, &1.order_id))
+        |> Map.new(&{order_numbers[&1.order_id], %{status: &1.status, reason: &1.reason}})
+
+      {:error, error} ->
+        Logger.error("[account_live] load_order_returns failed: #{inspect(error)}")
+        %{}
+    end
   end
 
   defp load_addresses(customer_id, store_id) do
