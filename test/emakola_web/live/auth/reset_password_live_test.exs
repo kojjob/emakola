@@ -2,7 +2,6 @@ defmodule EmakolaWeb.Auth.ResetPasswordLiveTest do
   use EmakolaWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
-  import Swoosh.TestAssertions
 
   require Ash.Query
 

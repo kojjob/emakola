@@ -2,7 +2,6 @@ defmodule EmakolaWeb.Auth.ForgotPasswordLiveTest do
   use EmakolaWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
-  import Swoosh.TestAssertions
 
   defp register!(email) do
     Emakola.Accounts.Merchant

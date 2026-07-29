@@ -1,8 +1,6 @@
 defmodule Emakola.Accounts.PasswordResetTest do
   use Emakola.DataCase, async: true
 
-  import Swoosh.TestAssertions
-
   alias AshAuthentication.{Info, Strategy}
   alias Emakola.Accounts.Merchant
 
