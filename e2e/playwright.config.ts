@@ -11,9 +11,13 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   projects: [
+    // Signs in once and saves storage state. LoginLive rate-limits logins to
+    // 10/min per IP, so the suite must not authenticate per spec.
+    { name: "setup", testMatch: /auth\.setup\.ts/ },
     {
       name: "desktop-chrome",
       use: { browserName: "chromium", viewport: { width: 1280, height: 800 } },
+      dependencies: ["setup"],
     },
     {
       name: "mobile-safari",
@@ -22,6 +26,7 @@ export default defineConfig({
         viewport: { width: 375, height: 812 },
         isMobile: true,
       },
+      dependencies: ["setup"],
     },
   ],
 });
