@@ -48,6 +48,13 @@ defmodule Emakola.Accounts.Merchant do
       password :password do
         identity_field(:email)
         hashed_password_field(:hashed_password)
+
+        resettable do
+          sender(Emakola.Accounts.Senders.PasswordResetSender)
+          # 24h: short enough to bound the risk window, long enough for flaky
+          # mobile email delivery. AuthMailer.password_reset copy must match.
+          token_lifetime({24, :hours})
+        end
       end
 
       magic_link do
