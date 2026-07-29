@@ -88,4 +88,13 @@
       '/tour/vid/conn5.mp4',
     ],
   });
+  // Use the real Makola logo in the film's topbar (engine default is a plain mark).
+  var mark = document.querySelector('.sw-brand__mark');
+  if (mark) {
+    var logo = document.createElement('img');
+    logo.src = '/images/emakola-logo.svg';
+    logo.alt = '';
+    logo.style.cssText = 'width:28px;height:28px;display:block;';
+    mark.replaceWith(logo);
+  }
 })();
