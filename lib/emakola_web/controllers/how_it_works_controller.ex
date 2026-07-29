@@ -8,6 +8,17 @@ defmodule EmakolaWeb.HowItWorksController do
 
   use EmakolaWeb, :controller
 
+  def tour(conn, _params) do
+    render(conn, :tour,
+      layout: false,
+      page_title: "Watch how Makola works — one sale, start to finish",
+      meta_description:
+        "Scroll through one connected Makola sale: a maker lists once, a shop stocks in one tap, the buyer pays with MoMo, delivery goes to the door, and the money shares itself.",
+      og_image: url(~p"/images/og-image.png"),
+      canonical_url: url(~p"/how-it-works/tour")
+    )
+  end
+
   def show(conn, _params) do
     render(conn, :show,
       layout: false,

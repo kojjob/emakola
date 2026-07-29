@@ -354,6 +354,7 @@ defmodule EmakolaWeb.Router do
     # Dead render — no LiveView process per anonymous visitor.
     get "/", LandingController, :home
     get "/how-it-works", HowItWorksController, :show
+    get "/how-it-works/tour", HowItWorksController, :tour
     live "/pricing", PricingLive
     live "/stores", StoresLive
     # Shown when a storefront is requested for a suspended/blocked/closed store.

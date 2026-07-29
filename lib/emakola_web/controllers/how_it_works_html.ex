@@ -189,7 +189,7 @@ defmodule EmakolaWeb.HowItWorksHTML do
               />
             </a>
             <a
-              href="#sale-journey"
+              href="/how-it-works/tour"
               class={[
                 "inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur transition duration-300 hover:border-white/30 hover:bg-white/10"
               ]}
@@ -981,6 +981,23 @@ defmodule EmakolaWeb.HowItWorksHTML do
         </div>
       </div>
     </section>
+    """
+  end
+
+  @doc """
+  The scroll film: a full-viewport scrubbed flight through one Makola sale.
+
+  All behaviour lives in /tour/tour.js + /tour/scrub-engine.js (self-contained
+  vanilla JS) — the template is only the mount point, so the film needs no
+  LiveView process and no app.js coupling.
+  """
+  def tour(assigns) do
+    ~H"""
+    <div id="tour-world" class={["min-h-screen bg-[#0C1F17]"]}></div>
+    <script src="/tour/scrub-engine.js">
+    </script>
+    <script src="/tour/tour.js">
+    </script>
     """
   end
 end
