@@ -74,8 +74,8 @@ defmodule EmakolaWeb.Storefront.CustomerRegisterLive do
 
   defp extract_field_errors(%Ash.Error.Invalid{errors: errors}) do
     Enum.reduce(errors, %{}, fn
-      %{field: field, message: message}, acc when not is_nil(field) ->
-        Map.put(acc, to_string(field), message)
+      %{field: field} = error, acc when not is_nil(field) ->
+        Map.put(acc, to_string(field), EmakolaWeb.AshErrors.message(error))
 
       _, acc ->
         acc
