@@ -62,7 +62,7 @@ defmodule Emakola.Notifications.AuthMailer do
     |> subject("Reset your Makola password")
     |> html_body("""
     <h2>Password Reset</h2>
-    <p>Click the link below to reset your password. This link expires in 1 hour.</p>
+    <p>Click the link below to reset your password. This link expires in 24 hours.</p>
     <a href="#{url}">Reset Password</a>
     """)
     |> text_body("Reset your password: #{url}")

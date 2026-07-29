@@ -10,7 +10,7 @@ defmodule EmakolaWeb.Auth.LoginLive do
   @login_window_ms 60_000
 
   def mount(_params, _session, socket) do
-    ip = get_client_ip(socket)
+    ip = EmakolaWeb.ClientIp.resolve(socket)
 
     {:ok,
      socket
@@ -143,7 +143,12 @@ defmodule EmakolaWeb.Auth.LoginLive do
             <div>
               <div class="flex items-center justify-between mb-1.5">
                 <label class="block text-sm font-medium text-[#0c1526]">Password</label>
-                <a href="#" class="text-xs font-medium text-[#2563eb] hover:underline">Forgot?</a>
+                <a
+                  href="/auth/forgot-password"
+                  class="text-xs font-medium text-[#2563eb] hover:underline"
+                >
+                  Forgot?
+                </a>
               </div>
               <div class="relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8896ab] text-xl">
@@ -271,16 +276,5 @@ defmodule EmakolaWeb.Auth.LoginLive do
     })
   rescue
     _ -> {:error, :not_found}
-  end
-
-  # Must be called during mount — get_connect_info is only available then
-  defp get_client_ip(socket) do
-    case Phoenix.LiveView.get_connect_info(socket, :peer_data) do
-      %{address: {a, b, c, d}} -> "#{a}.#{b}.#{c}.#{d}"
-      %{address: ip} -> to_string(:inet.ntoa(ip))
-      _ -> "unknown"
-    end
-  rescue
-    _ -> "unknown"
   end
 end

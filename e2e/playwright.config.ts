@@ -6,7 +6,9 @@ export default defineConfig({
   retries: 1,
   workers: 2,
   use: {
-    baseURL: "http://localhost:4000",
+    // Overridable so a git-worktree checkout can run its own server on
+    // another port without fighting the shared :4000 instance.
+    baseURL: process.env.BASE_URL ?? "http://localhost:4000",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },

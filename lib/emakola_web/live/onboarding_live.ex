@@ -652,14 +652,19 @@ defmodule EmakolaWeb.OnboardingLive do
   # Merchant-only resolution — legacy User subjects no longer authenticate
   # here (User accounts use the platform session flow exclusively).
   defp resolve_user(session) do
-    case EmakolaWeb.AuthTokens.verify_subject(session["user_token"]) do
+    case EmakolaWeb.AuthTokens.verify_subject_with_iat(session["user_token"]) do
       {:error, _reason} ->
         nil
 
-      {:ok, subject} ->
+      {:ok, subject, issued_at} ->
         case AshAuthentication.subject_to_user(subject, Emakola.Accounts.Merchant) do
-          {:ok, merchant} -> merchant
-          _ -> nil
+          # Same cutoff check as AssignDefaults — a session invalidated by a
+          # password reset must not slip back in through onboarding.
+          {:ok, merchant} when not is_nil(merchant) ->
+            if Emakola.Accounts.session_live?(merchant, issued_at), do: merchant
+
+          _ ->
+            nil
         end
     end
   end
