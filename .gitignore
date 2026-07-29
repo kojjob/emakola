@@ -155,5 +155,3 @@ stitch-store-preview.png
 # Playwright writes screenshots to the repo root when given a bare filename.
 /*.png
 /*.jpeg
-# Film clips are heavy and re-rendered per world version; hosted decision pending
-priv/static/tour/vid/
