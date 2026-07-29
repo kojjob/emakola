@@ -25,6 +25,13 @@ defmodule EmakolaWeb.Storefront.ContactLiveTest do
       assert html =~ "Get in touch"
       assert html =~ "mailto:hello@ama.test"
       assert html =~ "tel:0241234567"
+
+      assert html
+             |> LazyHTML.from_fragment()
+             |> LazyHTML.query(
+               ~s(link[rel="canonical"][href="http://localhost:4000/s/#{store.slug}/contact"])
+             )
+             |> Enum.any?()
     end
 
     test "renders the store's custom contact note and opening hours", %{conn: conn} do

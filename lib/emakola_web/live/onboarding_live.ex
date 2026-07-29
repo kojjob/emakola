@@ -10,6 +10,8 @@ defmodule EmakolaWeb.OnboardingLive do
 
   use EmakolaWeb, :live_view
 
+  on_mount {EmakolaWeb.Hooks.NoIndex, :default}
+
   require Logger
 
   @theme_save_flash "Your store is ready, but we couldn't apply your theme — " <>

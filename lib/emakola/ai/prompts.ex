@@ -22,14 +22,19 @@ defmodule Emakola.AI.Prompts do
 
   def build(:product_description, %{product: product, store: store}) do
     system = """
-    You write concise, warm ecommerce product descriptions for West African
-    online shops. 2-3 short paragraphs, benefit-led, plain English, no emojis.
+    You write concise, accurate ecommerce product descriptions for West African
+    online shops. Use only facts present in the supplied title, notes, and tags.
+    Never invent a material, ingredient, origin, size, feature, certification,
+    performance claim, delivery promise, return term, or warranty. If the facts
+    are sparse, keep the copy short instead of filling space with generic claims.
+    Use plain English, no emojis, keyword stuffing, or unverifiable superlatives.
     """
 
     user = """
-    Store: #{field(store, :name)} (#{field(store, :currency)}, Ghana / West Africa)
+    Store: #{field(store, :name)} (currency: #{field(store, :currency)})
     Product: #{field(product, :title)}
     Notes: #{field(product, :description) || "none"}
+    Tags: #{format_tags(field(product, :tags))}
 
     Write the product description only.
     """
@@ -41,6 +46,8 @@ defmodule Emakola.AI.Prompts do
     system = """
     You write SEO meta tags. Reply ONLY as JSON: {"title": "...", "description": "..."}.
     Title <= 60 characters, description <= 155 characters. No markdown, no commentary.
+    Use only supplied facts. Do not add quality, popularity, origin, availability,
+    delivery, price, certification, or performance claims that are not provided.
     """
 
     user =
@@ -52,8 +59,12 @@ defmodule Emakola.AI.Prompts do
 
   def build(:blog_post, %{topic: topic, store: store, type: type}) do
     system = """
-    You write helpful #{type} posts for a West African online store's blog:
-    600-1000 words, subheadings, practical, plain English. Reply ONLY as JSON:
+    You prepare human-review drafts for a West African online store's blog.
+    Write a useful #{type} with clear subheadings and plain English. Never invent
+    customer stories, quotes, statistics, tests, awards, business history, or
+    first-hand experience. Where original merchant expertise is needed, insert a
+    concise [ADD MERCHANT EXPERIENCE: ...] prompt instead of fabricating it.
+    Reply ONLY as JSON:
     {"title": "", "body": "", "excerpt": "", "tags": []} where body is markdown.
     """
 
@@ -65,7 +76,9 @@ defmodule Emakola.AI.Prompts do
   def build(:image_alt_text, %{image_url: image_url}) do
     system =
       "You write concise, descriptive image alt text under 125 characters. " <>
-        "No 'image of' / 'picture of'. Plain English, no quotes."
+        "Describe only visible details; do not infer material, brand, origin, " <>
+        "quality, or product performance. No 'image of' / 'picture of'. " <>
+        "Plain English, no quotes."
 
     content = [
       %{type: :image, url: image_url},
@@ -82,7 +95,9 @@ defmodule Emakola.AI.Prompts do
 
   def build(:recipe, %{product: product, store: store}) do
     system = """
-    You write recipes in West African cuisine context. Reply ONLY as JSON:
+    You prepare human-review recipe drafts in a West African cuisine context.
+    Do not make health, nutrition, allergy, or product-ingredient claims not
+    present in the input. Reply ONLY as JSON:
     {"body": "", "ingredients": [{"item": "", "quantity": ""}],
      "instructions": [""], "prep_time": 0, "cook_time": 0, "servings": 0}.
     Times are whole minutes.
@@ -106,4 +121,7 @@ defmodule Emakola.AI.Prompts do
 
   # Inputs may arrive as structs/maps with atom or string keys.
   defp field(map, key), do: Map.get(map, key) || Map.get(map, to_string(key))
+
+  defp format_tags(tags) when is_list(tags) and tags != [], do: Enum.join(tags, ", ")
+  defp format_tags(_tags), do: "none"
 end

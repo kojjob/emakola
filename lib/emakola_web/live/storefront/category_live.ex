@@ -55,6 +55,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
                og_image: first_product_image(products),
                og_type: "website",
                og_site_name: store.name,
+               robots: if(product_count == 0, do: "noindex, follow", else: "index, follow"),
                canonical_url: Canonical.category_url(store, category),
                json_ld:
                  SEO.json_ld_breadcrumb([
@@ -148,14 +149,12 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   # -- SEO --
 
   defp category_meta_description(category, store, count) do
-    raw =
-      Map.get(category, :description) ||
-        "Shop #{category.name} at #{store.name}. #{count} products available. Fast delivery, mobile money accepted."
+    product_label = if(count == 1, do: "product", else: "products")
 
-    raw
-    |> to_string()
-    |> String.trim()
-    |> truncate_at_word(155)
+    SEO.meta_description(
+      [Map.get(category, :description)],
+      "Browse #{count} #{category.name} #{product_label} from #{store.name} with current prices, options, and availability."
+    )
   end
 
   defp count_category_products(store_id, category_id) do
@@ -185,14 +184,4 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   end
 
   defp first_product_image(_), do: nil
-
-  defp truncate_at_word(str, max) when byte_size(str) <= max, do: str
-
-  defp truncate_at_word(str, max) do
-    str
-    |> binary_part(0, max)
-    |> String.trim_trailing()
-    |> String.replace(~r/\s+\S*$/, "")
-    |> Kernel.<>("…")
-  end
 end

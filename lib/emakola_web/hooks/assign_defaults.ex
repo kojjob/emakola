@@ -2,6 +2,9 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
   @moduledoc """
   LiveView on_mount hook that assigns default values needed by the app layout.
 
+  Merchant and platform application pages are private, so this hook also marks
+  every LiveView in those authenticated sessions as `noindex, nofollow`.
+
   Authentication strategy:
   1. Try to resolve a platform-staff session from :platform_session_token
      (signed DB-backed session id — see `Emakola.Accounts.Sessions`)
@@ -16,7 +19,12 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
 
   def on_mount(:default, _params, session, socket) do
     socket =
-      assign(socket, active_nav: :dashboard, setup_banner_dismissed: false, impersonator: nil)
+      assign(socket,
+        active_nav: :dashboard,
+        setup_banner_dismissed: false,
+        impersonator: nil,
+        robots: "noindex, nofollow"
+      )
 
     case resolve_platform_session(socket, session["platform_session_token"]) do
       {:ok, socket} ->

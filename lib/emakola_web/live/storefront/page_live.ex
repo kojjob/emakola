@@ -17,6 +17,9 @@ defmodule EmakolaWeb.Storefront.PageLive do
 
   import EmakolaWeb.Storefront.Path
 
+  alias EmakolaWeb.Helpers.SEO
+  alias EmakolaWeb.SEO.Canonical
+
   @impl true
   def mount(%{"page_slug" => page_slug}, _session, socket) do
     store = socket.assigns[:store]
@@ -32,8 +35,15 @@ defmodule EmakolaWeb.Storefront.PageLive do
            page: page,
            products: products,
            categories: categories,
-           page_title: "#{page.title} - #{store.name}",
-           meta_description: page_meta_description(page)
+           page_title: page_seo_title(page, store),
+           meta_description:
+             SEO.meta_description(
+               [page_meta_description(page)],
+               "#{page.title} from #{store.name}."
+             ),
+           canonical_url: Canonical.page_url(store, page),
+           og_site_name: store.name,
+           robots: if(page.blocks == [], do: "noindex, follow", else: "index, follow")
          )}
 
       :not_found ->
@@ -89,4 +99,13 @@ defmodule EmakolaWeb.Storefront.PageLive do
   end
 
   defp page_meta_description(_), do: ""
+
+  defp page_seo_title(%{meta: meta, title: title}, store) when is_map(meta) do
+    SEO.meta_title(
+      [Map.get(meta, "seo_title"), Map.get(meta, :seo_title)],
+      "#{title} - #{store.name}"
+    )
+  end
+
+  defp page_seo_title(page, store), do: SEO.meta_title([], "#{page.title} - #{store.name}")
 end

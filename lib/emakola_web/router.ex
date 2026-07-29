@@ -185,11 +185,15 @@ defmodule EmakolaWeb.Router do
   # Auth routes (no layout — full-page auth screens)
   scope "/auth", EmakolaWeb.Auth do
     pipe_through [:browser, :auth_rate_limit]
-    live "/login", LoginLive
-    live "/register", RegisterLive
-    live "/whatsapp", WhatsAppLive
-    live "/forgot-password", ForgotPasswordLive
-    live "/reset-password", ResetPasswordLive
+
+    live_session :merchant_auth,
+      on_mount: [{EmakolaWeb.Hooks.NoIndex, :default}] do
+      live "/login", LoginLive
+      live "/register", RegisterLive
+      live "/whatsapp", WhatsAppLive
+      live "/forgot-password", ForgotPasswordLive
+      live "/reset-password", ResetPasswordLive
+    end
   end
 
   # Social-login (OAuth) request + callback routes for merchants AND customers,
@@ -268,6 +272,7 @@ defmodule EmakolaWeb.Router do
     live_session :storefront_auth,
       layout: {EmakolaWeb.Layouts, :storefront},
       on_mount: [
+        {EmakolaWeb.Hooks.NoIndex, :default},
         {EmakolaWeb.Hooks.ResolveStore, :default},
         {EmakolaWeb.Hooks.NewsletterSubscription, :default}
       ],
@@ -306,6 +311,7 @@ defmodule EmakolaWeb.Router do
     get "/sitemap.xml", SitemapController, :show
     get "/robots.txt", SitemapController, :robots
     get "/llms.txt", SitemapController, :llms
+    get "/feed/products.xml", InstagramFeedController, :show
     get "/feed/instagram.xml", InstagramFeedController, :show
   end
 
@@ -541,6 +547,7 @@ defmodule EmakolaWeb.Router do
     live_session :storefront_auth_root,
       layout: {EmakolaWeb.Layouts, :storefront},
       on_mount: [
+        {EmakolaWeb.Hooks.NoIndex, :default},
         {EmakolaWeb.Hooks.ResolveStoreFromHost, :default},
         {EmakolaWeb.Hooks.NewsletterSubscription, :default}
       ],

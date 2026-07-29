@@ -10,6 +10,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   """
   use EmakolaWeb, :live_view
 
+  on_mount {EmakolaWeb.Hooks.NoIndex, :default}
+
   require Ash.Query
   require Logger
 

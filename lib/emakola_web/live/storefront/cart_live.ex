@@ -11,6 +11,8 @@ defmodule EmakolaWeb.Storefront.CartLive do
   """
   use EmakolaWeb, :live_view
 
+  on_mount {EmakolaWeb.Hooks.NoIndex, :default}
+
   require Logger
 
   import EmakolaWeb.Storefront.Path

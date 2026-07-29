@@ -4,8 +4,9 @@ defmodule Emakola.Content.Workers.ProductSEOWorker do
 
   Idempotent on two levels: Oban uniqueness (one job per product per minute) and
   a data check (skips products that already have a description). Gated by the
-  per-store daily `RateLimiter`. Ships dark — if the generator has no API key it
-  cancels the job rather than retrying forever.
+  per-store daily `RateLimiter`. The generated description is saved directly to
+  the product, so callers must clearly tell merchants to review it. Ships dark —
+  if the generator has no API key it cancels the job rather than retrying forever.
   """
 
   use Oban.Worker, queue: :ai_content, max_attempts: 3, unique: [period: 60, keys: [:product_id]]

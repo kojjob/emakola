@@ -10,6 +10,8 @@ defmodule EmakolaWeb.Storefront.WishlistLive do
   """
   use EmakolaWeb, :live_view
 
+  on_mount {EmakolaWeb.Hooks.NoIndex, :default}
+
   alias Emakola.Cart.CartStore
   alias EmakolaWeb.Helpers.StoreResolver
   alias EmakolaWeb.Storefront.QuickAdd

@@ -207,7 +207,7 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   defp assign_seo_metadata(socket, store, products) do
     description = store_description_for_seo(store)
     og_image = first_featured_product_image(products) || store_logo_url(store)
-    json_ld = SEOHelpers.json_ld_local_business(store)
+    json_ld = SEOHelpers.json_ld_storefront(store)
 
     socket
     |> assign(:meta_description, description)
@@ -218,15 +218,10 @@ defmodule EmakolaWeb.Storefront.StoreLive do
   end
 
   defp store_description_for_seo(store) do
-    raw =
-      Map.get(store, :description) ||
-        Map.get(store, :tagline) ||
-        "Shop authentic products from #{store.name} — fast delivery, mobile money accepted."
-
-    raw
-    |> to_string()
-    |> String.trim()
-    |> truncate_at_word(155)
+    SEOHelpers.meta_description(
+      [Map.get(store, :description), Map.get(store, :tagline)],
+      "Browse products from #{store.name} and view current prices, availability, delivery information, and store policies."
+    )
   end
 
   defp first_featured_product_image([first | _]) when is_map(first) do
@@ -243,15 +238,5 @@ defmodule EmakolaWeb.Storefront.StoreLive do
 
   defp store_logo_url(store) do
     Map.get(store, :logo_url)
-  end
-
-  defp truncate_at_word(str, max) when byte_size(str) <= max, do: str
-
-  defp truncate_at_word(str, max) do
-    str
-    |> binary_part(0, max)
-    |> String.trim_trailing()
-    |> String.replace(~r/\s+\S*$/, "")
-    |> Kernel.<>("…")
   end
 end

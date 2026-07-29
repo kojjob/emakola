@@ -10,6 +10,8 @@ defmodule EmakolaWeb.Storefront.SavedStoresLive do
   """
   use EmakolaWeb, :live_view
 
+  on_mount {EmakolaWeb.Hooks.NoIndex, :default}
+
   require Logger
 
   import EmakolaWeb.Storefront.Path

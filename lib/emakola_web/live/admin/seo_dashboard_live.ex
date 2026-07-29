@@ -2,10 +2,12 @@ defmodule EmakolaWeb.Admin.SEODashboardLive do
   @moduledoc """
   SEO quick-wins dashboard (Phase 3c).
 
-  Surfaces the content gaps that hurt search ranking — products without
+  Surfaces content and accessibility gaps — products without
   descriptions, images without alt text — and fans the `ai_content` workers out
-  to fix them in bulk. AI writes drafts; a merchant reviews before anything goes
-  public. Ships dark: when AI isn't configured the actions are disabled.
+  to fix them in bulk. Product descriptions and image alt text are written
+  directly to the catalog, so the UI tells merchants to review the generated
+  text after processing. Ships dark: when AI isn't configured the actions are
+  disabled.
   """
   use EmakolaWeb, :live_view
 
@@ -38,7 +40,10 @@ defmodule EmakolaWeb.Admin.SEODashboardLive do
 
     {:noreply,
      socket
-     |> put_flash(:info, "Queued AI descriptions for #{length(products)} product(s).")
+     |> put_flash(
+       :info,
+       "Queued AI descriptions for #{length(products)} product(s). Review them after processing."
+     )
      |> load_gaps()}
   end
 
@@ -86,12 +91,21 @@ defmodule EmakolaWeb.Admin.SEODashboardLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="max-w-3xl mx-auto px-4 py-8">
+    <div id="seo-dashboard" class="max-w-3xl mx-auto px-4 py-8">
       <h1 class="text-2xl font-bold text-stone-900">SEO quick wins</h1>
       <p class="mt-2 text-sm text-stone-600">
-        Let AI fill the gaps that hurt your search ranking. You review every AI draft
-        before it goes public.
+        Fix content and accessibility gaps that make products harder to understand.
+        Useful, original detail matters more than filling every field.
       </p>
+
+      <div
+        :if={@ai_enabled}
+        id="seo-direct-save-notice"
+        class="mt-6 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800"
+      >
+        Generated descriptions and alt text are saved directly to your catalog.
+        Review them after the jobs finish and replace generic wording with facts only you know.
+      </div>
 
       <div :if={not @ai_enabled} class="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
         <p class="text-sm font-medium text-amber-800">AI generation isn't switched on yet</p>
@@ -105,14 +119,14 @@ defmodule EmakolaWeb.Admin.SEODashboardLive do
           title="Products without descriptions"
           count={@missing_descriptions}
           action="generate_descriptions"
-          cta="Generate descriptions"
+          cta="Generate and save"
           enabled={@ai_enabled}
         />
         <.gap_card
           title="Images without alt text"
           count={@missing_alt_text}
           action="generate_alt_text"
-          cta="Generate alt text"
+          cta="Generate and save"
           enabled={@ai_enabled}
         />
       </div>

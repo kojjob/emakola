@@ -1,14 +1,15 @@
 defmodule EmakolaWeb.InstagramFeedController do
   @moduledoc """
-  Per-store product feed for Instagram Shopping connection.
+  Per-store Google Merchant-compatible product feed.
 
   Meta's Commerce Manager accepts the Google Merchant Center XML format
   (RSS 2.0 + the `g:` namespace) when connecting a product catalog by
-  scheduled feed URL. Merchants paste this URL into Commerce Manager and
-  Meta polls it on its own schedule (default daily) to mirror products.
+  scheduled feed URL. The generic endpoint can also be submitted to Google
+  Merchant Center; the legacy Instagram URL remains available.
 
   Endpoint:
 
+      GET /s/:store_slug/feed/products.xml
       GET /s/:store_slug/feed/instagram.xml
 
   Required `g:` fields per Meta:
@@ -29,14 +30,16 @@ defmodule EmakolaWeb.InstagramFeedController do
   use EmakolaWeb, :controller
 
   alias EmakolaWeb.Helpers.StoreResolver
+  alias EmakolaWeb.SEO.Canonical
 
   def show(conn, %{"store_slug" => slug}) do
     case StoreResolver.resolve(slug) do
       {:ok, store} ->
-        xml = build_feed(store, conn)
+        xml = build_feed(store)
 
         conn
         |> put_resp_content_type("application/xml")
+        |> put_resp_header("cache-control", "public, max-age=900")
         |> send_resp(200, xml)
 
       {:error, _} ->
@@ -48,37 +51,41 @@ defmodule EmakolaWeb.InstagramFeedController do
 
   # ── Feed XML generation ──────────────────────────────────────────
 
-  defp build_feed(store, conn) do
-    base = base_url(conn)
+  defp build_feed(store) do
+    store_url = Canonical.store_url(store)
     products = load_products(store)
-    items = Enum.map_join(products, "\n", &item_xml(&1, store, base))
+
+    items =
+      products
+      |> Enum.filter(&(present?(first_image_url(&1)) and not is_nil(first_variant(&1))))
+      |> Enum.map_join("\n", &item_xml(&1, store))
 
     """
     <?xml version="1.0" encoding="UTF-8"?>
     <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
       <channel>
         <title>#{xml_escape(store.name)} — Product Feed</title>
-        <link>#{base}/s/#{store.slug}</link>
-        <description>Instagram Shopping product feed for #{xml_escape(store.name)}</description>
+        <link>#{store_url}</link>
+        <description>Shopping product feed for #{xml_escape(store.name)}</description>
     #{items}
       </channel>
     </rss>
     """
   end
 
-  defp item_xml(product, store, base) do
+  defp item_xml(product, store) do
     variant = first_variant(product)
     image = first_image_url(product)
     currency = Map.get(store, :currency) || "GHS"
-    link = "#{base}/s/#{store.slug}/products/#{product.slug}"
+    link = Canonical.product_url(store, product)
 
     """
         <item>
           <g:id>#{xml_escape(product.id)}</g:id>
           <g:title>#{xml_escape(product.title)}</g:title>
-          <g:description>#{xml_escape(product.description || product.title)}</g:description>
+          <g:description>#{xml_escape(product.seo_description || product.description || product.title)}</g:description>
           <g:link>#{xml_escape(link)}</g:link>
-          <g:image_link>#{xml_escape(image || "")}</g:image_link>
+          <g:image_link>#{xml_escape(image)}</g:image_link>
           <g:availability>#{availability(variant)}</g:availability>
           <g:price>#{format_price(variant_price(variant), currency)}</g:price>
           <g:brand>#{xml_escape(store.name)}</g:brand>
@@ -98,40 +105,34 @@ defmodule EmakolaWeb.InstagramFeedController do
     |> Ash.read!(authorize?: false)
   end
 
-  defp first_variant(%{variants: [v | _]}), do: v
+  defp first_variant(%{variants: variants}) when is_list(variants) and variants != [] do
+    Enum.min_by(variants, &Map.get(&1, :position, 0))
+  end
+
   defp first_variant(_), do: nil
 
-  defp first_image_url(%{images: [%{url: url} | _]}) when is_binary(url), do: url
-  defp first_image_url(%{images: [%{thumbnail_url: url} | _]}) when is_binary(url), do: url
+  defp first_image_url(%{images: images}) when is_list(images) and images != [] do
+    image = Enum.min_by(images, &Map.get(&1, :position, 0))
+    image.medium_url || image.url || image.thumbnail_url
+  end
+
   defp first_image_url(_), do: nil
 
   defp variant_price(%{price: price}) when is_integer(price), do: price
   defp variant_price(_), do: 0
 
+  defp availability(%{available: false}), do: "out of stock"
+  defp availability(%{track_inventory: false}), do: "in stock"
   defp availability(%{stock_quantity: qty}) when is_integer(qty) and qty > 0, do: "in stock"
   defp availability(_), do: "out of stock"
+
+  defp present?(value) when is_binary(value), do: String.trim(value) != ""
+  defp present?(_value), do: false
 
   defp format_price(minor, currency) do
     major = div(minor, 100)
     cents = rem(abs(minor), 100)
     "#{major}.#{String.pad_leading(Integer.to_string(cents), 2, "0")} #{currency}"
-  end
-
-  # ── Helpers ──────────────────────────────────────────────────────
-
-  defp base_url(conn) do
-    scheme = to_string(conn.scheme)
-    host = conn.host
-    port = conn.port
-
-    port_suffix =
-      case {conn.scheme, port} do
-        {:https, 443} -> ""
-        {:http, 80} -> ""
-        {_, p} -> ":#{p}"
-      end
-
-    "#{scheme}://#{host}#{port_suffix}"
   end
 
   defp xml_escape(nil), do: ""
