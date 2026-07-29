@@ -93,14 +93,9 @@ defmodule EmakolaWeb.Auth.ForgotPasswordLive do
     ip = socket.assigns.client_ip
     email = email |> String.trim() |> String.downcase()
 
-    with {:allow, _} <-
-           Emakola.RateLimit.check_rate("auth_forgot:#{ip}", @ip_limit, @ip_window_ms),
+    with {:allow, _} <- check_rate("auth_forgot:#{ip}", @ip_limit, @ip_window_ms),
          {:allow, _} <-
-           Emakola.RateLimit.check_rate(
-             "auth_forgot_email:#{email}",
-             @email_limit,
-             @email_window_ms
-           ) do
+           check_rate("auth_forgot_email:#{email}", @email_limit, @email_window_ms) do
       request_reset(email)
       {:noreply, assign(socket, sent: true)}
     else
@@ -109,6 +104,16 @@ defmodule EmakolaWeb.Auth.ForgotPasswordLive do
 
         {:noreply,
          put_flash(socket, :error, "Too many reset requests. Please try again in a few minutes.")}
+    end
+  end
+
+  # Honors the :disable_rate_limit kill-switch (DISABLE_RATE_LIMIT=1 in dev):
+  # the per-email cap otherwise locks E2E reruns out for 15 minutes at a time.
+  defp check_rate(key, limit, window_ms) do
+    if Application.get_env(:emakola, :disable_rate_limit, false) do
+      {:allow, 0}
+    else
+      Emakola.RateLimit.check_rate(key, limit, window_ms)
     end
   end
 
