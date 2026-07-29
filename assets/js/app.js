@@ -146,3 +146,29 @@ if (process.env.NODE_ENV === "development") {
   })
 }
 
+
+// Admin sidebar collapse, persisted in localStorage.
+//
+// This lives here rather than in an inline <script> in app.html.heex because
+// the CSP sets `script-src 'self' 'nonce-…'` with no 'unsafe-inline': an
+// un-nonced inline block is blocked outright, and an `onclick="…"` attribute
+// is blocked even *with* a nonce (nonces don't cover event-handler
+// attributes). Bundled assets are served from 'self', so they just work.
+function applyStoredSidebarState() {
+  const shell = document.getElementById("admin-shell")
+  if (shell && localStorage.getItem("sidebar-collapsed") === "true") {
+    shell.classList.add("collapsed")
+  }
+}
+
+document.addEventListener("click", e => {
+  if (!e.target.closest("[data-toggle-sidebar]")) { return }
+  const shell = document.getElementById("admin-shell")
+  if (!shell) { return }
+  shell.classList.toggle("collapsed")
+  localStorage.setItem("sidebar-collapsed", shell.classList.contains("collapsed"))
+})
+
+applyStoredSidebarState()
+// Re-apply after LiveView navigations, which re-render the admin shell.
+window.addEventListener("phx:page-loading-stop", applyStoredSidebarState)

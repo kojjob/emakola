@@ -150,7 +150,7 @@ defmodule EmakolaWeb.SidebarComponents do
         <button
           id="collapse-btn"
           class="collapse-btn hidden lg:flex ml-auto w-7 h-7 items-center justify-center rounded-lg hover:bg-white/[0.06] transition-colors cursor-pointer"
-          onclick="toggleSidebar()"
+          data-toggle-sidebar
           aria-label="Toggle sidebar"
         >
           <svg
