@@ -2,10 +2,10 @@
 // Renders via scrub-engine.js (self-contained vanilla JS, no app.js coupling).
 (function () {
   var root = document.documentElement;
-  root.style.setProperty('--sw-bg', '#EFDFC2');
-  root.style.setProperty('--sw-ink', '#0C1F17');
-  root.style.setProperty('--sw-ink-soft', '#4a5a52');
-  root.style.setProperty('--sw-accent', '#047857');
+  root.style.setProperty('--sw-bg', '#7b7051');
+  root.style.setProperty('--sw-ink', '#FAF3E3');
+  root.style.setProperty('--sw-ink-soft', '#d9cfb4');
+  root.style.setProperty('--sw-accent', '#F5B301');
 
   mountScrollWorld(document.getElementById('tour-world'), {
     brand: { name: 'Makola', href: '/' },
