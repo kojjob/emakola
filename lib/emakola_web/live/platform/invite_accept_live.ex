@@ -89,11 +89,11 @@ defmodule EmakolaWeb.Platform.InviteAcceptLive do
 
   defp error_messages(%Ash.Error.Invalid{errors: errors}) do
     Enum.map_join(errors, ". ", fn
-      %{field: field, message: message} when not is_nil(field) ->
-        "#{Phoenix.Naming.humanize(field)} #{message}"
+      %{field: field} = error when not is_nil(field) ->
+        "#{Phoenix.Naming.humanize(field)} #{EmakolaWeb.AshErrors.message(error)}"
 
-      %{message: message} ->
-        message
+      %{message: message} = error when is_binary(message) ->
+        EmakolaWeb.AshErrors.message(error)
 
       _other ->
         "Something went wrong. Please try again."

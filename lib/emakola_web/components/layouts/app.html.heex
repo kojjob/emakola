@@ -80,20 +80,3 @@
     </main>
   </div>
 </div>
-
-<script>
-  // Sidebar collapse toggle with localStorage persistence
-  function toggleSidebar() {
-    const shell = document.getElementById('admin-shell');
-    shell.classList.toggle('collapsed');
-    localStorage.setItem('sidebar-collapsed', shell.classList.contains('collapsed'));
-  }
-
-  // Restore state on load
-  (function() {
-    if (localStorage.getItem('sidebar-collapsed') === 'true') {
-      const shell = document.getElementById('admin-shell');
-      if (shell) shell.classList.add('collapsed');
-    }
-  })();
-</script>

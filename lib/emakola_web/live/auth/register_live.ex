@@ -280,14 +280,14 @@ defmodule EmakolaWeb.Auth.RegisterLive do
   defp extract_errors(%Ash.Error.Invalid{errors: errors}) do
     errors
     |> Enum.map(fn
-      %{field: field, message: message} when is_binary(field) ->
-        "#{Phoenix.Naming.humanize(field)} #{message}"
+      %{field: field} = error when is_binary(field) ->
+        "#{Phoenix.Naming.humanize(field)} #{EmakolaWeb.AshErrors.message(error)}"
 
-      %{field: field, message: message} when is_atom(field) ->
-        "#{Phoenix.Naming.humanize(Atom.to_string(field))} #{message}"
+      %{field: field} = error when is_atom(field) ->
+        "#{Phoenix.Naming.humanize(Atom.to_string(field))} #{EmakolaWeb.AshErrors.message(error)}"
 
-      %{message: message} ->
-        message
+      %{message: message} = error when is_binary(message) ->
+        EmakolaWeb.AshErrors.message(error)
 
       other ->
         inspect(other)

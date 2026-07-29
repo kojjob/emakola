@@ -11,8 +11,8 @@ defmodule EmakolaWeb.DashboardLive do
   alias Emakola.Onboarding.SetupChecklist
 
   # 5-minute safety-net poll. Real-time updates land via PubSub
-  # (`{:order_created, _}` / `{:order_updated, _}` from
-  # `Emakola.Orders` broadcasts) so this only catches edge cases
+  # (`{:order_event, event, order}` broadcast by
+  # `Emakola.Notifications.Dispatcher`) so this only catches edge cases
   # where a PubSub message was missed (process restart, dropped
   # connection). Was 30s — too aggressive given each refresh fires
   # 12 queries.
@@ -52,8 +52,13 @@ defmodule EmakolaWeb.DashboardLive do
     {:noreply, load_dashboard_data(socket)}
   end
 
-  def handle_info({:order_created, _}, socket), do: {:noreply, load_dashboard_data(socket)}
-  def handle_info({:order_updated, _}, socket), do: {:noreply, load_dashboard_data(socket)}
+  # Must match what Emakola.Notifications.Dispatcher actually broadcasts.
+  # This previously matched `{:order_created, _}` / `{:order_updated, _}`,
+  # which nothing ever sent — the catch-all below swallowed every real event,
+  # so the dashboard silently fell back to the 5-minute poll.
+  def handle_info({:order_event, _event, _order}, socket),
+    do: {:noreply, load_dashboard_data(socket)}
+
   def handle_info(_, socket), do: {:noreply, socket}
 
   def handle_event("change_period", %{"period" => period}, socket) when period in @periods do

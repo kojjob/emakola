@@ -59,6 +59,33 @@ defmodule EmakolaWeb.DashboardLiveTest do
       refute html =~ order.order_number
     end
 
+    test "refreshes in real time when a new order is dispatched", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      {:ok, view, html} = live(conn, ~p"/dashboard")
+
+      new_order =
+        Factory.create_order!(store, %{
+          customer_id: customer.id,
+          total: 99_900,
+          subtotal: 99_900,
+          status: :pending
+        })
+
+      refute html =~ new_order.order_number
+
+      # Go through the real Dispatcher so this pins the actual broadcast
+      # contract. DashboardLive subscribes to "store:<id>:orders" and relaxed
+      # its safety-net poll to 5 minutes on the assumption that PubSub covers
+      # real time — if the message shape drifts, merchants wait 5 minutes to
+      # see an order, with no error anywhere to signal it.
+      Emakola.Notifications.Dispatcher.dispatch(new_order, :order_placed)
+
+      assert render(view) =~ new_order.order_number
+    end
+
     test "topbar New button links to the product create page", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/dashboard")
 

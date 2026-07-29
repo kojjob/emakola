@@ -553,11 +553,21 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       {:error, reason} ->
         release_recovery_reservations(settlement)
 
+        # The raw reason carries gateway internals (status codes, API keys
+        # hints, provider payloads) — log it for operators, never render it
+        # to the shopper.
+        Logger.error(
+          "[Checkout] Payment initiation failed for order #{order.order_number}: #{inspect(reason)}"
+        )
+
         {:noreply,
          socket
          |> assign(:processing, false)
          |> assign(:checkout_error, "Payment initiation failed.")
-         |> put_flash(:error, "Payment error: #{inspect(reason)}")}
+         |> put_flash(
+           :error,
+           "We couldn't start your payment just now. Your order #{order.order_number} is saved — please try again."
+         )}
     end
   end
 

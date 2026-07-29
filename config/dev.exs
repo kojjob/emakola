@@ -138,3 +138,11 @@ config :swoosh, :api_client, false
 # See the note in config/test.exs: without this, `mix phx.server` and every
 # `mix run` script boots a headless Chrome pool it never uses.
 config :emakola, ChromicPDF, on_demand: true
+
+# The auth pipeline rate-limits to 10 requests/min per IP. A Playwright run
+# loads /auth/login and /auth/register far faster than a human and trips it,
+# turning E2E auth specs flaky. Opt out for those runs only — plain
+# `mix phx.server` keeps the limiter on, and prod is unaffected:
+#
+#     DISABLE_RATE_LIMIT=1 mix phx.server
+config :emakola, :disable_rate_limit, System.get_env("DISABLE_RATE_LIMIT") == "1"

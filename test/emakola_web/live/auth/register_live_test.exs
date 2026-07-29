@@ -40,6 +40,22 @@ defmodule EmakolaWeb.Auth.RegisterLiveTest do
     end
   end
 
+  describe "validation error messages" do
+    test "a too-short password renders the limit, not a raw %{min} placeholder", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/auth/register")
+
+      html =
+        lv
+        |> form("form", user: %{name: "Kofi Short", email: unique_email(), password: "abc12"})
+        |> render_submit()
+
+      refute html =~ "%{min}",
+             "Ash error vars leaked to the user as a raw interpolation placeholder"
+
+      assert html =~ "greater than or equal to 8"
+    end
+  end
+
   describe "registration -> onboarding -> store-gated admin (integration)" do
     test "a registered merchant can complete onboarding and reach the Theme admin page", %{
       conn: conn
