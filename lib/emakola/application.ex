@@ -19,6 +19,10 @@ defmodule Emakola.Application do
         # Expunges expired token rows (see Emakola.Accounts.Token)
         {AshAuthentication.Supervisor, otp_app: :emakola},
         {Finch, name: Emakola.Finch},
+        # Fire-and-forget work that must not sit on the request path — e.g.
+        # password-reset delivery, where a synchronous provider round-trip
+        # would leak account existence through response latency.
+        {Task.Supervisor, name: Emakola.TaskSupervisor},
         {Emakola.RateLimit, clean_period: :timer.minutes(10)},
         {Oban, Application.fetch_env!(:emakola, Oban)},
         # PDF generation via headless Chrome (opts set per-env in config/runtime.exs)

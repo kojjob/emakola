@@ -26,17 +26,22 @@ defmodule EmakolaWeb.Auth.ResetPasswordLiveTest do
     strategy = Info.strategy!(Merchant, :password)
     Strategy.action(strategy, :reset_request, %{"email" => email})
 
-    token =
-      assert_email_sent(fn sent ->
-        [t] =
-          Regex.run(~r{/auth/reset-password\?token=([^"\s]+)}, sent.text_body,
-            capture: :all_but_first
-          )
+    sent = await_email()
 
-        t
-      end)
+    [token] =
+      Regex.run(~r{/auth/reset-password\?token=([^"\s]+)}, sent.text_body,
+        capture: :all_but_first
+      )
 
     {merchant, email, token}
+  end
+
+  # Reset mail is delivered off the request path (see PasswordResetSender —
+  # a synchronous send would leak account existence via response latency), so
+  # wait for it: Swoosh's assert_email_sent uses assert_received with no wait.
+  defp await_email(timeout \\ 2_000) do
+    assert_receive {:email, email}, timeout
+    email
   end
 
   # Registration sends its own mail (welcome + confirmation); drain it so the
@@ -68,7 +73,7 @@ defmodule EmakolaWeb.Auth.ResetPasswordLiveTest do
     {:ok, lv, _html} = live(conn, ~p"/auth/reset-password?token=#{token}")
 
     lv
-    |> form("form",
+    |> form("#reset-password-form",
       reset: %{password: "NewPassword456!", password_confirmation: "NewPassword456!"}
     )
     |> render_submit()
@@ -103,7 +108,7 @@ defmodule EmakolaWeb.Auth.ResetPasswordLiveTest do
 
     html =
       lv
-      |> form("form", reset: %{password: "short", password_confirmation: "short"})
+      |> form("#reset-password-form", reset: %{password: "short", password_confirmation: "short"})
       |> render_submit()
 
     refute html =~ "%{min}"
@@ -115,7 +120,7 @@ defmodule EmakolaWeb.Auth.ResetPasswordLiveTest do
 
     html =
       lv
-      |> form("form",
+      |> form("#reset-password-form",
         reset: %{password: "NewPassword456!", password_confirmation: "NewPassword456!"}
       )
       |> render_submit()

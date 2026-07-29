@@ -10,7 +10,7 @@ defmodule EmakolaWeb.Auth.RegisterLive do
   @register_window_ms 60_000
 
   def mount(_params, _session, socket) do
-    ip = get_client_ip(socket)
+    ip = EmakolaWeb.ClientIp.resolve(socket)
 
     {:ok,
      socket
@@ -296,15 +296,4 @@ defmodule EmakolaWeb.Auth.RegisterLive do
   end
 
   defp extract_errors(_), do: "Registration failed. Please try again."
-
-  # Must be called during mount — get_connect_info is only available then
-  defp get_client_ip(socket) do
-    case Phoenix.LiveView.get_connect_info(socket, :peer_data) do
-      %{address: {a, b, c, d}} -> "#{a}.#{b}.#{c}.#{d}"
-      %{address: ip} -> to_string(:inet.ntoa(ip))
-      _ -> "unknown"
-    end
-  rescue
-    _ -> "unknown"
-  end
 end

@@ -131,6 +131,15 @@ defmodule Emakola.Accounts.Merchant do
       sensitive?(true)
     end
 
+    # Browser sessions are signed Phoenix.Token subjects, not rows we can
+    # delete — verifying one only proves the signature. Bumping this cutoff
+    # invalidates every session token issued before it, which is what makes
+    # "password reset signs you out everywhere" true for the web path.
+    attribute :sessions_valid_from, :utc_datetime do
+      allow_nil?(true)
+      sensitive?(true)
+    end
+
     attribute(:name, :string, public?: true, constraints: [max_length: 255])
 
     attribute(:phone, :string, public?: true, constraints: [max_length: 20])
@@ -248,6 +257,15 @@ defmodule Emakola.Accounts.Merchant do
 
     update :update_profile do
       accept([:name, :avatar_url, :preferences, :phone, :business_name])
+    end
+
+    # Moves the session cutoff to now, killing every browser session token
+    # issued before this instant. Paired with token revocation after a
+    # password reset — see `Emakola.Accounts.revoke_all_sessions_for/1`.
+    update :invalidate_sessions do
+      accept([])
+
+      change(set_attribute(:sessions_valid_from, &DateTime.utc_now/0))
     end
 
     update :change_password do

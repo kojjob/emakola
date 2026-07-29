@@ -70,48 +70,58 @@ defmodule EmakolaWeb.Hooks.AssignDefaults do
             _ -> nil
           end
 
-        case EmakolaWeb.AuthTokens.verify_subject(signed_token) do
+        case EmakolaWeb.AuthTokens.verify_subject_with_iat(signed_token) do
           {:error, _reason} ->
             {:cont, assign_unauthenticated(socket)}
 
-          {:ok, subject} ->
+          {:ok, subject, issued_at} ->
             {:cont,
              socket
-             |> resolve_merchant(subject, impersonator)
+             |> resolve_merchant(subject, impersonator, issued_at)
              |> attach_notification_hook()}
         end
     end
   end
 
-  defp resolve_merchant(socket, token, impersonator) do
+  defp resolve_merchant(socket, token, impersonator, issued_at) do
     case AshAuthentication.subject_to_user(token, Emakola.Accounts.Merchant) do
-      {:ok, merchant} ->
-        store = load_merchant_store(merchant.id)
-        {notifs, unread} = load_notifications(nil)
-        # Defer the 4 stat-count queries to the connected mount — the disconnected
-        # dead render throws them away (CLAUDE.md: no DB work in the dead render).
-        stats =
-          if Phoenix.LiveView.connected?(socket),
-            do: load_store_stats(store),
-            else: load_store_stats(nil)
-
-        assign(socket,
-          current_merchant: merchant,
-          current_store: store,
-          current_user: nil,
-          impersonator: impersonator,
-          onboarding_complete: true,
-          notifications: notifs,
-          unread_notification_count: unread,
-          product_count: stats.products,
-          order_count: stats.orders,
-          customer_count: stats.customers,
-          pending_order_count: stats.pending_orders
-        )
+      # A valid signature only proves we minted this token, not that it is
+      # still current — a password reset moves the merchant's cutoff past it.
+      {:ok, merchant} when not is_nil(merchant) ->
+        if Emakola.Accounts.session_live?(merchant, issued_at) do
+          resolve_live_merchant(socket, merchant, impersonator)
+        else
+          assign_unauthenticated(socket)
+        end
 
       _ ->
         assign_unauthenticated(socket)
     end
+  end
+
+  defp resolve_live_merchant(socket, merchant, impersonator) do
+    store = load_merchant_store(merchant.id)
+    {notifs, unread} = load_notifications(nil)
+    # Defer the 4 stat-count queries to the connected mount — the disconnected
+    # dead render throws them away (CLAUDE.md: no DB work in the dead render).
+    stats =
+      if Phoenix.LiveView.connected?(socket),
+        do: load_store_stats(store),
+        else: load_store_stats(nil)
+
+    assign(socket,
+      current_merchant: merchant,
+      current_store: store,
+      current_user: nil,
+      impersonator: impersonator,
+      onboarding_complete: true,
+      notifications: notifs,
+      unread_notification_count: unread,
+      product_count: stats.products,
+      order_count: stats.orders,
+      customer_count: stats.customers,
+      pending_order_count: stats.pending_orders
+    )
   end
 
   # `:none` (no/!impersonation), `:expired` (window elapsed → force exit), or

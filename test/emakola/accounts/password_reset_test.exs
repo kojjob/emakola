@@ -35,17 +35,24 @@ defmodule Emakola.Accounts.PasswordResetTest do
 
   defp strategy, do: Info.strategy!(Merchant, :password)
 
+  # Reset mail is delivered off the request path (see PasswordResetSender —
+  # a synchronous send would leak account existence via response latency), so
+  # wait for it: Swoosh's assert_email_sent uses assert_received with no wait.
+  defp await_email(timeout \\ 2_000) do
+    assert_receive {:email, email}, timeout
+    email
+  end
+
   defp extract_token_from_email do
-    assert_email_sent(fn sent ->
-      assert sent.subject == "Reset your Makola password"
+    sent = await_email()
+    assert sent.subject == "Reset your Makola password"
 
-      assert [token] =
-               Regex.run(~r{/auth/reset-password\?token=([^"\s]+)}, sent.text_body,
-                 capture: :all_but_first
-               )
+    assert [token] =
+             Regex.run(~r{/auth/reset-password\?token=([^"\s]+)}, sent.text_body,
+               capture: :all_but_first
+             )
 
-      token
-    end)
+    token
   end
 
   describe "reset_request" do
@@ -55,18 +62,17 @@ defmodule Emakola.Accounts.PasswordResetTest do
 
       assert :ok = Strategy.action(strategy(), :reset_request, %{"email" => email})
 
-      assert_email_sent(fn sent ->
-        assert {_, ^email} = hd(sent.to)
-        assert sent.subject == "Reset your Makola password"
-        assert sent.text_body =~ "/auth/reset-password?token="
-        # Copy must match the configured 24h lifetime
-        assert sent.html_body =~ "24 hours"
-      end)
+      sent = await_email()
+      assert {_, ^email} = hd(sent.to)
+      assert sent.subject == "Reset your Makola password"
+      assert sent.text_body =~ "/auth/reset-password?token="
+      # Copy must match the configured 24h lifetime
+      assert sent.html_body =~ "24 hours"
     end
 
     test "an unknown email sends nothing and returns the same shape" do
       assert :ok = Strategy.action(strategy(), :reset_request, %{"email" => unique_email()})
-      refute_email_sent()
+      refute_receive {:email, _}, 300
     end
   end
 

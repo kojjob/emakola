@@ -19,20 +19,45 @@ defmodule EmakolaWeb.AuthTokens do
   @subject_exchange_salt "auth_subject_exchange_v1"
   @subject_exchange_max_age 60
 
-  @doc "Signs a subject string for storage in the session or a redirect URL."
+  @doc """
+  Signs a subject string for storage in the session or a redirect URL.
+
+  The payload carries an issued-at stamp so a session can be invalidated
+  server-side (see `Emakola.Accounts.session_live?/2`) — the signature alone
+  proves only that we minted the token, never that it is still current.
+  """
   def sign_subject(subject) when is_binary(subject) do
-    Phoenix.Token.sign(EmakolaWeb.Endpoint, @salt, subject)
+    Phoenix.Token.sign(EmakolaWeb.Endpoint, @salt, %{
+      "sub" => subject,
+      "iat" => System.system_time(:second)
+    })
   end
 
   @doc """
   Verifies a signed subject. Returns `{:ok, subject}` or `{:error, reason}`.
   Safely rejects nil and non-binary input.
   """
-  def verify_subject(signed) when is_binary(signed) do
-    Phoenix.Token.verify(EmakolaWeb.Endpoint, @salt, signed, max_age: @max_age)
+  def verify_subject(signed) do
+    with {:ok, subject, _issued_at} <- verify_subject_with_iat(signed), do: {:ok, subject}
   end
 
-  def verify_subject(_), do: {:error, :missing}
+  @doc """
+  Verifies a signed subject and returns its issued-at unix timestamp:
+  `{:ok, subject, issued_at}`.
+
+  Tokens minted before the payload carried `iat` verify with `issued_at: 0`,
+  so they keep working until a merchant's `sessions_valid_from` is set — at
+  which point they fail closed like any other stale session.
+  """
+  def verify_subject_with_iat(signed) when is_binary(signed) do
+    case Phoenix.Token.verify(EmakolaWeb.Endpoint, @salt, signed, max_age: @max_age) do
+      {:ok, %{"sub" => subject, "iat" => issued_at}} -> {:ok, subject, issued_at}
+      {:ok, subject} when is_binary(subject) -> {:ok, subject, 0}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def verify_subject_with_iat(_), do: {:error, :missing}
 
   @doc "Signs a platform `UserSession` id for the session cookie (valid 14 days)."
   def sign_platform_session(session_id) when is_binary(session_id) do

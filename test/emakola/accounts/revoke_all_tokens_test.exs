@@ -6,7 +6,7 @@ defmodule Emakola.Accounts.RevokeAllTokensTest do
   alias AshAuthentication.{Info, Strategy}
   alias Emakola.Accounts.{Merchant, Token}
 
-  test "revoke_all_tokens_for/1 marks every stored token for the merchant as revoked" do
+  test "revoke_all_sessions_for/1 revokes stored tokens and sets the session cutoff" do
     email = "revoke-#{System.unique_integer([:positive])}@example.com"
 
     merchant =
@@ -33,7 +33,7 @@ defmodule Emakola.Accounts.RevokeAllTokensTest do
 
     assert live_tokens != [], "expected sign-in to store at least one live token"
 
-    assert :ok = Emakola.Accounts.revoke_all_tokens_for(merchant)
+    assert :ok = Emakola.Accounts.revoke_all_sessions_for(merchant)
 
     remaining =
       Token
@@ -41,5 +41,9 @@ defmodule Emakola.Accounts.RevokeAllTokensTest do
       |> Ash.read!(authorize?: false)
 
     assert remaining == []
+
+    # Browser sessions are not rows — the cutoff is what invalidates them.
+    reloaded = Ash.get!(Merchant, merchant.id, authorize?: false)
+    assert reloaded.sessions_valid_from, "expected the session cutoff to be set"
   end
 end

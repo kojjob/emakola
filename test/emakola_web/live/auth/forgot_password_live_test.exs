@@ -15,6 +15,14 @@ defmodule EmakolaWeb.Auth.ForgotPasswordLiveTest do
     |> tap(fn _ -> flush_emails() end)
   end
 
+  # Reset mail is delivered off the request path (see PasswordResetSender —
+  # a synchronous send would leak account existence via response latency), so
+  # wait for it: Swoosh's assert_email_sent uses assert_received with no wait.
+  defp await_email(timeout \\ 2_000) do
+    assert_receive {:email, email}, timeout
+    email
+  end
+
   # Registration sends its own mail (welcome + confirmation); drain it so the
   # assertions below only see what the forgot-password flow sends.
   defp flush_emails do
@@ -39,11 +47,12 @@ defmodule EmakolaWeb.Auth.ForgotPasswordLiveTest do
 
     html =
       lv
-      |> form("form", forgot: %{email: email})
+      |> form("#forgot-password-form", forgot: %{email: email})
       |> render_submit()
 
     assert html =~ "If that email has a Makola account"
-    assert_email_sent(fn sent -> assert {_, ^email} = hd(sent.to) end)
+    sent = await_email()
+    assert {_, ^email} = hd(sent.to)
   end
 
   test "an unknown email shows the identical confirmation and sends nothing", %{conn: conn} do
@@ -57,7 +66,7 @@ defmodule EmakolaWeb.Auth.ForgotPasswordLiveTest do
       |> render_submit()
 
     assert html =~ "If that email has a Makola account"
-    refute_email_sent()
+    refute_receive {:email, _}, 300
   end
 
   test "the login page links here instead of href=#", %{conn: conn} do

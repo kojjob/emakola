@@ -50,7 +50,7 @@ defmodule EmakolaWeb.Auth.ResetPasswordLive do
             <span>{@flash["error"]}</span>
           </div>
 
-          <.form for={@form} phx-submit="reset_password" class="space-y-4">
+          <.form for={@form} id="reset-password-form" phx-submit="reset_password" class="space-y-4">
             <div>
               <label class="block text-sm font-medium text-[#0c1526] mb-1.5">New password</label>
               <input
@@ -101,8 +101,9 @@ defmodule EmakolaWeb.Auth.ResetPasswordLive do
            "password_confirmation" => params["password_confirmation"] || ""
          }) do
       {:ok, merchant} ->
-        # Password proof rotated — sign out every other device, attacker included.
-        Emakola.Accounts.revoke_all_tokens_for(merchant)
+        # Password proof rotated — sign out every other device, attacker
+        # included: Ash tokens revoked AND browser sessions invalidated.
+        Emakola.Accounts.revoke_all_sessions_for(merchant)
 
         {:noreply,
          socket

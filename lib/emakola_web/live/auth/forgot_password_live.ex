@@ -13,7 +13,7 @@ defmodule EmakolaWeb.Auth.ForgotPasswordLive do
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(client_ip: get_client_ip(socket))
+     |> assign(client_ip: EmakolaWeb.ClientIp.resolve(socket))
      |> assign(sent: false)
      |> assign(form: to_form(%{"email" => ""}, as: :forgot)), layout: false}
   end
@@ -55,7 +55,13 @@ defmodule EmakolaWeb.Auth.ForgotPasswordLive do
           </span>
         </div>
 
-        <.form :if={!@sent} for={@form} phx-submit="request_reset" class="space-y-4">
+        <.form
+          :if={!@sent}
+          for={@form}
+          id="forgot-password-form"
+          phx-submit="request_reset"
+          class="space-y-4"
+        >
           <div>
             <label class="block text-sm font-medium text-[#0c1526] mb-1.5">Email</label>
             <div class="relative">
@@ -126,16 +132,5 @@ defmodule EmakolaWeb.Auth.ForgotPasswordLive do
     exception ->
       Logger.error("[ForgotPassword] reset_request raised: #{Exception.message(exception)}")
       :ok
-  end
-
-  # Must be called during mount — get_connect_info is only available then
-  defp get_client_ip(socket) do
-    case Phoenix.LiveView.get_connect_info(socket, :peer_data) do
-      %{address: {a, b, c, d}} -> "#{a}.#{b}.#{c}.#{d}"
-      %{address: ip} -> to_string(:inet.ntoa(ip))
-      _ -> "unknown"
-    end
-  rescue
-    _ -> "unknown"
   end
 end

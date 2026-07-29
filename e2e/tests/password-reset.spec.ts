@@ -6,15 +6,25 @@ import { waitForLiveView } from "../support/live-view";
  * (/dev/mailbox/json, Swoosh Local adapter) -> set a new password -> sign in
  * with it.
  *
- * Uses efua@tinystitches.com, NOT kwame (his credentials back the shared
- * storageState), and always sets the same password so reruns are stable:
- * requesting a reset never needs the old password.
+ * Always sets the same password so reruns are stable: requesting a reset
+ * never needs the old password.
+ *
+ * Reset tokens are single-use and the dev mailbox is global, so the two
+ * Playwright projects must not share an account: whichever submits second
+ * would find its token already consumed. Each project gets its own seeded
+ * merchant. kwame is excluded — his credentials back the shared storageState.
  */
-const EMAIL = "efua@tinystitches.com";
+const MERCHANT_BY_PROJECT: Record<string, string> = {
+  "desktop-chrome": "efua@tinystitches.com",
+  "mobile-safari": "adjoa@accrafresh.com",
+};
+
 const NEW_PASSWORD = "Reset-Password-99!";
 
 test.describe("Merchant password reset", () => {
-  test("request -> email link -> new password -> login", async ({ page, request }) => {
+  test("request -> email link -> new password -> login", async ({ page, request }, testInfo) => {
+    const EMAIL = MERCHANT_BY_PROJECT[testInfo.project.name] ?? "efua@tinystitches.com";
+
     await page.goto("/auth/forgot-password");
     await waitForLiveView(page);
     await page.locator("input[name='forgot[email]']").fill(EMAIL);
