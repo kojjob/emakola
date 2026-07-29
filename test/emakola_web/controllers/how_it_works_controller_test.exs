@@ -58,4 +58,44 @@ defmodule EmakolaWeb.HowItWorksControllerTest do
 
     assert document |> LazyHTML.query(~s(a[href="/how-it-works"])) |> Enum.count() >= 2
   end
+
+  describe "GET /how-it-works/tour" do
+    test "renders the scroll film with its six scenes", %{conn: conn} do
+      html = conn |> get("/how-it-works/tour") |> html_response(200)
+      document = LazyHTML.from_document(html)
+
+      assert document |> LazyHTML.query("#tour-world") |> Enum.any?()
+      assert document |> LazyHTML.query(~s(script[src="/tour/scrub-engine.js"])) |> Enum.any?()
+      assert document |> LazyHTML.query(~s(script[src="/tour/tour.js"])) |> Enum.any?()
+
+      # The film config is a static asset; the six scenes and their posters live there.
+      config = File.read!("priv/static/tour/tour.js")
+      assert config =~ "mountScrollWorld"
+
+      for scene <- ~w(workshop shop checkout delivery split finale) do
+        assert config =~ "/tour/#{scene}.webp"
+      end
+    end
+
+    test "marketing navigation links to the tour", %{conn: conn} do
+      document =
+        conn
+        |> get("/")
+        |> html_response(200)
+        |> LazyHTML.from_document()
+
+      assert document |> LazyHTML.query(~s(a[href="/how-it-works/tour"])) |> Enum.count() >= 2
+    end
+
+    test "the explainer hero points its watch button at the tour", %{conn: conn} do
+      document =
+        conn
+        |> get("/how-it-works")
+        |> html_response(200)
+        |> LazyHTML.from_document()
+
+      assert document |> LazyHTML.query(~s(a[href="/how-it-works/tour"])) |> Enum.any?()
+      refute document |> LazyHTML.query(~s(a[href="#sale-journey"])) |> Enum.any?()
+    end
+  end
 end

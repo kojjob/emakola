@@ -44,6 +44,12 @@ defmodule EmakolaWeb.LandingComponents do
             >
               How it works
             </a>
+            <a
+              href="/how-it-works/tour"
+              class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors"
+            >
+              Watch the tour
+            </a>
             <a href="/#features" class="text-sm text-[#8896ab] hover:text-[#f1f5f9] transition-colors">
               Features
             </a>
@@ -104,6 +110,13 @@ defmodule EmakolaWeb.LandingComponents do
     >
       <a href="/how-it-works" phx-click={toggle_mobile_menu()} class="text-lg text-[#e2e8f0]">
         How it works
+      </a>
+      <a
+        href="/how-it-works/tour"
+        phx-click={toggle_mobile_menu()}
+        class="text-lg text-[#e2e8f0]"
+      >
+        Watch the tour
       </a>
       <a href="/#features" phx-click={toggle_mobile_menu()} class="text-lg text-[#e2e8f0]">
         Features
