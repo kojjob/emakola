@@ -188,6 +188,7 @@ defmodule EmakolaWeb.Router do
     live "/login", LoginLive
     live "/register", RegisterLive
     live "/whatsapp", WhatsAppLive
+    live "/forgot-password", ForgotPasswordLive
   end
 
   # Social-login (OAuth) request + callback routes for merchants AND customers,

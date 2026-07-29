@@ -143,7 +143,12 @@ defmodule EmakolaWeb.Auth.LoginLive do
             <div>
               <div class="flex items-center justify-between mb-1.5">
                 <label class="block text-sm font-medium text-[#0c1526]">Password</label>
-                <a href="#" class="text-xs font-medium text-[#2563eb] hover:underline">Forgot?</a>
+                <a
+                  href="/auth/forgot-password"
+                  class="text-xs font-medium text-[#2563eb] hover:underline"
+                >
+                  Forgot?
+                </a>
               </div>
               <div class="relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8896ab] text-xl">
