@@ -102,21 +102,91 @@ defmodule EmakolaWeb.SitemapControllerTest do
         })
         |> Ash.create!(authorize?: false)
 
+      _product =
+        create_product!(store,
+          title: "Category Product",
+          category_id: category.id,
+          status: :active
+        )
+
       body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
 
       assert body =~ "/s/#{store.slug}/category/#{category.slug}"
     end
 
-    test "includes all indexable static content hubs", %{conn: conn, store: store} do
+    test "omits empty or thin content hubs", %{conn: conn, store: store} do
+      body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
+
+      assert body =~ "/s/#{store.slug}/about</loc>"
+      assert body =~ "/s/#{store.slug}/contact</loc>"
+      assert body =~ "/s/#{store.slug}/policies</loc>"
+      refute body =~ "/s/#{store.slug}/products</loc>"
+      refute body =~ "/s/#{store.slug}/faq</loc>"
+      refute body =~ "/s/#{store.slug}/blog</loc>"
+      refute body =~ "/s/#{store.slug}/recipes</loc>"
+    end
+
+    test "includes populated content hubs", %{conn: conn, store: store} do
+      _product = create_product!(store, title: "Active Product", status: :active)
+
+      _page_content =
+        create_page_content!(store, %{
+          faq_items: [%{"question" => "Do you deliver?", "answer" => "Yes."}]
+        })
+
+      blog =
+        create_post!(store, %{title: "Store Story", type: :blog_post})
+        |> Ash.Changeset.for_update(:publish)
+        |> Ash.update!(authorize?: false)
+
+      recipe =
+        create_post!(store, %{title: "Store Recipe", type: :recipe})
+        |> Ash.Changeset.for_update(:publish)
+        |> Ash.update!(authorize?: false)
+
       body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
 
       assert body =~ "/s/#{store.slug}/products</loc>"
-      assert body =~ "/s/#{store.slug}/about</loc>"
-      assert body =~ "/s/#{store.slug}/contact</loc>"
       assert body =~ "/s/#{store.slug}/faq</loc>"
-      assert body =~ "/s/#{store.slug}/policies</loc>"
       assert body =~ "/s/#{store.slug}/blog</loc>"
       assert body =~ "/s/#{store.slug}/recipes</loc>"
+      assert body =~ "/s/#{store.slug}/blog/#{blog.slug}</loc>"
+      assert body =~ "/s/#{store.slug}/recipes/#{recipe.slug}</loc>"
+      refute body =~ "/s/#{store.slug}/blog/#{recipe.slug}</loc>"
+    end
+
+    test "includes non-empty published custom pages and excludes duplicate home", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, page} =
+        Emakola.Pages.create_page(
+          %{
+            store_id: store.id,
+            slug: "size-guide",
+            title: "Size guide",
+            published: true,
+            blocks: [%{"id" => "intro", "type" => "text_section", "content" => %{}}]
+          },
+          authorize?: false
+        )
+
+      {:ok, _home} =
+        Emakola.Pages.create_page(
+          %{
+            store_id: store.id,
+            slug: "home",
+            title: "Home",
+            published: true,
+            blocks: [%{"id" => "hero", "type" => "hero_banner", "content" => %{}}]
+          },
+          authorize?: false
+        )
+
+      body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
+
+      assert body =~ "/s/#{store.slug}/p/#{page.slug}</loc>"
+      refute body =~ "/s/#{store.slug}/p/home</loc>"
     end
 
     test "returns 404 for non-existent store", %{conn: conn} do
@@ -162,20 +232,26 @@ defmodule EmakolaWeb.SitemapControllerTest do
       assert body =~ "/s/#{store.slug}/sitemap.xml"
     end
 
-    test "disallows private pages", %{conn: conn, store: store} do
+    test "allows transactional pages to be crawled for their noindex meta tag", %{
+      conn: conn,
+      store: store
+    } do
       body = conn |> get("/s/#{store.slug}/robots.txt") |> response(200)
 
-      assert body =~ "Disallow: /s/#{store.slug}/cart"
-      assert body =~ "Disallow: /s/#{store.slug}/checkout"
-      assert body =~ "Disallow: /s/#{store.slug}/account"
+      assert body =~ "Disallow: /s/#{store.slug}/downloads/"
+      refute body =~ "Disallow: /s/#{store.slug}/cart"
+      refute body =~ "Disallow: /s/#{store.slug}/checkout"
+      refute body =~ "Disallow: /s/#{store.slug}/account"
     end
 
     test "explicitly allows AI crawlers", %{conn: conn, store: store} do
       body = conn |> get("/s/#{store.slug}/robots.txt") |> response(200)
 
+      assert body =~ "User-Agent: OAI-SearchBot"
       assert body =~ "User-Agent: GPTBot"
       assert body =~ "User-Agent: Google-Extended"
       assert body =~ "User-Agent: ClaudeBot"
+      assert body =~ "User-Agent: Claude-SearchBot"
       assert body =~ "User-Agent: PerplexityBot"
     end
 
@@ -197,6 +273,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
       body = response(conn, 200)
       assert body =~ "# #{store.name}"
       assert body =~ "Makola"
+      assert get_resp_header(conn, "x-robots-tag") == ["noindex"]
     end
 
     test "lists active products", %{conn: conn, store: store} do
@@ -221,7 +298,9 @@ defmodule EmakolaWeb.SitemapControllerTest do
 
       assert body =~ "For AI assistants"
       assert body =~ "GHS"
-      assert body =~ "mobile money"
+      assert body =~ "Confirm current price and availability"
+      assert body =~ "payment methods"
+      refute body =~ "All prices include VAT"
     end
 
     test "returns 404 for non-existent store", %{conn: conn} do
@@ -256,6 +335,7 @@ defmodule EmakolaWeb.SitemapControllerTest do
       assert body =~ "/pricing"
       assert body =~ "/docs"
       assert body =~ "/sitemap.xml"
+      assert get_resp_header(conn, "x-robots-tag") == ["noindex"]
     end
   end
 end

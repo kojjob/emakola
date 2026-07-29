@@ -9,6 +9,8 @@ defmodule EmakolaWeb.StoreUnavailableLive do
   """
   use EmakolaWeb, :live_view
 
+  on_mount {EmakolaWeb.Hooks.NoIndex, :default}
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok,

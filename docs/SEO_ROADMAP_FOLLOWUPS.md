@@ -12,6 +12,11 @@ Per-phase PRs: #164 (P0) · #165 (P1) · #166 (P2) · #167 (P3a) · #168 (P4) ·
 📖 **Plain-English step-by-step how-tos** for the switches, backlinks/social, and
 custom domains: **`docs/SEO_PLAYBOOK.md`**.
 
+> Historical status note: this file records the June 2026 roadmap and PR state.
+> For the current implementation audit and priorities, use
+> **`docs/SEO_AI_SEARCH_AUDIT_2026-07-29.md`**. Do not infer current merge or
+> rollout status from the old checkboxes below.
+
 ---
 
 ## 1. Merge the open PRs — do first

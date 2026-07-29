@@ -44,6 +44,7 @@ defmodule EmakolaWeb.Storefront.BlogListLive do
          |> assign(:categories, [])
          |> assign(:page_title, "Blog - #{store.name}")
          |> assign(:meta_description, "Articles and updates from #{store.name}.")
+         |> assign(:robots, if(posts == [], do: "noindex, follow", else: "index, follow"))
          |> assign(:canonical_url, Canonical.path(store, "/blog"))}
 
       {:error, :not_found} ->

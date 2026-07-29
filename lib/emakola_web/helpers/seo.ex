@@ -28,6 +28,25 @@ defmodule EmakolaWeb.Helpers.SEO do
   end
 
   @doc """
+  Chooses the first non-blank description candidate and truncates it cleanly
+  for search and social metadata.
+  """
+  @spec meta_description([term()], String.t()) :: String.t()
+  def meta_description(candidates, fallback) when is_list(candidates) and is_binary(fallback) do
+    candidates
+    |> first_non_blank(fallback)
+    |> truncate_at_word(155)
+  end
+
+  @doc "Chooses the first non-blank title candidate and keeps it preview-friendly."
+  @spec meta_title([term()], String.t()) :: String.t()
+  def meta_title(candidates, fallback) when is_list(candidates) and is_binary(fallback) do
+    candidates
+    |> first_non_blank(fallback)
+    |> truncate_at_word(60)
+  end
+
+  @doc """
   Generates an Open Graph tag map.
 
   Nil values for `image_url` and `url` are omitted from the result.
@@ -59,12 +78,15 @@ defmodule EmakolaWeb.Helpers.SEO do
     description =
       product_field(product, :seo_description) || product_field(product, :description)
 
+    product_url = EmakolaWeb.SEO.Canonical.product_url(store, product)
+
     base = %{
       "@context" => "https://schema.org",
       "@type" => "Product",
       "name" => product_field(product, :title),
       "description" => description,
-      "offers" => Enum.map(variants, &variant_to_offer(&1, store))
+      "url" => product_url,
+      "offers" => Enum.map(variants, &variant_to_offer(&1, store, product_url))
     }
 
     base
@@ -204,7 +226,8 @@ defmodule EmakolaWeb.Helpers.SEO do
 
   @doc """
   Generates schema.org FAQPage JSON-LD from a list of `%{question:, answer:}`
-  maps (atom or string keys). Drives the FAQ rich result + AI-citation answers.
+  maps (atom or string keys). This describes the visible content semantically;
+  Google no longer offers a general FAQ rich result.
   """
   @spec json_ld_faq(list(map())) :: map()
   def json_ld_faq(faqs) do
@@ -226,18 +249,18 @@ defmodule EmakolaWeb.Helpers.SEO do
   end
 
   @doc """
-  Generates schema.org LocalBusiness JSON-LD from a store's existing
-  city/region/address/phone/socials.
+  Generates schema.org identity JSON-LD from a store's verified profile data.
 
-  This is the single biggest free local-pack + AI-SEO lever — it tells search
-  engines this is a real business serving a real place. Address and `sameAs`
-  are omitted when no data is present; `addressCountry` is derived from currency.
+  A merchant with a street address is represented as `LocalBusiness`; an
+  online-only merchant is represented as `OnlineStore`. This avoids claiming a
+  physical location merely because a store has a city, region, or currency.
+  Optional address and social fields are omitted when blank.
   """
-  @spec json_ld_local_business(map()) :: map()
-  def json_ld_local_business(store) do
+  @spec json_ld_storefront(map()) :: map()
+  def json_ld_storefront(store) do
     %{
       "@context" => "https://schema.org",
-      "@type" => "LocalBusiness",
+      "@type" => storefront_schema_type(store),
       "name" => store_field(store, :name),
       "url" => EmakolaWeb.SEO.Canonical.store_url(store),
       "currenciesAccepted" => store_field(store, :currency)
@@ -249,6 +272,10 @@ defmodule EmakolaWeb.Helpers.SEO do
     |> maybe_put("address", postal_address(store))
     |> maybe_put("sameAs", social_profiles(store))
   end
+
+  @doc "Backward-compatible alias for `json_ld_storefront/1`."
+  @spec json_ld_local_business(map()) :: map()
+  def json_ld_local_business(store), do: json_ld_storefront(store)
 
   @doc """
   Returns a robots meta tag value based on indexability.
@@ -295,11 +322,36 @@ defmodule EmakolaWeb.Helpers.SEO do
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
-  defp variant_to_offer(variant, store) do
+  defp truncate_at_word(str, max) do
+    if String.length(str) <= max do
+      str
+    else
+      str
+      |> String.slice(0, max - 1)
+      |> String.trim_trailing()
+      |> String.replace(~r/\s+\S*$/, "")
+      |> Kernel.<>("…")
+    end
+  end
+
+  defp first_non_blank(candidates, fallback) do
+    Enum.find_value(candidates, fallback, fn
+      value when is_binary(value) ->
+        case String.trim(value) do
+          "" -> nil
+          text -> text
+        end
+
+      _ ->
+        nil
+    end)
+  end
+
+  defp variant_to_offer(variant, store, product_url) do
     price_major = format_price_major(variant_field(variant, :price))
 
     availability =
-      if variant_field(variant, :stock_quantity) > 0,
+      if variant_available?(variant),
         do: "https://schema.org/InStock",
         else: "https://schema.org/OutOfStock"
 
@@ -307,13 +359,26 @@ defmodule EmakolaWeb.Helpers.SEO do
       "@type" => "Offer",
       "price" => price_major,
       "priceCurrency" => store_field(store, :currency),
-      "availability" => availability
+      "availability" => availability,
+      "url" => product_url,
+      "seller" => %{
+        "@type" => "Organization",
+        "name" => store_field(store, :name)
+      }
     }
 
     case variant_field(variant, :sku) do
       nil -> offer
       sku -> Map.put(offer, "sku", sku)
     end
+  end
+
+  defp variant_available?(variant) do
+    sellable? = variant_field(variant, :available) != false
+    tracks_inventory? = variant_field(variant, :track_inventory) != false
+    stock_quantity = variant_field(variant, :stock_quantity) || 0
+
+    sellable? and (not tracks_inventory? or stock_quantity > 0)
   end
 
   defp format_price_major(amount_minor) when is_integer(amount_minor) do
@@ -391,14 +456,13 @@ defmodule EmakolaWeb.Helpers.SEO do
   end
 
   defp postal_address(store) do
-    street = store_field(store, :address)
-    city = store_field(store, :city)
-    region = store_field(store, :region)
+    street = optional_text(store_field(store, :address))
+    city = optional_text(store_field(store, :city))
+    region = optional_text(store_field(store, :region))
 
-    if street || city || region do
+    if street do
       %{
-        "@type" => "PostalAddress",
-        "addressCountry" => country_from_currency(store_field(store, :currency))
+        "@type" => "PostalAddress"
       }
       |> maybe_put("streetAddress", street)
       |> maybe_put("addressLocality", city)
@@ -406,23 +470,45 @@ defmodule EmakolaWeb.Helpers.SEO do
     end
   end
 
-  defp country_from_currency("NGN"), do: "NG"
-  defp country_from_currency(_), do: "GH"
+  defp storefront_schema_type(store) do
+    if optional_text(store_field(store, :address)),
+      do: "LocalBusiness",
+      else: "OnlineStore"
+  end
+
+  defp optional_text(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      text -> text
+    end
+  end
+
+  defp optional_text(_value), do: nil
 
   defp social_profiles(store) do
     [:instagram_url, :facebook_url, :tiktok_url, :youtube_url, :x_url]
     |> Enum.map(&store_field(store, &1))
-    |> Enum.reject(&(&1 in [nil, ""]))
+    |> Enum.map(&optional_text/1)
+    |> Enum.reject(&is_nil/1)
     |> case do
       [] -> nil
       urls -> urls
     end
   end
 
-  # Access fields from structs or plain maps with atom or string keys
-  defp post_field(post, key), do: Map.get(post, key) || Map.get(post, to_string(key))
-  defp recipe_field(meta, key), do: Map.get(meta, key) || Map.get(meta, to_string(key))
-  defp product_field(product, key), do: Map.get(product, key) || Map.get(product, to_string(key))
-  defp store_field(store, key), do: Map.get(store, key) || Map.get(store, to_string(key))
-  defp variant_field(variant, key), do: Map.get(variant, key) || Map.get(variant, to_string(key))
+  # Access fields from structs or plain maps with atom or string keys. Map.fetch
+  # preserves meaningful false/0 values that an `atom_value || string_value`
+  # fallback would accidentally discard.
+  defp post_field(post, key), do: field(post, key)
+  defp recipe_field(meta, key), do: field(meta, key)
+  defp product_field(product, key), do: field(product, key)
+  defp store_field(store, key), do: field(store, key)
+  defp variant_field(variant, key), do: field(variant, key)
+
+  defp field(data, key) do
+    case Map.fetch(data, key) do
+      {:ok, value} -> value
+      :error -> Map.get(data, to_string(key))
+    end
+  end
 end

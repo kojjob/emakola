@@ -31,6 +31,7 @@ defmodule EmakolaWeb.SitemapSubdomainTest do
       store: store,
       origin: origin
     } do
+      _product = create_product!(store, title: "Visible Product", status: :active)
       body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
 
       assert body =~ "<loc>#{origin}</loc>"
@@ -52,6 +53,13 @@ defmodule EmakolaWeb.SitemapSubdomainTest do
         Emakola.Catalog.Category
         |> Ash.Changeset.for_create(:create, %{name: "Textiles", store_id: store.id})
         |> Ash.create!(authorize?: false)
+
+      _product =
+        create_product!(store,
+          title: "Textile Product",
+          category_id: category.id,
+          status: :active
+        )
 
       body = conn |> get("/s/#{store.slug}/sitemap.xml") |> response(200)
 
@@ -103,7 +111,8 @@ defmodule EmakolaWeb.SitemapSubdomainTest do
         |> response(200)
 
       assert body =~ "Sitemap: #{origin}/sitemap.xml"
-      assert body =~ "Disallow: /cart"
+      assert body =~ "Disallow: /downloads/"
+      refute body =~ "Disallow: /cart"
       # store robots, NOT the generic platform robots, and root-relative on the subdomain
       refute body =~ "Disallow: /dashboard"
       refute body =~ "Disallow: /s/#{store.slug}"
@@ -115,7 +124,8 @@ defmodule EmakolaWeb.SitemapSubdomainTest do
         |> get("/robots.txt")
         |> response(200)
 
-      assert body =~ "Disallow: /dashboard"
+      assert body =~ "Disallow: /api/"
+      refute body =~ "Disallow: /dashboard"
       assert body =~ "Sitemap:"
     end
 
@@ -125,7 +135,8 @@ defmodule EmakolaWeb.SitemapSubdomainTest do
     } do
       body = conn |> get("/s/#{store.slug}/robots.txt") |> response(200)
 
-      assert body =~ "Disallow: /s/#{store.slug}/cart"
+      assert body =~ "Disallow: /s/#{store.slug}/downloads/"
+      refute body =~ "Disallow: /s/#{store.slug}/cart"
     end
   end
 

@@ -76,7 +76,10 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
          |> assign(:page_content, EmakolaWeb.Storefront.ContentLoader.load(store.id))
          |> assign(:cart_session_id, cart_session_id)
          |> assign(:cart_count, cart_count)
-         |> assign(:page_title, "#{product.title} - #{store.name}")
+         |> assign(
+           :page_title,
+           SEOHelpers.meta_title([product.seo_title], "#{product.title} - #{store.name}")
+         )
          |> assign_seo_metadata(store, product)
          |> assign(:reviews, load_reviews(product.id))
          |> assign(:review_form_rating, 0)
@@ -567,9 +570,9 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
 
     breadcrumb_json_ld =
       SEOHelpers.json_ld_breadcrumb([
-        %{name: store.name, url: "/s/#{store.slug}"},
-        %{name: "Products", url: "/s/#{store.slug}/products"},
-        %{name: product.title, url: "/s/#{store.slug}/products/#{product.slug}"}
+        %{name: store.name, url: EmakolaWeb.SEO.Canonical.store_url(store)},
+        %{name: "Products", url: EmakolaWeb.SEO.Canonical.path(store, "/products")},
+        %{name: product.title, url: EmakolaWeb.SEO.Canonical.product_url(store, product)}
       ])
 
     combined_json_ld = [product_json_ld, breadcrumb_json_ld]
@@ -583,28 +586,12 @@ defmodule EmakolaWeb.Storefront.ProductDetailLive do
   end
 
   # Prefer the SEO-specific description, fall back to the main description,
-  # then to a generic store-anchored fallback. Truncated to keep under
-  # ~155 chars so social platforms don't cut mid-sentence.
+  # then to a factual store-anchored fallback.
   defp product_description_for_seo(product, store) do
-    raw =
-      Map.get(product, :seo_description) ||
-        Map.get(product, :description) ||
-        "Shop #{product.title} at #{store.name} — authentic products, delivered across Ghana."
-
-    raw
-    |> to_string()
-    |> String.trim()
-    |> truncate_at_word(155)
-  end
-
-  defp truncate_at_word(str, max) when byte_size(str) <= max, do: str
-
-  defp truncate_at_word(str, max) do
-    str
-    |> binary_part(0, max)
-    |> String.trim_trailing()
-    |> String.replace(~r/\s+\S*$/, "")
-    |> Kernel.<>("…")
+    SEOHelpers.meta_description(
+      [Map.get(product, :seo_description), Map.get(product, :description)],
+      "View #{product.title} from #{store.name}, including current price, options, availability, and product details."
+    )
   end
 
   # Returns the URL of the product's first image (sorted by position),

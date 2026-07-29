@@ -15,6 +15,12 @@ defmodule EmakolaWeb.Hooks.AssignDefaultsTest do
 
       {:ok, view, html} = live(conn, ~p"/admin/products")
       assert html =~ "Products"
+
+      assert html
+             |> LazyHTML.from_fragment()
+             |> LazyHTML.query(~s(meta[name="robots"][content="noindex, nofollow"]))
+             |> Enum.any?()
+
       assert has_element?(view, "button", "New Product")
     end
 

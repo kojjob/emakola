@@ -17,6 +17,18 @@ defmodule EmakolaWeb.Storefront.AboutLiveTest do
 
       assert html =~ "Adwoa Threads"
       assert html =~ "Welcome to Adwoa Threads"
+
+      document = LazyHTML.from_fragment(html)
+
+      assert document
+             |> LazyHTML.query(
+               ~s(link[rel="canonical"][href="http://localhost:4000/s/#{store.slug}/about"])
+             )
+             |> Enum.any?()
+
+      assert document
+             |> LazyHTML.query(~s(script[type="application/ld+json"]))
+             |> LazyHTML.text() =~ ~s("OnlineStore")
     end
 
     test "does not leak the old hardcoded artisan/heritage prose", %{conn: conn} do

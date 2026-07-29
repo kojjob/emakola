@@ -42,10 +42,11 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
      |> assign(:page_title, "Shop - #{store.name}")
      |> assign(
        :meta_description,
-       "Browse the full collection at #{store.name}. Authentic products, secure mobile money checkout, fast delivery across Ghana."
+       "Browse products from #{store.name} with current prices, options, availability, delivery information, and store policies."
      )
      |> assign(:og_type, "website")
      |> assign(:og_site_name, store.name)
+     |> assign(:robots, if(products == [], do: "noindex, follow", else: "index, follow"))
      |> assign_search_defaults()}
   end
 

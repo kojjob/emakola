@@ -20,6 +20,13 @@ defmodule EmakolaWeb.Storefront.PoliciesLiveTest do
       assert html =~ ~s(id="terms")
       assert html =~ "Policy Store"
       assert html =~ "only collects the information"
+
+      assert html
+             |> LazyHTML.from_fragment()
+             |> LazyHTML.query(
+               ~s(link[rel="canonical"][href="http://localhost:4000/s/#{store.slug}/policies"])
+             )
+             |> Enum.any?()
     end
 
     test "renders the store's custom policy text", %{conn: conn} do

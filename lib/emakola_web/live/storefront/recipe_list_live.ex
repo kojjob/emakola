@@ -36,6 +36,7 @@ defmodule EmakolaWeb.Storefront.RecipeListLive do
          |> assign(:categories, [])
          |> assign(:page_title, "Recipes - #{store.name}")
          |> assign(:meta_description, "Recipes from #{store.name}.")
+         |> assign(:robots, if(posts == [], do: "noindex, follow", else: "index, follow"))
          |> assign(:canonical_url, Canonical.path(store, "/recipes"))}
 
       {:error, :not_found} ->
