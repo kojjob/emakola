@@ -51,4 +51,21 @@ defmodule Emakola.Accounts do
 
     resource(Emakola.Accounts.PhoneOtp)
   end
+
+  @doc """
+  Revoke every stored authentication token for a merchant — web sessions and
+  API refresh tokens alike. Used after a successful password reset so a
+  changed password signs out every other device (including an attacker's).
+  """
+  def revoke_all_tokens_for(merchant) do
+    subject = AshAuthentication.user_to_subject(merchant)
+
+    Emakola.Accounts.Token
+    |> Ash.bulk_update!(:revoke_all_stored_for_subject, %{subject: subject},
+      authorize?: false,
+      strategy: [:atomic, :atomic_batches, :stream]
+    )
+
+    :ok
+  end
 end
