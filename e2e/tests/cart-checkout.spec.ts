@@ -1,11 +1,12 @@
 import { test, expect } from "@playwright/test";
+import { waitForLiveView } from "../support/live-view";
 
 const STORE = "/s/kente-kingdom";
 
 test.describe("Cart & Checkout Flow", () => {
   test("add product to cart and see flash confirmation", async ({ page }) => {
     await page.goto(`${STORE}/products/handwoven-kente-clutch-bag`);
-    await page.waitForLoadState("networkidle");
+    await waitForLiveView(page);
     await page.getByRole("button", { name: "Add to Bag" }).click();
 
     await expect(page.locator("#flash-info")).toContainText("Added to cart", {
@@ -15,7 +16,7 @@ test.describe("Cart & Checkout Flow", () => {
 
   test("cart page shows added product with order summary", async ({ page }) => {
     await page.goto(`${STORE}/products/handwoven-kente-clutch-bag`);
-    await page.waitForLoadState("networkidle");
+    await waitForLiveView(page);
     await page.getByRole("button", { name: "Add to Bag" }).click();
     await expect(page.locator("#flash-info")).toContainText("Added to cart", {
       timeout: 10_000,
@@ -32,7 +33,7 @@ test.describe("Cart & Checkout Flow", () => {
 
   test("checkout page loads with form and payment options", async ({ page }) => {
     await page.goto(`${STORE}/products/handwoven-kente-clutch-bag`);
-    await page.waitForLoadState("networkidle");
+    await waitForLiveView(page);
     await page.getByRole("button", { name: "Add to Bag" }).click();
     await expect(page.locator("#flash-info")).toContainText("Added to cart", {
       timeout: 10_000,
