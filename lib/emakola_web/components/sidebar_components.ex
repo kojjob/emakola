@@ -753,7 +753,16 @@ defmodule EmakolaWeb.SidebarComponents do
 
           <div
             id="user-panel"
-            class="hidden absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl shadow-slate-200/80 border border-slate-200/80 overflow-hidden z-50"
+            class={
+              [
+                "hidden absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl",
+                "shadow-2xl shadow-slate-200/80 border border-slate-200/80 z-50",
+                # The admin shell is `h-screen` so the page itself never scrolls.
+                # Without a viewport cap this panel runs past the fold and its
+                # last item ("Sign out") becomes unclickable at 1280x800.
+                "max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain"
+              ]
+            }
           >
             <%!-- Profile header --%>
             <div class="px-5 pt-5 pb-4 bg-gradient-to-br from-slate-50 to-white border-b border-slate-100">
