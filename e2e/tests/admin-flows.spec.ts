@@ -1,5 +1,6 @@
 import { test, expect, Page } from "@playwright/test";
 import { MERCHANT_STORAGE_STATE } from "../support/auth-state";
+import { waitForLiveView } from "../support/live-view";
 
 /**
  * Merchant admin journeys: logout, live search, empty state, and the
@@ -11,7 +12,7 @@ const STORE = "/s/kente-kingdom";
 
 async function loginAsMerchant(page: Page) {
   await page.goto("/auth/login");
-  await page.waitForLoadState("networkidle");
+  await waitForLiveView(page);
   await page.locator("input[name='user[email]']").fill(MERCHANT.email);
   await page.locator("input[name='user[password]']").fill(MERCHANT.password);
   await page.getByRole("button", { name: "Sign In" }).click();
@@ -43,7 +44,7 @@ test.describe("Admin product search", () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto("/admin/products");
-    await page.waitForLoadState("networkidle");
+    await waitForLiveView(page);
   });
 
   test("live search narrows the list without a page reload", async ({ page }) => {
@@ -84,7 +85,7 @@ test.describe("Dashboard real-time updates", () => {
     // Two independent contexts: merchant watching the dashboard, shopper buying.
     // baseURL is passed explicitly — manually created contexts don't inherit
     // it from the project's `use` block.
-    const baseURL = "http://localhost:4000";
+    const baseURL = process.env.BASE_URL ?? "http://localhost:4000";
     const merchantCtx = await browser.newContext({
       baseURL,
       storageState: MERCHANT_STORAGE_STATE,

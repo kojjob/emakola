@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { waitForLiveView } from "../support/live-view";
 
 /**
  * Regression coverage for user-facing error text.
@@ -19,7 +20,7 @@ test.describe("User-facing error messages", () => {
     page,
   }) => {
     await page.goto("/auth/register");
-    await page.waitForLoadState("networkidle");
+    await waitForLiveView(page);
 
     await page.locator("input[name='user[name]']").fill("QA Short Password");
     await page
@@ -42,14 +43,14 @@ test.describe("User-facing error messages", () => {
     // a 401 from the gateway — exactly the path that used to dump the raw
     // {:gateway_error, %{...}} tuple into the page.
     await page.goto(PRODUCT);
-    await page.waitForLoadState("networkidle");
+    await waitForLiveView(page);
     await page.getByRole("button", { name: "Add to Bag" }).click();
     await expect(page.locator("#flash-info")).toContainText("Added to cart", {
       timeout: 10_000,
     });
 
     await page.goto(`${STORE}/checkout`);
-    await page.waitForLoadState("networkidle");
+    await waitForLiveView(page);
 
     await page.locator("#phone").fill("0244123777");
     await page.locator("#fullname").fill("QA Friendly Error");

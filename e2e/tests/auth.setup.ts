@@ -1,5 +1,6 @@
 import { test as setup, expect } from "@playwright/test";
 import { MERCHANT, MERCHANT_STORAGE_STATE } from "../support/auth-state";
+import { waitForLiveView } from "../support/live-view";
 
 /**
  * Authenticate once and persist the session for reuse.
@@ -17,7 +18,7 @@ import { MERCHANT, MERCHANT_STORAGE_STATE } from "../support/auth-state";
  */
 setup("authenticate as merchant", async ({ page }) => {
   await page.goto("/auth/login");
-  await page.waitForLoadState("networkidle");
+  await waitForLiveView(page);
 
   await page.locator("input[name='user[email]']").fill(MERCHANT.email);
   await page.locator("input[name='user[password]']").fill(MERCHANT.password);

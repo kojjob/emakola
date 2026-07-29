@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { waitForLiveView } from "../support/live-view";
 
 test.describe("Merchant Authentication", () => {
   test("shows login page with form elements", async ({ page }) => {
@@ -12,7 +13,7 @@ test.describe("Merchant Authentication", () => {
 
   test("shows error flash on invalid credentials", async ({ page }) => {
     await page.goto("/auth/login");
-    await page.waitForLoadState("networkidle");
+    await waitForLiveView(page);
     await page.getByRole("textbox", { name: /business\.com/ }).fill("wrong@email.com");
     await page.getByRole("textbox", { name: /password/i }).fill("badpassword");
     await page.getByRole("button", { name: "Sign In" }).click();
@@ -25,7 +26,7 @@ test.describe("Merchant Authentication", () => {
 
   test("successful login redirects to dashboard", async ({ page }) => {
     await page.goto("/auth/login");
-    await page.waitForLoadState("networkidle");
+    await waitForLiveView(page);
     await page.getByRole("textbox", { name: /business\.com/ }).fill("kwame@kentekingdom.com");
     await page.getByRole("textbox", { name: /password/i }).fill("Password123!");
     await page.getByRole("button", { name: "Sign In" }).click();
