@@ -160,36 +160,56 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
   def handle_event("pay", %{"buyer" => buyer}, socket) do
     %{link: link, store: store, variant: variant} = socket.assigns
 
-    if presence(buyer["phone"]) do
-      # Re-fetch by code rather than trusting the struct captured at mount —
-      # the merchant may have cancelled the link (or a rival buyer consumed
-      # it) in the time between page load and this submit. Checking
-      # `usable?` on a stale struct would let the buyer reach the gateway's
-      # hosted page on a link that's no longer supposed to be payable.
-      case Emakola.Orders.get_pay_link_by_code(link.code, authorize?: false) do
-        {:ok, fresh_link} ->
-          case PayLink.usable?(fresh_link) do
-            :ok ->
-              case create_order(fresh_link, store, buyer, socket.assigns.quantity) do
-                {:ok, order} ->
-                  initiate_payment(socket, store, order)
+    cond do
+      is_nil(presence(buyer["phone"])) ->
+        {:noreply,
+         assign(socket, form_errors: %{base: "Please enter a phone number."}, processing: false)}
 
-                {:error, reason} ->
-                  {:noreply,
-                   assign(socket, form_errors: %{base: friendly_error(reason)}, processing: false)}
-              end
+      not valid_phone?(buyer["phone"]) ->
+        {:noreply,
+         assign(socket, form_errors: %{base: "Enter a valid phone number"}, processing: false)}
 
-            {:error, _reason} ->
-              {:noreply, refresh_inactive_state(socket, fresh_link, store, variant)}
-          end
+      true ->
+        # Re-fetch by code rather than trusting the struct captured at mount —
+        # the merchant may have cancelled the link (or a rival buyer consumed
+        # it) in the time between page load and this submit. Checking
+        # `usable?` on a stale struct would let the buyer reach the gateway's
+        # hosted page on a link that's no longer supposed to be payable.
+        case Emakola.Orders.get_pay_link_by_code(link.code, authorize?: false) do
+          {:ok, fresh_link} ->
+            case PayLink.usable?(fresh_link) do
+              :ok ->
+                case create_order(fresh_link, store, buyer, socket.assigns.quantity) do
+                  {:ok, order} ->
+                    initiate_payment(socket, store, order)
 
-        {:error, _reason} ->
-          {:noreply, refresh_inactive_state(socket, link, store, variant)}
-      end
-    else
-      {:noreply,
-       assign(socket, form_errors: %{base: "Please enter a phone number."}, processing: false)}
+                  {:error, reason} ->
+                    {:noreply,
+                     assign(socket,
+                       form_errors: %{base: friendly_error(reason)},
+                       processing: false
+                     )}
+                end
+
+              {:error, _reason} ->
+                {:noreply, refresh_inactive_state(socket, fresh_link, store, variant)}
+            end
+
+          {:error, _reason} ->
+            {:noreply, refresh_inactive_state(socket, link, store, variant)}
+        end
     end
+  end
+
+  # Rejects phones that normalize to fewer than 9 significant digits (e.g.
+  # "abc", a truncated number) with a friendly error before checkout, rather
+  # than letting a garbage phone through to CheckoutService.
+  defp valid_phone?(phone) do
+    phone
+    |> Emakola.Accounts.PhoneAuth.normalize()
+    |> String.replace(~r/\D/, "")
+    |> String.length()
+    |> Kernel.>=(9)
   end
 
   # Mirrors mount's `page_state/3` so a link that turned unusable between

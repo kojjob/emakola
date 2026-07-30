@@ -158,6 +158,29 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
     assert order.total == 25_000
   end
 
+  test "invalid phone renders a friendly error and creates no order", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+
+    html =
+      view
+      |> form("#pay-link-form", %{
+        "buyer" => %{"name" => "Ama Mensah", "phone" => "abc"}
+      })
+      |> render_submit()
+
+    assert html =~ "Enter a valid phone number"
+
+    orders =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    assert orders == []
+  end
+
   test "typing into the buyer form updates the field via the validate handler", %{conn: conn} do
     store = Emakola.Factory.create_store!()
     link = custom_link!(store)
