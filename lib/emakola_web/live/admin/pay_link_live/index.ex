@@ -437,6 +437,23 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
               <span class="text-sm text-slate-600">Collect a delivery address at checkout</span>
             </label>
 
+            <label
+              :if={@store.buyer_protection_enabled}
+              class="flex items-center gap-2 cursor-pointer"
+            >
+              <input type="hidden" name="pay_link[protected]" value="false" />
+              <input
+                type="checkbox"
+                name="pay_link[protected]"
+                value="true"
+                checked
+                class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+              />
+              <span class="text-sm text-slate-600">
+                Buyer Protection — hold payment until delivery is confirmed
+              </span>
+            </label>
+
             <p :if={@form_errors[:base]} class="text-sm text-red-600">{@form_errors.base}</p>
 
             <div class="flex justify-end gap-3 pt-2">
@@ -558,7 +575,8 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
        }
        |> maybe_put(:expires_at, expiry)
        |> maybe_put(:note, presence(params["note"]))
-       |> maybe_put_collect_delivery(params)}
+       |> maybe_put_collect_delivery(params)
+       |> maybe_put_protected(params)}
     else
       {:title, nil} -> {:error, "Enter a title for this deal."}
       {:error, message} -> {:error, message}
@@ -580,7 +598,8 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
        }
        |> maybe_put(:expires_at, expiry)
        |> maybe_put(:note, presence(params["note"]))
-       |> maybe_put_collect_delivery(params)}
+       |> maybe_put_collect_delivery(params)
+       |> maybe_put_protected(params)}
     else
       {:variant, nil} -> {:error, "Choose a product for this pay link."}
       {:error, message} -> {:error, message}
@@ -639,6 +658,14 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
     do: Map.put(attrs, :collect_delivery, value in ["true", "on"])
 
   defp maybe_put_collect_delivery(attrs, _params), do: attrs
+
+  # Only present in params when the override checkbox was rendered (store's
+  # buyer_protection_enabled is on); otherwise `protected` is left unset and
+  # PayLink's :create change inherits the store setting.
+  defp maybe_put_protected(attrs, %{"protected" => value}),
+    do: Map.put(attrs, :protected, value in ["true", "on"])
+
+  defp maybe_put_protected(attrs, _params), do: attrs
 
   defp create_error(error), do: Exception.message(error)
 

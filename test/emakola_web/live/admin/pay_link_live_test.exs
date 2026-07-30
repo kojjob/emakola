@@ -45,6 +45,45 @@ defmodule EmakolaWeb.Admin.PayLinkLiveTest do
     assert html =~ "wa.me"
   end
 
+  test "the buyer protection override checkbox is hidden when the store setting is off",
+       %{conn: conn} do
+    {:ok, view, _} = live(conn, "/admin/pay-links")
+
+    html = view |> element("button", "New pay link") |> render_click()
+
+    refute html =~ "Buyer Protection — hold payment until delivery is confirmed"
+  end
+
+  test "the buyer protection override checkbox appears when the store setting is on, and an explicit override wins",
+       %{conn: conn, store: store} do
+    store
+    |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+    |> Ash.update!(authorize?: false)
+
+    {:ok, view, _} = live(conn, "/admin/pay-links")
+
+    html = view |> element("button", "New pay link") |> render_click()
+    assert html =~ "Buyer Protection — hold payment until delivery is confirmed"
+
+    view
+    |> form("#pay-link-create-form", %{
+      "pay_link" => %{
+        "type" => "custom",
+        "title" => "Kente",
+        "amount_ghs" => "250",
+        "protected" => "false"
+      }
+    })
+    |> render_submit()
+
+    link =
+      Emakola.Orders.PayLink
+      |> Ash.read!(authorize?: false)
+      |> Enum.find(&(&1.title == "Kente"))
+
+    assert link.protected == false
+  end
+
   test "creates a custom link with an optional expiry and note", %{conn: conn} do
     {:ok, view, _} = live(conn, "/admin/pay-links")
 

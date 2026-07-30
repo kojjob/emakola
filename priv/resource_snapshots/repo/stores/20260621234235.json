@@ -229,6 +229,18 @@
       "type": "boolean"
     },
     {
+      "allow_nil?": true,
+      "default": "false",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "buyer_protection_enabled",
+      "type": "boolean"
+    },
+    {
       "allow_nil?": false,
       "default": "\"active\"",
       "generated?": false,

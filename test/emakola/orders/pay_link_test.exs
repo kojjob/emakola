@@ -18,6 +18,37 @@ defmodule Emakola.Orders.PayLinkTest do
     assert_in_delta DateTime.diff(link.expires_at, DateTime.utc_now(), :day), 7, 1
   end
 
+  test "protected defaults to true when the store's buyer protection is on" do
+    store = Emakola.Factory.create_store!()
+
+    store
+    |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+    |> Ash.update!(authorize?: false)
+
+    link = create!(store, %{type: :custom, title: "Deal", amount: 25_000})
+
+    assert link.protected == true
+  end
+
+  test "protected defaults to false when the store's buyer protection is off" do
+    store = Emakola.Factory.create_store!()
+    link = create!(store, %{type: :custom, title: "Deal", amount: 25_000})
+
+    assert link.protected == false
+  end
+
+  test "an explicit protected: false param wins over a store with buyer protection on" do
+    store = Emakola.Factory.create_store!()
+
+    store
+    |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+    |> Ash.update!(authorize?: false)
+
+    link = create!(store, %{type: :custom, title: "Deal", amount: 25_000, protected: false})
+
+    assert link.protected == false
+  end
+
   test "catalog link has no default expiry and keeps its variant" do
     store = Emakola.Factory.create_store!()
     product = Emakola.Factory.create_product!(store)

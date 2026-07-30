@@ -63,6 +63,12 @@ defmodule Emakola.Orders.PayLink do
     attribute(:amount, :integer, public?: true)
     attribute(:collect_delivery, :boolean, allow_nil?: false, default: true, public?: true)
 
+    # TC-2 Buyer Protection per-link override. No default here — nil means
+    # "inherit the store setting", resolved by the `:create` change below.
+    # Explicit true/false (incl. explicit false on a protection-on store)
+    # always wins over the store default.
+    attribute(:protected, :boolean, public?: true)
+
     attribute :status, :atom do
       allow_nil?(false)
       default(:active)
@@ -161,12 +167,32 @@ defmodule Emakola.Orders.PayLink do
         :title,
         :amount,
         :collect_delivery,
+        :protected,
         :expires_at,
         :note,
         :created_by_user_id
       ])
 
       change(Emakola.Orders.Changes.GeneratePayLinkCode)
+
+      # Buyer Protection default: an explicit `protected` param always wins;
+      # when absent, inherit the store's `buyer_protection_enabled` setting.
+      change(fn changeset, _ctx ->
+        case Ash.Changeset.get_attribute(changeset, :protected) do
+          nil ->
+            store_id = Ash.Changeset.get_attribute(changeset, :store_id)
+            store = Ash.get!(Emakola.Stores.Store, store_id, authorize?: false)
+
+            Ash.Changeset.force_change_attribute(
+              changeset,
+              :protected,
+              store.buyer_protection_enabled == true
+            )
+
+          _explicit ->
+            changeset
+        end
+      end)
 
       # Custom deals go stale: default 7-day expiry when none given.
       change(fn changeset, _ctx ->
