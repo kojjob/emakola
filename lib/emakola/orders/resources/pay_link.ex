@@ -183,6 +183,35 @@ defmodule Emakola.Orders.PayLink do
           changeset
         end
       end)
+
+      # A catalog link's variant_id must belong to the same store as the
+      # link — the admin UI already guards this (only lists the store's own
+      # variants), but this JSON:API create route accepts variant_id as a
+      # raw attribute with no such guard.
+      change(fn changeset, _ctx ->
+        with :catalog <- Ash.Changeset.get_attribute(changeset, :type),
+             variant_id when not is_nil(variant_id) <-
+               Ash.Changeset.get_attribute(changeset, :variant_id),
+             store_id when not is_nil(store_id) <-
+               Ash.Changeset.get_attribute(changeset, :store_id),
+             {:ok, variant} <-
+               Ash.get(Emakola.Catalog.Variant, variant_id, authorize?: false) do
+          if variant.store_id == store_id do
+            changeset
+          else
+            Ash.Changeset.add_error(changeset,
+              field: :variant_id,
+              message: "does not belong to this store"
+            )
+          end
+        else
+          {:error, _} ->
+            Ash.Changeset.add_error(changeset, field: :variant_id, message: "not found")
+
+          _ ->
+            changeset
+        end
+      end)
     end
 
     # No store context here by design — a buyer opens `/pay/:code` before

@@ -28,6 +28,22 @@ defmodule Emakola.Orders.PayLinkTest do
     assert link.variant_id == variant.id
   end
 
+  test "catalog link's variant_id must belong to the tenant" do
+    store_a = Emakola.Factory.create_store!()
+    store_b = Emakola.Factory.create_store!()
+    product = Emakola.Factory.create_product!(store_b)
+    variant = Emakola.Factory.create_variant!(product, store_b)
+
+    assert {:error, %Ash.Error.Invalid{}} =
+             PayLink
+             |> Ash.Changeset.for_create(:create, %{
+               store_id: store_a.id,
+               type: :catalog,
+               variant_id: variant.id
+             })
+             |> Ash.create(authorize?: false)
+  end
+
   test "custom link requires amount >= 100" do
     store = Emakola.Factory.create_store!()
 
