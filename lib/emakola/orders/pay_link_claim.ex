@@ -7,6 +7,11 @@ defmodule Emakola.Orders.PayLinkClaim do
   wins. A loser (second in-flight payment on a just-consumed link) gets its
   order flagged for merchant refund attention rather than silently
   double-selling. Never raises into the webhook worker.
+
+  Idempotent per order: the winning claim records `claimed_order_id` on the
+  link, so a webhook job that retries after a downstream failure (workers
+  must be idempotent) recognizes its OWN prior claim and no-ops instead of
+  flagging its own legitimate order for a refund it doesn't need.
   """
 
   import Ecto.Query, only: [from: 2]
@@ -34,7 +39,11 @@ defmodule Emakola.Orders.PayLinkClaim do
           from(pl in "pay_links",
             where: pl.id == type(^pay_link_id, :binary_id),
             lock: "FOR UPDATE",
-            select: %{type: pl.type, status: pl.status}
+            select: %{
+              type: pl.type,
+              status: pl.status,
+              claimed_order_id: type(pl.claimed_order_id, :binary_id)
+            }
           )
         )
 
@@ -43,8 +52,14 @@ defmodule Emakola.Orders.PayLinkClaim do
           link = Ash.get!(Emakola.Orders.PayLink, pay_link_id, authorize?: false)
 
           link
-          |> Ash.Changeset.for_update(:mark_paid, %{})
+          |> Ash.Changeset.for_update(:mark_paid, %{claimed_order_id: order.id})
           |> Ash.update!(authorize?: false)
+
+        %{type: "custom", status: "paid", claimed_order_id: claimed_order_id}
+        when claimed_order_id == order.id ->
+          # This order already won the claim — a webhook retry after a
+          # downstream failure, not a race. Idempotent no-op.
+          :ok
 
         %{type: "custom", status: "paid"} ->
           Logger.error(

@@ -53,6 +53,13 @@ defmodule Emakola.Orders.PayLink do
     attribute(:note, :string, public?: true, constraints: [max_length: 500])
     attribute(:opened_count, :integer, allow_nil?: false, default: 0, public?: true)
     attribute(:created_by_user_id, :uuid, public?: true)
+
+    # Set by PayLinkClaim.claim_for_order/1 when the link transitions to
+    # :paid. Distinguishes an idempotent retry of the SAME winning order's
+    # webhook job (claimed_order_id matches, no-op) from a genuine second
+    # order racing a just-consumed link (claimed_order_id differs, flag for
+    # refund attention).
+    attribute(:claimed_order_id, :uuid, public?: true)
     timestamps()
   end
 
@@ -156,7 +163,7 @@ defmodule Emakola.Orders.PayLink do
     end
 
     update :mark_paid do
-      accept([])
+      accept([:claimed_order_id])
       validate(attribute_in(:status, [:active]))
       change(set_attribute(:status, :paid))
     end

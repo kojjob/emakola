@@ -55,6 +55,19 @@ defmodule Emakola.Orders.PayLinkClaimTest do
     assert reloaded.notes =~ "already used"
   end
 
+  test "retrying the same order's claim is idempotent — no refund note, stays paid" do
+    store = Emakola.Factory.create_store!()
+    {link, order} = custom_link_and_order(store)
+
+    assert :ok = PayLinkClaim.claim_for_order(order.id)
+    assert :ok = PayLinkClaim.claim_for_order(order.id)
+
+    assert Ash.get!(PayLink, link.id, authorize?: false, tenant: store.id).status == :paid
+
+    reloaded = Ash.get!(Emakola.Orders.Order, order.id, authorize?: false, tenant: store.id)
+    refute "#{reloaded.notes}" =~ "already used"
+  end
+
   test "orders without a pay link are a no-op" do
     store = Emakola.Factory.create_store!()
 
