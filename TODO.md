@@ -358,7 +358,7 @@ reuses protection's held-funds ledger, addressing is independent.
       Spec: `docs/superpowers/specs/2026-07-30-susu-layaway-design.md` ✅ specced
 - [ ] **GhanaPost GPS + landmark addressing** — digital address code
       (GA-183-8164) + landmark field on address forms/checkout/dispatch views.
-      Spec pending.
+      Spec: `docs/superpowers/specs/2026-07-30-ghanapost-addressing-design.md` ✅ specced
 
 ---
 
