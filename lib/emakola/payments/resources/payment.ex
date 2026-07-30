@@ -260,7 +260,10 @@ defmodule Emakola.Payments.Payment do
 
     update :release_payout_hold do
       require_atomic?(false)
-      accept([])
+      # `payable_amount` is optional here: buyer-protection release (Task 5)
+      # passes the hold's snapshotted net; the group-buy escrow release
+      # (group_buys.ex) calls this with no arguments and is unaffected.
+      accept([:payable_amount])
       change(set_attribute(:payout_held, false))
       change(set_attribute(:payout_released_at, &DateTime.utc_now/0))
     end

@@ -75,7 +75,11 @@ defmodule Emakola.Payments.PayoutService do
           Emakola.Repo.rollback(:nothing_outstanding)
         end
 
-        amount = claimed |> Enum.map(& &1.amount) |> Enum.sum()
+        # A released buyer-protection hold snapshots `payable_amount` (the net,
+        # after the platform fee) on the payment — pay that instead of the
+        # gross `amount` when present. Unprotected payments have no
+        # `payable_amount`, so `|| amount` leaves them byte-identical.
+        amount = claimed |> Enum.map(&(&1.payable_amount || &1.amount)) |> Enum.sum()
         reference = "po_" <> Ecto.UUID.generate()
 
         {:ok, payout} =
