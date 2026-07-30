@@ -92,6 +92,60 @@ defmodule Emakola.Orders.PayLinkTest do
     assert updated.opened_count == 1
   end
 
+  test "cancel transitions an active link to cancelled" do
+    store = Emakola.Factory.create_store!()
+    link = create!(store, %{type: :custom, title: "Deal", amount: 25_000})
+
+    updated =
+      link
+      |> Ash.Changeset.for_update(:cancel, %{})
+      |> Ash.update!(authorize?: false)
+
+    assert updated.status == :cancelled
+  end
+
+  test "mark_paid transitions an active link to paid" do
+    store = Emakola.Factory.create_store!()
+    link = create!(store, %{type: :custom, title: "Deal", amount: 25_000})
+
+    updated =
+      link
+      |> Ash.Changeset.for_update(:mark_paid, %{})
+      |> Ash.update!(authorize?: false)
+
+    assert updated.status == :paid
+  end
+
+  test "cancel rejects a link that is already paid" do
+    store = Emakola.Factory.create_store!()
+    link = create!(store, %{type: :custom, title: "Deal", amount: 25_000})
+
+    paid =
+      link
+      |> Ash.Changeset.for_update(:mark_paid, %{})
+      |> Ash.update!(authorize?: false)
+
+    assert {:error, %Ash.Error.Invalid{}} =
+             paid
+             |> Ash.Changeset.for_update(:cancel, %{})
+             |> Ash.update(authorize?: false)
+  end
+
+  test "mark_paid rejects a link that is already cancelled" do
+    store = Emakola.Factory.create_store!()
+    link = create!(store, %{type: :custom, title: "Deal", amount: 25_000})
+
+    cancelled =
+      link
+      |> Ash.Changeset.for_update(:cancel, %{})
+      |> Ash.update!(authorize?: false)
+
+    assert {:error, %Ash.Error.Invalid{}} =
+             cancelled
+             |> Ash.Changeset.for_update(:mark_paid, %{})
+             |> Ash.update(authorize?: false)
+  end
+
   test "the code unique index spans every store — get_by_code has no tenant to disambiguate with" do
     result =
       Emakola.Repo.query!(
