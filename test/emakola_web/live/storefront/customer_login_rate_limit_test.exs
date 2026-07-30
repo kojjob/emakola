@@ -14,12 +14,22 @@ defmodule EmakolaWeb.Storefront.CustomerLoginRateLimitTest do
   import Phoenix.LiveViewTest
 
   @limit 10
+  @window_ms 60_000
 
   setup do
     # Emakola.RateLimit is a live Hammer/ETS counter in tests (deliberately not
     # covered by :disable_rate_limit), so give each run its own bucket.
     store = Emakola.Factory.create_store!()
     %{store: store}
+  end
+
+  # Hammer's :fix_window buckets are epoch-aligned, so a test that starts near a
+  # boundary splits its counts across two windows and the Nth attempt is
+  # (correctly) allowed — the flake pattern from PR #174. Same helper shape as
+  # test/emakola/suppliers/network_test.exs.
+  defp await_fresh_window(window_ms, guard_ms) do
+    remaining = window_ms - rem(System.system_time(:millisecond), window_ms)
+    if remaining < guard_ms, do: Process.sleep(remaining + 10)
   end
 
   defp submit_login(lv, email) do
@@ -29,6 +39,9 @@ defmodule EmakolaWeb.Storefront.CustomerLoginRateLimitTest do
   end
 
   test "customer login is throttled after the per-IP limit", %{conn: conn, store: store} do
+    # Needs the whole 11-attempt sequence inside one window.
+    await_fresh_window(@window_ms, 15_000)
+
     {:ok, lv, _html} = live(conn, ~p"/s/#{store.slug}/login")
 
     email = "shopper-#{System.unique_integer([:positive])}@example.com"
