@@ -324,6 +324,12 @@ defmodule EmakolaWeb.SidebarComponents do
           icon="megaphone"
           active={@active_nav == :campaigns}
         />
+        <.sidebar_link
+          href="/admin/pay-links"
+          title="Pay Links"
+          icon="payments"
+          active={@active_nav == :pay_links}
+        />
 
         <%!-- Content & Design --%>
         <p class="nav-section-label px-3 text-[10px] font-semibold text-white/25 uppercase tracking-[0.12em] mt-6 mb-1.5">

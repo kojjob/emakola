@@ -71,6 +71,16 @@ defmodule Emakola.Orders.PayLink do
     identity(:unique_code, [:code], all_tenants?: true)
   end
 
+  relationships do
+    has_many :orders, Emakola.Orders.Order do
+      destination_attribute(:pay_link_id)
+    end
+  end
+
+  aggregates do
+    count(:paid_orders_count, :orders)
+  end
+
   policies do
     bypass action_type(:action) do
       authorize_if(always())
@@ -154,6 +164,12 @@ defmodule Emakola.Orders.PayLink do
       get?(true)
       argument(:code, :string, allow_nil?: false)
       filter(expr(code == ^arg(:code)))
+    end
+
+    # Merchant admin listing — tenant-scoped by the caller-supplied `tenant:`
+    # (attribute multitenancy filters to that store automatically).
+    read :list_for_admin do
+      prepare(build(sort: [inserted_at: :desc], load: [:paid_orders_count]))
     end
 
     update :cancel do

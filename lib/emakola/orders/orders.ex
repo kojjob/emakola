@@ -36,6 +36,7 @@ defmodule Emakola.Orders do
       define(:get_pay_link_by_code, action: :get_by_code, args: [:code])
       define(:cancel_pay_link, action: :cancel)
       define(:mark_pay_link_paid, action: :mark_paid)
+      define(:list_pay_links_for_admin, action: :list_for_admin)
     end
 
     resource Emakola.Orders.Fulfillment do

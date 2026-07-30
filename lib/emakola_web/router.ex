@@ -488,6 +488,7 @@ defmodule EmakolaWeb.Router do
       live "/admin/campaigns", Admin.CampaignLive.Index
       live "/admin/discounts", Admin.DiscountLive.Index
       live "/admin/coupons", Admin.CouponLive
+      live "/admin/pay-links", Admin.PayLinkLive.Index
 
       # Content management
       live "/admin/content/posts", Admin.Content.PostLive.Index
