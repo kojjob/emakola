@@ -353,8 +353,9 @@ reuses protection's held-funds ledger, addressing is independent.
       confirmation; builds on settlement engine + refund liability.
       Spec: `docs/superpowers/specs/2026-07-30-buyer-protection-design.md` ✅ specced
 - [ ] **Susu lay-away** — installment purchase (MoMo chunks, goods release
-      when fully paid, balance refundable); shares held-funds ledger design
-      with Buyer Protection. Spec pending.
+      when fully paid, balance refundable); shares held-funds design
+      with Buyer Protection.
+      Spec: `docs/superpowers/specs/2026-07-30-susu-layaway-design.md` ✅ specced
 - [ ] **GhanaPost GPS + landmark addressing** — digital address code
       (GA-183-8164) + landmark field on address forms/checkout/dispatch views.
       Spec pending.
