@@ -302,8 +302,10 @@ image-upload endpoints must be added before the Flutter merchant app can build t
       Shareable DM checkout links (catalog + single-use custom amount),
       express checkout at `/pay/:code`, admin funnel (created → opened → paid),
       JSON:API exposure. Ships standalone.
-- [ ] **TC-2: Buyer Protection** — spec pending. Escrow-lite payout hold until
-      delivery confirmation; the trust reason a stranger pays through Makola.
+- [ ] **TC-2: Buyer Protection** — 📝 SPECCED (`2026-07-30-buyer-protection-design.md`).
+      Escrow-lite payout hold until delivery confirmation; the trust reason a
+      stranger pays through Makola. No merchant gateway share at charge; release
+      via delivery OTP / buyer confirm / 5-day timer; freeze-on-complaint.
 - [ ] **TC-3: Susu lay-away** — spec pending. Installment purchase in MoMo
       chunks; goods release when fully paid; reuses TC-2's held-funds ledger.
 - [ ] **TC-4: GhanaPost GPS + landmark addressing** — spec pending. Digital

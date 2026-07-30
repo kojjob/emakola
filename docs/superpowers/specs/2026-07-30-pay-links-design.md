@@ -56,6 +56,7 @@ point, like `CheckoutService`, not a payment record.
 | `note` | string, optional | private merchant memo; never rendered to buyers |
 | `opened_count` | integer | incremented on **connected** LiveView mount only — dead renders and WhatsApp link-preview prefetches must not count; funnel telemetry |
 | `created_by_user_id` | uuid | |
+| `protected` | boolean | added by spec 2 (`2026-07-30-buyer-protection-design.md`): inherits the store's `buyer_protection_enabled` at creation, per-link override |
 
 ### Changes to existing resources
 

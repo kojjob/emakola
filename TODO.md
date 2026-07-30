@@ -350,7 +350,8 @@ reuses protection's held-funds ledger, addressing is independent.
       (single-use); ad-hoc line items via nullable `LineItem.variant_id`.
       Spec: `docs/superpowers/specs/2026-07-30-pay-links-design.md` ✅ specced
 - [ ] **Buyer Protection** — escrow-lite payout hold until delivery
-      confirmation; builds on settlement engine + refund liability. Spec pending.
+      confirmation; builds on settlement engine + refund liability.
+      Spec: `docs/superpowers/specs/2026-07-30-buyer-protection-design.md` ✅ specced
 - [ ] **Susu lay-away** — installment purchase (MoMo chunks, goods release
       when fully paid, balance refundable); shares held-funds ledger design
       with Buyer Protection. Spec pending.
