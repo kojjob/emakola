@@ -35,7 +35,7 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
          |> assign(:store, store)
          |> assign(:variant, variant)
          |> assign(:state, page_state(link, store, variant))
-         |> assign(:quantity, 1)
+         |> assign(:quantity, initial_quantity(link, variant))
          |> assign(:processing, false)
          |> assign(:buyer, %{"name" => "", "phone" => "", "email" => "", "address" => ""})
          |> assign(:form_errors, %{})
@@ -89,6 +89,19 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
 
   defp out_of_stock?(link, variant),
     do: not Emakola.Catalog.Variant.in_stock?(variant, link.quantity)
+
+  # The admin's WhatsApp quote is price × link.quantity (see
+  # PayLinkLive.Index.amount_for/2) — a catalog link created for a bulk
+  # order (say, quantity: 5) must show that same total on first render, not
+  # a ×1 amount the buyer would have to notice and correct themselves.
+  # Clamped into `quantity_options/2`'s own range so a link.quantity that
+  # has since outgrown current stock doesn't preselect an unbuyable value.
+  defp initial_quantity(%PayLink{type: :catalog, quantity: qty}, variant) do
+    range = quantity_options(variant, qty)
+    qty |> max(range.first) |> min(range.last)
+  end
+
+  defp initial_quantity(%PayLink{}, _variant), do: 1
 
   # -- Event Handlers -------------------------------------------------------
 
@@ -145,21 +158,49 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
 
   @impl true
   def handle_event("pay", %{"buyer" => buyer}, socket) do
-    %{link: link, store: store} = socket.assigns
+    %{link: link, store: store, variant: variant} = socket.assigns
 
     if presence(buyer["phone"]) do
-      with :ok <- PayLink.usable?(link),
-           {:ok, order} <- create_order(link, store, buyer, socket.assigns.quantity) do
-        initiate_payment(socket, store, order)
-      else
-        {:error, reason} ->
-          {:noreply,
-           assign(socket, form_errors: %{base: friendly_error(reason)}, processing: false)}
+      # Re-fetch by code rather than trusting the struct captured at mount —
+      # the merchant may have cancelled the link (or a rival buyer consumed
+      # it) in the time between page load and this submit. Checking
+      # `usable?` on a stale struct would let the buyer reach the gateway's
+      # hosted page on a link that's no longer supposed to be payable.
+      case Emakola.Orders.get_pay_link_by_code(link.code, authorize?: false) do
+        {:ok, fresh_link} ->
+          case PayLink.usable?(fresh_link) do
+            :ok ->
+              case create_order(fresh_link, store, buyer, socket.assigns.quantity) do
+                {:ok, order} ->
+                  initiate_payment(socket, store, order)
+
+                {:error, reason} ->
+                  {:noreply,
+                   assign(socket, form_errors: %{base: friendly_error(reason)}, processing: false)}
+              end
+
+            {:error, _reason} ->
+              {:noreply, refresh_inactive_state(socket, fresh_link, store, variant)}
+          end
+
+        {:error, _reason} ->
+          {:noreply, refresh_inactive_state(socket, link, store, variant)}
       end
     else
       {:noreply,
        assign(socket, form_errors: %{base: "Please enter a phone number."}, processing: false)}
     end
+  end
+
+  # Mirrors mount's `page_state/3` so a link that turned unusable between
+  # page load and submit renders the same inactive/unavailable/sold-out
+  # state mount would have rendered — the form disappears instead of just
+  # showing a dismissable error the buyer could retry against.
+  defp refresh_inactive_state(socket, link, store, variant) do
+    socket
+    |> assign(:link, link)
+    |> assign(:state, page_state(link, store, variant))
+    |> assign(:processing, false)
   end
 
   defp parse_quantity(str) do
@@ -421,7 +462,11 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
             phx-change="set_quantity"
             class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
           >
-            <option :for={n <- quantity_options(@variant)} value={n} selected={n == @quantity}>
+            <option
+              :for={n <- quantity_options(@variant, @link.quantity)}
+              value={n}
+              selected={n == @quantity}
+            >
               {n}
             </option>
           </select>
@@ -500,8 +545,12 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
 
   defp pay_amount(_assigns), do: 0
 
-  defp quantity_options(%{track_inventory: true, stock_quantity: stock}) when stock > 0,
-    do: 1..min(stock, 10)
+  # Upper bound is normally 10, but a link.quantity above that (a bulk deal)
+  # must still be selectable — the buyer shouldn't be forced down to a lower
+  # quantity than the merchant actually negotiated for.
+  defp quantity_options(%{track_inventory: true, stock_quantity: stock}, link_quantity)
+       when stock > 0,
+       do: 1..min(stock, max(10, link_quantity))
 
-  defp quantity_options(_variant), do: 1..10
+  defp quantity_options(_variant, link_quantity), do: 1..max(10, link_quantity)
 end

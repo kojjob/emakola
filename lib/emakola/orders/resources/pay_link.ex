@@ -33,7 +33,9 @@ defmodule Emakola.Orders.PayLink do
       base("/pay_links")
 
       # index: merchant admin listing, tenant-scoped via X-Store-ID.
-      index(:list_for_admin)
+      # derive_sort?: false — no arbitrary column sorts from the client,
+      # matching Order's deliberate posture.
+      index(:list_for_admin, derive_sort?: false)
 
       # get: fetches a single pay link by primary key from the URL :id segment.
       get(:read)

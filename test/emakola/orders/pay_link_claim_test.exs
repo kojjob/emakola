@@ -92,6 +92,25 @@ defmodule Emakola.Orders.PayLinkClaimTest do
     refute "#{reloaded.notes}" =~ "already used"
   end
 
+  test "a payment confirmed after the link was cancelled flags the order for refund attention, deduped on retry" do
+    store = Emakola.Factory.create_store!()
+    {link, order} = custom_link_and_order(store)
+
+    link
+    |> Ash.Changeset.for_update(:cancel, %{})
+    |> Ash.update!(authorize?: false)
+
+    assert :ok = PayLinkClaim.claim_for_order(order.id)
+    # Simulates a webhook retry after a downstream failure.
+    assert :ok = PayLinkClaim.claim_for_order(order.id)
+
+    reloaded = Ash.get!(Emakola.Orders.Order, order.id, authorize?: false, tenant: store.id)
+    assert reloaded.notes =~ "already used"
+    assert Regex.scan(~r/already used/, reloaded.notes) |> length() == 1
+
+    assert Ash.get!(PayLink, link.id, authorize?: false, tenant: store.id).status == :cancelled
+  end
+
   test "orders without a pay link are a no-op" do
     store = Emakola.Factory.create_store!()
 

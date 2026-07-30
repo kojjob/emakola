@@ -73,8 +73,16 @@ defmodule Emakola.Orders.PayLinkClaim do
         %{type: "custom", status: "paid"} ->
           flag_for_refund(order, pay_link_id)
 
+        %{type: "custom", status: "cancelled"} ->
+          # The merchant cancelled the link, but the buyer had already
+          # reached the gateway's hosted page and paid before the
+          # cancellation — that money must never be silently confirmed;
+          # flag it for refund attention exactly like an already-claimed
+          # link would be.
+          flag_for_refund(order, pay_link_id)
+
         _ ->
-          # Catalog links are reusable; cancelled links keep their status.
+          # Catalog links are reusable.
           :ok
       end
     end)

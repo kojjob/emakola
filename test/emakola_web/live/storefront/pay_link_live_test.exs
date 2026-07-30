@@ -258,6 +258,47 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
     assert order.total == 8_000
   end
 
+  test "cancelling the link after mount still blocks payment on submit", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+
+    link
+    |> Ash.Changeset.for_update(:cancel, %{})
+    |> Ash.update!(authorize?: false)
+
+    html =
+      view
+      |> form("#pay-link-form", %{
+        "buyer" => %{"name" => "Ama Mensah", "phone" => "0201234567"}
+      })
+      |> render_submit()
+
+    assert html =~ "no longer active"
+    refute html =~ "phx-submit"
+
+    orders =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    assert orders == []
+  end
+
+  test "catalog link with a quantity of 2 preselects it and shows the ×2 amount, matching the admin quote",
+       %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    product = Emakola.Factory.create_product!(store, %{title: "Woven Basket"})
+    variant = Emakola.Factory.create_variant!(product, store, %{price: 8_000, stock_quantity: 5})
+    link = catalog_link!(store, variant, %{quantity: 2})
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+
+    assert html =~ ~s(value="2" selected)
+    assert html =~ EmakolaWeb.Helpers.Currency.format_price(8_000 * 2, "GHS")
+  end
+
   test "search overlay keyup on the pay page doesn't crash the socket", %{conn: conn} do
     store = Emakola.Factory.create_store!()
     link = custom_link!(store)
