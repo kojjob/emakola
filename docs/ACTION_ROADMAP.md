@@ -289,6 +289,42 @@ image-upload endpoints must be added before the Flutter merchant app can build t
 
 ---
 
+## 🧵 Ghana Trust Commerce (TC-series) — SPECCING (2026-07-30)
+
+> Revenue-first features for IG/WhatsApp social sellers: move the DM deal's
+> money through Makola instead of a direct MoMo transfer. Composes rails that
+> already shipped (checkout, settlement splits, refund liability). Related but
+> distinct: the Smart Link bio page (`SOCIAL_COMMERCE.md`) is a storefront
+> surface; TC-1 pay links are per-deal checkout URLs — they complement, not
+> overlap. Specs in `docs/superpowers/specs/`, tracked in `TODO.md` §PLANNED.
+
+- [ ] **TC-1: Pay Links** — 📝 SPECCED (`2026-07-30-pay-links-design.md`).
+      Shareable DM checkout links (catalog + single-use custom amount),
+      express checkout at `/pay/:code`, admin funnel (created → opened → paid),
+      JSON:API exposure. Ships standalone.
+- [ ] **TC-2: Buyer Protection** — 📝 SPECCED (`2026-07-30-buyer-protection-design.md`).
+      Escrow-lite payout hold until delivery confirmation; the trust reason a
+      stranger pays through Makola. No merchant gateway share at charge; release
+      via delivery OTP / buyer confirm / 5-day timer; freeze-on-complaint.
+- [ ] **TC-3: Susu lay-away** — 📝 SPECCED (`2026-07-30-susu-layaway-design.md`).
+      Merchant-created susu links; flexible chunks + deadline; stock reserved at
+      activation; auto-refund in full on expiry/cancel; order created at
+      completion and stamped onto the contributions; fee once on the total.
+- [ ] **TC-4: GhanaPost GPS + landmark addressing** — 📝 SPECCED
+      (`2026-07-30-ghanapost-addressing-design.md`). Optional validated digital
+      address + nudged landmark via one shared address fieldset across all four
+      buyer surfaces; format-only validation v1.
+- [ ] **TC-5: Makola Book (pay later)** — 📝 SPECCED
+      (`2026-07-30-pay-later-book-design.md`). Digitized trade credit (merchant
+      risk, no interest): deposit link → ship → flexible balance chunks to a
+      deadline; two-tier earned eligibility (2 delivered orders or 1 susu
+      platform-wide; ≥3 orders per store) keyed on verified phone; default =
+      platform-wide freeze; invariant: limit ≤ profit already generated. Rung
+      one of the credit ladder toward partner/platform BNPL. All five TC specs
+      written — series ready for implementation planning.
+
+---
+
 ## 📊 Progress Summary
 
 | Phase | Status | Tests | Key Deliverables |

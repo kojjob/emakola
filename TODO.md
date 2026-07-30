@@ -339,6 +339,34 @@
 
 ---
 
+## PLANNED — Ghana trust-commerce features (specs started 2026-07-30)
+
+Revenue-first feature series for IG/WhatsApp social sellers (see
+`docs/REVENUE-FIRST-90-DAY-PLAN.md`). Build order agreed: pay links first
+(standalone, validates demand earliest), protection layered second, susu
+reuses protection's held-funds ledger, addressing is independent.
+
+- [ ] **Pay Links** — shareable DM checkout links, catalog + custom-amount
+      (single-use); ad-hoc line items via nullable `LineItem.variant_id`.
+      Spec: `docs/superpowers/specs/2026-07-30-pay-links-design.md` ✅ specced
+- [ ] **Buyer Protection** — escrow-lite payout hold until delivery
+      confirmation; builds on settlement engine + refund liability.
+      Spec: `docs/superpowers/specs/2026-07-30-buyer-protection-design.md` ✅ specced
+- [ ] **Susu lay-away** — installment purchase (MoMo chunks, goods release
+      when fully paid, balance refundable); shares held-funds design
+      with Buyer Protection.
+      Spec: `docs/superpowers/specs/2026-07-30-susu-layaway-design.md` ✅ specced
+- [ ] **GhanaPost GPS + landmark addressing** — digital address code
+      (GA-183-8164) + landmark field on address forms/checkout/dispatch views.
+      Spec: `docs/superpowers/specs/2026-07-30-ghanapost-addressing-design.md` ✅ specced
+- [ ] **Makola Book (pay later, TC-5)** — merchant trade credit digitized:
+      deposit + flexible balance chunks, two-tier earned eligibility keyed on
+      phone, platform-wide default freeze; spine invariant = limit ≤ profit
+      already generated. No interest/late fees (trade credit, not lending).
+      Spec: `docs/superpowers/specs/2026-07-30-pay-later-book-design.md` ✅ specced
+
+---
+
 ## BACKLOG (not re-verified — aspirational / future)
 
 ### Storefront
