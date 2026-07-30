@@ -51,5 +51,12 @@ defmodule Emakola.Payments do
         args: [:transfer_reference]
       )
     end
+
+    resource Emakola.Payments.ProtectionHold do
+      define(:create_protection_hold, action: :create)
+      define(:release_protection_hold, action: :release)
+      define(:freeze_protection_hold, action: :freeze)
+      define(:get_protection_hold_by_payment, action: :get_by_payment, args: [:payment_id])
+    end
   end
 end

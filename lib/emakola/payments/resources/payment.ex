@@ -119,6 +119,13 @@ defmodule Emakola.Payments.Payment do
       public?(true)
     end
 
+    # Buyer Protection: when set, PayoutService pays this instead of `amount`
+    # — the merchant's protected charges pay out net-of-fee once their
+    # ProtectionHold releases (Task 5).
+    attribute :payable_amount, :integer do
+      public?(true)
+    end
+
     timestamps()
   end
 
