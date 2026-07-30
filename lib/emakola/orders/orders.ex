@@ -28,6 +28,7 @@ defmodule Emakola.Orders do
 
     resource Emakola.Orders.LineItem do
       define(:create_line_item, action: :create)
+      define(:create_custom_line_item, action: :create_custom)
     end
 
     resource Emakola.Orders.Fulfillment do

@@ -33,10 +33,15 @@ defmodule Emakola.Orders.Changes.DecrementStock do
     order = Ash.load!(order, [line_items: [:variant]], authorize?: false)
 
     Enum.each(order.line_items, fn line_item ->
-      variant = line_item.variant
+      case line_item.variant do
+        nil ->
+          # Custom (variant-less) pay-link line — no stock to decrement.
+          :ok
 
-      if variant && variant.track_inventory do
-        decrement_variant(order, variant, line_item.quantity)
+        variant ->
+          if variant.track_inventory do
+            decrement_variant(order, variant, line_item.quantity)
+          end
       end
     end)
   end
