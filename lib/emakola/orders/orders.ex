@@ -31,6 +31,13 @@ defmodule Emakola.Orders do
       define(:create_custom_line_item, action: :create_custom)
     end
 
+    resource Emakola.Orders.PayLink do
+      define(:create_pay_link, action: :create)
+      define(:get_pay_link_by_code, action: :get_by_code, args: [:code])
+      define(:cancel_pay_link, action: :cancel)
+      define(:mark_pay_link_paid, action: :mark_paid)
+    end
+
     resource Emakola.Orders.Fulfillment do
       define(:list_fulfillments_by_order, action: :list_by_order, args: [:order_id])
       define(:mark_fulfillment_notified, action: :mark_notified)

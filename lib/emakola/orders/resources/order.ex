@@ -39,6 +39,10 @@ defmodule Emakola.Orders.Order do
       public?(true)
     end
 
+    attribute :pay_link_id, :uuid do
+      public?(true)
+    end
+
     attribute :order_number, :string do
       allow_nil?(false)
       public?(true)
@@ -224,6 +228,7 @@ defmodule Emakola.Orders.Order do
       accept([
         :store_id,
         :customer_id,
+        :pay_link_id,
         :notes,
         :shipping_address,
         :billing_address,
