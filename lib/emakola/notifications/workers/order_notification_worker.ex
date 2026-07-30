@@ -29,6 +29,17 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
   alias Emakola.Notifications.Emails.OrderEmail
   alias Emakola.Notifications.Emails.ShippingEmail
 
+  # TC-2 buyer protection lifecycle events (Task 10) join the existing order
+  # events on each side: `:protection_held`/`:protection_delivery_nudge` are
+  # buyer-only (no merchant SMS — mirrors :order_shipped/:order_confirmed/
+  # :order_delivered), `:protection_released`/`:protection_complaint` are
+  # merchant-only (no customer SMS/WhatsApp/email at all).
+  @buyer_events ~w(
+    order_placed order_confirmed order_shipped order_delivered order_cancelled
+    protection_held protection_delivery_nudge
+  )a
+  @merchant_events ~w(order_placed order_cancelled protection_released protection_complaint)a
+
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"order_id" => order_id, "event" => event_string}}) do
     event =
@@ -39,7 +50,11 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
           :order_confirmed,
           :order_shipped,
           :order_delivered,
-          :order_cancelled
+          :order_cancelled,
+          :protection_held,
+          :protection_delivery_nudge,
+          :protection_released,
+          :protection_complaint
         ],
         :order_placed
       )
@@ -47,23 +62,25 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
     with {:ok, order} <- load_order(order_id),
          {:ok, store} <- load_store(order.store_id),
          customer <- load_customer(order.customer_id) do
-      # Send customer notification if they have a phone number
-      if customer && customer.phone do
-        send_customer_sms(order, store, customer, event)
-        send_customer_whatsapp(order, store, customer, event)
-      else
-        Logger.info(
-          "[OrderNotificationWorker] No customer phone for order #{order_id}, skipping customer notification"
-        )
-      end
+      if event in @buyer_events do
+        # Send customer notification if they have a phone number
+        if customer && customer.phone do
+          send_customer_sms(order, store, customer, event)
+          send_customer_whatsapp(order, store, customer, event)
+        else
+          Logger.info(
+            "[OrderNotificationWorker] No customer phone for order #{order_id}, skipping customer notification"
+          )
+        end
 
-      # Send customer email if they have an email address
-      if customer && customer.email do
-        send_customer_email(order, store, customer, event)
+        # Send customer email if they have an email address
+        if customer && customer.email do
+          send_customer_email(order, store, customer, event)
+        end
       end
 
       # Send merchant notification for relevant events
-      if event in [:order_placed, :order_cancelled] do
+      if event in @merchant_events do
         send_merchant_sms(order, store, event)
       end
 
@@ -117,6 +134,14 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
   defp send_customer_sms(order, store, customer, event) do
     message = customer_sms_template(order, store, event)
     sms_provider().send_sms(customer.phone, message, store_id: order.store_id)
+  end
+
+  # No approved WhatsApp Business template exists for these events yet — SMS
+  # only (the tracking link body doesn't fit a templated-params WhatsApp
+  # message anyway).
+  defp send_customer_whatsapp(_order, _store, _customer, event)
+       when event in [:protection_held, :protection_delivery_nudge] do
+    :ok
   end
 
   defp send_customer_whatsapp(order, store, customer, event) do
@@ -181,6 +206,30 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
     end
   end
 
+  defp send_merchant_sms(order, store, :protection_released) do
+    message = Templates.protection_released_merchant_sms(order, store)
+
+    if store.contact_phone do
+      sms_provider().send_sms(store.contact_phone, message, store_id: order.store_id)
+    else
+      Logger.info(
+        "[OrderNotificationWorker] No contact_phone for store #{store.id}, skipping merchant SMS"
+      )
+    end
+  end
+
+  defp send_merchant_sms(order, store, :protection_complaint) do
+    message = Templates.protection_complaint_merchant_sms(order, store)
+
+    if store.contact_phone do
+      sms_provider().send_sms(store.contact_phone, message, store_id: order.store_id)
+    else
+      Logger.info(
+        "[OrderNotificationWorker] No contact_phone for store #{store.id}, skipping merchant SMS"
+      )
+    end
+  end
+
   defp customer_sms_template(order, store, :order_placed),
     do: Templates.order_placed_sms(order, store)
 
@@ -195,6 +244,12 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
 
   defp customer_sms_template(order, store, :order_cancelled),
     do: Templates.order_cancelled_sms(order, store)
+
+  defp customer_sms_template(order, store, :protection_held),
+    do: Templates.protection_held_sms(order, store)
+
+  defp customer_sms_template(order, store, :protection_delivery_nudge),
+    do: Templates.protection_delivery_nudge_sms(order, store)
 
   defp sms_provider do
     Application.get_env(

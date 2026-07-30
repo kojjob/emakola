@@ -135,6 +135,15 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
 
           case result do
             {:ok, updated_hold} ->
+              # Only a NEW complaint (hold wasn't already frozen) notifies the
+              # merchant — re-filing via :update_complaint must not re-fire it.
+              if is_nil(hold.frozen_at) do
+                Emakola.Notifications.Dispatcher.dispatch(
+                  %{id: order.id, store_id: store.id},
+                  :protection_complaint
+                )
+              end
+
               {:noreply,
                socket
                |> assign(:protection_hold, updated_hold)

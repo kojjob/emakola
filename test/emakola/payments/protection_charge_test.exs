@@ -177,6 +177,50 @@ defmodule Emakola.Payments.ProtectionChargeTest do
                  not_found_error?: false
                )
     end
+
+    # ── Task 10: :protection_held dispatch ────────────────────────
+
+    test "dispatches :protection_held to the buyer after successfully creating the hold", %{
+      store: store,
+      order: order
+    } do
+      payment =
+        create_payment!(store, %{
+          order_id: order.id,
+          amount: 25_000,
+          payout_held: true,
+          payout_hold_reason: "buyer_protection"
+        })
+
+      assert :ok = ProtectionHolds.ensure_hold(payment)
+
+      assert_enqueued(
+        worker: Emakola.Notifications.Workers.OrderNotificationWorker,
+        args: %{order_id: order.id, event: "protection_held"},
+        queue: :notifications
+      )
+    end
+
+    test "does not dispatch again on an idempotent retry no-op", %{store: store, order: order} do
+      payment =
+        create_payment!(store, %{
+          order_id: order.id,
+          amount: 25_000,
+          payout_held: true,
+          payout_hold_reason: "buyer_protection"
+        })
+
+      assert :ok = ProtectionHolds.ensure_hold(payment)
+      assert :ok = ProtectionHolds.ensure_hold(payment)
+
+      jobs =
+        all_enqueued(
+          worker: Emakola.Notifications.Workers.OrderNotificationWorker,
+          args: %{order_id: order.id, event: "protection_held"}
+        )
+
+      assert length(jobs) == 1
+    end
   end
 
   # -- Webhook confirm wiring ------------------------------------------------

@@ -13,11 +13,19 @@ defmodule Emakola.Payments.ProtectionHolds do
   require Ash.Query
   require Logger
 
+  alias Emakola.Notifications.Dispatcher
   alias Emakola.Payments
   alias Emakola.Payments.{Payment, PlatformFee, ProtectionHold, ProtectionRelease}
   alias Emakola.Payments.Workers.ProtectionSweepWorker
 
-  @doc "Creates the protection hold for a payment held for buyer protection. No-op otherwise."
+  @doc """
+  Creates the protection hold for a payment held for buyer protection. No-op
+  otherwise.
+
+  On a genuine (non-idempotent-retry) creation, dispatches `:protection_held`
+  to the buyer (TC-2 Task 10) — never fired on the identity-violation no-op
+  branch below, since the `rescue` short-circuits before reaching here.
+  """
   def ensure_hold(%{payout_hold_reason: "buyer_protection"} = payment) do
     %{fee: fee, net: net} = PlatformFee.calculate(payment.amount, fee_rate_bps())
 
@@ -33,6 +41,8 @@ defmodule Emakola.Payments.ProtectionHolds do
       tenant: payment.store_id,
       authorize?: false
     )
+
+    Dispatcher.dispatch(%{id: payment.order_id, store_id: payment.store_id}, :protection_held)
 
     :ok
   rescue
@@ -253,6 +263,19 @@ defmodule Emakola.Payments.ProtectionHolds do
   Never raises: this hangs off a status-transition hook and must not fail
   the delivered transition on a protection-side hiccup, matching the
   never-fail discipline of `ensure_hold/1` and friends above.
+
+  On a genuine stamp, dispatches `:protection_delivery_nudge` to the buyer
+  (TC-2 Task 10). This can run inside the caller's own transaction (the
+  `:mark_delivered` hook `Suppliers.InboundFulfillment.verify_delivery/4`
+  wraps) — safe because `Dispatcher.dispatch/2` only ever performs an
+  `Oban.insert/1` (never `Repo.rollback`), and Oban's Postgres engine is
+  configured on the same `Emakola.Repo` (`config :emakola, Oban, repo:
+  Emakola.Repo`): inserting from within an ambient Ecto transaction rides
+  that same connection/transaction, so the job row commits or rolls back
+  atomically with the delivered transition — never visible to the queue
+  producer for an uncommitted stamp. Contrast with `ProtectionRelease.release/2,3`,
+  which must NEVER run inside a caller's transaction because it calls
+  `Repo.rollback` itself (see that module's moduledoc).
   """
   def stamp_release_after_for_order(order_id, store_id) do
     case due_for_timer_start(order_id, store_id) do
@@ -265,6 +288,7 @@ defmodule Emakola.Payments.ProtectionHolds do
         |> Ash.update(authorize?: false)
         |> case do
           {:ok, _stamped} ->
+            Dispatcher.dispatch(%{id: order_id, store_id: store_id}, :protection_delivery_nudge)
             :ok
 
           {:error, error} ->

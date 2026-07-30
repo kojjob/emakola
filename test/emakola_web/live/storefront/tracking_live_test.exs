@@ -1,11 +1,13 @@
 defmodule EmakolaWeb.Storefront.TrackingLiveTest do
   use EmakolaWeb.ConnCase, async: true
+  use Oban.Testing, repo: Emakola.Repo
 
   import Phoenix.LiveViewTest
   import Emakola.Factory
 
   alias Emakola.Payments
   alias Emakola.Payments.ProtectionHolds
+  alias Emakola.Notifications.Workers.OrderNotificationWorker
   alias EmakolaWeb.TrackingTokens
 
   setup do
@@ -339,6 +341,12 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
       assert reloaded.complaint_reason == :not_as_described
       assert reloaded.complaint_text == "wrong color"
       assert reloaded.status == :held
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{order_id: order.id, event: "protection_complaint"},
+        queue: :notifications
+      )
     end
 
     test "pushing file_complaint directly on an unauthorized socket does not freeze the hold (threat test)",
@@ -384,6 +392,16 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
       assert reloaded.complaint_reason == :not_received
       assert reloaded.complaint_text == "actually never arrived"
       assert reloaded.status == :held
+
+      # Re-filing (update_complaint) does not re-fire the merchant
+      # notification — only the FIRST complaint that freezes the hold does.
+      jobs =
+        all_enqueued(
+          worker: OrderNotificationWorker,
+          args: %{order_id: order.id, event: "protection_complaint"}
+        )
+
+      assert length(jobs) == 1
     end
 
     test "open_complaint is a no-op without a valid token", %{conn: conn, store: store} do

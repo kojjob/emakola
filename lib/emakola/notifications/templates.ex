@@ -47,6 +47,23 @@ defmodule Emakola.Notifications.Templates do
       "If you have questions, please contact the store."
   end
 
+  # ── TC-2 buyer protection lifecycle templates ───────────────────
+  # Both buyer-facing messages embed a SIGNED tracking link
+  # (`EmakolaWeb.TrackingTokens.sign_order_tracking/1`) so the buyer can act
+  # on `TrackingLive` (confirm receipt / file a complaint) from the link
+  # alone, without signing in.
+
+  def protection_held_sms(order, store) do
+    "Your payment for order #{order.order_number} from #{store.name} is safely held " <>
+      "until you confirm delivery. Track & confirm here: #{protection_tracking_url(store, order)}"
+  end
+
+  def protection_delivery_nudge_sms(order, store) do
+    "Your order #{order.order_number} from #{store.name} has been delivered! " <>
+      "Please confirm receipt — the payment releases automatically in 5 days if we " <>
+      "don't hear from you. Confirm here: #{protection_tracking_url(store, order)}"
+  end
+
   # ── Merchant-facing templates ──────────────────────────────────
 
   def new_order_merchant_sms(order, store) do
@@ -63,6 +80,16 @@ defmodule Emakola.Notifications.Templates do
 
   def payout_paid_merchant_sms(payout, store) do
     "#{store.name}: you've received #{currency_symbol(payout.currency)}#{format_amount(payout.amount)} from Makola. Payout complete."
+  end
+
+  def protection_released_merchant_sms(order, store) do
+    "Payment for order #{order.order_number} has been released to you. " <>
+      "Check your #{store.name} dashboard for payout details."
+  end
+
+  def protection_complaint_merchant_sms(order, store) do
+    "A buyer filed a complaint on order #{order.order_number}. The payment stays " <>
+      "held while it's reviewed — check your #{store.name} dashboard for details."
   end
 
   # ── WhatsApp template names ────────────────────────────────────
@@ -216,6 +243,14 @@ defmodule Emakola.Notifications.Templates do
   defp storefront_tracking_url(store, order) do
     host = storefront_host()
     "https://#{host}/s/#{store.slug}/track/#{order.order_number}"
+  end
+
+  # Buyer-authorization token bound to this order (TC-2), appended so the
+  # tracking link itself lets an anonymous buyer confirm receipt / file a
+  # complaint on `TrackingLive` — see `EmakolaWeb.TrackingTokens`.
+  defp protection_tracking_url(store, order) do
+    token = EmakolaWeb.TrackingTokens.sign_order_tracking(order.id)
+    "#{storefront_tracking_url(store, order)}?t=#{token}"
   end
 
   defp storefront_host do

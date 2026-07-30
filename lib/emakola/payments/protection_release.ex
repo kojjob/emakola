@@ -36,6 +36,7 @@ defmodule Emakola.Payments.ProtectionRelease do
 
   import Ecto.Query, only: [from: 2]
 
+  alias Emakola.Notifications.Dispatcher
   alias Emakola.Payments
   alias Emakola.Payments.Payment
   alias Emakola.Repo
@@ -68,6 +69,11 @@ defmodule Emakola.Payments.ProtectionRelease do
       `frozen_at` set, no-op and return `:ok` instead of releasing (see
       "Freeze respect" above). Pass `respect_freeze: false` to release a
       frozen hold anyway (platform staff force-release only).
+
+  On an actual release (not the already-released or frozen-skip no-op
+  branches), dispatches `:protection_released` to the merchant (TC-2 Task
+  10) — AFTER the transaction commits, never from inside the `Repo.transaction`
+  closure above, matching the Dispatcher's "outside transactions" contract.
   """
   def release(hold, reason, opts \\ []) do
     respect_freeze? = Keyword.get(opts, :respect_freeze, true)
@@ -75,10 +81,10 @@ defmodule Emakola.Payments.ProtectionRelease do
     Repo.transaction(fn ->
       case Repo.one(locked_row_query(hold.id)) do
         %{status: "released"} ->
-          :ok
+          :noop
 
         %{frozen_at: frozen_at} when respect_freeze? and not is_nil(frozen_at) ->
-          :ok
+          :noop
 
         _fresh ->
           with {:ok, released_hold} <-
@@ -92,15 +98,22 @@ defmodule Emakola.Payments.ProtectionRelease do
                    payable_amount: released_hold.net
                  })
                  |> Ash.update(authorize?: false) do
-            :ok
+            :released
           else
             {:error, error} -> Repo.rollback(error)
           end
       end
     end)
     |> case do
-      {:ok, result} -> result
-      {:error, error} -> {:error, error}
+      {:ok, :released} ->
+        Dispatcher.dispatch(%{id: hold.order_id, store_id: hold.store_id}, :protection_released)
+        :ok
+
+      {:ok, :noop} ->
+        :ok
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 end

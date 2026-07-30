@@ -29,7 +29,10 @@ defmodule Emakola.Notifications.Dispatcher do
   alias Emakola.Notifications.Workers.PushNotificationWorker
   alias Emakola.Notifications.Workers.SupplierNotificationWorker
 
-  @valid_events ~w(order_placed order_confirmed order_shipped order_delivered order_cancelled)a
+  @valid_events ~w(
+    order_placed order_confirmed order_shipped order_delivered order_cancelled
+    protection_held protection_delivery_nudge protection_released protection_complaint
+  )a
 
   @doc """
   Dispatch a notification for an order lifecycle event.

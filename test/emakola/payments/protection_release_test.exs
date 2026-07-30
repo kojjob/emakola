@@ -10,10 +10,12 @@ defmodule Emakola.Payments.ProtectionReleaseTest do
   rate at release time — see the fee-rate immunity test below.
   """
   use Emakola.DataCase, async: true
+  use Oban.Testing, repo: Emakola.Repo
 
   alias Emakola.Factory
   alias Emakola.Payments
   alias Emakola.Payments.{Payment, ProtectionHolds, ProtectionRelease}
+  alias Emakola.Notifications.Workers.OrderNotificationWorker
 
   defp protected_payment!(store, attrs) do
     attrs = Map.new(attrs)
@@ -162,5 +164,57 @@ defmodule Emakola.Payments.ProtectionReleaseTest do
     assert reloaded.payable_amount == hold.net
     assert reloaded.payable_amount == 24_500
     refute reloaded.payable_amount == payment.amount - div(payment.amount * 5_000, 10_000)
+  end
+
+  # ── Task 10: :protection_released dispatch ─────────────────────
+
+  describe ":protection_released dispatch" do
+    test "dispatches :protection_released to the merchant after an actual release" do
+      store = Factory.create_store!()
+      {_payment, hold} = protected_payment!(store, %{amount: 25_000})
+
+      assert :ok = ProtectionRelease.release(hold, :buyer_confirmed)
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{order_id: hold.order_id, event: "protection_released"},
+        queue: :notifications
+      )
+    end
+
+    test "does not dispatch again when releasing an already-released hold (no-op)" do
+      store = Factory.create_store!()
+      {_payment, hold} = protected_payment!(store, %{amount: 25_000})
+
+      assert :ok = ProtectionRelease.release(hold, :buyer_confirmed)
+      assert :ok = ProtectionRelease.release(hold, :staff)
+
+      jobs =
+        all_enqueued(
+          worker: OrderNotificationWorker,
+          args: %{order_id: hold.order_id, event: "protection_released"}
+        )
+
+      assert length(jobs) == 1
+    end
+
+    test "does not dispatch when a frozen hold is skipped (respect_freeze default)" do
+      store = Factory.create_store!()
+      {_payment, hold} = protected_payment!(store, %{amount: 25_000})
+
+      {:ok, frozen} =
+        Payments.freeze_protection_hold(
+          hold,
+          %{complaint_reason: :other, complaint_text: "test"},
+          authorize?: false
+        )
+
+      assert :ok = ProtectionRelease.release(frozen, :auto_timer)
+
+      refute_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{order_id: hold.order_id, event: "protection_released"}
+      )
+    end
   end
 end

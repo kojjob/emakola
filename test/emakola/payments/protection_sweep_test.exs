@@ -8,11 +8,13 @@ defmodule Emakola.Payments.ProtectionSweepTest do
   elapsed, unless a complaint has frozen it in the meantime.
   """
   use Emakola.DataCase, async: true
+  use Oban.Testing, repo: Emakola.Repo
 
   alias Emakola.Factory
   alias Emakola.Payments
   alias Emakola.Payments.ProtectionHolds
   alias Emakola.Payments.Workers.ProtectionSweepWorker
+  alias Emakola.Notifications.Workers.OrderNotificationWorker
 
   defp protected_order!(store, attrs) do
     amount = Map.get(attrs, :amount, 25_000)
@@ -114,6 +116,37 @@ defmodule Emakola.Payments.ProtectionSweepTest do
 
       assert %{status: :delivered} =
                Emakola.Orders.mark_fulfillment_delivered!(fulfillment, authorize?: false)
+    end
+
+    # ── Task 10: :protection_delivery_nudge dispatch ──────────────
+
+    test "dispatches :protection_delivery_nudge to the buyer once the timer is stamped" do
+      store = Factory.create_store!()
+      {order, _payment, _hold} = protected_order!(store, %{amount: 25_000})
+
+      :ok = ProtectionHolds.stamp_release_after_for_order(order.id, store.id)
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{order_id: order.id, event: "protection_delivery_nudge"},
+        queue: :notifications
+      )
+    end
+
+    test "does not dispatch again on a second stamp attempt (already-stamped no-op)" do
+      store = Factory.create_store!()
+      {order, _payment, _hold} = protected_order!(store, %{amount: 25_000})
+
+      :ok = ProtectionHolds.stamp_release_after_for_order(order.id, store.id)
+      :ok = ProtectionHolds.stamp_release_after_for_order(order.id, store.id)
+
+      jobs =
+        all_enqueued(
+          worker: OrderNotificationWorker,
+          args: %{order_id: order.id, event: "protection_delivery_nudge"}
+        )
+
+      assert length(jobs) == 1
     end
   end
 
