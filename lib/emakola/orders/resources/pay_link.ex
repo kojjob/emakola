@@ -12,7 +12,8 @@ defmodule Emakola.Orders.PayLink do
   use Ash.Resource,
     domain: Emakola.Orders,
     data_layer: AshPostgres.DataLayer,
-    authorizers: [Ash.Policy.Authorizer]
+    authorizers: [Ash.Policy.Authorizer],
+    extensions: [AshJsonApi.Resource]
 
   postgres do
     table("pay_links")
@@ -23,6 +24,24 @@ defmodule Emakola.Orders.PayLink do
     strategy(:attribute)
     attribute(:store_id)
     global?(true)
+  end
+
+  json_api do
+    type("pay_link")
+
+    routes do
+      base("/pay_links")
+
+      # index: merchant admin listing, tenant-scoped via X-Store-ID.
+      index(:list_for_admin)
+
+      # get: fetches a single pay link by primary key from the URL :id segment.
+      get(:read)
+
+      post(:create)
+
+      patch(:cancel, route: "/:id/cancel")
+    end
   end
 
   attributes do
