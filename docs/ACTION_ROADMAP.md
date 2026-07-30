@@ -289,6 +289,28 @@ image-upload endpoints must be added before the Flutter merchant app can build t
 
 ---
 
+## 🧵 Ghana Trust Commerce (TC-series) — SPECCING (2026-07-30)
+
+> Revenue-first features for IG/WhatsApp social sellers: move the DM deal's
+> money through Makola instead of a direct MoMo transfer. Composes rails that
+> already shipped (checkout, settlement splits, refund liability). Related but
+> distinct: the Smart Link bio page (`SOCIAL_COMMERCE.md`) is a storefront
+> surface; TC-1 pay links are per-deal checkout URLs — they complement, not
+> overlap. Specs in `docs/superpowers/specs/`, tracked in `TODO.md` §PLANNED.
+
+- [ ] **TC-1: Pay Links** — 📝 SPECCED (`2026-07-30-pay-links-design.md`).
+      Shareable DM checkout links (catalog + single-use custom amount),
+      express checkout at `/pay/:code`, admin funnel (created → opened → paid),
+      JSON:API exposure. Ships standalone.
+- [ ] **TC-2: Buyer Protection** — spec pending. Escrow-lite payout hold until
+      delivery confirmation; the trust reason a stranger pays through Makola.
+- [ ] **TC-3: Susu lay-away** — spec pending. Installment purchase in MoMo
+      chunks; goods release when fully paid; reuses TC-2's held-funds ledger.
+- [ ] **TC-4: GhanaPost GPS + landmark addressing** — spec pending. Digital
+      address codes + landmark fields; independent quick win for delivery success.
+
+---
+
 ## 📊 Progress Summary
 
 | Phase | Status | Tests | Key Deliverables |
