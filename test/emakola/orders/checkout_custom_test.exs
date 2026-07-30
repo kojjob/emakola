@@ -91,6 +91,18 @@ defmodule Emakola.Orders.CheckoutCustomTest do
     assert o1.customer_id == o2.customer_id
   end
 
+  test "returns {:error, :phone_required} when phone is missing" do
+    store = Emakola.Factory.create_store!()
+
+    assert {:error, :phone_required} =
+             CheckoutService.checkout_custom!(
+               store.id,
+               %{title: "A", unit_price: 500},
+               customer_name: "Ama",
+               customer_email: "ama@example.com"
+             )
+  end
+
   test "an in-transaction Ash failure returns {:error, _} instead of raising" do
     store = Emakola.Factory.create_store!()
     too_long_title = String.duplicate("x", 300)
