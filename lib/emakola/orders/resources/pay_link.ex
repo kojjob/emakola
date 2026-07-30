@@ -78,7 +78,16 @@ defmodule Emakola.Orders.PayLink do
   end
 
   aggregates do
-    count(:paid_orders_count, :orders)
+    # "Paid" means the money actually arrived, not merely attempted:
+    # CheckoutService inserts the order as :pending *before* payment starts,
+    # so counting every linked order regardless of status would inflate this
+    # with abandoned checkouts. Both webhook handlers (Hubtel, Paystack) move
+    # status to :confirmed only once the gateway confirms the charge; a
+    # merchant can independently cancel a still-pending order. Excluding both
+    # leaves confirmed/processing/shipped/delivered.
+    count :paid_orders_count, :orders do
+      filter(expr(status not in [:pending, :cancelled]))
+    end
   end
 
   policies do

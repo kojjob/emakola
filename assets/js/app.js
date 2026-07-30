@@ -91,6 +91,18 @@ window.addEventListener("toggle-password", (e) => {
   }
 })
 
+// Copy-to-clipboard: buttons dispatch this event with `detail: {text}` instead
+// of a server round-trip (JS.dispatch("copy-to-clipboard", detail: %{text: ...})),
+// used by the storefront share strip and the admin pay-links page. The event
+// bubbles from whichever button dispatched it, so one window listener covers
+// every caller.
+window.addEventListener("copy-to-clipboard", (e) => {
+  const text = e.detail && e.detail.text
+  if (text && navigator.clipboard) {
+    navigator.clipboard.writeText(text)
+  }
+})
+
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 

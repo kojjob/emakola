@@ -76,7 +76,7 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
     store = socket.assigns.store
     merchant = socket.assigns.current_merchant
 
-    case build_create_attrs(params, store.id, merchant.id) do
+    case build_create_attrs(params, store, merchant) do
       {:ok, attrs} ->
         case Emakola.Orders.create_pay_link(attrs, actor: merchant, tenant: store.id) do
           {:ok, link} ->
@@ -396,6 +396,35 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
               </div>
             <% end %>
 
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5" for="pay-link-expires-at">
+                Expires on <span class="text-slate-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="date"
+                id="pay-link-expires-at"
+                name="pay_link[expires_at]"
+                class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+              />
+              <p class="text-xs text-slate-400 mt-1">
+                Custom deals default to 7 days from creation if left blank.
+              </p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5" for="pay-link-note">
+                Note <span class="text-slate-400 font-normal">(optional)</span>
+              </label>
+              <textarea
+                id="pay-link-note"
+                name="pay_link[note]"
+                rows="2"
+                maxlength="500"
+                placeholder="Internal note about this link..."
+                class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all"
+              ></textarea>
+            </div>
+
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="hidden" name="pay_link[collect_delivery]" value="false" />
               <input
@@ -510,50 +539,62 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
 
   # -- Create form helpers ---------------------------------------------------
 
-  defp build_create_attrs(params, store_id, merchant_id) do
+  defp build_create_attrs(params, store, merchant) do
     type = Emakola.SafeAtom.to_atom_in(params["type"], [:custom, :catalog], :custom)
-    attrs_for_type(type, params, store_id, merchant_id)
+    attrs_for_type(type, params, store, merchant)
   end
 
-  defp attrs_for_type(:custom, params, store_id, merchant_id) do
-    case presence(params["title"]) do
-      nil ->
-        {:error, "Enter a title for this deal."}
-
-      title ->
-        case parse_ghs(params["amount_ghs"]) do
-          {:ok, pesewas} ->
-            {:ok,
-             %{
-               store_id: store_id,
-               type: :custom,
-               title: title,
-               amount: pesewas,
-               created_by_user_id: merchant_id
-             }
-             |> maybe_put_collect_delivery(params)}
-
-          :error ->
-            {:error, "Enter a valid amount in GH₵, e.g. 250 or 250.00."}
-        end
+  defp attrs_for_type(:custom, params, store, merchant) do
+    with {:title, title} when not is_nil(title) <- {:title, presence(params["title"])},
+         {:ok, pesewas} <- parse_ghs(params["amount_ghs"]),
+         {:ok, expiry} <- parse_expiry(presence(params["expires_at"])) do
+      {:ok,
+       %{
+         store_id: store.id,
+         type: :custom,
+         title: title,
+         amount: pesewas,
+         created_by_user_id: merchant.id
+       }
+       |> maybe_put(:expires_at, expiry)
+       |> maybe_put(:note, presence(params["note"]))
+       |> maybe_put_collect_delivery(params)}
+    else
+      {:title, nil} -> {:error, "Enter a title for this deal."}
+      {:error, message} -> {:error, message}
     end
   end
 
-  defp attrs_for_type(:catalog, params, store_id, merchant_id) do
-    case presence(params["variant_id"]) do
-      nil ->
-        {:error, "Choose a product for this pay link."}
+  defp attrs_for_type(:catalog, params, store, merchant) do
+    with {:variant, variant_id} when not is_nil(variant_id) <-
+           {:variant, presence(params["variant_id"])},
+         {:ok, variant} <- fetch_store_variant(variant_id, store, merchant),
+         {:ok, expiry} <- parse_expiry(presence(params["expires_at"])) do
+      {:ok,
+       %{
+         store_id: store.id,
+         type: :catalog,
+         variant_id: variant.id,
+         quantity: parse_quantity(params["quantity"]),
+         created_by_user_id: merchant.id
+       }
+       |> maybe_put(:expires_at, expiry)
+       |> maybe_put(:note, presence(params["note"]))
+       |> maybe_put_collect_delivery(params)}
+    else
+      {:variant, nil} -> {:error, "Choose a product for this pay link."}
+      {:error, message} -> {:error, message}
+    end
+  end
 
-      variant_id ->
-        {:ok,
-         %{
-           store_id: store_id,
-           type: :catalog,
-           variant_id: variant_id,
-           quantity: parse_quantity(params["quantity"]),
-           created_by_user_id: merchant_id
-         }
-         |> maybe_put_collect_delivery(params)}
+  # Tenant-scoped lookup, not a bare pass-through of the submitted id — a
+  # crafted `create` event (bypassing the rendered <select>, which only ever
+  # lists this store's own variants) could otherwise point a catalog link at
+  # another store's variant.
+  defp fetch_store_variant(variant_id, store, merchant) do
+    case Ash.get(Emakola.Catalog.Variant, variant_id, actor: merchant, tenant: store.id) do
+      {:ok, variant} -> {:ok, variant}
+      _ -> {:error, "Choose a valid product for this pay link."}
     end
   end
 
@@ -572,7 +613,7 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
 
     {:ok, pesewas}
   rescue
-    _ -> :error
+    _ -> {:error, "Enter a valid amount in GH₵, e.g. 250 or 250.00."}
   end
 
   defp parse_quantity(value) do
@@ -581,6 +622,18 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
       _ -> 1
     end
   end
+
+  defp parse_expiry(nil), do: {:ok, nil}
+
+  defp parse_expiry(value) do
+    case Date.from_iso8601(value) do
+      {:ok, date} -> {:ok, DateTime.new!(date, ~T[23:59:59], "Etc/UTC")}
+      {:error, _} -> {:error, "Enter a valid expiry date."}
+    end
+  end
+
+  defp maybe_put(attrs, _key, nil), do: attrs
+  defp maybe_put(attrs, key, value), do: Map.put(attrs, key, value)
 
   defp maybe_put_collect_delivery(attrs, %{"collect_delivery" => value}),
     do: Map.put(attrs, :collect_delivery, value in ["true", "on"])

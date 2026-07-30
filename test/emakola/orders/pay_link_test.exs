@@ -131,6 +131,23 @@ defmodule Emakola.Orders.PayLinkTest do
              |> Ash.update(authorize?: false)
   end
 
+  test "paid_orders_count excludes pending/cancelled orders, counts confirmed+" do
+    store = Emakola.Factory.create_store!()
+    link = create!(store, %{type: :custom, title: "Deal", amount: 25_000})
+
+    _pending = Emakola.Factory.create_order!(store, %{pay_link_id: link.id})
+    _cancelled = Emakola.Factory.create_order!(store, %{pay_link_id: link.id, status: :cancelled})
+    _confirmed = Emakola.Factory.create_order!(store, %{pay_link_id: link.id, status: :confirmed})
+    _shipped = Emakola.Factory.create_order!(store, %{pay_link_id: link.id, status: :shipped})
+
+    # Unrelated order on the same store, no pay_link_id — must not be counted.
+    _unrelated = Emakola.Factory.create_order!(store, %{status: :confirmed})
+
+    loaded = Ash.load!(link, :paid_orders_count, authorize?: false, tenant: store.id)
+
+    assert loaded.paid_orders_count == 2
+  end
+
   test "mark_paid rejects a link that is already cancelled" do
     store = Emakola.Factory.create_store!()
     link = create!(store, %{type: :custom, title: "Deal", amount: 25_000})
