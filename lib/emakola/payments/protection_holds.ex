@@ -34,14 +34,33 @@ defmodule Emakola.Payments.ProtectionHolds do
     :ok
   rescue
     error ->
-      Logger.error(
-        "[protection_holds] ensure_hold failed for payment=#{payment.id}: #{Exception.format(:error, error, __STACKTRACE__)}"
-      )
+      if unique_payment_violation?(error) do
+        :ok
+      else
+        Logger.error(
+          "[protection_holds] ensure_hold failed for payment=#{payment.id}: #{Exception.format(:error, error, __STACKTRACE__)}"
+        )
 
-      :ok
+        :ok
+      end
   end
 
   def ensure_hold(_payment), do: :ok
+
+  # The expected shape of a retried/replayed create hitting the `:unique_payment`
+  # identity — a benign no-op, not a failure worth alerting on. Everything else
+  # (a genuinely invalid create, an unexpected exception) still logs.
+  defp unique_payment_violation?(%Ash.Error.Invalid{errors: errors}) do
+    Enum.any?(errors, fn
+      %Ash.Error.Changes.InvalidAttribute{field: :payment_id, private_vars: private_vars} ->
+        Keyword.get(private_vars, :constraint_type) == :unique
+
+      _ ->
+        false
+    end)
+  end
+
+  defp unique_payment_violation?(_error), do: false
 
   defp fee_rate_bps do
     Application.get_env(:emakola, :platform_fee_rate_bps, 200)

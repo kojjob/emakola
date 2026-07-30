@@ -12,6 +12,7 @@ defmodule Emakola.Payments.ProtectionChargeTest do
 
   require Ash.Query
   import Emakola.Factory
+  import ExUnit.CaptureLog
 
   alias Emakola.Payments.{HubtelWebhook, Protection, ProtectionHold, ProtectionHolds}
   alias Emakola.Payments.Workers.PaystackWebhookHandler
@@ -85,7 +86,18 @@ defmodule Emakola.Payments.ProtectionChargeTest do
         })
 
       assert :ok = ProtectionHolds.ensure_hold(payment)
-      assert :ok = ProtectionHolds.ensure_hold(payment)
+
+      log =
+        capture_log(fn ->
+          assert :ok = ProtectionHolds.ensure_hold(payment)
+        end)
+
+      # Async-suite capture_log sees concurrent tests' output; assert only
+      # that OUR payment's id was not logged, not that the world was silent.
+      # A benign idempotent retry (unique_payment identity violation) must
+      # stay silent — Logger.error here would mask real failures in prod
+      # alerting.
+      refute log =~ payment.id
 
       holds =
         ProtectionHold
@@ -94,6 +106,38 @@ defmodule Emakola.Payments.ProtectionChargeTest do
         |> Ash.read!(authorize?: false)
 
       assert length(holds) == 1
+    end
+
+    test "a genuinely invalid create (not a unique violation) still logs an error", %{
+      store: store
+    } do
+      # order_id is required on ProtectionHold — a payment with no order_id
+      # (nilable on Payment) forces a real Ash validation failure distinct
+      # from the benign unique_payment retry, proving the rescue still
+      # alerts on a genuine failure.
+      payment =
+        create_payment!(store, %{
+          amount: 25_000,
+          payout_held: true,
+          payout_hold_reason: "buyer_protection"
+        })
+
+      assert payment.order_id == nil
+
+      log =
+        capture_log(fn ->
+          assert :ok = ProtectionHolds.ensure_hold(payment)
+        end)
+
+      assert log =~ payment.id
+      assert log =~ "[protection_holds] ensure_hold failed"
+
+      assert {:ok, nil} =
+               Emakola.Payments.get_protection_hold_by_payment(payment.id,
+                 tenant: store.id,
+                 authorize?: false,
+                 not_found_error?: false
+               )
     end
 
     test "a payment not under a buyer_protection hold creates no hold", %{
