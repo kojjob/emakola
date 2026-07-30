@@ -991,20 +991,6 @@ defmodule EmakolaWeb.HowItWorksHTML do
   vanilla JS) — the template is only the mount point, so the film needs no
   LiveView process and no app.js coupling.
   """
-  defp tour_scenes do
-    [
-      {"It starts with a maker.",
-       "She lists her goods on Makola one time. That is all she does."},
-      {"You stock it in one tap.",
-       "No buying stock first. You see your profit before you add it."},
-      {"They pay like always.", "One MoMo payment. One receipt. Money people already use."},
-      {"It goes straight to them.",
-       "The maker gets the order on her phone and sends it to your customer's door."},
-      {"The money shares itself.",
-       "Everyone's part reaches them by itself. No chasing. No promises."},
-      {"Every stall connected.", "Open your shop today. It is free to start."}
-    ]
-  end
 
   def tour(assigns) do
     ~H"""
@@ -1056,5 +1042,20 @@ defmodule EmakolaWeb.HowItWorksHTML do
       </body>
     </html>
     """
+  end
+
+  defp tour_scenes do
+    [
+      {"It starts with a maker.",
+       "She lists her goods on Makola one time. That is all she does."},
+      {"You stock it in one tap.",
+       "No buying stock first. You see your profit before you add it."},
+      {"They pay like always.", "One MoMo payment. One receipt. Money people already use."},
+      {"It goes straight to them.",
+       "The maker gets the order on her phone and sends it to your customer's door."},
+      {"The money shares itself.",
+       "Everyone's part reaches them by itself. No chasing. No promises."},
+      {"Every stall connected.", "Open your shop today. It is free to start."}
+    ]
   end
 end

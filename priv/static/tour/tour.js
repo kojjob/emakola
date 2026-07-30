@@ -10,7 +10,7 @@
   var world = document.getElementById('tour-world');
   world.innerHTML = ''; // drop the no-JS fallback; the film takes over
 
-  mountScrollWorld(world, {
+  var CFG = {
     brand: { name: 'Makola', href: '/' },
     cta: { label: 'Start your shop', href: '/auth/register' },
     hint: 'scroll to see how it works',
@@ -109,7 +109,17 @@
       '/tour/vid/conn4-m.mp4',
       '/tour/vid/conn5-m.mp4',
     ],
-  });
+  };
+
+  // Portrait assets are composed for portrait viewports. A landscape phone
+  // (coarse pointer, but wide) must get the 16:9 clips — object-fit: cover
+  // would show only the middle quarter of a 9:16 frame (Codex review, PR #356).
+  if (!window.matchMedia('(orientation: portrait)').matches) {
+    CFG.sections.forEach(function (s) { delete s.clipMobile; delete s.stillMobile; });
+    delete CFG.connectorsMobile;
+  }
+
+  mountScrollWorld(world, CFG);
   // Use the real Makola logo in the film's topbar (engine default is a plain mark).
   // Center the scene tabs exactly: the engine's space-between topbar lets the
   // tab group drift toward the wider CTA side. Grid pins it to true center.
