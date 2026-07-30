@@ -128,8 +128,9 @@ point, like `CheckoutService`, not a payment record.
 - **Store lifecycle enforced**: the link page performs the same live-store
   check as the storefront resolver; suspended/blocked/archived stores render
   the unavailable page, never a checkout.
-- **Rate limiting**: payment initiation sits behind the existing rate-limit
-  plumbing (same posture as storefront checkout/auth).
+- **Rate limiting**: Payment initiation is a LiveView event with the same
+  posture as storefront checkout (no dedicated rate-limit plumbing exists on
+  either); unguessable codes are the primary abuse control.
 - **Money rules**: integer minor units only; custom `amount` ≥ 100
   (no 1-pesewa spam); store currency.
 
