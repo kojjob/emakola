@@ -77,6 +77,18 @@ defmodule EmakolaWeb.HowItWorksControllerTest do
       end
     end
 
+    test "serves the story as semantic HTML for agents and no-JS browsers", %{conn: conn} do
+      document =
+        conn
+        |> get("/how-it-works/tour")
+        |> html_response(200)
+        |> LazyHTML.from_document()
+
+      assert document |> LazyHTML.query("#tour-world h1") |> Enum.any?()
+      assert document |> LazyHTML.query("#tour-world section h2") |> Enum.count() == 6
+      assert document |> LazyHTML.query(~s(#tour-world a[href="/auth/register"])) |> Enum.any?()
+    end
+
     test "marketing navigation links to the tour", %{conn: conn} do
       document =
         conn
