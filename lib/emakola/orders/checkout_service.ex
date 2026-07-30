@@ -68,6 +68,137 @@ defmodule Emakola.Orders.CheckoutService do
   end
 
   @doc """
+  Checkout for a single custom (variant-less) pay-link line. Creates a real
+  pending order — fees, settlement, refunds, notifications all see an
+  ordinary order. No stock, coupons, or supplier dispatch apply.
+
+  `opts`: :customer_name, :customer_phone (required), :customer_email
+  (optional — a deterministic phone placeholder is derived when absent),
+  :shipping_address, :notes, :pay_link_id.
+  """
+  def checkout_custom!(store_id, %{title: title, unit_price: unit_price}, opts) do
+    cond do
+      not is_binary(title) or title == "" ->
+        {:error, :invalid_title}
+
+      not is_integer(unit_price) or unit_price < 1 ->
+        {:error, :invalid_unit_price}
+
+      true ->
+        opts =
+          Keyword.put_new(opts, :customer_email, phone_placeholder_email(opts[:customer_phone]))
+
+        run_checkout_custom(store_id, title, unit_price, opts)
+    end
+  end
+
+  @doc """
+  Deterministic placeholder email for phone-first buyers: the phone is
+  normalized (`PhoneAuth.normalize/1`) before deriving digits, so local and
+  E.164 forms of the same number ("0201234567" vs "+233201234567") map to
+  the same address — keeping the email-keyed Customer :find_or_create
+  idempotent per real phone, not per input format. The domain is ours;
+  nothing routes to a stranger's inbox, and buyer receipts go out via
+  SMS/WhatsApp anyway.
+  """
+  def phone_placeholder_email(phone) when is_binary(phone) do
+    digits =
+      phone
+      |> Emakola.Accounts.PhoneAuth.normalize()
+      |> String.replace(~r/\D/, "")
+
+    "p#{digits}@phone.customers.makola.io"
+  end
+
+  defp run_checkout_custom(store_id, title, unit_price, opts) do
+    result =
+      Emakola.Repo.transaction(fn ->
+        {customer_id, resolved_address} = resolve_customer(store_id, opts)
+        shipping_address = Keyword.get(opts, :shipping_address) || resolved_address
+
+        order =
+          Emakola.Orders.Order
+          |> Ash.Changeset.for_create(:create, %{
+            store_id: store_id,
+            customer_id: customer_id,
+            notes: Keyword.get(opts, :notes),
+            shipping_address: shipping_address,
+            pay_link_id: Keyword.get(opts, :pay_link_id)
+          })
+          |> Ash.create!(authorize?: false)
+
+        # One merchant-owned fulfillment group (supplier_id nil).
+        # create_fulfillments/5 derives its groups by mapping over `items`, so
+        # calling it with an empty item list returns an empty map — no
+        # nil-keyed group at all. Build the single fulfillment directly.
+        fulfillment =
+          Emakola.Orders.Fulfillment
+          |> Ash.Changeset.for_create(:create, %{order_id: order.id, store_id: store_id})
+          |> Ash.create!(authorize?: false)
+
+        line =
+          Emakola.Orders.LineItem
+          |> Ash.Changeset.for_create(:create_custom, %{
+            order_id: order.id,
+            store_id: store_id,
+            product_title: title,
+            unit_price: unit_price,
+            quantity: 1,
+            fulfillment_id: fulfillment.id
+          })
+          |> Ash.create!(authorize?: false)
+
+        # Same :update action + arg names run_checkout's tail uses to set
+        # totals (there is no separate :update_totals action).
+        order
+        |> Ash.Changeset.for_update(:update, %{
+          subtotal: line.line_total,
+          delivery_fee: 0,
+          discount_amount: 0,
+          total: line.line_total
+        })
+        |> Ash.update!(authorize?: false)
+      end)
+
+    case result do
+      {:ok, order} ->
+        # Outside the transaction, exactly like checkout!/3: receipts to both
+        # sides; a notification-subsystem error never fails the checkout.
+        case Emakola.Notifications.Dispatcher.dispatch(order, :order_placed) do
+          {:ok, _job} ->
+            :ok
+
+          {:error, reason} ->
+            Logger.error(
+              "[checkout_custom] order_placed dispatch failed: #{inspect(reason)}",
+              order_id: order.id,
+              store_id: store_id
+            )
+        end
+
+        {:ok, order}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  rescue
+    # Mirrors run_checkout/4's rescue: without this, an in-transaction Ash
+    # failure (bang calls throughout) raises straight out of
+    # checkout_custom!/3, breaking its documented {:ok, order} | {:error,
+    # reason} contract. Ecto has already rolled the transaction back by the
+    # time either clause runs.
+    e in Ash.Error.Invalid ->
+      Logger.error(
+        "[checkout_custom] validation error during transaction: #{Exception.message(e)}"
+      )
+
+      {:error, :checkout_failed}
+
+    _e in Ecto.StaleEntryError ->
+      {:error, :checkout_failed}
+  end
+
+  @doc """
   Validates a coupon code for a given store and subtotal.
 
   Returns `{:ok, coupon}` if the coupon is valid, or `{:error, reason}` with
@@ -257,7 +388,8 @@ defmodule Emakola.Orders.CheckoutService do
           notes: Keyword.get(opts, :notes),
           shipping_address: shipping_address,
           billing_address: Keyword.get(opts, :billing_address),
-          attribution: Keyword.get(opts, :attribution, %{})
+          attribution: Keyword.get(opts, :attribution, %{}),
+          pay_link_id: Keyword.get(opts, :pay_link_id)
         })
         |> Ash.create!(authorize?: false)
 

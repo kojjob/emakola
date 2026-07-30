@@ -43,7 +43,7 @@ defmodule Emakola.Orders.LineItem do
     end
 
     attribute :variant_id, :uuid do
-      allow_nil?(false)
+      allow_nil?(true)
       public?(true)
     end
 
@@ -95,6 +95,7 @@ defmodule Emakola.Orders.LineItem do
 
     belongs_to :variant, Emakola.Catalog.Variant do
       define_attribute?(false)
+      allow_nil?(true)
       public?(true)
     end
 
@@ -146,6 +147,24 @@ defmodule Emakola.Orders.LineItem do
       accept([:order_id, :store_id, :variant_id, :quantity, :fulfillment_id])
 
       change(Emakola.Orders.Changes.DenormalizeVariant)
+    end
+
+    create :create_custom do
+      accept([:order_id, :store_id, :product_title, :unit_price, :quantity, :fulfillment_id])
+
+      validate(present([:product_title, :unit_price]),
+        message: "custom lines require a title and price"
+      )
+
+      validate(compare(:unit_price, greater_than: 0),
+        message: "must be greater than 0"
+      )
+
+      change(fn changeset, _ctx ->
+        qty = Ash.Changeset.get_attribute(changeset, :quantity) || 0
+        price = Ash.Changeset.get_attribute(changeset, :unit_price) || 0
+        Ash.Changeset.force_change_attribute(changeset, :line_total, qty * price)
+      end)
     end
   end
 end

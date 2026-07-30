@@ -380,6 +380,14 @@ defmodule EmakolaWeb.Router do
     live "/cookies", Company.CookiesLive
     live "/contact", Company.ContactLive
 
+    # Pay links — express checkout shared into DMs. This scope is
+    # host: @apex_hosts, so no store subdomain can shadow this path.
+    live_session :pay_link,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [{EmakolaWeb.Hooks.AssignDefaults, :default}] do
+      live "/pay/:code", Storefront.PayLinkLive
+    end
+
     # Platform admin routes (platform staff only). Pages gate themselves with
     # a module-level {Hooks.RequirePermission, permission} on_mount:
     #   stores → :manage_stores, team → :manage_team, audit-log → :view_audit_log,
@@ -480,6 +488,7 @@ defmodule EmakolaWeb.Router do
       live "/admin/campaigns", Admin.CampaignLive.Index
       live "/admin/discounts", Admin.DiscountLive.Index
       live "/admin/coupons", Admin.CouponLive
+      live "/admin/pay-links", Admin.PayLinkLive.Index
 
       # Content management
       live "/admin/content/posts", Admin.Content.PostLive.Index

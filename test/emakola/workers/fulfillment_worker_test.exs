@@ -104,6 +104,24 @@ defmodule Emakola.Workers.FulfillmentWorkerTest do
       assert :ok = perform_job(FulfillmentWorker, %{"order_id" => order.id})
     end
 
+    test "skips variant-less custom line items without raising" do
+      store = digital_store!()
+      order = create_order!(store)
+
+      _line_item =
+        Emakola.Orders.LineItem
+        |> Ash.Changeset.for_create(:create_custom, %{
+          order_id: order.id,
+          store_id: store.id,
+          product_title: "Custom kente dress — as agreed",
+          unit_price: 25_000,
+          quantity: 1
+        })
+        |> Ash.create!(authorize?: false)
+
+      assert :ok = perform_job(FulfillmentWorker, %{"order_id" => order.id})
+    end
+
     test "returns {:error, :order_not_found} for a missing order_id" do
       assert {:error, :order_not_found} =
                perform_job(FulfillmentWorker, %{"order_id" => Ecto.UUID.generate()})

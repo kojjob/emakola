@@ -28,6 +28,15 @@ defmodule Emakola.Orders do
 
     resource Emakola.Orders.LineItem do
       define(:create_line_item, action: :create)
+      define(:create_custom_line_item, action: :create_custom)
+    end
+
+    resource Emakola.Orders.PayLink do
+      define(:create_pay_link, action: :create)
+      define(:get_pay_link_by_code, action: :get_by_code, args: [:code])
+      define(:cancel_pay_link, action: :cancel)
+      define(:mark_pay_link_paid, action: :mark_paid)
+      define(:list_pay_links_for_admin, action: :list_for_admin)
     end
 
     resource Emakola.Orders.Fulfillment do
