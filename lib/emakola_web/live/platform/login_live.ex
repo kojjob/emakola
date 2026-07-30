@@ -30,7 +30,7 @@ defmodule EmakolaWeb.Platform.LoginLive do
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(client_ip: client_ip(socket))
+     |> assign(client_ip: EmakolaWeb.ClientIp.resolve(socket))
      |> reset_to_credentials()
      |> assign(error: nil)}
   end
@@ -205,17 +205,6 @@ defmodule EmakolaWeb.Platform.LoginLive do
       otpauth_secret_base32: nil,
       form: to_form(%{"email" => "", "password" => ""}, as: :user)
     )
-  end
-
-  # Must be called during mount — get_connect_info is only available then
-  defp client_ip(socket) do
-    case Phoenix.LiveView.get_connect_info(socket, :peer_data) do
-      %{address: {a, b, c, d}} -> "#{a}.#{b}.#{c}.#{d}"
-      %{address: ip} -> to_string(:inet.ntoa(ip))
-      _ -> "unknown"
-    end
-  rescue
-    _ -> "unknown"
   end
 
   # ── Render ──────────────────────────────────────────────────────
