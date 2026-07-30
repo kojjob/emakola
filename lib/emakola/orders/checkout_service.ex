@@ -93,13 +93,20 @@ defmodule Emakola.Orders.CheckoutService do
   end
 
   @doc """
-  Deterministic placeholder email for phone-first buyers: the same phone
-  always maps to the same address, so the email-keyed Customer
-  :find_or_create stays idempotent. The domain is ours; nothing routes to
-  a stranger's inbox, and buyer receipts go out via SMS/WhatsApp anyway.
+  Deterministic placeholder email for phone-first buyers: the phone is
+  normalized (`PhoneAuth.normalize/1`) before deriving digits, so local and
+  E.164 forms of the same number ("0201234567" vs "+233201234567") map to
+  the same address — keeping the email-keyed Customer :find_or_create
+  idempotent per real phone, not per input format. The domain is ours;
+  nothing routes to a stranger's inbox, and buyer receipts go out via
+  SMS/WhatsApp anyway.
   """
   def phone_placeholder_email(phone) when is_binary(phone) do
-    digits = String.replace(phone, ~r/\D/, "")
+    digits =
+      phone
+      |> Emakola.Accounts.PhoneAuth.normalize()
+      |> String.replace(~r/\D/, "")
+
     "p#{digits}@phone.customers.makola.io"
   end
 
@@ -174,6 +181,21 @@ defmodule Emakola.Orders.CheckoutService do
       {:error, reason} ->
         {:error, reason}
     end
+  rescue
+    # Mirrors run_checkout/4's rescue: without this, an in-transaction Ash
+    # failure (bang calls throughout) raises straight out of
+    # checkout_custom!/3, breaking its documented {:ok, order} | {:error,
+    # reason} contract. Ecto has already rolled the transaction back by the
+    # time either clause runs.
+    e in Ash.Error.Invalid ->
+      Logger.error(
+        "[checkout_custom] validation error during transaction: #{Exception.message(e)}"
+      )
+
+      {:error, :checkout_failed}
+
+    _e in Ecto.StaleEntryError ->
+      {:error, :checkout_failed}
   end
 
   @doc """

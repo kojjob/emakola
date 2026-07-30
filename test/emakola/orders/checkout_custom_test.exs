@@ -68,4 +68,39 @@ defmodule Emakola.Orders.CheckoutCustomTest do
                customer_phone: "0201234567"
              )
   end
+
+  test "local and E.164 formats of the same phone resolve to the same customer" do
+    store = Emakola.Factory.create_store!()
+
+    {:ok, o1} =
+      CheckoutService.checkout_custom!(
+        store.id,
+        %{title: "A", unit_price: 500},
+        customer_name: "Ama",
+        customer_phone: "0201234567"
+      )
+
+    {:ok, o2} =
+      CheckoutService.checkout_custom!(
+        store.id,
+        %{title: "B", unit_price: 700},
+        customer_name: "Ama",
+        customer_phone: "+233201234567"
+      )
+
+    assert o1.customer_id == o2.customer_id
+  end
+
+  test "an in-transaction Ash failure returns {:error, _} instead of raising" do
+    store = Emakola.Factory.create_store!()
+    too_long_title = String.duplicate("x", 300)
+
+    assert {:error, _reason} =
+             CheckoutService.checkout_custom!(
+               store.id,
+               %{title: too_long_title, unit_price: 500},
+               customer_name: "Ama",
+               customer_phone: "0201234567"
+             )
+  end
 end
