@@ -194,6 +194,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
       # only a :pending order, so a retry safely completes a partial first attempt.
       if payment.status == :success do
         maybe_confirm_order(payment.order_id)
+        payment.order_id && Emakola.Orders.PayLinkClaim.claim_for_order(payment.order_id)
         Emakola.Suppliers.GroupBuys.confirm_payment(payment)
         Emakola.Suppliers.ProtectedPreorders.confirm_payment(payment)
         settle_splits(payment)

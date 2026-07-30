@@ -59,6 +59,7 @@ defmodule Emakola.Payments.HubtelWebhook do
 
       if payment.status == :success do
         maybe_confirm_order(payment.order_id)
+        payment.order_id && Emakola.Orders.PayLinkClaim.claim_for_order(payment.order_id)
         Emakola.Suppliers.GroupBuys.confirm_payment(payment)
         Emakola.Suppliers.ProtectedPreorders.confirm_payment(payment)
         Emakola.Suppliers.SalesTeams.settle_attributed_payment(payment)
