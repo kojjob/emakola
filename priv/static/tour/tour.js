@@ -119,7 +119,12 @@
     '@media (max-width:860px){.sw-topbar{display:flex}}' +
     // Desktop: the rail's dot centerline tracks the topbar's right padding, so
     // the dots sit exactly under the CTA's right edge (17px = rail padding 10 + half-dot 7).
-    '@media (min-width:861px){.sw-route{right:calc(clamp(18px,5vw,64px) - 17px)}}';
+    '@media (min-width:861px){.sw-route{right:calc(clamp(18px,5vw,64px) - 17px)}}' +
+    // Uniform rail: inactive dots share one neutral tone; only the active dot
+    // takes its scene accent (per-scene colors made the rail look scattered).
+    '.sw-route__dot i{background:color-mix(in srgb,#FAF3E3 55%,transparent)}' +
+    '.sw-route__dot:hover i{background:#FAF3E3}' +
+    '.sw-route__dot.is-active i{background:var(--sw-accent)}';
   document.head.appendChild(st);
 
   // Accessible names for the engine's route-rail dots (one per scene).
