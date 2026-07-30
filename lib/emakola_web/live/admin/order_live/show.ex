@@ -821,7 +821,29 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
         {:noreply, socket}
 
       {:error, _error} ->
-        {:noreply, put_flash(socket, :error, "Failed to update order status")}
+        # The most likely cause is a stale page: the row moved on (another tab,
+        # a back button) so the guarded UPDATE matched nothing. Re-read it so
+        # the page stops showing a status that is no longer true — otherwise
+        # the merchant just clicks the same dead button again.
+        {:noreply,
+         socket
+         |> reload_order()
+         |> put_flash(
+           :error,
+           "Couldn't update this order — it may have changed elsewhere. Refreshed to the latest status."
+         )}
+    end
+  end
+
+  defp reload_order(socket) do
+    case Ash.get(Emakola.Orders.Order, socket.assigns.order.id, authorize?: false) do
+      {:ok, fresh} ->
+        assign(socket,
+          order: Ash.load!(fresh, [:line_items, :customer, :margin], authorize?: false)
+        )
+
+      _ ->
+        socket
     end
   end
 
