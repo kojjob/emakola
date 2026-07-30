@@ -11,6 +11,12 @@ defmodule Emakola.Repo.Migrations.AddPayLinks do
   fully tracked, see prior migrations tagged "Hand-written: `mix ash.codegen`
   is unusable in this repo"). Discarding those foreign snapshots/hunks
   follows the existing recovery pattern.
+
+  The `pay_links_unique_code_index` is hand-amended to cover `code` alone
+  (not `(store_id, code)`, ash_postgres's default for attribute-multitenant
+  identities). A buyer opens `/pay/:code` with no store context, so the
+  code must be unique across every tenant, not just within one — see the
+  `all_tenants?: true` identity on `Emakola.Orders.PayLink`.
   """
 
   use Ecto.Migration
@@ -41,7 +47,7 @@ defmodule Emakola.Repo.Migrations.AddPayLinks do
         default: fragment("(now() AT TIME ZONE 'utc')")
     end
 
-    create unique_index(:pay_links, [:store_id, :code], name: "pay_links_unique_code_index")
+    create unique_index(:pay_links, [:code], name: "pay_links_unique_code_index")
 
     alter table(:orders) do
       add :pay_link_id, :uuid
@@ -53,9 +59,7 @@ defmodule Emakola.Repo.Migrations.AddPayLinks do
       remove :pay_link_id
     end
 
-    drop_if_exists unique_index(:pay_links, [:store_id, :code],
-                     name: "pay_links_unique_code_index"
-                   )
+    drop_if_exists unique_index(:pay_links, [:code], name: "pay_links_unique_code_index")
 
     drop table(:pay_links)
   end

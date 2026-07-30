@@ -57,7 +57,11 @@ defmodule Emakola.Orders.PayLink do
   end
 
   identities do
-    identity(:unique_code, [:code])
+    # all_tenants?: true — code must be unique across every store, not just
+    # within one. The buyer-facing lookup (get_by_code, below) has no store
+    # context to disambiguate with; without this, ash_postgres would default
+    # to a (store_id, code) index and two stores could mint the same code.
+    identity(:unique_code, [:code], all_tenants?: true)
   end
 
   policies do
@@ -134,6 +138,11 @@ defmodule Emakola.Orders.PayLink do
       end)
     end
 
+    # No store context here by design — a buyer opens `/pay/:code` before
+    # anything is known about which store it belongs to. `get?(true)` relies
+    # on `code` being unique across every tenant (see the `all_tenants?: true`
+    # identity above); without that, two stores minting the same code would
+    # make this raise "expected at most one result" instead of resolving.
     read :get_by_code do
       get?(true)
       argument(:code, :string, allow_nil?: false)

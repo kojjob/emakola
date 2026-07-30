@@ -202,7 +202,7 @@
   "hash": "C46823791E64DBECB8968D2176D950D9FA7F106D7769C500C646BF3C1DFC1AFC",
   "identities": [
     {
-      "all_tenants?": false,
+      "all_tenants?": true,
       "base_filter": null,
       "index_name": "pay_links_unique_code_index",
       "keys": [

@@ -91,4 +91,22 @@ defmodule Emakola.Orders.PayLinkTest do
 
     assert updated.opened_count == 1
   end
+
+  test "the code unique index spans every store — get_by_code has no tenant to disambiguate with" do
+    result =
+      Emakola.Repo.query!(
+        """
+        SELECT indexdef FROM pg_indexes
+        WHERE tablename = 'pay_links' AND indexname = 'pay_links_unique_code_index'
+        """,
+        []
+      )
+
+    assert [[indexdef]] = result.rows
+    assert indexdef =~ "UNIQUE"
+
+    refute indexdef =~ "store_id",
+           "unique_code must stay all_tenants?: true — a per-store index would let " <>
+             "two stores mint the same code and crash get_by_code's get?(true)"
+  end
 end
