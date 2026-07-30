@@ -18,6 +18,20 @@ defmodule Emakola.Payments.ProtectionRelease do
   `net` was snapshotted at hold-creation time (`ProtectionHolds.ensure_hold/1`),
   release pays exactly that amount regardless of any later change to the
   configured platform fee rate.
+
+  ## Freeze respect
+
+  A frozen hold (`frozen_at` set — an open buyer complaint) is, by default,
+  left `:held` rather than released: `respect_freeze: true` is the default
+  for `release/2,3` so every trigger written against this module — the OTP
+  hook, the buyer's own tracking-page confirmation, the auto-release timer —
+  automatically defers to an open complaint without having to know about
+  `frozen_at` itself. The one caller that must be able to override it is
+  platform staff force-releasing a frozen hold after resolving the
+  complaint out-of-band; that call site passes `respect_freeze: false`
+  explicitly. The check reads `frozen_at` off the same `FOR UPDATE`-locked
+  fresh row the idempotency check already reads, so it costs no extra query
+  and can't race a concurrent freeze.
   """
 
   import Ecto.Query, only: [from: 2]
@@ -36,7 +50,7 @@ defmodule Emakola.Payments.ProtectionRelease do
     from(h in "protection_holds",
       where: h.id == type(^hold_id, :binary_id),
       lock: "FOR UPDATE",
-      select: %{status: h.status}
+      select: %{status: h.status, frozen_at: h.frozen_at}
     )
   end
 
@@ -47,11 +61,23 @@ defmodule Emakola.Payments.ProtectionRelease do
   hold is a no-op returning `:ok` without touching the payment again — decided
   on a `FOR UPDATE`-locked fresh read of the hold row, not the (possibly
   stale) `hold` struct passed in.
+
+  ## Options
+
+    * `:respect_freeze` (default `true`) — when the fresh row has
+      `frozen_at` set, no-op and return `:ok` instead of releasing (see
+      "Freeze respect" above). Pass `respect_freeze: false` to release a
+      frozen hold anyway (platform staff force-release only).
   """
-  def release(hold, reason) do
+  def release(hold, reason, opts \\ []) do
+    respect_freeze? = Keyword.get(opts, :respect_freeze, true)
+
     Repo.transaction(fn ->
       case Repo.one(locked_row_query(hold.id)) do
         %{status: "released"} ->
+          :ok
+
+        %{frozen_at: frozen_at} when respect_freeze? and not is_nil(frozen_at) ->
           :ok
 
         _fresh ->

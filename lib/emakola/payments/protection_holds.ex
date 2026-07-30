@@ -12,7 +12,8 @@ defmodule Emakola.Payments.ProtectionHolds do
 
   require Logger
 
-  alias Emakola.Payments.PlatformFee
+  alias Emakola.Payments
+  alias Emakola.Payments.{Payment, PlatformFee, ProtectionHold, ProtectionRelease}
 
   @doc "Creates the protection hold for a payment held for buyer protection. No-op otherwise."
   def ensure_hold(%{payout_hold_reason: "buyer_protection"} = payment) do
@@ -46,6 +47,41 @@ defmodule Emakola.Payments.ProtectionHolds do
   end
 
   def ensure_hold(_payment), do: :ok
+
+  @doc """
+  Finds `order_id`'s buyer-protection hold — via its captured payment's
+  `payout_hold_reason` — and releases it for `reason`.
+
+  Returns `:ok` when the order was never protected (no captured payment
+  carries the `"buyer_protection"` hold reason, or the payment has no hold
+  row): an ordinary outcome for the vast majority of orders, not a failure.
+  Otherwise returns whatever `ProtectionRelease.release/2` returns — release
+  itself already treats "already released" and (by default) frozen holds as
+  no-op `:ok`s, so an `{:error, _}` here is a genuine failure worth the
+  caller logging.
+
+  Shared by every order-level release trigger (delivery-OTP verification;
+  the buyer's own tracking-page confirmation) so the payment→hold lookup
+  lives in one place.
+  """
+  def release_for_order(order_id, store_id, reason) do
+    with {:ok, payments} <-
+           Payments.list_captured_payments_by_order(order_id,
+             tenant: store_id,
+             authorize?: false
+           ),
+         %Payment{id: payment_id} <-
+           Enum.find(payments, &(&1.payout_hold_reason == "buyer_protection")),
+         {:ok, %ProtectionHold{} = hold} <-
+           Payments.get_protection_hold_by_payment(payment_id,
+             tenant: store_id,
+             authorize?: false
+           ) do
+      ProtectionRelease.release(hold, reason)
+    else
+      _ -> :ok
+    end
+  end
 
   # The expected shape of a retried/replayed create hitting the `:unique_payment`
   # identity — a benign no-op, not a failure worth alerting on. Everything else

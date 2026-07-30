@@ -62,6 +62,7 @@ defmodule Emakola.Orders.FulfillmentDeliveryProof do
       require_atomic?(false)
       accept([])
       change(set_attribute(:verified_at, &DateTime.utc_now/0))
+      change(Emakola.Orders.Changes.ReleaseProtectionHoldOnVerify)
     end
   end
 end
