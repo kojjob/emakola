@@ -5,17 +5,24 @@ defmodule Emakola.Payments.ProtectionOtpReleaseTest do
   the order's buyer-protection hold (TC-2), same as a buyer's own tracking
   page confirmation or the auto-release timer.
 
-  The release is wired as an `after_transaction` hook so a release failure
-  never fails the verify — the buyer is standing in front of a courier
-  waiting on it. Multi-fulfillment orders (dropship splits) only release
-  once EVERY fulfillment has confirmed — v1 orders carry a single
-  fulfillment, but the hook has to get the "all of them" case right too.
+  The release itself never runs synchronously inside `:verify` — the hook
+  only enqueues `ProtectionReleaseWorker` (see that module's moduledoc for
+  why: a synchronous release nested inside a caller's own transaction, e.g.
+  `Suppliers.InboundFulfillment.verify_delivery/4`, can poison the shared
+  connection on failure). These tests drive the hook directly and perform
+  the enqueued job explicitly, mirroring how it actually runs in
+  production. Multi-fulfillment orders (dropship splits) only release once
+  EVERY fulfillment has confirmed — v1 orders carry a single fulfillment,
+  but the worker has to get the "all of them" case right too, re-checked at
+  run time on every perform.
   """
   use Emakola.DataCase, async: true
+  use Oban.Testing, repo: Emakola.Repo
 
   alias Emakola.Factory
   alias Emakola.Payments
   alias Emakola.Payments.ProtectionHolds
+  alias Emakola.Payments.Workers.ProtectionReleaseWorker, as: Worker
 
   defp protected_order!(store, attrs) do
     amount = Map.get(attrs, :amount, 25_000)
@@ -60,7 +67,11 @@ defmodule Emakola.Payments.ProtectionOtpReleaseTest do
     |> Ash.update!(authorize?: false)
   end
 
-  test "verifying the OTP on a protected single-fulfillment order releases the hold and pays out net" do
+  defp release_args(order, store) do
+    %{"order_id" => order.id, "store_id" => store.id, "reason" => "delivery_otp"}
+  end
+
+  test "verifying the OTP on a protected single-fulfillment order enqueues the release, which pays out net" do
     store = Factory.create_store!()
     {order, payment, _hold} = protected_order!(store, %{amount: 25_000})
     fulfillment = shipped_fulfillment!(order, store)
@@ -68,6 +79,10 @@ defmodule Emakola.Payments.ProtectionOtpReleaseTest do
 
     verified = verify!(proof)
     assert %DateTime{} = verified.verified_at
+
+    args = release_args(order, store)
+    assert_enqueued(worker: Worker, args: args)
+    assert :ok = perform_job(Worker, args)
 
     {:ok, released_hold} =
       Payments.get_protection_hold_by_payment(payment.id, tenant: store.id, authorize?: false)
@@ -81,7 +96,7 @@ defmodule Emakola.Payments.ProtectionOtpReleaseTest do
     assert %DateTime{} = reloaded_payment.payout_released_at
   end
 
-  test "verifying the OTP on an unprotected order's fulfillment is a no-op" do
+  test "verifying the OTP on an unprotected order's fulfillment is a no-op — nothing is even enqueued" do
     store = Factory.create_store!()
     order = Factory.create_order!(store, %{total: 25_000})
 
@@ -97,12 +112,14 @@ defmodule Emakola.Payments.ProtectionOtpReleaseTest do
     verified = verify!(proof)
     assert %DateTime{} = verified.verified_at
 
+    refute_enqueued(worker: Worker)
+
     reloaded_payment = Ash.get!(Payments.Payment, payment.id, authorize?: false)
     assert reloaded_payment.payout_held == false
     assert is_nil(reloaded_payment.payable_amount)
   end
 
-  test "a FROZEN hold is not released by OTP verification — a complaint outranks physical delivery" do
+  test "a FROZEN hold is enqueued (the cheap check can't see the freeze) but the worker leaves it held — a complaint outranks physical delivery" do
     store = Factory.create_store!()
     {order, payment, hold} = protected_order!(store, %{amount: 25_000})
 
@@ -119,6 +136,10 @@ defmodule Emakola.Payments.ProtectionOtpReleaseTest do
     {:ok, proof} = issue_proof!(fulfillment)
     verify!(proof)
 
+    args = release_args(order, store)
+    assert_enqueued(worker: Worker, args: args)
+    assert :ok = perform_job(Worker, args)
+
     {:ok, still_held} =
       Payments.get_protection_hold_by_payment(payment.id, tenant: store.id, authorize?: false)
 
@@ -129,7 +150,7 @@ defmodule Emakola.Payments.ProtectionOtpReleaseTest do
     assert reloaded_payment.payout_held == true
   end
 
-  test "a multi-fulfillment order only releases once EVERY fulfillment has confirmed" do
+  test "a multi-fulfillment order only releases once EVERY fulfillment has confirmed — re-checked when the job runs" do
     store = Factory.create_store!()
     {order, payment, _hold} = protected_order!(store, %{amount: 40_000})
 
@@ -138,6 +159,10 @@ defmodule Emakola.Payments.ProtectionOtpReleaseTest do
 
     {:ok, proof_a} = issue_proof!(fulfillment_a)
     verify!(proof_a)
+
+    args = release_args(order, store)
+    assert_enqueued(worker: Worker, args: args)
+    assert :ok = perform_job(Worker, args)
 
     {:ok, still_held} =
       Payments.get_protection_hold_by_payment(payment.id, tenant: store.id, authorize?: false)
@@ -150,10 +175,61 @@ defmodule Emakola.Payments.ProtectionOtpReleaseTest do
     {:ok, proof_b} = issue_proof!(fulfillment_b)
     verify!(proof_b)
 
+    assert :ok = perform_job(Worker, args)
+
     {:ok, released_hold} =
       Payments.get_protection_hold_by_payment(payment.id, tenant: store.id, authorize?: false)
 
     assert released_hold.status == :released
     assert released_hold.release_reason == :delivery_otp
+  end
+
+  test "verifying twice only ever releases once — the second verify enqueues nothing new, and performing the job again is a safe no-op" do
+    store = Factory.create_store!()
+    {order, payment, _hold} = protected_order!(store, %{amount: 25_000})
+    fulfillment = shipped_fulfillment!(order, store)
+    {:ok, proof} = issue_proof!(fulfillment)
+
+    verify!(proof)
+    args = release_args(order, store)
+    assert :ok = perform_job(Worker, args)
+
+    {:ok, released_once} =
+      Payments.get_protection_hold_by_payment(payment.id, tenant: store.id, authorize?: false)
+
+    assert released_once.status == :released
+    payment_after_first = Ash.get!(Payments.Payment, payment.id, authorize?: false)
+
+    # Verifying again is structurally allowed (the resource doesn't guard
+    # against a second verify) and must not raise — the hold is already
+    # :released, not :held, so the cheap existence check finds nothing and
+    # doesn't even enqueue a second job. (`perform_job/2`'s ephemeral
+    # execution never marks the first job's real DB row complete, so we
+    # compare counts rather than `refute_enqueued` — that leftover row
+    # would always be found regardless of whether a new one was added.)
+    jobs_before = all_enqueued(worker: Worker, args: args)
+
+    verified_again = verify!(proof)
+    assert %DateTime{} = verified_again.verified_at
+
+    jobs_after = all_enqueued(worker: Worker, args: args)
+    assert length(jobs_after) == length(jobs_before)
+
+    # Directly re-performing the same job args (an Oban retry, or a second
+    # fulfillment's verify racing before the first perform completes) must
+    # be a pure no-op — ProtectionRelease's FOR-UPDATE fresh read catches
+    # the already-released hold rather than re-releasing it.
+    assert :ok = perform_job(Worker, args)
+
+    {:ok, released_twice} =
+      Payments.get_protection_hold_by_payment(payment.id, tenant: store.id, authorize?: false)
+
+    assert released_twice.status == :released
+    assert released_twice.released_at == released_once.released_at
+    assert released_twice.release_reason == released_once.release_reason
+
+    payment_after_second = Ash.get!(Payments.Payment, payment.id, authorize?: false)
+    assert payment_after_second.payable_amount == payment_after_first.payable_amount
+    assert payment_after_second.payout_released_at == payment_after_first.payout_released_at
   end
 end

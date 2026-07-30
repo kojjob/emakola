@@ -10,6 +10,7 @@ defmodule Emakola.Payments.ProtectionHolds do
   the calling worker.
   """
 
+  require Ash.Query
   require Logger
 
   alias Emakola.Payments
@@ -47,6 +48,26 @@ defmodule Emakola.Payments.ProtectionHolds do
   end
 
   def ensure_hold(_payment), do: :ok
+
+  @doc """
+  Cheap existence check: does `order_id` currently have an actively `:held`
+  buyer-protection hold? A single query directly against
+  `ProtectionHold.order_id` — used to gate whether a release trigger is
+  worth enqueueing at all, without paying for the full payment lookup
+  `release_for_order/3` does (only worth it once we know there's something
+  to release) or a fulfillment scan.
+
+  A frozen hold is still `status: :held` (freezing doesn't change status —
+  see `ProtectionHold`'s moduledoc), so this returns `true` for one too;
+  the actual release, once enqueued, correctly no-ops on it.
+  """
+  def active_hold_for_order?(order_id, store_id) do
+    ProtectionHold
+    |> Ash.Query.filter(order_id == ^order_id and status == :held)
+    |> Ash.Query.limit(1)
+    |> Ash.read!(tenant: store_id, authorize?: false)
+    |> Enum.any?()
+  end
 
   @doc """
   Finds `order_id`'s buyer-protection hold — via its captured payment's
