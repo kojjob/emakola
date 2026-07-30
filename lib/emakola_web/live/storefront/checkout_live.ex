@@ -494,16 +494,19 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     case gateway.initiate_payment(params) do
       {:ok, %{reference: reference} = resp} ->
         case Emakola.Payments.create_payment(
-               %{
-                 store_id: store.id,
-                 order_id: order.id,
-                 amount: order.total,
-                 currency: store.currency || "GHS",
-                 gateway: :paystack,
-                 gateway_reference: reference,
-                 metadata: %{payment_method: method},
-                 split_mode: split_mode(settlement)
-               },
+               Map.merge(
+                 %{
+                   store_id: store.id,
+                   order_id: order.id,
+                   amount: order.total,
+                   currency: store.currency || "GHS",
+                   gateway: :paystack,
+                   gateway_reference: reference,
+                   metadata: %{payment_method: method},
+                   split_mode: split_mode(settlement)
+                 },
+                 payout_hold_attrs(settlement)
+               ),
                authorize?: false
              ) do
           {:ok, payment} ->
@@ -579,19 +582,31 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     do: Map.put(params, :split, shares)
 
   defp maybe_attach_split(params, {:no_split, _reason}), do: params
+  defp maybe_attach_split(params, {:hold, _}), do: params
 
   defp split_mode({:split, %{mode: mode}}), do: mode
   defp split_mode({:no_split, _}), do: :none
+  defp split_mode({:hold, _}), do: :none
+
+  # TC-2 Buyer Protection: a hold settles with NO merchant gateway share — the
+  # payment is flagged so PayoutService (Task 5+) excludes it until the hold
+  # releases (same literal pattern as GroupBuys/ProtectedPreorders escrow).
+  defp payout_hold_attrs({:hold, :buyer_protection}),
+    do: %{payout_held: true, payout_hold_reason: "buyer_protection"}
+
+  defp payout_hold_attrs(_settlement), do: %{}
 
   defp record_splits(payment, {:split, %{allocations: allocations}}),
     do: Emakola.Payments.OrderSettlement.record_splits!(payment, allocations)
 
   defp record_splits(_payment, {:no_split, _}), do: :ok
+  defp record_splits(_payment, {:hold, _}), do: :ok
 
   defp release_recovery_reservations({:split, %{allocations: allocations}}),
     do: Emakola.Payments.OrderSettlement.release_recovery_reservations!(allocations)
 
   defp release_recovery_reservations({:no_split, _}), do: :ok
+  defp release_recovery_reservations({:hold, _}), do: :ok
 
   defp verify_payment_status(socket) do
     ref = socket.assigns[:gateway_reference]

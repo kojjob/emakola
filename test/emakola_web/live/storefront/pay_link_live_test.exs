@@ -158,6 +158,45 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
     assert order.total == 25_000
   end
 
+  test "a protected: true link creates a payment with no split and a payout hold flagged", %{
+    conn: conn
+  } do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store, %{protected: true})
+
+    original = Application.get_env(:emakola, :payment_gateway)
+    Application.put_env(:emakola, :payment_gateway, Emakola.Payments.GatewayMock)
+    on_exit(fn -> Application.put_env(:emakola, :payment_gateway, original) end)
+
+    expect(Emakola.Payments.GatewayMock, :initiate_payment, fn _params ->
+      {:ok, %{reference: "PAY-protected-ref", authorization_url: "https://pay.test/protected"}}
+    end)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+    Mox.allow(Emakola.Payments.GatewayMock, self(), view.pid)
+
+    view
+    |> form("#pay-link-form", %{
+      "buyer" => %{"name" => "Ama Mensah", "phone" => "0201234567"}
+    })
+    |> render_submit()
+
+    [order] =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    payment =
+      Emakola.Payments.Payment
+      |> Ash.Query.filter(order_id == ^order.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+      |> List.first()
+
+    assert payment.split_mode == :none
+    assert payment.payout_held == true
+    assert payment.payout_hold_reason == "buyer_protection"
+  end
+
   test "invalid phone renders a friendly error and creates no order", %{conn: conn} do
     store = Emakola.Factory.create_store!()
     link = custom_link!(store)

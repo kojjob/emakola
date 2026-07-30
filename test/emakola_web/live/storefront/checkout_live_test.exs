@@ -414,6 +414,50 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     end
   end
 
+  # -- Buyer protection settlement (TC-2) --
+
+  describe "buyer protection settlement" do
+    test "places a protected order with no merchant split and a payout hold flagged", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      verified_payout!(store, "ACCT_protected")
+
+      store
+      |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+      |> Ash.update!(authorize?: false)
+
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "241234567",
+        "fullname" => "Kofi Owusu",
+        "address" => "House 14, Osu",
+        "region" => "greater_accra",
+        "notes" => ""
+      })
+
+      payment =
+        Emakola.Payments.Payment
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+        |> List.first()
+
+      assert payment.split_mode == :none
+      assert payment.payout_held == true
+      assert payment.payout_hold_reason == "buyer_protection"
+
+      {:ok, splits} =
+        Emakola.Payments.PaymentSplit
+        |> Ash.Query.for_read(:by_payment, %{payment_id: payment.id})
+        |> Ash.read(authorize?: false)
+
+      assert splits == []
+    end
+  end
+
   # -- Region Select --
 
   describe "region select" do

@@ -5,15 +5,18 @@ defmodule Emakola.Payments.OrderSettlement do
   Loads an order's line items, decides how the customer's charge is split, and
   exposes:
 
-    * `prepare/2` — `{:split, %{total, allocations, shares, mode}}` or
-      `{:no_split, reason}`. Two split modes:
+    * `prepare/2` — `{:split, %{total, allocations, shares, mode}}`,
+      `{:hold, :buyer_protection}`, or `{:no_split, reason}`. Two split modes:
         - `:dropship_split` (SP5) — trustless margin split across wholesaler(s) +
           dropshipper when every party has a verified subaccount.
         - `:platform_fee` — a normal own-stock order: the merchant's net goes to
           their verified subaccount, the platform keeps its transaction fee.
       `shares` is the gateway-ready list of `%{subaccount, share}` for
       `initiate_payment`; the platform's cut is never a share (it stays in the
-      platform main account as the split remainder).
+      platform main account as the split remainder). `{:hold, :buyer_protection}`
+      (TC-2) always loses to `:dropship_split` but wins over `:platform_fee` —
+      it attaches no merchant gateway share at all; the whole charge stays in
+      the platform account under a payout hold (see `Emakola.Payments.Protection`).
     * `record_splits!/2` — persists one `PaymentSplit` per allocation once the
       payment record exists.
   """
@@ -64,11 +67,19 @@ defmodule Emakola.Payments.OrderSettlement do
           {:no_split, :unrepresentable_split}
         end
 
-      # A normal own-stock order: take the platform's transaction fee and route
-      # the merchant their net via their verified subaccount (same split-remainder
-      # model — the platform's fee stays in the main account).
+      # A normal own-stock order (no dropship items — dropship always wins,
+      # matched above): buyer protection (TC-2), if it applies, wins next —
+      # the charge settles with NO merchant gateway share and the payment is
+      # flagged payout_held for a later manual release (Task 5+). Otherwise
+      # take the platform's transaction fee and route the merchant their net
+      # via their verified subaccount (same split-remainder model — the
+      # platform's fee stays in the main account).
       {:no_split, :no_dropship_items} ->
-        prepare_platform_fee(order, store_id)
+        if protected?(order, store_id) do
+          {:hold, :buyer_protection}
+        else
+          prepare_platform_fee(order, store_id)
+        end
 
       {:no_split, reason} ->
         {:no_split, reason}
@@ -112,6 +123,20 @@ defmodule Emakola.Payments.OrderSettlement do
       {:error, :payout_unverified} ->
         {:no_split, :payout_unverified}
     end
+  end
+
+  # TC-2 Buyer Protection: order has a pay link → the link's `protected`
+  # field governs; otherwise the store's `buyer_protection_enabled` setting
+  # governs. Same lookup pattern as PayLinkClaim.claim_for_order/1 (no
+  # tenant needed — PayLink is global?: true).
+  defp protected?(order, store_id) do
+    store = Ash.get!(Emakola.Stores.Store, store_id, authorize?: false)
+
+    pay_link =
+      order.pay_link_id &&
+        Ash.get!(Emakola.Orders.PayLink, order.pay_link_id, authorize?: false)
+
+    Emakola.Payments.Protection.applies?(store, pay_link)
   end
 
   # Mirrors DropshipSettlement's notion of a usable payout account.
