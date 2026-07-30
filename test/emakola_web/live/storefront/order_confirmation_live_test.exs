@@ -83,4 +83,28 @@ defmodule EmakolaWeb.Storefront.OrderConfirmationLiveTest do
       assert html =~ "pending" or html =~ "Pending" or html =~ "Awaiting"
     end
   end
+
+  describe "custom pay-link (variant-less) orders" do
+    # This is the buyer-facing page a real /pay/:code checkout returns to
+    # after gateway payment (PayLinkLive sets both callback_url and
+    # return_url to this route). Its line items have a nil variant, and
+    # load_order/2 preloads `line_items: [variant: [product: [:images]]]` —
+    # guard against a crash on that nil association.
+    test "renders from snapshot fields without crashing on a nil-variant line item",
+         %{conn: conn, store: store} do
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout_custom!(
+          store.id,
+          %{title: "Custom kente dress", unit_price: 25_000},
+          customer_name: "Ama",
+          customer_phone: "0201234567"
+        )
+
+      {:ok, _view, html} =
+        live(conn, "/s/#{store.slug}/orders/#{order.order_number}/confirmation")
+
+      assert html =~ order.order_number
+      assert html =~ "Custom kente dress"
+    end
+  end
 end
