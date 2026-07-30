@@ -181,6 +181,84 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
     assert orders == []
   end
 
+  # "0201234567" (local, 10 digits) is already covered by "submitting the form
+  # creates the order and initiates payment" above.
+  test "E.164-formatted phone with spaces initiates payment", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    original = Application.get_env(:emakola, :payment_gateway)
+    Application.put_env(:emakola, :payment_gateway, Emakola.Payments.GatewayMock)
+    on_exit(fn -> Application.put_env(:emakola, :payment_gateway, original) end)
+
+    expect(Emakola.Payments.GatewayMock, :initiate_payment, fn _params ->
+      {:ok, %{reference: "PAY-e164-ref", authorization_url: "https://pay.test/e164"}}
+    end)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+    Mox.allow(Emakola.Payments.GatewayMock, self(), view.pid)
+
+    view
+    |> form("#pay-link-form", %{
+      "buyer" => %{"name" => "Ama Mensah", "phone" => "+233 20 123 4567"}
+    })
+    |> render_submit()
+
+    [order] =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    assert order.total == 25_000
+  end
+
+  # Regression guard: PhoneAuth.normalize/1 pads any digit string with no
+  # leading 0/233/234 with a "+233" prefix, so a short garbage number can
+  # normalize to >= 9 digits and slip past a naive post-normalization count
+  # check. Validating raw digit shape (before normalization) closes that gap.
+  test "a short numeric string that would normalize to 9+ digits via +233 padding is rejected",
+       %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+
+    html =
+      view
+      |> form("#pay-link-form", %{"buyer" => %{"name" => "Ama Mensah", "phone" => "555555"}})
+      |> render_submit()
+
+    assert html =~ "Enter a valid phone number"
+
+    orders =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    assert orders == []
+  end
+
+  test "a local phone one digit short of a valid number is rejected", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+
+    html =
+      view
+      |> form("#pay-link-form", %{"buyer" => %{"name" => "Ama Mensah", "phone" => "020123456"}})
+      |> render_submit()
+
+    assert html =~ "Enter a valid phone number"
+
+    orders =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    assert orders == []
+  end
+
   test "typing into the buyer form updates the field via the validate handler", %{conn: conn} do
     store = Emakola.Factory.create_store!()
     link = custom_link!(store)

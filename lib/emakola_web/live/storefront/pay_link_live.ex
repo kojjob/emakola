@@ -201,16 +201,18 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
     end
   end
 
-  # Rejects phones that normalize to fewer than 9 significant digits (e.g.
-  # "abc", a truncated number) with a friendly error before checkout, rather
-  # than letting a garbage phone through to CheckoutService.
-  defp valid_phone?(phone) do
-    phone
-    |> Emakola.Accounts.PhoneAuth.normalize()
-    |> String.replace(~r/\D/, "")
-    |> String.length()
-    |> Kernel.>=(9)
+  # Validates the RAW input's digit shape before any normalization —
+  # PhoneAuth.normalize/1 pads any digit string with no leading 0/233/234
+  # with a "+233" prefix, so counting digits *after* normalization lets a
+  # short garbage number (e.g. "555555") reach 9+ digits and pass. Accepts a
+  # local 0-prefixed number (0XXXXXXXXX) or E.164 without the leading "+"
+  # (233XXXXXXXXX), in any punctuation/spacing.
+  defp valid_phone?(raw) when is_binary(raw) do
+    digits = String.replace(raw, ~r/\D/, "")
+    Regex.match?(~r/^0\d{9}$/, digits) or Regex.match?(~r/^233\d{9}$/, digits)
   end
+
+  defp valid_phone?(_), do: false
 
   # Mirrors mount's `page_state/3` so a link that turned unusable between
   # page load and submit renders the same inactive/unavailable/sold-out
