@@ -116,7 +116,10 @@
   var st = document.createElement('style');
   st.textContent = '.sw-topbar{display:grid;grid-template-columns:1fr auto 1fr}' +
     '.sw-brand{justify-self:start}.sw-topcta{justify-self:end}' +
-    '@media (max-width:860px){.sw-topbar{display:flex}}';
+    '@media (max-width:860px){.sw-topbar{display:flex}}' +
+    // Desktop: the rail's dot centerline tracks the topbar's right padding, so
+    // the dots sit exactly under the CTA's right edge (17px = rail padding 10 + half-dot 7).
+    '@media (min-width:861px){.sw-route{right:calc(clamp(18px,5vw,64px) - 17px)}}';
   document.head.appendChild(st);
 
   // Accessible names for the engine's route-rail dots (one per scene).
