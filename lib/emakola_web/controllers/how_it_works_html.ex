@@ -1049,9 +1049,9 @@ defmodule EmakolaWeb.HowItWorksHTML do
             </p>
           </article>
         </main>
-        <script src="/tour/scrub-engine.js">
+        <script src={~p"/tour/scrub-engine.js"}>
         </script>
-        <script src="/tour/tour.js">
+        <script src={~p"/tour/tour.js"}>
         </script>
       </body>
     </html>
