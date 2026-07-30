@@ -11,6 +11,9 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
 
   @statuses [:all, :pending, :confirmed, :processing, :shipped, :delivered, :cancelled]
 
+  # Page window for the orders list; "Load more" grows it by this much.
+  @orders_per_page 50
+
   @impl true
   def mount(_params, _session, socket) do
     store_id = get_store_id(socket)
@@ -24,6 +27,8 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
         search_query: "",
         status_filter: :all,
         orders: [],
+        orders_limit: @orders_per_page,
+        more_orders?: false,
         statuses: @statuses
       )
       |> load_orders()
@@ -35,7 +40,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
   def handle_event("search", %{"search" => query}, socket) do
     socket =
       socket
-      |> assign(search_query: query)
+      |> assign(search_query: query, orders_limit: @orders_per_page)
       |> load_orders()
 
     {:noreply, socket}
@@ -57,10 +62,18 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
 
     socket =
       socket
-      |> assign(status_filter: status_atom)
+      |> assign(status_filter: status_atom, orders_limit: @orders_per_page)
       |> load_orders()
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("load_more_orders", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(orders_limit: socket.assigns.orders_limit + @orders_per_page)
+     |> load_orders()}
   end
 
   @impl true
@@ -225,6 +238,22 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
             </div>
           </.link>
         </div>
+
+        <%!-- The list is a window, not the whole table. Without this the page
+        simply stopped at the limit with no hint that older orders existed. --%>
+        <div :if={@more_orders?} class="mt-4 flex flex-col items-center gap-2">
+          <p class="text-xs text-slate-500">
+            Showing the {length(@orders)} most recent orders.
+          </p>
+          <.admin_button
+            id="load-more-orders"
+            variant={:secondary}
+            phx-click="load_more_orders"
+            phx-disable-with="Loading..."
+          >
+            Load more orders
+          </.admin_button>
+        </div>
       <% end %>
     </div>
     """
@@ -255,10 +284,9 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
 
   # ── Data Loading ──
 
-  @orders_per_page 50
-
   defp load_orders(socket) do
     %{store_id: store_id, search_query: query, status_filter: status} = socket.assigns
+    limit = socket.assigns[:orders_limit] || @orders_per_page
 
     orders =
       try do
@@ -271,7 +299,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
           status: status_arg,
           search: search_arg
         })
-        |> Ash.Query.limit(@orders_per_page)
+        |> Ash.Query.limit(limit + 1)
         |> Ash.read!(authorize?: false)
       rescue
         exception ->
@@ -282,7 +310,12 @@ defmodule EmakolaWeb.Admin.OrderLive.Index do
           []
       end
 
-    assign(socket, orders: orders)
+    # One row beyond the window is fetched purely to answer "is there more?"
+    # without a second COUNT query.
+    {orders, more?} =
+      if length(orders) > limit, do: {Enum.take(orders, limit), true}, else: {orders, false}
+
+    assign(socket, orders: orders, orders_limit: limit, more_orders?: more?)
   end
 
   # ── Helpers ──
