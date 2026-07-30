@@ -15,6 +15,7 @@ defmodule Emakola.Payments.ProtectionHolds do
 
   alias Emakola.Payments
   alias Emakola.Payments.{Payment, PlatformFee, ProtectionHold, ProtectionRelease}
+  alias Emakola.Payments.Workers.ProtectionSweepWorker
 
   @doc "Creates the protection hold for a payment held for buyer protection. No-op otherwise."
   def ensure_hold(%{payout_hold_reason: "buyer_protection"} = payment) do
@@ -231,6 +232,69 @@ defmodule Emakola.Payments.ProtectionHolds do
     else
       _ -> :ok
     end
+  end
+
+  @doc """
+  Starts the TC-2 auto-release timer on `order_id`'s buyer-protection hold:
+  stamps `release_after` to `ProtectionSweepWorker.release_days()` days from
+  now. Called once every one of the order's fulfillments has reached
+  `:delivered` — see `Emakola.Orders.Changes.StampProtectionReleaseAfter`,
+  hung off `Fulfillment.:mark_delivered`'s after_action hook.
+
+  No-op (returns `:ok`) when: the order was never protected, its hold isn't
+  currently `:held`, it's frozen (an open complaint owns the release timing
+  instead — see `ProtectionRelease`'s "Freeze respect" for the same
+  default elsewhere), or `release_after` is already set. That last check is
+  the idempotency guard: a second (or third) fulfillment's delivered
+  transition for the same order — or a hook re-running for any other reason
+  — never pushes the timer later, since the query only ever matches a hold
+  that hasn't started its timer yet.
+
+  Never raises: this hangs off a status-transition hook and must not fail
+  the delivered transition on a protection-side hiccup, matching the
+  never-fail discipline of `ensure_hold/1` and friends above.
+  """
+  def stamp_release_after_for_order(order_id, store_id) do
+    case due_for_timer_start(order_id, store_id) do
+      %ProtectionHold{} = hold ->
+        release_after =
+          DateTime.add(DateTime.utc_now(), ProtectionSweepWorker.release_days(), :day)
+
+        hold
+        |> Ash.Changeset.for_update(:set_release_after, %{release_after: release_after})
+        |> Ash.update(authorize?: false)
+        |> case do
+          {:ok, _stamped} ->
+            :ok
+
+          {:error, error} ->
+            Logger.error(
+              "[protection_holds] stamp_release_after_for_order failed for order=#{order_id}: #{inspect(error)}"
+            )
+
+            :ok
+        end
+
+      nil ->
+        :ok
+    end
+  rescue
+    error ->
+      Logger.error(
+        "[protection_holds] stamp_release_after_for_order failed for order=#{order_id}: #{Exception.format(:error, error, __STACKTRACE__)}"
+      )
+
+      :ok
+  end
+
+  defp due_for_timer_start(order_id, store_id) do
+    ProtectionHold
+    |> Ash.Query.filter(
+      order_id == ^order_id and status == :held and is_nil(frozen_at) and is_nil(release_after)
+    )
+    |> Ash.Query.limit(1)
+    |> Ash.read!(tenant: store_id, authorize?: false)
+    |> List.first()
   end
 
   # The expected shape of a retried/replayed create hitting the `:unique_payment`

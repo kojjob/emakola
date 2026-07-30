@@ -18,7 +18,11 @@ defmodule Emakola.Payments.ProtectionHold do
     repo(Emakola.Repo)
 
     custom_indexes do
-      index([:status, :release_after])
+      # all_tenants?: true — without it Ash prefixes the tenant attribute
+      # (store_id), which is useless for the hourly cron sweep's cross-tenant
+      # query (Emakola.Payments.Workers.ProtectionSweepWorker), the only
+      # consumer of this index.
+      index([:status, :release_after], all_tenants?: true)
     end
   end
 
