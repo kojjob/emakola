@@ -29,6 +29,14 @@ defmodule EmakolaWeb.Plugs.ContentSecurityPolicyTest do
       assert csp =~ ~r/nonce-[A-Za-z0-9_-]+/
     end
 
+    test "allows blob media for the scroll-film scrub engine" do
+      conn = conn(:get, "/") |> ContentSecurityPolicy.call([])
+
+      [csp] = get_resp_header(conn, "content-security-policy")
+
+      assert csp =~ "media-src 'self' blob:"
+    end
+
     test "assigns csp_nonce to conn" do
       conn = conn(:get, "/") |> ContentSecurityPolicy.call([])
 

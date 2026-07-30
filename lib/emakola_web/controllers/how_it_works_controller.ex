@@ -9,7 +9,9 @@ defmodule EmakolaWeb.HowItWorksController do
   use EmakolaWeb, :controller
 
   def tour(conn, _params) do
-    render(conn, :tour,
+    conn
+    |> Phoenix.Controller.put_root_layout(html: false)
+    |> render(:tour,
       layout: false,
       page_title: "Watch how Makola works — one sale, start to finish",
       meta_description:
