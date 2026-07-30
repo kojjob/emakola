@@ -35,9 +35,9 @@ defmodule Emakola.Platform.FinanceStats do
 
   @doc "Total successful payments the platform still owes merchants (un-split, minor units)."
   def total_outstanding_payouts do
-    Payment
-    |> Ash.Query.for_read(:outstanding_for_payout, %{store_id: nil})
-    |> sum_amount()
+    unsplit_success_payments()
+    |> Enum.map(&payable_amount/1)
+    |> Enum.sum()
   end
 
   @doc """
@@ -48,7 +48,7 @@ defmodule Emakola.Platform.FinanceStats do
   """
   def per_store_finance do
     fees_by_store = sum_by_store(platform_fee_splits(), &net_amount/1)
-    owed_by_store = sum_by_store(unsplit_success_payments(), & &1.amount)
+    owed_by_store = sum_by_store(unsplit_success_payments(), &payable_amount/1)
     ready = verified_payout_store_ids()
 
     store_ids = Enum.uniq(Map.keys(fees_by_store) ++ Map.keys(owed_by_store))
@@ -69,13 +69,6 @@ defmodule Emakola.Platform.FinanceStats do
 
   # ── helpers ────────────────────────────────────────────────────────
 
-  defp sum_amount(query) do
-    case Ash.sum(query, :amount, authorize?: false) do
-      {:ok, total} when is_integer(total) -> total
-      _ -> 0
-    end
-  end
-
   # Confirmed fee rows only — never :pending. Reversals are netted per row by
   # net_amount/1 (a fully :reversed row nets to zero).
   defp platform_fee_splits do
@@ -85,6 +78,12 @@ defmodule Emakola.Platform.FinanceStats do
   end
 
   defp net_amount(split), do: split.amount - split.reversed_amount
+
+  # What PayoutService actually pays for a payment — the released
+  # buyer-protection net when present, otherwise the gross amount. Kept in
+  # one place so this page can never overstate what a payout would actually
+  # pay (see PayoutService.prepare_payout/1's identical expression).
+  defp payable_amount(payment), do: payment.payable_amount || payment.amount
 
   # "Outstanding" is defined once, on the resource — see
   # Payment.outstanding_for_payout. PayoutService pays out what this reports.

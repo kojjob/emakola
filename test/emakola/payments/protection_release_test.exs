@@ -87,6 +87,52 @@ defmodule Emakola.Payments.ProtectionReleaseTest do
     assert hold_after_second.release_reason == :buyer_confirmed
   end
 
+  test "a stale (pre-release) hold struct reused for a second release call is caught by the fresh FOR UPDATE read, not the struct's own status" do
+    store = Factory.create_store!()
+    {payment, hold} = protected_payment!(store, %{amount: 25_000})
+
+    # `hold` is the ORIGINAL struct — its in-memory `status` is still :held.
+    # This simulates two concurrent release triggers (e.g. the auto-release
+    # timer firing alongside a buyer confirming delivery) racing on the same
+    # hold, both starting from the same stale read.
+    assert :ok = ProtectionRelease.release(hold, :buyer_confirmed)
+    after_first = Ash.get!(Payment, payment.id, authorize?: false)
+
+    {:ok, hold_after_first} =
+      Payments.get_protection_hold_by_payment(payment.id, tenant: store.id, authorize?: false)
+
+    # Reuse the SAME stale `hold` (status: :held in memory) for the "losing"
+    # concurrent call — a struct-only idempotency check would sail past its
+    # own `%{status: :released}` guard clause and re-run the release,
+    # clobbering release_reason/released_at/payout_released_at with :staff's
+    # values. The FOR UPDATE-locked fresh read must catch this instead.
+    assert :ok = ProtectionRelease.release(hold, :staff)
+
+    after_second = Ash.get!(Payment, payment.id, authorize?: false)
+    assert after_second.payout_released_at == after_first.payout_released_at
+    assert after_second.payable_amount == after_first.payable_amount
+
+    {:ok, hold_after_second} =
+      Payments.get_protection_hold_by_payment(payment.id, tenant: store.id, authorize?: false)
+
+    assert hold_after_second.release_reason == :buyer_confirmed
+    assert hold_after_second.released_at == hold_after_first.released_at
+  end
+
+  # A deterministic, non-flaky guard (mirrors PayLinkClaimTest) against
+  # someone dropping `lock: "FOR UPDATE"` from the release query — a genuine
+  # two-connection race test isn't feasible in the ExUnit sandbox.
+  test "the release query holds a FOR UPDATE lock on the protection_holds row" do
+    {sql, _params} =
+      Ecto.Adapters.SQL.to_sql(
+        :all,
+        Emakola.Repo,
+        ProtectionRelease.locked_row_query(Ash.UUID.generate())
+      )
+
+    assert sql =~ "FOR UPDATE"
+  end
+
   test "fee-rate immunity: release pays the hold's snapshotted net, not a recomputed one" do
     original_rate = Application.get_env(:emakola, :platform_fee_rate_bps)
 
