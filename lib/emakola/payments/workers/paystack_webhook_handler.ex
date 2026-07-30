@@ -8,7 +8,8 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   - charge.success — marks payment success, confirms order, settles dropship
     splits, broadcasts to polling LiveViews
   - charge.failed — marks payment failed, broadcasts
-  - refund.processed — marks payment refunded, reverses splits, broadcasts
+  - refund.processed — marks payment refunded, reverses splits, closes a
+    :held buyer-protection hold once fully refunded, broadcasts
   - transfer.success / transfer.failed / transfer.reversed — finalizes merchant payouts
   - settlement / settlement.success — reconciles splits against the paid-out
     batch: fetches the settlement's transaction list and stamps
@@ -31,7 +32,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   require Ash.Query
   require Logger
 
-  alias Emakola.Payments.Payment
+  alias Emakola.Payments.{Payment, ProtectionHolds}
 
   @terminal_states [:success, :failed, :refunded]
 
@@ -285,6 +286,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
       # share against future payouts.
       reverse_splits(updated)
       Emakola.Suppliers.SalesTeams.reverse_attributed_payment(updated)
+      maybe_close_protection_hold(updated)
 
       Phoenix.PubSub.broadcast(
         Emakola.PubSub,
@@ -312,6 +314,27 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
         {:error, reason}
     end
   end
+
+  # The genuine terminal success state for a refund: the cumulative amount
+  # reached the full payment (`Payment.:mark_refunded` already flipped
+  # `status` to `:refunded` at exactly that point — see payment.ex — so
+  # this reuses that computed state rather than re-deriving "full" here). A
+  # partial refund leaves `status: :success` and this is a no-op.
+  # `resolution` was stashed by `RefundService.issue/5` (via
+  # `ProtectionHolds.stash_refund_resolution/2`) onto
+  # `payment.metadata["protection_resolution"]` — read back through a
+  # `SafeAtom` allowlist since it crossed a JSON/map boundary. Never fails
+  # this webhook — `ProtectionHolds.close_for_refund/2` logs and swallows.
+  defp maybe_close_protection_hold(%Payment{status: :refunded} = payment) do
+    resolution =
+      (payment.metadata || %{})
+      |> Map.get("protection_resolution")
+      |> Emakola.SafeAtom.to_atom_in([:merchant_refunded, :refunded_by_staff], :merchant_refunded)
+
+    ProtectionHolds.close_for_refund(payment, resolution)
+  end
+
+  defp maybe_close_protection_hold(_payment), do: :ok
 
   defp settle_splits(payment) do
     splits = payment_splits(payment)

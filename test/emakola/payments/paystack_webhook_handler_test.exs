@@ -165,6 +165,140 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
     end
   end
 
+  describe "refund.processed event — buyer protection hold" do
+    defp protected_payment!(store, attrs \\ %{}) do
+      order = create_order!(store, status: :delivered)
+
+      payment =
+        store
+        |> create_payment!(
+          Map.merge(
+            %{
+              order_id: order.id,
+              amount: 50_000,
+              payout_held: true,
+              payout_hold_reason: "buyer_protection"
+            },
+            Map.new(attrs)
+          )
+        )
+        |> Ash.Changeset.for_update(:mark_success, %{gateway_response: %{"status" => "success"}})
+        |> Ash.update!(authorize?: false)
+
+      :ok = Emakola.Payments.ProtectionHolds.ensure_hold(payment)
+
+      {:ok, hold} =
+        Emakola.Payments.get_protection_hold_by_payment(payment.id,
+          tenant: store.id,
+          authorize?: false
+        )
+
+      {payment, hold}
+    end
+
+    defp reload_hold(store, hold) do
+      {:ok, reloaded} =
+        Emakola.Payments.get_protection_hold_by_payment(hold.payment_id,
+          tenant: store.id,
+          authorize?: false
+        )
+
+      reloaded
+    end
+
+    defp full_refund_event(payment) do
+      %{
+        "event" => "refund.processed",
+        "data" => %{
+          "transaction" => %{"reference" => payment.gateway_reference},
+          "amount" => payment.amount
+        }
+      }
+    end
+
+    test "a full refund closes a held hold with the stashed :merchant_refunded resolution", %{
+      store: store
+    } do
+      {payment, hold} = protected_payment!(store)
+
+      # Simulates what `RefundService.issue/5` stashes before the gateway
+      # confirms — see `ProtectionHolds.stash_refund_resolution/2` and
+      # `refund_service_test.exs`.
+      payment =
+        payment
+        |> Ash.Changeset.for_update(:update, %{
+          metadata: %{"protection_resolution" => "merchant_refunded"}
+        })
+        |> Ash.update!(authorize?: false)
+
+      assert :ok = perform_job(PaystackWebhookHandler, full_refund_event(payment))
+
+      reloaded = reload_hold(store, hold)
+      assert reloaded.status == :refunded
+      assert reloaded.resolution == :merchant_refunded
+    end
+
+    test "a full refund honors a staff resolution stashed in metadata (Task 12's seam)", %{
+      store: store
+    } do
+      {payment, hold} = protected_payment!(store)
+
+      payment =
+        payment
+        |> Ash.Changeset.for_update(:update, %{
+          metadata: %{"protection_resolution" => "refunded_by_staff"}
+        })
+        |> Ash.update!(authorize?: false)
+
+      assert :ok = perform_job(PaystackWebhookHandler, full_refund_event(payment))
+
+      reloaded = reload_hold(store, hold)
+      assert reloaded.status == :refunded
+      assert reloaded.resolution == :refunded_by_staff
+    end
+
+    test "no stashed resolution defaults to :merchant_refunded", %{store: store} do
+      {payment, hold} = protected_payment!(store)
+
+      assert :ok = perform_job(PaystackWebhookHandler, full_refund_event(payment))
+
+      reloaded = reload_hold(store, hold)
+      assert reloaded.status == :refunded
+      assert reloaded.resolution == :merchant_refunded
+    end
+
+    test "a partial refund leaves the hold held", %{store: store} do
+      {payment, hold} = protected_payment!(store)
+
+      event = %{
+        "event" => "refund.processed",
+        "data" => %{
+          "transaction" => %{"reference" => payment.gateway_reference},
+          "amount" => 12_500
+        }
+      }
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+
+      reloaded = reload_hold(store, hold)
+      assert reloaded.status == :held
+      assert is_nil(reloaded.resolution)
+    end
+
+    test "re-delivering the full-refund event is idempotent — the hold closes once, no error",
+         %{store: store} do
+      {payment, hold} = protected_payment!(store)
+      event = full_refund_event(payment)
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+
+      reloaded = reload_hold(store, hold)
+      assert reloaded.status == :refunded
+      assert reloaded.resolution == :merchant_refunded
+    end
+  end
+
   describe "idempotency" do
     test "processing same charge.success event twice is safe", %{store: store} do
       payment = create_payment!(store)

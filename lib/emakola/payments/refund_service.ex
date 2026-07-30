@@ -35,14 +35,20 @@ defmodule Emakola.Payments.RefundService do
 
   ## Buyer-protection hold
 
-  Right after the gateway accepts the refund — the point at which, from this
-  service's own transaction, the refund is definitively successful — a FULL
-  refund (this request exhausts the payment's remaining refundable balance)
-  closes the payment's `:held` buyer-protection hold via
-  `ProtectionHolds.close_for_refund/2`. A partial refund leaves the hold
-  `:held`. The `resolution` stamped on the hold defaults to
-  `:merchant_refunded`; pass `resolution: :refunded_by_staff` via `opts` for
-  a staff-initiated refund through this same service (Task 12's seam).
+  The gateway accepting a refund request is NOT proof the refund succeeded:
+  Paystack refund-create normally returns immediately with the refund still
+  `pending`, resolving asynchronously — and can still fail. This service
+  therefore never closes a `ProtectionHold` itself (mirrors the "don't
+  double-write the ledger" discipline above). When this request would fully
+  refund a payment carrying a `:held` hold (exhausts the remaining
+  refundable balance), it stashes `resolution` onto
+  `payment.metadata["protection_resolution"]` — intent, not the close. Only
+  `PaystackWebhookHandler.handle_refund_processed/1`, once `refund.processed`
+  confirms the cumulative refund reached the full amount, actually closes
+  the hold, reading the stashed resolution back out. `resolution` (opt,
+  default `:merchant_refunded`) is Task 12's seam: pass
+  `resolution: :refunded_by_staff` for a staff-initiated refund through this
+  same service.
   """
 
   require Ash.Query
@@ -64,8 +70,9 @@ defmodule Emakola.Payments.RefundService do
   approved and no ledger state moves unless the gateway accepts.
 
   `opts[:resolution]` (default `:merchant_refunded`) is the resolution
-  stamped on a buyer-protection hold this refund closes — see the
-  moduledoc's "Buyer-protection hold" section.
+  later stamped on a buyer-protection hold this refund fully covers, once
+  the webhook confirms it — see the moduledoc's "Buyer-protection hold"
+  section.
   """
   def issue(actor, return, params, gateway \\ nil, opts \\ [])
 
@@ -80,7 +87,7 @@ defmodule Emakola.Payments.RefundService do
            :ok <- validate_amount(payment, params[:refund_amount]),
            {:ok, approved} <- approve(actor, claimed, params),
            :ok <- request_refund(payment, params[:refund_amount], gateway) do
-        close_hold_if_full_refund(payment, params[:refund_amount], resolution)
+        stash_protection_resolution(payment, params[:refund_amount], resolution)
         approved
       else
         {:error, reason} -> Emakola.Repo.rollback(reason)
@@ -147,15 +154,17 @@ defmodule Emakola.Payments.RefundService do
 
   defp refundable_balance(payment), do: payment.amount - (payment.refunded_amount || 0)
 
-  # A cash-on-delivery order has no Payment, hence no hold to close.
-  defp close_hold_if_full_refund(nil, _amount, _resolution), do: :ok
+  # A cash-on-delivery order has no Payment, hence no hold to stash intent on.
+  defp stash_protection_resolution(nil, _amount, _resolution), do: :ok
 
   # "Full" means this request exhausts the remaining refundable balance —
   # already validated as `amount <= refundable_balance(payment)` above, so
-  # equality here means nothing is left to refund after this request.
-  defp close_hold_if_full_refund(payment, amount, resolution) do
+  # equality here means nothing is left to refund after this request. Only
+  # worth stashing when there's a `:held` hold to eventually close —
+  # `ProtectionHolds.stash_refund_resolution/2` checks that.
+  defp stash_protection_resolution(payment, amount, resolution) do
     if amount == refundable_balance(payment) do
-      ProtectionHolds.close_for_refund(payment, resolution)
+      ProtectionHolds.stash_refund_resolution(payment, resolution)
     else
       :ok
     end

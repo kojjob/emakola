@@ -50,31 +50,84 @@ defmodule Emakola.Payments.ProtectionHolds do
   def ensure_hold(_payment), do: :ok
 
   @doc """
-  Closes `payment`'s `:held` buyer-protection hold once a FULL refund has
-  reached its terminal success state — called from
-  `Emakola.Payments.RefundService.issue/5` right after the gateway accepts
-  the refund and the return is approved, the point at which the refund is
-  "definitively successful" as far as that service's own transaction is
-  concerned. (The payment ledger itself, `payment.refunded_amount`, is a
-  separate concern still owned exclusively by the `refund.processed`
-  webhook — this never touches it.)
+  Stashes `resolution` on `payment.metadata["protection_resolution"]` for a
+  refund request that would, if it succeeds, fully cover a `:held`
+  buyer-protection hold. This is intent, not the close: the gateway
+  accepting a refund request (`RefundService.issue/5`, right after
+  `request_refund` succeeds) is not proof the refund actually landed —
+  Paystack refund-create returns immediately with the refund still
+  `pending` and resolves (or fails) asynchronously. The hold only actually
+  closes once `PaystackWebhookHandler.handle_refund_processed/1` confirms
+  the cumulative refund reached the full payment amount — see
+  `close_for_refund/2`, which reads this stashed value back out.
 
   No-op when the payment carries no hold, or the hold isn't currently
-  `:held` (nothing to close, a partial refund, or a concurrent close
-  already ran).
+  `:held`. Never fails the caller: runs inside `RefundService.issue/5`'s
+  own `Repo.transaction`, and a `Payment.:update` writing a plain `:map`
+  attribute has no validation that could fail on the DB side, but this
+  still logs-and-swallows on any error for the same never-fail discipline
+  as `ensure_hold/1`.
+  """
+  def stash_refund_resolution(payment, resolution) do
+    case Payments.get_protection_hold_by_payment(payment.id,
+           tenant: payment.store_id,
+           authorize?: false
+         ) do
+      {:ok, %ProtectionHold{status: :held}} ->
+        metadata =
+          Map.put(payment.metadata || %{}, "protection_resolution", to_string(resolution))
 
-  `resolution` defaults to `:merchant_refunded`; Task 12's staff-initiated
-  refund flow passes `:refunded_by_staff` through the same `RefundService`
-  call — see that module's `issue/5` doc.
+        payment
+        |> Ash.Changeset.for_update(:update, %{metadata: metadata})
+        |> Ash.update(authorize?: false)
+        |> case do
+          {:ok, _updated} ->
+            :ok
 
-  Never fails the caller: like `ensure_hold/1`, this runs INSIDE
-  `RefundService.issue/5`'s own `Repo.transaction`, so a hold-close failure
-  must never surface as a refund failure. Safe to call from inside that
-  transaction — unlike `ProtectionRelease.release/2,3`, there is no manual
-  `Repo.transaction`/`Repo.rollback` here to risk the Task 6 poisoning bug:
-  `Ash.update` detects (via `Ash.DataLayer.in_transaction?/1`) that
-  `ProtectionHold` shares the same already-open `Emakola.Repo` transaction
-  and runs the update inline instead of opening a nested one.
+          {:error, error} ->
+            Logger.error(
+              "[protection_holds] stash_refund_resolution failed for payment=#{payment.id}: #{inspect(error)}"
+            )
+
+            :ok
+        end
+
+      _ ->
+        :ok
+    end
+  rescue
+    error ->
+      Logger.error(
+        "[protection_holds] stash_refund_resolution failed for payment=#{payment.id}: #{Exception.format(:error, error, __STACKTRACE__)}"
+      )
+
+      :ok
+  end
+
+  @doc """
+  Closes `payment`'s `:held` buyer-protection hold — called from
+  `Emakola.Payments.Workers.PaystackWebhookHandler.handle_refund_processed/1`
+  once `refund.processed` has confirmed the cumulative refund reached the
+  full payment amount (`payment.status == :refunded`), the genuine terminal
+  success state for a refund (see `stash_refund_resolution/2` for why
+  `RefundService.issue/5`'s gateway-acceptance point is NOT that state).
+
+  No-op when the payment carries no hold, or the hold isn't currently
+  `:held` (nothing to close, a partial refund, or a concurrent/re-delivered
+  close already ran — the webhook's own `payment.status == :refunded` guard
+  already makes a second `refund.processed` delivery for the same payment
+  short-circuit before this is even called again, but the `:held` check
+  here is a second, independent idempotency guard).
+
+  `resolution` defaults to `:merchant_refunded`; the caller reads it back
+  from `payment.metadata["protection_resolution"]` (stashed by
+  `stash_refund_resolution/2`) via a `SafeAtom` allowlist.
+
+  Never fails the caller: called from a plain webhook-worker function with
+  no ambient transaction (unlike `ProtectionRelease.release/2,3`, there is
+  no manual `Repo.transaction`/`Repo.rollback` here to risk the Task 6
+  poisoning bug), so a hold-close failure logging and returning `:ok`
+  cannot break anything the webhook already committed.
   """
   def close_for_refund(payment, resolution \\ :merchant_refunded) do
     case Payments.get_protection_hold_by_payment(payment.id,
