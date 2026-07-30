@@ -1,0 +1,196 @@
+defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
+  use EmakolaWeb.ConnCase, async: false
+
+  import Phoenix.LiveViewTest
+  import Mox
+
+  require Ash.Query
+
+  setup :verify_on_exit!
+
+  defp custom_link!(store, attrs \\ %{}) do
+    Emakola.Orders.PayLink
+    |> Ash.Changeset.for_create(
+      :create,
+      Map.merge(%{store_id: store.id, type: :custom, title: "Kente dress", amount: 25_000}, attrs)
+    )
+    |> Ash.create!(authorize?: false)
+  end
+
+  defp catalog_link!(store, variant, attrs \\ %{}) do
+    Emakola.Orders.PayLink
+    |> Ash.Changeset.for_create(
+      :create,
+      Map.merge(%{store_id: store.id, type: :catalog, variant_id: variant.id}, attrs)
+    )
+    |> Ash.create!(authorize?: false)
+  end
+
+  test "renders a custom link with store name, title, amount and buyer form", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+
+    assert html =~ store.name
+    assert html =~ "Kente dress"
+    assert html =~ "250"
+    assert html =~ "phone"
+  end
+
+  test "connected mount increments opened_count exactly once", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    {:ok, _view, _html} = live(conn, "/pay/#{link.code}")
+
+    reloaded = Ash.get!(Emakola.Orders.PayLink, link.id, authorize?: false, tenant: store.id)
+    assert reloaded.opened_count == 1
+  end
+
+  test "expired link renders the inactive message, not a form", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store, %{expires_at: DateTime.add(DateTime.utc_now(), -1, :day)})
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+
+    assert html =~ "no longer active"
+    refute html =~ "phx-submit"
+  end
+
+  test "cancelled and consumed links render the inactive message", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+
+    for status <- [:cancelled, :paid] do
+      link = custom_link!(store)
+
+      link
+      |> Ash.Changeset.for_update(if(status == :paid, do: :mark_paid, else: :cancel), %{})
+      |> Ash.update!(authorize?: false)
+
+      {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+      assert html =~ "no longer active"
+    end
+  end
+
+  test "suspended store renders the unavailable message, not a form", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    store
+    |> Ash.Changeset.for_update(:suspend, %{reason: "test"})
+    |> Ash.update!(authorize?: false)
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+    # Note: no apostrophe in the asserted substring — HEEx HTML-escapes "isn't"
+    # to "isn&#39;t", so a literal apostrophe match would fail here.
+    assert html =~ "available right now"
+    refute html =~ "phx-submit"
+  end
+
+  # Verify-first finding: there is no `EmakolaWeb.NotFoundError` module in this
+  # codebase. `get_pay_link_by_code/2` is a `get?: true` code interface, which
+  # (per Ash.Resource.Interface's `not_found_error?: true` default) returns
+  # `{:error, %Ash.Error.Query.NotFound{}}` rather than raising — the LiveView
+  # re-raises that struct directly (mirrors how a controller 404 would surface
+  # in this app; there's no bespoke web-layer 404 exception to reuse).
+  test "unknown code 404s", %{conn: conn} do
+    assert_raise Ash.Error.Query.NotFound, fn -> live(conn, "/pay/zzzzzzzz") end
+  end
+
+  test "hidden address fields when collect_delivery is false", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store, %{collect_delivery: false})
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+    refute html =~ "shipping_address"
+  end
+
+  test "submitting the form creates the order and initiates payment", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    # Verify-first finding: config/test.exs points :payment_gateway at
+    # Emakola.Payments.Gateways.Mock (a hardcoded-success stub, NOT routed
+    # through Mox) by default — checkout_live_test.exs never overrides it.
+    # Emakola.Payments.GatewayMock is the real Mox mock (defined in
+    # test_helper.exs), so this test must swap the config to point at it, the
+    # same way test/emakola/payments/workers/payout_worker_test.exs does.
+    original = Application.get_env(:emakola, :payment_gateway)
+    Application.put_env(:emakola, :payment_gateway, Emakola.Payments.GatewayMock)
+    on_exit(fn -> Application.put_env(:emakola, :payment_gateway, original) end)
+
+    expect(Emakola.Payments.GatewayMock, :initiate_payment, fn params ->
+      assert params.amount == 25_000
+      {:ok, %{reference: "PAY-test-ref", authorization_url: "https://pay.test/x"}}
+    end)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+
+    # The LiveView process (not the test process) calls the gateway — allow it
+    # to use this test's Mox expectations (same pattern as
+    # test/emakola_web/live/admin/product_live_test.exs).
+    Mox.allow(Emakola.Payments.GatewayMock, self(), view.pid)
+
+    view
+    |> form("#pay-link-form", %{
+      "buyer" => %{"name" => "Ama Mensah", "phone" => "0201234567"}
+    })
+    |> render_submit()
+
+    [order] =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    assert order.total == 25_000
+  end
+
+  test "typing into the buyer form updates the field via the validate handler", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+
+    html =
+      view
+      |> form("#pay-link-form", %{"buyer" => %{"name" => "Kwame Asante"}})
+      |> render_change()
+
+    assert html =~ "Kwame Asante"
+  end
+
+  test "renders a catalog link with product card and quantity select", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    product = Emakola.Factory.create_product!(store, %{title: "Woven Basket"})
+    variant = Emakola.Factory.create_variant!(product, store, %{price: 8_000, stock_quantity: 5})
+    link = catalog_link!(store, variant)
+
+    {:ok, view, html} = live(conn, "/pay/#{link.code}")
+
+    assert html =~ "Woven Basket"
+    assert html =~ "80"
+    assert html =~ "pay-link-quantity"
+
+    html =
+      view
+      |> element("#pay-link-quantity")
+      |> render_change(%{"quantity" => "3"})
+
+    assert html =~ ~s(value="3" selected)
+  end
+
+  test "catalog link with an out-of-stock variant renders the sold-out message", %{
+    conn: conn
+  } do
+    store = Emakola.Factory.create_store!()
+    product = Emakola.Factory.create_product!(store, %{title: "Woven Basket"})
+    variant = Emakola.Factory.create_variant!(product, store, %{price: 8_000, stock_quantity: 0})
+    link = catalog_link!(store, variant)
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+
+    assert html =~ "sold out"
+    refute html =~ "phx-submit"
+  end
+end

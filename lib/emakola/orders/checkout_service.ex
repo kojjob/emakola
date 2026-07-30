@@ -388,7 +388,8 @@ defmodule Emakola.Orders.CheckoutService do
           notes: Keyword.get(opts, :notes),
           shipping_address: shipping_address,
           billing_address: Keyword.get(opts, :billing_address),
-          attribution: Keyword.get(opts, :attribution, %{})
+          attribution: Keyword.get(opts, :attribution, %{}),
+          pay_link_id: Keyword.get(opts, :pay_link_id)
         })
         |> Ash.create!(authorize?: false)
 

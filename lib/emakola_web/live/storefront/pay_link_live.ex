@@ -1,0 +1,425 @@
+defmodule EmakolaWeb.Storefront.PayLinkLive do
+  @moduledoc """
+  Express checkout for a shared pay link (`/pay/:code`, apex host).
+
+  Loads link + store by code (no ResolveStore — the link IS the tenant
+  pointer). Renders: usable link → item + buyer form; anything else → a
+  friendly inactive/sold-out state. Payment initiation mirrors
+  `CheckoutLive`; the callback lands on the store's normal order
+  confirmation page.
+  """
+  use EmakolaWeb, :live_view
+
+  require Ash.Query
+  require Logger
+
+  alias Emakola.Orders.PayLink
+  alias EmakolaWeb.Helpers.Currency
+
+  @impl true
+  def mount(%{"code" => code}, _session, socket) do
+    case Emakola.Orders.get_pay_link_by_code(code, authorize?: false) do
+      {:ok, link} ->
+        store = Ash.get!(Emakola.Stores.Store, link.store_id, authorize?: false)
+        variant = load_variant(link)
+
+        if connected?(socket) do
+          link
+          |> Ash.Changeset.for_update(:increment_opened, %{})
+          |> Ash.update(authorize?: false)
+        end
+
+        {:ok,
+         socket
+         |> assign(:link, link)
+         |> assign(:store, store)
+         |> assign(:variant, variant)
+         |> assign(:state, page_state(link, store, variant))
+         |> assign(:quantity, 1)
+         |> assign(:processing, false)
+         |> assign(:buyer, %{"name" => "", "phone" => "", "email" => "", "address" => ""})
+         |> assign(:form_errors, %{})
+         |> assign(:page_title, store.name)}
+
+      {:error, _} ->
+        raise Ash.Error.Query.NotFound
+    end
+  end
+
+  # :ok | :inactive | :store_unavailable | :sold_out
+  defp page_state(link, store, variant) do
+    cond do
+      not Emakola.Stores.Store.live?(store) -> :store_unavailable
+      PayLink.usable?(link) != :ok -> :inactive
+      link.type == :catalog and out_of_stock?(link, variant) -> :sold_out
+      true -> :ok
+    end
+  end
+
+  defp load_variant(%PayLink{type: :catalog, variant_id: variant_id})
+       when is_binary(variant_id) do
+    Emakola.Catalog.Variant
+    |> Ash.Query.filter(id == ^variant_id)
+    |> Ash.Query.load(:product)
+    |> Ash.read_one(authorize?: false)
+    |> case do
+      {:ok, variant} -> variant
+      _ -> nil
+    end
+  end
+
+  defp load_variant(%PayLink{}), do: nil
+
+  defp out_of_stock?(_link, nil), do: false
+
+  defp out_of_stock?(link, variant),
+    do: not Emakola.Catalog.Variant.in_stock?(variant, link.quantity)
+
+  # -- Event Handlers -------------------------------------------------------
+
+  @impl true
+  def handle_event("validate", %{"buyer" => buyer_params}, socket) do
+    {:noreply, assign(socket, :buyer, Map.merge(socket.assigns.buyer, buyer_params))}
+  end
+
+  @impl true
+  def handle_event("set_quantity", %{"quantity" => quantity_str}, socket) do
+    {:noreply, assign(socket, :quantity, parse_quantity(quantity_str))}
+  end
+
+  @impl true
+  def handle_event("pay", %{"buyer" => buyer}, socket) do
+    %{link: link, store: store} = socket.assigns
+
+    if presence(buyer["phone"]) do
+      with :ok <- PayLink.usable?(link),
+           {:ok, order} <- create_order(link, store, buyer, socket.assigns.quantity) do
+        initiate_payment(socket, store, order)
+      else
+        {:error, reason} ->
+          {:noreply,
+           assign(socket, form_errors: %{base: friendly_error(reason)}, processing: false)}
+      end
+    else
+      {:noreply,
+       assign(socket, form_errors: %{base: "Please enter a phone number."}, processing: false)}
+    end
+  end
+
+  defp parse_quantity(str) do
+    case Integer.parse(str) do
+      {n, _} when n > 0 -> n
+      _ -> 1
+    end
+  end
+
+  defp create_order(%PayLink{type: :custom} = link, store, buyer, _qty) do
+    Emakola.Orders.CheckoutService.checkout_custom!(
+      store.id,
+      %{title: link.title, unit_price: link.amount},
+      customer_name: buyer["name"],
+      customer_phone: buyer["phone"],
+      customer_email:
+        presence(buyer["email"]) ||
+          Emakola.Orders.CheckoutService.phone_placeholder_email(buyer["phone"]),
+      shipping_address: shipping_address(link, buyer),
+      pay_link_id: link.id
+    )
+  end
+
+  defp create_order(%PayLink{type: :catalog} = link, store, buyer, qty) do
+    Emakola.Orders.CheckoutService.checkout!(
+      store.id,
+      [%{variant_id: link.variant_id, quantity: qty}],
+      customer_email:
+        presence(buyer["email"]) ||
+          Emakola.Orders.CheckoutService.phone_placeholder_email(buyer["phone"]),
+      customer_name: buyer["name"],
+      customer_phone: buyer["phone"],
+      shipping_address: shipping_address(link, buyer),
+      pay_link_id: link.id
+    )
+  end
+
+  defp shipping_address(%PayLink{collect_delivery: false}, _buyer), do: nil
+
+  defp shipping_address(%PayLink{collect_delivery: true}, buyer) do
+    %{"name" => buyer["name"], "phone" => buyer["phone"], "address" => buyer["address"]}
+  end
+
+  defp presence(nil), do: nil
+  defp presence(value), do: if(String.trim(value) == "", do: nil, else: value)
+
+  defp friendly_error(:expired), do: "This payment link has expired."
+  defp friendly_error(:cancelled), do: "This payment link is no longer active."
+  defp friendly_error(:consumed), do: "This payment link has already been used."
+  defp friendly_error(:insufficient_stock), do: "Sorry, this item just sold out."
+  defp friendly_error(:variant_not_found), do: "Sorry, this item is no longer available."
+  defp friendly_error(:product_unavailable), do: "Sorry, this item is no longer available."
+  defp friendly_error(_reason), do: "We couldn't process that — please try again."
+
+  # -- Payment initiation (mirrors CheckoutLive:470-530) -------------------
+
+  defp initiate_payment(socket, store, order) do
+    gateway = Application.get_env(:emakola, :payment_gateway, Emakola.Payments.Gateways.Paystack)
+
+    # Resolve how the charge is split at the gateway — same trustless
+    # dropship/platform-fee settlement every other order gets.
+    settlement = Emakola.Payments.OrderSettlement.prepare(order.id, store.id)
+
+    params =
+      %{
+        amount: order.total,
+        email: customer_email(order, store),
+        currency: store.currency || "GHS",
+        order_id: order.id,
+        store_id: store.id,
+        order_reference: order.order_number,
+        callback_url: confirmation_url(store, order),
+        return_url: confirmation_url(store, order),
+        channel: "card",
+        metadata: %{payment_method: "pay_link"}
+      }
+      |> maybe_attach_split(settlement)
+
+    case gateway.initiate_payment(params) do
+      {:ok, %{reference: reference} = resp} ->
+        case Emakola.Payments.create_payment(
+               %{
+                 store_id: store.id,
+                 order_id: order.id,
+                 amount: order.total,
+                 currency: store.currency || "GHS",
+                 gateway: :paystack,
+                 gateway_reference: reference,
+                 metadata: %{payment_method: "pay_link"},
+                 split_mode: split_mode(settlement)
+               },
+               authorize?: false
+             ) do
+          {:ok, payment} ->
+            record_splits(payment, settlement)
+
+          {:error, reason} ->
+            Logger.error(
+              "[pay_link] failed to create payment record for order #{order.order_number}: #{inspect(reason)}"
+            )
+        end
+
+        url = Map.get(resp, :authorization_url, "")
+
+        if url != "" do
+          {:noreply, socket |> assign(:processing, false) |> redirect(external: url)}
+        else
+          {:noreply,
+           socket |> assign(:processing, false) |> redirect(to: confirmation_path(store, order))}
+        end
+
+      {:error, reason} ->
+        release_recovery_reservations(settlement)
+
+        Logger.error(
+          "[pay_link] payment initiation failed for order #{order.order_number}: #{inspect(reason)}"
+        )
+
+        {:noreply,
+         socket
+         |> assign(:processing, false)
+         |> assign(:form_errors, %{
+           base:
+             "We couldn't start your payment just now. Your order #{order.order_number} is saved — please try again."
+         })}
+    end
+  end
+
+  defp confirmation_url(store, order),
+    do: "#{EmakolaWeb.Endpoint.url()}#{confirmation_path(store, order)}"
+
+  defp confirmation_path(store, order),
+    do: "/s/#{store.slug}/orders/#{order.order_number}/confirmation"
+
+  defp customer_email(%{customer_id: nil}, store), do: fallback_email(store)
+
+  defp customer_email(order, store) do
+    case Ash.get(Emakola.Customers.Customer, order.customer_id, authorize?: false) do
+      {:ok, %{email: email}} when not is_nil(email) -> to_string(email)
+      _ -> fallback_email(store)
+    end
+  end
+
+  defp fallback_email(store),
+    do: Map.get(store, :contact_email) || "checkout+#{store.slug}@emakola.com"
+
+  # -- Settlement split helpers (copied from CheckoutLive) -----------------
+
+  defp maybe_attach_split(params, {:split, %{shares: shares}}),
+    do: Map.put(params, :split, shares)
+
+  defp maybe_attach_split(params, {:no_split, _reason}), do: params
+
+  defp split_mode({:split, %{mode: mode}}), do: mode
+  defp split_mode({:no_split, _}), do: :none
+
+  defp record_splits(payment, {:split, %{allocations: allocations}}),
+    do: Emakola.Payments.OrderSettlement.record_splits!(payment, allocations)
+
+  defp record_splits(_payment, {:no_split, _}), do: :ok
+
+  defp release_recovery_reservations({:split, %{allocations: allocations}}),
+    do: Emakola.Payments.OrderSettlement.release_recovery_reservations!(allocations)
+
+  defp release_recovery_reservations({:no_split, _}), do: :ok
+
+  # -- Render ---------------------------------------------------------------
+
+  @impl true
+  def render(%{state: :store_unavailable} = assigns) do
+    ~H"""
+    <div class="max-w-lg mx-auto px-4 py-16 text-center">
+      <h1 class="text-lg font-semibold text-slate-900">{@store.name}</h1>
+      <p class="mt-3 text-sm text-[#94A3B8]">This store isn't available right now.</p>
+    </div>
+    """
+  end
+
+  def render(%{state: :inactive} = assigns) do
+    ~H"""
+    <div class="max-w-lg mx-auto px-4 py-16 text-center">
+      <h1 class="text-lg font-semibold text-slate-900">{@store.name}</h1>
+      <p class="mt-3 text-sm text-[#94A3B8]">
+        This payment link is no longer active — contact the seller for a new link.
+      </p>
+    </div>
+    """
+  end
+
+  def render(%{state: :sold_out} = assigns) do
+    ~H"""
+    <div class="max-w-lg mx-auto px-4 py-16 text-center">
+      <h1 class="text-lg font-semibold text-slate-900">{@store.name}</h1>
+      <p class="mt-3 text-sm text-[#94A3B8]">This item just sold out — contact the seller.</p>
+    </div>
+    """
+  end
+
+  def render(assigns) do
+    ~H"""
+    <div class="max-w-lg mx-auto px-4 py-8 sm:py-12">
+      <p class="text-sm font-medium text-[#94A3B8]">Pay {@store.name}</p>
+
+      <div
+        :if={@link.type == :catalog and @variant}
+        class="mt-2 rounded-2xl border border-[#E2E8F0] bg-white p-4"
+      >
+        <h1 class="text-base font-semibold text-slate-900">{@variant.product.title}</h1>
+        <p class="mt-1 text-lg font-bold text-slate-900">
+          {Currency.format_price(@variant.price, @store.currency || "GHS")}
+        </p>
+      </div>
+
+      <div :if={@link.type == :custom} class="mt-2 rounded-2xl border border-[#E2E8F0] bg-white p-4">
+        <h1 class="text-base font-semibold text-slate-900">{@link.title}</h1>
+        <p class="mt-1 text-lg font-bold text-slate-900">
+          {Currency.format_price(@link.amount, @store.currency || "GHS")}
+        </p>
+      </div>
+
+      <p :if={@form_errors[:base]} class="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+        {@form_errors.base}
+      </p>
+
+      <form id="pay-link-form" phx-submit="pay" phx-change="validate" class="mt-6 space-y-4">
+        <div :if={@link.type == :catalog and @variant}>
+          <label class="block text-sm font-medium text-slate-700" for="pay-link-quantity">
+            Quantity
+          </label>
+          <select
+            id="pay-link-quantity"
+            name="quantity"
+            phx-change="set_quantity"
+            class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
+          >
+            <option :for={n <- quantity_options(@variant)} value={n} selected={n == @quantity}>
+              {n}
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700" for="pay-link-name">
+            Full name
+          </label>
+          <input
+            type="text"
+            id="pay-link-name"
+            name="buyer[name]"
+            value={@buyer["name"]}
+            required
+            class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700" for="pay-link-phone">
+            Phone number
+          </label>
+          <input
+            type="tel"
+            id="pay-link-phone"
+            name="buyer[phone]"
+            value={@buyer["phone"]}
+            required
+            class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700" for="pay-link-email">
+            Email (optional)
+          </label>
+          <input
+            type="email"
+            id="pay-link-email"
+            name="buyer[email]"
+            value={@buyer["email"]}
+            class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div :if={@link.collect_delivery}>
+          <label class="block text-sm font-medium text-slate-700" for="pay-link-address">
+            Delivery address
+          </label>
+          <textarea
+            id="pay-link-address"
+            name="buyer[address]"
+            class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
+          >{@buyer["address"]}</textarea>
+        </div>
+
+        <button
+          type="submit"
+          phx-disable-with="Processing..."
+          disabled={@processing}
+          class="w-full rounded-lg bg-store-accent px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          Pay {Currency.format_price(pay_amount(assigns), @store.currency || "GHS")}
+        </button>
+      </form>
+    </div>
+    """
+  end
+
+  defp pay_amount(%{link: %PayLink{type: :custom, amount: amount}}), do: amount
+
+  defp pay_amount(%{link: %PayLink{type: :catalog}, variant: variant, quantity: qty})
+       when not is_nil(variant),
+       do: variant.price * qty
+
+  defp pay_amount(_assigns), do: 0
+
+  defp quantity_options(%{track_inventory: true, stock_quantity: stock}) when stock > 0,
+    do: 1..min(stock, 10)
+
+  defp quantity_options(_variant), do: 1..10
+end

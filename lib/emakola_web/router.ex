@@ -380,6 +380,14 @@ defmodule EmakolaWeb.Router do
     live "/cookies", Company.CookiesLive
     live "/contact", Company.ContactLive
 
+    # Pay links — express checkout shared into DMs. `pay` is a reserved
+    # subdomain label, so no store can shadow this path.
+    live_session :pay_link,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [{EmakolaWeb.Hooks.AssignDefaults, :default}] do
+      live "/pay/:code", Storefront.PayLinkLive
+    end
+
     # Platform admin routes (platform staff only). Pages gate themselves with
     # a module-level {Hooks.RequirePermission, permission} on_mount:
     #   stores → :manage_stores, team → :manage_team, audit-log → :view_audit_log,
