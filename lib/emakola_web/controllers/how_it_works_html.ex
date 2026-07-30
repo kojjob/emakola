@@ -991,6 +991,21 @@ defmodule EmakolaWeb.HowItWorksHTML do
   vanilla JS) — the template is only the mount point, so the film needs no
   LiveView process and no app.js coupling.
   """
+  defp tour_scenes do
+    [
+      {"It starts with a maker.",
+       "She lists her goods on Makola one time. That is all she does."},
+      {"You stock it in one tap.",
+       "No buying stock first. You see your profit before you add it."},
+      {"They pay like always.", "One MoMo payment. One receipt. Money people already use."},
+      {"It goes straight to them.",
+       "The maker gets the order on her phone and sends it to your customer's door."},
+      {"The money shares itself.",
+       "Everyone's part reaches them by itself. No chasing. No promises."},
+      {"Every stall connected.", "Open your shop today. It is free to start."}
+    ]
+  end
+
   def tour(assigns) do
     ~H"""
     <!DOCTYPE html>
@@ -1013,7 +1028,27 @@ defmodule EmakolaWeb.HowItWorksHTML do
         <link rel="preload" as="image" href="/tour/workshop.webp" media="(min-width: 861px)" />
       </head>
       <body style="margin:0;background:#7b7051">
-        <main id="tour-world" style="min-height:100vh"></main>
+        <main id="tour-world" style="min-height:100vh">
+          <%!-- Semantic fallback: agents and no-JS browsers get the full story;
+                tour.js clears this before mounting the film. --%>
+          <article style="max-width:640px;margin:0 auto;padding:48px 24px;color:#FAF3E3;font-family:system-ui,sans-serif">
+            <h1>How Makola works — one sale, start to finish</h1>
+            <p>
+              Scroll through one connected sale on Makola, Ghana's connected commerce
+              network. Six scenes follow a single tote bag from a maker's hands to
+              money in everyone's pocket.
+            </p>
+            <section :for={{title, body} <- tour_scenes()}>
+              <h2>{title}</h2>
+              <p>{body}</p>
+            </section>
+            <p>
+              <a href="/auth/register" style="color:#F5B301">Start your shop — free</a>
+              · <a href="/stores" style="color:#F5B301">Browse stores</a>
+              · <a href="/how-it-works" style="color:#F5B301">Read the full explainer</a>
+            </p>
+          </article>
+        </main>
         <script src="/tour/scrub-engine.js">
         </script>
         <script src="/tour/tour.js">

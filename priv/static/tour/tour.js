@@ -7,7 +7,10 @@
   root.style.setProperty('--sw-ink-soft', '#d9cfb4');
   root.style.setProperty('--sw-accent', '#F5B301');
 
-  mountScrollWorld(document.getElementById('tour-world'), {
+  var world = document.getElementById('tour-world');
+  world.innerHTML = ''; // drop the no-JS fallback; the film takes over
+
+  mountScrollWorld(world, {
     brand: { name: 'Makola', href: '/' },
     cta: { label: 'Start your shop', href: '/auth/register' },
     hint: 'scroll to see how it works',
