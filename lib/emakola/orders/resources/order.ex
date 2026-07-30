@@ -268,6 +268,9 @@ defmodule Emakola.Orders.Order do
          from: [:pending], message: "can only confirm a pending order"}
       )
 
+      # Atomic counterpart to the guard above — see RequireStatusIn.
+      change({Emakola.Orders.Changes.RequireStatusIn, from: [:pending]})
+
       change(set_attribute(:status, :confirmed))
 
       change(Emakola.Orders.Changes.NotifyConfirmation)
@@ -288,6 +291,9 @@ defmodule Emakola.Orders.Order do
          from: [:confirmed], message: "can only start processing from confirmed"}
       )
 
+      # Atomic counterpart to the guard above — see RequireStatusIn.
+      change({Emakola.Orders.Changes.RequireStatusIn, from: [:confirmed]})
+
       change(set_attribute(:status, :processing))
     end
 
@@ -299,6 +305,9 @@ defmodule Emakola.Orders.Order do
         {Emakola.Validations.StatusGuard,
          from: [:processing], message: "can only mark as shipped from processing"}
       )
+
+      # Atomic counterpart to the guard above — see RequireStatusIn.
+      change({Emakola.Orders.Changes.RequireStatusIn, from: [:processing]})
 
       change(set_attribute(:status, :shipped))
       change({Emakola.Orders.Changes.NotifyStatusChange, event: :order_shipped})
@@ -313,6 +322,9 @@ defmodule Emakola.Orders.Order do
          from: [:shipped], message: "can only mark as delivered from shipped"}
       )
 
+      # Atomic counterpart to the guard above — see RequireStatusIn.
+      change({Emakola.Orders.Changes.RequireStatusIn, from: [:shipped]})
+
       change(set_attribute(:status, :delivered))
       change({Emakola.Orders.Changes.NotifyStatusChange, event: :order_delivered})
     end
@@ -325,6 +337,12 @@ defmodule Emakola.Orders.Order do
         {Emakola.Validations.StatusGuard,
          from: [:pending, :confirmed, :processing, :shipped],
          message: "can only cancel an active order (not delivered or already cancelled)"}
+      )
+
+      # Atomic counterpart to the guard above — see RequireStatusIn.
+      change(
+        {Emakola.Orders.Changes.RequireStatusIn,
+         from: [:pending, :confirmed, :processing, :shipped]}
       )
 
       change(set_attribute(:status, :cancelled))
