@@ -11,10 +11,20 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
   import EmakolaWeb.OAuthComponents
   import EmakolaWeb.Storefront.Path
 
+  require Logger
+
+  # Mirrors EmakolaWeb.Auth.LoginLive. The /s/:slug scope's :auth_rate_limit
+  # plug only throttles page LOADS; authentication happens in handle_event over
+  # the socket, so without this a client loads the page once and then guesses
+  # passwords indefinitely on that one connection.
+  @login_limit 10
+  @login_window_ms 60_000
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
      socket
+     |> assign(:client_ip, EmakolaWeb.ClientIp.resolve(socket))
      |> assign(:page_title, "Sign In - #{socket.assigns.store.name}")
      |> assign(:form, to_form(%{"email" => "", "password" => ""}, as: :customer))
      |> assign(:error_message, nil)}
@@ -24,7 +34,31 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
   def handle_event("login", %{"customer" => params}, socket) do
     %{"email" => email, "password" => password} = params
     store = socket.assigns.store
+    ip = socket.assigns.client_ip
 
+    # Keyed per store as well as per IP: one busy storefront must not lock out
+    # shoppers on another store sharing a carrier NAT.
+    case Emakola.RateLimit.check_rate(
+           "customer_login:#{store.id}:#{ip}",
+           @login_limit,
+           @login_window_ms
+         ) do
+      {:deny, _retry_after} ->
+        Logger.warning("Customer login rate limit exceeded for #{ip} on store #{store.id}")
+
+        {:noreply,
+         assign(
+           socket,
+           :error_message,
+           "Too many sign-in attempts. Please try again in a minute."
+         )}
+
+      {:allow, _count} ->
+        do_login(email, password, store, ip, socket)
+    end
+  end
+
+  defp do_login(email, password, store, ip, socket) do
     case Emakola.Customers.Customer
          |> Ash.Query.for_read(:sign_in_with_password, %{email: email, password: password})
          |> Ash.read_one(authorize?: false) do
@@ -39,12 +73,26 @@ defmodule EmakolaWeb.Storefront.CustomerLoginLive do
           {:noreply,
            redirect(socket, to: "/s/#{store.slug}/auth/customer-session?token=#{token}")}
         else
-          {:noreply, assign(socket, :error_message, "Invalid email or password.")}
+          # Right password, wrong store — still a failed auth for this store.
+          {:noreply, reject_login(socket, email, ip)}
         end
 
       _ ->
-        {:noreply, assign(socket, :error_message, "Invalid email or password.")}
+        {:noreply, reject_login(socket, email, ip)}
     end
+  end
+
+  # Records the attempt so customer brute-force is visible in the security log
+  # the same way merchant and WhatsApp customer auth already are.
+  defp reject_login(socket, email, ip) do
+    Emakola.Security.record(%{
+      event_type: :auth_failed,
+      subject_type: :customer,
+      identifier: email,
+      ip: ip
+    })
+
+    assign(socket, :error_message, "Invalid email or password.")
   end
 
   @impl true
