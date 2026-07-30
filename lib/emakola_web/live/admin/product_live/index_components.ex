@@ -182,6 +182,31 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
             >
               Edit
             </button>
+            <%!-- Archive/Activate must exist here too: this card is the ONLY
+            product UI on phones (the table above is `hidden md:block`), and
+            most merchants are on mobile. Same events and modal as desktop. --%>
+            <button
+              :if={product.status != :archived}
+              phx-click={
+                JS.push("open_archive", value: %{id: product.id})
+                |> show_modal("product-action-modal")
+              }
+              class="flex-1 text-center py-2 rounded-lg border border-red-200 text-red-600
+                       text-sm font-medium hover:bg-red-50 transition-colors"
+            >
+              Archive
+            </button>
+            <button
+              :if={product.status == :archived}
+              phx-click={
+                JS.push("open_activate", value: %{id: product.id})
+                |> show_modal("product-action-modal")
+              }
+              class="flex-1 text-center py-2 rounded-lg border border-emerald-200 text-primary
+                       text-sm font-medium hover:bg-primary-soft transition-colors"
+            >
+              Activate
+            </button>
           </div>
         </div>
       </div>
@@ -277,33 +302,56 @@ defmodule EmakolaWeb.Admin.ProductLive.IndexComponents do
   def confirm_action_modal(assigns) do
     ~H"""
     <div>
-      <%!-- Archive/Activate Confirmation Modal --%>
-      <%= if @action_product && @action_type == :archive do %>
-        <.confirm_modal
-          id="product-action-modal"
-          title="Archive Product"
-          message={"Are you sure you want to archive \"#{@action_product.title}\"? It will no longer be visible in your storefront."}
-          confirm_text="Archive"
-          confirm_class="bg-red-600 hover:bg-red-700 text-white"
-          on_confirm="archive_product"
-          icon="warning"
-          icon_class="text-red-500"
-        />
-      <% end %>
-
-      <%= if @action_product && @action_type == :activate do %>
-        <.confirm_modal
-          id="product-action-modal"
-          title="Activate Product"
-          message={"Activate \"#{@action_product.title}\"? It must have at least one variant to be published. It will become visible in your storefront."}
-          confirm_text="Activate"
-          confirm_class="bg-primary hover:bg-primary-hover text-white"
-          on_confirm="activate_product"
-        />
-      <% end %>
+      <%!-- Archive/Activate confirmation. ALWAYS rendered and nil-safe (same
+      pattern as the platform merchant drawer). It must not be wrapped in an
+      `if @action_product`: the trigger fires
+      `JS.push("open_archive") |> show_modal("product-action-modal")`, and
+      JS.show runs on the client immediately while the push that sets
+      @action_product is a server round-trip. A conditionally-rendered modal
+      therefore does not exist yet when show runs — the first click did
+      nothing and the merchant had to click Archive twice. --%>
+      <.confirm_modal
+        id="product-action-modal"
+        title={action_title(@action_type)}
+        message={action_message(@action_type, @action_product)}
+        confirm_text={action_confirm_text(@action_type)}
+        confirm_class={action_confirm_class(@action_type)}
+        on_confirm={action_event(@action_type)}
+        icon={action_icon(@action_type)}
+        icon_class={action_icon_class(@action_type)}
+      />
     </div>
     """
   end
+
+  defp action_title(:activate), do: "Activate Product"
+  defp action_title(_), do: "Archive Product"
+
+  defp action_message(:activate, %{title: title}),
+    do:
+      "Activate \"#{title}\"? It must have at least one variant to be published. It will become visible in your storefront."
+
+  defp action_message(_type, %{title: title}),
+    do:
+      "Are you sure you want to archive \"#{title}\"? It will no longer be visible in your storefront."
+
+  # No product selected yet — the modal is hidden, so the copy is never seen.
+  defp action_message(_type, _product), do: ""
+
+  defp action_confirm_text(:activate), do: "Activate"
+  defp action_confirm_text(_), do: "Archive"
+
+  defp action_confirm_class(:activate), do: "bg-primary hover:bg-primary-hover text-white"
+  defp action_confirm_class(_), do: "bg-red-600 hover:bg-red-700 text-white"
+
+  defp action_event(:activate), do: "activate_product"
+  defp action_event(_), do: "archive_product"
+
+  defp action_icon(:activate), do: nil
+  defp action_icon(_), do: "warning"
+
+  defp action_icon_class(:activate), do: "text-amber-500"
+  defp action_icon_class(_), do: "text-red-500"
 
   attr :editing_product, :any, required: true
   attr :form_data, :map, required: true
