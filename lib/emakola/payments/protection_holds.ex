@@ -70,6 +70,23 @@ defmodule Emakola.Payments.ProtectionHolds do
   end
 
   @doc """
+  Fetches `order_id`'s buyer-protection hold in ANY state (`held`, and a
+  `held` hold may additionally be `frozen_at`-flagged, `released`, or
+  `refunded`) — for surfaces that display the current hold regardless of
+  whether it's still active, e.g. the tracking page's protection strip
+  (renders for every viewer once a hold exists, not just while `:held` —
+  see `active_hold_for_order?/2` for the held-only existence check used to
+  gate release triggers). Returns `nil` when the order was never protected.
+  """
+  def get_hold_for_order(order_id, store_id) do
+    ProtectionHold
+    |> Ash.Query.filter(order_id == ^order_id)
+    |> Ash.Query.limit(1)
+    |> Ash.read!(tenant: store_id, authorize?: false)
+    |> List.first()
+  end
+
+  @doc """
   Finds `order_id`'s buyer-protection hold — via its captured payment's
   `payout_hold_reason` — and releases it for `reason`.
 
