@@ -353,6 +353,39 @@ defmodule EmakolaWeb.Storefront.TrackingLiveTest do
       refute reloaded.frozen_at
     end
 
+    test "filing a second complaint updates the existing complaint instead of erroring", %{
+      conn: conn,
+      store: store
+    } do
+      {order, hold} = protected_order!(store)
+      token = TrackingTokens.sign_order_tracking(order.id)
+
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/track/#{order.order_number}?t=#{token}")
+
+      render_submit(view, "file_complaint", %{
+        "reason" => "not_as_described",
+        "text" => "wrong color"
+      })
+
+      first_filing = reload_hold(store, hold)
+
+      html =
+        render_submit(view, "file_complaint", %{
+          "reason" => "not_received",
+          "text" => "actually never arrived"
+        })
+
+      refute html =~ "Could not file your complaint"
+
+      reloaded = reload_hold(store, hold)
+      # Same complaint row — `frozen_at` is not reset by the re-file.
+      assert reloaded.id == hold.id
+      assert reloaded.frozen_at == first_filing.frozen_at
+      assert reloaded.complaint_reason == :not_received
+      assert reloaded.complaint_text == "actually never arrived"
+      assert reloaded.status == :held
+    end
+
     test "open_complaint is a no-op without a valid token", %{conn: conn, store: store} do
       {order, _hold} = protected_order!(store)
 

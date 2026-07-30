@@ -56,6 +56,8 @@ defmodule Emakola.Payments do
       define(:create_protection_hold, action: :create)
       define(:release_protection_hold, action: :release)
       define(:freeze_protection_hold, action: :freeze)
+      define(:update_complaint_protection_hold, action: :update_complaint)
+      define(:mark_refunded_protection_hold, action: :mark_refunded)
       define(:get_protection_hold_by_payment, action: :get_by_payment, args: [:payment_id])
     end
   end

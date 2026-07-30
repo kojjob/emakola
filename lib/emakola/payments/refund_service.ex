@@ -32,12 +32,24 @@ defmodule Emakola.Payments.RefundService do
   Cash-on-delivery orders never created a Payment, so there is no charge to
   reverse: the return is approved with no gateway call and the merchant hands
   the cash back out of band.
+
+  ## Buyer-protection hold
+
+  Right after the gateway accepts the refund — the point at which, from this
+  service's own transaction, the refund is definitively successful — a FULL
+  refund (this request exhausts the payment's remaining refundable balance)
+  closes the payment's `:held` buyer-protection hold via
+  `ProtectionHolds.close_for_refund/2`. A partial refund leaves the hold
+  `:held`. The `resolution` stamped on the hold defaults to
+  `:merchant_refunded`; pass `resolution: :refunded_by_staff` via `opts` for
+  a staff-initiated refund through this same service (Task 12's seam).
   """
 
   require Ash.Query
 
   alias Emakola.Orders.Return
   alias Emakola.Payments.Gateways
+  alias Emakola.Payments.ProtectionHolds
 
   @approve_fields [:admin_notes, :refund_amount, :refund_dispatch_fee?]
 
@@ -50,18 +62,25 @@ defmodule Emakola.Payments.RefundService do
   `:payment_not_found`, `:invalid_amount`, `:amount_exceeds_refundable`,
   `:gateway_unsupported`, or whatever the gateway refused with. Nothing is
   approved and no ledger state moves unless the gateway accepts.
+
+  `opts[:resolution]` (default `:merchant_refunded`) is the resolution
+  stamped on a buyer-protection hold this refund closes — see the
+  moduledoc's "Buyer-protection hold" section.
   """
-  def issue(actor, return, params, gateway \\ nil)
+  def issue(actor, return, params, gateway \\ nil, opts \\ [])
 
-  def issue(_actor, nil, _params, _gateway), do: {:error, :no_return_selected}
+  def issue(_actor, nil, _params, _gateway, _opts), do: {:error, :no_return_selected}
 
-  def issue(actor, return, params, gateway) do
+  def issue(actor, return, params, gateway, opts) do
+    resolution = Keyword.get(opts, :resolution, :merchant_refunded)
+
     Emakola.Repo.transaction(fn ->
       with {:ok, claimed} <- claim(return.id),
            {:ok, payment} <- payment_for(actor, claimed),
            :ok <- validate_amount(payment, params[:refund_amount]),
            {:ok, approved} <- approve(actor, claimed, params),
            :ok <- request_refund(payment, params[:refund_amount], gateway) do
+        close_hold_if_full_refund(payment, params[:refund_amount], resolution)
         approved
       else
         {:error, reason} -> Emakola.Repo.rollback(reason)
@@ -123,9 +142,23 @@ defmodule Emakola.Payments.RefundService do
   defp validate_amount(nil, _amount), do: :ok
 
   defp validate_amount(payment, amount) do
-    refundable = payment.amount - (payment.refunded_amount || 0)
+    if amount <= refundable_balance(payment), do: :ok, else: {:error, :amount_exceeds_refundable}
+  end
 
-    if amount <= refundable, do: :ok, else: {:error, :amount_exceeds_refundable}
+  defp refundable_balance(payment), do: payment.amount - (payment.refunded_amount || 0)
+
+  # A cash-on-delivery order has no Payment, hence no hold to close.
+  defp close_hold_if_full_refund(nil, _amount, _resolution), do: :ok
+
+  # "Full" means this request exhausts the remaining refundable balance —
+  # already validated as `amount <= refundable_balance(payment)` above, so
+  # equality here means nothing is left to refund after this request.
+  defp close_hold_if_full_refund(payment, amount, resolution) do
+    if amount == refundable_balance(payment) do
+      ProtectionHolds.close_for_refund(payment, resolution)
+    else
+      :ok
+    end
   end
 
   defp request_refund(nil, _amount, _gateway), do: :ok

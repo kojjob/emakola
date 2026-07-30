@@ -100,10 +100,13 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
     end
   end
 
-  # Complaint UI shell (TC-2 Task 7): files the freeze via the ProtectionHold
-  # `:freeze` domain interface (Task 3). Task 8 adds refund-closes-hold and
-  # the merchant notification on top of this — this handler stops at
-  # "complaint received" (frozen_at set, timer blocked).
+  # Complaint UI shell (TC-2 Task 7/8): files the freeze via the
+  # ProtectionHold `:freeze` domain interface (Task 3). A hold already
+  # frozen by an earlier complaint routes to `:update_complaint` instead
+  # (Task 3) — `:freeze` only succeeds once (`validate(absent(:frozen_at))`),
+  # so re-filing without this branch would error. Both actions leave the
+  # hold as a single row — re-filing updates the existing complaint's
+  # reason/text rather than creating a new one.
   @impl true
   def handle_event("file_complaint", %{"reason" => reason, "text" => text}, socket) do
     %{buyer_authorized?: buyer_authorized?, order: order, store: store} = socket.assigns
@@ -121,15 +124,20 @@ defmodule EmakolaWeb.Storefront.TrackingLive do
               :other
             )
 
-          case Emakola.Payments.freeze_protection_hold(
-                 hold,
-                 %{complaint_reason: complaint_reason, complaint_text: String.trim(text)},
-                 authorize?: false
-               ) do
-            {:ok, frozen_hold} ->
+          attrs = %{complaint_reason: complaint_reason, complaint_text: String.trim(text)}
+
+          result =
+            if hold.frozen_at do
+              Emakola.Payments.update_complaint_protection_hold(hold, attrs, authorize?: false)
+            else
+              Emakola.Payments.freeze_protection_hold(hold, attrs, authorize?: false)
+            end
+
+          case result do
+            {:ok, updated_hold} ->
               {:noreply,
                socket
-               |> assign(:protection_hold, frozen_hold)
+               |> assign(:protection_hold, updated_hold)
                |> assign(:complaint_form_open, false)
                |> put_flash(
                  :info,

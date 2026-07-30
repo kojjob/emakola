@@ -50,6 +50,65 @@ defmodule Emakola.Payments.ProtectionHolds do
   def ensure_hold(_payment), do: :ok
 
   @doc """
+  Closes `payment`'s `:held` buyer-protection hold once a FULL refund has
+  reached its terminal success state — called from
+  `Emakola.Payments.RefundService.issue/5` right after the gateway accepts
+  the refund and the return is approved, the point at which the refund is
+  "definitively successful" as far as that service's own transaction is
+  concerned. (The payment ledger itself, `payment.refunded_amount`, is a
+  separate concern still owned exclusively by the `refund.processed`
+  webhook — this never touches it.)
+
+  No-op when the payment carries no hold, or the hold isn't currently
+  `:held` (nothing to close, a partial refund, or a concurrent close
+  already ran).
+
+  `resolution` defaults to `:merchant_refunded`; Task 12's staff-initiated
+  refund flow passes `:refunded_by_staff` through the same `RefundService`
+  call — see that module's `issue/5` doc.
+
+  Never fails the caller: like `ensure_hold/1`, this runs INSIDE
+  `RefundService.issue/5`'s own `Repo.transaction`, so a hold-close failure
+  must never surface as a refund failure. Safe to call from inside that
+  transaction — unlike `ProtectionRelease.release/2,3`, there is no manual
+  `Repo.transaction`/`Repo.rollback` here to risk the Task 6 poisoning bug:
+  `Ash.update` detects (via `Ash.DataLayer.in_transaction?/1`) that
+  `ProtectionHold` shares the same already-open `Emakola.Repo` transaction
+  and runs the update inline instead of opening a nested one.
+  """
+  def close_for_refund(payment, resolution \\ :merchant_refunded) do
+    case Payments.get_protection_hold_by_payment(payment.id,
+           tenant: payment.store_id,
+           authorize?: false
+         ) do
+      {:ok, %ProtectionHold{status: :held} = hold} ->
+        hold
+        |> Payments.mark_refunded_protection_hold(%{resolution: resolution}, authorize?: false)
+        |> case do
+          {:ok, _closed} ->
+            :ok
+
+          {:error, error} ->
+            Logger.error(
+              "[protection_holds] close_for_refund failed for payment=#{payment.id}: #{inspect(error)}"
+            )
+
+            :ok
+        end
+
+      _ ->
+        :ok
+    end
+  rescue
+    error ->
+      Logger.error(
+        "[protection_holds] close_for_refund failed for payment=#{payment.id}: #{Exception.format(:error, error, __STACKTRACE__)}"
+      )
+
+      :ok
+  end
+
+  @doc """
   Cheap existence check: does `order_id` currently have an actively `:held`
   buyer-protection hold? A single query directly against
   `ProtectionHold.order_id` — used to gate whether a release trigger is
