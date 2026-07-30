@@ -349,6 +349,7 @@ reuses protection's held-funds ledger, addressing is independent.
 - [ ] **Pay Links** — shareable DM checkout links, catalog + custom-amount
       (single-use); ad-hoc line items via nullable `LineItem.variant_id`.
       Spec: `docs/superpowers/specs/2026-07-30-pay-links-design.md` ✅ specced
+      → implemented (TC-1 branch, PR pending)
 - [ ] **Buyer Protection** — escrow-lite payout hold until delivery
       confirmation; builds on settlement engine + refund liability.
       Spec: `docs/superpowers/specs/2026-07-30-buyer-protection-design.md` ✅ specced
