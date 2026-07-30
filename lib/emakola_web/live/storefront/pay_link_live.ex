@@ -39,7 +39,17 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
          |> assign(:processing, false)
          |> assign(:buyer, %{"name" => "", "phone" => "", "email" => "", "address" => ""})
          |> assign(:form_errors, %{})
-         |> assign(:page_title, store.name)}
+         |> assign(:page_title, store.name)
+         # The storefront layout renders the search overlay whenever @store is
+         # assigned (true in all four of this LiveView's states), so these
+         # need real defaults — matching StoreLive's mount exactly — or the
+         # component's `assigns[:key] || default` fallbacks paper over it
+         # until the buyer actually types, at which point handle_event/3
+         # would have nothing to match without the handlers below.
+         |> assign(:search_overlay_query, "")
+         |> assign(:search_overlay_results, [])
+         |> assign(:search_overlay_total, 0)
+         |> assign(:searching, false)}
 
       {:error, _} ->
         raise Ash.Error.Query.NotFound
@@ -70,7 +80,12 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
 
   defp load_variant(%PayLink{}), do: nil
 
-  defp out_of_stock?(_link, nil), do: false
+  # A catalog link whose variant can't load (deleted/archived after the link
+  # was shared) has nothing sellable behind it — treat that as sold out, not
+  # as "in stock." Without this, `page_state/3` would fall through to `:ok`
+  # with `@variant` nil, rendering a bare "Pay GH₵0" button instead of the
+  # sold-out message.
+  defp out_of_stock?(_link, nil), do: true
 
   defp out_of_stock?(link, variant),
     do: not Emakola.Catalog.Variant.in_stock?(variant, link.quantity)
@@ -85,6 +100,47 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
   @impl true
   def handle_event("set_quantity", %{"quantity" => quantity_str}, socket) do
     {:noreply, assign(socket, :quantity, parse_quantity(quantity_str))}
+  end
+
+  # The storefront layout mounts `EmakolaWeb.SearchComponents.search_overlay`
+  # unconditionally whenever `@store` is assigned — true in every state this
+  # LiveView renders. Its input (`phx-keyup="search_overlay"`) and its
+  # close affordances (backdrop click / Escape / close button, all wired to
+  # `SearchComponents.hide_search/0`, which pushes `"close_search"`) need
+  # handlers here too, or a buyer who taps search mid-checkout kills the
+  # socket. Mirrors `StoreLive`'s handlers and private helpers exactly.
+  @impl true
+  def handle_event("search_overlay", %{"value" => query}, socket) do
+    query = String.trim(query)
+
+    if query == "" do
+      {:noreply,
+       socket
+       |> assign(:search_overlay_query, "")
+       |> assign(:search_overlay_results, [])
+       |> assign(:search_overlay_total, 0)
+       |> assign(:searching, false)}
+    else
+      results = search_overlay_products(socket.assigns.store.id, query)
+      total = count_search_results(socket.assigns.store.id, query)
+
+      {:noreply,
+       socket
+       |> assign(:search_overlay_query, query)
+       |> assign(:search_overlay_results, Enum.take(results, 6))
+       |> assign(:search_overlay_total, total)
+       |> assign(:searching, false)}
+    end
+  end
+
+  @impl true
+  def handle_event("close_search", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:search_overlay_query, "")
+     |> assign(:search_overlay_results, [])
+     |> assign(:search_overlay_total, 0)
+     |> assign(:searching, false)}
   end
 
   @impl true
@@ -110,6 +166,25 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
     case Integer.parse(str) do
       {n, _} when n > 0 -> n
       _ -> 1
+    end
+  end
+
+  # -- Search overlay helpers (copied from StoreLive) ----------------------
+
+  defp search_overlay_products(store_id, query) do
+    Emakola.Catalog.Product
+    |> Ash.Query.for_read(:search, %{query: query, store_id: store_id, status: :active})
+    |> Ash.Query.limit(10)
+    |> Ash.read!(authorize?: false)
+  end
+
+  defp count_search_results(store_id, query) do
+    Emakola.Catalog.Product
+    |> Ash.Query.for_read(:search, %{query: query, store_id: store_id, status: :active})
+    |> Ash.count(authorize?: false)
+    |> case do
+      {:ok, n} -> n
+      _ -> 0
     end
   end
 
@@ -177,7 +252,14 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
         order_reference: order.order_number,
         callback_url: confirmation_url(store, order),
         return_url: confirmation_url(store, order),
-        channel: "card",
+        # Deliberately no `channel` here (unlike CheckoutLive, which maps its
+        # payment-method picker to a single Paystack channel): this page has
+        # no method picker, so restricting to one channel would hide MoMo —
+        # the primary rail for this market — on the gateway's hosted page.
+        # Omitting the key entirely lets the gateway offer every channel
+        # enabled on the merchant's account (confirmed against this repo's
+        # own `Gateways.Paystack.initiate_payment/1`, which never reads
+        # `params[:channel]` when building the request body anyway).
         metadata: %{payment_method: "pay_link"}
       }
       |> maybe_attach_split(settlement)

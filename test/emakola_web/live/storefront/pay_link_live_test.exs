@@ -98,12 +98,20 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
     assert_raise Ash.Error.Query.NotFound, fn -> live(conn, "/pay/zzzzzzzz") end
   end
 
-  test "hidden address fields when collect_delivery is false", %{conn: conn} do
+  test "delivery address field is present when collect_delivery is true", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store, %{collect_delivery: true})
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+    assert html =~ "pay-link-address"
+  end
+
+  test "delivery address field is absent when collect_delivery is false", %{conn: conn} do
     store = Emakola.Factory.create_store!()
     link = custom_link!(store, %{collect_delivery: false})
 
     {:ok, _view, html} = live(conn, "/pay/#{link.code}")
-    refute html =~ "shipping_address"
+    refute html =~ "pay-link-address"
   end
 
   test "submitting the form creates the order and initiates payment", %{conn: conn} do
@@ -122,6 +130,10 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
 
     expect(Emakola.Payments.GatewayMock, :initiate_payment, fn params ->
       assert params.amount == 25_000
+      # No method picker on this page (unlike CheckoutLive) — the gateway
+      # must not be restricted to a single channel, or MoMo (the primary
+      # rail for this market) would be hidden from the hosted page.
+      refute Map.has_key?(params, :channel)
       {:ok, %{reference: "PAY-test-ref", authorization_url: "https://pay.test/x"}}
     end)
 
@@ -192,5 +204,86 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
 
     assert html =~ "sold out"
     refute html =~ "phx-submit"
+  end
+
+  test "catalog link whose variant no longer exists renders sold-out, not a bare form", %{
+    conn: conn
+  } do
+    store = Emakola.Factory.create_store!()
+    product = Emakola.Factory.create_product!(store, %{title: "Woven Basket"})
+    variant = Emakola.Factory.create_variant!(product, store, %{price: 8_000, stock_quantity: 5})
+    link = catalog_link!(store, variant)
+
+    Ash.destroy!(variant, authorize?: false)
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+
+    assert html =~ "sold out"
+    refute html =~ "phx-submit"
+    refute html =~ "Pay GH"
+  end
+
+  test "submitting a catalog link's form creates the order with pay_link_id and initiates payment",
+       %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    product = Emakola.Factory.create_product!(store, %{title: "Woven Basket"})
+    variant = Emakola.Factory.create_variant!(product, store, %{price: 8_000, stock_quantity: 5})
+    link = catalog_link!(store, variant)
+
+    original = Application.get_env(:emakola, :payment_gateway)
+    Application.put_env(:emakola, :payment_gateway, Emakola.Payments.GatewayMock)
+    on_exit(fn -> Application.put_env(:emakola, :payment_gateway, original) end)
+
+    expect(Emakola.Payments.GatewayMock, :initiate_payment, fn params ->
+      assert params.amount == 8_000
+      refute Map.has_key?(params, :channel)
+      {:ok, %{reference: "PAY-catalog-ref", authorization_url: "https://pay.test/catalog"}}
+    end)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+    Mox.allow(Emakola.Payments.GatewayMock, self(), view.pid)
+
+    view
+    |> form("#pay-link-form", %{
+      "buyer" => %{"name" => "Kojo Buyer", "phone" => "0244000000"}
+    })
+    |> render_submit()
+
+    [order] =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    assert order.pay_link_id == link.id
+    assert order.total == 8_000
+  end
+
+  test "search overlay keyup on the pay page doesn't crash the socket", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+
+    html =
+      view
+      |> element("#search-input")
+      |> render_keyup(%{"value" => "kente"})
+
+    # The socket survived and re-rendered the page (not just the overlay).
+    assert html =~ "Kente dress"
+  end
+
+  test "closing the search overlay on the pay page doesn't crash the socket", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+
+    html =
+      view
+      |> element("button[aria-label='Close search']")
+      |> render_click()
+
+    assert html =~ "Kente dress"
   end
 end
