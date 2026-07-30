@@ -313,8 +313,15 @@ image-upload endpoints must be added before the Flutter merchant app can build t
 - [ ] **TC-4: GhanaPost GPS + landmark addressing** — 📝 SPECCED
       (`2026-07-30-ghanapost-addressing-design.md`). Optional validated digital
       address + nudged landmark via one shared address fieldset across all four
-      buyer surfaces; format-only validation v1. All four TC specs now written —
-      series ready for implementation planning.
+      buyer surfaces; format-only validation v1.
+- [ ] **TC-5: Makola Book (pay later)** — 📝 SPECCED
+      (`2026-07-30-pay-later-book-design.md`). Digitized trade credit (merchant
+      risk, no interest): deposit link → ship → flexible balance chunks to a
+      deadline; two-tier earned eligibility (2 delivered orders or 1 susu
+      platform-wide; ≥3 orders per store) keyed on verified phone; default =
+      platform-wide freeze; invariant: limit ≤ profit already generated. Rung
+      one of the credit ladder toward partner/platform BNPL. All five TC specs
+      written — series ready for implementation planning.
 
 ---
 

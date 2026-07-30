@@ -109,6 +109,8 @@ point, like `CheckoutService`, not a payment record.
 - Actions: **cancel only.** No edit — a changed deal is a new link.
 - Spec 3 (`2026-07-30-susu-layaway-design.md`) adds susu links as a third
   link type on this page, with plan-progress columns.
+- TC-5 (`2026-07-30-pay-later-book-design.md`) adds pay-later links as a
+  fourth type (phone-bound, eligibility-gated).
 - Authorization: store members via the existing `:app` live_session auth;
   the resource policy mirrors other tenant-scoped merchant resources.
 - Follows the Makola Admin design language (stat tiles, status pills,
