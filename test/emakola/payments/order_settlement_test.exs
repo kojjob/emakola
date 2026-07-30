@@ -516,7 +516,9 @@ defmodule Emakola.Payments.OrderSettlementTest do
           assert OrderSettlement.sum_matches_total?(order, allocations)
         end)
 
-      assert log == ""
+      # Async-suite capture_log sees concurrent tests' output; assert only
+      # that OUR order id was not logged, not that the world was silent.
+      refute log =~ order.id
     end
 
     test "returns false and logs an error naming the order id and both sums on mismatch" do
