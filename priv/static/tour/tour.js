@@ -108,6 +108,20 @@
     ],
   });
   // Use the real Makola logo in the film's topbar (engine default is a plain mark).
+  // Center the scene tabs exactly: the engine's space-between topbar lets the
+  // tab group drift toward the wider CTA side. Grid pins it to true center.
+  var st = document.createElement('style');
+  st.textContent = '.sw-topbar{display:grid;grid-template-columns:1fr auto 1fr}' +
+    '.sw-brand{justify-self:start}.sw-topcta{justify-self:end}' +
+    '@media (max-width:860px){.sw-topbar{display:flex}}';
+  document.head.appendChild(st);
+
+  // Accessible names for the engine's route-rail dots (one per scene).
+  var dotLabels = ['The Maker', 'Your Shop', 'The Buyer', 'Delivery', 'The Money', 'One Market'];
+  document.querySelectorAll('.sw-route__dot').forEach(function (dot, i) {
+    dot.setAttribute('aria-label', 'Go to ' + (dotLabels[i] || 'scene ' + (i + 1)));
+  });
+
   var mark = document.querySelector('.sw-brand__mark');
   if (mark) {
     var logo = document.createElement('img');

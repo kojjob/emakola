@@ -993,11 +993,33 @@ defmodule EmakolaWeb.HowItWorksHTML do
   """
   def tour(assigns) do
     ~H"""
-    <div id="tour-world" class={["min-h-screen bg-[#0C1F17]"]}></div>
-    <script src="/tour/scrub-engine.js">
-    </script>
-    <script src="/tour/tour.js">
-    </script>
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <title>{@page_title}</title>
+        <meta name="description" content={@meta_description} />
+        <link rel="canonical" href={@canonical_url} />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={@page_title} />
+        <meta property="og:description" content={@meta_description} />
+        <meta property="og:image" content={@og_image} />
+        <meta property="og:url" content={@canonical_url} />
+        <meta name="theme-color" content="#7b7051" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="preload" as="image" href="/tour/workshop-m.webp" media="(max-width: 860px)" />
+        <link rel="preload" as="image" href="/tour/workshop.webp" media="(min-width: 861px)" />
+      </head>
+      <body style="margin:0;background:#7b7051">
+        <main id="tour-world" style="min-height:100vh"></main>
+        <script src="/tour/scrub-engine.js">
+        </script>
+        <script src="/tour/tour.js">
+        </script>
+      </body>
+    </html>
     """
   end
 end
