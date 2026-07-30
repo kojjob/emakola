@@ -53,8 +53,17 @@ defmodule Emakola.Workers.FulfillmentWorker do
   end
 
   defp fulfill_line_item(order, line_item) do
-    product_type = line_item.variant.product.product_type
+    case line_item.variant do
+      nil ->
+        # Custom (variant-less) pay-link line — no product to dispatch/notify.
+        :ok
 
+      variant ->
+        dispatch_line_item(order, line_item, variant.product.product_type)
+    end
+  end
+
+  defp dispatch_line_item(order, line_item, product_type) do
     case Dispatcher.dispatch(product_type, line_item, %{customer_id: order.customer_id}) do
       {:ok, :deferred} ->
         Logger.debug(
