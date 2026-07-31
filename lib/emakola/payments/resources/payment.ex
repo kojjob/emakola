@@ -31,6 +31,14 @@ defmodule Emakola.Payments.Payment do
       public?(true)
     end
 
+    # A chunk payment toward a susu plan (TC-3) — mutually exclusive with
+    # `order_id` at create (see the `:create` action's validation). Nil
+    # until completion, when `:attach_order` stamps a payment's `order_id`
+    # onto every contribution.
+    attribute :susu_plan_id, :uuid do
+      public?(true)
+    end
+
     attribute :amount, :integer do
       allow_nil?(false)
       public?(true)
@@ -183,6 +191,7 @@ defmodule Emakola.Payments.Payment do
       accept([
         :store_id,
         :order_id,
+        :susu_plan_id,
         :amount,
         :currency,
         :gateway,
@@ -195,6 +204,48 @@ defmodule Emakola.Payments.Payment do
         :payout_held,
         :payout_hold_reason
       ])
+
+      # Mutual exclusion only — NOT "at least one required". Group-buy
+      # escrow payments and protected-preorder deposit payments (see
+      # `Emakola.Suppliers.GroupBuys`/`ProtectedPreorders`) legitimately
+      # create with both nil; neither concept applies to those payment
+      # kinds, and dozens of existing tests rely on that parentless
+      # default. A payment simply must never be tied to an order AND a
+      # susu plan at once.
+      validate(present([:order_id, :susu_plan_id], at_most: 1),
+        message: "cannot be tied to both an order and a susu plan"
+      )
+    end
+
+    # Susu completion (Task 5) stamps `order_id` onto every contribution
+    # once a plan finishes and its order is created. Only legal once: the
+    # payment must already be parented to a susu plan (not an order) and
+    # must not already have an order attached — refuses re-stamping so a
+    # worker retry can't silently reparent a payment.
+    update :attach_order do
+      require_atomic?(false)
+      accept([:order_id])
+
+      validate(fn changeset, _context ->
+        cond do
+          is_nil(changeset.data.susu_plan_id) ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :susu_plan_id,
+               message: "can only attach an order to a susu-plan payment"
+             )}
+
+          not is_nil(changeset.data.order_id) ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :order_id,
+               message: "already has an order attached"
+             )}
+
+          true ->
+            :ok
+        end
+      end)
     end
 
     update :update do
