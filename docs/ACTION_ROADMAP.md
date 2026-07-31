@@ -315,6 +315,7 @@ image-upload endpoints must be added before the Flutter merchant app can build t
       (`2026-07-30-ghanapost-addressing-design.md`). Optional validated digital
       address + nudged landmark via one shared address fieldset across all four
       buyer surfaces; format-only validation v1.
+      → implemented (TC-4 branch, PR pending)
 - [ ] **TC-5: Makola Book (pay later)** — 📝 SPECCED
       (`2026-07-30-pay-later-book-design.md`). Digitized trade credit (merchant
       risk, no interest): deposit link → ship → flexible balance chunks to a

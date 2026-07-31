@@ -361,6 +361,7 @@ reuses protection's held-funds ledger, addressing is independent.
 - [ ] **GhanaPost GPS + landmark addressing** — digital address code
       (GA-183-8164) + landmark field on address forms/checkout/dispatch views.
       Spec: `docs/superpowers/specs/2026-07-30-ghanapost-addressing-design.md` ✅ specced
+      → implemented (TC-4 branch, PR pending)
 - [ ] **Makola Book (pay later, TC-5)** — merchant trade credit digitized:
       deposit + flexible balance chunks, two-tier earned eligibility keyed on
       phone, platform-wide default freeze; spine invariant = limit ≤ profit
