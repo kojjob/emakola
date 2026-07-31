@@ -25,6 +25,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
         order_id: id,
         order: nil,
         payment: nil,
+        protection_hold: nil,
         tracking_number: "",
         fulfillments: [],
         ship_fulfillment_id: nil,
@@ -32,6 +33,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
       )
       |> load_order()
       |> load_payment()
+      |> load_protection_hold()
       |> load_fulfillments()
 
     {:ok, socket}
@@ -507,6 +509,53 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                 </div>
               </div>
             </.admin_card>
+
+            <%!-- Buyer Protection (TC-2) --%>
+            <.admin_card :if={@protection_hold} padding={:none} class="p-5">
+              <h2 class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
+                Buyer Protection
+              </h2>
+              <div class="space-y-2">
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-slate-500">Status</span>
+                  <.protection_hold_status_badge status={hold_display_status(@protection_hold)} />
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-slate-500">Amount</span>
+                  <span class="font-mono font-medium text-slate-800">
+                    {format_price(@protection_hold.amount, @order.currency)}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-slate-500">Fee</span>
+                  <span class="font-mono text-slate-600">
+                    {format_price(@protection_hold.fee, @order.currency)}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                  <span class="text-slate-500">Net</span>
+                  <span class="font-mono font-medium text-slate-800">
+                    {format_price(@protection_hold.net, @order.currency)}
+                  </span>
+                </div>
+                <div
+                  :if={@protection_hold.release_after}
+                  class="flex items-center justify-between text-sm"
+                >
+                  <span class="text-slate-500">Release ETA</span>
+                  <span class="text-slate-700">
+                    {format_datetime(@protection_hold.release_after)}
+                  </span>
+                </div>
+                <div
+                  :if={@protection_hold.release_reason}
+                  class="flex items-center justify-between text-sm"
+                >
+                  <span class="text-slate-500">Release reason</span>
+                  <span class="text-slate-700">{humanise(@protection_hold.release_reason)}</span>
+                </div>
+              </div>
+            </.admin_card>
           </div>
         </div>
 
@@ -647,6 +696,19 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
     """
   end
 
+  attr :status, :atom, required: true
+
+  defp protection_hold_status_badge(assigns) do
+    ~H"""
+    <span class={[
+      "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize",
+      protection_hold_badge_class(@status)
+    ]}>
+      {to_string(@status) |> String.capitalize()}
+    </span>
+    """
+  end
+
   attr :address, :map, required: true
 
   defp address_display(assigns) do
@@ -733,6 +795,31 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
           end
 
         assign(socket, payment: payment)
+    end
+  end
+
+  defp load_protection_hold(socket) do
+    case socket.assigns.order do
+      nil ->
+        assign(socket, protection_hold: nil)
+
+      order ->
+        hold =
+          try do
+            Emakola.Payments.ProtectionHolds.get_hold_for_order(
+              order.id,
+              socket.assigns.store_id
+            )
+          rescue
+            exception ->
+              Logger.error(
+                "[order_live.show] load_protection_hold raised: #{Exception.message(exception)}"
+              )
+
+              nil
+          end
+
+        assign(socket, protection_hold: hold)
     end
   end
 
@@ -862,6 +949,24 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   defp fulfillment_badge_class(:delivered), do: "bg-success-soft text-success"
   defp fulfillment_badge_class(:cancelled), do: "bg-danger-soft text-danger"
   defp fulfillment_badge_class(_), do: "bg-slate-50 text-slate-700"
+
+  # A complaint freezes the auto-release timer without changing the hold's
+  # underlying `status` (still `:held`) — see `ProtectionHold`'s moduledoc.
+  # The admin pill shows "Frozen" instead so staff notice the open complaint
+  # without a separate indicator.
+  defp hold_display_status(%{status: :held, frozen_at: nil}), do: :held
+  defp hold_display_status(%{status: :held}), do: :frozen
+  defp hold_display_status(%{status: status}), do: status
+
+  defp protection_hold_badge_class(:held), do: "bg-warning-soft text-warning"
+  defp protection_hold_badge_class(:frozen), do: "bg-danger-soft text-danger"
+  defp protection_hold_badge_class(:released), do: "bg-success-soft text-success"
+  defp protection_hold_badge_class(:refunded), do: "bg-slate-100 text-slate-600"
+  defp protection_hold_badge_class(_), do: "bg-slate-50 text-slate-700"
+
+  defp humanise(value) when is_atom(value) do
+    value |> to_string() |> String.replace("_", " ") |> String.capitalize()
+  end
 
   defp fulfillment_label(%{supplier: %{name: name}}) when is_binary(name), do: name
   defp fulfillment_label(_), do: "Your stock"

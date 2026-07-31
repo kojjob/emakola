@@ -311,6 +311,19 @@ defmodule Emakola.Payments.ProtectionHolds do
       :ok
   end
 
+  @doc """
+  Sums `net` over `store_id`'s currently `:held` buyer-protection holds — the
+  "Held by Buyer Protection" stat tile on the merchant Payouts page (TC-2
+  Task 11). A hold that's `:held` but frozen (open complaint) still counts —
+  same "frozen is still held" rule as `active_hold_for_order?/2`.
+  """
+  def held_net_total(store_id) do
+    ProtectionHold
+    |> Ash.Query.filter(status == :held)
+    |> Ash.read!(tenant: store_id, authorize?: false)
+    |> Enum.reduce(0, &(&1.net + &2))
+  end
+
   defp due_for_timer_start(order_id, store_id) do
     ProtectionHold
     |> Ash.Query.filter(

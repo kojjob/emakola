@@ -14,6 +14,7 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
   require Logger
 
   alias Emakola.Orders.PayLink
+  alias Emakola.Payments.Protection
   alias EmakolaWeb.Helpers.Currency
 
   @impl true
@@ -482,6 +483,16 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
         <p class="mt-1 text-lg font-bold text-slate-900">
           {Currency.format_price(@link.amount, @store.currency || "GHS")}
         </p>
+      </div>
+
+      <%!-- Buyer Protection Badge (TC-2) --%>
+      <div
+        :if={Protection.applies?(@store, @link)}
+        id="buyer-protection-badge"
+        class="mt-4 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs text-emerald-800"
+      >
+        <span aria-hidden="true">🛡</span>
+        <span>Protected by Makola — payment held until you confirm delivery.</span>
       </div>
 
       <p :if={@form_errors[:base]} class="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">

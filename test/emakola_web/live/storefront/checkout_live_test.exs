@@ -458,6 +458,61 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     end
   end
 
+  # -- Buyer protection badge (TC-2 Task 11) --
+
+  describe "buyer protection badge" do
+    test "shows the badge when the store has protection enabled", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      store
+      |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+      |> Ash.update!(authorize?: false)
+
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+
+      assert html =~ "Protected by Makola"
+    end
+
+    test "hides the badge when the store has protection disabled", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+
+      refute html =~ "Protected by Makola"
+    end
+
+    test "hides the badge for a cart with dropship items even when protection is enabled", %{
+      conn: conn
+    } do
+      store = create_store!(%{name: "Drop Badge Shop", slug: "drop-badge-shop", currency: "GHS"})
+
+      store
+      |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+      |> Ash.update!(authorize?: false)
+
+      wholesaler = create_store!(%{name: "Whole Badge Co", slug: "whole-badge-co"})
+      supplier = create_supplier!(store, name: "Linked", linked_store_id: wholesaler.id)
+
+      product = create_product!(store, %{title: "Dropship Badge Item"})
+
+      variant =
+        create_variant!(product, store, price: 5_000, sku: "DBADGE-1", supplier_id: supplier.id)
+
+      product |> Ash.Changeset.for_update(:activate, %{}) |> Ash.update!(authorize?: false)
+
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+
+      refute html =~ "Protected by Makola"
+    end
+  end
+
   # -- Region Select --
 
   describe "region select" do

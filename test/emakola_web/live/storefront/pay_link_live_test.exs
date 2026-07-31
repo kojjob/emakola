@@ -439,6 +439,41 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
     assert html =~ EmakolaWeb.Helpers.Currency.format_price(8_000 * 2, "GHS")
   end
 
+  # -- Buyer protection badge (TC-2 Task 11) --
+
+  test "shows the protection badge for a protected pay link", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store, %{protected: true})
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+
+    assert html =~ "Protected by Makola"
+  end
+
+  test "hides the protection badge for a default (unprotected) pay link", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+
+    refute html =~ "Protected by Makola"
+  end
+
+  test "hides the protection badge when the link opts out even though store protection is on",
+       %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+
+    store
+    |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+    |> Ash.update!(authorize?: false)
+
+    link = custom_link!(store, %{protected: false})
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+
+    refute html =~ "Protected by Makola"
+  end
+
   test "search overlay keyup on the pay page doesn't crash the socket", %{conn: conn} do
     store = Emakola.Factory.create_store!()
     link = custom_link!(store)
