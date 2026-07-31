@@ -219,6 +219,26 @@ defmodule Emakola.Orders.SusuPlanTest do
     assert twice.contributed_amount == 8_000
   end
 
+  test "record_contribution rejects a non-positive amount_delta (TC-3 Task 3 defensive guard)" do
+    store = Emakola.Factory.create_store!()
+    plan = create!(store, %{type: :custom, title: "Fridge", total_amount: 15_000})
+
+    active =
+      plan
+      |> Ash.Changeset.for_update(:activate, %{})
+      |> Ash.update!(authorize?: false)
+
+    assert {:error, %Ash.Error.Invalid{}} =
+             active
+             |> Ash.Changeset.for_update(:record_contribution, %{amount_delta: 0})
+             |> Ash.update(authorize?: false)
+
+    assert {:error, %Ash.Error.Invalid{}} =
+             active
+             |> Ash.Changeset.for_update(:record_contribution, %{amount_delta: -1_000})
+             |> Ash.update(authorize?: false)
+  end
+
   test "record_contribution rejects a plan that is not active" do
     store = Emakola.Factory.create_store!()
     plan = create!(store, %{type: :custom, title: "Fridge", total_amount: 15_000})

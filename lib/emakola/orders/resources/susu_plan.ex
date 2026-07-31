@@ -218,6 +218,14 @@ defmodule Emakola.Orders.SusuPlan do
       accept([])
       argument(:amount_delta, :integer, allow_nil?: false)
       validate(attribute_in(:status, [:active]))
+
+      # Defense in depth: SusuChunks.confirm_chunk/1 (TC-3 Task 3) is the
+      # only caller today and already enforces a positive, non-overshooting
+      # delta under the plan's FOR UPDATE lock — but this action has no
+      # other caller-side guard against a negative delta silently
+      # decrementing money, so the action itself must refuse one too.
+      validate(compare(:amount_delta, greater_than: 0))
+
       change(atomic_update(:contributed_amount, expr(contributed_amount + ^arg(:amount_delta))))
     end
 

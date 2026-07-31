@@ -197,6 +197,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
         maybe_confirm_order(payment.order_id)
         payment.order_id && Emakola.Orders.PayLinkClaim.claim_for_order(payment.order_id)
         Emakola.Payments.ProtectionHolds.ensure_hold(payment)
+        Emakola.Orders.SusuChunks.confirm_chunk(payment)
         Emakola.Suppliers.GroupBuys.confirm_payment(payment)
         Emakola.Suppliers.ProtectedPreorders.confirm_payment(payment)
         settle_splits(payment)
