@@ -5,6 +5,7 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerTest do
 
   alias Emakola.Notifications.Workers.OrderNotificationWorker
   alias Emakola.Factory
+  alias EmakolaWeb.TrackingTokens
 
   setup :verify_on_exit!
 
@@ -136,6 +137,100 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerTest do
       end)
 
       assert :ok == perform_job(order.id, "order_shipped")
+    end
+  end
+
+  # ── TC-2 buyer protection lifecycle events (Task 10) ───────────
+  # :protection_held / :protection_delivery_nudge are buyer-only (SMS with
+  # a signed tracking link, no WhatsApp — no approved template exists, no
+  # merchant SMS). :protection_released / :protection_complaint are
+  # merchant-only (SMS, never the customer channel). Every test below uses
+  # a customer WITH a phone precisely so a channel-gating bug (buyer SMS
+  # firing for a merchant event, or vice versa) surfaces as a Mox
+  # unexpected-call failure rather than passing by accident.
+
+  describe "protection_held event" do
+    test "sends the buyer an SMS with a signed tracking link — no WhatsApp, no merchant SMS" do
+      {order, customer, _store} = create_order_with_customer()
+
+      Emakola.SMSProviderMock
+      |> expect(:send_sms, 1, fn to, message, _opts ->
+        assert to == customer.phone
+        assert message =~ "held"
+        assert message =~ order.order_number
+        assert message =~ "?t="
+
+        token = message |> String.split("?t=") |> List.last() |> String.trim()
+        assert {:ok, order_id} = TrackingTokens.verify_order_tracking(token)
+        assert order_id == order.id
+
+        {:ok, %{provider: :mock, to: to, message: message}}
+      end)
+
+      # No WhatsApp expectation set — a call here fails the test (Mox
+      # unexpected-call), which is exactly how "WhatsApp is skipped" is
+      # proven, matching this file's existing "no merchant SMS" idiom.
+
+      assert :ok == perform_job(order.id, "protection_held")
+    end
+  end
+
+  describe "protection_delivery_nudge event" do
+    test "sends the buyer an SMS with a signed tracking link — no WhatsApp, no merchant SMS" do
+      {order, customer, _store} = create_order_with_customer()
+
+      Emakola.SMSProviderMock
+      |> expect(:send_sms, 1, fn to, message, _opts ->
+        assert to == customer.phone
+        assert message =~ "confirm"
+        assert message =~ "5 days"
+        assert message =~ order.order_number
+        assert message =~ "?t="
+
+        token = message |> String.split("?t=") |> List.last() |> String.trim()
+        assert {:ok, order_id} = TrackingTokens.verify_order_tracking(token)
+        assert order_id == order.id
+
+        {:ok, %{provider: :mock, to: to, message: message}}
+      end)
+
+      assert :ok == perform_job(order.id, "protection_delivery_nudge")
+    end
+  end
+
+  describe "protection_released event" do
+    test "sends the merchant an SMS — never the customer channel" do
+      {order, _customer, _store} = create_order_with_customer()
+
+      Emakola.SMSProviderMock
+      |> expect(:send_sms, 1, fn to, message, _opts ->
+        assert to == @merchant_phone
+        assert message =~ "released"
+        assert message =~ order.order_number
+        {:ok, %{provider: :mock, to: to, message: message}}
+      end)
+
+      # No customer SMS/WhatsApp expectation set, even though `customer`
+      # has a phone — proves the buyer channel is genuinely skipped, not
+      # just unreached because there was nothing to send to.
+
+      assert :ok == perform_job(order.id, "protection_released")
+    end
+  end
+
+  describe "protection_complaint event" do
+    test "sends the merchant an SMS — never the customer channel" do
+      {order, _customer, _store} = create_order_with_customer()
+
+      Emakola.SMSProviderMock
+      |> expect(:send_sms, 1, fn to, message, _opts ->
+        assert to == @merchant_phone
+        assert message =~ "complaint"
+        assert message =~ order.order_number
+        {:ok, %{provider: :mock, to: to, message: message}}
+      end)
+
+      assert :ok == perform_job(order.id, "protection_complaint")
     end
   end
 
