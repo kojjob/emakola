@@ -363,6 +363,44 @@ defmodule Emakola.Payments.RefundServiceTest do
     end
   end
 
+  describe "issue/5 — authorize?: false (Task 12: platform staff)" do
+    # Platform staff act through `Emakola.Accounts.User`, not `Merchant` — the
+    # actor type `Return`/`Payment`'s policies check for. Without an override,
+    # staff hit the same default-deny a merchant-without-membership does.
+    test "a platform-staff actor is forbidden by default (safe default — merchant flow unaffected)",
+         ctx do
+      staff = create_platform_owner!()
+
+      assert {:error, _reason} =
+               RefundService.issue(
+                 staff,
+                 ctx.return,
+                 %{refund_amount: 12_500, admin_notes: "", refund_dispatch_fee?: false},
+                 GatewayMock
+               )
+
+      assert reload(ctx.payment).refunded_amount == 0
+      assert reload(ctx.return).status == :requested
+    end
+
+    test "authorize?: false lets a platform-staff actor issue the refund", ctx do
+      staff = create_platform_owner!()
+
+      expect(GatewayMock, :process_refund, fn _reference, _amount -> {:ok, %{}} end)
+
+      assert {:ok, approved} =
+               RefundService.issue(
+                 staff,
+                 ctx.return,
+                 %{refund_amount: 12_500, admin_notes: "", refund_dispatch_fee?: false},
+                 GatewayMock,
+                 authorize?: false
+               )
+
+      assert approved.status == :approved
+    end
+  end
+
   describe "gateway_for/1" do
     test "routes a Hubtel charge back through Hubtel" do
       assert RefundService.gateway_for(%{gateway: :hubtel}) == Emakola.Payments.Gateways.Hubtel

@@ -72,6 +72,18 @@ defmodule Emakola.Payments.ProtectionHold do
     timestamps()
   end
 
+  relationships do
+    belongs_to :store, Emakola.Stores.Store do
+      define_attribute?(false)
+      public?(true)
+    end
+
+    belongs_to :order, Emakola.Orders.Order do
+      define_attribute?(false)
+      public?(true)
+    end
+  end
+
   identities do
     # One hold per payment — idempotent hold creation for the webhook-confirmed
     # payment-success path (Task 5+): retrying the create is safe because a
@@ -85,9 +97,11 @@ defmodule Emakola.Payments.ProtectionHold do
     end
 
     # Merchant store-membership for create/update (mirrors PayLink); internal
-    # callers (webhook confirmation, release engine, staff actions) opt in via
-    # authorize?: false at the call site. Platform staff read policy arrives
-    # in Task 12.
+    # callers (webhook confirmation, release engine, staff actions, and the
+    # platform staff protection queue's cross-tenant reads — TC-2 Task 12)
+    # opt in via authorize?: false at the call site, matching the established
+    # platform-admin convention (e.g. `Platform.StoreLive.Index`,
+    # `Platform.ModerationLive.Index`) rather than an actor-based policy.
     policy action_type([:create, :update]) do
       forbid_unless(actor_present())
       forbid_unless(actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant))
@@ -125,7 +139,7 @@ defmodule Emakola.Payments.ProtectionHold do
     end
 
     update :release do
-      accept([:release_reason])
+      accept([:release_reason, :resolution])
       validate(attribute_in(:status, [:held]))
       change(set_attribute(:status, :released))
       change(set_attribute(:released_at, &DateTime.utc_now/0))

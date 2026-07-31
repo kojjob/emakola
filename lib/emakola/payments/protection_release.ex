@@ -86,11 +86,20 @@ defmodule Emakola.Payments.ProtectionRelease do
         %{frozen_at: frozen_at} when respect_freeze? and not is_nil(frozen_at) ->
           :noop
 
-        _fresh ->
+        %{frozen_at: frozen_at} ->
+          # frozen_at is non-nil here only when respect_freeze? is false (the
+          # frozen+respect_freeze? clause above would have already matched
+          # otherwise) — i.e. platform staff overriding an open complaint, the
+          # only caller that passes respect_freeze: false. Stamp `resolution`
+          # so that outcome is distinguishable from an ordinary release,
+          # mirroring how `resolution` flows through :mark_refunded.
+          release_params =
+            if is_nil(frozen_at),
+              do: %{release_reason: reason},
+              else: %{release_reason: reason, resolution: :released_by_staff}
+
           with {:ok, released_hold} <-
-                 Payments.release_protection_hold(hold, %{release_reason: reason},
-                   authorize?: false
-                 ),
+                 Payments.release_protection_hold(hold, release_params, authorize?: false),
                payment <- Ash.get!(Payment, released_hold.payment_id, authorize?: false),
                {:ok, _payment} <-
                  payment

@@ -166,6 +166,73 @@ defmodule Emakola.Payments.ProtectionReleaseTest do
     refute reloaded.payable_amount == payment.amount - div(payment.amount * 5_000, 10_000)
   end
 
+  # ── Task 12: staff force-release resolution stamping ───────────
+
+  describe "staff force-release of a frozen hold (respect_freeze: false)" do
+    test "releases a frozen hold and stamps resolution: :released_by_staff" do
+      store = Factory.create_store!()
+      {_payment, hold} = protected_payment!(store, %{amount: 25_000})
+
+      {:ok, frozen} =
+        Payments.freeze_protection_hold(
+          hold,
+          %{complaint_reason: :other, complaint_text: "never arrived"},
+          authorize?: false
+        )
+
+      assert :ok = ProtectionRelease.release(frozen, :staff, respect_freeze: false)
+
+      {:ok, released} =
+        Payments.get_protection_hold_by_payment(hold.payment_id,
+          tenant: store.id,
+          authorize?: false
+        )
+
+      assert released.status == :released
+      assert released.release_reason == :staff
+      assert released.resolution == :released_by_staff
+    end
+
+    test "respect_freeze: true (the default) still skips a frozen hold, stamping nothing" do
+      store = Factory.create_store!()
+      {_payment, hold} = protected_payment!(store, %{amount: 25_000})
+
+      {:ok, frozen} =
+        Payments.freeze_protection_hold(
+          hold,
+          %{complaint_reason: :other, complaint_text: "never arrived"},
+          authorize?: false
+        )
+
+      assert :ok = ProtectionRelease.release(frozen, :staff)
+
+      {:ok, still_held} =
+        Payments.get_protection_hold_by_payment(hold.payment_id,
+          tenant: store.id,
+          authorize?: false
+        )
+
+      assert still_held.status == :held
+      assert is_nil(still_held.resolution)
+    end
+
+    test "a staff release of a NON-frozen hold leaves resolution nil (regression guard)" do
+      store = Factory.create_store!()
+      {_payment, hold} = protected_payment!(store, %{amount: 25_000})
+
+      assert :ok = ProtectionRelease.release(hold, :staff, respect_freeze: false)
+
+      {:ok, released} =
+        Payments.get_protection_hold_by_payment(hold.payment_id,
+          tenant: store.id,
+          authorize?: false
+        )
+
+      assert released.status == :released
+      assert is_nil(released.resolution)
+    end
+  end
+
   # ── Task 10: :protection_released dispatch ─────────────────────
 
   describe ":protection_released dispatch" do

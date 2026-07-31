@@ -324,6 +324,42 @@ defmodule Emakola.Payments.ProtectionHolds do
     |> Enum.reduce(0, &(&1.net + &2))
   end
 
+  @doc """
+  Frozen holds — an open buyer complaint (`frozen_at` set; `status` stays
+  `:held`, freezing doesn't change it — see the moduledoc) — needing staff
+  review. Cross-tenant: no `tenant:` is set (`ProtectionHold` is
+  `global?(true)`) so this lists every store's frozen holds, oldest
+  complaint first — the platform staff protection queue's first worklist
+  (TC-2 Task 12).
+  """
+  def list_frozen do
+    ProtectionHold
+    |> Ash.Query.filter(status == :held and not is_nil(frozen_at))
+    |> Ash.Query.sort(frozen_at: :asc)
+    |> Ash.Query.load([:store, :order])
+    |> Ash.read!(authorize?: false)
+  end
+
+  @stale_after_days 30
+
+  @doc """
+  Stale holds — `:held`, `release_after` never stamped (no
+  `Fulfillment.:mark_delivered` has started the auto-release timer — see
+  `stamp_release_after_for_order/2`), inserted #{@stale_after_days}+ days
+  ago. Nothing else is driving these forward, so they need manual staff
+  review — the protection queue's other worklist (TC-2 Task 12), oldest
+  first. Cross-tenant, same as `list_frozen/0`.
+  """
+  def list_stale do
+    cutoff = DateTime.add(DateTime.utc_now(), -@stale_after_days, :day)
+
+    ProtectionHold
+    |> Ash.Query.filter(status == :held and is_nil(release_after) and inserted_at < ^cutoff)
+    |> Ash.Query.sort(inserted_at: :asc)
+    |> Ash.Query.load([:store, :order])
+    |> Ash.read!(authorize?: false)
+  end
+
   defp due_for_timer_start(order_id, store_id) do
     ProtectionHold
     |> Ash.Query.filter(

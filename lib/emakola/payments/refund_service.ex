@@ -49,6 +49,14 @@ defmodule Emakola.Payments.RefundService do
   default `:merchant_refunded`) is Task 12's seam: pass
   `resolution: :refunded_by_staff` for a staff-initiated refund through this
   same service.
+
+  Task 12's other seam: `Return`/`Payment` policies only grant a `Merchant`
+  actor with store access (or a `Customer` on their own row) — the platform
+  staff actor (`Emakola.Accounts.User`) matches neither, so it hits the same
+  default-deny an unrelated merchant would. Pass `authorize?: false` (opt,
+  default `true` — the merchant flow is unaffected) for a staff-initiated
+  refund, matching the `authorize?: false` convention every other
+  platform-staff action in this codebase uses at its call site.
   """
 
   require Ash.Query
@@ -73,6 +81,11 @@ defmodule Emakola.Payments.RefundService do
   later stamped on a buyer-protection hold this refund fully covers, once
   the webhook confirms it — see the moduledoc's "Buyer-protection hold"
   section.
+
+  `opts[:authorize?]` (default `true`) is forwarded to the internal
+  `Payment`/`Return` reads and writes — pass `false` for a platform-staff
+  actor, which has no Ash policy grant on either resource (see the
+  moduledoc's "Task 12's other seam").
   """
   def issue(actor, return, params, gateway \\ nil, opts \\ [])
 
@@ -80,12 +93,13 @@ defmodule Emakola.Payments.RefundService do
 
   def issue(actor, return, params, gateway, opts) do
     resolution = Keyword.get(opts, :resolution, :merchant_refunded)
+    authorize? = Keyword.get(opts, :authorize?, true)
 
     Emakola.Repo.transaction(fn ->
       with {:ok, claimed} <- claim(return.id),
-           {:ok, payment} <- payment_for(actor, claimed),
+           {:ok, payment} <- payment_for(actor, claimed, authorize?),
            :ok <- validate_amount(payment, params[:refund_amount]),
-           {:ok, approved} <- approve(actor, claimed, params),
+           {:ok, approved} <- approve(actor, claimed, params, authorize?),
            :ok <- request_refund(payment, params[:refund_amount], gateway) do
         stash_protection_resolution(payment, params[:refund_amount], resolution)
         approved
@@ -135,8 +149,12 @@ defmodule Emakola.Payments.RefundService do
   # the merchant against the return's store, so a merchant without a membership
   # there never learns whether the charge exists. `{:ok, nil}` is the ordinary
   # cash-on-delivery case; only a failed read is `:payment_not_found`.
-  defp payment_for(actor, return) do
-    case captured_payment(return.order_id, actor: actor, tenant: return.store_id) do
+  defp payment_for(actor, return, authorize?) do
+    case captured_payment(return.order_id,
+           actor: actor,
+           tenant: return.store_id,
+           authorize?: authorize?
+         ) do
       {:ok, payment} -> {:ok, payment}
       _ -> {:error, :payment_not_found}
     end
@@ -184,10 +202,11 @@ defmodule Emakola.Payments.RefundService do
     end
   end
 
-  defp approve(actor, return, params) do
+  defp approve(actor, return, params, authorize?) do
     Emakola.Orders.approve_return(return, Map.take(params, @approve_fields),
       actor: actor,
-      tenant: return.store_id
+      tenant: return.store_id,
+      authorize?: authorize?
     )
   end
 
