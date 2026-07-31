@@ -721,6 +721,11 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
       |> assign(:region, address_value(assigns.address, ["region", :region]))
       |> assign(:country, address_value(assigns.address, ["country", :country]))
       |> assign(:postal_code, address_value(assigns.address, ["postal_code", :postal_code]))
+      |> assign(
+        :digital_address,
+        address_value(assigns.address, ["digital_address", :digital_address])
+      )
+      |> assign(:landmark, address_value(assigns.address, ["landmark", :landmark]))
       |> assign(:phone, address_value(assigns.address, ["phone", :phone]))
 
     ~H"""
@@ -734,6 +739,19 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
       </p>
       <p :if={@country}>{@country}</p>
       <p :if={@postal_code}>{@postal_code}</p>
+      <div :if={@digital_address} class="flex items-center gap-2 pt-1">
+        <span class="font-mono text-xs font-medium text-slate-700 bg-slate-100 rounded px-1.5 py-0.5">
+          {@digital_address}
+        </span>
+        <button
+          type="button"
+          phx-click={JS.dispatch("copy-to-clipboard", detail: %{text: @digital_address})}
+          class="text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
+        >
+          Copy
+        </button>
+      </div>
+      <p :if={@landmark} class="text-xs text-slate-500">Near {@landmark}</p>
       <p :if={@phone} class="pt-1 text-xs text-slate-500">{@phone}</p>
     </div>
     """

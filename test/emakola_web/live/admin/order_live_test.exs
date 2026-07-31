@@ -309,6 +309,52 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       assert has_element?(view, "#shipping-address-card", "House 14, Osu")
       assert has_element?(view, "#shipping-address-card", "+233240000000")
     end
+
+    test "renders GhanaPost digital address and landmark with a copy button when present", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order =
+        create_order!(store.id, customer.id, :pending,
+          shipping_address: %{
+            "line_1" => "123 Test St",
+            "city" => "Accra",
+            "digital_address" => "GA-183-8164",
+            "landmark" => "behind Achimota Melcom"
+          }
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      card_html = view |> element("#shipping-address-card") |> render()
+
+      assert card_html =~ "GA-183-8164"
+      assert card_html =~ "behind Achimota Melcom"
+      assert card_html =~ "copy-to-clipboard"
+    end
+
+    test "renders legacy shipping address without digital address/landmark unchanged", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order =
+        create_order!(store.id, customer.id, :pending,
+          shipping_address: %{
+            "line_1" => "123 Test St",
+            "city" => "Accra",
+            "region" => "Greater Accra"
+          }
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      card_html = view |> element("#shipping-address-card") |> render()
+
+      refute card_html =~ "copy-to-clipboard"
+      refute card_html =~ "Near "
+    end
   end
 
   describe "OrderLive.Show fulfillments" do
