@@ -103,6 +103,7 @@ defmodule Emakola.Themes.DefaultRendererConsistencyTest do
       account_downloads_live.ex
       saved_stores_live.ex
       pay_link_live.ex
+      susu_link_live.ex
     )
 
     defp storefront_lv_files do
