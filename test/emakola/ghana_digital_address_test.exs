@@ -78,4 +78,34 @@ defmodule Emakola.GhanaDigitalAddressTest do
       refute GhanaDigitalAddress.valid?("GA-18A-8164")
     end
   end
+
+  describe "valid?/1 — garbage input (no crash, just invalid)" do
+    test "digits-only input does not raise and is invalid" do
+      refute GhanaDigitalAddress.valid?("12345678")
+    end
+
+    test "a 3-letter prefix does not raise and is invalid" do
+      refute GhanaDigitalAddress.valid?("GHA1838164")
+    end
+
+    test "a 1-letter prefix does not raise and is invalid" do
+      refute GhanaDigitalAddress.valid?("G1838164")
+    end
+
+    test "a 2-char core (too short to hyphenate) does not raise and is invalid" do
+      refute GhanaDigitalAddress.valid?("GA")
+    end
+
+    # Intentional: whitespace-only and separator-only input normalizes down to
+    # "" (nothing alphanumeric survives), and the "blank never blocks" rule
+    # (Global Constraints) treats that the same as nil/"" — valid, not an
+    # error, so a merchant clearing the field with spaces isn't punished.
+    test "whitespace-only input normalizes to blank and is valid" do
+      assert GhanaDigitalAddress.valid?("   ")
+    end
+
+    test "separator-only input normalizes to blank and is valid" do
+      assert GhanaDigitalAddress.valid?("---")
+    end
+  end
 end
