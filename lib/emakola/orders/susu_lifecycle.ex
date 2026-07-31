@@ -2,24 +2,25 @@ defmodule Emakola.Orders.SusuLifecycle do
   @moduledoc """
   The one convergent end-of-life path every susu plan goes through (TC-3
   Task 6). Buyer cancel (Task 7's signed page), merchant cancel (Task 9's
-  admin), platform takedown, and deadline expiry (both the latter via
-  `Emakola.Payments.Workers.SusuExpiryWorker`'s hourly sweep) all reduce to
-  one of the two public functions here, and both funnel through the exact
-  same three steps: transition the plan, release any reserved stock,
-  initiate refunds for every counted contribution.
+  admin), platform takedown, deadline expiry (both the latter via
+  `Emakola.Payments.Workers.SusuExpiryWorker`'s hourly sweep), and a
+  system-initiated cancel (`SusuChunks.confirm_chunk/1`'s insufficient-stock
+  path) all reduce to one of the two public functions here, and both funnel
+  through the exact same three steps: transition the plan, release any
+  reserved stock, initiate refunds for every `:success` payment on the plan.
 
   ## Zero-contribution plans
 
   A plan cancelled while still `:pending` (a susu link the merchant
   cancels before any buyer has paid a first chunk) has never reserved
   stock — `SusuStock.reserve/1` only runs at ACTIVATION, the first
-  confirmed chunk (see `SusuChunks.confirm_chunk/1`) — and has no counted
-  contributions to refund. `SusuStock.release/1` and
+  confirmed chunk (see `SusuChunks.confirm_chunk/1`) — and has no
+  successful payments to refund. `SusuStock.release/1` and
   `SusuRefunds.refund_all_contributions/1` are both no-ops in that case by
   construction (`release/1` reads the plan's own `stock_reserved` flag;
-  `refund_all_contributions/1` finds no counted payments), so calling them
-  unconditionally below is correct, not wasted work — a clean transition,
-  no refunds, no stock movement.
+  `refund_all_contributions/1` finds no `:success` payments), so calling
+  them unconditionally below is correct, not wasted work — a clean
+  transition, no refunds, no stock movement.
 
   ## Task 8: notifying both sides
 
@@ -51,10 +52,12 @@ defmodule Emakola.Orders.SusuLifecycle do
   alias Emakola.Payments.SusuRefunds
 
   @doc """
-  Cancels `plan`. `by` (`:buyer | :merchant | :takedown`) identifies who
-  initiated the cancellation — recorded for logging only; see moduledoc's
-  "Task 8: notifying both sides" section for why it does not otherwise
-  change the notification sent.
+  Cancels `plan`. `by` (`:buyer | :merchant | :takedown | :system`)
+  identifies who initiated the cancellation — recorded for logging only;
+  see moduledoc's "Task 8: notifying both sides" section for why it does
+  not otherwise change the notification sent. `:system` is
+  `SusuChunks.confirm_chunk/1`'s insufficient-stock path — the plan's own
+  stock check failing, not any person's action.
 
   Only a `:pending` or `:active` plan can be cancelled
   (`SusuPlan.:cancel`'s own status guard, enforced by
@@ -62,7 +65,7 @@ defmodule Emakola.Orders.SusuLifecycle do
   already-terminal plan raises, same as any other Ash update whose
   validation fails.
   """
-  def cancel(%SusuPlan{} = plan, by) when by in [:buyer, :merchant, :takedown] do
+  def cancel(%SusuPlan{} = plan, by) when by in [:buyer, :merchant, :takedown, :system] do
     cancelled = Emakola.Orders.cancel_susu_plan!(plan, authorize?: false)
     converge(cancelled)
 

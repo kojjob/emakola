@@ -65,6 +65,7 @@ defmodule Emakola.Orders.SusuChunks do
 
   alias Emakola.Notifications.Dispatcher
   alias Emakola.Orders.CheckoutService
+  alias Emakola.Orders.SusuLifecycle
   alias Emakola.Orders.SusuPlan
   alias Emakola.Orders.SusuStock
   alias Emakola.Payments.Payment
@@ -166,11 +167,11 @@ defmodule Emakola.Orders.SusuChunks do
       :short_circuited ->
         :ok
 
-      {:record, plan, payment} ->
-        guarded_finish(plan_id, plan, payment)
+      {:record, plan, payment, just_activated?} ->
+        guarded_finish(plan_id, plan, payment, just_activated?)
 
-      {:needs_reservation, plan, payment} ->
-        reserve_and_continue(plan_id, plan, payment)
+      {:needs_reservation, plan, payment, just_activated?} ->
+        reserve_and_continue(plan_id, plan, payment, just_activated?)
     end
   end
 
@@ -178,10 +179,10 @@ defmodule Emakola.Orders.SusuChunks do
   # `confirm_chunk/1`'s "Raise boundary" doc. The two outcomes it DOES
   # return (`:ok`, `{:error, :insufficient_stock}`) are handled explicitly;
   # anything else propagates.
-  defp reserve_and_continue(plan_id, plan, payment) do
+  defp reserve_and_continue(plan_id, plan, payment, just_activated?) do
     case SusuStock.reserve(plan) do
       :ok ->
-        guarded_finish(plan_id, plan, payment)
+        guarded_finish(plan_id, plan, payment, just_activated?)
 
       {:error, :insufficient_stock} ->
         guarded_cancel_and_flag(plan, payment, plan_id)
@@ -196,17 +197,42 @@ defmodule Emakola.Orders.SusuChunks do
       :short_circuited
   end
 
-  defp guarded_finish(plan_id, plan, payment) do
-    finish_recording(plan_id, plan, payment)
+  defp guarded_finish(plan_id, plan, payment, just_activated?) do
+    finish_recording(plan_id, plan, payment, just_activated?)
   rescue
     error ->
       log_confirm_error(payment.id, error, __STACKTRACE__)
       :ok
   end
 
+  # The insufficient-stock path never reaches `finish_recording/4` — the
+  # ONLY place activation notifications dispatch from (see there) — so
+  # there is no `:susu_activated` to undo here; this used to call the bare
+  # `cancel_susu_plan!` directly, which left this path with no refund
+  # initiation and no notification at all. Routing through
+  # `SusuLifecycle.cancel/2` (`by: :system` — this cancellation is neither
+  # buyer-, merchant-, nor takedown-initiated, it's the plan's own stock
+  # check failing) gives it the SAME convergent handling every other susu
+  # termination gets for free: stock release (a no-op here — nothing was
+  # ever reserved), refund initiation for the activating payment (picked
+  # up by `SusuRefunds.refund_all_contributions/1` even though
+  # `mark_counted!/1` never ran for it — see that module's moduledoc), and
+  # the buyer/merchant end-of-life notifications.
+  #
+  # `flag_for_refund/2` runs FIRST, deliberately, on the `payment` struct
+  # this function was handed (fresh as of just before `SusuStock.reserve/1`
+  # was attempted) — belt-and-braces in case the automatic refund itself
+  # never gets attempted (e.g. `SusuLifecycle.cancel/2` raising). Calling it
+  # AFTER `SusuLifecycle.cancel/2` instead would race a stale struct against
+  # `SusuRefunds`' own claim-stamp write to this SAME payment row: this
+  # function's `payment` argument predates that stamp, so writing its
+  # (stale) `metadata` back with `Ash.Changeset.for_update(:update, ...)`
+  # would silently clobber `"susu_refund_claimed"` moments after it was set
+  # — a genuine lost-update bug this ordering avoids entirely rather than
+  # papering over with a re-fetch.
   defp guarded_cancel_and_flag(plan, payment, plan_id) do
-    Emakola.Orders.cancel_susu_plan!(plan, authorize?: false)
     flag_for_refund(payment, plan_id)
+    SusuLifecycle.cancel(plan, :system)
     :ok
   rescue
     error ->
@@ -389,7 +415,15 @@ defmodule Emakola.Orders.SusuChunks do
   # address, status -> :active). All pure Ash/Ecto writes with no
   # DB-constraint risk, so safe to run inside this lock. Stock reservation
   # deliberately does NOT happen here (see `confirm_chunk/1`'s doc) — this
-  # phase only DECIDES whether it's still needed, via `route_for_reservation/2`.
+  # phase only DECIDES whether it's still needed, via `route_for_reservation/3`.
+  # Activation notifications ALSO deliberately do not dispatch here — they
+  # fire only from `finish_recording/4`, AFTER stock reservation (if any) has
+  # already succeeded, so an insufficient-stock cancellation right after
+  # this phase never has a "you're active!" SMS to walk back (see
+  # `guarded_cancel_and_flag/3`). The `just_activated?` flag threaded
+  # through `route_for_reservation/3` onward is what lets `finish_recording/4`
+  # know to dispatch activation instead of an ordinary chunk-progress
+  # notification.
   defp prepare(plan_id, payment_id) do
     {:ok, result} =
       Repo.transaction(fn ->
@@ -407,12 +441,11 @@ defmodule Emakola.Orders.SusuChunks do
           row.status == "pending" ->
             plan = Ash.get!(SusuPlan, plan_id, authorize?: false)
             activated = activate_plan!(plan, fresh_payment)
-            dispatch_activation(activated)
-            route_for_reservation(activated, fresh_payment)
+            route_for_reservation(activated, fresh_payment, true)
 
           true ->
             plan = Ash.get!(SusuPlan, plan_id, authorize?: false)
-            route_for_reservation(plan, fresh_payment)
+            route_for_reservation(plan, fresh_payment, false)
         end
       end)
 
@@ -424,17 +457,24 @@ defmodule Emakola.Orders.SusuChunks do
   # here already `:active` with `stock_reserved: false` if a prior confirm
   # activated it and then crashed/raised before `SusuStock.reserve/1`
   # finished (see `confirm_chunk/1`'s doc) — this makes that window
-  # retryable instead of silently skipped.
-  defp route_for_reservation(%SusuPlan{type: :catalog, stock_reserved: false} = plan, payment),
-    do: {:needs_reservation, plan, payment}
+  # retryable instead of silently skipped. `just_activated?` rides along
+  # unchanged either way — reservation success/failure doesn't affect
+  # whether THIS chunk is the one that activated the plan.
+  defp route_for_reservation(
+         %SusuPlan{type: :catalog, stock_reserved: false} = plan,
+         payment,
+         just_activated?
+       ),
+       do: {:needs_reservation, plan, payment, just_activated?}
 
-  defp route_for_reservation(plan, payment), do: {:record, plan, payment}
+  defp route_for_reservation(plan, payment, just_activated?),
+    do: {:record, plan, payment, just_activated?}
 
   # Phase 2: re-lock the plan (fresh — stock reservation, if it ran, was a
   # separate transaction and may have changed nothing we care about here
   # beyond `stock_reserved`) and record the contribution, guarding once
   # more against a delta that would overshoot `total_amount`.
-  defp finish_recording(plan_id, plan, payment) do
+  defp finish_recording(plan_id, plan, payment, just_activated?) do
     Repo.transaction(fn ->
       _row = Repo.one(locked_plan_query(plan_id))
       fresh_plan = Ash.get!(SusuPlan, plan.id, authorize?: false)
@@ -448,7 +488,7 @@ defmodule Emakola.Orders.SusuChunks do
           )
 
         mark_counted!(payment)
-        maybe_notify_chunk(contributed)
+        notify_recorded_contribution(contributed, just_activated?)
         maybe_complete(contributed)
       else
         flag_for_refund(payment, plan_id)
@@ -503,10 +543,20 @@ defmodule Emakola.Orders.SusuChunks do
     |> Oban.insert!()
   end
 
-  # `:susu_activated` (buyer) + `:susu_merchant_activated` (merchant) — fired
-  # once, right after the plan's very first confirmed chunk flips it to
-  # `:active` (this is the only caller of `activate_plan!/2`, so this only
-  # ever runs once per plan).
+  # The chunk that just activated the plan gets ONLY the activation
+  # notification, never `:susu_chunk_received` on top of it (regardless of
+  # whether it also happens to complete the plan) — a redundant "chunk
+  # received, keep going!" message on the SAME payment as "you're active!"
+  # would be confusing. Every later chunk on an already-active plan gets
+  # the ordinary progress-vs-completion choice `maybe_notify_chunk/1` makes.
+  defp notify_recorded_contribution(plan, true), do: dispatch_activation(plan)
+  defp notify_recorded_contribution(plan, false), do: maybe_notify_chunk(plan)
+
+  # `:susu_activated` (buyer) + `:susu_merchant_activated` (merchant) —
+  # dispatched from `finish_recording/4` (see there for why NOT from
+  # `prepare/2`, where activation itself happens) once per plan — the only
+  # path into `notify_recorded_contribution/2` with `just_activated?: true`
+  # is the plan's very first confirmed chunk.
   defp dispatch_activation(plan) do
     dispatch_susu_event(plan, :susu_activated)
     dispatch_susu_event(plan, :susu_merchant_activated)
@@ -517,7 +567,9 @@ defmodule Emakola.Orders.SusuChunks do
   # `:susu_completed` (with the order's tracking link) once
   # `SusuCompletionWorker` turns the plan into a real order, so a redundant
   # "keep going!" message on the very chunk that finished it would be
-  # confusing.
+  # confusing. Only ever called for a NON-activating chunk (see
+  # `notify_recorded_contribution/2`) — the activating chunk's exclusion is
+  # handled one level up, independent of completion.
   defp maybe_notify_chunk(%SusuPlan{contributed_amount: c, total_amount: t} = plan)
        when c < t do
     dispatch_susu_event(plan, :susu_chunk_received)

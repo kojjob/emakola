@@ -104,12 +104,20 @@ defmodule Emakola.Payments.SusuRefunds do
   @manual_refund_note "⚠️ Susu refund could not be initiated automatically (gateway does not support refunds) — refund this payment manually."
 
   @doc """
-  Initiates a gateway refund for every contribution counted toward `plan`
-  (`metadata["susu_counted"] == true` — the same definition
-  `SusuCompletion.load_contributions/1` uses) that isn't already claimed
-  or refunded. Safe to call more than once for the same plan: an
-  already-claimed or already-`:refunded` payment is skipped, and a
-  payment whose prior initiation failed is retried.
+  Initiates a gateway refund for EVERY `:success` payment on `plan` — NOT
+  just payments counted toward its contribution total
+  (`metadata["susu_counted"] == true`, the definition
+  `SusuCompletion.load_contributions/1` uses). This is deliberately wider:
+  a plan can be cancelled with a `:success` payment that was never
+  counted — e.g. the activating chunk on a catalog plan whose stock
+  reservation then failed (`SusuChunks.guarded_cancel_and_flag/3` cancels
+  the plan via `SusuLifecycle.cancel(plan, :system)` BEFORE
+  `mark_counted!/1` ever runs for that payment) — and that money still
+  needs to go back. Narrowing this to counted-only would silently strand
+  it. Safe to call more than once for the same plan: an already-claimed or
+  already-`:refunded` payment is skipped (via `claim_payment/1`'s own
+  per-payment idempotency, unaffected by this widening), and a payment
+  whose prior initiation failed is retried.
 
   Always returns `:ok` — failures are logged (and, for a gateway that
   doesn't support refunds at all, flagged on the payment) rather than
@@ -117,21 +125,17 @@ defmodule Emakola.Payments.SusuRefunds do
   """
   def refund_all_contributions(%SusuPlan{id: plan_id}) do
     plan_id
-    |> counted_contributions()
+    |> successful_payments()
     |> Enum.each(&guarded_refund_contribution/1)
 
     :ok
   end
 
-  defp counted_contributions(plan_id) do
+  defp successful_payments(plan_id) do
     Payment
-    |> Ash.Query.filter(susu_plan_id == ^plan_id)
+    |> Ash.Query.filter(susu_plan_id == ^plan_id and status == :success)
     |> Ash.read!(authorize?: false)
-    |> Enum.filter(&counted?/1)
   end
-
-  defp counted?(%Payment{metadata: metadata}),
-    do: Map.get(metadata || %{}, "susu_counted") == true
 
   # One contribution's unexpected failure (a raised exception — a Mox
   # verification error, a transient DB error — as opposed to an ordinary

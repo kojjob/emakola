@@ -73,6 +73,20 @@ defmodule Emakola.Orders.SusuChunksTest do
 
   defp buyer_params, do: %{"name" => "Ama Mensah", "phone" => "0201234567"}
 
+  defp susu_jobs, do: all_enqueued(worker: SusuNotificationWorker)
+  defp enqueued_susu_events, do: susu_jobs() |> Enum.map(& &1.args["event"])
+  defp enqueued_susu_job_ids, do: susu_jobs() |> Enum.map(& &1.id)
+
+  # Isolates what a SECOND `confirm_chunk/1` call newly enqueues, ignoring
+  # anything already sitting in the queue from an earlier chunk in the same
+  # test — the ID-diff plays the role of "drain between steps" without
+  # actually executing (and thus needing to Mox-stub) the jobs.
+  defp new_susu_events(before_ids) do
+    susu_jobs()
+    |> Enum.reject(&(&1.id in before_ids))
+    |> Enum.map(& &1.args["event"])
+  end
+
   setup do
     store = create_store!()
     %{store: store}
@@ -327,7 +341,24 @@ defmodule Emakola.Orders.SusuChunksTest do
       assert updated_variant.stock_quantity == 8
     end
 
-    test "insufficient stock cancels the plan and flags the payment for refund instead of activating",
+    # End-to-end: insufficient stock routes through `SusuLifecycle.cancel(plan,
+    # :system)` (Task 8 fix), so this one confirm gets the SAME convergent
+    # handling every other susu termination gets — refund ACTUALLY initiated
+    # (not just flagged), both sides notified — and critically, NO
+    # `:susu_activated` SMS for a plan that never really got to stay active.
+    #
+    # Deliberately does NOT pin `:payment_gateway` (config/test.exs already
+    # defaults it to the deterministic always-succeeds `Gateways.Mock`,
+    # needing no Mox stub) — an earlier version of this test swapped the
+    # global `Application.env` to force that gateway, but the claim-stamp
+    # assertion below (`susu_refund_claimed`) doesn't actually depend on
+    # it: `claim_payment/1` stamps the claim in its OWN transaction BEFORE
+    # the gateway is ever called, so it stays `true` even if a
+    # concurrently-running async test has temporarily swapped the gateway
+    # to something else. Swapping it here only added another contributor
+    # to that same pre-existing global-env race (it broke an unrelated
+    # `SusuExpiryTest` Mox expectation when this test ran concurrently).
+    test "insufficient stock cancels the plan via SusuLifecycle.cancel(:system): no activation SMS, refund initiated, both sides notified, stock untouched",
          %{store: store} do
       product = create_product!(store)
       variant = create_variant!(product, store, stock_quantity: 0, track_inventory: true)
@@ -354,6 +385,20 @@ defmodule Emakola.Orders.SusuChunksTest do
       updated_payment = reload_payment(payment)
       assert updated_payment.metadata["refund_note"] =~ "refund"
       refute updated_payment.metadata["susu_counted"]
+      # The refund was actually INITIATED (claim stamped), not merely
+      # flagged for manual attention — `SusuRefunds.refund_all_contributions/1`
+      # picks up this payment even though `mark_counted!/1` never ran for it
+      # (see its moduledoc — widened to every `:success` payment on the plan).
+      assert updated_payment.metadata["susu_refund_claimed"] == true
+
+      updated_variant = Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false)
+      assert updated_variant.stock_quantity == 0
+
+      events = enqueued_susu_events()
+      refute "susu_activated" in events
+      refute "susu_merchant_activated" in events
+      assert "susu_refunded" in events
+      assert "susu_merchant_expired" in events
     end
   end
 
@@ -522,7 +567,21 @@ defmodule Emakola.Orders.SusuChunksTest do
   # ── Task 8: notification wiring ────────────────────────────────
 
   describe "confirm_chunk/1 — notification wiring (Task 8)" do
-    test "the first confirmed chunk dispatches susu_activated (buyer) and susu_merchant_activated (merchant)",
+    # Rewritten per code review: the previous version of this test asserted
+    # `Enum.count(events, &(&1 == "susu_chunk_received")) == 1` across BOTH
+    # chunks combined, which stayed green even when the activating chunk
+    # ALSO (wrongly) dispatched `susu_chunk_received` — `SusuNotificationWorker`'s
+    # `unique: [period: 600, fields: [:args]]` collapses two enqueue attempts
+    # with identical `susu_plan_id`+`event` args into one row, so the count
+    # couldn't tell "fired once" from "fired twice, deduped to one". Each
+    # chunk is now asserted on its OWN dispatched-event list (isolated via
+    # `enqueued_susu_events/0` for the first chunk, and an ID-diff against
+    # `new_susu_events/1` for the second — the second chunk's assertion
+    # would fail loudly if the first chunk's activation had also queued a
+    # `susu_chunk_received`, because that job's id would already be in
+    # `before_ids` and get excluded).
+
+    test "the activating chunk dispatches ONLY susu_activated + susu_merchant_activated — never susu_chunk_received",
          %{store: store} do
       plan = create_plan!(store, %{type: :custom, title: "Fridge", total_amount: 15_000})
       {:ok, %{payment: payment}} = SusuChunks.initiate_chunk(plan, 5_000, buyer_params(), Mock)
@@ -530,37 +589,29 @@ defmodule Emakola.Orders.SusuChunksTest do
 
       assert :ok = SusuChunks.confirm_chunk(payment)
 
-      updated_plan = reload_plan(plan)
+      events = enqueued_susu_events()
 
-      assert_enqueued(
-        worker: SusuNotificationWorker,
-        args: %{"susu_plan_id" => updated_plan.id, "event" => "susu_activated"}
-      )
-
-      assert_enqueued(
-        worker: SusuNotificationWorker,
-        args: %{"susu_plan_id" => updated_plan.id, "event" => "susu_merchant_activated"}
-      )
+      assert "susu_activated" in events
+      assert "susu_merchant_activated" in events
+      refute "susu_chunk_received" in events
     end
 
-    test "a subsequent, non-completing chunk dispatches susu_chunk_received, not another susu_activated",
+    test "a second, non-activating chunk dispatches ONLY susu_chunk_received — never another susu_activated",
          %{store: store} do
       plan = create_plan!(store, %{type: :custom, title: "Fridge", total_amount: 15_000})
       {:ok, %{payment: first}} = SusuChunks.initiate_chunk(plan, 5_000, buyer_params(), Mock)
       first |> mark_success!() |> SusuChunks.confirm_chunk()
 
+      before_ids = enqueued_susu_job_ids()
+
       active_plan = reload_plan(plan)
       {:ok, %{payment: second}} = SusuChunks.initiate_chunk(active_plan, 3_000, %{}, Mock)
       second |> mark_success!() |> SusuChunks.confirm_chunk()
 
-      events =
-        [worker: SusuNotificationWorker] |> all_enqueued() |> Enum.map(& &1.args["event"])
-
-      assert Enum.count(events, &(&1 == "susu_activated")) == 1
-      assert Enum.count(events, &(&1 == "susu_chunk_received")) == 1
+      assert new_susu_events(before_ids) == ["susu_chunk_received"]
     end
 
-    test "the chunk that exactly completes the plan does NOT dispatch susu_chunk_received",
+    test "a chunk that both activates AND completes the plan dispatches ONLY the activation events",
          %{store: store} do
       plan = create_plan!(store, %{type: :custom, title: "Fridge", total_amount: 5_000})
       {:ok, %{payment: payment}} = SusuChunks.initiate_chunk(plan, 5_000, buyer_params(), Mock)
@@ -568,11 +619,29 @@ defmodule Emakola.Orders.SusuChunksTest do
 
       assert :ok = SusuChunks.confirm_chunk(payment)
 
-      events =
-        [worker: SusuNotificationWorker] |> all_enqueued() |> Enum.map(& &1.args["event"])
+      events = enqueued_susu_events()
 
-      refute "susu_chunk_received" in events
       assert "susu_activated" in events
+      assert "susu_merchant_activated" in events
+      refute "susu_chunk_received" in events
+    end
+
+    test "a chunk that completes an ALREADY-active plan (not its activating chunk) dispatches neither susu_activated nor susu_chunk_received",
+         %{store: store} do
+      plan = create_plan!(store, %{type: :custom, title: "Fridge", total_amount: 8_000})
+      {:ok, %{payment: first}} = SusuChunks.initiate_chunk(plan, 5_000, buyer_params(), Mock)
+      first |> mark_success!() |> SusuChunks.confirm_chunk()
+
+      before_ids = enqueued_susu_job_ids()
+
+      active_plan = reload_plan(plan)
+      {:ok, %{payment: second}} = SusuChunks.initiate_chunk(active_plan, 3_000, %{}, Mock)
+      second |> mark_success!() |> SusuChunks.confirm_chunk()
+
+      new_events = new_susu_events(before_ids)
+
+      refute "susu_activated" in new_events
+      refute "susu_chunk_received" in new_events
     end
   end
 end
