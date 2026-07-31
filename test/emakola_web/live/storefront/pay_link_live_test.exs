@@ -474,6 +474,46 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
     refute html =~ "Protected by Makola"
   end
 
+  test "hides the protection badge for a catalog link pointing at a dropship variant", %{
+    conn: conn
+  } do
+    store = Emakola.Factory.create_store!()
+
+    store
+    |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+    |> Ash.update!(authorize?: false)
+
+    wholesaler = Emakola.Factory.create_store!()
+    supplier = Emakola.Factory.create_supplier!(store, linked_store_id: wholesaler.id)
+    product = Emakola.Factory.create_product!(store, %{title: "Dropship Basket"})
+
+    variant =
+      Emakola.Factory.create_variant!(product, store, %{
+        price: 8_000,
+        stock_quantity: 5,
+        supplier_id: supplier.id
+      })
+
+    link = catalog_link!(store, variant, %{protected: true})
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+
+    refute html =~ "Protected by Makola"
+  end
+
+  test "shows the protection badge for a catalog link pointing at an own-stock variant", %{
+    conn: conn
+  } do
+    store = Emakola.Factory.create_store!()
+    product = Emakola.Factory.create_product!(store, %{title: "Own Stock Basket"})
+    variant = Emakola.Factory.create_variant!(product, store, %{price: 8_000, stock_quantity: 5})
+    link = catalog_link!(store, variant, %{protected: true})
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+
+    assert html =~ "Protected by Makola"
+  end
+
   test "search overlay keyup on the pay page doesn't crash the socket", %{conn: conn} do
     store = Emakola.Factory.create_store!()
     link = custom_link!(store)

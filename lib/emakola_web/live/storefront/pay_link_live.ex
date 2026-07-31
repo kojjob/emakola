@@ -487,7 +487,7 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
 
       <%!-- Buyer Protection Badge (TC-2) --%>
       <div
-        :if={Protection.applies?(@store, @link)}
+        :if={Protection.applies?(@store, @link) and not dropship_variant?(@variant)}
         id="buyer-protection-badge"
         class="mt-4 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs text-emerald-800"
       >
@@ -592,6 +592,18 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
        do: variant.price * qty
 
   defp pay_amount(_assigns), do: 0
+
+  # TC-2 Buyer Protection: `Protection.applies?/2` is a store/link-level
+  # predicate — it doesn't know this catalog link's item is dropship-sourced.
+  # A pay link CAN point at a dropship variant (nothing stops one being
+  # created for it); `CheckoutService.checkout!/3` copies `variant.supplier_id`
+  # onto the fulfillment, and `DropshipSettlement` then routes the charge
+  # through the dropship split — bypassing protection entirely, so no hold is
+  # ever created (mirrors the same dropship-wins rule the checkout page's
+  # badge already accounts for in `Emakola.Themes.DefaultRenderers.Checkout`).
+  # Custom links have no `@variant` (nil), so this is a no-op for them.
+  defp dropship_variant?(%{supplier_id: supplier_id}), do: not is_nil(supplier_id)
+  defp dropship_variant?(_variant), do: false
 
   # Upper bound is normally 10, but a link.quantity above that (a bulk deal)
   # must still be selectable — the buyer shouldn't be forced down to a lower
