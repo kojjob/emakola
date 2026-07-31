@@ -276,12 +276,16 @@ defmodule Emakola.Orders.PayLink do
   end
 
   @doc "Is this link still payable? Checks status, then expiry."
-  def usable?(%__MODULE__{status: :cancelled}), do: {:error, :cancelled}
-  def usable?(%__MODULE__{status: :paid}), do: {:error, :consumed}
+  # Plain-map patterns with an explicit :__struct__ key, NOT `%__MODULE__{}`:
+  # Ash defines this module's struct via Spark DSL hooks, and on the release
+  # image's Elixir (Dockerfile pins 1.18.3) `%__MODULE__{}` expands before the
+  # struct exists — MIX_ENV=prod compile fails while dev/test/CI (1.20) pass.
+  def usable?(%{__struct__: __MODULE__, status: :cancelled}), do: {:error, :cancelled}
+  def usable?(%{__struct__: __MODULE__, status: :paid}), do: {:error, :consumed}
 
-  def usable?(%__MODULE__{expires_at: %DateTime{} = at}) do
+  def usable?(%{__struct__: __MODULE__, expires_at: %DateTime{} = at}) do
     if DateTime.compare(at, DateTime.utc_now()) == :lt, do: {:error, :expired}, else: :ok
   end
 
-  def usable?(%__MODULE__{}), do: :ok
+  def usable?(%{__struct__: __MODULE__}), do: :ok
 end
