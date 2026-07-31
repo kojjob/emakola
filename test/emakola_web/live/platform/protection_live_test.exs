@@ -186,4 +186,85 @@ defmodule EmakolaWeb.Platform.ProtectionLiveTest do
     assert entry.actor_id == user.id
     assert entry.metadata["hold_id"] == hold.id
   end
+
+  test "refund buyer reopens a merchant-denied return before refunding (complaint escalation)",
+       %{conn: conn, store: store} do
+    hold = protected_hold!(store)
+
+    {:ok, denied_return} =
+      Emakola.Orders.request_return(
+        %{store_id: store.id, order_id: hold.order_id, reason: :other},
+        authorize?: false
+      )
+
+    {:ok, _denied} = Emakola.Orders.deny_return(denied_return, %{}, authorize?: false)
+
+    # The buyer escalates the merchant's denial into a complaint — this is
+    # what actually lands a hold in the Frozen queue with a :denied return
+    # already on file.
+    {:ok, _frozen} =
+      Payments.freeze_protection_hold(
+        hold,
+        %{complaint_reason: :not_received, complaint_text: "Merchant denied but I never got it"},
+        authorize?: false
+      )
+
+    {:ok, view, _html} = live(conn, ~p"/platform/protection")
+
+    html =
+      view
+      |> element("button[phx-click='refund_buyer'][phx-value-id='#{hold.id}']")
+      |> render_click()
+
+    assert html =~ "initiated"
+
+    {:ok, [reopened]} = Emakola.Orders.get_return_by_order(hold.order_id, authorize?: false)
+    assert reopened.id == denied_return.id
+    assert reopened.status == :approved
+    assert reopened.refund_amount == hold.amount
+
+    {:ok, still_held} =
+      Payments.get_protection_hold_by_payment(hold.payment_id,
+        tenant: store.id,
+        authorize?: false
+      )
+
+    assert still_held.status == :held
+  end
+
+  test "refund buyer refuses a second click once the return is already approved, and calls RefundService zero times",
+       %{conn: conn, store: store} do
+    hold = protected_hold!(store)
+
+    {:ok, _frozen} =
+      Payments.freeze_protection_hold(
+        hold,
+        %{complaint_reason: :other, complaint_text: "Still investigating"},
+        authorize?: false
+      )
+
+    {:ok, view, _html} = live(conn, ~p"/platform/protection")
+
+    view
+    |> element("button[phx-click='refund_buyer'][phx-value-id='#{hold.id}']")
+    |> render_click()
+
+    {:ok, [approved_once]} = Emakola.Orders.get_return_by_order(hold.order_id, authorize?: false)
+    assert approved_once.status == :approved
+
+    html =
+      view
+      |> element("button[phx-click='refund_buyer'][phx-value-id='#{hold.id}']")
+      |> render_click()
+
+    assert html =~ "already in progress"
+
+    # No second write reached the Return — same `updated_at` as right after
+    # the first (successful) approve proves RefundService.issue/5 (and its
+    # internal `approve_return`) was never called the second time.
+    {:ok, [still_approved]} = Emakola.Orders.get_return_by_order(hold.order_id, authorize?: false)
+    assert still_approved.updated_at == approved_once.updated_at
+
+    assert length(audit(:protection_refund_initiated)) == 1
+  end
 end

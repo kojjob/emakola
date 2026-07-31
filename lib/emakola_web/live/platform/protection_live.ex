@@ -17,14 +17,18 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
       :released_by_staff`, stamped inside `ProtectionRelease` itself once it
       reads `frozen_at` off the FOR UPDATE-locked row.
     * Refund buyer — a full refund through the SAME `RefundService` the
-      merchant returns flow uses, creating a `Return` for the order first
-      (staff-initiated, no prior customer return request needed) and passing
-      `resolution: :refunded_by_staff, authorize?: false` (the platform staff
-      actor has no Ash policy grant on `Return`/`Payment`). The hold does
-      NOT close synchronously — only the refund webhook's terminal
-      confirmation closes it (see `RefundService`'s "Buyer-protection hold"
-      section) — so the flash says "initiated", not "refunded", and the row
-      stays in the queue until the webhook lands.
+      merchant returns flow uses, resolving a `Return` for the order first
+      (see `resolve_return/1`: reuse a `:requested` one, `:reopen` a
+      `:denied` one — the realistic path into this queue's Frozen list is a
+      buyer escalating a return the merchant already denied — refuse with a
+      distinguishable error if one is already `:approved`/`:refunded`, else
+      create one) and passing `resolution: :refunded_by_staff, authorize?:
+      false` (the platform staff actor has no Ash policy grant on
+      `Return`/`Payment`). The hold does NOT close synchronously — only the
+      refund webhook's terminal confirmation closes it (see
+      `RefundService`'s "Buyer-protection hold" section) — so the flash
+      says "initiated", not "refunded", and the row stays in the queue
+      until the webhook lands.
   """
   use EmakolaWeb, :live_view
   require Logger
@@ -110,7 +114,7 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
   end
 
   defp issue_refund(actor, hold) do
-    with {:ok, return} <- find_or_create_return(hold) do
+    with {:ok, return} <- resolve_return(hold) do
       RefundService.issue(
         actor,
         return,
@@ -127,13 +131,30 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
   end
 
   # No prior customer return request is required to refund from the
-  # protection queue — reuse one if the buyer already filed it, otherwise
-  # create it (staff-initiated, mirrors how ModerationLive bypasses the
-  # ordinary merchant-only actions with `authorize?: false`).
-  defp find_or_create_return(hold) do
+  # protection queue — but plausibly one already exists, in EVERY terminal
+  # state, since the realistic path into this queue's Frozen list is a
+  # buyer escalating a return the merchant already acted on:
+  #   :requested — reuse it as-is (the ordinary case).
+  #   :denied    — the buyer's complaint is exactly staff overriding that
+  #                denial, so :reopen it back to :requested first (Return's
+  #                only transition out of :denied — TC-2 Task 12).
+  #   :approved/:refunded — a refund is already moving or done; do NOT
+  #                create a second Return (would collide with the
+  #                unique_return_per_order identity) or silently reuse it —
+  #                surface a distinguishable error instead so staff aren't
+  #                stuck guessing at a generic failure.
+  #   none       — create it (staff-initiated, mirrors how ModerationLive
+  #                bypasses merchant-only actions with `authorize?: false`).
+  defp resolve_return(hold) do
     case Emakola.Orders.get_return_by_order(hold.order_id, authorize?: false) do
       {:ok, [%{status: :requested} = return | _]} ->
         {:ok, return}
+
+      {:ok, [%{status: :denied} = return | _]} ->
+        Emakola.Orders.reopen_return(return, authorize?: false)
+
+      {:ok, [%{status: status} | _]} when status in [:approved, :refunded] ->
+        {:error, :refund_already_in_progress}
 
       _ ->
         Emakola.Orders.request_return(
@@ -148,6 +169,9 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
         )
     end
   end
+
+  defp refund_error(:refund_already_in_progress),
+    do: "A refund is already in progress or completed for this order."
 
   defp refund_error(:amount_exceeds_refundable),
     do: "This payment has a smaller refundable balance than the hold — check for a prior refund."
