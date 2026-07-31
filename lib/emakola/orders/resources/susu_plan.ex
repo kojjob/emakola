@@ -269,6 +269,19 @@ defmodule Emakola.Orders.SusuPlan do
       accept([:delivery_address])
       validate(attribute_in(:status, [:active]))
     end
+
+    # Written by SusuStock.reserve/1 and SusuStock.release/1 (Task 4) — the
+    # set/read flag that tells release/1 whether there's anything to give
+    # stock back for. Not a status-machine transition, so no status guard.
+    update :mark_stock_reserved do
+      accept([])
+      change(set_attribute(:stock_reserved, true))
+    end
+
+    update :clear_stock_reserved do
+      accept([])
+      change(set_attribute(:stock_reserved, false))
+    end
   end
 
   @doc "Can a buyer start this plan? Only while pending and before the deadline."
