@@ -502,4 +502,22 @@ defmodule Emakola.Orders.SusuPlanTest do
     assert %DateTime{} = warned.warned_1d_at
     refute warned.warned_7d_at
   end
+
+  # ── Task 9: admin listing ──────────────────────────────────────
+
+  test "list_for_admin sorts newest first and is tenant-scoped" do
+    store_a = Emakola.Factory.create_store!()
+    store_b = Emakola.Factory.create_store!()
+
+    older = create!(store_a, %{type: :custom, title: "Older", total_amount: 15_000})
+    newer = create!(store_a, %{type: :custom, title: "Newer", total_amount: 15_000})
+    _other_store_plan = create!(store_b, %{type: :custom, title: "Foreign", total_amount: 15_000})
+
+    plans =
+      SusuPlan
+      |> Ash.Query.for_read(:list_for_admin)
+      |> Ash.read!(authorize?: false, tenant: store_a.id)
+
+    assert Enum.map(plans, & &1.id) == [newer.id, older.id]
+  end
 end

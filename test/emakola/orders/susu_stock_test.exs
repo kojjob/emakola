@@ -156,6 +156,100 @@ defmodule Emakola.Orders.SusuStockTest do
     end
   end
 
+  describe "reserved_quantities_by_variant/1" do
+    test "sums quantity across active catalog plans for the same variant", %{
+      store: store,
+      product: product
+    } do
+      variant = Factory.create_variant!(product, store, stock_quantity: 10, track_inventory: true)
+
+      plan_a =
+        create_plan!(store, %{
+          type: :catalog,
+          variant_id: variant.id,
+          quantity: 2,
+          total_amount: 5_000
+        })
+        |> Ash.Changeset.for_update(:activate, %{})
+        |> Ash.update!(authorize?: false)
+
+      plan_b =
+        create_plan!(store, %{
+          type: :catalog,
+          variant_id: variant.id,
+          quantity: 3,
+          total_amount: 5_000
+        })
+        |> Ash.Changeset.for_update(:activate, %{})
+        |> Ash.update!(authorize?: false)
+
+      assert plan_a.status == :active
+      assert plan_b.status == :active
+
+      assert SusuStock.reserved_quantities_by_variant(store.id) == %{variant.id => 5}
+    end
+
+    test "excludes pending, completed, expired, and cancelled plans", %{
+      store: store,
+      product: product
+    } do
+      variant = Factory.create_variant!(product, store, stock_quantity: 10, track_inventory: true)
+
+      _pending =
+        create_plan!(store, %{
+          type: :catalog,
+          variant_id: variant.id,
+          quantity: 9,
+          total_amount: 5_000
+        })
+
+      cancelled =
+        create_plan!(store, %{
+          type: :catalog,
+          variant_id: variant.id,
+          quantity: 9,
+          total_amount: 5_000
+        })
+
+      cancelled
+      |> Ash.Changeset.for_update(:cancel, %{})
+      |> Ash.update!(authorize?: false)
+
+      assert SusuStock.reserved_quantities_by_variant(store.id) == %{}
+    end
+
+    test "excludes custom plans and is tenant-scoped", %{store: store, product: product} do
+      _variant =
+        Factory.create_variant!(product, store, stock_quantity: 10, track_inventory: true)
+
+      _custom_active =
+        create_plan!(store, %{type: :custom, title: "Fridge", total_amount: 5_000})
+        |> Ash.Changeset.for_update(:activate, %{})
+        |> Ash.update!(authorize?: false)
+
+      other_store = Factory.create_store!()
+      other_product = Factory.create_product!(other_store)
+
+      other_variant =
+        Factory.create_variant!(other_product, other_store,
+          stock_quantity: 10,
+          track_inventory: true
+        )
+
+      create_plan!(other_store, %{
+        type: :catalog,
+        variant_id: other_variant.id,
+        quantity: 4,
+        total_amount: 5_000
+      })
+      |> Ash.Changeset.for_update(:activate, %{})
+      |> Ash.update!(authorize?: false)
+
+      assert SusuStock.reserved_quantities_by_variant(store.id) == %{}
+      assert SusuStock.reserved_quantities_by_variant(other_store.id) == %{other_variant.id => 4}
+    end
+  end
+
   describe "DecrementStock skips susu orders" do
     test "an order with susu_plan_id set does not decrement stock again on confirm", %{
       store: store,

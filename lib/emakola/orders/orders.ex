@@ -42,6 +42,7 @@ defmodule Emakola.Orders do
     resource Emakola.Orders.SusuPlan do
       define(:create_susu_plan, action: :create)
       define(:get_susu_plan_by_code, action: :get_by_code, args: [:code])
+      define(:list_susu_plans_for_admin, action: :list_for_admin)
       define(:activate_susu_plan, action: :activate)
       define(:record_susu_contribution, action: :record_contribution)
       define(:complete_susu_plan, action: :complete)

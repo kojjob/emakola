@@ -208,6 +208,16 @@ defmodule Emakola.Orders.SusuPlan do
       filter(expr(code == ^arg(:code)))
     end
 
+    # Merchant admin listing — tenant-scoped by the caller-supplied `tenant:`
+    # (attribute multitenancy filters to that store automatically). Mirrors
+    # PayLink's `:list_for_admin`; no extra aggregate needed here (unlike
+    # PayLink's `paid_orders_count`) — a plan's own contributed_amount/
+    # total_amount/status attributes already carry everything the admin
+    # progress + funnel columns need.
+    read :list_for_admin do
+      prepare(build(sort: [inserted_at: :desc]))
+    end
+
     update :activate do
       accept([:customer_id, :delivery_address])
       validate(attribute_in(:status, [:pending]))

@@ -104,4 +104,22 @@ defmodule Emakola.Orders.SusuStock do
     |> Ash.Query.lock("FOR UPDATE")
     |> Ash.read_one!(authorize?: false)
   end
+
+  @doc """
+  Reserved-by-susu quantities for `store_id`'s catalog plans still `:active`,
+  keyed by `variant_id` — a pure visibility aggregate for the inventory admin
+  page (TC-3 Task 9). Stock for an active catalog plan was already
+  decremented from available stock at activation (see moduledoc) — this
+  reads nothing new and reserves nothing additional; it just lets a merchant
+  see how much of their current on-hand stock is tied up in in-flight susu
+  plans. Tenant-scoped via `set_tenant/2`, same as every other susu query.
+  """
+  def reserved_quantities_by_variant(store_id) do
+    SusuPlan
+    |> Ash.Query.filter(type == :catalog and status == :active)
+    |> Ash.Query.set_tenant(store_id)
+    |> Ash.read!(authorize?: false)
+    |> Enum.group_by(& &1.variant_id, & &1.quantity)
+    |> Map.new(fn {variant_id, quantities} -> {variant_id, Enum.sum(quantities)} end)
+  end
 end
