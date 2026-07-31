@@ -102,14 +102,34 @@ defmodule Emakola.Orders.SusuChunks do
 
   Returns `{:ok, %{payment: payment, gateway: gateway_response}}` or
   `{:error, reason}` — `:plan_not_found`, `:completed | :cancelled |
-  :expired` (plan not usable), `:chunk_in_flight` (a payment already
-  `:pending` for this plan), `:amount_below_min | :amount_above_remaining`,
-  `:buyer_details_required` (first chunk missing name/phone), or whatever
-  the gateway/payment-create call returns.
+  :expired` (plan not usable), `:already_started` (only possible with
+  `public_start?: true` — see below), `:chunk_in_flight` (a payment
+  already `:pending` for this plan), `:amount_below_min |
+  :amount_above_remaining`, `:buyer_details_required` (first chunk missing
+  name/phone), or whatever the gateway/payment-create call returns.
+
+  `opts`:
+
+    * `:public_start?` (default `false`) — set by a caller acting on
+      `EmakolaWeb.Storefront.SusuLinkLive`'s tokenless "start" form (the
+      bare-code public entry point — see that module's moduledoc), which
+      must only ever submit a plan's FIRST chunk. `true` makes the
+      LOCKED, freshly-read plan row the authority on that: any status
+      other than `"pending"` is rejected as `:already_started`, even
+      though `initiate_chunk/5` would otherwise accept `:active` too. This
+      closes a stale-socket race the LiveView's own mount-time state check
+      cannot: a socket that mounted while the plan was still `:pending`
+      keeps showing the tokenless start form even after the plan goes
+      `:active` via a different path (another tab/device paying the first
+      chunk); without this flag, a "start" push from that stale socket
+      would reach here with the plan genuinely `:active`, which
+      `status_ok/1` accepts — moving money on a tokenless form for a plan
+      that already has a signed link. A `false`/omitted `:public_start?`
+      (the signed "chunk" form, or any other caller) is unaffected.
   """
-  def initiate_chunk(plan_code_or_struct, amount, buyer_params, gateway) do
+  def initiate_chunk(plan_code_or_struct, amount, buyer_params, gateway, opts \\ []) do
     with {:ok, plan_id} <- resolve_plan_id(plan_code_or_struct),
-         {:ok, checked} <- validate_and_prepare(plan_id, amount, buyer_params) do
+         {:ok, checked} <- validate_and_prepare(plan_id, amount, buyer_params, opts) do
       do_initiate(checked, gateway)
     end
   end
@@ -258,7 +278,7 @@ defmodule Emakola.Orders.SusuChunks do
     end
   end
 
-  defp validate_and_prepare(plan_id, amount, buyer_params) do
+  defp validate_and_prepare(plan_id, amount, buyer_params, opts) do
     Repo.transaction(fn ->
       case Repo.one(locked_plan_query(plan_id)) do
         nil ->
@@ -267,6 +287,7 @@ defmodule Emakola.Orders.SusuChunks do
         row ->
           result =
             with :ok <- status_ok(row.status),
+                 :ok <- public_start_ok(row.status, opts),
                  :ok <- deadline_ok(row.deadline),
                  :ok <- one_pending_chunk_ok(plan_id),
                  plan <- Ash.get!(SusuPlan, plan_id, authorize?: false),
@@ -294,6 +315,18 @@ defmodule Emakola.Orders.SusuChunks do
   defp status_ok("completed"), do: {:error, :completed}
   defp status_ok("cancelled"), do: {:error, :cancelled}
   defp status_ok("expired"), do: {:error, :expired}
+
+  # Runs only after `status_ok/1` already passed (so the row is "pending"
+  # or "active" here) — narrows that down to "pending" ONLY when the
+  # caller is the tokenless public "start" path. See `initiate_chunk/5`'s
+  # doc for why this exists.
+  defp public_start_ok("pending", _opts), do: :ok
+
+  defp public_start_ok(_status, opts) do
+    if Keyword.get(opts, :public_start?, false),
+      do: {:error, :already_started},
+      else: :ok
+  end
 
   defp deadline_ok(deadline) do
     if DateTime.compare(deadline, DateTime.utc_now()) == :lt,

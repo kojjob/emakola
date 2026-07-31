@@ -91,6 +91,19 @@ defmodule Emakola.Payments.SusuRefunds do
   hand in Hubtel's dashboard isn't blocked from that being the end of it)
   and flags the payment for manual attention with a dedup'd note, mirroring
   `SusuChunks.flag_for_refund/2`'s exact guard shape.
+
+  ## Generic gateway failures are DB-visible too
+
+  A generic gateway rejection (`{:error, {:paystack_error, _}}`,
+  `{:error, {:gateway_error, _}}`) also stamps a dedup'd
+  `metadata["refund_note"]` — worded differently from Hubtel's
+  `:not_supported` note, since this one is expected to self-heal:
+  `Emakola.Payments.Workers.SusuExpiryWorker`'s stranded-refund sweep duty
+  retries any terminal plan with a `:success`, unclaimed payment on its
+  next run. Before this, a released claim was invisible in the database
+  until that retry happened to succeed — now a payment stuck mid-retry is
+  findable by anyone looking at its `metadata`, not just inferable from
+  logs.
   """
 
   require Ash.Query
@@ -102,6 +115,7 @@ defmodule Emakola.Payments.SusuRefunds do
   alias Emakola.Repo
 
   @manual_refund_note "⚠️ Susu refund could not be initiated automatically (gateway does not support refunds) — refund this payment manually."
+  @gateway_failure_note "⚠️ Susu refund attempt failed — will retry automatically on the next sweep; contact support if this persists."
 
   @doc """
   Initiates a gateway refund for EVERY `:success` payment on `plan` — NOT
@@ -215,7 +229,7 @@ defmodule Emakola.Payments.SusuRefunds do
       {:error, :not_supported} ->
         payment
         |> release_claim!()
-        |> flag_for_manual_attention!()
+        |> flag_note!(@manual_refund_note)
 
         Logger.error(
           "[susu_refunds] gateway does not support refunds for payment=#{payment.id} — needs manual attention"
@@ -224,7 +238,9 @@ defmodule Emakola.Payments.SusuRefunds do
         :ok
 
       {:error, reason} ->
-        release_claim!(payment)
+        payment
+        |> release_claim!()
+        |> flag_note!(@gateway_failure_note)
 
         Logger.error(
           "[susu_refunds] refund initiation failed for payment=#{payment.id}: " <>
@@ -245,15 +261,18 @@ defmodule Emakola.Payments.SusuRefunds do
 
   # Mirrors `SusuChunks.flag_for_refund/2`'s exact dedup-guard shape,
   # reusing the same `metadata["refund_note"]` key so a later admin
-  # surface has one place to look for any susu payment needing manual
-  # refund attention, whichever module flagged it.
-  defp flag_for_manual_attention!(payment) do
+  # surface has one place to look for any susu payment needing refund
+  # attention, whichever module flagged it and whichever note text
+  # applies (Hubtel's permanent "does not support refunds" vs. an
+  # ordinary gateway rejection's "will retry automatically" — see
+  # moduledoc's "Generic gateway failures are DB-visible too").
+  defp flag_note!(payment, note_text) do
     note = Map.get(payment.metadata || %{}, "refund_note", "")
 
-    if String.contains?(note, @manual_refund_note) do
+    if String.contains?(note, note_text) do
       payment
     else
-      updated_note = String.trim("#{note}\n#{@manual_refund_note}")
+      updated_note = String.trim("#{note}\n#{note_text}")
 
       payment
       |> Ash.Changeset.for_update(:update, %{

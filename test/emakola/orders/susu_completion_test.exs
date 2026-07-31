@@ -259,6 +259,73 @@ defmodule Emakola.Orders.SusuCompletionTest do
       # pins that a genuine remainder was absorbed, not a no-op 0.
       assert remainder > 0
     end
+
+    test "a tiny final chunk cannot be pushed to a negative payable — the remainder spills backward",
+         %{store: store} do
+      # The exact wedge from the final-review: 1049 x 3 + 1 = 3148 @ 200bps.
+      # Dumping the whole shortfall on the LAST contribution (the old,
+      # buggy behavior) would give the 1-pesewa chunk a fee of 2 and a
+      # payable of -1, tripping `assert_invariants!` and stranding the
+      # plan (order never created, contributions parked forever).
+      amounts = [1_049, 1_049, 1_049, 1]
+
+      plan =
+        complete_plan!(
+          store,
+          %{type: :custom, title: "Cutlery set", total_amount: Enum.sum(amounts)},
+          amounts
+        )
+
+      assert {:ok, order} = SusuCompletion.complete(plan.id)
+
+      payments = payments_for(plan)
+      total_fee = PlatformFee.calculate(order.total, plan.fee_rate_bps).fee
+      fees = Enum.map(payments, &(&1.amount - &1.payable_amount))
+
+      assert Enum.sum(fees) == total_fee
+      assert Enum.all?(payments, &(&1.payable_amount >= 0))
+
+      # The 1-pesewa chunk absorbs only what it can afford (its own
+      # amount); the rest of the shortfall spills onto the previous,
+      # larger contribution instead of going negative.
+      [_first, _second, third, last] = payments
+      assert last.payable_amount == 0
+      assert third.payable_amount >= 0
+    end
+
+    test "uneven chunk sets never produce a negative payable, whatever the split", %{
+      store: store
+    } do
+      # A spread of uneven, non-round splits — none hand-picked to land on
+      # an even division of the fee — each asserting the same two
+      # invariants `assert_invariants!` enforces at runtime.
+      chunk_sets = [
+        [3_333, 3_333, 3_335],
+        [1, 1, 1, 9_997],
+        [7, 13, 5, 4_975],
+        [2_501, 2_499, 1, 4_999],
+        [9_999, 1],
+        [1_049, 1_049, 1_049, 1]
+      ]
+
+      Enum.each(chunk_sets, fn amounts ->
+        plan =
+          complete_plan!(
+            store,
+            %{type: :custom, title: "Assorted goods", total_amount: Enum.sum(amounts)},
+            amounts
+          )
+
+        assert {:ok, order} = SusuCompletion.complete(plan.id)
+
+        payments = payments_for(plan)
+        total_fee = PlatformFee.calculate(order.total, plan.fee_rate_bps).fee
+        fees = Enum.map(payments, &(&1.amount - &1.payable_amount))
+
+        assert Enum.sum(fees) == total_fee
+        assert Enum.all?(payments, &(&1.payable_amount >= 0))
+      end)
+    end
   end
 
   describe "complete/1 — unprotected store" do

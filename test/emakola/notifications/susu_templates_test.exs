@@ -117,14 +117,28 @@ defmodule Emakola.Notifications.SusuTemplatesTest do
     end
   end
 
-  describe "susu_refunded_sms/2" do
+  describe "susu_refunded_sms/3" do
     test "confirms the refund amount, no signed link (nothing left to do)" do
-      msg = Templates.susu_refunded_sms(plan(), store())
+      msg = Templates.susu_refunded_sms(plan(), store(), 5_000)
 
       assert msg =~ "ended"
       assert msg =~ "50.00"
       assert msg =~ "refunded"
       refute msg =~ "?t="
+    end
+
+    # The real bug this arg exists for: `plan.contributed_amount` is 0 on
+    # the insufficient-stock path (the activating chunk's payment
+    # succeeded but was flagged for refund instead of counted), even
+    # though real money is being refunded — the caller must pass the
+    # ACTUAL refunded figure, not read it off the plan.
+    test "shows the real refunded amount even when the plan's contributed_amount is 0" do
+      zero_cost_plan = plan(%{contributed_amount: 0})
+
+      msg = Templates.susu_refunded_sms(zero_cost_plan, store(), 3_000)
+
+      assert msg =~ "30.00"
+      refute msg =~ "₵0.00"
     end
   end
 

@@ -31,6 +31,7 @@ defmodule Emakola.Notifications.Workers.SusuNotificationWorker do
 
   alias Emakola.Notifications.Templates
   alias Emakola.Orders.SusuPlan
+  alias Emakola.Payments.Payment
 
   @buyer_events ~w(
     susu_activated susu_chunk_received susu_nudge susu_deadline_warning susu_refunded
@@ -130,7 +131,22 @@ defmodule Emakola.Notifications.Workers.SusuNotificationWorker do
     do: Templates.susu_deadline_warning_sms(plan, store)
 
   defp buyer_sms_template(plan, store, :susu_refunded),
-    do: Templates.susu_refunded_sms(plan, store)
+    do: Templates.susu_refunded_sms(plan, store, refunded_amount(plan))
+
+  # The plan's real collected payments — NOT `plan.contributed_amount`,
+  # which undercounts (stays 0) on the insufficient-stock path. `:success`
+  # (refund initiated, webhook not landed yet — the common case, since
+  # this SMS composes right after `SusuLifecycle`'s `converge/1` call) OR
+  # `:refunded` (this job ran late enough that the `refund.processed`
+  # webhook already confirmed it) — either way, the money was collected
+  # and is/was being refunded. See `Templates.susu_refunded_sms/3`'s doc.
+  defp refunded_amount(%SusuPlan{id: plan_id}) do
+    Payment
+    |> Ash.Query.filter(susu_plan_id == ^plan_id and status in [:success, :refunded])
+    |> Ash.read!(authorize?: false)
+    |> Enum.map(& &1.amount)
+    |> Enum.sum()
+  end
 
   defp send_merchant_sms(plan, store, event) do
     if store.contact_phone do

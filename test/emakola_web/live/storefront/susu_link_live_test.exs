@@ -565,6 +565,44 @@ defmodule EmakolaWeb.Storefront.SusuLinkLiveTest do
       assert reload_plan(active).delivery_address == original_address
     end
 
+    test "a stale pending-mounted socket cannot tokenlessly start-chunk a plan activated via another path",
+         %{conn: conn} do
+      store = Emakola.Factory.create_store!()
+      plan = create_plan!(store, %{type: :custom, title: "Fridge", total_amount: 15_000})
+
+      # Mounts while the plan is still :pending — the socket's @state and
+      # @plan assigns are captured here and never refreshed until an event
+      # fires.
+      {:ok, view, _html} = live(conn, "/susu/#{plan.code}")
+
+      # Activated via a DIFFERENT path — a concurrent buyer on another
+      # tab/device paying the first chunk for real. This socket's
+      # mount-time state (:pending) is now stale.
+      activate!(plan)
+
+      render_hook(view, "start", %{
+        "amount" => "30",
+        "buyer" => %{"name" => "Eve", "phone" => "0200000000"}
+      })
+
+      payments =
+        Payment
+        |> Ash.Query.filter(susu_plan_id == ^plan.id)
+        |> Ash.read!(authorize?: false)
+
+      # Only the ONE payment `activate!/1` created for real — the stale
+      # "start" push moved no money.
+      assert length(payments) == 1
+      assert reload_plan(plan).status == :active
+
+      # Friendly refresh, not a raw error: the socket re-computed to the
+      # plan's real (now active, unsigned) state instead of staying stuck
+      # on the pending start form.
+      html = render(view)
+      refute html =~ "susu-start-form"
+      assert html =~ "susu-resend-form"
+    end
+
     test "a valid signed token for a DIFFERENT plan is unauthorized on this plan's code", %{
       conn: conn
     } do

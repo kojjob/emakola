@@ -146,13 +146,20 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
   end
 
   # Public entry point — no `authorized?` gate BY DESIGN (a still-pending
-  # plan has no signed token to check yet). The critical guard is `state ==
-  # :pending`: without it, a direct "start" event push on an ALREADY-active
-  # plan's page would let anyone move money without ever holding the signed
-  # link (the whole point of the signed face). SusuChunks itself would
-  # still accept it as a valid subsequent chunk (`initiate_chunk/4` allows
-  # both :pending and :active), so this state check is the only thing
-  # standing between "start" and "chunk"'s authorization requirement.
+  # plan has no signed token to check yet). `state == :pending` is the
+  # fast-path guard: without it, a direct "start" event push on an
+  # ALREADY-active plan's page would let anyone move money without ever
+  # holding the signed link (the whole point of the signed face). But
+  # `state` is a MOUNT-TIME assign — a socket that mounted while the plan
+  # was still `:pending` keeps `state: :pending` in memory even after the
+  # plan goes `:active` via a different path (another tab/device paying the
+  # first chunk), so this check alone cannot catch that stale-socket race.
+  # `public_start?: true` below is the authoritative second gate: it makes
+  # `SusuChunks.initiate_chunk/5`'s LOCKED, freshly-read plan row reject
+  # anything but a genuinely still-`:pending` plan (`{:error,
+  # :already_started}`), closing the race `SusuChunks` itself would
+  # otherwise accept (`initiate_chunk/5` allows both `:pending` and
+  # `:active` when `public_start?` isn't set).
   @impl true
   def handle_event("start", %{"amount" => amount_str, "buyer" => buyer}, socket) do
     if socket.assigns.state == :pending do
@@ -163,7 +170,7 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
   end
 
   # Signed face only — a direct "chunk" push on an unauthorized socket must
-  # never reach `SusuChunks.initiate_chunk/4` (TC-3 threat suite).
+  # never reach `SusuChunks.initiate_chunk/5` (TC-3 threat suite).
   @impl true
   def handle_event("chunk", %{"amount" => amount_str}, socket) do
     if socket.assigns.authorized? do
@@ -352,7 +359,7 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
   defp closed_message(:expired), do: "This susu plan has expired."
 
   defp closed_message(:cancelled),
-    do: "This susu plan was cancelled and any payments were refunded."
+    do: "This susu plan was cancelled — refunds have been initiated for any payments made."
 
   defp closed_message(_status), do: "This susu plan is no longer active."
 
@@ -399,17 +406,17 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
     if plan.type == :catalog and out_of_stock?(plan, fresh_variant) do
       {:noreply, socket |> assign(:variant, fresh_variant) |> assign(:state, :sold_out)}
     else
-      submit_chunk(socket, amount_str, buyer)
+      submit_chunk(socket, amount_str, buyer, public_start?: true)
     end
   end
 
-  defp submit_chunk(socket, amount_str, buyer_params) do
+  defp submit_chunk(socket, amount_str, buyer_params, opts \\ []) do
     case parse_ghs_amount(amount_str) do
       {:ok, amount} ->
         gateway =
           Application.get_env(:emakola, :payment_gateway, Emakola.Payments.Gateways.Paystack)
 
-        case SusuChunks.initiate_chunk(socket.assigns.plan, amount, buyer_params, gateway) do
+        case SusuChunks.initiate_chunk(socket.assigns.plan, amount, buyer_params, gateway, opts) do
           {:ok, %{gateway: resp}} ->
             case Map.get(resp, :authorization_url, "") do
               "" ->
@@ -422,6 +429,9 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
                 {:noreply, socket |> assign(:processing, false) |> redirect(external: url)}
             end
 
+          {:error, :already_started} ->
+            {:noreply, handle_already_started(socket)}
+
           {:error, reason} ->
             {:noreply,
              assign(socket, form_errors: %{base: friendly_error(reason)}, processing: false)}
@@ -430,6 +440,21 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
       {:error, message} ->
         {:noreply, assign(socket, form_errors: %{base: message}, processing: false)}
     end
+  end
+
+  # The plan went active between this socket's mount and its "start"
+  # submit (see `handle_event("start", ...)`'s doc). No money moved —
+  # `SusuChunks.initiate_chunk/5`'s locked re-check rejected the attempt
+  # before ever reaching the gateway. Re-fetch the plan fresh and
+  # recompute page state instead of leaving the socket stuck showing a
+  # start form for a plan that no longer accepts one.
+  defp handle_already_started(socket) do
+    fresh = reload_plan(socket.assigns.plan.id)
+
+    socket
+    |> refresh_from_plan(fresh)
+    |> assign(:processing, false)
+    |> put_flash(:info, "This susu plan is already underway — here's the latest.")
   end
 
   # Better than `trunc(Decimal.to_float(...) * 100)` — stays in Decimal
@@ -761,7 +786,7 @@ defmodule EmakolaWeb.Storefront.SusuLinkLive do
       <button
         type="button"
         phx-click="cancel_plan"
-        data-confirm="Cancel this susu plan? Every payment you've made so far will be refunded in full."
+        data-confirm="Cancel this susu plan? Refunds will be initiated for every payment you've made so far."
         class="mt-8 w-full rounded-lg border border-red-200 px-4 py-3 text-sm font-semibold text-red-700"
       >
         Cancel this plan

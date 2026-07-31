@@ -11,9 +11,11 @@ defmodule Emakola.Payments.SusuExpiryTest do
   `SusuExpiryWorker` is the hourly sweep that finds due plans (skipping
   in-flight chunks) and — the spec's additional edge case — auto-cancels
   `:active` catalog plans whose product was archived/taken down.
+
+  async: false — some tests swap the configured :payment_gateway.
   """
 
-  use Emakola.DataCase, async: true
+  use Emakola.DataCase, async: false
   use Oban.Testing, repo: Emakola.Repo
 
   import Emakola.Factory
@@ -443,6 +445,84 @@ defmodule Emakola.Payments.SusuExpiryTest do
       # No `expect_refund` — untouched, so no gateway call.
       assert :ok = SusuExpiryWorker.perform(%Oban.Job{})
       assert reload_plan(plan).status == :active
+    end
+  end
+
+  # ── SusuExpiryWorker — stranded refund retry (final-review finding) ──
+
+  describe "SusuExpiryWorker — stranded refund retry" do
+    test "a transient gateway failure during expiry is retried and completed by the NEXT sweep run",
+         %{store: store} do
+      plan = active_plan_with_contributions!(store, [3_000])
+      plan = force_deadline!(plan, past_deadline())
+
+      expect(GatewayMock, :process_refund, fn _reference, _amount ->
+        {:error, {:paystack_error, "insufficient balance"}}
+      end)
+
+      assert :ok = SusuExpiryWorker.perform(%Oban.Job{})
+      assert reload_plan(plan).status == :expired
+
+      [payment] = payments_for(plan)
+      reloaded = reload_payment(payment)
+      assert reloaded.metadata["susu_refund_claimed"] == false
+      assert reloaded.status == :success
+
+      # A same-tick retry is deliberately excluded (this plan just went
+      # terminal THIS run — see moduledoc) — the claim stays released,
+      # untouched, until the NEXT sweep run picks it up.
+      expect_refund(1)
+      assert :ok = SusuExpiryWorker.perform(%Oban.Job{})
+
+      assert reload_payment(payment).metadata["susu_refund_claimed"] == true
+    end
+
+    test "a late-confirming chunk on an already-terminal plan gets its refund auto-initiated by the sweep",
+         %{store: store} do
+      plan = active_plan_with_contributions!(store, [3_000])
+      plan = force_deadline!(plan, past_deadline())
+
+      expect_refund(1)
+      assert :ok = SusuExpiryWorker.perform(%Oban.Job{})
+      assert reload_plan(plan).status == :expired
+
+      # Simulates a chunk webhook confirming AFTER the plan already went
+      # terminal — `SusuChunks.confirm_chunk/1`'s own guard flags it for
+      # refund instead of counting it, but never claims or refunds it,
+      # stranding it until this sweep duty runs again.
+      late_payment = create_contribution!(store, plan, 1_000)
+
+      expect_refund(1)
+      assert :ok = SusuExpiryWorker.perform(%Oban.Job{})
+
+      assert reload_payment(late_payment).metadata["susu_refund_claimed"] == true
+    end
+
+    test "writes a DB-visible note when the gateway rejects the refund for a generic (non-:not_supported) reason",
+         %{store: store} do
+      plan = active_plan_with_contributions!(store, [4_000])
+      plan = force_deadline!(plan, past_deadline())
+
+      expect(GatewayMock, :process_refund, fn _reference, _amount ->
+        {:error, {:paystack_error, "insufficient balance"}}
+      end)
+
+      assert :ok = SusuExpiryWorker.perform(%Oban.Job{})
+
+      [payment] = payments_for(plan)
+      assert reload_payment(payment).metadata["refund_note"] =~ "retry automatically"
+    end
+
+    test "does not re-touch a plan whose refund already succeeded (idempotent)", %{store: store} do
+      plan = active_plan_with_contributions!(store, [3_000])
+      _plan = force_deadline!(plan, past_deadline())
+
+      expect_refund(1)
+      assert :ok = SusuExpiryWorker.perform(%Oban.Job{})
+
+      # No `expect_refund` set — a call here would fail via Mox: the
+      # claimed, successfully-refunded-initiation payment is not stranded.
+      assert :ok = SusuExpiryWorker.perform(%Oban.Job{})
     end
   end
 

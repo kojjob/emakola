@@ -203,7 +203,10 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
         {:noreply,
          socket
          |> assign(susu_plans: susu_plans, susu_item_variants: susu_item_variants)
-         |> put_flash(:info, "Susu plan cancelled — any payments were refunded")}
+         |> put_flash(
+           :info,
+           "Susu plan cancelled — refunds have been initiated for any payments made"
+         )}
 
       _ ->
         {:noreply, put_flash(socket, :error, "Couldn't cancel that susu plan")}
@@ -478,7 +481,7 @@ defmodule EmakolaWeb.Admin.PayLinkLive.Index do
                         id={"cancel-susu-plan-#{plan.id}"}
                         phx-click="cancel_susu_plan"
                         phx-value-id={plan.id}
-                        data-confirm="Cancel this susu plan? Any payments made so far will be refunded in full."
+                        data-confirm="Cancel this susu plan? Refunds will be initiated for any payments made so far."
                         class="px-2.5 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                       >
                         Cancel

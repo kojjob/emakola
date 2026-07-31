@@ -105,9 +105,17 @@ defmodule Emakola.Notifications.Templates do
       "Pay now: #{susu_plan_url(plan)}"
   end
 
-  def susu_refunded_sms(plan, store) do
+  # `refunded_amount` is the sum of the plan's actual `:success` payments —
+  # NOT `plan.contributed_amount`, which is 0 on the insufficient-stock
+  # path (the activating chunk's payment succeeded at the gateway but was
+  # flagged for refund instead of counted — see `SusuChunks.confirm_chunk/1`
+  # — so it never incremented `contributed_amount`) even though real money
+  # is being refunded. The caller (`SusuNotificationWorker`) computes this
+  # from the payments table so the SMS never claims GH₵0.00 was refunded
+  # when it wasn't.
+  def susu_refunded_sms(_plan, store, refunded_amount) do
     "Your susu plan at #{store.name} has ended. Your contributions " <>
-      "(#{currency_symbol(store.currency || "GHS")}#{format_amount(plan.contributed_amount)}) are being refunded " <>
+      "(#{currency_symbol(store.currency || "GHS")}#{format_amount(refunded_amount)}) are being refunded " <>
       "to your mobile money account."
   end
 

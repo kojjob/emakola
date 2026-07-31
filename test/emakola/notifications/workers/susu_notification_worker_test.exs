@@ -165,6 +165,32 @@ defmodule Emakola.Notifications.Workers.SusuNotificationWorkerTest do
 
       assert :ok == perform_job(plan.id, "susu_refunded")
     end
+
+    # The GH₵0.00 bug (final-review finding): on the insufficient-stock
+    # path, `SusuChunks.confirm_chunk/1` flags the activating chunk's
+    # payment for refund instead of counting it — real money was
+    # collected, but `plan.contributed_amount` stays 0. The SMS must show
+    # the amount actually being refunded, not that 0.
+    test "shows the real refunded amount, not GH₵0.00, when contributed_amount was never incremented" do
+      store = store_with_contact!()
+      {plan, customer} = active_plan_with_buyer!(store)
+
+      payment = create_payment!(store, %{susu_plan_id: plan.id, amount: 4_000})
+
+      payment
+      |> Ash.Changeset.for_update(:mark_success, %{gateway_response: %{}})
+      |> Ash.update!(authorize?: false)
+
+      Emakola.SMSProviderMock
+      |> expect(:send_sms, 1, fn to, message, _opts ->
+        assert to == customer.phone
+        assert message =~ "40.00"
+        refute message =~ "₵0.00"
+        {:ok, %{provider: :mock, to: to, message: message}}
+      end)
+
+      assert :ok == perform_job(plan.id, "susu_refunded")
+    end
   end
 
   # ── Merchant events ───────────────────────────────────────────────

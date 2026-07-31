@@ -44,13 +44,28 @@ defmodule Emakola.Orders.SusuCompletion do
   independently floored the same way (`PlatformFee.calculate(amount_i,
   fee_rate_bps).fee`); flooring drops a fractional pesewa here and there,
   so the sum of those per-contribution fees can fall short of `total_fee`
-  by a few pesewas. The shortfall is added to the LAST contribution's fee
+  by a few pesewas.
+
+  The shortfall is walked BACKWARD from the LAST contribution
   (chronologically, by `inserted_at` — the contribution that actually
-  completed the plan). This is a runtime-checked invariant, not just an
-  assumption: `Σfee_i == total_fee` and every `payable_i = amount_i - fee_i
-  >= 0` are asserted before anything is written, and a violation raises
-  (loudly, not silently) so Oban retries rather than the worker recording
-  success over broken money math.
+  completed the plan), capping how much any single contribution absorbs at
+  `amount_i - fee_i` (never pushing that contribution's fee past its own
+  amount) and spilling whatever doesn't fit onto the next contribution
+  further back. A single small final chunk (`SusuPlan.chunk_bounds/1`
+  collapses `min` to whatever remains, so a 1-pesewa last chunk is legal)
+  can't absorb more than a pesewa or two of shortfall before this moves on
+  to an earlier, larger contribution — dumping the WHOLE shortfall on just
+  the last contribution regardless of its size (the previous, buggy
+  behavior) could push that contribution's fee past its own amount,
+  producing a negative payable. `total_fee <= Σamount_i` (the platform
+  never takes more than the contributions themselves) guarantees this walk
+  always finds enough capacity before running out of contributions.
+
+  This is a runtime-checked invariant, not just an assumption: `Σfee_i ==
+  total_fee` and every `payable_i = amount_i - fee_i >= 0` are asserted
+  before anything is written, and a violation raises (loudly, not
+  silently) so Oban retries rather than the worker recording success over
+  broken money math.
   """
 
   import Ecto.Query, only: [from: 2]
@@ -182,7 +197,27 @@ defmodule Emakola.Orders.SusuCompletion do
 
   defp absorb_remainder(provisional, total_fee) do
     remainder = total_fee - Enum.sum(Enum.map(provisional, & &1.fee))
-    List.update_at(provisional, -1, fn last -> %{last | fee: last.fee + remainder} end)
+
+    provisional
+    |> Enum.reverse()
+    |> distribute_backward(remainder)
+    |> Enum.reverse()
+  end
+
+  # Walks backward from the most recent contribution, adding as much of
+  # `remainder` as each one's own headroom (`amount_i - fee_i`) allows
+  # before moving to the next contribution further back — see moduledoc.
+  # Never adds more to a single contribution than it can afford, so
+  # `payable_i = amount_i - fee_i` can never go negative here.
+  defp distribute_backward(reversed, 0), do: reversed
+
+  defp distribute_backward([], _remainder), do: []
+
+  defp distribute_backward([%{payment: payment, fee: fee} = entry | rest], remainder) do
+    headroom = payment.amount - fee
+    applied = min(remainder, headroom)
+
+    [%{entry | fee: fee + applied} | distribute_backward(rest, remainder - applied)]
   end
 
   defp assert_invariants!(apportioned, total_fee, plan) do
