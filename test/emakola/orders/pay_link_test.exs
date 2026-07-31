@@ -18,6 +18,37 @@ defmodule Emakola.Orders.PayLinkTest do
     assert_in_delta DateTime.diff(link.expires_at, DateTime.utc_now(), :day), 7, 1
   end
 
+  test "protected defaults to true when the store's buyer protection is on" do
+    store = Emakola.Factory.create_store!()
+
+    store
+    |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+    |> Ash.update!(authorize?: false)
+
+    link = create!(store, %{type: :custom, title: "Deal", amount: 25_000})
+
+    assert link.protected == true
+  end
+
+  test "protected defaults to false when the store's buyer protection is off" do
+    store = Emakola.Factory.create_store!()
+    link = create!(store, %{type: :custom, title: "Deal", amount: 25_000})
+
+    assert link.protected == false
+  end
+
+  test "an explicit protected: false param wins over a store with buyer protection on" do
+    store = Emakola.Factory.create_store!()
+
+    store
+    |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+    |> Ash.update!(authorize?: false)
+
+    link = create!(store, %{type: :custom, title: "Deal", amount: 25_000, protected: false})
+
+    assert link.protected == false
+  end
+
   test "catalog link has no default expiry and keeps its variant" do
     store = Emakola.Factory.create_store!()
     product = Emakola.Factory.create_product!(store)
@@ -26,6 +57,22 @@ defmodule Emakola.Orders.PayLinkTest do
 
     assert link.expires_at == nil
     assert link.variant_id == variant.id
+  end
+
+  test "catalog link's variant_id must belong to the tenant" do
+    store_a = Emakola.Factory.create_store!()
+    store_b = Emakola.Factory.create_store!()
+    product = Emakola.Factory.create_product!(store_b)
+    variant = Emakola.Factory.create_variant!(product, store_b)
+
+    assert {:error, %Ash.Error.Invalid{}} =
+             PayLink
+             |> Ash.Changeset.for_create(:create, %{
+               store_id: store_a.id,
+               type: :catalog,
+               variant_id: variant.id
+             })
+             |> Ash.create(authorize?: false)
   end
 
   test "custom link requires amount >= 100" do

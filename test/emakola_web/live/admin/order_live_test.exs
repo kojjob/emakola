@@ -440,6 +440,116 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
     end
   end
 
+  describe "OrderLive.Show protection hold (TC-2 Task 11)" do
+    test "renders no Buyer Protection card when the order has no hold", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      refute html =~ "Buyer Protection"
+    end
+
+    test "renders a held hold with status pill, amounts, and no release ETA", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+      payment = Emakola.Factory.create_payment!(store, %{order_id: order.id})
+
+      create_protection_hold!(store, payment, %{amount: 25_000, fee: 1_000, net: 24_000})
+
+      {:ok, _view, html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert html =~ "Buyer Protection"
+      assert html =~ "Held"
+      assert html =~ "250"
+      assert html =~ "10"
+      assert html =~ "240"
+    end
+
+    test "renders a frozen hold's status pill (held + an open complaint)", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+      payment = Emakola.Factory.create_payment!(store, %{order_id: order.id})
+      hold = create_protection_hold!(store, payment)
+
+      hold
+      |> Ash.Changeset.for_update(:freeze, %{
+        complaint_reason: :not_received,
+        complaint_text: "Never arrived"
+      })
+      |> Ash.update!(authorize?: false)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert html =~ "Frozen"
+    end
+
+    test "renders a released hold's status pill and release reason", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+      payment = Emakola.Factory.create_payment!(store, %{order_id: order.id})
+      hold = create_protection_hold!(store, payment)
+
+      hold
+      |> Ash.Changeset.for_update(:release, %{release_reason: :buyer_confirmed})
+      |> Ash.update!(authorize?: false)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert html =~ "Released"
+      assert html =~ "Buyer confirmed"
+    end
+
+    test "renders a refunded hold's status pill", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+      payment = Emakola.Factory.create_payment!(store, %{order_id: order.id})
+      hold = create_protection_hold!(store, payment)
+
+      hold
+      |> Ash.Changeset.for_update(:mark_refunded, %{resolution: :merchant_refunded})
+      |> Ash.update!(authorize?: false)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert html =~ "Refunded"
+    end
+
+    test "renders the release ETA when set", %{
+      conn: conn,
+      store: store,
+      customer: customer
+    } do
+      order = create_order!(store.id, customer.id, :pending)
+      payment = Emakola.Factory.create_payment!(store, %{order_id: order.id})
+      hold = create_protection_hold!(store, payment)
+      release_after = DateTime.add(DateTime.utc_now(), 5, :day)
+
+      hold
+      |> Ash.Changeset.for_update(:set_release_after, %{release_after: release_after})
+      |> Ash.update!(authorize?: false)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/orders/#{order.id}")
+
+      assert html =~ Calendar.strftime(release_after, "%d %b %Y")
+    end
+  end
+
   describe "authentication" do
     test "redirects unauthenticated users to login" do
       conn = build_conn()
@@ -513,6 +623,21 @@ defmodule EmakolaWeb.Admin.OrderLiveTest do
       |> Ash.create!(authorize?: false)
 
     transition_to_status(order, status)
+  end
+
+  defp create_protection_hold!(store, payment, attrs \\ %{}) do
+    default = %{
+      store_id: store.id,
+      payment_id: payment.id,
+      order_id: payment.order_id,
+      amount: 25_000,
+      fee: 1_000,
+      net: 24_000
+    }
+
+    Emakola.Payments.ProtectionHold
+    |> Ash.Changeset.for_create(:create, Map.merge(default, attrs))
+    |> Ash.create!(authorize?: false)
   end
 
   defp transition_to_status(order, :pending), do: order

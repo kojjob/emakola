@@ -77,7 +77,12 @@ defmodule Emakola.Orders.CheckoutService do
   :shipping_address, :notes, :pay_link_id.
   """
   def checkout_custom!(store_id, %{title: title, unit_price: unit_price}, opts) do
+    phone = Keyword.get(opts, :customer_phone)
+
     cond do
+      not is_binary(phone) or String.trim(phone) == "" ->
+        {:error, :phone_required}
+
       not is_binary(title) or title == "" ->
         {:error, :invalid_title}
 
@@ -85,9 +90,7 @@ defmodule Emakola.Orders.CheckoutService do
         {:error, :invalid_unit_price}
 
       true ->
-        opts =
-          Keyword.put_new(opts, :customer_email, phone_placeholder_email(opts[:customer_phone]))
-
+        opts = Keyword.put_new(opts, :customer_email, phone_placeholder_email(phone))
         run_checkout_custom(store_id, title, unit_price, opts)
     end
   end

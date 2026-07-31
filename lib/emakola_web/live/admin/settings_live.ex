@@ -272,6 +272,24 @@ defmodule EmakolaWeb.Admin.SettingsLive do
             </div>
           </div>
 
+          <div class="flex items-start gap-3 p-4 bg-slate-50 border border-slate-200 rounded-control">
+            <input type="hidden" name="store[buyer_protection_enabled]" value="false" />
+            <input
+              type="checkbox"
+              id="store-buyer-protection-enabled"
+              name="store[buyer_protection_enabled]"
+              value="true"
+              checked={@store && @store.buyer_protection_enabled == true}
+              class="mt-0.5 w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+            />
+            <label for="store-buyer-protection-enabled" class="cursor-pointer">
+              <span class="block text-sm font-medium text-slate-700">Buyer Protection</span>
+              <span class="block text-xs text-slate-500 mt-0.5">
+                Hold payments until delivery is confirmed. Slower cash-out, stronger buyer trust.
+              </span>
+            </label>
+          </div>
+
           <div class="flex justify-end pt-2">
             <.admin_button type="submit">
               <.icon name="hero-check" class="size-4" /> Save Changes

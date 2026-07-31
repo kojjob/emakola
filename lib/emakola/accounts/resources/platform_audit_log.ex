@@ -63,7 +63,9 @@ defmodule Emakola.Accounts.PlatformAuditLog do
           :announcement_published,
           :announcement_canceled,
           :payout_approved,
-          :payout_retried
+          :payout_retried,
+          :protection_force_released,
+          :protection_refund_initiated
         ]
       )
 

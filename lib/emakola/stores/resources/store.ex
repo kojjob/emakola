@@ -125,6 +125,14 @@ defmodule Emakola.Stores.Store do
       public?(true)
     end
 
+    # Merchant opt-in for TC-2 Buyer Protection (escrow-lite payout hold): off
+    # by default. New PayLinks inherit this value at creation unless the
+    # merchant explicitly overrides it per link (see `PayLink.protected`).
+    attribute :buyer_protection_enabled, :boolean do
+      default(false)
+      public?(true)
+    end
+
     # Platform-owned lifecycle state. Merchants cannot change this — only
     # platform staff, via the `:suspend`/`:block`/`:archive`/`:reactivate`
     # actions. `:archived` is the "delete" (hidden forever, row kept, no
@@ -326,6 +334,7 @@ defmodule Emakola.Stores.Store do
         :x_url,
         :whatsapp_catalog_id,
         :active,
+        :buyer_protection_enabled,
         :theme_config,
         :enabled_product_types
       ])

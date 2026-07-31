@@ -62,6 +62,19 @@ defmodule EmakolaWeb.Admin.SettingsLiveTest do
       assert html =~ "https://cdn.example.com/cover.jpg"
     end
 
+    test "can enable buyer protection from the General tab", %{conn: conn, store: store} do
+      {:ok, view, html} = live(conn, ~p"/admin/settings")
+
+      assert html =~ "Buyer Protection"
+
+      view
+      |> form("#general-form", %{store: %{buyer_protection_enabled: "true"}})
+      |> render_submit()
+
+      assert Ash.get!(Emakola.Stores.Store, store.id, authorize?: false).buyer_protection_enabled ==
+               true
+    end
+
     test "can update contact info", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/admin/settings")
 

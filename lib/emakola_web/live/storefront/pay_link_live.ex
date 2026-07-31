@@ -14,6 +14,7 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
   require Logger
 
   alias Emakola.Orders.PayLink
+  alias Emakola.Payments.Protection
   alias EmakolaWeb.Helpers.Currency
 
   @impl true
@@ -160,37 +161,59 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
   def handle_event("pay", %{"buyer" => buyer}, socket) do
     %{link: link, store: store, variant: variant} = socket.assigns
 
-    if presence(buyer["phone"]) do
-      # Re-fetch by code rather than trusting the struct captured at mount —
-      # the merchant may have cancelled the link (or a rival buyer consumed
-      # it) in the time between page load and this submit. Checking
-      # `usable?` on a stale struct would let the buyer reach the gateway's
-      # hosted page on a link that's no longer supposed to be payable.
-      case Emakola.Orders.get_pay_link_by_code(link.code, authorize?: false) do
-        {:ok, fresh_link} ->
-          case PayLink.usable?(fresh_link) do
-            :ok ->
-              case create_order(fresh_link, store, buyer, socket.assigns.quantity) do
-                {:ok, order} ->
-                  initiate_payment(socket, store, order)
+    cond do
+      is_nil(presence(buyer["phone"])) ->
+        {:noreply,
+         assign(socket, form_errors: %{base: "Please enter a phone number."}, processing: false)}
 
-                {:error, reason} ->
-                  {:noreply,
-                   assign(socket, form_errors: %{base: friendly_error(reason)}, processing: false)}
-              end
+      not valid_phone?(buyer["phone"]) ->
+        {:noreply,
+         assign(socket, form_errors: %{base: "Enter a valid phone number"}, processing: false)}
 
-            {:error, _reason} ->
-              {:noreply, refresh_inactive_state(socket, fresh_link, store, variant)}
-          end
+      true ->
+        # Re-fetch by code rather than trusting the struct captured at mount —
+        # the merchant may have cancelled the link (or a rival buyer consumed
+        # it) in the time between page load and this submit. Checking
+        # `usable?` on a stale struct would let the buyer reach the gateway's
+        # hosted page on a link that's no longer supposed to be payable.
+        case Emakola.Orders.get_pay_link_by_code(link.code, authorize?: false) do
+          {:ok, fresh_link} ->
+            case PayLink.usable?(fresh_link) do
+              :ok ->
+                case create_order(fresh_link, store, buyer, socket.assigns.quantity) do
+                  {:ok, order} ->
+                    initiate_payment(socket, store, order)
 
-        {:error, _reason} ->
-          {:noreply, refresh_inactive_state(socket, link, store, variant)}
-      end
-    else
-      {:noreply,
-       assign(socket, form_errors: %{base: "Please enter a phone number."}, processing: false)}
+                  {:error, reason} ->
+                    {:noreply,
+                     assign(socket,
+                       form_errors: %{base: friendly_error(reason)},
+                       processing: false
+                     )}
+                end
+
+              {:error, _reason} ->
+                {:noreply, refresh_inactive_state(socket, fresh_link, store, variant)}
+            end
+
+          {:error, _reason} ->
+            {:noreply, refresh_inactive_state(socket, link, store, variant)}
+        end
     end
   end
+
+  # Validates the RAW input's digit shape before any normalization —
+  # PhoneAuth.normalize/1 pads any digit string with no leading 0/233/234
+  # with a "+233" prefix, so counting digits *after* normalization lets a
+  # short garbage number (e.g. "555555") reach 9+ digits and pass. Accepts a
+  # local 0-prefixed number (0XXXXXXXXX) or E.164 without the leading "+"
+  # (233XXXXXXXXX), in any punctuation/spacing.
+  defp valid_phone?(raw) when is_binary(raw) do
+    digits = String.replace(raw, ~r/\D/, "")
+    Regex.match?(~r/^0\d{9}$/, digits) or Regex.match?(~r/^233\d{9}$/, digits)
+  end
+
+  defp valid_phone?(_), do: false
 
   # Mirrors mount's `page_state/3` so a link that turned unusable between
   # page load and submit renders the same inactive/unavailable/sold-out
@@ -308,16 +331,19 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
     case gateway.initiate_payment(params) do
       {:ok, %{reference: reference} = resp} ->
         case Emakola.Payments.create_payment(
-               %{
-                 store_id: store.id,
-                 order_id: order.id,
-                 amount: order.total,
-                 currency: store.currency || "GHS",
-                 gateway: :paystack,
-                 gateway_reference: reference,
-                 metadata: %{payment_method: "pay_link"},
-                 split_mode: split_mode(settlement)
-               },
+               Map.merge(
+                 %{
+                   store_id: store.id,
+                   order_id: order.id,
+                   amount: order.total,
+                   currency: store.currency || "GHS",
+                   gateway: :paystack,
+                   gateway_reference: reference,
+                   metadata: %{payment_method: "pay_link"},
+                   split_mode: split_mode(settlement)
+                 },
+                 payout_hold_attrs(settlement)
+               ),
                authorize?: false
              ) do
           {:ok, payment} ->
@@ -379,19 +405,31 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
     do: Map.put(params, :split, shares)
 
   defp maybe_attach_split(params, {:no_split, _reason}), do: params
+  defp maybe_attach_split(params, {:hold, _}), do: params
 
   defp split_mode({:split, %{mode: mode}}), do: mode
   defp split_mode({:no_split, _}), do: :none
+  defp split_mode({:hold, _}), do: :none
+
+  # TC-2 Buyer Protection: a hold settles with NO merchant gateway share — the
+  # payment is flagged so PayoutService (Task 5+) excludes it until the hold
+  # releases (same literal pattern as GroupBuys/ProtectedPreorders escrow).
+  defp payout_hold_attrs({:hold, :buyer_protection}),
+    do: %{payout_held: true, payout_hold_reason: "buyer_protection"}
+
+  defp payout_hold_attrs(_settlement), do: %{}
 
   defp record_splits(payment, {:split, %{allocations: allocations}}),
     do: Emakola.Payments.OrderSettlement.record_splits!(payment, allocations)
 
   defp record_splits(_payment, {:no_split, _}), do: :ok
+  defp record_splits(_payment, {:hold, _}), do: :ok
 
   defp release_recovery_reservations({:split, %{allocations: allocations}}),
     do: Emakola.Payments.OrderSettlement.release_recovery_reservations!(allocations)
 
   defp release_recovery_reservations({:no_split, _}), do: :ok
+  defp release_recovery_reservations({:hold, _}), do: :ok
 
   # -- Render ---------------------------------------------------------------
 
@@ -445,6 +483,16 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
         <p class="mt-1 text-lg font-bold text-slate-900">
           {Currency.format_price(@link.amount, @store.currency || "GHS")}
         </p>
+      </div>
+
+      <%!-- Buyer Protection Badge (TC-2) --%>
+      <div
+        :if={Protection.applies?(@store, @link) and not dropship_variant?(@variant)}
+        id="buyer-protection-badge"
+        class="mt-4 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs text-emerald-800"
+      >
+        <span aria-hidden="true">🛡</span>
+        <span>Protected by Makola — payment held until you confirm delivery.</span>
       </div>
 
       <p :if={@form_errors[:base]} class="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
@@ -544,6 +592,18 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
        do: variant.price * qty
 
   defp pay_amount(_assigns), do: 0
+
+  # TC-2 Buyer Protection: `Protection.applies?/2` is a store/link-level
+  # predicate — it doesn't know this catalog link's item is dropship-sourced.
+  # A pay link CAN point at a dropship variant (nothing stops one being
+  # created for it); `CheckoutService.checkout!/3` copies `variant.supplier_id`
+  # onto the fulfillment, and `DropshipSettlement` then routes the charge
+  # through the dropship split — bypassing protection entirely, so no hold is
+  # ever created (mirrors the same dropship-wins rule the checkout page's
+  # badge already accounts for in `Emakola.Themes.DefaultRenderers.Checkout`).
+  # Custom links have no `@variant` (nil), so this is a no-op for them.
+  defp dropship_variant?(%{supplier_id: supplier_id}), do: not is_nil(supplier_id)
+  defp dropship_variant?(_variant), do: false
 
   # Upper bound is normally 10, but a link.quantity above that (a bulk deal)
   # must still be selectable — the buyer shouldn't be forced down to a lower

@@ -175,6 +175,7 @@ defmodule Emakola.Orders.Fulfillment do
       )
 
       change(set_attribute(:status, :delivered))
+      change(Emakola.Orders.Changes.StampProtectionReleaseAfter)
     end
 
     update :cancel do

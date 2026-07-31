@@ -494,6 +494,10 @@ defmodule EmakolaWeb.Admin.ReturnLive do
   defp refund_error(:amount_exceeds_refundable),
     do: "That is more than the amount still refundable on this payment."
 
+  defp refund_error(:partial_refund_on_protected),
+    do:
+      "This payment is protected until the buyer confirms delivery — it can only be refunded in full, not partially."
+
   defp refund_error(:payment_not_found),
     do: "No payment was found for this order, so there is nothing to refund."
 

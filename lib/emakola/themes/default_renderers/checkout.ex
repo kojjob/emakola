@@ -18,10 +18,13 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
 
   import EmakolaWeb.Storefront.Path
 
+  alias Emakola.Payments.Protection
   alias Emakola.Suppliers.GhanaRegions
   alias EmakolaWeb.Helpers.Currency
 
   def render(assigns) do
+    assigns = assign(assigns, :protection_badge?, protection_badge?(assigns))
+
     ~H"""
     <div class="min-h-screen flex flex-col bg-stone-50 text-stone-950 antialiased">
       <%!-- Minimal Navigation --%>
@@ -820,6 +823,16 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                     </span>
                   </div>
 
+                  <%!-- Buyer Protection Badge (TC-2) --%>
+                  <div
+                    :if={@protection_badge?}
+                    id="buyer-protection-badge"
+                    class="mt-4 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs text-emerald-800"
+                  >
+                    <span aria-hidden="true">🛡</span>
+                    <span>Protected by Makola — payment held until you confirm delivery.</span>
+                  </div>
+
                   <%!-- Trust Badges --%>
                   <div class="grid grid-cols-3 gap-3 mt-6 pt-6 border-t border-stone-100">
                     <div class="flex flex-col items-center gap-1.5 text-center">
@@ -1050,6 +1063,31 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
   end
 
   # ── Display helpers ─────────────────────────────────────────────
+
+  # TC-2 Buyer Protection: shown only when the charge WILL actually be held —
+  # same predicate `OrderSettlement.prepare/2` uses (`Protection.applies?/2`),
+  # so the badge and the real settlement decision can never disagree.
+  #
+  # Dropship caveat: `applies?/2` is a store/link-level predicate that knows
+  # nothing about THIS cart. A cart mixing supplier-fulfilled (dropship)
+  # items always settles via the dropship split at charge time — dropship
+  # wins unconditionally over a protection hold (see
+  # `OrderSettlement.prepare/2`) — so showing the badge for one would be a
+  # lie. `@dispatch_variants` (loaded at mount, keyed by the cart's own
+  # variant ids) already carries each variant's `supplier_id`, so checking
+  # it here is free — no extra query.
+  defp protection_badge?(assigns) do
+    Protection.applies?(assigns.store, nil) and not dropship_cart?(assigns)
+  end
+
+  defp dropship_cart?(assigns) do
+    Enum.any?(assigns.cart, fn item ->
+      case Map.get(assigns.dispatch_variants, item.variant_id) do
+        %{supplier_id: supplier_id} -> not is_nil(supplier_id)
+        _ -> false
+      end
+    end)
+  end
 
   defp momo_brand_color("momo"), do: "#FFC107"
   defp momo_brand_color("vodafone"), do: "#E60000"

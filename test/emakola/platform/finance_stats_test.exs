@@ -117,6 +117,35 @@ defmodule Emakola.Platform.FinanceStatsTest do
 
       assert FinanceStats.total_outstanding_payouts() == 0
     end
+
+    test "a released buyer-protection payment counts at its snapshotted net, not the gross amount" do
+      store = Factory.create_store!()
+      order = Factory.create_order!(store, %{total: 25_000})
+
+      payment =
+        store
+        |> success_payment!(%{
+          order_id: order.id,
+          amount: 25_000,
+          payout_held: true,
+          payout_hold_reason: "buyer_protection"
+        })
+
+      :ok = Emakola.Payments.ProtectionHolds.ensure_hold(payment)
+
+      {:ok, hold} =
+        Emakola.Payments.get_protection_hold_by_payment(payment.id,
+          tenant: store.id,
+          authorize?: false
+        )
+
+      assert :ok = Emakola.Payments.ProtectionRelease.release(hold, :buyer_confirmed)
+
+      # Parity with what PayoutService.prepare_payout/1 would actually pay —
+      # the snapshotted net, never the gross amount.
+      assert FinanceStats.total_outstanding_payouts() == hold.net
+      refute FinanceStats.total_outstanding_payouts() == payment.amount
+    end
   end
 
   describe "per_store_finance/0" do
@@ -150,6 +179,33 @@ defmodule Emakola.Platform.FinanceStatsTest do
       Factory.create_store!(%{name: "Quiet Co"})
 
       assert FinanceStats.per_store_finance() == []
+    end
+
+    test "a released buyer-protection payment's outstanding_owed is the snapshotted net" do
+      store = Factory.create_store!()
+      order = Factory.create_order!(store, %{total: 25_000})
+
+      payment =
+        store
+        |> success_payment!(%{
+          order_id: order.id,
+          amount: 25_000,
+          payout_held: true,
+          payout_hold_reason: "buyer_protection"
+        })
+
+      :ok = Emakola.Payments.ProtectionHolds.ensure_hold(payment)
+
+      {:ok, hold} =
+        Emakola.Payments.get_protection_hold_by_payment(payment.id,
+          tenant: store.id,
+          authorize?: false
+        )
+
+      assert :ok = Emakola.Payments.ProtectionRelease.release(hold, :buyer_confirmed)
+
+      row = Enum.find(FinanceStats.per_store_finance(), &(&1.store.id == store.id))
+      assert row.outstanding_owed == hold.net
     end
   end
 end

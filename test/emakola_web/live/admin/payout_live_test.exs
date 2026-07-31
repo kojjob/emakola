@@ -11,6 +11,7 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
 
   alias Emakola.Payments.Workers.SubaccountCreationWorker
   alias Emakola.Stores
+  alias EmakolaWeb.Helpers.Currency
 
   setup %{conn: conn} do
     {conn, _merchant, store} = setup_authenticated_merchant(conn)
@@ -124,5 +125,54 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
 
     assert {:ok, nil} =
              Stores.get_payout_account(store.id, authorize?: false, not_found_error?: false)
+  end
+
+  # -- "Held by Buyer Protection" stat tile (TC-2 Task 11) --
+
+  describe "buyer protection stat tile" do
+    test "sums net only over the store's :held holds", %{conn: conn, store: store} do
+      order1 = Emakola.Factory.create_order!(store)
+      payment1 = Emakola.Factory.create_payment!(store, %{order_id: order1.id})
+      create_protection_hold!(store, payment1, %{amount: 25_000, fee: 1_000, net: 24_000})
+
+      order2 = Emakola.Factory.create_order!(store)
+      payment2 = Emakola.Factory.create_payment!(store, %{order_id: order2.id})
+      create_protection_hold!(store, payment2, %{amount: 10_000, fee: 1_000, net: 9_000})
+
+      order3 = Emakola.Factory.create_order!(store)
+      payment3 = Emakola.Factory.create_payment!(store, %{order_id: order3.id})
+
+      released =
+        create_protection_hold!(store, payment3, %{amount: 52_000, fee: 2_000, net: 50_000})
+
+      released
+      |> Ash.Changeset.for_update(:release, %{release_reason: :staff})
+      |> Ash.update!(authorize?: false)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/payouts")
+
+      assert html =~ "Held by Buyer Protection"
+      assert html =~ Currency.format_price(33_000, store.currency || "GHS")
+      refute html =~ Currency.format_price(83_000, store.currency || "GHS")
+    end
+
+    test "shows zero when the store has no holds", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/admin/payouts")
+
+      assert html =~ "Held by Buyer Protection"
+      assert html =~ Currency.format_price(0, "GHS")
+    end
+  end
+
+  defp create_protection_hold!(store, payment, attrs) do
+    default = %{
+      store_id: store.id,
+      payment_id: payment.id,
+      order_id: payment.order_id
+    }
+
+    Emakola.Payments.ProtectionHold
+    |> Ash.Changeset.for_create(:create, Map.merge(default, attrs))
+    |> Ash.create!(authorize?: false)
   end
 end

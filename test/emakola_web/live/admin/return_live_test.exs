@@ -334,6 +334,38 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
       refute has_element?(view, "button[phx-click='approve_return'][disabled]")
     end
 
+    test "refuses a partial refund on a protected (buyer-protection held) payment", %{
+      conn: conn,
+      store: store
+    } do
+      order = create_order!(store, :delivered)
+      return = create_return!(store, order)
+
+      payment =
+        create_successful_payment!(store, order,
+          amount: 10_000,
+          payout_held: true,
+          payout_hold_reason: "buyer_protection"
+        )
+
+      :ok = Emakola.Payments.ProtectionHolds.ensure_hold(payment)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/returns")
+
+      render_click(view, "select_return", %{"id" => return.id})
+      render_click(view, "update_refund_amount", %{"amount" => "48.50"})
+      html = render_click(view, "approve_return")
+
+      assert html =~
+               "This payment is protected until the buyer confirms delivery — it can only be refunded in full, not partially."
+
+      refute html =~ "Return approved"
+      assert reload(return).status == :requested
+
+      assert Ash.get!(Emakola.Payments.Payment, payment.id, authorize?: false).refunded_amount ==
+               0
+    end
+
     test "points the merchant at the provider dashboard when the gateway cannot refund", %{
       conn: conn,
       store: store

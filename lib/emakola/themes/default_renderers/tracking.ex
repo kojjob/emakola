@@ -65,6 +65,14 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
             <.status_hero status={@order.status} />
           <% end %>
 
+          <%!-- BUYER PROTECTION STRIP (any viewer, when a hold exists) --%>
+          <.protection_strip
+            :if={@protection_hold}
+            hold={@protection_hold}
+            buyer_authorized?={@buyer_authorized?}
+            complaint_form_open={@complaint_form_open}
+          />
+
           <%!-- STATUS TIMELINE --%>
           <div class="bg-white rounded-2xl border border-stone-200 p-5">
             <h2 class="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-5">
@@ -488,6 +496,118 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
     </div>
     """
   end
+
+  # Renders for ANY viewer once a hold exists (held/frozen/released/refunded)
+  # — the buyer/report controls render ONLY when `buyer_authorized?` (TC-2:
+  # a bare tracking URL must never move money; only the signed link does).
+  attr :hold, :map, required: true
+  attr :buyer_authorized?, :boolean, required: true
+  attr :complaint_form_open, :boolean, required: true
+
+  defp protection_strip(assigns) do
+    ~H"""
+    <div class="bg-white rounded-2xl border border-stone-200 p-5">
+      <div class="flex items-start gap-3">
+        <span class="text-xl" aria-hidden="true">🛡️</span>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-sm font-bold text-cta-dark">Makola Buyer Protection</h2>
+          <p class="text-sm text-stone-600 mt-1">{protection_status_copy(@hold)}</p>
+        </div>
+      </div>
+
+      <div
+        :if={@buyer_authorized? and @hold.status == :held and is_nil(@hold.frozen_at)}
+        class="mt-4 flex flex-col gap-2"
+      >
+        <button
+          phx-click="confirm_received"
+          class="w-full px-4 py-2.5 bg-store-accent hover:opacity-90 text-white rounded-xl text-sm font-semibold transition-opacity"
+        >
+          I received my order
+        </button>
+        <button
+          phx-click="open_complaint"
+          class="w-full px-4 py-2.5 border border-stone-300 hover:bg-stone-50 text-stone-700 rounded-xl text-sm font-semibold transition-colors"
+        >
+          Report a problem
+        </button>
+      </div>
+
+      <form
+        :if={@buyer_authorized? and @complaint_form_open}
+        phx-submit="file_complaint"
+        class="mt-4 space-y-3 border-t border-stone-100 pt-4"
+      >
+        <div>
+          <label
+            class="text-xs font-semibold text-stone-500 uppercase tracking-wide"
+            for="complaint_reason"
+          >
+            What went wrong?
+          </label>
+          <select
+            id="complaint_reason"
+            name="reason"
+            class="mt-1 w-full rounded-lg border border-stone-300 text-sm px-3 py-2"
+          >
+            <option value="not_received">I never received it</option>
+            <option value="not_as_described">Not as described</option>
+            <option value="other">Something else</option>
+          </select>
+        </div>
+        <div>
+          <label
+            class="text-xs font-semibold text-stone-500 uppercase tracking-wide"
+            for="complaint_text"
+          >
+            Details
+          </label>
+          <textarea
+            id="complaint_text"
+            name="text"
+            rows="3"
+            class="mt-1 w-full rounded-lg border border-stone-300 text-sm px-3 py-2"
+            placeholder="Tell us what happened"
+          ></textarea>
+        </div>
+        <button
+          type="submit"
+          class="w-full px-4 py-2.5 bg-cta-dark hover:opacity-90 text-white rounded-xl text-sm font-semibold transition-opacity"
+        >
+          Submit complaint
+        </button>
+      </form>
+    </div>
+    """
+  end
+
+  defp protection_status_copy(%{status: :held, frozen_at: frozen_at})
+       when not is_nil(frozen_at) do
+    "Complaint under review — the payment stays held while we look into it."
+  end
+
+  defp protection_status_copy(%{status: :held, release_after: release_after})
+       when not is_nil(release_after) do
+    "Payment held until #{format_date(release_after)}, or as soon as you confirm delivery."
+  end
+
+  defp protection_status_copy(%{status: :held}) do
+    "Payment held until you confirm delivery."
+  end
+
+  defp protection_status_copy(%{status: :released, release_reason: :buyer_confirmed}) do
+    "Payment released to the seller — thanks for confirming."
+  end
+
+  defp protection_status_copy(%{status: :released}) do
+    "Payment released to the seller."
+  end
+
+  defp protection_status_copy(%{status: :refunded}) do
+    "This order was refunded and the protection hold closed."
+  end
+
+  defp format_date(datetime), do: Calendar.strftime(datetime, "%b %d, %Y")
 
   # -- Helpers --
 

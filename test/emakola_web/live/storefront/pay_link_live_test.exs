@@ -158,6 +158,146 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
     assert order.total == 25_000
   end
 
+  test "a protected: true link creates a payment with no split and a payout hold flagged", %{
+    conn: conn
+  } do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store, %{protected: true})
+
+    original = Application.get_env(:emakola, :payment_gateway)
+    Application.put_env(:emakola, :payment_gateway, Emakola.Payments.GatewayMock)
+    on_exit(fn -> Application.put_env(:emakola, :payment_gateway, original) end)
+
+    expect(Emakola.Payments.GatewayMock, :initiate_payment, fn _params ->
+      {:ok, %{reference: "PAY-protected-ref", authorization_url: "https://pay.test/protected"}}
+    end)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+    Mox.allow(Emakola.Payments.GatewayMock, self(), view.pid)
+
+    view
+    |> form("#pay-link-form", %{
+      "buyer" => %{"name" => "Ama Mensah", "phone" => "0201234567"}
+    })
+    |> render_submit()
+
+    [order] =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    payment =
+      Emakola.Payments.Payment
+      |> Ash.Query.filter(order_id == ^order.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+      |> List.first()
+
+    assert payment.split_mode == :none
+    assert payment.payout_held == true
+    assert payment.payout_hold_reason == "buyer_protection"
+  end
+
+  test "invalid phone renders a friendly error and creates no order", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+
+    html =
+      view
+      |> form("#pay-link-form", %{
+        "buyer" => %{"name" => "Ama Mensah", "phone" => "abc"}
+      })
+      |> render_submit()
+
+    assert html =~ "Enter a valid phone number"
+
+    orders =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    assert orders == []
+  end
+
+  # "0201234567" (local, 10 digits) is already covered by "submitting the form
+  # creates the order and initiates payment" above.
+  test "E.164-formatted phone with spaces initiates payment", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    original = Application.get_env(:emakola, :payment_gateway)
+    Application.put_env(:emakola, :payment_gateway, Emakola.Payments.GatewayMock)
+    on_exit(fn -> Application.put_env(:emakola, :payment_gateway, original) end)
+
+    expect(Emakola.Payments.GatewayMock, :initiate_payment, fn _params ->
+      {:ok, %{reference: "PAY-e164-ref", authorization_url: "https://pay.test/e164"}}
+    end)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+    Mox.allow(Emakola.Payments.GatewayMock, self(), view.pid)
+
+    view
+    |> form("#pay-link-form", %{
+      "buyer" => %{"name" => "Ama Mensah", "phone" => "+233 20 123 4567"}
+    })
+    |> render_submit()
+
+    [order] =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    assert order.total == 25_000
+  end
+
+  # Regression guard: PhoneAuth.normalize/1 pads any digit string with no
+  # leading 0/233/234 with a "+233" prefix, so a short garbage number can
+  # normalize to >= 9 digits and slip past a naive post-normalization count
+  # check. Validating raw digit shape (before normalization) closes that gap.
+  test "a short numeric string that would normalize to 9+ digits via +233 padding is rejected",
+       %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+
+    html =
+      view
+      |> form("#pay-link-form", %{"buyer" => %{"name" => "Ama Mensah", "phone" => "555555"}})
+      |> render_submit()
+
+    assert html =~ "Enter a valid phone number"
+
+    orders =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    assert orders == []
+  end
+
+  test "a local phone one digit short of a valid number is rejected", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+
+    html =
+      view
+      |> form("#pay-link-form", %{"buyer" => %{"name" => "Ama Mensah", "phone" => "020123456"}})
+      |> render_submit()
+
+    assert html =~ "Enter a valid phone number"
+
+    orders =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    assert orders == []
+  end
+
   test "typing into the buyer form updates the field via the validate handler", %{conn: conn} do
     store = Emakola.Factory.create_store!()
     link = custom_link!(store)
@@ -297,6 +437,81 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
 
     assert html =~ ~s(value="2" selected)
     assert html =~ EmakolaWeb.Helpers.Currency.format_price(8_000 * 2, "GHS")
+  end
+
+  # -- Buyer protection badge (TC-2 Task 11) --
+
+  test "shows the protection badge for a protected pay link", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store, %{protected: true})
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+
+    assert html =~ "Protected by Makola"
+  end
+
+  test "hides the protection badge for a default (unprotected) pay link", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+
+    refute html =~ "Protected by Makola"
+  end
+
+  test "hides the protection badge when the link opts out even though store protection is on",
+       %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+
+    store
+    |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+    |> Ash.update!(authorize?: false)
+
+    link = custom_link!(store, %{protected: false})
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+
+    refute html =~ "Protected by Makola"
+  end
+
+  test "hides the protection badge for a catalog link pointing at a dropship variant", %{
+    conn: conn
+  } do
+    store = Emakola.Factory.create_store!()
+
+    store
+    |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+    |> Ash.update!(authorize?: false)
+
+    wholesaler = Emakola.Factory.create_store!()
+    supplier = Emakola.Factory.create_supplier!(store, linked_store_id: wholesaler.id)
+    product = Emakola.Factory.create_product!(store, %{title: "Dropship Basket"})
+
+    variant =
+      Emakola.Factory.create_variant!(product, store, %{
+        price: 8_000,
+        stock_quantity: 5,
+        supplier_id: supplier.id
+      })
+
+    link = catalog_link!(store, variant, %{protected: true})
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+
+    refute html =~ "Protected by Makola"
+  end
+
+  test "shows the protection badge for a catalog link pointing at an own-stock variant", %{
+    conn: conn
+  } do
+    store = Emakola.Factory.create_store!()
+    product = Emakola.Factory.create_product!(store, %{title: "Own Stock Basket"})
+    variant = Emakola.Factory.create_variant!(product, store, %{price: 8_000, stock_quantity: 5})
+    link = catalog_link!(store, variant, %{protected: true})
+
+    {:ok, _view, html} = live(conn, "/pay/#{link.code}")
+
+    assert html =~ "Protected by Makola"
   end
 
   test "search overlay keyup on the pay page doesn't crash the socket", %{conn: conn} do

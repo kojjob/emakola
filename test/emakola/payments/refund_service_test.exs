@@ -363,6 +363,44 @@ defmodule Emakola.Payments.RefundServiceTest do
     end
   end
 
+  describe "issue/5 — authorize?: false (Task 12: platform staff)" do
+    # Platform staff act through `Emakola.Accounts.User`, not `Merchant` — the
+    # actor type `Return`/`Payment`'s policies check for. Without an override,
+    # staff hit the same default-deny a merchant-without-membership does.
+    test "a platform-staff actor is forbidden by default (safe default — merchant flow unaffected)",
+         ctx do
+      staff = create_platform_owner!()
+
+      assert {:error, _reason} =
+               RefundService.issue(
+                 staff,
+                 ctx.return,
+                 %{refund_amount: 12_500, admin_notes: "", refund_dispatch_fee?: false},
+                 GatewayMock
+               )
+
+      assert reload(ctx.payment).refunded_amount == 0
+      assert reload(ctx.return).status == :requested
+    end
+
+    test "authorize?: false lets a platform-staff actor issue the refund", ctx do
+      staff = create_platform_owner!()
+
+      expect(GatewayMock, :process_refund, fn _reference, _amount -> {:ok, %{}} end)
+
+      assert {:ok, approved} =
+               RefundService.issue(
+                 staff,
+                 ctx.return,
+                 %{refund_amount: 12_500, admin_notes: "", refund_dispatch_fee?: false},
+                 GatewayMock,
+                 authorize?: false
+               )
+
+      assert approved.status == :approved
+    end
+  end
+
   describe "gateway_for/1" do
     test "routes a Hubtel charge back through Hubtel" do
       assert RefundService.gateway_for(%{gateway: :hubtel}) == Emakola.Payments.Gateways.Hubtel
@@ -411,6 +449,198 @@ defmodule Emakola.Payments.RefundServiceTest do
 
       assert reload(ctx.payment).refunded_amount == 0
       assert reload(ctx.return).status == :requested
+    end
+  end
+
+  describe "issue/4 — buyer protection hold" do
+    # A fresh order per test (not `ctx.order`) — `ctx.payment` from the
+    # top-level setup already carries the oldest `:success` charge on
+    # `ctx.order`, and `captured_payment/2` picks the OLDEST captured
+    # payment, so reusing `ctx.order` here would refund the wrong payment.
+    defp protected_payment!(store, order, attrs \\ %{}) do
+      payment =
+        store
+        |> create_payment!(
+          Map.merge(
+            %{
+              order_id: order.id,
+              amount: 50_000,
+              payout_held: true,
+              payout_hold_reason: "buyer_protection"
+            },
+            Map.new(attrs)
+          )
+        )
+        |> mark_success!()
+
+      :ok = Emakola.Payments.ProtectionHolds.ensure_hold(payment)
+
+      {:ok, hold} =
+        Emakola.Payments.get_protection_hold_by_payment(payment.id,
+          tenant: store.id,
+          authorize?: false
+        )
+
+      {payment, hold}
+    end
+
+    defp reload_hold(store, hold) do
+      {:ok, reloaded} =
+        Emakola.Payments.get_protection_hold_by_payment(hold.payment_id,
+          tenant: store.id,
+          authorize?: false
+        )
+
+      reloaded
+    end
+
+    # Gateway acceptance is NOT refund success — Paystack refund-create
+    # returns immediately with the refund still `pending`, resolving async
+    # (and possibly failing) via `refund.processed`. So `issue/5` must NOT
+    # close the hold itself; it only stashes the intended resolution for
+    # the webhook to apply once the refund is actually confirmed. This is
+    # the corrected behavior — the RED for the old (wrong) "closes
+    # immediately" behavior is exactly this: the hold stays `:held`.
+    test "a full refund does not close the hold — it stashes the resolution for the webhook",
+         ctx do
+      order = create_order!(ctx.store, status: :delivered)
+      {payment, hold} = protected_payment!(ctx.store, order)
+      return = create_return!(ctx.store, order)
+
+      expect(GatewayMock, :process_refund, fn _reference, _amount -> {:ok, %{}} end)
+
+      assert {:ok, approved} =
+               RefundService.issue(
+                 ctx.merchant,
+                 return,
+                 %{refund_amount: 50_000, admin_notes: "", refund_dispatch_fee?: false},
+                 GatewayMock
+               )
+
+      assert approved.status == :approved
+
+      reloaded = reload_hold(ctx.store, hold)
+      assert reloaded.status == :held
+      assert is_nil(reloaded.resolution)
+
+      assert reload(payment).metadata["protection_resolution"] == "merchant_refunded"
+    end
+
+    test "a full refund with an explicit resolution stashes THAT resolution (Task 12's seam)",
+         ctx do
+      order = create_order!(ctx.store, status: :delivered)
+      {payment, _hold} = protected_payment!(ctx.store, order)
+      return = create_return!(ctx.store, order)
+
+      expect(GatewayMock, :process_refund, fn _reference, _amount -> {:ok, %{}} end)
+
+      assert {:ok, _approved} =
+               RefundService.issue(
+                 ctx.merchant,
+                 return,
+                 %{refund_amount: 50_000, admin_notes: "", refund_dispatch_fee?: false},
+                 GatewayMock,
+                 resolution: :refunded_by_staff
+               )
+
+      assert reload(payment).metadata["protection_resolution"] == "refunded_by_staff"
+    end
+
+    # No `expect/3` is registered here, so ANY call to
+    # GatewayMock.process_refund/2 raises Mox.UnexpectedCallError — that IS
+    # the "zero gateway calls" assertion. A protected payment's hold.net was
+    # snapshotted against the FULL amount; a partial refund would leave that
+    # snapshot stale and a later release would still pay the merchant the
+    # full net while the platform holds less — see the moduledoc and
+    # `validate_amount/2`.
+    test "a partial refund on a protected (held) payment is refused before the gateway", ctx do
+      order = create_order!(ctx.store, status: :delivered)
+      {payment, hold} = protected_payment!(ctx.store, order)
+      return = create_return!(ctx.store, order)
+
+      assert {:error, :partial_refund_on_protected} =
+               RefundService.issue(
+                 ctx.merchant,
+                 return,
+                 %{refund_amount: 12_500, admin_notes: "", refund_dispatch_fee?: false},
+                 GatewayMock
+               )
+
+      reloaded = reload_hold(ctx.store, hold)
+      assert reloaded.status == :held
+      assert is_nil(reloaded.resolution)
+
+      assert reload(return).status == :requested
+      assert reload(payment).refunded_amount == 0
+      refute Map.has_key?(reload(payment).metadata, "protection_resolution")
+    end
+
+    test "a FULL refund on a protected payment is still allowed (equality is not partial)", ctx do
+      order = create_order!(ctx.store, status: :delivered)
+      {payment, _hold} = protected_payment!(ctx.store, order, %{amount: 20_000})
+      return = create_return!(ctx.store, order)
+
+      expect(GatewayMock, :process_refund, fn _reference, _amount -> {:ok, %{}} end)
+
+      assert {:ok, approved} =
+               RefundService.issue(
+                 ctx.merchant,
+                 return,
+                 %{refund_amount: 20_000, admin_notes: "", refund_dispatch_fee?: false},
+                 GatewayMock
+               )
+
+      assert approved.status == :approved
+      assert reload(payment).metadata["protection_resolution"] == "merchant_refunded"
+    end
+
+    test "a partial refund on an UNPROTECTED payment is unaffected by the protected-hold guard",
+         ctx do
+      # ctx.payment (top-level setup) carries no ProtectionHold at all — the
+      # ordinary case for the vast majority of payments. This must behave
+      # byte-identically to before the guard existed.
+      expect(GatewayMock, :process_refund, fn _reference, amount ->
+        assert amount == 12_500
+        {:ok, %{}}
+      end)
+
+      assert {:ok, approved} =
+               RefundService.issue(
+                 ctx.merchant,
+                 ctx.return,
+                 %{refund_amount: 12_500, admin_notes: "", refund_dispatch_fee?: false},
+                 GatewayMock
+               )
+
+      assert approved.status == :approved
+      assert approved.refund_amount == 12_500
+    end
+
+    test "a refund on a payment with no protection hold is untouched", ctx do
+      # `ctx.payment` (top-level setup) was never routed through
+      # `ProtectionHolds.ensure_hold` — no hold row exists for it at all,
+      # the ordinary case for the vast majority of payments.
+      expect(GatewayMock, :process_refund, fn _reference, _amount -> {:ok, %{}} end)
+
+      assert {:ok, approved} =
+               RefundService.issue(
+                 ctx.merchant,
+                 ctx.return,
+                 %{refund_amount: 50_000, admin_notes: "", refund_dispatch_fee?: false},
+                 GatewayMock
+               )
+
+      assert approved.status == :approved
+
+      # `get?: true` read actions return `{:error, NotFound}` (wrapped in
+      # `Ash.Error.Invalid`), not `{:ok, nil}`, when nothing matches.
+      assert {:error, %Ash.Error.Invalid{}} =
+               Emakola.Payments.get_protection_hold_by_payment(ctx.payment.id,
+                 tenant: ctx.store.id,
+                 authorize?: false
+               )
+
+      refute Map.has_key?(reload(ctx.payment).metadata, "protection_resolution")
     end
   end
 

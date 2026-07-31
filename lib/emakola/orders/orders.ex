@@ -58,6 +58,7 @@ defmodule Emakola.Orders do
       define(:request_return, action: :request_return)
       define(:approve_return, action: :approve)
       define(:deny_return, action: :deny)
+      define(:reopen_return, action: :reopen)
       define(:mark_return_refunded, action: :mark_refunded)
       define(:list_returns_by_store, action: :list_by_store, args: [:store_id])
       define(:get_return_by_order, action: :get_by_order, args: [:order_id])

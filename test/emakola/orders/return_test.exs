@@ -222,6 +222,63 @@ defmodule Emakola.Orders.ReturnTest do
     end
   end
 
+  describe "reopen" do
+    test "transitions denied to requested", %{store: store, order: order} do
+      return = create_return!(store, order)
+
+      denied =
+        return
+        |> Ash.Changeset.for_update(:deny, %{admin_notes: "Outside return window"})
+        |> Ash.update!(authorize?: false)
+
+      reopened =
+        denied
+        |> Ash.Changeset.for_update(:reopen, %{})
+        |> Ash.update!(authorize?: false)
+
+      assert reopened.status == :requested
+    end
+
+    test "cannot reopen a requested return", %{store: store, order: order} do
+      return = create_return!(store, order)
+
+      assert {:error, _} =
+               return
+               |> Ash.Changeset.for_update(:reopen, %{})
+               |> Ash.update(authorize?: false)
+    end
+
+    test "cannot reopen an approved return", %{store: store, order: order} do
+      return = create_return!(store, order)
+
+      approved =
+        return
+        |> Ash.Changeset.for_update(:approve, %{refund_amount: 4850})
+        |> Ash.update!(authorize?: false)
+
+      assert {:error, _} =
+               approved
+               |> Ash.Changeset.for_update(:reopen, %{})
+               |> Ash.update(authorize?: false)
+    end
+
+    test "cannot reopen a refunded return", %{store: store, order: order} do
+      return = create_return!(store, order)
+
+      refunded =
+        return
+        |> Ash.Changeset.for_update(:approve, %{refund_amount: 4850})
+        |> Ash.update!(authorize?: false)
+        |> Ash.Changeset.for_update(:mark_refunded, %{})
+        |> Ash.update!(authorize?: false)
+
+      assert {:error, _} =
+               refunded
+               |> Ash.Changeset.for_update(:reopen, %{})
+               |> Ash.update(authorize?: false)
+    end
+  end
+
   # -- Read actions ---------------------------------------------------
 
   describe "list_by_store" do

@@ -13,8 +13,10 @@ defmodule EmakolaWeb.Admin.PayoutLive do
   """
   use EmakolaWeb, :live_view
 
+  alias Emakola.Payments.ProtectionHolds
   alias Emakola.Payments.Workers.SubaccountCreationWorker
   alias Emakola.Stores
+  alias EmakolaWeb.Helpers.Currency
 
   @impl true
   def mount(_params, _session, socket) do
@@ -27,7 +29,8 @@ defmodule EmakolaWeb.Admin.PayoutLive do
          |> assign(:page_title, "Payouts")
          |> assign(:active_nav, :payouts)
          |> assign(:account, account)
-         |> assign(:method, current_method(account))}
+         |> assign(:method, current_method(account))
+         |> assign(:held_net_total, ProtectionHolds.held_net_total(store.id))}
 
       _ ->
         {:ok, push_navigate(socket, to: ~p"/dashboard")}
@@ -146,6 +149,16 @@ defmodule EmakolaWeb.Admin.PayoutLive do
           Tell us where to send your sales. Stored securely.
         </p>
       </header>
+
+      <div class="mb-6">
+        <.stat_card
+          label="Held by Buyer Protection"
+          value={Currency.format_price(@held_net_total, @current_store.currency || "GHS")}
+          icon_bg="bg-emerald-50"
+        >
+          <:icon><.icon name="hero-shield-check" class="w-[18px] h-[18px] text-emerald-600" /></:icon>
+        </.stat_card>
+      </div>
 
       <div
         :if={@account}

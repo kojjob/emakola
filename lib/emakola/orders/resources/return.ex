@@ -5,6 +5,11 @@ defmodule Emakola.Orders.Return do
   Tracks return requests from customers through the lifecycle:
   requested -> approved -> refunded
   requested -> denied
+  denied -> requested (`:reopen`, platform-staff only — TC-2 Task 12: a
+  buyer complaint can escalate a merchant-denied return into the
+  buyer-protection queue's staff-refund path; called with `authorize?:
+  false` from `EmakolaWeb.Platform.ProtectionLive`, same posture as this
+  resource's other transitions)
 
   All monetary amounts are integers in minor currency units (pesewas).
   Multi-tenant via store_id. One return per order (unique identity on order_id).
@@ -185,6 +190,32 @@ defmodule Emakola.Orders.Return do
       end)
 
       change(set_attribute(:status, :denied))
+    end
+
+    # Escalation path (TC-2 Task 12): a merchant denial isn't necessarily the
+    # last word — a buyer complaint can freeze a protection hold on the same
+    # order, and staff need a way to move the return forward again to refund
+    # through the normal RefundService path. Same validate+change shape as
+    # :deny/:approve/:mark_refunded above.
+    update :reopen do
+      require_atomic?(false)
+      accept([])
+
+      validate(fn changeset, _context ->
+        status = Ash.Changeset.get_attribute(changeset, :status)
+
+        if status == :denied do
+          :ok
+        else
+          {:error,
+           Ash.Error.Changes.InvalidAttribute.exception(
+             field: :status,
+             message: "can only reopen a denied return"
+           )}
+        end
+      end)
+
+      change(set_attribute(:status, :requested))
     end
 
     update :mark_refunded do

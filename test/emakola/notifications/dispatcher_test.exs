@@ -69,6 +69,52 @@ defmodule Emakola.Notifications.DispatcherTest do
         queue: :notifications
       )
     end
+
+    # ── TC-2 buyer protection lifecycle events (Task 10) ──────────
+
+    test "enqueues Oban job for protection_held" do
+      order = fake_order()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch(order, :protection_held)
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{order_id: order.id, event: "protection_held"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for protection_delivery_nudge" do
+      order = fake_order()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch(order, :protection_delivery_nudge)
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{order_id: order.id, event: "protection_delivery_nudge"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for protection_released" do
+      order = fake_order()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch(order, :protection_released)
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{order_id: order.id, event: "protection_released"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for protection_complaint" do
+      order = fake_order()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch(order, :protection_complaint)
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{order_id: order.id, event: "protection_complaint"},
+        queue: :notifications
+      )
+    end
   end
 
   # ── PubSub broadcast ──────────────────────────────────────────

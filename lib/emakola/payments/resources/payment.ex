@@ -119,6 +119,13 @@ defmodule Emakola.Payments.Payment do
       public?(true)
     end
 
+    # Buyer Protection: when set, PayoutService pays this instead of `amount`
+    # — the merchant's protected charges pay out net-of-fee once their
+    # ProtectionHold releases (Task 5).
+    attribute :payable_amount, :integer do
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -253,7 +260,10 @@ defmodule Emakola.Payments.Payment do
 
     update :release_payout_hold do
       require_atomic?(false)
-      accept([])
+      # `payable_amount` is optional here: buyer-protection release (Task 5)
+      # passes the hold's snapshotted net; the group-buy escrow release
+      # (group_buys.ex) calls this with no arguments and is unaffected.
+      accept([:payable_amount])
       change(set_attribute(:payout_held, false))
       change(set_attribute(:payout_released_at, &DateTime.utc_now/0))
     end

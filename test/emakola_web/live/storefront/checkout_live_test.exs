@@ -414,6 +414,105 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     end
   end
 
+  # -- Buyer protection settlement (TC-2) --
+
+  describe "buyer protection settlement" do
+    test "places a protected order with no merchant split and a payout hold flagged", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      verified_payout!(store, "ACCT_protected")
+
+      store
+      |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+      |> Ash.update!(authorize?: false)
+
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "241234567",
+        "fullname" => "Kofi Owusu",
+        "address" => "House 14, Osu",
+        "region" => "greater_accra",
+        "notes" => ""
+      })
+
+      payment =
+        Emakola.Payments.Payment
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+        |> List.first()
+
+      assert payment.split_mode == :none
+      assert payment.payout_held == true
+      assert payment.payout_hold_reason == "buyer_protection"
+
+      {:ok, splits} =
+        Emakola.Payments.PaymentSplit
+        |> Ash.Query.for_read(:by_payment, %{payment_id: payment.id})
+        |> Ash.read(authorize?: false)
+
+      assert splits == []
+    end
+  end
+
+  # -- Buyer protection badge (TC-2 Task 11) --
+
+  describe "buyer protection badge" do
+    test "shows the badge when the store has protection enabled", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      store
+      |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+      |> Ash.update!(authorize?: false)
+
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+
+      assert html =~ "Protected by Makola"
+    end
+
+    test "hides the badge when the store has protection disabled", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+
+      refute html =~ "Protected by Makola"
+    end
+
+    test "hides the badge for a cart with dropship items even when protection is enabled", %{
+      conn: conn
+    } do
+      store = create_store!(%{name: "Drop Badge Shop", slug: "drop-badge-shop", currency: "GHS"})
+
+      store
+      |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+      |> Ash.update!(authorize?: false)
+
+      wholesaler = create_store!(%{name: "Whole Badge Co", slug: "whole-badge-co"})
+      supplier = create_supplier!(store, name: "Linked", linked_store_id: wholesaler.id)
+
+      product = create_product!(store, %{title: "Dropship Badge Item"})
+
+      variant =
+        create_variant!(product, store, price: 5_000, sku: "DBADGE-1", supplier_id: supplier.id)
+
+      product |> Ash.Changeset.for_update(:activate, %{}) |> Ash.update!(authorize?: false)
+
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+
+      refute html =~ "Protected by Makola"
+    end
+  end
+
   # -- Region Select --
 
   describe "region select" do
