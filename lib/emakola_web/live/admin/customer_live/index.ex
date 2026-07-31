@@ -5,6 +5,9 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   """
   use EmakolaWeb, :live_view
 
+  # Page window for the customer list; "Load more" grows it by this much.
+  @customers_limit 100
+
   require Logger
 
   import EmakolaWeb.Helpers.Currency, only: [format_price: 1]
@@ -20,7 +23,9 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         active_nav: :customers,
         store_id: store_id,
         search_query: "",
-        customers: []
+        customers: [],
+        customers_limit: @customers_limit,
+        more_customers?: false
       )
       |> load_customers()
 
@@ -28,10 +33,18 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
   end
 
   @impl true
+  def handle_event("load_more_customers", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(customers_limit: socket.assigns.customers_limit + @customers_limit)
+     |> load_customers()}
+  end
+
+  @impl true
   def handle_event("search", %{"search" => query}, socket) do
     socket =
       socket
-      |> assign(search_query: query)
+      |> assign(search_query: query, customers_limit: @customers_limit)
       |> load_customers()
 
     {:noreply, socket}
@@ -196,11 +209,22 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         </div>
       <% end %>
 
-      <%!-- Pagination placeholder --%>
-      <div class="flex items-center justify-between">
+      <%!-- The list is a window, not the whole book. This was a "pagination
+      placeholder" that only ever printed a count, so customers past the limit
+      were unreachable with no hint they existed. --%>
+      <div class="flex items-center justify-between gap-3">
         <p class="text-sm text-slate-500">
           Showing <span class="font-semibold text-slate-700">{length(@customers)}</span> customers
         </p>
+        <.admin_button
+          :if={@more_customers?}
+          id="load-more-customers"
+          variant={:secondary}
+          phx-click="load_more_customers"
+          phx-disable-with="Loading..."
+        >
+          Load more customers
+        </.admin_button>
       </div>
     </div>
     """
@@ -208,22 +232,21 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
 
   # ── Data Loading ──
 
-  @customers_limit 100
-
   defp load_customers(socket) do
     store_id = socket.assigns.store_id
     search_query = socket.assigns.search_query
+    limit = socket.assigns[:customers_limit] || @customers_limit
 
     customers =
       if store_id do
         if search_query != "" do
           Emakola.Customers.search_customers!(store_id, search_query,
-            query: [limit: @customers_limit],
+            query: [limit: limit + 1],
             authorize?: false
           )
         else
           Emakola.Customers.list_customers_by_store!(store_id,
-            query: [limit: @customers_limit],
+            query: [limit: limit + 1],
             authorize?: false
           )
         end
@@ -231,14 +254,20 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         []
       end
 
-    assign(socket, customers: customers)
+    # One row past the window answers "is there more?" without a second COUNT.
+    {customers, more?} =
+      if length(customers) > limit,
+        do: {Enum.take(customers, limit), true},
+        else: {customers, false}
+
+    assign(socket, customers: customers, customers_limit: limit, more_customers?: more?)
   rescue
     exception ->
       Logger.error(
         "[customer_live.index] load_customers loading customers raised: #{Exception.message(exception)}"
       )
 
-      assign(socket, customers: [])
+      assign(socket, customers: [], more_customers?: false)
   end
 
   # ── Helpers ──
