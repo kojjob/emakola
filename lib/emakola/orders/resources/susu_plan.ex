@@ -293,14 +293,23 @@ defmodule Emakola.Orders.SusuPlan do
   end
 
   @doc "Can a buyer start this plan? Only while pending and before the deadline."
-  def usable_for_start?(%__MODULE__{status: :pending, deadline: deadline}) do
+  # Plain-map patterns with an explicit :__struct__ key, NOT `%__MODULE__{}`:
+  # Ash defines this module's struct via Spark DSL hooks, and on the release
+  # image's Elixir (Dockerfile pins 1.18.3) `%__MODULE__{}` expands before the
+  # struct exists — MIX_ENV=prod compile fails while dev/test/CI (1.20) pass.
+  # Same class of failure as the `PayLink.usable?/1` hotfix.
+  def usable_for_start?(%{__struct__: __MODULE__, status: :pending, deadline: deadline}) do
     DateTime.compare(deadline, DateTime.utc_now()) != :lt
   end
 
-  def usable_for_start?(%__MODULE__{}), do: false
+  def usable_for_start?(%{__struct__: __MODULE__}), do: false
 
   @doc "Amount still owed toward the plan's total."
-  def remaining(%__MODULE__{total_amount: total_amount, contributed_amount: contributed_amount}) do
+  def remaining(%{
+        __struct__: __MODULE__,
+        total_amount: total_amount,
+        contributed_amount: contributed_amount
+      }) do
     total_amount - contributed_amount
   end
 
@@ -311,7 +320,7 @@ defmodule Emakola.Orders.SusuPlan do
   `min_chunk` and `remaining` would be valid), so the range collapses to the
   single value that lands exactly on the total.
   """
-  def chunk_bounds(%__MODULE__{min_chunk: min_chunk} = plan) do
+  def chunk_bounds(%{__struct__: __MODULE__, min_chunk: min_chunk} = plan) do
     remaining = remaining(plan)
     %{min: min(min_chunk, remaining), max: remaining}
   end

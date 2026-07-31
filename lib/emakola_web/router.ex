@@ -388,6 +388,15 @@ defmodule EmakolaWeb.Router do
       live "/pay/:code", Storefront.PayLinkLive
     end
 
+    # Susu (lay-away) buyer pages — public bare-code face + signed "My susu"
+    # progress face, both served by ONE LiveView. Same apex-host posture as
+    # pay links above (this scope is host: @apex_hosts).
+    live_session :susu_link,
+      layout: {EmakolaWeb.Layouts, :storefront},
+      on_mount: [{EmakolaWeb.Hooks.AssignDefaults, :default}] do
+      live "/susu/:code", Storefront.SusuLinkLive
+    end
+
     # Platform admin routes (platform staff only). Pages gate themselves with
     # a module-level {Hooks.RequirePermission, permission} on_mount:
     #   stores → :manage_stores, team → :manage_team, audit-log → :view_audit_log,
