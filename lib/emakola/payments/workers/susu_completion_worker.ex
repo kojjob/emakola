@@ -1,26 +1,30 @@
 defmodule Emakola.Payments.Workers.SusuCompletionWorker do
   @moduledoc """
-  Shell for TC-3 Task 5's susu-plan completion worker.
+  Completes a susu plan (TC-3 Task 5): creates its order, attaches every
+  contributing payment, apportions the platform fee, composes buyer
+  protection, and confirms the order.
 
   `Emakola.Orders.SusuChunks.confirm_chunk/1` (Task 3) enqueues this job,
   unique on its args, the instant a plan's final chunk lands
-  (`contributed_amount == total_amount` -> `:complete`). Task 5 does the
-  real work here: creating the plan's order, attaching every contributing
-  payment via `Payment.:attach_order`, and notifying the buyer.
+  (`contributed_amount == total_amount` -> `:complete`).
 
-  Until Task 5 lands, `perform/1` snoozes rather than either silently
-  no-opping (`:ok` would hide that nothing happened) or erroring the queue
-  into retries and eventual `:discarded` (a plan that legitimately
-  completed shouldn't dead-letter). The job stays visibly queued in Oban —
-  an honest "not implemented yet", not a placeholder pretending to work.
+  All the real work lives in `Emakola.Orders.SusuCompletion.complete/1`,
+  which is idempotent (a second run for the same plan finds its order
+  already created and no-ops). This `perform/1` does NOT rescue: a raise
+  from `complete/1` means a genuine invariant violation (e.g. broken fee
+  apportionment), which should fail the job loudly and let Oban retry —
+  never recorded as a silent success.
   """
 
   use Oban.Worker,
     queue: :orders,
     unique: [fields: [:args], period: 86_400]
 
+  alias Emakola.Orders.SusuCompletion
+
   @impl Oban.Worker
-  def perform(%Oban.Job{args: %{"susu_plan_id" => _plan_id}}) do
-    {:snooze, 60}
+  def perform(%Oban.Job{args: %{"susu_plan_id" => plan_id}}) do
+    {:ok, _order} = SusuCompletion.complete(plan_id)
+    :ok
   end
 end

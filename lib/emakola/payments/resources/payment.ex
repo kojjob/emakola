@@ -319,6 +319,18 @@ defmodule Emakola.Payments.Payment do
       change(set_attribute(:payout_released_at, &DateTime.utc_now/0))
     end
 
+    # Susu completion (TC-3 Task 5): a protected contribution's hold is NOT
+    # released here — it converts into an ordinary buyer-protection hold
+    # instead (`payout_held` stays true). The accompanying `ProtectionHold`
+    # row this pairs with is released later through TC-2's normal
+    # delivery-confirmed machinery (`ProtectionRelease.release/2,3`), the
+    # same as any other protected order.
+    update :mark_buyer_protection_hold do
+      require_atomic?(false)
+      accept([])
+      change(set_attribute(:payout_hold_reason, "buyer_protection"))
+    end
+
     read :by_payout do
       argument(:payout_id, :uuid, allow_nil?: false)
       filter(expr(payout_id == ^arg(:payout_id)))
