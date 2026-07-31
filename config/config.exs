@@ -150,6 +150,7 @@ config :emakola, Oban,
        {"*/5 * * * *", Emakola.Suppliers.Workers.ProtectedPreorderExpiryWorker},
        {"15 * * * *", Emakola.Payments.Workers.PaymentExpiryWorker},
        {"0 * * * *", Emakola.Payments.Workers.ProtectionSweepWorker},
+       {"20 * * * *", Emakola.Payments.Workers.SusuExpiryWorker},
        {"30 3 * * *", Emakola.Accounts.Workers.PhoneOtpPruneWorker}
      ]}
   ]
