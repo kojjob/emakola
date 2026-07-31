@@ -268,7 +268,9 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
                     {hold.complaint_text}
                   </p>
                 </td>
-                <td class="px-6 py-4 text-sm text-gray-900 tabular-nums">{money(hold.amount)}</td>
+                <td class="px-6 py-4 text-sm text-gray-900 tabular-nums">
+                  {money(hold.amount, hold_currency(hold))}
+                </td>
                 <td class="px-6 py-4 text-right whitespace-nowrap">
                   <.hold_actions hold={hold} />
                 </td>
@@ -310,7 +312,9 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-600 font-mono">{buyer_phone(hold)}</td>
                 <td class="px-6 py-4 text-sm text-gray-500">{date_str(hold.inserted_at)}</td>
-                <td class="px-6 py-4 text-sm text-gray-900 tabular-nums">{money(hold.amount)}</td>
+                <td class="px-6 py-4 text-sm text-gray-900 tabular-nums">
+                  {money(hold.amount, hold_currency(hold))}
+                </td>
                 <td class="px-6 py-4 text-right whitespace-nowrap">
                   <.hold_actions hold={hold} />
                 </td>
@@ -331,7 +335,7 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
       type="button"
       phx-click="force_release"
       phx-value-id={@hold.id}
-      data-confirm={"Release #{money(@hold.net)} to the merchant now? This cannot be undone."}
+      data-confirm={"Release #{money(@hold.net, hold_currency(@hold))} to the merchant now? This cannot be undone."}
       class="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
     >
       Force release
@@ -340,7 +344,7 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
       type="button"
       phx-click="refund_buyer"
       phx-value-id={@hold.id}
-      data-confirm={"Refund #{money(@hold.amount)} to the buyer now? This cannot be undone."}
+      data-confirm={"Refund #{money(@hold.amount, hold_currency(@hold))} to the buyer now? This cannot be undone."}
       class="ml-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200"
     >
       Refund buyer
@@ -369,11 +373,21 @@ defmodule EmakolaWeb.Platform.ProtectionLive do
 
   defp mask_phone(_phone), do: "—"
 
-  defp money(nil), do: "GHS 0.00"
+  # The rows load `:order` (list_frozen/list_stale), so the hold's own
+  # currency is right there — falls back to "GHS" only for the rare hold
+  # whose order association didn't load.
+  defp hold_currency(hold) do
+    case hold.order do
+      %{currency: currency} when is_binary(currency) -> currency
+      _ -> "GHS"
+    end
+  end
 
-  defp money(cents) when is_integer(cents) do
+  defp money(nil, currency), do: "#{currency} 0.00"
+
+  defp money(cents, currency) when is_integer(cents) do
     major = cents |> div(100) |> Emakola.Money.group_thousands()
-    "GHS #{major}.#{String.pad_leading(to_string(rem(cents, 100)), 2, "0")}"
+    "#{currency} #{major}.#{String.pad_leading(to_string(rem(cents, 100)), 2, "0")}"
   end
 
   defp date_str(%DateTime{} = dt), do: Calendar.strftime(dt, "%b %d, %Y")

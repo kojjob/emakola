@@ -74,8 +74,16 @@ defmodule Emakola.Payments.RefundService do
   Returns `{:ok, return}`, or `{:error, reason}` where reason is
   `:no_return_selected`, `:return_not_found`, `:already_processed`,
   `:payment_not_found`, `:invalid_amount`, `:amount_exceeds_refundable`,
-  `:gateway_unsupported`, or whatever the gateway refused with. Nothing is
-  approved and no ledger state moves unless the gateway accepts.
+  `:partial_refund_on_protected`, `:gateway_unsupported`, or whatever the
+  gateway refused with. Nothing is approved and no ledger state moves unless
+  the gateway accepts.
+
+  A payment carrying a `:held` buyer-protection hold accepts only a FULL
+  refund (an amount equal to `refundable_balance/1`): the hold's `net` was
+  snapshotted whole against the payment's original amount, and a partial
+  refund would leave that snapshot stale — a later release would still pay
+  the merchant the full net while the platform actually holds less, an
+  underfunded payout. See `validate_amount/2`.
 
   `opts[:resolution]` (default `:merchant_refunded`) is the resolution
   later stamped on a buyer-protection hold this refund fully covers, once
@@ -167,10 +175,34 @@ defmodule Emakola.Payments.RefundService do
   defp validate_amount(nil, _amount), do: :ok
 
   defp validate_amount(payment, amount) do
-    if amount <= refundable_balance(payment), do: :ok, else: {:error, :amount_exceeds_refundable}
+    balance = refundable_balance(payment)
+
+    cond do
+      amount > balance ->
+        {:error, :amount_exceeds_refundable}
+
+      # Full-refund-only on a protected payment — see moduledoc and issue/5's
+      # doc for why a partial here would leave the hold's snapshotted net
+      # stale. Equality (a full refund) is allowed through.
+      amount < balance and protected_hold_held?(payment) ->
+        {:error, :partial_refund_on_protected}
+
+      true ->
+        :ok
+    end
   end
 
   defp refundable_balance(payment), do: payment.amount - (payment.refunded_amount || 0)
+
+  defp protected_hold_held?(payment) do
+    case Emakola.Payments.get_protection_hold_by_payment(payment.id,
+           tenant: payment.store_id,
+           authorize?: false
+         ) do
+      {:ok, %{status: :held}} -> true
+      _ -> false
+    end
+  end
 
   # A cash-on-delivery order has no Payment, hence no hold to stash intent on.
   defp stash_protection_resolution(nil, _amount, _resolution), do: :ok

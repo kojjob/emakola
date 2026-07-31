@@ -284,4 +284,102 @@ defmodule Emakola.Payments.ProtectionReleaseTest do
       )
     end
   end
+
+  # ── Pending-refund guard ─────────────────────────────────────────
+
+  describe "pending-refund guard (metadata[\"protection_resolution\"] stashed)" do
+    # RefundService.issue/5 stashes `protection_resolution` on the payment
+    # right after the gateway accepts a would-be-full refund, BEFORE the
+    # `refund.processed` webhook confirms it and closes the hold. During
+    # that window the hold is still :held and not frozen — every ordinary
+    # release trigger must defer to the pending refund instead of racing it.
+    for {reason, opts} <- [
+          {:delivery_otp, []},
+          {:buyer_confirmed, []},
+          {:auto_timer, []},
+          {:staff, [respect_freeze: false]}
+        ] do
+      @reason reason
+      @opts opts
+
+      test "release via #{reason} trigger (opts: #{inspect(opts)}) no-ops while a refund is pending" do
+        store = Factory.create_store!()
+        {payment, hold} = protected_payment!(store, %{amount: 25_000})
+        :ok = ProtectionHolds.stash_refund_resolution(payment, :merchant_refunded)
+
+        assert :ok = ProtectionRelease.release(hold, @reason, @opts)
+
+        {:ok, still_held} =
+          Payments.get_protection_hold_by_payment(payment.id, tenant: store.id, authorize?: false)
+
+        assert still_held.status == :held
+        assert is_nil(still_held.release_reason)
+
+        reloaded_payment = Ash.get!(Payment, payment.id, authorize?: false)
+        assert reloaded_payment.payout_held == true
+
+        refute_enqueued(
+          worker: OrderNotificationWorker,
+          args: %{order_id: hold.order_id, event: "protection_released"}
+        )
+      end
+    end
+
+    test "the webhook's close_for_refund (:mark_refunded) path is unaffected by the guard" do
+      store = Factory.create_store!()
+      {payment, hold} = protected_payment!(store, %{amount: 25_000})
+      :ok = ProtectionHolds.stash_refund_resolution(payment, :merchant_refunded)
+
+      # A release trigger firing during the pending window no-ops.
+      assert :ok = ProtectionRelease.release(hold, :auto_timer)
+
+      {:ok, still_held} =
+        Payments.get_protection_hold_by_payment(payment.id, tenant: store.id, authorize?: false)
+
+      assert still_held.status == :held
+
+      # The webhook's terminal confirmation goes through a DIFFERENT action
+      # (:mark_refunded, via ProtectionHolds.close_for_refund/2) — not
+      # ProtectionRelease.release/2,3 — so it must still close the hold.
+      refunded_payment =
+        payment
+        |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: payment.amount})
+        |> Ash.update!(authorize?: false)
+
+      assert :ok = ProtectionHolds.close_for_refund(refunded_payment, :merchant_refunded)
+
+      {:ok, closed} =
+        Payments.get_protection_hold_by_payment(payment.id, tenant: store.id, authorize?: false)
+
+      assert closed.status == :refunded
+    end
+  end
+
+  # ── Belt-and-braces payable_amount cap (finding 2) ──────────────
+
+  describe "payable_amount cap" do
+    test "caps payable_amount at the payment's un-refunded balance, not just hold.net" do
+      store = Factory.create_store!()
+      {payment, hold} = protected_payment!(store, %{amount: 25_000})
+
+      # Simulates a partial refund reaching the ledger through some path
+      # other than RefundService (which now refuses this outright) — a
+      # direct :mark_refunded write, exactly as the refund.processed webhook
+      # would do. hold.net (24_500 at the default 2% fee rate) would
+      # otherwise overpay past what the platform actually still holds
+      # (25_000 - 10_000 = 15_000).
+      partially_refunded =
+        payment
+        |> Ash.Changeset.for_update(:mark_refunded, %{refunded_amount: 10_000})
+        |> Ash.update!(authorize?: false)
+
+      assert hold.net == 24_500
+
+      assert :ok = ProtectionRelease.release(hold, :auto_timer)
+
+      reloaded = Ash.get!(Payment, partially_refunded.id, authorize?: false)
+      assert reloaded.payable_amount == 15_000
+      refute reloaded.payable_amount == hold.net
+    end
+  end
 end

@@ -59,8 +59,10 @@ defmodule Emakola.Notifications.Templates do
   end
 
   def protection_delivery_nudge_sms(order, store) do
+    release_days = Emakola.Payments.Workers.ProtectionSweepWorker.release_days()
+
     "Your order #{order.order_number} from #{store.name} has been delivered! " <>
-      "Please confirm receipt — the payment releases automatically in 5 days if we " <>
+      "Please confirm receipt — the payment releases automatically in #{release_days} days if we " <>
       "don't hear from you. Confirm here: #{protection_tracking_url(store, order)}"
   end
 

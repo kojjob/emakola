@@ -595,8 +595,12 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
     "Payment held until you confirm delivery."
   end
 
-  defp protection_status_copy(%{status: :released}) do
+  defp protection_status_copy(%{status: :released, release_reason: :buyer_confirmed}) do
     "Payment released to the seller — thanks for confirming."
+  end
+
+  defp protection_status_copy(%{status: :released}) do
+    "Payment released to the seller."
   end
 
   defp protection_status_copy(%{status: :refunded}) do

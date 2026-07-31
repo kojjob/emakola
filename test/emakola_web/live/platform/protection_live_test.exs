@@ -113,6 +113,27 @@ defmodule EmakolaWeb.Platform.ProtectionLiveTest do
     refute html =~ "2222"
   end
 
+  test "shows the amount in the order's own currency, not a hardcoded GHS", %{
+    conn: conn
+  } do
+    # Order.currency defaults to "GHS" independent of the store — set it
+    # explicitly, the same way a real Nigeria-expansion checkout would.
+    naira_store = Factory.create_store!(%{name: "Lagos Threads", currency: "NGN"})
+    hold = protected_hold!(naira_store, order_attrs: %{currency: "NGN"})
+
+    {:ok, _frozen} =
+      Payments.freeze_protection_hold(
+        hold,
+        %{complaint_reason: :other, complaint_text: "Wrong size"},
+        authorize?: false
+      )
+
+    {:ok, _view, html} = live(conn, ~p"/platform/protection")
+
+    assert html =~ "NGN 250.00"
+    refute html =~ "GHS 250.00"
+  end
+
   test "force-release releases a frozen hold, stamps resolution: :released_by_staff, and audits",
        %{conn: conn, user: user, store: store} do
     hold = protected_hold!(store)
