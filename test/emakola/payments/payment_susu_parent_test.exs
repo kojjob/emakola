@@ -174,4 +174,82 @@ defmodule Emakola.Payments.PaymentSusuParentTest do
                |> Ash.update(authorize?: false)
     end
   end
+
+  describe ":mark_buyer_protection_hold" do
+    defp susu_held_payment!(store, plan, attrs \\ %{}) do
+      default = %{
+        store_id: store.id,
+        susu_plan_id: plan.id,
+        amount: 5_000,
+        currency: "GHS",
+        gateway: :paystack,
+        gateway_reference: "PAY-mbph-#{System.unique_integer([:positive])}",
+        payout_held: true,
+        payout_hold_reason: "susu_plan"
+      }
+
+      Payment
+      |> Ash.Changeset.for_create(:create, Map.merge(default, attrs))
+      |> Ash.create!(authorize?: false)
+    end
+
+    test "converts a susu_plan-held payment's hold to buyer_protection" do
+      store = create_store!()
+      plan = create_susu_plan!(store)
+      payment = susu_held_payment!(store, plan)
+
+      assert {:ok, converted} =
+               payment
+               |> Ash.Changeset.for_update(:mark_buyer_protection_hold, %{})
+               |> Ash.update(authorize?: false)
+
+      assert converted.payout_hold_reason == "buyer_protection"
+      assert converted.payout_held == true
+    end
+
+    test "refuses a payment with no susu_plan_id (an ordinary order-parented payment)" do
+      store = create_store!()
+      order = create_order!(store)
+
+      payment =
+        create_payment!(store, %{
+          order_id: order.id,
+          payout_held: true,
+          payout_hold_reason: "susu_plan"
+        })
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               payment
+               |> Ash.Changeset.for_update(:mark_buyer_protection_hold, %{})
+               |> Ash.update(authorize?: false)
+    end
+
+    test "refuses a payment already converted to buyer_protection (no double-flip)" do
+      store = create_store!()
+      plan = create_susu_plan!(store)
+
+      payment =
+        store
+        |> susu_held_payment!(plan)
+        |> Ash.Changeset.for_update(:mark_buyer_protection_hold, %{})
+        |> Ash.update!(authorize?: false)
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               payment
+               |> Ash.Changeset.for_update(:mark_buyer_protection_hold, %{})
+               |> Ash.update(authorize?: false)
+    end
+
+    test "refuses a payment that is not currently held" do
+      store = create_store!()
+      plan = create_susu_plan!(store)
+
+      payment = susu_held_payment!(store, plan, %{payout_held: false})
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               payment
+               |> Ash.Changeset.for_update(:mark_buyer_protection_hold, %{})
+               |> Ash.update(authorize?: false)
+    end
+  end
 end

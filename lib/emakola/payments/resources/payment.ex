@@ -325,9 +325,46 @@ defmodule Emakola.Payments.Payment do
     # row this pairs with is released later through TC-2's normal
     # delivery-confirmed machinery (`ProtectionRelease.release/2,3`), the
     # same as any other protected order.
+    #
+    # Guarded the same way `:attach_order` is: only a payment currently
+    # `susu_plan`-held may convert. Without this, any payment (order-parented
+    # or otherwise) could be relabeled `buyer_protection` with no
+    # `ProtectionHold` row behind it — a mislabeled payment with no release
+    # path (release lookups key off `payout_hold_reason`, not a hold's
+    # existence) — or an already-converted payment could be flipped a
+    # second time.
     update :mark_buyer_protection_hold do
       require_atomic?(false)
       accept([])
+
+      validate(fn changeset, _context ->
+        cond do
+          is_nil(changeset.data.susu_plan_id) ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :susu_plan_id,
+               message: "can only convert a susu-plan payment's hold to buyer protection"
+             )}
+
+          changeset.data.payout_hold_reason != "susu_plan" ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :payout_hold_reason,
+               message: "can only convert a payment currently held for \"susu_plan\""
+             )}
+
+          changeset.data.payout_held != true ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :payout_held,
+               message: "payment is not currently held"
+             )}
+
+          true ->
+            :ok
+        end
+      end)
+
       change(set_attribute(:payout_hold_reason, "buyer_protection"))
     end
 
