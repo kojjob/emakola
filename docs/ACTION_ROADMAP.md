@@ -306,6 +306,7 @@ image-upload endpoints must be added before the Flutter merchant app can build t
       Escrow-lite payout hold until delivery confirmation; the trust reason a
       stranger pays through Makola. No merchant gateway share at charge; release
       via delivery OTP / buyer confirm / 5-day timer; freeze-on-complaint.
+      → implemented (TC-2 branch, PR pending)
 - [ ] **TC-3: Susu lay-away** — 📝 SPECCED (`2026-07-30-susu-layaway-design.md`).
       Merchant-created susu links; flexible chunks + deadline; stock reserved at
       activation; auto-refund in full on expiry/cancel; order created at

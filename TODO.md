@@ -353,6 +353,7 @@ reuses protection's held-funds ledger, addressing is independent.
 - [ ] **Buyer Protection** — escrow-lite payout hold until delivery
       confirmation; builds on settlement engine + refund liability.
       Spec: `docs/superpowers/specs/2026-07-30-buyer-protection-design.md` ✅ specced
+      → implemented (TC-2 branch, PR pending)
 - [ ] **Susu lay-away** — installment purchase (MoMo chunks, goods release
       when fully paid, balance refundable); shares held-funds design
       with Buyer Protection.
