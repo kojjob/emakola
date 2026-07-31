@@ -63,6 +63,7 @@ defmodule Emakola.Orders.SusuChunks do
   require Ash.Query
   require Logger
 
+  alias Emakola.Notifications.Dispatcher
   alias Emakola.Orders.CheckoutService
   alias Emakola.Orders.SusuPlan
   alias Emakola.Orders.SusuStock
@@ -406,6 +407,7 @@ defmodule Emakola.Orders.SusuChunks do
           row.status == "pending" ->
             plan = Ash.get!(SusuPlan, plan_id, authorize?: false)
             activated = activate_plan!(plan, fresh_payment)
+            dispatch_activation(activated)
             route_for_reservation(activated, fresh_payment)
 
           true ->
@@ -446,6 +448,7 @@ defmodule Emakola.Orders.SusuChunks do
           )
 
         mark_counted!(payment)
+        maybe_notify_chunk(contributed)
         maybe_complete(contributed)
       else
         flag_for_refund(payment, plan_id)
@@ -498,6 +501,41 @@ defmodule Emakola.Orders.SusuChunks do
     %{"susu_plan_id" => plan_id}
     |> Emakola.Payments.Workers.SusuCompletionWorker.new()
     |> Oban.insert!()
+  end
+
+  # `:susu_activated` (buyer) + `:susu_merchant_activated` (merchant) — fired
+  # once, right after the plan's very first confirmed chunk flips it to
+  # `:active` (this is the only caller of `activate_plan!/2`, so this only
+  # ever runs once per plan).
+  defp dispatch_activation(plan) do
+    dispatch_susu_event(plan, :susu_activated)
+    dispatch_susu_event(plan, :susu_merchant_activated)
+  end
+
+  # `:susu_chunk_received` (buyer progress update) — skipped for the
+  # contribution that exactly completes the plan: that buyer instead gets
+  # `:susu_completed` (with the order's tracking link) once
+  # `SusuCompletionWorker` turns the plan into a real order, so a redundant
+  # "keep going!" message on the very chunk that finished it would be
+  # confusing.
+  defp maybe_notify_chunk(%SusuPlan{contributed_amount: c, total_amount: t} = plan)
+       when c < t do
+    dispatch_susu_event(plan, :susu_chunk_received)
+  end
+
+  defp maybe_notify_chunk(_plan), do: :ok
+
+  defp dispatch_susu_event(plan, event) do
+    case Dispatcher.dispatch_susu(plan, event) do
+      {:ok, _job} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.error(
+          "[susu_chunks] #{inspect(event)} dispatch failed: #{inspect(reason)}",
+          plan_id: plan.id
+        )
+    end
   end
 
   defp already_counted?(%Payment{metadata: metadata}),

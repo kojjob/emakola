@@ -290,6 +290,26 @@ defmodule Emakola.Orders.SusuPlan do
       accept([])
       change(set_attribute(:stock_reserved, false))
     end
+
+    # Written by `Emakola.Payments.Workers.SusuNudgeWorker`'s daily sweep
+    # (TC-3 Task 8) — the three dedup timestamps that make each nudge/warning
+    # fire at most once per plan. Plain timestamp stamps, not status-machine
+    # transitions, so none carry a status guard (mirrors the stock-reserved
+    # actions above).
+    update :mark_nudged do
+      accept([])
+      change(set_attribute(:last_nudged_at, &DateTime.utc_now/0))
+    end
+
+    update :mark_warned_7d do
+      accept([])
+      change(set_attribute(:warned_7d_at, &DateTime.utc_now/0))
+    end
+
+    update :mark_warned_1d do
+      accept([])
+      change(set_attribute(:warned_1d_at, &DateTime.utc_now/0))
+    end
   end
 
   @doc "Can a buyer start this plan? Only while pending and before the deadline."

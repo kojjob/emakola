@@ -234,6 +234,58 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorkerTest do
     end
   end
 
+  # ── TC-3 susu completion events (Task 8) ───────────────────────
+  # By the time either fires the plan's order already exists
+  # (`SusuCompletion.complete/1` dispatches them right after confirming
+  # it) — order-based, unlike the pre-completion susu events which route
+  # through `SusuNotificationWorker` instead. `:susu_completed` is
+  # buyer-only (SMS with the same signed tracking link `:protection_held`
+  # uses — susu bypasses `ensure_hold`, so this restores the buyer's
+  # confirm/complain self-service); `:susu_merchant_completed` is
+  # merchant-only.
+
+  describe "susu_completed event" do
+    test "sends the buyer an SMS with a signed tracking link — no WhatsApp, no merchant SMS" do
+      {order, customer, _store} = create_order_with_customer()
+
+      Emakola.SMSProviderMock
+      |> expect(:send_sms, 1, fn to, message, _opts ->
+        assert to == customer.phone
+        assert message =~ "complete"
+        assert message =~ order.order_number
+        assert message =~ "?t="
+
+        token = message |> String.split("?t=") |> List.last() |> String.trim()
+        assert {:ok, order_id} = TrackingTokens.verify_order_tracking(token)
+        assert order_id == order.id
+
+        {:ok, %{provider: :mock, to: to, message: message}}
+      end)
+
+      # No WhatsApp expectation set — a call here fails the test (Mox
+      # unexpected-call), proving WhatsApp is skipped, same idiom as the
+      # protection events above.
+
+      assert :ok == perform_job(order.id, "susu_completed")
+    end
+  end
+
+  describe "susu_merchant_completed event" do
+    test "sends the merchant an SMS — never the customer channel" do
+      {order, _customer, _store} = create_order_with_customer()
+
+      Emakola.SMSProviderMock
+      |> expect(:send_sms, 1, fn to, message, _opts ->
+        assert to == @merchant_phone
+        assert message =~ "completed"
+        assert message =~ order.order_number
+        {:ok, %{provider: :mock, to: to, message: message}}
+      end)
+
+      assert :ok == perform_job(order.id, "susu_merchant_completed")
+    end
+  end
+
   # ── Missing customer phone ────────────────────────────────────
 
   describe "missing customer phone" do

@@ -34,11 +34,24 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
   # buyer-only (no merchant SMS — mirrors :order_shipped/:order_confirmed/
   # :order_delivered), `:protection_released`/`:protection_complaint` are
   # merchant-only (no customer SMS/WhatsApp/email at all).
+  # TC-3 susu completion events (Task 8) join the same two lists: by the
+  # time either fires the plan's order already exists (`SusuCompletion.
+  # complete/1` dispatches them right after confirming it), so they're
+  # genuinely order-based — unlike the plan-based pre-completion susu
+  # events, which route through `SusuNotificationWorker` instead (see
+  # `Emakola.Notifications.Dispatcher`'s "Susu coupling" moduledoc section).
+  # `:susu_completed` is buyer-only (SMS with the same signed tracking link
+  # `:protection_held` uses — susu bypasses `ensure_hold`, so this is the
+  # buyer's only route to a tracking link); `:susu_merchant_completed` is
+  # merchant-only, mirroring the `:protection_released`/`:protection_complaint` split.
   @buyer_events ~w(
     order_placed order_confirmed order_shipped order_delivered order_cancelled
-    protection_held protection_delivery_nudge
+    protection_held protection_delivery_nudge susu_completed
   )a
-  @merchant_events ~w(order_placed order_cancelled protection_released protection_complaint)a
+  @merchant_events ~w(
+    order_placed order_cancelled protection_released protection_complaint
+    susu_merchant_completed
+  )a
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"order_id" => order_id, "event" => event_string}}) do
@@ -54,7 +67,9 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
           :protection_held,
           :protection_delivery_nudge,
           :protection_released,
-          :protection_complaint
+          :protection_complaint,
+          :susu_completed,
+          :susu_merchant_completed
         ],
         :order_placed
       )
@@ -140,7 +155,7 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
   # only (the tracking link body doesn't fit a templated-params WhatsApp
   # message anyway).
   defp send_customer_whatsapp(_order, _store, _customer, event)
-       when event in [:protection_held, :protection_delivery_nudge] do
+       when event in [:protection_held, :protection_delivery_nudge, :susu_completed] do
     :ok
   end
 
@@ -230,6 +245,18 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
     end
   end
 
+  defp send_merchant_sms(order, store, :susu_merchant_completed) do
+    message = Templates.susu_merchant_completed_sms(order, store)
+
+    if store.contact_phone do
+      sms_provider().send_sms(store.contact_phone, message, store_id: order.store_id)
+    else
+      Logger.info(
+        "[OrderNotificationWorker] No contact_phone for store #{store.id}, skipping merchant SMS"
+      )
+    end
+  end
+
   defp customer_sms_template(order, store, :order_placed),
     do: Templates.order_placed_sms(order, store)
 
@@ -250,6 +277,9 @@ defmodule Emakola.Notifications.Workers.OrderNotificationWorker do
 
   defp customer_sms_template(order, store, :protection_delivery_nudge),
     do: Templates.protection_delivery_nudge_sms(order, store)
+
+  defp customer_sms_template(order, store, :susu_completed),
+    do: Templates.susu_completed_sms(order, store)
 
   defp sms_provider do
     Application.get_env(

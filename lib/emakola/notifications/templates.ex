@@ -66,6 +66,72 @@ defmodule Emakola.Notifications.Templates do
       "don't hear from you. Confirm here: #{protection_tracking_url(store, order)}"
   end
 
+  # ── TC-3 susu lay-away lifecycle templates (Task 8) ─────────────
+  # Pre-completion buyer/merchant messages are PLAN-based (no order exists
+  # yet — see `Emakola.Notifications.Dispatcher.dispatch_susu/2`'s
+  # moduledoc). Buyer-facing ones embed the SIGNED susu-plan link
+  # (`EmakolaWeb.SusuTokens.sign_susu_plan/1`), the exact URL shape
+  # `EmakolaWeb.Storefront.SusuLinkLive.send_resend_sms/2` already builds,
+  # so the buyer can pay a chunk / edit delivery / cancel from the link
+  # alone. `:susu_completed` / `:susu_merchant_completed` are order-based
+  # (the plan's order exists by the time they fire) and live with the
+  # other order templates below.
+
+  def susu_activated_sms(plan, store) do
+    "Your susu plan at #{store.name} is now active! First payment received — " <>
+      "#{currency_symbol(store.currency || "GHS")}#{format_amount(plan.contributed_amount)} of " <>
+      "#{currency_symbol(store.currency || "GHS")}#{format_amount(plan.total_amount)} paid. " <>
+      "Track your progress and pay your next chunk here: #{susu_plan_url(plan)}"
+  end
+
+  def susu_chunk_received_sms(plan, store) do
+    "Chunk received for your susu plan at #{store.name}! " <>
+      "#{currency_symbol(store.currency || "GHS")}#{format_amount(plan.contributed_amount)} of " <>
+      "#{currency_symbol(store.currency || "GHS")}#{format_amount(plan.total_amount)} paid so far. " <>
+      "Track your progress here: #{susu_plan_url(plan)}"
+  end
+
+  def susu_nudge_sms(plan, store) do
+    "It's been a week since your last susu payment at #{store.name}. You still owe " <>
+      "#{currency_symbol(store.currency || "GHS")}#{format_amount(plan.total_amount - plan.contributed_amount)}. " <>
+      "Pay your next chunk here: #{susu_plan_url(plan)}"
+  end
+
+  def susu_deadline_warning_sms(plan, store) do
+    days = deadline_days_left(plan)
+
+    "Reminder: your susu plan at #{store.name} deadline is in #{pluralize_days(days)}! You still owe " <>
+      "#{currency_symbol(store.currency || "GHS")}#{format_amount(plan.total_amount - plan.contributed_amount)}. " <>
+      "Pay now: #{susu_plan_url(plan)}"
+  end
+
+  def susu_refunded_sms(plan, store) do
+    "Your susu plan at #{store.name} has ended. Your contributions " <>
+      "(#{currency_symbol(store.currency || "GHS")}#{format_amount(plan.contributed_amount)}) are being refunded " <>
+      "to your mobile money account."
+  end
+
+  def susu_merchant_activated_sms(plan, store) do
+    "A susu plan (#{plan.code}) at #{store.name} is now active — the buyer made their first " <>
+      "payment of #{currency_symbol(store.currency || "GHS")}#{format_amount(plan.contributed_amount)}. " <>
+      "Check your dashboard for details."
+  end
+
+  def susu_merchant_expired_sms(plan, store) do
+    "A susu plan (#{plan.code}) at #{store.name} ended without completing — any contributions are " <>
+      "being refunded to the buyer. Check your dashboard for details."
+  end
+
+  def susu_completed_sms(order, store) do
+    "Your susu plan is complete! Order #{order.order_number} from #{store.name} has been created. " <>
+      "Track & confirm delivery here: #{protection_tracking_url(store, order)}"
+  end
+
+  def susu_merchant_completed_sms(order, store) do
+    "A susu plan completed! Order #{order.order_number} at #{store.name} has been created — " <>
+      "check your dashboard for payout details."
+  end
+
   # ── Merchant-facing templates ──────────────────────────────────
 
   def new_order_merchant_sms(order, store) do
@@ -254,6 +320,28 @@ defmodule Emakola.Notifications.Templates do
     token = EmakolaWeb.TrackingTokens.sign_order_tracking(order.id)
     "#{storefront_tracking_url(store, order)}?t=#{token}"
   end
+
+  # Buyer-authorization token bound to this susu plan, appended so the
+  # signed link lets an anonymous buyer pay a chunk / edit delivery / cancel
+  # from the link alone (`EmakolaWeb.Storefront.SusuLinkLive`). Mirrors
+  # `EmakolaWeb.Storefront.SusuLinkLive.send_resend_sms/2`'s exact URL shape
+  # (apex `/susu/:code` route, not the store-slug-scoped tracking path).
+  defp susu_plan_url(plan) do
+    token = EmakolaWeb.SusuTokens.sign_susu_plan(plan.id)
+    "#{EmakolaWeb.Endpoint.url()}/susu/#{plan.code}?t=#{token}"
+  end
+
+  # Recomputed from the plan's own `deadline` at render time (not stashed at
+  # enqueue time) so a delayed Oban run still reports an accurate count.
+  # Floored at 0 — `susu_deadline_warning_sms/2` is only ever called for a
+  # deadline still in the future (see `SusuNudgeWorker`'s guard), but this
+  # keeps the copy sane even if that guard is ever loosened.
+  defp deadline_days_left(plan) do
+    max(DateTime.diff(plan.deadline, DateTime.utc_now(), :day), 0)
+  end
+
+  defp pluralize_days(1), do: "1 day"
+  defp pluralize_days(days), do: "#{days} days"
 
   defp storefront_host do
     case Application.get_env(:emakola, EmakolaWeb.Endpoint)[:url][:host] do

@@ -21,30 +21,40 @@ defmodule Emakola.Orders.SusuLifecycle do
   unconditionally below is correct, not wasted work — a clean transition,
   no refunds, no stock movement.
 
-  ## Task 8 seam
+  ## Task 8: notifying both sides
 
   The spec calls for notifying both sides on every end-of-life transition
   ("product taken down mid-plan → auto-cancel + full refund + notify
-  both") — that's Task 8's job: susu-specific `Dispatcher` events
-  (`:susu_refunded`, `:susu_merchant_expired`, etc.) don't exist yet (see
-  the feature plan's Task 8 section). Nothing here calls a notifier by
-  design — Task 8 adds its dispatch call(s) at the marked point in both
-  functions below, AFTER refunds have been initiated, mirroring
-  `SusuCompletion.complete/1`'s "dispatch only once the real work has
-  happened, never speculatively" discipline.
+  both"). Both `cancel/2` and `expire/1` dispatch `:susu_refunded` (buyer)
+  and `:susu_merchant_expired` (merchant) AFTER refunds have been
+  initiated (`converge/1`), mirroring `SusuCompletion.complete/1`'s
+  "dispatch only once the real work has happened, never speculatively"
+  discipline. Both events are plan-based (`Dispatcher.dispatch_susu/2`) —
+  no order exists at this point (see `Dispatcher`'s "Susu coupling"
+  moduledoc section).
+
+  There is only one merchant terminal event
+  (`:susu_merchant_expired`) — it fires for every non-completion
+  end-of-life regardless of `by` (buyer cancel, merchant cancel, or
+  takedown auto-cancel), not just a genuine deadline expiry. The `by`
+  argument only affects the log line today; a `:pending`, never-activated
+  plan has no customer/contact to notify anyway (both events short-circuit
+  cleanly in `SusuNotificationWorker` when there's no customer/phone —
+  same as `OrderNotificationWorker`'s existing posture).
   """
 
   require Logger
 
+  alias Emakola.Notifications.Dispatcher
   alias Emakola.Orders.SusuPlan
   alias Emakola.Orders.SusuStock
   alias Emakola.Payments.SusuRefunds
 
   @doc """
   Cancels `plan`. `by` (`:buyer | :merchant | :takedown`) identifies who
-  initiated the cancellation — recorded for logging only today; Task 8's
-  notification wiring is expected to use it to choose buyer- vs.
-  merchant-facing copy (see moduledoc's Task 8 seam).
+  initiated the cancellation — recorded for logging only; see moduledoc's
+  "Task 8: notifying both sides" section for why it does not otherwise
+  change the notification sent.
 
   Only a `:pending` or `:active` plan can be cancelled
   (`SusuPlan.:cancel`'s own status guard, enforced by
@@ -58,8 +68,7 @@ defmodule Emakola.Orders.SusuLifecycle do
 
     Logger.info("[susu_lifecycle] plan=#{plan.id} cancelled by=#{by}")
 
-    # Task 8 seam: dispatch the buyer refund-confirmation event and the
-    # merchant cancellation event here, once susu Dispatcher events exist.
+    dispatch_end_of_life(cancelled)
 
     {:ok, cancelled}
   end
@@ -74,8 +83,7 @@ defmodule Emakola.Orders.SusuLifecycle do
 
     Logger.info("[susu_lifecycle] plan=#{plan.id} expired")
 
-    # Task 8 seam: dispatch the buyer refund-confirmation event and the
-    # merchant expiry event here, mirroring cancel/2 above.
+    dispatch_end_of_life(expired)
 
     {:ok, expired}
   end
@@ -83,5 +91,23 @@ defmodule Emakola.Orders.SusuLifecycle do
   defp converge(plan) do
     SusuStock.release(plan)
     SusuRefunds.refund_all_contributions(plan)
+  end
+
+  defp dispatch_end_of_life(plan) do
+    dispatch_susu_event(plan, :susu_refunded)
+    dispatch_susu_event(plan, :susu_merchant_expired)
+  end
+
+  defp dispatch_susu_event(plan, event) do
+    case Dispatcher.dispatch_susu(plan, event) do
+      {:ok, _job} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.error(
+          "[susu_lifecycle] #{inspect(event)} dispatch failed: #{inspect(reason)}",
+          plan_id: plan.id
+        )
+    end
   end
 end

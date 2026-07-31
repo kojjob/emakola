@@ -12,6 +12,7 @@ defmodule Emakola.Orders.SusuChunksTest do
 
   import Emakola.Factory
 
+  alias Emakola.Notifications.Workers.SusuNotificationWorker
   alias Emakola.Orders.{SusuChunks, SusuPlan}
   alias Emakola.Payments.Payment
   alias Emakola.Payments.Gateways.Mock
@@ -515,6 +516,63 @@ defmodule Emakola.Orders.SusuChunksTest do
 
       assert reload_plan(plan).status == :active
       assert all_enqueued(worker: SusuCompletionWorker) == []
+    end
+  end
+
+  # ── Task 8: notification wiring ────────────────────────────────
+
+  describe "confirm_chunk/1 — notification wiring (Task 8)" do
+    test "the first confirmed chunk dispatches susu_activated (buyer) and susu_merchant_activated (merchant)",
+         %{store: store} do
+      plan = create_plan!(store, %{type: :custom, title: "Fridge", total_amount: 15_000})
+      {:ok, %{payment: payment}} = SusuChunks.initiate_chunk(plan, 5_000, buyer_params(), Mock)
+      payment = mark_success!(payment)
+
+      assert :ok = SusuChunks.confirm_chunk(payment)
+
+      updated_plan = reload_plan(plan)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{"susu_plan_id" => updated_plan.id, "event" => "susu_activated"}
+      )
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{"susu_plan_id" => updated_plan.id, "event" => "susu_merchant_activated"}
+      )
+    end
+
+    test "a subsequent, non-completing chunk dispatches susu_chunk_received, not another susu_activated",
+         %{store: store} do
+      plan = create_plan!(store, %{type: :custom, title: "Fridge", total_amount: 15_000})
+      {:ok, %{payment: first}} = SusuChunks.initiate_chunk(plan, 5_000, buyer_params(), Mock)
+      first |> mark_success!() |> SusuChunks.confirm_chunk()
+
+      active_plan = reload_plan(plan)
+      {:ok, %{payment: second}} = SusuChunks.initiate_chunk(active_plan, 3_000, %{}, Mock)
+      second |> mark_success!() |> SusuChunks.confirm_chunk()
+
+      events =
+        [worker: SusuNotificationWorker] |> all_enqueued() |> Enum.map(& &1.args["event"])
+
+      assert Enum.count(events, &(&1 == "susu_activated")) == 1
+      assert Enum.count(events, &(&1 == "susu_chunk_received")) == 1
+    end
+
+    test "the chunk that exactly completes the plan does NOT dispatch susu_chunk_received",
+         %{store: store} do
+      plan = create_plan!(store, %{type: :custom, title: "Fridge", total_amount: 5_000})
+      {:ok, %{payment: payment}} = SusuChunks.initiate_chunk(plan, 5_000, buyer_params(), Mock)
+      payment = mark_success!(payment)
+
+      assert :ok = SusuChunks.confirm_chunk(payment)
+
+      events =
+        [worker: SusuNotificationWorker] |> all_enqueued() |> Enum.map(& &1.args["event"])
+
+      refute "susu_chunk_received" in events
+      assert "susu_activated" in events
     end
   end
 end

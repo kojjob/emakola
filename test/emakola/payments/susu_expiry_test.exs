@@ -22,6 +22,7 @@ defmodule Emakola.Payments.SusuExpiryTest do
   require Ash.Query
 
   alias Emakola.Catalog.Variant
+  alias Emakola.Notifications.Workers.SusuNotificationWorker
   alias Emakola.Orders.{SusuLifecycle, SusuPlan}
   alias Emakola.Payments.{GatewayMock, Payment, SusuRefunds}
   alias Emakola.Payments.Gateways
@@ -442,6 +443,93 @@ defmodule Emakola.Payments.SusuExpiryTest do
       # No `expect_refund` — untouched, so no gateway call.
       assert :ok = SusuExpiryWorker.perform(%Oban.Job{})
       assert reload_plan(plan).status == :active
+    end
+  end
+
+  # ── Task 8: notification wiring ────────────────────────────────
+
+  describe "SusuLifecycle — notification wiring (Task 8)" do
+    test "cancel/2 dispatches susu_refunded (buyer) and susu_merchant_expired (merchant)", %{
+      store: store
+    } do
+      plan = active_plan_with_contributions!(store, [3_000])
+      expect_refund(1)
+
+      assert {:ok, cancelled} = SusuLifecycle.cancel(plan, :buyer)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{"susu_plan_id" => cancelled.id, "event" => "susu_refunded"}
+      )
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{"susu_plan_id" => cancelled.id, "event" => "susu_merchant_expired"}
+      )
+    end
+
+    test "cancelling a never-activated (:pending) plan still dispatches both events", %{
+      store: store
+    } do
+      plan = create_plan!(store, %{type: :custom, title: "Fridge", total_amount: 10_000})
+
+      # No `expect_refund` — a pending plan has no counted contributions.
+      assert {:ok, cancelled} = SusuLifecycle.cancel(plan, :merchant)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{"susu_plan_id" => cancelled.id, "event" => "susu_refunded"}
+      )
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{"susu_plan_id" => cancelled.id, "event" => "susu_merchant_expired"}
+      )
+    end
+  end
+
+  describe "SusuExpiryWorker — notification wiring (Task 8)" do
+    test "a deadline expiry dispatches susu_refunded (buyer) and susu_merchant_expired (merchant)",
+         %{store: store} do
+      plan = active_plan_with_contributions!(store, [3_000])
+      plan = force_deadline!(plan, past_deadline())
+      expect_refund(1)
+
+      assert :ok = SusuExpiryWorker.perform(%Oban.Job{})
+      expired = reload_plan(plan)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{"susu_plan_id" => expired.id, "event" => "susu_refunded"}
+      )
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{"susu_plan_id" => expired.id, "event" => "susu_merchant_expired"}
+      )
+    end
+
+    test "a takedown auto-cancel dispatches susu_refunded (buyer) and susu_merchant_expired (merchant)",
+         %{store: store} do
+      product = create_product!(store)
+      variant = create_variant!(product, store, stock_quantity: 10, track_inventory: true)
+      plan = active_catalog_plan!(store, variant, [3_000])
+
+      Emakola.Catalog.archive_product!(product, authorize?: false)
+      expect_refund(1)
+
+      assert :ok = SusuExpiryWorker.perform(%Oban.Job{})
+      cancelled = reload_plan(plan)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{"susu_plan_id" => cancelled.id, "event" => "susu_refunded"}
+      )
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{"susu_plan_id" => cancelled.id, "event" => "susu_merchant_expired"}
+      )
     end
   end
 end

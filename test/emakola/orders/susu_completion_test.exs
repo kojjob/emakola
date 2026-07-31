@@ -13,6 +13,7 @@ defmodule Emakola.Orders.SusuCompletionTest do
 
   require Ash.Query
 
+  alias Emakola.Notifications.Workers.OrderNotificationWorker
   alias Emakola.Orders.{Order, SusuCompletion, SusuPlan, SusuStock}
   alias Emakola.Payments.{Payment, PlatformFee, ProtectionHold}
   alias Emakola.Payments.Workers.SusuCompletionWorker
@@ -351,6 +352,50 @@ defmodule Emakola.Orders.SusuCompletionTest do
 
       assert Enum.map(first_payments, &{&1.id, &1.payable_amount, &1.payout_held}) ==
                Enum.map(second_payments, &{&1.id, &1.payable_amount, &1.payout_held})
+    end
+  end
+
+  # ── Task 8: notification wiring ────────────────────────────────
+
+  describe "complete/1 — notification wiring (Task 8)" do
+    test "dispatches susu_completed (buyer) and susu_merchant_completed (merchant), order-based",
+         %{store: store} do
+      plan =
+        complete_plan!(
+          store,
+          %{type: :custom, title: "Woven basket", total_amount: 6_000},
+          [6_000]
+        )
+
+      assert {:ok, order} = SusuCompletion.complete(plan.id)
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{"order_id" => order.id, "event" => "susu_completed"}
+      )
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{"order_id" => order.id, "event" => "susu_merchant_completed"}
+      )
+    end
+
+    test "a re-run (idempotent replay) does not dispatch susu_completed again", %{store: store} do
+      plan =
+        complete_plan!(
+          store,
+          %{type: :custom, title: "Woven mat", total_amount: 4_000},
+          [4_000]
+        )
+
+      assert {:ok, _order} = SusuCompletion.complete(plan.id)
+      assert {:ok, _order} = SusuCompletion.complete(plan.id)
+
+      jobs =
+        all_enqueued(worker: OrderNotificationWorker)
+        |> Enum.filter(&(&1.args["event"] == "susu_completed"))
+
+      assert length(jobs) == 1
     end
   end
 end

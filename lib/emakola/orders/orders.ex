@@ -49,6 +49,9 @@ defmodule Emakola.Orders do
       define(:expire_susu_plan, action: :expire)
       define(:extend_susu_plan_deadline, action: :extend_deadline)
       define(:update_susu_plan_delivery, action: :update_delivery)
+      define(:mark_susu_plan_nudged, action: :mark_nudged)
+      define(:mark_susu_plan_warned_7d, action: :mark_warned_7d)
+      define(:mark_susu_plan_warned_1d, action: :mark_warned_1d)
     end
 
     resource Emakola.Orders.Fulfillment do

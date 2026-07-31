@@ -463,4 +463,43 @@ defmodule Emakola.Orders.SusuPlanTest do
     # so the final chunk can land exactly on the total.
     assert SusuPlan.chunk_bounds(almost_done) == %{min: 3_000, max: 3_000}
   end
+
+  # ── Task 8: notification dedup timestamps ──────────────────────
+
+  test "mark_nudged stamps last_nudged_at" do
+    store = Emakola.Factory.create_store!()
+    plan = create!(store, %{type: :custom, title: "Fridge", total_amount: 15_000})
+
+    refute plan.last_nudged_at
+
+    nudged = plan |> Ash.Changeset.for_update(:mark_nudged, %{}) |> Ash.update!(authorize?: false)
+
+    assert %DateTime{} = nudged.last_nudged_at
+  end
+
+  test "mark_warned_7d stamps warned_7d_at" do
+    store = Emakola.Factory.create_store!()
+    plan = create!(store, %{type: :custom, title: "Fridge", total_amount: 15_000})
+
+    refute plan.warned_7d_at
+
+    warned =
+      plan |> Ash.Changeset.for_update(:mark_warned_7d, %{}) |> Ash.update!(authorize?: false)
+
+    assert %DateTime{} = warned.warned_7d_at
+    refute warned.warned_1d_at
+  end
+
+  test "mark_warned_1d stamps warned_1d_at" do
+    store = Emakola.Factory.create_store!()
+    plan = create!(store, %{type: :custom, title: "Fridge", total_amount: 15_000})
+
+    refute plan.warned_1d_at
+
+    warned =
+      plan |> Ash.Changeset.for_update(:mark_warned_1d, %{}) |> Ash.update!(authorize?: false)
+
+    assert %DateTime{} = warned.warned_1d_at
+    refute warned.warned_7d_at
+  end
 end

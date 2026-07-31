@@ -101,7 +101,10 @@ defmodule Emakola.Orders.SusuCompletion do
       end)
       |> unwrap!()
 
-    if kind == :new, do: dispatch_order_placed(order)
+    if kind == :new do
+      dispatch_order_placed(order)
+      dispatch_susu_completed(order)
+    end
 
     {:ok, order}
   end
@@ -242,6 +245,31 @@ defmodule Emakola.Orders.SusuCompletion do
       {:error, reason} ->
         Logger.error(
           "[susu_completion] order_placed dispatch failed: #{inspect(reason)}",
+          order_id: order.id
+        )
+    end
+  end
+
+  # `:susu_completed` (buyer, with the order's signed tracking link —
+  # susu bypasses `ensure_hold`, so a protected susu order's buyer never
+  # gets `:protection_held`; this is what restores their confirm/complain
+  # self-service) + `:susu_merchant_completed` (merchant). Both are
+  # order-based — see `Dispatcher`'s "Susu coupling" moduledoc section for
+  # why these two ride the ordinary order path while every earlier susu
+  # event goes through `dispatch_susu/2` instead.
+  defp dispatch_susu_completed(order) do
+    dispatch_order_event(order, :susu_completed)
+    dispatch_order_event(order, :susu_merchant_completed)
+  end
+
+  defp dispatch_order_event(order, event) do
+    case Dispatcher.dispatch(order, event) do
+      {:ok, _job} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.error(
+          "[susu_completion] #{inspect(event)} dispatch failed: #{inspect(reason)}",
           order_id: order.id
         )
     end
