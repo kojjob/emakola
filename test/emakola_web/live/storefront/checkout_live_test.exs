@@ -298,6 +298,34 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       assert html =~ ~s(name="landmark")
       assert html =~ "GhanaPost Digital Address"
     end
+
+    test "a landmark over 200 chars is truncated (never rejected) on the order", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      long_landmark = String.duplicate("a", 250)
+
+      render_submit(view, "place_order", %{
+        "phone" => "241234567",
+        "fullname" => "Ama Mensah",
+        "address" => "House 14, Osu",
+        "region" => "greater_accra",
+        "notes" => "",
+        "landmark" => long_landmark
+      })
+
+      order =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+        |> List.first()
+
+      assert order.shipping_address["landmark"] == String.duplicate("a", 200)
+    end
   end
 
   # -- Dropship split settlement --

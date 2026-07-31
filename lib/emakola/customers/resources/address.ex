@@ -91,6 +91,7 @@ defmodule Emakola.Customers.Address do
     # Free-text delivery hint (e.g. "behind Achimota Melcom, blue gate").
     attribute :landmark, :string do
       public?(true)
+      constraints(max_length: 200)
     end
 
     attribute :is_default, :boolean do

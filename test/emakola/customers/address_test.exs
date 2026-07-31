@@ -174,6 +174,32 @@ defmodule Emakola.Customers.AddressTest do
                |> Ash.Changeset.for_update(:update, %{digital_address: "nope"})
                |> Ash.update(authorize?: false)
     end
+
+    test "accepts a landmark at the 200 char limit", %{store: store, customer: customer} do
+      landmark = String.duplicate("a", 200)
+
+      address =
+        create_address!(customer, store,
+          line_1: "Test St",
+          city: "Accra",
+          landmark: landmark
+        )
+
+      assert address.landmark == landmark
+    end
+
+    test "rejects a landmark over 200 chars", %{store: store, customer: customer} do
+      assert {:error, %Ash.Error.Invalid{}} =
+               Emakola.Customers.Address
+               |> Ash.Changeset.for_create(:create, %{
+                 customer_id: customer.id,
+                 store_id: store.id,
+                 line_1: "12 Oxford Street",
+                 city: "Accra",
+                 landmark: String.duplicate("a", 201)
+               })
+               |> Ash.create(authorize?: false)
+    end
   end
 
   # -- Destroy --------------------------------------------------------

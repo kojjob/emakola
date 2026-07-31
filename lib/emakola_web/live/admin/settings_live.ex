@@ -79,10 +79,27 @@ defmodule EmakolaWeb.Admin.SettingsLive do
          |> assign(store: updated_store, saved: true)
          |> put_flash(:info, "Settings saved")}
 
-      {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Could not save settings")}
+      {:error, error} ->
+        {:noreply, put_flash(socket, :error, format_error(error))}
     end
   end
+
+  # Surfaces the friendly per-field message an Ash validation attaches (e.g.
+  # NormalizeDigitalAddress's "Check the digital address — it looks like
+  # GA-183-8164") instead of collapsing every failure to a generic string.
+  defp format_error(%Ash.Error.Invalid{errors: errors}) do
+    errors
+    |> Enum.map_join(", ", &error_message/1)
+    |> case do
+      "" -> "Could not save settings"
+      msg -> msg
+    end
+  end
+
+  defp format_error(_error), do: "Could not save settings"
+
+  defp error_message(%{message: msg}) when is_binary(msg), do: msg
+  defp error_message(_), do: "invalid"
 
   @impl true
   def render(assigns) do
@@ -387,6 +404,7 @@ defmodule EmakolaWeb.Admin.SettingsLive do
             digital_address={@store && @store.digital_address}
             landmark={@store && @store.landmark}
             field_prefix="store"
+            show_hint={false}
           />
 
           <div class="flex justify-end pt-2">

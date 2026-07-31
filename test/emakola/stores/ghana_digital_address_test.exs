@@ -38,6 +38,29 @@ defmodule Emakola.Stores.GhanaDigitalAddressTest do
                |> Ash.update(authorize?: false)
     end
 
+    test "accepts a landmark at the 200 char limit" do
+      store = create_store!()
+      landmark = String.duplicate("a", 200)
+
+      updated =
+        store
+        |> Ash.Changeset.for_update(:update_settings, %{landmark: landmark})
+        |> Ash.update!(authorize?: false)
+
+      assert updated.landmark == landmark
+    end
+
+    test "rejects a landmark over 200 chars" do
+      store = create_store!()
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               store
+               |> Ash.Changeset.for_update(:update_settings, %{
+                 landmark: String.duplicate("a", 201)
+               })
+               |> Ash.update(authorize?: false)
+    end
+
     test "accepts a blank digital address" do
       store = create_store!()
 

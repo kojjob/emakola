@@ -310,10 +310,16 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
     end
   end
 
+  # Truncated (not rejected) at 200 chars — landmark is best-effort rider
+  # help on a buyer checkout flow, which must never block on it. This is the
+  # deliberate opposite of the Address/Store resources' landmark attribute,
+  # which REJECTS over 200 chars via `constraints(max_length: 200)`: those
+  # are merchant/profile-data writes, where surfacing a validation error is
+  # the right call.
   defp put_landmark(map, raw) do
     case String.trim(raw || "") do
       "" -> map
-      landmark -> Map.put(map, "landmark", landmark)
+      landmark -> Map.put(map, "landmark", String.slice(landmark, 0, 200))
     end
   end
 

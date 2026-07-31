@@ -424,6 +424,132 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
     refute html =~ ~s(name="buyer[landmark]")
   end
 
+  test "a landmark over 200 chars is truncated (never rejected) on the order", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store, %{collect_delivery: true})
+
+    original = Application.get_env(:emakola, :payment_gateway)
+    Application.put_env(:emakola, :payment_gateway, Emakola.Payments.GatewayMock)
+    on_exit(fn -> Application.put_env(:emakola, :payment_gateway, original) end)
+
+    expect(Emakola.Payments.GatewayMock, :initiate_payment, fn _params ->
+      {:ok, %{reference: "PAY-longmark-ref", authorization_url: "https://pay.test/longmark"}}
+    end)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+    Mox.allow(Emakola.Payments.GatewayMock, self(), view.pid)
+
+    long_landmark = String.duplicate("a", 250)
+
+    view
+    |> form("#pay-link-form", %{
+      "buyer" => %{
+        "name" => "Ama Mensah",
+        "phone" => "0201234567",
+        "address" => "House 14, Osu",
+        "landmark" => long_landmark
+      }
+    })
+    |> render_submit()
+
+    [order] =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    assert order.shipping_address["landmark"] == String.duplicate("a", 200)
+  end
+
+  # -- Default-address reuse carries GhanaPost fields (TC-4 final fix wave) --
+  # `collect_delivery: false` never collects an address on the buyer form, so
+  # checkout_custom! falls back to the customer's saved default Address (same
+  # phone -> same placeholder-email customer). That fallback must carry
+  # digital_address/landmark exactly like the buyer-entered flows do.
+
+  test "collect_delivery: false reuses the customer's saved default address, including digital_address and landmark",
+       %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store, %{collect_delivery: false})
+
+    phone = "0201234567"
+    email = Emakola.Orders.CheckoutService.phone_placeholder_email(phone)
+    customer = Emakola.Factory.create_customer!(store, email: email, name: "Ama Mensah")
+
+    addr =
+      Emakola.Factory.create_address!(customer, store,
+        line_1: "12 Oxford Street",
+        city: "Accra",
+        digital_address: "ga 183 8164",
+        landmark: "behind Achimota Melcom"
+      )
+
+    Emakola.Customers.Address
+    |> Ash.ActionInput.for_action(:set_as_default, %{address_id: addr.id})
+    |> Ash.run_action!()
+
+    original = Application.get_env(:emakola, :payment_gateway)
+    Application.put_env(:emakola, :payment_gateway, Emakola.Payments.GatewayMock)
+    on_exit(fn -> Application.put_env(:emakola, :payment_gateway, original) end)
+
+    expect(Emakola.Payments.GatewayMock, :initiate_payment, fn _params ->
+      {:ok, %{reference: "PAY-reuse-ref", authorization_url: "https://pay.test/reuse"}}
+    end)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+    Mox.allow(Emakola.Payments.GatewayMock, self(), view.pid)
+
+    view
+    |> form("#pay-link-form", %{"buyer" => %{"name" => "Ama Mensah", "phone" => phone}})
+    |> render_submit()
+
+    [order] =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    assert order.shipping_address["digital_address"] == "GA-183-8164"
+    assert order.shipping_address["landmark"] == "behind Achimota Melcom"
+  end
+
+  test "collect_delivery: false with a default address lacking GhanaPost fields omits the keys (legacy shape)",
+       %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store, %{collect_delivery: false})
+
+    phone = "0209999999"
+    email = Emakola.Orders.CheckoutService.phone_placeholder_email(phone)
+    customer = Emakola.Factory.create_customer!(store, email: email, name: "Kofi Owusu")
+
+    addr = Emakola.Factory.create_address!(customer, store, line_1: "1 High St", city: "Kumasi")
+
+    Emakola.Customers.Address
+    |> Ash.ActionInput.for_action(:set_as_default, %{address_id: addr.id})
+    |> Ash.run_action!()
+
+    original = Application.get_env(:emakola, :payment_gateway)
+    Application.put_env(:emakola, :payment_gateway, Emakola.Payments.GatewayMock)
+    on_exit(fn -> Application.put_env(:emakola, :payment_gateway, original) end)
+
+    expect(Emakola.Payments.GatewayMock, :initiate_payment, fn _params ->
+      {:ok, %{reference: "PAY-legacy-ref", authorization_url: "https://pay.test/legacy"}}
+    end)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+    Mox.allow(Emakola.Payments.GatewayMock, self(), view.pid)
+
+    view
+    |> form("#pay-link-form", %{"buyer" => %{"name" => "Kofi Owusu", "phone" => phone}})
+    |> render_submit()
+
+    [order] =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    refute Map.has_key?(order.shipping_address, "digital_address")
+    refute Map.has_key?(order.shipping_address, "landmark")
+  end
+
   test "typing into the buyer form updates the field via the validate handler", %{conn: conn} do
     store = Emakola.Factory.create_store!()
     link = custom_link!(store)

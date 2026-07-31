@@ -63,6 +63,15 @@ defmodule EmakolaWeb.AddressComponentsTest do
 
       assert html =~ "e.g. behind Achimota Melcom, blue gate"
     end
+
+    test "caps landmark input at 200 chars via maxlength" do
+      html =
+        render_component(&AddressComponents.gh_address_fields/1,
+          field_prefix: ""
+        )
+
+      assert html =~ ~s(maxlength="200")
+    end
   end
 
   describe "gh_address_fields/1 — show_hint" do

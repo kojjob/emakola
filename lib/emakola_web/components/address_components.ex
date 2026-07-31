@@ -52,6 +52,7 @@ defmodule EmakolaWeb.AddressComponents do
           id={@landmark_id}
           name={@landmark_name}
           value={@landmark}
+          maxlength="200"
           placeholder="e.g. behind Achimota Melcom, blue gate"
           class="w-full bg-white border border-stone-200 rounded-xl px-4 py-3.5 text-sm text-stone-900 placeholder:text-stone-400 focus:ring-2 focus:ring-store-accent/30 focus:border-store-accent transition-all"
         />
