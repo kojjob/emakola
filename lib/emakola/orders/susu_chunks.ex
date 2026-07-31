@@ -39,8 +39,10 @@ defmodule Emakola.Orders.SusuChunks do
       never counted.
     * first confirmed chunk against a `:pending` plan -> activates the
       plan (customer find-or-create by the stashed buyer phone, delivery
-      address stored) and reserves stock for catalog plans
-      (`Emakola.Orders.SusuStock.reserve/1`, Task 4). Insufficient stock
+      address stored) and, for a catalog plan not yet flagged
+      `stock_reserved`, reserves stock (`Emakola.Orders.SusuStock.reserve/1`,
+      Task 4) — re-attempted on every confirm until it succeeds, not just
+      the first one (see `confirm_chunk/1`'s doc). Insufficient stock
       cancels the plan and flags the payment for refund instead of
       leaving the buyer's money parked in a dead plan.
     * a contribution that would exceed the plan's `total_amount` (two
@@ -50,8 +52,11 @@ defmodule Emakola.Orders.SusuChunks do
       plan, enqueues `Emakola.Payments.Workers.SusuCompletionWorker`
       (shell only — Task 5 implements the real work).
 
-  Never raises into the calling webhook worker (same discipline as
-  `ProtectionHolds.ensure_hold/1`).
+  Every business-rule outcome above is handled without raising into the
+  calling webhook worker (same discipline as `ProtectionHolds.ensure_hold/1`)
+  — with one deliberate exception: an unexpected raise from
+  `SusuStock.reserve/1` itself propagates so Oban retries the job instead of
+  recording a silent, uncounted success. See `confirm_chunk/1`'s doc.
   """
 
   import Ecto.Query, only: [from: 2]
@@ -110,7 +115,6 @@ defmodule Emakola.Orders.SusuChunks do
   @doc """
   Accumulates a confirmed chunk payment onto its susu plan. A no-op for any
   payment not parented to a plan (`susu_plan_id` nil) — see moduledoc.
-  Never raises.
 
   Runs in (up to) two separate locked transactions rather than one, by
   necessity: `SusuStock.reserve/1` (Task 4) manages its own transaction and
@@ -123,37 +127,97 @@ defmodule Emakola.Orders.SusuChunks do
   follow it. So stock reservation runs OUTSIDE any transaction of ours —
   between the "activate" phase (`prepare/2`) and the "record contribution"
   phase (`finish_recording/2`), each independently locked.
+
+  `prepare/2` routes to reservation whenever the (now-loaded, real) plan is
+  `type: :catalog` and `stock_reserved: false` — regardless of whether this
+  is the first confirmed chunk (status was `:pending`) or a later one on an
+  already-`:active` plan. That second case only happens if a PRIOR confirm
+  crashed between phase 1 committing (`:active`, `stock_reserved: false`)
+  and `SusuStock.reserve/1` completing — without re-checking the flag on
+  every confirm, that crash would leave stock never reserved and every
+  subsequent redelivery would sail past it straight to recording, since
+  status alone can no longer tell the two situations apart. Both
+  `SusuStock.reserve/1` and `Emakola.Orders.SusuPlan`'s
+  `:mark_stock_reserved` change are idempotent, so re-attempting it costs
+  nothing when it already succeeded.
+
+  ## Raise boundary: reservation failures are NOT swallowed
+
+  Every phase in this function — `prepare/2`, `finish_recording/2`, and the
+  insufficient-stock cancel+flag path — is individually rescued (never
+  raises into the caller), same discipline as `ProtectionHolds.ensure_hold/1`.
+  The one deliberate exception is the call to `SusuStock.reserve/1` itself:
+  it returns `:ok` or `{:error, :insufficient_stock}` for every outcome this
+  module treats as expected, but anything else it raises (the variant was
+  deleted since the plan was created, a transient `DBConnection` error, ...)
+  is an infrastructure failure, not a business-rule rejection. Swallowing
+  that here would let Oban record the job as a success while the chunk was
+  never counted, reserved, or flagged for refund — money silently stuck
+  with no retry and no signal. Letting it propagate out of `confirm_chunk/1`
+  makes Oban retry the job instead; that retry is safe precisely because
+  `metadata["susu_counted"]` and `stock_reserved` make every phase here
+  idempotent.
   """
   def confirm_chunk(%Payment{susu_plan_id: nil}), do: :ok
 
   def confirm_chunk(%Payment{susu_plan_id: plan_id, id: payment_id}) do
-    case prepare(plan_id, payment_id) do
+    case guarded_prepare(plan_id, payment_id) do
       :short_circuited ->
         :ok
 
       {:record, plan, payment} ->
-        finish_recording(plan_id, plan, payment)
+        guarded_finish(plan_id, plan, payment)
 
-      {:activate_catalog, activated_plan, payment} ->
-        case SusuStock.reserve(activated_plan) do
-          :ok ->
-            finish_recording(plan_id, activated_plan, payment)
-
-          {:error, :insufficient_stock} ->
-            Emakola.Orders.cancel_susu_plan!(activated_plan, authorize?: false)
-            flag_for_refund(payment, plan_id)
-        end
+      {:needs_reservation, plan, payment} ->
+        reserve_and_continue(plan_id, plan, payment)
     end
+  end
 
+  # Deliberately NOT rescued around the `SusuStock.reserve/1` call — see
+  # `confirm_chunk/1`'s "Raise boundary" doc. The two outcomes it DOES
+  # return (`:ok`, `{:error, :insufficient_stock}`) are handled explicitly;
+  # anything else propagates.
+  defp reserve_and_continue(plan_id, plan, payment) do
+    case SusuStock.reserve(plan) do
+      :ok ->
+        guarded_finish(plan_id, plan, payment)
+
+      {:error, :insufficient_stock} ->
+        guarded_cancel_and_flag(plan, payment, plan_id)
+    end
+  end
+
+  defp guarded_prepare(plan_id, payment_id) do
+    prepare(plan_id, payment_id)
+  rescue
+    error ->
+      log_confirm_error(payment_id, error, __STACKTRACE__)
+      :short_circuited
+  end
+
+  defp guarded_finish(plan_id, plan, payment) do
+    finish_recording(plan_id, plan, payment)
+  rescue
+    error ->
+      log_confirm_error(payment.id, error, __STACKTRACE__)
+      :ok
+  end
+
+  defp guarded_cancel_and_flag(plan, payment, plan_id) do
+    Emakola.Orders.cancel_susu_plan!(plan, authorize?: false)
+    flag_for_refund(payment, plan_id)
     :ok
   rescue
     error ->
-      Logger.error(
-        "[susu_chunks] confirm_chunk failed for payment=#{payment_id}: " <>
-          Exception.format(:error, error, __STACKTRACE__)
-      )
-
+      log_confirm_error(payment.id, error, __STACKTRACE__)
       :ok
+  end
+
+  defp log_confirm_error(payment_id, error, stacktrace) do
+    Logger.error(
+      "[susu_chunks] confirm_chunk failed for payment=#{payment_id}: " <>
+        Exception.format(:error, error, stacktrace)
+    )
   end
 
   # -- Initiation ------------------------------------------------------
@@ -323,7 +387,8 @@ defmodule Emakola.Orders.SusuChunks do
   # for the first confirmed chunk — activate (customer resolution, delivery
   # address, status -> :active). All pure Ash/Ecto writes with no
   # DB-constraint risk, so safe to run inside this lock. Stock reservation
-  # deliberately does NOT happen here (see `confirm_chunk/1`'s doc).
+  # deliberately does NOT happen here (see `confirm_chunk/1`'s doc) — this
+  # phase only DECIDES whether it's still needed, via `route_for_reservation/2`.
   defp prepare(plan_id, payment_id) do
     {:ok, result} =
       Repo.transaction(fn ->
@@ -341,20 +406,27 @@ defmodule Emakola.Orders.SusuChunks do
           row.status == "pending" ->
             plan = Ash.get!(SusuPlan, plan_id, authorize?: false)
             activated = activate_plan!(plan, fresh_payment)
-
-            case activated.type do
-              :catalog -> {:activate_catalog, activated, fresh_payment}
-              :custom -> {:record, activated, fresh_payment}
-            end
+            route_for_reservation(activated, fresh_payment)
 
           true ->
             plan = Ash.get!(SusuPlan, plan_id, authorize?: false)
-            {:record, plan, fresh_payment}
+            route_for_reservation(plan, fresh_payment)
         end
       end)
 
     result
   end
+
+  # Routes to reservation for ANY catalog plan not yet flagged
+  # `stock_reserved` — not just a freshly-activated one. A plan can reach
+  # here already `:active` with `stock_reserved: false` if a prior confirm
+  # activated it and then crashed/raised before `SusuStock.reserve/1`
+  # finished (see `confirm_chunk/1`'s doc) — this makes that window
+  # retryable instead of silently skipped.
+  defp route_for_reservation(%SusuPlan{type: :catalog, stock_reserved: false} = plan, payment),
+    do: {:needs_reservation, plan, payment}
+
+  defp route_for_reservation(plan, payment), do: {:record, plan, payment}
 
   # Phase 2: re-lock the plan (fresh — stock reservation, if it ran, was a
   # separate transaction and may have changed nothing we care about here

@@ -409,6 +409,87 @@ defmodule Emakola.Orders.SusuChunksTest do
     end
   end
 
+  describe "confirm_chunk/1 — stock reservation retries across confirms" do
+    # Simulates a prior confirm that activated the plan (status -> :active)
+    # and then crashed/raised before `SusuStock.reserve/1` completed —
+    # `stock_reserved` is still `false` on an already-`:active` plan. Built
+    # directly (bypassing `SusuChunks` entirely) rather than by injecting a
+    # real crash mid-flow, since that's the state such a crash would leave
+    # behind either way.
+    test "a retried confirm on an already-active, not-yet-reserved catalog plan attempts reservation before recording",
+         %{store: store} do
+      product = create_product!(store)
+      variant = create_variant!(product, store, stock_quantity: 10, track_inventory: true)
+
+      plan =
+        create_plan!(store, %{
+          type: :catalog,
+          variant_id: variant.id,
+          quantity: 2,
+          total_amount: 15_000
+        })
+
+      active = activate!(plan)
+      refute active.stock_reserved
+
+      payment = create_payment!(store, %{susu_plan_id: active.id, amount: 5_000})
+
+      assert :ok = SusuChunks.confirm_chunk(payment)
+
+      updated_plan = reload_plan(plan)
+      assert updated_plan.stock_reserved == true
+      assert updated_plan.contributed_amount == 5_000
+
+      updated_variant = Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false)
+      assert updated_variant.stock_quantity == 8
+
+      updated_payment = reload_payment(payment)
+      assert updated_payment.metadata["susu_counted"] == true
+    end
+
+    # `SusuStock.reserve/1` only rescues its OWN `Ash.Error.Invalid`
+    # (insufficient stock). Anything else it raises — here, `Ash.get!` on a
+    # variant deleted since the plan was created — is an infrastructure
+    # failure, not a business-rule rejection, and must propagate out of
+    # `confirm_chunk/1` so Oban retries the job rather than recording a
+    # silent, uncounted success.
+    test "a reservation call that raises (not a business-rule rejection) propagates instead of being swallowed",
+         %{store: store} do
+      product = create_product!(store)
+      variant = create_variant!(product, store, stock_quantity: 10, track_inventory: true)
+
+      plan =
+        create_plan!(store, %{
+          type: :catalog,
+          variant_id: variant.id,
+          quantity: 2,
+          total_amount: 15_000
+        })
+
+      active = activate!(plan)
+      payment = create_payment!(store, %{susu_plan_id: active.id, amount: 5_000})
+
+      variant |> Ash.Changeset.for_destroy(:destroy) |> Ash.destroy!(authorize?: false)
+
+      # `SusuStock.reserve/1` loads the variant with `Ash.get!/3` BEFORE its
+      # own narrow `rescue Ash.Error.Invalid` (scoped to the decrement call
+      # only) — a missing variant raises `Ash.Error.Invalid` (Ash's error
+      # class wrapping the underlying `Ash.Error.Query.NotFound`) straight
+      # out of `reserve/1` itself, uncaught.
+      assert_raise Ash.Error.Invalid, fn ->
+        SusuChunks.confirm_chunk(payment)
+      end
+
+      updated_plan = reload_plan(plan)
+      assert updated_plan.status == :active
+      assert updated_plan.contributed_amount == 0
+      assert updated_plan.stock_reserved == false
+
+      updated_payment = reload_payment(payment)
+      refute updated_payment.metadata["susu_counted"]
+    end
+  end
+
   describe "confirm_chunk/1 — completion" do
     test "the final chunk completes the plan and enqueues SusuCompletionWorker exactly once, even on redelivery",
          %{store: store} do
