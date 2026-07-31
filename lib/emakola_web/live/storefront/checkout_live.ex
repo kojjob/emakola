@@ -86,6 +86,8 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      |> assign(:address, "")
      |> assign(:region, "greater_accra")
      |> assign(:notes, "")
+     |> assign(:digital_address, "")
+     |> assign(:landmark, "")
      |> assign(:processing, false)
      |> assign(:order, nil)
      |> assign(:checkout_error, nil)
@@ -132,6 +134,11 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
      |> assign(:address, Map.get(params, "address", socket.assigns.address))
      |> assign(:region, Map.get(params, "region", socket.assigns.region))
      |> assign(:notes, Map.get(params, "notes", socket.assigns.notes))
+     |> assign(
+       :digital_address,
+       Map.get(params, "digital_address", socket.assigns.digital_address)
+     )
+     |> assign(:landmark, Map.get(params, "landmark", socket.assigns.landmark))
      |> assign(:coupon_code, Map.get(params, "coupon_code", socket.assigns.coupon_code))
      |> assign(:form_errors, %{})
      |> update_delivery_fee()
@@ -224,6 +231,11 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       |> assign(:address, Map.get(params, "address", socket.assigns.address))
       |> assign(:region, Map.get(params, "region", socket.assigns.region))
       |> assign(:notes, Map.get(params, "notes", socket.assigns.notes))
+      |> assign(
+        :digital_address,
+        Map.get(params, "digital_address", socket.assigns.digital_address)
+      )
+      |> assign(:landmark, Map.get(params, "landmark", socket.assigns.landmark))
       |> update_delivery_fee()
       |> update_dispatch_fees()
 
@@ -410,17 +422,22 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       fullname: fullname,
       address: address,
       region: region,
-      notes: notes
+      notes: notes,
+      digital_address: digital_address,
+      landmark: landmark
     } = socket.assigns
 
     items = Enum.map(cart, fn item -> %{variant_id: item.variant_id, quantity: item.quantity} end)
 
-    shipping_address = %{
-      "name" => fullname,
-      "phone" => "+233#{phone}",
-      "address" => address,
-      "region" => region
-    }
+    shipping_address =
+      %{
+        "name" => fullname,
+        "phone" => "+233#{phone}",
+        "address" => address,
+        "region" => region
+      }
+      |> put_digital_address(digital_address)
+      |> put_landmark(landmark)
 
     delivery_fee = socket.assigns[:delivery_fee] || 0
 
@@ -440,6 +457,20 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       end
 
     CheckoutService.checkout!(store.id, items, opts)
+  end
+
+  defp put_digital_address(map, raw) do
+    case Emakola.GhanaDigitalAddress.normalize(raw) do
+      blank when blank in [nil, ""] -> map
+      normalized -> Map.put(map, "digital_address", normalized)
+    end
+  end
+
+  defp put_landmark(map, raw) do
+    case String.trim(raw || "") do
+      "" -> map
+      landmark -> Map.put(map, "landmark", landmark)
+    end
   end
 
   defp handle_payment(socket, order) do
@@ -782,6 +813,17 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
       if assigns.address == "",
         do: Map.put(errors, :address, "Delivery address is required"),
         else: errors
+
+    errors =
+      if Emakola.GhanaDigitalAddress.valid?(assigns[:digital_address]) do
+        errors
+      else
+        Map.put(
+          errors,
+          :digital_address,
+          "Check the digital address — it looks like GA-183-8164"
+        )
+      end
 
     # Email is optional, but if provided must look like an email address.
     email = assigns[:email] || ""
