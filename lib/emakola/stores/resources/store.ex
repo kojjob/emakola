@@ -83,6 +83,17 @@ defmodule Emakola.Stores.Store do
       public?(true)
     end
 
+    # GhanaPost GPS digital address (e.g. GA-183-8164) — optional, normalized
+    # and validated by Emakola.Changes.NormalizeDigitalAddress on write.
+    attribute :digital_address, :string do
+      public?(true)
+    end
+
+    # Free-text delivery hint (e.g. "behind Achimota Melcom, blue gate").
+    attribute :landmark, :string do
+      public?(true)
+    end
+
     attribute :whatsapp_number, :string do
       public?(true)
     end
@@ -315,6 +326,8 @@ defmodule Emakola.Stores.Store do
     end
 
     update :update_settings do
+      require_atomic?(false)
+
       accept([
         :name,
         :description,
@@ -326,6 +339,8 @@ defmodule Emakola.Stores.Store do
         :address,
         :city,
         :region,
+        :digital_address,
+        :landmark,
         :whatsapp_number,
         :instagram_url,
         :tiktok_url,
@@ -338,6 +353,8 @@ defmodule Emakola.Stores.Store do
         :theme_config,
         :enabled_product_types
       ])
+
+      change(Emakola.Changes.NormalizeDigitalAddress)
     end
 
     # ── Lookup read actions ──

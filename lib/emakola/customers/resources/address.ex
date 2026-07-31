@@ -82,6 +82,17 @@ defmodule Emakola.Customers.Address do
       public?(true)
     end
 
+    # GhanaPost GPS digital address (e.g. GA-183-8164) — optional, normalized
+    # and validated by Emakola.Changes.NormalizeDigitalAddress on write.
+    attribute :digital_address, :string do
+      public?(true)
+    end
+
+    # Free-text delivery hint (e.g. "behind Achimota Melcom, blue gate").
+    attribute :landmark, :string do
+      public?(true)
+    end
+
     attribute :is_default, :boolean do
       default(false)
       allow_nil?(false)
@@ -144,8 +155,12 @@ defmodule Emakola.Customers.Address do
         :region,
         :country,
         :postal_code,
-        :phone
+        :phone,
+        :digital_address,
+        :landmark
       ])
+
+      change(Emakola.Changes.NormalizeDigitalAddress)
     end
 
     update :update do
@@ -161,8 +176,12 @@ defmodule Emakola.Customers.Address do
         :region,
         :country,
         :postal_code,
-        :phone
+        :phone,
+        :digital_address,
+        :landmark
       ])
+
+      change(Emakola.Changes.NormalizeDigitalAddress)
     end
 
     # Internal action used only by SetDefaultAddress — not exposed via domain API

@@ -93,6 +93,43 @@ defmodule EmakolaWeb.Admin.SettingsLiveTest do
 
       assert html =~ "Settings saved"
     end
+
+    test "renders GhanaPost digital address and landmark fields in the Contact tab", %{
+      conn: conn
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      html =
+        view |> element("[phx-click=\"switch_tab\"][phx-value-tab=\"contact\"]") |> render_click()
+
+      assert html =~ "GhanaPost Digital Address"
+      assert html =~ "Landmark"
+    end
+
+    test "can save GhanaPost digital address and landmark from the Contact tab", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      view |> element("[phx-click=\"switch_tab\"][phx-value-tab=\"contact\"]") |> render_click()
+
+      html =
+        view
+        |> form("#contact-form", %{
+          store: %{
+            digital_address: "ga 183 8164",
+            landmark: "behind Achimota Melcom"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Settings saved"
+
+      reloaded = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
+      assert reloaded.digital_address == "GA-183-8164"
+      assert reloaded.landmark == "behind Achimota Melcom"
+    end
   end
 
   defp setup_authenticated_merchant(conn) do

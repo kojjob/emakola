@@ -5,6 +5,8 @@ defmodule EmakolaWeb.Admin.SettingsLive do
   """
   use EmakolaWeb, :live_view
 
+  alias EmakolaWeb.AddressComponents
+
   @ghana_regions [
     "Greater Accra",
     "Ashanti",
@@ -380,6 +382,12 @@ defmodule EmakolaWeb.Admin.SettingsLive do
               </select>
             </div>
           </div>
+
+          <AddressComponents.gh_address_fields
+            digital_address={@store && @store.digital_address}
+            landmark={@store && @store.landmark}
+            field_prefix="store"
+          />
 
           <div class="flex justify-end pt-2">
             <.admin_button type="submit">

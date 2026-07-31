@@ -195,6 +195,30 @@
       "type": "text"
     },
     {
+      "allow_nil?": true,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "digital_address",
+      "type": "text"
+    },
+    {
+      "allow_nil?": true,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "landmark",
+      "type": "text"
+    },
+    {
       "allow_nil?": false,
       "default": "false",
       "generated?": false,
