@@ -350,6 +350,38 @@ defmodule Emakola.Payments.SusuExpiryTest do
       assert reload_plan(plan).status == :expired
     end
 
+    test "a plan with TWO in-flight :pending chunks (concurrent-initiation race) does not crash the sweep",
+         %{store: store} do
+      # SusuChunks.initiate_chunk/4's own moduledoc documents this exact
+      # race: two genuinely concurrent initiations can both pass the
+      # one-pending-chunk guard and both reach the gateway, leaving TWO
+      # :pending payments for the same plan. `in_flight_chunk?/1` must
+      # tolerate this (not raise), or one racy plan takes down the whole
+      # sweep run — including the takedown duty below, never reached.
+      racy_plan = active_plan_with_contributions!(store, [3_000])
+      racy_plan = force_deadline!(racy_plan, past_deadline())
+      create_payment!(store, %{susu_plan_id: racy_plan.id, amount: 1_000})
+      create_payment!(store, %{susu_plan_id: racy_plan.id, amount: 1_000})
+
+      other_due_plan = active_plan_with_contributions!(store, [4_000])
+      other_due_plan = force_deadline!(other_due_plan, past_deadline())
+
+      product = create_product!(store)
+      variant = create_variant!(product, store, stock_quantity: 10, track_inventory: true)
+      taken_down_plan = active_catalog_plan!(store, variant, [3_000])
+      Emakola.Catalog.archive_product!(product, authorize?: false)
+
+      # Only `other_due_plan` and `taken_down_plan` get refunded this run —
+      # `racy_plan` is skipped, so its contribution is untouched.
+      expect_refund(2)
+
+      assert :ok = SusuExpiryWorker.perform(%Oban.Job{})
+
+      assert reload_plan(racy_plan).status == :active
+      assert reload_plan(other_due_plan).status == :expired
+      assert reload_plan(taken_down_plan).status == :cancelled
+    end
+
     test "idempotent re-run: running the sweep twice refunds once and does not crash", %{
       store: store
     } do

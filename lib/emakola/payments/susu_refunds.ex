@@ -22,11 +22,15 @@ defmodule Emakola.Payments.SusuRefunds do
 
   `RefundService.request_refund/3` (`refund_service.ex:223-235`) treats
   every gateway failure the same way, whether the underlying cause was a
-  definite provider rejection (`{:error, {:paystack_error, msg}}`) or a
-  network failure surfaced identically as `{:error, {:gateway_error,
-  reason}}` — see `Emakola.Payments.Gateways.Paystack.process_refund/2`,
-  which routes both cases through the same `{:error, reason} -> {:error,
-  reason}` clause. `RefundService.issue/5` (`refund_service.ex:106-118`)
+  definite provider rejection or a network failure — see
+  `Emakola.Payments.Gateways.Paystack.process_refund/2`, which has two
+  DISTINCT clauses producing these: `{:ok, %{"status" => false, ...}} ->
+  {:error, {:paystack_error, message}}` for a provider rejection, and
+  `{:error, reason} -> {:error, {:gateway_error, reason}}` for a
+  transport-level failure. Different shapes, but both are `{:error, _}`
+  by the time they reach the caller, and `RefundService` treats them
+  identically regardless of which one fired. `RefundService.issue/5`
+  (`refund_service.ex:106-118`)
   wraps the whole claim+approve+refund sequence in ONE `Repo.transaction`,
   so ANY `{:error, _}` from that `with` chain rolls EVERYTHING back
   (`Repo.rollback/1`) — the Return reverts to `:requested`, safe to retry,

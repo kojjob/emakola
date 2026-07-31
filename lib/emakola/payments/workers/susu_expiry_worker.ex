@@ -72,14 +72,20 @@ defmodule Emakola.Payments.Workers.SusuExpiryWorker do
 
   # "In-flight" is precisely: a :pending payment tied to this plan — a
   # chunk the buyer has started but the gateway hasn't confirmed yet.
-  # Mirrors `SusuChunks.one_pending_chunk_ok/1`'s identical lookup.
+  # `Ash.read!/2` + `Enum.any?/1` (a tolerant existence check), NOT
+  # `read_one!` — `SusuChunks.initiate_chunk/4`'s own moduledoc documents
+  # that two genuinely concurrent initiations can both pass the
+  # one-pending-chunk guard and both reach the gateway, so more than one
+  # `:pending` payment for the same plan is an accepted, real possibility,
+  # not a bug. `read_one!` raises on >1 row — exactly the shape this race
+  # produces — which would crash the whole sweep run (including
+  # `sweep_takedowns/0`, never reached) over ONE racy plan. Matches
+  # `active_catalog_plans/0`'s plain `Ash.read!` style.
   defp in_flight_chunk?(%SusuPlan{id: plan_id}) do
-    existing =
-      Payment
-      |> Ash.Query.filter(susu_plan_id == ^plan_id and status == :pending)
-      |> Ash.read_one!(authorize?: false)
-
-    not is_nil(existing)
+    Payment
+    |> Ash.Query.filter(susu_plan_id == ^plan_id and status == :pending)
+    |> Ash.read!(authorize?: false)
+    |> Enum.any?()
   end
 
   defp expire_plan(plan) do
