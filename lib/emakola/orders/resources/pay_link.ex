@@ -173,7 +173,7 @@ defmodule Emakola.Orders.PayLink do
         :created_by_user_id
       ])
 
-      change(Emakola.Orders.Changes.GeneratePayLinkCode)
+      change(Emakola.Orders.Changes.GenerateShortCode)
 
       # Buyer Protection default: an explicit `protected` param always wins;
       # when absent, inherit the store's `buyer_protection_enabled` setting.

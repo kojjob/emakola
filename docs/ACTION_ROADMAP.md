@@ -311,6 +311,7 @@ image-upload endpoints must be added before the Flutter merchant app can build t
       Merchant-created susu links; flexible chunks + deadline; stock reserved at
       activation; auto-refund in full on expiry/cancel; order created at
       completion and stamped onto the contributions; fee once on the total.
+      → implemented (TC-3 branch, PR pending)
 - [ ] **TC-4: GhanaPost GPS + landmark addressing** — 📝 SPECCED
       (`2026-07-30-ghanapost-addressing-design.md`). Optional validated digital
       address + nudged landmark via one shared address fieldset across all four
