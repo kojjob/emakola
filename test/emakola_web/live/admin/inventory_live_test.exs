@@ -567,6 +567,96 @@ defmodule EmakolaWeb.Admin.InventoryLiveTest do
     end
   end
 
+  describe "reserved-by-susu visibility (TC-3 Task 9)" do
+    defp future_deadline(days \\ 30), do: DateTime.add(DateTime.utc_now(), days, :day)
+
+    defp create_susu_plan!(store, attrs) do
+      attrs = Map.new(attrs) |> Map.put_new(:deadline, future_deadline())
+
+      Emakola.Orders.SusuPlan
+      |> Ash.Changeset.for_create(:create, Map.put(attrs, :store_id, store.id))
+      |> Ash.create!(authorize?: false)
+    end
+
+    test "shows the reserved count for an active catalog plan's variant", %{
+      conn: conn,
+      store: store
+    } do
+      product = Factory.create_product!(store)
+      variant = Factory.create_variant!(product, store, %{stock_quantity: 10, sku: "SUSU-001"})
+
+      create_susu_plan!(store, %{
+        type: :catalog,
+        variant_id: variant.id,
+        quantity: 3,
+        total_amount: 5_000
+      })
+      |> Ash.Changeset.for_update(:activate, %{})
+      |> Ash.update!(authorize?: false)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/inventory")
+
+      assert html =~ "Reserved by susu: 3"
+    end
+
+    test "does not show a reserved count for a pending or cancelled plan", %{
+      conn: conn,
+      store: store
+    } do
+      product = Factory.create_product!(store)
+      variant = Factory.create_variant!(product, store, %{stock_quantity: 10, sku: "SUSU-002"})
+
+      _pending =
+        create_susu_plan!(store, %{
+          type: :catalog,
+          variant_id: variant.id,
+          quantity: 4,
+          total_amount: 5_000
+        })
+
+      cancelled =
+        create_susu_plan!(store, %{
+          type: :catalog,
+          variant_id: variant.id,
+          quantity: 4,
+          total_amount: 5_000
+        })
+
+      cancelled |> Ash.Changeset.for_update(:cancel, %{}) |> Ash.update!(authorize?: false)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/inventory")
+
+      refute html =~ "Reserved by susu"
+    end
+
+    test "does not leak another store's reserved susu quantity", %{conn: conn, store: store} do
+      product = Factory.create_product!(store)
+      _variant = Factory.create_variant!(product, store, %{stock_quantity: 10, sku: "SUSU-003"})
+
+      other_store = Factory.create_store!()
+      other_product = Factory.create_product!(other_store)
+
+      other_variant =
+        Factory.create_variant!(other_product, other_store, %{
+          stock_quantity: 10,
+          sku: "OTHER-SUSU"
+        })
+
+      create_susu_plan!(other_store, %{
+        type: :catalog,
+        variant_id: other_variant.id,
+        quantity: 7,
+        total_amount: 5_000
+      })
+      |> Ash.Changeset.for_update(:activate, %{})
+      |> Ash.update!(authorize?: false)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/inventory")
+
+      refute html =~ "Reserved by susu"
+    end
+  end
+
   describe "tenant isolation" do
     test "does not show variants from other stores", %{conn: conn, store: _store} do
       other_store = Factory.create_store!()

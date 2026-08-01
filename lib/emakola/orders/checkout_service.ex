@@ -201,6 +201,94 @@ defmodule Emakola.Orders.CheckoutService do
       {:error, :checkout_failed}
   end
 
+  @doc false
+  # Internal creation helper for TC-3 susu completion (Emakola.Orders.SusuCompletion) —
+  # NOT a public checkout entry point: no cart validation, no coupon/dispatch-fee
+  # handling, no stock decrement, no notification dispatch. All of a susu order's
+  # money already moved as chunk contributions before this ever runs; the caller
+  # owns attaching those payments, apportioning fees, and confirming the order.
+  #
+  # Pricing honors the plan's snapshotted `total_amount`, not the catalog's
+  # current price — the spec's promise is "total_amount snapshotted at
+  # creation; price changes never drift the deal". For a catalog plan, the
+  # `:create` line action's `DenormalizeVariant` change always snapshots the
+  # variant's CURRENT price first; `create_susu_line!/3` then force-overrides
+  # `unit_price`/`line_total` with the plan-derived figures (Ash runs a create
+  # action's changes while building the changeset, so a `force_change_attribute/3`
+  # chained afterward — the same technique `SusuChunksTest.force_deadline!/2`
+  # already uses — wins and is never re-clobbered before `Ash.create!/2` submits
+  # it). `line_total` is forced to `plan.total_amount` exactly (not
+  # `unit_price * quantity`) so the order total matches the plan total even
+  # when `total_amount` doesn't divide evenly by `quantity` — `unit_price` is
+  # then a display figure only, not load-bearing for the total.
+  def create_susu_order!(%Emakola.Orders.SusuPlan{} = plan) do
+    order =
+      Emakola.Orders.Order
+      |> Ash.Changeset.for_create(:create, %{
+        store_id: plan.store_id,
+        customer_id: plan.customer_id,
+        susu_plan_id: plan.id,
+        shipping_address: plan.delivery_address
+      })
+      |> Ash.create!(authorize?: false)
+
+    # One merchant-owned fulfillment group, same as checkout_custom!/3 —
+    # susu has no dropship split.
+    fulfillment =
+      Emakola.Orders.Fulfillment
+      |> Ash.Changeset.for_create(:create, %{order_id: order.id, store_id: plan.store_id})
+      |> Ash.create!(authorize?: false)
+
+    line = create_susu_line!(plan, order, fulfillment)
+
+    order
+    |> Ash.Changeset.for_update(:update, %{
+      subtotal: line.line_total,
+      total: line.line_total,
+      delivery_fee: 0,
+      discount_amount: 0
+    })
+    |> Ash.update!(authorize?: false)
+  end
+
+  defp create_susu_line!(%{type: :catalog} = plan, order, fulfillment) do
+    unit_price = div(plan.total_amount, plan.quantity)
+
+    Emakola.Orders.LineItem
+    |> Ash.Changeset.for_create(:create, %{
+      order_id: order.id,
+      store_id: plan.store_id,
+      variant_id: plan.variant_id,
+      quantity: plan.quantity,
+      fulfillment_id: fulfillment.id
+    })
+    |> Ash.Changeset.force_change_attribute(:unit_price, unit_price)
+    |> Ash.Changeset.force_change_attribute(:line_total, plan.total_amount)
+    |> Ash.create!(authorize?: false)
+  end
+
+  defp create_susu_line!(%{type: :custom} = plan, order, fulfillment) do
+    # `:create_custom` validates `unit_price > 0` — guard the (currently
+    # unreachable via any UI, but not resource-validated away) edge case of a
+    # custom plan's `quantity` exceeding its `total_amount`, which would
+    # otherwise floor `unit_price` to 0 and fail that validation. `unit_price`
+    # is a display figure only; `line_total` (forced below) is what actually
+    # has to match the plan total.
+    unit_price = max(div(plan.total_amount, plan.quantity), 1)
+
+    Emakola.Orders.LineItem
+    |> Ash.Changeset.for_create(:create_custom, %{
+      order_id: order.id,
+      store_id: plan.store_id,
+      product_title: plan.title,
+      unit_price: unit_price,
+      quantity: plan.quantity,
+      fulfillment_id: fulfillment.id
+    })
+    |> Ash.Changeset.force_change_attribute(:line_total, plan.total_amount)
+    |> Ash.create!(authorize?: false)
+  end
+
   @doc """
   Validates a coupon code for a given store and subtotal.
 

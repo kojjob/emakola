@@ -358,6 +358,7 @@ reuses protection's held-funds ledger, addressing is independent.
       when fully paid, balance refundable); shares held-funds design
       with Buyer Protection.
       Spec: `docs/superpowers/specs/2026-07-30-susu-layaway-design.md` ✅ specced
+      → implemented (TC-3 branch, PR pending)
 - [ ] **GhanaPost GPS + landmark addressing** — digital address code
       (GA-183-8164) + landmark field on address forms/checkout/dispatch views.
       Spec: `docs/superpowers/specs/2026-07-30-ghanapost-addressing-design.md` ✅ specced
