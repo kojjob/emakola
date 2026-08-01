@@ -7,6 +7,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   """
   use EmakolaWeb, :live_view
 
+  # Page window for the product list; "Load more" grows it by this much.
+  @admin_products_limit 100
+
   require Logger
 
   import EmakolaWeb.Admin.ProductLive.IndexComponents
@@ -26,6 +29,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         search_query: "",
         status_filter: :all,
         products: [],
+        products_limit: @admin_products_limit,
+        more_products?: false,
         categories: %{},
         categories_list: [],
         quick_view_product: nil,
@@ -69,10 +74,18 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   def handle_event("search", %{"search" => query}, socket) do
     socket =
       socket
-      |> assign(search_query: query)
+      |> assign(search_query: query, products_limit: @admin_products_limit)
       |> load_products()
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("load_more_products", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(products_limit: socket.assigns.products_limit + @admin_products_limit)
+     |> load_products()}
   end
 
   @impl true
@@ -88,7 +101,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
     socket =
       socket
-      |> assign(status_filter: status_atom)
+      |> assign(status_filter: status_atom, products_limit: @admin_products_limit)
       |> load_products()
 
     {:noreply, socket}
@@ -444,6 +457,20 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         status_filter={@status_filter}
       />
 
+      <%!-- The list is a window, not the whole catalogue. Without this the page
+      stopped at the limit with no hint that more products existed. --%>
+      <div :if={@more_products?} class="mt-4 flex flex-col items-center gap-2">
+        <p class="text-xs text-slate-500">Showing {length(@products)} products.</p>
+        <.admin_button
+          id="load-more-products"
+          variant={:secondary}
+          phx-click="load_more_products"
+          phx-disable-with="Loading..."
+        >
+          Load more products
+        </.admin_button>
+      </div>
+
       <%!-- Quick View Modal --%>
       <.quick_view_modal quick_view_product={@quick_view_product} categories={@categories} />
 
@@ -465,14 +492,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     """
   end
 
-  @admin_products_limit 100
-
   defp load_products(%{assigns: %{store_id: nil}} = socket) do
-    assign(socket, products: [])
+    assign(socket, products: [], more_products?: false)
   end
 
   defp load_products(socket) do
     %{store_id: store_id, search_query: query, status_filter: status} = socket.assigns
+    limit = socket.assigns[:products_limit] || @admin_products_limit
 
     products =
       try do
@@ -485,7 +511,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
           search: search,
           status: status_arg
         })
-        |> Ash.Query.limit(@admin_products_limit)
+        |> Ash.Query.limit(limit + 1)
         |> Ash.read!(authorize?: false)
       rescue
         exception ->
@@ -496,7 +522,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
           []
       end
 
-    assign(socket, products: products)
+    # One row past the window answers "is there more?" without a second COUNT.
+    {products, more?} =
+      if length(products) > limit,
+        do: {Enum.take(products, limit), true},
+        else: {products, false}
+
+    assign(socket, products: products, products_limit: limit, more_products?: more?)
   end
 
   defp load_categories(%{assigns: %{store_id: nil}} = socket) do
