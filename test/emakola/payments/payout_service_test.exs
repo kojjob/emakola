@@ -179,4 +179,52 @@ defmodule Emakola.Payments.PayoutServiceTest do
       assert reloaded.payout_id == payout.id
     end
   end
+
+  describe "prepare_payout/1 with susu holds (TC-3 cross-cutting guard)" do
+    # A susu contribution is held under `payout_hold_reason: "susu_plan"` from
+    # the moment `SusuChunks.confirm_chunk/1` records it, until
+    # `SusuCompletion.complete/1` either releases it (unprotected store) or
+    # converts it to a `buyer_protection` hold (protected store) — see both
+    # modules' moduledocs. `outstanding_for_payout`'s `payout_held == false`
+    # filter is what excludes it here, same mechanism as a buyer-protection
+    # hold above — there is no susu-specific carve-out in the payout query.
+    defp susu_held_payment!(store, attrs) do
+      attrs = Map.new(attrs)
+      amount = Map.get(attrs, :amount, 25_000)
+
+      store
+      |> Factory.create_payment!(
+        Map.merge(
+          %{
+            susu_plan_id: Ash.UUID.generate(),
+            amount: amount,
+            payout_held: true,
+            payout_hold_reason: "susu_plan",
+            metadata: %{"susu_counted" => true}
+          },
+          attrs
+        )
+      )
+      |> Ash.Changeset.for_update(:mark_success, %{})
+      |> Ash.update!(authorize?: false)
+    end
+
+    test "a still-held susu-plan payment never enters the backlog" do
+      store = Factory.create_store!()
+      momo_account!(store)
+      susu_held_payment!(store, %{amount: 25_000})
+
+      assert {:error, :nothing_outstanding} = PayoutService.prepare_payout(store.id)
+    end
+
+    test "excludes a susu-held payment while still paying out the store's other outstanding balance" do
+      store = Factory.create_store!()
+      momo_account!(store)
+      susu_held_payment!(store, %{amount: 25_000})
+      success_payment!(store, %{amount: 40_000})
+
+      assert {:ok, payout} = PayoutService.prepare_payout(store.id)
+      assert payout.amount == 40_000
+    end
+  end
 end

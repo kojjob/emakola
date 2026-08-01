@@ -67,6 +67,51 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
     end
   end
 
+  # TC-3 cross-cutting guard (Task 10): `handle_charge_success/1`'s idempotent
+  # post-processing block unconditionally calls
+  # `Emakola.Orders.SusuChunks.confirm_chunk(payment)`. That function's FIRST
+  # clause is `def confirm_chunk(%Payment{susu_plan_id: nil}), do: :ok` (see
+  # `lib/emakola/orders/susu_chunks.ex`) — a bare pattern match with an empty
+  # body: no query, no side effect. `Payment.:create` validates `order_id`
+  # and `susu_plan_id` mutually exclusive (`present([:order_id, :susu_plan_id],
+  # at_most: 1)`), so an order-parented payment always has `susu_plan_id:
+  # nil` — this call is provably zero susu queries by construction, not just
+  # by observed behavior. The rest of this test pins that the webhook
+  # success block's order-confirmation outcome is unaffected by susu's
+  # existence at all.
+  describe "charge.success event — TC-3 susu guard (order-parented payment)" do
+    test "confirms the order exactly as before susu existed, with susu_plan_id nil throughout",
+         %{store: store} do
+      order = create_order!(store)
+      payment = create_payment!(store, %{order_id: order.id, amount: 500_000})
+
+      event = %{
+        "event" => "charge.success",
+        "data" => %{
+          "reference" => payment.gateway_reference,
+          "amount" => 500_000,
+          "currency" => "GHS",
+          "status" => "success",
+          "gateway_response" => "Successful"
+        }
+      }
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+
+      updated_payment =
+        Payment |> Ash.Query.filter(id == ^payment.id) |> Ash.read_one!(authorize?: false)
+
+      updated_order =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(id == ^order.id)
+        |> Ash.read_one!(authorize?: false)
+
+      assert updated_payment.status == :success
+      assert updated_payment.susu_plan_id == nil
+      assert updated_order.status == :confirmed
+    end
+  end
+
   describe "charge.failed event" do
     test "marks payment as failed", %{store: store} do
       payment = create_payment!(store)

@@ -93,6 +93,75 @@ defmodule EmakolaWeb.Admin.SettingsLiveTest do
 
       assert html =~ "Settings saved"
     end
+
+    test "renders GhanaPost digital address and landmark fields in the Contact tab", %{
+      conn: conn
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      html =
+        view |> element("[phx-click=\"switch_tab\"][phx-value-tab=\"contact\"]") |> render_click()
+
+      assert html =~ "GhanaPost Digital Address"
+      assert html =~ "Landmark"
+    end
+
+    test "can save GhanaPost digital address and landmark from the Contact tab", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      view |> element("[phx-click=\"switch_tab\"][phx-value-tab=\"contact\"]") |> render_click()
+
+      html =
+        view
+        |> form("#contact-form", %{
+          store: %{
+            digital_address: "ga 183 8164",
+            landmark: "behind Achimota Melcom"
+          }
+        })
+        |> render_submit()
+
+      assert html =~ "Settings saved"
+
+      reloaded = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
+      assert reloaded.digital_address == "GA-183-8164"
+      assert reloaded.landmark == "behind Achimota Melcom"
+    end
+
+    # The store profile isn't a delivery-collecting flow (there's no rider
+    # dispatched to the merchant's own listed address), so the rider hint
+    # from the shared component doesn't apply here.
+    test "does not show the rider-delivery hint on the Contact tab", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      html =
+        view |> element("[phx-click=\"switch_tab\"][phx-value-tab=\"contact\"]") |> render_click()
+
+      refute html =~ "Helps the rider find you faster"
+    end
+
+    test "invalid digital address shows the friendly message and does not save", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/settings")
+
+      view |> element("[phx-click=\"switch_tab\"][phx-value-tab=\"contact\"]") |> render_click()
+
+      html =
+        view
+        |> form("#contact-form", %{store: %{digital_address: "not-a-code"}})
+        |> render_submit()
+
+      assert html =~ "Check the digital address — it looks like GA-183-8164"
+      refute html =~ "Settings saved"
+
+      reloaded = Ash.get!(Emakola.Stores.Store, store.id, authorize?: false)
+      assert is_nil(reloaded.digital_address)
+    end
   end
 
   defp setup_authenticated_merchant(conn) do

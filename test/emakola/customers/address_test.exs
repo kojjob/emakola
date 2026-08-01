@@ -94,6 +94,114 @@ defmodule Emakola.Customers.AddressTest do
     end
   end
 
+  # -- GhanaPost digital address + landmark ----------------------------
+
+  describe "digital_address + landmark" do
+    test "creates with a digital address and landmark", %{store: store, customer: customer} do
+      address =
+        create_address!(customer, store,
+          line_1: "12 Oxford Street",
+          city: "Accra",
+          digital_address: "GA-183-8164",
+          landmark: "behind Achimota Melcom, blue gate"
+        )
+
+      assert address.digital_address == "GA-183-8164"
+      assert address.landmark == "behind Achimota Melcom, blue gate"
+    end
+
+    test "normalizes a messy digital address on create", %{store: store, customer: customer} do
+      address =
+        create_address!(customer, store,
+          line_1: "12 Oxford Street",
+          city: "Accra",
+          digital_address: "ga 183 8164"
+        )
+
+      assert address.digital_address == "GA-183-8164"
+    end
+
+    test "rejects an invalid digital address", %{store: store, customer: customer} do
+      assert {:error, %Ash.Error.Invalid{}} =
+               Emakola.Customers.Address
+               |> Ash.Changeset.for_create(:create, %{
+                 customer_id: customer.id,
+                 store_id: store.id,
+                 line_1: "12 Oxford Street",
+                 city: "Accra",
+                 digital_address: "not-a-valid-code"
+               })
+               |> Ash.create(authorize?: false)
+    end
+
+    test "accepts a blank digital address", %{store: store, customer: customer} do
+      address =
+        create_address!(customer, store,
+          line_1: "12 Oxford Street",
+          city: "Accra",
+          digital_address: ""
+        )
+
+      assert is_nil(address.digital_address)
+    end
+
+    test "creates with no digital address or landmark (both optional)", %{
+      store: store,
+      customer: customer
+    } do
+      address = create_address!(customer, store, line_1: "12 Oxford Street", city: "Accra")
+
+      assert is_nil(address.digital_address)
+      assert is_nil(address.landmark)
+    end
+
+    test "normalizes digital address on update", %{store: store, customer: customer} do
+      address = create_address!(customer, store, line_1: "Test St", city: "Accra")
+
+      updated =
+        address
+        |> Ash.Changeset.for_update(:update, %{digital_address: "ga1838164"})
+        |> Ash.update!(authorize?: false)
+
+      assert updated.digital_address == "GA-183-8164"
+    end
+
+    test "rejects an invalid digital address on update", %{store: store, customer: customer} do
+      address = create_address!(customer, store, line_1: "Test St", city: "Accra")
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               address
+               |> Ash.Changeset.for_update(:update, %{digital_address: "nope"})
+               |> Ash.update(authorize?: false)
+    end
+
+    test "accepts a landmark at the 200 char limit", %{store: store, customer: customer} do
+      landmark = String.duplicate("a", 200)
+
+      address =
+        create_address!(customer, store,
+          line_1: "Test St",
+          city: "Accra",
+          landmark: landmark
+        )
+
+      assert address.landmark == landmark
+    end
+
+    test "rejects a landmark over 200 chars", %{store: store, customer: customer} do
+      assert {:error, %Ash.Error.Invalid{}} =
+               Emakola.Customers.Address
+               |> Ash.Changeset.for_create(:create, %{
+                 customer_id: customer.id,
+                 store_id: store.id,
+                 line_1: "12 Oxford Street",
+                 city: "Accra",
+                 landmark: String.duplicate("a", 201)
+               })
+               |> Ash.create(authorize?: false)
+    end
+  end
+
   # -- Destroy --------------------------------------------------------
 
   describe "destroy" do

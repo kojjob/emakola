@@ -35,6 +35,7 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         locations: [],
         location_totals: %{},
         levels_by_variant: %{},
+        susu_reserved_by_variant: %{},
         multi_location?: false,
         show_location_form: false,
         renaming_location_id: nil,
@@ -646,6 +647,12 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                         :if={@multi_location?}
                         entries={breakdown_entries(variant, @levels_by_variant, @locations)}
                       />
+                      <p
+                        :if={reserved_by_susu(@susu_reserved_by_variant, variant.id) > 0}
+                        class="text-xs text-amber-600 mt-0.5"
+                      >
+                        Reserved by susu: {reserved_by_susu(@susu_reserved_by_variant, variant.id)}
+                      </p>
                     <% end %>
                   </td>
                   <td class="px-4 py-3.5">
@@ -749,6 +756,12 @@ defmodule EmakolaWeb.Admin.InventoryLive do
                   :if={@multi_location?}
                   entries={breakdown_entries(variant, @levels_by_variant, @locations)}
                 />
+                <p
+                  :if={reserved_by_susu(@susu_reserved_by_variant, variant.id) > 0}
+                  class="text-xs text-amber-600 mt-0.5"
+                >
+                  Reserved by susu: {reserved_by_susu(@susu_reserved_by_variant, variant.id)}
+                </p>
               </div>
               <div class="flex items-center gap-1">
                 <button
@@ -913,6 +926,25 @@ defmodule EmakolaWeb.Admin.InventoryLive do
     |> load_locations()
     |> load_variants()
     |> load_levels()
+    |> load_susu_reserved()
+  end
+
+  # Reserved-by-susu is a pure visibility aggregate (TC-3 Task 9) — the
+  # underlying stock was already decremented from available stock at
+  # activation (see `Emakola.Orders.SusuStock`'s moduledoc), so this loads
+  # nothing that changes `variant.stock_quantity` — it just tells the
+  # merchant how much of it is tied up in in-flight susu plans.
+  defp load_susu_reserved(socket) do
+    case socket.assigns.store_id do
+      nil ->
+        assign(socket, susu_reserved_by_variant: %{})
+
+      store_id ->
+        assign(socket,
+          susu_reserved_by_variant:
+            Emakola.Orders.SusuStock.reserved_quantities_by_variant(store_id)
+        )
+    end
   end
 
   defp load_locations(socket) do
@@ -1152,6 +1184,8 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   end
 
   defp blank_to_nil(_), do: nil
+
+  defp reserved_by_susu(map, variant_id), do: Map.get(map, variant_id, 0)
 
   defp cost_in_cedis(nil), do: ""
 

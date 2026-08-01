@@ -200,6 +200,134 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
     end
   end
 
+  # -- GhanaPost digital address + landmark (TC-4 Task 2) --
+
+  describe "GhanaPost digital address + landmark" do
+    test "valid messy digital address normalizes and lands on the order with the landmark", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "241234567",
+        "fullname" => "Ama Mensah",
+        "address" => "House 14, Osu",
+        "region" => "greater_accra",
+        "notes" => "",
+        "digital_address" => "ga 183 8164",
+        "landmark" => "behind Achimota Melcom"
+      })
+
+      order =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+        |> List.first()
+
+      assert order.shipping_address["digital_address"] == "GA-183-8164"
+      assert order.shipping_address["landmark"] == "behind Achimota Melcom"
+    end
+
+    test "blank digital address and landmark are omitted from the order's shipping_address", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      render_submit(view, "place_order", %{
+        "phone" => "241234567",
+        "fullname" => "Ama Mensah",
+        "address" => "House 14, Osu",
+        "region" => "greater_accra",
+        "notes" => "",
+        "digital_address" => "",
+        "landmark" => ""
+      })
+
+      order =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+        |> List.first()
+
+      refute Map.has_key?(order.shipping_address, "digital_address")
+      refute Map.has_key?(order.shipping_address, "landmark")
+    end
+
+    test "invalid digital address shows a friendly error and creates no order", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      html =
+        render_submit(view, "place_order", %{
+          "phone" => "241234567",
+          "fullname" => "Ama Mensah",
+          "address" => "House 14, Osu",
+          "region" => "greater_accra",
+          "notes" => "",
+          "digital_address" => "not-a-code",
+          "landmark" => ""
+        })
+
+      assert html =~ "Check the digital address — it looks like GA-183-8164"
+
+      orders =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+
+      assert orders == []
+    end
+
+    test "renders the GhanaPost digital address and landmark fields", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, _view, html} = live(conn, "/s/#{store.slug}/checkout")
+
+      assert html =~ ~s(name="digital_address")
+      assert html =~ ~s(name="landmark")
+      assert html =~ "GhanaPost Digital Address"
+    end
+
+    test "a landmark over 200 chars is truncated (never rejected) on the order", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+
+      long_landmark = String.duplicate("a", 250)
+
+      render_submit(view, "place_order", %{
+        "phone" => "241234567",
+        "fullname" => "Ama Mensah",
+        "address" => "House 14, Osu",
+        "region" => "greater_accra",
+        "notes" => "",
+        "landmark" => long_landmark
+      })
+
+      order =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+        |> List.first()
+
+      assert order.shipping_address["landmark"] == String.duplicate("a", 200)
+    end
+  end
+
   # -- Dropship split settlement --
 
   describe "dropship split settlement" do

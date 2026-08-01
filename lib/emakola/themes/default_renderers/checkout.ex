@@ -20,6 +20,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
 
   alias Emakola.Payments.Protection
   alias Emakola.Suppliers.GhanaRegions
+  alias EmakolaWeb.AddressComponents
   alias EmakolaWeb.Helpers.Currency
 
   def render(assigns) do
@@ -276,6 +277,17 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                       />
                       <p :if={@form_errors[:address]} class="text-xs text-red-600 mt-1">
                         {@form_errors[:address]}
+                      </p>
+                    </div>
+
+                    <div>
+                      <AddressComponents.gh_address_fields
+                        digital_address={@digital_address}
+                        landmark={@landmark}
+                        field_prefix=""
+                      />
+                      <p :if={@form_errors[:digital_address]} class="text-xs text-red-600 mt-1">
+                        {@form_errors[:digital_address]}
                       </p>
                     </div>
 

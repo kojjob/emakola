@@ -5,10 +5,15 @@ defmodule Emakola.Notifications.DispatcherTest do
   alias Emakola.Notifications.Dispatcher
   alias Emakola.Notifications.Workers.OrderNotificationWorker
   alias Emakola.Notifications.Workers.SupplierNotificationWorker
+  alias Emakola.Notifications.Workers.SusuNotificationWorker
 
   # ── Helpers ────────────────────────────────────────────────────
 
   defp fake_order do
+    %{id: Ash.UUID.generate(), store_id: Ash.UUID.generate()}
+  end
+
+  defp fake_plan do
     %{id: Ash.UUID.generate(), store_id: Ash.UUID.generate()}
   end
 
@@ -114,6 +119,153 @@ defmodule Emakola.Notifications.DispatcherTest do
         args: %{order_id: order.id, event: "protection_complaint"},
         queue: :notifications
       )
+    end
+
+    # ── TC-3 susu completion events (Task 8) — order-based ────────
+
+    test "enqueues Oban job for susu_completed" do
+      order = fake_order()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch(order, :susu_completed)
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{order_id: order.id, event: "susu_completed"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for susu_merchant_completed" do
+      order = fake_order()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch(order, :susu_merchant_completed)
+
+      assert_enqueued(
+        worker: OrderNotificationWorker,
+        args: %{order_id: order.id, event: "susu_merchant_completed"},
+        queue: :notifications
+      )
+    end
+  end
+
+  # ── TC-3 susu plan-based events (Task 8) ────────────────────────
+  # Pre-completion susu events have NO order — `dispatch_susu/2` is the
+  # plan-based counterpart to `dispatch/2`, enqueuing `SusuNotificationWorker`
+  # instead (see `Dispatcher`'s "Susu coupling" moduledoc section).
+
+  describe "dispatch_susu/2 with valid events" do
+    test "enqueues Oban job for susu_activated" do
+      plan = fake_plan()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_susu(plan, :susu_activated)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{susu_plan_id: plan.id, event: "susu_activated"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for susu_chunk_received" do
+      plan = fake_plan()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_susu(plan, :susu_chunk_received)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{susu_plan_id: plan.id, event: "susu_chunk_received"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for susu_nudge" do
+      plan = fake_plan()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_susu(plan, :susu_nudge)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{susu_plan_id: plan.id, event: "susu_nudge"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for susu_deadline_warning" do
+      plan = fake_plan()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_susu(plan, :susu_deadline_warning)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{susu_plan_id: plan.id, event: "susu_deadline_warning"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for susu_refunded" do
+      plan = fake_plan()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_susu(plan, :susu_refunded)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{susu_plan_id: plan.id, event: "susu_refunded"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for susu_merchant_activated" do
+      plan = fake_plan()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_susu(plan, :susu_merchant_activated)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{susu_plan_id: plan.id, event: "susu_merchant_activated"},
+        queue: :notifications
+      )
+    end
+
+    test "enqueues Oban job for susu_merchant_expired" do
+      plan = fake_plan()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_susu(plan, :susu_merchant_expired)
+
+      assert_enqueued(
+        worker: SusuNotificationWorker,
+        args: %{susu_plan_id: plan.id, event: "susu_merchant_expired"},
+        queue: :notifications
+      )
+    end
+  end
+
+  describe "dispatch_susu/2 with unknown events" do
+    test "returns error for unrecognized event" do
+      plan = fake_plan()
+      assert {:error, :unknown_event} = Dispatcher.dispatch_susu(plan, :susu_bogus)
+    end
+
+    test "returns error for nil event" do
+      plan = fake_plan()
+      assert {:error, :unknown_event} = Dispatcher.dispatch_susu(plan, nil)
+    end
+
+    test "an order-based event is not a valid susu event" do
+      plan = fake_plan()
+      assert {:error, :unknown_event} = Dispatcher.dispatch_susu(plan, :order_placed)
+    end
+  end
+
+  describe "dispatch_susu/2 does not raise" do
+    test "malformed plan (no :id) returns {:error, :missing_plan_id}" do
+      plan_without_id = %{store_id: Ash.UUID.generate()}
+
+      assert {:error, :missing_plan_id} =
+               Dispatcher.dispatch_susu(plan_without_id, :susu_activated)
+    end
+
+    test "plan with nil :id returns {:error, :missing_plan_id}" do
+      plan = %{id: nil, store_id: Ash.UUID.generate()}
+
+      assert {:error, :missing_plan_id} = Dispatcher.dispatch_susu(plan, :susu_activated)
+    end
+
+    test "nil plan with valid event returns {:error, _} (no crash)" do
+      result = Dispatcher.dispatch_susu(nil, :susu_activated)
+
+      assert match?({:error, _}, result),
+             "expected dispatch_susu(nil, valid_event) to return {:error, _}, got: #{inspect(result)}"
     end
   end
 

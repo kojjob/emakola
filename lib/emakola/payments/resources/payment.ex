@@ -31,6 +31,14 @@ defmodule Emakola.Payments.Payment do
       public?(true)
     end
 
+    # A chunk payment toward a susu plan (TC-3) — mutually exclusive with
+    # `order_id` at create (see the `:create` action's validation). Nil
+    # until completion, when `:attach_order` stamps a payment's `order_id`
+    # onto every contribution.
+    attribute :susu_plan_id, :uuid do
+      public?(true)
+    end
+
     attribute :amount, :integer do
       allow_nil?(false)
       public?(true)
@@ -183,6 +191,7 @@ defmodule Emakola.Payments.Payment do
       accept([
         :store_id,
         :order_id,
+        :susu_plan_id,
         :amount,
         :currency,
         :gateway,
@@ -195,6 +204,48 @@ defmodule Emakola.Payments.Payment do
         :payout_held,
         :payout_hold_reason
       ])
+
+      # Mutual exclusion only — NOT "at least one required". Group-buy
+      # escrow payments and protected-preorder deposit payments (see
+      # `Emakola.Suppliers.GroupBuys`/`ProtectedPreorders`) legitimately
+      # create with both nil; neither concept applies to those payment
+      # kinds, and dozens of existing tests rely on that parentless
+      # default. A payment simply must never be tied to an order AND a
+      # susu plan at once.
+      validate(present([:order_id, :susu_plan_id], at_most: 1),
+        message: "cannot be tied to both an order and a susu plan"
+      )
+    end
+
+    # Susu completion (Task 5) stamps `order_id` onto every contribution
+    # once a plan finishes and its order is created. Only legal once: the
+    # payment must already be parented to a susu plan (not an order) and
+    # must not already have an order attached — refuses re-stamping so a
+    # worker retry can't silently reparent a payment.
+    update :attach_order do
+      require_atomic?(false)
+      accept([:order_id])
+
+      validate(fn changeset, _context ->
+        cond do
+          is_nil(changeset.data.susu_plan_id) ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :susu_plan_id,
+               message: "can only attach an order to a susu-plan payment"
+             )}
+
+          not is_nil(changeset.data.order_id) ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :order_id,
+               message: "already has an order attached"
+             )}
+
+          true ->
+            :ok
+        end
+      end)
     end
 
     update :update do
@@ -266,6 +317,55 @@ defmodule Emakola.Payments.Payment do
       accept([:payable_amount])
       change(set_attribute(:payout_held, false))
       change(set_attribute(:payout_released_at, &DateTime.utc_now/0))
+    end
+
+    # Susu completion (TC-3 Task 5): a protected contribution's hold is NOT
+    # released here — it converts into an ordinary buyer-protection hold
+    # instead (`payout_held` stays true). The accompanying `ProtectionHold`
+    # row this pairs with is released later through TC-2's normal
+    # delivery-confirmed machinery (`ProtectionRelease.release/2,3`), the
+    # same as any other protected order.
+    #
+    # Guarded the same way `:attach_order` is: only a payment currently
+    # `susu_plan`-held may convert. Without this, any payment (order-parented
+    # or otherwise) could be relabeled `buyer_protection` with no
+    # `ProtectionHold` row behind it — a mislabeled payment with no release
+    # path (release lookups key off `payout_hold_reason`, not a hold's
+    # existence) — or an already-converted payment could be flipped a
+    # second time.
+    update :mark_buyer_protection_hold do
+      require_atomic?(false)
+      accept([])
+
+      validate(fn changeset, _context ->
+        cond do
+          is_nil(changeset.data.susu_plan_id) ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :susu_plan_id,
+               message: "can only convert a susu-plan payment's hold to buyer protection"
+             )}
+
+          changeset.data.payout_hold_reason != "susu_plan" ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :payout_hold_reason,
+               message: "can only convert a payment currently held for \"susu_plan\""
+             )}
+
+          changeset.data.payout_held != true ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :payout_held,
+               message: "payment is not currently held"
+             )}
+
+          true ->
+            :ok
+        end
+      end)
+
+      change(set_attribute(:payout_hold_reason, "buyer_protection"))
     end
 
     read :by_payout do
