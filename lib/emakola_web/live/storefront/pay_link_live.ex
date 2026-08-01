@@ -15,6 +15,7 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
 
   alias Emakola.Orders.PayLink
   alias Emakola.Payments.Protection
+  alias EmakolaWeb.AddressComponents
   alias EmakolaWeb.Helpers.Currency
 
   @impl true
@@ -38,7 +39,14 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
          |> assign(:state, page_state(link, store, variant))
          |> assign(:quantity, initial_quantity(link, variant))
          |> assign(:processing, false)
-         |> assign(:buyer, %{"name" => "", "phone" => "", "email" => "", "address" => ""})
+         |> assign(:buyer, %{
+           "name" => "",
+           "phone" => "",
+           "email" => "",
+           "address" => "",
+           "digital_address" => "",
+           "landmark" => ""
+         })
          |> assign(:form_errors, %{})
          |> assign(:page_title, store.name)
          # The storefront layout renders the search overlay whenever @store is
@@ -170,6 +178,13 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
         {:noreply,
          assign(socket, form_errors: %{base: "Enter a valid phone number"}, processing: false)}
 
+      not Emakola.GhanaDigitalAddress.valid?(buyer["digital_address"]) ->
+        {:noreply,
+         assign(socket,
+           form_errors: %{base: "Check the digital address — it looks like GA-183-8164"},
+           processing: false
+         )}
+
       true ->
         # Re-fetch by code rather than trusting the struct captured at mount —
         # the merchant may have cancelled the link (or a rival buyer consumed
@@ -284,6 +299,28 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
 
   defp shipping_address(%PayLink{collect_delivery: true}, buyer) do
     %{"name" => buyer["name"], "phone" => buyer["phone"], "address" => buyer["address"]}
+    |> put_digital_address(buyer["digital_address"])
+    |> put_landmark(buyer["landmark"])
+  end
+
+  defp put_digital_address(map, raw) do
+    case Emakola.GhanaDigitalAddress.normalize(raw) do
+      blank when blank in [nil, ""] -> map
+      normalized -> Map.put(map, "digital_address", normalized)
+    end
+  end
+
+  # Truncated (not rejected) at 200 chars — landmark is best-effort rider
+  # help on a buyer checkout flow, which must never block on it. This is the
+  # deliberate opposite of the Address/Store resources' landmark attribute,
+  # which REJECTS over 200 chars via `constraints(max_length: 200)`: those
+  # are merchant/profile-data writes, where surfacing a validation error is
+  # the right call.
+  defp put_landmark(map, raw) do
+    case String.trim(raw || "") do
+      "" -> map
+      landmark -> Map.put(map, "landmark", String.slice(landmark, 0, 200))
+    end
   end
 
   defp presence(nil), do: nil
@@ -571,6 +608,13 @@ defmodule EmakolaWeb.Storefront.PayLinkLive do
             class="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
           >{@buyer["address"]}</textarea>
         </div>
+
+        <AddressComponents.gh_address_fields
+          :if={@link.collect_delivery}
+          digital_address={@buyer["digital_address"]}
+          landmark={@buyer["landmark"]}
+          field_prefix="buyer"
+        />
 
         <button
           type="submit"

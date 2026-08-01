@@ -661,7 +661,16 @@ defmodule Emakola.Orders.CheckoutService do
       "postal_code" => address.postal_code,
       "phone" => address.phone
     }
+    |> maybe_put_blank_omitted("digital_address", address.digital_address)
+    |> maybe_put_blank_omitted("landmark", address.landmark)
   end
+
+  # Blank-omitted (nil/"" -> key absent) for symmetry with the buyer-entered
+  # checkout/pay-link flows (CheckoutLive/PayLinkLive's put_digital_address
+  # and put_landmark) — an address saved before these fields existed keeps
+  # the byte-identical legacy shipping_address shape.
+  defp maybe_put_blank_omitted(map, _key, blank) when blank in [nil, ""], do: map
+  defp maybe_put_blank_omitted(map, key, value), do: Map.put(map, key, value)
 
   # -- Fulfillment split --------------------------------------------------
 
