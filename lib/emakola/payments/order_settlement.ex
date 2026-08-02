@@ -210,6 +210,12 @@ defmodule Emakola.Payments.OrderSettlement do
     end
   end
 
+  # Platform rows are always :internal_hold (spec §3 — that money stays in the
+  # main account on both rails); every other role defaults to the gateway rail
+  # unless the caller sets settlement_method explicitly.
+  defp default_settlement_method(:platform), do: :internal_hold
+  defp default_settlement_method(_role), do: :gateway_share
+
   # Idempotent: a retry (checkout crash between payment creation and here, or a
   # partial write) records only the allocations that are missing, keyed the same
   # way as the DB's unique_allocation constraint — so the invariant "splits sum
@@ -239,7 +245,8 @@ defmodule Emakola.Payments.OrderSettlement do
           credit_agreement_id: Map.get(alloc, :credit_agreement_id),
           subaccount_code: Map.get(alloc, :subaccount_code),
           amount: alloc.amount,
-          settlement_method: Map.get(alloc, :settlement_method, :gateway_share),
+          settlement_method:
+            Map.get(alloc, :settlement_method, default_settlement_method(alloc.role)),
           currency: payment.currency,
           recovery_amount: Map.get(alloc, :recovery_amount, 0),
           recovery_breakdown: Map.get(alloc, :recovery_breakdown, %{"items" => []})

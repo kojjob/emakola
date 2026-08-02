@@ -8,11 +8,38 @@ defmodule Emakola.Payments.OrderSettlementInternalTest do
   import Emakola.Factory
 
   alias Emakola.Payments.OrderSettlement
+  alias Emakola.Payments.Payment
+
+  describe "outstanding_for_payout excludes :internal split_mode (no-double-count)" do
+    test "an :internal payment never enters the legacy payout backlog; an identical :none one does" do
+      store = create_store!()
+
+      mark_success = fn payment ->
+        payment |> Ash.Changeset.for_update(:mark_success, %{}) |> Ash.update!(authorize?: false)
+      end
+
+      internal =
+        create_payment!(store, %{amount: 50_000, split_mode: :internal}) |> mark_success.()
+
+      none = create_payment!(store, %{amount: 50_000, split_mode: :none}) |> mark_success.()
+
+      for store_id <- [store.id, nil] do
+        ids =
+          Payment
+          |> Ash.Query.for_read(:outstanding_for_payout, %{store_id: store_id})
+          |> Ash.read!(authorize?: false)
+          |> Enum.map(& &1.id)
+
+        refute internal.id in ids
+        assert none.id in ids
+      end
+    end
+  end
 
   describe "record_splits!/2 ledger columns" do
     test "persists settlement_method and stamps the payment's currency" do
       store = create_store!()
-      payment = create_payment!(store, currency: "GHS")
+      payment = create_payment!(store, currency: "NGN")
 
       OrderSettlement.record_splits!(payment, [
         %{
@@ -22,16 +49,26 @@ defmodule Emakola.Payments.OrderSettlementInternalTest do
           subaccount_code: nil,
           settlement_method: :internal_hold
         },
-        %{role: :platform, recipient_store_id: nil, amount: 10_000, subaccount_code: nil}
+        # Absent key: platform rows always default to internal_hold (spec §3
+        # — that money stays in the main account on both rails).
+        %{role: :platform, recipient_store_id: nil, amount: 10_000, subaccount_code: nil},
+        # Absent key, non-platform role: still defaults to the gateway rail —
+        # existing-caller compatibility.
+        %{
+          role: :wholesaler,
+          recipient_store_id: store.id,
+          amount: 0,
+          subaccount_code: "ACCT_wholesaler"
+        }
       ])
 
       {:ok, splits} = Emakola.Payments.list_payment_splits(payment.id, authorize?: false)
       by_role = Map.new(splits, &{&1.role, &1})
 
       assert by_role[:merchant].settlement_method == :internal_hold
-      # Absent key defaults to the gateway rail — existing callers unchanged.
-      assert by_role[:platform].settlement_method == :gateway_share
-      assert Enum.all?(splits, &(&1.currency == "GHS"))
+      assert by_role[:platform].settlement_method == :internal_hold
+      assert by_role[:wholesaler].settlement_method == :gateway_share
+      assert Enum.all?(splits, &(&1.currency == "NGN"))
     end
   end
 
