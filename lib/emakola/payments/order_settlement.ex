@@ -179,6 +179,8 @@ defmodule Emakola.Payments.OrderSettlement do
           credit_agreement_id: Map.get(alloc, :credit_agreement_id),
           subaccount_code: Map.get(alloc, :subaccount_code),
           amount: alloc.amount,
+          settlement_method: Map.get(alloc, :settlement_method, :gateway_share),
+          currency: payment.currency,
           recovery_amount: Map.get(alloc, :recovery_amount, 0),
           recovery_breakdown: Map.get(alloc, :recovery_breakdown, %{"items" => []})
         },
