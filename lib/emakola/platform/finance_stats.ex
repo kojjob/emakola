@@ -35,9 +35,9 @@ defmodule Emakola.Platform.FinanceStats do
 
   @doc "Total successful payments the platform still owes merchants (un-split, minor units)."
   def total_outstanding_payouts do
-    unsplit_success_payments()
-    |> Enum.map(&payable_amount/1)
-    |> Enum.sum()
+    legacy = unsplit_success_payments() |> Enum.map(&payable_amount/1) |> Enum.sum()
+    internal = payable_internal_splits() |> Enum.map(&payable_net/1) |> Enum.sum()
+    legacy + internal
   end
 
   @doc """
@@ -48,8 +48,13 @@ defmodule Emakola.Platform.FinanceStats do
   """
   def per_store_finance do
     fees_by_store = sum_by_store(platform_fee_splits(), &net_amount/1)
-    owed_by_store = sum_by_store(unsplit_success_payments(), &payable_amount/1)
-    ready = verified_payout_store_ids()
+
+    owed_by_store =
+      Map.merge(
+        sum_by_store(unsplit_success_payments(), &payable_amount/1),
+        sum_by_store_key(payable_internal_splits(), & &1.recipient_store_id, &payable_net/1),
+        fn _k, a, b -> a + b end
+      )
 
     store_ids = Enum.uniq(Map.keys(fees_by_store) ++ Map.keys(owed_by_store))
     stores = load_stores(store_ids)
@@ -60,7 +65,7 @@ defmodule Emakola.Platform.FinanceStats do
         store: Map.get(stores, id),
         fees_collected: Map.get(fees_by_store, id, 0),
         outstanding_owed: Map.get(owed_by_store, id, 0),
-        payouts_ready?: MapSet.member?(ready, id)
+        payouts_ready?: Emakola.Payments.PayoutService.momo_destination?(id)
       }
     end)
     |> Enum.filter(& &1.store)
@@ -93,17 +98,32 @@ defmodule Emakola.Platform.FinanceStats do
     |> Ash.read!(authorize?: false)
   end
 
+  # Payable internal-rail splits (allocation-basis money the platform holds
+  # for a recipient store) — the split-level sibling of unsplit_success_payments.
+  # See PaymentSplit.payable_internal, the single authority for this population.
+  defp payable_internal_splits do
+    {:ok, splits} = Emakola.Payments.list_payable_internal_splits(nil, authorize?: false)
+    splits
+  end
+
+  # THE payable-net formula — what mark_paid_out freezes as paid_amount.
+  # Single authority (design spec §4.5): display, sums, and the payout engine
+  # must all agree to the pesewa. Keep in sync with PaymentSplit.mark_paid_out.
+  defp payable_net(split) do
+    split.amount -
+      (split.reversed_amount - split.recovered_amount - split.reserved_recovery_amount)
+  end
+
   defp sum_by_store(rows, value_fun) do
     Enum.reduce(rows, %{}, fn row, acc ->
       Map.update(acc, row.store_id, value_fun.(row), &(&1 + value_fun.(row)))
     end)
   end
 
-  defp verified_payout_store_ids do
-    Emakola.Stores.StorePayoutAccount
-    |> Ash.Query.filter(verification_status == :verified and not is_nil(subaccount_code))
-    |> Ash.read!(authorize?: false)
-    |> MapSet.new(& &1.store_id)
+  defp sum_by_store_key(rows, key_fun, value_fun) do
+    Enum.reduce(rows, %{}, fn row, acc ->
+      Map.update(acc, key_fun.(row), value_fun.(row), &(&1 + value_fun.(row)))
+    end)
   end
 
   defp load_stores([]), do: %{}
