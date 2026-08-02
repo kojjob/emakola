@@ -42,11 +42,19 @@ defmodule Emakola.Repo.Migrations.AddPaymentSplitInternalLedgerColumns do
     FROM payments p WHERE ps.payment_id = p.id
     """)
 
-    create(index(:payment_splits, [:recipient_store_id, :settlement_method, :paid_out_at]))
+    create(
+      index(:payment_splits, [:recipient_store_id, :settlement_method, :paid_out_at],
+        name: :payment_splits_payable_internal_index
+      )
+    )
   end
 
   def down do
-    drop(index(:payment_splits, [:recipient_store_id, :settlement_method, :paid_out_at]))
+    drop(
+      index(:payment_splits, [:recipient_store_id, :settlement_method, :paid_out_at],
+        name: :payment_splits_payable_internal_index
+      )
+    )
 
     alter table(:payment_splits) do
       remove(:settlement_method)

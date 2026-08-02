@@ -13,6 +13,10 @@ defmodule Emakola.Payments.DropshipSettlement do
   `{:no_split, reason}` where reason is one of `:no_dropship_items`,
   `:dropshipper_payout_unverified`, `:supplier_not_linked`,
   `:wholesaler_payout_unverified`.
+
+  `prepare_internal/3` is the internal-rail counterpart, with no subaccount
+  requirement and a narrower reason set (only `:no_dropship_items` — the
+  other three don't apply once verification is no longer a precondition).
   """
 
   alias Emakola.Payments.SplitCalculator

@@ -437,6 +437,20 @@ defmodule Emakola.Payments.PaymentSplit do
       require_atomic?(false)
       accept([])
 
+      validate(fn changeset, _context ->
+        cond do
+          changeset.data.settlement_method != :internal_hold ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :settlement_method,
+               message: "only internal_hold allocations carry payout claims"
+             )}
+
+          true ->
+            :ok
+        end
+      end)
+
       change(fn changeset, _context ->
         changeset
         |> Ash.Changeset.change_attribute(:paid_out_at, nil)

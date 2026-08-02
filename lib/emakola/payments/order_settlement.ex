@@ -17,8 +17,13 @@ defmodule Emakola.Payments.OrderSettlement do
       (TC-2) always loses to `:dropship_split` but wins over `:platform_fee` —
       it attaches no merchant gateway share at all; the whole charge stays in
       the platform account under a payout hold (see `Emakola.Payments.Protection`).
+    * `prepare_internal/2` — the internal-rail counterpart of `prepare/2` for a
+      charge that cannot be split at the gateway; same allocation math, tagged
+      `settlement_method: :internal_hold`, `shares: []`.
     * `record_splits!/2` — persists one `PaymentSplit` per allocation once the
       payment record exists.
+    * `persist_payment/2` — creates the payment and records its allocations in
+      one transaction, so the ledger never observes one without the other.
   """
 
   require Ash.Query
@@ -125,7 +130,10 @@ defmodule Emakola.Payments.OrderSettlement do
       # An aggressive discount can drive a non-platform allocation negative;
       # the payable ledger must stay non-negative (mirror of valid_shares?).
       # Checked BEFORE reserve! runs, so a reject here has zero side effects —
-      # no stranded reservation.
+      # no stranded reservation. Deliberately `< 0`, not `<= 0` like gateway's
+      # valid_shares? (> 0): a zero-amount internal_hold allocation is harmless
+      # here — payable_internal's `amount > reversed_amount` filter already
+      # excludes it, whereas Paystack itself rejects a zero gateway share.
       Enum.any?(carved, &(&1.role != :platform and &1.amount < 0)) ->
         {:no_split, :unrepresentable_split}
 

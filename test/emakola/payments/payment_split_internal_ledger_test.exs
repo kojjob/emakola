@@ -127,7 +127,14 @@ defmodule Emakola.Payments.PaymentSplitInternalLedgerTest do
 
       # Scoped to a recipient with nothing payable → empty.
       assert payable_internal(wholesaler.id) == []
-      assert [%{id: _}] = payable_internal(store.id)
+
+      # Through the domain's defined function (not just Ash.Query directly) —
+      # catches a typo'd arg name in the `define` that the calls above,
+      # bypassing the domain, would never exercise.
+      assert {:ok, [found_via_domain]} =
+               Emakola.Payments.list_payable_internal_splits(store.id, authorize?: false)
+
+      assert found_via_domain.id == payable.id
     end
 
     test "a partially reversed split stays payable for its net", %{
@@ -276,6 +283,27 @@ defmodule Emakola.Payments.PaymentSplitInternalLedgerTest do
       assert {:error, %Ash.Error.Invalid{}} =
                split
                |> Ash.Changeset.for_update(:mark_paid_out, %{})
+               |> Ash.update(authorize?: false)
+    end
+
+    # Wave 2 hardening: release_from_payout had no guard at all — calling it
+    # on a gateway split could write a nonzero netted_reversal_amount onto a
+    # row the attribute's contract says must keep 0 (see the attribute doc).
+    test "release refuses a gateway split", %{store: store, payment: payment} do
+      gateway =
+        settle!(
+          create_split!(store, payment, %{
+            role: :merchant,
+            recipient_store_id: store.id,
+            subaccount_code: "ACCT_m",
+            amount: 1_000,
+            settlement_method: :gateway_share
+          })
+        )
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               gateway
+               |> Ash.Changeset.for_update(:release_from_payout, %{})
                |> Ash.update(authorize?: false)
     end
   end
