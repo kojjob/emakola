@@ -84,8 +84,15 @@ defmodule EmakolaWeb.Platform.FinanceLiveInternalTest do
     assert payments_payout.amount == 80_000
     assert allocations_payout.amount == 15_000
 
-    assert_enqueued(worker: PayoutWorker, args: %{"payout_id" => payments_payout.id})
-    assert_enqueued(worker: PayoutWorker, args: %{"payout_id" => allocations_payout.id})
+    # Exactly 2 PayoutWorker jobs, one per payout — a count-based assertion,
+    # since Oban's unique-conflict returns the *attempted* job on a dupe.
+    jobs = all_enqueued(worker: PayoutWorker)
+    assert length(jobs) == 2
+
+    enqueued_payout_ids = Enum.map(jobs, & &1.args["payout_id"])
+
+    assert Enum.sort(enqueued_payout_ids) ==
+             Enum.sort([payments_payout.id, allocations_payout.id])
 
     page = Emakola.Accounts.list_platform_audit_logs!(authorize?: false, page: [limit: 200])
 

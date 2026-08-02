@@ -56,12 +56,8 @@ defmodule EmakolaWeb.Platform.FinanceLive do
   @impl true
   def handle_event("approve_payout", %{"store_id" => store_id}, socket) do
     authorized(socket, fn socket ->
-      results = [
-        {:payments, PayoutService.prepare_payout(store_id)},
-        {:allocations, PayoutService.prepare_internal_payout(store_id)}
-      ]
-
-      queued = enqueue_and_audit(results, socket.assigns.current_user, store_id)
+      {results, queued} =
+        approve_both_bases(store_id, socket.assigns.current_user, :payout_approved)
 
       {:noreply, respond_to_approval(socket, results, queued)}
     end)
@@ -74,13 +70,8 @@ defmodule EmakolaWeb.Platform.FinanceLive do
       # re-running the dead one — Paystack rejects a reused reference.
       case Emakola.Payments.get_payout(payout_id, authorize?: false) do
         {:ok, %{store_id: store_id}} ->
-          results = [
-            {:payments, PayoutService.prepare_payout(store_id)},
-            {:allocations, PayoutService.prepare_internal_payout(store_id)}
-          ]
-
-          queued =
-            enqueue_and_audit(results, socket.assigns.current_user, store_id, :payout_retried)
+          {_results, queued} =
+            approve_both_bases(store_id, socket.assigns.current_user, :payout_retried)
 
           if queued == [] do
             {:noreply, put_flash(socket, :error, "Nothing outstanding to retry for this store.")}
@@ -94,21 +85,48 @@ defmodule EmakolaWeb.Platform.FinanceLive do
     end)
   end
 
-  # Enqueues + audits every successfully-prepared payout across both bases.
-  defp enqueue_and_audit(results, actor, store_id, action \\ :payout_approved) do
-    for {_basis, {:ok, payout}} <- results do
-      PayoutWorker.enqueue(payout.id)
+  # Prepares BOTH payout bases and, for each one that succeeds, enqueues +
+  # audits it IMMEDIATELY — before the next basis is even prepared. This
+  # matters: if prepare_internal_payout/1 were to raise (e.g. its paid_amount
+  # drift tripwire) AFTER prepare_payout/1 had already committed a pending
+  # payout, a batched "prepare both, then enqueue both" flow would strand that
+  # first payout — claimed out of the backlog, but never enqueued or audited,
+  # and unreachable by the :failed-only retry button. Preparing+processing one
+  # basis at a time means the first payout's enqueue/audit (both already
+  # committed, independent writes) survive even if the second basis blows up.
+  defp approve_both_bases(store_id, actor, action) do
+    payments_result =
+      process_basis(:payments, PayoutService.prepare_payout(store_id), actor, store_id, action)
 
-      PlatformAudit.log(action, actor, %{
-        "store_id" => store_id,
-        "payout_id" => payout.id,
-        "amount" => payout.amount,
-        "basis" => to_string(payout.basis)
-      })
+    allocations_result =
+      process_basis(
+        :allocations,
+        PayoutService.prepare_internal_payout(store_id),
+        actor,
+        store_id,
+        action
+      )
 
-      payout
-    end
+    results = [{:payments, payments_result}, {:allocations, allocations_result}]
+    queued = for {_basis, {:ok, payout}} <- results, do: payout
+
+    {results, queued}
   end
+
+  defp process_basis(_basis, {:ok, payout}, actor, store_id, action) do
+    PayoutWorker.enqueue(payout.id)
+
+    PlatformAudit.log(action, actor, %{
+      "store_id" => store_id,
+      "payout_id" => payout.id,
+      "amount" => payout.amount,
+      "basis" => to_string(payout.basis)
+    })
+
+    {:ok, payout}
+  end
+
+  defp process_basis(_basis, {:error, _reason} = error, _actor, _store_id, _action), do: error
 
   # queued == [] → surface an error, preferring :no_momo_destination (it applies
   # to both bases, since they share transfer_destination/1) over :nothing_outstanding.
