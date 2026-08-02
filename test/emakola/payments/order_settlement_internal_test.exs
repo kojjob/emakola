@@ -215,6 +215,66 @@ defmodule Emakola.Payments.OrderSettlementInternalTest do
       assert wholesaler.recipient_store_id == wholesaler_store.id
       assert Enum.any?(allocations, &(&1.role == :platform))
       assert Enum.all?(allocations, &(&1.settlement_method == :internal_hold))
+      assert Enum.all?(allocations, &is_nil(&1.subaccount_code))
+    end
+
+    # Post-review hardening: prepare_internal/2's own-stock and dropship tests
+    # above both use stores with no active credit agreement, so the carve is a
+    # no-op in them — they can't catch a reorder of internal_hold before the
+    # carve. This test sets up a REAL active PartnerCreditAgreement (fixture
+    # copied verbatim from partner_credit_test.exs) so carve_sales_proceeds
+    # actually produces a :credit_partner row with a non-nil subaccount_code,
+    # then asserts internal_hold still nils it out.
+    test "an active partner-credit agreement is carved, then internal_hold overrides its subaccount code" do
+      {provider, provider_store} = create_merchant_with_store!(%{name: "Capital Supplier IH"})
+      {borrower, store} = create_merchant_with_store!(%{name: "Seller IH"})
+      {:ok, passport} = Emakola.Suppliers.CommercePassports.refresh(borrower, store.id)
+
+      {:ok, offer} =
+        Emakola.Suppliers.PartnerCredit.create_offer(provider, %{
+          provider_type: :supplier,
+          provider_store_id: provider_store.id,
+          provider_name: "Capital Supplier IH",
+          creditor_subaccount_code: "ACCT_credit_ih",
+          borrower_store_id: store.id,
+          minimum_tier: :starter,
+          principal_amount: 10_000,
+          fee_amount: 1_000,
+          repayment_bps: 2_500,
+          term_days: 90,
+          reason_code: "STARTER_TRADE_CREDIT",
+          decision_snapshot: %{"passport_id" => passport.id, "tier" => "starter"}
+        })
+
+      {:ok, agreement} = Emakola.Suppliers.PartnerCredit.accept(borrower, offer.id, true)
+
+      {:ok, _active} =
+        Emakola.Suppliers.PartnerCredit.activate(provider, agreement.id, "BANK-IH-001")
+
+      order = checkout_own_stock_order!(store)
+
+      {:split, %{total: total, allocations: allocations, mode: :internal}} =
+        OrderSettlement.prepare_internal(order.id, store.id)
+
+      credit = Enum.find(allocations, &(&1.role == :credit_partner))
+
+      # Real assertion: fails if the agreement fixture above didn't take (i.e.
+      # carve_sales_proceeds saw no active agreement and was a no-op).
+      refute is_nil(credit),
+             "expected an active credit agreement to produce a :credit_partner row"
+
+      assert credit.credit_agreement_id == agreement.id
+
+      # The override: internal_hold runs AFTER the carve and must nil out the
+      # creditor's subaccount too, even though carve_sales_proceeds sets it
+      # unconditionally to offer.creditor_subaccount_code.
+      assert is_nil(credit.subaccount_code)
+      assert credit.settlement_method == :internal_hold
+
+      assert Enum.all?(allocations, &is_nil(&1.subaccount_code))
+      assert Enum.all?(allocations, &(&1.settlement_method == :internal_hold))
+      assert total == order.total
+      assert Enum.sum(Enum.map(allocations, & &1.amount)) == order.total
     end
   end
 end
