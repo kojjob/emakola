@@ -350,5 +350,74 @@ defmodule Emakola.Payments.PaymentSplit do
 
       prepare(build(sort: [inserted_at: :asc]))
     end
+
+    # Claims an internal allocation into a payout. Freezes the net at claim
+    # time (paid_amount) and fences already-netted reversals out of future
+    # recovery (netted_reversal_amount) — see the no-double-claw invariant.
+    update :mark_paid_out do
+      require_atomic?(false)
+      accept([:payout_id])
+
+      validate(fn changeset, _context ->
+        cond do
+          changeset.data.settlement_method != :internal_hold ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :settlement_method,
+               message: "only internal_hold allocations can be paid out via the ledger"
+             )}
+
+          changeset.data.status not in [:settled, :partially_reversed] ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :status,
+               message: "only a settled allocation can be paid out"
+             )}
+
+          not is_nil(changeset.data.paid_out_at) ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :paid_out_at,
+               message: "allocation is already claimed by a payout"
+             )}
+
+          true ->
+            :ok
+        end
+      end)
+
+      change(fn changeset, _context ->
+        changeset
+        |> Ash.Changeset.change_attribute(:paid_out_at, DateTime.utc_now())
+        |> Ash.Changeset.change_attribute(
+          :paid_amount,
+          changeset.data.amount - changeset.data.reversed_amount
+        )
+        |> Ash.Changeset.change_attribute(
+          :netted_reversal_amount,
+          changeset.data.reversed_amount
+        )
+      end)
+    end
+
+    # Un-claims after a failed/reversed transfer: nothing was paid, so the
+    # netted fence resets and reversals net at source again.
+    update :release_from_payout do
+      require_atomic?(false)
+      accept([])
+
+      change(fn changeset, _context ->
+        changeset
+        |> Ash.Changeset.change_attribute(:paid_out_at, nil)
+        |> Ash.Changeset.change_attribute(:payout_id, nil)
+        |> Ash.Changeset.change_attribute(:paid_amount, nil)
+        |> Ash.Changeset.change_attribute(:netted_reversal_amount, 0)
+      end)
+    end
+
+    read :by_payout do
+      argument(:payout_id, :uuid, allow_nil?: false)
+      filter(expr(payout_id == ^arg(:payout_id)))
+    end
   end
 end

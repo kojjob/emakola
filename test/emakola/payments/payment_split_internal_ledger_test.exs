@@ -153,4 +153,142 @@ defmodule Emakola.Payments.PaymentSplitInternalLedgerTest do
       assert found.amount - found.reversed_amount == 6_000
     end
   end
+
+  describe "mark_paid_out / release_from_payout" do
+    test "claim freezes paid_amount and the netted fence; release resets them", %{
+      store: store,
+      payment: payment
+    } do
+      payout_id = Ash.UUID.generate()
+
+      split =
+        settle!(
+          create_split!(store, payment, %{
+            role: :merchant,
+            recipient_store_id: store.id,
+            amount: 10_000,
+            settlement_method: :internal_hold
+          })
+        )
+
+      split =
+        split
+        |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: 4_000})
+        |> Ash.update!(authorize?: false)
+
+      claimed =
+        split
+        |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: payout_id})
+        |> Ash.update!(authorize?: false)
+
+      assert claimed.payout_id == payout_id
+      assert %DateTime{} = claimed.paid_out_at
+      assert claimed.paid_amount == 6_000
+      assert claimed.netted_reversal_amount == 4_000
+
+      # Claimed → no longer payable.
+      assert payable_internal(store.id) == []
+
+      released =
+        claimed
+        |> Ash.Changeset.for_update(:release_from_payout, %{})
+        |> Ash.update!(authorize?: false)
+
+      assert is_nil(released.paid_out_at)
+      assert is_nil(released.payout_id)
+      assert is_nil(released.paid_amount)
+      assert released.netted_reversal_amount == 0
+
+      # Released → payable again, exactly once.
+      assert [%{id: _}] = payable_internal(store.id)
+    end
+
+    test "refuses a gateway split, a pending split, and a double claim", %{
+      store: store,
+      payment: payment
+    } do
+      payout_id = Ash.UUID.generate()
+
+      payment2 = create_payment!(store)
+      payment3 = create_payment!(store)
+
+      gateway =
+        settle!(
+          create_split!(store, payment, %{
+            role: :merchant,
+            recipient_store_id: store.id,
+            subaccount_code: "ACCT_m",
+            amount: 1_000,
+            settlement_method: :gateway_share
+          })
+        )
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               gateway
+               |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: payout_id})
+               |> Ash.update(authorize?: false)
+
+      pending =
+        create_split!(store, payment2, %{
+          role: :merchant,
+          recipient_store_id: store.id,
+          amount: 1_000,
+          settlement_method: :internal_hold
+        })
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               pending
+               |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: payout_id})
+               |> Ash.update(authorize?: false)
+
+      claimed =
+        settle!(
+          create_split!(store, payment3, %{
+            role: :dropshipper,
+            recipient_store_id: store.id,
+            amount: 2_000,
+            settlement_method: :internal_hold
+          })
+        )
+        |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: payout_id})
+        |> Ash.update!(authorize?: false)
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               claimed
+               |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: Ash.UUID.generate()})
+               |> Ash.update(authorize?: false)
+    end
+  end
+
+  describe "by_payout" do
+    test "returns exactly the splits a payout claimed", %{store: store, payment: payment} do
+      payout_id = Ash.UUID.generate()
+
+      claimed =
+        settle!(
+          create_split!(store, payment, %{
+            role: :merchant,
+            recipient_store_id: store.id,
+            amount: 3_000,
+            settlement_method: :internal_hold
+          })
+        )
+        |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: payout_id})
+        |> Ash.update!(authorize?: false)
+
+      _other =
+        settle!(
+          create_split!(store, payment, %{
+            role: :dropshipper,
+            recipient_store_id: store.id,
+            amount: 500,
+            settlement_method: :internal_hold
+          })
+        )
+
+      {:ok, found} = Emakola.Payments.list_payment_splits_by_payout(payout_id, authorize?: false)
+      assert [%{id: id}] = found
+      assert id == claimed.id
+    end
+  end
 end
