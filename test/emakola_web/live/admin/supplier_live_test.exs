@@ -263,6 +263,54 @@ defmodule EmakolaWeb.Admin.SupplierLiveTest do
       # Balance now zero — the owed amount is excluded from the aggregate.
       assert has_element?(view, "#outstanding-balance", "0")
     end
+
+    test "hides Mark Paid for an entry claimed by platform settlement (no manual double-pay)", %{
+      conn: conn,
+      store: store
+    } do
+      supplier = Factory.create_supplier!(store, name: "Claimed Co")
+      order = Factory.create_order!(store)
+      fulfillment = Factory.create_fulfillment!(order, store, supplier_id: supplier.id)
+
+      entry =
+        Factory.create_supplier_ledger_entry!(supplier, fulfillment, store, amount_owed: 15_000)
+
+      entry
+      |> Ash.Changeset.for_update(:claim_for_platform_settlement, %{source: :platform_payout})
+      |> Ash.update!(authorize?: false)
+
+      {:ok, view, html} = live(conn, ~p"/admin/suppliers/#{supplier.id}")
+
+      assert html =~ "150"
+      refute has_element?(view, "button[phx-click=\"mark_paid\"][phx-value-id=\"#{entry.id}\"]")
+      assert html =~ "Settling"
+    end
+
+    test "shows a neutral 'Voided' pill for a voided entry, no amount owed", %{
+      conn: conn,
+      store: store
+    } do
+      supplier = Factory.create_supplier!(store, name: "Voided Co")
+      order = Factory.create_order!(store)
+      fulfillment = Factory.create_fulfillment!(order, store, supplier_id: supplier.id)
+
+      entry =
+        Factory.create_supplier_ledger_entry!(supplier, fulfillment, store, amount_owed: 8_000)
+
+      entry
+      |> Ash.Changeset.for_update(:claim_for_platform_settlement, %{source: :platform_payout})
+      |> Ash.update!(authorize?: false)
+      |> Ash.Changeset.for_update(:void, %{})
+      |> Ash.update!(authorize?: false)
+
+      {:ok, view, html} = live(conn, ~p"/admin/suppliers/#{supplier.id}")
+
+      assert html =~ "Voided"
+      refute has_element?(view, "button[phx-click=\"mark_paid\"][phx-value-id=\"#{entry.id}\"]")
+
+      # The balance card excludes it — it was never manual outstanding debt.
+      assert has_element?(view, "#outstanding-balance", "0")
+    end
   end
 
   defp setup_authenticated_merchant(conn) do

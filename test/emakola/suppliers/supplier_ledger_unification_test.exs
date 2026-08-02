@@ -356,6 +356,107 @@ defmodule Emakola.Suppliers.SupplierLedgerUnificationTest do
     end
   end
 
+  # -- mark_paid guard against claimed entries (CRITICAL review finding) --
+
+  describe "mark_paid guard" do
+    test "action-level: a claimed (:platform_payout, :owed) entry refuses manual mark_paid" do
+      store = create_store!()
+      supplier = create_supplier!(store)
+      order = create_order!(store)
+      fulfillment = create_fulfillment!(order, store, supplier_id: supplier.id)
+
+      entry = create_supplier_ledger_entry!(supplier, fulfillment, store, amount_owed: 1_000)
+
+      {:ok, claimed} =
+        entry
+        |> Ash.Changeset.for_update(:claim_for_platform_settlement, %{source: :platform_payout})
+        |> Ash.update(authorize?: false)
+
+      assert claimed.status == :owed
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               claimed
+               |> Ash.Changeset.for_update(:mark_paid, %{})
+               |> Ash.update(authorize?: false)
+
+      # Untouched — still owed and still claimed, no double-pay opportunity.
+      reloaded = reload_entry(claimed)
+      assert reloaded.status == :owed
+      assert reloaded.settlement_source == :platform_payout
+    end
+
+    test "action-level: a claimed (:split_gateway, :paid) entry refuses manual mark_paid too" do
+      store = create_store!()
+      supplier = create_supplier!(store)
+      order = create_order!(store)
+      fulfillment = create_fulfillment!(order, store, supplier_id: supplier.id)
+
+      entry = create_supplier_ledger_entry!(supplier, fulfillment, store, amount_owed: 1_000)
+
+      claimed =
+        entry
+        |> Ash.Changeset.for_update(:claim_for_platform_settlement, %{source: :split_gateway})
+        |> Ash.update!(authorize?: false)
+        |> Ash.Changeset.for_update(:mark_platform_paid, %{})
+        |> Ash.update!(authorize?: false)
+
+      assert claimed.status == :paid
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               claimed
+               |> Ash.Changeset.for_update(:mark_paid, %{})
+               |> Ash.update(authorize?: false)
+    end
+  end
+
+  # -- gateway two-step stranding recovery (IMPORTANT review finding) -----
+
+  test "charge.success replay finishes a stranded :split_gateway claim (claimed but never marked paid)" do
+    dropshipper = create_store!(name: "Strand Dropshipper")
+    wholesaler_store = create_store!(name: "Strand Wholesaler")
+
+    supplier =
+      create_supplier!(dropshipper, name: "Strand Supplier", linked_store_id: wholesaler_store.id)
+
+    order = checkout_dropship_order!(dropshipper, supplier)
+    entry = ledger_entry_for(order, supplier)
+
+    {payment, split} =
+      create_wholesaler_split!(dropshipper, order, supplier, wholesaler_store,
+        settlement_method: :gateway_share,
+        subaccount_code: "ACCT_strand"
+      )
+
+    # Simulate a prior attempt that ran claim_for_platform_settlement (the
+    # first of two independent Ash.update! calls in
+    # claim_supplier_ledger_entry/2) but crashed before mark_platform_paid
+    # (the second) ever ran — the split is already :settled (as a real
+    # charge.success would have left it) but the entry is stranded
+    # :owed/:split_gateway.
+    split
+    |> Ash.Changeset.for_update(:mark_settled, %{})
+    |> Ash.update!(authorize?: false)
+
+    entry
+    |> Ash.Changeset.for_update(:claim_for_platform_settlement, %{
+      payment_split_id: split.id,
+      source: :split_gateway
+    })
+    |> Ash.update!(authorize?: false)
+
+    stranded = reload_entry(entry)
+    assert stranded.status == :owed
+    assert stranded.settlement_source == :split_gateway
+
+    # Replay recovers it — no re-claim attempt (would fail the :manual
+    # pre-guard), just finishes the mark-paid half.
+    assert :ok = charge_success!(payment)
+
+    recovered = reload_entry(entry)
+    assert recovered.status == :paid
+    refute is_nil(recovered.paid_at)
+  end
+
   # -- refund <-> supplier coupling --------------------------------------
 
   test "refund.processed voids a claimed-unpaid entry when its wholesaler split fully reverses" do

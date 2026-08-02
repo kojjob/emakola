@@ -129,6 +129,13 @@ defmodule Emakola.Suppliers.SupplierLedgerEntry do
          from: [:owed], message: "only an owed entry can be marked paid"}
       )
 
+      # A claimed entry (settlement_source != :manual) is being settled by the
+      # platform — the manual flow must never touch it, or the supplier gets
+      # paid twice: once by the platform settlement, once by this button.
+      validate(attribute_equals(:settlement_source, :manual),
+        message: "claimed by platform settlement — cannot be marked paid manually"
+      )
+
       change(set_attribute(:status, :paid))
       change(set_attribute(:paid_at, &DateTime.utc_now/0))
     end

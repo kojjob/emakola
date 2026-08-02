@@ -365,8 +365,19 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
     Emakola.Payments.RefundLiability.apply_recoveries!(splits)
     Emakola.Suppliers.PartnerCredit.record_settlement(payment, splits)
 
-    splits
-    |> Enum.filter(&(&1.role == :wholesaler and not is_nil(&1.supplier_id)))
+    # Re-read fresh: `splits` above was fetched before the mark_settled loop,
+    # so a split that just transitioned :pending -> :settled is still stale
+    # in memory. Filtering the freshly-read list to status == :settled (not
+    # the stale in-memory one) both matches this function's own "settled
+    # split" contract literally and keeps a :reversed/:partially_reversed
+    # split (e.g. an out-of-order charge.success replay after a refund
+    # already landed) out of the claim path entirely, rather than relying
+    # solely on the entry-side pre-guard to save it.
+    payment
+    |> payment_splits()
+    |> Enum.filter(
+      &(&1.status == :settled and &1.role == :wholesaler and not is_nil(&1.supplier_id))
+    )
     |> Enum.each(&claim_supplier_ledger_entry(payment, &1))
   end
 
@@ -414,6 +425,23 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
           |> Ash.Changeset.for_update(:mark_platform_paid, %{})
           |> Ash.update!(authorize?: false)
         end
+
+        :ok
+
+      # Stranded state: claim_for_platform_settlement and mark_platform_paid
+      # above are two independent Ash.update! calls, not one transaction. If
+      # the process crashed between them, the entry is left :owed with
+      # settlement_source already :split_gateway — the :manual pre-guard on
+      # the first clause can never match it again, so a plain replay would
+      # otherwise strand it forever (invisible to outstanding_balance,
+      # un-voidable, and un-payable manually). Finish the mark-paid here
+      # instead, matching this file's existing partial-failure recovery
+      # philosophy for charge.success retries (see
+      # handle_charge_success/1's idempotent post-processing comment).
+      %{status: :owed, settlement_source: :split_gateway} = entry ->
+        entry
+        |> Ash.Changeset.for_update(:mark_platform_paid, %{})
+        |> Ash.update!(authorize?: false)
 
         :ok
 
