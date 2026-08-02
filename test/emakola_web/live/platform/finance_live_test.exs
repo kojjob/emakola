@@ -42,14 +42,6 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
     )
   end
 
-  defp verified_payout!(store, code) do
-    Emakola.Stores.StorePayoutAccount
-    |> Ash.Changeset.for_create(:create, %{store_id: store.id})
-    |> Ash.create!(authorize?: false)
-    |> Ash.Changeset.for_update(:record_subaccount, %{subaccount_code: code})
-    |> Ash.update!(authorize?: false)
-  end
-
   test "staff without :manage_billing is redirected", %{conn: conn} do
     {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
     assert {:error, {:redirect, _}} = live(conn, ~p"/platform/finance")
@@ -91,7 +83,7 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
       success_payment!(owed_store, %{amount: 80_000})
 
       fee_store = Factory.create_store!(%{name: "Fee Palace"})
-      verified_payout!(fee_store, "ACCT_fee")
+      momo_account!(fee_store)
       payment = success_payment!(fee_store, %{amount: 10_000, split_mode: :dropship_split})
 
       # Settled, not pending: only confirmed fees count as revenue now, and a
@@ -107,6 +99,8 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
       assert html =~ "Fee Palace"
       # owed store has no payout set up; fee store is ready
       assert html =~ "No payout set up"
+
+      # payouts_ready? = MoMo-destination-present (P2 semantic — transfers are what payouts actually need)
       assert html =~ "Ready"
     end
 
