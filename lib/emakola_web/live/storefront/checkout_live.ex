@@ -530,7 +530,7 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
 
     case gateway.initiate_payment(params) do
       {:ok, %{reference: reference} = resp} ->
-        case Emakola.Payments.create_payment(
+        case Emakola.Payments.OrderSettlement.persist_payment(
                Map.merge(
                  %{
                    store_id: store.id,
@@ -544,10 +544,9 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
                  },
                  payout_hold_attrs(settlement)
                ),
-               authorize?: false
+               settlement
              ) do
-          {:ok, payment} ->
-            record_splits(payment, settlement)
+          {:ok, _payment} ->
             :ok
 
           {:error, reason} ->
@@ -632,12 +631,6 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
     do: %{payout_held: true, payout_hold_reason: "buyer_protection"}
 
   defp payout_hold_attrs(_settlement), do: %{}
-
-  defp record_splits(payment, {:split, %{allocations: allocations}}),
-    do: Emakola.Payments.OrderSettlement.record_splits!(payment, allocations)
-
-  defp record_splits(_payment, {:no_split, _}), do: :ok
-  defp record_splits(_payment, {:hold, _}), do: :ok
 
   defp release_recovery_reservations({:split, %{allocations: allocations}}),
     do: Emakola.Payments.OrderSettlement.release_recovery_reservations!(allocations)

@@ -101,7 +101,11 @@ defmodule Emakola.Suppliers.PartnerCredit do
         Enum.flat_map(allocations, fn
           %{role: role, recipient_store_id: ^borrower_store_id, amount: amount} = allocation
           when role in [:merchant, :dropshipper] ->
-            repayment = min(available, div(amount * agreement.repayment_bps, 10_000))
+            # Folded unlinked-supplier passthrough money (internal rail only)
+            # is owed manually to the supplier — it is not the borrower's
+            # sales proceeds, so it is excluded from the repayment base.
+            repayment_base = amount - Map.get(allocation, :passthrough_amount, 0)
+            repayment = min(available, div(repayment_base * agreement.repayment_bps, 10_000))
 
             if repayment > 0 do
               offer = Ash.get!(PartnerCreditOffer, agreement.offer_id, authorize?: false)

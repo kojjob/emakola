@@ -133,6 +133,50 @@ defmodule Emakola.Payments.PaymentSplit do
       public?(true)
     end
 
+    # Which rail settles this allocation: the gateway routed it at charge
+    # (:gateway_share) or the money stays in the platform main account and is
+    # owed via this ledger (:internal_hold). Platform rows are always
+    # :internal_hold — their cut never leaves the main account on either rail.
+    attribute :settlement_method, :atom do
+      constraints(one_of: [:gateway_share, :internal_hold])
+      default(:gateway_share)
+      allow_nil?(false)
+      public?(true)
+    end
+
+    attribute :currency, :string do
+      allow_nil?(false)
+      default("GHS")
+      public?(true)
+    end
+
+    # Claim stamp for internal-rail payouts, mirroring Payment.paid_out_at /
+    # payout_id. Nil until a payout claims this allocation.
+    attribute :paid_out_at, :utc_datetime_usec do
+      public?(true)
+    end
+
+    attribute :payout_id, :uuid do
+      public?(true)
+    end
+
+    # Net frozen at claim time as amount - (reversed_amount - recovered_amount
+    # - reserved_recovery_amount) — amount minus only the portion of any
+    # reversal not already recovered or reserved. What the payout actually
+    # paid, immune to later reversals moving underneath it.
+    attribute :paid_amount, :integer do
+      public?(true)
+    end
+
+    # No-double-claw fence: reversals that were already netted into a claim
+    # (payable = amount - reversed) must not ALSO be recovered from future
+    # earnings. Frozen at claim, reset on release. Gateway splits keep 0.
+    attribute :netted_reversal_amount, :integer do
+      allow_nil?(false)
+      default(0)
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -193,7 +237,9 @@ defmodule Emakola.Payments.PaymentSplit do
         :subaccount_code,
         :amount,
         :recovery_amount,
-        :recovery_breakdown
+        :recovery_breakdown,
+        :settlement_method,
+        :currency
       ])
     end
 
@@ -274,17 +320,152 @@ defmodule Emakola.Payments.PaymentSplit do
       filter(expr(payment_id == ^arg(:payment_id)))
     end
 
+    # Recoverable = reversed - (what already nets at source) - recovered - reserved.
+    # "What nets at source" differs by rail/claim state, so this can't collapse
+    # to one uncapped term (see RefundLiability.effective_netted/1, the same
+    # split by design — DO NOT delete as "redundant" with a single formula):
+    #   - gateway_share: 0 always — the money already left at charge time, so
+    #     the FULL reversal is recoverable (today's exact behavior).
+    #   - internal_hold, claimed (paid_out_at set): netted_reversal_amount, the
+    #     value frozen by mark_paid_out — already net of any recovery taken
+    #     before that claim.
+    #   - internal_hold, unclaimed: min(amount, reversed_amount) — the split's
+    #     own future claim will net up to its full amount; only reversal BEYOND
+    #     amount (over-reversal from dispatch-fee redistribution) is exposed
+    #     here, never the part the split will net itself.
     read :recoverable_by_recipient do
       argument(:recipient_store_id, :uuid, allow_nil?: false)
 
       filter(
         expr(
           recipient_store_id == ^arg(:recipient_store_id) and role != :platform and
-            reversed_amount > recovered_amount + reserved_recovery_amount
+            ((settlement_method == :gateway_share and
+                reversed_amount > recovered_amount + reserved_recovery_amount) or
+               (settlement_method == :internal_hold and not is_nil(paid_out_at) and
+                  reversed_amount >
+                    netted_reversal_amount + recovered_amount + reserved_recovery_amount) or
+               (settlement_method == :internal_hold and is_nil(paid_out_at) and
+                  reversed_amount > amount + recovered_amount + reserved_recovery_amount))
         )
       )
 
       prepare(build(sort: [inserted_at: :asc]))
+    end
+
+    # THE definition of internally-payable money — the split-level sibling of
+    # Payment.outstanding_for_payout (which owns the legacy :none population;
+    # the two can never overlap because a charge is entirely one split_mode).
+    # Change it ONLY here.
+    read :payable_internal do
+      argument(:recipient_store_id, :uuid, allow_nil?: true)
+
+      filter(
+        expr(
+          settlement_method == :internal_hold and role != :platform and
+            status in [:settled, :partially_reversed] and is_nil(paid_out_at) and
+            amount > reversed_amount and
+            (is_nil(^arg(:recipient_store_id)) or
+               recipient_store_id == ^arg(:recipient_store_id))
+        )
+      )
+
+      prepare(build(sort: [inserted_at: :asc]))
+    end
+
+    # Claims an internal allocation into a payout. Freezes the net at claim
+    # time (paid_amount) and fences already-netted reversals out of future
+    # recovery (netted_reversal_amount) — see the no-double-claw invariant.
+    update :mark_paid_out do
+      require_atomic?(false)
+      accept([:payout_id])
+
+      validate(fn changeset, _context ->
+        cond do
+          changeset.data.settlement_method != :internal_hold ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :settlement_method,
+               message: "only internal_hold allocations can be paid out via the ledger"
+             )}
+
+          changeset.data.status not in [:settled, :partially_reversed] ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :status,
+               message: "only a settled allocation can be paid out"
+             )}
+
+          not is_nil(changeset.data.paid_out_at) ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :paid_out_at,
+               message: "allocation is already claimed by a payout"
+             )}
+
+          is_nil(Ash.Changeset.get_attribute(changeset, :payout_id)) ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :payout_id,
+               message: "a payout must own the claim"
+             )}
+
+          true ->
+            :ok
+        end
+      end)
+
+      change(fn changeset, _context ->
+        # Net only what hasn't already been clawed from another earning —
+        # otherwise a reversal already recovered via recoverable_by_recipient
+        # gets frozen into netted_reversal_amount too, and re-paid out.
+        netted =
+          changeset.data.reversed_amount - changeset.data.recovered_amount -
+            changeset.data.reserved_recovery_amount
+
+        changeset
+        |> Ash.Changeset.change_attribute(:paid_out_at, DateTime.utc_now())
+        |> Ash.Changeset.change_attribute(:paid_amount, changeset.data.amount - netted)
+        |> Ash.Changeset.change_attribute(:netted_reversal_amount, netted)
+      end)
+    end
+
+    # Un-claims after a failed/reversed transfer: nothing was paid, so the
+    # netted fence resets and reversals net at source again — but never below
+    # what's already been collected via recoverable_by_recipient, or a later
+    # re-claim would re-freeze the full reversal on top of that recovery.
+    update :release_from_payout do
+      require_atomic?(false)
+      accept([])
+
+      validate(fn changeset, _context ->
+        cond do
+          changeset.data.settlement_method != :internal_hold ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :settlement_method,
+               message: "only internal_hold allocations carry payout claims"
+             )}
+
+          true ->
+            :ok
+        end
+      end)
+
+      change(fn changeset, _context ->
+        changeset
+        |> Ash.Changeset.change_attribute(:paid_out_at, nil)
+        |> Ash.Changeset.change_attribute(:payout_id, nil)
+        |> Ash.Changeset.change_attribute(:paid_amount, nil)
+        |> Ash.Changeset.change_attribute(
+          :netted_reversal_amount,
+          changeset.data.recovered_amount + changeset.data.reserved_recovery_amount
+        )
+      end)
+    end
+
+    read :by_payout do
+      argument(:payout_id, :uuid, allow_nil?: false)
+      filter(expr(payout_id == ^arg(:payout_id)))
     end
   end
 end

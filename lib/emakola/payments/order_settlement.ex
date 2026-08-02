@@ -17,8 +17,13 @@ defmodule Emakola.Payments.OrderSettlement do
       (TC-2) always loses to `:dropship_split` but wins over `:platform_fee` —
       it attaches no merchant gateway share at all; the whole charge stays in
       the platform account under a payout hold (see `Emakola.Payments.Protection`).
+    * `prepare_internal/2` — the internal-rail counterpart of `prepare/2` for a
+      charge that cannot be split at the gateway; same allocation math, tagged
+      `settlement_method: :internal_hold`, `shares: []`.
     * `record_splits!/2` — persists one `PaymentSplit` per allocation once the
       payment record exists.
+    * `persist_payment/2` — creates the payment and records its allocations in
+      one transaction, so the ledger never observes one without the other.
   """
 
   require Ash.Query
@@ -86,6 +91,79 @@ defmodule Emakola.Payments.OrderSettlement do
     end
   end
 
+  @doc """
+  Internal-rail settlement for a charge that cannot be split at the gateway
+  (unverified parties, unlinked suppliers). Same allocation math and fee rates
+  as the gateway rail; every allocation is tagged `settlement_method:
+  :internal_hold` with no subaccount, and a `:platform` row is always present.
+  Returns `shares: []` — nothing is attached to the gateway charge. Dark until
+  Phase 3 routes `prepare/2`'s verification-failure fallbacks here.
+  """
+  def prepare_internal(order_id, store_id) do
+    order = Ash.get!(Emakola.Orders.Order, order_id, authorize?: false, tenant: store_id)
+    line_items = load_line_items(order_id, store_id)
+    dispatch_fees = load_dispatch_fees(order_id)
+
+    case DropshipSettlement.prepare_internal(line_items, store_id,
+           fee_rate_bps: fee_rate_bps(),
+           dispatch_fees: dispatch_fees
+         ) do
+      {:split, %{allocations: allocations}} ->
+        # Same delivery-fee fold as the gateway dropship rail.
+        adjustment = (order.delivery_fee || 0) - (order.discount_amount || 0)
+        finalize_internal(order, store_id, adjust_dropshipper(allocations, adjustment))
+
+      {:no_split, :no_dropship_items} ->
+        %{fee: fee, net: net} = PlatformFee.calculate(order.total, platform_fee_rate_bps())
+
+        finalize_internal(order, store_id, [
+          %{role: :merchant, recipient_store_id: store_id, amount: net, subaccount_code: nil},
+          %{role: :platform, recipient_store_id: nil, amount: fee, subaccount_code: nil}
+        ])
+    end
+  end
+
+  defp finalize_internal(order, store_id, allocations) do
+    carved = Emakola.Suppliers.PartnerCredit.carve_sales_proceeds(allocations, store_id)
+
+    cond do
+      # An aggressive discount can drive a non-platform allocation negative;
+      # the payable ledger must stay non-negative (mirror of valid_shares?).
+      # Checked BEFORE reserve! runs, so a reject here has zero side effects —
+      # no stranded reservation. Deliberately `< 0`, not `<= 0` like gateway's
+      # valid_shares? (> 0): a zero-amount internal_hold allocation is harmless
+      # here — payable_internal's `amount > reversed_amount` filter already
+      # excludes it, whereas Paystack itself rejects a zero gateway share.
+      Enum.any?(carved, &(&1.role != :platform and &1.amount < 0)) ->
+        {:no_split, :unrepresentable_split}
+
+      not sum_matches_total?(order, carved) ->
+        {:no_split, :allocation_sum_mismatch}
+
+      true ->
+        reserved = RefundLiability.reserve!(carved)
+        allocations = Enum.map(reserved, &internal_hold/1)
+
+        # Backstop only: reserve! cannot itself create negatives (recovery <=
+        # amount) or break the sum invariant, so this should never fire. If it
+        # somehow does, release what reserve! just persisted rather than
+        # stranding the reservation.
+        if sum_matches_total?(order, allocations) do
+          {:split, %{total: order.total, allocations: allocations, shares: [], mode: :internal}}
+        else
+          release_recovery_reservations!(reserved)
+          {:no_split, :allocation_sum_mismatch}
+        end
+    end
+  end
+
+  # The internal rail holds everything in the platform account: no allocation
+  # carries a subaccount (this also overrides the partner-credit carve, which
+  # sets the creditor's subaccount unconditionally).
+  defp internal_hold(alloc) do
+    Map.merge(alloc, %{settlement_method: :internal_hold, subaccount_code: nil})
+  end
+
   defp prepare_platform_fee(order, store_id) do
     case verified_subaccount(store_id) do
       {:ok, code} ->
@@ -150,6 +228,12 @@ defmodule Emakola.Payments.OrderSettlement do
     end
   end
 
+  # Platform rows are always :internal_hold (spec §3 — that money stays in the
+  # main account on both rails); every other role defaults to the gateway rail
+  # unless the caller sets settlement_method explicitly.
+  defp default_settlement_method(:platform), do: :internal_hold
+  defp default_settlement_method(_role), do: :gateway_share
+
   # Idempotent: a retry (checkout crash between payment creation and here, or a
   # partial write) records only the allocations that are missing, keyed the same
   # way as the DB's unique_allocation constraint — so the invariant "splits sum
@@ -179,6 +263,9 @@ defmodule Emakola.Payments.OrderSettlement do
           credit_agreement_id: Map.get(alloc, :credit_agreement_id),
           subaccount_code: Map.get(alloc, :subaccount_code),
           amount: alloc.amount,
+          settlement_method:
+            Map.get(alloc, :settlement_method, default_settlement_method(alloc.role)),
+          currency: payment.currency,
           recovery_amount: Map.get(alloc, :recovery_amount, 0),
           recovery_breakdown: Map.get(alloc, :recovery_breakdown, %{"items" => []})
         },
@@ -186,6 +273,30 @@ defmodule Emakola.Payments.OrderSettlement do
       )
     end)
   end
+
+  @doc """
+  Creates the payment and records its allocation rows in ONE transaction, so
+  the ledger can never observe a payment without its splits (or vice versa).
+  Split-less settlements (`{:no_split, _}`, `{:hold, _}`) just create the
+  payment. Returns `{:ok, payment}` or `{:error, reason}`.
+  """
+  def persist_payment(payment_attrs, settlement) do
+    Emakola.Repo.transaction(fn ->
+      case Emakola.Payments.create_payment(payment_attrs, authorize?: false) do
+        {:ok, payment} ->
+          persist_allocations!(payment, settlement)
+          payment
+
+        {:error, reason} ->
+          Emakola.Repo.rollback(reason)
+      end
+    end)
+  end
+
+  defp persist_allocations!(payment, {:split, %{allocations: allocations}}),
+    do: record_splits!(payment, allocations)
+
+  defp persist_allocations!(_payment, _settlement), do: :ok
 
   def release_recovery_reservations!(allocations), do: RefundLiability.release!(allocations)
 

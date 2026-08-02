@@ -243,7 +243,12 @@ defmodule Emakola.Payments.RefundLiability do
       |> Ash.Query.lock("FOR UPDATE")
       |> Ash.read!(authorize?: false)
 
-    {items, recovered} = reserve_from_liabilities(liabilities, amount, [], 0)
+    # Folded unlinked-supplier passthrough money (internal rail only) is owed
+    # manually to the supplier — it must never be diverted into recovering
+    # this recipient's own refund liabilities. Only the non-passthrough part
+    # of the allocation is available to reserve against.
+    available_ceiling = max(0, amount - Map.get(allocation, :passthrough_amount, 0))
+    {items, recovered} = reserve_from_liabilities(liabilities, available_ceiling, [], 0)
 
     adjusted =
       allocation
@@ -264,10 +269,10 @@ defmodule Emakola.Payments.RefundLiability do
 
   defp reserve_from_liabilities([liability | rest], available, items, recovered) do
     outstanding =
-      liability.reversed_amount - liability.recovered_amount -
+      liability.reversed_amount - effective_netted(liability) - liability.recovered_amount -
         liability.reserved_recovery_amount
 
-    amount = min(outstanding, available)
+    amount = min(max(outstanding, 0), available)
 
     update_tracking!(liability, %{
       reserved_recovery_amount: liability.reserved_recovery_amount + amount
@@ -277,16 +282,52 @@ defmodule Emakola.Payments.RefundLiability do
     reserve_from_liabilities(rest, available - amount, [item | items], recovered + amount)
   end
 
+  # What already nets "at source" for this liability — see the matching
+  # comment on PaymentSplit's recoverable_by_recipient read (same split, kept
+  # in sync there; DO NOT collapse to one uncapped term):
+  #   - gateway_share: 0 — the money already left at charge time, so the full
+  #     reversal is recoverable.
+  #   - internal_hold, claimed: the frozen netted_reversal_amount, already net
+  #     of whatever was recovered before that claim.
+  #   - internal_hold, unclaimed: min(amount, reversed_amount) — the split's
+  #     own future claim nets up to its full amount; only reversal beyond
+  #     amount (over-reversal from dispatch-fee redistribution) is exposed.
+  defp effective_netted(%{settlement_method: :gateway_share}), do: 0
+
+  defp effective_netted(%{settlement_method: :internal_hold, paid_out_at: nil} = liability) do
+    min(liability.amount, liability.reversed_amount)
+  end
+
+  defp effective_netted(%{settlement_method: :internal_hold} = liability) do
+    liability.netted_reversal_amount
+  end
+
   defp add_to_platform(allocations, 0), do: allocations
 
   defp add_to_platform(allocations, recovered_total) do
-    Enum.map(allocations, fn
-      %{role: :platform} = allocation ->
-        %{allocation | amount: allocation.amount + recovered_total}
+    if Enum.any?(allocations, &(&1.role == :platform)) do
+      Enum.map(allocations, fn
+        %{role: :platform} = allocation ->
+          %{allocation | amount: allocation.amount + recovered_total}
 
-      allocation ->
-        allocation
-    end)
+        allocation ->
+          allocation
+      end)
+    else
+      # Recovered money must land somewhere in the same charge (the sum
+      # invariant); with no platform row to absorb it, synthesize one rather
+      # than silently dropping it.
+      allocations ++
+        [
+          %{
+            role: :platform,
+            recipient_store_id: nil,
+            subaccount_code: nil,
+            amount: recovered_total,
+            settlement_method: :internal_hold
+          }
+        ]
+    end
   end
 
   defp apply_recovery!(%{recovery_amount: amount}) when amount <= 0, do: :ok
