@@ -67,6 +67,35 @@ defmodule Emakola.Payments.InternalPayoutServiceTest do
     assert {:error, :nothing_outstanding} = PayoutService.prepare_internal_payout(store.id)
   end
 
+  test "frozen paid_amount is the 4-term formula, not naive amount − reversed_amount" do
+    store = create_store!()
+    momo_destination!(store)
+    payment = create_payment!(store)
+
+    # amount 8_000, reversed 3_000 — but that 3_000 was already recovered
+    # from a later earning (recoverable_by_recipient) before this claim, so
+    # netted = reversed_amount(3_000) - recovered_amount(3_000) -
+    # reserved_recovery_amount(0) = 0 and the frozen paid_amount is the full
+    # 8_000. The naive `amount - reversed_amount` would double-count the
+    # already-recovered reversal and wrongly produce 5_000.
+    split =
+      settled_internal_split!(store, payment, %{amount: 8_000})
+      |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: 3_000})
+      |> Ash.update!(authorize?: false)
+      |> Ash.Changeset.for_update(:update_recovery_tracking, %{recovered_amount: 3_000})
+      |> Ash.update!(authorize?: false)
+
+    {:ok, payout} = PayoutService.prepare_internal_payout(store.id)
+
+    assert payout.amount == 8_000
+
+    {:ok, [claimed]} =
+      Emakola.Payments.list_payment_splits_by_payout(payout.id, authorize?: false)
+
+    assert claimed.id == split.id
+    assert claimed.paid_amount == 8_000
+  end
+
   test "no MoMo destination stamps nothing" do
     store = create_store!()
     payment = create_payment!(store)

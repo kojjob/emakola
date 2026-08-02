@@ -131,10 +131,12 @@ defmodule Emakola.Payments.PayoutService do
   payout's id — so the amount is precomputed from the FOR-UPDATE-locked rows
   with `frozen_paid_amount/1` (the same formula `mark_paid_out` freezes into
   `paid_amount`), the payout is created for that sum, and only then is each
-  split claimed with the real `payout_id`. The lock makes the two numbers
-  agree by construction; each claim still asserts its returned `paid_amount`
-  equals the precomputed value and raises on mismatch (rolling back the
-  transaction) as a tripwire, not a trusted invariant.
+  split claimed with the real `payout_id`. The `FOR UPDATE` lock guarantees
+  the struct handed to `mark_paid_out` is the exact row `frozen_paid_amount/1`
+  computed from (no concurrent write could have changed it), so the
+  assertion below — raising to roll back the transaction on mismatch — can
+  only be catching formula drift between this helper and `mark_paid_out`'s
+  own freeze, never a stale read.
   """
   def prepare_internal_payout(recipient_store_id) do
     with {:ok, _dest} <- transfer_destination(recipient_store_id) do
