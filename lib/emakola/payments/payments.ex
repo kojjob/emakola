@@ -34,6 +34,11 @@ defmodule Emakola.Payments do
         action: :recoverable_by_recipient,
         args: [:recipient_store_id]
       )
+
+      define(:list_payable_internal_splits,
+        action: :payable_internal,
+        args: [:recipient_store_id]
+      )
     end
 
     resource Emakola.Payments.Payout do

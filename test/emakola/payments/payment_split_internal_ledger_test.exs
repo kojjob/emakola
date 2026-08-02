@@ -22,6 +22,18 @@ defmodule Emakola.Payments.PaymentSplitInternalLedgerTest do
     |> Ash.create!(authorize?: false)
   end
 
+  defp settle!(split) do
+    split
+    |> Ash.Changeset.for_update(:mark_settled, %{})
+    |> Ash.update!(authorize?: false)
+  end
+
+  defp payable_internal(recipient_store_id) do
+    PaymentSplit
+    |> Ash.Query.for_read(:payable_internal, %{recipient_store_id: recipient_store_id})
+    |> Ash.read!(authorize?: false)
+  end
+
   describe "ledger attributes" do
     test "settlement_method defaults to :gateway_share and accepts :internal_hold", %{
       store: store,
@@ -45,6 +57,100 @@ defmodule Emakola.Payments.PaymentSplitInternalLedgerTest do
       assert is_nil(internal.payout_id)
       assert is_nil(internal.paid_amount)
       assert internal.netted_reversal_amount == 0
+    end
+  end
+
+  describe "payable_internal" do
+    test "includes only settled, unclaimed, non-platform internal_hold rows", %{
+      store: store,
+      payment: payment
+    } do
+      wholesaler = create_store!(name: "Wholesaler Co")
+
+      payable =
+        settle!(
+          create_split!(store, payment, %{
+            role: :merchant,
+            recipient_store_id: store.id,
+            amount: 41_160,
+            settlement_method: :internal_hold
+          })
+        )
+
+      # Each excluded for exactly one reason:
+      _platform =
+        settle!(
+          create_split!(store, payment, %{
+            role: :platform,
+            amount: 840,
+            settlement_method: :internal_hold
+          })
+        )
+
+      _gateway =
+        settle!(
+          create_split!(store, payment, %{
+            role: :wholesaler,
+            recipient_store_id: wholesaler.id,
+            supplier_id: Ash.UUID.generate(),
+            subaccount_code: "ACCT_w",
+            amount: 1_600,
+            settlement_method: :gateway_share
+          })
+        )
+
+      _pending =
+        create_split!(store, payment, %{
+          role: :dropshipper,
+          recipient_store_id: store.id,
+          amount: 2_000,
+          settlement_method: :internal_hold
+        })
+
+      fully_reversed =
+        settle!(
+          create_split!(store, payment, %{
+            role: :wholesaler,
+            recipient_store_id: wholesaler.id,
+            supplier_id: Ash.UUID.generate(),
+            amount: 900,
+            settlement_method: :internal_hold
+          })
+        )
+
+      fully_reversed
+      |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: 900})
+      |> Ash.update!(authorize?: false)
+
+      assert [found] = payable_internal(nil)
+      assert found.id == payable.id
+
+      # Scoped to a recipient with nothing payable → empty.
+      assert payable_internal(wholesaler.id) == []
+      assert [%{id: _}] = payable_internal(store.id)
+    end
+
+    test "a partially reversed split stays payable for its net", %{
+      store: store,
+      payment: payment
+    } do
+      split =
+        settle!(
+          create_split!(store, payment, %{
+            role: :merchant,
+            recipient_store_id: store.id,
+            amount: 10_000,
+            settlement_method: :internal_hold
+          })
+        )
+
+      split
+      |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: 4_000})
+      |> Ash.update!(authorize?: false)
+
+      assert [found] = payable_internal(store.id)
+      assert found.status == :partially_reversed
+      assert found.amount - found.reversed_amount == 6_000
     end
   end
 end

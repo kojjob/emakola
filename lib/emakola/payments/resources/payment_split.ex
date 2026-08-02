@@ -330,5 +330,25 @@ defmodule Emakola.Payments.PaymentSplit do
 
       prepare(build(sort: [inserted_at: :asc]))
     end
+
+    # THE definition of internally-payable money — the split-level sibling of
+    # Payment.outstanding_for_payout (which owns the legacy :none population;
+    # the two can never overlap because a charge is entirely one split_mode).
+    # Change it ONLY here.
+    read :payable_internal do
+      argument(:recipient_store_id, :uuid, allow_nil?: true)
+
+      filter(
+        expr(
+          settlement_method == :internal_hold and role != :platform and
+            status in [:settled, :partially_reversed] and is_nil(paid_out_at) and
+            amount > reversed_amount and
+            (is_nil(^arg(:recipient_store_id)) or
+               recipient_store_id == ^arg(:recipient_store_id))
+        )
+      )
+
+      prepare(build(sort: [inserted_at: :asc]))
+    end
   end
 end
