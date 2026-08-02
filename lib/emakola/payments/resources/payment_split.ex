@@ -402,6 +402,13 @@ defmodule Emakola.Payments.PaymentSplit do
                message: "allocation is already claimed by a payout"
              )}
 
+          is_nil(Ash.Changeset.get_attribute(changeset, :payout_id)) ->
+            {:error,
+             Ash.Error.Changes.InvalidAttribute.exception(
+               field: :payout_id,
+               message: "a payout must own the claim"
+             )}
+
           true ->
             :ok
         end

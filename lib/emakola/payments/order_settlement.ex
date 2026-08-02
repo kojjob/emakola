@@ -119,23 +119,33 @@ defmodule Emakola.Payments.OrderSettlement do
   end
 
   defp finalize_internal(order, store_id, allocations) do
-    allocations =
-      allocations
-      |> Emakola.Suppliers.PartnerCredit.carve_sales_proceeds(store_id)
-      |> RefundLiability.reserve!()
-      |> Enum.map(&internal_hold/1)
+    carved = Emakola.Suppliers.PartnerCredit.carve_sales_proceeds(allocations, store_id)
 
     cond do
-      not sum_matches_total?(order, allocations) ->
-        {:no_split, :allocation_sum_mismatch}
-
       # An aggressive discount can drive a non-platform allocation negative;
       # the payable ledger must stay non-negative (mirror of valid_shares?).
-      Enum.any?(allocations, &(&1.role != :platform and &1.amount < 0)) ->
+      # Checked BEFORE reserve! runs, so a reject here has zero side effects —
+      # no stranded reservation.
+      Enum.any?(carved, &(&1.role != :platform and &1.amount < 0)) ->
         {:no_split, :unrepresentable_split}
 
+      not sum_matches_total?(order, carved) ->
+        {:no_split, :allocation_sum_mismatch}
+
       true ->
-        {:split, %{total: order.total, allocations: allocations, shares: [], mode: :internal}}
+        reserved = RefundLiability.reserve!(carved)
+        allocations = Enum.map(reserved, &internal_hold/1)
+
+        # Backstop only: reserve! cannot itself create negatives (recovery <=
+        # amount) or break the sum invariant, so this should never fire. If it
+        # somehow does, release what reserve! just persisted rather than
+        # stranding the reservation.
+        if sum_matches_total?(order, allocations) do
+          {:split, %{total: order.total, allocations: allocations, shares: [], mode: :internal}}
+        else
+          release_recovery_reservations!(reserved)
+          {:no_split, :allocation_sum_mismatch}
+        end
     end
   end
 

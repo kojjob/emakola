@@ -175,8 +175,17 @@ defmodule Emakola.Payments.DropshipSettlement do
     kept
     |> Enum.reverse()
     |> Enum.map(fn
-      %{role: :dropshipper} = alloc -> %{alloc | amount: alloc.amount + folded}
-      alloc -> alloc
+      # passthrough_amount fences the folded unlinked-supplier money (owed
+      # manually via SupplierLedgerEntry) out of the carve and refund-recovery
+      # bases downstream — see PartnerCredit.carve_sales_proceeds and
+      # RefundLiability.reserve_for_allocation/2.
+      %{role: :dropshipper} = alloc ->
+        alloc
+        |> Map.put(:amount, alloc.amount + folded)
+        |> Map.put(:passthrough_amount, folded)
+
+      alloc ->
+        alloc
     end)
   end
 end

@@ -313,5 +313,211 @@ defmodule Emakola.Payments.OrderSettlementInternalTest do
       assert total == order.total
       assert Enum.sum(Enum.map(allocations, & &1.amount)) == order.total
     end
+
+    # Post-review hardening (PR #372): finalize_internal used to carve and
+    # reserve! BEFORE checking for a negative non-platform allocation — a
+    # discount can push the dropshipper's folded share negative while a
+    # DIFFERENT recipient's allocation (the wholesaler's cost) stays positive,
+    # so reserve! would already have persisted a reserved_recovery_amount bump
+    # against that other recipient's liability by the time the negative check
+    # rejected the split. Nothing then released it — a stranded reservation.
+    # The fix runs the negative check before reserve! ever executes.
+    test "a discount-driven negative dropshipper allocation rejects before reserve! runs — no stranded reservation on another recipient" do
+      dropshipper = create_store!(name: "Discount Dropshipper IH")
+      wholesaler_store = create_store!(name: "Discount Wholesaler IH")
+
+      supplier =
+        create_supplier!(dropshipper,
+          name: "Linked Discount IH",
+          linked_store_id: wholesaler_store.id
+        )
+
+      product = create_product!(dropshipper, title: "Internal Discount Drop")
+
+      variant =
+        create_variant!(product, dropshipper,
+          price: 5_000,
+          sku: "INT-DISC-IH",
+          supplier_id: supplier.id,
+          cost_price: 4_800
+        )
+
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout!(
+          dropshipper.id,
+          [%{variant_id: variant.id, quantity: 1}],
+          []
+        )
+
+      # Margin net is 180; a 1_000 discount folded via adjust_dropshipper
+      # drives the dropshipper's allocation to -820. The wholesaler's
+      # allocation (cost 4_800) stays positive.
+      order
+      |> Ash.Changeset.for_update(:update, %{discount_amount: 1_000})
+      |> Ash.update!(authorize?: false)
+
+      liability = refundable_liability!(dropshipper, wholesaler_store, 700)
+
+      assert {:no_split, :unrepresentable_split} =
+               OrderSettlement.prepare_internal(order.id, dropshipper.id)
+
+      reloaded = Ash.get!(Emakola.Payments.PaymentSplit, liability.id, authorize?: false)
+      assert reloaded.reserved_recovery_amount == 0
+    end
+
+    # Post-review hardening (PR #372): internalize/3 folds an unlinked
+    # supplier's cost into the dropshipper's allocation, but that folded money
+    # is owed to the supplier manually (SupplierLedgerEntry) — it is not the
+    # dropshipper's sales proceeds. Without passthrough_amount fencing it, a
+    # high-repayment-bps credit agreement could carve the entire passthrough.
+    test "an active partner-credit agreement never carves into folded unlinked-supplier passthrough money" do
+      {provider, provider_store} = create_merchant_with_store!(%{name: "Capital Supplier PT"})
+      {borrower, store} = create_merchant_with_store!(%{name: "Seller PT"})
+      {:ok, passport} = Emakola.Suppliers.CommercePassports.refresh(borrower, store.id)
+
+      {:ok, offer} =
+        Emakola.Suppliers.PartnerCredit.create_offer(provider, %{
+          provider_type: :supplier,
+          provider_store_id: provider_store.id,
+          provider_name: "Capital Supplier PT",
+          creditor_subaccount_code: "ACCT_credit_pt",
+          borrower_store_id: store.id,
+          minimum_tier: :starter,
+          principal_amount: 5_000,
+          fee_amount: 0,
+          # Max bps: the tightest case — without the passthrough fence this
+          # would carve the dropshipper allocation all the way to zero.
+          repayment_bps: 10_000,
+          term_days: 90,
+          reason_code: "STARTER_TRADE_CREDIT",
+          decision_snapshot: %{"passport_id" => passport.id, "tier" => "starter"}
+        })
+
+      {:ok, agreement} = Emakola.Suppliers.PartnerCredit.accept(borrower, offer.id, true)
+
+      {:ok, _active} =
+        Emakola.Suppliers.PartnerCredit.activate(provider, agreement.id, "BANK-PT-001")
+
+      unlinked = create_supplier!(store, name: "Unlinked PT", linked_store_id: nil)
+      product = create_product!(store, title: "Internal Passthrough Drop")
+
+      variant =
+        create_variant!(product, store,
+          price: 5_000,
+          sku: "INT-PT",
+          supplier_id: unlinked.id,
+          cost_price: 3_000
+        )
+
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout!(
+          store.id,
+          [%{variant_id: variant.id, quantity: 1}],
+          []
+        )
+
+      {:split, %{total: total, allocations: allocations, mode: :internal}} =
+        OrderSettlement.prepare_internal(order.id, store.id)
+
+      dropshipper_alloc = Enum.find(allocations, &(&1.role == :dropshipper))
+      credit = Enum.find(allocations, &(&1.role == :credit_partner))
+
+      # Passthrough (unlinked supplier's cost, folded): 3_000. Pre-carve
+      # dropshipper proceeds: margin_net(1_800) + passthrough(3_000) = 4_800.
+      passthrough = 3_000
+      pre_carve_amount = 4_800
+
+      refute is_nil(credit),
+             "expected the max-bps agreement to produce a credit_partner carve"
+
+      assert credit.amount <= pre_carve_amount - passthrough
+      assert dropshipper_alloc.amount >= passthrough
+
+      assert total == order.total
+      assert Enum.sum(Enum.map(allocations, & &1.amount)) == order.total
+    end
+
+    # Post-review hardening (PR #372): the same passthrough fence applies to
+    # refund-recovery reservation — a pre-existing liability on the
+    # dropshipper's own store must not claw back the folded passthrough money
+    # either.
+    test "a pre-existing refund liability cannot claw back folded unlinked-supplier passthrough money" do
+      store = create_store!(name: "Seller Passthrough Refund")
+      unlinked = create_supplier!(store, name: "Unlinked Refund PT", linked_store_id: nil)
+      product = create_product!(store, title: "Internal Passthrough Refund Drop")
+
+      variant =
+        create_variant!(product, store,
+          price: 5_000,
+          sku: "INT-PT-REFUND",
+          supplier_id: unlinked.id,
+          cost_price: 3_000
+        )
+
+      # Over-reversed, unclaimed internal split on the dropshipper's own
+      # store: 2_000 is recoverable at reserve! time (see effective_netted/1).
+      liability = refundable_internal_liability!(store, 10_000, 12_000)
+
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout!(
+          store.id,
+          [%{variant_id: variant.id, quantity: 1}],
+          []
+        )
+
+      {:split, %{total: total, allocations: allocations, mode: :internal}} =
+        OrderSettlement.prepare_internal(order.id, store.id)
+
+      dropshipper_alloc = Enum.find(allocations, &(&1.role == :dropshipper))
+
+      passthrough = 3_000
+      pre_reserve_amount = 4_800
+
+      assert dropshipper_alloc.recovery_amount <= pre_reserve_amount - passthrough
+      assert dropshipper_alloc.amount >= passthrough
+
+      reloaded = Ash.get!(Emakola.Payments.PaymentSplit, liability.id, authorize?: false)
+      assert reloaded.reserved_recovery_amount == dropshipper_alloc.recovery_amount
+
+      assert total == order.total
+      assert Enum.sum(Enum.map(allocations, & &1.amount)) == order.total
+    end
+
+    defp refundable_liability!(tenant_store, recipient_store, reversed_amount) do
+      payment = create_payment!(tenant_store)
+
+      Emakola.Payments.create_payment_split!(
+        %{
+          store_id: tenant_store.id,
+          payment_id: payment.id,
+          role: :wholesaler,
+          recipient_store_id: recipient_store.id,
+          amount: 1_000
+        },
+        authorize?: false
+      )
+      |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: reversed_amount})
+      |> Ash.update!(authorize?: false)
+    end
+
+    defp refundable_internal_liability!(store, amount, reversed_amount) do
+      payment = create_payment!(store)
+
+      Emakola.Payments.create_payment_split!(
+        %{
+          store_id: store.id,
+          payment_id: payment.id,
+          role: :merchant,
+          recipient_store_id: store.id,
+          amount: amount,
+          settlement_method: :internal_hold
+        },
+        authorize?: false
+      )
+      |> Ash.Changeset.for_update(:mark_settled, %{})
+      |> Ash.update!(authorize?: false)
+      |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: reversed_amount})
+      |> Ash.update!(authorize?: false)
+    end
   end
 end

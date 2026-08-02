@@ -243,7 +243,12 @@ defmodule Emakola.Payments.RefundLiability do
       |> Ash.Query.lock("FOR UPDATE")
       |> Ash.read!(authorize?: false)
 
-    {items, recovered} = reserve_from_liabilities(liabilities, amount, [], 0)
+    # Folded unlinked-supplier passthrough money (internal rail only) is owed
+    # manually to the supplier — it must never be diverted into recovering
+    # this recipient's own refund liabilities. Only the non-passthrough part
+    # of the allocation is available to reserve against.
+    available_ceiling = max(0, amount - Map.get(allocation, :passthrough_amount, 0))
+    {items, recovered} = reserve_from_liabilities(liabilities, available_ceiling, [], 0)
 
     adjusted =
       allocation

@@ -8,6 +8,9 @@ defmodule Emakola.Repo.Migrations.AddPaymentSplitInternalLedgerColumns do
     Backfill: every historical row with a NULL subaccount_code is a :platform
     row, whose cut always stays in the main account — internal_hold.
   * currency — payouts partition by currency; Payment has it, splits did not.
+    Backfill: every existing split takes its parent payment's currency —
+    the payment is the source of truth, so this is an unconditional copy,
+    not a GHS default (a non-GHS payment's splits must never disagree with it).
   * paid_out_at / payout_id — the claim stamp, mirroring Payment's pair.
   * paid_amount — net frozen at claim time as amount - (reversed_amount -
     recovered_amount - reserved_recovery_amount): amount minus only the
@@ -32,6 +35,11 @@ defmodule Emakola.Repo.Migrations.AddPaymentSplitInternalLedgerColumns do
     execute("""
     UPDATE payment_splits SET settlement_method = 'internal_hold'
     WHERE subaccount_code IS NULL
+    """)
+
+    execute("""
+    UPDATE payment_splits ps SET currency = p.currency
+    FROM payments p WHERE ps.payment_id = p.id
     """)
 
     create(index(:payment_splits, [:recipient_store_id, :settlement_method, :paid_out_at]))

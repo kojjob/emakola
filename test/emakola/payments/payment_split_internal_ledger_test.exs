@@ -258,6 +258,26 @@ defmodule Emakola.Payments.PaymentSplitInternalLedgerTest do
                |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: Ash.UUID.generate()})
                |> Ash.update(authorize?: false)
     end
+
+    # Post-review hardening (PR #372): a nil payout_id let a split claim
+    # itself (paid_out_at set, dropped out of payable_internal) with no
+    # payout to own it — money claimed but unreachable via by_payout.
+    test "refuses a claim with no payout_id", %{store: store, payment: payment} do
+      split =
+        settle!(
+          create_split!(store, payment, %{
+            role: :merchant,
+            recipient_store_id: store.id,
+            amount: 1_000,
+            settlement_method: :internal_hold
+          })
+        )
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               split
+               |> Ash.Changeset.for_update(:mark_paid_out, %{})
+               |> Ash.update(authorize?: false)
+    end
   end
 
   describe "by_payout" do
