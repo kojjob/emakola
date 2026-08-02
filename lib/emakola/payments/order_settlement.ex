@@ -189,6 +189,30 @@ defmodule Emakola.Payments.OrderSettlement do
     end)
   end
 
+  @doc """
+  Creates the payment and records its allocation rows in ONE transaction, so
+  the ledger can never observe a payment without its splits (or vice versa).
+  Split-less settlements (`{:no_split, _}`, `{:hold, _}`) just create the
+  payment. Returns `{:ok, payment}` or `{:error, reason}`.
+  """
+  def persist_payment(payment_attrs, settlement) do
+    Emakola.Repo.transaction(fn ->
+      case Emakola.Payments.create_payment(payment_attrs, authorize?: false) do
+        {:ok, payment} ->
+          persist_allocations!(payment, settlement)
+          payment
+
+        {:error, reason} ->
+          Emakola.Repo.rollback(reason)
+      end
+    end)
+  end
+
+  defp persist_allocations!(payment, {:split, %{allocations: allocations}}),
+    do: record_splits!(payment, allocations)
+
+  defp persist_allocations!(_payment, _settlement), do: :ok
+
   def release_recovery_reservations!(allocations), do: RefundLiability.release!(allocations)
 
   # Runtime backstop for the "allocations sum to the charge" invariant, which
