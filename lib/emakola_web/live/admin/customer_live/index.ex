@@ -25,7 +25,9 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         search_query: "",
         customers: [],
         customers_limit: @customers_limit,
-        more_customers?: false
+        more_customers?: false,
+        total_customers: 0,
+        new_this_month: 0
       )
       |> load_customers()
 
@@ -67,21 +69,21 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <.stat_card
           label="Total Customers"
-          value={length(@customers) |> Integer.to_string()}
+          value={Integer.to_string(@total_customers)}
           icon_bg="bg-emerald-50"
         >
           <:icon><.icon name="hero-users" class="size-[18px] text-emerald-600" /></:icon>
         </.stat_card>
         <.stat_card
           label="Active"
-          value={length(@customers) |> Integer.to_string()}
+          value={Integer.to_string(@total_customers)}
           icon_bg="bg-violet-50"
         >
           <:icon><.icon name="hero-check-circle" class="size-[18px] text-violet-600" /></:icon>
         </.stat_card>
         <.stat_card
           label="New This Month"
-          value={count_new_this_month(@customers) |> Integer.to_string()}
+          value={Integer.to_string(@new_this_month)}
           icon_bg="bg-amber-50"
         >
           <:icon><.icon name="hero-user-plus" class="size-[18px] text-amber-600" /></:icon>
@@ -260,14 +262,54 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
         do: {Enum.take(customers, limit), true},
         else: {customers, false}
 
-    assign(socket, customers: customers, customers_limit: limit, more_customers?: more?)
+    socket
+    |> assign(customers: customers, customers_limit: limit, more_customers?: more?)
+    |> assign_customer_totals(store_id, search_query)
   rescue
     exception ->
       Logger.error(
         "[customer_live.index] load_customers loading customers raised: #{Exception.message(exception)}"
       )
 
-      assign(socket, customers: [], more_customers?: false)
+      assign(socket, customers: [], more_customers?: false, total_customers: 0, new_this_month: 0)
+  end
+
+  # The KPI tiles used to count `length(@customers)` — i.e. the loaded WINDOW,
+  # not the store. A merchant with 250 customers was told they had 100, and the
+  # number changed as they pressed "Load more". These are real counts over the
+  # same scope as the list (store, plus the active search).
+  defp assign_customer_totals(socket, nil, _search),
+    do: assign(socket, total_customers: 0, new_this_month: 0)
+
+  defp assign_customer_totals(socket, store_id, search_query) do
+    require Ash.Query
+
+    base =
+      if search_query != "" do
+        Ash.Query.for_read(Emakola.Customers.Customer, :search, %{
+          store_id: store_id,
+          query: search_query
+        })
+      else
+        Ash.Query.for_read(Emakola.Customers.Customer, :list_by_store, %{store_id: store_id})
+      end
+
+    start_of_month = Date.utc_today() |> Date.beginning_of_month() |> DateTime.new!(~T[00:00:00])
+
+    assign(socket,
+      total_customers: Ash.count!(base, authorize?: false),
+      new_this_month:
+        base
+        |> Ash.Query.filter(inserted_at >= ^start_of_month)
+        |> Ash.count!(authorize?: false)
+    )
+  rescue
+    exception ->
+      Logger.error(
+        "[customer_live.index] customer totals failed: #{Exception.message(exception)}"
+      )
+
+      assign(socket, total_customers: length(socket.assigns.customers), new_this_month: 0)
   end
 
   # ── Helpers ──
@@ -301,15 +343,6 @@ defmodule EmakolaWeb.Admin.CustomerLive.Index do
       end
 
     format_price(total)
-  end
-
-  defp count_new_this_month(customers) do
-    now = Date.utc_today()
-    start_of_month = Date.beginning_of_month(now)
-
-    Enum.count(customers, fn c ->
-      Date.compare(DateTime.to_date(c.inserted_at), start_of_month) != :lt
-    end)
   end
 
   defp calculate_avg_order_value(_customers) do
