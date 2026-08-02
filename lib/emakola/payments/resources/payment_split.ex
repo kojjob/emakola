@@ -324,7 +324,9 @@ defmodule Emakola.Payments.PaymentSplit do
       filter(
         expr(
           recipient_store_id == ^arg(:recipient_store_id) and role != :platform and
-            reversed_amount > recovered_amount + reserved_recovery_amount
+            (settlement_method == :gateway_share or not is_nil(paid_out_at)) and
+            reversed_amount >
+              netted_reversal_amount + recovered_amount + reserved_recovery_amount
         )
       )
 

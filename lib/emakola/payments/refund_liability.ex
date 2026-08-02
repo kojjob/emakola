@@ -264,8 +264,8 @@ defmodule Emakola.Payments.RefundLiability do
 
   defp reserve_from_liabilities([liability | rest], available, items, recovered) do
     outstanding =
-      liability.reversed_amount - liability.recovered_amount -
-        liability.reserved_recovery_amount
+      liability.reversed_amount - liability.netted_reversal_amount -
+        liability.recovered_amount - liability.reserved_recovery_amount
 
     amount = min(outstanding, available)
 
@@ -280,13 +280,29 @@ defmodule Emakola.Payments.RefundLiability do
   defp add_to_platform(allocations, 0), do: allocations
 
   defp add_to_platform(allocations, recovered_total) do
-    Enum.map(allocations, fn
-      %{role: :platform} = allocation ->
-        %{allocation | amount: allocation.amount + recovered_total}
+    if Enum.any?(allocations, &(&1.role == :platform)) do
+      Enum.map(allocations, fn
+        %{role: :platform} = allocation ->
+          %{allocation | amount: allocation.amount + recovered_total}
 
-      allocation ->
-        allocation
-    end)
+        allocation ->
+          allocation
+      end)
+    else
+      # Recovered money must land somewhere in the same charge (the sum
+      # invariant); with no platform row to absorb it, synthesize one rather
+      # than silently dropping it.
+      allocations ++
+        [
+          %{
+            role: :platform,
+            recipient_store_id: nil,
+            subaccount_code: nil,
+            amount: recovered_total,
+            settlement_method: :internal_hold
+          }
+        ]
+    end
   end
 
   defp apply_recovery!(%{recovery_amount: amount}) when amount <= 0, do: :ok
