@@ -106,4 +106,77 @@ defmodule Emakola.Payments.DropshipSettlement do
         {:error, :payout_unverified}
     end
   end
+
+  @doc """
+  Internal-rail variant of `prepare/3`: same SplitCalculator math, NO
+  subaccount requirement. Linked suppliers keep their wholesaler allocation
+  (payable to their store via the ledger); unlinked suppliers' cost and
+  dispatch fee fold into the dropshipper, who still owes them manually via
+  SupplierLedgerEntry. Dark until Phase 3 routes fallbacks here.
+  """
+  def prepare_internal(line_items, dropshipper_store_id, opts) do
+    fee_rate_bps = Keyword.fetch!(opts, :fee_rate_bps)
+    dispatch_fees = Keyword.get(opts, :dispatch_fees, %{})
+
+    supplier_ids =
+      line_items |> Enum.map(& &1.supplier_id) |> Enum.reject(&is_nil/1) |> Enum.uniq()
+
+    if supplier_ids == [] do
+      {:no_split, :no_dropship_items}
+    else
+      linked = resolve_linked(supplier_ids, dropshipper_store_id)
+
+      %{total: total, allocations: allocations} =
+        SplitCalculator.calculate(line_items,
+          fee_rate_bps: fee_rate_bps,
+          subaccounts: %{},
+          dropshipper_subaccount: nil,
+          dispatch_fees: dispatch_fees
+        )
+
+      {:split,
+       %{total: total, allocations: internalize(allocations, linked, dropshipper_store_id)}}
+    end
+  end
+
+  defp resolve_linked(supplier_ids, dropshipper_store_id) do
+    Enum.reduce(supplier_ids, %{}, fn supplier_id, acc ->
+      case Ash.get(Supplier, supplier_id, tenant: dropshipper_store_id, authorize?: false) do
+        {:ok, %{linked_store_id: linked}} when not is_nil(linked) ->
+          Map.put(acc, supplier_id, linked)
+
+        _ ->
+          acc
+      end
+    end)
+  end
+
+  # Linked wholesalers keep their allocation; unlinked ones fold into the
+  # dropshipper so the money to pay them manually reaches the merchant.
+  defp internalize(allocations, linked, dropshipper_store_id) do
+    {folded, kept} =
+      Enum.reduce(allocations, {0, []}, fn
+        %{role: :wholesaler, supplier_id: sid} = alloc, {folded, acc} ->
+          case Map.fetch(linked, sid) do
+            {:ok, store_id} ->
+              {folded, [Map.put(alloc, :recipient_store_id, store_id) | acc]}
+
+            :error ->
+              {folded + alloc.amount, acc}
+          end
+
+        %{role: :dropshipper} = alloc, {folded, acc} ->
+          {folded, [Map.put(alloc, :recipient_store_id, dropshipper_store_id) | acc]}
+
+        %{role: :platform} = alloc, {folded, acc} ->
+          {folded, [Map.put(alloc, :recipient_store_id, nil) | acc]}
+      end)
+
+    kept
+    |> Enum.reverse()
+    |> Enum.map(fn
+      %{role: :dropshipper} = alloc -> %{alloc | amount: alloc.amount + folded}
+      alloc -> alloc
+    end)
+  end
 end
