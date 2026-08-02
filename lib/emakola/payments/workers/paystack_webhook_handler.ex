@@ -120,6 +120,10 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
     {:ok, _} =
       Emakola.Payments.mark_payout_paid(payout, %{gateway_response: data}, authorize?: false)
 
+    if payout.basis == :allocations do
+      mark_supplier_ledger_entries_paid(payout)
+    end
+
     Emakola.Notifications.Workers.PayoutNotificationWorker.enqueue(payout.id)
     :ok
   end
@@ -360,6 +364,10 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
 
     Emakola.Payments.RefundLiability.apply_recoveries!(splits)
     Emakola.Suppliers.PartnerCredit.record_settlement(payment, splits)
+
+    splits
+    |> Enum.filter(&(&1.role == :wholesaler and not is_nil(&1.supplier_id)))
+    |> Enum.each(&claim_supplier_ledger_entry(payment, &1))
   end
 
   defp reverse_splits(payment) do
@@ -367,6 +375,142 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
     Emakola.Payments.RefundLiability.rollback_recoveries!(payment, splits)
     Emakola.Payments.RefundLiability.reconcile!(payment, splits)
     Emakola.Suppliers.PartnerCredit.reconcile_refund(payment, splits)
+
+    void_fully_reversed_supplier_claims(payment)
+  end
+
+  # Claims the supplier's manual ledger entry for a settled wholesaler split so
+  # the same debt is never both platform-settled and manually payable (see
+  # SupplierLedgerEntry.claim_for_platform_settlement). A gateway-rail split
+  # (:gateway_share) already moved the money at charge time, so the entry is
+  # claimed AND marked paid immediately — an INTENTIONAL behavior change: before
+  # this, a merchant could still "mark paid" the same debt by hand. An
+  # internal-rail split (:internal_hold) only claims; it's marked paid once the
+  # allocation payout's transfer.success arrives (see
+  # mark_supplier_ledger_entries_paid/1). A no-op when the entry is already
+  # claimed or paid (idempotent replay) or when no matching entry exists.
+  # Never raises into the webhook — logs and continues on any failure, same
+  # discipline as ProtectionHolds.ensure_hold.
+  defp claim_supplier_ledger_entry(%{order_id: nil}, _split), do: :ok
+
+  defp claim_supplier_ledger_entry(payment, split) do
+    case fulfillment_ledger_entry(payment.order_id, split.supplier_id) do
+      %{status: :owed, settlement_source: :manual} = entry ->
+        source =
+          if split.settlement_method == :gateway_share,
+            do: :split_gateway,
+            else: :platform_payout
+
+        claimed =
+          entry
+          |> Ash.Changeset.for_update(:claim_for_platform_settlement, %{
+            payment_split_id: split.id,
+            source: source
+          })
+          |> Ash.update!(authorize?: false)
+
+        if source == :split_gateway do
+          claimed
+          |> Ash.Changeset.for_update(:mark_platform_paid, %{})
+          |> Ash.update!(authorize?: false)
+        end
+
+        :ok
+
+      _ ->
+        :ok
+    end
+  rescue
+    error ->
+      Logger.error(
+        "[paystack_webhook] supplier ledger claim failed for payment=#{payment.id} " <>
+          "split=#{split.id}: #{Exception.format(:error, error, __STACKTRACE__)}"
+      )
+
+      :ok
+  end
+
+  # The allocation-payout counterpart of claim_supplier_ledger_entry/2: once
+  # the internal-rail transfer for this payout actually lands, every
+  # SupplierLedgerEntry claimed against one of its splits (via
+  # payment_split_id) can finally move :owed -> :paid. Never raises into the
+  # webhook — same log-and-continue discipline as claim_supplier_ledger_entry/2.
+  defp mark_supplier_ledger_entries_paid(payout) do
+    {:ok, splits} = Emakola.Payments.list_payment_splits_by_payout(payout.id, authorize?: false)
+
+    Enum.each(splits, fn split ->
+      split.id
+      |> Emakola.Suppliers.list_supplier_ledger_entries_by_payment_split!(authorize?: false)
+      |> Enum.filter(&(&1.status == :owed))
+      |> Enum.each(fn entry ->
+        entry
+        |> Ash.Changeset.for_update(:mark_platform_paid, %{})
+        |> Ash.update!(authorize?: false)
+      end)
+    end)
+  rescue
+    error ->
+      Logger.error(
+        "[paystack_webhook] supplier ledger platform-paid marking failed for " <>
+          "payout=#{payout.id}: #{Exception.format(:error, error, __STACKTRACE__)}"
+      )
+
+      :ok
+  end
+
+  # Refund<->supplier coupling (PR #372 follow-up): a wholesaler split that
+  # RefundLiability.reconcile!/2 just drove to :reversed (fully refunded) can
+  # no longer be settled by an allocation payout that will never carry this
+  # money. If its ledger entry was claimed-unpaid (:platform_payout, :owed) —
+  # a claim awaiting a payout that no longer applies — void it rather than
+  # leave a debt the platform can neither pay nor collect. A :split_gateway
+  # entry is already :paid by claim_supplier_ledger_entry/2 by the time any
+  # refund can land, so it never matches here. The folded-passthrough/manual
+  # case is explicitly out of scope — passthrough is settlement-time only.
+  # Never raises into the webhook — same log-and-continue discipline as
+  # claim_supplier_ledger_entry/2.
+  defp void_fully_reversed_supplier_claims(%{order_id: nil}), do: :ok
+
+  defp void_fully_reversed_supplier_claims(payment) do
+    payment
+    |> payment_splits()
+    |> Enum.filter(
+      &(&1.role == :wholesaler and not is_nil(&1.supplier_id) and &1.status == :reversed)
+    )
+    |> Enum.each(fn split ->
+      case fulfillment_ledger_entry(payment.order_id, split.supplier_id) do
+        %{status: :owed, settlement_source: :platform_payout} = entry ->
+          entry
+          |> Ash.Changeset.for_update(:void, %{})
+          |> Ash.update!(authorize?: false)
+
+        _ ->
+          :ok
+      end
+    end)
+  rescue
+    error ->
+      Logger.error(
+        "[paystack_webhook] supplier ledger void failed for payment=#{payment.id}: " <>
+          Exception.format(:error, error, __STACKTRACE__)
+      )
+
+      :ok
+  end
+
+  defp fulfillment_ledger_entry(order_id, supplier_id) do
+    order_id
+    |> Emakola.Orders.list_fulfillments_by_order!(authorize?: false)
+    |> Enum.find(&(&1.supplier_id == supplier_id))
+    |> case do
+      nil ->
+        nil
+
+      fulfillment ->
+        fulfillment.id
+        |> Emakola.Suppliers.list_supplier_ledger_entries_by_fulfillment!(authorize?: false)
+        |> List.first()
+    end
   end
 
   # Reconciles the split ledger against a paid-out settlement batch. Membership

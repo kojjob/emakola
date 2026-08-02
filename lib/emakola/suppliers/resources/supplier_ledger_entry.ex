@@ -50,13 +50,34 @@ defmodule Emakola.Suppliers.SupplierLedgerEntry do
     end
 
     attribute :status, :atom do
-      constraints(one_of: [:owed, :paid])
+      constraints(one_of: [:owed, :paid, :voided])
       default(:owed)
       allow_nil?(false)
       public?(true)
     end
 
     attribute :paid_at, :utc_datetime_usec do
+      public?(true)
+    end
+
+    # Which flow settled this obligation: the merchant's manual "mark paid"
+    # (:manual, the default — every pre-existing entry), a gateway-rail
+    # wholesaler split whose money already moved at charge time
+    # (:split_gateway), or an internal-rail split awaiting its allocation
+    # payout (:platform_payout). Once claimed away from :manual, the manual
+    # flow can never touch this entry again — see
+    # `claim_for_platform_settlement` — so the same supplier debt can't be
+    # both platform-settled and manually payable.
+    attribute :settlement_source, :atom do
+      constraints(one_of: [:manual, :platform_payout, :split_gateway])
+      default(:manual)
+      allow_nil?(false)
+      public?(true)
+    end
+
+    # The wholesaler PaymentSplit that claimed this entry, if any. Nil for
+    # :manual entries.
+    attribute :payment_split_id, :uuid do
       public?(true)
     end
 
@@ -112,11 +133,73 @@ defmodule Emakola.Suppliers.SupplierLedgerEntry do
       change(set_attribute(:paid_at, &DateTime.utc_now/0))
     end
 
+    # The platform settlement claims this obligation so the same supplier debt
+    # can never exist twice (manual "mark paid" refuses a claimed entry).
+    update :claim_for_platform_settlement do
+      require_atomic?(false)
+      accept([:payment_split_id])
+
+      argument(:source, :atom,
+        allow_nil?: false,
+        constraints: [one_of: [:platform_payout, :split_gateway]]
+      )
+
+      validate(attribute_in(:status, [:owed]), message: "only an owed entry can be claimed")
+      validate(attribute_equals(:settlement_source, :manual), message: "already claimed")
+
+      change(fn changeset, _context ->
+        Ash.Changeset.change_attribute(
+          changeset,
+          :settlement_source,
+          Ash.Changeset.get_argument(changeset, :source)
+        )
+      end)
+    end
+
+    update :mark_platform_paid do
+      require_atomic?(false)
+      accept([])
+      validate(attribute_in(:status, [:owed]), message: "already settled")
+      change(set_attribute(:status, :paid))
+      change(set_attribute(:paid_at, &DateTime.utc_now/0))
+    end
+
+    # Refund<->supplier coupling: a claimed-but-unpaid entry (:platform_payout,
+    # :owed) whose wholesaler split fully reverses can no longer be settled by
+    # a payout that will never carry that money, and the manual flow is
+    # permanently locked out once claimed — so it's neither payable nor
+    # collectible. Voiding closes it out honestly instead of leaving a debt
+    # stuck forever. `status` is a plain `:string` column with no DB check
+    # constraint, so adding `:voided` is an Ash-only enum change — no
+    # migration required.
+    update :void do
+      require_atomic?(false)
+      accept([])
+
+      validate(attribute_in(:status, [:owed]), message: "only an owed entry can be voided")
+
+      validate(attribute_equals(:settlement_source, :platform_payout),
+        message: "only a platform_payout claim can be voided"
+      )
+
+      change(set_attribute(:status, :voided))
+    end
+
     read :list_by_supplier do
       argument(:supplier_id, :uuid, allow_nil?: false)
 
       filter(expr(supplier_id == ^arg(:supplier_id)))
       prepare(build(sort: [inserted_at: :desc]))
+    end
+
+    read :by_fulfillment do
+      argument(:fulfillment_id, :uuid, allow_nil?: false)
+      filter(expr(fulfillment_id == ^arg(:fulfillment_id)))
+    end
+
+    read :by_payment_split do
+      argument(:payment_split_id, :uuid, allow_nil?: false)
+      filter(expr(payment_split_id == ^arg(:payment_split_id)))
     end
   end
 end
