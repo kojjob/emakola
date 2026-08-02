@@ -84,7 +84,7 @@ defmodule Emakola.Payments.Workers.PayoutWorker do
       source: "balance",
       amount: payout.amount,
       recipient: recipient_code,
-      reason: "Makola merchant payout",
+      reason: "Makola payout",
       reference: payout.transfer_reference,
       currency: payout.currency
     }
