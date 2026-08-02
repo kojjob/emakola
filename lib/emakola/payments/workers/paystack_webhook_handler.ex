@@ -128,10 +128,27 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
     :ok
   end
 
-  # :failed / :reversed are terminal for money-movement, but RE-RUN the release so
-  # an attempt that crashed mid-loop still returns every covered charge.
-  defp reconcile_payout(%{status: status} = payout, _outcome, _data)
-       when status in [:failed, :reversed] do
+  # :reversed is terminal for money-movement, but RE-RUN reopen-then-release so
+  # a retry after reopen_supplier_ledger_entries/1 raised (see its comment —
+  # the previous delivery's reopen half never finished, so release never ran
+  # and the splits are still claimed to this payout) reaches the still-:paid
+  # entries again. A no-op on an ordinary already-completed reversal:
+  # by_payment_split can't find entries that are already :owed, and
+  # by_payout returns [] once release already ran (cannot cross payouts).
+  defp reconcile_payout(%{status: :reversed} = payout, _outcome, _data) do
+    if payout.basis == :allocations do
+      reopen_supplier_ledger_entries(payout)
+    end
+
+    release_payout_balance(payout)
+    :ok
+  end
+
+  # :failed is terminal for money-movement, but RE-RUN the release so an
+  # attempt that crashed mid-loop still returns every covered charge. A
+  # failed payout never reached :paid, so no SupplierLedgerEntry was ever
+  # marked paid against it — nothing to reopen.
+  defp reconcile_payout(%{status: :failed} = payout, _outcome, _data) do
     release_payout_balance(payout)
     :ok
   end
@@ -498,8 +515,23 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   # :paid for this payout is now a false payment record. Reopens each back to
   # :owed (settlement_source stays :platform_payout — still platform-claimed,
   # just payable again by a fresh payout) via the same split -> by_payment_split
-  # chain mark_supplier_ledger_entries_paid/1 uses. Never raises into the
-  # webhook — same log-and-continue discipline as claim_supplier_ledger_entry/2.
+  # chain mark_supplier_ledger_entries_paid/1 uses.
+  #
+  # DELIBERATELY does NOT log-and-continue like claim_supplier_ledger_entry/2
+  # and mark_supplier_ledger_entries_paid/1 do. Swallowing an exception here
+  # would let reconcile_payout/3 fall through to release_payout_balance/1
+  # right after, which nils the splits' payout_id/paid_out_at — destroying
+  # the only linkage (payout -> splits -> by_payment_split) a later pass could
+  # use to find whichever entries this loop didn't reach. Those would be
+  # stranded forever: invisible to outstanding_balance, locked out of manual
+  # mark_paid (already claimed), and unreachable by a fresh payout (no longer
+  # :owed/payable_internal). mark_supplier_ledger_entries_paid/1 can afford to
+  # swallow because its OWN :paid replay clause heals a partial failure on
+  # the next transfer.success delivery; the reversal path has no such healer
+  # UNLESS the splits are still claimed to this payout when the retry lands
+  # — so a raise here must propagate: it fails the Oban job (retried per
+  # max_attempts) with the claim intact, and the terminal `:reversed` replay
+  # clause below gets another attempt against the same still-claimed splits.
   defp reopen_supplier_ledger_entries(payout) do
     {:ok, splits} = Emakola.Payments.list_payment_splits_by_payout(payout.id, authorize?: false)
 
@@ -513,14 +545,6 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
         |> Ash.update!(authorize?: false)
       end)
     end)
-  rescue
-    error ->
-      Logger.error(
-        "[paystack_webhook] supplier ledger reopen failed for payout=#{payout.id}: " <>
-          Exception.format(:error, error, __STACKTRACE__)
-      )
-
-      :ok
   end
 
   # Refund<->supplier coupling (PR #372 follow-up): a wholesaler split that

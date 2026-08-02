@@ -124,12 +124,34 @@ defmodule Emakola.Payments.Workers.PayoutWorkerTest do
     assert updated.failure_reason =~ "Insufficient balance"
   end
 
-  test "marks the payout failed when the store has no MoMo destination" do
+  test "marks the payout failed and releases a claimed split when the store has no MoMo destination" do
     store = Factory.create_store!()
     payout = pending_payout!(store)
 
+    payment = Factory.create_payment!(store)
+
+    split =
+      Emakola.Payments.PaymentSplit
+      |> Ash.Changeset.for_create(:create, %{
+        store_id: store.id,
+        payment_id: payment.id,
+        role: :merchant,
+        recipient_store_id: store.id,
+        amount: 40_000,
+        settlement_method: :internal_hold
+      })
+      |> Ash.create!(authorize?: false)
+      |> Ash.Changeset.for_update(:mark_settled, %{})
+      |> Ash.update!(authorize?: false)
+      |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: payout.id})
+      |> Ash.update!(authorize?: false)
+
     assert :ok = perform_job(Worker, %{"payout_id" => payout.id})
     assert reload(payout).status == :failed
+
+    released = Ash.get!(Emakola.Payments.PaymentSplit, split.id, authorize?: false)
+    assert is_nil(released.payout_id)
+    assert is_nil(released.paid_out_at)
   end
 
   # PR #373 review: a definitive pre-webhook rejection (no destination, or a

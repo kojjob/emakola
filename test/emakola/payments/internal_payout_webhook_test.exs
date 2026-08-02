@@ -132,6 +132,68 @@ defmodule Emakola.Payments.InternalPayoutWebhookTest do
              :owed
   end
 
+  # PR #373 review (Important, round 2): reopen_supplier_ledger_entries/1
+  # deliberately does NOT log-and-continue — an exception there must
+  # propagate and fail the Oban job BEFORE release_payout_balance/1 runs, or
+  # release would nil the split's payout_id and destroy the only linkage a
+  # retry could use to find the still-:paid entry. Simulating the actual
+  # raise would require racing a genuine concurrent write into the narrow
+  # window between reopen's own fresh read and its write — not arrangeable
+  # deterministically without heavy mocking or real concurrency (flaky). This
+  # tests the observable contract instead: construct exactly the state a
+  # crash-after-mark_payout_reversed-but-before-reopen-finished would leave
+  # (payout already :reversed, entry still :paid, split still claimed — the
+  # terminal `:reversed` clause is where such a retry actually lands, since
+  # the payout's status write already committed), and prove the next
+  # transfer.reversed delivery reaches the strand and heals it completely.
+  test "a transfer.reversed replay on the terminal clause heals a supplier entry stranded :paid" do
+    {store, split, payout} = payable_setup!(7_000)
+
+    assert :ok = transfer_event!(payout, "success")
+
+    supplier = create_supplier!(store)
+    order = create_order!(store)
+    fulfillment = create_fulfillment!(order, store)
+
+    entry =
+      create_supplier_ledger_entry!(supplier, fulfillment, store)
+      |> Ash.Changeset.for_update(:claim_for_platform_settlement, %{
+        payment_split_id: split.id,
+        source: :platform_payout
+      })
+      |> Ash.update!(authorize?: false)
+      |> Ash.Changeset.for_update(:mark_platform_paid, %{})
+      |> Ash.update!(authorize?: false)
+
+    assert entry.status == :paid
+
+    # Simulate the stranded state directly: as if a first transfer.reversed
+    # delivery ran mark_payout_reversed (committed) then raised inside
+    # reopen_supplier_ledger_entries/1 before reaching this entry — so
+    # release_payout_balance/1 never ran and the split is still claimed.
+    reversed_payout =
+      payout
+      |> Ash.Changeset.for_update(:mark_reversed, %{failure_reason: "transfer reversed"})
+      |> Ash.update!(authorize?: false)
+
+    assert reversed_payout.status == :reversed
+    still_claimed = Ash.get!(PaymentSplit, split.id, authorize?: false)
+    assert still_claimed.payout_id == payout.id
+
+    # The retry lands on the terminal `:reversed` clause (status is already
+    # :reversed) — it must still reopen before releasing, not just release.
+    assert :ok = transfer_event!(payout, "reversed")
+
+    healed = Ash.get!(Emakola.Suppliers.SupplierLedgerEntry, entry.id, authorize?: false)
+    assert healed.status == :owed
+    assert healed.settlement_source == :platform_payout
+    assert is_nil(healed.paid_at)
+
+    released = Ash.get!(PaymentSplit, split.id, authorize?: false)
+    assert is_nil(released.payout_id)
+    assert is_nil(released.paid_out_at)
+  end
+
   test "a transfer.success replay heals a supplier entry stranded :owed after the first delivery" do
     {store, split, payout} = payable_setup!(3_000)
 
