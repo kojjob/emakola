@@ -37,11 +37,16 @@ defmodule EmakolaWeb.DashboardLive do
       if connected?(socket) do
         Process.send_after(self(), :refresh, @refresh_interval)
         if store_id, do: Phoenix.PubSub.subscribe(Emakola.PubSub, "store:#{store_id}:orders")
-        load_dashboard_data(socket)
+
+        socket
+        |> assign(loading: false)
+        |> load_dashboard_data()
       else
         # Dead render is a shell: the ~12 dashboard queries run once, on the
         # connected mount, instead of twice per page view.
-        assign(socket, DashboardHelpers.default_data())
+        socket
+        |> assign(DashboardHelpers.default_data())
+        |> assign(loading: true)
       end
 
     {:ok, socket}
@@ -171,6 +176,7 @@ defmodule EmakolaWeb.DashboardLive do
       <.setup_checklist :if={@setup_steps != []} steps={@setup_steps} />
 
       <.kpi_cards
+        loading={@loading}
         total_revenue={@total_revenue}
         revenue_change={@revenue_change}
         order_count={@order_count}

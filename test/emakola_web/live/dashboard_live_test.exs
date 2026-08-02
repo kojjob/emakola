@@ -38,6 +38,25 @@ defmodule EmakolaWeb.DashboardLiveTest do
       %{conn: conn, merchant: merchant, store: store, order: order, customer: customer}
     end
 
+    test "the disconnected render shows skeletons, never a misleading zero", %{conn: conn} do
+      html = conn |> get(~p"/dashboard") |> html_response(200)
+
+      # The ~12 dashboard queries are deferred to the connected mount, so the
+      # dead render has no data. Showing "Revenue GHS 0.00" there is
+      # indistinguishable from "you have made no sales" — alarming for a
+      # merchant whose figures are about to appear a moment later.
+      assert html =~ "animate-pulse"
+      assert html =~ "Loading Revenue"
+      refute html =~ "GHS 0.00"
+    end
+
+    test "the connected render replaces skeletons with real figures", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/dashboard")
+
+      refute html =~ "Loading Revenue"
+      assert html =~ "Revenue"
+    end
+
     test "mounts and renders KPI cards", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/dashboard")
 

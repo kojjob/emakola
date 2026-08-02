@@ -16,6 +16,12 @@ defmodule EmakolaWeb.DashboardMetricComponents do
   attr :avg_order_value, :integer, required: true
   attr :aov_change, :float, default: nil
 
+  # True until the LiveView socket connects. The dead render has no data yet
+  # (the ~12 dashboard queries are deferred to the connected mount), so the
+  # values below are all zero — and "Revenue GHS 0.00" is indistinguishable
+  # from "you have made no sales". Show a skeleton instead of a wrong number.
+  attr :loading, :boolean, default: false
+
   def kpi_cards(assigns) do
     ~H"""
     <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -23,24 +29,28 @@ defmodule EmakolaWeb.DashboardMetricComponents do
         label="Revenue"
         icon="payments"
         value={format_money(@total_revenue)}
+        loading={@loading}
         change={@revenue_change}
       />
       <.kpi_card
         label="Orders"
         icon="shopping_cart"
         value={Integer.to_string(@order_count)}
+        loading={@loading}
         change={@orders_change}
       />
       <.kpi_card
         label="Customers"
         icon="group"
         value={Integer.to_string(@customer_count)}
+        loading={@loading}
         change={@customers_change}
       />
       <.kpi_card
         label="Avg Order"
         icon="trending_up"
         value={format_money(@avg_order_value)}
+        loading={@loading}
         change={@aov_change}
       />
     </section>
@@ -51,6 +61,21 @@ defmodule EmakolaWeb.DashboardMetricComponents do
   attr :icon, :string, required: true
   attr :value, :string, required: true
   attr :change, :float, default: nil
+  attr :loading, :boolean, default: false
+
+  defp kpi_card(%{loading: true} = assigns) do
+    ~H"""
+    <.stat_card label={@label} value="">
+      <:icon>
+        <span class="material-symbols-outlined text-lg text-primary">{@icon}</span>
+      </:icon>
+      <:delta>
+        <div class="mt-2 h-7 w-24 rounded bg-slate-200 animate-pulse" aria-hidden="true"></div>
+        <span class="sr-only">Loading {@label}</span>
+      </:delta>
+    </.stat_card>
+    """
+  end
 
   defp kpi_card(assigns) do
     ~H"""
