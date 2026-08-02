@@ -92,6 +92,14 @@ defmodule Emakola.Payments.Workers.PayoutWorker do
 
   defp mark_failed(payout, reason) do
     {:ok, _} = Payments.mark_payout_failed(payout, %{failure_reason: reason}, authorize?: false)
+
+    # No transfer was ever created for a definitive pre-webhook rejection, so
+    # no transfer.failed webhook will ever run to release this claim — release
+    # it here or the claimed splits/payments are stranded (gone from payable,
+    # unreachable by retry) forever. Transient errors (the `{:error, reason}`
+    # retry path in execute/1) must NOT release — the payout stays :pending
+    # and Oban retries the same claim.
+    PayoutService.release_payout_balance(payout)
   end
 
   defp gateway do

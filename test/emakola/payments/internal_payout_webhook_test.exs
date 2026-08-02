@@ -89,6 +89,49 @@ defmodule Emakola.Payments.InternalPayoutWebhookTest do
     assert Ash.get!(Emakola.Payments.Payout, payout.id, authorize?: false).status == :failed
   end
 
+  # PR #373 review: a paid-then-reversed allocation payout must reopen every
+  # SupplierLedgerEntry it had marked :paid — the gateway clawed the money
+  # back, so a :paid entry at this point is a false payment record.
+  test "transfer.reversed after :paid reopens a paid supplier entry and releases the split" do
+    {store, split, payout} = payable_setup!(6_000)
+
+    assert :ok = transfer_event!(payout, "success")
+    assert Ash.get!(Emakola.Payments.Payout, payout.id, authorize?: false).status == :paid
+
+    supplier = create_supplier!(store)
+    order = create_order!(store)
+    fulfillment = create_fulfillment!(order, store)
+
+    entry =
+      create_supplier_ledger_entry!(supplier, fulfillment, store)
+      |> Ash.Changeset.for_update(:claim_for_platform_settlement, %{
+        payment_split_id: split.id,
+        source: :platform_payout
+      })
+      |> Ash.update!(authorize?: false)
+      |> Ash.Changeset.for_update(:mark_platform_paid, %{})
+      |> Ash.update!(authorize?: false)
+
+    assert entry.status == :paid
+
+    assert :ok = transfer_event!(payout, "reversed")
+
+    reopened = Ash.get!(Emakola.Suppliers.SupplierLedgerEntry, entry.id, authorize?: false)
+    assert reopened.status == :owed
+    assert reopened.settlement_source == :platform_payout
+    assert is_nil(reopened.paid_at)
+
+    released = Ash.get!(PaymentSplit, split.id, authorize?: false)
+    assert is_nil(released.paid_out_at)
+    assert is_nil(released.payout_id)
+
+    # Replay is idempotent — same terminal state, no crash on the second pass.
+    assert :ok = transfer_event!(payout, "reversed")
+
+    assert Ash.get!(Emakola.Suppliers.SupplierLedgerEntry, entry.id, authorize?: false).status ==
+             :owed
+  end
+
   test "a transfer.success replay heals a supplier entry stranded :owed after the first delivery" do
     {store, split, payout} = payable_setup!(3_000)
 

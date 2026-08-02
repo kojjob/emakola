@@ -191,4 +191,40 @@ defmodule Emakola.Payments.PayoutService do
       {:error, :no_momo_destination} = err -> err
     end
   end
+
+  @doc """
+  Release every charge (payments and/or splits) a payout claimed, back to
+  payable. Shared by two callers:
+
+  - `Workers.PaystackWebhookHandler`, when a `transfer.failed`/`transfer.reversed`
+    webhook drives a payout to a terminal failure state.
+  - `Workers.PayoutWorker`, when it marks a payout `:failed` itself on a
+    definitive PRE-webhook rejection (no destination, or a definitive
+    Paystack error from `initiate_transfer`) — no transfer was ever created,
+    so no webhook will ever run to release the claim otherwise, and the
+    claimed charge would be stranded (gone from payable, unreachable by
+    retry) forever.
+
+  Idempotent — safe to re-run: `by_payout` re-reads fresh rows, and a charge
+  already released (or re-claimed by a fresh payout) simply doesn't match, so
+  a retry after a crash mid-release, or a webhook replay, still completes
+  without burying the balance. Legacy-basis payouts claim Payments;
+  allocation-basis payouts claim PaymentSplits instead — each list is empty
+  for the other basis, so both loops are safe to run unconditionally.
+  """
+  def release_payout_balance(payout) do
+    {:ok, payments} = Payments.list_payments_by_payout(payout.id, authorize?: false)
+
+    Enum.each(payments, fn payment ->
+      payment
+      |> Ash.Changeset.for_update(:release_from_payout, %{})
+      |> Ash.update!(authorize?: false)
+    end)
+
+    {:ok, splits} = Payments.list_payment_splits_by_payout(payout.id, authorize?: false)
+
+    Enum.each(splits, fn split ->
+      {:ok, _} = Payments.release_payment_split_from_payout(split, authorize?: false)
+    end)
+  end
 end

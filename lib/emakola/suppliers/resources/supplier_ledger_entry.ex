@@ -138,6 +138,21 @@ defmodule Emakola.Suppliers.SupplierLedgerEntry do
 
       change(set_attribute(:status, :paid))
       change(set_attribute(:paid_at, &DateTime.utc_now/0))
+
+      # The two validations above read the in-memory struct the caller
+      # loaded — fine for a normal call, but a concurrent
+      # claim_for_platform_settlement (charge.success webhook) can land
+      # between that read and this write. Pushing the same predicate into
+      # the UPDATE's WHERE clause makes the database the serialization
+      # point: if the row no longer matches (claimed out from under this
+      # caller), zero rows are affected and Ash returns a StaleRecord error
+      # instead of writing a stale :paid over a now-claimed entry — the one
+      # path to the double-pay this resource's claim/mark_paid split is
+      # supposed to prevent. Same mechanism as
+      # Emakola.Orders.Changes.RequireStatusIn and Coupon's :increment_usage.
+      change(fn changeset, _context ->
+        Ash.Changeset.filter(changeset, expr(status == :owed and settlement_source == :manual))
+      end)
     end
 
     # The platform settlement claims this obligation so the same supplier debt
@@ -160,6 +175,15 @@ defmodule Emakola.Suppliers.SupplierLedgerEntry do
           :settlement_source,
           Ash.Changeset.get_argument(changeset, :source)
         )
+      end)
+
+      # Atomic counterpart to the two validations above — see the matching
+      # comment on :mark_paid. Without this, a concurrent mark_paid (merchant
+      # admin click) can claim the manual write in between this action's read
+      # and write, landing settlement_source: :platform_payout on top of a
+      # status the manual flow just marked :paid.
+      change(fn changeset, _context ->
+        Ash.Changeset.filter(changeset, expr(status == :owed and settlement_source == :manual))
       end)
     end
 
@@ -190,6 +214,39 @@ defmodule Emakola.Suppliers.SupplierLedgerEntry do
       )
 
       change(set_attribute(:status, :voided))
+    end
+
+    # Reversal<->supplier coupling: a `transfer.reversed` arriving AFTER an
+    # allocation payout was already `:paid` means the gateway clawed the
+    # money back — every SupplierLedgerEntry that payout's transfer.success
+    # had marked `:paid` is now a false payment record. Reopening puts the
+    # debt back in play (status: :owed, paid_at: nil) WITHOUT touching
+    # settlement_source — it stays claimed by the platform (:platform_payout)
+    # so the manual "mark paid" flow still can't touch it; only a fresh
+    # allocation payout can settle it again. Same conditional-write mechanism
+    # as :mark_paid/:claim_for_platform_settlement: the WHERE clause is the
+    # serialization point, so a concurrent reopen (webhook replay) or a
+    # concurrent :mark_platform_paid (a different payout's transfer.success
+    # landing at the same instant) can't interleave into a corrupt state.
+    update :reopen_platform_paid do
+      require_atomic?(false)
+      accept([])
+
+      validate(attribute_in(:status, [:paid]), message: "only a paid entry can be reopened")
+
+      validate(attribute_equals(:settlement_source, :platform_payout),
+        message: "only a platform_payout claim can be reopened"
+      )
+
+      change(set_attribute(:status, :owed))
+      change(set_attribute(:paid_at, nil))
+
+      change(fn changeset, _context ->
+        Ash.Changeset.filter(
+          changeset,
+          expr(status == :paid and settlement_source == :platform_payout)
+        )
+      end)
     end
 
     read :list_by_supplier do

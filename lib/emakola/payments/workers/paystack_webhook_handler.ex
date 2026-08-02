@@ -32,7 +32,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   require Ash.Query
   require Logger
 
-  alias Emakola.Payments.{Payment, ProtectionHolds}
+  alias Emakola.Payments.{Payment, PayoutService, ProtectionHolds}
 
   @terminal_states [:success, :failed, :refunded]
 
@@ -92,7 +92,11 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   # the balance.
 
   # A reversal AFTER a success: the gateway clawed the money back, so un-pay the
-  # payout and return the balance — the one path out of :paid.
+  # payout and return the balance — the one path out of :paid. For an
+  # allocation-basis payout, every SupplierLedgerEntry this payout had marked
+  # :paid is now a false payment record (the merchant never actually received
+  # the money to pass on to the supplier), so reopen those BEFORE releasing
+  # the splits back to payable.
   defp reconcile_payout(%{status: :paid} = payout, :reversed, data) do
     {:ok, _} =
       Emakola.Payments.mark_payout_reversed(
@@ -100,6 +104,10 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
         %{failure_reason: "transfer reversed", gateway_response: data},
         authorize?: false
       )
+
+    if payout.basis == :allocations do
+      reopen_supplier_ledger_entries(payout)
+    end
 
     release_payout_balance(payout)
     :ok
@@ -164,25 +172,11 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
     :ok
   end
 
-  defp release_payout_balance(payout) do
-    {:ok, payments} = Emakola.Payments.list_payments_by_payout(payout.id, authorize?: false)
-
-    Enum.each(payments, fn payment ->
-      payment
-      |> Ash.Changeset.for_update(:release_from_payout, %{})
-      |> Ash.update!(authorize?: false)
-    end)
-
-    # Allocation-basis payouts claimed PaymentSplit rows instead; release those
-    # too. Each list is empty for the other basis, so both loops are safe to
-    # run unconditionally — same idempotent-replay contract as above. Rows are
-    # re-read fresh via by_payout (never stale structs — see design spec §4.4).
-    {:ok, splits} = Emakola.Payments.list_payment_splits_by_payout(payout.id, authorize?: false)
-
-    Enum.each(splits, fn split ->
-      {:ok, _} = Emakola.Payments.release_payment_split_from_payout(split, authorize?: false)
-    end)
-  end
+  # Shared with PayoutWorker.mark_failed/2, which releases a claim on a
+  # definitive pre-webhook rejection (no transfer ever created, so no webhook
+  # would otherwise run this) — see PayoutService.release_payout_balance/1 for
+  # the full contract.
+  defp release_payout_balance(payout), do: PayoutService.release_payout_balance(payout)
 
   defp handle_charge_success(data) do
     reference = data["reference"]
@@ -493,6 +487,37 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
       Logger.error(
         "[paystack_webhook] supplier ledger platform-paid marking failed for " <>
           "payout=#{payout.id}: #{Exception.format(:error, error, __STACKTRACE__)}"
+      )
+
+      :ok
+  end
+
+  # Reversal<->supplier coupling (PR #373 review): a transfer.reversed AFTER
+  # the allocation payout was :paid means the gateway clawed the money back
+  # — every SupplierLedgerEntry mark_supplier_ledger_entries_paid/1 had moved
+  # :paid for this payout is now a false payment record. Reopens each back to
+  # :owed (settlement_source stays :platform_payout — still platform-claimed,
+  # just payable again by a fresh payout) via the same split -> by_payment_split
+  # chain mark_supplier_ledger_entries_paid/1 uses. Never raises into the
+  # webhook — same log-and-continue discipline as claim_supplier_ledger_entry/2.
+  defp reopen_supplier_ledger_entries(payout) do
+    {:ok, splits} = Emakola.Payments.list_payment_splits_by_payout(payout.id, authorize?: false)
+
+    Enum.each(splits, fn split ->
+      split.id
+      |> Emakola.Suppliers.list_supplier_ledger_entries_by_payment_split!(authorize?: false)
+      |> Enum.filter(&(&1.status == :paid and &1.settlement_source == :platform_payout))
+      |> Enum.each(fn entry ->
+        entry
+        |> Ash.Changeset.for_update(:reopen_platform_paid, %{})
+        |> Ash.update!(authorize?: false)
+      end)
+    end)
+  rescue
+    error ->
+      Logger.error(
+        "[paystack_webhook] supplier ledger reopen failed for payout=#{payout.id}: " <>
+          Exception.format(:error, error, __STACKTRACE__)
       )
 
       :ok
