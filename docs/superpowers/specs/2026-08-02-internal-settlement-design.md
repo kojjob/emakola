@@ -43,8 +43,8 @@ Existing foundation reused by this design (unchanged on main): `PaymentSplit` ne
 New attributes: `settlement_method` (`:gateway_share | :internal_hold`, default `:gateway_share`; migration backfills `internal_hold` where `subaccount_code IS NULL` — historically only platform rows), `currency` (default `"GHS"`), `paid_out_at`, `payout_id`, `paid_amount` (frozen at claim), `netted_reversal_amount` (default 0).
 
 New actions:
-- `update :mark_paid_out` — requires `:internal_hold`, status `:settled`/`:partially_reversed`, unclaimed; freezes `paid_amount = amount - reversed_amount` and `netted_reversal_amount = reversed_amount`.
-- `update :release_from_payout` — nils the claim fields, resets `netted_reversal_amount` (nothing was paid; reversals net at source again).
+- `update :mark_paid_out` — requires `:internal_hold`, status `:settled`/`:partially_reversed`, unclaimed; freezes `netted_reversal_amount = reversed_amount − recovered_amount − reserved_recovery_amount` and `paid_amount = amount − netted_reversal_amount`.
+- `update :release_from_payout` — nils the claim fields, resets `netted_reversal_amount` to `recovered_amount + reserved_recovery_amount` (NOT 0 — already-collected recovery stays fenced).
 - `read :payable_internal` (nilable `recipient_store_id` arg) — `internal_hold ∧ role != :platform ∧ status ∈ [settled, partially_reversed] ∧ paid_out_at is nil ∧ amount > reversed_amount`. The split-level sibling of `Payment.outstanding_for_payout`; defined once, on the resource.
 - `read :by_payout`.
 
@@ -52,7 +52,7 @@ New actions:
 
 ### 4.2 The no-double-claw invariant (new)
 
-On the gateway rail a reversal is fully recoverable (the money already left at charge time). On the internal rail a reversal landing **before** the split is claimed is netted at source (payable = `amount − reversed_amount`) and must NOT also be clawed from future earnings. `netted_reversal_amount`, frozen at claim and reset on release, is the fence: recoverable liability = `reversed − netted − recovered − reserved`. Gateway splits keep `netted == 0`, so the formula reduces to today's exactly. `RefundLiability.reserve_from_liabilities/4` updates accordingly; `add_to_platform/2` is hardened to SYNTHESIZE a `:platform` row when absent instead of silently dropping recovered money.
+On the gateway rail a reversal is fully recoverable (the money already left at charge time). On the internal rail a reversal landing **before** the split is claimed nets at source up to the split's own `amount` — only the excess beyond `amount` (an over-reversal from dispatch-fee redistribution) is exposed for recovery; a reversal landing **after** claim is fenced by the frozen `netted_reversal_amount` and must NOT also be clawed from future earnings. Recoverable liability = `reversed − effective_netted − recovered − reserved`, where `effective_netted` is three-way: gateway rail = 0 always; claimed internal = the frozen `netted_reversal_amount`; unclaimed internal = `min(amount, reversed)`. Gateway splits keep `effective_netted == 0`, so the formula reduces to today's exactly. `RefundLiability.reserve_from_liabilities/4` updates accordingly; `add_to_platform/2` is hardened to SYNTHESIZE a `:platform` row when absent instead of silently dropping recovered money.
 
 ### 4.3 Transactional recording
 
@@ -66,7 +66,7 @@ Internal allocation builders (dark until Phase 3):
 ### 4.4 Internal payout engine
 
 - `Payout.basis` (`:payments | :allocations`, default `:payments`).
-- `PayoutService.prepare_internal_payout(recipient_store_id)` mirrors `prepare_payout/1` exactly: destination validated first; then one transaction — `payable_internal` read + `Ash.Query.lock("FOR UPDATE")` (the same serialization point that makes the legacy path double-pay-proof), currency partition, sum of `amount − reversed_amount`, create payout `basis: :allocations`, `mark_split_paid_out` each. New `momo_destination?/1` helper.
+- `PayoutService.prepare_internal_payout(recipient_store_id)` mirrors `prepare_payout/1` exactly: destination validated first; then one transaction — `payable_internal` read + `Ash.Query.lock("FOR UPDATE")` (the same serialization point that makes the legacy path double-pay-proof), currency partition, sum of each split's `paid_amount` as frozen by `mark_split_paid_out` at claim — NEVER recomputed as `amount − reversed_amount` (the two diverge by `recovered_amount + reserved_recovery_amount` once claim/release/recovery cycles happen) — create payout `basis: :allocations`, `mark_split_paid_out` each. New `momo_destination?/1` helper.
 - Webhook: `release_payout_balance/1` additionally releases splits (`by_payout` → `release_from_payout`; the list is empty for the other basis — idempotent). `transfer.success` on an allocation payout projects supplier ledger settlement before notifying.
 - `PayoutWorker`: generalize the reason string; nothing else (verified payee-agnostic — reference-keyed idempotency).
 - Supplier obligation unification: `SupplierLedgerEntry` gains `settlement_source` (`manual | platform_payout | split_gateway`) + `payment_split_id`, actions `claim_for_platform_settlement` and `mark_platform_paid`; `Supplier.outstanding_balance` counts only `:manual`; `settle_splits` claims matching entries (gateway splits claim + mark paid immediately — fixes today's pre-existing double-obligation on the gateway rail, an intentional behavior change with its own test).
@@ -79,7 +79,7 @@ Internal allocation builders (dark until Phase 3):
 - Both charge sites pass `:internal` through `split_mode/1` and attach a gateway split only when `shares != []` (the `{:hold, ...}` clauses stay as-is).
 - `NetworkCheckoutEligibility`: drop both payout checks (decision). The coupon hard-block stays.
 - `SalesTeams.settlement_base/1`: no code change — internal charges now carry exactly one `:merchant`/`:dropshipper` row, so attributed sales settle identically on both rails (intentional parity; explicit test + release note).
-- Visibility: merchant payouts page shows the accrued internal balance (`payable_internal` sum via `assign_async`) + an "add your MoMo number" nudge when balance > 0 and no destination; same nudge on the supplier admin page.
+- Visibility: merchant payouts page shows the accrued internal balance — for each unclaimed `payable_internal` row, what `mark_paid_out` would freeze as `paid_amount` (computed by the same formula, single authority, not an independent expression), summed via `assign_async` — + an "add your MoMo number" nudge when balance > 0 and no destination; same nudge on the supplier admin page.
 
 ## 5. Phasing (stacked PRs, bottom-up)
 

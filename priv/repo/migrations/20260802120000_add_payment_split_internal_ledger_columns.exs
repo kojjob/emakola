@@ -9,7 +9,9 @@ defmodule Emakola.Repo.Migrations.AddPaymentSplitInternalLedgerColumns do
     row, whose cut always stays in the main account — internal_hold.
   * currency — payouts partition by currency; Payment has it, splits did not.
   * paid_out_at / payout_id — the claim stamp, mirroring Payment's pair.
-  * paid_amount — net frozen at claim time (amount - reversed_amount then).
+  * paid_amount — net frozen at claim time as amount - (reversed_amount -
+    recovered_amount - reserved_recovery_amount): amount minus only the
+    portion of any reversal not already recovered or reserved.
   * netted_reversal_amount — the no-double-claw fence: reversals already
     netted into a claim must not also be recovered from future earnings.
 

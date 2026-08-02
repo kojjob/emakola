@@ -160,8 +160,10 @@ defmodule Emakola.Payments.PaymentSplit do
       public?(true)
     end
 
-    # Net frozen at claim time (amount - reversed_amount then). What the payout
-    # actually paid, immune to later reversals moving underneath it.
+    # Net frozen at claim time as amount - (reversed_amount - recovered_amount
+    # - reserved_recovery_amount) — amount minus only the portion of any
+    # reversal not already recovered or reserved. What the payout actually
+    # paid, immune to later reversals moving underneath it.
     attribute :paid_amount, :integer do
       public?(true)
     end
