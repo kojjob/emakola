@@ -193,6 +193,15 @@ defmodule Emakola.Suppliers.SupplierLedgerEntry do
       validate(attribute_in(:status, [:owed]), message: "already settled")
       change(set_attribute(:status, :paid))
       change(set_attribute(:paid_at, &DateTime.utc_now/0))
+
+      # Atomic counterpart to the validation above — see the matching comment
+      # on :mark_paid. Without this, two concurrent transfer.success webhooks
+      # for the same claimed entry (or a replay racing the original) can both
+      # read the same :owed row and both write :paid, the second stamping a
+      # fresh paid_at over the first's.
+      change(fn changeset, _context ->
+        Ash.Changeset.filter(changeset, expr(status == :owed))
+      end)
     end
 
     # Refund<->supplier coupling: a claimed-but-unpaid entry (:platform_payout,
@@ -214,6 +223,17 @@ defmodule Emakola.Suppliers.SupplierLedgerEntry do
       )
 
       change(set_attribute(:status, :voided))
+
+      # Atomic counterpart to the two validations above — see the matching
+      # comment on :mark_paid. Without this, a concurrent void (refund.processed
+      # replay) or a concurrent mark_platform_paid landing at the same instant
+      # can interleave into a corrupt state.
+      change(fn changeset, _context ->
+        Ash.Changeset.filter(
+          changeset,
+          expr(status == :owed and settlement_source == :platform_payout)
+        )
+      end)
     end
 
     # Reversal<->supplier coupling: a `transfer.reversed` arriving AFTER an

@@ -158,6 +158,74 @@ defmodule Emakola.Suppliers.SupplierLedgerEntryTest do
     end
   end
 
+  describe "atomic mark_platform_paid/void transitions (Phase 3 Task 1 — conditional-write completion)" do
+    # Same race proxy as the describe above, extended to the two remaining
+    # transitions that still wrote unconditionally: `mark_platform_paid` and
+    # `void`. Deterministic proxy: do the first write for real from a struct,
+    # then reuse that SAME pre-write struct for a second write — it must be
+    # rejected by the DB-level WHERE filter (StaleRecord), not silently
+    # accepted twice.
+    test "a stale pre-mark_platform_paid struct cannot mark_platform_paid again after a concurrent mark_platform_paid landed",
+         ctx do
+      %{store: store, supplier: supplier, fulfillment: fulfillment} = ctx
+      entry = create_supplier_ledger_entry!(supplier, fulfillment, store, amount_owed: 1_000)
+
+      assert {:ok, claimed} =
+               Emakola.Suppliers.claim_supplier_ledger_entry(entry, %{source: :platform_payout},
+                 authorize?: false
+               )
+
+      assert claimed.status == :owed
+      assert claimed.settlement_source == :platform_payout
+
+      # `stale` is the handle a second process would still be holding — the
+      # same struct read before the first mark_platform_paid below ever ran.
+      stale = claimed
+
+      assert {:ok, paid} =
+               Emakola.Suppliers.mark_supplier_ledger_entry_platform_paid(claimed,
+                 authorize?: false
+               )
+
+      assert paid.status == :paid
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               Emakola.Suppliers.mark_supplier_ledger_entry_platform_paid(stale,
+                 authorize?: false
+               )
+
+      reloaded = Ash.get!(Emakola.Suppliers.SupplierLedgerEntry, entry.id, authorize?: false)
+      assert reloaded.status == :paid
+      assert reloaded.paid_at == paid.paid_at
+    end
+
+    test "a stale pre-void struct cannot void again after a concurrent void landed", ctx do
+      %{store: store, supplier: supplier, fulfillment: fulfillment} = ctx
+      entry = create_supplier_ledger_entry!(supplier, fulfillment, store, amount_owed: 1_000)
+
+      assert {:ok, claimed} =
+               Emakola.Suppliers.claim_supplier_ledger_entry(entry, %{source: :platform_payout},
+                 authorize?: false
+               )
+
+      assert claimed.status == :owed
+      assert claimed.settlement_source == :platform_payout
+
+      stale = claimed
+
+      assert {:ok, voided} =
+               Emakola.Suppliers.void_supplier_ledger_entry(claimed, authorize?: false)
+
+      assert voided.status == :voided
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               Emakola.Suppliers.void_supplier_ledger_entry(stale, authorize?: false)
+
+      reloaded = Ash.get!(Emakola.Suppliers.SupplierLedgerEntry, entry.id, authorize?: false)
+      assert reloaded.status == :voided
+    end
+  end
+
   describe "list_by_supplier" do
     test "returns that supplier's entries newest first", ctx do
       %{store: store, supplier: supplier, fulfillment: fulfillment} = ctx
