@@ -11,6 +11,9 @@ defmodule Emakola.Platform.FinanceStats do
       :none`) payments. With split-at-source the merchant is paid directly by the
       gateway, so the only money the platform holds and owes is from orders that
       settled to the main account because the store had no verified subaccount.
+      Plus payable internal-rail `PaymentSplit` allocations (`settlement_method:
+      :internal_hold`) owed to their recipient stores — dropship money the
+      platform holds on the ledger rather than at the gateway.
 
   `Payment` and `PaymentSplit` are `global?: true`, so these aggregate across all
   stores with `authorize?: false` (called only from the gated platform admin).
@@ -33,7 +36,11 @@ defmodule Emakola.Platform.FinanceStats do
     |> Enum.sum()
   end
 
-  @doc "Total successful payments the platform still owes merchants (un-split, minor units)."
+  @doc """
+  Total successful payments the platform still owes merchants (minor units):
+  un-split payments, plus payable internal-rail splits owed to their
+  recipient stores.
+  """
   def total_outstanding_payouts do
     legacy = unsplit_success_payments() |> Enum.map(&payable_amount/1) |> Enum.sum()
     internal = payable_internal_splits() |> Enum.map(&payable_net/1) |> Enum.sum()
@@ -108,7 +115,8 @@ defmodule Emakola.Platform.FinanceStats do
 
   # THE payable-net formula — what mark_paid_out freezes as paid_amount.
   # Single authority (design spec §4.5): display, sums, and the payout engine
-  # must all agree to the pesewa. Keep in sync with PaymentSplit.mark_paid_out.
+  # must all agree to the pesewa. Keep in sync with PaymentSplit.mark_paid_out
+  # and PayoutService.frozen_paid_amount/1 (its precompute-before-claim twin).
   defp payable_net(split) do
     split.amount -
       (split.reversed_amount - split.recovered_amount - split.reserved_recovery_amount)
