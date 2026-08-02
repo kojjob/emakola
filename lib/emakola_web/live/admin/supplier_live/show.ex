@@ -220,21 +220,24 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
               <div>
                 <p class={[
                   "text-lg font-extrabold",
-                  if(entry.status == :paid, do: "text-slate-900", else: "text-red-600")
+                  if(entry.status in [:paid, :voided], do: "text-slate-900", else: "text-red-600")
                 ]}>
                   {format_price(entry.amount_owed, "GHS")}
                 </p>
                 <p class="text-xs text-slate-400">
-                  <%= if entry.status == :paid do %>
-                    Paid {format_date(entry.paid_at) && "on #{format_date(entry.paid_at)}"}
-                  <% else %>
-                    {format_date(entry.inserted_at)}
+                  <%= cond do %>
+                    <% entry.status == :paid -> %>
+                      Paid {format_date(entry.paid_at) && "on #{format_date(entry.paid_at)}"}
+                    <% entry.status == :voided -> %>
+                      Voided
+                    <% true -> %>
+                      {format_date(entry.inserted_at)}
                   <% end %>
                 </p>
               </div>
 
               <button
-                :if={entry.status == :owed}
+                :if={entry.status == :owed and entry.settlement_source == :manual}
                 phx-click="mark_paid"
                 phx-value-id={entry.id}
                 class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white
@@ -243,11 +246,25 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
                 <.icon name="hero-check" class="size-4" /> Mark Paid
               </button>
               <span
+                :if={entry.status == :owed and entry.settlement_source != :manual}
+                class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 font-bold
+                       text-sm rounded-full px-3.5 py-1.5"
+              >
+                <.icon name="hero-clock" class="size-3.5" /> Settling
+              </span>
+              <span
                 :if={entry.status == :paid}
                 class="inline-flex items-center gap-1.5 bg-green-50 text-green-700 font-bold
                        text-sm rounded-full px-3.5 py-1.5"
               >
                 <.icon name="hero-check" class="size-3.5" /> Paid
+              </span>
+              <span
+                :if={entry.status == :voided}
+                class="inline-flex items-center gap-1.5 bg-slate-100 text-slate-500 font-bold
+                       text-sm rounded-full px-3.5 py-1.5"
+              >
+                <.icon name="hero-x-circle" class="size-3.5" /> Voided — order refunded
               </span>
             </div>
           </div>

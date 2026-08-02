@@ -124,11 +124,141 @@ defmodule Emakola.Payments.Workers.PayoutWorkerTest do
     assert updated.failure_reason =~ "Insufficient balance"
   end
 
-  test "marks the payout failed when the store has no MoMo destination" do
+  test "marks the payout failed and releases a claimed split when the store has no MoMo destination" do
     store = Factory.create_store!()
     payout = pending_payout!(store)
 
+    payment = Factory.create_payment!(store)
+
+    split =
+      Emakola.Payments.PaymentSplit
+      |> Ash.Changeset.for_create(:create, %{
+        store_id: store.id,
+        payment_id: payment.id,
+        role: :merchant,
+        recipient_store_id: store.id,
+        amount: 40_000,
+        settlement_method: :internal_hold
+      })
+      |> Ash.create!(authorize?: false)
+      |> Ash.Changeset.for_update(:mark_settled, %{})
+      |> Ash.update!(authorize?: false)
+      |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: payout.id})
+      |> Ash.update!(authorize?: false)
+
     assert :ok = perform_job(Worker, %{"payout_id" => payout.id})
     assert reload(payout).status == :failed
+
+    released = Ash.get!(Emakola.Payments.PaymentSplit, split.id, authorize?: false)
+    assert is_nil(released.payout_id)
+    assert is_nil(released.paid_out_at)
+  end
+
+  # PR #373 review: a definitive pre-webhook rejection (no destination, or a
+  # definitive Paystack error) never creates a transfer, so no
+  # transfer.failed webhook will ever run to release the claim. Without
+  # releasing here, the claimed charge is stranded — gone from payable,
+  # unreachable by retry.
+  describe "releases the claim on a definitive worker-level failure (PR #373 review)" do
+    test "legacy basis: a claimed payment is released and re-payable" do
+      store = Factory.create_store!()
+      momo_account!(store)
+
+      payment =
+        store
+        |> Factory.create_payment!(%{amount: 50_000})
+        |> Ash.Changeset.for_update(:mark_success, %{})
+        |> Ash.update!(authorize?: false)
+
+      {:ok, payout} = Emakola.Payments.PayoutService.prepare_payout(store.id)
+      claimed = Ash.get!(Emakola.Payments.Payment, payment.id, authorize?: false)
+      assert claimed.payout_id == payout.id
+
+      expect(Emakola.Payments.PaystackClientMock, :create_transfer_recipient, fn _ ->
+        {:ok, %{"status" => true, "data" => %{"recipient_code" => "RCP_x"}}}
+      end)
+
+      expect(Emakola.Payments.PaystackClientMock, :initiate_transfer, fn _ ->
+        {:ok, %{"status" => false, "message" => "Insufficient balance"}}
+      end)
+
+      assert :ok = perform_job(Worker, %{"payout_id" => payout.id})
+      assert reload(payout).status == :failed
+
+      released = Ash.get!(Emakola.Payments.Payment, payment.id, authorize?: false)
+      assert is_nil(released.payout_id)
+      assert is_nil(released.paid_out_at)
+
+      # Re-claimable: a fresh prepare_payout claims the released balance again.
+      assert {:ok, second} = Emakola.Payments.PayoutService.prepare_payout(store.id)
+      assert second.amount == 50_000
+    end
+
+    test "allocations basis: a claimed split is released and re-payable" do
+      store = Factory.create_store!()
+      momo_account!(store)
+
+      payment = Factory.create_payment!(store)
+
+      split =
+        Emakola.Payments.PaymentSplit
+        |> Ash.Changeset.for_create(:create, %{
+          store_id: store.id,
+          payment_id: payment.id,
+          role: :merchant,
+          recipient_store_id: store.id,
+          amount: 30_000,
+          settlement_method: :internal_hold
+        })
+        |> Ash.create!(authorize?: false)
+        |> Ash.Changeset.for_update(:mark_settled, %{})
+        |> Ash.update!(authorize?: false)
+
+      {:ok, payout} = Emakola.Payments.PayoutService.prepare_internal_payout(store.id)
+
+      expect(Emakola.Payments.PaystackClientMock, :create_transfer_recipient, fn _ ->
+        {:ok, %{"status" => true, "data" => %{"recipient_code" => "RCP_x"}}}
+      end)
+
+      expect(Emakola.Payments.PaystackClientMock, :initiate_transfer, fn _ ->
+        {:ok, %{"status" => false, "message" => "Insufficient balance"}}
+      end)
+
+      assert :ok = perform_job(Worker, %{"payout_id" => payout.id})
+      assert reload(payout).status == :failed
+
+      released = Ash.get!(Emakola.Payments.PaymentSplit, split.id, authorize?: false)
+      assert is_nil(released.payout_id)
+      assert is_nil(released.paid_out_at)
+
+      # Re-claimable via payable_internal: a fresh approval claims it again.
+      assert {:ok, second} = Emakola.Payments.PayoutService.prepare_internal_payout(store.id)
+      assert second.amount == 30_000
+    end
+
+    test "a transient error does NOT release — the payout stays pending for Oban's retry" do
+      store = Factory.create_store!()
+      momo_account!(store)
+
+      payment =
+        store
+        |> Factory.create_payment!(%{amount: 20_000})
+        |> Ash.Changeset.for_update(:mark_success, %{})
+        |> Ash.update!(authorize?: false)
+
+      {:ok, payout} = Emakola.Payments.PayoutService.prepare_payout(store.id)
+
+      expect(Emakola.Payments.PaystackClientMock, :create_transfer_recipient, fn _ ->
+        {:error, :timeout}
+      end)
+
+      assert {:error, _} = perform_job(Worker, %{"payout_id" => payout.id})
+      assert reload(payout).status == :pending
+
+      # Still claimed — a transient failure must not strand the retry path by
+      # releasing a payout Oban is about to retry.
+      still_claimed = Ash.get!(Emakola.Payments.Payment, payment.id, authorize?: false)
+      assert still_claimed.payout_id == payout.id
+    end
   end
 end

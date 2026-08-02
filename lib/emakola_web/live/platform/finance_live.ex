@@ -56,28 +56,10 @@ defmodule EmakolaWeb.Platform.FinanceLive do
   @impl true
   def handle_event("approve_payout", %{"store_id" => store_id}, socket) do
     authorized(socket, fn socket ->
-      case PayoutService.prepare_payout(store_id) do
-        {:ok, payout} ->
-          PayoutWorker.enqueue(payout.id)
+      {results, queued} =
+        approve_both_bases(store_id, socket.assigns.current_user, :payout_approved)
 
-          PlatformAudit.log(:payout_approved, socket.assigns.current_user, %{
-            "store_id" => store_id,
-            "payout_id" => payout.id,
-            "amount" => payout.amount
-          })
-
-          {:noreply,
-           socket
-           |> load()
-           |> put_flash(:info, "Payout of #{format_amount(payout.amount)} queued.")}
-
-        {:error, :nothing_outstanding} ->
-          {:noreply, put_flash(socket, :error, "Nothing outstanding to pay out for this store.")}
-
-        {:error, :no_momo_destination} ->
-          {:noreply,
-           put_flash(socket, :error, "This store has no mobile money payout details set up.")}
-      end
+      {:noreply, respond_to_approval(socket, results, queued)}
     end)
   end
 
@@ -86,21 +68,88 @@ defmodule EmakolaWeb.Platform.FinanceLive do
       # A failed payout released its balance back to outstanding, so "retry"
       # prepares a FRESH payout (new transfer_reference) for that store rather than
       # re-running the dead one — Paystack rejects a reused reference.
-      with {:ok, %{store_id: store_id}} <-
-             Emakola.Payments.get_payout(payout_id, authorize?: false),
-           {:ok, payout} <- PayoutService.prepare_payout(store_id) do
-        PayoutWorker.enqueue(payout.id)
+      case Emakola.Payments.get_payout(payout_id, authorize?: false) do
+        {:ok, %{store_id: store_id}} ->
+          {_results, queued} =
+            approve_both_bases(store_id, socket.assigns.current_user, :payout_retried)
 
-        PlatformAudit.log(:payout_retried, socket.assigns.current_user, %{
-          "store_id" => store_id,
-          "payout_id" => payout.id
-        })
+          if queued == [] do
+            {:noreply, put_flash(socket, :error, "Nothing outstanding to retry for this store.")}
+          else
+            {:noreply, socket |> load() |> put_flash(:info, "Payout retry queued.")}
+          end
 
-        {:noreply, socket |> load() |> put_flash(:info, "Payout retry queued.")}
-      else
-        _ -> {:noreply, put_flash(socket, :error, "Nothing outstanding to retry for this store.")}
+        _ ->
+          {:noreply, put_flash(socket, :error, "Nothing outstanding to retry for this store.")}
       end
     end)
+  end
+
+  # Prepares BOTH payout bases and, for each one that succeeds, enqueues +
+  # audits it IMMEDIATELY — before the next basis is even prepared. This
+  # matters: if prepare_internal_payout/1 were to raise (e.g. its paid_amount
+  # drift tripwire) AFTER prepare_payout/1 had already committed a pending
+  # payout, a batched "prepare both, then enqueue both" flow would strand that
+  # first payout — claimed out of the backlog, but never enqueued or audited,
+  # and unreachable by the :failed-only retry button. Preparing+processing one
+  # basis at a time means the first payout's enqueue/audit (both already
+  # committed, independent writes) survive even if the second basis blows up.
+  defp approve_both_bases(store_id, actor, action) do
+    payments_result =
+      process_basis(:payments, PayoutService.prepare_payout(store_id), actor, store_id, action)
+
+    allocations_result =
+      process_basis(
+        :allocations,
+        PayoutService.prepare_internal_payout(store_id),
+        actor,
+        store_id,
+        action
+      )
+
+    results = [{:payments, payments_result}, {:allocations, allocations_result}]
+    queued = for {_basis, {:ok, payout}} <- results, do: payout
+
+    {results, queued}
+  end
+
+  defp process_basis(_basis, {:ok, payout}, actor, store_id, action) do
+    PayoutWorker.enqueue(payout.id)
+
+    PlatformAudit.log(action, actor, %{
+      "store_id" => store_id,
+      "payout_id" => payout.id,
+      "amount" => payout.amount,
+      "basis" => to_string(payout.basis)
+    })
+
+    {:ok, payout}
+  end
+
+  defp process_basis(_basis, {:error, _reason} = error, _actor, _store_id, _action), do: error
+
+  # queued == [] → surface an error, preferring :no_momo_destination (it applies
+  # to both bases, since they share transfer_destination/1) over :nothing_outstanding.
+  # queued != [] → a single info flash with the SUMMED amount across both payouts.
+  defp respond_to_approval(socket, results, [] = _queued) do
+    errors = for {_basis, {:error, reason}} <- results, do: reason
+
+    message =
+      if :no_momo_destination in errors do
+        "This store has no mobile money payout details set up."
+      else
+        "Nothing outstanding to pay out for this store."
+      end
+
+    put_flash(socket, :error, message)
+  end
+
+  defp respond_to_approval(socket, _results, queued) do
+    total = queued |> Enum.map(& &1.amount) |> Enum.sum()
+
+    socket
+    |> load()
+    |> put_flash(:info, "Payout of #{format_amount(total)} queued.")
   end
 
   # Re-check the permission against a fresh user (Iron Law: never trust mount).
@@ -236,6 +285,7 @@ defmodule EmakolaWeb.Platform.FinanceLive do
                 <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                   <th class="px-6 py-3">Store</th>
                   <th class="px-6 py-3">Amount</th>
+                  <th class="px-6 py-3">Basis</th>
                   <th class="px-6 py-3">Status</th>
                   <th class="px-6 py-3">Date</th>
                   <th class="px-6 py-3 text-right">Action</th>
@@ -243,7 +293,7 @@ defmodule EmakolaWeb.Platform.FinanceLive do
               </thead>
               <tbody class="divide-y divide-gray-100">
                 <tr :if={@payouts == []}>
-                  <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-400">
+                  <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-400">
                     No payouts yet.
                   </td>
                 </tr>
@@ -252,6 +302,7 @@ defmodule EmakolaWeb.Platform.FinanceLive do
                     {(payout.store && payout.store.name) || "—"}
                   </td>
                   <td class="px-6 py-4 text-sm text-gray-900">{format_amount(payout.amount)}</td>
+                  <td class="px-6 py-4 text-sm text-gray-500">{payout.basis}</td>
                   <td class="px-6 py-4 text-sm">
                     <span class={payout_pill_class(payout.status)}>
                       {humanize_status(payout.status)}

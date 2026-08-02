@@ -105,6 +105,59 @@ defmodule Emakola.Suppliers.SupplierLedgerEntryTest do
     end
   end
 
+  describe "atomic claim/mark_paid transitions (race proxy — PR #373 review)" do
+    # `claim_for_platform_settlement` and `mark_paid` both validate against the
+    # in-memory struct the caller loaded. Two concurrent callers (the
+    # charge.success webhook claiming, the merchant clicking "mark paid") can
+    # both read the same :owed/:manual row before either writes, so both
+    # validations pass and both writes land on disjoint columns — one caller
+    # holding a STALE struct is exactly that scenario. Deterministic proxy: do
+    # the first write for real, then attempt the second from the pre-write
+    # struct — it must be rejected, not silently accepted, or the supplier
+    # gets paid twice (once by the platform settlement, once manually).
+    test "a stale pre-claim struct cannot mark_paid after a concurrent claim landed", ctx do
+      %{store: store, supplier: supplier, fulfillment: fulfillment} = ctx
+      entry = create_supplier_ledger_entry!(supplier, fulfillment, store, amount_owed: 1_000)
+
+      # `stale` is the handle a second process would still be holding — the
+      # same struct read before the claim below ever ran.
+      stale = entry
+
+      assert {:ok, claimed} =
+               Emakola.Suppliers.claim_supplier_ledger_entry(entry, %{source: :platform_payout},
+                 authorize?: false
+               )
+
+      assert claimed.settlement_source == :platform_payout
+
+      assert {:error, _} = Emakola.Suppliers.mark_ledger_entry_paid(stale, authorize?: false)
+
+      reloaded = Ash.get!(Emakola.Suppliers.SupplierLedgerEntry, entry.id, authorize?: false)
+      assert reloaded.status == :owed
+      assert reloaded.settlement_source == :platform_payout
+      assert is_nil(reloaded.paid_at)
+    end
+
+    test "a stale pre-mark_paid struct cannot claim after a concurrent mark_paid landed", ctx do
+      %{store: store, supplier: supplier, fulfillment: fulfillment} = ctx
+      entry = create_supplier_ledger_entry!(supplier, fulfillment, store, amount_owed: 1_000)
+
+      stale = entry
+
+      assert {:ok, paid} = Emakola.Suppliers.mark_ledger_entry_paid(entry, authorize?: false)
+      assert paid.status == :paid
+
+      assert {:error, _} =
+               Emakola.Suppliers.claim_supplier_ledger_entry(stale, %{source: :platform_payout},
+                 authorize?: false
+               )
+
+      reloaded = Ash.get!(Emakola.Suppliers.SupplierLedgerEntry, entry.id, authorize?: false)
+      assert reloaded.status == :paid
+      assert reloaded.settlement_source == :manual
+    end
+  end
+
   describe "list_by_supplier" do
     test "returns that supplier's entries newest first", ctx do
       %{store: store, supplier: supplier, fulfillment: fulfillment} = ctx

@@ -48,6 +48,16 @@ defmodule Emakola.Payments.Payout do
       public?(true)
     end
 
+    # Which engine owns this payout: :payments claims un-split Payment rows
+    # (legacy); :allocations claims internal-rail PaymentSplit rows. The two
+    # populations are disjoint by construction (Payment.split_mode partition).
+    attribute :basis, :atom do
+      constraints(one_of: [:payments, :allocations])
+      default(:payments)
+      allow_nil?(false)
+      public?(true)
+    end
+
     # Paystack transfer recipient code, set when the transfer is initiated.
     attribute :recipient_code, :string do
       public?(true)
@@ -110,7 +120,7 @@ defmodule Emakola.Payments.Payout do
     defaults([:read])
 
     create :create do
-      accept([:store_id, :amount, :currency, :transfer_reference, :metadata])
+      accept([:store_id, :amount, :currency, :transfer_reference, :metadata, :basis])
     end
 
     update :mark_processing do

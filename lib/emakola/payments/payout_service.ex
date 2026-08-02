@@ -104,4 +104,127 @@ defmodule Emakola.Payments.PayoutService do
       {:error, :no_momo_destination} = err -> err
     end
   end
+
+  @doc "True when the store has a usable MoMo transfer destination."
+  def momo_destination?(store_id) do
+    match?({:ok, _}, transfer_destination(store_id))
+  end
+
+  # The exact freeze formula `PaymentSplit.mark_paid_out` applies to
+  # `paid_amount` — single authority, duplicated here ONLY because the
+  # payout's final amount must exist before the payout_id needed to actually
+  # claim a split does. Any drift from `mark_paid_out` is caught by the
+  # assertion in `prepare_internal_payout/1` below, never trusted silently.
+  defp frozen_paid_amount(split) do
+    netted = split.reversed_amount - split.recovered_amount - split.reserved_recovery_amount
+    split.amount - netted
+  end
+
+  @doc """
+  Create a pending allocation-basis payout for a store's payable internal
+  balance and claim the covered splits. Mirrors `prepare_payout/1`'s
+  serialization exactly: one transaction, `FOR UPDATE` on the payable set, so
+  a concurrent approval re-reads empty (no double-pay).
+
+  `Payout.amount` must be final at creation (`PayoutWorker` reads it to build
+  the transfer), but claiming a split via `mark_paid_out` requires the
+  payout's id — so the amount is precomputed from the FOR-UPDATE-locked rows
+  with `frozen_paid_amount/1` (the same formula `mark_paid_out` freezes into
+  `paid_amount`), the payout is created for that sum, and only then is each
+  split claimed with the real `payout_id`. The `FOR UPDATE` lock guarantees
+  the struct handed to `mark_paid_out` is the exact row `frozen_paid_amount/1`
+  computed from (no concurrent write could have changed it), so the
+  assertion below — raising to roll back the transaction on mismatch — can
+  only be catching formula drift between this helper and `mark_paid_out`'s
+  own freeze, never a stale read.
+  """
+  def prepare_internal_payout(recipient_store_id) do
+    with {:ok, _dest} <- transfer_destination(recipient_store_id) do
+      Emakola.Repo.transaction(fn ->
+        splits =
+          Emakola.Payments.PaymentSplit
+          |> Ash.Query.for_read(:payable_internal, %{recipient_store_id: recipient_store_id})
+          |> Ash.Query.lock("FOR UPDATE")
+          |> Ash.read!(authorize?: false)
+
+        # One currency per payout, same partition rule as prepare_payout/1.
+        currency = splits |> List.first(%{}) |> Map.get(:currency, "GHS")
+        claimed = Enum.filter(splits, &(&1.currency == currency))
+
+        if claimed == [] do
+          Emakola.Repo.rollback(:nothing_outstanding)
+        end
+
+        amount = claimed |> Enum.map(&frozen_paid_amount/1) |> Enum.sum()
+        reference = "po_" <> Ecto.UUID.generate()
+
+        {:ok, payout} =
+          Emakola.Payments.create_payout(
+            %{
+              store_id: recipient_store_id,
+              amount: amount,
+              currency: currency,
+              transfer_reference: reference,
+              basis: :allocations
+            },
+            authorize?: false
+          )
+
+        Enum.each(claimed, fn split ->
+          expected = frozen_paid_amount(split)
+
+          {:ok, updated} =
+            Emakola.Payments.mark_payment_split_paid_out(split, %{payout_id: payout.id},
+              authorize?: false
+            )
+
+          if updated.paid_amount != expected do
+            raise "paid_amount drift on split #{split.id}: mark_paid_out froze " <>
+                    "#{updated.paid_amount}, prepare_internal_payout precomputed #{expected} " <>
+                    "(FOR UPDATE lock should make this impossible)"
+          end
+        end)
+
+        payout
+      end)
+    else
+      {:error, :no_momo_destination} = err -> err
+    end
+  end
+
+  @doc """
+  Release every charge (payments and/or splits) a payout claimed, back to
+  payable. Shared by two callers:
+
+  - `Workers.PaystackWebhookHandler`, when a `transfer.failed`/`transfer.reversed`
+    webhook drives a payout to a terminal failure state.
+  - `Workers.PayoutWorker`, when it marks a payout `:failed` itself on a
+    definitive PRE-webhook rejection (no destination, or a definitive
+    Paystack error from `initiate_transfer`) — no transfer was ever created,
+    so no webhook will ever run to release the claim otherwise, and the
+    claimed charge would be stranded (gone from payable, unreachable by
+    retry) forever.
+
+  Idempotent — safe to re-run: `by_payout` re-reads fresh rows, and a charge
+  already released (or re-claimed by a fresh payout) simply doesn't match, so
+  a retry after a crash mid-release, or a webhook replay, still completes
+  without burying the balance. Legacy-basis payouts claim Payments;
+  allocation-basis payouts claim PaymentSplits instead — each list is empty
+  for the other basis, so both loops are safe to run unconditionally.
+  """
+  def release_payout_balance(payout) do
+    {:ok, payments} = Payments.list_payments_by_payout(payout.id, authorize?: false)
+
+    Enum.each(payments, fn payment ->
+      payment
+      |> Ash.Changeset.for_update(:release_from_payout, %{})
+      |> Ash.update!(authorize?: false)
+    end)
+
+    {:ok, splits} = Payments.list_payment_splits_by_payout(payout.id, authorize?: false)
+
+    Enum.each(splits, fn split ->
+      {:ok, _} = Payments.release_payment_split_from_payout(split, authorize?: false)
+    end)
+  end
 end

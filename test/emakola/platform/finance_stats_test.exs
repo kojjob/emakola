@@ -31,7 +31,15 @@ defmodule Emakola.Platform.FinanceStatsTest do
 
   defp verified_payout!(store, code) do
     Emakola.Stores.StorePayoutAccount
-    |> Ash.Changeset.for_create(:create, %{store_id: store.id})
+    |> Ash.Changeset.for_create(:create, %{
+      store_id: store.id,
+      payout_destination: %{
+        "method" => "mobile_money",
+        "provider" => "mtn",
+        "number" => "0244000111",
+        "account_name" => "Test Merchant"
+      }
+    })
     |> Ash.create!(authorize?: false)
     |> Ash.Changeset.for_update(:record_subaccount, %{subaccount_code: code})
     |> Ash.update!(authorize?: false)
@@ -167,6 +175,8 @@ defmodule Emakola.Platform.FinanceStatsTest do
 
       assert by_id[fee_store.id].fees_collected == 200
       assert by_id[fee_store.id].outstanding_owed == 0
+
+      # payouts_ready? = MoMo-destination-present (P2 semantic — transfers are what payouts actually need)
       assert by_id[fee_store.id].payouts_ready? == true
 
       ids = Enum.map(rows, & &1.store.id)
