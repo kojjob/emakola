@@ -133,6 +133,48 @@ defmodule Emakola.Payments.PaymentSplit do
       public?(true)
     end
 
+    # Which rail settles this allocation: the gateway routed it at charge
+    # (:gateway_share) or the money stays in the platform main account and is
+    # owed via this ledger (:internal_hold). Platform rows are always
+    # :internal_hold — their cut never leaves the main account on either rail.
+    attribute :settlement_method, :atom do
+      constraints(one_of: [:gateway_share, :internal_hold])
+      default(:gateway_share)
+      allow_nil?(false)
+      public?(true)
+    end
+
+    attribute :currency, :string do
+      allow_nil?(false)
+      default("GHS")
+      public?(true)
+    end
+
+    # Claim stamp for internal-rail payouts, mirroring Payment.paid_out_at /
+    # payout_id. Nil until a payout claims this allocation.
+    attribute :paid_out_at, :utc_datetime_usec do
+      public?(true)
+    end
+
+    attribute :payout_id, :uuid do
+      public?(true)
+    end
+
+    # Net frozen at claim time (amount - reversed_amount then). What the payout
+    # actually paid, immune to later reversals moving underneath it.
+    attribute :paid_amount, :integer do
+      public?(true)
+    end
+
+    # No-double-claw fence: reversals that were already netted into a claim
+    # (payable = amount - reversed) must not ALSO be recovered from future
+    # earnings. Frozen at claim, reset on release. Gateway splits keep 0.
+    attribute :netted_reversal_amount, :integer do
+      allow_nil?(false)
+      default(0)
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -193,7 +235,9 @@ defmodule Emakola.Payments.PaymentSplit do
         :subaccount_code,
         :amount,
         :recovery_amount,
-        :recovery_breakdown
+        :recovery_breakdown,
+        :settlement_method,
+        :currency
       ])
     end
 
