@@ -88,4 +88,36 @@ defmodule Emakola.Payments.InternalPayoutWebhookTest do
     assert :ok = transfer_event!(payout, "failed")
     assert Ash.get!(Emakola.Payments.Payout, payout.id, authorize?: false).status == :failed
   end
+
+  test "a transfer.success replay heals a supplier entry stranded :owed after the first delivery" do
+    {store, split, payout} = payable_setup!(3_000)
+
+    # First delivery lands (no supplier entry exists yet, so
+    # mark_supplier_ledger_entries_paid/1 is a no-op) — the payout is now
+    # terminal :paid, same as if a transient failure had stranded the mark.
+    assert :ok = transfer_event!(payout, "success")
+    assert Ash.get!(Emakola.Payments.Payout, payout.id, authorize?: false).status == :paid
+
+    # Simulate the stranded state directly: a supplier ledger entry claimed
+    # against this split's payout settlement, but never marked paid.
+    supplier = create_supplier!(store)
+    order = create_order!(store)
+    fulfillment = create_fulfillment!(order, store)
+
+    entry =
+      create_supplier_ledger_entry!(supplier, fulfillment, store)
+      |> Ash.Changeset.for_update(:claim_for_platform_settlement, %{
+        payment_split_id: split.id,
+        source: :platform_payout
+      })
+      |> Ash.update!(authorize?: false)
+
+    assert entry.status == :owed
+
+    # Replay of transfer.success must re-run the healing, not short-circuit.
+    assert :ok = transfer_event!(payout, "success")
+
+    assert Ash.get!(Emakola.Suppliers.SupplierLedgerEntry, entry.id, authorize?: false).status ==
+             :paid
+  end
 end

@@ -96,6 +96,38 @@ defmodule Emakola.Payments.InternalPayoutServiceTest do
     assert claimed.paid_amount == 8_000
   end
 
+  test "frozen paid_amount pins the reserved_recovery_amount term specifically" do
+    store = create_store!()
+    momo_destination!(store)
+    payment = create_payment!(store)
+
+    # amount 9_000, reversed 4_000, recovered 1_000, reserved_recovery 2_000.
+    # netted = 4_000 - 1_000 - 2_000 = 1_000, so paid_amount = 8_000. Naive
+    # amount - reversed_amount gives 5_000; dropping ONLY the reserved term
+    # (netted = 4_000 - 1_000 = 3_000) gives 6_000 — this pins the fourth
+    # term specifically, distinct from both wrong answers.
+    split =
+      settled_internal_split!(store, payment, %{amount: 9_000})
+      |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: 4_000})
+      |> Ash.update!(authorize?: false)
+      |> Ash.Changeset.for_update(:update_recovery_tracking, %{
+        recovered_amount: 1_000,
+        reserved_recovery_amount: 2_000
+      })
+      |> Ash.update!(authorize?: false)
+
+    {:ok, payout} = PayoutService.prepare_internal_payout(store.id)
+
+    assert payout.amount == 9_000 - (4_000 - 1_000 - 2_000)
+    assert payout.amount == 8_000
+
+    {:ok, [claimed]} =
+      Emakola.Payments.list_payment_splits_by_payout(payout.id, authorize?: false)
+
+    assert claimed.id == split.id
+    assert claimed.paid_amount == 8_000
+  end
+
   test "no MoMo destination stamps nothing" do
     store = create_store!()
     payment = create_payment!(store)

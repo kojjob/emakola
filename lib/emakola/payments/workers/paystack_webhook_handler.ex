@@ -105,8 +105,20 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
     :ok
   end
 
-  # Otherwise :paid is terminal (idempotent success replay).
-  defp reconcile_payout(%{status: :paid}, _outcome, _data), do: :ok
+  # Otherwise :paid is terminal (idempotent success replay), but RE-RUN the
+  # supplier-ledger marking (idempotent — filters to :owed) so a replay heals
+  # any entry stranded :owed by a transient failure inside
+  # mark_supplier_ledger_entries_paid/1 during a prior delivery (its rescue
+  # swallows errors, so the job completed without the mark landing) — same
+  # replay-heals-partial-failure philosophy as the :failed/:reversed clause
+  # below.
+  defp reconcile_payout(%{status: :paid} = payout, _outcome, _data) do
+    if payout.basis == :allocations do
+      mark_supplier_ledger_entries_paid(payout)
+    end
+
+    :ok
+  end
 
   # :failed / :reversed are terminal for money-movement, but RE-RUN the release so
   # an attempt that crashed mid-loop still returns every covered charge.
