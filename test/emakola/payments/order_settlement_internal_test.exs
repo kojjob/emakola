@@ -137,4 +137,84 @@ defmodule Emakola.Payments.OrderSettlementInternalTest do
                )
     end
   end
+
+  describe "prepare_internal/2" do
+    defp checkout_own_stock_order!(store) do
+      product = create_product!(store, title: "Internal Own-Stock")
+      variant = create_variant!(product, store, price: 5_000, sku: "INT-OWN", stock_quantity: 20)
+
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout!(
+          store.id,
+          [%{variant_id: variant.id, quantity: 1}],
+          []
+        )
+
+      order
+    end
+
+    test "own-stock: identical platform fee to the gateway rail, all internal_hold" do
+      # NOTE: store has NO payout account — the exact population Phase 3 routes here.
+      store = create_store!()
+      order = checkout_own_stock_order!(store)
+
+      {:split, %{total: total, allocations: allocations, shares: [], mode: :internal}} =
+        OrderSettlement.prepare_internal(order.id, store.id)
+
+      assert total == order.total
+      assert Enum.sum(Enum.map(allocations, & &1.amount)) == order.total
+
+      # Fee parity: same PlatformFee.calculate as prepare_platform_fee (200 bps default).
+      %{fee: fee, net: net} =
+        Emakola.Payments.PlatformFee.calculate(
+          order.total,
+          Application.get_env(:emakola, :platform_fee_rate_bps, 200)
+        )
+
+      platform = Enum.find(allocations, &(&1.role == :platform))
+      merchant = Enum.find(allocations, &(&1.role == :merchant))
+      assert platform.amount == fee
+      assert merchant.amount == net
+      assert merchant.recipient_store_id == store.id
+
+      assert Enum.all?(allocations, &(&1.settlement_method == :internal_hold))
+      assert Enum.all?(allocations, &is_nil(&1.subaccount_code))
+    end
+
+    test "dropship with an UNVERIFIED linked wholesaler: internal mode, sum-exact" do
+      dropshipper = create_store!(name: "Unverified Dropshipper")
+      wholesaler_store = create_store!(name: "Unverified Wholesaler")
+      # Linked but NO verified_payout! on either side — gateway prepare/2 would refuse this.
+      supplier =
+        create_supplier!(dropshipper, name: "Linked NoSub", linked_store_id: wholesaler_store.id)
+
+      product = create_product!(dropshipper, title: "Internal Dropship")
+
+      variant =
+        create_variant!(product, dropshipper,
+          price: 5_000,
+          sku: "INT-DROP",
+          supplier_id: supplier.id,
+          cost_price: 800
+        )
+
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout!(
+          dropshipper.id,
+          [%{variant_id: variant.id, quantity: 2}],
+          []
+        )
+
+      {:split, %{total: total, allocations: allocations, shares: [], mode: :internal}} =
+        OrderSettlement.prepare_internal(order.id, dropshipper.id)
+
+      assert total == order.total
+      assert Enum.sum(Enum.map(allocations, & &1.amount)) == order.total
+
+      wholesaler = Enum.find(allocations, &(&1.role == :wholesaler))
+      assert wholesaler.recipient_store_id == wholesaler_store.id
+      assert Enum.any?(allocations, &(&1.role == :platform))
+      assert Enum.all?(allocations, &(&1.settlement_method == :internal_hold))
+    end
+  end
 end

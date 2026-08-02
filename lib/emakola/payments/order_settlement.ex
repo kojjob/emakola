@@ -86,6 +86,66 @@ defmodule Emakola.Payments.OrderSettlement do
     end
   end
 
+  @doc """
+  Internal-rail settlement for a charge that cannot be split at the gateway
+  (unverified parties, unlinked suppliers). Same allocation math and fee rates
+  as the gateway rail; every allocation is tagged `settlement_method:
+  :internal_hold` with no subaccount, and a `:platform` row is always present.
+  Returns `shares: []` — nothing is attached to the gateway charge. Dark until
+  Phase 3 routes `prepare/2`'s verification-failure fallbacks here.
+  """
+  def prepare_internal(order_id, store_id) do
+    order = Ash.get!(Emakola.Orders.Order, order_id, authorize?: false, tenant: store_id)
+    line_items = load_line_items(order_id, store_id)
+    dispatch_fees = load_dispatch_fees(order_id)
+
+    case DropshipSettlement.prepare_internal(line_items, store_id,
+           fee_rate_bps: fee_rate_bps(),
+           dispatch_fees: dispatch_fees
+         ) do
+      {:split, %{allocations: allocations}} ->
+        # Same delivery-fee fold as the gateway dropship rail.
+        adjustment = (order.delivery_fee || 0) - (order.discount_amount || 0)
+        finalize_internal(order, store_id, adjust_dropshipper(allocations, adjustment))
+
+      {:no_split, :no_dropship_items} ->
+        %{fee: fee, net: net} = PlatformFee.calculate(order.total, platform_fee_rate_bps())
+
+        finalize_internal(order, store_id, [
+          %{role: :merchant, recipient_store_id: store_id, amount: net, subaccount_code: nil},
+          %{role: :platform, recipient_store_id: nil, amount: fee, subaccount_code: nil}
+        ])
+    end
+  end
+
+  defp finalize_internal(order, store_id, allocations) do
+    allocations =
+      allocations
+      |> Emakola.Suppliers.PartnerCredit.carve_sales_proceeds(store_id)
+      |> RefundLiability.reserve!()
+      |> Enum.map(&internal_hold/1)
+
+    cond do
+      not sum_matches_total?(order, allocations) ->
+        {:no_split, :allocation_sum_mismatch}
+
+      # An aggressive discount can drive a non-platform allocation negative;
+      # the payable ledger must stay non-negative (mirror of valid_shares?).
+      Enum.any?(allocations, &(&1.role != :platform and &1.amount < 0)) ->
+        {:no_split, :unrepresentable_split}
+
+      true ->
+        {:split, %{total: order.total, allocations: allocations, shares: [], mode: :internal}}
+    end
+  end
+
+  # The internal rail holds everything in the platform account: no allocation
+  # carries a subaccount (this also overrides the partner-credit carve, which
+  # sets the creditor's subaccount unconditionally).
+  defp internal_hold(alloc) do
+    Map.merge(alloc, %{settlement_method: :internal_hold, subaccount_code: nil})
+  end
+
   defp prepare_platform_fee(order, store_id) do
     case verified_subaccount(store_id) do
       {:ok, code} ->
