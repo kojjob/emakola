@@ -244,7 +244,10 @@ defmodule Emakola.Payments.OrderSettlementTest do
       assert by_role[:platform].amount == 200
     end
 
-    test "an own-stock order with no verified subaccount yields no split" do
+    # Task 4 (the flip): this used to yield {:no_split, :payout_unverified};
+    # it now routes to the internal rail instead of refusing the charge — see
+    # order_settlement_internal_test.exs "the flip" for full coverage.
+    test "an own-stock order with no verified subaccount routes to the internal rail (the flip)" do
       merchant = create_store!(name: "No Payout")
       product = create_product!(merchant, title: "No Payout Product")
       own = create_variant!(product, merchant, price: 5_000, sku: "PF-NOPAY", stock_quantity: 20)
@@ -256,7 +259,8 @@ defmodule Emakola.Payments.OrderSettlementTest do
           []
         )
 
-      assert {:no_split, :payout_unverified} = OrderSettlement.prepare(order.id, merchant.id)
+      assert {:split, %{mode: :internal, shares: []}} =
+               OrderSettlement.prepare(order.id, merchant.id)
     end
 
     # Regression pin (TC-2 Task 4, case iii): buyer_protection_enabled defaults
@@ -354,7 +358,10 @@ defmodule Emakola.Payments.OrderSettlementTest do
   end
 
   describe "prepare/2 — fallback" do
-    test "external (unlinked) supplier yields no split", %{
+    # Task 4 (the flip): this used to yield {:no_split, :supplier_not_linked};
+    # it now routes to the internal rail (the supplier's cost folds into the
+    # dropshipper, payable to them manually).
+    test "external (unlinked) supplier routes to the internal rail (the flip)", %{
       dropshipper: dropshipper,
       product: product
     } do
@@ -375,7 +382,8 @@ defmodule Emakola.Payments.OrderSettlementTest do
           []
         )
 
-      assert {:no_split, :supplier_not_linked} = OrderSettlement.prepare(order.id, dropshipper.id)
+      assert {:split, %{mode: :internal, shares: []}} =
+               OrderSettlement.prepare(order.id, dropshipper.id)
     end
   end
 

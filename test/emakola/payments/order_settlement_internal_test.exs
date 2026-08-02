@@ -520,4 +520,152 @@ defmodule Emakola.Payments.OrderSettlementInternalTest do
       |> Ash.update!(authorize?: false)
     end
   end
+
+  # -- Task 4: the flip — prepare/2 reroutes verification failures ---------
+  # Today (pre-flip) each of these reasons falls through prepare/2's catch-all
+  # as {:no_split, reason}. Post-flip, the four verification-failure reasons
+  # (:payout_unverified, :dropshipper_payout_unverified,
+  # :wholesaler_payout_unverified, :supplier_not_linked) route to
+  # prepare_internal/2 instead — buyer protection (c) and a verified store's
+  # gateway path (d) are unaffected (precedence/no-regression guards).
+  describe "prepare/2 — the flip (verification failures route to the internal rail)" do
+    defp verified_payout!(store, code) do
+      Emakola.Stores.StorePayoutAccount
+      |> Ash.Changeset.for_create(:create, %{store_id: store.id})
+      |> Ash.create!(authorize?: false)
+      |> Ash.Changeset.for_update(:record_subaccount, %{subaccount_code: code})
+      |> Ash.update!(authorize?: false)
+    end
+
+    # (a) own-stock, unverified store: DropshipSettlement.prepare/3 sees no
+    # dropship items, prepare_platform_fee's verified_subaccount check then
+    # fails with :payout_unverified.
+    test "(a) own-stock unverified store: flips to :internal with fee parity to the gateway rail" do
+      store = create_store!()
+      order = checkout_own_stock_order!(store)
+
+      assert {:split, %{mode: :internal, allocations: allocations, shares: []}} =
+               OrderSettlement.prepare(order.id, store.id)
+
+      %{fee: fee, net: net} =
+        Emakola.Payments.PlatformFee.calculate(
+          order.total,
+          Application.get_env(:emakola, :platform_fee_rate_bps, 200)
+        )
+
+      platform = Enum.find(allocations, &(&1.role == :platform))
+      merchant = Enum.find(allocations, &(&1.role == :merchant))
+      assert platform.amount == fee
+      assert merchant.amount == net
+      assert merchant.recipient_store_id == store.id
+      assert Enum.all?(allocations, &(&1.settlement_method == :internal_hold))
+      assert Enum.all?(allocations, &is_nil(&1.subaccount_code))
+      assert Enum.sum(Enum.map(allocations, & &1.amount)) == order.total
+    end
+
+    # (b) dropship, dropshipper itself verified but the linked wholesaler is
+    # NOT: DropshipSettlement.prepare/3 resolves the dropshipper's own
+    # subaccount fine, then fails resolving the wholesaler's ->
+    # :wholesaler_payout_unverified.
+    test "(b) dropship with an unverified linked wholesaler: flips to :internal, sum-exact" do
+      dropshipper = create_store!(name: "Flip Dropshipper")
+      verified_payout!(dropshipper, "ACCT_flip_drop")
+      wholesaler_store = create_store!(name: "Flip Wholesaler")
+
+      supplier =
+        create_supplier!(dropshipper, name: "Flip Linked", linked_store_id: wholesaler_store.id)
+
+      product = create_product!(dropshipper, title: "Flip Dropship")
+
+      variant =
+        create_variant!(product, dropshipper,
+          price: 5_000,
+          sku: "FLIP-DROP",
+          supplier_id: supplier.id,
+          cost_price: 800
+        )
+
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout!(
+          dropshipper.id,
+          [%{variant_id: variant.id, quantity: 2}],
+          []
+        )
+
+      assert {:split, %{mode: :internal, allocations: allocations, shares: []}} =
+               OrderSettlement.prepare(order.id, dropshipper.id)
+
+      wholesaler = Enum.find(allocations, &(&1.role == :wholesaler))
+      assert wholesaler.recipient_store_id == wholesaler_store.id
+      assert Enum.all?(allocations, &(&1.settlement_method == :internal_hold))
+      assert Enum.all?(allocations, &is_nil(&1.subaccount_code))
+      assert Enum.sum(Enum.map(allocations, & &1.amount)) == order.total
+    end
+
+    # (c) precedence guard: buyer protection must still win over the internal
+    # rail — an unverified, protected store still gets a payout hold, not an
+    # internal split.
+    test "(c) protected unverified own-stock store: buyer protection still wins (precedence unchanged)" do
+      store = create_store!()
+
+      store
+      |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+      |> Ash.update!(authorize?: false)
+
+      order = checkout_own_stock_order!(store)
+
+      assert {:hold, :buyer_protection} = OrderSettlement.prepare(order.id, store.id)
+    end
+
+    # (d) no-regression guard: a verified store's own-stock order stays on the
+    # gateway rail exactly as before — fee-parity pair with (a).
+    test "(d) verified store: prepare/2 stays on the gateway rail (:platform_fee) — no regression" do
+      store = create_store!()
+      verified_payout!(store, "ACCT_flip_verified")
+      order = checkout_own_stock_order!(store)
+
+      assert {:split, %{mode: :platform_fee, shares: shares, allocations: allocations}} =
+               OrderSettlement.prepare(order.id, store.id)
+
+      assert shares != []
+      merchant = Enum.find(allocations, &(&1.role == :merchant))
+      assert merchant.subaccount_code == "ACCT_flip_verified"
+    end
+
+    # (e) unlinked supplier: dropshipper itself IS verified (isolates
+    # :supplier_not_linked from :dropshipper_payout_unverified), but the
+    # supplier has no linked_store_id -> DropshipSettlement.prepare/3 refuses
+    # at resolve_supplier/2.
+    test "(e) unlinked supplier: flips to :internal with the supplier's cost folded into the dropshipper" do
+      store = create_store!(name: "Flip Unlinked")
+      verified_payout!(store, "ACCT_flip_unlinked")
+      unlinked = create_supplier!(store, name: "Flip Unlinked Supplier", linked_store_id: nil)
+      product = create_product!(store, title: "Flip Unlinked Product")
+
+      variant =
+        create_variant!(product, store,
+          price: 5_000,
+          sku: "FLIP-UNLINK",
+          supplier_id: unlinked.id,
+          cost_price: 3_000
+        )
+
+      {:ok, order} =
+        Emakola.Orders.CheckoutService.checkout!(
+          store.id,
+          [%{variant_id: variant.id, quantity: 1}],
+          []
+        )
+
+      assert {:split, %{mode: :internal, allocations: allocations, shares: []}} =
+               OrderSettlement.prepare(order.id, store.id)
+
+      dropshipper_alloc = Enum.find(allocations, &(&1.role == :dropshipper))
+      refute is_nil(dropshipper_alloc)
+      assert dropshipper_alloc.amount >= 3_000
+      assert Enum.all?(allocations, &(&1.settlement_method == :internal_hold))
+      assert Enum.all?(allocations, &is_nil(&1.subaccount_code))
+      assert Enum.sum(Enum.map(allocations, & &1.amount)) == order.total
+    end
+  end
 end
