@@ -116,7 +116,8 @@ defmodule Emakola.Payments.DropshipSettlement do
   subaccount requirement. Linked suppliers keep their wholesaler allocation
   (payable to their store via the ledger); unlinked suppliers' cost and
   dispatch fee fold into the dropshipper, who still owes them manually via
-  SupplierLedgerEntry. Dark until Phase 3 routes fallbacks here.
+  SupplierLedgerEntry. Routed to by `prepare/2`'s verification-failure
+  fallbacks since Phase 3.
   """
   def prepare_internal(line_items, dropshipper_store_id, opts) do
     fee_rate_bps = Keyword.fetch!(opts, :fee_rate_bps)

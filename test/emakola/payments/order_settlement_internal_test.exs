@@ -629,7 +629,18 @@ defmodule Emakola.Payments.OrderSettlementInternalTest do
 
       assert shares != []
       merchant = Enum.find(allocations, &(&1.role == :merchant))
+      platform = Enum.find(allocations, &(&1.role == :platform))
       assert merchant.subaccount_code == "ACCT_flip_verified"
+
+      # Fee parity with (a): same PlatformFee.calculate math on both rails.
+      %{fee: fee, net: net} =
+        Emakola.Payments.PlatformFee.calculate(
+          order.total,
+          Application.get_env(:emakola, :platform_fee_rate_bps, 200)
+        )
+
+      assert platform.amount == fee
+      assert merchant.amount == net
     end
 
     # (e) unlinked supplier: dropshipper itself IS verified (isolates
