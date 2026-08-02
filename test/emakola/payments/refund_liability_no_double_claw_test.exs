@@ -142,4 +142,98 @@ defmodule Emakola.Payments.RefundLiabilityNoDoubleClawTest do
     assert platform.settlement_method == :internal_hold
     assert Enum.sum(Enum.map(adjusted, & &1.amount)) == 5_000
   end
+
+  # Post-review hardening (2026-08-02): the fence formulas above only guard a
+  # split AFTER it has been claimed once. Two gaps found by review:
+  #
+  # F1 — release/re-claim double-claw: a claim's netted freeze must subtract
+  # whatever has ALREADY been recovered from other earnings, and release must
+  # not drop the fence below that already-collected amount — otherwise a
+  # re-claim re-freezes the FULL reversal, and the earlier cross-earning
+  # recovery becomes a second, silent claw on top of it.
+  #
+  # F2 — over-reversal (dispatch-fee redistribution can push reversed_amount
+  # above amount on a dropshipper split) leaves the excess unrecoverable for
+  # an UNCLAIMED split: payable_internal excludes it (amount > reversed is
+  # false) and the claimed-only fence excluded it from recovery too. The
+  # excess must be recoverable — capped at reversed - min(amount, reversed).
+  describe "post-review hardening: release/re-claim and over-reversal" do
+    test "F1: claim, grow, recover from another earning, release, reclaim — the merchant surrenders exactly the final reversal once",
+         %{store: store, payment: payment} do
+      split = settled_internal!(store, payment, 10_000)
+      split = reverse!(split, 4_000)
+
+      split =
+        split
+        |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: Ash.UUID.generate()})
+        |> Ash.update!(authorize?: false)
+
+      split = reverse!(split, 7_000)
+
+      # A different earning E recovers the 3_000 delta from S while S is claimed.
+      adjusted = reserve_for_new_earning(store, 5_000)
+      merchant_e = Enum.find(adjusted, &(&1.role == :merchant))
+      assert merchant_e.recovery_amount == 3_000
+      assert merchant_e.amount == 2_000
+
+      # S's own payout transfer then fails. Reload first — reserve_from_liabilities
+      # updated reserved_recovery_amount out from under this in-memory struct.
+      split =
+        Ash.get!(PaymentSplit, split.id, authorize?: false)
+        |> Ash.Changeset.for_update(:release_from_payout, %{})
+        |> Ash.update!(authorize?: false)
+
+      # The fence must not drop below what's already been collected via E.
+      assert split.netted_reversal_amount == 3_000
+      assert split.reserved_recovery_amount == 3_000
+
+      # S is re-claimed by a later payout attempt.
+      split =
+        split
+        |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: Ash.UUID.generate()})
+        |> Ash.update!(authorize?: false)
+
+      assert split.paid_amount == 6_000
+      assert split.netted_reversal_amount == 4_000
+
+      # Across S's own (re-)claim and the amount already taken from E, the
+      # merchant has surrendered exactly the final 7_000 reversal — no more,
+      # no less.
+      total_surrendered =
+        split.amount - split.paid_amount + split.recovered_amount +
+          split.reserved_recovery_amount
+
+      assert total_surrendered == 7_000
+    end
+
+    test "F2: an unclaimed over-reversed internal split exposes exactly the excess to recovery",
+         %{store: store, payment: payment} do
+      split = settled_internal!(store, payment, 10_000)
+      # Over-reversed (e.g. via dispatch-fee redistribution onto this split) —
+      # never claimed.
+      reverse!(split, 12_000)
+
+      adjusted = reserve_for_new_earning(store, 5_000)
+      merchant = Enum.find(adjusted, &(&1.role == :merchant))
+
+      # Only the 2_000 excess (12_000 - 10_000) is recoverable — the split's
+      # own 10_000 nets fully at whatever future claim eventually pays it out.
+      assert merchant.recovery_amount == 2_000
+      assert merchant.amount == 3_000
+    end
+
+    test "a never-claimed internal split's reversal is not recovered from future earnings",
+         %{store: store, payment: payment} do
+      split = settled_internal!(store, payment, 10_000)
+      # Reversed but never claimed at all — the common production state
+      # (most internal-hold splits sit unclaimed for a while before payout).
+      reverse!(split, 4_000)
+
+      adjusted = reserve_for_new_earning(store, 5_000)
+      merchant = Enum.find(adjusted, &(&1.role == :merchant))
+
+      assert merchant.recovery_amount == 0
+      assert merchant.amount == 5_000
+    end
+  end
 end

@@ -264,10 +264,10 @@ defmodule Emakola.Payments.RefundLiability do
 
   defp reserve_from_liabilities([liability | rest], available, items, recovered) do
     outstanding =
-      liability.reversed_amount - liability.netted_reversal_amount -
-        liability.recovered_amount - liability.reserved_recovery_amount
+      liability.reversed_amount - effective_netted(liability) - liability.recovered_amount -
+        liability.reserved_recovery_amount
 
-    amount = min(outstanding, available)
+    amount = min(max(outstanding, 0), available)
 
     update_tracking!(liability, %{
       reserved_recovery_amount: liability.reserved_recovery_amount + amount
@@ -275,6 +275,26 @@ defmodule Emakola.Payments.RefundLiability do
 
     item = %{"split_id" => liability.id, "amount" => amount}
     reserve_from_liabilities(rest, available - amount, [item | items], recovered + amount)
+  end
+
+  # What already nets "at source" for this liability — see the matching
+  # comment on PaymentSplit's recoverable_by_recipient read (same split, kept
+  # in sync there; DO NOT collapse to one uncapped term):
+  #   - gateway_share: 0 — the money already left at charge time, so the full
+  #     reversal is recoverable.
+  #   - internal_hold, claimed: the frozen netted_reversal_amount, already net
+  #     of whatever was recovered before that claim.
+  #   - internal_hold, unclaimed: min(amount, reversed_amount) — the split's
+  #     own future claim nets up to its full amount; only reversal beyond
+  #     amount (over-reversal from dispatch-fee redistribution) is exposed.
+  defp effective_netted(%{settlement_method: :gateway_share}), do: 0
+
+  defp effective_netted(%{settlement_method: :internal_hold, paid_out_at: nil} = liability) do
+    min(liability.amount, liability.reversed_amount)
+  end
+
+  defp effective_netted(%{settlement_method: :internal_hold} = liability) do
+    liability.netted_reversal_amount
   end
 
   defp add_to_platform(allocations, 0), do: allocations

@@ -318,15 +318,32 @@ defmodule Emakola.Payments.PaymentSplit do
       filter(expr(payment_id == ^arg(:payment_id)))
     end
 
+    # Recoverable = reversed - (what already nets at source) - recovered - reserved.
+    # "What nets at source" differs by rail/claim state, so this can't collapse
+    # to one uncapped term (see RefundLiability.effective_netted/1, the same
+    # split by design — DO NOT delete as "redundant" with a single formula):
+    #   - gateway_share: 0 always — the money already left at charge time, so
+    #     the FULL reversal is recoverable (today's exact behavior).
+    #   - internal_hold, claimed (paid_out_at set): netted_reversal_amount, the
+    #     value frozen by mark_paid_out — already net of any recovery taken
+    #     before that claim.
+    #   - internal_hold, unclaimed: min(amount, reversed_amount) — the split's
+    #     own future claim will net up to its full amount; only reversal BEYOND
+    #     amount (over-reversal from dispatch-fee redistribution) is exposed
+    #     here, never the part the split will net itself.
     read :recoverable_by_recipient do
       argument(:recipient_store_id, :uuid, allow_nil?: false)
 
       filter(
         expr(
           recipient_store_id == ^arg(:recipient_store_id) and role != :platform and
-            (settlement_method == :gateway_share or not is_nil(paid_out_at)) and
-            reversed_amount >
-              netted_reversal_amount + recovered_amount + reserved_recovery_amount
+            ((settlement_method == :gateway_share and
+                reversed_amount > recovered_amount + reserved_recovery_amount) or
+               (settlement_method == :internal_hold and not is_nil(paid_out_at) and
+                  reversed_amount >
+                    netted_reversal_amount + recovered_amount + reserved_recovery_amount) or
+               (settlement_method == :internal_hold and is_nil(paid_out_at) and
+                  reversed_amount > amount + recovered_amount + reserved_recovery_amount))
         )
       )
 
@@ -389,21 +406,24 @@ defmodule Emakola.Payments.PaymentSplit do
       end)
 
       change(fn changeset, _context ->
+        # Net only what hasn't already been clawed from another earning —
+        # otherwise a reversal already recovered via recoverable_by_recipient
+        # gets frozen into netted_reversal_amount too, and re-paid out.
+        netted =
+          changeset.data.reversed_amount - changeset.data.recovered_amount -
+            changeset.data.reserved_recovery_amount
+
         changeset
         |> Ash.Changeset.change_attribute(:paid_out_at, DateTime.utc_now())
-        |> Ash.Changeset.change_attribute(
-          :paid_amount,
-          changeset.data.amount - changeset.data.reversed_amount
-        )
-        |> Ash.Changeset.change_attribute(
-          :netted_reversal_amount,
-          changeset.data.reversed_amount
-        )
+        |> Ash.Changeset.change_attribute(:paid_amount, changeset.data.amount - netted)
+        |> Ash.Changeset.change_attribute(:netted_reversal_amount, netted)
       end)
     end
 
     # Un-claims after a failed/reversed transfer: nothing was paid, so the
-    # netted fence resets and reversals net at source again.
+    # netted fence resets and reversals net at source again — but never below
+    # what's already been collected via recoverable_by_recipient, or a later
+    # re-claim would re-freeze the full reversal on top of that recovery.
     update :release_from_payout do
       require_atomic?(false)
       accept([])
@@ -413,7 +433,10 @@ defmodule Emakola.Payments.PaymentSplit do
         |> Ash.Changeset.change_attribute(:paid_out_at, nil)
         |> Ash.Changeset.change_attribute(:payout_id, nil)
         |> Ash.Changeset.change_attribute(:paid_amount, nil)
-        |> Ash.Changeset.change_attribute(:netted_reversal_amount, 0)
+        |> Ash.Changeset.change_attribute(
+          :netted_reversal_amount,
+          changeset.data.recovered_amount + changeset.data.reserved_recovery_amount
+        )
       end)
     end
 
