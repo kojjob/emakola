@@ -110,16 +110,6 @@ defmodule Emakola.Payments.PayoutService do
     match?({:ok, _}, transfer_destination(store_id))
   end
 
-  # The exact freeze formula `PaymentSplit.mark_paid_out` applies to
-  # `paid_amount` — single authority, duplicated here ONLY because the
-  # payout's final amount must exist before the payout_id needed to actually
-  # claim a split does. Any drift from `mark_paid_out` is caught by the
-  # assertion in `prepare_internal_payout/1` below, never trusted silently.
-  defp frozen_paid_amount(split) do
-    netted = split.reversed_amount - split.recovered_amount - split.reserved_recovery_amount
-    split.amount - netted
-  end
-
   @doc """
   Create a pending allocation-basis payout for a store's payable internal
   balance and claim the covered splits. Mirrors `prepare_payout/1`'s
@@ -129,14 +119,14 @@ defmodule Emakola.Payments.PayoutService do
   `Payout.amount` must be final at creation (`PayoutWorker` reads it to build
   the transfer), but claiming a split via `mark_paid_out` requires the
   payout's id — so the amount is precomputed from the FOR-UPDATE-locked rows
-  with `frozen_paid_amount/1` (the same formula `mark_paid_out` freezes into
-  `paid_amount`), the payout is created for that sum, and only then is each
-  split claimed with the real `payout_id`. The `FOR UPDATE` lock guarantees
-  the struct handed to `mark_paid_out` is the exact row `frozen_paid_amount/1`
-  computed from (no concurrent write could have changed it), so the
-  assertion below — raising to roll back the transaction on mismatch — can
-  only be catching formula drift between this helper and `mark_paid_out`'s
-  own freeze, never a stale read.
+  with `PaymentSplit.frozen_paid_amount/1` — THE single formula authority,
+  the exact function `mark_paid_out` itself calls to freeze `paid_amount` —
+  the payout is created for that sum, and only then is each split claimed
+  with the real `payout_id`. Since both calls share one function, they can
+  never disagree on the formula; the assertion below instead guards the call
+  path — that `mark_paid_out` really applied `frozen_paid_amount/1` to the
+  exact row this precompute read (the `FOR UPDATE` lock rules out a stale
+  read) — and would only fire if a future edit broke that wiring.
   """
   def prepare_internal_payout(recipient_store_id) do
     with {:ok, _dest} <- transfer_destination(recipient_store_id) do
@@ -155,7 +145,9 @@ defmodule Emakola.Payments.PayoutService do
           Emakola.Repo.rollback(:nothing_outstanding)
         end
 
-        amount = claimed |> Enum.map(&frozen_paid_amount/1) |> Enum.sum()
+        amount =
+          claimed |> Enum.map(&Emakola.Payments.PaymentSplit.frozen_paid_amount/1) |> Enum.sum()
+
         reference = "po_" <> Ecto.UUID.generate()
 
         {:ok, payout} =
@@ -171,7 +163,7 @@ defmodule Emakola.Payments.PayoutService do
           )
 
         Enum.each(claimed, fn split ->
-          expected = frozen_paid_amount(split)
+          expected = Emakola.Payments.PaymentSplit.frozen_paid_amount(split)
 
           {:ok, updated} =
             Emakola.Payments.mark_payment_split_paid_out(split, %{payout_id: payout.id},
