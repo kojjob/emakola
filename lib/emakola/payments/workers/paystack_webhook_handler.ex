@@ -156,6 +156,16 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
       |> Ash.Changeset.for_update(:release_from_payout, %{})
       |> Ash.update!(authorize?: false)
     end)
+
+    # Allocation-basis payouts claimed PaymentSplit rows instead; release those
+    # too. Each list is empty for the other basis, so both loops are safe to
+    # run unconditionally — same idempotent-replay contract as above. Rows are
+    # re-read fresh via by_payout (never stale structs — see design spec §4.4).
+    {:ok, splits} = Emakola.Payments.list_payment_splits_by_payout(payout.id, authorize?: false)
+
+    Enum.each(splits, fn split ->
+      {:ok, _} = Emakola.Payments.release_payment_split_from_payout(split, authorize?: false)
+    end)
   end
 
   defp handle_charge_success(data) do
