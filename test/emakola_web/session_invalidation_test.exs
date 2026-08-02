@@ -83,6 +83,35 @@ defmodule EmakolaWeb.SessionInvalidationTest do
     assert {:ok, _view, _html} = live(conn_with_session(conn, fresh), ~p"/dashboard")
   end
 
+  describe "unreadable token payloads" do
+    test "a payload this build cannot parse logs the visitor out instead of crashing" do
+      # A cookie whose payload is a bare map with unexpected keys — the shape a
+      # build sees when the token format changed under it. Previously this fell
+      # through to subject_to_user/2, which called to_string/1 on the map and
+      # crashed the page with String.Chars not implemented for Map.
+      signed =
+        Phoenix.Token.sign(EmakolaWeb.Endpoint, "auth_subject_v1", %{"unexpected" => "shape"})
+
+      assert {:error, :unreadable_payload} = AuthTokens.verify_subject_with_iat(signed)
+      assert {:error, :unreadable_payload} = AuthTokens.verify_subject(signed)
+    end
+
+    test "an unreadable cookie renders the page as logged out, not a 500", %{conn: conn} do
+      signed =
+        Phoenix.Token.sign(EmakolaWeb.Endpoint, "auth_subject_v1", %{"unexpected" => "shape"})
+
+      assert {:error, {:live_redirect, %{to: "/auth/login"}}} =
+               live(conn_with_session(conn, signed), ~p"/dashboard")
+    end
+
+    test "a well-formed payload with a non-binary sub is also rejected" do
+      signed =
+        Phoenix.Token.sign(EmakolaWeb.Endpoint, "auth_subject_v1", %{"sub" => 123, "iat" => 1})
+
+      assert {:error, :unreadable_payload} = AuthTokens.verify_subject_with_iat(signed)
+    end
+  end
+
   describe "session_live?/2" do
     test "an untouched merchant accepts any issued-at" do
       assert Emakola.Accounts.session_live?(%{sessions_valid_from: nil}, 0)

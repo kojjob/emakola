@@ -51,9 +51,25 @@ defmodule EmakolaWeb.AuthTokens do
   """
   def verify_subject_with_iat(signed) when is_binary(signed) do
     case Phoenix.Token.verify(EmakolaWeb.Endpoint, @salt, signed, max_age: @max_age) do
-      {:ok, %{"sub" => subject, "iat" => issued_at}} -> {:ok, subject, issued_at}
-      {:ok, subject} when is_binary(subject) -> {:ok, subject, 0}
-      {:error, reason} -> {:error, reason}
+      {:ok, %{"sub" => subject, "iat" => issued_at}}
+      when is_binary(subject) and is_integer(issued_at) ->
+        {:ok, subject, issued_at}
+
+      {:ok, subject} when is_binary(subject) ->
+        {:ok, subject, 0}
+
+      # Any other shape is a cookie this build cannot read — most likely one
+      # minted by a different release (the payload gained `sub`/`iat` keys, so
+      # a build from before that change reads back a bare map). Fail closed and
+      # log the visitor out. Without this the raw payload reaches
+      # AshAuthentication.subject_to_user/2, which calls to_string/1 on it and
+      # takes the whole page down with
+      # `Protocol.UndefinedError: String.Chars not implemented for Map`.
+      {:ok, _unreadable} ->
+        {:error, :unreadable_payload}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
