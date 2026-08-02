@@ -861,12 +861,6 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
   defp checkout_error_message(:variant_not_in_store), do: "Some items are not from this store"
   defp checkout_error_message(:insufficient_stock), do: "Some items are out of stock"
 
-  defp checkout_error_message(:reseller_payout_unverified),
-    do: "This store is finishing payout verification. Please try again soon."
-
-  defp checkout_error_message(:wholesaler_payout_unverified),
-    do: "A fulfillment partner is finishing payout verification. Please try again soon."
-
   defp checkout_error_message(:network_coupon_not_allowed),
     do: "Coupons cannot be used with partner-fulfilled products yet."
 

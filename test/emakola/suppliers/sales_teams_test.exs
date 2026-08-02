@@ -124,13 +124,15 @@ defmodule Emakola.Suppliers.SalesTeamsTest do
     assert Enum.all?(reversed, &(&1.status == :partially_reversed))
   end
 
-  # internal-settlement P3: the sell-gate no longer blocks unverified stores
-  # (NetworkCheckoutEligibility), and OrderSettlement.prepare/2 routes an
-  # unverified store's charge to the :internal rail instead of refusing it.
-  # Mirrors "settles an attributed order's merchant proceeds exactly and
-  # reverses proportionally" above, with the store left unverified — same
-  # team, same order shape, same numbers — to prove settlement fires
-  # identically regardless of rail.
+  # internal-settlement P3: this own-stock checkout never touches
+  # NetworkCheckoutEligibility (no reseller-listing mappings, so it
+  # short-circuits to :ok regardless of the gate) — the internal-rail
+  # routing here comes from OrderSettlement.prepare/2's own unverified-store
+  # fallback (the flip landed in an earlier task). Mirrors "settles an
+  # attributed order's merchant proceeds exactly and reverses
+  # proportionally" above, with the store left unverified — same team, same
+  # order shape, same numbers — to prove settlement fires identically
+  # regardless of rail.
   test "settles an attributed order identically on the internal rail for an unverified store" do
     {owner, store} = create_merchant_with_store!()
     seller = create_merchant!()
