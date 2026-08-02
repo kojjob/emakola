@@ -339,4 +339,45 @@ defmodule Emakola.Payments.PaymentSplitInternalLedgerTest do
       assert id == claimed.id
     end
   end
+
+  describe "release_from_payout on an unreclaimable split" do
+    test "stamps remediation metadata when the released split can never be re-claimed", %{
+      store: store,
+      payment: payment
+    } do
+      payout_id = Ash.UUID.generate()
+
+      split =
+        settle!(
+          create_split!(store, payment, %{
+            role: :merchant,
+            recipient_store_id: store.id,
+            amount: 6_000,
+            settlement_method: :internal_hold
+          })
+        )
+        |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: 2_000})
+        |> Ash.update!(authorize?: false)
+        |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: payout_id})
+        |> Ash.update!(authorize?: false)
+
+      # Post-claim the refund grows to the FULL amount → :reversed → unreclaimable.
+      split =
+        split
+        |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: 6_000})
+        |> Ash.update!(authorize?: false)
+
+      released =
+        split
+        |> Ash.Changeset.for_update(:release_from_payout, %{})
+        |> Ash.update!(authorize?: false)
+
+      assert released.status == :reversed
+      assert is_nil(released.paid_out_at)
+      # payable_internal must NOT resurface it (amount > reversed is false)...
+      assert payable_internal(store.id) == []
+      # ...and the forensic flag marks it for manual remediation review.
+      assert released.recovery_breakdown["unreclaimable_release"] == true
+    end
+  end
 end

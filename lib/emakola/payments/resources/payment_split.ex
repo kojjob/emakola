@@ -452,14 +452,29 @@ defmodule Emakola.Payments.PaymentSplit do
       end)
 
       change(fn changeset, _context ->
-        changeset
-        |> Ash.Changeset.change_attribute(:paid_out_at, nil)
-        |> Ash.Changeset.change_attribute(:payout_id, nil)
-        |> Ash.Changeset.change_attribute(:paid_amount, nil)
-        |> Ash.Changeset.change_attribute(
-          :netted_reversal_amount,
-          changeset.data.recovered_amount + changeset.data.reserved_recovery_amount
-        )
+        changeset =
+          changeset
+          |> Ash.Changeset.change_attribute(:paid_out_at, nil)
+          |> Ash.Changeset.change_attribute(:payout_id, nil)
+          |> Ash.Changeset.change_attribute(:paid_amount, nil)
+          |> Ash.Changeset.change_attribute(
+            :netted_reversal_amount,
+            changeset.data.recovered_amount + changeset.data.reserved_recovery_amount
+          )
+
+        # An unreclaimable split (fully reversed while claimed) exits the
+        # payable population forever; any recovery its claim justified cannot
+        # be auto-unwound yet (see P2 plan Task 4 — decision pending). Stamp
+        # the release so finance can find and remediate these manually.
+        if changeset.data.status == :reversed do
+          Ash.Changeset.change_attribute(
+            changeset,
+            :recovery_breakdown,
+            Map.put(changeset.data.recovery_breakdown, "unreclaimable_release", true)
+          )
+        else
+          changeset
+        end
       end)
     end
 
