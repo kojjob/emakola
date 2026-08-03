@@ -6,7 +6,10 @@ defmodule Emakola.Suppliers.Workers.SupplierStockSyncWorker do
   `ListingImporter.sync/2`, deliberately unwired). Recomputes from CURRENT
   state so Oban unique-coalesced bursts are last-write-wins correct.
   """
-  use Oban.Worker, queue: :orders, max_attempts: 3, unique: [period: 60, fields: [:args]]
+  use Oban.Worker,
+    queue: :orders,
+    max_attempts: 3,
+    unique: [period: 60, fields: [:args], states: :incomplete]
 
   require Ash.Query
   require Logger

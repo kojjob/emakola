@@ -15,6 +15,7 @@ defmodule Emakola.Suppliers.SupplierStockSyncWorkerTest do
   use Oban.Testing, repo: Emakola.Repo
 
   import Emakola.Factory
+  import Ecto.Query
 
   alias Emakola.Suppliers.{ListingImporter, Network, Offers}
   alias Emakola.Suppliers.Workers.SupplierStockSyncWorker
@@ -55,6 +56,65 @@ defmodule Emakola.Suppliers.SupplierStockSyncWorkerTest do
     assert :ok = perform_job(SupplierStockSyncWorker, %{"variant_id" => source.id})
 
     assert reload_variant(reseller_variant).available == false
+  end
+
+  test "a completed sync job does not block a fresh enqueue within the debounce window (C1)" do
+    variant_id = Ash.UUID.generate()
+
+    assert :ok = SupplierStockSyncWorker.enqueue(variant_id)
+
+    [first_job] =
+      all_enqueued(worker: SupplierStockSyncWorker, args: %{"variant_id" => variant_id})
+
+    from(j in Oban.Job, where: j.id == ^first_job.id)
+    |> Emakola.Repo.update_all(set: [state: "completed", completed_at: DateTime.utc_now()])
+
+    # Oban's unique default `states` list includes `:completed` — a finished
+    # job would otherwise block a new insert for the rest of the 60s period,
+    # silently dropping a real stock change that arrives after the previous
+    # sync finished. `states: :incomplete` (`[:suspended, :available,
+    # :scheduled, :executing, :retryable]`) excludes exactly the terminal
+    # states that will never run again (`:completed`, `:discarded`,
+    # `:cancelled`), which is what makes this a debounce (coalesce a burst)
+    # rather than a once-per-60s suppression. See the next test for
+    # `:retryable`'s dedup behavior, which is different from `:completed`'s
+    # on purpose.
+    assert :ok = SupplierStockSyncWorker.enqueue(variant_id)
+
+    assert [new_job] =
+             all_enqueued(worker: SupplierStockSyncWorker, args: %{"variant_id" => variant_id})
+
+    assert new_job.id != first_job.id
+  end
+
+  test "a retryable sync job dedups a fresh enqueue instead of spawning a duplicate" do
+    variant_id = Ash.UUID.generate()
+
+    assert :ok = SupplierStockSyncWorker.enqueue(variant_id)
+
+    [first_job] =
+      all_enqueued(worker: SupplierStockSyncWorker, args: %{"variant_id" => variant_id})
+
+    from(j in Oban.Job, where: j.id == ^first_job.id)
+    |> Emakola.Repo.update_all(
+      set: [state: "retryable", scheduled_at: DateTime.add(DateTime.utc_now(), 30, :second)]
+    )
+
+    # Unlike `:completed`, `:retryable` IS in the `:incomplete` unique group,
+    # so this enqueue is coalesced into the existing job rather than
+    # spawning a sibling — verified: still exactly one row for this variant,
+    # and it's the original, still `:retryable`. This is the correct
+    # behavior, not just a tolerated one: the pending job hasn't run yet, so
+    # when its backoff elapses it queries CURRENT state at that time —
+    # nothing is lost by not spawning a duplicate, and the queue avoids
+    # piling up redundant jobs while one is already waiting to retry.
+    assert :ok = SupplierStockSyncWorker.enqueue(variant_id)
+
+    all_jobs =
+      Emakola.Repo.all(from(j in Oban.Job, where: j.args["variant_id"] == ^variant_id))
+
+    assert [%{id: id, state: "retryable"}] = all_jobs
+    assert id == first_job.id
   end
 
   test "restock flips availability back on", ctx do
