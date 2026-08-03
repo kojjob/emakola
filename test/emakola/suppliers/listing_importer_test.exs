@@ -344,6 +344,32 @@ defmodule Emakola.Suppliers.ListingImporterTest do
              })
   end
 
+  describe "list/2 source-variant preload scoping" do
+    test "does not carry offer_variant/source_variant by default — opt in via preload: :source_variants",
+         context do
+      connect!(context)
+
+      {:ok, _listing} =
+        ListingImporter.import(context.reseller_actor, context.reseller.id, context.offer)
+
+      {:ok, [default_listing]} = ListingImporter.list(context.reseller_actor, context.reseller.id)
+      assert %Ash.NotLoaded{} = hd(default_listing.listing_variants).offer_variant
+
+      {:ok, [preloaded_listing]} =
+        ListingImporter.list(context.reseller_actor, context.reseller.id,
+          preload: :source_variants
+        )
+
+      source_variant = hd(preloaded_listing.listing_variants).offer_variant.source_variant
+      assert %Emakola.Catalog.Variant{} = source_variant
+
+      assert source_variant.id in [
+               context.red_terms.source_variant_id,
+               context.blue_terms.source_variant_id
+             ]
+    end
+  end
+
   defp connect!(context) do
     {:ok, connection} =
       Network.request(context.wholesaler_actor, %{

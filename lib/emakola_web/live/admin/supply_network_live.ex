@@ -740,7 +740,7 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     store = socket.assigns.current_store
 
     offers = result_rows(Offers.list_available(actor, store.id))
-    listings = result_rows(ListingImporter.list(actor, store.id))
+    listings = result_rows(ListingImporter.list(actor, store.id, preload: :source_variants))
     imported_offer_ids = MapSet.new(listings, & &1.offer_id)
     available = Enum.reject(offers, &MapSet.member?(imported_offer_ids, &1.id))
 

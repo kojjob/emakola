@@ -44,16 +44,24 @@ defmodule Emakola.Suppliers.ListingImporter do
     end
   end
 
-  def list(actor, store_id) do
+  # `opts[:preload]` is opt-in — most of this function's callers (dashboard
+  # widgets, sales-kit/content-draft/group-buy authorization) never touch
+  # source-variant data, so the extra `listing_variants: [offer_variant:
+  # :source_variant]` join is only loaded for callers that ask for it (the
+  # supply-network LiveView's badge-rendering listings tab).
+  def list(actor, store_id, opts \\ []) do
     with {:ok, _connections} <- Network.list_for_store(actor, store_id),
          {:ok, listings} <-
            Suppliers.list_reseller_listings_for_store(store_id, authorize?: false) do
-      {:ok,
-       Ash.load!(listings, [listing_variants: [offer_variant: :source_variant]],
-         authorize?: false
-       )}
+      {:ok, maybe_preload_source_variants(listings, opts[:preload])}
     end
   end
+
+  defp maybe_preload_source_variants(listings, :source_variants) do
+    Ash.load!(listings, [listing_variants: [offer_variant: :source_variant]], authorize?: false)
+  end
+
+  defp maybe_preload_source_variants(listings, _no_preload), do: listings
 
   def sync(actor, listing) do
     with {:ok, _connections} <- Network.list_for_store(actor, listing.reseller_store_id) do
