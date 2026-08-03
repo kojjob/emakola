@@ -180,6 +180,54 @@ defmodule EmakolaWeb.Platform.FinanceLiveInternalTest do
     assert occurrences == 1
   end
 
+  test "payouts sharing a ref group together even when an unrelated payout interleaves between them",
+       %{conn: conn} do
+    store = Factory.create_store!(%{name: "Interleave Co"})
+
+    # A and C share approval_ref "ref1" (one approval's two bases); B belongs
+    # to an unrelated approval with no ref and, by insertion time, lands
+    # between them. Sorted newest-first (the query's own order), that reads
+    # back as [C, B, A] — A and C are NOT adjacent, the exact shape a
+    # concurrent approval's interleaving payout produces.
+    Emakola.Payments.create_payout!(
+      %{
+        store_id: store.id,
+        amount: 10_000,
+        transfer_reference: "po_a",
+        metadata: %{"approval_ref" => "ref1"}
+      },
+      authorize?: false
+    )
+
+    Emakola.Payments.create_payout!(
+      %{store_id: store.id, amount: 20_000, transfer_reference: "po_b"},
+      authorize?: false
+    )
+
+    Emakola.Payments.create_payout!(
+      %{
+        store_id: store.id,
+        amount: 30_000,
+        transfer_reference: "po_c",
+        metadata: %{"approval_ref" => "ref1"}
+      },
+      authorize?: false
+    )
+
+    {:ok, _view, html} = live(conn, ~p"/platform/finance")
+
+    # One merged ref1 group, rendered once. An adjacency-based grouping
+    # (Enum.chunk_by) would instead see two length-1 "ref1" chunks (split by
+    # B) and render the badge ZERO times, since a lone chunk never satisfies
+    # the "more than one payout" guard for showing "Approved together".
+    occurrences = html |> String.split("ref1") |> length() |> Kernel.-(1)
+    assert occurrences == 1
+
+    assert html =~ "GH₵ 100"
+    assert html =~ "GH₵ 200"
+    assert html =~ "GH₵ 300"
+  end
+
   test "a per-store row expands to show legacy vs ledger amounts, and the confirm names both",
        %{conn: conn} do
     store = Factory.create_store!(%{name: "Expand Co"})

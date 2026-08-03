@@ -68,8 +68,8 @@ defmodule EmakolaWeb.Platform.FinanceLiveTest do
     end
 
     test "renders via the shared page_header component", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/platform/finance")
-      assert html =~ "flex items-start justify-between gap-4"
+      {:ok, view, _html} = live(conn, ~p"/platform/finance")
+      assert has_element?(view, "h1", "Finance")
     end
 
     test "shows the empty state when there is no finance activity", %{conn: conn} do

@@ -42,14 +42,16 @@ defmodule EmakolaWeb.Platform.FinanceLive do
       if connected?(socket) do
         load(socket)
       else
-        assign(socket,
+        socket
+        |> assign(
           loaded: false,
           stats: nil,
           take_rate: nil,
           stores: [],
           payouts: [],
-          remediation: []
+          remediation_count: 0
         )
+        |> stream(:remediation_rows, [])
       end
 
     {:ok, socket}
@@ -62,14 +64,23 @@ defmodule EmakolaWeb.Platform.FinanceLive do
 
     take_rate = if gmv > 0, do: fees / gmv, else: nil
 
+    # Only the count lives in assigns (for the tile) — the worklist itself is
+    # unbounded and cross-store, so it's streamed rather than held whole in
+    # process memory. length/1 here is a single pass over the already-loaded
+    # list, not a second query.
+    remediation_rows = FinanceStats.remediation_splits()
+
     socket
     |> assign(:loaded, true)
     |> assign(:stats, %{fees: fees, outstanding: outstanding, gmv: gmv})
     |> assign(:take_rate, take_rate)
     |> assign(:stores, FinanceStats.per_store_finance())
     |> assign(:payouts, Emakola.Payments.list_recent_payouts!(load: [:store], authorize?: false))
-    |> assign(:remediation, FinanceStats.remediation_splits())
+    |> assign(:remediation_count, length(remediation_rows))
+    |> stream(:remediation_rows, remediation_rows, reset: true, dom_id: &remediation_dom_id/1)
   end
+
+  defp remediation_dom_id(%{split: split}), do: "remediation-row-#{split.id}"
 
   @impl true
   def handle_event("approve_payout", %{"store_id" => store_id}, socket) do
@@ -287,8 +298,9 @@ defmodule EmakolaWeb.Platform.FinanceLive do
             color="amber"
           />
           <.stat_tile
+            id="remediation-count"
             label="Needs remediation"
-            value={length(@remediation)}
+            value={@remediation_count}
             icon="flag"
             color="rose"
           />
@@ -484,12 +496,16 @@ defmodule EmakolaWeb.Platform.FinanceLive do
             </p>
           </div>
           <.platform_empty_state
-            :if={@remediation == []}
+            :if={@remediation_count == 0}
             title="Nothing needs remediation"
             description="Flagged splits will show up here for manual follow-up."
             icon="hero-check-circle"
           />
-          <div :if={@remediation != []} class="overflow-x-auto">
+          <%!-- The stream container stays mounted regardless of @remediation_count
+          (a known LiveView streams gotcha: conditionally rendering it with :if
+          would tear it down and corrupt future stream diffs) — hidden via CSS
+          instead, matching the empty state's visibility exactly. --%>
+          <div class={["overflow-x-auto", @remediation_count == 0 && "hidden"]}>
             <table class="w-full">
               <thead>
                 <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
@@ -501,8 +517,12 @@ defmodule EmakolaWeb.Platform.FinanceLive do
                   <th class="px-6 py-3">Status</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr :for={row <- @remediation} class="hover:bg-gray-50 transition-colors">
+              <tbody id="remediation-rows" phx-update="stream" class="divide-y divide-gray-100">
+                <tr
+                  :for={{dom_id, row} <- @streams.remediation_rows}
+                  id={dom_id}
+                  class="hover:bg-gray-50 transition-colors"
+                >
                   <td class="px-6 py-4 text-sm font-medium text-gray-900">
                     {(row.store && row.store.name) || "—"}
                   </td>
@@ -562,21 +582,35 @@ defmodule EmakolaWeb.Platform.FinanceLive do
 
   defp status_label(status), do: status |> to_string() |> String.capitalize()
 
-  # Groups CONSECUTIVE payouts (already sorted newest-first) sharing a
-  # non-nil metadata["approval_ref"] — the two payouts one approve click
-  # creates are enqueued back-to-back, so they land adjacent in the list.
-  # A shared ref renders its badge ONCE, above the group, rather than once
-  # per row.
+  # Groups payouts sharing a non-nil metadata["approval_ref"], wherever they
+  # fall in the (newest-first) list — NOT by adjacency. The two payouts one
+  # approve click creates are usually enqueued back-to-back, but a concurrent
+  # approval's payout can land between them, which would silently split the
+  # group under an adjacency-based grouping (e.g. Enum.chunk_by). Instead,
+  # this walks the list once, keyed by ref, and orders groups by each ref's
+  # FIRST appearance — a ref-less payout is always its own singleton group at
+  # its own position. A ref shared by only one payout in this list (its
+  # partner basis failed, or fell outside the page) renders same as an
+  # ungrouped row: the "Approved together" badge only appears once 2+ payouts
+  # actually land in the same group.
   defp payout_groups(payouts) do
-    payouts
-    |> Enum.chunk_by(& &1.metadata["approval_ref"])
-    |> Enum.map(fn
-      [%{metadata: %{"approval_ref" => ref}} | _] = chunk
-      when not is_nil(ref) and length(chunk) > 1 ->
-        %{ref: ref, payouts: chunk}
+    {order, by_key} =
+      Enum.reduce(payouts, {[], %{}}, fn payout, {order, by_key} ->
+        key = payout.metadata["approval_ref"] || make_ref()
 
-      chunk ->
-        %{ref: nil, payouts: chunk}
+        if Map.has_key?(by_key, key) do
+          {order, Map.update!(by_key, key, &[payout | &1])}
+        else
+          {[key | order], Map.put(by_key, key, [payout])}
+        end
+      end)
+
+    order
+    |> Enum.reverse()
+    |> Enum.map(fn key ->
+      group = Enum.reverse(by_key[key])
+      ref = if is_binary(key) and length(group) > 1, do: key, else: nil
+      %{ref: ref, payouts: group}
     end)
   end
 

@@ -43,24 +43,27 @@ defmodule EmakolaWeb.Platform.FinanceLiveRemediationTest do
        %{conn: conn} do
     store = Factory.create_store!(%{name: "Remediate Co"})
     payment = Factory.create_payment!(store, %{amount: 10_000})
-    unreclaimable_split!(store, payment)
+    split = unreclaimable_split!(store, payment)
 
-    {:ok, _view, html} = live(conn, ~p"/platform/finance")
+    {:ok, view, html} = live(conn, ~p"/platform/finance")
 
     assert html =~ "Needs remediation"
     assert html =~ "Remediate Co"
-    # The stat tile's count reads 1 (a bare integer — every money tile on
-    # this page is currency-formatted, so this substring is unambiguous).
-    assert html =~ "tabular-nums\">1<"
-    # The row's severity pill uses the shared ring-inset pill markup.
-    assert html =~ "ring-1 ring-inset"
+    # The stat tile's count is targeted by a stable id, not matched against
+    # rendered markup (money tiles on this page share the same tabular-nums
+    # class, so a markup-coupled substring assertion is ambiguous).
+    assert has_element?(view, "#remediation-count", "1")
+    # The row streams in, keyed by the split's id, and carries a severity pill.
+    assert has_element?(view, "#remediation-row-#{split.id}")
+    assert has_element?(view, "#remediation-row-#{split.id} span", "Needs remediation")
   end
 
   test "with no flagged splits, the tile shows 0 and a rich empty state", %{conn: conn} do
-    {:ok, _view, html} = live(conn, ~p"/platform/finance")
+    {:ok, view, html} = live(conn, ~p"/platform/finance")
 
     assert html =~ "Needs remediation"
-    assert html =~ "tabular-nums\">0<"
+    assert has_element?(view, "#remediation-count", "0")
     assert html =~ "Nothing needs remediation"
+    refute has_element?(view, "#remediation-rows tr")
   end
 end

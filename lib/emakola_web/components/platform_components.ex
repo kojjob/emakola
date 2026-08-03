@@ -23,12 +23,15 @@ defmodule EmakolaWeb.PlatformComponents do
 
   @doc """
   An elevated metric tile: label + icon chip header over a large value.
-  `icon` is a Material Symbols name; omit it for a plain tile.
+  `icon` is a Material Symbols name; omit it for a plain tile. `id`, when
+  given, is stamped on the value element so tests can target it with a
+  stable selector (`has_element?/3`) instead of matching rendered markup.
   """
   attr :label, :string, required: true
   attr :value, :any, required: true
   attr :icon, :string, default: nil
   attr :color, :string, default: "slate"
+  attr :id, :string, default: nil
 
   def stat_tile(assigns) do
     assigns =
@@ -45,7 +48,7 @@ defmodule EmakolaWeb.PlatformComponents do
           <span class="material-symbols-outlined text-[20px]">{@icon}</span>
         </span>
       </div>
-      <p class="mt-3 text-3xl font-bold text-gray-900 tabular-nums">{@value}</p>
+      <p id={@id} class="mt-3 text-3xl font-bold text-gray-900 tabular-nums">{@value}</p>
     </div>
     """
   end
