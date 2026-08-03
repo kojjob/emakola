@@ -1,0 +1,244 @@
+defmodule EmakolaWeb.Admin.EarningsLiveTest do
+  @moduledoc """
+  The flagship money-surfaces page (PR-2, Task 2): where a merchant sees
+  where every cedi of earnings came from. Loads Task 1's
+  `list_earnings_splits/2` in one `assign_async` and derives the hero
+  tiles (total earned / this month / payable now / paid out), the
+  by-source breakdown, and the recent-accruals feed from those same rows.
+  """
+  use EmakolaWeb.ConnCase, async: false
+  use Emakola.LiveViewHelpers
+  import Phoenix.LiveViewTest
+
+  alias Emakola.Factory
+  alias Emakola.Payments.PaymentSplit
+  alias EmakolaWeb.Helpers.Currency
+
+  setup %{conn: conn} do
+    {conn, _merchant, store} = setup_authenticated_merchant(conn)
+    %{conn: conn, store: store}
+  end
+
+  # (a) — skeleton while loading, never a zero
+  describe "earnings picture — loading" do
+    test "while the earnings async is pending, tiles show a skeleton and no zero", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/admin/earnings")
+
+      assert html =~ "earnings-loading"
+      refute html =~ "0.00"
+      refute html =~ Currency.currency_symbol("GHS")
+    end
+  end
+
+  # (b) — a failed async renders a dash, never a zero
+  describe "earnings picture — failure" do
+    # Arranging a genuine `assign_async` failure through the full pipeline
+    # isn't cheaply reachable — `list_earnings_splits` tolerates a
+    # nonexistent store_id by returning an empty list rather than raising,
+    # and the project has no stub/mock seam for plain Ash domain calls. Per
+    # payout_live's precedent, render the failed-clause markup directly
+    # with a hand-built `AsyncResult.failed/2` assign.
+    test "a failed earnings load renders a dash treatment, never a zero" do
+      assigns = %{
+        currency: "GHS",
+        earnings:
+          Phoenix.LiveView.AsyncResult.failed(Phoenix.LiveView.AsyncResult.loading(), :boom)
+      }
+
+      html =
+        assigns
+        |> EmakolaWeb.Admin.EarningsLive.render()
+        |> rendered_to_string()
+
+      assert html =~ "Couldn't load"
+      assert html =~ "—"
+      refute html =~ "0.00"
+    end
+  end
+
+  # (c) — hero strip arithmetic from mixed fixtures
+  describe "earnings picture — hero tiles" do
+    test "total earned / this month / payable now / paid out match the Task 1 contract", %{
+      conn: conn,
+      store: store
+    } do
+      other_store = Factory.create_store!()
+
+      # This month, unclaimed: merchant own-sale + wholesaler resale (from
+      # another tenant) + dropshipper margin.
+      merchant_payment = Factory.create_payment!(store, %{amount: 10_000})
+      settled!(store, merchant_payment, %{role: :merchant, amount: 10_000})
+
+      resale_payment = Factory.create_payment!(other_store, %{amount: 20_000})
+
+      settled!(other_store, resale_payment, %{
+        role: :wholesaler,
+        recipient_store_id: store.id,
+        amount: 20_000
+      })
+
+      dropship_payment = Factory.create_payment!(store, %{amount: 5_000})
+      settled!(store, dropship_payment, %{role: :dropshipper, amount: 5_000})
+
+      # Claimed + paid out — excluded from "payable now", included in "paid out".
+      claimed_payment = Factory.create_payment!(store, %{amount: 8_000})
+      claimed!(store, claimed_payment, %{role: :merchant, amount: 8_000})
+
+      # Reversed — excluded from every tile (frozen nets to 0).
+      reversed_payment = Factory.create_payment!(store, %{amount: 3_000})
+      reversed!(store, reversed_payment, %{role: :merchant, amount: 3_000})
+
+      # Settled last month, still unclaimed — counts toward total earned and
+      # payable now, but NOT this month.
+      old_payment = Factory.create_payment!(store, %{amount: 50_000})
+      last_month = DateTime.add(DateTime.utc_now(), -32, :day)
+      settled!(store, old_payment, %{role: :merchant, amount: 50_000}, last_month)
+
+      # Settled via the gateway rail (the default for non-platform roles —
+      # see OrderSettlement.default_settlement_method/1): money already left
+      # the platform at charge time, so `paid_out_at` can never be set for
+      # it. Counts toward total earned / this month but must NEVER appear as
+      # "payable now" — that money isn't sitting in Makola's ledger.
+      gateway_payment = Factory.create_payment!(store, %{amount: 6_000})
+
+      settled!(store, gateway_payment, %{
+        role: :merchant,
+        amount: 6_000,
+        settlement_method: :gateway_share
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/admin/earnings")
+      render_async(view)
+
+      currency = store.currency || "GHS"
+
+      assert view |> element("#earnings-tile-total") |> render() =~
+               Currency.format_price(99_000, currency)
+
+      assert view |> element("#earnings-tile-month") |> render() =~
+               Currency.format_price(49_000, currency)
+
+      assert view |> element("#earnings-tile-payable") |> render() =~
+               Currency.format_price(85_000, currency)
+
+      assert view |> element("#earnings-tile-paid-out") |> render() =~
+               Currency.format_price(8_000, currency)
+    end
+  end
+
+  # (d) — the resale card names the source store
+  describe "earnings picture — by-source cards" do
+    test "the resale card names the source store", %{conn: conn, store: store} do
+      wholesaler_store = Factory.create_store!(%{name: "Kwame Wholesale"})
+      payment = Factory.create_payment!(wholesaler_store, %{amount: 15_000})
+
+      settled!(wholesaler_store, payment, %{
+        role: :wholesaler,
+        recipient_store_id: store.id,
+        amount: 15_000
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/admin/earnings")
+      render_async(view)
+
+      resale_html = view |> element("#earnings-source-wholesaler") |> render()
+
+      assert resale_html =~ "Kwame Wholesale"
+      assert resale_html =~ Currency.format_price(15_000, store.currency || "GHS")
+    end
+  end
+
+  # (e) — recent accruals feed, including order-less (susu) splits
+  describe "earnings picture — recent accruals feed" do
+    test "renders order-less splits gracefully alongside a normal one", %{
+      conn: conn,
+      store: store
+    } do
+      # Susu contributions have no order — a plain payment (no order_id).
+      susu_payment = Factory.create_payment!(store, %{amount: 7_000})
+      settled!(store, susu_payment, %{role: :merchant, amount: 7_000})
+
+      order_payment = Factory.create_payment!(store, %{amount: 4_000})
+      settled!(store, order_payment, %{role: :dropshipper, amount: 4_000})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/earnings")
+      render_async(view)
+
+      feed_html = view |> element("#earnings-feed") |> render()
+
+      assert feed_html =~ "Your sale"
+      assert feed_html =~ Currency.format_price(7_000, store.currency || "GHS")
+      assert feed_html =~ "Dropship margin"
+      assert feed_html =~ Currency.format_price(4_000, store.currency || "GHS")
+    end
+  end
+
+  # (f) — empty state for a new store
+  describe "earnings picture — empty state" do
+    test "a store with no earnings sees a rich empty state pointing at listings", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/earnings")
+      render_async(view)
+
+      assert view |> element("#earnings-empty") |> render() =~ "No earnings yet"
+      assert view |> element("#earnings-empty") |> render() =~ "View your listings"
+    end
+  end
+
+  # (g) — route + nav
+  describe "earnings picture — route and nav" do
+    test "an authenticated merchant reaches /admin/earnings and the nav renders the entry", %{
+      conn: conn
+    } do
+      {:ok, _view, html} = live(conn, ~p"/admin/earnings")
+
+      assert html =~ "Every cedi, traced to its source"
+      assert html =~ ~s(<a href="/admin/earnings" title="Earnings")
+    end
+  end
+
+  # ── Fixtures ─────────────────────────────────────────────────────
+
+  defp split!(store, payment, attrs, inserted_at) do
+    default = %{
+      store_id: store.id,
+      payment_id: payment.id,
+      role: :merchant,
+      recipient_store_id: store.id,
+      amount: 10_000,
+      settlement_method: :internal_hold
+    }
+
+    changeset =
+      default
+      |> Map.merge(Map.new(attrs))
+      |> then(&Ash.Changeset.for_create(PaymentSplit, :create, &1))
+
+    changeset =
+      if inserted_at,
+        do: Ash.Changeset.force_change_attribute(changeset, :inserted_at, inserted_at),
+        else: changeset
+
+    Ash.create!(changeset, authorize?: false)
+  end
+
+  defp settled!(store, payment, attrs, inserted_at \\ nil) do
+    store
+    |> split!(payment, attrs, inserted_at)
+    |> Ash.Changeset.for_update(:mark_settled, %{})
+    |> Ash.update!(authorize?: false)
+  end
+
+  defp reversed!(store, payment, attrs) do
+    store
+    |> settled!(payment, attrs)
+    |> Ash.Changeset.for_update(:mark_reversed, %{})
+    |> Ash.update!(authorize?: false)
+  end
+
+  defp claimed!(store, payment, attrs) do
+    store
+    |> settled!(payment, attrs)
+    |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: Ash.UUID.generate()})
+    |> Ash.update!(authorize?: false)
+  end
+end
