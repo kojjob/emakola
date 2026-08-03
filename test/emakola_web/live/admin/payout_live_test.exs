@@ -9,6 +9,7 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
   use Oban.Testing, repo: Emakola.Repo
   import Phoenix.LiveViewTest
 
+  alias Emakola.Payments.PaymentSplit
   alias Emakola.Payments.Workers.SubaccountCreationWorker
   alias Emakola.Stores
   alias EmakolaWeb.Helpers.Currency
@@ -162,6 +163,79 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
       assert html =~ "Held by Buyer Protection"
       assert html =~ Currency.format_price(0, "GHS")
     end
+  end
+
+  # -- Accrued internal balance + MoMo nudge (Task 7) --
+
+  describe "accrued internal balance + MoMo nudge" do
+    test "payable balance with no destination shows the amount and the nudge", %{
+      conn: conn,
+      store: store
+    } do
+      payment = Emakola.Factory.create_payment!(store)
+      settled_internal_split!(store, payment, %{amount: 12_000})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+      html = render_async(view)
+
+      assert html =~ Currency.format_price(12_000, store.currency || "GHS")
+      assert html =~ "waiting — add your mobile money number"
+    end
+
+    test "payable balance with a saved destination shows the amount but no nudge", %{
+      conn: conn,
+      store: store
+    } do
+      payment = Emakola.Factory.create_payment!(store)
+      settled_internal_split!(store, payment, %{amount: 9_000})
+
+      {:ok, _account} =
+        Stores.create_payout_account(
+          %{
+            store_id: store.id,
+            payout_destination: %{
+              "method" => "mobile_money",
+              "provider" => "mtn",
+              "number" => "0240000000",
+              "account_name" => "Ama Trades"
+            }
+          },
+          authorize?: false
+        )
+
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+      html = render_async(view)
+
+      assert html =~ Currency.format_price(9_000, store.currency || "GHS")
+      refute html =~ "waiting — add your mobile money number"
+    end
+
+    test "zero balance shows neither an accrued amount nor the nudge", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+      html = render_async(view)
+
+      assert html =~ Currency.format_price(0, store.currency || "GHS")
+      refute html =~ "waiting — add your mobile money number"
+    end
+  end
+
+  defp settled_internal_split!(store, payment, attrs) do
+    %{
+      store_id: store.id,
+      payment_id: payment.id,
+      role: :merchant,
+      recipient_store_id: store.id,
+      amount: 10_000,
+      settlement_method: :internal_hold
+    }
+    |> Map.merge(Map.new(attrs))
+    |> then(&Ash.Changeset.for_create(PaymentSplit, :create, &1))
+    |> Ash.create!(authorize?: false)
+    |> Ash.Changeset.for_update(:mark_settled, %{})
+    |> Ash.update!(authorize?: false)
   end
 
   defp create_protection_hold!(store, payment, attrs) do
