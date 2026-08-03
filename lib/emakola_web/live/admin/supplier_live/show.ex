@@ -89,6 +89,9 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
     )
   end
 
+  # Unbounded by design — if this list is ever paginated/limited,
+  # settling_total/1 will undercount while outstanding_balance (a
+  # database-wide aggregate) stays exact, breaking tile coherence silently.
   defp load_ledger(socket) do
     case socket.assigns.supplier do
       nil ->
