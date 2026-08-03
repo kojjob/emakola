@@ -7,15 +7,21 @@ defmodule EmakolaWeb.Admin.EarningsLive do
 
   Loads Task 1's `Emakola.Payments.list_earnings_splits/2` (recipient-scoped
   earnings history — settled/partially_reversed/reversed, non-platform,
-  newest-first, capped at 100 rows) in one `assign_async`, then derives every
-  number and row on the page from those same splits — total earned, this
-  month, payable now, paid out, a by-source breakdown, and a recent-accruals
-  feed. One read, one shape, never a stale mix of loaded/unloaded numbers.
+  newest-first, capped at 100 rows) in one `assign_async`, then derives total
+  earned, this month, paid out, a by-source breakdown, and a recent-accruals
+  feed from those same splits.
+
+  "Payable now" is the one number that does NOT derive from that capped
+  read: it loads `Emakola.Payments.list_payable_internal_splits/2` (unbounded
+  — the canonical payable population) in the SAME combined async and sums
+  `PaymentSplit.frozen_paid_amount/1` over it, the exact read+formula
+  `payout_live`'s accrued tile uses — so the two pages' payable numbers agree
+  by construction instead of by convention, even past the 100-row cap.
 
   Cross-store recipient rows span many source tenants (a wholesaler's
   earnings come from orders placed on OTHER stores' tenants), so the
-  tenant-based membership policy cannot cover this query in one shot. The
-  read runs `authorize?: false` from inside the async — mirroring how
+  tenant-based membership policy cannot cover either query in one shot. Both
+  reads run `authorize?: false` from inside the async — mirroring how
   `payout_live` calls `list_payable_internal_splits` — after `mount` has
   already authenticated the merchant and resolved their own store via
   `current_store`.
@@ -52,10 +58,18 @@ defmodule EmakolaWeb.Admin.EarningsLive do
     end
   end
 
-  # ── The earnings picture: one read, every number derived from it ──────
+  # ── The earnings picture ────────────────────────────────────────────
 
   defp load_earnings(store_id) do
+    # total_earned / this_month / paid_out derive from this capped
+    # (100-row) recipient-scoped history read — a recent-history window by
+    # design (see PR body); revisit when any store approaches 100 splits.
     {:ok, splits} = Payments.list_earnings_splits(store_id, authorize?: false)
+
+    # payable_now does NOT derive from the capped read above — it loads the
+    # unbounded canonical payable population instead, so it can never
+    # diverge from payout_live's accrued tile past the 100-row cap.
+    {:ok, payable_splits} = Payments.list_payable_internal_splits(store_id, authorize?: false)
 
     source_names =
       splits
@@ -72,7 +86,7 @@ defmodule EmakolaWeb.Admin.EarningsLive do
        earnings: %{
          total_earned: sum_frozen(active),
          this_month: active |> Enum.filter(&this_month?(&1.inserted_at, today)) |> sum_frozen(),
-         payable_now: payable_now(splits),
+         payable_now: sum_frozen(payable_splits),
          paid_out: paid_out(splits),
          by_role: by_role_groups(active, store_id, source_names),
          feed: feed_rows(splits, store_id, source_names)
@@ -97,21 +111,6 @@ defmodule EmakolaWeb.Admin.EarningsLive do
   defp this_month?(%DateTime{} = dt, %Date{} = today) do
     date = DateTime.to_date(dt)
     date.year == today.year and date.month == today.month
-  end
-
-  # `PaymentSplit.internally_payable?/1` mirrors the `payable_internal` read
-  # action's filter exactly (see its doc): `:gateway_share` splits (the
-  # default rail — see `OrderSettlement.default_settlement_method/1`) settle
-  # straight to the recipient's own gateway subaccount at charge time and can
-  # NEVER carry a `paid_out_at` (`mark_paid_out` only accepts
-  # `:internal_hold`). Without that scoping, gateway-settled money that
-  # already left the platform would read as permanently "still owed" via
-  # Makola's ledger, which it isn't — matching `payout_live`'s own
-  # `list_payable_internal_splits` precedent.
-  defp payable_now(splits) do
-    splits
-    |> Enum.filter(&PaymentSplit.internally_payable?/1)
-    |> sum_frozen()
   end
 
   defp paid_out(splits) do
@@ -218,8 +217,8 @@ defmodule EmakolaWeb.Admin.EarningsLive do
               <.money_tile
                 label="Total earned"
                 icon="hero-banknotes"
-                icon_class="text-emerald-600"
-                icon_bg="bg-emerald-50"
+                icon_class="text-sky-600"
+                icon_bg="bg-sky-50"
                 state={:loading}
               />
             </div>
@@ -236,8 +235,8 @@ defmodule EmakolaWeb.Admin.EarningsLive do
               <.money_tile
                 label="Payable now"
                 icon="hero-clock"
-                icon_class="text-amber-600"
-                icon_bg="bg-amber-50"
+                icon_class="text-emerald-600"
+                icon_bg="bg-emerald-50"
                 state={:loading}
               />
             </div>
@@ -259,8 +258,8 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                 <.money_tile
                   label="Total earned"
                   icon="hero-banknotes"
-                  icon_class="text-emerald-600"
-                  icon_bg="bg-emerald-50"
+                  icon_class="text-sky-600"
+                  icon_bg="bg-sky-50"
                   state={:failed}
                 />
               </div>
@@ -277,8 +276,8 @@ defmodule EmakolaWeb.Admin.EarningsLive do
                 <.money_tile
                   label="Payable now"
                   icon="hero-clock"
-                  icon_class="text-amber-600"
-                  icon_bg="bg-amber-50"
+                  icon_class="text-emerald-600"
+                  icon_bg="bg-emerald-50"
                   state={:failed}
                 />
               </div>
@@ -304,8 +303,8 @@ defmodule EmakolaWeb.Admin.EarningsLive do
               label="Total earned"
               value={Currency.format_price(earnings.total_earned, @currency)}
               icon="hero-banknotes"
-              icon_class="text-emerald-600"
-              icon_bg="bg-emerald-50"
+              icon_class="text-sky-600"
+              icon_bg="bg-sky-50"
             />
           </div>
           <div id="earnings-tile-month">
@@ -322,8 +321,8 @@ defmodule EmakolaWeb.Admin.EarningsLive do
               label="Payable now"
               value={Currency.format_price(earnings.payable_now, @currency)}
               icon="hero-clock"
-              icon_class="text-amber-600"
-              icon_bg="bg-amber-50"
+              icon_class="text-emerald-600"
+              icon_bg="bg-emerald-50"
             />
           </div>
           <div id="earnings-tile-paid-out">

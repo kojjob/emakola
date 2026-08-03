@@ -141,6 +141,36 @@ defmodule EmakolaWeb.Admin.EarningsLiveTest do
       assert view |> element("#earnings-tile-paid-out") |> render() =~
                Currency.format_price(8_000, currency)
     end
+
+    # payable_now escaping the 100-row history cap (fix wave — see the
+    # module doc): a genuine >cap proof needs 101 fixtures, too heavy for
+    # this suite. This is the cheap version instead — an old, unclaimed
+    # split (the kind a 100-row cap would evict from `list_earnings_splits`
+    # in a busy store) still counts toward payable now, because
+    # `payable_now` sums `list_payable_internal_splits` (unbounded)
+    # directly rather than filtering the capped history read. The actual
+    # >100-row guarantee rests on that being a SEPARATE, unbounded read (see
+    # the module doc) rather than on this test proving the cap boundary.
+    test "an old unclaimed split still counts toward payable now (the read it uses is unbounded)",
+         %{conn: conn, store: store} do
+      recent_payment = Factory.create_payment!(store, %{amount: 6_000})
+      settled!(store, recent_payment, %{role: :merchant, amount: 6_000})
+
+      old_payment = Factory.create_payment!(store, %{amount: 9_000})
+      long_ago = DateTime.add(DateTime.utc_now(), -400, :day)
+      settled!(store, old_payment, %{role: :merchant, amount: 9_000}, long_ago)
+
+      claimed_payment = Factory.create_payment!(store, %{amount: 4_000})
+      claimed!(store, claimed_payment, %{role: :merchant, amount: 4_000})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/earnings")
+      render_async(view)
+
+      # 6,000 (recent) + 9,000 (old, still unclaimed) = 15,000; the claimed
+      # 4,000 stays excluded.
+      assert view |> element("#earnings-tile-payable") |> render() =~
+               Currency.format_price(15_000, store.currency || "GHS")
+    end
   end
 
   # (d) — the resale card names the source store
