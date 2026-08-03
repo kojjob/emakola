@@ -15,6 +15,7 @@ defmodule Emakola.Payments.MoneySurfacesDomainTest do
   use EmakolaWeb.ConnCase, async: false
   use Emakola.LiveViewHelpers
   use Oban.Testing, repo: Emakola.Repo
+  import Ecto.Query, only: [from: 2]
   import Phoenix.LiveViewTest
 
   alias Emakola.Factory
@@ -202,7 +203,66 @@ defmodule Emakola.Payments.MoneySurfacesDomainTest do
       assert is_binary(ref)
       assert String.starts_with?(ref, "appr_")
 
-      assert_enqueued(worker: PayoutWorker, args: %{"payout_id" => Enum.at(payouts, 0).id})
+      # Both payouts enqueued — count-based (house pattern, see
+      # finance_live_internal_test.exs): Oban's unique-conflict returns the
+      # *attempted* job on a dupe, so a count/id-set check is the honest
+      # assertion, not "assert_enqueued" per id alone.
+      jobs = all_enqueued(worker: PayoutWorker)
+      assert length(jobs) == 2
+
+      enqueued_payout_ids = Enum.map(jobs, & &1.args["payout_id"])
+      assert Enum.sort(enqueued_payout_ids) == Enum.sort(Enum.map(payouts, & &1.id))
+    end
+  end
+
+  # ── approval_ref stamping must never jeopardize money movement ─────────
+  #
+  # process_basis/6 stamps approval_ref AFTER PayoutWorker.enqueue/1 and the
+  # audit log — never before — precisely so a stamping failure can't strand
+  # an already-committed payout (the stranding shape approve_both_bases/3's
+  # own docstring exists to prevent). This is proven two ways:
+  #
+  #   1. Below: update_payout_metadata genuinely returns {:error, _} for a
+  #      stale payout — the log-and-continue branch in process_basis is
+  #      reachable, not dead code.
+  #   2. By inspection of finance_live.ex: PayoutWorker.enqueue/1 and
+  #      PlatformAudit.log/3 are unconditional statements preceding the
+  #      `case update_payout_metadata(...)` — not inside it — so nothing the
+  #      stamp does can prevent them from having already run.
+  #
+  # Arrangement limitation: driving an ACTUAL stamp failure through the full
+  # LiveView approve click (rather than testing update_payout_metadata's
+  # failure mode directly) would require stubbing Emakola.Payments mid-call,
+  # since process_basis/6 is private and the whole approve_both_bases/3 flow
+  # runs synchronously within one handle_event. The project has no
+  # mocking/stubbing library for plain modules (Mox exists only for
+  # behaviour-gated external gateways), so that injection isn't cheaply
+  # arrangeable — hence the two-part proof above instead of a single
+  # end-to-end failure test.
+  describe "approval_ref stamping tolerates a failed stamp" do
+    test "update_payout_metadata surfaces {:error, _} for a payout deleted underneath it" do
+      store = Factory.create_store!()
+
+      payout =
+        Payments.create_payout!(
+          %{
+            store_id: store.id,
+            amount: 10_000,
+            currency: "GHS",
+            transfer_reference: "PO-#{Ash.UUID.generate()}"
+          },
+          authorize?: false
+        )
+
+      # No destroy action exists on Payout (system rows are never deleted in
+      # production) — go around Ash to simulate the row vanishing between
+      # creation and the stamp attempt (e.g. a concurrent admin action).
+      Emakola.Repo.delete_all(from(p in "payouts", where: p.id == type(^payout.id, Ecto.UUID)))
+
+      assert {:error, %Ash.Error.Invalid{}} =
+               Payments.update_payout_metadata(payout, %{"approval_ref" => "appr_deadbeef"},
+                 authorize?: false
+               )
     end
   end
 end

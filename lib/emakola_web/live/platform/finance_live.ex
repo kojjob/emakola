@@ -12,6 +12,8 @@ defmodule EmakolaWeb.Platform.FinanceLive do
   """
   use EmakolaWeb, :live_view
 
+  require Logger
+
   alias Emakola.Accounts.PlatformAudit
   alias Emakola.Accounts.PlatformPermissions
   alias Emakola.Payments.PayoutService
@@ -129,13 +131,6 @@ defmodule EmakolaWeb.Platform.FinanceLive do
   defp generate_approval_ref, do: "appr_" <> String.slice(Ecto.UUID.generate(), -8, 8)
 
   defp process_basis(_basis, {:ok, payout}, actor, store_id, action, approval_ref) do
-    {:ok, payout} =
-      Emakola.Payments.update_payout_metadata(
-        payout,
-        %{"approval_ref" => approval_ref},
-        authorize?: false
-      )
-
     PayoutWorker.enqueue(payout.id)
 
     PlatformAudit.log(action, actor, %{
@@ -145,7 +140,29 @@ defmodule EmakolaWeb.Platform.FinanceLive do
       "basis" => to_string(payout.basis)
     })
 
-    {:ok, payout}
+    # Cosmetic grouping only — stamped AFTER the payout is already enqueued
+    # and audited, so a stamping failure can never strand it (the exact
+    # stranding shape this function's own docstring exists to prevent).
+    # Log-and-continue: an unstamped payout just renders ungrouped, which is
+    # honest, rather than raising and losing a payout that already moved.
+    stamped_payout =
+      case Emakola.Payments.update_payout_metadata(
+             payout,
+             %{"approval_ref" => approval_ref},
+             authorize?: false
+           ) do
+        {:ok, stamped} ->
+          stamped
+
+        {:error, reason} ->
+          Logger.warning(
+            "[FinanceLive] failed to stamp approval_ref on payout #{payout.id}: #{inspect(reason)}"
+          )
+
+          payout
+      end
+
+    {:ok, stamped_payout}
   end
 
   defp process_basis(
