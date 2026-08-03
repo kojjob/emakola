@@ -406,6 +406,32 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
     # an earnings notification — the splits are already :settled by the
     # first call, so `settle_splits/1`'s freshly-settled set is empty on
     # the second call and nothing new is enqueued.
+    #
+    # This does NOT merely assert "still one job" after the replay: Oban's
+    # own `unique: [fields: [:args]]` on `EarningsNotificationWorker`
+    # collapses a second insert with identical args at insert-time
+    # regardless of whether `settle_splits/1`'s freshness guard exists at
+    # all (see `susu_nudge_worker_test.exs`'s note on the same gotcha) — a
+    # naive "count stays 1" assertion would pass even if the guard were
+    # deleted, pinning only the belt (Oban `unique`), not the primary
+    # defense (the freshness guard itself).
+    #
+    # To isolate the guard, the first job is pushed to `:discarded` before
+    # the replay — a state Oban's default `unique` window does NOT cover
+    # (`Oban.Job`'s default unique states are `scheduled/available/
+    # executing/retryable/completed`), so a second `Oban.insert/1` with the
+    # SAME args would succeed and create a genuinely NEW row if
+    # `settle_splits/1` attempted to dispatch again. Asserting zero jobs in
+    # `all_enqueued` (which itself only returns `available/scheduled/
+    # suspended` jobs, so the discarded row never counts either way) after
+    # the replay therefore proves the guard itself skipped the dispatch
+    # call, not that Oban silently ate a duplicate attempt.
+    #
+    # Verified RED-mindedly: temporarily changed `settle_splits/1` to
+    # collect ALL non-platform recipients (dropping the pre-loop `:pending`
+    # filter) instead of just the freshly-settled set — this test failed
+    # (a new job appeared after the replay), confirming it actually
+    # exercises the guard. Restored before committing.
     test "webhook replay does not re-dispatch an earnings notification", %{store: store} do
       payment = create_payment!(store, amount: 5_000)
 
@@ -426,11 +452,19 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
       }
 
       assert :ok = perform_job(PaystackWebhookHandler, event)
-      assert [_job] = all_enqueued(worker: EarningsNotificationWorker)
+      assert [first_job] = all_enqueued(worker: EarningsNotificationWorker)
+
+      # Move the first job out of Oban's default unique-conflict states so
+      # a second insert with the same args isn't silently deduped by Oban
+      # itself — isolating whether OUR guard skips the dispatch call.
+      Oban.Job
+      |> Emakola.Repo.get!(first_job.id)
+      |> Ecto.Changeset.change(state: "discarded")
+      |> Emakola.Repo.update!()
 
       # Replay
       assert :ok = perform_job(PaystackWebhookHandler, event)
-      assert [_job] = all_enqueued(worker: EarningsNotificationWorker)
+      assert [] = all_enqueued(worker: EarningsNotificationWorker)
     end
   end
 

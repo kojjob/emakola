@@ -403,7 +403,14 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
 
     # After apply_recoveries! so the payload's net amount (computed fresh
     # inside the worker via PaymentSplit.frozen_paid_amount/1) reflects the
-    # final, netted state.
+    # final, netted state. Deliberately dispatched ONCE here, after the
+    # whole settle loop, rather than inside it: if a mid-loop
+    # `mark_settled`/`apply_recoveries!` raised, splits settled before the
+    # raise would never get notified this call (a webhook retry picks up
+    # exactly the remainder next time, via the same freshness filter above)
+    # — moving the dispatch into the loop would make the notification an
+    # actor in the money path instead of an observer of it. Don't
+    # "fix" this by inlining it into the settle loop.
     dispatch_earnings_notifications(payment, freshly_settled_recipients)
 
     # Re-read fresh: `splits` above was fetched before the mark_settled loop,
