@@ -32,6 +32,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   require Ash.Query
   require Logger
 
+  alias Emakola.Notifications.Dispatcher
   alias Emakola.Payments.{Payment, PayoutService, ProtectionHolds}
 
   @terminal_states [:success, :failed, :refunded]
@@ -377,6 +378,18 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
   defp settle_splits(payment) do
     splits = payment_splits(payment)
 
+    # Captured BEFORE the mark_settled loop below, so this is exactly the set
+    # of recipients whose split THIS call transitions :pending -> :settled —
+    # a webhook replay (whose splits are already :settled) computes an empty
+    # list here and dispatches nothing new (money-surfaces PR-2 Task 3).
+    freshly_settled_recipients =
+      splits
+      |> Enum.filter(
+        &(&1.status == :pending and &1.role != :platform and not is_nil(&1.recipient_store_id))
+      )
+      |> Enum.map(& &1.recipient_store_id)
+      |> Enum.uniq()
+
     splits
     |> Enum.filter(&(&1.status == :pending))
     |> Enum.each(fn split ->
@@ -387,6 +400,11 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
 
     Emakola.Payments.RefundLiability.apply_recoveries!(splits)
     Emakola.Suppliers.PartnerCredit.record_settlement(payment, splits)
+
+    # After apply_recoveries! so the payload's net amount (computed fresh
+    # inside the worker via PaymentSplit.frozen_paid_amount/1) reflects the
+    # final, netted state.
+    dispatch_earnings_notifications(payment, freshly_settled_recipients)
 
     # Re-read fresh: `splits` above was fetched before the mark_settled loop,
     # so a split that just transitioned :pending -> :settled is still stale
@@ -402,6 +420,31 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandler do
       &(&1.status == :settled and &1.role == :wholesaler and not is_nil(&1.supplier_id))
     )
     |> Enum.each(&claim_supplier_ledger_entry(payment, &1))
+  end
+
+  # One `Dispatcher.dispatch_earnings/2` call per freshly-settled recipient
+  # (money-surfaces PR-2 Task 3). `Dispatcher.dispatch_earnings/2` already
+  # guarantees it never raises (same contract as `dispatch/2`/`dispatch_susu/2`);
+  # this wrapping `rescue` is defense-in-depth at the call site — same
+  # discipline as `ProtectionHolds.ensure_hold/1` — so a notification failure
+  # can never break payment settlement.
+  defp dispatch_earnings_notifications(payment, recipient_store_ids) do
+    Enum.each(recipient_store_ids, fn recipient_store_id ->
+      Dispatcher.dispatch_earnings(
+        %{payment_id: payment.id, recipient_store_id: recipient_store_id},
+        :earnings_accrued
+      )
+    end)
+
+    :ok
+  rescue
+    exception ->
+      Logger.error(
+        "[paystack_webhook] earnings dispatch raised for payment #{payment.id}: " <>
+          Exception.message(exception)
+      )
+
+      :ok
   end
 
   defp reverse_splits(payment) do

@@ -3,6 +3,7 @@ defmodule Emakola.Notifications.DispatcherTest do
   use Oban.Testing, repo: Emakola.Repo
 
   alias Emakola.Notifications.Dispatcher
+  alias Emakola.Notifications.Workers.EarningsNotificationWorker
   alias Emakola.Notifications.Workers.OrderNotificationWorker
   alias Emakola.Notifications.Workers.SupplierNotificationWorker
   alias Emakola.Notifications.Workers.SusuNotificationWorker
@@ -15,6 +16,10 @@ defmodule Emakola.Notifications.DispatcherTest do
 
   defp fake_plan do
     %{id: Ash.UUID.generate(), store_id: Ash.UUID.generate()}
+  end
+
+  defp fake_earnings_payload do
+    %{payment_id: Ash.UUID.generate(), recipient_store_id: Ash.UUID.generate()}
   end
 
   # ── Valid events ───────────────────────────────────────────────
@@ -266,6 +271,73 @@ defmodule Emakola.Notifications.DispatcherTest do
 
       assert match?({:error, _}, result),
              "expected dispatch_susu(nil, valid_event) to return {:error, _}, got: #{inspect(result)}"
+    end
+  end
+
+  # ── Earnings (money-surfaces PR-2 Task 3) ──────────────────────
+  # Pre-payload-shaped dispatch — keyed on {payment_id, recipient_store_id}
+  # rather than one entity id, since there's no single "earnings event"
+  # struct (see `dispatch_earnings/2`'s moduledoc).
+
+  describe "dispatch_earnings/2 with valid events" do
+    test "enqueues Oban job for earnings_accrued" do
+      payload = fake_earnings_payload()
+      assert {:ok, %Oban.Job{}} = Dispatcher.dispatch_earnings(payload, :earnings_accrued)
+
+      assert_enqueued(
+        worker: EarningsNotificationWorker,
+        args: %{
+          payment_id: payload.payment_id,
+          recipient_store_id: payload.recipient_store_id,
+          event: "earnings_accrued"
+        },
+        queue: :notifications
+      )
+    end
+  end
+
+  describe "dispatch_earnings/2 with unknown events" do
+    test "returns error for unrecognized event" do
+      payload = fake_earnings_payload()
+      assert {:error, :unknown_event} = Dispatcher.dispatch_earnings(payload, :earnings_bogus)
+    end
+
+    test "returns error for nil event" do
+      payload = fake_earnings_payload()
+      assert {:error, :unknown_event} = Dispatcher.dispatch_earnings(payload, nil)
+    end
+
+    test "an order-based event is not a valid earnings event" do
+      payload = fake_earnings_payload()
+      assert {:error, :unknown_event} = Dispatcher.dispatch_earnings(payload, :order_placed)
+    end
+  end
+
+  # (d) dispatch failure cannot raise into the webhook — same "does not
+  # raise" contract as dispatch/2 and dispatch_susu/2, pinned the same way:
+  # malformed/missing payloads fall through to an {:error, _} tuple rather
+  # than crashing. `PaystackWebhookHandlerTest`'s "webhook replay does not
+  # re-dispatch" test additionally covers the settle_splits call site.
+  describe "dispatch_earnings/2 does not raise" do
+    test "malformed payload (missing recipient_store_id) returns {:error, :missing_earnings_ids}" do
+      payload = %{payment_id: Ash.UUID.generate()}
+
+      assert {:error, :missing_earnings_ids} =
+               Dispatcher.dispatch_earnings(payload, :earnings_accrued)
+    end
+
+    test "payload with nil ids returns {:error, :missing_earnings_ids}" do
+      payload = %{payment_id: nil, recipient_store_id: nil}
+
+      assert {:error, :missing_earnings_ids} =
+               Dispatcher.dispatch_earnings(payload, :earnings_accrued)
+    end
+
+    test "nil payload with valid event returns {:error, _} (no crash)" do
+      result = Dispatcher.dispatch_earnings(nil, :earnings_accrued)
+
+      assert match?({:error, _}, result),
+             "expected dispatch_earnings(nil, valid_event) to return {:error, _}, got: #{inspect(result)}"
     end
   end
 

@@ -4,6 +4,7 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
 
   require Ash.Query
 
+  alias Emakola.Notifications.Workers.EarningsNotificationWorker
   alias Emakola.Payments.Payment
   alias Emakola.Payments.Workers.PaystackWebhookHandler
 
@@ -399,6 +400,37 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
         |> Ash.read_one!(authorize?: false)
 
       assert updated.status == :failed
+    end
+
+    # (b) money-surfaces PR-2 Task 3: a webhook REPLAY must not re-dispatch
+    # an earnings notification — the splits are already :settled by the
+    # first call, so `settle_splits/1`'s freshly-settled set is empty on
+    # the second call and nothing new is enqueued.
+    test "webhook replay does not re-dispatch an earnings notification", %{store: store} do
+      payment = create_payment!(store, amount: 5_000)
+
+      Emakola.Payments.create_payment_split!(
+        %{
+          store_id: store.id,
+          payment_id: payment.id,
+          role: :merchant,
+          recipient_store_id: store.id,
+          amount: 4_500
+        },
+        authorize?: false
+      )
+
+      event = %{
+        "event" => "charge.success",
+        "data" => %{"reference" => payment.gateway_reference}
+      }
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+      assert [_job] = all_enqueued(worker: EarningsNotificationWorker)
+
+      # Replay
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+      assert [_job] = all_enqueued(worker: EarningsNotificationWorker)
     end
   end
 

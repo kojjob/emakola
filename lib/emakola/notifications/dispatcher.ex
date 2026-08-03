@@ -54,6 +54,7 @@ defmodule Emakola.Notifications.Dispatcher do
 
   require Logger
 
+  alias Emakola.Notifications.Workers.EarningsNotificationWorker
   alias Emakola.Notifications.Workers.OrderNotificationWorker
   alias Emakola.Notifications.Workers.PushNotificationWorker
   alias Emakola.Notifications.Workers.SupplierNotificationWorker
@@ -69,6 +70,8 @@ defmodule Emakola.Notifications.Dispatcher do
     susu_activated susu_chunk_received susu_nudge susu_deadline_warning susu_refunded
     susu_merchant_activated susu_merchant_expired
   )a
+
+  @valid_earnings_events ~w(earnings_accrued)a
 
   @doc """
   Dispatch a notification for an order lifecycle event.
@@ -202,6 +205,51 @@ defmodule Emakola.Notifications.Dispatcher do
     {:error, :unknown_event}
   end
 
+  @doc """
+  Dispatch an earnings-accrued notification for one settled, non-platform
+  `PaymentSplit` recipient (money-surfaces PR-2 Task 3) — a plan-based-style
+  counterpart to `dispatch_susu/2`, keyed on two ids (payment + recipient
+  store) instead of one entity, since there's no single "earnings event"
+  struct to load fresh the way `SusuNotificationWorker` reloads a plan.
+
+  Called by `PaystackWebhookHandler.settle_splits/1` once per recipient
+  whose split THIS call transitioned `:pending -> :settled` — that freshness
+  filtering happens there, not here; this function has no dedup logic of its
+  own beyond `EarningsNotificationWorker`'s Oban `unique`.
+
+  ## Parameters
+    - `payload` — `%{payment_id: ..., recipient_store_id: ...}`
+    - `event` — one of #{inspect(@valid_earnings_events)}
+
+  Never raises — same contract as `dispatch/2` / `dispatch_susu/2`.
+  """
+  @spec dispatch_earnings(map(), atom()) ::
+          {:ok, Oban.Job.t()}
+          | {:error,
+             :unknown_event
+             | :missing_earnings_ids
+             | {:oban_insert_failed, any()}
+             | {:dispatch_raised, String.t()}}
+  def dispatch_earnings(payload, event) when event in @valid_earnings_events do
+    do_dispatch_earnings(payload, event)
+  rescue
+    exception ->
+      Logger.error(
+        "[notifications] dispatch_earnings raised for #{inspect(event)}: " <>
+          Exception.message(exception),
+        payment_id: Map.get(payload || %{}, :payment_id),
+        recipient_store_id: Map.get(payload || %{}, :recipient_store_id),
+        event: event
+      )
+
+      {:error, {:dispatch_raised, Exception.message(exception)}}
+  end
+
+  def dispatch_earnings(_payload, event) do
+    Logger.warning("[notifications] unknown earnings event: #{inspect(event)}")
+    {:error, :unknown_event}
+  end
+
   # ── Internal ──────────────────────────────────────────────────────────
 
   defp enqueue_supplier_job(fulfillment_id) do
@@ -292,5 +340,41 @@ defmodule Emakola.Notifications.Dispatcher do
   defp do_dispatch_susu(_plan, event) do
     Logger.error("[notifications] cannot dispatch #{inspect(event)}: plan has no :id")
     {:error, :missing_plan_id}
+  end
+
+  defp do_dispatch_earnings(
+         %{payment_id: payment_id, recipient_store_id: recipient_store_id},
+         event
+       )
+       when not is_nil(payment_id) and not is_nil(recipient_store_id) do
+    %{
+      "payment_id" => payment_id,
+      "recipient_store_id" => recipient_store_id,
+      "event" => Atom.to_string(event)
+    }
+    |> EarningsNotificationWorker.new(queue: :notifications)
+    |> Oban.insert()
+    |> case do
+      {:ok, job} ->
+        {:ok, job}
+
+      {:error, reason} ->
+        Logger.error(
+          "[notifications] Oban insert failed for #{inspect(event)}: #{inspect(reason)}",
+          payment_id: payment_id,
+          recipient_store_id: recipient_store_id,
+          event: event
+        )
+
+        {:error, {:oban_insert_failed, reason}}
+    end
+  end
+
+  defp do_dispatch_earnings(_payload, event) do
+    Logger.error(
+      "[notifications] cannot dispatch #{inspect(event)}: missing payment_id/recipient_store_id"
+    )
+
+    {:error, :missing_earnings_ids}
   end
 end
