@@ -87,6 +87,29 @@ defmodule Emakola.Suppliers.SupplierStockSyncWorkerTest do
     assert new_job.id != first_job.id
   end
 
+  # `states: :incomplete` names `:suspended`, a value Oban added in a later
+  # schema version. A database whose `oban_job_state` enum predates it accepts
+  # the migration bookkeeping but rejects every insert with
+  # `invalid input value for enum oban_job_state: "suspended"` — and because
+  # `enqueue/1` rescues to protect checkout and webhook paths, the whole sync
+  # layer then dies silently while every test that owns its own database still
+  # passes. Found live on a dev database 2026-08-03; the repair migration is
+  # `20260803230000_add_suspended_to_oban_job_state`. This asserts the
+  # environment can actually store what the worker's uniqueness declares.
+  test "the oban_job_state enum holds every state the worker's unique group names" do
+    required = Enum.map(Oban.Job.unique_states(:incomplete), &Atom.to_string/1)
+
+    present =
+      Emakola.Repo.query!(
+        "SELECT enumlabel FROM pg_enum WHERE enumtypid = 'oban_job_state'::regtype"
+      ).rows
+      |> List.flatten()
+
+    assert required -- present == [],
+           "oban_job_state is missing #{inspect(required -- present)} — " <>
+             "SupplierStockSyncWorker's inserts will raise and be swallowed"
+  end
+
   test "a retryable sync job dedups a fresh enqueue instead of spawning a duplicate" do
     variant_id = Ash.UUID.generate()
 
