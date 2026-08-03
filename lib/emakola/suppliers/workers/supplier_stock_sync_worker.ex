@@ -5,6 +5,14 @@ defmodule Emakola.Suppliers.Workers.SupplierStockSyncWorker do
   to it. Availability only — never title/description/price (that is
   `ListingImporter.sync/2`, deliberately unwired). Recomputes from CURRENT
   state so Oban unique-coalesced bursts are last-write-wins correct.
+
+  Turning a variant OFF is always allowed — the sync must never be blocked
+  from reflecting a real sell-out. Turning a variant back ON only happens if
+  `supplier_sync_paused_at` shows the sync itself was the one that turned it
+  off; a reseller's own deliberate `available: false` (marker left `nil` by
+  the general `:update` action) sticks until the reseller re-enables it.
+  Writes go through the dedicated `:sync_availability` action, never
+  `:update`, so this marker bookkeeping stays correct.
   """
   use Oban.Worker,
     queue: :orders,
@@ -43,15 +51,29 @@ defmodule Emakola.Suppliers.Workers.SupplierStockSyncWorker do
       |> Ash.Query.load([:reseller_variant, :listing])
       |> Ash.read!(authorize?: false)
       |> Enum.filter(&(&1.listing.status == :active))
-      |> Enum.each(fn mapping ->
-        if mapping.reseller_variant.available != target do
-          Emakola.Catalog.update_variant!(mapping.reseller_variant, %{available: target},
-            authorize?: false
-          )
-        end
-      end)
+      |> Enum.each(&sync_reseller_availability(&1.reseller_variant, target))
     end
 
     :ok
+  end
+
+  defp sync_reseller_availability(variant, target) do
+    cond do
+      variant.available == target ->
+        :ok
+
+      target == false ->
+        Emakola.Catalog.sync_availability_variant!(variant, %{available: false},
+          authorize?: false
+        )
+
+      not is_nil(variant.supplier_sync_paused_at) ->
+        Emakola.Catalog.sync_availability_variant!(variant, %{available: true}, authorize?: false)
+
+      true ->
+        # target == true but the marker is nil: a reseller manually turned
+        # this off, not the sync — leave it alone.
+        :ok
+    end
   end
 end

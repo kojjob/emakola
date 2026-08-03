@@ -116,6 +116,13 @@ defmodule Emakola.Catalog.Variant do
       public?(true)
     end
 
+    # Non-nil only while `available: false` was set by
+    # `SupplierStockSyncWorker`'s `:sync_availability` action — see that
+    # action and `Emakola.Catalog.Changes.ClearSupplierSyncPause`.
+    attribute :supplier_sync_paused_at, :utc_datetime_usec do
+      public?(true)
+    end
+
     timestamps()
   end
 
@@ -219,6 +226,7 @@ defmodule Emakola.Catalog.Variant do
 
       change(Emakola.Catalog.Changes.UntrackDropshippedInventory)
       change(Emakola.Catalog.Changes.EnqueueSupplierStockSync)
+      change(Emakola.Catalog.Changes.ClearSupplierSyncPause)
 
       validate(fn changeset, _context ->
         price =
@@ -266,6 +274,30 @@ defmodule Emakola.Catalog.Variant do
         else
           changeset
         end
+      end)
+
+      change(Emakola.Catalog.Changes.EnqueueSupplierStockSync)
+    end
+
+    # The ONLY path `SupplierStockSyncWorker` uses to write availability —
+    # never `:update`. Stamps `supplier_sync_paused_at` when turning off (so
+    # a later restock knows the sync, not a reseller, caused the off) and
+    # clears it when turning on.
+    update :sync_availability do
+      require_atomic?(false)
+      accept([])
+
+      argument(:available, :boolean, allow_nil?: false)
+
+      change(fn changeset, _context ->
+        available = Ash.Changeset.get_argument(changeset, :available)
+
+        changeset
+        |> Ash.Changeset.force_change_attribute(:available, available)
+        |> Ash.Changeset.force_change_attribute(
+          :supplier_sync_paused_at,
+          if(available, do: nil, else: DateTime.utc_now())
+        )
       end)
 
       change(Emakola.Catalog.Changes.EnqueueSupplierStockSync)

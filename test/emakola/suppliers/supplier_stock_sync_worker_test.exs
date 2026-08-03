@@ -117,18 +117,98 @@ defmodule Emakola.Suppliers.SupplierStockSyncWorkerTest do
     assert id == first_job.id
   end
 
-  test "restock flips availability back on", ctx do
+  test "sync-caused-off: a restock re-enables and clears the sync-pause marker", ctx do
     %{source_variant: source, reseller_variant: reseller_variant} = import_variant!(ctx)
     location = Emakola.Inventory.ensure_default_location!(ctx.wholesaler.id)
 
     assert {:ok, :adjusted} = Emakola.Inventory.adjust(source.id, location.id, -8, :adjustment)
     assert :ok = perform_job(SupplierStockSyncWorker, %{"variant_id" => source.id})
-    assert reload_variant(reseller_variant).available == false
+
+    synced_off = reload_variant(reseller_variant)
+    assert synced_off.available == false
+    # The sync itself turned this off, so the marker is stamped — that's
+    # what makes the next restock's re-enable safe (contrast with the
+    # manual-off test below, where the marker stays nil and restock must
+    # NOT re-enable).
+    assert synced_off.supplier_sync_paused_at != nil
 
     assert {:ok, :adjusted} = Emakola.Inventory.restock(source.id, location.id, 5)
     assert :ok = perform_job(SupplierStockSyncWorker, %{"variant_id" => source.id})
 
-    assert reload_variant(reseller_variant).available == true
+    synced_on = reload_variant(reseller_variant)
+    assert synced_on.available == true
+    assert synced_on.supplier_sync_paused_at == nil
+  end
+
+  test "manual-off sticks: a reseller's deliberate available:false survives a supplier restock",
+       ctx do
+    %{source_variant: source, reseller_variant: reseller_variant} = import_variant!(ctx)
+    location = Emakola.Inventory.ensure_default_location!(ctx.wholesaler.id)
+
+    # The reseller turns their own listing off via the manual admin path —
+    # `Emakola.Catalog.update_variant/3` (the `:update` action), the same
+    # one `save_dropship_variant/3` in the admin inventory LiveView calls.
+    assert {:ok, _updated} =
+             Emakola.Catalog.update_variant(reseller_variant, %{available: false},
+               authorize?: false
+             )
+
+    manually_off = reload_variant(reseller_variant)
+    assert manually_off.available == false
+    assert manually_off.supplier_sync_paused_at == nil
+
+    # The supplier restocks (source stays fully in stock throughout) and the
+    # sync runs — since the marker is nil, the sync must NOT re-enable a
+    # listing it never turned off itself.
+    assert {:ok, :adjusted} = Emakola.Inventory.restock(source.id, location.id, 5)
+    assert :ok = perform_job(SupplierStockSyncWorker, %{"variant_id" => source.id})
+
+    still_off = reload_variant(reseller_variant)
+    assert still_off.available == false
+    assert still_off.supplier_sync_paused_at == nil
+  end
+
+  test "manually re-enabling clears the sync-pause marker; a later sell-out re-stamps it", ctx do
+    %{source_variant: source, reseller_variant: reseller_variant} = import_variant!(ctx)
+    location = Emakola.Inventory.ensure_default_location!(ctx.wholesaler.id)
+
+    assert {:ok, :adjusted} = Emakola.Inventory.adjust(source.id, location.id, -8, :adjustment)
+    assert :ok = perform_job(SupplierStockSyncWorker, %{"variant_id" => source.id})
+
+    synced_off = reload_variant(reseller_variant)
+    assert synced_off.available == false
+    assert synced_off.supplier_sync_paused_at != nil
+
+    # The reseller manually re-enables it (e.g. a substitute is on the way)
+    # — touching the toggle reclaims ownership, clearing the marker. Must
+    # act on the freshly-reloaded (post-sync) record: passing the original,
+    # pre-sync struct would still show `available: true` from creation, so
+    # Ash would see no real change and skip the write entirely.
+    assert {:ok, _updated} =
+             Emakola.Catalog.update_variant(synced_off, %{available: true}, authorize?: false)
+
+    manually_on = reload_variant(reseller_variant)
+    assert manually_on.available == true
+    assert manually_on.supplier_sync_paused_at == nil
+
+    # The supplier restocking now changes nothing — the reseller already
+    # turned it on manually, so available already matches target and the
+    # marker stays cleared (no spurious re-stamp from a mere restock).
+    assert {:ok, :adjusted} = Emakola.Inventory.restock(source.id, location.id, 8)
+    assert :ok = perform_job(SupplierStockSyncWorker, %{"variant_id" => source.id})
+
+    still_manually_on = reload_variant(reseller_variant)
+    assert still_manually_on.available == true
+    assert still_manually_on.supplier_sync_paused_at == nil
+
+    # A LATER, independent sell-out is a fresh sync-caused off — it
+    # re-stamps the marker.
+    assert {:ok, :adjusted} = Emakola.Inventory.adjust(source.id, location.id, -8, :adjustment)
+    assert :ok = perform_job(SupplierStockSyncWorker, %{"variant_id" => source.id})
+
+    re_synced_off = reload_variant(reseller_variant)
+    assert re_synced_off.available == false
+    assert re_synced_off.supplier_sync_paused_at != nil
   end
 
   test "a paused listing stays paused even after the source restocks", ctx do
