@@ -9,8 +9,16 @@ defmodule EmakolaWeb.Platform.FinanceLive do
   audits the approval, and enqueues `PayoutWorker` to disburse via Paystack.
   Distinct from `/platform/payments` (transaction ops) and `/platform/billing`
   (legacy Stripe subscriptions).
+
+  Also surfaces the "Needs remediation" worklist — splits
+  `PaymentSplit.release_from_payout` stamped as unreclaimable (fully reversed
+  while their payout claim was in flight) — closing the gap where that flag
+  had zero UI surface despite the domain code's own comment promising finance
+  could find them.
   """
   use EmakolaWeb, :live_view
+
+  require Logger
 
   alias Emakola.Accounts.PlatformAudit
   alias Emakola.Accounts.PlatformPermissions
@@ -18,6 +26,7 @@ defmodule EmakolaWeb.Platform.FinanceLive do
   alias Emakola.Payments.Workers.PayoutWorker
   alias Emakola.Platform.FinanceStats
   alias Emakola.Platform.Stats
+  alias EmakolaWeb.Helpers.Currency
 
   on_mount {EmakolaWeb.Hooks.RequirePermission, :manage_billing}
 
@@ -27,12 +36,22 @@ defmodule EmakolaWeb.Platform.FinanceLive do
       socket
       |> assign(:page_title, "Finance")
       |> assign(:active_nav, :finance)
+      |> assign(:expanded_store_id, nil)
 
     socket =
       if connected?(socket) do
         load(socket)
       else
-        assign(socket, loaded: false, stats: nil, take_rate: nil, stores: [], payouts: [])
+        socket
+        |> assign(
+          loaded: false,
+          stats: nil,
+          take_rate: nil,
+          stores: [],
+          payouts: [],
+          remediation_count: 0
+        )
+        |> stream(:remediation_rows, [])
       end
 
     {:ok, socket}
@@ -45,13 +64,23 @@ defmodule EmakolaWeb.Platform.FinanceLive do
 
     take_rate = if gmv > 0, do: fees / gmv, else: nil
 
+    # Only the count lives in assigns (for the tile) — the worklist itself is
+    # unbounded and cross-store, so it's streamed rather than held whole in
+    # process memory. length/1 here is a single pass over the already-loaded
+    # list, not a second query.
+    remediation_rows = FinanceStats.remediation_splits()
+
     socket
     |> assign(:loaded, true)
     |> assign(:stats, %{fees: fees, outstanding: outstanding, gmv: gmv})
     |> assign(:take_rate, take_rate)
     |> assign(:stores, FinanceStats.per_store_finance())
     |> assign(:payouts, Emakola.Payments.list_recent_payouts!(load: [:store], authorize?: false))
+    |> assign(:remediation_count, length(remediation_rows))
+    |> stream(:remediation_rows, remediation_rows, reset: true, dom_id: &remediation_dom_id/1)
   end
+
+  defp remediation_dom_id(%{split: split}), do: "remediation-row-#{split.id}"
 
   @impl true
   def handle_event("approve_payout", %{"store_id" => store_id}, socket) do
@@ -85,6 +114,17 @@ defmodule EmakolaWeb.Platform.FinanceLive do
     end)
   end
 
+  # Assigns-toggled, JS-free expand/collapse for a per-store row's dual-basis
+  # breakdown. No new data is fetched — legacy_owed/internal_owed are already
+  # on every @stores row, so this purely flips visibility.
+  def handle_event("toggle_store_breakdown", %{"store_id" => store_id}, socket) do
+    authorized(socket, fn socket ->
+      current = socket.assigns.expanded_store_id
+      next = if current == store_id, do: nil, else: store_id
+      {:noreply, assign(socket, :expanded_store_id, next)}
+    end)
+  end
+
   # Prepares BOTH payout bases and, for each one that succeeds, enqueues +
   # audits it IMMEDIATELY — before the next basis is even prepared. This
   # matters: if prepare_internal_payout/1 were to raise (e.g. its paid_amount
@@ -95,8 +135,17 @@ defmodule EmakolaWeb.Platform.FinanceLive do
   # basis at a time means the first payout's enqueue/audit (both already
   # committed, independent writes) survive even if the second basis blows up.
   defp approve_both_bases(store_id, actor, action) do
+    approval_ref = generate_approval_ref()
+
     payments_result =
-      process_basis(:payments, PayoutService.prepare_payout(store_id), actor, store_id, action)
+      process_basis(
+        :payments,
+        PayoutService.prepare_payout(store_id),
+        actor,
+        store_id,
+        action,
+        approval_ref
+      )
 
     allocations_result =
       process_basis(
@@ -104,7 +153,8 @@ defmodule EmakolaWeb.Platform.FinanceLive do
         PayoutService.prepare_internal_payout(store_id),
         actor,
         store_id,
-        action
+        action,
+        approval_ref
       )
 
     results = [{:payments, payments_result}, {:allocations, allocations_result}]
@@ -113,7 +163,12 @@ defmodule EmakolaWeb.Platform.FinanceLive do
     {results, queued}
   end
 
-  defp process_basis(_basis, {:ok, payout}, actor, store_id, action) do
+  # Shared id stamped into both bases' `metadata["approval_ref"]` so finance
+  # can see they came from the same approval click, without ever touching
+  # amount/status — see Payout's `stamp_approval_ref`.
+  defp generate_approval_ref, do: "appr_" <> String.slice(Ecto.UUID.generate(), -8, 8)
+
+  defp process_basis(_basis, {:ok, payout}, actor, store_id, action, approval_ref) do
     PayoutWorker.enqueue(payout.id)
 
     PlatformAudit.log(action, actor, %{
@@ -123,10 +178,40 @@ defmodule EmakolaWeb.Platform.FinanceLive do
       "basis" => to_string(payout.basis)
     })
 
-    {:ok, payout}
+    # Cosmetic grouping only — stamped AFTER the payout is already enqueued
+    # and audited, so a stamping failure can never strand it (the exact
+    # stranding shape this function's own docstring exists to prevent).
+    # Log-and-continue: an unstamped payout just renders ungrouped, which is
+    # honest, rather than raising and losing a payout that already moved.
+    stamped_payout =
+      case Emakola.Payments.update_payout_metadata(
+             payout,
+             %{"approval_ref" => approval_ref},
+             authorize?: false
+           ) do
+        {:ok, stamped} ->
+          stamped
+
+        {:error, reason} ->
+          Logger.warning(
+            "[FinanceLive] failed to stamp approval_ref on payout #{payout.id}: #{inspect(reason)}"
+          )
+
+          payout
+      end
+
+    {:ok, stamped_payout}
   end
 
-  defp process_basis(_basis, {:error, _reason} = error, _actor, _store_id, _action), do: error
+  defp process_basis(
+         _basis,
+         {:error, _reason} = error,
+         _actor,
+         _store_id,
+         _action,
+         _approval_ref
+       ),
+       do: error
 
   # queued == [] → surface an error, preferring :no_momo_destination (it applies
   # to both bases, since they share transfer_destination/1) over :nothing_outstanding.
@@ -149,7 +234,7 @@ defmodule EmakolaWeb.Platform.FinanceLive do
 
     socket
     |> load()
-    |> put_flash(:info, "Payout of #{format_amount(total)} queued.")
+    |> put_flash(:info, "Payout of #{Currency.format_price(total)} queued.")
   end
 
   # Re-check the permission against a fresh user (Iron Law: never trust mount).
@@ -172,29 +257,31 @@ defmodule EmakolaWeb.Platform.FinanceLive do
   def render(assigns) do
     ~H"""
     <div class="p-6 lg:p-8 max-w-7xl mx-auto">
-      <div class="mb-8">
-        <h1 class="text-2xl font-bold text-gray-900">Finance</h1>
-        <p class="text-sm text-gray-500 mt-1">
-          Platform revenue &amp; merchant payout balances across all stores
-        </p>
-      </div>
+      <.page_header
+        title="Finance"
+        subtitle="Platform revenue &amp; merchant payout balances across all stores"
+      />
 
       <%= if @loaded == false do %>
-        <div class="text-center py-16 text-gray-400">
-          <p class="text-sm">Loading finance data…</p>
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8" aria-hidden="true">
+          <div :for={_tile <- 1..5} class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div class="h-4 w-24 rounded bg-gray-200 animate-pulse"></div>
+            <div class="mt-4 h-8 w-28 rounded bg-gray-200 animate-pulse"></div>
+          </div>
         </div>
+        <span class="sr-only">Loading finance data…</span>
       <% else %>
         <%!-- ── Revenue stat strip ─────────────────────────────────────── --%>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <.stat_tile
             label="Platform fees collected"
-            value={format_amount(@stats.fees)}
+            value={Currency.format_price(@stats.fees)}
             icon="account_balance_wallet"
             color="emerald"
           />
           <.stat_tile
             label="GMV"
-            value={format_amount(@stats.gmv)}
+            value={Currency.format_price(@stats.gmv)}
             icon="trending_up"
             color="blue"
           />
@@ -206,9 +293,16 @@ defmodule EmakolaWeb.Platform.FinanceLive do
           />
           <.stat_tile
             label="Outstanding payouts"
-            value={format_amount(@stats.outstanding)}
+            value={Currency.format_price(@stats.outstanding)}
             icon="payments"
             color="amber"
+          />
+          <.stat_tile
+            id="remediation-count"
+            label="Needs remediation"
+            value={@remediation_count}
+            icon="flag"
+            color="rose"
           />
         </div>
 
@@ -217,10 +311,17 @@ defmodule EmakolaWeb.Platform.FinanceLive do
           <div class="px-6 py-4 border-b border-gray-100">
             <h2 class="text-lg font-semibold text-gray-900">By store</h2>
             <p class="text-xs text-gray-400 mt-0.5">
-              Sorted by outstanding balance — the manual-payout worklist
+              Sorted by outstanding balance — the manual-payout worklist. Click a store to see
+              its gateway vs. ledger breakdown.
             </p>
           </div>
-          <div class="overflow-x-auto">
+          <.platform_empty_state
+            :if={@stores == []}
+            title="No finance activity yet"
+            description="Once a store collects fees or accrues an outstanding balance, it'll show up here."
+            icon="hero-banknotes"
+          />
+          <div :if={@stores != []} class="overflow-x-auto">
             <table class="w-full">
               <thead>
                 <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
@@ -231,39 +332,84 @@ defmodule EmakolaWeb.Platform.FinanceLive do
                   <th class="px-6 py-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr :if={@stores == []}>
-                  <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-400">
-                    No finance activity yet.
-                  </td>
-                </tr>
-                <tr :for={row <- @stores} class="hover:bg-gray-50 transition-colors">
+              <tbody :for={row <- @stores} class="divide-y divide-gray-100">
+                <tr class="hover:bg-gray-50 transition-colors">
                   <td class="px-6 py-4 text-sm font-medium text-gray-900">
-                    {(row.store && row.store.name) || "—"}
+                    <button
+                      type="button"
+                      phx-click="toggle_store_breakdown"
+                      phx-value-store_id={row.store.id}
+                      class="flex items-center gap-1 hover:text-emerald-700"
+                    >
+                      <span class="material-symbols-outlined text-base text-gray-400">
+                        {if @expanded_store_id == row.store.id,
+                          do: "expand_more",
+                          else: "chevron_right"}
+                      </span>
+                      {row.store.name}
+                    </button>
                   </td>
                   <td class="px-6 py-4 text-sm text-emerald-700">
-                    {format_amount(row.fees_collected)}
+                    {Currency.format_price(row.fees_collected)}
                   </td>
                   <td class="px-6 py-4 text-sm font-medium text-gray-900">
-                    {format_amount(row.outstanding_owed)}
+                    {Currency.format_price(row.outstanding_owed)}
                   </td>
                   <td class="px-6 py-4 text-sm">
-                    <span :if={row.payouts_ready?} class={pill_class(:ready)}>Ready</span>
-                    <span :if={!row.payouts_ready?} class={pill_class(:missing)}>
-                      No payout set up
-                    </span>
+                    <.severity_pill
+                      tone={readiness_tone(row.payouts_ready?)}
+                      label={readiness_label(row.payouts_ready?)}
+                    />
                   </td>
                   <td class="px-6 py-4 text-sm text-right">
                     <button
                       :if={row.outstanding_owed > 0}
                       type="button"
+                      disabled={!row.payouts_ready?}
+                      title={
+                        if row.payouts_ready?,
+                          do: nil,
+                          else: "Add a mobile money payout destination for this store first"
+                      }
                       phx-click="approve_payout"
                       phx-value-store_id={row.store.id}
-                      data-confirm={"Pay out #{format_amount(row.outstanding_owed)} to #{row.store.name}? This sends money to their mobile money account."}
-                      class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+                      data-confirm={both_bases_confirm(row)}
+                      class={[
+                        "rounded-lg px-3 py-1.5 text-xs font-medium",
+                        if(row.payouts_ready?,
+                          do: "bg-emerald-600 text-white hover:bg-emerald-700",
+                          else: "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        )
+                      ]}
                     >
                       Pay out
                     </button>
+                  </td>
+                </tr>
+                <tr
+                  :if={@expanded_store_id == row.store.id}
+                  id={"store-breakdown-#{row.store.id}"}
+                  class="bg-gray-50"
+                >
+                  <td colspan="5" class="px-6 py-4 text-sm text-gray-600">
+                    <div class="flex flex-wrap gap-6">
+                      <div>
+                        <span class="text-xs uppercase tracking-wide text-gray-400">
+                          Gateway (legacy)
+                        </span>
+                        <p class="font-semibold text-gray-900">
+                          {Currency.format_price(row.legacy_owed)}
+                        </p>
+                      </div>
+                      <div>
+                        <span class="text-xs uppercase tracking-wide text-gray-400">
+                          Ledger (internal)
+                        </span>
+                        <p class="font-semibold text-gray-900">
+                          {Currency.format_price(row.internal_owed)}
+                        </p>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -276,10 +422,17 @@ defmodule EmakolaWeb.Platform.FinanceLive do
           <div class="px-6 py-4 border-b border-gray-100">
             <h2 class="text-lg font-semibold text-gray-900">Recent payouts</h2>
             <p class="text-xs text-gray-400 mt-0.5">
-              Disbursements to merchants — retry any that failed
+              Disbursements to merchants — retry any that failed. Payouts born of one approval
+              click are grouped together.
             </p>
           </div>
-          <div class="overflow-x-auto">
+          <.platform_empty_state
+            :if={@payouts == []}
+            title="No payouts yet"
+            description="Approved payouts will show up here."
+            icon="hero-arrow-path"
+          />
+          <div :if={@payouts != []} class="overflow-x-auto">
             <table class="w-full">
               <thead>
                 <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
@@ -291,22 +444,28 @@ defmodule EmakolaWeb.Platform.FinanceLive do
                   <th class="px-6 py-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr :if={@payouts == []}>
-                  <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-400">
-                    No payouts yet.
+              <tbody :for={group <- payout_groups(@payouts)} class="divide-y divide-gray-100">
+                <tr :if={group.ref} class="bg-indigo-50/60">
+                  <td colspan="6" class="px-6 py-2 text-xs font-medium text-indigo-700">
+                    <span class="material-symbols-outlined text-sm align-middle mr-1">link</span>
+                    Approved together · <span class="font-mono">{group.ref}</span>
                   </td>
                 </tr>
-                <tr :for={payout <- @payouts} class="hover:bg-gray-50 transition-colors">
+                <tr :for={payout <- group.payouts} class="hover:bg-gray-50 transition-colors">
                   <td class="px-6 py-4 text-sm font-medium text-gray-900">
                     {(payout.store && payout.store.name) || "—"}
                   </td>
-                  <td class="px-6 py-4 text-sm text-gray-900">{format_amount(payout.amount)}</td>
-                  <td class="px-6 py-4 text-sm text-gray-500">{payout.basis}</td>
+                  <td class="px-6 py-4 text-sm text-gray-900">
+                    {Currency.format_price(payout.amount)}
+                  </td>
                   <td class="px-6 py-4 text-sm">
-                    <span class={payout_pill_class(payout.status)}>
-                      {humanize_status(payout.status)}
-                    </span>
+                    <.severity_pill tone={basis_tone(payout.basis)} label={basis_label(payout.basis)} />
+                  </td>
+                  <td class="px-6 py-4 text-sm">
+                    <.severity_pill
+                      tone={status_tone(payout.status)}
+                      label={status_label(payout.status)}
+                    />
                   </td>
                   <td class="px-6 py-4 text-sm text-gray-400">{date_str(payout.inserted_at)}</td>
                   <td class="px-6 py-4 text-sm text-right">
@@ -315,11 +474,72 @@ defmodule EmakolaWeb.Platform.FinanceLive do
                       type="button"
                       phx-click="retry_payout"
                       phx-value-payout_id={payout.id}
-                      data-confirm={"Retry the #{format_amount(payout.amount)} payout to #{(payout.store && payout.store.name) || "this store"}?"}
+                      data-confirm={"Retry the #{Currency.format_price(payout.amount)} payout to #{(payout.store && payout.store.name) || "this store"}?"}
                       class="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
                     >
                       Retry
                     </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <%!-- ── Needs remediation ──────────────────────────────────────── --%>
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mt-8">
+          <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-lg font-semibold text-gray-900">Needs remediation</h2>
+            <p class="text-xs text-gray-400 mt-0.5">
+              Splits fully reversed while their payout claim was in flight — the platform holds
+              the shortfall and can no longer claw it back automatically. Follow up manually.
+            </p>
+          </div>
+          <.platform_empty_state
+            :if={@remediation_count == 0}
+            title="Nothing needs remediation"
+            description="Flagged splits will show up here for manual follow-up."
+            icon="hero-check-circle"
+          />
+          <%!-- The stream container stays mounted regardless of @remediation_count
+          (a known LiveView streams gotcha: conditionally rendering it with :if
+          would tear it down and corrupt future stream diffs) — hidden via CSS
+          instead, matching the empty state's visibility exactly. --%>
+          <div class={["overflow-x-auto", @remediation_count == 0 && "hidden"]}>
+            <table class="w-full">
+              <thead>
+                <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
+                  <th class="px-6 py-3">Store</th>
+                  <th class="px-6 py-3">Split amount</th>
+                  <th class="px-6 py-3">Reversed</th>
+                  <th class="px-6 py-3">Recovered + reserved</th>
+                  <th class="px-6 py-3">Flagged</th>
+                  <th class="px-6 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody id="remediation-rows" phx-update="stream" class="divide-y divide-gray-100">
+                <tr
+                  :for={{dom_id, row} <- @streams.remediation_rows}
+                  id={dom_id}
+                  class="hover:bg-gray-50 transition-colors"
+                >
+                  <td class="px-6 py-4 text-sm font-medium text-gray-900">
+                    {(row.store && row.store.name) || "—"}
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-900">
+                    {Currency.format_price(row.split.amount)}
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-900">
+                    {Currency.format_price(row.split.reversed_amount)}
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-900">
+                    {Currency.format_price(
+                      row.split.recovered_amount + row.split.reserved_recovery_amount
+                    )}
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-400">{date_str(row.split.updated_at)}</td>
+                  <td class="px-6 py-4 text-sm">
+                    <.severity_pill tone="rose" label="Needs remediation" />
                   </td>
                 </tr>
               </tbody>
@@ -333,32 +553,66 @@ defmodule EmakolaWeb.Platform.FinanceLive do
 
   # ── Private helpers ─────────────────────────────────────────────────
 
-  defp format_amount(nil), do: "GHS 0.00"
-
-  defp format_amount(cents) when is_integer(cents) do
-    major = cents |> div(100) |> Emakola.Money.group_thousands()
-    "GHS #{major}.#{String.pad_leading(to_string(rem(cents, 100)), 2, "0")}"
-  end
-
-  defp format_amount(_), do: "GHS 0.00"
-
   defp format_rate(nil), do: "—"
   defp format_rate(rate), do: "#{Float.round(rate * 100, 1)}%"
 
-  defp pill_class(:ready),
-    do: "inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700"
+  defp both_bases_confirm(row) do
+    "Pay out #{Currency.format_price(row.legacy_owed)} (gateway) and " <>
+      "#{Currency.format_price(row.internal_owed)} (ledger) to #{row.store.name}? " <>
+      "This sends money to their mobile money account."
+  end
 
-  defp pill_class(:missing),
-    do: "inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700"
+  defp readiness_tone(true), do: "emerald"
+  defp readiness_tone(false), do: "amber"
 
-  @pill_base "inline-flex px-2 py-0.5 rounded-full text-xs font-medium "
+  defp readiness_label(true), do: "Ready"
+  defp readiness_label(false), do: "No payout set up"
 
-  defp payout_pill_class(:paid), do: @pill_base <> "bg-emerald-100 text-emerald-700"
-  defp payout_pill_class(:processing), do: @pill_base <> "bg-blue-100 text-blue-700"
-  defp payout_pill_class(:failed), do: @pill_base <> "bg-rose-100 text-rose-700"
-  defp payout_pill_class(_pending), do: @pill_base <> "bg-gray-100 text-gray-600"
+  defp basis_tone(:allocations), do: "violet"
+  defp basis_tone(_payments), do: "blue"
 
-  defp humanize_status(status), do: status |> to_string() |> String.capitalize()
+  defp basis_label(:allocations), do: "Ledger"
+  defp basis_label(_payments), do: "Gateway"
+
+  defp status_tone(:paid), do: "emerald"
+  defp status_tone(:processing), do: "blue"
+  defp status_tone(:failed), do: "rose"
+  defp status_tone(:reversed), do: "amber"
+  defp status_tone(_pending), do: "slate"
+
+  defp status_label(status), do: status |> to_string() |> String.capitalize()
+
+  # Groups payouts sharing a non-nil metadata["approval_ref"], wherever they
+  # fall in the (newest-first) list — NOT by adjacency. The two payouts one
+  # approve click creates are usually enqueued back-to-back, but a concurrent
+  # approval's payout can land between them, which would silently split the
+  # group under an adjacency-based grouping (e.g. Enum.chunk_by). Instead,
+  # this walks the list once, keyed by ref, and orders groups by each ref's
+  # FIRST appearance — a ref-less payout is always its own singleton group at
+  # its own position. A ref shared by only one payout in this list (its
+  # partner basis failed, or fell outside the page) renders same as an
+  # ungrouped row: the "Approved together" badge only appears once 2+ payouts
+  # actually land in the same group.
+  defp payout_groups(payouts) do
+    {order, by_key} =
+      Enum.reduce(payouts, {[], %{}}, fn payout, {order, by_key} ->
+        key = payout.metadata["approval_ref"] || make_ref()
+
+        if Map.has_key?(by_key, key) do
+          {order, Map.update!(by_key, key, &[payout | &1])}
+        else
+          {[key | order], Map.put(by_key, key, [payout])}
+        end
+      end)
+
+    order
+    |> Enum.reverse()
+    |> Enum.map(fn key ->
+      group = Enum.reverse(by_key[key])
+      ref = if is_binary(key) and length(group) > 1, do: key, else: nil
+      %{ref: ref, payouts: group}
+    end)
+  end
 
   defp date_str(%DateTime{} = dt), do: Calendar.strftime(dt, "%b %d, %Y")
   defp date_str(%NaiveDateTime{} = dt), do: Calendar.strftime(dt, "%b %d, %Y")

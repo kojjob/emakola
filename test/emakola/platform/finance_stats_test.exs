@@ -218,4 +218,40 @@ defmodule Emakola.Platform.FinanceStatsTest do
       assert row.outstanding_owed == hold.net
     end
   end
+
+  describe "remediation_splits/0" do
+    defp unreclaimable_split!(store, payment, attrs \\ %{}) do
+      split =
+        %{
+          store_id: store.id,
+          payment_id: payment.id,
+          role: :merchant,
+          recipient_store_id: store.id,
+          amount: 10_000,
+          settlement_method: :internal_hold
+        }
+        |> Map.merge(Map.new(attrs))
+        |> then(&Emakola.Payments.create_payment_split!(&1, authorize?: false))
+
+      split
+      |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: split.amount})
+      |> Ash.update!(authorize?: false)
+      |> Ash.Changeset.for_update(:release_from_payout, %{})
+      |> Ash.update!(authorize?: false)
+    end
+
+    test "a flagged split renders with its recipient store resolved" do
+      store = Factory.create_store!(%{name: "Remediate Co"})
+      payment = Factory.create_payment!(store, %{amount: 10_000})
+      remediate = unreclaimable_split!(store, payment)
+
+      assert [row] = FinanceStats.remediation_splits()
+      assert row.split.id == remediate.id
+      assert row.store.id == store.id
+    end
+
+    test "is empty with no flagged splits" do
+      assert FinanceStats.remediation_splits() == []
+    end
+  end
 end

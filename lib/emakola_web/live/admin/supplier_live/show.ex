@@ -1,12 +1,20 @@
 defmodule EmakolaWeb.Admin.SupplierLive.Show do
   @moduledoc """
-  Supplier detail page — contact-header with tap-to-call/WhatsApp, big metric
-  cards (owed / paid so far / payment count) and a simple payout list. Owed
-  entries can be marked paid, which reduces the outstanding balance.
+  Supplier detail page — contact-header with tap-to-call/WhatsApp, ledger
+  tiles (You owe / Settling via Makola / Paid (recent)) and a filterable
+  ledger list. Owed entries can be marked paid, which reduces the
+  outstanding balance.
+
+  The tiles are arithmetically coherent: "You owe" (manual-owed only) and
+  "Settling via Makola" (owed rows already claimed by a platform
+  settlement) together account for every unpaid row — see `you_owe_total/1`
+  and `settling_total/1`.
   """
   use EmakolaWeb, :live_view
 
   import EmakolaWeb.Helpers.Currency, only: [format_price: 2]
+
+  @statuses ~w(all owed settling paid voided)
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -20,10 +28,12 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
         store: store,
         supplier_id: id,
         supplier: nil,
-        ledger_entries: []
+        ledger_entries: [],
+        status_filter: "all"
       )
       |> load_supplier()
       |> load_ledger()
+      |> stream_ledger_rows()
 
     {:ok, socket}
   end
@@ -39,6 +49,7 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
            socket
            |> load_supplier()
            |> load_ledger()
+           |> stream_ledger_rows()
            |> put_flash(:info, "Entry marked paid")}
 
         {:error, _} ->
@@ -48,6 +59,15 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
       {:noreply, socket}
     end
   end
+
+  def handle_event("filter_status", %{"status" => status}, socket) when status in @statuses do
+    {:noreply,
+     socket
+     |> assign(:status_filter, status)
+     |> stream_ledger_rows()}
+  end
+
+  def handle_event("filter_status", _params, socket), do: {:noreply, socket}
 
   # ── Data loading ──
 
@@ -69,6 +89,9 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
     )
   end
 
+  # Unbounded by design — if this list is ever paginated/limited,
+  # settling_total/1 will undercount while outstanding_balance (a
+  # database-wide aggregate) stays exact, breaking tile coherence silently.
   defp load_ledger(socket) do
     case socket.assigns.supplier do
       nil ->
@@ -88,6 +111,58 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
     |> Enum.map(& &1.amount_owed)
     |> Enum.sum()
   end
+
+  # A claimed entry (settlement_source != :manual) is being settled by the
+  # platform directly — still owed, just no longer the merchant's manual
+  # debt. Together with `Supplier.outstanding_balance` (manual-owed only)
+  # this accounts for every unpaid row: you_owe + settling == Σ owed rows.
+  defp settling_total(entries) do
+    entries
+    |> Enum.filter(&(&1.status == :owed and &1.settlement_source != :manual))
+    |> Enum.map(& &1.amount_owed)
+    |> Enum.sum()
+  end
+
+  defp you_owe_total(supplier), do: supplier.outstanding_balance || 0
+
+  # Re-streams the ledger rows filtered by the current status chip. Tiles
+  # are always computed from the full `ledger_entries` assign — only the
+  # row list narrows.
+  defp stream_ledger_rows(socket) do
+    filtered = filter_entries(socket.assigns.ledger_entries, socket.assigns.status_filter)
+
+    socket
+    |> assign(:ledger_rows_empty?, filtered == [])
+    |> stream(:ledger_rows, filtered, reset: true)
+  end
+
+  defp filter_entries(entries, "owed"),
+    do: Enum.filter(entries, &(&1.status == :owed and &1.settlement_source == :manual))
+
+  defp filter_entries(entries, "settling"),
+    do: Enum.filter(entries, &(&1.status == :owed and &1.settlement_source != :manual))
+
+  defp filter_entries(entries, "paid"), do: Enum.filter(entries, &(&1.status == :paid))
+  defp filter_entries(entries, "voided"), do: Enum.filter(entries, &(&1.status == :voided))
+  defp filter_entries(entries, _all), do: entries
+
+  defp status_options do
+    [
+      {"all", "All"},
+      {"owed", "Owed"},
+      {"settling", "Settling"},
+      {"paid", "Paid"},
+      {"voided", "Voided"}
+    ]
+  end
+
+  # Row amount color keyed on settlement_source/status — manual-owed debt
+  # reads urgent (rose), a claimed row is neutral (the platform already has
+  # it in hand), paid is a settled positive (emerald), voided fades to slate.
+  defp row_amount_class(%{status: :voided}), do: "text-slate-400"
+  defp row_amount_class(%{status: :paid}), do: "text-emerald-600"
+  defp row_amount_class(%{status: :owed, settlement_source: :manual}), do: "text-rose-600"
+  defp row_amount_class(%{status: :owed}), do: "text-slate-900"
 
   defp format_date(nil), do: nil
   defp format_date(%DateTime{} = dt), do: Calendar.strftime(dt, "%d %b %Y")
@@ -167,25 +242,37 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
           </div>
         </div>
 
-        <%!-- Big metric cards --%>
+        <%!-- Ledger tiles — coherent by construction: You-owe (manual-only debt)
+             plus Settling (owed rows already claimed by a platform settlement)
+             together account for every unpaid row. Calm, neutral tiles — no
+             red; urgency lives on the individual manual-owed rows instead. --%>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div class="bg-red-50 border border-red-200 rounded-card p-6 text-center">
-            <p class="text-xs font-bold text-red-800 uppercase tracking-wider">You owe</p>
-            <p id="outstanding-balance" class="text-3xl sm:text-4xl font-extrabold text-red-600 mt-2">
-              {format_price(@supplier.outstanding_balance || 0, "GHS")}
-            </p>
+          <div id="outstanding-balance">
+            <.stat_card
+              label="You owe"
+              value={format_price(you_owe_total(@supplier), "GHS")}
+              icon_bg="bg-slate-100"
+            >
+              <:icon><.icon name="hero-banknotes" class="size-[18px] text-slate-600" /></:icon>
+            </.stat_card>
           </div>
-          <div class="bg-green-50 border border-green-200 rounded-card p-6 text-center">
-            <p class="text-xs font-bold text-green-800 uppercase tracking-wider">Paid so far</p>
-            <p class="text-3xl sm:text-4xl font-extrabold text-green-600 mt-2">
-              {format_price(paid_total(@ledger_entries), "GHS")}
-            </p>
+          <div id="settling-balance">
+            <.stat_card
+              label="Settling via Makola"
+              value={format_price(settling_total(@ledger_entries), "GHS")}
+              icon_bg="bg-amber-50"
+            >
+              <:icon><.icon name="hero-clock" class="size-[18px] text-amber-600" /></:icon>
+            </.stat_card>
           </div>
-          <div class="bg-white border border-slate-200 rounded-card p-6 text-center">
-            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Payments</p>
-            <p class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-2">
-              {length(@ledger_entries)}
-            </p>
+          <div id="paid-total">
+            <.stat_card
+              label="Paid (recent)"
+              value={format_price(paid_total(@ledger_entries), "GHS")}
+              icon_bg="bg-emerald-50"
+            >
+              <:icon><.icon name="hero-check-circle" class="size-[18px] text-emerald-600" /></:icon>
+            </.stat_card>
           </div>
         </div>
 
@@ -205,67 +292,98 @@ defmodule EmakolaWeb.Admin.SupplierLive.Show do
           </p>
         </div>
 
-        <%!-- Payout list --%>
+        <%!-- Ledger list --%>
         <div class="bg-white border border-slate-200 rounded-card overflow-hidden">
-          <div :if={@ledger_entries == []} class="p-12 text-center">
-            <.icon name="hero-banknotes" class="size-12 text-slate-300 mx-auto mb-4" />
-            <p class="text-sm font-medium text-slate-500">No payments yet</p>
+          <div :if={@ledger_entries == []} class="p-8">
+            <.empty_state
+              icon="hero-banknotes"
+              title="No payments yet"
+              description="Ledger entries for this supplier will show up here."
+            />
           </div>
 
-          <div :if={@ledger_entries != []} class="divide-y divide-slate-100">
-            <div
-              :for={entry <- @ledger_entries}
-              class="flex items-center justify-between px-5 py-4"
-            >
-              <div>
-                <p class={[
-                  "text-lg font-extrabold",
-                  if(entry.status in [:paid, :voided], do: "text-slate-900", else: "text-red-600")
-                ]}>
-                  {format_price(entry.amount_owed, "GHS")}
-                </p>
-                <p class="text-xs text-slate-400">
-                  <%= cond do %>
-                    <% entry.status == :paid -> %>
-                      Paid {format_date(entry.paid_at) && "on #{format_date(entry.paid_at)}"}
-                    <% entry.status == :voided -> %>
-                      Voided
-                    <% true -> %>
-                      {format_date(entry.inserted_at)}
-                  <% end %>
-                </p>
-              </div>
-
+          <div :if={@ledger_entries != []}>
+            <div class="flex flex-wrap gap-2 px-5 py-4 border-b border-slate-100">
               <button
-                :if={entry.status == :owed and entry.settlement_source == :manual}
-                phx-click="mark_paid"
-                phx-value-id={entry.id}
-                class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white
-                       font-semibold text-sm rounded-control px-5 py-2.5 transition-colors"
+                :for={{value, label} <- status_options()}
+                phx-click="filter_status"
+                phx-value-status={value}
+                class={[
+                  "px-3 py-1.5 rounded-full text-xs font-semibold transition-colors",
+                  if(@status_filter == value,
+                    do: "bg-slate-900 text-white",
+                    else: "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  )
+                ]}
               >
-                <.icon name="hero-check" class="size-4" /> Mark Paid
+                {label}
               </button>
-              <span
-                :if={entry.status == :owed and entry.settlement_source != :manual}
-                class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 font-bold
-                       text-sm rounded-full px-3.5 py-1.5"
+            </div>
+
+            <div :if={@ledger_rows_empty?} class="p-8">
+              <.empty_state icon="hero-funnel" title="No entries match this filter" />
+            </div>
+
+            <div
+              id="ledger-rows"
+              phx-update="stream"
+              class={["divide-y divide-slate-100", @ledger_rows_empty? && "hidden"]}
+            >
+              <div
+                :for={{dom_id, entry} <- @streams.ledger_rows}
+                id={dom_id}
+                class="flex items-center justify-between px-5 py-4"
               >
-                <.icon name="hero-clock" class="size-3.5" /> Settling
-              </span>
-              <span
-                :if={entry.status == :paid}
-                class="inline-flex items-center gap-1.5 bg-green-50 text-green-700 font-bold
-                       text-sm rounded-full px-3.5 py-1.5"
-              >
-                <.icon name="hero-check" class="size-3.5" /> Paid
-              </span>
-              <span
-                :if={entry.status == :voided}
-                class="inline-flex items-center gap-1.5 bg-slate-100 text-slate-500 font-bold
-                       text-sm rounded-full px-3.5 py-1.5"
-              >
-                <.icon name="hero-x-circle" class="size-3.5" /> Voided — order refunded
-              </span>
+                <div>
+                  <p
+                    id={"ledger-amount-#{entry.id}"}
+                    class={["text-lg font-extrabold", row_amount_class(entry)]}
+                  >
+                    {format_price(entry.amount_owed, "GHS")}
+                  </p>
+                  <p class="text-xs text-slate-400">
+                    <%= cond do %>
+                      <% entry.status == :paid -> %>
+                        Paid {format_date(entry.paid_at) && "on #{format_date(entry.paid_at)}"}
+                      <% entry.status == :voided -> %>
+                        Voided
+                      <% true -> %>
+                        {format_date(entry.inserted_at)}
+                    <% end %>
+                  </p>
+                </div>
+
+                <button
+                  :if={entry.status == :owed and entry.settlement_source == :manual}
+                  phx-click="mark_paid"
+                  phx-value-id={entry.id}
+                  class="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white
+                         font-semibold text-sm rounded-control px-5 py-2.5 transition-colors"
+                >
+                  <.icon name="hero-check" class="size-4" /> Mark Paid
+                </button>
+                <span
+                  :if={entry.status == :owed and entry.settlement_source != :manual}
+                  class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 font-bold
+                         text-sm rounded-full px-3.5 py-1.5"
+                >
+                  <.icon name="hero-clock" class="size-3.5" /> Settling — Makola pays them directly
+                </span>
+                <span
+                  :if={entry.status == :paid}
+                  class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 font-bold
+                         text-sm rounded-full px-3.5 py-1.5"
+                >
+                  <.icon name="hero-check" class="size-3.5" /> Paid
+                </span>
+                <span
+                  :if={entry.status == :voided}
+                  class="inline-flex items-center gap-1.5 bg-slate-100 text-slate-500 font-bold
+                         text-sm rounded-full px-3.5 py-1.5"
+                >
+                  <.icon name="hero-x-circle" class="size-3.5" /> Voided — order refunded
+                </span>
+              </div>
             </div>
           </div>
         </div>

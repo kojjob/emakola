@@ -43,6 +43,7 @@ defmodule Emakola.Payments do
       define(:mark_payment_split_paid_out, action: :mark_paid_out)
       define(:release_payment_split_from_payout, action: :release_from_payout)
       define(:list_payment_splits_by_payout, action: :by_payout, args: [:payout_id])
+      define(:list_remediation_splits, action: :needs_remediation)
     end
 
     resource Emakola.Payments.Payout do
@@ -54,6 +55,8 @@ defmodule Emakola.Payments do
       define(:mark_payout_reversed, action: :mark_reversed)
       define(:list_payouts_by_store, action: :by_store, args: [:store_id])
       define(:list_recent_payouts, action: :list_recent)
+      define(:list_store_payouts, action: :recent_by_store, args: [:store_id])
+      define(:update_payout_metadata, action: :stamp_approval_ref, args: [:metadata])
 
       define(:get_payout_by_transfer_reference,
         action: :by_transfer_reference,
