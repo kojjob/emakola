@@ -382,6 +382,25 @@ defmodule Emakola.Payments.PaymentSplit do
       prepare(build(sort: [inserted_at: :asc]))
     end
 
+    # Recipient-scoped earnings history for the money-surfaces UI: every
+    # allocation this store has settled, including reversals — the narrative
+    # shows what happened, and the LiveView computes net via
+    # `frozen_paid_amount/1` from these same rows (no separate SQL aggregate).
+    # Bounded to the 100 most recent rows; the feed can paginate later if this
+    # cap is ever hit in practice.
+    read :earnings_by_recipient do
+      argument(:recipient_store_id, :uuid, allow_nil?: false)
+
+      filter(
+        expr(
+          recipient_store_id == ^arg(:recipient_store_id) and role != :platform and
+            status in [:settled, :partially_reversed, :reversed]
+        )
+      )
+
+      prepare(build(sort: [inserted_at: :desc], limit: 100))
+    end
+
     # Claims an internal allocation into a payout. Freezes the net at claim
     # time (paid_amount) and fences already-netted reversals out of future
     # recovery (netted_reversal_amount) — see the no-double-claw invariant.
