@@ -87,4 +87,22 @@ defmodule Emakola.Platform.FinanceStatsInternalTest do
     row = Enum.find(FinanceStats.per_store_finance(), &(&1.store.id == store.id))
     assert row.payouts_ready? == true
   end
+
+  test "per_store_finance/0 keeps the legacy and internal (ledger) amounts separate, not just summed" do
+    store = Factory.create_store!()
+
+    store
+    |> Factory.create_payment!(%{amount: 80_000})
+    |> Ash.Changeset.for_update(:mark_success, %{})
+    |> Ash.update!(authorize?: false)
+
+    payment = Factory.create_payment!(store, %{amount: 20_000})
+    internal_split!(store, payment, %{amount: 15_000})
+
+    row = Enum.find(FinanceStats.per_store_finance(), &(&1.store.id == store.id))
+
+    assert row.legacy_owed == 80_000
+    assert row.internal_owed == 15_000
+    assert row.outstanding_owed == 95_000
+  end
 end

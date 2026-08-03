@@ -70,7 +70,7 @@ defmodule EmakolaWeb.Platform.FinanceLiveInternalTest do
 
     html =
       view
-      |> element("button[phx-value-store_id='#{store.id}']")
+      |> element("button[phx-click='approve_payout'][phx-value-store_id='#{store.id}']")
       |> render_click()
 
     assert html =~ "queued" or html =~ "Payout"
@@ -116,7 +116,7 @@ defmodule EmakolaWeb.Platform.FinanceLiveInternalTest do
 
     html =
       view
-      |> element("button[phx-value-store_id='#{store.id}']")
+      |> element("button[phx-click='approve_payout'][phx-value-store_id='#{store.id}']")
       |> render_click()
 
     refute html =~ "Nothing outstanding"
@@ -131,5 +131,82 @@ defmodule EmakolaWeb.Platform.FinanceLiveInternalTest do
 
     page = Emakola.Accounts.list_platform_audit_logs!(authorize?: false, page: [limit: 200])
     assert Enum.any?(page.results, &(&1.action == :payout_approved and &1.actor_id == user.id))
+  end
+
+  test "basis renders as a pill label ('Gateway'/'Ledger'), never the raw atom", %{conn: conn} do
+    store = Factory.create_store!(%{name: "Basis Pill Co"})
+    momo_account!(store)
+    success_payment!(store, %{amount: 80_000})
+
+    split_payment = Factory.create_payment!(store, %{amount: 20_000})
+    settled_internal_split!(store, split_payment, %{amount: 15_000})
+
+    {:ok, view, _html} = live(conn, ~p"/platform/finance")
+
+    html =
+      view
+      |> element("button[phx-click='approve_payout'][phx-value-store_id='#{store.id}']")
+      |> render_click()
+
+    assert html =~ "Gateway"
+    assert html =~ "Ledger"
+    refute html =~ ":payments"
+    refute html =~ ":allocations"
+  end
+
+  test "recent payouts sharing an approval_ref render grouped under one shared ref badge",
+       %{conn: conn} do
+    store = Factory.create_store!(%{name: "Grouping Co"})
+    momo_account!(store)
+    success_payment!(store, %{amount: 80_000})
+
+    split_payment = Factory.create_payment!(store, %{amount: 20_000})
+    settled_internal_split!(store, split_payment, %{amount: 15_000})
+
+    {:ok, view, _html} = live(conn, ~p"/platform/finance")
+
+    html =
+      view
+      |> element("button[phx-click='approve_payout'][phx-value-store_id='#{store.id}']")
+      |> render_click()
+
+    payouts = Emakola.Payments.list_payouts_by_store!(store.id, authorize?: false)
+    assert length(payouts) == 2
+    assert [ref] = payouts |> Enum.map(& &1.metadata["approval_ref"]) |> Enum.uniq()
+    refute is_nil(ref)
+
+    # The shared ref badge renders exactly once even though it groups two rows.
+    occurrences = html |> String.split(ref) |> length() |> Kernel.-(1)
+    assert occurrences == 1
+  end
+
+  test "a per-store row expands to show legacy vs ledger amounts, and the confirm names both",
+       %{conn: conn} do
+    store = Factory.create_store!(%{name: "Expand Co"})
+    momo_account!(store)
+    success_payment!(store, %{amount: 80_000})
+
+    split_payment = Factory.create_payment!(store, %{amount: 20_000})
+    settled_internal_split!(store, split_payment, %{amount: 15_000})
+
+    {:ok, view, _html} = live(conn, ~p"/platform/finance")
+
+    refute has_element?(view, "#store-breakdown-#{store.id}")
+
+    html =
+      view
+      |> element("button[phx-click='toggle_store_breakdown'][phx-value-store_id='#{store.id}']")
+      |> render_click()
+
+    assert has_element?(view, "#store-breakdown-#{store.id}")
+    assert html =~ "GH₵ 800"
+    assert html =~ "GH₵ 150"
+
+    approve_button =
+      element(view, "button[phx-click='approve_payout'][phx-value-store_id='#{store.id}']")
+
+    confirm_html = render(approve_button)
+    assert confirm_html =~ "GH₵ 800"
+    assert confirm_html =~ "GH₵ 150"
   end
 end

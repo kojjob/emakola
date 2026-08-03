@@ -51,32 +51,57 @@ defmodule Emakola.Platform.FinanceStats do
   Per-store finance rows — one per store with fees or an outstanding balance,
   sorted by outstanding owed (descending — the manual-payout worklist).
 
-  Each row: `%{store, fees_collected, outstanding_owed, payouts_ready?}`.
+  Each row: `%{store, fees_collected, outstanding_owed, legacy_owed,
+  internal_owed, payouts_ready?}`. `legacy_owed` (un-split payments basis) and
+  `internal_owed` (ledger/allocations basis) are kept separate — not just
+  summed into `outstanding_owed` — so a caller can show the dual-basis
+  breakdown before approving a payout.
   """
   def per_store_finance do
     fees_by_store = sum_by_store(platform_fee_splits(), &net_amount/1)
+    legacy_by_store = sum_by_store(unsplit_success_payments(), &payable_amount/1)
 
-    owed_by_store =
-      Map.merge(
-        sum_by_store(unsplit_success_payments(), &payable_amount/1),
-        sum_by_store_key(payable_internal_splits(), & &1.recipient_store_id, &payable_net/1),
-        fn _k, a, b -> a + b end
+    internal_by_store =
+      sum_by_store_key(payable_internal_splits(), & &1.recipient_store_id, &payable_net/1)
+
+    store_ids =
+      Enum.uniq(
+        Map.keys(fees_by_store) ++ Map.keys(legacy_by_store) ++ Map.keys(internal_by_store)
       )
 
-    store_ids = Enum.uniq(Map.keys(fees_by_store) ++ Map.keys(owed_by_store))
     stores = load_stores(store_ids)
 
     store_ids
     |> Enum.map(fn id ->
+      legacy = Map.get(legacy_by_store, id, 0)
+      internal = Map.get(internal_by_store, id, 0)
+
       %{
         store: Map.get(stores, id),
         fees_collected: Map.get(fees_by_store, id, 0),
-        outstanding_owed: Map.get(owed_by_store, id, 0),
+        outstanding_owed: legacy + internal,
+        legacy_owed: legacy,
+        internal_owed: internal,
         payouts_ready?: Emakola.Payments.PayoutService.momo_destination?(id)
       }
     end)
     |> Enum.filter(& &1.store)
     |> Enum.sort_by(& &1.outstanding_owed, :desc)
+  end
+
+  @doc """
+  Splits flagged for manual remediation (`PaymentSplit.needs_remediation` —
+  `release_from_payout` stamped `recovery_breakdown["unreclaimable_release"]`)
+  with their recipient store resolved, newest-flagged first — the platform
+  finance page's "Needs remediation" worklist.
+
+  Each row: `%{split, store}`.
+  """
+  def remediation_splits do
+    {:ok, splits} = Emakola.Payments.list_remediation_splits(authorize?: false)
+    stores = splits |> Enum.map(& &1.recipient_store_id) |> Enum.uniq() |> load_stores()
+
+    Enum.map(splits, &%{split: &1, store: Map.get(stores, &1.recipient_store_id)})
   end
 
   # ── helpers ────────────────────────────────────────────────────────

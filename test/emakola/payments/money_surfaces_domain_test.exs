@@ -192,7 +192,7 @@ defmodule Emakola.Payments.MoneySurfacesDomainTest do
       {:ok, view, _html} = live(conn, ~p"/platform/finance")
 
       view
-      |> element("button[phx-value-store_id='#{store.id}']")
+      |> element("button[phx-click='approve_payout'][phx-value-store_id='#{store.id}']")
       |> render_click()
 
       payouts = Payments.list_payouts_by_store!(store.id, authorize?: false)
