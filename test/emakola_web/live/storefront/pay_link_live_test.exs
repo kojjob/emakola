@@ -197,6 +197,61 @@ defmodule EmakolaWeb.Storefront.PayLinkLiveTest do
     assert payment.payout_hold_reason == "buyer_protection"
   end
 
+  # -- Internal rail settlement (Phase 3 Task 5) --
+  #
+  # Mirrors checkout_live_test.exs's "internal rail settlement" test: an
+  # unverified store (the module's stores here never call verified_payout!)
+  # hits OrderSettlement.prepare/2's :internal fallback, and PayLinkLive's
+  # initiate_payment/3 (identical maybe_attach_split/2 + split_mode/1 helpers,
+  # copied verbatim from CheckoutLive per that module's own comment) carries
+  # it through with zero code changes.
+  test "unverified store's pay-link charge lands entirely on the internal rail", %{conn: conn} do
+    store = Emakola.Factory.create_store!()
+    link = custom_link!(store)
+
+    original = Application.get_env(:emakola, :payment_gateway)
+    Application.put_env(:emakola, :payment_gateway, Emakola.Payments.GatewayMock)
+    on_exit(fn -> Application.put_env(:emakola, :payment_gateway, original) end)
+
+    expect(Emakola.Payments.GatewayMock, :initiate_payment, fn params ->
+      assert params[:split] in [nil, []]
+      {:ok, %{reference: "PAY-internal-ref", authorization_url: "https://pay.test/internal"}}
+    end)
+
+    {:ok, view, _html} = live(conn, "/pay/#{link.code}")
+    Mox.allow(Emakola.Payments.GatewayMock, self(), view.pid)
+
+    view
+    |> form("#pay-link-form", %{
+      "buyer" => %{"name" => "Ama Mensah", "phone" => "0201234567"}
+    })
+    |> render_submit()
+
+    [order] =
+      Emakola.Orders.Order
+      |> Ash.Query.filter(pay_link_id == ^link.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+
+    payment =
+      Emakola.Payments.Payment
+      |> Ash.Query.filter(order_id == ^order.id)
+      |> Ash.read!(authorize?: false, tenant: store.id)
+      |> List.first()
+
+    assert payment.split_mode == :internal
+
+    {:ok, splits} =
+      Emakola.Payments.PaymentSplit
+      |> Ash.Query.for_read(:by_payment, %{payment_id: payment.id})
+      |> Ash.read(authorize?: false)
+
+    assert splits != [], "Expected internal-rail allocations to be recorded"
+    assert Enum.all?(splits, &(&1.settlement_method == :internal_hold))
+
+    sum_splits = Enum.sum(Enum.map(splits, & &1.amount))
+    assert sum_splits == order.total
+  end
+
   test "invalid phone renders a friendly error and creates no order", %{conn: conn} do
     store = Emakola.Factory.create_store!()
     link = custom_link!(store)
