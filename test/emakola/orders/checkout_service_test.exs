@@ -172,6 +172,132 @@ defmodule Emakola.Orders.CheckoutServiceTest do
     end
   end
 
+  # -- Task 3 (supplier-stock-truth): live supplier stock validation --
+  # The reseller listing variant's `available` flag is a boolean synced
+  # asynchronously by SupplierStockSyncWorker — it can't express "customer
+  # wants 5, supplier has 2". Checkout must consult the live source-variant
+  # stock for network (dropship) items, not just the boolean flag.
+
+  describe "network stock validation" do
+    setup do
+      {wholesaler_actor, wholesaler} = create_merchant_with_store!(%{name: "Stock Wholesaler"})
+      {reseller_actor, reseller} = create_merchant_with_store!(%{name: "Stock Reseller"})
+
+      {:ok, connection} =
+        Network.request(wholesaler_actor, %{
+          wholesaler_store_id: wholesaler.id,
+          reseller_store_id: reseller.id,
+          requested_by_store_id: wholesaler.id
+        })
+
+      {:ok, _active} = Network.approve(reseller_actor, connection)
+
+      %{
+        wholesaler_actor: wholesaler_actor,
+        wholesaler: wholesaler,
+        reseller_actor: reseller_actor,
+        reseller: reseller
+      }
+    end
+
+    test "supplier stock below the requested quantity blocks checkout even though the flag reads available",
+         ctx do
+      %{reseller_variant: reseller_variant} = import_network_variant!(ctx, 2)
+
+      items = [%{variant_id: reseller_variant.id, quantity: 5}]
+
+      assert {:error, :insufficient_stock} =
+               Emakola.Orders.CheckoutService.checkout!(ctx.reseller.id, items, [])
+    end
+
+    test "supplier stock covering the requested quantity succeeds", ctx do
+      %{reseller_variant: reseller_variant} = import_network_variant!(ctx, 2)
+
+      items = [%{variant_id: reseller_variant.id, quantity: 2}]
+
+      assert {:ok, _order} =
+               Emakola.Orders.CheckoutService.checkout!(ctx.reseller.id, items, [])
+    end
+
+    test "stale flag: reseller variant reads available but the live source is out of stock",
+         ctx do
+      %{reseller_variant: reseller_variant, source_variant: source_variant} =
+        import_network_variant!(ctx, 5)
+
+      # Supplier stock drops to zero without the async sync worker having run
+      # yet — the reseller variant's `available` flag is still true.
+      source_variant
+      |> Ash.Changeset.for_update(:adjust_stock, %{delta: -5})
+      |> Ash.update!(authorize?: false)
+
+      assert reload_variant(source_variant).stock_quantity == 0
+      assert reload_variant(reseller_variant).available == true
+
+      items = [%{variant_id: reseller_variant.id, quantity: 1}]
+
+      assert {:error, :insufficient_stock} =
+               Emakola.Orders.CheckoutService.checkout!(ctx.reseller.id, items, [])
+    end
+
+    test "unmapped supplier-linked variant (manual off-platform supplier) keeps flag-only behaviour",
+         ctx do
+      product = create_product!(ctx.reseller, status: :active, title: "Manual Dropship")
+      supplier = create_supplier!(ctx.reseller)
+
+      orphan_variant =
+        create_variant!(product, ctx.reseller,
+          supplier_id: supplier.id,
+          available: true,
+          track_inventory: false,
+          stock_quantity: 0
+        )
+
+      items = [%{variant_id: orphan_variant.id, quantity: 5}]
+
+      assert {:ok, _order} =
+               Emakola.Orders.CheckoutService.checkout!(ctx.reseller.id, items, [])
+    end
+  end
+
+  # Real network flow (Offers -> publish -> ListingImporter), mirroring
+  # NetworkStockTest's fixture — a genuine ResellerListingVariant/offer chain
+  # is required so `load_source_variants/1` has a mapping to batch-load.
+  defp import_network_variant!(ctx, source_stock_quantity) do
+    product = create_product!(ctx.wholesaler, status: :active, title: "Kente Sandals")
+
+    source_variant =
+      create_variant!(product, ctx.wholesaler,
+        price: 6_000,
+        sku: "SRC-#{System.unique_integer([:positive])}",
+        stock_quantity: source_stock_quantity
+      )
+
+    {:ok, offer} =
+      Offers.create_draft(ctx.wholesaler_actor, %{
+        wholesaler_store_id: ctx.wholesaler.id,
+        source_product_id: product.id,
+        earning_model: :markup
+      })
+
+    {:ok, _terms} =
+      Offers.add_variant(ctx.wholesaler_actor, offer, %{
+        source_variant_id: source_variant.id,
+        supplier_price: 4_000,
+        suggested_retail_price: 5_000,
+        max_retail_price: 5_800
+      })
+
+    {:ok, published} = Offers.publish(ctx.wholesaler_actor, offer)
+    {:ok, listing} = ListingImporter.import(ctx.reseller_actor, ctx.reseller.id, published)
+
+    [reseller_variant | _] = listing.reseller_product.variants
+
+    %{source_variant: source_variant, reseller_variant: reseller_variant}
+  end
+
+  defp reload_variant(variant),
+    do: Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false)
+
   # -- C1 regression: stock error classification ----------------------
   # Before the C1 fix, ANY Ash.Error.Invalid caught in run_checkout/4 was
   # mapped to {:error, :insufficient_stock}. This tested the pure
