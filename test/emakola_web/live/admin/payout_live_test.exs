@@ -150,7 +150,8 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
       |> Ash.Changeset.for_update(:release, %{release_reason: :staff})
       |> Ash.update!(authorize?: false)
 
-      {:ok, _view, html} = live(conn, ~p"/admin/payouts")
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+      html = render_async(view)
 
       assert html =~ "Held by Buyer Protection"
       assert html =~ Currency.format_price(33_000, store.currency || "GHS")
@@ -158,7 +159,8 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
     end
 
     test "shows zero when the store has no holds", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/admin/payouts")
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+      html = render_async(view)
 
       assert html =~ "Held by Buyer Protection"
       assert html =~ Currency.format_price(0, "GHS")
@@ -219,6 +221,189 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
 
       assert html =~ Currency.format_price(0, store.currency || "GHS")
       refute html =~ "waiting — add your mobile money number"
+    end
+  end
+
+  # -- Money picture: skeleton / failure / populated tiles / breakdown /
+  # history (Task 2 — money-surfaces PR-1) --
+
+  describe "money picture — loading" do
+    test "while the money async is pending, tiles show a skeleton and no zero", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/admin/payouts")
+
+      assert html =~ "payout-money-loading"
+      refute html =~ "0.00"
+      refute html =~ Currency.currency_symbol("GHS")
+    end
+  end
+
+  describe "money picture — failure" do
+    # Arranging a genuine `assign_async` failure through the full mount/live
+    # pipeline isn't cheaply reachable here: every read `load_money/1` calls
+    # (list_payable_internal_splits, held_net_total, outstanding_payments,
+    # list_store_payouts) tolerates a nonexistent store_id by returning empty
+    # results rather than raising — there's no FK-existence check on a
+    # tenant-scoped filter — and the project has no stub/mock seam for these
+    # plain Ash domain calls (Mox only covers gateway behaviours). Per the
+    # brief's pre-authorized fallback, we render the failed-clause markup
+    # directly with a hand-built `AsyncResult.failed/2` assign — the same
+    # escape hatch Task 1 used for its unstampable-payout branch.
+    test "a failed money load renders a dash treatment, never a zero" do
+      assigns = %{
+        account: nil,
+        method: "mobile_money",
+        currency: "GHS",
+        money: Phoenix.LiveView.AsyncResult.failed(Phoenix.LiveView.AsyncResult.loading(), :boom)
+      }
+
+      html =
+        assigns
+        |> EmakolaWeb.Admin.PayoutLive.render()
+        |> rendered_to_string()
+
+      assert html =~ "Couldn't load"
+      assert html =~ "—"
+      refute html =~ "0.00"
+    end
+  end
+
+  describe "money picture — populated tiles" do
+    test "accrued, held, and legacy amounts render under distinct test-ids", %{
+      conn: conn,
+      store: store
+    } do
+      accrued_payment = Emakola.Factory.create_payment!(store)
+      settled_internal_split!(store, accrued_payment, %{amount: 12_000})
+
+      order = Emakola.Factory.create_order!(store)
+      held_payment = Emakola.Factory.create_payment!(store, %{order_id: order.id})
+      create_protection_hold!(store, held_payment, %{amount: 25_000, fee: 1_000, net: 24_000})
+
+      Emakola.Factory.create_payment!(store, %{amount: 30_000})
+      |> Ash.Changeset.for_update(:mark_success, %{})
+      |> Ash.update!(authorize?: false)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+      render_async(view)
+
+      assert view |> element("#payout-tile-accrued") |> render() =~
+               Currency.format_price(12_000, store.currency || "GHS")
+
+      assert view |> element("#payout-tile-held") |> render() =~
+               Currency.format_price(24_000, store.currency || "GHS")
+
+      assert view |> element("#payout-tile-legacy") |> render() =~
+               Currency.format_price(30_000, store.currency || "GHS")
+    end
+  end
+
+  describe "money picture — breakdown card" do
+    test "lists per-role rows with counts from splits of two or more roles", %{
+      conn: conn,
+      store: store
+    } do
+      payment_a = Emakola.Factory.create_payment!(store)
+      settled_internal_split!(store, payment_a, %{role: :merchant, amount: 5_000})
+
+      payment_b = Emakola.Factory.create_payment!(store)
+      settled_internal_split!(store, payment_b, %{role: :wholesaler, amount: 7_000})
+
+      payment_c = Emakola.Factory.create_payment!(store)
+      settled_internal_split!(store, payment_c, %{role: :wholesaler, amount: 9_000})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+      render_async(view)
+
+      breakdown_html = view |> element("#payout-breakdown") |> render()
+
+      assert breakdown_html =~ "Your sales"
+      assert breakdown_html =~ "1 order"
+      assert breakdown_html =~ "Resales of your stock"
+      assert breakdown_html =~ "2 orders"
+    end
+  end
+
+  describe "money picture — payout history" do
+    test "shows a seeded payout with basis and status pills", %{conn: conn, store: store} do
+      {:ok, payout} =
+        Emakola.Payments.create_payout(
+          %{
+            store_id: store.id,
+            amount: 42_000,
+            currency: "GHS",
+            transfer_reference: "PO-#{Ecto.UUID.generate()}",
+            basis: :allocations
+          },
+          authorize?: false
+        )
+
+      {:ok, _payout} = Emakola.Payments.mark_payout_paid(payout, %{}, authorize?: false)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/payouts")
+      render_async(view)
+
+      history_html = view |> element("#payout-history") |> render()
+
+      assert history_html =~ Currency.format_price(42_000, store.currency || "GHS")
+      assert history_html =~ "Ledger"
+      assert history_html =~ "Paid"
+    end
+  end
+
+  describe "money picture — destination notice states" do
+    test "no destination on file shows the add-details copy", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/admin/payouts")
+
+      assert html =~ "Add your mobile money or bank details below"
+      refute html =~ "enables payouts in your region"
+    end
+
+    test "a saved but unverified destination shows the saved-no-subaccount copy", %{
+      conn: conn,
+      store: store
+    } do
+      {:ok, _account} =
+        Stores.create_payout_account(
+          %{
+            store_id: store.id,
+            payout_destination: %{
+              "method" => "mobile_money",
+              "provider" => "mtn",
+              "number" => "0240000000",
+              "account_name" => "Ama Trades"
+            }
+          },
+          authorize?: false
+        )
+
+      {:ok, _view, html} = live(conn, ~p"/admin/payouts")
+
+      assert html =~ "enables payouts in your region"
+      refute html =~ "Your payout destination is verified"
+    end
+
+    test "a verified destination shows the verified copy", %{conn: conn, store: store} do
+      {:ok, account} =
+        Stores.create_payout_account(
+          %{
+            store_id: store.id,
+            payout_destination: %{
+              "method" => "mobile_money",
+              "provider" => "mtn",
+              "number" => "0240000000",
+              "account_name" => "Ama Trades"
+            }
+          },
+          authorize?: false
+        )
+
+      {:ok, _account} =
+        Stores.record_payout_subaccount(account, %{subaccount_code: "SUB_123"}, authorize?: false)
+
+      {:ok, _view, html} = live(conn, ~p"/admin/payouts")
+
+      assert html =~ "Your payout destination is verified"
+      refute html =~ "Payout details saved."
     end
   end
 

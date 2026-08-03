@@ -10,6 +10,12 @@ defmodule EmakolaWeb.Admin.PayoutLive do
   asynchronously (revenue rails, slice 1) — the gateway call never blocks the
   save and retries on transient failure. Platform fee / money movement on normal
   orders is slice 2.
+
+  Also the merchant's full money picture (money-surfaces PR-1): accrued
+  internal balance, held-by-protection, legacy (un-split) outstanding, a
+  per-role accrual breakdown, and recent payout history — loaded together in
+  one `assign_async` so the page never shows a mix of loaded and unloaded
+  numbers, and never a misleading zero while an amount is still loading.
   """
   use EmakolaWeb, :live_view
 
@@ -20,6 +26,10 @@ defmodule EmakolaWeb.Admin.PayoutLive do
   alias Emakola.Payments.Workers.SubaccountCreationWorker
   alias Emakola.Stores
   alias EmakolaWeb.Helpers.Currency
+
+  # Fixed display order for the accrual breakdown card, independent of
+  # whichever roles happen to have splits.
+  @role_order [:merchant, :wholesaler, :dropshipper, :credit_partner]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -34,30 +44,74 @@ defmodule EmakolaWeb.Admin.PayoutLive do
          |> assign(:active_nav, :payouts)
          |> assign(:account, account)
          |> assign(:method, current_method(account))
-         |> assign(:held_net_total, ProtectionHolds.held_net_total(store.id))
-         |> assign_async(:accrued_balance, fn -> load_accrued_balance(store_id) end)}
+         |> assign(:currency, store.currency || "GHS")
+         |> assign_async(:money, fn -> load_money(store_id) end)}
 
       _ ->
         {:ok, push_navigate(socket, to: ~p"/dashboard")}
     end
   end
 
-  # ── Accrued internal balance + MoMo nudge ──────────────────────
+  # ── The money picture: accrued + held + legacy outstanding + breakdown + history ──
+  #
+  # One combined async — every number and row on this page comes from the same
+  # load, so none of them can show a stale mix of loaded/unloaded state against
+  # the others.
 
-  defp load_accrued_balance(store_id) do
+  defp load_money(store_id) do
     {:ok, splits} = Payments.list_payable_internal_splits(store_id, authorize?: false)
 
-    amount = splits |> Enum.map(&PaymentSplit.frozen_paid_amount/1) |> Enum.sum()
-    nudge? = amount > 0 and not PayoutService.momo_destination?(store_id)
+    accrued = splits |> Enum.map(&PaymentSplit.frozen_paid_amount/1) |> Enum.sum()
+    nudge? = accrued > 0 and not PayoutService.momo_destination?(store_id)
 
-    {:ok, %{accrued_balance: %{amount: amount, nudge?: nudge?}}}
+    held = ProtectionHolds.held_net_total(store_id)
+
+    legacy =
+      store_id
+      |> PayoutService.outstanding_payments()
+      |> Enum.map(&(&1.payable_amount || &1.amount))
+      |> Enum.sum()
+
+    {:ok, history} = Payments.list_store_payouts(store_id, authorize?: false)
+
+    {:ok,
+     %{
+       money: %{
+         accrued: accrued,
+         nudge?: nudge?,
+         held: held,
+         legacy: legacy,
+         breakdown: breakdown_by_role(splits),
+         history: history
+       }
+     }}
   end
 
-  defp accrued_balance_amount(%{ok?: true, result: %{amount: amount}}), do: amount
-  defp accrued_balance_amount(_async_result), do: 0
+  # Per-role rows for the breakdown card — count + oldest accrual age, from
+  # the same splits already loaded above (zero new queries).
+  defp breakdown_by_role(splits) do
+    by_role = Enum.group_by(splits, & &1.role)
 
-  defp accrued_balance_nudge?(%{ok?: true, result: %{nudge?: nudge?}}), do: nudge?
-  defp accrued_balance_nudge?(_async_result), do: false
+    @role_order
+    |> Enum.filter(&Map.has_key?(by_role, &1))
+    |> Enum.map(fn role ->
+      group = Map.fetch!(by_role, role)
+      oldest = Enum.min_by(group, & &1.inserted_at, DateTime)
+
+      %{role: role, count: length(group), oldest_inserted_at: oldest.inserted_at}
+    end)
+  end
+
+  defp role_label(:merchant), do: "Your sales"
+  defp role_label(:wholesaler), do: "Resales of your stock"
+  defp role_label(:dropshipper), do: "Dropship margin"
+  defp role_label(:credit_partner), do: "Credit repayment"
+
+  defp order_word(1), do: "order"
+  defp order_word(_), do: "orders"
+
+  defp format_payout_date(%DateTime{} = dt), do: Calendar.strftime(dt, "%b %d, %Y")
+  defp format_payout_date(_), do: "—"
 
   @impl true
   def handle_event("validate", %{"payout" => %{"method" => method}}, socket) do
@@ -172,43 +226,181 @@ defmodule EmakolaWeb.Admin.PayoutLive do
         </p>
       </header>
 
-      <div class="mb-6">
-        <.stat_card
-          label="Accrued balance"
-          value={
-            Currency.format_price(
-              accrued_balance_amount(@accrued_balance),
-              @current_store.currency || "GHS"
-            )
-          }
-          icon_bg="bg-emerald-50"
-        >
-          <:icon><.icon name="hero-banknotes" class="w-[18px] h-[18px] text-emerald-600" /></:icon>
-        </.stat_card>
-        <div
-          :if={accrued_balance_nudge?(@accrued_balance)}
-          class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
-        >
-          Your balance is waiting — add your mobile money number to get paid out.
+      <.async_result :let={money} assign={@money}>
+        <:loading>
+          <div id="payout-money-loading" class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div id="payout-tile-accrued">
+              <.money_tile
+                label="Accrued balance"
+                icon="hero-banknotes"
+                icon_class="text-emerald-600"
+                icon_bg="bg-emerald-50"
+                state={:loading}
+              />
+            </div>
+            <div id="payout-tile-held">
+              <.money_tile
+                label="Held by Buyer Protection"
+                icon="hero-lock-closed"
+                icon_class="text-amber-600"
+                icon_bg="bg-amber-50"
+                state={:loading}
+              />
+            </div>
+            <div id="payout-tile-legacy">
+              <.money_tile
+                label="Legacy outstanding"
+                icon="hero-clock"
+                icon_class="text-slate-600"
+                icon_bg="bg-slate-100"
+                state={:loading}
+              />
+            </div>
+          </div>
+        </:loading>
+        <:failed>
+          <div id="payout-money-failed" class="mb-6 space-y-3">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div id="payout-tile-accrued">
+                <.money_tile
+                  label="Accrued balance"
+                  icon="hero-banknotes"
+                  icon_class="text-emerald-600"
+                  icon_bg="bg-emerald-50"
+                  state={:failed}
+                />
+              </div>
+              <div id="payout-tile-held">
+                <.money_tile
+                  label="Held by Buyer Protection"
+                  icon="hero-lock-closed"
+                  icon_class="text-amber-600"
+                  icon_bg="bg-amber-50"
+                  state={:failed}
+                />
+              </div>
+              <div id="payout-tile-legacy">
+                <.money_tile
+                  label="Legacy outstanding"
+                  icon="hero-clock"
+                  icon_class="text-slate-600"
+                  icon_bg="bg-slate-100"
+                  state={:failed}
+                />
+              </div>
+            </div>
+            <p class="text-sm text-slate-500">
+              Couldn't load your payout numbers. Refresh the page to try again.
+            </p>
+          </div>
+        </:failed>
+
+        <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div id="payout-tile-accrued">
+            <.money_tile
+              label="Accrued balance"
+              value={Currency.format_price(money.accrued, @currency)}
+              icon="hero-banknotes"
+              icon_class="text-emerald-600"
+              icon_bg="bg-emerald-50"
+            />
+            <div
+              :if={money.nudge?}
+              class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+            >
+              Your balance is waiting — add your mobile money number to get paid out.
+            </div>
+          </div>
+          <div id="payout-tile-held">
+            <.money_tile
+              label="Held by Buyer Protection"
+              value={Currency.format_price(money.held, @currency)}
+              icon="hero-lock-closed"
+              icon_class="text-amber-600"
+              icon_bg="bg-amber-50"
+            />
+          </div>
+          <div id="payout-tile-legacy">
+            <.money_tile
+              label="Legacy outstanding"
+              value={Currency.format_price(money.legacy, @currency)}
+              icon="hero-clock"
+              icon_class="text-slate-600"
+              icon_bg="bg-slate-100"
+            />
+          </div>
         </div>
-      </div>
 
-      <div class="mb-6">
-        <.stat_card
-          label="Held by Buyer Protection"
-          value={Currency.format_price(@held_net_total, @current_store.currency || "GHS")}
-          icon_bg="bg-emerald-50"
+        <div
+          :if={money.breakdown != []}
+          id="payout-breakdown"
+          class="mb-6 rounded-lg border border-slate-200 bg-white p-5"
         >
-          <:icon><.icon name="hero-shield-check" class="w-[18px] h-[18px] text-emerald-600" /></:icon>
-        </.stat_card>
-      </div>
+          <h2 class="mb-3 text-sm font-semibold text-slate-700">Balance breakdown</h2>
+          <div
+            :for={row <- money.breakdown}
+            class="flex items-center justify-between border-b border-slate-100 py-2 last:border-0"
+          >
+            <span class="text-sm text-slate-700">{role_label(row.role)}</span>
+            <span class="text-xs text-slate-500">
+              {row.count} {order_word(row.count)} · oldest {Layouts.relative_time(
+                row.oldest_inserted_at
+              )} ago
+            </span>
+          </div>
+        </div>
 
-      <div
-        :if={@account}
-        class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
-      >
-        Payout details saved. You'll be able to receive payouts once Makola enables payouts in your region.
-      </div>
+        <div id="payout-history" class="mb-6">
+          <h2 class="mb-3 text-sm font-semibold text-slate-700">Payout history</h2>
+          <.empty_state
+            :if={money.history == []}
+            icon="hero-banknotes"
+            title="No payouts yet"
+            description="Once Makola issues your first payout, it'll show up here."
+          />
+          <div
+            :if={money.history != []}
+            class="overflow-x-auto rounded-lg border border-slate-200 bg-white"
+          >
+            <table class="min-w-full divide-y divide-slate-100">
+              <thead>
+                <tr class="text-left text-xs font-medium uppercase tracking-wide text-slate-400">
+                  <th class="px-4 py-2">Date</th>
+                  <th class="px-4 py-2">Amount</th>
+                  <th class="px-4 py-2">Basis</th>
+                  <th class="px-4 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={payout <- money.history} class="border-t border-slate-100">
+                  <td class="px-4 py-3 text-sm text-slate-500">
+                    {format_payout_date(payout.inserted_at)}
+                  </td>
+                  <td class="px-4 py-3 text-sm font-medium tabular-nums text-slate-900">
+                    {Currency.format_price(payout.amount, payout.currency)}
+                  </td>
+                  <td class="px-4 py-3">
+                    <.pill
+                      classes={basis_pill_classes(payout.basis)}
+                      dot={basis_pill_dot(payout.basis)}
+                      label={basis_pill_label(payout.basis)}
+                    />
+                  </td>
+                  <td class="px-4 py-3">
+                    <.pill
+                      classes={status_pill_classes(payout.status)}
+                      dot={status_pill_dot(payout.status)}
+                      label={status_pill_label(payout.status)}
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </.async_result>
+
+      <.destination_notice account={@account} />
 
       <form
         id="payout-form"
@@ -279,6 +471,116 @@ defmodule EmakolaWeb.Admin.PayoutLive do
     </section>
     """
   end
+
+  # ── Money tile: shares one stat_card shell across loading/failed/ok ──────
+
+  attr :label, :string, required: true
+  attr :value, :string, default: nil
+  attr :icon, :string, required: true
+  attr :icon_class, :string, required: true
+  attr :icon_bg, :string, required: true
+  attr :state, :atom, default: :ok, values: [:ok, :loading, :failed]
+
+  defp money_tile(%{state: :loading} = assigns) do
+    ~H"""
+    <.stat_card label={@label} value="" icon_bg={@icon_bg}>
+      <:icon><.icon name={@icon} class={["w-[18px] h-[18px]", @icon_class]} /></:icon>
+      <:delta>
+        <div class="mt-2 h-7 w-24 animate-pulse rounded bg-slate-200" aria-hidden="true"></div>
+        <span class="sr-only">Loading {@label}</span>
+      </:delta>
+    </.stat_card>
+    """
+  end
+
+  defp money_tile(%{state: :failed} = assigns) do
+    ~H"""
+    <.stat_card label={@label} value="—" icon_bg={@icon_bg}>
+      <:icon><.icon name={@icon} class={["w-[18px] h-[18px]", @icon_class]} /></:icon>
+    </.stat_card>
+    """
+  end
+
+  defp money_tile(assigns) do
+    ~H"""
+    <.stat_card label={@label} value={@value} icon_bg={@icon_bg}>
+      <:icon><.icon name={@icon} class={["w-[18px] h-[18px]", @icon_class]} /></:icon>
+    </.stat_card>
+    """
+  end
+
+  # ── Destination notice: state-driven copy, no fixed amber string ─────────
+
+  attr :account, :any, default: nil
+
+  defp destination_notice(%{account: nil} = assigns) do
+    ~H"""
+    <div class="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+      Add your mobile money or bank details below so we know where to send your money.
+    </div>
+    """
+  end
+
+  defp destination_notice(%{account: %{verification_status: :verified}} = assigns) do
+    ~H"""
+    <div class="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+      Your payout destination is verified. You'll receive payouts here once Makola enables payouts in your region.
+    </div>
+    """
+  end
+
+  defp destination_notice(assigns) do
+    ~H"""
+    <div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+      Payout details saved. You'll be able to receive payouts once Makola enables payouts in your region.
+    </div>
+    """
+  end
+
+  # ── Shared pill shell: basis ("Gateway"/"Ledger") and status pills ───────
+
+  attr :classes, :string, required: true
+  attr :dot, :string, required: true
+  attr :label, :string, required: true
+
+  defp pill(assigns) do
+    ~H"""
+    <span class={[
+      "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold",
+      @classes
+    ]}>
+      <span class={["h-1.5 w-1.5 rounded-full", @dot]}></span>
+      {@label}
+    </span>
+    """
+  end
+
+  defp basis_pill_classes(:allocations), do: "bg-teal-50 text-teal-700"
+  defp basis_pill_classes(_payments), do: "bg-indigo-50 text-indigo-700"
+
+  defp basis_pill_dot(:allocations), do: "bg-teal-500"
+  defp basis_pill_dot(_payments), do: "bg-indigo-500"
+
+  defp basis_pill_label(:allocations), do: "Ledger"
+  defp basis_pill_label(_payments), do: "Gateway"
+
+  defp status_pill_classes(:paid), do: "bg-emerald-50 text-emerald-700"
+  defp status_pill_classes(:processing), do: "bg-blue-50 text-blue-700"
+  defp status_pill_classes(:failed), do: "bg-rose-50 text-rose-700"
+  defp status_pill_classes(:reversed), do: "bg-amber-50 text-amber-700"
+  defp status_pill_classes(_pending), do: "bg-slate-100 text-slate-600"
+
+  defp status_pill_dot(:paid), do: "bg-emerald-500"
+  defp status_pill_dot(:processing), do: "bg-blue-500"
+  defp status_pill_dot(:failed), do: "bg-rose-500"
+  defp status_pill_dot(:reversed), do: "bg-amber-500"
+  defp status_pill_dot(_pending), do: "bg-slate-400"
+
+  defp status_pill_label(:paid), do: "Paid"
+  defp status_pill_label(:processing), do: "Processing"
+  defp status_pill_label(:failed), do: "Failed"
+  defp status_pill_label(:reversed), do: "Reversed"
+  defp status_pill_label(_pending), do: "Pending"
 
   attr :name, :string, required: true
   attr :label, :string, required: true
