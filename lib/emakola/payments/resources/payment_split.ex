@@ -493,5 +493,23 @@ defmodule Emakola.Payments.PaymentSplit do
       argument(:payout_id, :uuid, allow_nil?: false)
       filter(expr(payout_id == ^arg(:payout_id)))
     end
+
+    # Splits `release_from_payout` stamped as unreclaimable (fully reversed
+    # while claimed — see that action's comment) — finance's manual-remediation
+    # worklist. No args: this is a cross-store platform view.
+    #
+    # `recovery_breakdown["unreclaimable_release"] == true` (Ash bracket
+    # syntax) compiles but fails at the DB: AshPostgres's jsonb `get_path`
+    # returns text, so Postgrex rejects comparing it to the boolean `true`
+    # ("expected a binary, got true"). Falls back to a fragment casting the
+    # `->>` text extraction to boolean explicitly (mirrors the
+    # `PlatformAuditLog.list_for_store` jsonb-key fragment precedent).
+    read :needs_remediation do
+      filter(
+        expr(fragment("(? ->> 'unreclaimable_release')::boolean IS TRUE", recovery_breakdown))
+      )
+
+      prepare(build(sort: [updated_at: :desc]))
+    end
   end
 end

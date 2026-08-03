@@ -108,8 +108,12 @@ defmodule Emakola.Payments.Payout do
       authorize_if(always())
     end
 
-    # Merchant actors may read their own store's payouts.
-    policy actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant) do
+    # Merchant actors: store membership grants READS ONLY (mirrors
+    # PaymentSplit's policy shape). The lifecycle transitions
+    # (mark_processing, mark_paid, ...) mutate money state and are
+    # system-only — every legitimate caller runs `authorize?: false` from
+    # worker/webhook code.
+    policy [actor_attribute_equals(:__struct__, Emakola.Accounts.Merchant), action_type(:read)] do
       authorize_if(Emakola.Policies.Checks.ActorHasStoreAccess)
     end
 
@@ -184,6 +188,33 @@ defmodule Emakola.Payments.Payout do
     # Cross-store recent payouts for the platform finance page.
     read :list_recent do
       prepare(build(sort: [inserted_at: :desc], limit: 50))
+    end
+
+    # Bounded, newest-first payout history for a single store's money-surfaces
+    # UI (merchant-facing) — distinct from `by_store`'s unbounded list.
+    read :recent_by_store do
+      argument(:store_id, :uuid, allow_nil?: false)
+      filter(expr(store_id == ^arg(:store_id)))
+      prepare(build(sort: [inserted_at: :desc], limit: 20))
+    end
+
+    # Narrow metadata merge — does not touch status/amount/gateway fields.
+    # Used to stamp a shared `approval_ref` across both payout bases created
+    # by one finance approval click (money-surfaces grouping), without
+    # opening a general-purpose payout update.
+    update :stamp_approval_ref do
+      require_atomic?(false)
+      argument(:metadata, :map, allow_nil?: false)
+
+      change(fn changeset, _context ->
+        merged =
+          Map.merge(
+            changeset.data.metadata || %{},
+            Ash.Changeset.get_argument(changeset, :metadata)
+          )
+
+        Ash.Changeset.change_attribute(changeset, :metadata, merged)
+      end)
     end
   end
 end

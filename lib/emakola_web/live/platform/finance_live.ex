@@ -95,8 +95,17 @@ defmodule EmakolaWeb.Platform.FinanceLive do
   # basis at a time means the first payout's enqueue/audit (both already
   # committed, independent writes) survive even if the second basis blows up.
   defp approve_both_bases(store_id, actor, action) do
+    approval_ref = generate_approval_ref()
+
     payments_result =
-      process_basis(:payments, PayoutService.prepare_payout(store_id), actor, store_id, action)
+      process_basis(
+        :payments,
+        PayoutService.prepare_payout(store_id),
+        actor,
+        store_id,
+        action,
+        approval_ref
+      )
 
     allocations_result =
       process_basis(
@@ -104,7 +113,8 @@ defmodule EmakolaWeb.Platform.FinanceLive do
         PayoutService.prepare_internal_payout(store_id),
         actor,
         store_id,
-        action
+        action,
+        approval_ref
       )
 
     results = [{:payments, payments_result}, {:allocations, allocations_result}]
@@ -113,7 +123,19 @@ defmodule EmakolaWeb.Platform.FinanceLive do
     {results, queued}
   end
 
-  defp process_basis(_basis, {:ok, payout}, actor, store_id, action) do
+  # Shared id stamped into both bases' `metadata["approval_ref"]` so finance
+  # can see they came from the same approval click, without ever touching
+  # amount/status — see Payout's `stamp_approval_ref`.
+  defp generate_approval_ref, do: "appr_" <> String.slice(Ecto.UUID.generate(), -8, 8)
+
+  defp process_basis(_basis, {:ok, payout}, actor, store_id, action, approval_ref) do
+    {:ok, payout} =
+      Emakola.Payments.update_payout_metadata(
+        payout,
+        %{"approval_ref" => approval_ref},
+        authorize?: false
+      )
+
     PayoutWorker.enqueue(payout.id)
 
     PlatformAudit.log(action, actor, %{
@@ -126,7 +148,15 @@ defmodule EmakolaWeb.Platform.FinanceLive do
     {:ok, payout}
   end
 
-  defp process_basis(_basis, {:error, _reason} = error, _actor, _store_id, _action), do: error
+  defp process_basis(
+         _basis,
+         {:error, _reason} = error,
+         _actor,
+         _store_id,
+         _action,
+         _approval_ref
+       ),
+       do: error
 
   # queued == [] → surface an error, preferring :no_momo_destination (it applies
   # to both bases, since they share transfer_destination/1) over :nothing_outstanding.
