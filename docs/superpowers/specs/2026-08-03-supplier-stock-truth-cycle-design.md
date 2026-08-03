@@ -102,12 +102,19 @@ payload, so last-write-wins is correct under coalescing.
 2. For each mapped offer variant → `ResellerListingVariant` rows → parent
    `ResellerListing` with `status == :active` (paused/retired listings stay
    paused; reactivation is the existing import/offer lifecycle's job) → update
-   each `reseller_variant`:
-   `available = source.available and Emakola.Catalog.Variant.in_stock?(source)`.
+   each `reseller_variant` toward
+   `target = source.available and Emakola.Catalog.Variant.in_stock?(source)`.
    Skip writes when the value is unchanged. Cross-tenant writes use
    `authorize?: false` (system actor), matching `pause_offer_listings!`.
-3. Both directions: sell-out flips listings off; restock flips active
-   listings back on.
+3. Both directions, respecting reseller intent (**Kojo ruling 2026-08-03,
+   amending the original unconditional formula**): sell-out flips listings
+   off AND stamps `supplier_sync_paused_at` on the reseller variant; restock
+   re-enables ONLY variants carrying that marker (sync-caused off) and clears
+   it. A reseller's own manual `available: false` (marker nil) sticks until
+   the reseller re-enables it; any manual toggle of `available` clears the
+   marker (the merchant reclaims ownership). The worker writes through a
+   dedicated `:sync_availability` variant action; manual paths clear the
+   marker on `:available` change.
 
 Availability-only propagation — deliberately NOT wiring full
 `ListingImporter.sync/2` (it also overwrites title/description/price); that
@@ -163,7 +170,8 @@ out of stock").
   unmapped supplier variant → no-op; supplier `total == sum(levels)` invariant
   holds after network decrement; both webhook handlers covered.
 - **L2:** supplier sell-out flips reseller variant `available` false across
-  tenants; restock flips it back; paused listing stays paused through a
+  tenants; restock flips back ONLY sync-paused variants (manual off sticks;
+  marker cleared on manual toggle); paused listing stays paused through a
   restock; hook does NOT enqueue on unrelated variant updates (e.g. price);
   Oban uniqueness asserted via `all_enqueued` count (unique-conflict returns
   the attempted job — assert counts, not ids).
