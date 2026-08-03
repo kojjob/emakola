@@ -401,6 +401,12 @@ defmodule EmakolaWeb.SidebarComponents do
           active={@active_nav == :verification}
         />
         <.sidebar_link
+          href="/admin/earnings"
+          title="Earnings"
+          icon="currency"
+          active={@active_nav == :earnings}
+        />
+        <.sidebar_link
           href="/admin/payouts"
           title="Payouts"
           icon="payments"

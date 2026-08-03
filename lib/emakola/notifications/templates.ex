@@ -158,6 +158,24 @@ defmodule Emakola.Notifications.Templates do
     "#{store.name}: you've received #{currency_symbol(payout.currency)}#{format_amount(payout.amount)} from Makola. Payout complete."
   end
 
+  # ── Earnings-accrued template (money-surfaces PR-2 Task 3) ─────
+  # `source_description` and `momo_ready?` are precomputed by
+  # `EarningsNotificationWorker` (source store name vs. "your sale"; whether
+  # `PayoutService.momo_destination?/1` is true) — this template just
+  # composes strings, no cross-context calls.
+
+  def earnings_accrued_sms(store, net_amount, source_description, momo_ready?) do
+    base =
+      "#{store.name}: you earned #{currency_symbol(store.currency || "GHS")}#{format_amount(net_amount)} " <>
+        "from #{source_description}. Check your dashboard for details."
+
+    if momo_ready? do
+      base
+    else
+      base <> " Add your mobile money number to get paid out: #{admin_url("/admin/payouts")}"
+    end
+  end
+
   def protection_released_merchant_sms(order, store) do
     "Payment for order #{order.order_number} has been released to you. " <>
       "Check your #{store.name} dashboard for payout details."

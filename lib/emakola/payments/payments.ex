@@ -40,6 +40,7 @@ defmodule Emakola.Payments do
         args: [:recipient_store_id]
       )
 
+      define(:list_earnings_splits, action: :earnings_by_recipient, args: [:recipient_store_id])
       define(:mark_payment_split_paid_out, action: :mark_paid_out)
       define(:release_payment_split_from_payout, action: :release_from_payout)
       define(:list_payment_splits_by_payout, action: :by_payout, args: [:payout_id])

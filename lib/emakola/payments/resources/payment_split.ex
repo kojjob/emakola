@@ -190,6 +190,22 @@ defmodule Emakola.Payments.PaymentSplit do
     split.amount - netted
   end
 
+  @doc """
+  Whether a split is currently payable via Makola's internal ledger — the
+  Elixir-side mirror of the `payable_internal` read action's filter below
+  (`settlement_method == :internal_hold and role != :platform and status in
+  [:settled, :partially_reversed] and is_nil(paid_out_at) and amount >
+  reversed_amount`). THAT READ is the single authority for "internally
+  payable"; this function exists for callers that already loaded splits via
+  one query (e.g. the earnings page) and need to filter in memory instead of
+  re-querying. Keep both in sync if the definition ever changes.
+  """
+  def internally_payable?(split) do
+    split.settlement_method == :internal_hold and split.role != :platform and
+      split.status in [:settled, :partially_reversed] and is_nil(split.paid_out_at) and
+      split.amount > split.reversed_amount
+  end
+
   relationships do
     belongs_to :payment, Emakola.Payments.Payment do
       source_attribute(:payment_id)
@@ -380,6 +396,25 @@ defmodule Emakola.Payments.PaymentSplit do
       )
 
       prepare(build(sort: [inserted_at: :asc]))
+    end
+
+    # Recipient-scoped earnings history for the money-surfaces UI: every
+    # allocation this store has settled, including reversals — the narrative
+    # shows what happened, and the LiveView computes net via
+    # `frozen_paid_amount/1` from these same rows (no separate SQL aggregate).
+    # Bounded to the 100 most recent rows; the feed can paginate later if this
+    # cap is ever hit in practice.
+    read :earnings_by_recipient do
+      argument(:recipient_store_id, :uuid, allow_nil?: false)
+
+      filter(
+        expr(
+          recipient_store_id == ^arg(:recipient_store_id) and role != :platform and
+            status in [:settled, :partially_reversed, :reversed]
+        )
+      )
+
+      prepare(build(sort: [inserted_at: :desc], limit: 100))
     end
 
     # Claims an internal allocation into a payout. Freezes the net at claim
