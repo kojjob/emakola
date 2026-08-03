@@ -168,6 +168,67 @@ defmodule Emakola.Suppliers.NetworkStockTest do
     assert :ok = NetworkStock.decrement_for_order(nil, ctx.reseller.id)
   end
 
+  test "multi-location supplier: the clamp cascades across locations instead of failing " <>
+         "on the default alone",
+       ctx do
+    %{source_variant: source, reseller_variant: reseller_variant} =
+      import_variant!(ctx, stock_quantity: 10, track_inventory: true)
+
+    main = Emakola.Inventory.ensure_default_location!(ctx.wholesaler.id)
+
+    {:ok, warehouse} =
+      Emakola.Inventory.create_location(ctx.wholesaler_actor, ctx.wholesaler.id, %{
+        name: "Warehouse"
+      })
+
+    # Move 8 of the 10 units off the default location: Main 2 / Warehouse 8.
+    assert {:ok, _} = Emakola.Inventory.transfer(source.id, main.id, warehouse.id, 8)
+
+    order = create_order!(ctx.reseller, %{})
+    create_line_item!(order, ctx.reseller, reseller_variant, 5)
+
+    assert :ok = NetworkStock.decrement_for_order(order.id, ctx.reseller.id)
+
+    # Default-location-first cascade: Main (2) drains first, the remaining
+    # 3 comes from Warehouse — not a failed attempt to take all 5 from Main.
+    assert reload_variant(source).stock_quantity == 5
+    assert level_quantity(source.id, main.id) == 0
+    assert level_quantity(source.id, warehouse.id) == 5
+
+    movements = source.id |> network_sale_movements_for() |> Enum.sort_by(& &1.delta)
+
+    assert [%{delta: -3, location_id: warehouse_location_id}, %{delta: -2, location_id: main_id}] =
+             movements
+
+    assert warehouse_location_id == warehouse.id
+    assert main_id == main.id
+
+    # Replay is still a no-op.
+    assert :ok = NetworkStock.decrement_for_order(order.id, ctx.reseller.id)
+    assert reload_variant(source).stock_quantity == 5
+    assert length(network_sale_movements_for(source.id)) == 2
+  end
+
+  test "a raise while decrementing one supplier's source variant does not abort " <>
+         "another supplier's decrement in the same order",
+       ctx do
+    ghost_reseller_variant = mapping_with_missing_source_variant!(ctx)
+
+    %{source_variant: healthy_source, reseller_variant: healthy_reseller_variant} =
+      import_variant!(ctx, stock_quantity: 8, track_inventory: true)
+
+    order = create_order!(ctx.reseller, %{})
+    create_line_item!(order, ctx.reseller, ghost_reseller_variant, 2)
+    create_line_item!(order, ctx.reseller, healthy_reseller_variant, 3)
+
+    assert :ok = NetworkStock.decrement_for_order(order.id, ctx.reseller.id)
+
+    # The ghost mapping's raise is caught and logged per-variant; the other
+    # supplier's variant still decrements normally.
+    assert reload_variant(healthy_source).stock_quantity == 5
+    assert [%{reason: :network_sale, delta: -3}] = network_sale_movements_for(healthy_source.id)
+  end
+
   # ── Helpers ────────────────────────────────────────────────────
 
   defp import_variant!(ctx, variant_attrs) do
@@ -237,6 +298,67 @@ defmodule Emakola.Suppliers.NetworkStockTest do
     reseller_variant
   end
 
+  # Structurally, an actively-imported source variant can never actually
+  # vanish: `reseller_listing_variants.offer_variant_id` is ON DELETE
+  # RESTRICT and `supplier_offer_variants.source_variant_id` is ON DELETE
+  # CASCADE (verified against the live schema via information_schema), so
+  # deleting a mapped source variant is always rejected by Postgres — the
+  # cascade toward the variant would have to remove the very
+  # ResellerListingVariant row that restricts it. To exercise NetworkStock's
+  # defence against this theoretically "impossible" state anyway (e.g. a
+  # future data-migration bug), briefly suspend FK enforcement for this
+  # session only, to seed a mapping whose source variant never existed.
+  defp mapping_with_missing_source_variant!(ctx) do
+    ghost_product = create_product!(ctx.wholesaler, status: :active, title: "Ghost product")
+
+    {:ok, offer} =
+      Offers.create_draft(ctx.wholesaler_actor, %{
+        wholesaler_store_id: ctx.wholesaler.id,
+        source_product_id: ghost_product.id,
+        earning_model: :markup
+      })
+
+    Emakola.Repo.query!("SET LOCAL session_replication_role = replica")
+
+    offer_variant =
+      Emakola.Suppliers.SupplierOfferVariant
+      |> Ash.Changeset.for_create(:create, %{
+        offer_id: offer.id,
+        wholesaler_store_id: ctx.wholesaler.id,
+        source_variant_id: "00000000-0000-0000-0000-000000000000",
+        supplier_price: 4_000,
+        suggested_retail_price: 5_000
+      })
+      |> Ash.create!(authorize?: false)
+
+    Emakola.Repo.query!("SET LOCAL session_replication_role = DEFAULT")
+
+    reseller_product = create_product!(ctx.reseller, status: :active, title: "Ghost listing")
+    reseller_variant = create_variant!(reseller_product, ctx.reseller, stock_quantity: 10)
+    supplier = create_supplier!(ctx.wholesaler)
+
+    listing =
+      Emakola.Suppliers.ResellerListing
+      |> Ash.Changeset.for_create(:create, %{
+        offer_id: offer.id,
+        reseller_store_id: ctx.reseller.id,
+        reseller_product_id: reseller_product.id,
+        supplier_id: supplier.id
+      })
+      |> Ash.create!(authorize?: false)
+
+    Emakola.Suppliers.ResellerListingVariant
+    |> Ash.Changeset.for_create(:create, %{
+      listing_id: listing.id,
+      offer_variant_id: offer_variant.id,
+      reseller_variant_id: reseller_variant.id,
+      retail_price: 5_400
+    })
+    |> Ash.create!(authorize?: false)
+
+    reseller_variant
+  end
+
   defp create_line_item!(order, store, variant, quantity) do
     Emakola.Orders.LineItem
     |> Ash.Changeset.for_create(:create, %{
@@ -255,6 +377,16 @@ defmodule Emakola.Suppliers.NetworkStockTest do
     Emakola.Inventory.StockMovement
     |> Ash.Query.filter(variant_id == ^variant_id)
     |> Ash.read!(authorize?: false)
+  end
+
+  defp level_quantity(variant_id, location_id) do
+    Emakola.Inventory.StockLevel
+    |> Ash.Query.filter(variant_id == ^variant_id and location_id == ^location_id)
+    |> Ash.read_one!(authorize?: false)
+    |> case do
+      nil -> nil
+      level -> level.quantity
+    end
   end
 
   defp network_sale_movements_for(variant_id) do

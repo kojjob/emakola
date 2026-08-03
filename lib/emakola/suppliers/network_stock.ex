@@ -18,10 +18,30 @@ defmodule Emakola.Suppliers.NetworkStock do
   same source variant.
 
   Contract: always returns `:ok`; never raises into the webhook. Supplier
-  stock short → clamp to zero and log (the paid order stands for manual
-  fulfilment — same discipline as `Orders.Changes.DecrementStock`). A
-  zero-clamped line leaves no movement marker, so a webhook redelivery after
-  a restock WILL take the still-owed units — deliberate: the sale happened.
+  stock short → clamp to the available total and log (the paid order stands
+  for manual fulfilment — same discipline as `Orders.Changes.DecrementStock`).
+  The clamp cascades across the supplier's stock locations (default location
+  first, then active locations by stock descending — the same allocation
+  `Emakola.Inventory.decrement_for_sale!/4` uses) via
+  `Emakola.Inventory.decrement_clamped/5`, so `total == sum(levels)` holds
+  for multi-location suppliers too — the clamp is never applied to just the
+  default location while other locations still hold stock.
+
+  Clamping is asymmetric by design, not oversight:
+
+    * Zero taken (stock already at 0) — no movement is written, so a
+      webhook redelivery after a restock WILL take the still-owed units.
+    * Partial taken (`0 < taken < wanted`) — a movement IS written for the
+      taken part, which satisfies the `(variant, order)` replay guard below.
+      The un-taken remainder is then permanently forgotten: no later
+      redelivery recovers it, because the guard now reports "already
+      handled" for this order.
+
+  Each resolved source variant's decrement is independently wrapped: a raise
+  while processing one supplier's source variant is caught and logged
+  without aborting the remaining source variants in the same order (a
+  multi-supplier dropship order keeps decrementing every OTHER supplier even
+  if one is broken).
   """
   require Ash.Query
   require Logger
@@ -34,7 +54,7 @@ defmodule Emakola.Suppliers.NetworkStock do
     |> Ash.read!(authorize?: false, tenant: store_id)
     |> Enum.reduce(%{}, &accumulate_shortfall/2)
     |> Enum.each(fn {source_variant_id, shortfall} ->
-      decrement_source(source_variant_id, shortfall, order_id)
+      decrement_source_safely(source_variant_id, shortfall, order_id)
     end)
 
     :ok
@@ -80,6 +100,18 @@ defmodule Emakola.Suppliers.NetworkStock do
     |> Enum.reduce(0, &(&1.quantity + &2))
   end
 
+  defp decrement_source_safely(source_variant_id, shortfall, order_id) do
+    decrement_source(source_variant_id, shortfall, order_id)
+  rescue
+    exception ->
+      Logger.error(
+        "[NetworkStock] decrement failed for order #{order_id} variant " <>
+          "#{source_variant_id}: " <> Exception.message(exception)
+      )
+
+      :ok
+  end
+
   defp decrement_source(source_variant_id, shortfall, order_id) do
     Emakola.Repo.transaction(fn ->
       source = locked_variant!(source_variant_id)
@@ -92,22 +124,20 @@ defmodule Emakola.Suppliers.NetworkStock do
           :ok
 
         true ->
-          take = min(shortfall, max(source.stock_quantity, 0))
+          {:ok, take} =
+            Emakola.Inventory.decrement_clamped(
+              source.id,
+              source.store_id,
+              shortfall,
+              :network_sale,
+              order_id
+            )
 
           if take < shortfall do
             Logger.warning(
               "[NetworkStock] clamped decrement for order #{order_id} " <>
                 "variant #{source.id}: wanted #{shortfall}, took #{take}"
             )
-          end
-
-          if take > 0 do
-            location = Emakola.Inventory.ensure_default_location!(source.store_id)
-
-            {:ok, _} =
-              Emakola.Inventory.adjust(source.id, location.id, -take, :network_sale,
-                order_id: order_id
-              )
           end
 
           :ok

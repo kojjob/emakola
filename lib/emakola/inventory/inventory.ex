@@ -244,20 +244,64 @@ defmodule Emakola.Inventory do
         |> Ash.Changeset.for_update(:adjust_stock, %{delta: -quantity})
         |> Ash.update!(authorize?: false)
 
-        default = ensure_default_location!(store_id)
-        _seeded = seeded_level!(variant, default.id)
-
-        allocation_levels(variant.id, default.id)
-        |> allocate(quantity)
-        |> Enum.each(fn {level, take} ->
-          {:ok, _} = adjust_level(level, -take)
-          record_movement!(variant, level.location_id, -take, :sale, order_id)
-        end)
+        cascade_decrement!(variant, store_id, quantity, :sale, order_id)
 
         :ok
       end)
 
     :ok
+  end
+
+  @doc """
+  Like `decrement_for_sale!/4`, but clamps to the variant's current total
+  instead of raising when `quantity` exceeds it, and takes an explicit
+  `reason` for the movement ledger. Returns `{:ok, taken}` — `taken` may be
+  less than `quantity` (clamped) or `0` (nothing to decrement; no movement
+  written, no locations touched). Never raises on insufficient stock.
+
+  Cascades default-location-first across active locations exactly like
+  `decrement_for_sale!/4`, so `total == sum(levels)` holds even for
+  multi-location suppliers — the clamp is computed against the (locked,
+  fresh-read) variant total, and the SAME clamped amount is what gets
+  allocated across levels, never a raw unclamped quantity.
+
+  Used by `Emakola.Suppliers.NetworkStock`, whose webhook-path contract
+  requires never raising when a confirmed network sale exceeds supplier
+  stock on hand.
+  """
+  def decrement_clamped(variant_id, store_id, quantity, reason, order_id)
+      when is_integer(quantity) and quantity > 0 do
+    Emakola.Repo.transaction(fn ->
+      variant = locked_variant!(variant_id)
+      take = Kernel.min(quantity, Kernel.max(variant.stock_quantity, 0))
+
+      if take > 0 do
+        variant
+        |> Ash.Changeset.for_update(:adjust_stock, %{delta: -take})
+        |> Ash.update!(authorize?: false)
+
+        cascade_decrement!(variant, store_id, take, reason, order_id)
+      end
+
+      take
+    end)
+  end
+
+  # Shared by decrement_for_sale!/4 and decrement_clamped/5: allocates
+  # `quantity` (assumed already valid — raised on or clamped to by the
+  # caller) across the variant's stock levels, default location first, then
+  # active locations by stock descending, recording one movement per touched
+  # location.
+  defp cascade_decrement!(variant, store_id, quantity, reason, order_id) do
+    default = ensure_default_location!(store_id)
+    _seeded = seeded_level!(variant, default.id)
+
+    allocation_levels(variant.id, default.id)
+    |> allocate(quantity)
+    |> Enum.each(fn {level, take} ->
+      {:ok, _} = adjust_level(level, -take)
+      record_movement!(variant, level.location_id, -take, reason, order_id)
+    end)
   end
 
   @doc "Moves stock between two locations; the variant total is unchanged."
