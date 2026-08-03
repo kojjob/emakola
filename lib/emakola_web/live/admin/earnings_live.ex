@@ -99,19 +99,18 @@ defmodule EmakolaWeb.Admin.EarningsLive do
     date.year == today.year and date.month == today.month
   end
 
-  # `:gateway_share` splits (the default rail — see
-  # `OrderSettlement.default_settlement_method/1`) settle straight to the
-  # recipient's own gateway subaccount at charge time and can NEVER carry a
-  # `paid_out_at` (`mark_paid_out` only accepts `:internal_hold`). Scoping to
-  # `:internal_hold` here mirrors `payout_live`'s `list_payable_internal_splits`
-  # — without it, gateway-settled money that already left the platform would
-  # read as permanently "still owed" via Makola's ledger, which it isn't.
+  # `PaymentSplit.internally_payable?/1` mirrors the `payable_internal` read
+  # action's filter exactly (see its doc): `:gateway_share` splits (the
+  # default rail — see `OrderSettlement.default_settlement_method/1`) settle
+  # straight to the recipient's own gateway subaccount at charge time and can
+  # NEVER carry a `paid_out_at` (`mark_paid_out` only accepts
+  # `:internal_hold`). Without that scoping, gateway-settled money that
+  # already left the platform would read as permanently "still owed" via
+  # Makola's ledger, which it isn't — matching `payout_live`'s own
+  # `list_payable_internal_splits` precedent.
   defp payable_now(splits) do
     splits
-    |> Enum.filter(
-      &(&1.settlement_method == :internal_hold and &1.status in [:settled, :partially_reversed] and
-          is_nil(&1.paid_out_at))
-    )
+    |> Enum.filter(&PaymentSplit.internally_payable?/1)
     |> sum_frozen()
   end
 
@@ -186,7 +185,7 @@ defmodule EmakolaWeb.Admin.EarningsLive do
   defp role_title(:merchant), do: "Your sales"
   defp role_title(:wholesaler), do: "Resales of your stock"
   defp role_title(:dropshipper), do: "Dropship margin"
-  defp role_title(:credit_partner), do: "Credit repayments"
+  defp role_title(:credit_partner), do: "Credit repayment"
 
   defp format_accrual_date(%DateTime{} = dt), do: Calendar.strftime(dt, "%b %d, %Y")
   defp format_accrual_date(_), do: "—"
@@ -338,7 +337,7 @@ defmodule EmakolaWeb.Admin.EarningsLive do
           </div>
         </div>
 
-        <div :if={earnings.by_role == []} id="earnings-empty">
+        <div :if={earnings.feed == []} id="earnings-empty">
           <.empty_state
             icon="hero-banknotes"
             title="No earnings yet"

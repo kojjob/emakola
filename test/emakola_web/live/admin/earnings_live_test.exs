@@ -107,19 +107,36 @@ defmodule EmakolaWeb.Admin.EarningsLiveTest do
         settlement_method: :gateway_share
       })
 
+      # Partially reversed via `record_reversal` — reversed 6,000 of a
+      # 20,000 settled (internal_hold) split. Hand-check:
+      #   frozen_paid_amount = amount - (reversed - recovered - reserved)
+      #                      = 20,000 - (6,000 - 0 - 0) = 14,000
+      # reversed_amount (6,000) < amount (20,000), so status stays
+      # :partially_reversed rather than flipping to :reversed — it still
+      # counts toward total earned, this month, and payable now (unclaimed).
+      partial_payment = Factory.create_payment!(store, %{amount: 20_000})
+      partially_reversed!(store, partial_payment, %{role: :merchant, amount: 20_000}, 6_000)
+
       {:ok, view, _html} = live(conn, ~p"/admin/earnings")
       render_async(view)
 
       currency = store.currency || "GHS"
 
+      # total earned = 10,000 (merchant) + 20,000 (resale) + 5,000 (dropship)
+      #              + 8,000 (claimed) + 50,000 (old, unclaimed)
+      #              + 6,000 (gateway) + 14,000 (partial) = 113,000
       assert view |> element("#earnings-tile-total") |> render() =~
-               Currency.format_price(99_000, currency)
+               Currency.format_price(113_000, currency)
 
+      # this month = total minus the 50,000 backdated-last-month row = 63,000
       assert view |> element("#earnings-tile-month") |> render() =~
-               Currency.format_price(49_000, currency)
+               Currency.format_price(63_000, currency)
 
+      # payable now = internal_hold, unclaimed, settled/partially_reversed:
+      # 10,000 + 20,000 + 5,000 + 50,000 (old) + 14,000 (partial) = 99,000
+      # (claimed excluded; gateway_share excluded — see internally_payable?/1)
       assert view |> element("#earnings-tile-payable") |> render() =~
-               Currency.format_price(85_000, currency)
+               Currency.format_price(99_000, currency)
 
       assert view |> element("#earnings-tile-paid-out") |> render() =~
                Currency.format_price(8_000, currency)
@@ -184,6 +201,32 @@ defmodule EmakolaWeb.Admin.EarningsLiveTest do
     end
   end
 
+  # An all-reversed store must not show the empty state AND a feed row at
+  # once: the empty state used to gate on `by_role` (derived from ACTIVE —
+  # i.e. non-reversed — splits), while the feed derives from raw splits, so
+  # a store whose only sale was fully refunded showed "No earnings yet" and
+  # a feed row simultaneously. The empty state now gates on the raw feed.
+  describe "earnings picture — all-reversed store" do
+    test "shows the reversed row in the feed, not the empty state", %{
+      conn: conn,
+      store: store
+    } do
+      payment = Factory.create_payment!(store, %{amount: 9_000})
+      reversed!(store, payment, %{role: :merchant, amount: 9_000})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/earnings")
+      render_async(view)
+
+      refute has_element?(view, "#earnings-empty")
+
+      feed_html = view |> element("#earnings-feed") |> render()
+      assert feed_html =~ "Your sale"
+      # frozen_paid_amount = amount - reversed_amount = 9,000 - 9,000 = 0 —
+      # the reversed row's honest net.
+      assert feed_html =~ Currency.format_price(0, store.currency || "GHS")
+    end
+  end
+
   # (g) — route + nav
   describe "earnings picture — route and nav" do
     test "an authenticated merchant reaches /admin/earnings and the nav renders the entry", %{
@@ -239,6 +282,13 @@ defmodule EmakolaWeb.Admin.EarningsLiveTest do
     store
     |> settled!(payment, attrs)
     |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: Ash.UUID.generate()})
+    |> Ash.update!(authorize?: false)
+  end
+
+  defp partially_reversed!(store, payment, attrs, reversed_amount) do
+    store
+    |> settled!(payment, attrs)
+    |> Ash.Changeset.for_update(:record_reversal, %{reversed_amount: reversed_amount})
     |> Ash.update!(authorize?: false)
   end
 end
