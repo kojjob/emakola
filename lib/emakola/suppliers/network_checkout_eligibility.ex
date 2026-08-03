@@ -38,7 +38,6 @@ defmodule Emakola.Suppliers.NetworkCheckoutEligibility do
       reseller_variant_id in ^variant_ids and listing.reseller_store_id == ^store_id and
         listing.status == :active
     )
-    |> Ash.Query.load(listing: :offer)
     |> Ash.read!(authorize?: false)
   end
 end
