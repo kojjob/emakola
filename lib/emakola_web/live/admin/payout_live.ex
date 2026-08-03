@@ -351,7 +351,7 @@ defmodule EmakolaWeb.Admin.PayoutLive do
         </div>
 
         <div id="payout-history" class="mb-6">
-          <h2 class="mb-3 text-sm font-semibold text-slate-700">Payout history</h2>
+          <h2 class="mb-3 text-sm font-semibold text-slate-700">Recent payouts</h2>
           <.empty_state
             :if={money.history == []}
             icon="hero-banknotes"
@@ -555,11 +555,11 @@ defmodule EmakolaWeb.Admin.PayoutLive do
     """
   end
 
-  defp basis_pill_classes(:allocations), do: "bg-teal-50 text-teal-700"
-  defp basis_pill_classes(_payments), do: "bg-indigo-50 text-indigo-700"
+  defp basis_pill_classes(:allocations), do: "bg-violet-50 text-violet-700"
+  defp basis_pill_classes(_payments), do: "bg-blue-50 text-blue-700"
 
-  defp basis_pill_dot(:allocations), do: "bg-teal-500"
-  defp basis_pill_dot(_payments), do: "bg-indigo-500"
+  defp basis_pill_dot(:allocations), do: "bg-violet-500"
+  defp basis_pill_dot(_payments), do: "bg-blue-500"
 
   defp basis_pill_label(:allocations), do: "Ledger"
   defp basis_pill_label(_payments), do: "Gateway"
