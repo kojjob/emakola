@@ -637,6 +637,88 @@ defmodule Emakola.Payments.Workers.PaystackWebhookHandlerTest do
     end
   end
 
+  # Task 1 (supplier-stock-truth): a confirmed dropship payment must decrement
+  # the supplier's real source-variant stock (Emakola.Suppliers.NetworkStock),
+  # and a webhook replay must not double it.
+  describe "charge.success event — network (dropship) stock decrement" do
+    test "decrements the supplier's source-variant stock; a replay does not double it" do
+      {wholesaler_actor, wholesaler} = create_merchant_with_store!(%{name: "Dropship wholesaler"})
+      {reseller_actor, reseller} = create_merchant_with_store!(%{name: "Dropship reseller"})
+
+      product = create_product!(wholesaler, status: :active, title: "Kente sandals")
+
+      source_variant =
+        create_variant!(product, wholesaler, stock_quantity: 8, track_inventory: true)
+
+      {:ok, offer} =
+        Emakola.Suppliers.Offers.create_draft(wholesaler_actor, %{
+          wholesaler_store_id: wholesaler.id,
+          source_product_id: product.id,
+          earning_model: :markup
+        })
+
+      {:ok, _terms} =
+        Emakola.Suppliers.Offers.add_variant(wholesaler_actor, offer, %{
+          source_variant_id: source_variant.id,
+          supplier_price: 4_000,
+          suggested_retail_price: 5_000,
+          max_retail_price: 5_800
+        })
+
+      {:ok, offer} = Emakola.Suppliers.Offers.publish(wholesaler_actor, offer)
+
+      {:ok, connection} =
+        Emakola.Suppliers.Network.request(wholesaler_actor, %{
+          wholesaler_store_id: wholesaler.id,
+          reseller_store_id: reseller.id,
+          requested_by_store_id: wholesaler.id
+        })
+
+      {:ok, _active} = Emakola.Suppliers.Network.approve(reseller_actor, connection)
+
+      {:ok, listing} =
+        Emakola.Suppliers.ListingImporter.import(reseller_actor, reseller.id, offer)
+
+      [reseller_variant | _] = listing.reseller_product.variants
+
+      order = create_order!(reseller)
+
+      Emakola.Orders.LineItem
+      |> Ash.Changeset.for_create(:create, %{
+        order_id: order.id,
+        store_id: reseller.id,
+        variant_id: reseller_variant.id,
+        quantity: 3
+      })
+      |> Ash.create!(authorize?: false)
+
+      payment = create_payment!(reseller, %{order_id: order.id, amount: 500_000})
+
+      event = %{
+        "event" => "charge.success",
+        "data" => %{
+          "reference" => payment.gateway_reference,
+          "amount" => 500_000,
+          "currency" => "GHS",
+          "status" => "success",
+          "gateway_response" => "Successful"
+        }
+      }
+
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+
+      assert reload_variant(source_variant).stock_quantity == 5
+
+      # Replay — the idempotency guard must skip the already-recorded decrement.
+      assert :ok = perform_job(PaystackWebhookHandler, event)
+
+      assert reload_variant(source_variant).stock_quantity == 5
+    end
+  end
+
+  defp reload_variant(variant),
+    do: Ash.get!(Emakola.Catalog.Variant, variant.id, authorize?: false)
+
   defp stamped_charge!(store, amount, payout) do
     store
     |> create_payment!(amount: amount)

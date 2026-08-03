@@ -250,6 +250,11 @@ defmodule Emakola.Suppliers.ListingImporterTest do
       Ash.get!(Emakola.Catalog.Variant, red_mapping.reseller_variant_id, authorize?: false)
 
     refute updated_red.available
+    # sync_active_listing's availability write is a sync computation (same
+    # formula SupplierStockSyncWorker uses), so it must stamp the marker —
+    # otherwise a later supplier restock would see a nil marker and refuse
+    # to re-enable a listing the sync itself just turned off.
+    assert updated_red.supplier_sync_paused_at != nil
 
     {:ok, _paused_offer} = Offers.pause(context.wholesaler_actor, context.offer)
 
@@ -337,6 +342,32 @@ defmodule Emakola.Suppliers.ListingImporterTest do
              perform_job(Emakola.Suppliers.Workers.ListingImageReplicationWorker, %{
                listing_id: listing.id
              })
+  end
+
+  describe "list/2 source-variant preload scoping" do
+    test "does not carry offer_variant/source_variant by default — opt in via preload: :source_variants",
+         context do
+      connect!(context)
+
+      {:ok, _listing} =
+        ListingImporter.import(context.reseller_actor, context.reseller.id, context.offer)
+
+      {:ok, [default_listing]} = ListingImporter.list(context.reseller_actor, context.reseller.id)
+      assert %Ash.NotLoaded{} = hd(default_listing.listing_variants).offer_variant
+
+      {:ok, [preloaded_listing]} =
+        ListingImporter.list(context.reseller_actor, context.reseller.id,
+          preload: :source_variants
+        )
+
+      source_variant = hd(preloaded_listing.listing_variants).offer_variant.source_variant
+      assert %Emakola.Catalog.Variant{} = source_variant
+
+      assert source_variant.id in [
+               context.red_terms.source_variant_id,
+               context.blue_terms.source_variant_id
+             ]
+    end
   end
 
   defp connect!(context) do

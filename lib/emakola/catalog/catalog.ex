@@ -67,6 +67,7 @@ defmodule Emakola.Catalog do
       define(:list_variants_admin, action: :list_admin, args: [:store_id])
       define(:adjust_variant_stock, action: :adjust_stock)
       define(:update_variant, action: :update)
+      define(:sync_availability_variant, action: :sync_availability)
     end
 
     resource Emakola.Catalog.VariantOptionValue do

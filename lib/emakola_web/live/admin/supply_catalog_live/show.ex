@@ -8,6 +8,7 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
   use EmakolaWeb, :live_view
 
   alias Emakola.Suppliers.Offers
+  alias EmakolaWeb.Live.Admin.SupplyStockStatus
 
   import EmakolaWeb.Helpers.Currency, only: [format_price: 1, format_price_range: 3]
 
@@ -94,6 +95,10 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
       _ ->
         {:noreply, put_flash(socket, :error, "This product could not be added right now.")}
     end
+  end
+
+  defp offer_stock_status(offer) do
+    SupplyStockStatus.aggregate(Enum.map(offer.offer_variants, & &1.source_variant))
   end
 
   defp margin(variant), do: variant.suggested_retail_price - variant.supplier_price
@@ -189,6 +194,9 @@ defmodule EmakolaWeb.Admin.SupplyCatalogLive.Show do
                   Connected
                 </span>
               </p>
+              <div id="offer-stock-badge" class="mt-2">
+                <.supplier_stock_badge status={offer_stock_status(@offer)} />
+              </div>
             </div>
 
             <p :if={@offer.source_product.description} class="text-sm text-slate-600">

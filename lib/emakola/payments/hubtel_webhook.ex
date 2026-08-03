@@ -70,6 +70,11 @@ defmodule Emakola.Payments.HubtelWebhook do
           payment.order_id,
           payment.store_id
         )
+
+        Emakola.Suppliers.NetworkStock.decrement_for_order(
+          payment.order_id,
+          payment.store_id
+        )
       end
 
       :ok

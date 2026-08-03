@@ -414,10 +414,14 @@ defmodule Emakola.Orders.CheckoutService do
   defp product_available?(_), do: true
 
   defp validate_stock(variants, items) do
+    source_by_variant_id = load_source_variants(variants)
+
     insufficient =
       Enum.any?(items, fn %{variant_id: vid, quantity: qty} ->
         variant = Map.fetch!(variants, vid)
-        not available_for_order?(variant, qty)
+
+        not available_for_order?(variant, qty) or
+          not source_in_stock?(source_by_variant_id, vid, qty)
       end)
 
     if insufficient, do: {:error, :insufficient_stock}, else: :ok
@@ -432,6 +436,34 @@ defmodule Emakola.Orders.CheckoutService do
        do: false
 
   defp available_for_order?(variant, qty), do: Emakola.Catalog.Variant.in_stock?(variant, qty)
+
+  # Live supplier check for network-imported variants: the availability flag
+  # is synced asynchronously and is boolean — only the live source quantity
+  # can answer "customer wants 5, supplier has 2". Unmapped supplier-linked
+  # variants (off-platform suppliers) have no source to consult.
+  defp source_in_stock?(source_by_variant_id, variant_id, qty) do
+    case Map.get(source_by_variant_id, variant_id) do
+      nil -> true
+      source -> Emakola.Catalog.Variant.in_stock?(source, qty)
+    end
+  end
+
+  defp load_source_variants(variants) do
+    supplier_linked_ids =
+      for {id, v} <- variants, not is_nil(v.supplier_id), do: id
+
+    if supplier_linked_ids == [] do
+      %{}
+    else
+      mappings =
+        Emakola.Suppliers.ResellerListingVariant
+        |> Ash.Query.filter(reseller_variant_id in ^supplier_linked_ids)
+        |> Ash.Query.load(offer_variant: :source_variant)
+        |> Ash.read!(authorize?: false)
+
+      Map.new(mappings, fn m -> {m.reseller_variant_id, m.offer_variant.source_variant} end)
+    end
+  end
 
   defp check_coupon_validity(coupon, subtotal) do
     now = DateTime.utc_now()

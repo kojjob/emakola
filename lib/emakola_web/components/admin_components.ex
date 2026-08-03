@@ -306,6 +306,47 @@ defmodule EmakolaWeb.AdminComponents do
   end
 
   # ─────────────────────────────────────────────────────────────────────
+  # supplier_stock_badge/1
+  # ─────────────────────────────────────────────────────────────────────
+
+  @doc """
+  Renders the reseller-facing supplier stock badge — status only, never the
+  supplier's raw quantity. Callers compute `status` via
+  `EmakolaWeb.Live.Admin.SupplyStockStatus.aggregate/1` over the offer's or
+  listing's source variants.
+
+  ## Examples
+
+      <.supplier_stock_badge status={:in_stock} />
+      <.supplier_stock_badge status={:low} />
+      <.supplier_stock_badge status={:out} />
+  """
+  attr :status, :atom, required: true, values: [:in_stock, :low, :out]
+
+  def supplier_stock_badge(assigns) do
+    ~H"""
+    <span class={[
+      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
+      @status == :in_stock && "bg-emerald-50 text-emerald-700",
+      @status == :low && "bg-amber-50 text-amber-700",
+      @status == :out && "bg-rose-50 text-rose-700"
+    ]}>
+      <span class={[
+        "size-1.5 rounded-full",
+        @status == :in_stock && "bg-emerald-500",
+        @status == :low && "bg-amber-500",
+        @status == :out && "bg-rose-500"
+      ]} />
+      {supplier_stock_label(@status)}
+    </span>
+    """
+  end
+
+  defp supplier_stock_label(:in_stock), do: "In stock"
+  defp supplier_stock_label(:low), do: "Low stock"
+  defp supplier_stock_label(:out), do: "Out of stock"
+
+  # ─────────────────────────────────────────────────────────────────────
   # empty_state/1
   # ─────────────────────────────────────────────────────────────────────
 
