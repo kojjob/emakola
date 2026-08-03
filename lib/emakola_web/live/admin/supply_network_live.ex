@@ -25,6 +25,8 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
     StarterBusiness
   }
 
+  alias EmakolaWeb.Live.Admin.SupplyStockStatus
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
@@ -1331,6 +1333,16 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
       {same, same} -> money(same)
       {minimum, maximum} -> "#{money(minimum)}–#{money(maximum)}"
     end
+  end
+
+  defp offer_stock_status(offer) do
+    SupplyStockStatus.aggregate(Enum.map(offer.offer_variants, & &1.source_variant))
+  end
+
+  defp listing_stock_status(listing) do
+    SupplyStockStatus.aggregate(
+      Enum.map(listing.listing_variants, & &1.offer_variant.source_variant)
+    )
   end
 
   defp money(pesewas), do: "GH₵#{:erlang.float_to_binary(pesewas / 100, decimals: 2)}"
@@ -2657,6 +2669,9 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
               <h3 class="mt-1 line-clamp-2 text-lg font-bold text-slate-900">
                 {offer.source_product.title}
               </h3>
+              <div id={"offer-stock-badge-#{offer.id}"} class="mt-2">
+                <.supplier_stock_badge status={offer_stock_status(offer)} />
+              </div>
               <div class="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-3">
                 <div>
                   <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Sell for</p>
@@ -2741,6 +2756,9 @@ defmodule EmakolaWeb.Admin.SupplyNetworkLive do
               <p class="mt-0.5 text-xs capitalize text-slate-500">
                 {listing.status} · Synced from partner
               </p>
+              <div id={"listing-stock-badge-#{listing.id}"} class="mt-1.5">
+                <.supplier_stock_badge status={listing_stock_status(listing)} />
+              </div>
             </div>
             <button
               id={"create-content-draft-#{listing.id}"}

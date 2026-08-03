@@ -45,8 +45,13 @@ defmodule Emakola.Suppliers.ListingImporter do
   end
 
   def list(actor, store_id) do
-    with {:ok, _connections} <- Network.list_for_store(actor, store_id) do
-      Suppliers.list_reseller_listings_for_store(store_id, authorize?: false)
+    with {:ok, _connections} <- Network.list_for_store(actor, store_id),
+         {:ok, listings} <-
+           Suppliers.list_reseller_listings_for_store(store_id, authorize?: false) do
+      {:ok,
+       Ash.load!(listings, [listing_variants: [offer_variant: :source_variant]],
+         authorize?: false
+       )}
     end
   end
 
