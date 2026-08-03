@@ -250,6 +250,11 @@ defmodule Emakola.Suppliers.ListingImporterTest do
       Ash.get!(Emakola.Catalog.Variant, red_mapping.reseller_variant_id, authorize?: false)
 
     refute updated_red.available
+    # sync_active_listing's availability write is a sync computation (same
+    # formula SupplierStockSyncWorker uses), so it must stamp the marker —
+    # otherwise a later supplier restock would see a nil marker and refuse
+    # to re-enable a listing the sync itself just turned off.
+    assert updated_red.supplier_sync_paused_at != nil
 
     {:ok, _paused_offer} = Offers.pause(context.wholesaler_actor, context.offer)
 

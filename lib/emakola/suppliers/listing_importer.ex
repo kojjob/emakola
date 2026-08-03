@@ -198,11 +198,25 @@ defmodule Emakola.Suppliers.ListingImporter do
                %{
                  price: retail_price,
                  cost_price: terms.supplier_price,
-                 available:
-                   source_variant.available and
-                     Emakola.Catalog.Variant.in_stock?(source_variant),
                  weight_grams: source_variant.weight_grams,
                  barcode: source_variant.barcode
+               },
+               authorize?: false
+             )
+
+             # Same sync formula SupplierStockSyncWorker uses to compute
+             # availability — written through the dedicated
+             # `:sync_availability` action (not folded into the `:update`
+             # call above) so it stamps/clears `supplier_sync_paused_at`
+             # correctly, instead of being cleared by
+             # `Changes.ClearSupplierSyncPause`, which is reserved for
+             # genuinely manual writes.
+             Emakola.Catalog.sync_availability_variant!(
+               mapping.reseller_variant,
+               %{
+                 available:
+                   source_variant.available and
+                     Emakola.Catalog.Variant.in_stock?(source_variant)
                },
                authorize?: false
              )
@@ -221,6 +235,19 @@ defmodule Emakola.Suppliers.ListingImporter do
     end
   end
 
+  # Sets available:false for a LIFECYCLE reason (the offer this listing
+  # depends on paused, or its supply connection was severed/suspended) —
+  # NOT a stock-driven sync computation — so this deliberately does NOT
+  # stamp `supplier_sync_paused_at` (via `:update`, which leaves the marker
+  # nil through `Changes.ClearSupplierSyncPause`). Two reasons this is safe
+  # rather than a gap: (1) `SupplierStockSyncWorker` only ever touches
+  # `status == :active` listings, so a paused listing's marker is moot
+  # regardless of its value while paused — a source restock cannot reach
+  # it either way; (2) reactivating a listing always goes back through
+  # `sync_active_listing/1`, which recomputes availability (and the
+  # marker, via `:sync_availability`) fresh from CURRENT source state — any
+  # stale marker value from before the pause is superseded there, never
+  # read.
   defp pause_listing(listing) do
     case Emakola.Repo.transaction(fn ->
            Enum.each(listing.listing_variants, fn mapping ->
@@ -293,6 +320,7 @@ defmodule Emakola.Suppliers.ListingImporter do
 
   defp create_variant!(store_id, product_id, supplier_id, terms, retail_price) do
     source = terms.source_variant
+    available = source.available and Emakola.Catalog.Variant.in_stock?(source)
 
     Emakola.Catalog.create_variant!(
       %{
@@ -305,9 +333,16 @@ defmodule Emakola.Suppliers.ListingImporter do
         barcode: source.barcode,
         weight_grams: source.weight_grams,
         position: source.position,
-        available: source.available and Emakola.Catalog.Variant.in_stock?(source),
+        available: available,
         track_inventory: false,
-        stock_quantity: 0
+        stock_quantity: 0,
+        # This snapshot uses the identical formula SupplierStockSyncWorker
+        # uses — it IS a sync computation, not reseller intent, so an
+        # out-of-stock-at-import listing must carry the marker. Without it,
+        # the first restock afterward would see a nil marker, read it as
+        # "reseller turned this off deliberately," and leave the listing
+        # dark forever — the exact gap this feature exists to close.
+        supplier_sync_paused_at: if(available, do: nil, else: DateTime.utc_now())
       },
       authorize?: false
     )

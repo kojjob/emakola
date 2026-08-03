@@ -117,6 +117,76 @@ defmodule Emakola.Suppliers.SupplierStockSyncWorkerTest do
     assert id == first_job.id
   end
 
+  test "imported-while-out-of-stock: the import snapshot carries the sync-pause marker, so a " <>
+         "later restock re-enables it",
+       ctx do
+    # Offers.publish requires at least one available variant across the
+    # WHOLE offer (`ensure_publishable_variants/2`), so a single-variant
+    # offer can never be published while its only variant is out of stock
+    # — a second, in-stock variant is what makes this a legitimate,
+    # publishable offer in the first place.
+    product = create_product!(ctx.wholesaler, status: :active, title: "Kente sandals")
+
+    in_stock_source =
+      create_variant!(product, ctx.wholesaler,
+        price: 6_000,
+        sku: "SANDAL-STOCKED-#{System.unique_integer([:positive])}",
+        stock_quantity: 8
+      )
+
+    out_of_stock_source =
+      create_variant!(product, ctx.wholesaler,
+        price: 6_000,
+        sku: "SANDAL-OOS-#{System.unique_integer([:positive])}",
+        stock_quantity: 0
+      )
+
+    {:ok, offer} =
+      Offers.create_draft(ctx.wholesaler_actor, %{
+        wholesaler_store_id: ctx.wholesaler.id,
+        source_product_id: product.id,
+        earning_model: :markup
+      })
+
+    {:ok, _in_stock_terms} =
+      Offers.add_variant(ctx.wholesaler_actor, offer, %{
+        source_variant_id: in_stock_source.id,
+        supplier_price: 4_000,
+        suggested_retail_price: 5_000,
+        max_retail_price: 5_800
+      })
+
+    {:ok, oos_terms} =
+      Offers.add_variant(ctx.wholesaler_actor, offer, %{
+        source_variant_id: out_of_stock_source.id,
+        supplier_price: 4_000,
+        suggested_retail_price: 5_000,
+        max_retail_price: 5_800
+      })
+
+    {:ok, offer} = Offers.publish(ctx.wholesaler_actor, offer)
+    {:ok, listing} = ListingImporter.import(ctx.reseller_actor, ctx.reseller.id, offer)
+
+    oos_mapping = Enum.find(listing.listing_variants, &(&1.offer_variant_id == oos_terms.id))
+    reseller_variant = oos_mapping.reseller_variant
+
+    imported = reload_variant(reseller_variant)
+    assert imported.available == false
+    # The import's availability snapshot uses the IDENTICAL formula the
+    # sync worker uses — it IS a sync computation, not reseller intent, so
+    # it must carry the marker or this listing would stay dark forever
+    # (the marker would read as "reseller turned this off deliberately").
+    assert imported.supplier_sync_paused_at != nil
+
+    location = Emakola.Inventory.ensure_default_location!(ctx.wholesaler.id)
+    assert {:ok, :adjusted} = Emakola.Inventory.restock(out_of_stock_source.id, location.id, 5)
+    assert :ok = perform_job(SupplierStockSyncWorker, %{"variant_id" => out_of_stock_source.id})
+
+    restocked = reload_variant(reseller_variant)
+    assert restocked.available == true
+    assert restocked.supplier_sync_paused_at == nil
+  end
+
   test "sync-caused-off: a restock re-enables and clears the sync-pause marker", ctx do
     %{source_variant: source, reseller_variant: reseller_variant} = import_variant!(ctx)
     location = Emakola.Inventory.ensure_default_location!(ctx.wholesaler.id)

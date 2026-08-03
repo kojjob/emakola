@@ -186,7 +186,8 @@ defmodule Emakola.Catalog.Variant do
         :store_id,
         :supplier_id,
         :cost_price,
-        :available
+        :available,
+        :supplier_sync_paused_at
       ])
 
       change(Emakola.Catalog.Changes.UntrackDropshippedInventory)
