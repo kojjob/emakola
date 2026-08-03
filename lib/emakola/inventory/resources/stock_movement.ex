@@ -41,7 +41,8 @@ defmodule Emakola.Inventory.StockMovement do
           :reservation_release,
           :transfer_in,
           :transfer_out,
-          :import
+          :import,
+          :network_sale
         ]
       )
     end
