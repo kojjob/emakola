@@ -97,6 +97,31 @@ defmodule Emakola.Suppliers.NetworkStockTest do
     assert [%{reason: :network_sale, delta: -1}] = network_sale_movements_for(source.id)
   end
 
+  test "two line items on different reseller variants mapping to the SAME source variant: " <>
+         "shortfalls are summed and decremented once",
+       ctx do
+    %{source_variant: source, reseller_variant: reseller_variant_1, offer: offer} =
+      import_variant!(ctx, stock_quantity: 20, track_inventory: true)
+
+    reseller_variant_2 = import_into_second_reseller!(ctx, offer)
+
+    order = create_order!(ctx.reseller, %{})
+    create_line_item!(order, ctx.reseller, reseller_variant_1, 3)
+    create_line_item!(order, ctx.reseller, reseller_variant_2, 4)
+
+    assert :ok = NetworkStock.decrement_for_order(order.id, ctx.reseller.id)
+
+    # 20 - (3 + 4) == 13 — a single decrement for the summed shortfall, not two
+    # independent per-line decrements (which the idempotency guard would have
+    # otherwise silently undercounted to just -3).
+    assert reload_variant(source).stock_quantity == 13
+
+    assert [%{reason: :network_sale, delta: -7, order_id: order_id}] =
+             network_sale_movements_for(source.id)
+
+    assert order_id == order.id
+  end
+
   test "clamp: shortfall exceeds available stock — clamps to zero, never raises", ctx do
     %{source_variant: source, reseller_variant: reseller_variant} =
       import_variant!(ctx, stock_quantity: 2, track_inventory: true)
@@ -179,7 +204,37 @@ defmodule Emakola.Suppliers.NetworkStockTest do
 
     [reseller_variant | _] = listing.reseller_product.variants
 
-    %{source_variant: source_variant, terms: terms, reseller_variant: reseller_variant}
+    %{
+      source_variant: source_variant,
+      terms: terms,
+      reseller_variant: reseller_variant,
+      offer: offer
+    }
+  end
+
+  # A second, independent reseller connecting to the same wholesaler and
+  # importing the SAME published offer — the only way two distinct
+  # ResellerListingVariant rows can legitimately point at the same
+  # SupplierOfferVariant (and therefore the same source variant): SupplierOffer
+  # enforces one offer per (wholesaler, product), so the same offer can't be
+  # re-published a second time for the first reseller, but a different
+  # reseller store importing it is a completely ordinary, real flow.
+  defp import_into_second_reseller!(ctx, offer) do
+    {second_actor, second_reseller} = create_merchant_with_store!(%{name: "Second reseller"})
+
+    {:ok, connection} =
+      Network.request(ctx.wholesaler_actor, %{
+        wholesaler_store_id: ctx.wholesaler.id,
+        reseller_store_id: second_reseller.id,
+        requested_by_store_id: ctx.wholesaler.id
+      })
+
+    {:ok, _active} = Network.approve(second_actor, connection)
+
+    {:ok, listing} = ListingImporter.import(second_actor, second_reseller.id, offer)
+
+    [reseller_variant | _] = listing.reseller_product.variants
+    reseller_variant
   end
 
   defp create_line_item!(order, store, variant, quantity) do

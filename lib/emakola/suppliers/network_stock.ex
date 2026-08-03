@@ -8,6 +8,15 @@ defmodule Emakola.Suppliers.NetworkStock do
   reservation-covered units were already removed from supplier stock at
   reserve time, so only the shortfall decrements here).
 
+  Line items are aggregated by source variant BEFORE any decrement happens:
+  two different reseller variants (even across two different reseller
+  listings/stores) can map to the same underlying supplier source variant, so
+  summing each line's shortfall per source variant first — then decrementing
+  once — is required. Decrementing per line item independently would
+  undercount, because the per-(variant, order) idempotency guard below would
+  see the first line's movement and skip every subsequent line touching the
+  same source variant.
+
   Contract: always returns `:ok`; never raises into the webhook. Supplier
   stock short → clamp to zero and log (the paid order stands for manual
   fulfilment — same discipline as `Orders.Changes.DecrementStock`). A
@@ -20,12 +29,14 @@ defmodule Emakola.Suppliers.NetworkStock do
   def decrement_for_order(nil, _store_id), do: :ok
 
   def decrement_for_order(order_id, store_id) do
-    line_items =
-      Emakola.Orders.LineItem
-      |> Ash.Query.filter(order_id == ^order_id)
-      |> Ash.read!(authorize?: false, tenant: store_id)
+    Emakola.Orders.LineItem
+    |> Ash.Query.filter(order_id == ^order_id)
+    |> Ash.read!(authorize?: false, tenant: store_id)
+    |> Enum.reduce(%{}, &accumulate_shortfall/2)
+    |> Enum.each(fn {source_variant_id, shortfall} ->
+      decrement_source(source_variant_id, shortfall, order_id)
+    end)
 
-    Enum.each(line_items, &decrement_line(&1, order_id))
     :ok
   rescue
     exception ->
@@ -37,7 +48,7 @@ defmodule Emakola.Suppliers.NetworkStock do
       :ok
   end
 
-  defp decrement_line(line_item, order_id) do
+  defp accumulate_shortfall(line_item, shortfalls_by_source_variant) do
     mapping =
       Emakola.Suppliers.ResellerListingVariant
       |> Ash.Query.filter(reseller_variant_id == ^line_item.variant_id)
@@ -45,12 +56,20 @@ defmodule Emakola.Suppliers.NetworkStock do
       |> Ash.read_one!(authorize?: false)
 
     if mapping do
-      consumed = consumed_quantity(line_item.id)
-      shortfall = line_item.quantity - consumed
+      shortfall = line_item.quantity - consumed_quantity(line_item.id)
 
       if shortfall > 0 do
-        decrement_source(mapping.offer_variant, shortfall, order_id)
+        Map.update(
+          shortfalls_by_source_variant,
+          mapping.offer_variant.source_variant_id,
+          shortfall,
+          &(&1 + shortfall)
+        )
+      else
+        shortfalls_by_source_variant
       end
+    else
+      shortfalls_by_source_variant
     end
   end
 
@@ -61,9 +80,9 @@ defmodule Emakola.Suppliers.NetworkStock do
     |> Enum.reduce(0, &(&1.quantity + &2))
   end
 
-  defp decrement_source(offer_variant, shortfall, order_id) do
+  defp decrement_source(source_variant_id, shortfall, order_id) do
     Emakola.Repo.transaction(fn ->
-      source = locked_variant!(offer_variant.source_variant_id)
+      source = locked_variant!(source_variant_id)
 
       cond do
         not source.track_inventory ->
