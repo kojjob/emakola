@@ -180,6 +180,16 @@ defmodule Emakola.Payments.PaymentSplit do
     timestamps()
   end
 
+  @doc """
+  THE freeze formula — what `mark_paid_out` writes into `paid_amount`:
+  the split's amount minus reversals not already collected elsewhere.
+  Single authority: PayoutService and FinanceStats delegate here.
+  """
+  def frozen_paid_amount(split) do
+    netted = split.reversed_amount - split.recovered_amount - split.reserved_recovery_amount
+    split.amount - netted
+  end
+
   relationships do
     belongs_to :payment, Emakola.Payments.Payment do
       source_attribute(:payment_id)
@@ -415,16 +425,17 @@ defmodule Emakola.Payments.PaymentSplit do
       end)
 
       change(fn changeset, _context ->
-        # Net only what hasn't already been clawed from another earning —
-        # otherwise a reversal already recovered via recoverable_by_recipient
-        # gets frozen into netted_reversal_amount too, and re-paid out.
-        netted =
-          changeset.data.reversed_amount - changeset.data.recovered_amount -
-            changeset.data.reserved_recovery_amount
+        # frozen_paid_amount/1 is THE formula authority. netted is its
+        # algebraic complement (frozen = amount - netted, so netted = amount
+        # - frozen) — not a second copy of the subtraction, just the same
+        # result read the other way, kept for the no-double-claw fence
+        # (see recoverable_by_recipient's netted_reversal_amount branch).
+        frozen = __MODULE__.frozen_paid_amount(changeset.data)
+        netted = changeset.data.amount - frozen
 
         changeset
         |> Ash.Changeset.change_attribute(:paid_out_at, DateTime.utc_now())
-        |> Ash.Changeset.change_attribute(:paid_amount, changeset.data.amount - netted)
+        |> Ash.Changeset.change_attribute(:paid_amount, frozen)
         |> Ash.Changeset.change_attribute(:netted_reversal_amount, netted)
       end)
     end

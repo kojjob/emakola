@@ -1,13 +1,21 @@
 defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
-  use EmakolaWeb.ConnCase, async: true
+  # async: false — the "internal rail settlement" describe block below swaps
+  # the globally-configured :payment_gateway to the Mox-based GatewayMock (the
+  # same pattern pay_link_live_test.exs and susu_link_live_test.exs use), which
+  # would race with any other async test hitting the default
+  # Emakola.Payments.Gateways.Mock gateway concurrently.
+  use EmakolaWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
   import Emakola.Factory
+  import Mox
   require Ash.Query
 
   alias Emakola.Cart.CartStore
   alias Emakola.Suppliers.{ListingImporter, Network, Offers}
   alias EmakolaWeb.Helpers.Currency
+
+  setup :verify_on_exit!
 
   setup do
     store = create_store!(%{name: "Checkout Shop", slug: "checkout-shop", currency: "GHS"})
@@ -539,6 +547,70 @@ defmodule EmakolaWeb.Storefront.CheckoutLiveTest do
       assert by_role[:merchant].amount == 11_270
       assert by_role[:merchant].subaccount_code == "ACCT_own"
       assert by_role[:platform].amount == 230
+    end
+  end
+
+  # -- Internal rail settlement (Phase 3 Task 5) --
+  #
+  # Proves the charge-site pass-through end-to-end: an unverified store (the
+  # module's default `store`/`variant` fixture has NO StorePayoutAccount) hits
+  # OrderSettlement.prepare/2's :internal fallback, and the LiveView's existing
+  # split_mode/1 + maybe_attach_split/2 (both generic over settlement mode)
+  # carry it through with zero code changes. Swaps in the Mox GatewayMock (see
+  # module comment above) so the actual params handed to initiate_payment/1
+  # can be inspected — Emakola.Payments.Gateways.Mock (the default test
+  # gateway) discards its params and always succeeds, so it can't prove this.
+  describe "internal rail settlement" do
+    test "unverified store's MoMo checkout lands entirely on the internal rail", %{
+      conn: conn,
+      store: store,
+      variant: variant
+    } do
+      original = Application.get_env(:emakola, :payment_gateway)
+      Application.put_env(:emakola, :payment_gateway, Emakola.Payments.GatewayMock)
+      on_exit(fn -> Application.put_env(:emakola, :payment_gateway, original) end)
+
+      expect(Emakola.Payments.GatewayMock, :initiate_payment, fn params ->
+        assert params[:split] in [nil, []]
+        {:ok, %{reference: "PAY-internal-ref", authorization_url: "https://pay.test/internal"}}
+      end)
+
+      {conn, _session_id} = setup_cart_session(conn, variant)
+      {:ok, view, _html} = live(conn, "/s/#{store.slug}/checkout")
+      Mox.allow(Emakola.Payments.GatewayMock, self(), view.pid)
+
+      render_submit(view, "place_order", %{
+        "phone" => "241234567",
+        "fullname" => "Kofi Owusu",
+        "address" => "House 14, Osu",
+        "region" => "greater_accra",
+        "notes" => ""
+      })
+
+      order =
+        Emakola.Orders.Order
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+        |> List.first()
+
+      payment =
+        Emakola.Payments.Payment
+        |> Ash.Query.filter(store_id == ^store.id)
+        |> Ash.read!(authorize?: false, tenant: store.id)
+        |> List.first()
+
+      assert payment.split_mode == :internal
+
+      {:ok, splits} =
+        Emakola.Payments.PaymentSplit
+        |> Ash.Query.for_read(:by_payment, %{payment_id: payment.id})
+        |> Ash.read(authorize?: false)
+
+      assert splits != [], "Expected internal-rail allocations to be recorded"
+      assert Enum.all?(splits, &(&1.settlement_method == :internal_hold))
+
+      sum_splits = Enum.sum(Enum.map(splits, & &1.amount))
+      assert sum_splits == order.total
     end
   end
 

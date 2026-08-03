@@ -113,14 +113,11 @@ defmodule Emakola.Platform.FinanceStats do
     splits
   end
 
-  # THE payable-net formula — what mark_paid_out freezes as paid_amount.
-  # Single authority (design spec §4.5): display, sums, and the payout engine
-  # must all agree to the pesewa. Keep in sync with PaymentSplit.mark_paid_out
-  # and PayoutService.frozen_paid_amount/1 (its precompute-before-claim twin).
-  defp payable_net(split) do
-    split.amount -
-      (split.reversed_amount - split.recovered_amount - split.reserved_recovery_amount)
-  end
+  # Display sums must agree with the payout engine to the pesewa (design spec
+  # §4.5) — delegates to PaymentSplit.frozen_paid_amount/1, THE single
+  # formula authority also called by mark_paid_out and
+  # PayoutService.prepare_internal_payout/1.
+  defp payable_net(split), do: PaymentSplit.frozen_paid_amount(split)
 
   defp sum_by_store(rows, value_fun) do
     Enum.reduce(rows, %{}, fn row, acc ->

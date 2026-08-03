@@ -6,11 +6,16 @@ defmodule Emakola.Payments.OrderSettlement do
   exposes:
 
     * `prepare/2` — `{:split, %{total, allocations, shares, mode}}`,
-      `{:hold, :buyer_protection}`, or `{:no_split, reason}`. Two split modes:
+      `{:hold, :buyer_protection}`, or `{:no_split, reason}`. Three reachable
+      split modes:
         - `:dropship_split` (SP5) — trustless margin split across wholesaler(s) +
           dropshipper when every party has a verified subaccount.
         - `:platform_fee` — a normal own-stock order: the merchant's net goes to
           their verified subaccount, the platform keeps its transaction fee.
+        - `:internal` (Phase 3) — any of the above verification checks fails:
+          the platform's fee is still taken and every allocation is recorded
+          on the ledger, but `shares` is empty — nothing is split at the
+          gateway, and parties are paid out by MoMo transfer once verified.
       `shares` is the gateway-ready list of `%{subaccount, share}` for
       `initiate_payment`; the platform's cut is never a share (it stays in the
       platform main account as the split remainder). `{:hold, :buyer_protection}`
@@ -83,8 +88,33 @@ defmodule Emakola.Payments.OrderSettlement do
         if protected?(order, store_id) do
           {:hold, :buyer_protection}
         else
-          prepare_platform_fee(order, store_id)
+          # prepare_platform_fee's own :payout_unverified return is produced
+          # here, inside this branch — it never re-enters the case above, so
+          # the guarded clause below can't catch it. Route it to the internal
+          # rail the same way.
+          case prepare_platform_fee(order, store_id) do
+            {:no_split, :payout_unverified} -> prepare_internal(order_id, store_id)
+            result -> result
+          end
         end
+
+      # Verification failures route to the internal rail: the charge settles
+      # to the platform account, allocations (incl. the platform fee) are
+      # recorded on the ledger, and parties are paid by MoMo transfer once
+      # they add a destination. Genuine split failures still fall through to
+      # the legacy :none path (no rows, escrow-compatible). Own-stock
+      # unverified orders arrive via the prepare_platform_fee reroute above,
+      # not here: `:payout_unverified` in this guard is defense-in-depth only
+      # — DropshipSettlement remaps it to :dropshipper_payout_unverified at
+      # dropship_settlement.ex:56, so it's unreachable in this clause.
+      {:no_split, reason}
+      when reason in [
+             :payout_unverified,
+             :dropshipper_payout_unverified,
+             :wholesaler_payout_unverified,
+             :supplier_not_linked
+           ] ->
+        prepare_internal(order_id, store_id)
 
       {:no_split, reason} ->
         {:no_split, reason}
@@ -96,8 +126,8 @@ defmodule Emakola.Payments.OrderSettlement do
   (unverified parties, unlinked suppliers). Same allocation math and fee rates
   as the gateway rail; every allocation is tagged `settlement_method:
   :internal_hold` with no subaccount, and a `:platform` row is always present.
-  Returns `shares: []` — nothing is attached to the gateway charge. Dark until
-  Phase 3 routes `prepare/2`'s verification-failure fallbacks here.
+  Returns `shares: []` — nothing is attached to the gateway charge. Routed to
+  by `prepare/2`'s verification-failure fallbacks since Phase 3.
   """
   def prepare_internal(order_id, store_id) do
     order = Ash.get!(Emakola.Orders.Order, order_id, authorize?: false, tenant: store_id)
@@ -341,7 +371,12 @@ defmodule Emakola.Payments.OrderSettlement do
   # cut is the unassigned remainder, kept by the main account.
   defp gateway_shares(allocations) do
     allocations
-    |> Enum.filter(&(&1[:subaccount_code] && &1.amount > 0))
+    |> Enum.filter(fn alloc ->
+      # Absent key = gateway rail (gateway builders don't tag); internal
+      # builders tag every allocation :internal_hold — never a gateway share.
+      (Map.get(alloc, :settlement_method, :gateway_share) == :gateway_share and
+         alloc[:subaccount_code]) && alloc.amount > 0
+    end)
     |> Enum.map(&%{subaccount: &1.subaccount_code, share: &1.amount})
   end
 

@@ -154,7 +154,7 @@ defmodule Emakola.Suppliers.ListingImporterTest do
     assert supplier_id == listing.supplier_id
   end
 
-  test "network checkout requires verified payout accounts for both stores", context do
+  test "network checkout succeeds for unverified reseller and wholesaler stores alike", context do
     connect!(context)
 
     {:ok, listing} =
@@ -163,12 +163,15 @@ defmodule Emakola.Suppliers.ListingImporterTest do
     [variant | _] = listing.reseller_product.variants
     items = [%{variant_id: variant.id, quantity: 1}]
 
-    assert {:error, :reseller_payout_unverified} =
+    # Payout verification is no longer a sale gate (internal-settlement P3):
+    # unverified parties' shares accrue on the internal ledger instead of
+    # blocking the sale.
+    assert {:ok, _order} =
              Emakola.Orders.CheckoutService.checkout!(context.reseller.id, items, [])
 
     verified_payout!(context.reseller, "ACCT_reseller_only")
 
-    assert {:error, :wholesaler_payout_unverified} =
+    assert {:ok, _order} =
              Emakola.Orders.CheckoutService.checkout!(context.reseller.id, items, [])
   end
 

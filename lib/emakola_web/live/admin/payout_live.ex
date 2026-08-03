@@ -13,6 +13,9 @@ defmodule EmakolaWeb.Admin.PayoutLive do
   """
   use EmakolaWeb, :live_view
 
+  alias Emakola.Payments
+  alias Emakola.Payments.PaymentSplit
+  alias Emakola.Payments.PayoutService
   alias Emakola.Payments.ProtectionHolds
   alias Emakola.Payments.Workers.SubaccountCreationWorker
   alias Emakola.Stores
@@ -23,6 +26,7 @@ defmodule EmakolaWeb.Admin.PayoutLive do
     case socket.assigns[:current_store] do
       %{} = store ->
         account = load_account(store)
+        store_id = store.id
 
         {:ok,
          socket
@@ -30,12 +34,30 @@ defmodule EmakolaWeb.Admin.PayoutLive do
          |> assign(:active_nav, :payouts)
          |> assign(:account, account)
          |> assign(:method, current_method(account))
-         |> assign(:held_net_total, ProtectionHolds.held_net_total(store.id))}
+         |> assign(:held_net_total, ProtectionHolds.held_net_total(store.id))
+         |> assign_async(:accrued_balance, fn -> load_accrued_balance(store_id) end)}
 
       _ ->
         {:ok, push_navigate(socket, to: ~p"/dashboard")}
     end
   end
+
+  # ── Accrued internal balance + MoMo nudge ──────────────────────
+
+  defp load_accrued_balance(store_id) do
+    {:ok, splits} = Payments.list_payable_internal_splits(store_id, authorize?: false)
+
+    amount = splits |> Enum.map(&PaymentSplit.frozen_paid_amount/1) |> Enum.sum()
+    nudge? = amount > 0 and not PayoutService.momo_destination?(store_id)
+
+    {:ok, %{accrued_balance: %{amount: amount, nudge?: nudge?}}}
+  end
+
+  defp accrued_balance_amount(%{ok?: true, result: %{amount: amount}}), do: amount
+  defp accrued_balance_amount(_async_result), do: 0
+
+  defp accrued_balance_nudge?(%{ok?: true, result: %{nudge?: nudge?}}), do: nudge?
+  defp accrued_balance_nudge?(_async_result), do: false
 
   @impl true
   def handle_event("validate", %{"payout" => %{"method" => method}}, socket) do
@@ -149,6 +171,27 @@ defmodule EmakolaWeb.Admin.PayoutLive do
           Tell us where to send your sales. Stored securely.
         </p>
       </header>
+
+      <div class="mb-6">
+        <.stat_card
+          label="Accrued balance"
+          value={
+            Currency.format_price(
+              accrued_balance_amount(@accrued_balance),
+              @current_store.currency || "GHS"
+            )
+          }
+          icon_bg="bg-emerald-50"
+        >
+          <:icon><.icon name="hero-banknotes" class="w-[18px] h-[18px] text-emerald-600" /></:icon>
+        </.stat_card>
+        <div
+          :if={accrued_balance_nudge?(@accrued_balance)}
+          class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+        >
+          Your balance is waiting — add your mobile money number to get paid out.
+        </div>
+      </div>
 
       <div class="mb-6">
         <.stat_card

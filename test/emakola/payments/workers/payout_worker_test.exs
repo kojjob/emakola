@@ -6,6 +6,7 @@ defmodule Emakola.Payments.Workers.PayoutWorkerTest do
   """
   use Emakola.DataCase, async: false
   use Oban.Testing, repo: Emakola.Repo
+  import Ecto.Query
   import Mox
 
   alias Emakola.Factory
@@ -152,6 +153,52 @@ defmodule Emakola.Payments.Workers.PayoutWorkerTest do
     released = Ash.get!(Emakola.Payments.PaymentSplit, split.id, authorize?: false)
     assert is_nil(released.payout_id)
     assert is_nil(released.paid_out_at)
+  end
+
+  # Phase 3 Task 2: mark_failed's status-write and claim-release must be
+  # atomic. Arrangement: claim a split via the real mark_paid_out action,
+  # then corrupt its settlement_method directly in the DB (bypassing Ash) so
+  # release_from_payout's own validation rejects it — the `{:ok, _} = ...`
+  # match inside PayoutService.release_payout_balance/1 raises a MatchError,
+  # simulating a mid-release crash without mocking the service.
+  test "mark_failed is atomic: a release raise leaves the payout un-failed for Oban's retry" do
+    store = Factory.create_store!()
+    payout = pending_payout!(store)
+
+    payment = Factory.create_payment!(store)
+
+    split =
+      Emakola.Payments.PaymentSplit
+      |> Ash.Changeset.for_create(:create, %{
+        store_id: store.id,
+        payment_id: payment.id,
+        role: :merchant,
+        recipient_store_id: store.id,
+        amount: 40_000,
+        settlement_method: :internal_hold
+      })
+      |> Ash.create!(authorize?: false)
+      |> Ash.Changeset.for_update(:mark_settled, %{})
+      |> Ash.update!(authorize?: false)
+      |> Ash.Changeset.for_update(:mark_paid_out, %{payout_id: payout.id})
+      |> Ash.update!(authorize?: false)
+
+    Emakola.Repo.update_all(
+      from(s in "payment_splits", where: s.id == type(^split.id, Ecto.UUID)),
+      set: [settlement_method: "gateway_share"]
+    )
+
+    assert_raise MatchError, fn ->
+      perform_job(Worker, %{"payout_id" => payout.id})
+    end
+
+    # Both-or-neither: if the release half never completed, the payout must
+    # NOT be left :failed — :failed is terminal for the worker, so a stray
+    # :failed status here would strand the still-claimed split forever.
+    assert reload(payout).status == :pending
+
+    still_claimed = Ash.get!(Emakola.Payments.PaymentSplit, split.id, authorize?: false)
+    assert still_claimed.payout_id == payout.id
   end
 
   # PR #373 review: a definitive pre-webhook rejection (no destination, or a

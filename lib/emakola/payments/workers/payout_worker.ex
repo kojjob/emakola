@@ -91,15 +91,26 @@ defmodule Emakola.Payments.Workers.PayoutWorker do
   end
 
   defp mark_failed(payout, reason) do
-    {:ok, _} = Payments.mark_payout_failed(payout, %{failure_reason: reason}, authorize?: false)
-
+    # Atomic with the release: if releasing raises, the transaction rolls
+    # back the status write too, so the payout stays un-failed and Oban's
+    # retry re-runs both — a :failed payout with claims still held would be
+    # unreachable by the finance page's retry flow (:failed is terminal).
+    #
     # No transfer was ever created for a definitive pre-webhook rejection, so
     # no transfer.failed webhook will ever run to release this claim — release
     # it here or the claimed splits/payments are stranded (gone from payable,
     # unreachable by retry) forever. Transient errors (the `{:error, reason}`
     # retry path in execute/1) must NOT release — the payout stays :pending
     # and Oban retries the same claim.
-    PayoutService.release_payout_balance(payout)
+    {:ok, _} =
+      Emakola.Repo.transaction(fn ->
+        {:ok, _} =
+          Payments.mark_payout_failed(payout, %{failure_reason: reason}, authorize?: false)
+
+        PayoutService.release_payout_balance(payout)
+      end)
+
+    :ok
   end
 
   defp gateway do
