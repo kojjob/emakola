@@ -222,8 +222,12 @@ defmodule Emakola.Inventory do
       end
     end)
     |> case do
-      {:ok, :ok} -> {:ok, :adjusted}
-      {:error, reason} -> {:error, reason}
+      {:ok, :ok} ->
+        Emakola.Suppliers.Workers.SupplierStockSyncWorker.enqueue(variant_id)
+        {:ok, :adjusted}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -249,6 +253,7 @@ defmodule Emakola.Inventory do
         :ok
       end)
 
+    Emakola.Suppliers.Workers.SupplierStockSyncWorker.enqueue(variant_id)
     :ok
   end
 
@@ -271,20 +276,31 @@ defmodule Emakola.Inventory do
   """
   def decrement_clamped(variant_id, store_id, quantity, reason, order_id)
       when is_integer(quantity) and quantity > 0 do
-    Emakola.Repo.transaction(fn ->
-      variant = locked_variant!(variant_id)
-      take = Kernel.min(quantity, Kernel.max(variant.stock_quantity, 0))
+    result =
+      Emakola.Repo.transaction(fn ->
+        variant = locked_variant!(variant_id)
+        take = Kernel.min(quantity, Kernel.max(variant.stock_quantity, 0))
 
-      if take > 0 do
-        variant
-        |> Ash.Changeset.for_update(:adjust_stock, %{delta: -take})
-        |> Ash.update!(authorize?: false)
+        if take > 0 do
+          variant
+          |> Ash.Changeset.for_update(:adjust_stock, %{delta: -take})
+          |> Ash.update!(authorize?: false)
 
-        cascade_decrement!(variant, store_id, take, reason, order_id)
-      end
+          cascade_decrement!(variant, store_id, take, reason, order_id)
+        end
 
-      take
-    end)
+        take
+      end)
+
+    case result do
+      {:ok, take} when take > 0 ->
+        Emakola.Suppliers.Workers.SupplierStockSyncWorker.enqueue(variant_id)
+
+      _ ->
+        :ok
+    end
+
+    result
   end
 
   # Shared by decrement_for_sale!/4 and decrement_clamped/5: allocates

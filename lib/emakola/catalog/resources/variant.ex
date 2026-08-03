@@ -218,6 +218,7 @@ defmodule Emakola.Catalog.Variant do
       ])
 
       change(Emakola.Catalog.Changes.UntrackDropshippedInventory)
+      change(Emakola.Catalog.Changes.EnqueueSupplierStockSync)
 
       validate(fn changeset, _context ->
         price =
@@ -266,6 +267,8 @@ defmodule Emakola.Catalog.Variant do
           changeset
         end
       end)
+
+      change(Emakola.Catalog.Changes.EnqueueSupplierStockSync)
     end
 
     update :set_low_stock_alerted do
