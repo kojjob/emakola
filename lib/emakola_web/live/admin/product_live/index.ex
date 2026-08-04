@@ -195,7 +195,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
 
   @impl true
   def handle_event("open_edit_product", %{"id" => id}, socket) do
-    product = load_product(id)
+    product = load_product(id, socket)
 
     if product do
       {:noreply,
@@ -601,11 +601,17 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
     end
   end
 
-  defp load_product(id) do
+  defp load_product(id, socket) do
     # The edit slide-over renders @editing_product.images and .variants —
     # load them here or the render crashes with Enumerable not implemented
     # for Ash.NotLoaded.
-    case Emakola.Catalog.get_product(id, load: [:images, :variants]) do
+    opts = [
+      actor: socket.assigns[:current_merchant],
+      tenant: socket.assigns.store_id,
+      load: [:images, :variants]
+    ]
+
+    case Emakola.Catalog.get_product_for_store(id, socket.assigns.store_id, opts) do
       {:ok, product} -> product
       _ -> nil
     end

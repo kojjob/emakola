@@ -21,7 +21,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
 
     case socket.assigns.live_action do
       :edit ->
-        product = load_product(params["id"])
+        product = load_product(params["id"], socket)
 
         if is_nil(product) || product.store_id != store_id do
           {:ok,
@@ -432,9 +432,17 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
     errors
   end
 
-  defp load_product(id) do
-    case Emakola.Catalog.get_product(id) do
-      {:ok, product} -> Ash.load!(product, [:variants, :images], authorize?: false)
+  defp load_product(id, socket) do
+    store_id = get_store_id(socket)
+
+    opts = [
+      actor: socket.assigns[:current_merchant],
+      tenant: store_id,
+      load: [:variants, :images]
+    ]
+
+    case Emakola.Catalog.get_product_for_store(id, store_id, opts) do
+      {:ok, product} -> product
       _ -> nil
     end
   end

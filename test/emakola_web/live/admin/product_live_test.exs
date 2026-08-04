@@ -389,6 +389,27 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
     end
   end
 
+  describe "ProductLive.Index edit cross-store guard" do
+    setup %{conn: conn} do
+      {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "a crafted edit id cannot open or update another store's product", %{conn: conn} do
+      {_other_merchant, other_store} = Factory.create_merchant_with_store!()
+      foreign_product = Factory.create_product!(other_store, %{title: "Foreign Product"})
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products")
+
+      render_click(view, "open_edit_product", %{"id" => foreign_product.id})
+
+      refute has_element?(view, ~s{#pf_title[value="Foreign Product"]})
+
+      assert Ash.get!(Emakola.Catalog.Product, foreign_product.id, authorize?: false).title ==
+               "Foreign Product"
+    end
+  end
+
   describe "bulk CSV import with images" do
     @png Base.decode64!(
            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="

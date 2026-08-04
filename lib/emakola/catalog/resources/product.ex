@@ -366,6 +366,14 @@ defmodule Emakola.Catalog.Product do
       end)
     end
 
+    read :get_by_store do
+      get?(true)
+      argument(:id, :uuid, allow_nil?: false)
+      argument(:store_id, :uuid, allow_nil?: false)
+
+      filter(expr(id == ^arg(:id) and store_id == ^arg(:store_id)))
+    end
+
     read :list_by_store_and_status do
       argument(:store_id, :uuid, allow_nil?: false)
 

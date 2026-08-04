@@ -97,11 +97,14 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
 
   @impl true
   def handle_event("delete_category", %{"id" => id}, socket) do
-    case Emakola.Catalog.get_category(id) do
+    store_id = socket.assigns.store_id
+    opts = category_opts(socket)
+
+    case Emakola.Catalog.get_category_for_store(id, store_id, opts) do
       {:ok, category} ->
-        case Emakola.Catalog.destroy_category(category, authorize?: false) do
+        case Emakola.Catalog.destroy_category(category, opts) do
           :ok ->
-            Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
+            Emakola.Catalog.CachedCatalog.invalidate_store(store_id)
 
             {:noreply,
              socket
@@ -131,7 +134,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
   end
 
   defp do_create_category(socket, attrs) do
-    case Emakola.Catalog.create_category(attrs, authorize?: false) do
+    case Emakola.Catalog.create_category(attrs, category_opts(socket)) do
       {:ok, _category} ->
         Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 
@@ -147,11 +150,14 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
   end
 
   defp do_update_category(socket, id, attrs) do
-    case Emakola.Catalog.get_category(id) do
+    store_id = socket.assigns.store_id
+    opts = category_opts(socket)
+
+    case Emakola.Catalog.get_category_for_store(id, store_id, opts) do
       {:ok, category} ->
         update_attrs = Map.take(attrs, [:name, :description, :parent_id])
 
-        case Emakola.Catalog.update_category(category, update_attrs, authorize?: false) do
+        case Emakola.Catalog.update_category(category, update_attrs, opts) do
           {:ok, _updated} ->
             Emakola.Catalog.CachedCatalog.invalidate_store(socket.assigns.store_id)
 
@@ -219,7 +225,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
+    <div id="categories-page" class="max-w-[1600px] mx-auto px-4 sm:px-6 space-y-6">
       <%!-- Header --%>
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -295,7 +301,12 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
         title={if @edit_category_id, do: "Edit Category", else: "Add Category"}
         size={:md}
       >
-        <form phx-submit="save_category" phx-change="validate_category" class="space-y-4">
+        <form
+          id="category-form"
+          phx-submit="save_category"
+          phx-change="validate_category"
+          class="space-y-4"
+        >
           <div>
             <label for="category-name" class="block text-sm font-medium text-slate-700 mb-1.5">
               Name <span class="text-red-500">*</span>
@@ -407,7 +418,10 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
       |> assign(:child_count, child_count)
 
     ~H"""
-    <div class="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5">
+    <div
+      id={"category-#{@node.category.id}"}
+      class="group bg-white rounded-2xl shadow-sm hover:shadow-md transition-all p-5"
+    >
       <%!-- Top: Icon + Actions --%>
       <div class="flex items-start justify-between mb-4">
         <div class={"w-12 h-12 rounded-xl #{@icon_bg} flex items-center justify-center"}>
@@ -415,6 +429,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
         </div>
         <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
+            id={"edit-category-#{@node.category.id}"}
             phx-click={
               JS.push("open_edit_modal", value: %{id: @node.category.id})
               |> show_modal("category-modal")
@@ -425,6 +440,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
             <span class="material-symbols-outlined text-base text-slate-400">edit</span>
           </button>
           <button
+            id={"delete-category-#{@node.category.id}"}
             phx-click={
               JS.push("open_delete_modal", value: %{id: @node.category.id})
               |> show_modal("delete-category-modal")
@@ -482,7 +498,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
 
     all_categories =
       try do
-        Emakola.Catalog.list_categories_by_store!(store_id)
+        Emakola.Catalog.list_categories_by_store!(store_id, category_opts(socket))
       rescue
         exception ->
           Logger.error(
@@ -524,6 +540,10 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
       %{id: id} -> id
       _ -> nil
     end
+  end
+
+  defp category_opts(socket) do
+    [actor: socket.assigns[:current_merchant], tenant: socket.assigns.store_id]
   end
 
   defp format_error(%Ash.Error.Invalid{errors: errors}) do
