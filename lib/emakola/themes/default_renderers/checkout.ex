@@ -257,8 +257,10 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
 
                 <div class="border-t border-stone-200"></div>
 
-                <%!-- SECTION 2: Shipping Address --%>
-                <section>
+                <%!-- SECTION 2: Shipping Address. Hidden for a cart of
+                     downloads — there is nothing to deliver, and the server
+                     (CheckoutService.run_checkout/4) charges no fee either. --%>
+                <section :if={@requires_shipping}>
                   <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
                     Shipping Address
                   </h2>
@@ -338,7 +340,7 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                 <div class="border-t border-stone-200"></div>
 
                 <%!-- SECTION 3: Delivery Method --%>
-                <section>
+                <section :if={@requires_shipping}>
                   <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 mb-6">
                     Delivery Method
                   </h2>
@@ -497,8 +499,11 @@ defmodule Emakola.Themes.DefaultRenderers.Checkout do
                       </div>
                     </button>
 
-                    <%!-- Cash on Delivery --%>
+                    <%!-- Cash on Delivery. Meaningless for a download: there is
+                         no delivery for the buyer to pay cash at. Also refused
+                         server-side in handle_payment/2. --%>
                     <button
+                      :if={@requires_shipping}
                       type="button"
                       phx-click="select_payment"
                       phx-value-method="cod"
