@@ -60,6 +60,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.IndexTest do
 
     test "renders merchants with names and emails", %{conn: conn, ama: ama, yaw: yaw} do
       {:ok, view, _html} = live(conn, ~p"/platform/merchants")
+      assert has_element?(view, "#platform-merchants[phx-update='stream'][data-count='2']")
       assert has_element?(view, "#merchant-#{ama.id}", "Ama Mensah")
       assert has_element?(view, "#merchant-#{yaw.id}", "Yaw Owusu")
     end
@@ -75,6 +76,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.IndexTest do
     test "search narrows by name", %{conn: conn, ama: ama, yaw: yaw} do
       {:ok, view, _html} = live(conn, ~p"/platform/merchants")
       view |> form("#merchant-search-form") |> render_change(%{"search" => "Ama"})
+      assert has_element?(view, "#platform-merchants[data-count='1']")
       assert has_element?(view, "#merchant-#{ama.id}")
       refute has_element?(view, "#merchant-#{yaw.id}")
     end
@@ -91,6 +93,30 @@ defmodule EmakolaWeb.Platform.MerchantLive.IndexTest do
       render_click(view, "filter", %{"filter" => "unconfirmed"})
       assert has_element?(view, "#merchant-#{yaw.id}")
       refute has_element?(view, "#merchant-#{ama.id}")
+    end
+
+    test "an empty search result renders the streamed empty state", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/platform/merchants")
+
+      view
+      |> form("#merchant-search-form")
+      |> render_change(%{"search" => "does-not-exist"})
+
+      assert has_element?(view, "#platform-merchants[data-count='0']")
+      assert has_element?(view, "#platform-merchants-empty")
+    end
+
+    test "a forged selection outside the current search result is ignored", %{
+      conn: conn,
+      yaw: yaw
+    } do
+      {:ok, view, _html} = live(conn, ~p"/platform/merchants")
+
+      view |> form("#merchant-search-form") |> render_change(%{"search" => "Ama"})
+      html = render_click(view, "select_merchant", %{"id" => yaw.id})
+
+      refute html =~ "Yaw Owusu"
+      refute html =~ "yaw@example.com"
     end
   end
 

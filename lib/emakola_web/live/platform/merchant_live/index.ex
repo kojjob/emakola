@@ -3,8 +3,8 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
   Platform directory of all merchants with a slide-over detail drawer.
 
   Mount is gated by RequirePermission (:manage_merchants). No DB queries are
-  issued during the disconnected render — a nil merchants state is assigned
-  and the template renders a loading shell. The page is read-only, so its
+  issued during the disconnected render — an empty stream and loading state
+  render the shell. The page is read-only, so its
   events (search, filter, select) issue no writes.
   """
   use EmakolaWeb, :live_view
@@ -24,12 +24,17 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
       |> assign(:search_form, to_form(%{"search" => ""}))
       |> assign(:filter, :all)
       |> assign(:selected_merchant, nil)
+      |> assign(:merchant_ids, MapSet.new())
+      |> assign(:merchants_count, 0)
+      |> assign(:merchants_loaded?, false)
+      |> assign(:stats, nil)
+      |> stream(:merchants, [], dom_id: &"merchant-#{&1.id}")
 
     socket =
       if connected?(socket) do
         load_merchants(socket)
       else
-        assign(socket, all_merchants: nil, merchants: [], stats: nil)
+        socket
       end
 
     {:ok, socket}
@@ -43,15 +48,18 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
      socket
      |> assign(:search, q)
      |> assign(:search_form, to_form(params))
-     |> apply_filter()}
+     |> load_merchants()}
   end
 
   def handle_event("filter", %{"filter" => f}, socket) do
-    {:noreply, socket |> assign(:filter, parse_filter(f)) |> apply_filter()}
+    {:noreply, socket |> assign(:filter, parse_filter(f)) |> load_merchants()}
   end
 
   def handle_event("select_merchant", %{"id" => id}, socket) do
-    {:noreply, assign(socket, :selected_merchant, load_merchant_detail(id))}
+    merchant =
+      if MapSet.member?(socket.assigns.merchant_ids, id), do: load_merchant_detail(id), else: nil
+
+    {:noreply, assign(socket, :selected_merchant, merchant)}
   end
 
   # ── Data ───────────────────────────────────────────────
@@ -63,22 +71,26 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
         _ -> []
       end
 
+    merchants = filtered(all, socket.assigns.search, socket.assigns.filter)
+
     socket
-    |> assign(:all_merchants, all)
+    |> assign(:merchant_ids, MapSet.new(merchants, & &1.id))
+    |> assign(:merchants_count, length(merchants))
+    |> assign(:merchants_loaded?, true)
     |> assign(:stats, compute_stats(all))
-    |> apply_filter()
+    |> stream(:merchants, merchants, reset: true)
   rescue
     exception ->
       Logger.error(
         "[platform.merchant_live] load_merchants loading merchants raised: #{Exception.message(exception)}"
       )
 
-      assign(socket, all_merchants: [], merchants: [], stats: compute_stats([]))
-  end
-
-  defp apply_filter(socket) do
-    all = socket.assigns.all_merchants || []
-    assign(socket, :merchants, filtered(all, socket.assigns.search, socket.assigns.filter))
+      socket
+      |> assign(:merchant_ids, MapSet.new())
+      |> assign(:merchants_count, 0)
+      |> assign(:merchants_loaded?, true)
+      |> assign(:stats, compute_stats([]))
+      |> stream(:merchants, [], reset: true)
   end
 
   defp load_merchant_detail(id) do
@@ -162,19 +174,21 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
       <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Merchants</h1>
         <p class="text-sm text-gray-500 mt-1">
-          {if @stats, do: "Everyone building on Makola (#{@stats.total})", else: "Loading merchants…"}
+          {if @merchants_loaded?,
+            do: "Everyone building on Makola (#{@stats.total})",
+            else: "Loading merchants…"}
         </p>
       </div>
 
       <%!-- Loading shell (disconnected mount — no DB) --%>
       <div
-        :if={is_nil(@all_merchants)}
+        :if={!@merchants_loaded?}
         class="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-16 text-center text-sm text-gray-400"
       >
         Loading merchants…
       </div>
 
-      <div :if={@all_merchants}>
+      <div :if={@merchants_loaded?}>
         <%!-- Stat strip --%>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <.stat_tile label="Total" value={@stats.total} icon="group" color="blue" />
@@ -220,16 +234,9 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
           <p class="text-sm text-gray-400">Merchants will appear here as they sign up.</p>
         </div>
 
-        <div
-          :if={@stats.total > 0 and @merchants == []}
-          class="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-16 text-center text-sm text-gray-400"
-        >
-          No merchants match your filters
-        </div>
-
         <%!-- Table --%>
         <div
-          :if={@merchants != []}
+          :if={@stats.total > 0}
           class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
         >
           <div class="overflow-x-auto">
@@ -243,10 +250,20 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
                   <th class="px-6 py-3">Joined</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
+              <tbody
+                id="platform-merchants"
+                phx-update="stream"
+                data-count={@merchants_count}
+                class="divide-y divide-gray-100"
+              >
+                <tr :if={@merchants_count == 0} id="platform-merchants-empty">
+                  <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-400">
+                    No merchants match your filters
+                  </td>
+                </tr>
                 <tr
-                  :for={m <- @merchants}
-                  id={"merchant-#{m.id}"}
+                  :for={{id, m} <- @streams.merchants}
+                  id={id}
                   class="hover:bg-gray-50 transition-colors cursor-pointer"
                   phx-click={
                     JS.push("select_merchant", value: %{id: m.id}) |> show_modal("merchant-drawer")
@@ -414,6 +431,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
 
     ~H"""
     <button
+      id={"merchant-filter-#{@filter}"}
       type="button"
       phx-click="filter"
       phx-value-filter={@filter}
