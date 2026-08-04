@@ -473,7 +473,12 @@ defmodule Emakola.Themes.DefaultRenderers.Account do
             </div>
             <div>
               <p class="text-sm font-semibold text-cta-dark">
-                Order #{order.order_number}
+                <.link
+                  navigate={store_path(@store.slug, "/track/#{order.order_number}")}
+                  class="hover:underline"
+                >
+                  Order #{order.order_number}
+                </.link>
               </p>
               <p class="text-xs mt-0.5 text-[#44403C]">
                 {format_order_date(order.inserted_at)} &middot; {order_item_count(order)} item{if order_item_count(

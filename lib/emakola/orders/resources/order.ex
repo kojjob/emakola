@@ -105,6 +105,16 @@ defmodule Emakola.Orders.Order do
       constraints(max_length: 100)
     end
 
+    # Which courier the reference above belongs to, so the buyer gets a link
+    # instead of a number they must guess where to type. Inlined rather than
+    # read from Emakola.Shipping.Couriers to keep the DSL free of a
+    # compile-order dependency; CouriersTest pins the two lists in lockstep.
+    attribute :courier, :atom do
+      public?(true)
+
+      constraints(one_of: [:dhl, :ems_ghana, :speedaf, :jumia_express, :local_rider, :other])
+    end
+
     attribute :shipping_address, :map do
       public?(true)
       filterable?(false)
@@ -309,7 +319,7 @@ defmodule Emakola.Orders.Order do
 
     update :mark_shipped do
       require_atomic?(false)
-      accept([:tracking_number])
+      accept([:tracking_number, :courier])
 
       validate(
         {Emakola.Validations.StatusGuard,

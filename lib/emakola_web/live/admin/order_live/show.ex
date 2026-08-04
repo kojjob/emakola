@@ -29,7 +29,9 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
         tracking_number: "",
         fulfillments: [],
         ship_fulfillment_id: nil,
-        fulfillment_tracking: ""
+        fulfillment_tracking: "",
+        delivery_code_fulfillment_id: nil,
+        delivery_code: ""
       )
       |> load_order()
       |> load_payment()
@@ -70,9 +72,9 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   end
 
   @impl true
-  def handle_event("submit_shipped", %{"tracking_number" => tracking}, socket) do
+  def handle_event("submit_shipped", %{"tracking_number" => tracking} = params, socket) do
     transition_order(socket, :mark_shipped, "Order marked as shipped",
-      params: %{tracking_number: tracking}
+      params: %{tracking_number: tracking, courier: courier_from(params["courier"])}
     )
   end
 
@@ -133,6 +135,54 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
       "Fulfillment marked shipped",
       params: %{tracking_number: tracking}
     )
+  end
+
+  # -- Proof of delivery ------------------------------------------------------
+  #
+  # Marking an order delivered is a merchant asserting something about
+  # themselves. The OTP is the only path in the system that requires the buyer
+  # to assent, so it is the one that actually reduces delivery fraud.
+
+  @impl true
+  def handle_event("request_delivery_code", %{"id" => id}, socket) do
+    case Emakola.Orders.CustomerDelivery.request_delivery_code(socket.assigns.store_id, id) do
+      {:ok, proof} ->
+        {:noreply,
+         socket
+         |> assign(delivery_code_fulfillment_id: id, delivery_code: "")
+         |> load_fulfillments()
+         |> put_flash(:info, "Delivery code sent to #{proof.sent_to}")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, delivery_code_error(reason))}
+    end
+  end
+
+  @impl true
+  def handle_event("enter_delivery_code", %{"id" => id}, socket) do
+    {:noreply, assign(socket, delivery_code_fulfillment_id: id, delivery_code: "")}
+  end
+
+  @impl true
+  def handle_event("cancel_delivery_code", _params, socket) do
+    {:noreply, assign(socket, delivery_code_fulfillment_id: nil, delivery_code: "")}
+  end
+
+  @impl true
+  def handle_event("submit_delivery_code", %{"fulfillment_id" => id, "code" => code}, socket) do
+    # store_id is read from assigns at handle-event time, never from the form.
+    case Emakola.Orders.CustomerDelivery.verify_delivery(socket.assigns.store_id, id, code) do
+      {:ok, _fulfillment} ->
+        {:noreply,
+         socket
+         |> assign(delivery_code_fulfillment_id: nil, delivery_code: "")
+         |> load_order()
+         |> load_fulfillments()
+         |> put_flash(:info, "Customer confirmed delivery")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, delivery_code_error(reason))}
+    end
   end
 
   @impl true
@@ -363,11 +413,11 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                   </ul>
 
                   <div
-                    :if={not is_nil(f.supplier_id) and f.status not in [:delivered, :cancelled]}
+                    :if={f.status not in [:delivered, :cancelled]}
                     class="flex flex-wrap gap-2 pt-1"
                   >
                     <.admin_button
-                      :if={f.status in [:pending, :notified]}
+                      :if={not is_nil(f.supplier_id) and f.status in [:pending, :notified]}
                       size={:sm}
                       phx-click="send_supplier_fulfillment"
                       phx-value-id={f.id}
@@ -384,14 +434,33 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                     >
                       Mark shipped
                     </button>
+                    <%!-- Proof of delivery. "Mark delivered" is the merchant
+                          attesting to their own performance; the code is the
+                          only path the buyer has to assent, so it leads. --%>
                     <.admin_button
                       :if={f.status == :shipped}
                       size={:sm}
-                      phx-click="deliver_fulfillment"
+                      phx-click="request_delivery_code"
                       phx-value-id={f.id}
                     >
-                      Mark delivered
+                      {if delivery_proof?(f), do: "Send new code", else: "Send delivery code"}
                     </.admin_button>
+                    <button
+                      :if={f.status == :shipped && delivery_proof?(f)}
+                      phx-click="enter_delivery_code"
+                      phx-value-id={f.id}
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold transition-colors"
+                    >
+                      Enter customer code
+                    </button>
+                    <button
+                      :if={f.status == :shipped}
+                      phx-click="deliver_fulfillment"
+                      phx-value-id={f.id}
+                      class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg text-xs font-medium transition-colors"
+                    >
+                      Mark delivered without code
+                    </button>
                     <button
                       phx-click="cancel_fulfillment"
                       phx-value-id={f.id}
@@ -401,6 +470,40 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                       Cancel
                     </button>
                   </div>
+
+                  <%!-- The buyer reads this code out at the door. It is never
+                        shown to the merchant when issued — only the masked
+                        recipient is — so entering it proves someone at the
+                        delivery address has it. --%>
+                  <form
+                    :if={@delivery_code_fulfillment_id == f.id}
+                    phx-submit="submit_delivery_code"
+                    class="mt-3 flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center"
+                  >
+                    <input type="hidden" name="fulfillment_id" value={f.id} />
+                    <label for={"delivery-code-#{f.id}"} class="sr-only">
+                      Delivery code from the customer
+                    </label>
+                    <input
+                      id={"delivery-code-#{f.id}"}
+                      type="text"
+                      name="code"
+                      inputmode="numeric"
+                      autocomplete="off"
+                      placeholder="6-digit code"
+                      class="flex-1 px-3 py-2 text-sm font-mono rounded-lg border border-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                    <div class="flex gap-2">
+                      <.admin_button type="submit" size={:sm}>Confirm delivery</.admin_button>
+                      <button
+                        type="button"
+                        phx-click="cancel_delivery_code"
+                        class="px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </div>
             </.admin_card>
@@ -601,6 +704,27 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                 autocomplete="off"
               />
             </div>
+            <%!-- Which courier the reference belongs to, so the buyer gets a
+                  link instead of a number they must guess where to type.
+                  Couriers with no verified public tracking URL are still
+                  selectable — the number then renders as plain text rather
+                  than a link to a guessed destination. --%>
+            <div>
+              <label for="order-courier" class="block text-sm font-medium text-slate-700 mb-1.5">
+                Courier (optional)
+              </label>
+              <select
+                id="order-courier"
+                name="courier"
+                class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
+                       focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value="">Not specified</option>
+                <option :for={c <- Emakola.Shipping.Couriers.list()} value={to_string(c.id)}>
+                  {c.label}
+                </option>
+              </select>
+            </div>
             <div class="flex items-center justify-end gap-3 pt-2">
               <.admin_button variant={:secondary} phx-click={hide_modal("shipped-order-modal")}>
                 Cancel
@@ -759,6 +883,36 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
 
   # ── Data Loading ──
 
+  # Matched against the known list rather than converted: String.to_atom/1 on
+  # user input is atom-table exhaustion, and to_existing_atom/1 raises on
+  # unknown input, which is a 500.
+  defp courier_from(value) do
+    Enum.find(Emakola.Shipping.Couriers.ids(), &(to_string(&1) == value))
+  end
+
+  defp delivery_code_error(:rate_limited),
+    do: "Too many codes sent for this delivery. Try again in a few minutes."
+
+  defp delivery_code_error(:fulfillment_not_shipped),
+    do: "Mark it shipped before sending a delivery code."
+
+  defp delivery_code_error(:customer_phone_missing),
+    do: "This order has no phone number to send the code to."
+
+  defp delivery_code_error(:delivery_code_not_requested), do: "Send the customer a code first."
+
+  defp delivery_code_error(:invalid_code),
+    do: "That code does not match. Check with the customer."
+
+  defp delivery_code_error(:expired), do: "That code expired. Send a new one."
+  defp delivery_code_error(:already_verified), do: "This delivery is already confirmed."
+
+  defp delivery_code_error(:too_many_attempts),
+    do: "Too many wrong attempts. Send a new code."
+
+  defp delivery_code_error(:delivery_failed), do: "Could not send the code. Try again."
+  defp delivery_code_error(_reason), do: "Could not complete that. Try again."
+
   defp load_order(socket) do
     %{order_id: id, store_id: store_id} = socket.assigns
 
@@ -841,6 +995,11 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
     end
   end
 
+  # %Ash.NotLoaded{} is truthy — guarding on the association directly would
+  # claim a code had already been sent whenever the load was forgotten.
+  defp delivery_proof?(%{delivery_proof: %Emakola.Orders.FulfillmentDeliveryProof{}}), do: true
+  defp delivery_proof?(_fulfillment), do: false
+
   defp load_fulfillments(socket) do
     case socket.assigns.order do
       nil ->
@@ -849,7 +1008,9 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
       order ->
         fulfillments =
           try do
-            Emakola.Orders.list_fulfillments_by_order!(order.id, authorize?: false)
+            order.id
+            |> Emakola.Orders.list_fulfillments_by_order!(authorize?: false)
+            |> Ash.load!(:delivery_proof, authorize?: false)
           rescue
             exception ->
               Logger.error(

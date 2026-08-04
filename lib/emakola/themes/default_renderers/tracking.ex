@@ -159,102 +159,64 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
             </div>
           </div>
 
-          <%!-- MAP PLACEHOLDER (only when shipped) --%>
+          <%!-- What we actually know once an order ships: that it shipped,
+                and the courier reference the merchant recorded — if they
+                recorded one.
+
+                This replaced an SVG that drew a dashed route, a destination
+                pin and a labelled "Rider" marker at a fixed position, under
+                aria-label="Map showing delivery route". No location data
+                exists anywhere in this system, so every part of that picture
+                was invented — and the aria-label asserted it to exactly the
+                users least able to check. Live rider location would need a
+                rider identity, a reporting channel, a map provider and a
+                privacy decision about tracking a person. --%>
           <div
             :if={@order.status == :shipped}
-            class="bg-white rounded-2xl border border-stone-200 overflow-hidden"
+            class="bg-white rounded-2xl border border-stone-200 p-5"
           >
-            <div class="relative bg-stone-100 h-48">
-              <svg
-                class="w-full h-full"
-                viewBox="0 0 400 200"
-                aria-label="Map showing delivery route"
-              >
-                <defs>
-                  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path
-                      d="M 40 0 L 0 0 0 40"
-                      fill="none"
-                      stroke="#E7E5E4"
-                      stroke-width="0.5"
-                    />
-                  </pattern>
-                </defs>
-                <rect width="400" height="200" fill="#F5F5F4" />
-                <rect width="400" height="200" fill="url(#grid)" />
-                <line
-                  x1="0"
-                  y1="100"
-                  x2="400"
-                  y2="100"
-                  stroke="#D6D3D1"
-                  stroke-width="6"
-                  stroke-linecap="round"
-                />
-                <line
-                  x1="200"
-                  y1="0"
-                  x2="200"
-                  y2="200"
-                  stroke="#D6D3D1"
-                  stroke-width="6"
-                  stroke-linecap="round"
-                />
-                <path
-                  d="M140 120 C180 110 220 90 300 80"
-                  fill="none"
-                  stroke="var(--theme-primary, #B45309)"
-                  stroke-width="3"
-                  stroke-dasharray="6 4"
-                  stroke-linecap="round"
-                />
-                <g transform="translate(300, 80)">
-                  <circle cx="0" cy="0" r="10" fill="var(--theme-primary, #B45309)" opacity="0.15" />
-                  <circle cx="0" cy="0" r="5" fill="var(--theme-primary, #B45309)" opacity="0.3" />
-                  <circle cx="0" cy="-12" r="8" fill="#F43F5E" />
-                  <circle cx="0" cy="-12" r="3" fill="white" />
-                  <path d="M0 -4 L0 0" stroke="#F43F5E" stroke-width="2" />
-                </g>
-                <g transform="translate(140, 120)">
-                  <circle cx="0" cy="0" r="12" fill="var(--theme-primary, #B45309)" opacity="0.15" />
-                  <circle cx="0" cy="0" r="6" fill="var(--theme-primary, #B45309)" />
-                  <circle cx="0" cy="0" r="2.5" fill="white" />
-                </g>
-                <text
-                  x="140"
-                  y="145"
-                  fill="var(--theme-primary, #B45309)"
-                  font-size="9"
-                  font-family="Inter, sans-serif"
-                  font-weight="600"
-                  text-anchor="middle"
-                >
-                  Rider
-                </text>
-                <text
-                  x="300"
-                  y="60"
-                  fill="#F43F5E"
-                  font-size="9"
-                  font-family="Inter, sans-serif"
-                  font-weight="600"
-                  text-anchor="middle"
-                >
-                  Drop-off
-                </text>
-              </svg>
-
-              <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white/90 to-transparent px-4 py-3">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 bg-store-accent rounded-full animate-pulse"></span>
-                    <p class="text-sm font-semibold text-cta-dark">
-                      Your order is on the way
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 bg-store-accent rounded-full animate-pulse"></span>
+              <p class="text-sm font-semibold text-cta-dark">Your order is on the way</p>
             </div>
+
+            <div :if={@order.tracking_number} class="mt-4 border-t border-stone-100 pt-4">
+              <p class="text-xs text-stone-500">
+                {Emakola.Shipping.Couriers.label(@order.courier)} tracking number
+              </p>
+
+              <%!-- Linked only when the courier has a VERIFIED public tracking
+                    URL. A guessed link lands the buyer on someone else's 404
+                    and reads as the shop's mistake, so an unknown courier
+                    renders the reference as plain text instead. --%>
+              <a
+                :if={Emakola.Shipping.Couriers.tracking_url(@order.courier, @order.tracking_number)}
+                href={Emakola.Shipping.Couriers.tracking_url(@order.courier, @order.tracking_number)}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="mt-1 inline-block font-mono text-base font-semibold text-cta-dark underline break-all"
+              >
+                {@order.tracking_number}
+              </a>
+              <p
+                :if={
+                  is_nil(
+                    Emakola.Shipping.Couriers.tracking_url(@order.courier, @order.tracking_number)
+                  )
+                }
+                class="mt-1 font-mono text-base font-semibold text-cta-dark break-all"
+              >
+                {@order.tracking_number}
+              </p>
+
+              <p class="mt-1 text-xs text-stone-500">
+                Quote this to the courier if you need to ask about your delivery.
+              </p>
+            </div>
+
+            <p :if={is_nil(@order.tracking_number)} class="mt-3 text-sm text-stone-500">
+              The seller has not added a courier tracking number for this order.
+            </p>
           </div>
 
           <%!-- ORDER SUMMARY (Collapsible) --%>
