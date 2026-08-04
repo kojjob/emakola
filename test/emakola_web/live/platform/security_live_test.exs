@@ -185,11 +185,16 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
       intruder = Factory.create_platform_owner!()
       Factory.create_user_session!(intruder, %{ip: "203.0.113.9"})
 
-      {:ok, _view, html} = live(conn, "/platform/security")
+      {:ok, view, html} = live(conn, "/platform/security")
 
       assert html =~ "10.0.0.5"
       assert html =~ "Mac"
       refute html =~ "203.0.113.9"
+
+      assert has_element?(
+               view,
+               "#platform-security-sessions[phx-update='stream'][data-count='2']"
+             )
     end
 
     test "the current session is badged", %{conn: conn} do
@@ -214,6 +219,7 @@ defmodule EmakolaWeb.Platform.SecurityLiveTest do
       html = view |> element("#revoke-session-#{other.id}") |> render_click()
 
       refute html =~ "session-#{other.id}"
+      assert has_element?(view, "#platform-security-sessions[data-count='1']")
       assert %DateTime{} = reload_session!(other).revoked_at
       assert_receive %Phoenix.Socket.Broadcast{event: "disconnect"}
 

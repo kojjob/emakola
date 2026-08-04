@@ -29,6 +29,9 @@ defmodule EmakolaWeb.Platform.SecurityLive do
       socket
       |> assign(:page_title, "Security")
       |> assign(:active_nav, :security)
+      |> assign(:sessions_count, 0)
+      |> assign(:sessions_loaded?, false)
+      |> stream(:sessions, [], dom_id: &"session-#{&1.id}")
       |> reset_rotation()
 
     # No DB queries in disconnected mount — render a loading shell first.
@@ -36,7 +39,7 @@ defmodule EmakolaWeb.Platform.SecurityLive do
       if connected?(socket) do
         load_sessions(socket)
       else
-        assign(socket, :sessions, nil)
+        socket
       end
 
     {:ok, socket}
@@ -165,8 +168,17 @@ defmodule EmakolaWeb.Platform.SecurityLive do
 
   defp load_sessions(socket) do
     case Sessions.list_active_for_user(socket.assigns.current_user.id) do
-      {:ok, sessions} -> assign(socket, :sessions, sessions)
-      {:error, _} -> assign(socket, :sessions, [])
+      {:ok, sessions} ->
+        socket
+        |> assign(:sessions_count, length(sessions))
+        |> assign(:sessions_loaded?, true)
+        |> stream(:sessions, sessions, reset: true)
+
+      {:error, _} ->
+        socket
+        |> assign(:sessions_count, 0)
+        |> assign(:sessions_loaded?, true)
+        |> stream(:sessions, [], reset: true)
     end
   end
 
@@ -202,7 +214,9 @@ defmodule EmakolaWeb.Platform.SecurityLive do
       otpauth_secret_base32={@otpauth_secret_base32}
       rotation_verify_form={@rotation_verify_form}
       rotation_confirm_form={@rotation_confirm_form}
-      sessions={@sessions}
+      sessions={@streams.sessions}
+      sessions_count={@sessions_count}
+      sessions_loaded?={@sessions_loaded?}
       current_session_id={@current_session_id}
     />
     """

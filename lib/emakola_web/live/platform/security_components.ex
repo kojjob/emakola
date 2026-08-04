@@ -18,7 +18,9 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
   attr :otpauth_secret_base32, :string, required: true
   attr :rotation_verify_form, :any, required: true
   attr :rotation_confirm_form, :any, required: true
-  attr :sessions, :list, required: true
+  attr :sessions, :any, required: true
+  attr :sessions_count, :integer, required: true
+  attr :sessions_loaded?, :boolean, required: true
   attr :current_session_id, :string, required: true
 
   def security_page(assigns) do
@@ -38,7 +40,12 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
         rotation_verify_form={@rotation_verify_form}
         rotation_confirm_form={@rotation_confirm_form}
       />
-      <.sessions_card sessions={@sessions} current_session_id={@current_session_id} />
+      <.sessions_card
+        sessions={@sessions}
+        sessions_count={@sessions_count}
+        sessions_loaded?={@sessions_loaded?}
+        current_session_id={@current_session_id}
+      />
     </div>
     """
   end
@@ -200,7 +207,9 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
 
   # ── Active sessions card ─────────────────────────────────────────
 
-  attr :sessions, :list, required: true
+  attr :sessions, :any, required: true
+  attr :sessions_count, :integer, required: true
+  attr :sessions_loaded?, :boolean, required: true
   attr :current_session_id, :string, required: true
 
   defp sessions_card(assigns) do
@@ -209,7 +218,7 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
       <div class="px-6 py-4 border-b border-gray-100">
         <h2 class="text-lg font-semibold text-gray-900">Active sessions</h2>
       </div>
-      <%= if is_nil(@sessions) do %>
+      <%= if !@sessions_loaded? do %>
         <div class="px-6 py-12 text-center text-sm text-gray-400">Loading sessions…</div>
       <% else %>
         <div class="overflow-x-auto">
@@ -222,10 +231,20 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
                 <th class="px-6 py-3"></th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody
+              id="platform-security-sessions"
+              phx-update="stream"
+              data-count={@sessions_count}
+              class="divide-y divide-gray-100"
+            >
+              <tr :if={@sessions_count == 0} id="platform-security-sessions-empty">
+                <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-400">
+                  No active sessions
+                </td>
+              </tr>
               <tr
-                :for={session <- @sessions}
-                id={"session-#{session.id}"}
+                :for={{id, session} <- @sessions}
+                id={id}
                 class="hover:bg-gray-50 transition-colors"
               >
                 <td class="px-6 py-4">
