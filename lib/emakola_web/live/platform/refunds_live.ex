@@ -23,7 +23,8 @@ defmodule EmakolaWeb.Platform.RefundsLive do
       |> assign(:loaded, false)
       |> assign(:total_refunded, 0)
       |> assign(:refund_count, 0)
-      |> assign(:refunds, [])
+      |> assign(:refunds_empty?, true)
+      |> stream(:refunds, [])
 
     {:ok, if(connected?(socket), do: load(socket), else: socket)}
   end
@@ -39,7 +40,8 @@ defmodule EmakolaWeb.Platform.RefundsLive do
     |> assign(:loaded, true)
     |> assign(:total_refunded, Stats.total_refunded())
     |> assign(:refund_count, Stats.refund_count())
-    |> assign(:refunds, refunds)
+    |> assign(:refunds_empty?, refunds == [])
+    |> stream(:refunds, refunds, reset: true)
   end
 
   defp money(nil, _currency), do: "—"
@@ -55,7 +57,7 @@ defmodule EmakolaWeb.Platform.RefundsLive do
     ~H"""
     <div class="p-6 lg:p-8 max-w-5xl mx-auto">
       <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">Refunds</h1>
+        <h1 id="platform-refunds-title" class="text-2xl font-bold text-gray-900">Refunds</h1>
         <p class="text-sm text-gray-500 mt-1">
           Refunded payments across all stores. Disputes &amp; chargebacks coming soon.
         </p>
@@ -80,7 +82,8 @@ defmodule EmakolaWeb.Platform.RefundsLive do
         </div>
 
         <div
-          :if={@refunds == []}
+          :if={@refunds_empty?}
+          id="platform-refunds-empty"
           class="rounded-2xl border border-dashed border-gray-200 bg-white p-16 text-center"
         >
           <.icon name="hero-banknotes" class="mx-auto h-12 w-12 text-emerald-400" />
@@ -91,7 +94,8 @@ defmodule EmakolaWeb.Platform.RefundsLive do
         </div>
 
         <div
-          :if={@refunds != []}
+          :if={!@refunds_empty?}
+          id="platform-refunds-table"
           class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
         >
           <table class="w-full text-sm">
@@ -104,8 +108,8 @@ defmodule EmakolaWeb.Platform.RefundsLive do
                 <th class="px-6 py-3">Date</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr :for={p <- @refunds} class="hover:bg-gray-50">
+            <tbody id="platform-refunds" phx-update="stream" class="divide-y divide-gray-100">
+              <tr :for={{id, p} <- @streams.refunds} id={id} class="hover:bg-gray-50">
                 <td class="px-6 py-4 font-medium text-gray-900">{p.store && p.store.name}</td>
                 <td class="px-6 py-4 text-gray-600">{money(p.amount, p.currency)}</td>
                 <td class="px-6 py-4 font-semibold text-rose-600">

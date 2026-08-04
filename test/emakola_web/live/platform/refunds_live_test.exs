@@ -35,18 +35,23 @@ defmodule EmakolaWeb.Platform.RefundsLiveTest do
     end
 
     test "shows the empty state when there are no refunds", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/platform/refunds")
-      assert html =~ "No refunds"
+      {:ok, view, _html} = live(conn, ~p"/platform/refunds")
+
+      assert has_element?(view, "#platform-refunds-title")
+      assert has_element?(view, "#platform-refunds-empty")
+      refute has_element?(view, "#platform-refunds-table")
     end
 
     test "renders totals and a refunds row", %{conn: conn} do
       store = Factory.create_store!(%{name: "Kente Kingdom"})
-      refunded!(store, 100_000)
+      payment = refunded!(store, 100_000)
 
-      {:ok, _view, html} = live(conn, ~p"/platform/refunds")
+      {:ok, view, _html} = live(conn, ~p"/platform/refunds")
 
-      assert html =~ "Refunds"
-      assert html =~ "Kente Kingdom"
+      assert has_element?(view, "#platform-refunds-table")
+      assert has_element?(view, "#platform-refunds[phx-update='stream']")
+      assert has_element?(view, "#refunds-#{payment.id}")
+      refute has_element?(view, "#platform-refunds-empty")
     end
   end
 end
