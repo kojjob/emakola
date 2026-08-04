@@ -28,7 +28,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
       if connected?(socket) do
         load_stores(socket, "")
       else
-        assign(socket, :stores, nil)
+        assign(socket, stores: nil, rank_forms: %{})
       end
 
     {:ok, socket}
@@ -96,7 +96,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
             stores =
               Enum.map(socket.assigns.stores, fn s -> if s.id == id, do: updated, else: s end)
 
-            {:noreply, assign(socket, :stores, stores)}
+            {:noreply, assign_stores(socket, stores)}
 
           {:error, _} ->
             {:noreply, put_flash(socket, :error, "Could not update store")}
@@ -113,14 +113,29 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
         _ -> []
       end
 
-    assign(socket, :stores, stores)
+    assign_stores(socket, stores)
   rescue
     exception ->
       Logger.error(
         "[platform.store_live] load_stores loading stores raised: #{Exception.message(exception)}"
       )
 
-      assign(socket, :stores, [])
+      assign_stores(socket, [])
+  end
+
+  defp assign_stores(socket, stores) do
+    rank_forms =
+      Map.new(stores, fn store ->
+        form =
+          to_form(%{
+            "store_id" => store.id,
+            "value" => Map.get(store, :featured_rank)
+          })
+
+        {store.id, form}
+      end)
+
+    assign(socket, stores: stores, rank_forms: rank_forms)
   end
 
   @impl true
@@ -191,7 +206,11 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                   No stores found
                 </td>
               </tr>
-              <tr :for={store <- @stores || []} class="hover:bg-gray-50 transition-colors">
+              <tr
+                :for={store <- @stores || []}
+                id={"store-#{store.id}"}
+                class="hover:bg-gray-50 transition-colors"
+              >
                 <td class="px-6 py-4">
                   <div class="flex items-center gap-3">
                     <div class="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-bold shrink-0">
@@ -261,18 +280,27 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                       <span class="material-symbols-outlined" style="font-size: 12px;">verified</span>
                       Verified
                     </button>
-                    <form phx-change="update_rank" class="inline-flex items-center">
-                      <input type="hidden" name="store_id" value={store.id} />
-                      <input
+                    <.form
+                      for={Map.fetch!(@rank_forms, store.id)}
+                      id={"store-rank-form-#{store.id}"}
+                      phx-change="update_rank"
+                      class="inline-flex items-center"
+                    >
+                      <.input
+                        field={Map.fetch!(@rank_forms, store.id)[:store_id]}
+                        type="hidden"
+                        id={"store-rank-store-id-#{store.id}"}
+                      />
+                      <.input
+                        field={Map.fetch!(@rank_forms, store.id)[:value]}
                         type="number"
-                        name="value"
-                        value={Map.get(store, :featured_rank)}
+                        id={"store-rank-#{store.id}"}
                         placeholder="Rank"
                         min="1"
                         phx-debounce="500"
                         class="w-16 px-2 py-1 text-xs border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
                       />
-                    </form>
+                    </.form>
                   </div>
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-500">

@@ -29,6 +29,7 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
       socket
       |> assign(:page_title, "Announcements")
       |> assign(:active_nav, :announcements)
+      |> assign(:announcement_form, announcement_form())
       |> assign(:announcements, nil)
 
     {:ok, if(connected?(socket), do: load(socket), else: socket)}
@@ -36,6 +37,8 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
 
   @impl true
   def handle_event("create", %{"announcement" => params}, socket) do
+    socket = assign(socket, :announcement_form, to_form(params, as: :announcement))
+
     authorized(socket, fn socket ->
       attrs = %{
         title: String.trim(params["title"] || ""),
@@ -99,6 +102,26 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
     end
   end
 
+  defp announcement_form do
+    to_form(
+      %{
+        "title" => "",
+        "body" => "",
+        "severity" => "info",
+        "channels" => ["banner"],
+        "audience" => "all",
+        "publish_at" => "",
+        "expires_at" => ""
+      },
+      as: :announcement
+    )
+  end
+
+  defp channel_selected?(form, channel) do
+    channel_name = to_string(channel)
+    Enum.any?(List.wrap(form[:channels].value), &(to_string(&1) == channel_name))
+  end
+
   defp authorized(socket, fun) do
     if PlatformPermissions.allowed?(reload_current_user(socket), :manage_announcements) do
       fun.(socket)
@@ -144,49 +167,52 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
         </p>
       </div>
 
-      <form
+      <.form
+        for={@announcement_form}
         id="announcement-form"
         phx-submit="create"
         class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-8 space-y-4"
       >
         <div>
           <label class="block text-sm font-medium text-gray-700">Title</label>
-          <input
-            name="announcement[title]"
+          <.input
+            field={@announcement_form[:title]}
+            id="announcement-title"
             required
             class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
           />
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700">Message</label>
-          <textarea
-            name="announcement[body]"
+          <.input
+            field={@announcement_form[:body]}
+            type="textarea"
+            id="announcement-body"
             rows="3"
             required
             class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-          ></textarea>
+          />
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700">Severity</label>
-            <select
-              name="announcement[severity]"
+            <.input
+              field={@announcement_form[:severity]}
+              type="select"
+              id="announcement-severity"
+              options={[{"Info", "info"}, {"Warning", "warning"}, {"Critical", "critical"}]}
               class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-            >
-              <option value="info">Info</option>
-              <option value="warning">Warning</option>
-              <option value="critical">Critical</option>
-            </select>
+            />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700">Audience</label>
-            <select
-              name="announcement[audience]"
+            <.input
+              field={@announcement_form[:audience]}
+              type="select"
+              id="announcement-audience"
+              options={[{"All stores", "all"}, {"Active stores only", "active"}]}
               class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
-            >
-              <option value="all">All stores</option>
-              <option value="active">Active stores only</option>
-            </select>
+            />
           </div>
         </div>
         <div>
@@ -196,7 +222,13 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
               :for={c <- @all_channels}
               class="inline-flex items-center gap-1.5 text-sm text-gray-700"
             >
-              <input type="checkbox" name="announcement[channels][]" value={c} checked={c == :banner} />
+              <input
+                id={"announcement-channel-#{c}"}
+                type="checkbox"
+                name="announcement[channels][]"
+                value={c}
+                checked={channel_selected?(@announcement_form, c)}
+              />
               {c |> to_string() |> String.capitalize()}
             </label>
           </div>
@@ -204,17 +236,19 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700">Publish at (UTC)</label>
-            <input
+            <.input
+              field={@announcement_form[:publish_at]}
               type="datetime-local"
-              name="announcement[publish_at]"
+              id="announcement-publish-at"
               class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
             />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700">Expires at (UTC, optional)</label>
-            <input
+            <.input
+              field={@announcement_form[:expires_at]}
               type="datetime-local"
-              name="announcement[expires_at]"
+              id="announcement-expires-at"
               class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
             />
           </div>
@@ -225,7 +259,7 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
         >
           Schedule announcement
         </button>
-      </form>
+      </.form>
 
       <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <table class="w-full text-sm">
@@ -244,7 +278,11 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
             <tr :if={@announcements == []}>
               <td colspan="4" class="px-6 py-12 text-center text-gray-400">No announcements yet</td>
             </tr>
-            <tr :for={a <- @announcements || []} class="hover:bg-gray-50">
+            <tr
+              :for={a <- @announcements || []}
+              id={"announcement-#{a.id}"}
+              class="hover:bg-gray-50"
+            >
               <td class="px-6 py-4 font-medium text-gray-900">{a.title}</td>
               <td class="px-6 py-4 text-gray-600">{a.audience}</td>
               <td class="px-6 py-4 text-gray-600">{display_state(a)}</td>

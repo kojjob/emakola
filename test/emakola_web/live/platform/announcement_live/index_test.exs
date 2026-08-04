@@ -24,6 +24,7 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.IndexTest do
 
     test "creating an announcement persists it and enqueues the publish worker", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/platform/announcements")
+      assert has_element?(view, "#announcement-form")
 
       view
       |> form("#announcement-form", %{
@@ -44,6 +45,8 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.IndexTest do
       assert ann.severity == :warning
       assert ann.channels == [:banner, :email]
       assert ann.status == :scheduled
+      assert has_element?(view, "#announcement-#{ann.id}", "Scheduled maintenance")
+      assert has_element?(view, "#flash-info", "Announcement scheduled")
 
       assert_enqueued(worker: AnnouncementPublishWorker, args: %{"announcement_id" => ann.id})
     end
@@ -66,6 +69,8 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.IndexTest do
       view
       |> element("button[phx-value-id='#{ann.id}'][phx-click='cancel']")
       |> render_click()
+
+      assert has_element?(view, "#announcement-#{ann.id}", "Canceled")
 
       {:ok, reloaded} = Notifications.get_announcement(ann.id, authorize?: false)
       assert reloaded.status == :canceled

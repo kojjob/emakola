@@ -30,9 +30,10 @@ defmodule EmakolaWeb.Platform.ModerationLive.IndexTest do
   end
 
   test "lists products across stores", %{conn: conn} do
-    {:ok, _view, html} = live(conn, ~p"/platform/moderation")
-    assert html =~ "Fake Bag"
-    assert html =~ "Kente Co"
+    {:ok, view, _html} = live(conn, ~p"/platform/moderation")
+    assert has_element?(view, "#moderation-search-form")
+    assert has_element?(view, "[id^='moderation-product-']", "Fake Bag")
+    assert has_element?(view, "[id^='moderation-product-']", "Kente Co")
   end
 
   test "staff without :manage_stores is redirected to /platform", %{conn: conn} do
@@ -51,13 +52,17 @@ defmodule EmakolaWeb.Platform.ModerationLive.IndexTest do
     |> element("button[phx-click='open_takedown_modal'][phx-value-id='#{product.id}']")
     |> render_click()
 
-    assert view
-           |> form("form[phx-submit='confirm_takedown']", reason: "")
-           |> render_submit() =~ "A reason is required"
+    assert has_element?(view, "#moderation-takedown-form")
 
-    assert view
-           |> form("form[phx-submit='confirm_takedown']", reason: "Counterfeit")
-           |> render_submit() =~ "Taken down"
+    view |> form("#moderation-takedown-form", reason: "") |> render_submit()
+    assert has_element?(view, "#flash-error", "A reason is required")
+
+    view |> form("#moderation-takedown-form", reason: "Counterfeit") |> render_submit()
+
+    assert has_element?(
+             view,
+             "#moderation-product-#{product.id} button[phx-click='reinstate']"
+           )
 
     assert {:ok, %{moderation_status: :taken_down}} =
              Catalog.get_product(product.id, authorize?: false)
@@ -80,6 +85,11 @@ defmodule EmakolaWeb.Platform.ModerationLive.IndexTest do
     view
     |> element("button[phx-click='reinstate'][phx-value-id='#{product.id}']")
     |> render_click()
+
+    assert has_element?(
+             view,
+             "#moderation-product-#{product.id} button[phx-click='open_takedown_modal']"
+           )
 
     assert {:ok, %{moderation_status: :ok}} = Catalog.get_product(product.id, authorize?: false)
   end

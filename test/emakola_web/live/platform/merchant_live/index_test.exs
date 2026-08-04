@@ -45,21 +45,23 @@ defmodule EmakolaWeb.Platform.MerchantLive.IndexTest do
     setup %{conn: conn} do
       ts = DateTime.utc_now()
 
-      Factory.create_merchant!(%{
-        name: "Ama Mensah",
-        email: "ama@example.com",
-        business_name: "Ama Foods",
-        confirmed_at: ts
-      })
+      ama =
+        Factory.create_merchant!(%{
+          name: "Ama Mensah",
+          email: "ama@example.com",
+          business_name: "Ama Foods",
+          confirmed_at: ts
+        })
 
-      Factory.create_merchant!(%{name: "Yaw Owusu", email: "yaw@example.com"})
+      yaw = Factory.create_merchant!(%{name: "Yaw Owusu", email: "yaw@example.com"})
       {conn, _user, _session} = setup_platform_staff(conn)
-      {:ok, conn: conn}
+      {:ok, conn: conn, ama: ama, yaw: yaw}
     end
 
-    test "renders merchants with names and emails", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/platform/merchants")
-      for s <- ["Ama Mensah", "ama@example.com", "Yaw Owusu"], do: assert(html =~ s)
+    test "renders merchants with names and emails", %{conn: conn, ama: ama, yaw: yaw} do
+      {:ok, view, _html} = live(conn, ~p"/platform/merchants")
+      assert has_element?(view, "#merchant-#{ama.id}", "Ama Mensah")
+      assert has_element?(view, "#merchant-#{yaw.id}", "Yaw Owusu")
     end
 
     test "stat strip shows labels", %{conn: conn} do
@@ -70,25 +72,25 @@ defmodule EmakolaWeb.Platform.MerchantLive.IndexTest do
       assert html =~ "New"
     end
 
-    test "search narrows by name", %{conn: conn} do
+    test "search narrows by name", %{conn: conn, ama: ama, yaw: yaw} do
       {:ok, view, _html} = live(conn, ~p"/platform/merchants")
-      html = view |> form("#merchant-search-form") |> render_change(%{"search" => "Ama"})
-      assert html =~ "Ama Mensah"
-      refute html =~ "Yaw Owusu"
+      view |> form("#merchant-search-form") |> render_change(%{"search" => "Ama"})
+      assert has_element?(view, "#merchant-#{ama.id}")
+      refute has_element?(view, "#merchant-#{yaw.id}")
     end
 
-    test "search narrows by email", %{conn: conn} do
+    test "search narrows by email", %{conn: conn, ama: ama, yaw: yaw} do
       {:ok, view, _html} = live(conn, ~p"/platform/merchants")
-      html = view |> form("#merchant-search-form") |> render_change(%{"search" => "yaw@"})
-      assert html =~ "Yaw Owusu"
-      refute html =~ "Ama Mensah"
+      view |> form("#merchant-search-form") |> render_change(%{"search" => "yaw@"})
+      assert has_element?(view, "#merchant-#{yaw.id}")
+      refute has_element?(view, "#merchant-#{ama.id}")
     end
 
-    test "unconfirmed filter shows only unconfirmed merchants", %{conn: conn} do
+    test "unconfirmed filter shows only unconfirmed merchants", %{conn: conn, ama: ama, yaw: yaw} do
       {:ok, view, _html} = live(conn, ~p"/platform/merchants")
-      html = render_click(view, "filter", %{"filter" => "unconfirmed"})
-      assert html =~ "Yaw Owusu"
-      refute html =~ "Ama Mensah"
+      render_click(view, "filter", %{"filter" => "unconfirmed"})
+      assert has_element?(view, "#merchant-#{yaw.id}")
+      refute has_element?(view, "#merchant-#{ama.id}")
     end
   end
 

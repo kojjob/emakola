@@ -91,6 +91,24 @@ defmodule EmakolaWeb.Platform.StoreLiveTest do
     end
   end
 
+  describe "directory rank form" do
+    test "updates a store rank through its uniquely identified form", %{conn: conn} do
+      {conn, _user, _session} = setup_platform_staff(conn, permissions: [:manage_stores])
+      store = Factory.create_store!(featured_rank: nil)
+
+      {:ok, view, _html} = live(conn, "/platform/stores")
+
+      assert has_element?(view, "#store-rank-form-#{store.id}")
+
+      view
+      |> form("#store-rank-form-#{store.id}", %{"value" => "3"})
+      |> render_change()
+
+      assert Ash.get!(Emakola.Stores.Store, store.id, authorize?: false).featured_rank == 3
+      assert has_element?(view, "#store-rank-#{store.id}[value='3']")
+    end
+  end
+
   describe "platform layout" do
     test "logout links issue DELETE /platform/session", %{conn: conn} do
       {conn, _user, _session} = setup_platform_staff(conn)

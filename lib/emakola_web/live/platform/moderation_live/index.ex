@@ -25,8 +25,10 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
       |> assign(:page_title, "Moderation")
       |> assign(:active_nav, :moderation)
       |> assign(:search, "")
+      |> assign(:search_form, to_form(%{"search" => ""}))
       |> assign(:filter, :all)
       |> assign(:takedown_id, nil)
+      |> assign(:takedown_form, to_form(%{"reason" => ""}))
       |> assign(:products, nil)
 
     {:ok, if(connected?(socket), do: load(socket), else: socket)}
@@ -34,7 +36,11 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
 
   @impl true
   def handle_event("search", %{"search" => query}, socket) do
-    {:noreply, socket |> assign(:search, query) |> load()}
+    {:noreply,
+     socket
+     |> assign(:search, query)
+     |> assign(:search_form, to_form(%{"search" => query}))
+     |> load()}
   end
 
   def handle_event("filter", %{"filter" => filter}, socket) do
@@ -43,14 +49,16 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
   end
 
   def handle_event("open_takedown_modal", %{"id" => id}, socket) do
-    {:noreply, assign(socket, :takedown_id, id)}
+    {:noreply, assign(socket, takedown_id: id, takedown_form: to_form(%{"reason" => ""}))}
   end
 
   def handle_event("cancel_modal", _params, socket) do
-    {:noreply, assign(socket, :takedown_id, nil)}
+    {:noreply, assign(socket, takedown_id: nil, takedown_form: to_form(%{"reason" => ""}))}
   end
 
-  def handle_event("confirm_takedown", %{"reason" => reason}, socket) do
+  def handle_event("confirm_takedown", %{"reason" => reason} = params, socket) do
+    socket = assign(socket, :takedown_form, to_form(params))
+
     authorized(socket, fn socket ->
       reason = String.trim(reason || "")
       product = find_product(socket, socket.assigns.takedown_id)
@@ -101,6 +109,7 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
     {:noreply,
      socket
      |> assign(:takedown_id, nil)
+     |> assign(:takedown_form, to_form(%{"reason" => ""}))
      |> load()
      |> put_flash(:info, Keyword.fetch!(opts, :flash))}
   end
@@ -170,16 +179,21 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
       </div>
 
       <div class="mb-4 flex items-center gap-3 flex-wrap">
-        <form phx-change="search" class="relative flex-1 min-w-[220px] max-w-sm">
-          <input
+        <.form
+          for={@search_form}
+          id="moderation-search-form"
+          phx-change="search"
+          class="relative flex-1 min-w-[220px] max-w-sm"
+        >
+          <.input
+            field={@search_form[:search]}
             type="search"
-            name="search"
-            value={@search}
+            id="moderation-search"
             placeholder="Search products by title or slug…"
             phx-debounce="300"
             class="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
           />
-        </form>
+        </.form>
         <div class="flex gap-1.5">
           <button
             :for={{label, value} <- [{"All", "all"}, {"Taken down", "taken_down"}]}
@@ -218,7 +232,11 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
                 No products found
               </td>
             </tr>
-            <tr :for={p <- @products || []} class="hover:bg-gray-50 transition-colors">
+            <tr
+              :for={p <- @products || []}
+              id={"moderation-product-#{p.id}"}
+              class="hover:bg-gray-50 transition-colors"
+            >
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
                   <img
@@ -285,13 +303,20 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
           <p class="mt-1 text-sm text-gray-500">
             The product is hidden from customers immediately. The reason is shown to the merchant.
           </p>
-          <form phx-submit="confirm_takedown" class="mt-4">
+          <.form
+            for={@takedown_form}
+            id="moderation-takedown-form"
+            phx-submit="confirm_takedown"
+            class="mt-4"
+          >
             <label class="block text-sm font-medium text-gray-700">Reason (required)</label>
-            <textarea
-              name="reason"
+            <.input
+              field={@takedown_form[:reason]}
+              type="textarea"
+              id="moderation-takedown-reason"
               rows="3"
               class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            ></textarea>
+            />
             <div class="mt-4 flex justify-end gap-2">
               <button
                 type="button"
@@ -307,7 +332,7 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
                 Take down
               </button>
             </div>
-          </form>
+          </.form>
         </div>
       </div>
     </div>

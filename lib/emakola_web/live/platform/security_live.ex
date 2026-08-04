@@ -47,7 +47,12 @@ defmodule EmakolaWeb.Platform.SecurityLive do
   @impl true
   def handle_event("start_rotation", _params, socket) do
     if socket.assigns.current_user.totp_secret do
-      {:noreply, assign(socket, rotation_step: :verify, rotation_error: nil)}
+      {:noreply,
+       assign(socket,
+         rotation_step: :verify,
+         rotation_error: nil,
+         rotation_verify_form: totp_form()
+       )}
     else
       {:noreply, socket}
     end
@@ -58,6 +63,8 @@ defmodule EmakolaWeb.Platform.SecurityLive do
   end
 
   def handle_event("verify_rotation_code", %{"totp" => %{"code" => code}}, socket) do
+    socket = assign(socket, :rotation_verify_form, totp_form(code))
+
     # Shared bucket with login — caps total guesses against one user's TOTP secret.
     case Emakola.RateLimit.check_rate(
            "platform_totp:#{socket.assigns.current_user.id}",
@@ -73,6 +80,8 @@ defmodule EmakolaWeb.Platform.SecurityLive do
   end
 
   def handle_event("confirm_rotation_code", %{"totp" => %{"code" => code}}, socket) do
+    socket = assign(socket, :rotation_confirm_form, totp_form(code))
+
     case socket.assigns.pending_secret do
       nil ->
         {:noreply, reset_rotation(socket)}
@@ -139,6 +148,7 @@ defmodule EmakolaWeb.Platform.SecurityLive do
              current_user: user,
              rotation_step: :confirm,
              rotation_error: nil,
+             rotation_confirm_form: totp_form(),
              pending_secret: secret,
              # Safe to mark raw: EQRCode emits pure geometry; no user text in the markup
              qr_svg: Phoenix.HTML.raw(TOTP.qr_svg(uri)),
@@ -166,9 +176,13 @@ defmodule EmakolaWeb.Platform.SecurityLive do
       rotation_error: nil,
       pending_secret: nil,
       qr_svg: nil,
-      otpauth_secret_base32: nil
+      otpauth_secret_base32: nil,
+      rotation_verify_form: totp_form(),
+      rotation_confirm_form: totp_form()
     )
   end
+
+  defp totp_form(code \\ ""), do: to_form(%{"code" => code}, as: :totp)
 
   defp reload_current_user(socket) do
     case Emakola.Accounts.get_user_by_id(socket.assigns.current_user.id, authorize?: false) do
@@ -186,6 +200,8 @@ defmodule EmakolaWeb.Platform.SecurityLive do
       rotation_error={@rotation_error}
       qr_svg={@qr_svg}
       otpauth_secret_base32={@otpauth_secret_base32}
+      rotation_verify_form={@rotation_verify_form}
+      rotation_confirm_form={@rotation_confirm_form}
       sessions={@sessions}
       current_session_id={@current_session_id}
     />

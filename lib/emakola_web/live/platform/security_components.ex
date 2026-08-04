@@ -16,6 +16,8 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
   attr :rotation_error, :string, required: true
   attr :qr_svg, :any, required: true
   attr :otpauth_secret_base32, :string, required: true
+  attr :rotation_verify_form, :any, required: true
+  attr :rotation_confirm_form, :any, required: true
   attr :sessions, :list, required: true
   attr :current_session_id, :string, required: true
 
@@ -33,6 +35,8 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
         rotation_error={@rotation_error}
         qr_svg={@qr_svg}
         otpauth_secret_base32={@otpauth_secret_base32}
+        rotation_verify_form={@rotation_verify_form}
+        rotation_confirm_form={@rotation_confirm_form}
       />
       <.sessions_card sessions={@sessions} current_session_id={@current_session_id} />
     </div>
@@ -46,6 +50,8 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
   attr :rotation_error, :string, required: true
   attr :qr_svg, :any, required: true
   attr :otpauth_secret_base32, :string, required: true
+  attr :rotation_verify_form, :any, required: true
+  attr :rotation_confirm_form, :any, required: true
 
   defp totp_card(assigns) do
     ~H"""
@@ -64,9 +70,10 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
         </div>
 
         <.totp_status :if={@rotation_step == :status} current_user={@current_user} />
-        <.totp_verify :if={@rotation_step == :verify} />
+        <.totp_verify :if={@rotation_step == :verify} form={@rotation_verify_form} />
         <.totp_confirm
           :if={@rotation_step == :confirm}
+          form={@rotation_confirm_form}
           qr_svg={@qr_svg}
           otpauth_secret_base32={@otpauth_secret_base32}
         />
@@ -108,21 +115,28 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
     """
   end
 
+  attr :form, :any, required: true
+
   defp totp_verify(assigns) do
     ~H"""
     <div class="space-y-4 max-w-sm">
       <p class="text-sm text-gray-500">
         Enter your <strong>current</strong> authenticator code to rotate your 2FA secret.
       </p>
-      <form id="totp-rotate-verify-form" phx-submit="verify_rotation_code" class="space-y-4">
-        <.code_input id="rotate-verify-code" />
+      <.form
+        for={@form}
+        id="totp-rotate-verify-form"
+        phx-submit="verify_rotation_code"
+        class="space-y-4"
+      >
+        <.code_input id="rotate-verify-code" field={@form[:code]} />
         <button
           type="submit"
           class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
         >
           Continue
         </button>
-      </form>
+      </.form>
       <.cancel_button />
     </div>
     """
@@ -130,6 +144,7 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
 
   attr :qr_svg, :any, required: true
   attr :otpauth_secret_base32, :string, required: true
+  attr :form, :any, required: true
 
   defp totp_confirm(assigns) do
     ~H"""
@@ -151,15 +166,20 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
           {@otpauth_secret_base32}
         </code>
       </p>
-      <form id="totp-rotate-confirm-form" phx-submit="confirm_rotation_code" class="space-y-4">
-        <.code_input id="rotate-confirm-code" />
+      <.form
+        for={@form}
+        id="totp-rotate-confirm-form"
+        phx-submit="confirm_rotation_code"
+        class="space-y-4"
+      >
+        <.code_input id="rotate-confirm-code" field={@form[:code]} />
         <button
           type="submit"
           class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
         >
           Confirm new code
         </button>
-      </form>
+      </.form>
       <.cancel_button />
     </div>
     """

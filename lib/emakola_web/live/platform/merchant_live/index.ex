@@ -21,6 +21,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
       |> assign(:page_title, "Merchants")
       |> assign(:active_nav, :merchants)
       |> assign(:search, "")
+      |> assign(:search_form, to_form(%{"search" => ""}))
       |> assign(:filter, :all)
       |> assign(:selected_merchant, nil)
 
@@ -37,8 +38,12 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
   # ── Events ─────────────────────────────────────────────
 
   @impl true
-  def handle_event("search", %{"search" => q}, socket) do
-    {:noreply, socket |> assign(:search, q) |> apply_filter()}
+  def handle_event("search", %{"search" => q} = params, socket) do
+    {:noreply,
+     socket
+     |> assign(:search, q)
+     |> assign(:search_form, to_form(params))
+     |> apply_filter()}
   end
 
   def handle_event("filter", %{"filter" => f}, socket) do
@@ -180,7 +185,8 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
 
         <%!-- Toolbar --%>
         <div class="mb-5 flex items-center gap-3 flex-wrap">
-          <form
+          <.form
+            for={@search_form}
             id="merchant-search-form"
             phx-change="search"
             class="relative flex-1 min-w-[200px] max-w-sm"
@@ -188,15 +194,15 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
             <span class="material-symbols-outlined text-base text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
               search
             </span>
-            <input
+            <.input
+              field={@search_form[:search]}
               type="search"
-              name="search"
-              value={@search}
+              id="merchant-search"
               placeholder="Search name, email, business, phone..."
               phx-debounce="300"
               class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
             />
-          </form>
+          </.form>
           <div class="flex items-center gap-1.5">
             <.chip filter="all" active={@filter} label="All" />
             <.chip filter="confirmed" active={@filter} label="Confirmed" />
@@ -240,6 +246,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
               <tbody class="divide-y divide-gray-100">
                 <tr
                   :for={m <- @merchants}
+                  id={"merchant-#{m.id}"}
                   class="hover:bg-gray-50 transition-colors cursor-pointer"
                   phx-click={
                     JS.push("select_merchant", value: %{id: m.id}) |> show_modal("merchant-drawer")
