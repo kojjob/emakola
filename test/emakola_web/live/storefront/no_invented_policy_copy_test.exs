@@ -22,7 +22,8 @@ defmodule EmakolaWeb.Storefront.NoInventedPolicyCopyTest do
   alias Emakola.Factory
 
   @all_themes ~w(atelier beauty bold electronics fashion fresh
-                 home_living market pharmacy spotlight starter vibrant)
+                 home_living market pharmacy spotlight starter vibrant
+                 adwuma)
 
   # Promises a store with no configured zones cannot possibly have made.
   # "Delivery across Ghana" and "See this store's policies" are deliberately
