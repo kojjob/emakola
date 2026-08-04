@@ -38,6 +38,10 @@ config :emakola, EmakolaWeb.Endpoint,
 config :emakola, :demo_mode, System.get_env("DEMO_MODE") == "true"
 
 if config_env() == :prod do
+  config :emakola,
+         :metrics_port,
+         String.to_integer(System.get_env("METRICS_PORT", "9091"))
+
   # Database
   database_url =
     System.get_env("DATABASE_URL") ||
@@ -104,7 +108,8 @@ if config_env() == :prod do
     chrome_executable: System.get_env("CHROME_EXECUTABLE", "/usr/bin/chromium"),
     no_sandbox: System.get_env("CHROME_NO_SANDBOX", "true") == "true",
     discard_stderr: true,
-    on_demand: true
+    on_demand: true,
+    session_pool: [checkout_timeout: 30_000]
 
   # S3-compatible storage for product images, media uploads
   config :emakola, :storage, Emakola.Storage.S3

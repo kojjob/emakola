@@ -42,7 +42,7 @@
 /benchmarks/output/
 /cover/
 /coverage/
-/deps/
+/deps
 /doc/
 /log/
 /priv/plts/*.plt

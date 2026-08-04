@@ -159,9 +159,11 @@ defmodule Emakola.MixProject do
       precommit: [
         "compile --warnings-as-errors",
         "deps.unlock --unused",
-        "format",
+        "format --check-formatted",
+        "credo --strict",
         "deps.audit",
-        "test"
+        "sobelow --config",
+        "test --warnings-as-errors --cover"
       ]
     ]
   end

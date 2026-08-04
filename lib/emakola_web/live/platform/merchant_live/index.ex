@@ -114,7 +114,7 @@ defmodule EmakolaWeb.Platform.MerchantLive.Index do
     %{
       total: length(all),
       confirmed: Enum.count(all, &confirmed?/1),
-      with_store: Enum.count(all, fn m -> length(m.stores || []) > 0 end),
+      with_store: Enum.count(all, fn m -> (m.stores || []) != [] end),
       new_30d: Enum.count(all, fn m -> DateTime.compare(m.inserted_at, cutoff) == :gt end)
     }
   end

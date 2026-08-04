@@ -28,7 +28,7 @@ defmodule Emakola.Themes.HomeLivingSectionsTest do
 
   defp seed_store! do
     # The brand story is the merchant's own description now. Its default used to
-    # read "We work with local craftspeople … Solid wood, natural fibres … 
+    # read "We work with local craftspeople … Solid wood, natural fibres …
     # Delivered across all 16 regions of Ghana" — makers, materials and reach,
     # on every store that installed the theme. A store with no description has no
     # story, and gets no section.

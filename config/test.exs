@@ -121,6 +121,17 @@ config :emakola, :hubtel_webhook_allowlist_disabled, true
 # minutes, which was enough resource starvation to make unrelated LiveView tests
 # flake.
 #
-# Safe to defer: `test_helper.exs` excludes the :pdf tag, so no test renders a
-# PDF. If one ever does, Chrome starts lazily at that point.
-config :emakola, ChromicPDF, on_demand: true
+# Safe to defer: `test_helper.exs` excludes the :pdf tag, so no ordinary test
+# renders a PDF. CI opts into that tag and supplies its Playwright-managed
+# Chromium path explicitly.
+if chrome_executable = System.get_env("CHROME_EXECUTABLE") do
+  config :emakola, ChromicPDF,
+    on_demand: true,
+    chrome_executable: chrome_executable,
+    no_sandbox: System.get_env("CHROME_NO_SANDBOX") == "true",
+    session_pool: [checkout_timeout: 30_000]
+else
+  config :emakola, ChromicPDF,
+    on_demand: true,
+    session_pool: [checkout_timeout: 30_000]
+end
