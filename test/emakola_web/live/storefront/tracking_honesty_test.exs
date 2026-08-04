@@ -18,7 +18,7 @@ defmodule EmakolaWeb.Storefront.TrackingHonestyTest do
   import Phoenix.LiveViewTest
   require Ash.Query
 
-  defp shipped_order!(tracking_number) do
+  defp shipped_order!(tracking_number, courier \\ nil) do
     store = create_store!()
     product = create_product!(store)
     variant = create_variant!(product, store, price: 20_000, sku: "TRK-H", stock_quantity: 5)
@@ -36,7 +36,10 @@ defmodule EmakolaWeb.Storefront.TrackingHonestyTest do
       |> Ash.update!(authorize?: false)
       |> Ash.Changeset.for_update(:start_processing, %{})
       |> Ash.update!(authorize?: false)
-      |> Ash.Changeset.for_update(:mark_shipped, %{tracking_number: tracking_number})
+      |> Ash.Changeset.for_update(:mark_shipped, %{
+        tracking_number: tracking_number,
+        courier: courier
+      })
       |> Ash.update!(authorize?: false)
 
     %{store: store, order: order}
@@ -58,5 +61,27 @@ defmodule EmakolaWeb.Storefront.TrackingHonestyTest do
       live(build_conn(), "/s/#{ctx.store.slug}/track/#{ctx.order.order_number}")
 
     refute html =~ "Map showing delivery route"
+  end
+
+  test "a courier with a known tracking URL makes the number clickable" do
+    ctx = shipped_order!("GH-TRACK-4473", :dhl)
+
+    {:ok, _view, html} =
+      live(build_conn(), "/s/#{ctx.store.slug}/track/#{ctx.order.order_number}")
+
+    assert html =~ "dhl.com"
+    assert html =~ "GH-TRACK-4473"
+  end
+
+  # A guessed link lands the buyer on someone else's 404 and reads as the
+  # shop's mistake.
+  test "a courier with no known URL shows the number as plain text" do
+    ctx = shipped_order!("GH-TRACK-4474", :local_rider)
+
+    {:ok, _view, html} =
+      live(build_conn(), "/s/#{ctx.store.slug}/track/#{ctx.order.order_number}")
+
+    assert html =~ "GH-TRACK-4474"
+    refute html =~ "dhl.com"
   end
 end

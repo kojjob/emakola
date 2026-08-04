@@ -181,10 +181,34 @@ defmodule Emakola.Themes.DefaultRenderers.Tracking do
             </div>
 
             <div :if={@order.tracking_number} class="mt-4 border-t border-stone-100 pt-4">
-              <p class="text-xs text-stone-500">Courier tracking number</p>
-              <p class="mt-1 font-mono text-base font-semibold text-cta-dark break-all">
+              <p class="text-xs text-stone-500">
+                {Emakola.Shipping.Couriers.label(@order.courier)} tracking number
+              </p>
+
+              <%!-- Linked only when the courier has a VERIFIED public tracking
+                    URL. A guessed link lands the buyer on someone else's 404
+                    and reads as the shop's mistake, so an unknown courier
+                    renders the reference as plain text instead. --%>
+              <a
+                :if={Emakola.Shipping.Couriers.tracking_url(@order.courier, @order.tracking_number)}
+                href={Emakola.Shipping.Couriers.tracking_url(@order.courier, @order.tracking_number)}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="mt-1 inline-block font-mono text-base font-semibold text-cta-dark underline break-all"
+              >
+                {@order.tracking_number}
+              </a>
+              <p
+                :if={
+                  is_nil(
+                    Emakola.Shipping.Couriers.tracking_url(@order.courier, @order.tracking_number)
+                  )
+                }
+                class="mt-1 font-mono text-base font-semibold text-cta-dark break-all"
+              >
                 {@order.tracking_number}
               </p>
+
               <p class="mt-1 text-xs text-stone-500">
                 Quote this to the courier if you need to ask about your delivery.
               </p>

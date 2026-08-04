@@ -72,10 +72,17 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   end
 
   @impl true
-  def handle_event("submit_shipped", %{"tracking_number" => tracking}, socket) do
+  def handle_event("submit_shipped", %{"tracking_number" => tracking} = params, socket) do
     transition_order(socket, :mark_shipped, "Order marked as shipped",
-      params: %{tracking_number: tracking}
+      params: %{tracking_number: tracking, courier: courier_from(params["courier"])}
     )
+  end
+
+  # Matched against the known list rather than converted: String.to_atom/1 on
+  # user input is atom-table exhaustion, and to_existing_atom/1 raises on
+  # unknown input, which is a 500.
+  defp courier_from(value) do
+    Enum.find(Emakola.Shipping.Couriers.ids(), &(to_string(&1) == value))
   end
 
   @impl true
@@ -169,7 +176,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   end
 
   @impl true
-  def handle_event("submit_delivery_code", %{"id" => id, "code" => code}, socket) do
+  def handle_event("submit_delivery_code", %{"fulfillment_id" => id, "code" => code}, socket) do
     # store_id is read from assigns at handle-event time, never from the form.
     case Emakola.Orders.CustomerDelivery.verify_delivery(socket.assigns.store_id, id, code) do
       {:ok, _fulfillment} ->
@@ -184,29 +191,6 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
         {:noreply, put_flash(socket, :error, delivery_code_error(reason))}
     end
   end
-
-  defp delivery_code_error(:rate_limited),
-    do: "Too many codes sent for this delivery. Try again in a few minutes."
-
-  defp delivery_code_error(:fulfillment_not_shipped),
-    do: "Mark it shipped before sending a delivery code."
-
-  defp delivery_code_error(:customer_phone_missing),
-    do: "This order has no phone number to send the code to."
-
-  defp delivery_code_error(:delivery_code_not_requested), do: "Send the customer a code first."
-
-  defp delivery_code_error(:invalid_code),
-    do: "That code does not match. Check with the customer."
-
-  defp delivery_code_error(:expired), do: "That code expired. Send a new one."
-  defp delivery_code_error(:already_verified), do: "This delivery is already confirmed."
-
-  defp delivery_code_error(:too_many_attempts),
-    do: "Too many wrong attempts. Send a new code."
-
-  defp delivery_code_error(:delivery_failed), do: "Could not send the code. Try again."
-  defp delivery_code_error(_reason), do: "Could not complete that. Try again."
 
   @impl true
   def handle_event("deliver_fulfillment", %{"id" => id}, socket) do
@@ -503,7 +487,7 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                     phx-submit="submit_delivery_code"
                     class="mt-3 flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center"
                   >
-                    <input type="hidden" name="id" value={f.id} />
+                    <input type="hidden" name="fulfillment_id" value={f.id} />
                     <label for={"delivery-code-#{f.id}"} class="sr-only">
                       Delivery code from the customer
                     </label>
@@ -727,6 +711,27 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
                 autocomplete="off"
               />
             </div>
+            <%!-- Which courier the reference belongs to, so the buyer gets a
+                  link instead of a number they must guess where to type.
+                  Couriers with no verified public tracking URL are still
+                  selectable — the number then renders as plain text rather
+                  than a link to a guessed destination. --%>
+            <div>
+              <label for="order-courier" class="block text-sm font-medium text-slate-700 mb-1.5">
+                Courier (optional)
+              </label>
+              <select
+                id="order-courier"
+                name="courier"
+                class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
+                       focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value="">Not specified</option>
+                <option :for={c <- Emakola.Shipping.Couriers.list()} value={to_string(c.id)}>
+                  {c.label}
+                </option>
+              </select>
+            </div>
             <div class="flex items-center justify-end gap-3 pt-2">
               <.admin_button variant={:secondary} phx-click={hide_modal("shipped-order-modal")}>
                 Cancel
@@ -884,6 +889,29 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   end
 
   # ── Data Loading ──
+
+  defp delivery_code_error(:rate_limited),
+    do: "Too many codes sent for this delivery. Try again in a few minutes."
+
+  defp delivery_code_error(:fulfillment_not_shipped),
+    do: "Mark it shipped before sending a delivery code."
+
+  defp delivery_code_error(:customer_phone_missing),
+    do: "This order has no phone number to send the code to."
+
+  defp delivery_code_error(:delivery_code_not_requested), do: "Send the customer a code first."
+
+  defp delivery_code_error(:invalid_code),
+    do: "That code does not match. Check with the customer."
+
+  defp delivery_code_error(:expired), do: "That code expired. Send a new one."
+  defp delivery_code_error(:already_verified), do: "This delivery is already confirmed."
+
+  defp delivery_code_error(:too_many_attempts),
+    do: "Too many wrong attempts. Send a new code."
+
+  defp delivery_code_error(:delivery_failed), do: "Could not send the code. Try again."
+  defp delivery_code_error(_reason), do: "Could not complete that. Try again."
 
   defp load_order(socket) do
     %{order_id: id, store_id: store_id} = socket.assigns

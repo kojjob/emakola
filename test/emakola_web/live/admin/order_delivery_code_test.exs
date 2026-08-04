@@ -84,7 +84,7 @@ defmodule EmakolaWeb.Admin.OrderDeliveryCodeTest do
     render_click(view, "request_delivery_code", %{"id" => ctx.fulfillment.id})
 
     render_submit(view, "submit_delivery_code", %{
-      "id" => ctx.fulfillment.id,
+      "fulfillment_id" => ctx.fulfillment.id,
       "code" => "000000"
     })
 

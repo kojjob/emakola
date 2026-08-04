@@ -675,6 +675,11 @@ defmodule EmakolaWeb.OnboardingLive do
      |> push_navigate(to: "/dashboard")}
   end
 
+  @impl true
+  def handle_event("toggle_buyer_protection", _params, socket) do
+    {:noreply, assign(socket, :buyer_protection, !socket.assigns.buyer_protection)}
+  end
+
   # ── Private helpers ──
 
   # Merchant-only resolution — legacy User subjects no longer authenticate
@@ -740,11 +745,6 @@ defmodule EmakolaWeb.OnboardingLive do
   end
 
   defp apply_buyer_protection(store, _falsey), do: {:ok, store}
-
-  @impl true
-  def handle_event("toggle_buyer_protection", _params, socket) do
-    {:noreply, assign(socket, :buyer_protection, !socket.assigns.buyer_protection)}
-  end
 
   defp create_store(assigns) do
     user = assigns.current_user
