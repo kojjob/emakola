@@ -21,4 +21,17 @@ defmodule Emakola.Analytics.GscSyncWorkerTest do
     assert GscSyncWorker in Enum.map(crontab, fn {_schedule, worker} -> worker end),
            "GscSyncWorker is not in the Oban crontab — GSC data would never sync"
   end
+
+  # Oban.Plugins.Cron enqueues with args: %{} unless the crontab entry says
+  # otherwise. The worker's only clause required an "organisation_id" key, so
+  # the nightly job raised FunctionClauseError, burned all 3 attempts and died
+  # — while the crontab-membership test above still passed.
+  test "the job the cron actually enqueues (empty args) runs instead of crashing" do
+    assert :ok = GscSyncWorker.perform(%Oban.Job{args: %{}})
+  end
+
+  test "an explicit organisation_id is still honoured" do
+    assert :ok =
+             GscSyncWorker.perform(%Oban.Job{args: %{"organisation_id" => Ecto.UUID.generate()}})
+  end
 end
