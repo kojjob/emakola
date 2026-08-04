@@ -16,7 +16,7 @@ defmodule EmakolaWeb.Company.ContactLive do
        og_image: url(~p"/images/og-image.png"),
        canonical_url: url(~p"/contact"),
        json_ld: EmakolaWeb.Helpers.SEO.json_ld_organization(),
-       form: empty_form(),
+       form: contact_form(empty_form()),
        sent: false,
        error: nil,
        support_email: Application.get_env(:emakola, :contact_email, "support@emakola.com"),
@@ -36,7 +36,7 @@ defmodule EmakolaWeb.Company.ContactLive do
         {:noreply,
          assign(socket,
            error: "Please enter your name, a valid email, and a message.",
-           form: params
+           form: contact_form(params)
          )}
 
       true ->
@@ -48,7 +48,7 @@ defmodule EmakolaWeb.Company.ContactLive do
             message: params["message"]
           })
 
-        {:noreply, assign(socket, sent: true, error: nil, form: empty_form())}
+        {:noreply, assign(socket, sent: true, error: nil, form: contact_form(empty_form()))}
     end
   end
 
@@ -60,6 +60,8 @@ defmodule EmakolaWeb.Company.ContactLive do
       "message" => "",
       "company_url" => ""
     }
+
+  defp contact_form(params), do: to_form(params, as: :contact)
 
   defp valid?(params) do
     present?(params["name"]) and present?(params["message"]) and valid_email?(params["email"])
@@ -106,7 +108,7 @@ defmodule EmakolaWeb.Company.ContactLive do
   # ─────────────────────────────────────────────────────────────────────
   # Form card — floats over the hero edge; premium inputs with gold focus.
   # ─────────────────────────────────────────────────────────────────────
-  attr :form, :map, required: true
+  attr :form, Phoenix.HTML.Form, required: true
   attr :sent, :boolean, required: true
   attr :error, :string, default: nil
 
@@ -118,6 +120,7 @@ defmodule EmakolaWeb.Company.ContactLive do
     >
       <div
         :if={@sent}
+        id="contact-success"
         class="flex items-start gap-4 rounded-2xl bg-emerald-50 border border-emerald-200 p-6 text-emerald-800"
       >
         <span class="material-symbols-outlined text-2xl text-emerald-600">check_circle</span>
@@ -129,9 +132,10 @@ defmodule EmakolaWeb.Company.ContactLive do
         </div>
       </div>
 
-      <form :if={!@sent} id="contact-form" phx-submit="submit" class="space-y-5">
+      <.form :if={!@sent} for={@form} id="contact-form" phx-submit="submit" class="space-y-5">
         <p
           :if={@error}
+          id="contact-form-error"
           class="flex items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700"
         >
           <span class="material-symbols-outlined text-lg">error</span>
@@ -140,20 +144,21 @@ defmodule EmakolaWeb.Company.ContactLive do
 
         <%!-- Honeypot: visually hidden, off the tab order --%>
         <div class="hidden" aria-hidden="true">
-          <label>
-            Company URL
-            <input type="text" name="contact[company_url]" tabindex="-1" autocomplete="off" />
-          </label>
+          <.input
+            field={@form[:company_url]}
+            type="text"
+            label="Company URL"
+            tabindex="-1"
+            autocomplete="off"
+          />
         </div>
 
         <div class="grid sm:grid-cols-2 gap-5">
           <div>
             <label class={label_class()} for="contact_name">Name</label>
-            <input
-              id="contact_name"
+            <.input
+              field={@form[:name]}
               type="text"
-              name="contact[name]"
-              value={@form["name"]}
               required
               placeholder="Your full name"
               class={input_class()}
@@ -161,11 +166,9 @@ defmodule EmakolaWeb.Company.ContactLive do
           </div>
           <div>
             <label class={label_class()} for="contact_email">Email</label>
-            <input
-              id="contact_email"
+            <.input
+              field={@form[:email]}
               type="email"
-              name="contact[email]"
-              value={@form["email"]}
               required
               placeholder="you@example.com"
               class={input_class()}
@@ -175,11 +178,9 @@ defmodule EmakolaWeb.Company.ContactLive do
 
         <div>
           <label class={label_class()} for="contact_subject">Subject</label>
-          <input
-            id="contact_subject"
+          <.input
+            field={@form[:subject]}
             type="text"
-            name="contact[subject]"
-            value={@form["subject"]}
             placeholder="What's this about?"
             class={input_class()}
           />
@@ -187,14 +188,14 @@ defmodule EmakolaWeb.Company.ContactLive do
 
         <div>
           <label class={label_class()} for="contact_message">Message</label>
-          <textarea
-            id="contact_message"
-            name="contact[message]"
+          <.input
+            field={@form[:message]}
+            type="textarea"
             rows="5"
             required
             placeholder="Tell us how we can help…"
             class={input_class()}
-          >{@form["message"]}</textarea>
+          />
         </div>
 
         <button
@@ -206,7 +207,7 @@ defmodule EmakolaWeb.Company.ContactLive do
             send
           </span>
         </button>
-      </form>
+      </.form>
     </div>
     """
   end

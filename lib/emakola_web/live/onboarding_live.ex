@@ -71,14 +71,18 @@ defmodule EmakolaWeb.OnboardingLive do
          current_user: current_user,
          user_type: user_type(current_user),
          store_name: "",
+         store_name_form: value_form("store_name", ""),
          store_slug: "",
          currency: "GHS",
+         currency_form: value_form("currency", "GHS"),
          currencies: @currencies,
          themes: build_themes(),
          preview_font_urls: preview_font_urls(),
          selected_theme: "market",
          product_name: "",
+         product_name_form: value_form("product_name", ""),
          product_price: "",
+         product_price_form: value_form("product_price", ""),
          error: nil,
          created_store: nil
        )}
@@ -118,6 +122,7 @@ defmodule EmakolaWeb.OnboardingLive do
         <%!-- Error display --%>
         <div
           :if={@error}
+          id="onboarding-error"
           class="flex items-center gap-2 bg-red-50 text-red-700 text-sm font-medium p-4 rounded-xl border border-red-200"
         >
           <svg
@@ -164,20 +169,23 @@ defmodule EmakolaWeb.OnboardingLive do
               <label for="store_name" class="block text-sm font-medium text-gray-700 mb-1">
                 Store name
               </label>
-              <form id="store-name-form" phx-change="update_store_name">
-                <input
+              <.form for={@store_name_form} id="store-name-form" phx-change="update_store_name">
+                <.input
+                  field={@store_name_form[:store_name]}
                   type="text"
-                  id="store_name"
-                  name="store_name"
-                  value={@store_name}
                   placeholder="e.g. Kojo's Fashion"
                   phx-debounce="300"
                   autofocus
                   class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 />
-              </form>
-              <p :if={@store_slug != ""} class="mt-1.5 text-xs text-gray-400">
-                Your store URL: <span class="font-mono text-emerald-600">{@store_slug}</span>.emakola.com
+              </.form>
+              <p
+                :if={@store_slug != ""}
+                id="store-slug-preview"
+                data-slug={@store_slug}
+                class="mt-1.5 text-xs text-gray-400"
+              >
+                Your store URL: makola.io/s/<span class="font-mono text-emerald-600">{@store_slug}</span>
               </p>
             </div>
 
@@ -185,21 +193,14 @@ defmodule EmakolaWeb.OnboardingLive do
               <label for="currency" class="block text-sm font-medium text-gray-700 mb-1">
                 Currency
               </label>
-              <form id="currency-form" phx-change="update_currency">
-                <select
-                  id="currency"
-                  name="currency"
+              <.form for={@currency_form} id="currency-form" phx-change="update_currency">
+                <.input
+                  field={@currency_form[:currency]}
+                  type="select"
+                  options={currency_options(@currencies)}
                   class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                >
-                  <option
-                    :for={c <- @currencies}
-                    value={c.code}
-                    selected={c.code == @currency}
-                  >
-                    {c.flag} {c.label}
-                  </option>
-                </select>
-              </form>
+                />
+              </.form>
             </div>
           </div>
         </div>
@@ -399,36 +400,32 @@ defmodule EmakolaWeb.OnboardingLive do
               <label for="product_name" class="block text-sm font-medium text-gray-700 mb-1">
                 Product name
               </label>
-              <form id="product-name-form" phx-change="update_product">
-                <input
+              <.form for={@product_name_form} id="product-name-form" phx-change="update_product">
+                <.input
+                  field={@product_name_form[:product_name]}
                   type="text"
-                  id="product_name"
-                  name="product_name"
-                  value={@product_name}
                   placeholder="e.g. Ankara Dress"
                   phx-debounce="300"
                   class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 />
-              </form>
+              </.form>
             </div>
 
             <div>
               <label for="product_price" class="block text-sm font-medium text-gray-700 mb-1">
                 Price ({@currency})
               </label>
-              <form id="product-price-form" phx-change="update_product">
-                <input
+              <.form for={@product_price_form} id="product-price-form" phx-change="update_product">
+                <.input
+                  field={@product_price_form[:product_price]}
                   type="number"
-                  id="product_price"
-                  name="product_price"
-                  value={@product_price}
                   placeholder="e.g. 150"
                   min="0"
                   step="0.01"
                   phx-debounce="300"
                   class="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 />
-              </form>
+              </.form>
             </div>
           </div>
 
@@ -540,6 +537,7 @@ defmodule EmakolaWeb.OnboardingLive do
               Skip for now
             </button>
             <button
+              id="onboarding-next-button"
               phx-click={if @step < @total_steps, do: "next_step", else: "complete"}
               disabled={@step == 1 and String.trim(@store_name) == ""}
               class={[
@@ -572,11 +570,22 @@ defmodule EmakolaWeb.OnboardingLive do
 
   def handle_event("update_store_name", %{"store_name" => name}, socket) do
     slug = generate_slug(name)
-    {:noreply, assign(socket, store_name: name, store_slug: slug, error: nil)}
+
+    {:noreply,
+     assign(socket,
+       store_name: name,
+       store_name_form: value_form("store_name", name),
+       store_slug: slug,
+       error: nil
+     )}
   end
 
   def handle_event("update_currency", %{"currency" => currency}, socket) do
-    {:noreply, assign(socket, currency: currency)}
+    {:noreply,
+     assign(socket,
+       currency: currency,
+       currency_form: value_form("currency", currency)
+     )}
   end
 
   def handle_event("select_theme", %{"theme-id" => theme_id}, socket) do
@@ -593,7 +602,13 @@ defmodule EmakolaWeb.OnboardingLive do
     product_name = params["product_name"] || socket.assigns.product_name
     product_price = params["product_price"] || socket.assigns.product_price
 
-    {:noreply, assign(socket, product_name: product_name, product_price: product_price)}
+    {:noreply,
+     assign(socket,
+       product_name: product_name,
+       product_name_form: value_form("product_name", product_name),
+       product_price: product_price,
+       product_price_form: value_form("product_price", product_price)
+     )}
   end
 
   def handle_event("next_step", _, socket) do
@@ -624,7 +639,14 @@ defmodule EmakolaWeb.OnboardingLive do
 
   def handle_event("skip_step", _, socket) do
     # Skip clears product fields and advances
-    socket = assign(socket, product_name: "", product_price: "")
+    socket =
+      assign(socket,
+        product_name: "",
+        product_name_form: value_form("product_name", ""),
+        product_price: "",
+        product_price_form: value_form("product_price", "")
+      )
+
     # Move to final step — create the store
     case create_store(socket.assigns) do
       {:ok, store, theme_flash} ->
@@ -650,6 +672,12 @@ defmodule EmakolaWeb.OnboardingLive do
   end
 
   # ── Private helpers ──
+
+  defp value_form(field, value), do: to_form(%{field => value})
+
+  defp currency_options(currencies) do
+    Enum.map(currencies, &{"#{&1.flag} #{&1.label}", &1.code})
+  end
 
   # Merchant-only resolution — legacy User subjects no longer authenticate
   # here (User accounts use the platform session flow exclusively).
