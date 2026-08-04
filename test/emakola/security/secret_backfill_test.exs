@@ -64,7 +64,7 @@ defmodule Emakola.Security.SecretBackfillTest do
     )
 
     assert %{"device_tokens" => 1, "outbound_webhooks" => 1, "users" => 1} =
-             SecretBackfill.run!(Emakola.Repo, batch_size: 1)
+             Emakola.Release.backfill_field_encryption(1)
 
     user = Ash.get!(User, user.id, authorize?: false)
     webhook = Ash.get!(OutboundWebhook, webhook.id, authorize?: false)
@@ -133,6 +133,114 @@ defmodule Emakola.Security.SecretBackfillTest do
                "users.totp_secret:#{rotated_user.id}",
                config: rotated_config
              )
+  end
+
+  test "reconciliation refuses to erase unauthenticated ciphertext when plaintext is null" do
+    secret = TOTP.generate_secret()
+
+    user =
+      create_user!()
+      |> Ash.Changeset.for_update(:setup_totp, %{
+        secret: secret,
+        code: NimbleTOTP.verification_code(secret)
+      })
+      |> Ash.update!(authorize?: false)
+
+    tampered = user.totp_secret_encrypted <> "tampered"
+
+    Emakola.Repo.query!(
+      "UPDATE users SET totp_secret = NULL, totp_secret_encrypted = $1 " <>
+        "WHERE id = $2::text::uuid",
+      [tampered, user.id]
+    )
+
+    assert_raise RuntimeError, ~r/failed to protect users\.totp_secret during backfill/, fn ->
+      SecretBackfill.reconcile!(Emakola.Repo, batch_size: 1)
+    end
+
+    reloaded = Ash.get!(User, user.id, authorize?: false)
+    assert reloaded.totp_secret_encrypted == tampered
+  end
+
+  test "rotation compare-and-swap preserves a concurrent secret update" do
+    original_secret = TOTP.generate_secret()
+
+    user =
+      create_user!()
+      |> Ash.Changeset.for_update(:setup_totp, %{
+        secret: original_secret,
+        code: NimbleTOTP.verification_code(original_secret)
+      })
+      |> Ash.update!(authorize?: false)
+
+    rotated_config = rotated_config()
+    concurrent_secret = TOTP.generate_secret()
+
+    assert {:ok, concurrent_encrypted} =
+             FieldEncryption.encrypt(
+               concurrent_secret,
+               "users.totp_secret:#{user.id}",
+               config: rotated_config
+             )
+
+    before_compare_and_swap = fn table, id, operation ->
+      if table == "users" and id == user.id and operation == :rotate and
+           Process.get(:field_encryption_race_written?) != true do
+        Process.put(:field_encryption_race_written?, true)
+
+        Emakola.Repo.query!(
+          "UPDATE users SET totp_secret = $1, totp_secret_encrypted = $2 " <>
+            "WHERE id = $3::text::uuid",
+          [concurrent_secret, concurrent_encrypted, user.id]
+        )
+      end
+    end
+
+    assert %{"users" => 0} =
+             SecretBackfill.rotate!(Emakola.Repo,
+               batch_size: 1,
+               config: rotated_config,
+               before_compare_and_swap: before_compare_and_swap
+             )
+
+    reloaded = Ash.get!(User, user.id, authorize?: false)
+    assert reloaded.totp_secret == concurrent_secret
+    assert reloaded.totp_secret_encrypted == concurrent_encrypted
+
+    assert {:ok, ^concurrent_secret} =
+             FieldEncryption.decrypt(
+               reloaded.totp_secret_encrypted,
+               "users.totp_secret:#{user.id}",
+               config: rotated_config
+             )
+  end
+
+  test "rotation refuses to rewrap a stale encrypted shadow" do
+    original_secret = TOTP.generate_secret()
+
+    user =
+      create_user!()
+      |> Ash.Changeset.for_update(:setup_totp, %{
+        secret: original_secret,
+        code: NimbleTOTP.verification_code(original_secret)
+      })
+      |> Ash.update!(authorize?: false)
+
+    stale_encrypted = user.totp_secret_encrypted
+    replacement_secret = TOTP.generate_secret()
+
+    Emakola.Repo.query!(
+      "UPDATE users SET totp_secret = $1 WHERE id = $2::text::uuid",
+      [replacement_secret, user.id]
+    )
+
+    assert_raise RuntimeError, ~r/encrypted shadow does not match.*reconcile first/, fn ->
+      SecretBackfill.rotate!(Emakola.Repo, batch_size: 1, config: rotated_config())
+    end
+
+    reloaded = Ash.get!(User, user.id, authorize?: false)
+    assert reloaded.totp_secret == replacement_secret
+    assert reloaded.totp_secret_encrypted == stale_encrypted
   end
 
   defp rotated_config do

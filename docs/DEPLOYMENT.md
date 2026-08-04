@@ -115,6 +115,27 @@ if any is missing (`PHX_HOST`, `PHX_SERVER`, `POOL_SIZE`, `ECTO_IPV6` are
 non-secret and already set in `fly.toml [env]`; `DATABASE_URL` comes from
 `fly postgres attach`):
 
+Generate two independent 32-byte keys locally, put them into separate JSON
+keyrings, and remove the temporary shell variables immediately after Fly stores
+them. Never reuse encryption-key material for blind indexes:
+
+```bash
+EMAKOLA_FIELD_ENCRYPTION_KEY="$(openssl rand -base64 32)"
+EMAKOLA_FIELD_BLIND_INDEX_KEY="$(openssl rand -base64 32)"
+
+fly secrets set \
+  FIELD_ENCRYPTION_ACTIVE_KEY_ID="2026_08" \
+  FIELD_ENCRYPTION_KEYS="{\"2026_08\":\"${EMAKOLA_FIELD_ENCRYPTION_KEY}\"}" \
+  FIELD_BLIND_INDEX_ACTIVE_KEY_ID="lookup_2026_08" \
+  FIELD_BLIND_INDEX_KEYS="{\"lookup_2026_08\":\"${EMAKOLA_FIELD_BLIND_INDEX_KEY}\"}" \
+  --app emakola
+
+unset EMAKOLA_FIELD_ENCRYPTION_KEY EMAKOLA_FIELD_BLIND_INDEX_KEY
+```
+
+Follow the expand/backfill/reconcile procedure in
+[`ENCRYPTION_AT_REST.md`](ENCRYPTION_AT_REST.md) during the deploy.
+
 ```bash
 fly secrets set \
   SECRET_KEY_BASE="<mix phx.gen.secret>" \

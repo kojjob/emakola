@@ -5,6 +5,7 @@ defmodule Emakola.Suppliers.PreorderDeposit do
   postgres do
     table("preorder_deposits")
     repo(Emakola.Repo)
+    identity_wheres_to_sql(unique_payment: "payment_id IS NOT NULL")
   end
 
   attributes do

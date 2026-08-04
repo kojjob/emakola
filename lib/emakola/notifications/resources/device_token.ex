@@ -22,7 +22,12 @@ defmodule Emakola.Notifications.DeviceToken do
 
     custom_indexes do
       index([:merchant_id])
-      index([:token_blind_index], name: "device_tokens_token_blind_index_index")
+
+      index([:token_blind_index],
+        name: "device_tokens_token_blind_index_index",
+        all_tenants?: true,
+        concurrently: true
+      )
     end
   end
 

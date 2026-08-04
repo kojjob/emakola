@@ -83,14 +83,15 @@ Implementation: `Hammer` library with ETS-backed storage, upgradeable to Redis f
 - **Application-level encryption rollout**: TOTP seeds, outbound-webhook signing
   secrets, and FCM device tokens have versioned AES-256-GCM shadow columns.
   New writes update both the legacy and encrypted columns, reads prefer the
-  authenticated ciphertext, and the expand migration backfills existing rows.
+  authenticated ciphertext, and a release RPC backfills existing rows after
+  the schema-only expand migrations complete.
   Authenticated stale shadows caused by an old node are temporarily resolved
   through the compatibility column and repaired by a post-rollout reconcile.
   Device-token equality migration is prepared with a separate keyed-HMAC blind
   index. The legacy plaintext columns are intentionally retained until the
   rolling-deploy contract release; see `docs/ENCRYPTION_AT_REST.md` for the
   exact coverage, residual fields, verification, and rotation runbook.
- - **Key management**: Encryption and blind-index keyrings use independent
+- **Key management**: Encryption and blind-index keyrings use independent
    32-byte keys from production runtime secrets. Envelopes include a key id so
    old and new encryption keys can overlap during rotation.
 

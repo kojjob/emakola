@@ -167,8 +167,8 @@
       "where": null
     },
     {
-      "all_tenants?": false,
-      "concurrently": false,
+      "all_tenants?": true,
+      "concurrently": true,
       "error_fields": [
         "token_blind_index"
       ],
@@ -191,7 +191,7 @@
   ],
   "custom_statements": [],
   "has_create_action": true,
-  "hash": "6CEBDFD6FA1CC96FDC2B8744BFEE9AF585DD2F564A245C5756EE4F2658254832",
+  "hash": "34A1F0CF98CB7626558A570402A98CDB5FBF1D90DA9003EEB1590D9897249ACA",
   "identities": [
     {
       "all_tenants?": true,

@@ -31,10 +31,12 @@ shadow. If the old and authenticated representations disagree, the compatibility
 column remains authoritative until the post-rollout reconciliation task repairs
 the shadow. The contract release removes that compatibility path.
 
-The migration backfills in bounded batches and is safe to rerun because it
-selects only rows with missing protected values. The reconciliation task scans
-in bounded pages, repairs old-node writes, and stops rather than overwriting any
-shadow that fails authentication.
+The release RPC backfill runs outside migration transactions in bounded batches
+and is safe to rerun because it selects only rows with missing protected values.
+Compare-and-swap updates prevent stale selections from overwriting concurrent
+writes. The reconciliation task scans with bounded keyset pages, repairs
+old-node writes, and stops rather than overwriting any shadow that fails
+authentication.
 
 ## Format and key configuration
 
@@ -72,14 +74,26 @@ verification. Two-person review is required before an old key is removed.
 
 1. Generate independent random 32-byte encryption and blind-index keys. Add all
    four environment variables to every production runtime before deploying.
-2. Deploy this expand release. Its generated migration adds nullable shadows
-   and backfills existing values in batches of 500. Old nodes can continue to
-   use the untouched compatibility columns while new nodes prefer ciphertext.
-3. After all old nodes and old release-command processes have drained, reconcile
+2. Deploy this expand release. The schema migration only adds nullable shadow
+   columns; a separate no-transaction migration creates the device blind-index
+   index with PostgreSQL's concurrent algorithm. Neither migration performs a
+   row-by-row backfill or holds DDL locks for that work. Old nodes can continue
+   to use the untouched compatibility columns while new nodes dual-write and
+   prefer ciphertext.
+3. Once the migrations are complete and a new release node is running, backfill
+   existing values through the release RPC entrypoint:
+
+   ```sh
+   bin/emakola rpc 'Emakola.Release.backfill_field_encryption(500)'
+   ```
+
+   Run it again; it must report zero rows for every table. The batches execute
+   outside the migration transaction so updates commit incrementally.
+4. After all old nodes and old release-command processes have drained, reconcile
    any writes they made during the rollout:
 
    ```sh
-   mix emakola.reconcile_field_encryption --batch-size 500
+   bin/emakola rpc 'Emakola.Release.reconcile_field_encryption(500)'
    ```
 
    Run it again; it must report zero reconciled rows for every table. Then
@@ -99,13 +113,13 @@ verification. Two-person review is required before an old key is removed.
 
    Every count must be zero. Treat decryption/authentication failures from
    workers or TOTP verification as a stop condition.
-4. A later contract release must stop plaintext writes, move device equality
+5. A later contract release must stop plaintext writes, move device equality
    and upsert behavior to the blind-index design, remove the old plaintext
    uniqueness dependency, and wipe/drop the three compatibility columns. That
    contract migration is intentionally not part of this release: combining it
    with the expand migration would break old nodes during a rolling deploy.
 
-Until step 4 is deployed, these three legacy columns remain plaintext copies.
+Until step 5 is deployed, these three legacy columns remain plaintext copies.
 Do not describe the expand phase as plaintext removal.
 
 ## Encryption-key rotation
@@ -113,18 +127,22 @@ Do not describe the expand phase as plaintext removal.
 1. Add a new encryption key id and value to `FIELD_ENCRYPTION_KEYS` while
    retaining every old key. Change `FIELD_ENCRYPTION_ACTIVE_KEY_ID` to the new
    id and deploy it to every node.
-2. After old nodes drain, run `mix emakola.reconcile_field_encryption` until it
-   reports zero rows, then run:
+2. After old nodes drain, run the release reconciliation RPC until it reports
+   zero rows, then run:
 
    ```sh
-   mix emakola.rotate_field_encryption --batch-size 500
+   bin/emakola rpc 'Emakola.Release.reconcile_field_encryption(500)'
+   bin/emakola rpc 'Emakola.Release.rotate_field_encryption(500)'
    ```
 
    The task decrypts with the envelope key id and writes a fresh envelope with
    the active key. It also rebuilds device blind indexes with their active key.
    It reports row counts only and does not log plaintext or key material.
-3. Run the task again. It must report zero rows for every table. Verify there
-   are no envelopes carrying the retiring key id and no decryption errors.
+3. Run the rotation task again, then run reconciliation again. Both must report
+   zero rows for every table. This final reconciliation is defense in depth for
+   a write that raced key rotation; compare-and-swap updates already prevent a
+   stale selected value from overwriting that write. Verify there are no
+   envelopes carrying the retiring key id and no decryption errors.
 4. Remove the retired encryption key only after the verification and backup
    retention policy no longer requires it. A backup containing old ciphertext
    is unrecoverable without its old key, so archive retired keys according to
