@@ -27,8 +27,14 @@ defmodule EmakolaWeb.ShopsLive do
 
         {:ok,
          socket
-         |> assign(region: region, slug: slug, stores: stores, region_links: region_links(slug))
-         |> assign_seo(region, slug, stores)}
+         |> assign(
+           region: region,
+           slug: slug,
+           stores_count: length(stores),
+           region_links: region_links(slug)
+         )
+         |> assign_seo(region, slug, stores)
+         |> stream(:stores, stores)}
     end
   end
 
@@ -101,7 +107,7 @@ defmodule EmakolaWeb.ShopsLive do
           <span class="text-stone-800">{@region}</span>
         </nav>
 
-        <h1 class="mt-4 text-3xl font-bold text-stone-900">
+        <h1 id="shops-region-heading" class="mt-4 text-3xl font-bold text-stone-900">
           Online shops in {@region}, Ghana
         </h1>
         <p class="mt-3 max-w-2xl text-stone-600">
@@ -109,18 +115,27 @@ defmodule EmakolaWeb.ShopsLive do
           Pay securely with MTN MoMo, Telecel Cash or card, and get it delivered.
         </p>
 
-        <div :if={@stores == []} class="mt-10 rounded-lg border border-stone-200 bg-stone-50 p-6">
-          <p class="text-stone-700">
-            No shops in {@region} yet. <.link
-              navigate="/stores"
-              class="font-semibold text-emerald-700"
-            >Browse all shops</.link>.
-          </p>
-        </div>
+        <div
+          id="regional-shops"
+          phx-update="stream"
+          data-count={@stores_count}
+          class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          <div
+            id="regional-shops-empty"
+            class="hidden only:block sm:col-span-2 lg:col-span-3 rounded-lg border border-stone-200 bg-stone-50 p-6"
+          >
+            <p class="text-stone-700">
+              No shops in {@region} yet. <.link
+                navigate="/stores"
+                class="font-semibold text-emerald-700"
+              >Browse all shops</.link>.
+            </p>
+          </div>
 
-        <div :if={@stores != []} class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <.link
-            :for={store <- @stores}
+            :for={{id, store} <- @streams.stores}
+            id={id}
             navigate={"/s/#{store.slug}"}
             class="block rounded-xl border border-stone-200 p-5 transition hover:border-emerald-400 hover:shadow-sm"
           >

@@ -16,12 +16,16 @@ defmodule EmakolaWeb.ShopsLiveTest do
   defp slugify(s), do: s |> String.downcase() |> String.replace(~r/[^a-z0-9]+/, "-")
 
   test "lists active shops in a region and indexes when there are enough", %{conn: conn} do
-    for i <- 1..3, do: region_store!("Accra Shop #{i}", "Greater Accra")
+    stores = for i <- 1..3, do: region_store!("Accra Shop #{i}", "Greater Accra")
 
-    {:ok, _view, html} = live(conn, "/shops/greater-accra")
+    {:ok, view, html} = live(conn, "/shops/greater-accra")
 
-    assert html =~ "Online shops in Greater Accra"
-    assert html =~ "Accra Shop 1"
+    assert has_element?(view, "#shops-region-heading")
+    assert has_element?(view, "#regional-shops[phx-update='stream'][data-count='3']")
+
+    for store <- stores do
+      assert has_element?(view, "#stores-#{store.id}[href='/s/#{store.slug}']")
+    end
 
     assert html =~
              ~s(<link rel="canonical" href="http://localhost:4000/shops/greater-accra")
@@ -31,31 +35,41 @@ defmodule EmakolaWeb.ShopsLiveTest do
   end
 
   test "noindexes a thin region with fewer than 3 shops", %{conn: conn} do
-    region_store!("Lone Kumasi Shop", "Ashanti")
+    store = region_store!("Lone Kumasi Shop", "Ashanti")
 
-    {:ok, _view, html} = live(conn, "/shops/ashanti")
+    {:ok, view, html} = live(conn, "/shops/ashanti")
 
-    assert html =~ "Lone Kumasi Shop"
+    assert has_element?(view, "#regional-shops[data-count='1']")
+    assert has_element?(view, "#stores-#{store.id}")
     assert html =~ ~s(<meta name="robots" content="noindex, follow")
   end
 
+  test "renders the streamed empty state for a region without shops", %{conn: conn} do
+    {:ok, view, _html} = live(conn, "/shops/western")
+
+    assert has_element?(view, "#regional-shops[data-count='0']")
+    assert has_element?(view, "#regional-shops-empty")
+    refute has_element?(view, "#regional-shops > a[id^='stores-']")
+  end
+
   test "excludes inactive stores and stores from other regions", %{conn: conn} do
-    region_store!("Visible Accra Shop", "Greater Accra")
+    visible = region_store!("Visible Accra Shop", "Greater Accra")
 
-    create_store!(%{
-      name: "Hidden Inactive",
-      slug: "hidden-#{System.unique_integer([:positive])}",
-      region: "Greater Accra",
-      active: false
-    })
+    hidden =
+      create_store!(%{
+        name: "Hidden Inactive",
+        slug: "hidden-#{System.unique_integer([:positive])}",
+        region: "Greater Accra",
+        active: false
+      })
 
-    region_store!("Kumasi Only", "Ashanti")
+    other_region = region_store!("Kumasi Only", "Ashanti")
 
-    {:ok, _view, html} = live(conn, "/shops/greater-accra")
+    {:ok, view, _html} = live(conn, "/shops/greater-accra")
 
-    assert html =~ "Visible Accra Shop"
-    refute html =~ "Hidden Inactive"
-    refute html =~ "Kumasi Only"
+    assert has_element?(view, "#stores-#{visible.id}")
+    refute has_element?(view, "#stores-#{hidden.id}")
+    refute has_element?(view, "#stores-#{other_region.id}")
   end
 
   test "redirects an unknown region to /stores", %{conn: conn} do
