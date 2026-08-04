@@ -8,8 +8,11 @@ defmodule Emakola.Analytics.Workers.GscSyncWorker do
   require Logger
 
   @impl Oban.Worker
-  def perform(%Oban.Job{args: %{"organisation_id" => org_id}}) do
-    Logger.info("GSC sync starting for org #{org_id}")
+  # Cron-enqueued jobs carry args: %{} — the property is platform-wide, so
+  # organisation_id is absent there and only set by an explicit per-org enqueue.
+  def perform(%Oban.Job{args: args}) do
+    org_id = Map.get(args, "organisation_id")
+    Logger.info("GSC sync starting for org #{inspect(org_id)}")
 
     case fetch_gsc_data(org_id) do
       {:ok, data} ->
@@ -19,7 +22,7 @@ defmodule Emakola.Analytics.Workers.GscSyncWorker do
           |> Ash.create()
         end)
 
-        Logger.info("GSC sync completed for org #{org_id}: #{length(data)} rows")
+        Logger.info("GSC sync completed for org #{inspect(org_id)}: #{length(data)} rows")
         :ok
 
       {:error, reason} ->
@@ -27,7 +30,7 @@ defmodule Emakola.Analytics.Workers.GscSyncWorker do
         # max_attempts and pollute the dashboard with failed jobs).
         # GSC sync failures are usually transient API issues that
         # the next scheduled run will recover from on its own.
-        Logger.error("GSC sync failed for org #{org_id}: #{inspect(reason)}")
+        Logger.error("GSC sync failed for org #{inspect(org_id)}: #{inspect(reason)}")
         {:cancel, "fetch_gsc_data returned error: #{inspect(reason)}"}
     end
   end
