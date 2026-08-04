@@ -74,7 +74,13 @@ defmodule EmakolaWeb.Admin.ThemeLive do
     %{id: "dede", name: "Dede", description: "Food & catering", icon: "restaurant"},
     %{id: "pace", name: "Pace", description: "Activewear & techwear", icon: "sprint"},
     %{id: "depot", name: "Depot", description: "Wholesale quick-order", icon: "inventory_2"},
-    %{id: "akwaaba", name: "Akwaaba", description: "Photo-led storefront", icon: "photo_camera"}
+    %{id: "akwaaba", name: "Akwaaba", description: "Photo-led storefront", icon: "photo_camera"},
+    %{
+      id: "adwuma",
+      name: "Adwuma",
+      description: "Digital downloads, courses and files",
+      icon: "cloud_download"
+    }
   ]
 
   @color_presets [
