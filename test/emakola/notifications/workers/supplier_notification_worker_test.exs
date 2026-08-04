@@ -152,6 +152,25 @@ defmodule Emakola.Notifications.Workers.SupplierNotificationWorkerTest do
     end
   end
 
+  describe "cancelled fulfillment" do
+    test "skips the supplier notification and leaves it cancelled" do
+      store = setup_store()
+      supplier = Factory.create_supplier!(store, %{whatsapp_number: "+233200000009"})
+      order = create_order_with_address(store)
+
+      fulfillment =
+        Factory.create_fulfillment!(order, store, %{
+          supplier_id: supplier.id,
+          status: :cancelled
+        })
+
+      # No provider expectation: verify_on_exit! proves cancellation prevents
+      # a queued supplier job from telling them to dispatch the order.
+      assert :ok == perform(fulfillment.id)
+      assert reload(fulfillment.id).status == :cancelled
+    end
+  end
+
   # ── Idempotency / resend ───────────────────────────────────────
 
   describe "already-notified fulfillment" do

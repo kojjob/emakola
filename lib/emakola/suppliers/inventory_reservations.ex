@@ -135,6 +135,50 @@ defmodule Emakola.Suppliers.InventoryReservations do
     :ok
   end
 
+  @doc """
+  Returns reservation-covered units consumed by a fully refunded order to the
+  supplier's available stock.
+
+  Consumption rows remain immutable audit records. Matching
+  `:reservation_refund` stock movements are the idempotency ledger, so a
+  webhook replay restores no units twice. The reservation's consumed count is
+  intentionally retained: any later release/expiry returns only its unused
+  remainder, while the refund movement already returned this order's portion.
+  """
+  @spec restore_for_refunded_order(binary()) :: {:ok, non_neg_integer()} | {:error, term()}
+  def restore_for_refunded_order(order_id) when is_binary(order_id) do
+    Emakola.Repo.transaction(fn ->
+      targets = reservation_refund_targets(order_id)
+      restored = reservation_refund_credits(order_id)
+
+      targets
+      |> Enum.sort_by(fn {{variant_id, _store_id}, _quantity} -> variant_id end)
+      |> Enum.reduce(0, fn {{variant_id, store_id}, quantity}, total ->
+        to_restore = Kernel.max(quantity - Map.get(restored, variant_id, 0), 0)
+
+        if to_restore > 0 do
+          location = Emakola.Inventory.ensure_default_location!(store_id)
+
+          {:ok, :adjusted} =
+            Emakola.Inventory.adjust(
+              variant_id,
+              location.id,
+              to_restore,
+              :reservation_refund,
+              order_id: order_id
+            )
+
+          total + to_restore
+        else
+          total
+        end
+      end)
+    end)
+    |> normalize_transaction()
+  end
+
+  def restore_for_refunded_order(_order_id), do: {:error, :invalid_order_id}
+
   defp create_reservation(policy, passport, reseller_store_id, quantity) do
     Emakola.Repo.transaction(fn ->
       source_variant = locked_variant!(policy.offer_variant.source_variant_id)
@@ -189,6 +233,26 @@ defmodule Emakola.Suppliers.InventoryReservations do
       end
     end)
     |> normalize_transaction()
+  end
+
+  defp reservation_refund_targets(order_id) do
+    Emakola.Suppliers.InventoryReservationConsumption
+    |> Ash.Query.filter(order_id == ^order_id)
+    |> Ash.read!(authorize?: false)
+    |> Enum.reduce(%{}, fn consumption, targets ->
+      reservation = Ash.get!(InventoryReservation, consumption.reservation_id, authorize?: false)
+      key = {reservation.source_variant_id, reservation.supplier_store_id}
+      Map.update(targets, key, consumption.quantity, &(&1 + consumption.quantity))
+    end)
+  end
+
+  defp reservation_refund_credits(order_id) do
+    Emakola.Inventory.StockMovement
+    |> Ash.Query.filter(order_id == ^order_id and reason == :reservation_refund and delta > 0)
+    |> Ash.read!(authorize?: false)
+    |> Enum.reduce(%{}, fn movement, credits ->
+      Map.update(credits, movement.variant_id, movement.delta, &(&1 + movement.delta))
+    end)
   end
 
   defp consume_line(line_item, order_id, store_id) do
