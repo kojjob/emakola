@@ -206,6 +206,47 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
           </div>
 
           <div>
+            <label for="product_product_type" class="block text-sm font-medium mb-1.5">
+              Product type
+            </label>
+            <select
+              id="product_product_type"
+              name="product[product_type]"
+              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200
+                     bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            >
+              <option
+                :for={type <- Shared.allowed_product_types(@current_store)}
+                value={to_string(type)}
+                selected={@form_data["product_type"] == to_string(type)}
+              >
+                {product_type_label(type)}
+              </option>
+            </select>
+            <p
+              :if={Shared.allowed_product_types(@current_store) == [:physical]}
+              class="text-xs text-slate-400 mt-1.5"
+            >
+              Selling files instead? Turn on digital downloads in <.link
+                navigate={~p"/admin/settings"}
+                class="underline"
+              >settings</.link>.
+            </p>
+            <p
+              :if={@is_edit && @form_data["product_type"] == "digital_download"}
+              class="text-xs text-slate-500 mt-1.5"
+            >
+              <.link
+                navigate={~p"/admin/products/#{@product.id}/files"}
+                class="text-primary font-medium underline"
+              >
+                Digital files
+              </.link>
+              — upload what the buyer downloads.
+            </p>
+          </div>
+
+          <div>
             <label for="product_tags" class="block text-sm font-medium mb-1.5">
               Tags
             </label>
@@ -338,7 +379,14 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
     if map_size(errors) > 0 do
       {:noreply, assign(socket, form_data: params, errors: errors)}
     else
-      attrs = build_attrs(product_params, socket.assigns.store_id)
+      # Resolved from assigns at handle-event time, never from a value carried
+      # in the form. The allowlist is UX; ProductTypeAcceptedByStore on the
+      # resource is the security boundary.
+      attrs =
+        product_params
+        |> build_attrs(socket.assigns.store_id)
+        |> Shared.put_product_type(product_params, socket.assigns[:current_store])
+
       pesewas = pesewas_from_price_result(price_result)
 
       result =
@@ -460,9 +508,14 @@ defmodule EmakolaWeb.Admin.ProductLive.Form do
       "tags" => Enum.join(product.tags || [], ", "),
       "seo_title" => product.seo_title || "",
       "seo_description" => product.seo_description || "",
+      "product_type" => to_string(product.product_type),
       "price" => ""
     }
   end
+
+  defp product_type_label(:physical), do: "Physical — you ship it"
+  defp product_type_label(:digital_download), do: "Digital download — buyer downloads a file"
+  defp product_type_label(type), do: type |> to_string() |> String.replace("_", " ")
 
   defp get_store_id(socket) do
     case socket.assigns[:current_store] do

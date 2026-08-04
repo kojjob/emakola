@@ -178,6 +178,28 @@ defmodule Emakola.Orders.Fulfillment do
       change(Emakola.Orders.Changes.StampProtectionReleaseAfter)
     end
 
+    # A download has no shipment, so it can never satisfy :mark_delivered's
+    # from: [:shipped] guard — :shipped also demands a tracking number. Without
+    # this the group sits :pending forever, the admin shows a perpetual pending
+    # shipment for a file, and at a buyer-protection store the payout hold
+    # never releases because StampProtectionReleaseAfter hangs off delivery.
+    #
+    # from: [:pending] rather than relaxing :mark_delivered: the physical guard
+    # stays exactly as strict, and this makes an Oban retry a no-op instead of
+    # a crash.
+    update :mark_delivered_digitally do
+      require_atomic?(false)
+      accept([])
+
+      validate(
+        {Emakola.Validations.StatusGuard,
+         from: [:pending], message: "can only auto-deliver a pending fulfillment"}
+      )
+
+      change(set_attribute(:status, :delivered))
+      change(Emakola.Orders.Changes.StampProtectionReleaseAfter)
+    end
+
     update :cancel do
       require_atomic?(false)
       accept([])

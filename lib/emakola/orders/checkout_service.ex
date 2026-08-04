@@ -491,7 +491,34 @@ defmodule Emakola.Orders.CheckoutService do
 
   # -- Transaction -----------------------------------------------------
 
+  @doc """
+  Whether this cart needs a delivery address and a shipping fee.
+
+  Takes the `%{variant_id => variant}` map `load_and_validate_variants/2`
+  returns, whose variants already carry `:product`. Delegates the per-product
+  rule to `Emakola.Catalog.Product.requires_shipping?/1` so there is exactly one
+  definition of "does this ship".
+
+  An empty map returns `true`: an empty or fully-stale cart falls back to the
+  physical behaviour, which keeps a disconnected mount rendering the address
+  form rather than briefly hiding it.
+  """
+  @spec requires_shipping?(map()) :: boolean()
+  def requires_shipping?(variants) when map_size(variants) == 0, do: true
+
+  def requires_shipping?(variants) do
+    Enum.any?(variants, fn {_id, variant} ->
+      case variant.product do
+        %Ash.NotLoaded{} -> true
+        nil -> true
+        product -> Emakola.Catalog.Product.requires_shipping?(product)
+      end
+    end)
+  end
+
   defp run_checkout(store_id, items, variants, opts) do
+    ships? = requires_shipping?(variants)
+
     Emakola.Repo.transaction(fn ->
       # 1. Resolve customer INSIDE the transaction
       {customer_id, resolved_address} = resolve_customer(store_id, opts)
@@ -518,7 +545,8 @@ defmodule Emakola.Orders.CheckoutService do
 
       # Per-supplier dispatch fees for the customer's region, resolved once
       # inside the transaction — never accepted as a client-supplied amount.
-      dispatch_fees = dispatch_fees_for(items, variants, Keyword.get(opts, :region))
+      dispatch_fees =
+        if ships?, do: dispatch_fees_for(items, variants, Keyword.get(opts, :region)), else: %{}
 
       # Split the order into one fulfillment per distinct supplier_id
       # (including the nil key for merchant-owned/own-stock items).
@@ -552,7 +580,9 @@ defmodule Emakola.Orders.CheckoutService do
 
       # 5. Calculate totals (include delivery fee and coupon discount)
       subtotal = Enum.reduce(line_items, 0, fn li, acc -> acc + li.line_total end)
-      delivery_fee = Keyword.get(opts, :delivery_fee, 0)
+      # Server authority: the fee is a caller-supplied option, so a crafted
+      # socket message could otherwise attach delivery to a cart of files.
+      delivery_fee = if ships?, do: Keyword.get(opts, :delivery_fee, 0), else: 0
 
       # 6. Re-validate and apply coupon inside the transaction
       {coupon_id, discount_amount} =
