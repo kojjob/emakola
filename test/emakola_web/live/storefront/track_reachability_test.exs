@@ -11,7 +11,6 @@ defmodule EmakolaWeb.Storefront.TrackReachabilityTest do
 
   import Emakola.Factory
   import Phoenix.LiveViewTest
-  require Ash.Query
 
   defp order_for(store, customer) do
     product = create_product!(store)

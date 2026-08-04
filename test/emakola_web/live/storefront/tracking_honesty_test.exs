@@ -16,7 +16,6 @@ defmodule EmakolaWeb.Storefront.TrackingHonestyTest do
 
   import Emakola.Factory
   import Phoenix.LiveViewTest
-  require Ash.Query
 
   defp shipped_order!(tracking_number, courier \\ nil) do
     store = create_store!()
