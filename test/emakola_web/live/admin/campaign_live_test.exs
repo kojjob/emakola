@@ -94,7 +94,7 @@ defmodule EmakolaWeb.Admin.CampaignLiveTest do
 
       html =
         view
-        |> element("form[phx-submit='save_campaign']")
+        |> element("#create-campaign-form")
         |> render_submit(%{
           "campaign" => %{
             "name" => "Test Campaign",

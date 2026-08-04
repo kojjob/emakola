@@ -70,7 +70,7 @@ defmodule EmakolaWeb.Admin.DiscountLiveTest do
 
       html =
         view
-        |> element("form[phx-change='filter_status']")
+        |> element("#discount-status-filter-form")
         |> render_change(%{"status" => "active"})
 
       assert html =~ "WELCOME10"
@@ -84,7 +84,7 @@ defmodule EmakolaWeb.Admin.DiscountLiveTest do
 
       html =
         view
-        |> element("form[phx-change='filter_status']")
+        |> element("#discount-status-filter-form")
         |> render_change(%{"status" => "expired"})
 
       assert html =~ "FLASH50"
@@ -96,7 +96,7 @@ defmodule EmakolaWeb.Admin.DiscountLiveTest do
 
       html =
         view
-        |> element("form[phx-change='search']")
+        |> element("#discount-search-form")
         |> render_change(%{"search" => "WELCOME"})
 
       assert html =~ "WELCOME10"
@@ -109,7 +109,7 @@ defmodule EmakolaWeb.Admin.DiscountLiveTest do
 
       html =
         view
-        |> element("form[phx-change='search']")
+        |> element("#discount-search-form")
         |> render_change(%{"search" => "NONEXISTENT"})
 
       assert html =~ "No discount codes found"

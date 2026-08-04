@@ -56,6 +56,7 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
       blocks: normalize_blocks(page.blocks),
       open_block_id: nil,
       block_picker_open: false,
+      block_media_form: to_form(%{}),
       saving: false,
       saved: false
     )
@@ -512,7 +513,11 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
 
             <%!-- Block fields --%>
             <div :if={@open_block_id == block["id"]} class="p-4 space-y-3">
-              <.block_fields block={block} uploads={@uploads} />
+              <.block_fields
+                block={block}
+                uploads={@uploads}
+                block_media_form={@block_media_form}
+              />
             </div>
           </div>
 
@@ -595,6 +600,7 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
 
   attr :block, :map, required: true
   attr :uploads, :map, required: true
+  attr :block_media_form, :any, required: true
 
   defp block_fields(%{block: %{"type" => type}} = assigns) do
     case type do
@@ -647,6 +653,7 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
       label="Background image"
       accept="image"
       uploads={@uploads}
+      form={@block_media_form}
     />
     <.text_field block={@block} key="cta_label" label="Button text" />
     <.text_field block={@block} key="cta_url" label="Button URL" placeholder="/products" />
@@ -675,14 +682,28 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
 
   defp image_banner_fields(assigns) do
     ~H"""
-    <.media_field block={@block} key="image_url" label="Image" accept="image" uploads={@uploads} />
+    <.media_field
+      block={@block}
+      key="image_url"
+      label="Image"
+      accept="image"
+      uploads={@uploads}
+      form={@block_media_form}
+    />
     <.text_field block={@block} key="caption" label="Caption (optional)" />
     """
   end
 
   defp split_fields(assigns) do
     ~H"""
-    <.media_field block={@block} key="image_url" label="Image" accept="image" uploads={@uploads} />
+    <.media_field
+      block={@block}
+      key="image_url"
+      label="Image"
+      accept="image"
+      uploads={@uploads}
+      form={@block_media_form}
+    />
     <.select_field
       block={@block}
       key="image_position"
@@ -710,6 +731,7 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
       label="...or upload a video file"
       accept="video"
       uploads={@uploads}
+      form={@block_media_form}
     />
     <.media_field
       block={@block}
@@ -717,6 +739,7 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
       label="Poster image (optional)"
       accept="image"
       uploads={@uploads}
+      form={@block_media_form}
     />
     <.text_field block={@block} key="caption" label="Caption (optional)" />
     """
@@ -724,7 +747,14 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
 
   defp audio_fields(assigns) do
     ~H"""
-    <.media_field block={@block} key="audio_url" label="Audio file" accept="audio" uploads={@uploads} />
+    <.media_field
+      block={@block}
+      key="audio_url"
+      label="Audio file"
+      accept="audio"
+      uploads={@uploads}
+      form={@block_media_form}
+    />
     <.text_field block={@block} key="title" label="Title" />
     <.text_field block={@block} key="subtitle" label="Subtitle (optional)" />
     """
@@ -842,6 +872,7 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
   attr :label, :string, required: true
   attr :accept, :string, required: true
   attr :uploads, :map, required: true
+  attr :form, :any, required: true
 
   defp media_field(assigns) do
     value = get_in(assigns.block, ["content", assigns.key]) || ""
@@ -864,7 +895,9 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
       <p :if={@value != ""} class="text-[11px] text-slate-500 mb-2 truncate">
         Current: <code class="text-emerald-700">{@value}</code>
       </p>
-      <form
+      <.form
+        for={@form}
+        id={"block-media-form-#{@block["id"]}-#{@key}"}
         phx-change="validate_upload"
         phx-submit="save_block_media"
         phx-value-id={@block["id"]}
@@ -898,7 +931,7 @@ defmodule EmakolaWeb.Admin.PageLive.Form do
             Save upload
           </button>
         </div>
-      </form>
+      </.form>
     </div>
     """
   end

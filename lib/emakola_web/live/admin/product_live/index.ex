@@ -39,10 +39,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         # Product form slide-over
         show_product_form: false,
         form_data: empty_form_data(),
+        product_form: to_form(empty_form_data(), as: :product),
         form_errors: %{},
         editing_product: nil,
         # Bulk upload slide-over
         show_bulk_upload: false,
+        bulk_upload_form: to_form(%{}),
         csv_preview: [],
         csv_errors: [],
         bulk_importing: false
@@ -189,6 +191,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
        show_product_form: true,
        editing_product: nil,
        form_data: empty_form_data(),
+       product_form: to_form(empty_form_data(), as: :product),
        form_errors: %{}
      )}
   end
@@ -203,6 +206,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
          show_product_form: true,
          editing_product: product,
          form_data: product_to_form_data(product),
+         product_form: to_form(product_to_form_data(product), as: :product),
          form_errors: %{}
        )}
     else
@@ -213,7 +217,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   @impl true
   def handle_event("validate_product", %{"product" => params}, socket) do
     errors = validate_form(params)
-    {:noreply, assign(socket, form_data: params, form_errors: errors)}
+
+    {:noreply,
+     assign(socket,
+       form_data: params,
+       product_form: to_form(params, as: :product),
+       form_errors: errors
+     )}
   end
 
   @impl true
@@ -235,7 +245,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       |> apply_price_error(price_result)
 
     if map_size(errors) > 0 do
-      {:noreply, assign(socket, form_data: params, form_errors: errors)}
+      {:noreply,
+       assign(socket,
+         form_data: params,
+         product_form: to_form(params, as: :product),
+         form_errors: errors
+       )}
     else
       attrs = build_product_attrs(Map.delete(product_params, "_action"), socket.assigns.store_id)
       pesewas = pesewas_from_price_result(price_result)
@@ -259,7 +274,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         {:error, error} ->
           {:noreply,
            socket
-           |> assign(form_data: params)
+           |> assign(form_data: params, product_form: to_form(params, as: :product))
            |> put_flash(:error, format_error(error))}
       end
     end
@@ -272,6 +287,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
        show_product_form: false,
        editing_product: nil,
        form_data: empty_form_data(),
+       product_form: to_form(empty_form_data(), as: :product),
        form_errors: %{}
      )}
   end
@@ -481,9 +497,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       <.product_form_slideover
         editing_product={@editing_product}
         form_data={@form_data}
+        product_form={@product_form}
         form_errors={@form_errors}
         categories_list={@categories_list}
         uploads={@uploads}
+        bulk_upload_form={@bulk_upload_form}
         csv_preview={@csv_preview}
         csv_errors={@csv_errors}
         bulk_importing={@bulk_importing}
@@ -586,6 +604,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         show_product_form: false,
         editing_product: nil,
         form_data: empty_form_data(),
+        product_form: to_form(empty_form_data(), as: :product),
         form_errors: %{}
       )
       |> load_products()

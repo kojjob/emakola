@@ -20,8 +20,9 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
   end
 
   test "a store with no payout account sees an empty form", %{conn: conn} do
-    {:ok, _view, html} = live(conn, ~p"/admin/payouts")
+    {:ok, view, html} = live(conn, ~p"/admin/payouts")
 
+    assert has_element?(view, "#payout-form")
     assert html =~ "Save payout details"
     refute html =~ "enables payouts in your region"
   end
@@ -253,6 +254,7 @@ defmodule EmakolaWeb.Admin.PayoutLiveTest do
         account: nil,
         method: "mobile_money",
         currency: "GHS",
+        payout_form: Phoenix.Component.to_form(%{"method" => "mobile_money"}, as: :payout),
         money: Phoenix.LiveView.AsyncResult.failed(Phoenix.LiveView.AsyncResult.loading(), :boom)
       }
 

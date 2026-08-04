@@ -22,6 +22,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
         form_name: "",
         form_description: "",
         form_parent_id: nil,
+        category_form: category_form("", "", nil),
         form_errors: %{},
         all_categories: [],
         delete_category: nil
@@ -40,6 +41,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
        form_name: "",
        form_description: "",
        form_parent_id: nil,
+       category_form: category_form("", "", nil),
        form_errors: %{}
      )
      |> push_event("js-exec", %{to: "#category-modal", attr: "phx-mounted"})}
@@ -50,12 +52,15 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
     category = Enum.find(socket.assigns.all_categories, &(&1.id == id))
 
     if category do
+      description = Map.get(category, :description, "") || ""
+
       {:noreply,
        assign(socket,
          edit_category_id: id,
          form_name: category.name,
-         form_description: Map.get(category, :description, "") || "",
+         form_description: description,
          form_parent_id: category.parent_id,
+         category_form: category_form(category.name, description, category.parent_id),
          form_errors: %{}
        )}
     else
@@ -70,13 +75,23 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
   end
 
   @impl true
-  def handle_event("validate_category", %{"name" => name}, socket) do
+  def handle_event("validate_category", %{"name" => name} = params, socket) do
     errors =
       if String.trim(name) == "",
         do: %{name: "Name is required"},
         else: %{}
 
-    {:noreply, assign(socket, form_name: name, form_errors: errors)}
+    description = Map.get(params, "description", socket.assigns.form_description)
+    parent_id = Map.get(params, "parent_id", socket.assigns.form_parent_id)
+
+    {:noreply,
+     assign(socket,
+       form_name: name,
+       form_description: description,
+       form_parent_id: parent_id,
+       category_form: category_form(name, description, parent_id),
+       form_errors: errors
+     )}
   end
 
   @impl true
@@ -84,7 +99,12 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
     name = String.trim(params["name"] || "")
 
     if name == "" do
-      {:noreply, assign(socket, form_errors: %{name: "Name is required"})}
+      {:noreply,
+       assign(socket,
+         category_form:
+           category_form(params["name"] || "", params["description"] || "", params["parent_id"]),
+         form_errors: %{name: "Name is required"}
+       )}
     else
       attrs = build_category_attrs(params, name, socket)
 
@@ -140,7 +160,13 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
 
         {:noreply,
          socket
-         |> assign(form_name: "", form_description: "", form_parent_id: nil, form_errors: %{})
+         |> assign(
+           form_name: "",
+           form_description: "",
+           form_parent_id: nil,
+           category_form: category_form("", "", nil),
+           form_errors: %{}
+         )
          |> load_category_tree()
          |> put_flash(:info, "Category created")}
 
@@ -168,6 +194,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
                form_name: "",
                form_description: "",
                form_parent_id: nil,
+               category_form: category_form("", "", nil),
                form_errors: %{}
              )
              |> load_category_tree()
@@ -301,21 +328,20 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
         title={if @edit_category_id, do: "Edit Category", else: "Add Category"}
         size={:md}
       >
-        <form
+        <.form
+          for={@category_form}
           id="category-form"
           phx-submit="save_category"
           phx-change="validate_category"
           class="space-y-4"
         >
           <div>
-            <label for="category-name" class="block text-sm font-medium text-slate-700 mb-1.5">
-              Name <span class="text-red-500">*</span>
-            </label>
-            <input
+            <.input
+              field={@category_form[:name]}
               type="text"
               id="category-name"
-              name="name"
               value={@form_name}
+              label="Name *"
               placeholder="Category name"
               class={[
                 "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
@@ -327,40 +353,32 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
             <p :if={@form_errors[:name]} class="mt-1 text-xs text-red-600">{@form_errors[:name]}</p>
           </div>
 
-          <div>
-            <label for="category-description" class="block text-sm font-medium text-slate-700 mb-1.5">
-              Description
-            </label>
-            <textarea
-              id="category-description"
-              name="description"
-              rows="3"
-              placeholder="Optional description"
-              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
-                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
-            >{@form_description}</textarea>
-          </div>
+          <.input
+            field={@category_form[:description]}
+            type="textarea"
+            id="category-description"
+            value={@form_description}
+            label="Description"
+            rows="3"
+            placeholder="Optional description"
+            class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
+          />
 
-          <div>
-            <label for="category-parent" class="block text-sm font-medium text-slate-700 mb-1.5">
-              Parent Category
-            </label>
-            <select
-              id="category-parent"
-              name="parent_id"
-              class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300
-                     focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-            >
-              <option value="">No parent (root)</option>
-              <option
-                :for={cat <- Enum.reject(@all_categories, &(&1.id == @edit_category_id))}
-                value={cat.id}
-                selected={to_string(@form_parent_id) == to_string(cat.id)}
-              >
-                {cat.name}
-              </option>
-            </select>
-          </div>
+          <.input
+            field={@category_form[:parent_id]}
+            type="select"
+            id="category-parent"
+            value={to_string(@form_parent_id || "")}
+            label="Parent Category"
+            options={
+              [{"No parent (root)", ""}] ++
+                Enum.map(
+                  Enum.reject(@all_categories, &(&1.id == @edit_category_id)),
+                  &{&1.name, &1.id}
+                )
+            }
+            class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          />
 
           <div class="flex items-center justify-end gap-3 pt-2">
             <button
@@ -379,7 +397,7 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
               {if @edit_category_id, do: "Update", else: "Create"}
             </button>
           </div>
-        </form>
+        </.form>
       </.modal>
 
       <%!-- Delete Confirmation Modal --%>
@@ -397,6 +415,14 @@ defmodule EmakolaWeb.Admin.CategoryLive.Index do
       />
     </div>
     """
+  end
+
+  defp category_form(name, description, parent_id) do
+    to_form(%{
+      "name" => name,
+      "description" => description,
+      "parent_id" => parent_id || ""
+    })
   end
 
   # ── Components ──

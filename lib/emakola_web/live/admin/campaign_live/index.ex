@@ -17,6 +17,10 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
         active_nav: :campaigns,
         store_id: store_id,
         campaigns: sample_campaigns(),
+        campaign_form:
+          to_form(%{"name" => "", "channel" => "whatsapp", "description" => ""},
+            as: :campaign
+          ),
         delete_campaign: nil
       )
 
@@ -522,38 +526,36 @@ defmodule EmakolaWeb.Admin.CampaignLive.Index do
         icon="hero-megaphone"
         icon_class="text-emerald-600"
       >
-        <form phx-submit="save_campaign" id="create-campaign-form" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Campaign Name</label>
-            <input
-              type="text"
-              name="campaign[name]"
-              required
-              placeholder="e.g. Easter Sale Blast"
-              class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Channel</label>
-            <select
-              name="campaign[channel]"
-              class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
-            >
-              <option value="whatsapp">WhatsApp</option>
-              <option value="sms">SMS</option>
-              <option value="both">WhatsApp + SMS</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Description</label>
-            <textarea
-              name="campaign[description]"
-              rows="3"
-              placeholder="Brief description of the campaign..."
-              class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
-            ></textarea>
-          </div>
-        </form>
+        <.form
+          for={@campaign_form}
+          phx-submit="save_campaign"
+          id="create-campaign-form"
+          class="space-y-4"
+        >
+          <.input
+            field={@campaign_form[:name]}
+            type="text"
+            label="Campaign Name"
+            required
+            placeholder="e.g. Easter Sale Blast"
+            class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+          />
+          <.input
+            field={@campaign_form[:channel]}
+            type="select"
+            label="Channel"
+            options={[{"WhatsApp", "whatsapp"}, {"SMS", "sms"}, {"WhatsApp + SMS", "both"}]}
+            class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+          />
+          <.input
+            field={@campaign_form[:description]}
+            type="textarea"
+            label="Description"
+            rows="3"
+            placeholder="Brief description of the campaign..."
+            class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+          />
+        </.form>
         <:footer>
           <div class="flex items-center justify-end gap-3">
             <button

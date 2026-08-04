@@ -12,15 +12,8 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
          |> assign(:page_title, "New Post")
          |> assign(:active_nav, :content)
          |> assign(:post, nil)
-         |> assign(:form_data, %{
-           "title" => "",
-           "type" => "blog_post",
-           "body" => "",
-           "excerpt" => "",
-           "tags" => "",
-           "seo_title" => "",
-           "seo_description" => ""
-         })
+         |> assign(:form_data, empty_form_data())
+         |> assign(:form, to_form(empty_form_data(), as: :post))
          |> assign(:store, store)
          |> assign(:saving, false)
          |> assign(:errors, %{})}
@@ -33,15 +26,8 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
              |> assign(:page_title, "Edit: #{post.title}")
              |> assign(:active_nav, :content)
              |> assign(:post, post)
-             |> assign(:form_data, %{
-               "title" => post.title || "",
-               "type" => to_string(post.type),
-               "body" => post.body || "",
-               "excerpt" => post.excerpt || "",
-               "tags" => Enum.join(post.tags || [], ", "),
-               "seo_title" => post.seo_title || "",
-               "seo_description" => post.seo_description || ""
-             })
+             |> assign(:form_data, post_form_data(post))
+             |> assign(:form, to_form(post_form_data(post), as: :post))
              |> assign(:store, store)
              |> assign(:saving, false)
              |> assign(:errors, %{})}
@@ -57,14 +43,26 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
 
   @impl true
   def handle_event("update_form", %{"post" => params}, socket) do
-    {:noreply, assign(socket, :form_data, Map.merge(socket.assigns.form_data, params))}
+    form_data = Map.merge(socket.assigns.form_data, params)
+
+    {:noreply,
+     assign(socket,
+       form_data: form_data,
+       form: to_form(form_data, as: :post)
+     )}
   end
 
   @impl true
   def handle_event("save", %{"post" => params}, socket) do
-    socket = assign(socket, :saving, true)
     store = socket.assigns.store
     form_data = Map.merge(socket.assigns.form_data, params)
+
+    socket =
+      assign(socket,
+        saving: true,
+        form_data: form_data,
+        form: to_form(form_data, as: :post)
+      )
 
     tags =
       form_data["tags"]
@@ -186,31 +184,36 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
         </div>
       </div>
 
-      <form phx-submit="save" phx-change="update_form" class="space-y-6">
+      <.form
+        for={@form}
+        id="post-form"
+        phx-submit="save"
+        phx-change="update_form"
+        class="space-y-6"
+      >
         <div class="bg-white border border-slate-200 rounded-xl p-6 space-y-5">
           <%!-- Type --%>
           <div :if={!@post}>
             <label class="block text-sm font-medium text-slate-700 mb-1.5">Type</label>
-            <select
-              name="post[type]"
+            <.input
+              field={@form[:type]}
+              type="select"
+              options={[
+                {"Blog Post", "blog_post"},
+                {"Page", "page"},
+                {"Recipe", "recipe"},
+                {"Guide", "guide"}
+              ]}
               class="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm"
-            >
-              <option value="blog_post" selected={@form_data["type"] == "blog_post"}>
-                Blog Post
-              </option>
-              <option value="page" selected={@form_data["type"] == "page"}>Page</option>
-              <option value="recipe" selected={@form_data["type"] == "recipe"}>Recipe</option>
-              <option value="guide" selected={@form_data["type"] == "guide"}>Guide</option>
-            </select>
+            />
           </div>
 
           <%!-- Title --%>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1.5">Title</label>
-            <input
+            <.input
+              field={@form[:title]}
               type="text"
-              name="post[title]"
-              value={@form_data["title"]}
               placeholder="Enter post title..."
               class={"w-full border rounded-xl px-4 py-3 text-sm #{if @errors[:title], do: "border-red-400", else: "border-slate-200"}"}
             />
@@ -220,12 +223,13 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
           <%!-- Body --%>
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1.5">Content</label>
-            <textarea
-              name="post[body]"
+            <.input
+              field={@form[:body]}
+              type="textarea"
               rows="16"
               placeholder="Write your post content... (supports HTML)"
               class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono resize-y"
-            >{@form_data["body"]}</textarea>
+            />
           </div>
 
           <%!-- Excerpt --%>
@@ -233,12 +237,13 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
             <label class="block text-sm font-medium text-slate-700 mb-1.5">
               Excerpt <span class="text-slate-400 font-normal">(shown in blog listing)</span>
             </label>
-            <textarea
-              name="post[excerpt]"
+            <.input
+              field={@form[:excerpt]}
+              type="textarea"
               rows="3"
               placeholder="Brief summary of the post..."
               class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm resize-none"
-            >{@form_data["excerpt"]}</textarea>
+            />
           </div>
 
           <%!-- Tags --%>
@@ -246,10 +251,9 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
             <label class="block text-sm font-medium text-slate-700 mb-1.5">
               Tags <span class="text-slate-400 font-normal">(comma separated)</span>
             </label>
-            <input
+            <.input
+              field={@form[:tags]}
               type="text"
-              name="post[tags]"
-              value={@form_data["tags"]}
               placeholder="recipes, ghana, food"
               class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm"
             />
@@ -264,10 +268,9 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
 
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1.5">SEO Title</label>
-            <input
+            <.input
+              field={@form[:seo_title]}
               type="text"
-              name="post[seo_title]"
-              value={@form_data["seo_title"]}
               placeholder="Override the page title for search engines"
               class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm"
             />
@@ -280,12 +283,13 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
             <label class="block text-sm font-medium text-slate-700 mb-1.5">
               SEO Description
             </label>
-            <textarea
-              name="post[seo_description]"
+            <.input
+              field={@form[:seo_description]}
+              type="textarea"
               rows="2"
               placeholder="Override the meta description for search engines"
               class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm resize-none"
-            >{@form_data["seo_description"]}</textarea>
+            />
             <p class="text-xs text-slate-400 mt-1">
               {String.length(@form_data["seo_description"])}/155 characters
             </p>
@@ -308,7 +312,7 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
             {if @saving, do: "Saving...", else: if(@post, do: "Update Post", else: "Create Post")}
           </button>
         </div>
-      </form>
+      </.form>
     </div>
     """
   end
@@ -322,4 +326,28 @@ defmodule EmakolaWeb.Admin.Content.PostLive.Form do
   end
 
   defp load_post(_, _), do: {:error, :not_found}
+
+  defp empty_form_data do
+    %{
+      "title" => "",
+      "type" => "blog_post",
+      "body" => "",
+      "excerpt" => "",
+      "tags" => "",
+      "seo_title" => "",
+      "seo_description" => ""
+    }
+  end
+
+  defp post_form_data(post) do
+    %{
+      "title" => post.title || "",
+      "type" => to_string(post.type),
+      "body" => post.body || "",
+      "excerpt" => post.excerpt || "",
+      "tags" => Enum.join(post.tags || [], ", "),
+      "seo_title" => post.seo_title || "",
+      "seo_description" => post.seo_description || ""
+    }
+  end
 end

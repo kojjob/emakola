@@ -11,6 +11,7 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
      |> assign(:active_nav, :products)
      |> assign(:max_photos, @max_photos)
      |> assign(:cards, %{})
+     |> assign(:bulk_photo_form, to_form(%{"card_name" => "", "card_price" => ""}))
      |> assign(:publishing, false)
      |> allow_upload(:photos,
        accept: ~w(.jpg .jpeg .png .webp),
@@ -42,7 +43,12 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
         </.link>
       </div>
 
-      <form id="bulk-photo-form" phx-change="validate" phx-submit="publish_all">
+      <.form
+        for={@bulk_photo_form}
+        id="bulk-photo-form"
+        phx-change="validate"
+        phx-submit="publish_all"
+      >
         <label
           class="relative block border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center cursor-pointer hover:border-emerald-400 transition-colors"
           phx-drop-target={@uploads.photos.ref}
@@ -90,9 +96,10 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
             <div class="p-3 space-y-2">
               <label class="block">
                 <span class="text-[10px] uppercase tracking-wide text-slate-400">Name</span>
-                <input
+                <.input
+                  field={@bulk_photo_form[:card_name]}
                   type="text"
-                  name="card_name"
+                  id={"card-name-#{entry.ref}"}
                   value={card_value(@cards, entry.ref, :name)}
                   phx-blur="set_card"
                   phx-value-ref={entry.ref}
@@ -103,9 +110,10 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
               </label>
               <label class="block">
                 <span class="text-[10px] uppercase tracking-wide text-slate-400">Price (GHS)</span>
-                <input
+                <.input
+                  field={@bulk_photo_form[:card_price]}
                   type="text"
-                  name="card_price"
+                  id={"card-price-#{entry.ref}"}
                   value={card_value(@cards, entry.ref, :price)}
                   phx-blur="set_card"
                   phx-value-ref={entry.ref}
@@ -136,7 +144,7 @@ defmodule EmakolaWeb.Admin.ProductLive.BulkPhoto do
               else: "Publish #{length(@uploads.photos.entries)} products"}
           </button>
         </div>
-      </form>
+      </.form>
     </div>
     """
   end

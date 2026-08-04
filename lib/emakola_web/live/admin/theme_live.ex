@@ -136,6 +136,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
             trust_config: resolved.trust,
             newsletter_config: resolved.newsletter,
             design_tokens: resolved.design_tokens,
+            hero_upload_form: to_form(%{}),
             saving: false,
             saved: false
           )
@@ -650,7 +651,12 @@ defmodule EmakolaWeb.Admin.ThemeLive do
 
             <%!-- File upload --%>
             <div :if={length(@hero_images) < 5} id="hero-upload-section" class="mb-3">
-              <form id="hero-upload-form" phx-change="validate_upload" phx-submit="save_hero_image">
+              <.form
+                for={@hero_upload_form}
+                id="hero-upload-form"
+                phx-change="validate_upload"
+                phx-submit="save_hero_image"
+              >
                 <div
                   class="relative border-2 border-dashed border-slate-300 rounded-lg p-3 text-center hover:border-emerald-400 transition-colors cursor-pointer"
                   phx-drop-target={@uploads.hero_images.ref}
@@ -711,7 +717,7 @@ defmodule EmakolaWeb.Admin.ThemeLive do
                 >
                   Upload
                 </.admin_button>
-              </form>
+              </.form>
             </div>
 
             <%!-- URL fallback --%>

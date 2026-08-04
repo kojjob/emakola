@@ -105,6 +105,9 @@ defmodule EmakolaWeb.Admin.ReturnLiveTest do
 
       html = render_click(view, "select_return", %{"id" => return.id})
 
+      assert has_element?(view, "#return-action-notes-form")
+      assert has_element?(view, "#return-refund-amount-form")
+
       doc = LazyHTML.from_document(html)
 
       all_phx_change = doc |> LazyHTML.query("[phx-change]") |> Enum.count()
