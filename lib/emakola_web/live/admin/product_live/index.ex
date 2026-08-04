@@ -27,6 +27,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
         active_nav: :products,
         store_id: store_id,
         search_query: "",
+        search_form: to_form(%{"search" => ""}),
         status_filter: :all,
         products: [],
         products_limit: @admin_products_limit,
@@ -76,7 +77,11 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
   def handle_event("search", %{"search" => query}, socket) do
     socket =
       socket
-      |> assign(search_query: query, products_limit: @admin_products_limit)
+      |> assign(
+        search_query: query,
+        search_form: to_form(%{"search" => query}),
+        products_limit: @admin_products_limit
+      )
       |> load_products()
 
     {:noreply, socket}
@@ -454,7 +459,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Index do
       </div>
 
       <%!-- Search & Filters --%>
-      <.table_toolbar search_query={@search_query} placeholder="Search products...">
+      <.table_toolbar
+        id="product-search-form"
+        form={@search_form}
+        search_query={@search_query}
+        placeholder="Search products..."
+      >
         <:filters>
           <div class="flex gap-1 bg-slate-100 rounded-lg p-1 overflow-x-auto">
             <.status_tab status={:all} current={@status_filter} label="All" />

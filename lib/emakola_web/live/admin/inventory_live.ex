@@ -41,8 +41,11 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         susu_reserved_by_variant: %{},
         multi_location?: false,
         show_location_form: false,
+        location_form: location_form(),
         renaming_location_id: nil,
-        transfer_variant: nil
+        rename_location_form: rename_location_form(),
+        transfer_variant: nil,
+        transfer_form: transfer_form([])
       )
       |> load_suppliers()
       |> reload_inventory()
@@ -222,16 +225,22 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
   @impl true
   def handle_event("toggle_location_form", _params, socket) do
-    {:noreply, assign(socket, show_location_form: !socket.assigns.show_location_form)}
+    {:noreply,
+     assign(socket,
+       show_location_form: !socket.assigns.show_location_form,
+       location_form: location_form()
+     )}
   end
 
   @impl true
   def handle_event("create_location", %{"name" => name}, socket) do
+    socket = assign(socket, location_form: to_form(%{"name" => name}))
+
     case Emakola.Inventory.create_location(actor(socket), socket.assigns.store_id, %{name: name}) do
       {:ok, _location} ->
         {:noreply,
          socket
-         |> assign(show_location_form: false)
+         |> assign(show_location_form: false, location_form: location_form())
          |> put_flash(:info, "Location added")
          |> reload_inventory()}
 
@@ -246,16 +255,31 @@ defmodule EmakolaWeb.Admin.InventoryLive do
 
   @impl true
   def handle_event("start_rename_location", %{"id" => location_id}, socket) do
-    {:noreply, assign(socket, renaming_location_id: location_id)}
+    location = find_location(socket.assigns.locations, location_id)
+
+    {:noreply,
+     assign(socket,
+       renaming_location_id: location_id,
+       rename_location_form: rename_location_form(location)
+     )}
   end
 
   @impl true
   def handle_event("cancel_rename_location", _params, socket) do
-    {:noreply, assign(socket, renaming_location_id: nil)}
+    {:noreply,
+     assign(socket,
+       renaming_location_id: nil,
+       rename_location_form: rename_location_form()
+     )}
   end
 
   @impl true
   def handle_event("rename_location", %{"location_id" => location_id, "name" => name}, socket) do
+    socket =
+      assign(socket,
+        rename_location_form: to_form(%{"location_id" => location_id, "name" => name})
+      )
+
     case Emakola.Inventory.rename_location(
            actor(socket),
            socket.assigns.store_id,
@@ -265,7 +289,10 @@ defmodule EmakolaWeb.Admin.InventoryLive do
       {:ok, _location} ->
         {:noreply,
          socket
-         |> assign(renaming_location_id: nil)
+         |> assign(
+           renaming_location_id: nil,
+           rename_location_form: rename_location_form()
+         )
          |> put_flash(:info, "Location renamed")
          |> reload_inventory()}
 
@@ -317,11 +344,17 @@ defmodule EmakolaWeb.Admin.InventoryLive do
   @impl true
   def handle_event("open_transfer", %{"id" => variant_id}, socket) do
     variant = find_variant(socket.assigns.all_variants, variant_id)
-    {:noreply, assign(socket, transfer_variant: variant)}
+
+    {:noreply,
+     assign(socket,
+       transfer_variant: variant,
+       transfer_form: transfer_form(socket.assigns.locations)
+     )}
   end
 
   @impl true
   def handle_event("save_transfer", %{"transfer" => params}, socket) do
+    socket = assign(socket, transfer_form: to_form(params, as: :transfer))
     variant = socket.assigns.transfer_variant
     # Locations must belong to this store — validated against the
     # server-loaded list, never the raw params.
@@ -342,7 +375,10 @@ defmodule EmakolaWeb.Admin.InventoryLive do
       {:ok, _} ->
         {:noreply,
          socket
-         |> assign(transfer_variant: nil)
+         |> assign(
+           transfer_variant: nil,
+           transfer_form: transfer_form(socket.assigns.locations)
+         )
          |> put_flash(:info, "Stock transferred")
          |> reload_inventory()}
 
@@ -373,6 +409,34 @@ defmodule EmakolaWeb.Admin.InventoryLive do
       "location_id" => location_id || "",
       "stock" => stock
     })
+  end
+
+  defp location_form, do: to_form(%{"name" => ""})
+
+  defp rename_location_form(location \\ nil)
+
+  defp rename_location_form(nil),
+    do: to_form(%{"location_id" => "", "name" => ""})
+
+  defp rename_location_form(location) do
+    to_form(%{"location_id" => location.id, "name" => location.name})
+  end
+
+  defp transfer_form(locations) do
+    active_locations = Enum.filter(locations, & &1.active)
+
+    to_form(
+      %{
+        "from_location_id" =>
+          Enum.find_value(active_locations, fn location -> location.default && location.id end) ||
+            "",
+        "to_location_id" =>
+          Enum.find_value(active_locations, fn location -> !location.default && location.id end) ||
+            "",
+        "quantity" => ""
+      },
+      as: :transfer
+    )
   end
 
   defp dropship_form(nil) do
@@ -522,6 +586,8 @@ defmodule EmakolaWeb.Admin.InventoryLive do
         totals={@location_totals}
         renaming_id={@renaming_location_id}
         show_form={@show_location_form}
+        location_form={@location_form}
+        rename_location_form={@rename_location_form}
       />
 
       <%!-- Filter Bar --%>
@@ -926,7 +992,11 @@ defmodule EmakolaWeb.Admin.InventoryLive do
       </.modal>
 
       <%!-- Transfer stock modal --%>
-      <.transfer_modal variant={@transfer_variant} locations={@locations} />
+      <.transfer_modal
+        variant={@transfer_variant}
+        locations={@locations}
+        form={@transfer_form}
+      />
     </div>
     """
   end

@@ -48,6 +48,7 @@ defmodule EmakolaWeb.Admin.ProductLiveTest do
     test "renders search input", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/admin/products")
 
+      assert has_element?(view, "#product-search-form")
       assert has_element?(view, "input[name=\"search\"]")
     end
   end

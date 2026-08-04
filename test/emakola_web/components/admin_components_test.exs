@@ -294,13 +294,19 @@ defmodule EmakolaWeb.AdminComponentsTest do
 
   describe "table_toolbar/1" do
     test "renders debounced search form with default event" do
-      assigns = %{}
+      assigns = %{form: to_form(%{"search" => "ada"})}
 
       html =
         rendered_to_string(~H"""
-        <AdminComponents.table_toolbar search_query="ada" placeholder="Search products..." />
+        <AdminComponents.table_toolbar
+          id="test-product-search-form"
+          form={@form}
+          search_query="ada"
+          placeholder="Search products..."
+        />
         """)
 
+      assert html =~ ~s|id="test-product-search-form"|
       assert html =~ ~s|phx-change="search"|
       assert html =~ ~s|phx-debounce="300"|
       assert html =~ ~s|name="search"|
@@ -309,22 +315,27 @@ defmodule EmakolaWeb.AdminComponentsTest do
     end
 
     test "accepts a custom search event" do
-      assigns = %{}
+      assigns = %{form: to_form(%{"search" => ""})}
 
       html =
         rendered_to_string(~H"""
-        <AdminComponents.table_toolbar search_query="" search_event="search_inventory" />
+        <AdminComponents.table_toolbar
+          id="test-inventory-search-form"
+          form={@form}
+          search_query=""
+          search_event="search_inventory"
+        />
         """)
 
       assert html =~ ~s|phx-change="search_inventory"|
     end
 
     test "renders filters and actions slots" do
-      assigns = %{}
+      assigns = %{form: to_form(%{"search" => ""})}
 
       html =
         rendered_to_string(~H"""
-        <AdminComponents.table_toolbar search_query="">
+        <AdminComponents.table_toolbar id="test-toolbar-form" form={@form} search_query="">
           <:filters><span data-test="filters">tabs</span></:filters>
           <:actions><span data-test="actions">export</span></:actions>
         </AdminComponents.table_toolbar>
