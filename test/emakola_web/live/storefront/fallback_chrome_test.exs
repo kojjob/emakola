@@ -11,7 +11,8 @@ defmodule EmakolaWeb.Storefront.FallbackChromeTest do
   alias Emakola.Factory
 
   @all_themes ~w(atelier beauty bold electronics fashion fresh
-                 home_living market pharmacy spotlight starter vibrant)
+                 home_living market pharmacy spotlight starter vibrant
+                 adwuma)
 
   describe "theme-owned chrome on fallback pages" do
     test "a Beauty store's cart renders Beauty's nav and footer", %{conn: conn} do
