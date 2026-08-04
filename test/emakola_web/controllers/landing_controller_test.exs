@@ -7,7 +7,10 @@ defmodule EmakolaWeb.LandingControllerTest do
 
       assert html =~ "For Ghana&#39;s Merchants" or html =~ "For Ghana's Merchants"
       assert html =~ "Be the next"
-      assert html =~ "big name in Accra"
+      assert html =~ "big name"
+      # The hero speaks to all of West Africa, not one city — a rotating word
+      # naming Accra excludes Kumasi, Takoradi and everywhere Makola expands to.
+      refute html =~ "big name in Accra"
       assert html =~ "household brand"
       assert html =~ "MoMo success story"
       assert html =~ "market leader"

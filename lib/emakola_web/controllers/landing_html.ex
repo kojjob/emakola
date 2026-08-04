@@ -10,7 +10,7 @@ defmodule EmakolaWeb.LandingHTML do
   import EmakolaWeb.LandingComponents, only: [landing_nav: 1, landing_footer: 1]
 
   # Mirrored by the hero-rotate keyframes in assets/css/app.css — update both if word count changes.
-  @rotating_words ["big name in Accra", "household brand", "MoMo success story", "market leader"]
+  @rotating_words ["big name", "household brand", "MoMo success story", "market leader"]
 
   @faqs [
     {"What is Makola?",
@@ -65,7 +65,7 @@ defmodule EmakolaWeb.LandingHTML do
         </span>
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-headline font-extrabold leading-[1.1] [text-shadow:0_2px_18px_rgba(12,21,38,0.6)]">
           Be the next<br />
-          <span class="sr-only">big name in Accra</span>
+          <span class="sr-only">big name</span>
           <span
             class="hero-rotator whitespace-nowrap text-[1.75rem] sm:text-5xl lg:text-6xl"
             aria-hidden="true"
