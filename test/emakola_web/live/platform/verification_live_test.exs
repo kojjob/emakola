@@ -49,9 +49,26 @@ defmodule EmakolaWeb.Platform.VerificationLiveTest do
 
   describe "Index" do
     test "lists pending submissions", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/platform/verifications")
+      {:ok, view, html} = live(conn, ~p"/platform/verifications")
       assert html =~ "Kente Co"
       assert html =~ "Kente Trades Ltd"
+      assert has_element?(view, "#platform-verifications[phx-update='stream'][data-count='1']")
+    end
+
+    test "status filters reset the verification stream", %{conn: conn, verification: verification} do
+      {:ok, view, _html} = live(conn, ~p"/platform/verifications")
+      assert has_element?(view, "#verification-#{verification.id}")
+
+      view |> element("#verification-filter-approved") |> render_click()
+
+      assert has_element?(view, "#platform-verifications[data-count='0']")
+      assert has_element?(view, "#platform-verifications-empty")
+      refute has_element?(view, "#verification-#{verification.id}")
+
+      view |> element("#verification-filter-pending") |> render_click()
+
+      assert has_element?(view, "#platform-verifications[data-count='1']")
+      assert has_element?(view, "#verification-#{verification.id}")
     end
 
     test "staff without :manage_merchants is redirected to /platform", %{conn: conn} do
