@@ -28,7 +28,7 @@ defmodule Emakola.Themes.Ntoma.ProductList do
             The Collection
           </h1>
           <p class="mt-4 text-sm text-[#7A6248]">
-            {length(@products)} pieces
+            {@products_count} pieces
           </p>
         </div>
       </div>
@@ -81,8 +81,15 @@ defmodule Emakola.Themes.Ntoma.ProductList do
           </form>
         </div>
 
-        <%= if @products == [] do %>
-          <div class="border-2 border-dashed border-[#E6D5B8] bg-[#FFFBF2] px-6 py-20 text-center">
+        <div
+          id="product-list"
+          phx-update="stream"
+          class="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 xl:grid-cols-4 xl:gap-x-5"
+        >
+          <div
+            id="product-list-empty"
+            class="col-span-full hidden border-2 border-dashed border-[#E6D5B8] bg-[#FFFBF2] px-6 py-20 text-center only:block"
+          >
             <h2 class="mb-2 text-xl font-semibold text-[#2B1708] [font-family:var(--dt-heading-font,'Fraunces',Georgia,serif)] sm:text-2xl">
               Nothing matches
             </h2>
@@ -98,39 +105,41 @@ defmodule Emakola.Themes.Ntoma.ProductList do
               Clear all filters
             </button>
           </div>
-        <% else %>
-          <div class="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 xl:grid-cols-4 xl:gap-x-5">
+          <div
+            :for={{dom_id, %{product: product}} <- @streams.products}
+            id={dom_id}
+            class="contents"
+          >
             <Shared.product_card
-              :for={product <- @products}
               product={product}
               store={@store}
               show_add={false}
             />
           </div>
+        </div>
 
-          <div :if={@has_more} class="mt-12 text-center">
-            <button
-              phx-click="load_more"
-              class="inline-flex cursor-pointer items-center gap-2 border border-[#2B1708] px-8 py-3 text-sm font-semibold uppercase tracking-[0.1em] text-[#2B1708] hover:bg-[#2B1708] hover:text-[#FAF4EA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B1708] focus-visible:ring-offset-2 motion-safe:transition-colors"
+        <div :if={@has_more} class="mt-12 text-center">
+          <button
+            phx-click="load_more"
+            class="inline-flex cursor-pointer items-center gap-2 border border-[#2B1708] px-8 py-3 text-sm font-semibold uppercase tracking-[0.1em] text-[#2B1708] hover:bg-[#2B1708] hover:text-[#FAF4EA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2B1708] focus-visible:ring-offset-2 motion-safe:transition-colors"
+          >
+            Load more
+            <svg
+              class="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
             >
-              Load more
-              <svg
-                class="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3"
-                />
-              </svg>
-            </button>
-          </div>
-        <% end %>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 

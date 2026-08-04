@@ -661,6 +661,7 @@ defmodule Emakola.Themes.DedeTest do
         __changed__: nil
       }
       |> Map.merge(attrs)
+      |> Emakola.LiveViewHelpers.with_product_stream()
       |> Dede.render_product_list()
       |> rendered_to_string()
     end

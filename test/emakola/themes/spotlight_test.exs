@@ -256,14 +256,17 @@ defmodule Emakola.Themes.SpotlightTest do
       ]
 
       out =
-        Emakola.Themes.Spotlight.ProductList.render(%{
-          __changed__: nil,
-          store: store,
-          theme: theme,
-          cart_count: 0,
-          products: products,
-          categories: []
-        })
+        Emakola.Themes.Spotlight.ProductList.render(
+          %{
+            __changed__: nil,
+            store: store,
+            theme: theme,
+            cart_count: 0,
+            products: products,
+            categories: []
+          }
+          |> Emakola.LiveViewHelpers.with_product_stream()
+        )
         |> Phoenix.HTML.Safe.to_iodata()
         |> IO.iodata_to_binary()
 
@@ -272,14 +275,17 @@ defmodule Emakola.Themes.SpotlightTest do
       assert out =~ "/s/demo/products/a"
 
       empty =
-        Emakola.Themes.Spotlight.ProductList.render(%{
-          __changed__: nil,
-          store: store,
-          theme: theme,
-          cart_count: 0,
-          products: [],
-          categories: []
-        })
+        Emakola.Themes.Spotlight.ProductList.render(
+          %{
+            __changed__: nil,
+            store: store,
+            theme: theme,
+            cart_count: 0,
+            products: [],
+            categories: []
+          }
+          |> Emakola.LiveViewHelpers.with_product_stream()
+        )
         |> Phoenix.HTML.Safe.to_iodata()
         |> IO.iodata_to_binary()
 

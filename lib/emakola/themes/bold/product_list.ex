@@ -20,7 +20,8 @@ defmodule Emakola.Themes.Bold.ProductList do
 
   Expects assigns:
   - `@store` — store map
-  - `@products` — list of products
+  - `@streams.products` — streamed product entries
+  - `@products_count` — number of displayed products
   - `@categories` — list of categories
   - `@selected_category` — currently selected category ID or nil
   - `@search_query` — current search string
@@ -29,7 +30,8 @@ defmodule Emakola.Themes.Bold.ProductList do
   - `@cart_count` — integer cart item count
   """
   attr :store, :map, required: true
-  attr :products, :list, required: true
+  attr :streams, :map, required: true
+  attr :products_count, :integer, required: true
   attr :categories, :list, required: true
   attr :selected_category, :any, default: nil
   attr :search_query, :string, default: ""
@@ -62,7 +64,7 @@ defmodule Emakola.Themes.Bold.ProductList do
             class="text-sm text-[#94A3B8] mt-2"
             style="font-family: 'Inter', sans-serif;"
           >
-            {length(@products)} products
+            {@products_count} products
           </p>
         </div>
       </div>
@@ -137,8 +139,12 @@ defmodule Emakola.Themes.Bold.ProductList do
         </form>
 
         <%!-- Product Grid --%>
-        <%= if @products == [] do %>
-          <div class="py-24 text-center">
+        <div
+          id="product-list"
+          phx-update="stream"
+          class="grid grid-cols-2 gap-6 sm:gap-8 lg:grid-cols-3 lg:gap-10"
+        >
+          <div id="product-list-empty" class="col-span-full hidden py-24 text-center only:block">
             <svg
               class="w-16 h-16 text-[#CBD5E1] mx-auto mb-6"
               fill="none"
@@ -174,21 +180,24 @@ defmodule Emakola.Themes.Bold.ProductList do
               Clear all filters
             </button>
           </div>
-        <% else %>
-          <div class="grid grid-cols-2 gap-6 sm:gap-8 lg:grid-cols-3 lg:gap-10">
-            <Shared.product_card :for={product <- @products} product={product} store={@store} />
+          <div
+            :for={{dom_id, %{product: product}} <- @streams.products}
+            id={dom_id}
+            class="contents"
+          >
+            <Shared.product_card product={product} store={@store} />
           </div>
+        </div>
 
-          <div :if={@has_more} class="mt-14 text-center">
-            <button
-              phx-click="load_more"
-              class="inline-flex items-center gap-2 px-10 py-3.5 border-2 border-[#0F172A] text-[#0F172A] text-sm font-bold tracking-wide uppercase hover:bg-[#0F172A] hover:text-white active:scale-[0.97] transition-all"
-              style="font-family: 'Inter', sans-serif;"
-            >
-              Load More
-            </button>
-          </div>
-        <% end %>
+        <div :if={@has_more} class="mt-14 text-center">
+          <button
+            phx-click="load_more"
+            class="inline-flex items-center gap-2 px-10 py-3.5 border-2 border-[#0F172A] text-[#0F172A] text-sm font-bold tracking-wide uppercase hover:bg-[#0F172A] hover:text-white active:scale-[0.97] transition-all"
+            style="font-family: 'Inter', sans-serif;"
+          >
+            Load More
+          </button>
+        </div>
       </div>
 
       <Shared.footer store={@store} categories={@categories} />

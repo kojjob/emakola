@@ -18,10 +18,18 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
   @products_per_page 12
 
   @impl true
-  def mount(_params, session, socket) do
+  def mount(params, session, socket) do
     store = socket.assigns.store
     categories = Emakola.Catalog.list_root_categories!(store.id)
-    products = load_active_products(store.id, nil, nil)
+    initial_query = Map.get(params, "q", "")
+
+    products =
+      if String.trim(initial_query) == "" do
+        load_active_products(store.id, nil, nil)
+      else
+        search_active_products(store.id, String.trim(initial_query))
+      end
+
     cart_session_id = session["cart_session_id"]
 
     cart_count =
@@ -32,9 +40,9 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
     {:ok,
      socket
      |> assign(:categories, categories)
-     |> assign(:products, products)
+     |> assign(:products_count, length(products))
      |> assign(:selected_category, nil)
-     |> assign(:search_query, "")
+     |> assign(:search_query, initial_query)
      |> assign(:page, 1)
      |> assign(:has_more, length(products) >= @products_per_page)
      |> assign(:cart_session_id, cart_session_id)
@@ -47,7 +55,8 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
      |> assign(:og_type, "website")
      |> assign(:og_site_name, store.name)
      |> assign(:robots, if(products == [], do: "noindex, follow", else: "index, follow"))
-     |> assign_search_defaults()}
+     |> assign_search_defaults()
+     |> stream(:products, product_stream_items(products))}
   end
 
   @impl true
@@ -60,20 +69,22 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
         EmakolaWeb.SEO.Canonical.path(socket.assigns.store, "/products")
       )
 
-    case params do
-      %{"q" => query} when query != "" ->
-        products = search_active_products(socket.assigns.store.id, String.trim(query))
+    query = Map.get(params, "q", "")
 
-        {:noreply,
-         socket
-         |> assign(:search_query, query)
-         |> assign(:products, products)
-         |> assign(:page, 1)
-         |> assign(:has_more, length(products) >= @products_per_page)}
+    products =
+      if String.trim(query) == "" do
+        load_active_products(socket.assigns.store.id, nil, nil)
+      else
+        search_active_products(socket.assigns.store.id, String.trim(query))
+      end
 
-      _ ->
-        {:noreply, socket}
-    end
+    {:noreply,
+     socket
+     |> assign(:selected_category, nil)
+     |> assign(:search_query, query)
+     |> assign(:page, 1)
+     |> assign(:has_more, length(products) >= @products_per_page)
+     |> reset_product_stream(products)}
   end
 
   @impl true
@@ -92,9 +103,9 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
     {:noreply,
      socket
      |> assign(:search_query, query)
-     |> assign(:products, products)
      |> assign(:page, 1)
-     |> assign(:has_more, length(products) >= @products_per_page)}
+     |> assign(:has_more, length(products) >= @products_per_page)
+     |> reset_product_stream(products)}
   end
 
   @impl true
@@ -104,10 +115,10 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
     {:noreply,
      socket
      |> assign(:selected_category, nil)
-     |> assign(:products, products)
      |> assign(:search_query, "")
      |> assign(:page, 1)
-     |> assign(:has_more, length(products) >= @products_per_page)}
+     |> assign(:has_more, length(products) >= @products_per_page)
+     |> reset_product_stream(products)}
   end
 
   @impl true
@@ -117,10 +128,10 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
     {:noreply,
      socket
      |> assign(:selected_category, category_id)
-     |> assign(:products, products)
      |> assign(:search_query, "")
      |> assign(:page, 1)
-     |> assign(:has_more, length(products) >= @products_per_page)}
+     |> assign(:has_more, length(products) >= @products_per_page)
+     |> reset_product_stream(products)}
   end
 
   @impl true
@@ -135,18 +146,28 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
   def handle_event("load_more", _params, socket) do
     next_page = socket.assigns.page + 1
 
+    query = String.trim(socket.assigns.search_query)
+
     new_products =
-      load_active_products(
-        socket.assigns.store.id,
-        socket.assigns.selected_category,
-        next_page
-      )
+      if query == "" do
+        load_active_products(
+          socket.assigns.store.id,
+          socket.assigns.selected_category,
+          next_page
+        )
+      else
+        search_active_products(socket.assigns.store.id, query, next_page)
+      end
 
     {:noreply,
      socket
-     |> assign(:products, socket.assigns.products ++ new_products)
      |> assign(:page, next_page)
-     |> assign(:has_more, length(new_products) >= @products_per_page)}
+     |> assign(:has_more, length(new_products) >= @products_per_page)
+     |> assign(:products_count, socket.assigns.products_count + length(new_products))
+     |> stream(
+       :products,
+       product_stream_items(new_products, socket.assigns.products_count)
+     )}
   end
 
   @impl true
@@ -207,30 +228,54 @@ defmodule EmakolaWeb.Storefront.ProductListLive do
     load_active_products_query(store_id, offset)
   end
 
-  defp load_active_products(store_id, category_id, _page) do
+  defp load_active_products(store_id, category_id, page) do
     Emakola.Catalog.Product
     |> Ash.Query.for_read(:list_by_category, %{
       category_id: category_id,
       store_id: store_id,
       status: :active
     })
-    |> Ash.Query.limit(@products_per_page)
+    |> paginate(page)
     |> Ash.read!(authorize?: false)
   end
 
   defp load_active_products_query(store_id, offset) do
     Emakola.Catalog.Product
     |> Ash.Query.for_read(:list_by_store_and_status, %{store_id: store_id, status: :active})
+    |> Ash.Query.sort(inserted_at: :desc, id: :desc)
     |> Ash.Query.limit(@products_per_page)
     |> Ash.Query.offset(offset)
     |> Ash.read!(authorize?: false)
   end
 
-  defp search_active_products(store_id, query) do
+  defp search_active_products(store_id, query, page \\ 1) do
     Emakola.Catalog.Product
     |> Ash.Query.for_read(:search, %{query: query, store_id: store_id, status: :active})
-    |> Ash.Query.limit(@products_per_page)
+    |> paginate(page)
     |> Ash.read!(authorize?: false)
+  end
+
+  defp paginate(query, page) do
+    offset = ((page || 1) - 1) * @products_per_page
+
+    query
+    |> Ash.Query.sort(inserted_at: :desc, id: :desc)
+    |> Ash.Query.limit(@products_per_page)
+    |> Ash.Query.offset(offset)
+  end
+
+  defp reset_product_stream(socket, products) do
+    socket
+    |> assign(:products_count, length(products))
+    |> stream(:products, product_stream_items(products), reset: true)
+  end
+
+  defp product_stream_items(products, offset \\ 0) do
+    products
+    |> Enum.with_index(offset + 1)
+    |> Enum.map(fn {product, position} ->
+      %{id: product.id, product: product, position: position}
+    end)
   end
 
   defp assign_search_defaults(socket) do

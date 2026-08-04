@@ -25,7 +25,7 @@ defmodule Emakola.Themes.Sika.ProductList do
             The collection
           </h1>
           <Shared.caught_light class="mx-auto mt-5 w-16" />
-          <p class="mt-4 text-sm tabular-nums text-[#6E675C]">{piece_count(@products)}</p>
+          <p class="mt-4 text-sm tabular-nums text-[#6E675C]">{piece_count(@products_count)}</p>
         </header>
 
         <div class="flex flex-col gap-5 border-y border-[#E8E3D9] py-5 sm:flex-row sm:items-center sm:justify-between">
@@ -60,8 +60,15 @@ defmodule Emakola.Themes.Sika.ProductList do
           </form>
         </div>
 
-        <%= if @products == [] do %>
-          <div class="mt-12 border border-[#E8E3D9] bg-white px-6 py-16 text-center sm:py-20">
+        <div
+          id="product-list"
+          phx-update="stream"
+          class="mt-12 grid grid-cols-1 gap-x-8 gap-y-14 sm:grid-cols-2"
+        >
+          <div
+            id="product-list-empty"
+            class="col-span-full hidden border border-[#E8E3D9] bg-white px-6 py-16 text-center only:block sm:py-20"
+          >
             <span
               class="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[#C2A15B]/50 text-2xl text-[#1F332C] [font-family:var(--dt-heading-font,Marcellus,Georgia,serif)] select-none"
               aria-hidden="true"
@@ -91,20 +98,23 @@ defmodule Emakola.Themes.Sika.ProductList do
               </p>
             <% end %>
           </div>
-        <% else %>
-          <div class="mt-12 grid grid-cols-1 gap-x-8 gap-y-14 sm:grid-cols-2">
-            <Shared.piece_card :for={product <- @products} product={product} store={@store} />
+          <div
+            :for={{dom_id, %{product: product}} <- @streams.products}
+            id={dom_id}
+            class="contents"
+          >
+            <Shared.piece_card product={product} store={@store} />
           </div>
+        </div>
 
-          <div :if={@has_more} class="mt-14 text-center">
-            <button
-              phx-click="load_more"
-              class="inline-flex cursor-pointer items-center border border-[#211D16] px-8 py-3.5 text-[0.75rem] font-semibold uppercase tracking-[0.2em] text-[#211D16] hover:bg-[#211D16] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#211D16] focus-visible:ring-offset-2 motion-safe:transition-colors"
-            >
-              Show more pieces
-            </button>
-          </div>
-        <% end %>
+        <div :if={@has_more} class="mt-14 text-center">
+          <button
+            phx-click="load_more"
+            class="inline-flex cursor-pointer items-center border border-[#211D16] px-8 py-3.5 text-[0.75rem] font-semibold uppercase tracking-[0.2em] text-[#211D16] hover:bg-[#211D16] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#211D16] focus-visible:ring-offset-2 motion-safe:transition-colors"
+          >
+            Show more pieces
+          </button>
+        </div>
       </div>
 
       <div class="h-16 sm:hidden" aria-hidden="true"></div>
@@ -115,8 +125,8 @@ defmodule Emakola.Themes.Sika.ProductList do
     """
   end
 
-  defp piece_count(products) do
-    case length(products) do
+  defp piece_count(products_count) do
+    case products_count do
       1 -> "1 piece"
       n -> "#{n} pieces"
     end

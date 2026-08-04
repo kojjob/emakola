@@ -51,7 +51,7 @@ defmodule Emakola.Themes.Market.ProductList do
           <p class="text-base sm:text-lg text-[#64748B] max-w-2xl leading-relaxed">
             Browse our full collection of premium products and accessories.
             <span class="inline-flex items-center justify-center px-2.5 py-0.5 ml-1.5 text-[0.6875rem] font-bold uppercase tracking-wider bg-white border border-[#E2E8F0] shadow-sm rounded-full text-[#475569] align-middle">
-              {length(@products)} items
+              {@products_count} items
             </span>
           </p>
         </div>
@@ -146,8 +146,15 @@ defmodule Emakola.Themes.Market.ProductList do
           </div>
 
           <%!-- Products --%>
-          <%= if @products == [] do %>
-            <div class="py-24 text-center border-2 border-dashed border-[#E2E8F0] rounded-[24px] bg-[#F8FAFC]">
+          <div
+            id="product-list"
+            phx-update="stream"
+            class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8"
+          >
+            <div
+              id="product-list-empty"
+              class="col-span-full hidden py-24 text-center border-2 border-dashed border-[#E2E8F0] rounded-[24px] bg-[#F8FAFC] only:block"
+            >
               <div class="w-16 h-16 mx-auto bg-white rounded-full flex items-center justify-center shadow-sm border border-[#F1F5F9] mb-4">
                 <svg
                   class="w-8 h-8 text-[#94A3B8]"
@@ -176,33 +183,36 @@ defmodule Emakola.Themes.Market.ProductList do
                 Clear all filters
               </button>
             </div>
-          <% else %>
-            <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-              <.product_card :for={product <- @products} product={product} store={@store} />
+            <div
+              :for={{dom_id, %{product: product}} <- @streams.products}
+              id={dom_id}
+              class="contents"
+            >
+              <.product_card product={product} store={@store} />
             </div>
+          </div>
 
-            <div :if={@has_more} class="mt-10 text-center">
-              <button
-                phx-click="load_more"
-                class="inline-flex items-center gap-2 px-8 py-3 border border-[#E2E8F0] rounded-lg text-sm font-semibold text-[#0F172A] bg-white hover:bg-[#F1F5F9] transition-colors"
+          <div :if={@has_more} class="mt-10 text-center">
+            <button
+              phx-click="load_more"
+              class="inline-flex items-center gap-2 px-8 py-3 border border-[#E2E8F0] rounded-lg text-sm font-semibold text-[#0F172A] bg-white hover:bg-[#F1F5F9] transition-colors"
+            >
+              Load More
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
               >
-                Load More
-                <svg
-                  class="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3"
-                  />
-                </svg>
-              </button>
-            </div>
-          <% end %>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>

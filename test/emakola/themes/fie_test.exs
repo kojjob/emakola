@@ -86,19 +86,18 @@ defmodule Emakola.Themes.FieTest do
   end
 
   defp list_assigns(attrs) do
-    Map.merge(
-      %{
-        store: @component_store,
-        products: [component_product()],
-        categories: [],
-        theme: Fie.defaults(),
-        cart_count: 0,
-        selected_category: nil,
-        search_query: "",
-        has_more: false
-      },
-      Map.new(attrs)
-    )
+    %{
+      store: @component_store,
+      products: [component_product()],
+      categories: [],
+      theme: Fie.defaults(),
+      cart_count: 0,
+      selected_category: nil,
+      search_query: "",
+      has_more: false
+    }
+    |> Map.merge(Map.new(attrs))
+    |> Emakola.LiveViewHelpers.with_product_stream()
   end
 
   defp detail_assigns(attrs) do

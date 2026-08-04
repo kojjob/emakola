@@ -288,6 +288,7 @@ defmodule Emakola.Themes.Dede.Shared do
   attr :product, :map, required: true
   attr :store, :map, required: true
   attr :quick_add, :boolean, default: false
+  attr :id, :string, default: nil
 
   def menu_row(assigns) do
     assigns =
@@ -296,7 +297,7 @@ defmodule Emakola.Themes.Dede.Shared do
       |> assign(:sold_out, sold_out?(assigns.product))
 
     ~H"""
-    <li class={["flex items-center gap-3 py-3.5", @sold_out && "opacity-70"]}>
+    <li id={@id} class={["flex items-center gap-3 py-3.5", @sold_out && "opacity-70"]}>
       <.optimized_image
         :if={@image}
         src={@image}

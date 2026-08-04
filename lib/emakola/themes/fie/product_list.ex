@@ -45,7 +45,7 @@ defmodule Emakola.Themes.Fie.ProductList do
               The Catalogue
             </h1>
             <p class="mt-3 text-sm tabular-nums text-stone-500">
-              {Components.count_label(length(@products), "piece")} on this page
+              {Components.count_label(@products_count, "piece")} on this page
             </p>
           </div>
 
@@ -120,8 +120,17 @@ defmodule Emakola.Themes.Fie.ProductList do
         </div>
 
         <div class="pb-16 pt-8 sm:pb-20">
-          <%= if @products == [] do %>
-            <div class="border border-[#EBDAD3] bg-[#F7ECE7] px-6 py-16 text-center sm:py-20">
+          <%!-- Link-only plates: ProductListLive has no add_to_cart handler,
+          so a quick-add here would crash the live page. --%>
+          <ol
+            id="product-list"
+            phx-update="stream"
+            class="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-5 lg:grid-cols-4 lg:gap-x-6"
+          >
+            <li
+              id="product-list-empty"
+              class="col-span-full hidden border border-[#EBDAD3] bg-[#F7ECE7] px-6 py-16 text-center only:block sm:py-20"
+            >
               <span
                 class="mb-4 block select-none text-6xl font-medium text-[#D8BCB0] [font-family:'Space_Grotesk','Inter',sans-serif]"
                 aria-hidden="true"
@@ -142,44 +151,42 @@ defmodule Emakola.Themes.Fie.ProductList do
               >
                 Clear all filters
               </button>
-            </div>
-          <% else %>
-            <%!-- Link-only plates: ProductListLive has no add_to_cart handler,
-            so a quick-add here would crash the live page. --%>
-            <ol class="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-5 lg:grid-cols-4 lg:gap-x-6">
-              <li :for={{product, index} <- Enum.with_index(@products, 1)}>
-                <Components.catalogue_plate
-                  product={product}
-                  store={@store}
-                  index={index}
-                  add_to_cart={false}
-                />
-              </li>
-            </ol>
+            </li>
+            <li
+              :for={{dom_id, %{product: product, position: position}} <- @streams.products}
+              id={dom_id}
+            >
+              <Components.catalogue_plate
+                product={product}
+                store={@store}
+                index={position}
+                add_to_cart={false}
+              />
+            </li>
+          </ol>
 
-            <div :if={@has_more} class="mt-12 text-center">
-              <button
-                phx-click="load_more"
-                class="inline-flex min-h-[48px] cursor-pointer items-center gap-2 border border-[#EBDAD3] bg-white px-8 py-3 text-sm font-semibold text-stone-900 hover:border-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 motion-safe:transition-colors"
+          <div :if={@has_more} class="mt-12 text-center">
+            <button
+              phx-click="load_more"
+              class="inline-flex min-h-[48px] cursor-pointer items-center gap-2 border border-[#EBDAD3] bg-white px-8 py-3 text-sm font-semibold text-stone-900 hover:border-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 motion-safe:transition-colors"
+            >
+              More pages
+              <svg
+                class="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
               >
-                More pages
-                <svg
-                  class="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3"
-                  />
-                </svg>
-              </button>
-            </div>
-          <% end %>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
