@@ -257,6 +257,17 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
          |> assign(:processing, false)
          |> put_flash(:error, "Your cart is empty -- please add items before checking out")}
 
+      # A guest's grant is created with customer_id: nil and can never be
+      # redeemed — the emailed-token flow does not exist. Taking the money
+      # would be taking it for nothing, so refuse before creating anything.
+      # Physical guest checkout, the dominant Ghana flow, is untouched.
+      not socket.assigns.requires_shipping and is_nil(socket.assigns[:current_customer]) ->
+        {:noreply,
+         socket
+         |> assign(:processing, false)
+         |> put_flash(:error, "Please sign in — downloads are saved to your account.")
+         |> redirect(to: store_path(socket.assigns.store.slug, "/login"))}
+
       true ->
         socket = assign(socket, processing: true, form_errors: %{})
 
@@ -460,6 +471,17 @@ defmodule EmakolaWeb.Storefront.CheckoutLive do
         Keyword.put(opts, :coupon_id, socket.assigns.coupon.id)
       else
         opts
+      end
+
+    # Every storefront order was created with customer_id: nil, so every
+    # DownloadGrant was a guest grant and Storefront.DownloadController 404s
+    # those forever. CheckoutService.resolve_customer/2 has always handled
+    # :customer_id — the branch was simply dead on this path. Signed-in buyers
+    # of physical goods gain a correct account Orders tab as a side effect.
+    opts =
+      case socket.assigns[:current_customer] do
+        %{id: customer_id} -> Keyword.put(opts, :customer_id, customer_id)
+        _ -> opts
       end
 
     CheckoutService.checkout!(store.id, items, opts)
