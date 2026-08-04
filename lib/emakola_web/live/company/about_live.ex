@@ -20,33 +20,35 @@ defmodule EmakolaWeb.Company.AboutLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div
-      id="about-scroll"
-      phx-hook="ScrollReveal"
-      class="min-h-screen bg-white font-body antialiased"
-    >
-      <.landing_nav />
-      <main>
-        <.marketing_hero
-          eyebrow="Our story"
-          title="Building commerce for"
-          highlight="West Africa"
-          subtitle="Makola gives every merchant the tools to sell online — mobile money, WhatsApp orders, and storefronts that load on any phone, on any network."
-        />
-        <.mission />
-        <.beliefs />
-        <.footprint />
-        <.cta_band
-          title="Want to build the future of commerce with us?"
-          subtitle="We're a small team with a big mission. Come help merchants across the region grow."
-          primary_label="See open roles"
-          primary_href="/careers"
-          secondary_label="Start selling"
-          secondary_href="/auth/register"
-        />
-      </main>
-      <.landing_footer />
-    </div>
+    <Layouts.app flash={@flash} variant={:plain}>
+      <div
+        id="about-scroll"
+        phx-hook="ScrollReveal"
+        class="min-h-screen bg-white font-body antialiased"
+      >
+        <.landing_nav />
+        <main>
+          <.marketing_hero
+            eyebrow="Our story"
+            title="Building commerce for"
+            highlight="West Africa"
+            subtitle="Makola gives every merchant the tools to sell online — mobile money, WhatsApp orders, and storefronts that load on any phone, on any network."
+          />
+          <.mission />
+          <.beliefs />
+          <.footprint />
+          <.cta_band
+            title="Want to build the future of commerce with us?"
+            subtitle="We're a small team with a big mission. Come help merchants across the region grow."
+            primary_label="See open roles"
+            primary_href="/careers"
+            secondary_label="Start selling"
+            secondary_href="/auth/register"
+          />
+        </main>
+        <.landing_footer />
+      </div>
+    </Layouts.app>
     """
   end
 

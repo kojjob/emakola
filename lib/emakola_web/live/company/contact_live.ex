@@ -74,34 +74,36 @@ defmodule EmakolaWeb.Company.ContactLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div
-      id="contact-scroll"
-      phx-hook="ScrollReveal"
-      class="min-h-screen bg-white font-body antialiased"
-    >
-      <.landing_nav />
-      <main>
-        <.marketing_hero
-          eyebrow="We're here to help"
-          title="Contact"
-          highlight="us"
-          subtitle="Questions, feedback, or need a hand? Send us a note and we'll get back to you, usually within a day."
-          padding="pt-20 pb-16 lg:pt-28 lg:pb-40"
-        />
+    <Layouts.app flash={@flash} variant={:plain}>
+      <div
+        id="contact-scroll"
+        phx-hook="ScrollReveal"
+        class="min-h-screen bg-white font-body antialiased"
+      >
+        <.landing_nav />
+        <main>
+          <.marketing_hero
+            eyebrow="We're here to help"
+            title="Contact"
+            highlight="us"
+            subtitle="Questions, feedback, or need a hand? Send us a note and we'll get back to you, usually within a day."
+            padding="pt-20 pb-16 lg:pt-28 lg:pb-40"
+          />
 
-        <section class="relative z-10 px-4 sm:px-6 pt-10 lg:pt-0 pb-20 lg:pb-28 lg:-mt-24">
-          <div class="max-w-5xl mx-auto grid lg:grid-cols-2 gap-6 lg:gap-8 items-stretch">
-            <.form_card form={@form} sent={@sent} error={@error} />
-            <.channels
-              support_email={@support_email}
-              whatsapp={@whatsapp}
-              phone={@phone}
-            />
-          </div>
-        </section>
-      </main>
-      <.landing_footer />
-    </div>
+          <section class="relative z-10 px-4 sm:px-6 pt-10 lg:pt-0 pb-20 lg:pb-28 lg:-mt-24">
+            <div class="max-w-5xl mx-auto grid lg:grid-cols-2 gap-6 lg:gap-8 items-stretch">
+              <.form_card form={@form} sent={@sent} error={@error} />
+              <.channels
+                support_email={@support_email}
+                whatsapp={@whatsapp}
+                phone={@phone}
+              />
+            </div>
+          </section>
+        </main>
+        <.landing_footer />
+      </div>
+    </Layouts.app>
     """
   end
 
