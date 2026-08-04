@@ -52,7 +52,11 @@ defmodule EmakolaWeb.Platform.BillingLiveTest do
     end
 
     test "renders plans, subscriptions, and invoices", %{conn: conn} do
-      {:ok, _view, html} = live(conn, ~p"/platform/billing")
+      {:ok, view, html} = live(conn, ~p"/platform/billing")
+
+      assert has_element?(view, "#billing-plans[phx-update='stream']")
+      assert has_element?(view, "#billing-subscriptions[phx-update='stream']")
+      assert has_element?(view, "#billing-invoices[phx-update='stream']")
       assert html =~ "Growth Plan"
       assert html =~ "Acme Org"
       assert html =~ "INV-SHOWN"
@@ -69,10 +73,14 @@ defmodule EmakolaWeb.Platform.BillingLiveTest do
   describe "empty state" do
     test "renders empty states when there is no billing data", %{conn: conn} do
       {conn, _user, _session} = setup_platform_staff(conn)
-      {:ok, _view, html} = live(conn, ~p"/platform/billing")
-      assert html =~ "No plans configured"
-      assert html =~ "No subscriptions yet"
-      assert html =~ "No invoices yet"
+      {:ok, view, _html} = live(conn, ~p"/platform/billing")
+
+      assert has_element?(view, "#billing-plans-empty")
+      assert has_element?(view, "#billing-subscriptions-empty")
+      assert has_element?(view, "#billing-invoices-empty")
+      refute has_element?(view, "#billing-plans-table")
+      refute has_element?(view, "#billing-subscriptions-table")
+      refute has_element?(view, "#billing-invoices-table")
     end
   end
 end
