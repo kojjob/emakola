@@ -125,6 +125,7 @@ fly secrets set \
   \
   # Payment gateway
   PAYSTACK_SECRET_KEY="sk_live_xxxxx" \
+  PAYSTACK_PUBLIC_KEY="pk_live_xxxxx" \
   \
   # SMS / WhatsApp — notifications are business-critical; the release
   # raises rather than silently no-op if these are missing
@@ -140,7 +141,6 @@ Optional secrets, set as applicable:
 
 ```bash
 fly secrets set \
-  PAYSTACK_PUBLIC_KEY="pk_live_xxxxx" \
   SMS_SENDER_ID="Emakola" \
   WHATSAPP_API_VERSION="v21.0" \
   \
@@ -204,13 +204,14 @@ These go in `fly.toml` under `[env]`:
 
 ```toml
 [env]
-  PHX_HOST = "emakola.com"
+  PHX_HOST = "makola.io"
   PHX_SERVER = "true"
   ECTO_IPV6 = "true"
   POOL_SIZE = "10"
   LANG = "en_US.UTF-8"
   ERL_AFLAGS = "-proto_dist inet6_tcp"
   DNS_CLUSTER_QUERY = "emakola.internal"
+  METRICS_PORT = "9091"
 ```
 
 ---
@@ -406,11 +407,11 @@ In `lib/emakola/application.ex`, Phoenix is already configured for graceful shut
 
 ```bash
 # Add custom domain
-fly certs create emakola.com --app emakola
-fly certs create www.emakola.com --app emakola
+fly certs add makola.io --app emakola
+fly certs add www.makola.io --app emakola
 
 # Check certificate status
-fly certs show emakola.com --app emakola
+fly certs check makola.io --app emakola
 ```
 
 ### Cloudflare DNS Configuration
@@ -426,10 +427,10 @@ Set Cloudflare SSL mode to **Full (Strict)**.
 
 ### Wildcard SSL for Merchant Subdomains
 
-For `*.emakola.com` (e.g., `shopname.emakola.com`):
+For `*.makola.io` (e.g., `shopname.makola.io`):
 
 ```bash
-fly certs create "*.emakola.com" --app emakola
+fly certs add "*.makola.io" --app emakola
 ```
 
 Cloudflare handles wildcard DNS:
@@ -445,7 +446,7 @@ For merchants who bring their own domain (e.g., `www.merchantshop.com`):
 1. Merchant adds a CNAME record pointing to `emakola.fly.dev`
 2. Add the certificate on Fly.io:
    ```bash
-   fly certs create www.merchantshop.com --app emakola
+   fly certs add www.merchantshop.com --app emakola
    ```
 3. Application resolves the merchant by hostname in a Phoenix plug:
    ```elixir
