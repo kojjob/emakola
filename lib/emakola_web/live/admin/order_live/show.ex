@@ -78,13 +78,6 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
     )
   end
 
-  # Matched against the known list rather than converted: String.to_atom/1 on
-  # user input is atom-table exhaustion, and to_existing_atom/1 raises on
-  # unknown input, which is a 500.
-  defp courier_from(value) do
-    Enum.find(Emakola.Shipping.Couriers.ids(), &(to_string(&1) == value))
-  end
-
   @impl true
   def handle_event("update_notes", %{"notes" => notes}, socket) do
     order = socket.assigns.order
@@ -889,6 +882,13 @@ defmodule EmakolaWeb.Admin.OrderLive.Show do
   end
 
   # ── Data Loading ──
+
+  # Matched against the known list rather than converted: String.to_atom/1 on
+  # user input is atom-table exhaustion, and to_existing_atom/1 raises on
+  # unknown input, which is a 500.
+  defp courier_from(value) do
+    Enum.find(Emakola.Shipping.Couriers.ids(), &(to_string(&1) == value))
+  end
 
   defp delivery_code_error(:rate_limited),
     do: "Too many codes sent for this delivery. Try again in a few minutes."

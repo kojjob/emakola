@@ -675,7 +675,6 @@ defmodule EmakolaWeb.OnboardingLive do
      |> push_navigate(to: "/dashboard")}
   end
 
-  @impl true
   def handle_event("toggle_buyer_protection", _params, socket) do
     {:noreply, assign(socket, :buyer_protection, !socket.assigns.buyer_protection)}
   end
