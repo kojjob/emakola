@@ -3,8 +3,8 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   Platform admin listing of all stores with search filtering.
 
   Mount is gated by RequirePermission (:manage_stores). No DB queries are
-  issued during the disconnected render — a nil stores state is assigned
-  and the template renders a loading shell. Every mutating handle_event
+  issued during the disconnected render — an empty stream and loading state
+  render the shell. Every mutating handle_event
   re-checks the permission against a freshly reloaded user so that a
   permission revocation after mount is caught before the write.
   """
@@ -23,12 +23,16 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
       |> assign(:page_title, "Stores")
       |> assign(:active_nav, :stores)
       |> assign(:search, "")
+      |> assign(:search_form, search_form(""))
+      |> assign(:stores_count, 0)
+      |> assign(:stores_loaded?, false)
+      |> stream(:stores, [], dom_id: &"store-#{&1.id}")
 
     socket =
       if connected?(socket) do
         load_stores(socket, "")
       else
-        assign(socket, stores: nil, rank_forms: %{})
+        socket
       end
 
     {:ok, socket}
@@ -39,6 +43,7 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
     {:noreply,
      socket
      |> assign(:search, query)
+     |> assign(:search_form, search_form(query))
      |> load_stores(query)}
   end
 
@@ -84,23 +89,20 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   end
 
   defp update_directory_meta(socket, id, attrs_fn) do
-    case Enum.find(socket.assigns.stores, &(&1.id == id)) do
-      nil ->
-        {:noreply, socket}
-
-      store ->
+    case Emakola.Stores.get_store(id, authorize?: false) do
+      {:ok, store} ->
         case Emakola.Stores.update_store_directory_meta(store, attrs_fn.(store),
                authorize?: false
              ) do
           {:ok, updated} ->
-            stores =
-              Enum.map(socket.assigns.stores, fn s -> if s.id == id, do: updated, else: s end)
-
-            {:noreply, assign_stores(socket, stores)}
+            {:noreply, stream_insert(socket, :stores, store_row(updated))}
 
           {:error, _} ->
             {:noreply, put_flash(socket, :error, "Could not update store")}
         end
+
+      _ ->
+        {:noreply, socket}
     end
   end
 
@@ -124,19 +126,25 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
   end
 
   defp assign_stores(socket, stores) do
-    rank_forms =
-      Map.new(stores, fn store ->
-        form =
-          to_form(%{
-            "store_id" => store.id,
-            "value" => Map.get(store, :featured_rank)
-          })
-
-        {store.id, form}
-      end)
-
-    assign(socket, stores: stores, rank_forms: rank_forms)
+    socket
+    |> assign(:stores_count, length(stores))
+    |> assign(:stores_loaded?, true)
+    |> stream(:stores, Enum.map(stores, &store_row/1), reset: true)
   end
+
+  defp store_row(store) do
+    %{
+      id: store.id,
+      store: store,
+      rank_form:
+        to_form(%{
+          "store_id" => store.id,
+          "value" => Map.get(store, :featured_rank)
+        })
+    }
+  end
+
+  defp search_form(query), do: to_form(%{"search" => query})
 
   @impl true
   def render(assigns) do
@@ -147,38 +155,34 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
         <div>
           <h1 class="text-2xl font-bold text-gray-900">Stores</h1>
           <p class="text-sm text-gray-500 mt-1">
-            {if @stores,
-              do: "All stores on the Makola platform (#{length(@stores)} shown)",
+            {if @stores_loaded?,
+              do: "All stores on the Makola platform (#{@stores_count} shown)",
               else: "All stores on the Makola platform — loading…"}
           </p>
         </div>
       </div>
 
       <%!-- Search bar --%>
-      <div class="mb-4 max-w-sm relative">
-        <svg
-          class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-          />
-        </svg>
-        <input
+      <.form
+        for={@search_form}
+        id="platform-store-search-form"
+        phx-change="search"
+        phx-debounce="300"
+        class="mb-4 max-w-sm relative"
+      >
+        <.icon
+          name="hero-magnifying-glass"
+          class="size-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+        />
+        <.input
+          field={@search_form[:search]}
           type="search"
-          name="search"
-          value={@search}
+          id="platform-store-search"
           placeholder="Search by name or slug..."
-          phx-change="search"
-          phx-debounce="300"
+          autocomplete="off"
           class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
         />
-      </div>
+      </.form>
 
       <%!-- Stores table --%>
       <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -195,20 +199,29 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                 <th class="px-6 py-3"></th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr :if={is_nil(@stores)} class="hover:bg-gray-50">
+            <tbody
+              id="platform-stores"
+              phx-update="stream"
+              data-count={@stores_count}
+              class="divide-y divide-gray-100"
+            >
+              <tr :if={!@stores_loaded?} id="platform-stores-loading" class="hover:bg-gray-50">
                 <td colspan="7" class="px-6 py-12 text-center text-sm text-gray-400">
                   Loading stores…
                 </td>
               </tr>
-              <tr :if={@stores == []} class="hover:bg-gray-50">
+              <tr
+                :if={@stores_loaded? && @stores_count == 0}
+                id="platform-stores-empty"
+                class="hover:bg-gray-50"
+              >
                 <td colspan="7" class="px-6 py-12 text-center text-sm text-gray-400">
                   No stores found
                 </td>
               </tr>
               <tr
-                :for={store <- @stores || []}
-                id={"store-#{store.id}"}
+                :for={{id, %{store: store, rank_form: rank_form}} <- @streams.stores}
+                id={id}
                 class="hover:bg-gray-50 transition-colors"
               >
                 <td class="px-6 py-4">
@@ -281,18 +294,18 @@ defmodule EmakolaWeb.Platform.StoreLive.Index do
                       Verified
                     </button>
                     <.form
-                      for={Map.fetch!(@rank_forms, store.id)}
+                      for={rank_form}
                       id={"store-rank-form-#{store.id}"}
                       phx-change="update_rank"
                       class="inline-flex items-center"
                     >
                       <.input
-                        field={Map.fetch!(@rank_forms, store.id)[:store_id]}
+                        field={rank_form[:store_id]}
                         type="hidden"
                         id={"store-rank-store-id-#{store.id}"}
                       />
                       <.input
-                        field={Map.fetch!(@rank_forms, store.id)[:value]}
+                        field={rank_form[:value]}
                         type="number"
                         id={"store-rank-#{store.id}"}
                         placeholder="Rank"
