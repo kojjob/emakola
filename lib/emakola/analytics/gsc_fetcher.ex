@@ -75,6 +75,16 @@ defmodule Emakola.Analytics.GscFetcher do
 
   defp access_token(%{access_token: token}) when is_binary(token), do: {:ok, token}
   defp access_token(token) when is_binary(token), do: {:ok, token}
+
+  # Service-account auth: the token is fetched per call, never frozen in
+  # config — Goth's tokens expire hourly.
+  defp access_token({:goth, name}) do
+    case goth_module().fetch(name) do
+      {:ok, %{token: token}} -> {:ok, token}
+      {:error, reason} -> {:error, {:goth_error, reason}}
+    end
+  end
+
   defp access_token(_), do: {:error, :invalid_gsc_credentials}
 
   defp site_url, do: Application.get_env(:emakola, :gsc_site_url) || EmakolaWeb.Endpoint.url()
@@ -85,4 +95,6 @@ defmodule Emakola.Analytics.GscFetcher do
   end
 
   defp http_client, do: Application.get_env(:emakola, :http_client, Emakola.HTTPClient.Req)
+
+  defp goth_module, do: Application.get_env(:emakola, :goth_module, Goth)
 end

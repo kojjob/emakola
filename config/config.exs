@@ -152,7 +152,10 @@ config :emakola, Oban,
        {"0 * * * *", Emakola.Payments.Workers.ProtectionSweepWorker},
        {"20 * * * *", Emakola.Payments.Workers.SusuExpiryWorker},
        {"0 9 * * *", Emakola.Payments.Workers.SusuNudgeWorker},
-       {"30 3 * * *", Emakola.Accounts.Workers.PhoneOtpPruneWorker}
+       {"30 3 * * *", Emakola.Accounts.Workers.PhoneOtpPruneWorker},
+       # GSC reports a 2-3 day lag, so daily is as fresh as the data gets.
+       # No-ops until :gsc_credentials is set (runtime.exs).
+       {"0 5 * * *", Emakola.Analytics.Workers.GscSyncWorker}
      ]}
   ]
 
