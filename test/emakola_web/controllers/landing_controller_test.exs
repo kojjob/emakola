@@ -18,6 +18,47 @@ defmodule EmakolaWeb.LandingControllerTest do
       assert html =~ "No credit card needed"
     end
 
+    # Cold-traffic repositioning: the page led with generic ecommerce features
+    # (Discounts, Reports, Blog) while the differentiators shipped in #363/#364/
+    # #367/#372-374 were invisible. Every claim below maps to shipped code.
+    test "sells the differentiators, not just table stakes", %{conn: conn} do
+      html = conn |> get("/") |> html_response(200)
+
+      assert html =~ "Pay Links"
+      assert html =~ "Buyer Protection"
+      assert html =~ "Susu"
+      assert html =~ "MoMo"
+      assert html =~ "Start with nothing"
+      # Merchants here read less, so the film is the real explainer — it must
+      # be reachable from the pitch, not buried in the nav.
+      assert html =~ "/how-it-works/tour"
+    end
+
+    # These merchants are not strong readers. Card copy has to stay scannable;
+    # the previous version averaged 20 words per card, which is a wall of text.
+    test "differentiator copy stays short enough to scan", %{conn: conn} do
+      html = conn |> get("/") |> html_response(200)
+
+      for phrase <- [
+            "Send a link. Get paid on MoMo.",
+            "We hold the money until they get it.",
+            "Let them pay small amounts over time.",
+            "No stock. No capital. Start today."
+          ] do
+        assert html =~ phrase
+        assert length(String.split(phrase, " ")) <= 8, "#{phrase} is too long to scan"
+      end
+    end
+
+    test "makes no stale claim about the theme count", %{conn: conn} do
+      html = conn |> get("/") |> html_response(200)
+
+      # There are 21 selectable themes, not 14. Hardcoded counts rot silently,
+      # so the copy carries no number at all.
+      refute html =~ "14 beautiful looks"
+      refute html =~ "14 themes"
+    end
+
     test "has no shopper hero", %{conn: conn} do
       html = conn |> get("/") |> html_response(200)
       refute html =~ "Shop Trusted Local Businesses"
