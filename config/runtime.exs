@@ -259,6 +259,23 @@ if config_env() == :prod do
     config :emakola, :push_provider, Emakola.Notifications.Providers.LogPush
   end
 
+  # Google Search Console sync (SEO Phase 5). Ships dark: without a service
+  # account the fetcher returns {:ok, []} and the daily cron is a no-op.
+  #
+  # GSC_SITE_URL must match the property KIND, not just the hostname. A Domain
+  # property (DNS-verified, covers merchant subdomains — what
+  # docs/SEO_PRODUCTION_SETUP_BEGINNERS_GUIDE.md §2.1 instructs) is addressed
+  # as `sc-domain:makola.io`. Passing the URL-prefix form `https://makola.io`
+  # against a Domain property returns 403 while the browser UI still shows the
+  # site as verified, so we default to the sc-domain form.
+  if System.get_env("GSC_SERVICE_ACCOUNT_JSON") do
+    config :emakola, :gsc_credentials, {:goth, Emakola.GscGoth}
+
+    config :emakola,
+           :gsc_site_url,
+           System.get_env("GSC_SITE_URL") || "sc-domain:#{System.fetch_env!("PHX_HOST")}"
+  end
+
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
   # want to use a different value for prod and you most likely don't want

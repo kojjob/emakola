@@ -33,7 +33,7 @@ defmodule Emakola.Application do
         Emakola.Content.RateLimiter,
         # Start to serve requests, typically the last entry
         EmakolaWeb.Endpoint
-      ] ++ fcm_children()
+      ] ++ fcm_children() ++ gsc_children()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -60,6 +60,27 @@ defmodule Emakola.Application do
         credentials = Jason.decode!(json)
 
         [{Goth, name: Emakola.Goth, source: {:service_account, credentials}}]
+    end
+  end
+
+  # Goth token server for the Search Console API — a separate instance from
+  # Emakola.Goth because the scope differs (read-only Search Console, not FCM
+  # messaging) and the two use different service accounts.
+  defp gsc_children do
+    case System.get_env("GSC_SERVICE_ACCOUNT_JSON") do
+      nil ->
+        []
+
+      json ->
+        credentials = Jason.decode!(json)
+
+        [
+          {Goth,
+           name: Emakola.GscGoth,
+           source:
+             {:service_account, credentials,
+              scopes: ["https://www.googleapis.com/auth/webmasters.readonly"]}}
+        ]
     end
   end
 end
