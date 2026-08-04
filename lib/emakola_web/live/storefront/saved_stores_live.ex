@@ -6,7 +6,8 @@ defmodule EmakolaWeb.Storefront.SavedStoresLive do
   Loads favorites via `Emakola.Customers.list_favorite_stores/2` (which
   passes `:customer_id` as the action arg and respects the resource's
   read policy: only the customer's own favorites are visible). Each
-  card has an unfavorite button that destroys the row and reloads.
+  card has an unfavorite button that destroys the row and removes it from
+  the LiveView stream.
   """
   use EmakolaWeb, :live_view
 
@@ -30,11 +31,14 @@ defmodule EmakolaWeb.Storefront.SavedStoresLive do
          |> redirect(to: store_path(slug, "/login"))}
 
       customer ->
+        favorites = load_favorites(customer)
+
         {:ok,
          socket
          |> assign(:page_title, "Saved Stores")
          |> assign(:customer, customer)
-         |> assign(:favorites, load_favorites(customer))}
+         |> assign(:favorites_count, length(favorites))
+         |> stream(:favorites, favorites)}
     end
   end
 
@@ -42,12 +46,15 @@ defmodule EmakolaWeb.Storefront.SavedStoresLive do
   def handle_event("unfavorite", %{"id" => favorite_id}, socket) do
     customer = socket.assigns.customer
 
-    with %{} = favorite <- Enum.find(socket.assigns.favorites, &(&1.id == favorite_id)),
+    with %{} = favorite <- find_favorite(customer, favorite_id),
          :ok <- Emakola.Customers.unfavorite_store(favorite, actor: customer) do
+      favorites_count = max(socket.assigns.favorites_count - 1, 0)
+
       {:noreply,
        socket
        |> put_flash(:info, "Removed from saved stores")
-       |> assign(:favorites, load_favorites(customer))}
+       |> assign(:favorites_count, favorites_count)
+       |> stream_delete(:favorites, favorite)}
     else
       _ -> {:noreply, put_flash(socket, :error, "Could not remove store")}
     end
@@ -65,10 +72,12 @@ defmodule EmakolaWeb.Storefront.SavedStoresLive do
             </p>
             <h1 class="text-3xl sm:text-4xl font-black text-slate-900 mt-1">Saved stores</h1>
             <p class="text-sm text-slate-500 mt-1">
-              <span :if={@favorites != []}>
-                {length(@favorites)} {if length(@favorites) == 1, do: "store", else: "stores"} you've hearted
+              <span :if={@favorites_count > 0} id="saved-stores-count">
+                {@favorites_count} {if @favorites_count == 1, do: "store", else: "stores"} you've hearted
               </span>
-              <span :if={@favorites == []}>Stores you heart from the directory show up here.</span>
+              <span :if={@favorites_count == 0} id="saved-stores-count">
+                Stores you heart from the directory show up here.
+              </span>
             </p>
           </div>
           <a
@@ -93,32 +102,34 @@ defmodule EmakolaWeb.Storefront.SavedStoresLive do
       </header>
 
       <main class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
-        <div :if={@favorites == []} class="text-center py-20">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            class="w-20 h-20 text-rose-200 mx-auto mb-4"
-            fill="currentColor"
-          >
-            <path d="M12 21s-7-4.5-7-11a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 6.5-7 11-7 11Z" />
-          </svg>
-          <h2 class="text-xl font-bold text-slate-900 mb-2">No saved stores yet</h2>
-          <p class="text-sm text-slate-500 max-w-md mx-auto mb-6">
-            Tap the heart icon on any store card in the marketplace to save it here.
-          </p>
-          <a
-            href="/stores"
-            class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-rose-500 text-white text-sm font-bold hover:bg-rose-600 transition-colors"
-          >
-            Discover stores
-          </a>
-        </div>
-
         <div
-          :if={@favorites != []}
+          id="saved-stores"
+          phx-update="stream"
+          data-count={@favorites_count}
           class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6"
         >
-          <div :for={favorite <- @favorites} class="relative">
+          <div id="saved-stores-empty" class="hidden only:block col-span-full text-center py-20">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="w-20 h-20 text-rose-200 mx-auto mb-4"
+              fill="currentColor"
+            >
+              <path d="M12 21s-7-4.5-7-11a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 6.5-7 11-7 11Z" />
+            </svg>
+            <h2 class="text-xl font-bold text-slate-900 mb-2">No saved stores yet</h2>
+            <p class="text-sm text-slate-500 max-w-md mx-auto mb-6">
+              Tap the heart icon on any store card in the marketplace to save it here.
+            </p>
+            <a
+              href="/stores"
+              class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-rose-500 text-white text-sm font-bold hover:bg-rose-600 transition-colors"
+            >
+              Discover stores
+            </a>
+          </div>
+
+          <div :for={{id, favorite} <- @streams.favorites} id={id} class="relative">
             <StoresComponents.store_card store={favorite.store} is_favorite={true} />
             <button
               type="button"
@@ -143,6 +154,12 @@ defmodule EmakolaWeb.Storefront.SavedStoresLive do
       </main>
     </div>
     """
+  end
+
+  defp find_favorite(customer, favorite_id) do
+    customer
+    |> load_favorites()
+    |> Enum.find(&(&1.id == favorite_id))
   end
 
   defp load_favorites(customer) do
