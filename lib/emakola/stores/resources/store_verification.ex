@@ -61,7 +61,7 @@ defmodule Emakola.Stores.StoreVerification do
 
     attribute :id_number, :string do
       allow_nil?(false)
-      public?(true)
+      sensitive?(true)
       constraints(max_length: 100)
     end
 
@@ -69,11 +69,11 @@ defmodule Emakola.Stores.StoreVerification do
     # URLs. Required: id_document_key. Optional: business_doc_key.
     attribute :id_document_key, :string do
       allow_nil?(false)
-      public?(true)
+      sensitive?(true)
     end
 
     attribute :business_doc_key, :string do
-      public?(true)
+      sensitive?(true)
     end
 
     # Why a submission was rejected — shown to the merchant so they can fix and

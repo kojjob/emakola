@@ -28,6 +28,8 @@ defmodule Emakola.Notifications.Channels.WhatsApp do
   @behaviour Emakola.Notifications.Channels.WhatsAppBehaviour
   @behaviour Emakola.Notifications.WhatsAppProvider
 
+  alias Emakola.Privacy
+
   require Logger
 
   @default_api_version "v21.0"
@@ -84,7 +86,7 @@ defmodule Emakola.Notifications.Channels.WhatsApp do
 
       :error ->
         Logger.error(
-          "[WhatsApp] unknown template '#{template_name}'; " <>
+          "[WhatsApp] unknown template '#{Privacy.safe_label(template_name)}'; " <>
             "no declared parameter order — not sending"
         )
 
@@ -170,7 +172,7 @@ defmodule Emakola.Notifications.Channels.WhatsApp do
         store_id = Keyword.get(opts, :store_id)
 
         Logger.warning(
-          "[WhatsApp] rate limit exceeded for store=#{inspect(store_id)} " <>
+          "[WhatsApp] rate limit exceeded for store=#{Privacy.safe_uuid(store_id)} " <>
             "(#{@rate_limit} per #{div(@rate_window_ms, 60_000)}m); dropping message"
         )
 
@@ -187,19 +189,22 @@ defmodule Emakola.Notifications.Channels.WhatsApp do
       {"content-type", "application/json"}
     ]
 
-    Logger.info("[WhatsApp] Sending template '#{template_name}' to #{normalize_phone(phone)}")
+    Logger.info(
+      "[WhatsApp] Sending template '#{Privacy.safe_label(template_name)}' " <>
+        "to #{Privacy.mask_phone(phone)}"
+    )
 
     case http_client().post(url, json: body, headers: headers) do
       {:ok, %{status: status, body: resp_body}} when status in 200..299 ->
         {:ok, %{status: status, body: resp_body, template: template_name}}
 
       {:ok, %{status: status, body: resp_body}} ->
-        Logger.error("[WhatsApp] API error #{status}: #{inspect(resp_body)}")
+        Logger.error("[WhatsApp] API error #{status}; provider response omitted")
 
         {:error, %{status: status, body: resp_body}}
 
       {:error, reason} ->
-        Logger.error("[WhatsApp] HTTP error: #{inspect(reason)}")
+        Logger.error("[WhatsApp] HTTP error type=#{Privacy.error_type(reason)}")
         {:error, reason}
     end
   end

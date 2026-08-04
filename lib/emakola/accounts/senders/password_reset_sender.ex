@@ -1,6 +1,7 @@
 defmodule Emakola.Accounts.Senders.PasswordResetSender do
   @moduledoc "Sends password reset emails via Swoosh."
   use AshAuthentication.Sender
+  alias Emakola.Privacy
   require Logger
 
   @impl true
@@ -11,7 +12,7 @@ defmodule Emakola.Accounts.Senders.PasswordResetSender do
         email -> to_string(email)
       end
 
-    Logger.info("Sending password reset to #{email}")
+    Logger.info("Sending password reset to #{Privacy.mask_email(email)}")
 
     if is_map(user) and Map.has_key?(user, :email) do
       # Ensure email is a plain string for Swoosh compatibility (Ash uses CiString)

@@ -19,7 +19,7 @@ defmodule Emakola.Suppliers.PartnerCreditOffer do
     attribute(:provider_store_id, :uuid, public?: true)
     attribute(:provider_name, :string, allow_nil?: false, public?: true)
     attribute(:license_reference, :string, public?: true)
-    attribute(:creditor_subaccount_code, :string, allow_nil?: false, public?: true)
+    attribute(:creditor_subaccount_code, :string, allow_nil?: false, sensitive?: true)
     attribute(:borrower_store_id, :uuid, allow_nil?: false, public?: true)
 
     attribute(:minimum_tier, :atom,

@@ -21,7 +21,6 @@ defmodule Emakola.Webhooks.OutboundWebhook do
     attribute :secret, :string do
       allow_nil?(false)
       sensitive?(true)
-      public?(true)
       constraints(max_length: 255)
     end
 

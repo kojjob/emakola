@@ -51,8 +51,11 @@
       <%!-- Collapse toggle (desktop only) --%>
       <button
         id="collapse-btn"
+        type="button"
         class="collapse-btn hidden lg:flex ml-auto w-7 h-7 items-center justify-center rounded-lg hover:bg-white/[0.06] transition-colors cursor-pointer"
-        onclick="togglePlatformSidebar()"
+        data-toggle-platform-sidebar
+        aria-controls="sidebar"
+        aria-expanded="true"
         aria-label="Toggle sidebar"
       >
         <svg
@@ -666,18 +669,3 @@
     #platform-shell .collapse-icon { transition: none !important; }
   }
 </style>
-
-<script>
-  function togglePlatformSidebar() {
-    const shell = document.getElementById('platform-shell');
-    shell.classList.toggle('collapsed');
-    localStorage.setItem('platform-sidebar-collapsed', shell.classList.contains('collapsed'));
-  }
-
-  (function() {
-    if (localStorage.getItem('platform-sidebar-collapsed') === 'true') {
-      const shell = document.getElementById('platform-shell');
-      if (shell) shell.classList.add('collapsed');
-    }
-  })();
-</script>

@@ -80,9 +80,10 @@ Implementation: `Hammer` library with ETS-backed storage, upgradeable to Redis f
 
 - **PostgreSQL**: Deployed on Fly.io with encrypted volumes (AES-256)
 - **Backups**: Encrypted using Fly.io managed backup encryption
-- **Application-level encryption**: Sensitive fields (phone numbers, addresses) encrypted using `Cloak.Ecto` with AES-GCM-256
-  - Key rotation supported without downtime
-  - Encryption keys stored in Fly.io secrets, never in source code
+- **Application-level encryption is not implemented yet.** Ash `sensitive?` metadata
+  prevents accidental struct inspection but does not encrypt database values.
+  The field inventory, migration order, blind-index requirements, and key-rotation
+  acceptance criteria are tracked in [`SENSITIVE_DATA_INVENTORY.md`](SENSITIVE_DATA_INVENTORY.md).
 
 ### 2.2 Encryption in Transit
 
@@ -94,12 +95,16 @@ Implementation: `Hammer` library with ETS-backed storage, upgradeable to Redis f
 
 ### 2.3 PII Handling
 
-- **Logging**: All PII masked before logging
-  - Phone numbers: `+233XXXXXXX45` (show last 2 digits)
+- **Logging**: Notification and authentication sender paths use
+  `Emakola.Privacy`; new log statements must not serialise request/provider
+  payloads or message bodies.
+  - Phone numbers: `+233****4567` (show final 4 digits)
   - Email addresses: `k***@example.com`
-  - Names: Never logged unless explicitly required for debugging (and then redacted within 24 hours)
+- **Never log** raw message bodies, provider responses, credentials, tokens, or
+  authentication codes.
 - **Log storage**: Structured JSON logs, retained for 90 days, then purged
-- **Database**: PII fields identified and tagged in schema documentation
+- **Database**: Persisted PII and credentials are inventoried in
+  [`SENSITIVE_DATA_INVENTORY.md`](SENSITIVE_DATA_INVENTORY.md)
 - **Access**: PII access restricted to authorized personnel with audit trail
 
 ### 2.4 Password Security

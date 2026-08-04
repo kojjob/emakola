@@ -30,6 +30,8 @@ defmodule Emakola.Notifications.Channels.WhatsappCatalog do
 
   @behaviour Emakola.Notifications.Channels.WhatsappCatalogBehaviour
 
+  alias Emakola.Privacy
+
   require Logger
 
   @default_graph_version "v18.0"
@@ -124,11 +126,11 @@ defmodule Emakola.Notifications.Channels.WhatsappCatalog do
         {:ok, %{status: status, body: resp}}
 
       {:ok, %{status: status, body: resp}} ->
-        Logger.error("[whatsapp_catalog] API #{status}: #{inspect(resp)}")
+        Logger.error("[whatsapp_catalog] API #{status}; provider response omitted")
         {:error, %{status: status, body: resp}}
 
       {:error, reason} ->
-        Logger.error("[whatsapp_catalog] HTTP error: #{inspect(reason)}")
+        Logger.error("[whatsapp_catalog] HTTP error type=#{Privacy.error_type(reason)}")
         {:error, reason}
     end
   end
@@ -143,11 +145,11 @@ defmodule Emakola.Notifications.Channels.WhatsappCatalog do
         :ok
 
       {:ok, %{status: status, body: resp}} ->
-        Logger.error("[whatsapp_catalog] DELETE #{status}: #{inspect(resp)}")
+        Logger.error("[whatsapp_catalog] DELETE #{status}; provider response omitted")
         {:error, %{status: status, body: resp}}
 
       {:error, reason} ->
-        Logger.error("[whatsapp_catalog] HTTP error: #{inspect(reason)}")
+        Logger.error("[whatsapp_catalog] HTTP error type=#{Privacy.error_type(reason)}")
         {:error, reason}
     end
   end

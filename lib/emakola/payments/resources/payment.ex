@@ -70,7 +70,7 @@ defmodule Emakola.Payments.Payment do
     end
 
     attribute :gateway_response, :map do
-      public?(true)
+      sensitive?(true)
     end
 
     attribute :customer_email, :string do

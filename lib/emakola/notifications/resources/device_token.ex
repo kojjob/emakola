@@ -57,7 +57,7 @@ defmodule Emakola.Notifications.DeviceToken do
 
     attribute :token, :string do
       allow_nil?(false)
-      public?(true)
+      sensitive?(true)
       constraints(max_length: 4096)
     end
 
@@ -92,12 +92,22 @@ defmodule Emakola.Notifications.DeviceToken do
     defaults([:read])
 
     create :register do
-      accept([:platform, :token])
+      accept([:platform])
+
+      # The token remains a public action input for the mobile JSON:API, but is
+      # private on the resource so create responses and generic projections do
+      # not echo a durable push credential back to clients.
+      argument :token, :string do
+        allow_nil?(false)
+        sensitive?(true)
+        constraints(max_length: 4096)
+      end
 
       upsert?(true)
       upsert_identity(:unique_token)
       upsert_fields([:merchant_id, :platform, :last_seen_at, :store_id])
 
+      change(set_attribute(:token, arg(:token)))
       change(relate_actor(:merchant))
       change(set_attribute(:last_seen_at, &DateTime.utc_now/0))
     end
