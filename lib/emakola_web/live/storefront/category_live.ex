@@ -45,8 +45,7 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
                category: category,
                parent_category: parent,
                categories: categories,
-               products: products,
-               filtered_products: products,
+               products_count: length(products),
                sort_by: :newest,
                cart_session_id: cart_session_id,
                cart_count: cart_count,
@@ -62,7 +61,8 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
                    %{name: store.name, url: Canonical.store_url(store)},
                    %{name: category.name, url: Canonical.category_url(store, category)}
                  ])
-             )}
+             )
+             |> stream(:products, product_stream_items(products))}
         end
 
       {:error, :not_found} ->
@@ -84,8 +84,15 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
         :newest
       )
 
-    sorted = sort_products(socket.assigns.products, sort)
-    {:noreply, assign(socket, filtered_products: sorted, sort_by: sort)}
+    sorted =
+      socket.assigns.store.id
+      |> load_category_products(socket.assigns.category.id)
+      |> sort_products(sort)
+
+    {:noreply,
+     socket
+     |> assign(products_count: length(sorted), sort_by: sort)
+     |> stream(:products, product_stream_items(sorted), reset: true)}
   end
 
   @impl true
@@ -145,6 +152,12 @@ defmodule EmakolaWeb.Storefront.CategoryLive do
   end
 
   defp sort_products(products, _), do: products
+
+  defp product_stream_items(products) do
+    products
+    |> Enum.with_index()
+    |> Enum.map(fn {product, index} -> %{id: product.id, product: product, index: index} end)
+  end
 
   # -- SEO --
 
