@@ -29,7 +29,10 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
       |> assign(:filter, :all)
       |> assign(:takedown_id, nil)
       |> assign(:takedown_form, to_form(%{"reason" => ""}))
-      |> assign(:products, nil)
+      |> assign(:product_ids, MapSet.new())
+      |> assign(:products_count, 0)
+      |> assign(:products_loaded?, false)
+      |> stream(:products, [], dom_id: &"moderation-product-#{&1.id}")
 
     {:ok, if(connected?(socket), do: load(socket), else: socket)}
   end
@@ -128,7 +131,14 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
     if reason, do: Map.put(base, "reason", reason), else: base
   end
 
-  defp find_product(socket, id), do: Enum.find(socket.assigns.products || [], &(&1.id == id))
+  defp find_product(socket, id) do
+    if MapSet.member?(socket.assigns.product_ids, id) do
+      case Catalog.get_product(id, authorize?: false) do
+        {:ok, product} -> product
+        _ -> nil
+      end
+    end
+  end
 
   defp authorized(socket, fun) do
     if PlatformPermissions.allowed?(reload_current_user(socket), :manage_stores) do
@@ -157,14 +167,22 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
         _ -> []
       end
 
-    assign(socket, :products, products)
+    socket
+    |> assign(:product_ids, MapSet.new(products, & &1.id))
+    |> assign(:products_count, length(products))
+    |> assign(:products_loaded?, true)
+    |> stream(:products, products, reset: true)
   rescue
     exception ->
       Logger.error(
         "[platform.moderation_live] load loading products raised: #{Exception.message(exception)}"
       )
 
-      assign(socket, :products, [])
+      socket
+      |> assign(:product_ids, MapSet.new())
+      |> assign(:products_count, 0)
+      |> assign(:products_loaded?, true)
+      |> stream(:products, [], reset: true)
   end
 
   @impl true
@@ -197,6 +215,7 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
         <div class="flex gap-1.5">
           <button
             :for={{label, value} <- [{"All", "all"}, {"Taken down", "taken_down"}]}
+            id={"moderation-filter-#{value}"}
             type="button"
             phx-click="filter"
             phx-value-filter={value}
@@ -223,18 +242,26 @@ defmodule EmakolaWeb.Platform.ModerationLive.Index do
               <th class="px-6 py-3"></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr :if={is_nil(@products)}>
+          <tbody
+            id="moderation-products"
+            phx-update="stream"
+            data-count={@products_count}
+            class="divide-y divide-gray-100"
+          >
+            <tr :if={!@products_loaded?} id="moderation-products-loading">
               <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-400">Loading…</td>
             </tr>
-            <tr :if={@products == []}>
+            <tr
+              :if={@products_loaded? && @products_count == 0}
+              id="moderation-products-empty"
+            >
               <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-400">
                 No products found
               </td>
             </tr>
             <tr
-              :for={p <- @products || []}
-              id={"moderation-product-#{p.id}"}
+              :for={{id, p} <- @streams.products}
+              id={id}
               class="hover:bg-gray-50 transition-colors"
             >
               <td class="px-6 py-4">
