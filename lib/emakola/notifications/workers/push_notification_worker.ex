@@ -17,6 +17,7 @@ defmodule Emakola.Notifications.Workers.PushNotificationWorker do
 
   alias Emakola.Notifications.DeviceToken
   alias Emakola.Notifications.Templates
+  alias Emakola.Security.SecretStorage
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"order_id" => order_id, "event" => "order_placed"}}) do
@@ -54,7 +55,26 @@ defmodule Emakola.Notifications.Workers.PushNotificationWorker do
       data: %{"type" => "order_placed", "order_id" => order.id}
     }
 
-    case push_provider().send_push(device_token.token, notification) do
+    case SecretStorage.device_token(device_token) do
+      {:ok, token} when is_binary(token) ->
+        deliver_to_provider(token, notification, device_token, order)
+
+      {:error, _reason} ->
+        Logger.error("[PushNotificationWorker] encrypted device token is unavailable",
+          order_id: order.id,
+          store_id: order.store_id,
+          device_token_id: device_token.id
+        )
+
+        :ok
+
+      _other ->
+        :ok
+    end
+  end
+
+  defp deliver_to_provider(token, notification, device_token, order) do
+    case push_provider().send_push(token, notification) do
       {:ok, _} ->
         :ok
 

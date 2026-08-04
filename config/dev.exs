@@ -17,6 +17,15 @@ config :emakola, :storage, Emakola.Storage.Local
 config :emakola,
   token_signing_secret: "dev-only-not-for-production-at-least-32-bytes!!"
 
+# Local-development-only keys. Never copy these values to a deployed
+# environment; production fails closed unless independent runtime keyrings are
+# supplied through the secret manager.
+config :emakola, Emakola.Security.FieldEncryption,
+  active_key_id: "dev-v1",
+  keys: %{"dev-v1" => "00112233445566778899aabbccddeeff"},
+  blind_index_active_key_id: "dev-lookup-v1",
+  blind_index_keys: %{"dev-lookup-v1" => "ffeeddccbbaa99887766554433221100"}
+
 # Social login (OAuth) — set provider creds via env to test locally; unset = off
 # (ship-dark, see EmakolaWeb.OAuth). Google permits http://localhost redirect
 # URIs for dev; Facebook/Apple need the deployed host or a tunnel.

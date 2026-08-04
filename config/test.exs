@@ -23,6 +23,14 @@ config :emakola, Oban, testing: :manual
 config :emakola,
   token_signing_secret: "dev-only-not-for-production-at-least-32-bytes!!"
 
+# Stable test-only keyrings for application-level field encryption. Production
+# loads independent random keys from runtime secrets (see config/runtime.exs).
+config :emakola, Emakola.Security.FieldEncryption,
+  active_key_id: "test-v1",
+  keys: %{"test-v1" => "0123456789abcdef0123456789abcdef"},
+  blind_index_active_key_id: "test-lookup-v1",
+  blind_index_keys: %{"test-lookup-v1" => "fedcba9876543210fedcba9876543210"}
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :emakola, EmakolaWeb.Endpoint,

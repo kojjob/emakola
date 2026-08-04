@@ -9,6 +9,8 @@ defmodule EmakolaWeb.Platform.TeamComponents do
   """
   use EmakolaWeb, :html
 
+  alias Emakola.Security.SecretStorage
+
   attr :staff, :list, required: true
   attr :invites, :list, required: true
   attr :session_counts, :map, required: true
@@ -131,12 +133,12 @@ defmodule EmakolaWeb.Platform.TeamComponents do
               <td class="px-6 py-4">
                 <span class={[
                   "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-                  if(user.totp_secret,
+                  if(SecretStorage.totp_configured?(user),
                     do: "bg-blue-100 text-blue-700",
                     else: "bg-slate-100 text-slate-500"
                   )
                 ]}>
-                  {if user.totp_secret, do: "Enabled", else: "Off"}
+                  {if SecretStorage.totp_configured?(user), do: "Enabled", else: "Off"}
                 </span>
               </td>
               <td class="px-6 py-4 text-right whitespace-nowrap">

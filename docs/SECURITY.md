@@ -1,7 +1,7 @@
 # Emakola Security Policy
 
-Version: 1.0
-Last Updated: 2026-03-21
+Version: 1.1
+Last Updated: 2026-08-04
 Classification: Internal
 
 ---
@@ -80,10 +80,19 @@ Implementation: `Hammer` library with ETS-backed storage, upgradeable to Redis f
 
 - **PostgreSQL**: Deployed on Fly.io with encrypted volumes (AES-256)
 - **Backups**: Encrypted using Fly.io managed backup encryption
-- **Application-level encryption is not implemented yet.** Ash `sensitive?` metadata
-  prevents accidental struct inspection but does not encrypt database values.
-  The field inventory, migration order, blind-index requirements, and key-rotation
-  acceptance criteria are tracked in [`SENSITIVE_DATA_INVENTORY.md`](SENSITIVE_DATA_INVENTORY.md).
+- **Application-level encryption rollout**: TOTP seeds, outbound-webhook signing
+  secrets, and FCM device tokens have versioned AES-256-GCM shadow columns.
+  New writes update both the legacy and encrypted columns, reads prefer the
+  authenticated ciphertext, and the expand migration backfills existing rows.
+  Authenticated stale shadows caused by an old node are temporarily resolved
+  through the compatibility column and repaired by a post-rollout reconcile.
+  Device-token equality migration is prepared with a separate keyed-HMAC blind
+  index. The legacy plaintext columns are intentionally retained until the
+  rolling-deploy contract release; see `docs/ENCRYPTION_AT_REST.md` for the
+  exact coverage, residual fields, verification, and rotation runbook.
+ - **Key management**: Encryption and blind-index keyrings use independent
+   32-byte keys from production runtime secrets. Envelopes include a key id so
+   old and new encryption keys can overlap during rotation.
 
 ### 2.2 Encryption in Transit
 
@@ -119,8 +128,12 @@ Implementation: `Hammer` library with ETS-backed storage, upgradeable to Redis f
 - **Payment card data**: Never touches our servers. All card data handled by Paystack/Flutterwave via their hosted payment pages or tokenized client-side SDKs
 - **Payment tokens**: We store only gateway transaction references (e.g., Paystack `reference` strings)
 - **Mobile money PINs**: Never collected by our platform; handled entirely by USSD/provider
-- **API keys**: Stored encrypted, displayed once on creation, shown masked thereafter
-- **Merchant bank details**: Encrypted at rest with Cloak.Ecto
+- **API/provider keys**: Runtime provider credentials are injected by the
+  production secret manager and are not persisted in application tables.
+- **Merchant bank details**: Application-level encryption is not yet complete
+  for every payout and supplier field. The remaining columns are enumerated in
+  `docs/ENCRYPTION_AT_REST.md`; encrypted database volumes remain the current
+  at-rest control for those residuals.
 
 ---
 
@@ -247,7 +260,7 @@ Implementation: `Hammer` library with ETS-backed storage, upgradeable to Redis f
 |---|---|
 | Weak password hashing | bcrypt with cost factor 12 |
 | Data in transit | TLS 1.3 enforced, HSTS enabled |
-| Sensitive data at rest | Cloak.Ecto AES-GCM-256 for PII fields, encrypted disk volumes |
+| Sensitive data at rest | Versioned AES-256-GCM rollout for TOTP/webhook/device secrets; encrypted volumes plus a tracked contract plan for residual fields |
 | Exposed secrets | Fly.io secrets store, never in code |
 
 ### A03:2021 — Injection

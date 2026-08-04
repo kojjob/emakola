@@ -20,6 +20,7 @@ defmodule EmakolaWeb.Platform.LoginLive do
   alias Emakola.Accounts.PlatformAudit
   alias Emakola.Accounts.PlatformPermissions
   alias Emakola.Accounts.TOTP
+  alias Emakola.Security.SecretStorage
   alias EmakolaWeb.AuthTokens
 
   @rate_limit 5
@@ -133,7 +134,15 @@ defmodule EmakolaWeb.Platform.LoginLive do
     end
   end
 
-  defp advance_to_totp(socket, %{totp_secret: nil} = user) do
+  defp advance_to_totp(socket, user) do
+    if SecretStorage.totp_configured?(user) do
+      assign(socket, step: :totp, pending_user_id: user.id, error: nil)
+    else
+      begin_totp_setup(socket, user)
+    end
+  end
+
+  defp begin_totp_setup(socket, user) do
     secret = TOTP.generate_secret()
     uri = TOTP.otpauth_uri(to_string(user.email), secret)
 
@@ -146,10 +155,6 @@ defmodule EmakolaWeb.Platform.LoginLive do
       otpauth_secret_base32: Base.encode32(secret, padding: false),
       error: nil
     )
-  end
-
-  defp advance_to_totp(socket, user) do
-    assign(socket, step: :totp, pending_user_id: user.id, error: nil)
   end
 
   defp invalid_credentials(socket, email) do
@@ -165,7 +170,27 @@ defmodule EmakolaWeb.Platform.LoginLive do
   # ── TOTP verification ───────────────────────────────────────────
 
   defp verify_totp(socket, user, code) do
-    if TOTP.valid_code?(user.totp_secret, code, since: user.totp_last_used_at) do
+    case SecretStorage.user_totp_secret(user) do
+      {:ok, secret} when is_binary(secret) ->
+        verify_totp_secret(socket, user, secret, code)
+
+      {:error, _reason} ->
+        PlatformAudit.log(
+          :totp_failed,
+          user,
+          %{reason: "secret_unavailable"},
+          socket.assigns.client_ip
+        )
+
+        {:noreply, assign(socket, error: "Invalid code")}
+
+      _other ->
+        {:noreply, assign(socket, error: "Invalid code")}
+    end
+  end
+
+  defp verify_totp_secret(socket, user, secret, code) do
+    if TOTP.valid_code?(secret, code, since: user.totp_last_used_at) do
       # Best-effort: user already proved identity; recording use is non-critical
       _ =
         user

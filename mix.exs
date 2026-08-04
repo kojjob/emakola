@@ -33,7 +33,7 @@ defmodule Emakola.MixProject do
   def application do
     [
       mod: {Emakola.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:crypto, :logger, :runtime_tools]
     ]
   end
 

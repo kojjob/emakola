@@ -9,6 +9,7 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
 
   import EmakolaWeb.Platform.LoginComponents, only: [code_input: 1]
 
+  alias Emakola.Security.SecretStorage
   alias EmakolaWeb.Layouts
 
   attr :current_user, :map, required: true
@@ -94,7 +95,7 @@ defmodule EmakolaWeb.Platform.SecurityComponents do
   defp totp_status(assigns) do
     ~H"""
     <div class="flex items-center justify-between gap-4 flex-wrap">
-      <%= if @current_user.totp_secret do %>
+      <%= if SecretStorage.totp_configured?(@current_user) do %>
         <div>
           <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
             Two-factor authentication is enabled

@@ -18,6 +18,7 @@ defmodule EmakolaWeb.Platform.SecurityLive do
   alias Emakola.Accounts.Sessions
   alias Emakola.Accounts.TOTP
   alias Emakola.Accounts.UserSession
+  alias Emakola.Security.SecretStorage
 
   @rate_limit 5
   @rate_window_ms 60_000
@@ -49,7 +50,7 @@ defmodule EmakolaWeb.Platform.SecurityLive do
 
   @impl true
   def handle_event("start_rotation", _params, socket) do
-    if socket.assigns.current_user.totp_secret do
+    if SecretStorage.totp_configured?(socket.assigns.current_user) do
       {:noreply,
        assign(socket,
          rotation_step: :verify,
@@ -135,7 +136,8 @@ defmodule EmakolaWeb.Platform.SecurityLive do
     # replay guard to hold across events and tabs.
     user = reload_current_user(socket)
 
-    if TOTP.valid_code?(user.totp_secret, code, since: user.totp_last_used_at) do
+    with {:ok, secret} when is_binary(secret) <- SecretStorage.user_totp_secret(user),
+         true <- TOTP.valid_code?(secret, code, since: user.totp_last_used_at) do
       # Consume the code BEFORE showing the new secret — the same current
       # code must not be able to start a second rotation. Consumption is
       # load-bearing for the replay guard, so a failure aborts the rotation.
@@ -162,7 +164,7 @@ defmodule EmakolaWeb.Platform.SecurityLive do
           {:noreply, assign(socket, :rotation_error, "Something went wrong. Please try again.")}
       end
     else
-      {:noreply, assign(socket, :rotation_error, "Invalid code")}
+      _ -> {:noreply, assign(socket, :rotation_error, "Invalid code")}
     end
   end
 
