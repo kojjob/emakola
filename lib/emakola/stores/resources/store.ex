@@ -140,6 +140,16 @@ defmodule Emakola.Stores.Store do
     # Merchant opt-in for TC-2 Buyer Protection (escrow-lite payout hold): off
     # by default. New PayLinks inherit this value at creation unless the
     # merchant explicitly overrides it per link (see `PayLink.protected`).
+    # Deliberately opt-in, revisited 2026-08-04. Turning it on does not merely
+    # delay a payout: OrderSettlement.prepare/2 returns {:hold, :buyer_protection},
+    # which attaches NO merchant gateway share — the whole charge stays in the
+    # platform account until release. That makes Makola custodian of the
+    # merchant's money between sale and delivery, which is an escrow-shaped
+    # arrangement rather than a settings toggle.
+    #
+    # So the fix for "almost nobody opts in" is to ASK, not to decide for them:
+    # see the onboarding prompt. A merchant who turns it on gets the delivery
+    # OTP (Orders.CustomerDelivery) as the proof that releases the hold.
     attribute :buyer_protection_enabled, :boolean do
       default(false)
       public?(true)

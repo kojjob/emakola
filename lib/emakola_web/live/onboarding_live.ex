@@ -67,6 +67,7 @@ defmodule EmakolaWeb.OnboardingLive do
        assign(socket,
          page_title: "Set Up Your Store",
          step: 1,
+         buyer_protection: false,
          total_steps: 4,
          current_user: current_user,
          user_type: user_type(current_user),
@@ -461,6 +462,31 @@ defmodule EmakolaWeb.OnboardingLive do
             Your store is set up. Time to start selling!
           </p>
 
+          <%!-- Asked, not assumed. Protection was opt-in and almost nobody
+                opted in — because nothing ever raised it. Defaulting it ON was
+                rejected deliberately: it makes Makola custodian of the
+                merchant's money between sale and delivery. So it is one short
+                question, in plain words, at the moment they are already
+                deciding how their shop works. --%>
+          <label class="flex items-start gap-3 bg-white rounded-xl p-5 text-left border border-gray-200 shadow-sm cursor-pointer">
+            <input
+              type="checkbox"
+              name="buyer_protection"
+              checked={@buyer_protection}
+              phx-click="toggle_buyer_protection"
+              class="mt-0.5 w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500"
+            />
+            <span>
+              <span class="block text-sm font-semibold text-gray-900">
+                Hold payment until delivery
+              </span>
+              <span class="block text-xs text-gray-500 mt-1">
+                The buyer's money waits with Makola until they confirm they got the item.
+                Safer for the buyer. You are paid a little later.
+              </span>
+            </span>
+          </label>
+
           <div class="bg-white rounded-xl p-5 space-y-3 text-sm text-left border border-gray-200 shadow-sm">
             <div class="flex items-center gap-3">
               <svg
@@ -705,6 +731,21 @@ defmodule EmakolaWeb.OnboardingLive do
     end
   end
 
+  # :create accepts only name/slug/currency; :update_settings is the action
+  # that already exposes this field to merchants, so the answer goes through it.
+  defp apply_buyer_protection(store, true) do
+    store
+    |> Ash.Changeset.for_update(:update_settings, %{buyer_protection_enabled: true})
+    |> Ash.update(authorize?: false)
+  end
+
+  defp apply_buyer_protection(store, _falsey), do: {:ok, store}
+
+  @impl true
+  def handle_event("toggle_buyer_protection", _params, socket) do
+    {:noreply, assign(socket, :buyer_protection, !socket.assigns.buyer_protection)}
+  end
+
   defp create_store(assigns) do
     user = assigns.current_user
 
@@ -719,6 +760,7 @@ defmodule EmakolaWeb.OnboardingLive do
              Emakola.Stores.create_store(%{name: store_name, slug: slug, currency: currency},
                authorize?: false
              ),
+           {:ok, store} <- apply_buyer_protection(store, assigns[:buyer_protection]),
            {:ok, _membership} <- create_membership_for_user(user, store) do
         maybe_create_product(assigns, store)
 
