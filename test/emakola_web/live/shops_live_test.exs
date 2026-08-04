@@ -20,6 +20,7 @@ defmodule EmakolaWeb.ShopsLiveTest do
 
     {:ok, view, html} = live(conn, "/shops/greater-accra")
 
+    assert has_element?(view, "#plain-app-layout")
     assert has_element?(view, "#shops-region-heading")
     assert has_element?(view, "#regional-shops[phx-update='stream'][data-count='3']")
 
