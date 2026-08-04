@@ -30,7 +30,9 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
       |> assign(:page_title, "Announcements")
       |> assign(:active_nav, :announcements)
       |> assign(:announcement_form, announcement_form())
-      |> assign(:announcements, nil)
+      |> assign(:announcements_count, 0)
+      |> assign(:announcements_loaded?, false)
+      |> stream(:announcements, [], dom_id: &"announcement-#{&1.id}")
 
     {:ok, if(connected?(socket), do: load(socket), else: socket)}
   end
@@ -144,7 +146,10 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
         _ -> []
       end
 
-    assign(socket, :announcements, announcements)
+    socket
+    |> assign(:announcements_count, length(announcements))
+    |> assign(:announcements_loaded?, true)
+    |> stream(:announcements, announcements, reset: true)
   end
 
   defp display_state(%{status: :canceled}), do: "Canceled"
@@ -271,16 +276,24 @@ defmodule EmakolaWeb.Platform.AnnouncementLive.Index do
               <th class="px-6 py-3"></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
-            <tr :if={is_nil(@announcements)}>
+          <tbody
+            id="platform-announcements"
+            phx-update="stream"
+            data-count={@announcements_count}
+            class="divide-y divide-gray-100"
+          >
+            <tr :if={!@announcements_loaded?} id="platform-announcements-loading">
               <td colspan="4" class="px-6 py-12 text-center text-gray-400">Loading…</td>
             </tr>
-            <tr :if={@announcements == []}>
+            <tr
+              :if={@announcements_loaded? && @announcements_count == 0}
+              id="platform-announcements-empty"
+            >
               <td colspan="4" class="px-6 py-12 text-center text-gray-400">No announcements yet</td>
             </tr>
             <tr
-              :for={a <- @announcements || []}
-              id={"announcement-#{a.id}"}
+              :for={{id, a} <- @streams.announcements}
+              id={id}
               class="hover:bg-gray-50"
             >
               <td class="px-6 py-4 font-medium text-gray-900">{a.title}</td>
