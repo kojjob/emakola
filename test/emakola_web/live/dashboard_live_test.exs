@@ -1,5 +1,8 @@
 defmodule EmakolaWeb.DashboardLiveTest do
-  use EmakolaWeb.ConnCase, async: true
+  # async: false — the "snap quick-action" tests toggle the shared
+  # :anthropic_api_key application env (same reason product_snap_test.exs
+  # and seo_dashboard_live_test.exs are async: false).
+  use EmakolaWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
   alias Emakola.Factory
@@ -240,6 +243,41 @@ defmodule EmakolaWeb.DashboardLiveTest do
 
       assert html =~ "No orders yet"
       assert html =~ "GHS 0.00"
+    end
+  end
+
+  describe "snap quick-action" do
+    setup do
+      Application.put_env(:emakola, :anthropic_api_key, "test-key")
+      on_exit(fn -> Application.delete_env(:emakola, :anthropic_api_key) end)
+    end
+
+    setup %{conn: conn} do
+      {conn, merchant, store} = setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "shows the Add by photo quick-action when AI is enabled", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard")
+
+      assert has_element?(view, ~s{a[href="/admin/products/snap"]})
+    end
+  end
+
+  describe "snap quick-action when AI is disabled" do
+    setup do
+      Application.delete_env(:emakola, :anthropic_api_key)
+    end
+
+    setup %{conn: conn} do
+      {conn, merchant, store} = setup_authenticated_merchant(conn)
+      %{conn: conn, merchant: merchant, store: store}
+    end
+
+    test "does not show the Add by photo quick-action", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/dashboard")
+
+      refute has_element?(view, ~s{a[href="/admin/products/snap"]})
     end
   end
 

@@ -99,4 +99,29 @@ defmodule EmakolaWeb.Storefront.RealPhotoBadgeTest do
     {:ok, _view, html} = live(conn, "/s/#{store.slug}/products/#{product.slug}")
     refute html =~ "Real photo"
   end
+
+  describe "badge copy is modest" do
+    test "the badge component source pins the exact copy" do
+      source = File.read!("lib/emakola/themes/shared/real_photo_badge.ex")
+
+      assert source =~ "Real photo"
+      assert source =~ "Photographed by seller"
+    end
+
+    test "a verified product's badge makes no claim stronger than 'Real photo'" do
+      html =
+        render_component(&Emakola.Themes.Shared.RealPhotoBadge.badge/1, %{
+          product: %{snap_verified: true}
+        })
+
+      assert html =~ "Real photo"
+
+      downcased = String.downcase(html)
+
+      for stronger_claim <- ~w(authentic verified certified guaranteed) do
+        refute downcased =~ stronger_claim,
+               "the badge claims #{inspect(stronger_claim)} — spec pins the copy to 'Real photo'"
+      end
+    end
+  end
 end
