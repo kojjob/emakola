@@ -23,6 +23,51 @@ defmodule Emakola.AI.Prompts do
   # Sonnet 4.6's, hence the larger budgets below.
   @longform_model "claude-sonnet-5"
 
+  # JSON Schemas for structured outputs — the API constrains the response to
+  # the schema, so parsing is a guarantee rather than a regex scrape. Structured
+  # outputs don't support string/number constraints (maxLength, minimum, …);
+  # length and range guidance stays in the prompt text.
+  @seo_meta_schema %{
+    type: "object",
+    properties: %{title: %{type: "string"}, description: %{type: "string"}},
+    required: ["title", "description"],
+    additionalProperties: false
+  }
+
+  @blog_post_schema %{
+    type: "object",
+    properties: %{
+      title: %{type: "string"},
+      body: %{type: "string"},
+      excerpt: %{type: "string"},
+      tags: %{type: "array", items: %{type: "string"}}
+    },
+    required: ["title", "body", "excerpt", "tags"],
+    additionalProperties: false
+  }
+
+  @recipe_schema %{
+    type: "object",
+    properties: %{
+      body: %{type: "string"},
+      ingredients: %{
+        type: "array",
+        items: %{
+          type: "object",
+          properties: %{item: %{type: "string"}, quantity: %{type: "string"}},
+          required: ["item", "quantity"],
+          additionalProperties: false
+        }
+      },
+      instructions: %{type: "array", items: %{type: "string"}},
+      prep_time: %{type: "integer"},
+      cook_time: %{type: "integer"},
+      servings: %{type: "integer"}
+    },
+    required: ["body", "ingredients", "instructions", "prep_time", "cook_time", "servings"],
+    additionalProperties: false
+  }
+
   @doc "Build the request for `feature` from `inputs`."
   @spec build(atom(), map()) :: Request.t()
 
@@ -60,7 +105,11 @@ defmodule Emakola.AI.Prompts do
       "Store: #{field(store, :name)}. Title: #{field(resource, :title)}. " <>
         "Summary: #{field(resource, :description) || field(resource, :excerpt)}"
 
-    %{text_request(@cheap_model, system, user, 200) | response_format: :json}
+    %{
+      text_request(@cheap_model, system, user, 200)
+      | response_format: :json,
+        json_schema: @seo_meta_schema
+    }
   end
 
   def build(:blog_post, %{topic: topic, store: store, type: type}) do
@@ -79,6 +128,7 @@ defmodule Emakola.AI.Prompts do
     %{
       text_request(@longform_model, system, user, 3000)
       | response_format: :json,
+        json_schema: @blog_post_schema,
         thinking: :disabled
     }
   end
@@ -118,6 +168,7 @@ defmodule Emakola.AI.Prompts do
     %{
       text_request(@longform_model, system, user, 2000)
       | response_format: :json,
+        json_schema: @recipe_schema,
         thinking: :disabled
     }
   end

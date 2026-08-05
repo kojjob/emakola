@@ -63,6 +63,31 @@ defmodule Emakola.AI.PromptsTest do
     assert request.thinking == nil
   end
 
+  test "JSON prompts declare a closed schema so the API guarantees the shape" do
+    meta = Prompts.build(:seo_meta, %{resource: %{}, store: %{}})
+    blog = Prompts.build(:blog_post, %{topic: "t", store: %{}, type: :guide})
+    recipe = Prompts.build(:recipe, %{product: %{}, store: %{}})
+
+    assert meta.json_schema.required == ["title", "description"]
+    assert blog.json_schema.required == ["title", "body", "excerpt", "tags"]
+
+    assert recipe.json_schema.required ==
+             ["body", "ingredients", "instructions", "prep_time", "cook_time", "servings"]
+
+    # Structured outputs require every object to close additionalProperties.
+    for schema <- [meta.json_schema, blog.json_schema, recipe.json_schema] do
+      assert schema.type == "object"
+      assert schema.additionalProperties == false
+    end
+
+    assert recipe.json_schema.properties.ingredients.items.additionalProperties == false
+  end
+
+  test "free-text prompts carry no schema" do
+    assert Prompts.build(:product_description, %{product: %{}, store: %{}}).json_schema == nil
+    assert Prompts.build(:image_alt_text, %{image_url: "https://x.test/i.jpg"}).json_schema == nil
+  end
+
   test "metadata and image prompts prohibit unsupported inferences" do
     meta_request =
       Prompts.build(:seo_meta, %{

@@ -6,7 +6,10 @@ defmodule Emakola.AI.Request do
   (text task) or a list of content blocks (`%{type: :text, ...}` /
   `%{type: :image, url: ...}` for vision) — so text, chat, and vision tasks
   all use the same shape. `response_format: :json` asks the provider to return
-  a decoded JSON object in `Emakola.AI.Response.parsed`. `thinking: :disabled`
+  a decoded JSON object in `Emakola.AI.Response.parsed`; pair it with
+  `json_schema` (a JSON Schema map) and the provider asks the API to constrain
+  the output to that shape, turning the parse from best-effort into a
+  guarantee. `thinking: :disabled`
   opts a request out of model-side reasoning — set it on models that think by
   default (Sonnet 5+), where thinking tokens bill against `max_tokens` and an
   unbounded think could truncate the output. The provider translates this
@@ -27,6 +30,7 @@ defmodule Emakola.AI.Request do
           messages: [message()],
           max_tokens: pos_integer(),
           response_format: nil | :json,
+          json_schema: map() | nil,
           thinking: nil | :disabled,
           feature: atom() | nil,
           store_id: String.t() | nil,
@@ -39,6 +43,7 @@ defmodule Emakola.AI.Request do
             messages: [],
             max_tokens: 1024,
             response_format: nil,
+            json_schema: nil,
             thinking: nil,
             feature: nil,
             store_id: nil,

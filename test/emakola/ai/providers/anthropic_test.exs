@@ -124,6 +124,32 @@ defmodule Emakola.AI.Providers.AnthropicTest do
     assert {:ok, %Response{}} = Anthropic.complete(text_request())
   end
 
+  test "sends the schema as output_config.format when the request carries one" do
+    schema = %{
+      type: "object",
+      properties: %{title: %{type: "string"}},
+      required: ["title"],
+      additionalProperties: false
+    }
+
+    expect(Emakola.HTTPClientMock, :post, fn _url, opts ->
+      assert opts[:json].output_config == %{format: %{type: "json_schema", schema: schema}}
+      anthropic_response(~s({"title": "Kente"}))
+    end)
+
+    request = %{text_request() | response_format: :json, json_schema: schema}
+    assert {:ok, %Response{parsed: %{"title" => "Kente"}}} = Anthropic.complete(request)
+  end
+
+  test "omits output_config when the request has no schema" do
+    expect(Emakola.HTTPClientMock, :post, fn _url, opts ->
+      refute Map.has_key?(opts[:json], :output_config)
+      anthropic_response("ok")
+    end)
+
+    assert {:ok, %Response{}} = Anthropic.complete(text_request())
+  end
+
   test "ships dark: returns {:error, :not_configured} with no API key" do
     Application.delete_env(:emakola, :anthropic_api_key)
     assert {:error, :not_configured} = Anthropic.complete(text_request())

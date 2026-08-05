@@ -69,6 +69,7 @@ defmodule Emakola.AI.Providers.Anthropic do
     }
     |> put_system(request.system)
     |> put_thinking(request.thinking)
+    |> put_output_config(request.json_schema)
   end
 
   defp put_system(body, nil), do: body
@@ -76,6 +77,13 @@ defmodule Emakola.AI.Providers.Anthropic do
 
   defp put_thinking(body, :disabled), do: Map.put(body, :thinking, %{type: "disabled"})
   defp put_thinking(body, _thinking), do: body
+
+  # Structured outputs: the API constrains the response to the schema, so the
+  # text block is guaranteed to be exactly one valid JSON object.
+  defp put_output_config(body, nil), do: body
+
+  defp put_output_config(body, schema),
+    do: Map.put(body, :output_config, %{format: %{type: "json_schema", schema: schema}})
 
   defp translate_message(%{role: role, content: content}) do
     %{role: to_string(role), content: translate_content(content)}
