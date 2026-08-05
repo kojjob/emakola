@@ -1,6 +1,8 @@
 defmodule EmakolaWeb.Admin.ProductSnapTest do
-  # async: false — the entry-point tests toggle the :anthropic_api_key
-  # application env (same reason seo_dashboard_live_test.exs is async: false).
+  # async: false — toggles the :anthropic_api_key application env (same
+  # reason seo_dashboard_live_test.exs is async: false). AI is enabled by
+  # default for the whole module below (the flow under test needs it); the
+  # "AI is disabled" describes override it locally to exercise the gate.
   use EmakolaWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
@@ -12,6 +14,11 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
              )
 
   setup :verify_on_exit!
+
+  setup do
+    Application.put_env(:emakola, :anthropic_api_key, "test-key")
+    on_exit(fn -> Application.delete_env(:emakola, :anthropic_api_key) end)
+  end
 
   setup %{conn: conn} do
     {conn, merchant, store} = Emakola.LiveViewHelpers.setup_authenticated_merchant(conn)
@@ -297,6 +304,30 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
                EmakolaWeb.Admin.ProductLive.Snap.handle_progress(:photo_gallery, entry, socket)
     end
 
+    # Closes the gap left by gating render only: `allow_upload` stays
+    # registered when AI is off, so a client sending raw upload-channel
+    # messages (bypassing the DOM, which the gated render never puts a file
+    # input into) could otherwise still reach S3 and burn a rate-limit slot.
+    # Exercised as a direct unit call for the same reason as the race-guard
+    # test above — the gated render has no file input for a black-box upload
+    # helper to target.
+    test "handle_progress no-ops when AI is disabled, even for a done entry" do
+      socket = %{
+        assigns: %{
+          ai_enabled: false,
+          uploads: %{photo_camera: %{entries: []}, photo_gallery: %{entries: []}}
+        }
+      }
+
+      entry = %{done?: true, ref: "stray-ref"}
+
+      assert {:noreply, ^socket} =
+               EmakolaWeb.Admin.ProductLive.Snap.handle_progress(:photo_camera, entry, socket)
+
+      assert {:noreply, ^socket} =
+               EmakolaWeb.Admin.ProductLive.Snap.handle_progress(:photo_gallery, entry, socket)
+    end
+
     test "an invalid file (too large) shows an error the merchant can dismiss", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/admin/products/snap")
 
@@ -460,9 +491,12 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
       assert html =~ "Try a clearer photo"
       assert has_element?(view, "button[phx-click=retry_photo]")
 
-      # Distinguishes the {:ok, {:error, reason}} clause (handle_async's
-      # explicit provider-error branch) from the {:exit, reason} clause —
-      # both render the same copy, so only the assigns confirm which ran.
+      # This assertion does NOT distinguish handle_async's {:ok, {:error,
+      # reason}} clause from its {:exit, reason} clause — both set identical
+      # state/retry_message. What actually selects the {:ok, {:error, _}}
+      # clause here is the Mox stub above returning {:error, :some_reason} as
+      # a normal value (no raise/exit), so the async task completes normally
+      # instead of crashing. This line just confirms the resulting state.
       assert :sys.get_state(view.pid).socket.assigns.state == :retry
     end
   end
@@ -625,6 +659,33 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
     end
   end
 
+  describe "save_snap_product guard" do
+    # Not DOM-reachable — the submit button only exists in review_state's
+    # markup — but a directly-pushed event before AI has completed (ai is
+    # nil pre-:review) would otherwise crash on @ai.title/@ai.description
+    # inside create_snap_product. Exercised as a direct unit call, same
+    # rationale as the handle_progress race-guard test above.
+    #
+    # This alone doesn't prove the :review clause is the one doing real work
+    # (a bug that dropped the `%{assigns: %{state: :review}}` match and left
+    # an unconditional no-op behind would pass this test too). The positive
+    # side is "publish without price → error, no product created" above,
+    # which drives a real socket to :review via the DOM and shows
+    # save_snap_product reaching the price-parse branch — a bare fake socket
+    # can't stand in for that positive check here because Phoenix.Component's
+    # `assign/2` requires a genuine `%Phoenix.LiveView.Socket{}` (or an
+    # assigns map carrying `:__changed__`), which a hand-built map like
+    # `socket` below doesn't have.
+    test "no-ops for every non-:review state" do
+      for state <- [:capture, :reading, :retry] do
+        socket = %{assigns: %{state: state}}
+
+        assert {:noreply, ^socket} =
+                 EmakolaWeb.Admin.ProductLive.Snap.handle_event("save_snap_product", %{}, socket)
+      end
+    end
+  end
+
   describe "fake-photo warning" do
     test "a flagged photo shows the amber warning on the review card", %{conn: conn} do
       view = drive_to_review(conn, :photo_camera, flagged_payload())
@@ -640,11 +701,6 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
   end
 
   describe "entry point" do
-    setup do
-      Application.put_env(:emakola, :anthropic_api_key, "test-key")
-      on_exit(fn -> Application.delete_env(:emakola, :anthropic_api_key) end)
-    end
-
     test "products index links to the snap page when AI is enabled", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/admin/products")
       assert has_element?(view, ~s{a[href="/admin/products/snap"]})
@@ -652,9 +708,28 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
   end
 
   describe "entry point when AI is disabled" do
+    setup do
+      Application.delete_env(:emakola, :anthropic_api_key)
+    end
+
     test "products index does not link to the snap page", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/admin/products")
       refute has_element?(view, ~s{a[href="/admin/products/snap"]})
+    end
+  end
+
+  describe "direct route /admin/products/snap when AI is disabled" do
+    setup do
+      Application.delete_env(:emakola, :anthropic_api_key)
+    end
+
+    test "renders the gated banner instead of the capture form, no upload inputs in the DOM",
+         %{conn: conn} do
+      {:ok, view, html} = live(conn, ~p"/admin/products/snap")
+
+      assert html =~ "switched on yet"
+      refute has_element?(view, "#snap-form")
+      refute has_element?(view, "input[type=file]")
     end
   end
 end

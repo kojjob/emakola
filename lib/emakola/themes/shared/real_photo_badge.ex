@@ -8,7 +8,7 @@ defmodule Emakola.Themes.Shared.RealPhotoBadge do
     ~H"""
     <span
       :if={Map.get(@product, :snap_verified, false)}
-      class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"
+      class="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"
       title="Photographed by seller"
     >
       📷 Real photo

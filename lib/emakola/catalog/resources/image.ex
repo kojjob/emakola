@@ -169,6 +169,15 @@ defmodule Emakola.Catalog.Image do
       require_atomic?(false)
       accept([:thumbnail_url, :medium_url])
 
+      # Badge-safety invariant (snap-verified "Real photo" badge): the
+      # thumbnail/medium URLs written here must stay derived from this same
+      # image's own immutable :url (currently enforced by worker discipline —
+      # ImageProcessorWorker computes them deterministically from image.url,
+      # nothing external is ever accepted). If this action is ever changed to
+      # accept externally-supplied URLs, it must also fire
+      # Emakola.Catalog.Changes.RevokeSnapVerified — otherwise a merchant
+      # could swap a verified product's rendered photo without losing the
+      # badge.
       change(set_attribute(:processing_status, :completed))
     end
 

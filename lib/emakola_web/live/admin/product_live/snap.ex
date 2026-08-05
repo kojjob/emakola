@@ -32,6 +32,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
       |> assign(
         page_title: "Add by photo",
         active_nav: :products,
+        ai_enabled: EmakolaWeb.AiGate.enabled?(),
         state: :capture,
         source: :gallery,
         photo_url: nil,
@@ -65,6 +66,19 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
   end
 
   # ── Upload progress ──
+
+  # `allow_upload` stays registered even when AI is gated off (mount doesn't
+  # branch on it) so a client sending raw upload-channel messages — bypassing
+  # the DOM, where the gated render shows no file input at all — could still
+  # reach an S3 upload and burn a rate-limit slot without this guard.
+  def handle_progress(name, %{done?: true} = entry, %{assigns: %{ai_enabled: false}} = socket)
+      when name in [:photo_camera, :photo_gallery] do
+    {:noreply, cancel_if_present(socket, name, entry.ref)}
+  end
+
+  def handle_progress(name, _entry, %{assigns: %{ai_enabled: false}} = socket)
+      when name in [:photo_camera, :photo_gallery],
+      do: {:noreply, socket}
 
   # Both configs stay `allow_upload`ed for the whole LiveView lifetime, so a
   # stale progress event (e.g. the other input firing after the flow has
@@ -130,8 +144,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
   @impl true
   def handle_event("cancel_snap_entry", _params, socket), do: {:noreply, socket}
 
+  # Guarded to :review: a directly-pushed event before AI has completed (ai
+  # is nil pre-:review) would crash create_snap_product's use of @ai. Not
+  # DOM-reachable — the submit button only exists in review_state's markup —
+  # but a raw phx-click/JS-pushed event bypasses that.
   @impl true
-  def handle_event("save_snap_product", params, socket) do
+  def handle_event("save_snap_product", params, %{assigns: %{state: :review}} = socket) do
     action = if params["action"] == "publish", do: :publish, else: :draft
 
     case Shared.parse_price_input(params["price"]) do
@@ -139,6 +157,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
       _ -> {:noreply, assign(socket, price_error: "Add your price")}
     end
   end
+
+  @impl true
+  def handle_event("save_snap_product", _params, socket), do: {:noreply, socket}
 
   # ── Async AI read ──
 
@@ -191,10 +212,15 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
         </div>
       </div>
 
-      <.capture_state :if={@state == :capture} uploads={@uploads} form={@snap_form} />
-      <.reading_state :if={@state == :reading} photo_url={@photo_url} />
+      <div :if={not @ai_enabled} class="rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <p class="text-sm font-medium text-amber-800">AI generation isn't switched on yet</p>
+        <p class="mt-1 text-sm text-amber-700">Photo capture lights up once AI is enabled.</p>
+      </div>
+
+      <.capture_state :if={@ai_enabled and @state == :capture} uploads={@uploads} form={@snap_form} />
+      <.reading_state :if={@ai_enabled and @state == :reading} photo_url={@photo_url} />
       <.review_state
-        :if={@state == :review}
+        :if={@ai_enabled and @state == :review}
         photo_url={@photo_url}
         ai={@ai}
         categories={@categories}
@@ -203,7 +229,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
         flags_clean?={@flags_clean?}
         form={@snap_form}
       />
-      <.retry_state :if={@state == :retry} message={@retry_message} />
+      <.retry_state :if={@ai_enabled and @state == :retry} message={@retry_message} />
     </div>
     """
   end
