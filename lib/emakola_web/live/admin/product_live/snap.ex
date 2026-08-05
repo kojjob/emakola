@@ -200,6 +200,7 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
         categories={@categories}
         category_id={@category_id}
         price_error={@price_error}
+        flags_clean?={@flags_clean?}
         form={@snap_form}
       />
       <.retry_state :if={@state == :retry} message={@retry_message} />
@@ -282,12 +283,22 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
   attr :categories, :list, required: true
   attr :category_id, :any, default: nil
   attr :price_error, :string, default: nil
+  attr :flags_clean?, :boolean, required: true
   attr :form, Phoenix.HTML.Form, required: true
 
   defp review_state(assigns) do
     ~H"""
     <div id="snap-review" class="space-y-4">
       <img :if={@photo_url} src={@photo_url} class="w-full h-56 object-cover rounded-2xl" />
+
+      <div
+        :if={not @flags_clean?}
+        id="snap-photo-warning"
+        class="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4"
+      >
+        <.icon name="hero-camera" class="size-6 text-amber-600 shrink-0" />
+        <p class="text-sm font-medium text-amber-800">Buyers trust real photos</p>
+      </div>
 
       <.form
         for={@form}

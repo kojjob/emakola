@@ -440,6 +440,33 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
     end
   end
 
+  describe "AI provider error" do
+    test "→ retry state with a clearer-photo message", %{conn: conn} do
+      stub_storage()
+      expect(Emakola.AI.ProviderMock, :complete, fn _req -> {:error, :some_reason} end)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products/snap")
+      allow_snap_mocks(view)
+
+      upload =
+        file_input(view, "#snap-form", :photo_gallery, [
+          %{name: "p.png", content: @small_png, type: "image/png"}
+        ])
+
+      render_upload(upload, "p.png")
+      render_async(view)
+
+      html = render(view)
+      assert html =~ "Try a clearer photo"
+      assert has_element?(view, "button[phx-click=retry_photo]")
+
+      # Distinguishes the {:ok, {:error, reason}} clause (handle_async's
+      # explicit provider-error branch) from the {:exit, reason} clause —
+      # both render the same copy, so only the assigns confirm which ran.
+      assert :sys.get_state(view.pid).socket.assigns.state == :retry
+    end
+  end
+
   describe "rate limit" do
     test "exceeded → retry state with the daily-limit message, no AI call", %{
       conn: conn,
@@ -550,6 +577,24 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
       assert product.status == :draft
     end
 
+    # Task 5 rider: proves submitted form params drive the created product,
+    # not the stale `ai` assign — a price-only edit wouldn't catch a bug
+    # where the title fell back to @ai.title instead of params["title"].
+    test "an edited title in the submitted form overrides the AI's title", %{
+      conn: conn,
+      store: store
+    } do
+      view = drive_to_review(conn, :photo_camera, ok_payload())
+
+      view
+      |> form("#snap-review-form", %{"price" => "180.00", "title" => "Merchant Edited Title"})
+      |> render_submit(%{"action" => "publish"})
+
+      product = last_product!(store)
+      assert product.title == "Merchant Edited Title"
+      refute product.title == "Handwoven Stole"
+    end
+
     # Forces a failure at the image-attach step (Image's url has a 2048-char
     # max_length) after the product and variant have already been written,
     # to prove the sequence is transactional — a failed step must not leave
@@ -577,6 +622,20 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
       |> render_submit(%{"action" => "publish"})
 
       assert [] == products_of(store)
+    end
+  end
+
+  describe "fake-photo warning" do
+    test "a flagged photo shows the amber warning on the review card", %{conn: conn} do
+      view = drive_to_review(conn, :photo_camera, flagged_payload())
+
+      assert has_element?(view, "#snap-photo-warning", "Buyers trust real photos")
+    end
+
+    test "a clean photo does not show the warning", %{conn: conn} do
+      view = drive_to_review(conn, :photo_camera, ok_payload())
+
+      refute has_element?(view, "#snap-photo-warning")
     end
   end
 
