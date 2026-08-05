@@ -68,6 +68,38 @@ defmodule Emakola.AI.Prompts do
     additionalProperties: false
   }
 
+  @snap_to_shop_schema %{
+    "type" => "object",
+    "additionalProperties" => false,
+    "required" => [
+      "identified",
+      "title",
+      "description",
+      "category",
+      "tags",
+      "alt_text",
+      "photo_flags"
+    ],
+    "properties" => %{
+      "identified" => %{"type" => "boolean"},
+      "title" => %{"type" => "string", "maxLength" => 60},
+      "description" => %{"type" => "string"},
+      "category" => %{"type" => ["string", "null"]},
+      "tags" => %{"type" => "array", "items" => %{"type" => "string"}, "maxItems" => 8},
+      "alt_text" => %{"type" => "string", "maxLength" => 125},
+      "photo_flags" => %{
+        "type" => "object",
+        "additionalProperties" => false,
+        "required" => ["stock_photo", "watermark", "screenshot"],
+        "properties" => %{
+          "stock_photo" => %{"type" => "boolean"},
+          "watermark" => %{"type" => "boolean"},
+          "screenshot" => %{"type" => "boolean"}
+        }
+      }
+    }
+  }
+
   @doc "Build the request for `feature` from `inputs`."
   @spec build(atom(), map()) :: Request.t()
 
@@ -170,6 +202,45 @@ defmodule Emakola.AI.Prompts do
       | response_format: :json,
         json_schema: @recipe_schema,
         thinking: :disabled
+    }
+  end
+
+  def build(:snap_to_shop, %{image_url: image_url, store: store, category_names: category_names}) do
+    system = """
+    You extract structured product data from merchant-submitted photos for a West African
+    ecommerce platform. Never invent a material, ingredient, origin, size, feature,
+    certification, performance claim, delivery promise, return term, or warranty.
+    Describe only what is visible in the photo. If you cannot clearly identify a
+    sellable product, set identified to false and leave other fields empty. Set
+    photo_flags honestly: stock_photo when the image looks professionally staged/
+    catalog-sourced rather than merchant-taken; watermark when any watermark or
+    overlaid logo/text is present; screenshot when the image is a screenshot of
+    another app or listing. category must be exactly one of the provided category
+    names, or null.
+    """
+
+    categories = Enum.join(category_names, ", ")
+
+    user = """
+    Store: #{field(store, :name)} (#{field(store, :currency)})
+    Available categories: #{categories}
+
+    Extract product data from this photo. Reply only as JSON.
+    """
+
+    content = [
+      %{type: :image, url: image_url},
+      %{type: :text, text: user}
+    ]
+
+    %Request{
+      model: @longform_model,
+      system: system,
+      messages: [%{role: :user, content: content}],
+      response_format: :json,
+      json_schema: @snap_to_shop_schema,
+      max_tokens: 1000,
+      thinking: :disabled
     }
   end
 
