@@ -82,6 +82,9 @@ test.describe("Dashboard real-time updates", () => {
   test("a shopper's order appears on the merchant dashboard without a reload", async ({
     browser,
   }) => {
+    // Two full journeys plus a real api.paystack.co rejection (45s envelope)
+    // plus the 20s PubSub poll — far beyond the global 30s test budget.
+    test.setTimeout(120_000);
     // Two independent contexts: merchant watching the dashboard, shopper buying.
     // baseURL is passed explicitly — manually created contexts don't inherit
     // it from the project's `use` block.

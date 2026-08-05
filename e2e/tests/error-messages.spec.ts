@@ -42,6 +42,9 @@ test.describe("User-facing error messages", () => {
     // Dev/CI run with placeholder Paystack keys, so initiating payment returns
     // a 401 from the gateway — exactly the path that used to dump the raw
     // {:gateway_error, %{...}} tuple into the page.
+    // The 45s gateway-envelope wait below cannot fit the global 30s test
+    // budget — give this test room for flow (~15s) + envelope (~40s).
+    test.setTimeout(90_000);
     await page.goto(PRODUCT);
     await waitForLiveView(page);
     await page.getByRole("button", { name: "Add to Bag" }).click();
