@@ -117,9 +117,11 @@ test.describe("Dashboard real-time updates", () => {
 
       // Payment fails on placeholder gateway keys, but the order is created and
       // Dispatcher broadcasts :order_placed — which is what the dashboard needs.
+      // Like error-messages.spec, this waits out a real api.paystack.co call;
+      // a tarpitted runner only flashes after ~30s connect + 10s receive_timeout.
       await expect(shopperPage.locator("[role=alert]").first()).toContainText(
         /ORD-\d{8}-[A-Z0-9]+/,
-        { timeout: 20_000 }
+        { timeout: 45_000 }
       );
 
       // The merchant page is never reloaded — this only passes via PubSub.

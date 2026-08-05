@@ -14,6 +14,10 @@ defmodule Emakola.Metrics.Endpoint do
   @impl true
   def init(opts), do: opts
 
+  # sobelow_skip ["XSS.SendResp"]
+  # False positive: the body is Prometheus exposition text built solely from
+  # internal metric names — no user input — served as text/plain (browsers
+  # never execute it) on a private listener that isn't the public endpoint.
   @impl true
   def call(%{method: "GET", request_path: "/metrics"} = conn, _opts) do
     conn
