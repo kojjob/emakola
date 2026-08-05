@@ -52,6 +52,23 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
      }}
   end
 
+  defp flagged_payload do
+    {:ok,
+     %Emakola.AI.Response{
+       parsed: %{
+         "identified" => true,
+         "title" => "Handwoven Stole",
+         "description" => "A colourful woven stole.",
+         "category" => nil,
+         "tags" => ["stole"],
+         "alt_text" => "Colourful woven stole",
+         "photo_flags" => %{"stock_photo" => true, "watermark" => false, "screenshot" => false}
+       },
+       model: "claude-sonnet-5",
+       usage: %{input_tokens: 1, output_tokens: 1, cache_read: 0, cache_creation: 0}
+     }}
+  end
+
   defp stub_storage do
     stub(Emakola.StorageMock, :upload, fn _binary, path, _opts ->
       {:ok, "https://s3.example.com/#{path}"}
@@ -61,6 +78,41 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
   defp allow_snap_mocks(view) do
     Mox.allow(Emakola.StorageMock, self(), view.pid)
     Mox.allow(Emakola.AI.ProviderMock, self(), view.pid)
+  end
+
+  # Drives a snap-review view to the :review state via the given upload
+  # config (:photo_camera / :photo_gallery) and AI payload, mirroring the
+  # capture -> reading -> review sequence exercised elsewhere in this file.
+  defp drive_to_review(conn, upload_config, payload) do
+    stub_storage()
+    expect(Emakola.AI.ProviderMock, :complete, fn _req -> payload end)
+
+    {:ok, view, _html} = live(conn, ~p"/admin/products/snap")
+    allow_snap_mocks(view)
+
+    upload =
+      file_input(view, "#snap-form", upload_config, [
+        %{name: "p.png", content: @small_png, type: "image/png"}
+      ])
+
+    render_upload(upload, "p.png")
+    render_async(view)
+
+    view
+  end
+
+  # :list_by_store sorts inserted_at: :desc, so the first element is newest.
+  defp last_product!(store) do
+    store.id
+    |> Emakola.Catalog.list_products_by_store!(tenant: store.id, authorize?: false)
+    |> List.first()
+    |> Ash.load!([:images], authorize?: false, tenant: store.id)
+  end
+
+  defp images_of(product), do: Enum.sort_by(product.images, & &1.position)
+
+  defp products_of(store) do
+    Emakola.Catalog.list_products_by_store!(store.id, tenant: store.id, authorize?: false)
   end
 
   describe "capture state" do
@@ -409,6 +461,122 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
 
       html = render(view)
       assert html =~ "Daily AI limit reached"
+    end
+  end
+
+  describe "review card submit" do
+    test "publish with camera source + clean flags → active product with badge", %{
+      conn: conn,
+      store: store
+    } do
+      view = drive_to_review(conn, :photo_camera, ok_payload())
+
+      # Structural check on the two submit buttons — the test drives the
+      # event via render_submit/2's injected value map, which would stay
+      # green even if the buttons had the wrong name/value wiring.
+      assert has_element?(
+               view,
+               ~s{#snap-review-form button[type=submit][name=action][value=publish]}
+             )
+
+      assert has_element?(
+               view,
+               ~s{#snap-review-form button[type=submit][name=action][value=draft]}
+             )
+
+      result =
+        view
+        |> form("#snap-review-form", %{"price" => "180.50"})
+        |> render_submit(%{"action" => "publish"})
+
+      product = last_product!(store)
+      assert {:error, {:live_redirect, %{to: to}}} = result
+      assert to == "/admin/products/#{product.id}/edit"
+      assert product.snap_verified
+      assert product.status == :active
+
+      [variant] = Ash.load!(product, [:variants], authorize?: false, tenant: store.id).variants
+      assert variant.price == 18_050
+
+      image = hd(images_of(product))
+      assert image.position == 0
+      assert image.alt_text == "Colourful woven stole"
+      assert image.url =~ "/snap/"
+    end
+
+    test "gallery source → no badge", %{conn: conn, store: store} do
+      view = drive_to_review(conn, :photo_gallery, ok_payload())
+
+      view
+      |> form("#snap-review-form", %{"price" => "180.00"})
+      |> render_submit(%{"action" => "publish"})
+
+      product = last_product!(store)
+      refute product.snap_verified
+      assert product.status == :active
+    end
+
+    test "flagged photo → no badge even from camera", %{conn: conn, store: store} do
+      view = drive_to_review(conn, :photo_camera, flagged_payload())
+
+      view
+      |> form("#snap-review-form", %{"price" => "180.00"})
+      |> render_submit(%{"action" => "publish"})
+
+      product = last_product!(store)
+      refute product.snap_verified
+      assert product.status == :active
+    end
+
+    test "publish without price → error, no product created", %{conn: conn, store: store} do
+      view = drive_to_review(conn, :photo_camera, ok_payload())
+
+      view
+      |> form("#snap-review-form", %{"price" => ""})
+      |> render_submit(%{"action" => "publish"})
+
+      assert render(view) =~ "Add your price"
+      assert [] == products_of(store)
+    end
+
+    test "save draft → status draft", %{conn: conn, store: store} do
+      view = drive_to_review(conn, :photo_camera, ok_payload())
+
+      view
+      |> form("#snap-review-form", %{"price" => "180.00"})
+      |> render_submit(%{"action" => "draft"})
+
+      product = last_product!(store)
+      assert product.status == :draft
+    end
+
+    # Forces a failure at the image-attach step (Image's url has a 2048-char
+    # max_length) after the product and variant have already been written,
+    # to prove the sequence is transactional — a failed step must not leave
+    # an orphaned draft product behind.
+    test "a failed step leaves no product behind", %{conn: conn, store: store} do
+      stub(Emakola.StorageMock, :upload, fn _binary, _path, _opts ->
+        {:ok, "https://s3.example.com/" <> String.duplicate("x", 2100) <> ".png"}
+      end)
+
+      expect(Emakola.AI.ProviderMock, :complete, fn _req -> ok_payload() end)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products/snap")
+      allow_snap_mocks(view)
+
+      upload =
+        file_input(view, "#snap-form", :photo_camera, [
+          %{name: "p.png", content: @small_png, type: "image/png"}
+        ])
+
+      render_upload(upload, "p.png")
+      render_async(view)
+
+      view
+      |> form("#snap-review-form", %{"price" => "180.00"})
+      |> render_submit(%{"action" => "publish"})
+
+      assert [] == products_of(store)
     end
   end
 

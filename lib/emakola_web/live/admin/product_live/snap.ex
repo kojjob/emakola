@@ -5,8 +5,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
   A merchant takes or picks a photo, Claude vision reads it into draft product
   fields (title, description, category, tags, alt text), and the merchant
   reviews the result before publishing. States: `:capture → :reading →
-  :review | :retry`. This LiveView owns capture through review; Task 5 wires
-  the actual product creation from the review step's price submit.
+  :review | :retry`. This LiveView owns the whole flow: capture, AI read,
+  review, and submission into a real product.
 
   Two upload configs (`:photo_camera`, `:photo_gallery`) back the two
   full-size, opacity-0 overlay inputs in the capture state (the iOS-safe
@@ -19,6 +19,8 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
   use EmakolaWeb, :live_view
 
   require Logger
+
+  alias EmakolaWeb.Admin.ProductLive.Shared
 
   @impl true
   def mount(_params, _session, socket) do
@@ -33,11 +35,13 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
         state: :capture,
         source: :gallery,
         photo_url: nil,
+        photo_content_type: nil,
         retry_message: nil,
         categories: categories,
         ai: nil,
         category_id: nil,
         flags_clean?: false,
+        price_error: nil,
         snap_form: to_form(%{})
       )
       |> allow_upload(:photo_camera, upload_opts())
@@ -102,10 +106,12 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
      |> assign(
        state: :capture,
        photo_url: nil,
+       photo_content_type: nil,
        retry_message: nil,
        ai: nil,
        category_id: nil,
-       flags_clean?: false
+       flags_clean?: false,
+       price_error: nil
      )}
   end
 
@@ -124,9 +130,15 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
   @impl true
   def handle_event("cancel_snap_entry", _params, socket), do: {:noreply, socket}
 
-  # Product creation from the review card is Task 5's job.
   @impl true
-  def handle_event("save_snap_product", _params, socket), do: {:noreply, socket}
+  def handle_event("save_snap_product", params, socket) do
+    action = if params["action"] == "publish", do: :publish, else: :draft
+
+    case Shared.parse_price_input(params["price"]) do
+      {:ok, pesewas} -> create_snap_product(socket, params, pesewas, action)
+      _ -> {:noreply, assign(socket, price_error: "Add your price")}
+    end
+  end
 
   # ── Async AI read ──
 
@@ -185,6 +197,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
         :if={@state == :review}
         photo_url={@photo_url}
         ai={@ai}
+        categories={@categories}
+        category_id={@category_id}
+        price_error={@price_error}
         form={@snap_form}
       />
       <.retry_state :if={@state == :retry} message={@retry_message} />
@@ -264,6 +279,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
 
   attr :photo_url, :string, default: nil
   attr :ai, :map, required: true
+  attr :categories, :list, required: true
+  attr :category_id, :any, default: nil
+  attr :price_error, :string, default: nil
   attr :form, Phoenix.HTML.Form, required: true
 
   defp review_state(assigns) do
@@ -271,32 +289,98 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
     <div id="snap-review" class="space-y-4">
       <img :if={@photo_url} src={@photo_url} class="w-full h-56 object-cover rounded-2xl" />
 
-      <div class="bg-white rounded-lg p-5 space-y-3">
-        <h2 class="text-base font-semibold">{@ai.title}</h2>
-        <p class="text-sm text-slate-600">{@ai.description}</p>
-        <p :if={@ai.tags != []} class="text-xs text-slate-400">{Enum.join(@ai.tags, ", ")}</p>
-      </div>
-
       <.form
         for={@form}
         id="snap-review-form"
         phx-submit="save_snap_product"
         class="bg-white rounded-lg p-5 space-y-3"
       >
-        <label for="snap-price" class="block text-sm font-medium mb-1.5">Price (GHS)</label>
-        <input
-          type="text"
-          name="price"
-          id="snap-price"
-          placeholder="e.g. 25.00"
-          class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-        />
-        <button
-          type="submit"
-          class="w-full px-4 py-2.5 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all"
-        >
-          Publish
-        </button>
+        <div>
+          <label for="snap-title" class="block text-sm font-medium mb-1.5">Title</label>
+          <input
+            type="text"
+            name="title"
+            id="snap-title"
+            value={@ai.title}
+            class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          />
+        </div>
+
+        <div>
+          <label for="snap-description" class="block text-sm font-medium mb-1.5">Description</label>
+          <textarea
+            name="description"
+            id="snap-description"
+            rows="3"
+            class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          >{@ai.description}</textarea>
+        </div>
+
+        <div>
+          <label for="snap-category" class="block text-sm font-medium mb-1.5">Category</label>
+          <select
+            name="category_id"
+            id="snap-category"
+            class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          >
+            <option value="">No category</option>
+            <option
+              :for={category <- @categories}
+              value={category.id}
+              selected={category.id == @category_id}
+            >
+              {category.name}
+            </option>
+          </select>
+        </div>
+
+        <div>
+          <label for="snap-tags" class="block text-sm font-medium mb-1.5">Tags</label>
+          <input
+            type="text"
+            name="tags"
+            id="snap-tags"
+            value={Enum.join(@ai.tags, ", ")}
+            class="w-full px-3 py-2.5 text-sm rounded-lg border border-slate-200 bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          />
+        </div>
+
+        <div>
+          <label for="snap-price" class="block text-sm font-medium mb-1.5">
+            Price (GHS) <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            inputmode="decimal"
+            name="price"
+            id="snap-price"
+            placeholder="e.g. 25.00"
+            class={[
+              "w-full px-3 py-2.5 text-sm rounded-lg border focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500",
+              if(@price_error, do: "border-red-300 bg-red-50", else: "border-slate-200 bg-white")
+            ]}
+          />
+          <p :if={@price_error} class="mt-1 text-xs text-red-600">{@price_error}</p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 pt-2">
+          <button
+            type="submit"
+            name="action"
+            value="draft"
+            class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 active:scale-95 transition-all"
+          >
+            Save draft
+          </button>
+          <button
+            type="submit"
+            name="action"
+            value="publish"
+            class="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all shadow-sm"
+          >
+            Publish
+          </button>
+        </div>
       </.form>
     </div>
     """
@@ -373,7 +457,14 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
         {:noreply, assign(socket, state: :retry, retry_message: "Upload failed — try again")}
 
       url ->
-        start_snap_ai(assign(socket, photo_url: url, source: source, state: :reading))
+        start_snap_ai(
+          assign(socket,
+            photo_url: url,
+            photo_content_type: entry.client_type,
+            source: source,
+            state: :reading
+          )
+        )
     end
   end
 
@@ -414,6 +505,135 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
     exception ->
       Logger.error("[product_live.snap] photo upload failed: #{Exception.message(exception)}")
       nil
+  end
+
+  # ── Product creation (review card submit) ──
+
+  # Sequence: product -> variant -> image -> (activate if publishing) ->
+  # award. The award MUST run last: Image's :create fires a revocation hook
+  # (Emakola.Catalog.Changes.RevokeSnapVerified) that flips snap_verified
+  # false on any product it touches, so awarding before the image is attached
+  # would be immediately undone.
+  #
+  # Wrapped in Ash.transact/2 so a failed step rolls back everything already
+  # written — no orphaned draft product left behind. The `with` chain's
+  # success arm must return the bare product (not `{:ok, product}`): Ecto
+  # wraps a transaction function's normal return in `{:ok, _}`, so returning
+  # an already-tagged tuple here would double-wrap it.
+  defp create_snap_product(socket, params, pesewas, action) do
+    %{
+      current_store: store,
+      current_merchant: merchant,
+      photo_url: photo_url,
+      photo_content_type: content_type,
+      source: source,
+      ai: ai,
+      flags_clean?: flags_clean?
+    } = socket.assigns
+
+    attrs = build_snap_attrs(params, store.id)
+
+    result =
+      Ash.transact(
+        [Emakola.Catalog.Product, Emakola.Catalog.Variant, Emakola.Catalog.Image],
+        fn ->
+          with {:ok, product} <-
+                 Emakola.Catalog.create_product(attrs, tenant: store.id, actor: merchant),
+               {:ok, _variant} <- create_snap_variant(product, pesewas, store, merchant),
+               {:ok, _image} <-
+                 create_snap_image(product, photo_url, content_type, ai.alt_text, store, merchant),
+               {:ok, product} <- maybe_activate_snap_product(product, action, store, merchant),
+               {:ok, product} <- award_snap_badge(product, store, source, flags_clean?) do
+            product
+          end
+        end
+      )
+
+    case result do
+      {:ok, product} ->
+        Emakola.Catalog.CachedCatalog.invalidate_store(store.id)
+
+        {:noreply,
+         socket
+         |> put_flash(:info, "Product created")
+         |> push_navigate(to: ~p"/admin/products/#{product.id}/edit")}
+
+      {:error, error} ->
+        Logger.error("[product_live.snap] product creation failed: #{inspect(error)}")
+        {:noreply, put_flash(socket, :error, "Something went wrong — try again")}
+    end
+  end
+
+  defp build_snap_attrs(params, store_id) do
+    tags =
+      (params["tags"] || "")
+      |> String.split(",", trim: true)
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+
+    %{
+      title: params["title"] || "",
+      description: params["description"],
+      category_id: normalize_category_id(params["category_id"]),
+      tags: tags,
+      store_id: store_id
+    }
+  end
+
+  defp normalize_category_id(""), do: nil
+  defp normalize_category_id(nil), do: nil
+  defp normalize_category_id(id), do: id
+
+  defp create_snap_variant(product, pesewas, store, merchant) do
+    sku = "SKU-" <> String.slice(Ecto.UUID.generate(), 0, 8)
+
+    Emakola.Catalog.create_variant(
+      %{
+        product_id: product.id,
+        store_id: store.id,
+        price: pesewas,
+        # Sellable by default, same rationale as the Form page's default variant.
+        track_inventory: false,
+        position: 0,
+        sku: sku
+      },
+      tenant: store.id,
+      actor: merchant
+    )
+  end
+
+  defp create_snap_image(product, photo_url, content_type, alt_text, store, merchant) do
+    Emakola.Catalog.create_image(
+      %{
+        url: photo_url,
+        alt_text: alt_text,
+        content_type: content_type,
+        product_id: product.id,
+        store_id: store.id
+      },
+      tenant: store.id,
+      actor: merchant
+    )
+  end
+
+  defp maybe_activate_snap_product(product, :publish, store, merchant) do
+    Emakola.Catalog.activate_product(product, tenant: store.id, actor: merchant)
+  end
+
+  defp maybe_activate_snap_product(product, :draft, _store, _merchant), do: {:ok, product}
+
+  # :set_snap_verified is forbidden to every actor by policy (badge
+  # integrity — see Emakola.Catalog.Product's policies), so this is the one
+  # write in the sequence that runs with authorize?: false.
+  defp award_snap_badge(product, store, source, flags_clean?) do
+    snap_verified = source == :camera and flags_clean?
+
+    product
+    |> Ash.Changeset.for_update(:set_snap_verified, %{snap_verified: snap_verified},
+      tenant: store.id,
+      authorize?: false
+    )
+    |> Ash.update()
   end
 
   defp ai_assigns(parsed, categories) do
