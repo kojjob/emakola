@@ -196,6 +196,11 @@ defmodule EmakolaWeb.Api.ProductController do
 
   defp validate_size(_binary), do: :ok
 
+  # sobelow_skip ["Traversal.FileModule"]
+  # False positive: `path` comes from a %Plug.Upload{} struct, which Plug's
+  # parsers construct only for genuine multipart file parts — a JSON body
+  # cannot forge a struct, so this is always Plug's own tmp-file path. The
+  # action head additionally requires %Plug.Upload{} before calling here.
   defp read_upload(%Plug.Upload{path: path}) do
     case File.read(path) do
       {:ok, binary} -> {:ok, binary}
