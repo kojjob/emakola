@@ -129,6 +129,8 @@ defmodule Emakola.Catalog.Image do
       require_atomic?(false)
       # Enqueue object-storage cleanup so the deleted row's files aren't orphaned.
       change(Emakola.Catalog.Changes.DeleteImageFiles)
+      # A removed image can uncover a different one at position 0 — revoke.
+      change(Emakola.Catalog.Changes.RevokeSnapVerified)
     end
 
     create :create do
@@ -150,11 +152,17 @@ defmodule Emakola.Catalog.Image do
       validate(
         {Emakola.Catalog.Validations.MaxValue, attribute: :file_size_bytes, max: 10_000_000}
       )
+
+      # A new image can take position 0 — revoke.
+      change(Emakola.Catalog.Changes.RevokeSnapVerified)
     end
 
     update :update do
       require_atomic?(false)
       accept([:alt_text, :position])
+      # Reordering (a :position change) revokes; alt_text-only edits — e.g.
+      # the AI alt-text backfill worker — must not.
+      change({Emakola.Catalog.Changes.RevokeSnapVerified, only_if_changing: :position})
     end
 
     update :mark_processed do
