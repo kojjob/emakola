@@ -229,14 +229,121 @@ defmodule EmakolaWeb.Admin.ProductSnapTest do
     # with it — is removed from the render tree, so the black-box upload
     # helpers can no longer target the "other" input to reproduce the race.
     test "handle_progress ignores a progress event once the flow has moved past :capture" do
-      socket = %{assigns: %{state: :review}}
-      entry = %{done?: true}
+      socket = %{
+        assigns: %{
+          state: :review,
+          uploads: %{photo_camera: %{entries: []}, photo_gallery: %{entries: []}}
+        }
+      }
+
+      entry = %{done?: true, ref: "stray-ref"}
 
       assert {:noreply, ^socket} =
                EmakolaWeb.Admin.ProductLive.Snap.handle_progress(:photo_camera, entry, socket)
 
       assert {:noreply, ^socket} =
                EmakolaWeb.Admin.ProductLive.Snap.handle_progress(:photo_gallery, entry, socket)
+    end
+
+    test "an invalid file (too large) shows an error the merchant can dismiss", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/products/snap")
+
+      # allow_upload's max_file_size is 10_000_000 bytes.
+      oversized = :binary.copy(<<0>>, 10_000_001)
+
+      upload =
+        file_input(view, "#snap-form", :photo_gallery, [
+          %{name: "big.png", content: oversized, type: "image/png"}
+        ])
+
+      # An entry-level error short-circuits render_upload/2 with an
+      # {:error, [[ref, reason]]} tuple instead of rendered HTML — the entry
+      # (with its error) is still registered on the socket via the preflight
+      # ack, so assert against a fresh render/1 instead.
+      assert {:error, [[_ref, :too_large]]} = render_upload(upload, "big.png")
+      assert render(view) =~ "File is too large"
+      assert has_element?(view, "button[phx-click=cancel_snap_entry]", "Remove")
+    end
+
+    test "an invalid file (wrong type) shows an error the merchant can dismiss", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/products/snap")
+
+      upload =
+        file_input(view, "#snap-form", :photo_gallery, [
+          %{name: "doc.pdf", content: "not an image", type: "application/pdf"}
+        ])
+
+      assert {:error, [[_ref, :not_accepted]]} = render_upload(upload, "doc.pdf")
+      assert render(view) =~ "Only image files are accepted"
+      assert has_element?(view, "button[phx-click=cancel_snap_entry]", "Remove")
+    end
+
+    test "cancel_snap_entry clears a rejected entry so a new file can be picked", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/admin/products/snap")
+
+      upload =
+        file_input(view, "#snap-form", :photo_gallery, [
+          %{name: "doc.pdf", content: "not an image", type: "application/pdf"}
+        ])
+
+      render_upload(upload, "doc.pdf")
+
+      # phx-value-config / phx-value-ref are read straight off the button's
+      # DOM attributes — no need to extract the ref manually.
+      html = view |> element("button[phx-click=cancel_snap_entry]") |> render_click()
+
+      refute html =~ "Only image files are accepted"
+
+      # The slot is free again — a fresh, valid selection succeeds.
+      stub_storage()
+      expect(Emakola.AI.ProviderMock, :complete, fn _req -> ok_payload() end)
+      allow_snap_mocks(view)
+
+      second_upload =
+        file_input(view, "#snap-form", :photo_gallery, [
+          %{name: "p.png", content: @small_png, type: "image/png"}
+        ])
+
+      render_upload(second_upload, "p.png")
+      render_async(view)
+
+      assert render(view) =~ "Handwoven Stole"
+    end
+
+    test "retry_photo clears entries so the same input accepts a new upload afterwards",
+         %{conn: conn} do
+      stub_storage()
+      expect(Emakola.AI.ProviderMock, :complete, 2, fn _req -> not_identified_payload() end)
+
+      {:ok, view, _html} = live(conn, ~p"/admin/products/snap")
+      allow_snap_mocks(view)
+
+      first_upload =
+        file_input(view, "#snap-form", :photo_gallery, [
+          %{name: "p.png", content: @small_png, type: "image/png"}
+        ])
+
+      render_upload(first_upload, "p.png")
+      render_async(view)
+      assert :sys.get_state(view.pid).socket.assigns.state == :retry
+
+      view |> element("button[phx-click=retry_photo]") |> render_click()
+      assert :sys.get_state(view.pid).socket.assigns.state == :capture
+
+      # Without retry_photo cancelling stray entries first, a second upload
+      # through the same :photo_gallery config (max_entries: 1) would hit
+      # :too_many_files instead of ever reaching AI generate again.
+      second_upload =
+        file_input(view, "#snap-form", :photo_gallery, [
+          %{name: "q.png", content: @small_png, type: "image/png"}
+        ])
+
+      render_upload(second_upload, "q.png")
+      render_async(view)
+
+      html = render(view)
+      refute html =~ "Only one photo at a time"
+      assert :sys.get_state(view.pid).socket.assigns.state == :retry
     end
   end
 

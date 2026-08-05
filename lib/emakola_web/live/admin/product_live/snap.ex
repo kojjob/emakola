@@ -65,6 +65,15 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
   # Both configs stay `allow_upload`ed for the whole LiveView lifetime, so a
   # stale progress event (e.g. the other input firing after the flow has
   # already moved on) must not restart the read mid-:reading/:review/:retry.
+  # A finished stray entry is cancelled so it doesn't strand the config's
+  # single `max_entries: 1` slot; a not-yet-done one is left alone (no
+  # explicit action needed until it either finishes — hitting this same
+  # clause — or `retry_photo` cancels it wholesale).
+  def handle_progress(name, %{done?: true} = entry, %{assigns: %{state: state}} = socket)
+      when name in [:photo_camera, :photo_gallery] and state != :capture do
+    {:noreply, cancel_if_present(socket, name, entry.ref)}
+  end
+
   def handle_progress(name, _entry, %{assigns: %{state: state}} = socket)
       when name in [:photo_camera, :photo_gallery] and state != :capture,
       do: {:noreply, socket}
@@ -88,7 +97,9 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
   @impl true
   def handle_event("retry_photo", _params, socket) do
     {:noreply,
-     assign(socket,
+     socket
+     |> cancel_all_uploads()
+     |> assign(
        state: :capture,
        photo_url: nil,
        retry_message: nil,
@@ -97,6 +108,21 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
        flags_clean?: false
      )}
   end
+
+  # A rejected file (too large / wrong type) sits in the config's single
+  # max_entries: 1 slot showing its error until the merchant dismisses it —
+  # without this, the "Remove" button next to the error message would have
+  # nothing to fire, and the slot would stay stuck.
+  @impl true
+  def handle_event("cancel_snap_entry", %{"config" => "photo_camera", "ref" => ref}, socket),
+    do: {:noreply, cancel_if_present(socket, :photo_camera, ref)}
+
+  @impl true
+  def handle_event("cancel_snap_entry", %{"config" => "photo_gallery", "ref" => ref}, socket),
+    do: {:noreply, cancel_if_present(socket, :photo_gallery, ref)}
+
+  @impl true
+  def handle_event("cancel_snap_entry", _params, socket), do: {:noreply, socket}
 
   # Product creation from the review card is Task 5's job.
   @impl true
@@ -193,12 +219,31 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
         </label>
       </div>
 
+      <%!-- Config-level errors (:too_many_files — a slot is already occupied). --%>
       <p
         :for={err <- upload_errors(@uploads.photo_camera) ++ upload_errors(@uploads.photo_gallery)}
         class="text-sm text-red-600"
       >
         {upload_error_message(err)}
       </p>
+
+      <%!-- Entry-level errors (:too_large, :not_accepted) — need a way to dismiss
+      the rejected entry, since it otherwise occupies the config's only slot. --%>
+      <div
+        :for={item <- entry_errors(@uploads)}
+        class="flex items-center justify-between gap-3 text-sm text-red-600"
+      >
+        <span>{Enum.join(item.messages, " ")}</span>
+        <button
+          type="button"
+          phx-click="cancel_snap_entry"
+          phx-value-config={item.config}
+          phx-value-ref={item.entry.ref}
+          class="shrink-0 text-xs font-semibold underline"
+        >
+          Remove
+        </button>
+      </div>
     </.form>
     """
   end
@@ -276,6 +321,44 @@ defmodule EmakolaWeb.Admin.ProductLive.Snap do
   end
 
   # ── Private ──
+
+  # Entry-level errors (:too_large, :not_accepted) live on `upload_errors/2`,
+  # not `upload_errors/1` (config-level: :too_many_files only) — the entry
+  # must be iterated to see them. Combines both configs so the template
+  # renders one list regardless of which input the merchant used.
+  defp entry_errors(uploads) do
+    for {name, config} <- [
+          photo_camera: uploads.photo_camera,
+          photo_gallery: uploads.photo_gallery
+        ],
+        entry <- config.entries,
+        errors = upload_errors(config, entry),
+        errors != [] do
+      %{config: name, entry: entry, messages: Enum.map(errors, &upload_error_message/1)}
+    end
+  end
+
+  defp cancel_all_uploads(socket) do
+    socket
+    |> cancel_entries(:photo_camera)
+    |> cancel_entries(:photo_gallery)
+  end
+
+  defp cancel_entries(socket, name) do
+    Enum.reduce(socket.assigns.uploads[name].entries, socket, fn entry, acc ->
+      cancel_upload(acc, name, entry.ref)
+    end)
+  end
+
+  # A duplicate `done?: true` progress message for an already-cancelled ref
+  # would make `cancel_upload/3` raise — check presence first.
+  defp cancel_if_present(socket, name, ref) do
+    if Enum.any?(socket.assigns.uploads[name].entries, &(&1.ref == ref)) do
+      cancel_upload(socket, name, ref)
+    else
+      socket
+    end
+  end
 
   defp complete_upload(socket, source, entry) do
     store = socket.assigns.current_store
