@@ -92,8 +92,8 @@ defmodule EmakolaWeb.HowItWorksHTML do
       role: "The market",
       subtitle: "The trust layer connecting every trade",
       icon: "hero-squares-plus",
-      image: "/images/dashboard-preview.png",
-      alt: "Makola merchant dashboard showing commerce operations",
+      image: "/images/makola-dashboard-preview.png",
+      alt: "Makola merchant dashboard showing revenue, orders, and top products",
       tone: "bg-[#ede9fe] text-[#6d28d9]",
       bullets: [
         "Records every pesewa of every settlement",
