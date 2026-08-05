@@ -160,6 +160,21 @@ defmodule EmakolaWeb.Router do
     forward "/", EmakolaWeb.Plugs.ShopApiForward
   end
 
+  # Merchant product writes for the mobile app. Explicit controllers, not
+  # ash_json_api: a resource's `json_api` routes are mounted by every router
+  # including that domain, and ShopApiRouter mounts Catalog on the PUBLIC
+  # storefront surface — product creation must not be routable there.
+  #
+  # MUST stay above the /api/v1 forward below for the usual reason: that
+  # forward matches every path under /api/v1 and would swallow these.
+  scope "/api/v1", EmakolaWeb.Api do
+    pipe_through [:api, :api_bearer, :api_tenant]
+
+    post "/products", ProductController, :create
+    post "/products/:id/variants", ProductController, :create_variant
+    post "/products/:id/images", ProductController, :create_image
+  end
+
   # Tenant-scoped JSON:API resources (orders; device tokens in a later task).
   # Declared below /api/v1/stores deliberately — forward matches everything
   # under /api/v1, so the stores route above must be declared first.
