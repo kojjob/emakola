@@ -96,23 +96,25 @@ test.describe("Dashboard real-time updates", () => {
     const shopperCtx = await browser.newContext({ baseURL });
 
     try {
+      // networkidle is not "LiveView joined": the WS join can land after HTTP
+      // goes quiet, and clicks (or PubSub renders) before the join are lost.
       const merchantPage = await merchantCtx.newPage();
       await merchantPage.goto("/dashboard");
-      await merchantPage.waitForLoadState("networkidle");
+      await waitForLiveView(merchantPage);
 
       const orderPattern = /ORD-\d{8}-[A-Z0-9]+/g;
       const before = new Set((await merchantPage.locator("body").innerText()).match(orderPattern) ?? []);
 
       const shopperPage = await shopperCtx.newPage();
       await shopperPage.goto(`${STORE}/products/handwoven-kente-clutch-bag`);
-      await shopperPage.waitForLoadState("networkidle");
+      await waitForLiveView(shopperPage);
       await shopperPage.getByRole("button", { name: "Add to Bag" }).click();
       await expect(shopperPage.locator("#flash-info")).toContainText("Added to cart", {
         timeout: 10_000,
       });
 
       await shopperPage.goto(`${STORE}/checkout`);
-      await shopperPage.waitForLoadState("networkidle");
+      await waitForLiveView(shopperPage);
       await shopperPage.locator("#phone").fill("0244555222");
       await shopperPage.locator("#fullname").fill("QA Realtime Shopper");
       await shopperPage.locator("#address").fill("77 PubSub Avenue, Osu");
