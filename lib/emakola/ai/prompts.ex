@@ -82,11 +82,11 @@ defmodule Emakola.AI.Prompts do
     ],
     "properties" => %{
       "identified" => %{"type" => "boolean"},
-      "title" => %{"type" => "string", "maxLength" => 60},
+      "title" => %{"type" => "string"},
       "description" => %{"type" => "string"},
       "category" => %{"type" => ["string", "null"]},
-      "tags" => %{"type" => "array", "items" => %{"type" => "string"}, "maxItems" => 8},
-      "alt_text" => %{"type" => "string", "maxLength" => 125},
+      "tags" => %{"type" => "array", "items" => %{"type" => "string"}},
+      "alt_text" => %{"type" => "string"},
       "photo_flags" => %{
         "type" => "object",
         "additionalProperties" => false,
@@ -216,7 +216,7 @@ defmodule Emakola.AI.Prompts do
     catalog-sourced rather than merchant-taken; watermark when any watermark or
     overlaid logo/text is present; screenshot when the image is a screenshot of
     another app or listing. category must be exactly one of the provided category
-    names, or null.
+    names, or null. Title 60 characters or fewer. At most 8 tags. Alt text under 125 characters, no 'image of' or 'picture of', plain English, no quotes.
     """
 
     categories = Enum.join(category_names, ", ")

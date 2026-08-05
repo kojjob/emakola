@@ -137,8 +137,12 @@ defmodule Emakola.AI.PromptsTest do
       assert text =~ "Fabrics"
     end
 
-    test "carries the provenance rule and a closed schema", %{req: req} do
+    test "carries the provenance rule, length guidance, and a closed schema", %{req: req} do
       assert req.system =~ "Never invent a material, ingredient, origin"
+      assert req.system =~ "Title 60 characters or fewer"
+      assert req.system =~ "At most 8 tags"
+      assert req.system =~ "Alt text under 125 characters"
+      assert req.system =~ "no 'image of' or 'picture of'"
       assert req.response_format == :json
       assert req.json_schema["additionalProperties"] == false
       assert "photo_flags" in req.json_schema["required"]
