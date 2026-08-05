@@ -39,7 +39,11 @@ defmodule Emakola.Customers.Actions.SetDefaultAddress do
 
   defp authorize_actor(_address, _actor), do: {:error, Ash.Error.Forbidden.exception([])}
 
-  defp customer_resource, do: Module.concat(["Emakola", "Customers", "Customer"])
+  # safe_concat/1 resolves only atoms that already exist, so this cannot mint
+  # one at runtime. The indirection itself is a compile-cycle workaround: naming
+  # the resource directly would create a cycle between the action and the
+  # resource that declares it.
+  defp customer_resource, do: Module.safe_concat(["Emakola", "Customers", "Customer"])
 
   defp set_default(resource, address, address_id) do
     # Clear all defaults for this customer

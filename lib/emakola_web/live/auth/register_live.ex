@@ -61,7 +61,7 @@ defmodule EmakolaWeb.Auth.RegisterLive do
             <span>Est. 2024</span>
           </div>
         </div>
-
+        
     <!-- Right Panel: Form -->
         <div class="flex-1 flex items-center justify-center bg-[#f7f8fa] px-6 py-12">
           <div class="w-full max-w-md">

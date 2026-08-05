@@ -145,14 +145,25 @@ defmodule Emakola.Security.SecretBackfill do
     end
   end
 
+  # A five-state machine over {plaintext, encrypted, blind_index}. The branch
+  # conditions are named rather than inlined so each state reads as what it
+  # means, and so the dispatch stays under the complexity gate — the states are
+  # irreducible, the predicates are not.
+  defp nothing_to_reconcile?(state),
+    do: is_nil(state.plaintext) and is_nil(state.encrypted) and is_nil(state.blind_index)
+
+  defp already_encrypted?(state), do: is_nil(state.plaintext) and is_binary(state.encrypted)
+
+  defp orphaned_blind_index?(state), do: is_nil(state.plaintext) and is_nil(state.encrypted)
+
   defp reconcile_row!(repo, target, row, config, before_write, attempts_left) do
     state = row_state(row)
 
     cond do
-      is_nil(state.plaintext) and is_nil(state.encrypted) and is_nil(state.blind_index) ->
+      nothing_to_reconcile?(state) ->
         false
 
-      is_nil(state.plaintext) and is_binary(state.encrypted) ->
+      already_encrypted?(state) ->
         case FieldEncryption.decrypt(
                state.encrypted,
                encrypted_context(target, state.id),
@@ -173,7 +184,7 @@ defmodule Emakola.Security.SecretBackfill do
             raise_backfill_error!(target, reason)
         end
 
-      is_nil(state.plaintext) and is_nil(state.encrypted) ->
+      orphaned_blind_index?(state) ->
         # A blind index cannot be authenticated without its source plaintext.
         # With both the compatibility value and ciphertext absent there is no
         # secret to preserve, so remove the orphaned lookup value.
