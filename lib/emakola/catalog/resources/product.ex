@@ -211,7 +211,8 @@ defmodule Emakola.Catalog.Product do
     # `authorize?: false` from the moderation queue. Forbidding every actor
     # means a merchant can't reverse a takedown, even though the merchant
     # write policy below would otherwise admit the update.
-    policy action([:take_down, :reinstate]) do
+    # Same applies to :set_snap_verified — badge integrity requires system-only writes.
+    policy action([:take_down, :reinstate, :set_snap_verified]) do
       forbid_if(always())
     end
 
